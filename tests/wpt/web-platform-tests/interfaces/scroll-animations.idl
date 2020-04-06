@@ -13,19 +13,19 @@ enum ScrollDirection {
 enum ScrollTimelineAutoKeyword { "auto" };
 
 dictionary ScrollTimelineOptions {
-  Element? scrollSource = null;
+  Element? source = null;
   ScrollDirection orientation = "block";
-  DOMString startScrollOffset = "auto";
-  DOMString endScrollOffset = "auto";
+  DOMString start = "auto";
+  DOMString end = "auto";
   (double or ScrollTimelineAutoKeyword) timeRange = "auto";
 };
 
 [Exposed=Window]
 interface ScrollTimeline : AnimationTimeline {
   constructor(optional ScrollTimelineOptions options = {});
-  readonly attribute Element scrollSource;
+  readonly attribute Element source;
   readonly attribute ScrollDirection orientation;
-  readonly attribute DOMString startScrollOffset;
-  readonly attribute DOMString endScrollOffset;
+  readonly attribute DOMString start;
+  readonly attribute DOMString end;
   readonly attribute (double or ScrollTimelineAutoKeyword) timeRange;
 };

@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1064432">
+<div id=target style="float: left;"></div>
+<script>
+document.getElementById('target').appendChild(document.createElement('frameset'));
+</script>
