@@ -249,6 +249,10 @@ pub trait ThreadSafeLayoutNode<'dom>:
 
     fn is_ignorable_whitespace(&self, context: &SharedStyleContext) -> bool;
 
+    fn is_body_element_for_layout(&self) -> bool;
+
+    fn is_html_element_for_layout(&self) -> bool;
+
     /// Returns true if this node contributes content. This is used in the implementation of
     /// `empty_cells` per CSS 2.1 § 17.6.1.1.
     fn is_content(&self) -> bool {

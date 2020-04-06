@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::cell::ArcRefCell;
+use crate::dom_traversal::NodeFlags;
 use crate::geom::flow_relative::{Rect, Sides};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 #[cfg(debug_assertions)]
@@ -60,6 +61,9 @@ pub(crate) struct BoxFragment {
 
     /// The scrollable overflow of this box fragment.
     pub scrollable_overflow_from_children: PhysicalRect<Length>,
+
+    /// Node flags of the node that this fragment belongs to.
+    pub flags: NodeFlags,
 }
 
 #[derive(Serialize)]
@@ -276,6 +280,7 @@ impl BoxFragment {
         border: Sides<Length>,
         margin: Sides<Length>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
+        flags: NodeFlags,
     ) -> BoxFragment {
         // FIXME(mrobinson, bug 25564): We should be using the containing block
         // here to properly convert scrollable overflow to physical geometry.
@@ -298,6 +303,7 @@ impl BoxFragment {
             margin,
             block_margins_collapsed_with_children,
             scrollable_overflow_from_children,
+            flags,
         }
     }
 

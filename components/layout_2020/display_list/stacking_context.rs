@@ -5,6 +5,7 @@
 use crate::cell::ArcRefCell;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::DisplayListBuilder;
+use crate::dom_traversal::NodeFlags;
 use crate::fragments::{
     AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment, Fragment,
 };
@@ -70,6 +71,10 @@ pub(crate) struct StackingContextBuilder<'a> {
     nearest_reference_frame: wr::SpatialId,
 
     wr: &'a mut wr::DisplayListBuilder,
+
+    /// The style to apply to use when painting the canvas background of the root
+    /// <html> element.
+    pub root_canvas_style: Option<ServoArc<ComputedValues>>,
 }
 
 impl<'a> StackingContextBuilder<'a> {
@@ -78,6 +83,7 @@ impl<'a> StackingContextBuilder<'a> {
             current_space_and_clip: wr::SpaceAndClipInfo::root_scroll(wr.pipeline_id),
             nearest_reference_frame: wr::SpatialId::root_reference_frame(wr.pipeline_id),
             wr,
+            root_canvas_style: None,
         }
     }
 
@@ -91,6 +97,29 @@ impl<'a> StackingContextBuilder<'a> {
         self.nearest_reference_frame = previous_nearest_reference_frame;
 
         result
+    }
+
+    fn set_root_canvas_background_if_necessary(&mut self, fragment: &BoxFragment) {
+        // https://drafts.csswg.org/css-backgrounds/#special-backgrounds
+        // If the first child element is the root element and doesn't have a non-transparent
+        // background specified, we should apply the style of the <body> element to it.
+
+        // If we've already set a root canvas style, don't override it.
+        if self.root_canvas_style.is_some() {
+            return;
+        }
+
+        // We should never prefer a style that specifies a transparent background for
+        // use as the root canvas background style.
+        if !fragment.style.has_nontransparent_background() {
+            return;
+        }
+
+        if fragment.flags.contains(NodeFlags::IS_HTML_ELEMENT) {
+            self.root_canvas_style = Some(fragment.style.clone());
+        } else if fragment.flags.contains(NodeFlags::IS_BODY_ELEMENT) {
+            self.root_canvas_style = Some(fragment.style.clone());
+        }
     }
 }
 
@@ -378,6 +407,15 @@ impl BoxFragment {
     }
 
     fn get_stacking_context_section(&self) -> StackingContextSection {
+        // https://drafts.csswg.org/css2/zindex.html
+        // The root HTML and BODY elements are considered as part of the root
+        // stacking context background.
+        if self.flags.contains(NodeFlags::IS_HTML_ELEMENT) ||
+            self.flags.contains(NodeFlags::IS_BODY_ELEMENT)
+        {
+            return StackingContextSection::BackgroundsAndBorders;
+        }
+
         if self.get_stacking_context_type().is_some() {
             return StackingContextSection::BackgroundsAndBorders;
         }
@@ -420,6 +458,8 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
     ) {
+        builder.set_root_canvas_background_if_necessary(self);
+
         builder.clipping_and_scrolling_scope(|builder| {
             self.adjust_spatial_id_for_positioning(builder);
 

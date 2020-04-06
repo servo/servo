@@ -4,6 +4,7 @@
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
+use crate::dom_traversal::NodeFlags;
 use crate::flow::float::FloatBox;
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
@@ -53,6 +54,7 @@ pub(crate) struct InlineBox {
     pub first_fragment: bool,
     pub last_fragment: bool,
     pub children: Vec<ArcRefCell<InlineLevelBox>>,
+    pub flags: NodeFlags,
 }
 
 /// https://www.w3.org/TR/css-display-3/#css-text-run
@@ -85,6 +87,7 @@ struct PartialInlineBoxFragment<'box_tree> {
     border: Sides<Length>,
     margin: Sides<Length>,
     last_box_tree_fragment: bool,
+    flags: NodeFlags,
     parent_nesting_level: InlineNestingLevelState<'box_tree>,
 }
 
@@ -451,6 +454,7 @@ impl InlineBox {
             border,
             margin,
             last_box_tree_fragment: self.last_fragment,
+            flags: self.flags,
             parent_nesting_level: std::mem::replace(
                 &mut ifc.current_nesting_level,
                 InlineNestingLevelState {
@@ -493,6 +497,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
             self.border.clone(),
             self.margin.clone(),
             CollapsedBlockMargins::zero(),
+            self.flags,
         );
         let last_fragment = self.last_box_tree_fragment && !at_line_break;
         if last_fragment {
@@ -555,6 +560,7 @@ fn layout_atomic(
                 pbm.border,
                 margin,
                 CollapsedBlockMargins::zero(),
+                atomic.flags,
             )
         },
         Err(non_replaced) => {
@@ -626,6 +632,7 @@ fn layout_atomic(
                 pbm.border,
                 margin,
                 CollapsedBlockMargins::zero(),
+                atomic.flags,
             )
         },
     };

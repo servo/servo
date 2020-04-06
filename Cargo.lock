@@ -2931,6 +2931,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "atomic_refcell",
+ "bitflags",
  "canvas_traits",
  "cssparser",
  "embedder_traits",

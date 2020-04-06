@@ -432,6 +432,7 @@ where
                 first_fragment: true,
                 last_fragment: false,
                 children: vec![],
+                flags: node.get_node_flags(),
             });
 
             // `unwrap` doesn’t panic here because `is_replaced` returned `false`.
@@ -492,6 +493,7 @@ where
                         // are obviously not the last fragment.
                         last_fragment: false,
                         children: std::mem::take(&mut ongoing.children),
+                        flags: ongoing.flags,
                     };
                     ongoing.first_fragment = false;
                     fragmented
@@ -699,6 +701,7 @@ where
                     tag: node.as_opaque(),
                     contents,
                     style,
+                    flags: node.get_node_flags(),
                 });
                 (block_level_box, contains_floats)
             },

@@ -15,6 +15,7 @@ doctest = false
 [dependencies]
 app_units = "0.7"
 atomic_refcell = "0.1.6"
+bitflags = "1.0"
 canvas_traits = {path = "../canvas_traits"}
 cssparser = "0.27"
 embedder_traits = {path = "../embedder_traits"}

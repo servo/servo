@@ -355,6 +355,17 @@ impl Drop for BoxSlot<'_> {
     }
 }
 
+bitflags! {
+    #[derive(Serialize)]
+    pub(crate) struct NodeFlags: u8 {
+        #[doc = "This node is an <html> element."]
+        const IS_HTML_ELEMENT = 0b001;
+
+        #[doc = "This node is a <body> element."]
+        const IS_BODY_ELEMENT = 0b010;
+    }
+}
+
 pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode<'dom> + Send + Sync {
     fn is_element(self) -> bool;
     fn as_text(self) -> Option<Cow<'dom, str>>;
@@ -374,6 +385,8 @@ pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode<'dom> + Send + Sync {
     fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom>;
     fn unset_pseudo_element_box(self, which: WhichPseudoElement);
     fn unset_boxes_in_subtree(self);
+
+    fn get_node_flags(&self) -> NodeFlags;
 }
 
 impl<'dom, T> NodeExt<'dom> for T
@@ -518,5 +531,16 @@ where
                 return;
             }
         }
+    }
+
+    fn get_node_flags(&self) -> NodeFlags {
+        let mut flags = NodeFlags::empty();
+        if self.to_threadsafe().is_html_element_for_layout() {
+            flags |= NodeFlags::IS_HTML_ELEMENT;
+        } else if self.to_threadsafe().is_body_element_for_layout() {
+            flags |= NodeFlags::IS_BODY_ELEMENT;
+        }
+
+        flags
     }
 }

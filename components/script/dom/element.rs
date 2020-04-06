@@ -48,6 +48,7 @@ use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlfontelement::{HTMLFontElement, HTMLFontElementLayoutHelpers};
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::htmlhrelement::{HTMLHRElement, HTMLHRLayoutHelpers};
+use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmliframeelement::{HTMLIFrameElement, HTMLIFrameElementLayoutMethods};
 use crate::dom::htmlimageelement::{HTMLImageElement, LayoutHTMLImageElementHelpers};
 use crate::dom::htmlinputelement::{HTMLInputElement, LayoutHTMLInputElementHelpers};
@@ -575,6 +576,8 @@ pub trait LayoutElementHelpers<'dom> {
     fn get_colspan(self) -> u32;
     fn get_rowspan(self) -> u32;
     fn is_html_element(self) -> bool;
+    fn is_body_element_for_layout(&self) -> bool;
+    fn is_html_element_for_layout(&self) -> bool;
     fn id_attribute(self) -> *const Option<Atom>;
     fn style_attribute(self) -> *const Option<Arc<Locked<PropertyDeclarationBlock>>>;
     fn local_name(self) -> &'dom LocalName;
@@ -583,6 +586,7 @@ pub trait LayoutElementHelpers<'dom> {
     fn get_state_for_layout(self) -> ElementState;
     fn insert_selector_flags(self, flags: ElementSelectorFlags);
     fn has_selector_flags(self, flags: ElementSelectorFlags) -> bool;
+
     /// The shadow root this element is a host of.
     fn get_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
     fn get_attr_for_layout(
@@ -975,6 +979,28 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
     #[inline]
     fn is_html_element(self) -> bool {
         *self.namespace() == ns!(html)
+    }
+
+    #[inline]
+    fn is_body_element_for_layout(&self) -> bool {
+        if !self.downcast::<HTMLBodyElement>().is_some() {
+            return false;
+        }
+
+        let parent_node_ref = match self.upcast::<Node>().composed_parent_node_ref() {
+            Some(parent_node_ref) => parent_node_ref,
+            None => return false,
+        };
+
+        parent_node_ref
+            .downcast::<Element>()
+            .map_or(false, |element| element.is_html_element())
+    }
+
+    #[inline]
+    #[allow(unsafe_code)]
+    fn is_html_element_for_layout(&self) -> bool {
+        self.downcast::<HTMLHtmlElement>().is_some() && self.upcast::<Node>().is_root()
     }
 
     #[allow(unsafe_code)]

@@ -4,6 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
+use crate::dom_traversal::NodeFlags;
 use crate::fragments::{BoxFragment, Fragment, TextFragment};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 use crate::replaced::IntrinsicSizes;
@@ -12,6 +13,7 @@ use euclid::{Point2D, SideOffsets2D, Size2D};
 use gfx::text::glyph::GlyphStore;
 use mitochondria::OnceCell;
 use net_traits::image_cache::UsePlaceholder;
+use servo_arc::Arc as ServoArc;
 use std::sync::Arc;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
@@ -49,6 +51,10 @@ pub struct DisplayListBuilder<'a> {
     /// (i.e. the display list contains items of type text,
     /// image, non-white canvas or SVG). Used by metrics.
     pub is_contentful: bool,
+
+    /// The style to apply to use when painting the canvas background of the root
+    /// <html> element.
+    pub root_canvas_style: Option<ServoArc<ComputedValues>>,
 }
 
 impl<'a> DisplayListBuilder<'a> {
@@ -62,6 +68,7 @@ impl<'a> DisplayListBuilder<'a> {
             is_contentful: false,
             context,
             wr: wr::DisplayListBuilder::new(pipeline_id, viewport_size),
+            root_canvas_style: None,
         }
     }
 
@@ -78,7 +85,9 @@ impl Fragment {
         containing_block: &PhysicalRect<Length>,
     ) {
         match self {
-            Fragment::Box(b) => BuilderForBoxFragment::new(b, containing_block).build(builder),
+            Fragment::Box(fragment) => {
+                BuilderForBoxFragment::new(fragment, containing_block).build(builder);
+            },
             Fragment::AbsoluteOrFixedPositioned(_) => {},
             Fragment::Anonymous(_) => {},
             Fragment::Image(i) => {
@@ -257,6 +266,18 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
     }
 
+    fn background_style(&self, builder: &DisplayListBuilder) -> ServoArc<ComputedValues> {
+        if self.fragment.flags.contains(NodeFlags::IS_HTML_ELEMENT) {
+            builder
+                .root_canvas_style
+                .as_ref()
+                .unwrap_or(&self.fragment.style)
+                .clone()
+        } else {
+            self.fragment.style.clone()
+        }
+    }
+
     fn content_rect(&self) -> &units::LayoutRect {
         self.content_rect.init_once(|| {
             self.fragment
@@ -333,19 +354,35 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_background(&mut self, builder: &mut DisplayListBuilder) {
+        // If this is the body element of the page and our style used on the html element
+        // then we shouldn't paint our background for our own fragment.
+        if self.fragment.flags.contains(NodeFlags::IS_BODY_ELEMENT) &&
+            builder
+                .root_canvas_style
+                .as_ref()
+                .map_or(false, |root_style| {
+                    ServoArc::ptr_eq(root_style, &self.fragment.style)
+                })
+        {
+            return;
+        }
+
         use style::values::computed::image::{Image, ImageLayer};
-        let b = self.fragment.style.get_background();
-        let background_color = self.fragment.style.resolve_color(b.background_color);
+        let background_style = self.background_style(builder).clone();
+        let background = background_style.get_background();
+        let background_color = background_style.resolve_color(background.background_color);
+
         if background_color.alpha > 0 {
             // https://drafts.csswg.org/css-backgrounds/#background-color
             // “The background color is clipped according to the background-clip
             //  value associated with the bottom-most background image layer.”
-            let layer_index = b.background_image.0.len() - 1;
-            let (_, common) = background::painting_area(self, builder, layer_index);
+            let layer_index = background.background_image.0.len() - 1;
+            let (_, common) =
+                background::painting_area(self, builder, &background_style, layer_index);
             builder.wr.push_rect(&common, rgba(background_color))
         }
         // Reverse because the property is top layer first, we want to paint bottom layer first.
-        for (index, layer) in b.background_image.0.iter().enumerate().rev() {
+        for (index, layer) in background.background_image.0.iter().enumerate().rev() {
             match layer {
                 ImageLayer::None => {},
                 ImageLayer::Image(image) => match image {
@@ -355,10 +392,14 @@ impl<'a> BuilderForBoxFragment<'a> {
                             height: None,
                             ratio: None,
                         };
-                        if let Some(layer) =
-                            &background::layout_layer(self, builder, index, intrinsic)
-                        {
-                            gradient::build(&self.fragment.style, gradient, layer, builder)
+                        if let Some(layer) = &background::layout_layer(
+                            self,
+                            builder,
+                            &background_style,
+                            index,
+                            intrinsic,
+                        ) {
+                            gradient::build(&background_style, gradient, layer, builder)
                         }
                     },
                     Image::Url(image_url) => {
@@ -393,11 +434,15 @@ impl<'a> BuilderForBoxFragment<'a> {
                             ratio: Some(width as f32 / height as f32),
                         };
 
-                        if let Some(layer) =
-                            background::layout_layer(self, builder, index, intrinsic)
-                        {
+                        if let Some(layer) = background::layout_layer(
+                            self,
+                            builder,
+                            &background_style,
+                            index,
+                            intrinsic,
+                        ) {
                             let image_rendering =
-                                image_rendering(self.fragment.style.clone_image_rendering());
+                                image_rendering(background_style.clone_image_rendering());
                             if layer.repeat {
                                 builder.wr.push_repeating_image(
                                     &layer.common,

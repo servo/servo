@@ -10,6 +10,7 @@ use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::ComputedValues;
+use style::values::computed::image::ImageLayer as ComputedImageLayer;
 use style::values::computed::{Length, LengthPercentage};
 use style::values::computed::{NonNegativeLengthPercentage, Size};
 use style::values::generics::box_::Perspective;
@@ -88,6 +89,7 @@ pub(crate) trait ComputedValuesExt {
     fn establishes_stacking_context(&self) -> bool;
     fn establishes_containing_block(&self) -> bool;
     fn establishes_containing_block_for_all_descendants(&self) -> bool;
+    fn has_nontransparent_background(&self) -> bool;
 }
 
 impl ComputedValuesExt for ComputedValues {
@@ -360,6 +362,24 @@ impl ComputedValuesExt for ComputedValues {
 
         // TODO: We need to handle CSS Contain here.
         false
+    }
+
+    /// Whether or not this style specifies a non-transparent background.
+    fn has_nontransparent_background(&self) -> bool {
+        let background = self.get_background();
+        let color = self.resolve_color(background.background_color);
+        if color.alpha > 0 {
+            return true;
+        }
+
+        background
+            .background_image
+            .0
+            .iter()
+            .any(|layer| match layer {
+                ComputedImageLayer::None => false,
+                _ => true,
+            })
     }
 }
 

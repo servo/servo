@@ -1273,6 +1273,8 @@ pub trait LayoutNodeHelpers<'dom> {
     fn prev_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
     fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>>;
 
+    fn is_root(self) -> bool;
+
     fn owner_doc_for_layout(self) -> LayoutDom<'dom, Document>;
     fn containing_shadow_root_for_layout(self) -> Option<LayoutDom<'dom, ShadowRoot>>;
 
@@ -1352,6 +1354,12 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[allow(unsafe_code)]
     fn next_sibling_ref(self) -> Option<LayoutDom<'dom, Node>> {
         unsafe { self.unsafe_get().next_sibling.get_inner_as_layout() }
+    }
+
+    #[inline]
+    fn is_root(self) -> bool {
+        self.parent_node_ref()
+            .map_or(false, |parent| parent.downcast::<Document>().is_some())
     }
 
     #[inline]

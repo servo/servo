@@ -1082,6 +1082,24 @@ impl<'ln> ThreadSafeLayoutNode<'ln> for ServoThreadSafeLayoutNode<'ln> {
         }
     }
 
+    fn is_body_element_for_layout(&self) -> bool {
+        unsafe {
+            self.get_jsmanaged()
+                .downcast::<Element>()
+                .map(|element| element.is_body_element_for_layout())
+                .unwrap_or(false)
+        }
+    }
+
+    fn is_html_element_for_layout(&self) -> bool {
+        unsafe {
+            self.get_jsmanaged()
+                .downcast::<Element>()
+                .map(|element| element.is_html_element_for_layout())
+                .unwrap_or(false)
+        }
+    }
+
     unsafe fn unsafe_get(self) -> Self::ConcreteNode {
         self.node
     }

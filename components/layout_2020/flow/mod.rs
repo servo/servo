@@ -6,6 +6,7 @@
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
+use crate::dom_traversal::NodeFlags;
 use crate::flow::float::{FloatBox, FloatContext};
 use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout, NonReplacedIFC};
@@ -50,6 +51,7 @@ pub(crate) enum BlockLevelBox {
         #[serde(skip_serializing)]
         style: Arc<ComputedValues>,
         contents: BlockContainer,
+        flags: NodeFlags,
     },
     OutOfFlowAbsolutelyPositionedBox(Arc<AbsolutelyPositionedBox>),
     OutOfFlowFloatBox(FloatBox),
@@ -270,6 +272,7 @@ impl BlockLevelBox {
                 tag,
                 style,
                 contents,
+                flags,
             } => Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
                 layout_context,
                 containing_block,
@@ -284,6 +287,7 @@ impl BlockLevelBox {
                         NonReplacedContents::SameFormattingContextBlock(contents),
                         tree_rank,
                         float_context,
+                        *flags,
                     )
                 },
             )),
@@ -298,6 +302,7 @@ impl BlockLevelBox {
                             contents.tag,
                             &contents.style,
                             replaced,
+                            contents.flags,
                         ),
                         Err(non_replaced) => layout_in_flow_non_replaced_block_level(
                             layout_context,
@@ -310,6 +315,7 @@ impl BlockLevelBox {
                             ),
                             tree_rank,
                             float_context,
+                            contents.flags,
                         ),
                     },
                 ))
@@ -349,6 +355,7 @@ fn layout_in_flow_non_replaced_block_level(
     block_level_kind: NonReplacedContents,
     tree_rank: usize,
     float_context: Option<&mut FloatContext>,
+    flags: NodeFlags,
 ) -> BoxFragment {
     let pbm = style.padding_border_margin(containing_block);
     let box_size = style.content_box_size(containing_block, &pbm);
@@ -491,6 +498,7 @@ fn layout_in_flow_non_replaced_block_level(
         pbm.border,
         margin,
         block_margins_collapsed_with_children,
+        flags,
     )
 }
 
@@ -502,6 +510,7 @@ fn layout_in_flow_replaced_block_level<'a>(
     tag: OpaqueNode,
     style: &Arc<ComputedValues>,
     replaced: &ReplacedContent,
+    flags: NodeFlags,
 ) -> BoxFragment {
     let pbm = style.padding_border_margin(containing_block);
     let size = replaced.used_size_as_if_inline_element(containing_block, style, &pbm);
@@ -532,6 +541,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         pbm.border,
         margin,
         block_margins_collapsed_with_children,
+        flags,
     )
 }
 

@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
-use crate::dom_traversal::{Contents, NodeExt};
+use crate::dom_traversal::{Contents, NodeExt, NodeFlags};
 use crate::flow::BlockFormattingContext;
 use crate::fragments::Fragment;
 use crate::positioned::PositioningContext;
@@ -29,6 +29,8 @@ pub(crate) struct IndependentFormattingContext {
     pub content_sizes: BoxContentSizes,
 
     contents: IndependentFormattingContextContents,
+
+    pub flags: NodeFlags,
 }
 
 pub(crate) struct IndependentLayout {
@@ -81,6 +83,7 @@ impl IndependentFormattingContext {
                         style,
                         content_sizes,
                         contents: IndependentFormattingContextContents::Flow(bfc),
+                        flags: node.get_node_flags(),
                     }
                 },
             },
@@ -91,6 +94,7 @@ impl IndependentFormattingContext {
                     style,
                     content_sizes,
                     contents: IndependentFormattingContextContents::Replaced(replaced),
+                    flags: node.get_node_flags(),
                 }
             },
         }

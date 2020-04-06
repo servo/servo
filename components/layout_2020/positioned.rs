@@ -554,6 +554,7 @@ impl HoistedAbsolutelyPositionedBox {
                     pbm.border,
                     margin,
                     CollapsedBlockMargins::zero(),
+                    self.absolutely_positioned_box.contents.flags,
                 )
             },
         )

@@ -2,10 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom_traversal::NodeFlags;
 use crate::replaced::IntrinsicSizes;
 use euclid::{Size2D, Vector2D};
+use servo_arc::Arc as ServoArc;
 use style::computed_values::background_clip::single_value::T as Clip;
 use style::computed_values::background_origin::single_value::T as Origin;
+use style::properties::ComputedValues;
 use style::values::computed::background::BackgroundSize as Size;
 use style::values::computed::{Length, LengthPercentage};
 use style::values::specified::background::BackgroundRepeat as RepeatXY;
@@ -34,17 +37,50 @@ fn get_cyclic<T>(values: &[T], layer_index: usize) -> &T {
 pub(super) fn painting_area<'a>(
     fragment_builder: &'a super::BuilderForBoxFragment,
     builder: &mut super::DisplayListBuilder,
+    background_style: &ServoArc<ComputedValues>,
     layer_index: usize,
-) -> (&'a units::LayoutRect, wr::CommonItemProperties) {
-    let fb = fragment_builder;
-    let b = fb.fragment.style.get_background();
-    let (painting_area, clip) = match get_cyclic(&b.background_clip.0, layer_index) {
-        Clip::ContentBox => (fb.content_rect(), fb.content_edge_clip(builder)),
-        Clip::PaddingBox => (fb.padding_rect(), fb.padding_edge_clip(builder)),
-        Clip::BorderBox => (&fb.border_rect, fb.border_edge_clip(builder)),
+) -> (units::LayoutRect, wr::CommonItemProperties) {
+    // https://drafts.csswg.org/css-backgrounds/#special-backgrounds
+    // The spec says that the for the root element, the painting area should be an infinite
+    // surface area over which the document is rendered. We simply paint the union of the
+    // scrollable overflow of the element and the viewport, which is a decent simulation.
+    let (painting_area, clip) = if fragment_builder
+        .fragment
+        .flags
+        .contains(NodeFlags::IS_HTML_ELEMENT)
+    {
+        let containing_block = &fragment_builder.containing_block;
+        let scrollable_overflow = fragment_builder
+            .fragment
+            .scrollable_overflow(containing_block);
+        let max_point = units::LayoutSize::new(
+            scrollable_overflow
+                .max_x()
+                .max(containing_block.max_x())
+                .px(),
+            scrollable_overflow
+                .max_y()
+                .max(containing_block.max_y())
+                .px(),
+        );
+        (
+            units::LayoutRect::new(units::LayoutPoint::zero(), max_point),
+            None,
+        )
+    } else {
+        let fb = fragment_builder;
+        match get_cyclic(
+            &background_style.get_background().background_clip.0,
+            layer_index,
+        ) {
+            Clip::ContentBox => (*fb.content_rect(), fb.content_edge_clip(builder)),
+            Clip::PaddingBox => (*fb.padding_rect(), fb.padding_edge_clip(builder)),
+            Clip::BorderBox => (fb.border_rect, fb.border_edge_clip(builder)),
+        }
     };
+
     // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
-    let mut common = builder.common_properties(*painting_area);
+    let mut common = builder.common_properties(painting_area);
     if let Some(clip_id) = clip {
         common.clip_id = clip_id
     }
@@ -54,12 +90,14 @@ pub(super) fn painting_area<'a>(
 pub(super) fn layout_layer(
     fragment_builder: &mut super::BuilderForBoxFragment,
     builder: &mut super::DisplayListBuilder,
+    background_style: &ServoArc<ComputedValues>,
     layer_index: usize,
     intrinsic: IntrinsicSizes,
 ) -> Option<BackgroundLayer> {
-    let b = fragment_builder.fragment.style.get_background();
-    let (painting_area, common) = painting_area(fragment_builder, builder, layer_index);
+    let (painting_area, common) =
+        painting_area(fragment_builder, builder, background_style, layer_index);
 
+    let b = background_style.get_background();
     let positioning_area = match get_cyclic(&b.background_origin.0, layer_index) {
         Origin::ContentBox => fragment_builder.content_rect(),
         Origin::PaddingBox => fragment_builder.padding_rect(),
