@@ -22,13 +22,13 @@
             const iframe = document.createElement("iframe");
             iframe.src = "resources/css-module-at-import-iframe.html";
             iframe.onload = test.step_func_done(function () {
-                assert_equals(iframe.contentDocument.load_error, "NotAllowedError");
+                assert_equals(iframe.contentDocument.load_error, undefined);
                 assert_not_equals(getComputedStyle(iframe.contentDocument.querySelector('#test'))
                     .backgroundColor, "rgb(255, 0, 0)",
                     "CSS module @import should not succeed");
             });
             document.body.appendChild(iframe);
-        }, "An @import CSS Module should not load");
+        }, "An @import CSS Module should not load, but should not throw an exception");
 
         async_test(function (test) {
             const iframe = document.createElement("iframe");

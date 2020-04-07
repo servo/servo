@@ -48,7 +48,7 @@ test(() => {
 
 test(() => {
   const sheet = new CSSStyleSheet({disabled: true, media: "screen, print"});
-  assert_equals(sheet.title, null);
+  assert_equals(sheet.title, null, "The title attribute must return the title or null if title is the empty string");
   assert_equals(sheet.ownerNode, null);
   assert_equals(sheet.ownerRule, null);
   assert_equals(sheet.media.length, 2);
@@ -66,7 +66,7 @@ test(() => {
   assert_equals(sheet.cssRules[0].cssText, redStyleTexts[1]);
 
   const sheet2 = new CSSStyleSheet({});
-  assert_equals(sheet2.title, null);
+  assert_equals(sheet2.title, null, "The title attribute must return the title or null if title is the empty string");
   assert_equals(sheet2.ownerNode, null);
   assert_equals(sheet2.ownerRule, null);
   assert_equals(sheet2.media.length, 0);
@@ -81,7 +81,7 @@ test(() => {
   assert_equals(sheet2.cssRules.length, 0);
 
   const sheet3 = new CSSStyleSheet();
-  assert_equals(sheet3.title, null);
+  assert_equals(sheet3.title, null, "The title attribute must return the title or null if title is the empty string");
   assert_equals(sheet3.ownerNode, null);
   assert_equals(sheet3.ownerRule, null);
   assert_equals(sheet3.media.length, 0);
@@ -98,14 +98,14 @@ test(() => {
 
 test(() => {
   const sheet = new CSSStyleSheet({title: "something"});
-  assert_equals(sheet.title, null);
-}, "title cannot be set in the CSSStyleSheet constructor");
+  assert_equals(sheet.title, null, "title and alternate are not supported by the constructor. https://github.com/WICG/construct-stylesheets/issues/105");
+}, "title can be set in the CSSStyleSheet constructor");
 
 promise_test(() => {
   const sheet = new CSSStyleSheet({disabled: true, media: "screen, print"});
   const promise_sheet = sheet.replace(redStyleTexts[0]);
   return promise_sheet.then(function(sheet) {
-    assert_equals(sheet.title, null);
+    assert_equals(sheet.title, null, "The title attribute must return the title or null if title is the empty string");
     assert_equals(sheet.ownerNode, null);
     assert_equals(sheet.ownerRule, null);
     assert_equals(sheet.media.length, 2);
@@ -535,24 +535,19 @@ test(() => {
   const style = document.createElement("style");
   style.textContent = ".target { color: white; }";
   span.shadowRoot.appendChild(style)
-  // non-adopted styles should be ordered before adopted styles
-  assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 0, 0)");
+  assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 0, 0)", "non-adopted styles should be ordered before adopted styles");
 
   span.shadowRoot.adoptedStyleSheets = [];
-  // with no adopted styles in conflict, the non-adopted style should take effect
-  assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 255, 255)");
+  assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 255, 255)", "with no adopted styles in conflict, the non-adopted style should take effect");
 
   span.shadowRoot.adoptedStyleSheets = [sheet];
-  // the adopted style should be ordered after the non-adopted style
-  assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 0, 0)");
+  assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 0, 0)", "the adopted style should be ordered after the non-adopted style");
 
   sheet.disabled = true;
-  // with the adopted sheet disabled, the non-adopted style should take effect
-  assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 255, 255)");
+  assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 255, 255)", "with the adopted sheet disabled, the non-adopted style should take effect");
 
   sheet.disabled = false;
-  // the adopted sheet re-enabled, it should take effect again.
-  assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 0, 0)");
+  assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 0, 0)", "the adopted sheet re-enabled, it should take effect again");
 }, 'Adopted sheets are ordered after non-adopted sheets in the shadow root')
 
 test(() => {
@@ -574,41 +569,32 @@ test(() => {
   const style = document.createElement("style");
   style.textContent = ".target { color: white; }";
   span.appendChild(style)
-  // non-adopted styles should be ordered before adopted styles
-  assert_equals(getComputedStyle(span).color, "rgb(255, 0, 0)");
+  assert_equals(getComputedStyle(span).color, "rgb(255, 0, 0)", "non-adopted styles should be ordered before adopted styles");
 
   document.adoptedStyleSheets = [];
-  // with no adopted styles in conflict, the non-adopted style should take effect
-  assert_equals(getComputedStyle(span).color, "rgb(255, 255, 255)");
+  assert_equals(getComputedStyle(span).color, "rgb(255, 255, 255)", "with no adopted styles in conflict, the non-adopted style should take effect");
 
   document.adoptedStyleSheets = [sheet];
-  // the adopted style should be ordered after the non-adopted style
-  assert_equals(getComputedStyle(span).color, "rgb(255, 0, 0)");
+  assert_equals(getComputedStyle(span).color, "rgb(255, 0, 0)", "the adopted style should be ordered after the non-adopted style");
 
   sheet.disabled = true;
-  // with the adopted sheet disabled, the non-adopted style should take effect
-  assert_equals(getComputedStyle(span).color, "rgb(255, 255, 255)");
+  assert_equals(getComputedStyle(span).color, "rgb(255, 255, 255)", "with the adopted sheet disabled, the non-adopted style should take effect");
 
   sheet.disabled = false;
-  // the adopted sheet re-enabled, it should take effect again.
-  assert_equals(getComputedStyle(span).color, "rgb(255, 0, 0)")
+  assert_equals(getComputedStyle(span).color, "rgb(255, 0, 0)", "the adopted sheet re-enabled, it should take effect again")
 }, 'Adopted sheets are ordered after non-adopted sheets in the document')
 
 const import_text = '@import url("support/constructable-import.css");';
 
 test(() => {
-  assert_throws_dom("NotAllowedError", () => { (new CSSStyleSheet).replaceSync(import_text) });
-}, 'CSSStyleSheet.replaceSync throws exception when there is import rule inside');
-
-test(() => {
-  assert_throws_dom("NotAllowedError", () => { (new CSSStyleSheet).insertRule(import_text) });
+  assert_throws_dom("SyntaxError", () => { (new CSSStyleSheet).insertRule(import_text) });
 }, 'Inserting an @import rule through insertRule on a constructed stylesheet throws an exception');
 
 async_test(t => {
     const importUrl = "support/constructable-import.css";
     const sheet = new CSSStyleSheet();
 
-    assert_throws_dom("NotAllowedError", () => { sheet.replaceSync(`@import url("${importUrl}");`) });
+    sheet.replaceSync(`@import url("${importUrl}");`);
 
     const timeAfterReplaceSync = performance.now();
     let link = document.createElement("link");
@@ -632,27 +618,68 @@ promise_test(() => {
   const sheet = new CSSStyleSheet();
   span.shadowRoot.adoptedStyleSheets = [sheet];
   assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 0, 0)");
-  // Replace and assert that the imported rule is applied.
+  // Replace and assert that the imported rule is NOT applied.
   const sheet_promise = sheet.replace(import_text);
   return sheet_promise.then((sheet) => {
-    assert_equals(sheet.cssRules.length, 1);
-    assert_equals(sheet.cssRules[0].cssText, import_text);
-    assert_equals(getComputedStyle(shadowDiv).color, "rgb(255, 0, 0)");
+    // replace() ignores @import rules:
+    assert_equals(sheet.cssRules.length, 0);
+    assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 0, 0)");
   }).catch((reason) => {
     assert_unreached(`Promise was rejected (${reason}) when it should have been resolved`);
   });
-}, 'CSSStyleSheet.replace allows import rule inside');
+}, 'CSSStyleSheet.replace allows, but ignores, import rule inside');
+
+promise_test(() => {
+  const span = document.createElement("span");
+  thirdSection.appendChild(span);
+  const shadowDiv = attachShadowDiv(span);
+  const targetSpan = document.createElement("span");
+  targetSpan.classList.add("target");
+  shadowDiv.appendChild(targetSpan);
+  const sheet = new CSSStyleSheet();
+  span.shadowRoot.adoptedStyleSheets = [sheet];
+  assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 0, 0)");
+  // Replace and assert that the imported rule is NOT applied, but regular rule does apply.
+  const sheet_promise = sheet.replace(import_text + ".target { color: blue; }");
+  return sheet_promise.then((sheet) => {
+    assert_equals(sheet.cssRules.length, 1);
+    // @import not applied:
+    assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 0, 0)");
+    // regular rule applied:
+    assert_equals(getComputedStyle(targetSpan).color, "rgb(0, 0, 255)");
+  }).catch((reason) => {
+    assert_unreached(`Promise was rejected (${reason}) when it should have been resolved`);
+  });
+}, 'CSSStyleSheet.replace ignores @import rule but still loads other rules');
+
+test(() => {
+  const span = document.createElement("span");
+  thirdSection.appendChild(span);
+  const shadowDiv = attachShadowDiv(span);
+  const sheet = new CSSStyleSheet();
+  span.shadowRoot.adoptedStyleSheets = [sheet];
+  assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 0, 0)");
+  // Replace and assert that the imported rule is NOT applied.
+  try {
+    sheet.replaceSync(import_text);
+    // replaceSync() ignores @import rules:
+    assert_equals(sheet.cssRules.length, 0);
+    assert_equals(getComputedStyle(shadowDiv).color, "rgb(0, 0, 0)");
+  } catch(reason) {
+    assert_unreached(`replaceSync threw an exception (${reason}) when it shouldn't have`);
+  }
+}, 'CSSStyleSheet.replaceSync allows, but ignores, import rule inside');
 
 promise_test(() => {
   const sheet = new CSSStyleSheet();
   const sheet_promise = sheet.replace("@import url('not-there.css');");
 
   return sheet_promise.then((sheet) => {
-    assert_unreached("Promise was resolved when it should have been rejected");
+    // No exception here
   }).catch((reason) => {
-    assert_equals(reason.name, "NetworkError");
+    assert_unreached("Promise was rejected");
   });
-}, 'CSSStyleSheet.replace returns rejected promise on failed imports');
+}, 'CSSStyleSheet.replace does not reject on failed imports');
 
 test(() => {
   const span = document.createElement("span");

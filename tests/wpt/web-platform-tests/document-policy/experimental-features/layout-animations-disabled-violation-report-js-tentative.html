@@ -1,24 +1,17 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/feature-policy/experimental-features/resources/common.js"></script>
+<script src="/document-policy/experimental-features/resources/common.js"></script>
 <title> 'layout-animations' Policy : violation reports from javascript
 </title>
 <body>
 <script>
-  test(() => {
-    document.featurePolicy.allowedFeatures().forEach((enabled_feature) => {
-      assert_not_equals(enabled_feature, "layout-animations");
-    });
-  },
-  "Verify 'layout-animations' is not in document's feature list.");
-
   promise_test(async () => {
     let promise = wait_for_violation_in_file(
       "layout-animations",
       "animation-property-height.js");
     let script = document.createElement("script");
-    script.src = "/feature-policy/experimental-features/resources/" +
+    script.src = "/document-policy/experimental-features/resources/" +
                  "animation-property-height.js";
     document.body.appendChild(script);
     await promise;

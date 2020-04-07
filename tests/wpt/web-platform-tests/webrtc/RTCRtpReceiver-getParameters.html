@@ -30,9 +30,7 @@
 
         - rtcp.reducedSize is set to true if the receiver is currently prepared to receive
           reduced-size RTCP packets, and false otherwise. rtcp.cname is left undefined.
-
-        - transactionId and degradationPreference are left undefined.
-   */
+  */
   promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());

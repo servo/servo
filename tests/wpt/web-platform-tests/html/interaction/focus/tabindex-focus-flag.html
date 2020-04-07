@@ -15,6 +15,9 @@
 <details open><summary id="summary-first"></summary><summary id="summary-second"></summary></details>
 <div contenteditable="true"></div>
 <iframe></iframe>
+<svg><a id="svg-a"></a></svg>
+<svg><text id="svg-text"></text></svg>
+<img>
 </div>
 <script>
 setup({ explicit_done: true });
@@ -34,6 +37,9 @@ function runTests() {
     ['#summary-second', false],
     ['[contenteditable]', true],
     ['iframe', true],
+    ['#svg-a', false],
+    ['#svg-text', false],
+    ['img', false],
   ];
   for (entry of defaultList) {
     test(() => {
@@ -52,8 +58,11 @@ function runTests() {
 
 <div id="tabindex-0">
 <a tabindex="0"></a>
+<svg><a tabindex="0"></a></svg>
+<svg><text tabindex="0"></text></svg>
 <summary tabindex="0" id="summary-out-tabindex0"></summary>
 <details open><summary id="summary-first"></summary><summary tabindex="0" id="summary-second-tabindex0"></summary></details>
+<img tabindex="0">
 </div>
 <script>
 function runTests_tabindex0() {
@@ -65,6 +74,58 @@ function runTests_tabindex0() {
       element.focus();
       assert_equals(document.activeElement, element);
     }, elementDesc + ' with tabindex=0 should be focusable.');
+  }
+
+  runTests_tabindex_negative();
+}
+</script>
+
+<div id="tabindex-negative">
+<a tabindex="-1"></a>
+<svg><a tabindex="-1"></a></svg>
+<svg><text tabindex="-1"></text></svg>
+<summary tabindex="-1" id="summary-out-tabindex-negative"></summary>
+<details open><summary id="summary-first"></summary><summary tabindex="0" id="summary-second-tabindex-negative"></summary></details>
+<img tabindex="-1">
+</div>
+<script>
+function runTests_tabindex_negative() {
+  for (element of document.querySelectorAll('#tabindex-negative [tabindex]')) {
+    var elementDesc = element.tagName;
+    if (element.id)
+      elementDesc += '#' + element.id;
+    test(() => {
+      element.focus();
+      assert_equals(document.activeElement, element);
+    }, elementDesc + ' with tabindex=-1 should be focusable.');
+  }
+
+  runTests_tabindex_invalid();
+}
+</script>
+
+<div id="tabindex-invalid">
+<a tabindex="invalid"></a>
+<a href="#" tabindex="invalid" id="with-href" data-focusable=true></a>
+<svg><a tabindex="invalid"></a></svg>
+<svg><a href="#" tabindex="invalid" id="with-href" data-focusable=true></a></svg>
+<svg><text tabindex="invalid"></text></svg>
+<div tabindex="invalid"></div>
+<summary tabindex="invalid" id="summary-out-tabindex-invalid"></summary>
+<img tabindex="invalid">
+</div>
+<script>
+function runTests_tabindex_invalid() {
+  for (element of document.querySelectorAll('#tabindex-invalid [tabindex]')) {
+    var focusable = element.dataset && element.dataset.focusable;
+    var elementDesc = element.tagName;
+    if (element.id)
+      elementDesc += '#' + element.id;
+    test(() => {
+      element.focus();
+      focusable ? assert_equals(document.activeElement, element)
+                : assert_not_equals(document.activeElement, element);
+    }, `${elementDesc} with tabindex=invalid should ${focusable ? "be" : "not be"} focusable.`);
   }
 
   done();

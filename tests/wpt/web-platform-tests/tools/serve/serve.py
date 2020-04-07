@@ -34,7 +34,7 @@ from mod_pywebsocket import standalone as pywebsocket
 
 
 EDIT_HOSTS_HELP = ("Please ensure all the necessary WPT subdomains "
-                   "are mapped to a loopback device in /etc/hosts. "
+                   "are mapped to a loopback device in /etc/hosts.\n"
                    "See https://web-platform-tests.org/running-tests/from-local-system.html#system-setup "
                    "for instructions.")
 
@@ -419,10 +419,10 @@ class ServerProc(object):
         try:
             self.daemon = init_func(host, port, paths, routes, bind_address, config, **kwargs)
         except socket.error:
-            print("Socket error on port %s" % port, file=sys.stderr)
+            logger.critical("Socket error on port %s" % port, file=sys.stderr)
             raise
         except Exception:
-            print(traceback.format_exc(), file=sys.stderr)
+            logger.critical(traceback.format_exc())
             raise
 
         if self.daemon:
@@ -538,50 +538,68 @@ def start_servers(host, ports, paths, routes, bind_address, config, **kwargs):
     return servers
 
 
+def startup_failed(log=True):
+    # Log=False is a workaround for https://github.com/web-platform-tests/wpt/issues/22719
+    if log:
+        logger.critical(EDIT_HOSTS_HELP)
+    else:
+        print("CRITICAL %s" % EDIT_HOSTS_HELP, file=sys.stderr)
+    sys.exit(1)
+
+
 def start_http_server(host, port, paths, routes, bind_address, config, **kwargs):
-    return wptserve.WebTestHttpd(host=host,
-                                 port=port,
-                                 doc_root=paths["doc_root"],
-                                 routes=routes,
-                                 rewrites=rewrites,
-                                 bind_address=bind_address,
-                                 config=config,
-                                 use_ssl=False,
-                                 key_file=None,
-                                 certificate=None,
-                                 latency=kwargs.get("latency"))
+    try:
+        return wptserve.WebTestHttpd(host=host,
+                                     port=port,
+                                     doc_root=paths["doc_root"],
+                                     routes=routes,
+                                     rewrites=rewrites,
+                                     bind_address=bind_address,
+                                     config=config,
+                                     use_ssl=False,
+                                     key_file=None,
+                                     certificate=None,
+                                     latency=kwargs.get("latency"))
+    except Exception:
+        startup_failed()
 
 
 def start_https_server(host, port, paths, routes, bind_address, config, **kwargs):
-    return wptserve.WebTestHttpd(host=host,
-                                 port=port,
-                                 doc_root=paths["doc_root"],
-                                 routes=routes,
-                                 rewrites=rewrites,
-                                 bind_address=bind_address,
-                                 config=config,
-                                 use_ssl=True,
-                                 key_file=config.ssl_config["key_path"],
-                                 certificate=config.ssl_config["cert_path"],
-                                 encrypt_after_connect=config.ssl_config["encrypt_after_connect"],
-                                 latency=kwargs.get("latency"))
+    try:
+        return wptserve.WebTestHttpd(host=host,
+                                     port=port,
+                                     doc_root=paths["doc_root"],
+                                     routes=routes,
+                                     rewrites=rewrites,
+                                     bind_address=bind_address,
+                                     config=config,
+                                     use_ssl=True,
+                                     key_file=config.ssl_config["key_path"],
+                                     certificate=config.ssl_config["cert_path"],
+                                     encrypt_after_connect=config.ssl_config["encrypt_after_connect"],
+                                     latency=kwargs.get("latency"))
+    except Exception:
+        startup_failed()
 
 
 def start_http2_server(host, port, paths, routes, bind_address, config, **kwargs):
-    return wptserve.WebTestHttpd(host=host,
-                                 port=port,
-                                 handler_cls=wptserve.Http2WebTestRequestHandler,
-                                 doc_root=paths["doc_root"],
-                                 routes=routes,
-                                 rewrites=rewrites,
-                                 bind_address=bind_address,
-                                 config=config,
-                                 use_ssl=True,
-                                 key_file=config.ssl_config["key_path"],
-                                 certificate=config.ssl_config["cert_path"],
-                                 encrypt_after_connect=config.ssl_config["encrypt_after_connect"],
-                                 latency=kwargs.get("latency"),
-                                 http2=True)
+    try:
+        return wptserve.WebTestHttpd(host=host,
+                                     port=port,
+                                     handler_cls=wptserve.Http2WebTestRequestHandler,
+                                     doc_root=paths["doc_root"],
+                                     routes=routes,
+                                     rewrites=rewrites,
+                                     bind_address=bind_address,
+                                     config=config,
+                                     use_ssl=True,
+                                     key_file=config.ssl_config["key_path"],
+                                     certificate=config.ssl_config["cert_path"],
+                                     encrypt_after_connect=config.ssl_config["encrypt_after_connect"],
+                                     latency=kwargs.get("latency"),
+                                     http2=True)
+    except Exception:
+        startup_failed()
 
 
 class WebSocketDaemon(object):
@@ -603,6 +621,12 @@ class WebSocketDaemon(object):
         opts.is_executable_method = None
         self.server = pywebsocket.WebSocketServer(opts)
         ports = [item[0].getsockname()[1] for item in self.server._sockets]
+        if not ports:
+            # TODO: Fix the logging configuration in WebSockets processes
+            # see https://github.com/web-platform-tests/wpt/issues/22719
+            print("Failed to start websocket server on port %s, "
+                  "is something already using that port?" % port, file=sys.stderr)
+            raise OSError()
         assert all(item == ports[0] for item in ports)
         self.port = ports[0]
         self.started = False
@@ -651,12 +675,15 @@ def start_ws_server(host, port, paths, routes, bind_address, config, **kwargs):
     # in the logging module unlocked
     reload_module(logging)
     release_mozlog_lock()
-    return WebSocketDaemon(host,
-                           str(port),
-                           repo_root,
-                           config.paths["ws_doc_root"],
-                           bind_address,
-                           ssl_config=None)
+    try:
+        return WebSocketDaemon(host,
+                               str(port),
+                               repo_root,
+                               config.paths["ws_doc_root"],
+                               bind_address,
+                               ssl_config=None)
+    except Exception:
+        startup_failed(log=False)
 
 
 def start_wss_server(host, port, paths, routes, bind_address, config, **kwargs):
@@ -664,12 +691,15 @@ def start_wss_server(host, port, paths, routes, bind_address, config, **kwargs):
     # in the logging module unlocked
     reload_module(logging)
     release_mozlog_lock()
-    return WebSocketDaemon(host,
-                           str(port),
-                           repo_root,
-                           config.paths["ws_doc_root"],
-                           bind_address,
-                           config.ssl_config)
+    try:
+        return WebSocketDaemon(host,
+                               str(port),
+                               repo_root,
+                               config.paths["ws_doc_root"],
+                               bind_address,
+                               config.ssl_config)
+    except Exception:
+        startup_failed(log=False)
 
 
 def start(config, routes, **kwargs):
@@ -892,7 +922,8 @@ def run(**kwargs):
             signal.signal(signal.SIGTERM, handle_signal)
             signal.signal(signal.SIGINT, handle_signal)
 
-            while all(item.is_alive() for item in iter_procs(servers)) and not received_signal.is_set():
+            while (all(item.is_alive() for item in iter_procs(servers)) and
+                   not received_signal.is_set()):
                 for item in iter_procs(servers):
                     item.join(1)
             exited = [item for item in iter_procs(servers) if not item.is_alive()]

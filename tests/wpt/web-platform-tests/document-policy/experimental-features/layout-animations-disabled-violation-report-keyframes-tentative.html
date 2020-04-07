@@ -1,18 +1,11 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="/feature-policy/experimental-features/resources/common.js"></script>
+<script src="/document-policy/experimental-features/resources/common.js"></script>
 <title> 'layout-animations' Policy : violation reports from CSS keyframes
 </title>
 <body>
 <script>
-  test(() => {
-    document.featurePolicy.allowedFeatures().forEach((enabled_feature) => {
-      assert_not_equals(enabled_feature, "layout-animations");
-    });
-  },
-  "Sanity-check: 'layout-animations' is not in document's feature list.");
-
   promise_test(async () => {
     let promise = wait_for_violation_in_file(
       "layout-animations", null /* source not specified */);

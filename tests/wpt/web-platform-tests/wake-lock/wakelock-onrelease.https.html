@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<link rel="help" href="https://w3c.github.io/wake-lock/#the-onrelease-attribute">
+<link rel="help" href="https://w3c.github.io/screen-wake-lock/#the-onrelease-attribute">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
 async_test(async t => {
-  await test_driver.set_permission({name: 'wake-lock', type: 'screen'}, 'granted', false);
+  await test_driver.set_permission({name: 'screen-wake-lock'}, 'granted', false);
 
   const lock = await navigator.wakeLock.request("screen");
   lock.onrelease = t.step_func_done((ev) => {

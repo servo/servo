@@ -6,7 +6,7 @@
 Promise.resolve().then(async () => {
   try {
     await test_driver.set_permission(
-        { name: 'wake-lock', type: 'screen' }, 'granted', false);
+        { name: 'screen-wake-lock' }, 'granted', false);
 
     const wakeLock = await navigator.wakeLock.request("screen");
     await wakeLock.release();
