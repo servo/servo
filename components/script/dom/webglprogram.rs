@@ -556,7 +556,7 @@ impl WebGLProgram {
             return Err(WebGLError::InvalidOperation);
         }
 
-        if block_index as usize >= self.active_uniforms.borrow().len() {
+        if block_index as usize >= self.active_uniform_blocks.borrow().len() {
             return Err(WebGLError::InvalidValue);
         }
 
