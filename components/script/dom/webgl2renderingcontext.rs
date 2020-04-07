@@ -25,8 +25,7 @@ use crate::dom::webglprogram::WebGLProgram;
 use crate::dom::webglquery::WebGLQuery;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{
-    uniform_get, uniform_typed, LayoutCanvasWebGLRenderingContextHelpers, Size2DExt,
-    WebGLRenderingContext,
+    uniform_get, uniform_typed, LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
 };
 use crate::dom::webglsampler::{WebGLSampler, WebGLSamplerValue};
 use crate::dom::webglshader::WebGLShader;

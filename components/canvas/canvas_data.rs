@@ -1057,7 +1057,7 @@ impl<'a> CanvasData<'a> {
             self.drawtarget.get_format(),
         );
         let matrix = Transform2D::identity()
-            .pre_translate(-source_rect.origin.to_vector().cast())
+            .pre_translate(-source_rect.origin.to_vector().cast::<f32>())
             .pre_transform(&self.state.transform);
         draw_target.set_transform(&matrix);
         draw_target
@@ -1195,22 +1195,6 @@ impl RectToi32 for Rect<f64> {
             Point2D::new(self.origin.x.ceil(), self.origin.y.ceil()),
             Size2D::new(self.size.width.ceil(), self.size.height.ceil()),
         )
-    }
-}
-
-pub trait Size2DExt {
-    fn to_u64(&self) -> Size2D<u64>;
-}
-
-impl Size2DExt for Size2D<f64> {
-    fn to_u64(&self) -> Size2D<u64> {
-        self.cast()
-    }
-}
-
-impl Size2DExt for Size2D<u32> {
-    fn to_u64(&self) -> Size2D<u64> {
-        self.cast()
     }
 }
 

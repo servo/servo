@@ -27,7 +27,6 @@ use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::webglrenderingcontext::{
     LayoutCanvasWebGLRenderingContextHelpers, WebGLRenderingContext,
 };
-use crate::euclidext::Size2DExt;
 use crate::script_runtime::JSContext;
 use base64;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};

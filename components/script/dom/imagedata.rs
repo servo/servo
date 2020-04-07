@@ -184,13 +184,3 @@ impl ImageDataMethods for ImageData {
         NonNull::new(self.data.get()).expect("got a null pointer")
     }
 }
-
-pub trait Size2DExt {
-    fn to_u64(&self) -> Size2D<u64>;
-}
-
-impl Size2DExt for Size2D<u32> {
-    fn to_u64(&self) -> Size2D<u64> {
-        return Size2D::new(self.width as u64, self.height as u64);
-    }
-}

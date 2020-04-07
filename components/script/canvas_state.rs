@@ -26,7 +26,6 @@ use crate::dom::node::{Node, NodeDamage};
 use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
-use crate::euclidext::Size2DExt;
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
 use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
