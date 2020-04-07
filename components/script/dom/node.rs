@@ -75,6 +75,7 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use ref_slice::ref_slice;
+use script_layout_interface::message::QueryMsg;
 use script_layout_interface::{HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType};
 use script_layout_interface::{SVGSVGData, StyleAndOpaqueLayoutData, TrustedNodeAddress};
 use script_traits::DocumentActivity;
@@ -95,6 +96,7 @@ use std::ops::Range;
 use std::sync::Arc as StdArc;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
+use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::Stylesheet;
 use uuid::Uuid;
@@ -1227,6 +1229,23 @@ impl Node {
             // doesn't fully make sense until embed/object behaviors
             // are actually implemented.
             _ => false,
+        }
+    }
+
+    #[allow(unsafe_code)]
+    pub fn style(&self) -> Option<Arc<ComputedValues>> {
+        if !window_from_node(self).layout_reflow(QueryMsg::StyleQuery) {
+            return None;
+        }
+        unsafe {
+            (*self.style_and_layout_data.get()).as_ref().map(|data| {
+                data.style_data
+                    .element_data
+                    .borrow()
+                    .styles
+                    .primary()
+                    .clone()
+            })
         }
     }
 }

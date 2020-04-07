@@ -55,9 +55,7 @@ use layout::query::{
     process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
 };
 use layout::query::{process_node_scroll_area_request, process_node_scroll_id_request};
-use layout::query::{
-    process_offset_parent_query, process_resolved_style_request, process_style_query,
-};
+use layout::query::{process_offset_parent_query, process_resolved_style_request};
 use layout::sequential;
 use layout::traversal::{
     ComputeStackingRelativePositions, PreorderFlowTraversal, RecalcStyleAndConstructFlows,
@@ -80,7 +78,7 @@ use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use script_layout_interface::message::{LayoutThreadInit, Msg, NodesFromPointQueryType, Reflow};
 use script_layout_interface::message::{QueryMsg, ReflowComplete, ReflowGoal, ScriptReflow};
 use script_layout_interface::rpc::TextIndexResponse;
-use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse, StyleResponse};
+use script_layout_interface::rpc::{LayoutRPC, OffsetParentResponse};
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
 use script_traits::{DrawAPaintImageResult, IFrameSizeMsg, PaintWorkletError, WindowSizeType};
@@ -595,7 +593,6 @@ impl LayoutThread {
                 scroll_area_response: Rect::zero(),
                 resolved_style_response: String::new(),
                 offset_parent_response: OffsetParentResponse::empty(),
-                style_response: StyleResponse(None),
                 scroll_offsets: HashMap::new(),
                 text_index_response: TextIndexResponse(None),
                 nodes_from_point_response: vec![],
@@ -1308,9 +1305,7 @@ impl LayoutThread {
                         &QueryMsg::OffsetParentQuery(_) => {
                             rw_data.offset_parent_response = OffsetParentResponse::empty();
                         },
-                        &QueryMsg::StyleQuery(_) => {
-                            rw_data.style_response = StyleResponse(None);
-                        },
+                        &QueryMsg::StyleQuery => {},
                         &QueryMsg::TextIndexQuery(..) => {
                             rw_data.text_index_response = TextIndexResponse(None);
                         },
@@ -1634,10 +1629,7 @@ impl LayoutThread {
                 &QueryMsg::OffsetParentQuery(node) => {
                     rw_data.offset_parent_response = process_offset_parent_query(node, root_flow);
                 },
-                &QueryMsg::StyleQuery(node) => {
-                    let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.style_response = process_style_query(node);
-                },
+                &QueryMsg::StyleQuery => {},
                 &QueryMsg::NodesFromPointQuery(client_point, ref reflow_goal) => {
                     let mut flags = match reflow_goal {
                         &NodesFromPointQueryType::Topmost => webrender_api::HitTestFlags::empty(),

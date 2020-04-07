@@ -22,7 +22,7 @@ use msg::constellation_msg::PipelineId;
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{NodeGeometryResponse, NodeScrollIdResponse};
-use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, StyleResponse};
+use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse};
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
@@ -75,9 +75,6 @@ pub struct LayoutThreadData {
 
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
-
-    /// A queued response for the style of a node.
-    pub style_response: StyleResponse,
 
     /// Scroll offsets of scrolling regions.
     pub scroll_offsets: ScrollOffsetMap,
@@ -177,12 +174,6 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.offset_parent_response.clone()
-    }
-
-    fn style(&self) -> StyleResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        rw_data.style_response.clone()
     }
 
     fn text_index(&self) -> TextIndexResponse {
@@ -963,13 +954,6 @@ pub fn process_offset_parent_query(
         },
         _ => OffsetParentResponse::empty(),
     }
-}
-
-pub fn process_style_query<'dom>(requested_node: impl LayoutNode<'dom>) -> StyleResponse {
-    let element = requested_node.as_element().unwrap();
-    let data = element.borrow_data();
-
-    StyleResponse(data.map(|d| d.styles.primary().clone()))
 }
 
 enum InnerTextItem {

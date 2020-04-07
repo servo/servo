@@ -15,7 +15,6 @@ use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
-use crate::dom::window::Window;
 use crate::realms::enter_realm;
 use crate::script_thread::Documents;
 use devtools_traits::{AutoMargins, ComputedNodeLayout, TimelineMarkerType};
@@ -150,7 +149,7 @@ pub fn handle_get_layout(
             position: String::from(computed_style.Position()),
             zIndex: String::from(computed_style.ZIndex()),
             boxSizing: String::from(computed_style.BoxSizing()),
-            autoMargins: determine_auto_margins(&window, &*node),
+            autoMargins: determine_auto_margins(&node),
             marginTop: String::from(computed_style.MarginTop()),
             marginRight: String::from(computed_style.MarginRight()),
             marginBottom: String::from(computed_style.MarginBottom()),
@@ -169,8 +168,8 @@ pub fn handle_get_layout(
         .unwrap();
 }
 
-fn determine_auto_margins(window: &Window, node: &Node) -> AutoMargins {
-    let style = window.style_query(node.to_trusted_node_address()).unwrap();
+fn determine_auto_margins(node: &Node) -> AutoMargins {
+    let style = node.style().unwrap();
     let margin = style.get_margin();
     AutoMargins {
         top: margin.margin_top.is_auto(),
