@@ -86,46 +86,14 @@ If you are using **Ubuntu 16.04** or **Linux Mint 18.&#42;** run `export HARFBUZ
 
 If you get an undefined symbol error on `gst_player_get_config` try removing `gir1.2-gst-plugins-bad-1.0` and all old versions of clang, see [#22016](https://github.com/servo/servo/issues/22016)
 
-If you are on **Ubuntu 14.04** and encountered errors on installing these dependencies involving `libcheese`, see [#6158](https://github.com/servo/servo/issues/6158) for a workaround. You may also need to install gcc 4.9, clang 4.0, and cmake 3.2:
-
-<details>
-gcc 4.9:
-
-```sh
-sudo add-apt-repository ppa:ubuntu-toolchain-r/test
-sudo apt-get update
-sudo apt-get install gcc-4.9 g++-4.9
-sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.9
-```
-
-clang 4.0:
-
-```sh
-wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-sudo apt-add-repository "deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-4.0 main"
-sudo apt-get update
-sudo apt-get install -y clang-4.0
-```
-
-cmake 3.2:
-
-```sh
-sudo apt-get install software-properties-common
-sudo add-apt-repository ppa:george-edison55/cmake-3.x
-sudo apt-get update
-sudo apt-get install cmake
-```
-
-</details>
-
 #### On Fedora
 
 ``` sh
-sudo dnf install python2 python2-virtualenv python2-pip
-./mach bootstrap
+sudo dnf install python3 python3-virtualenv python3-pip
+python3 ./mach bootstrap
 ```
 
-If `./mach bootstrap` doesn't work, file a bug, and, run the commands below:
+If `python3 ./mach bootstrap` doesn't work, file a bug, and, run the commands below:
 
 ``` sh
 sudo dnf install curl libtool gcc-c++ libXi-devel libunwind-devel \
