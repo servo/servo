@@ -109,10 +109,12 @@ impl XRTestMethods for XRTest {
         let init = MockDeviceInit {
             viewer_origin: origin,
             views,
-            supports_immersive: init.supportsImmersive,
-            supports_unbounded: init.supportsUnbounded,
+            supports_inline: false,
+            supports_vr: init.supportsImmersive,
+            supports_ar: false,
             floor_origin,
             supported_features,
+            world: None,
         };
 
         let global = self.global();

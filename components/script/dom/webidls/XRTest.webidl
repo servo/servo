@@ -26,7 +26,6 @@ dictionary FakeXRDeviceInit {
     // this is actually sequence<any>, but we don't support
     // non-string features anyway
     sequence<DOMString> supportedFeatures;
-    boolean supportsUnbounded = false;
     // Whether the space supports tracking in inline sessions
     boolean supportsTrackingInInline = true;
     // The bounds coordinates. If null, bounded reference spaces are not supported.
