@@ -32,7 +32,6 @@ use servo::servo_config::{pref, set_pref};
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
-use servo::webvr::{VRExternalShmemPtr, VRMainThreadHeartbeat, VRService, VRServiceManager};
 use servo::{self, gl, BrowserId, Servo};
 use servo_media::player::context as MediaPlayerContext;
 use std::cell::RefCell;
@@ -55,17 +54,10 @@ pub struct InitOptions {
     pub url: Option<String>,
     pub coordinates: Coordinates,
     pub density: f32,
-    pub vr_init: VRInitOptions,
     pub xr_discovery: Option<webxr::Discovery>,
     pub enable_subpixel_text_antialiasing: bool,
     pub gl_context_pointer: Option<*const c_void>,
     pub native_display_pointer: Option<*const c_void>,
-}
-
-pub enum VRInitOptions {
-    None,
-    VRExternal(*mut c_void),
-    VRService(Box<dyn VRService>, Box<dyn VRMainThreadHeartbeat>),
 }
 
 #[derive(Clone, Debug)]
@@ -229,7 +221,6 @@ pub fn init(
     });
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks {
-        vr_init: init_opts.vr_init,
         xr_discovery: init_opts.xr_discovery,
         waker,
         gl: gl.clone(),
@@ -727,7 +718,6 @@ impl ServoGlue {
 struct ServoEmbedderCallbacks {
     waker: Box<dyn EventLoopWaker>,
     xr_discovery: Option<webxr::Discovery>,
-    vr_init: VRInitOptions,
     #[allow(unused)]
     gl: Rc<dyn gl::Gl>,
 }
@@ -742,24 +732,6 @@ struct ServoWindowCallbacks {
 }
 
 impl EmbedderMethods for ServoEmbedderCallbacks {
-    fn register_vr_services(
-        &mut self,
-        services: &mut VRServiceManager,
-        heartbeats: &mut Vec<Box<dyn VRMainThreadHeartbeat>>,
-    ) {
-        debug!("EmbedderMethods::register_vrexternal");
-        match mem::replace(&mut self.vr_init, VRInitOptions::None) {
-            VRInitOptions::None => {},
-            VRInitOptions::VRExternal(ptr) => {
-                services.register_vrexternal(VRExternalShmemPtr::new(ptr));
-            },
-            VRInitOptions::VRService(service, heartbeat) => {
-                services.register(service);
-                heartbeats.push(heartbeat);
-            },
-        }
-    }
-
     #[cfg(feature = "uwp")]
     fn register_webxr(
         &mut self,

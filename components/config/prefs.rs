@@ -289,11 +289,6 @@ mod gen {
                     #[serde(default)]
                     enabled: bool,
                 },
-                webvr: {
-                    enabled: bool,
-                    event_polling_interval: i64,
-                    test: bool,
-                },
                 webvtt: {
                     enabled: bool,
                 },

@@ -65,7 +65,6 @@ impl App {
             window.clone(),
             events_loop.clone(),
             window.gl(),
-            angle,
         ));
 
         // Handle browser state.

@@ -16,7 +16,7 @@ debugmozjs = ["script/debugmozjs"]
 egl = ["mozangle/egl"]
 energy-profiling = ["profile_traits/energy-profiling"]
 profilemozjs = ["script/profilemozjs"]
-googlevr = ["webvr/googlevr"]
+googlevr = ["webxr/googlevr"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 layout-2013 = ["layout_thread_2013"]
@@ -27,7 +27,6 @@ no-wgl = ["canvas/no-wgl"]
 uwp = ["servo_config/uwp", "script/uwp"]
 webrender_debugger = ["webrender/debugger"]
 no_static_freetype = ["webrender/no_static_freetype"]
-oculusvr = ["webvr/oculusvr"]
 refcell_backtrace = ["script/refcell_backtrace"]
 webdriver = ["webdriver_server"]
 webgl_backtrace = [
@@ -84,8 +83,6 @@ webrender = {git = "https://github.com/servo/webrender"}
 webrender_api = {git = "https://github.com/servo/webrender"}
 webrender_traits = {path = "../webrender_traits"}
 webdriver_server = {path = "../webdriver_server", optional = true}
-webvr = {path = "../webvr"}
-webvr_traits = {path = "../webvr_traits"}
 webxr-api = {git = "https://github.com/servo/webxr"}
 webxr = {git = "https://github.com/servo/webxr"}
 surfman = { version = "0.1", features = ["sm-osmesa"] }

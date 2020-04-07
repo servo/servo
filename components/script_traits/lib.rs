@@ -69,7 +69,6 @@ use webrender_api::units::{
 };
 use webrender_api::{BuiltDisplayList, DocumentId, ExternalScrollId, ImageKey, ScrollClamping};
 use webrender_api::{BuiltDisplayListDescriptor, HitTestFlags, HitTestResult, ResourceUpdate};
-use webvr_traits::{WebVREvent, WebVRMsg};
 
 pub use crate::script_msg::{
     DOMMessage, HistoryEntryReplacement, SWManagerMsg, SWManagerSenders, ScopeThings,
@@ -397,8 +396,6 @@ pub enum ConstellationControlMsg {
     ReportCSSError(PipelineId, String, u32, u32, String),
     /// Reload the given page.
     Reload(PipelineId),
-    /// Notifies the script thread of WebVR events.
-    WebVREvents(PipelineId, Vec<WebVREvent>),
     /// Notifies the script thread about a new recorded paint metric.
     PaintMetric(PipelineId, ProgressiveWebMetricType, u64),
     /// Notifies the media session about a user requested media session action.
@@ -438,7 +435,6 @@ impl fmt::Debug for ConstellationControlMsg {
             DispatchStorageEvent(..) => "DispatchStorageEvent",
             ReportCSSError(..) => "ReportCSSError",
             Reload(..) => "Reload",
-            WebVREvents(..) => "WebVREvents",
             PaintMetric(..) => "PaintMetric",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
@@ -669,8 +665,6 @@ pub struct InitialScriptState {
     pub content_process_shutdown_chan: Sender<()>,
     /// A channel to the WebGL thread used in this pipeline.
     pub webgl_chan: Option<WebGLPipeline>,
-    /// A channel to the webvr thread, if available.
-    pub webvr_chan: Option<IpcSender<WebVRMsg>>,
     /// The XR device registry
     pub webxr_registry: webxr_api::Registry,
     /// The Webrender document ID associated with this thread.

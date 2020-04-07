@@ -28,7 +28,6 @@ use servo_url::ServoUrl;
 use std::collections::HashMap;
 use std::fmt;
 use std::time::Duration;
-use webvr_traits::WebVREvent;
 
 mod compositor;
 pub mod compositor_thread;
@@ -88,8 +87,6 @@ pub enum ConstellationMsg {
     Reload(TopLevelBrowsingContextId),
     /// A log entry, with the top-level browsing context id and thread name
     LogEntry(Option<TopLevelBrowsingContextId>, Option<String>, LogEntry),
-    /// Dispatch WebVR events to the subscribed script threads.
-    WebVREvents(Vec<PipelineId>, Vec<WebVREvent>),
     /// Create a new top level browsing context.
     NewBrowser(ServoUrl, TopLevelBrowsingContextId),
     /// Close a top level browsing context.
@@ -132,7 +129,6 @@ impl fmt::Debug for ConstellationMsg {
             WebDriverCommand(..) => "WebDriverCommand",
             Reload(..) => "Reload",
             LogEntry(..) => "LogEntry",
-            WebVREvents(..) => "WebVREvents",
             NewBrowser(..) => "NewBrowser",
             CloseBrowser(..) => "CloseBrowser",
             SendError(..) => "SendError",

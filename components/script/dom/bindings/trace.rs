@@ -157,7 +157,6 @@ use webgpu::{
     WebGPUPipelineLayout, WebGPUQueue, WebGPUShaderModule,
 };
 use webrender_api::{DocumentId, ImageKey};
-use webvr_traits::{WebVRGamepadData, WebVRGamepadHand, WebVRGamepadState};
 use webxr_api::SwapChainId as WebXRSwapChainId;
 
 unsafe_no_jsmanaged_fields!(Tm);
@@ -548,7 +547,6 @@ unsafe_no_jsmanaged_fields!(RefCell<Option<RawPass>>);
 unsafe_no_jsmanaged_fields!(GPUBufferState);
 unsafe_no_jsmanaged_fields!(WebXRSwapChainId);
 unsafe_no_jsmanaged_fields!(MediaList);
-unsafe_no_jsmanaged_fields!(WebVRGamepadData, WebVRGamepadState, WebVRGamepadHand);
 unsafe_no_jsmanaged_fields!(
     webxr_api::Registry,
     webxr_api::Session,

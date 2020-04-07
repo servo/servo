@@ -46,7 +46,6 @@ use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use webvr_traits::WebVRMsg;
 
 /// A `Pipeline` is the constellation's view of a `Document`. Each pipeline has an
 /// event loop (executed by a script thread) and a layout thread. A script thread
@@ -191,9 +190,6 @@ pub struct InitialPipelineState {
     /// A channel to the WebGL thread.
     pub webgl_chan: Option<WebGLPipeline>,
 
-    /// A channel to the webvr thread.
-    pub webvr_chan: Option<IpcSender<WebVRMsg>>,
-
     /// The XR device registry
     pub webxr_registry: webxr_api::Registry,
 
@@ -305,7 +301,6 @@ impl Pipeline {
                     webrender_image_api_sender: state.webrender_image_api_sender,
                     webrender_document: state.webrender_document,
                     webgl_chan: state.webgl_chan,
-                    webvr_chan: state.webvr_chan,
                     webxr_registry: state.webxr_registry,
                     player_context: state.player_context,
                     user_agent: state.user_agent,
@@ -522,7 +517,6 @@ pub struct UnprivilegedPipelineContent {
     webrender_image_api_sender: net_traits::WebrenderIpcSender,
     webrender_document: webrender_api::DocumentId,
     webgl_chan: Option<WebGLPipeline>,
-    webvr_chan: Option<IpcSender<WebVRMsg>>,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
     user_agent: Cow<'static, str>,
@@ -575,7 +569,6 @@ impl UnprivilegedPipelineContent {
                 pipeline_namespace_id: self.pipeline_namespace_id,
                 content_process_shutdown_chan: content_process_shutdown_chan,
                 webgl_chan: self.webgl_chan,
-                webvr_chan: self.webvr_chan,
                 webxr_registry: self.webxr_registry,
                 webrender_document: self.webrender_document,
                 webrender_api_sender: self.webrender_api_sender.clone(),

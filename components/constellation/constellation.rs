@@ -179,7 +179,6 @@ use std::thread;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webgpu::{WebGPU, WebGPURequest};
-use webvr_traits::{WebVREvent, WebVRMsg};
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
 
@@ -463,9 +462,6 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     /// Entry point to create and get channels to a WebGLThread.
     webgl_threads: Option<WebGLThreads>,
 
-    /// A channel through which messages can be sent to the webvr thread.
-    webvr_chan: Option<IpcSender<WebVRMsg>>,
-
     /// The XR device registry
     webxr_registry: webxr_api::Registry,
 
@@ -548,9 +544,6 @@ pub struct InitialConstellationState {
 
     /// Entry point to create and get channels to a WebGLThread.
     pub webgl_threads: Option<WebGLThreads>,
-
-    /// A channel to the webgl thread.
-    pub webvr_chan: Option<IpcSender<WebVRMsg>>,
 
     /// The XR device registry
     pub webxr_registry: webxr_api::Registry,
@@ -1014,7 +1007,6 @@ where
                         (rng, prob)
                     }),
                     webgl_threads: state.webgl_threads,
-                    webvr_chan: state.webvr_chan,
                     webxr_registry: state.webxr_registry,
                     canvas_chan,
                     ipc_canvas_chan,
@@ -1271,7 +1263,6 @@ where
                 .webgl_threads
                 .as_ref()
                 .map(|threads| threads.pipeline()),
-            webvr_chan: self.webvr_chan.clone(),
             webxr_registry: self.webxr_registry.clone(),
             player_context: self.player_context.clone(),
             event_loop_waker: self.event_loop_waker.as_ref().map(|w| (*w).clone_box()),
@@ -1703,9 +1694,6 @@ where
             },
             FromCompositorMsg::LogEntry(top_level_browsing_context_id, thread_name, entry) => {
                 self.handle_log_entry(top_level_browsing_context_id, thread_name, entry);
-            },
-            FromCompositorMsg::WebVREvents(pipeline_ids, events) => {
-                self.handle_webvr_events(pipeline_ids, events);
             },
             FromCompositorMsg::ForwardEvent(destination_pipeline_id, event) => {
                 self.forward_event(destination_pipeline_id, event);
@@ -2839,13 +2827,6 @@ where
             }
         }
 
-        if let Some(chan) = self.webvr_chan.as_ref() {
-            debug!("Exiting WebVR thread.");
-            if let Err(e) = chan.send(WebVRMsg::Exit) {
-                warn!("Exit WebVR thread failed ({})", e);
-            }
-        }
-
         debug!("Exiting GLPlayer thread.");
         if let Some(glplayer_threads) = self.glplayer_threads.as_ref() {
             if let Err(e) = glplayer_threads.exit() {
@@ -2990,20 +2971,6 @@ where
                 }
                 self.handled_warnings.push_back((thread_name, reason));
             },
-        }
-    }
-
-    fn handle_webvr_events(&mut self, ids: Vec<PipelineId>, events: Vec<WebVREvent>) {
-        for id in ids {
-            match self.pipelines.get_mut(&id) {
-                Some(ref pipeline) => {
-                    // Notify script thread
-                    let _ = pipeline
-                        .event_loop
-                        .send(ConstellationControlMsg::WebVREvents(id, events.clone()));
-                },
-                None => warn!("constellation got webvr event for dead pipeline"),
-            }
         }
     }
 

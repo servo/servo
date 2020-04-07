@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::VRPoseBinding::VRPoseMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::codegen::Bindings::GamepadPoseBinding::GamepadPoseMethods;
+use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::script_runtime::JSContext;
@@ -12,10 +12,9 @@ use js::jsapi::{Heap, JSObject};
 use js::typedarray::{CreateWith, Float32Array};
 use std::ptr;
 use std::ptr::NonNull;
-use webvr_traits::webvr;
 
 #[dom_struct]
-pub struct VRPose {
+pub struct GamepadPose {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "mozjs"]
     position: Heap<*mut JSObject>,
@@ -31,6 +30,8 @@ pub struct VRPose {
     angular_acc: Heap<*mut JSObject>,
 }
 
+// TODO: support gamepad discovery
+#[allow(dead_code)]
 #[allow(unsafe_code)]
 fn update_or_create_typed_array(cx: JSContext, src: Option<&[f32]>, dst: &Heap<*mut JSObject>) {
     match src {
@@ -67,9 +68,11 @@ fn heap_to_option(heap: &Heap<*mut JSObject>) -> Option<NonNull<JSObject>> {
     }
 }
 
-impl VRPose {
-    fn new_inherited() -> VRPose {
-        VRPose {
+// TODO: support gamepad discovery
+#[allow(dead_code)]
+impl GamepadPose {
+    fn new_inherited() -> GamepadPose {
+        GamepadPose {
             reflector_: Reflector::new(),
             position: Heap::default(),
             orientation: Heap::default(),
@@ -80,71 +83,48 @@ impl VRPose {
         }
     }
 
-    pub fn new(global: &GlobalScope, pose: &webvr::VRPose) -> DomRoot<VRPose> {
-        let root = reflect_dom_object(Box::new(VRPose::new_inherited()), global);
-        root.update(&pose);
-        root
-    }
-
-    #[allow(unsafe_code)]
-    pub fn update(&self, pose: &webvr::VRPose) {
-        let cx = self.global().get_cx();
-        update_or_create_typed_array(cx, pose.position.as_ref().map(|v| &v[..]), &self.position);
-        update_or_create_typed_array(
-            cx,
-            pose.orientation.as_ref().map(|v| &v[..]),
-            &self.orientation,
-        );
-        update_or_create_typed_array(
-            cx,
-            pose.linear_velocity.as_ref().map(|v| &v[..]),
-            &self.linear_vel,
-        );
-        update_or_create_typed_array(
-            cx,
-            pose.angular_velocity.as_ref().map(|v| &v[..]),
-            &self.angular_vel,
-        );
-        update_or_create_typed_array(
-            cx,
-            pose.linear_acceleration.as_ref().map(|v| &v[..]),
-            &self.linear_acc,
-        );
-        update_or_create_typed_array(
-            cx,
-            pose.angular_acceleration.as_ref().map(|v| &v[..]),
-            &self.angular_acc,
-        );
+    pub fn new(global: &GlobalScope) -> DomRoot<GamepadPose> {
+        reflect_dom_object(Box::new(GamepadPose::new_inherited()), global)
     }
 }
 
-impl VRPoseMethods for VRPose {
-    // https://w3c.github.io/webvr/#dom-vrpose-position
+impl GamepadPoseMethods for GamepadPose {
+    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-position
     fn GetPosition(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.position)
     }
 
-    // https://w3c.github.io/webvr/#dom-vrpose-linearvelocity
+    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-hasposition
+    fn HasPosition(&self) -> bool {
+        !self.position.get().is_null()
+    }
+
+    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-linearvelocity
     fn GetLinearVelocity(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.linear_vel)
     }
 
-    // https://w3c.github.io/webvr/#dom-vrpose-linearacceleration
+    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-linearacceleration
     fn GetLinearAcceleration(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.linear_acc)
     }
 
-    // https://w3c.github.io/webvr/#dom-vrpose-orientation
+    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-orientation
     fn GetOrientation(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.orientation)
     }
 
-    // https://w3c.github.io/webvr/#dom-vrpose-angularvelocity
+    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-orientation
+    fn HasOrientation(&self) -> bool {
+        !self.orientation.get().is_null()
+    }
+
+    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-angularvelocity
     fn GetAngularVelocity(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.angular_vel)
     }
 
-    // https://w3c.github.io/webvr/#dom-vrpose-angularacceleration
+    // https://w3c.github.io/gamepad/extensions.html#dom-gamepadpose-angularacceleration
     fn GetAngularAcceleration(&self, _cx: JSContext) -> Option<NonNull<JSObject>> {
         heap_to_option(&self.angular_acc)
     }

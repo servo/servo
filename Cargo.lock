@@ -530,7 +530,6 @@ dependencies = [
  "sparkle",
  "time",
  "webrender_api",
- "webvr_traits",
  "webxr-api",
 ]
 
@@ -764,7 +763,6 @@ dependencies = [
  "num-traits",
  "pixels",
  "profile_traits",
- "rust-webvr",
  "script_traits",
  "servo-media",
  "servo_geometry",
@@ -774,7 +772,6 @@ dependencies = [
  "toml",
  "webrender",
  "webrender_api",
- "webvr_traits",
  "webxr",
 ]
 
@@ -822,7 +819,6 @@ dependencies = [
  "style_traits",
  "webgpu",
  "webrender_api",
- "webvr_traits",
  "webxr-api",
 ]
 
@@ -3154,7 +3150,6 @@ dependencies = [
  "libc",
  "libservo",
  "log",
- "rust-webvr",
  "servo-egl",
  "simpleservo",
  "smallvec 0.6.10",
@@ -3214,8 +3209,6 @@ dependencies = [
  "webrender",
  "webrender_api",
  "webrender_traits",
- "webvr",
- "webvr_traits",
  "webxr",
  "webxr-api",
 ]
@@ -3998,12 +3991,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "ovr-mobile-sys"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a69b517feac6fc640f0679625defa0998bbcb32871a6901e63063c2abf9c4cbe"
-
-[[package]]
 name = "owning_ref"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4612,40 +4599,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-webvr"
-version = "0.19.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a965d7b934fef625349e5f21774046da180000911140898235576a91dfbbe633"
-dependencies = [
- "bindgen",
- "euclid",
- "gl_generator 0.13.1",
- "gleam 0.9.2",
- "glutin",
- "gvr-sys",
- "libc",
- "libloading",
- "log",
- "ovr-mobile-sys",
- "rust-webvr-api",
- "sparkle",
-]
-
-[[package]]
-name = "rust-webvr-api"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aeb2bc6eabb244825b6667e68ffe30e4647d629ba81f68f798ad9e4cec753edf"
-dependencies = [
- "android_injected_glue",
- "ipc-channel",
- "serde",
- "serde_derive",
- "sparkle",
- "time",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4801,7 +4754,6 @@ dependencies = [
  "webdriver",
  "webgpu",
  "webrender_api",
- "webvr_traits",
  "webxr-api",
  "xml5ever",
 ]
@@ -4894,7 +4846,6 @@ dependencies = [
  "webdriver",
  "webgpu",
  "webrender_api",
- "webvr_traits",
  "webxr-api",
 ]
 
@@ -5004,7 +4955,6 @@ dependencies = [
  "log",
  "osmesa-src",
  "osmesa-sys",
- "rust-webvr",
  "servo-media",
  "shellwords",
  "sig",
@@ -6650,44 +6600,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "webvr"
-version = "0.0.1"
-dependencies = [
- "canvas_traits",
- "compositing",
- "crossbeam-channel",
- "euclid",
- "ipc-channel",
- "log",
- "msg",
- "rust-webvr",
- "rust-webvr-api",
- "servo_config",
- "sparkle",
- "webvr_traits",
-]
-
-[[package]]
-name = "webvr_traits"
-version = "0.0.1"
-dependencies = [
- "ipc-channel",
- "msg",
- "rust-webvr-api",
- "serde",
-]
-
-[[package]]
 name = "webxr"
 version = "0.0.1"
 source = "git+https://github.com/servo/webxr#2ff799c23431d5c20f38b49b211101c86cc1728f"
 dependencies = [
+ "android_injected_glue",
  "bindgen",
  "crossbeam-channel",
  "euclid",
  "gl_generator 0.13.1",
  "gleam 0.9.2",
  "glutin",
+ "gvr-sys",
  "log",
  "openxr",
  "serde",

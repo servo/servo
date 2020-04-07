@@ -118,7 +118,6 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
   o.height = mWindowHeight;
   o.density = dpi;
   o.enable_subpixel_text_antialiasing = false;
-  o.vr_pointer = NULL;
 
   // Note about logs:
   // By default: all modules are enabled. Only warn level-logs are displayed.

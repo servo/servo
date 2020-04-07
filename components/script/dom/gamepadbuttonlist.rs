@@ -3,12 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::GamepadButtonListBinding::GamepadButtonListMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::{Dom, DomRoot, DomSlice};
+use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::gamepadbutton::GamepadButton;
-use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use webvr_traits::WebVRGamepadButton;
 
 // https://w3c.github.io/gamepad/#gamepadbutton-interface
 #[dom_struct]
@@ -17,28 +15,14 @@ pub struct GamepadButtonList {
     list: Vec<Dom<GamepadButton>>,
 }
 
+// TODO: support gamepad discovery
+#[allow(dead_code)]
 impl GamepadButtonList {
     #[allow(unrooted_must_root)]
     fn new_inherited(list: &[&GamepadButton]) -> GamepadButtonList {
         GamepadButtonList {
             reflector_: Reflector::new(),
             list: list.iter().map(|button| Dom::from_ref(*button)).collect(),
-        }
-    }
-
-    pub fn new_from_vr(
-        global: &GlobalScope,
-        buttons: &[WebVRGamepadButton],
-    ) -> DomRoot<GamepadButtonList> {
-        rooted_vec!(let list <- buttons.iter()
-                                       .map(|btn| GamepadButton::new(&global, btn.pressed, btn.touched)));
-
-        reflect_dom_object(Box::new(GamepadButtonList::new_inherited(list.r())), global)
-    }
-
-    pub fn sync_from_vr(&self, vr_buttons: &[WebVRGamepadButton]) {
-        for (gp_btn, btn) in self.list.iter().zip(vr_buttons.iter()) {
-            gp_btn.update(btn.pressed, btn.touched);
         }
     }
 }

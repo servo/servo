@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::webgl_thread::{SurfaceProviders, WebGLThread, WebGLThreadInit, WebGlExecutor};
-use canvas_traits::webgl::{webgl_channel, WebVRRenderHandler};
+use canvas_traits::webgl::webgl_channel;
 use canvas_traits::webgl::{WebGLContextId, WebGLMsg, WebGLThreads};
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
@@ -41,7 +41,6 @@ impl WebGLComm {
         context: Context,
         webrender_gl: Rc<dyn gleam::gl::Gl>,
         webrender_api_sender: webrender_api::RenderApiSender,
-        webvr_compositor: Option<Box<dyn WebVRRenderHandler>>,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         api_type: GlType,
     ) -> WebGLComm {
@@ -55,7 +54,6 @@ impl WebGLComm {
         // This implementation creates a single `WebGLThread` for all the pipelines.
         let init = WebGLThreadInit {
             webrender_api_sender,
-            webvr_compositor,
             external_images,
             sender: sender.clone(),
             receiver,

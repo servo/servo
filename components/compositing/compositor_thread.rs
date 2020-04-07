@@ -23,7 +23,6 @@ use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webrender_api;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
-use webvr_traits::WebVRMainThreadHeartbeat;
 
 /// Sends messages to the compositor.
 pub struct CompositorProxy {
@@ -167,7 +166,6 @@ pub struct InitialCompositorState {
     pub webrender: webrender::Renderer,
     pub webrender_document: webrender_api::DocumentId,
     pub webrender_api: webrender_api::RenderApi,
-    pub webvr_heartbeats: Vec<Box<dyn WebVRMainThreadHeartbeat>>,
     pub webxr_main_thread: webxr::MainThreadRegistry,
     pub pending_wr_frame: Arc<AtomicBool>,
 }

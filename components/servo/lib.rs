@@ -52,8 +52,6 @@ pub use style_traits;
 pub use webgpu;
 pub use webrender_api;
 pub use webrender_traits;
-pub use webvr;
-pub use webvr_traits;
 
 #[cfg(feature = "webdriver")]
 fn webdriver(port: u16, constellation: Sender<ConstellationMsg>) {
@@ -128,8 +126,6 @@ use surfman::platform::generic::universal::device::Device;
 use webrender::{RendererKind, ShaderPrecacheFlags};
 use webrender_traits::WebrenderImageHandlerType;
 use webrender_traits::{WebrenderExternalImageHandlers, WebrenderExternalImageRegistry};
-use webvr::{VRServiceManager, WebVRCompositorHandler, WebVRThread};
-use webvr_traits::WebVRMsg;
 
 pub use gleam::gl;
 pub use keyboard_types;
@@ -448,40 +444,9 @@ where
             None
         };
 
-        if pref!(dom.webxr.enabled) && pref!(dom.webvr.enabled) {
-            panic!("We don't currently support running both WebVR and WebXR");
-        }
-
-        let mut webvr_heartbeats = Vec::new();
-        let webvr_services = if pref!(dom.webvr.enabled) {
-            let mut services = VRServiceManager::new();
-            services.register_defaults();
-            embedder.register_vr_services(&mut services, &mut webvr_heartbeats);
-            Some(services)
-        } else {
-            None
-        };
-
-        let (webvr_chan, webvr_constellation_sender, webvr_compositor) =
-            if let Some(services) = webvr_services {
-                // WebVR initialization
-                let (mut handler, sender) = WebVRCompositorHandler::new();
-                let (webvr_thread, constellation_sender) = WebVRThread::spawn(sender, services);
-                handler.set_webvr_thread_sender(webvr_thread.clone());
-                (
-                    Some(webvr_thread),
-                    Some(constellation_sender),
-                    Some(handler),
-                )
-            } else {
-                (None, None, None)
-            };
-
         let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
         let mut external_image_handlers = Box::new(external_image_handlers);
 
-        // For the moment, we enable use both the webxr crate and the rust-webvr crate,
-        // but we are migrating over to just using webxr.
         let mut webxr_main_thread = webxr::MainThreadRegistry::new(event_loop_waker)
             .expect("Failed to create WebXR device registry");
 
@@ -489,7 +454,6 @@ where
             &*window,
             &mut webrender,
             webrender_api_sender.clone(),
-            webvr_compositor,
             &mut webxr_main_thread,
             &mut external_image_handlers,
             external_images.clone(),
@@ -553,8 +517,6 @@ where
             webxr_main_thread.registry(),
             player_context,
             webgl_threads,
-            webvr_chan,
-            webvr_constellation_sender,
             glplayer_threads,
             event_loop_waker,
             window_size,
@@ -580,7 +542,6 @@ where
                 webrender,
                 webrender_document,
                 webrender_api,
-                webvr_heartbeats,
                 webxr_main_thread,
                 pending_wr_frame,
             },
@@ -890,8 +851,6 @@ fn create_constellation(
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
     webgl_threads: Option<WebGLThreads>,
-    webvr_chan: Option<IpcSender<WebVRMsg>>,
-    webvr_constellation_sender: Option<Sender<Sender<ConstellationMsg>>>,
     glplayer_threads: Option<GLPlayerThreads>,
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     initial_window_size: WindowSizeData,
@@ -930,9 +889,8 @@ fn create_constellation(
         mem_profiler_chan,
         webrender_document,
         webrender_api_sender,
-        webgl_threads,
-        webvr_chan,
         webxr_registry,
+        webgl_threads,
         glplayer_threads,
         player_context,
         event_loop_waker,
@@ -958,13 +916,6 @@ fn create_constellation(
         canvas_chan,
         ipc_canvas_chan,
     );
-
-    if let Some(webvr_constellation_sender) = webvr_constellation_sender {
-        // Set constellation channel used by WebVR thread to broadcast events
-        webvr_constellation_sender
-            .send(constellation_chan.clone())
-            .unwrap();
-    }
 
     constellation_chan
 }
@@ -1083,7 +1034,6 @@ fn create_webgl_threads<W>(
     window: &W,
     webrender: &mut webrender::Renderer,
     webrender_api_sender: webrender_api::RenderApiSender,
-    webvr_compositor: Option<Box<WebVRCompositorHandler>>,
     webxr_main_thread: &mut webxr::MainThreadRegistry,
     external_image_handlers: &mut WebrenderExternalImageHandlers,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -1145,7 +1095,6 @@ where
         context,
         window.gl(),
         webrender_api_sender,
-        webvr_compositor.map(|compositor| compositor as Box<_>),
         external_images,
         gl_type,
     );
