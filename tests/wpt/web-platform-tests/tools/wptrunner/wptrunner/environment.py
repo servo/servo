@@ -92,6 +92,7 @@ class TestEnvironment(object):
 
         self.servers = serve.start(self.config,
                                    self.get_routes())
+
         if self.options.get("supports_debugger") and self.debug_info and self.debug_info.interactive:
             self.ignore_interrupts()
         return self
@@ -212,8 +213,10 @@ class TestEnvironment(object):
         each_sleep_secs = 0.5
         end_time = time.time() + total_sleep_secs
         while time.time() < end_time:
-            failed = self.test_servers()
-            if not failed:
+            failed, pending = self.test_servers()
+            if failed:
+                break
+            if not pending:
                 return
             time.sleep(each_sleep_secs)
         raise EnvironmentError("Servers failed to start: %s" %
@@ -221,19 +224,23 @@ class TestEnvironment(object):
 
     def test_servers(self):
         failed = []
+        pending = []
         host = self.config["server_host"]
         for scheme, servers in iteritems(self.servers):
             for port, server in servers:
-                if self.test_server_port:
+                if not server.is_alive():
+                    failed.append((scheme, port))
+
+        if not failed and self.test_server_port:
+            for scheme, servers in iteritems(self.servers):
+                for port, server in servers:
                     s = socket.socket()
                     s.settimeout(0.1)
                     try:
                         s.connect((host, port))
                     except socket.error:
-                        failed.append((host, port))
+                        pending.append((host, port))
                     finally:
                         s.close()
 
-                if not server.is_alive():
-                    failed.append((scheme, port))
-        return failed
+        return failed, pending

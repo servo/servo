@@ -64,12 +64,6 @@ handler returns, or for directly writing to the output stream.
 """
 
 
-EDIT_HOSTS_HELP = ("Please ensure all the necessary WPT subdomains "
-                   "are mapped to a loopback device in /etc/hosts. "
-                   "See https://web-platform-tests.org/running-tests/from-local-system.html#system-setup "
-                   "for instructions.")
-
-
 class RequestRewriter(object):
     def __init__(self, rules):
         """Object for rewriting the request path.
@@ -676,7 +670,8 @@ class WebTestHttpd(object):
 
             _host, self.port = self.httpd.socket.getsockname()
         except Exception:
-            self.logger.critical("Failed to start HTTP server. {}".format(EDIT_HOSTS_HELP))
+            self.logger.critical("Failed to start HTTP server on port %s; "
+                                 "is something already using that port?" % port)
             raise
 
     def start(self, block=False):

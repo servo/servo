@@ -23,6 +23,19 @@ var audioConfigurationWithSpatialRendering = {
   spatialRendering: true,
 };
 
+// VideoConfiguration with optional hdrMetadataType, colorGamut, and
+// transferFunction properties.
+var videoConfigurationWithDynamicRange = {
+  contentType: 'video/webm; codecs="vp09.00.10.08"',
+  width: 800,
+  height: 600,
+  bitrate: 3000,
+  framerate: 24,
+  hdrMetadataType: "smpteSt2086",
+  colorGamut: "srgb",
+  transferFunction: "srgb",
+}
+
 promise_test(t => {
   return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo());
 }, "Test that decodingInfo rejects if it doesn't get a configuration");
@@ -314,3 +327,57 @@ promise_test(t => {
     assert_equals(typeof ability.keySystemAccess, "object");
   });
 }, "Test that decodingInfo with spatialRendering set returns a valid MediaCapabilitiesInfo objects");
+
+promise_test(t => {
+  return navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: videoConfigurationWithDynamicRange,
+  }).then(ability => {
+    assert_equals(typeof ability.supported, "boolean");
+    assert_equals(typeof ability.smooth, "boolean");
+    assert_equals(typeof ability.powerEfficient, "boolean");
+    assert_equals(typeof ability.keySystemAccess, "object");
+  });
+}, "Test that decodingInfo with hdrMetadataType, colorGamut, and transferFunction set returns a valid MediaCapabilitiesInfo objects");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: {
+      contentType: 'video/webm; codecs="vp09.00.10.08"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+      hdrMetadataType: ""
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration has an empty hdrMetadataType");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: {
+      contentType: 'video/webm; codecs="vp09.00.10.08"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+      colorGamut: true
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration has a colorGamut set to true");
+
+promise_test(t => {
+  return promise_rejects_js(t, TypeError, navigator.mediaCapabilities.decodingInfo({
+    type: 'file',
+    video: {
+      contentType: 'video/webm; codecs="vp09.00.10.08"',
+      width: 800,
+      height: 600,
+      bitrate: 3000,
+      framerate: 24,
+      transferFunction: 3
+    },
+  }));
+}, "Test that decodingInfo rejects if the video configuration has a transferFunction set to 3");

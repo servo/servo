@@ -3,7 +3,7 @@
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
 
-// https://w3c.github.io/wake-lock/
+// https://w3c.github.io/screen-wake-lock/
 
 'use strict';
 
@@ -19,7 +19,7 @@ idl_test(
     });
 
     await test_driver.set_permission(
-        { name: 'wake-lock', type: 'screen' }, 'granted', false);
+        { name: 'screen-wake-lock' }, 'granted', false);
     self.sentinel = await navigator.wakeLock.request('screen');
     self.sentinel.release();
   }

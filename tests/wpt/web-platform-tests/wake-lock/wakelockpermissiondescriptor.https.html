@@ -5,29 +5,21 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
-promise_test(t => {
-  return promise_rejects_js(t, TypeError, navigator.permissions.query({ name:'wake-lock' }));
-}, "WakeLockPermissionDescriptor's type attribute is required");
-
-promise_test(t => {
-  return promise_rejects_js(t, TypeError, navigator.permissions.query({ name: 'wake-lock', type: 'foo' }));
-}, "WakeLockPermissionDescriptor's type attribute must be a WakeLockType");
-
 promise_test(async t => {
-  await test_driver.set_permission({name: 'wake-lock', type: 'screen'}, 'denied', false);
+  await test_driver.set_permission({name: 'screen-wake-lock'}, 'denied', false);
 
-  return navigator.permissions.query({name:'wake-lock', type: 'screen'}).then(status => {
+  return navigator.permissions.query({name:'screen-wake-lock'}).then(status => {
     assert_class_string(status, "PermissionStatus");
     assert_equals(status.state, "denied");
   });
-}, "WakeLockPermissionDescriptor with type=screen works");
+}, "PermissionDescriptor with name='screen-wake-lock' works");
 
 promise_test(async t => {
-  await test_driver.set_permission({name: 'wake-lock', type: 'system'}, 'denied', false);
+  await test_driver.set_permission({name: 'system-wake-lock'}, 'denied', false);
 
-  return navigator.permissions.query({ name: 'wake-lock', type: 'system' }).then(status => {
+  return navigator.permissions.query({ name: 'system-wake-lock' }).then(status => {
     assert_class_string(status, "PermissionStatus");
     assert_equals(status.state, "denied");
   });
-}, "WakeLockPermissionDescriptor with type=system works");
+}, "PermissionDescriptor with name='system-wake-lock' works");
 </script>

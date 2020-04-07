@@ -46,9 +46,6 @@ async function doOfferAnswerExchange(t, caller) {
 
       - rtcp.cname is set to the CNAME of the associated RTCPeerConnection. rtcp.reducedSize
         is set to true if reduced-size RTCP has been negotiated for sending, and false otherwise.
-
-      - degradationPreference is set to the last value passed into setParameters, or the
-        default value of "balanced" if setParameters hasn't been called.
  */
 function validateSenderRtpParameters(param) {
   validateRtpParameters(param);
@@ -80,7 +77,7 @@ function validateSenderRtpParameters(param) {
       - rtcp.reducedSize is set to true if the receiver is currently prepared to receive
         reduced-size RTCP packets, and false otherwise. rtcp.cname is left undefined.
 
-      - transactionId and degradationPreference are left undefined.
+      - transactionId is left undefined.
  */
 function validateReceiverRtpParameters(param) {
   validateRtpParameters(param);
@@ -93,9 +90,6 @@ function validateReceiverRtpParameters(param) {
 
   assert_equals(param.rtcp.cname, undefined,
     'Expect receiver param.rtcp.cname to be unset');
-
-  assert_equals(param.degradationPreference, undefined,
-    'Expect receiver param.degradationPreference to be unset');
 }
 
 /*
@@ -105,7 +99,6 @@ function validateReceiverRtpParameters(param) {
     sequence<RTCRtpHeaderExtensionParameters> headerExtensions;
     RTCRtcpParameters                         rtcp;
     sequence<RTCRtpCodecParameters>           codecs;
-    RTCDegradationPreference                  degradationPreference;
   };
 
   enum RTCDegradationPreference {
@@ -134,9 +127,6 @@ function validateRtpParameters(param) {
   for(const codec of param.codecs) {
     validateCodecParameters(codec);
   }
-
-  assert_optional_enum_field(param, 'degradationPreference',
-    ['maintain-framerate', 'maintain-resolution', 'balanced']);
 }
 
 /*

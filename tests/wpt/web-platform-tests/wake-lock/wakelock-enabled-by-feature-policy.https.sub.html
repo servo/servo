@@ -15,7 +15,7 @@
 
   promise_test(async t => {
     await test_driver.set_permission(
-        { name: 'wake-lock', type: 'screen' }, 'granted', false);
+        { name: 'screen-wake-lock' }, 'granted', false);
     await navigator.wakeLock.request('screen').then(lock => lock.release());
   }, 'Feature-Policy header {"screen-wake-lock" : ["*"]} allows the top-level document.');
 

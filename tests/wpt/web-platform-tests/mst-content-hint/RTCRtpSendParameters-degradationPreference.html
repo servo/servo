@@ -1,0 +1,129 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCRtpSendParameters degradationPreference</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  'use strict';
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const { sender } = pc.addTransceiver('video');
+
+  let param = sender.getParameters();
+
+  assert_equals(param.degradationPreference, undefined,
+    'Expect initial param.degradationPreference to be undefined');
+
+  param.degradationPreference = 'maintain-framerate';
+  await sender.setParameters(param);
+  param = sender.getParameters();
+  assert_equals(param.degradationPreference, 'maintain-framerate');
+
+  param.degradationPreference = 'maintain-resolution';
+  await sender.setParameters(param);
+  param = sender.getParameters();
+  assert_equals(param.degradationPreference, 'maintain-resolution');
+
+  param.degradationPreference = 'balanced';
+  await sender.setParameters(param);
+  param = sender.getParameters();
+  assert_equals(param.degradationPreference, 'balanced');
+
+  param.degradationPreference = undefined;
+  await sender.setParameters(param);
+  param = sender.getParameters();
+  assert_equals(param.degradationPreference, undefined);
+}, 'setParameters with degradationPreference set should succeed on video transceiver');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const { sender } = pc.addTransceiver('video');
+
+  let param = sender.getParameters();
+
+  assert_equals(param.degradationPreference, undefined,
+    'Expect initial param.degradationPreference to be undefined');
+
+  param.degradationPreference = undefined;
+
+  await sender.setParameters(param);
+
+  param = sender.getParameters();
+  assert_equals(param.degradationPreference, undefined);
+}, 'setParameters with degradationPreference unset should succeed on video transceiver');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const { sender } = pc.addTransceiver('video');
+
+  let param = sender.getParameters();
+  param.degradationPreference = 'invalid';
+
+  return promise_rejects_js(t, TypeError, sender.setParameters(param));
+}, 'setParameters with invalid degradationPreference should throw TypeError on video transceiver');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const { sender } = pc.addTransceiver('audio');
+
+  let param = sender.getParameters();
+
+  assert_equals(param.degradationPreference, undefined,
+    'Expect initial param.degradationPreference to be undefined');
+
+  param.degradationPreference = 'maintain-framerate';
+  await sender.setParameters(param);
+  param = sender.getParameters();
+  assert_equals(param.degradationPreference, 'maintain-framerate');
+
+  param.degradationPreference = 'maintain-resolution';
+  await sender.setParameters(param);
+  param = sender.getParameters();
+  assert_equals(param.degradationPreference, 'maintain-resolution');
+
+  param.degradationPreference = 'balanced';
+  await sender.setParameters(param);
+  param = sender.getParameters();
+  assert_equals(param.degradationPreference, 'balanced');
+
+  param.degradationPreference = undefined;
+  await sender.setParameters(param);
+  param = sender.getParameters();
+  assert_equals(param.degradationPreference, undefined);
+}, 'setParameters with degradationPreference set should succeed on audio transceiver');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const { sender } = pc.addTransceiver('audio');
+
+  let param = sender.getParameters();
+
+  assert_equals(param.degradationPreference, undefined,
+    'Expect initial param.degradationPreference to be undefined');
+
+  param.degradationPreference = undefined;
+
+  await sender.setParameters(param);
+
+  param = sender.getParameters();
+  assert_equals(param.degradationPreference, undefined);
+}, 'setParameters with degradationPreference unset should succeed on audio transceiver');
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  const { sender } = pc.addTransceiver('audio');
+
+  let param = sender.getParameters();
+  param.degradationPreference = 'invalid';
+
+  return promise_rejects_js(t, TypeError, sender.setParameters(param));
+}, 'setParameters with invalid degradationPreference should throw TypeError on audio transceiver');
+
+</script>
