@@ -66,7 +66,8 @@ pub fn test_parse_length() {
 
     check("0", LengthOrPercentageOrAuto::Length(Au::from_px(0)));
     check("0.000%", LengthOrPercentageOrAuto::Percentage(0.0));
-    check("+5.82%", LengthOrPercentageOrAuto::Percentage(0.0582));
+    check("+5.82%", LengthOrPercentageOrAuto::Auto);
+    check("5.82%", LengthOrPercentageOrAuto::Percentage(0.0582));
     check(
         "5.82",
         LengthOrPercentageOrAuto::Length(Au::from_f64_px(5.82)),

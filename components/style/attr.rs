@@ -539,28 +539,18 @@ pub fn parse_length(mut value: &str) -> LengthOrPercentageOrAuto {
     value = value.trim_start_matches(HTML_SPACE_CHARACTERS);
 
     // Step 4
-    if value.is_empty() {
-        return LengthOrPercentageOrAuto::Auto;
-    }
-
-    // Step 5
-    if value.starts_with('+') {
-        value = &value[1..]
-    }
-
-    // Steps 6 & 7
     match value.chars().nth(0) {
         Some('0'..='9') => {},
         _ => return LengthOrPercentageOrAuto::Auto,
     }
 
-    // Steps 8 to 13
+    // Steps 5 to 8
     // We trim the string length to the minimum of:
     // 1. the end of the string
     // 2. the first occurence of a '%' (U+0025 PERCENT SIGN)
     // 3. the second occurrence of a '.' (U+002E FULL STOP)
     // 4. the occurrence of a character that is neither a digit nor '%' nor '.'
-    // Note: Step 10 is directly subsumed by FromStr::from_str
+    // Note: Step 7.4 is directly subsumed by FromStr::from_str
     let mut end_index = value.len();
     let (mut found_full_stop, mut found_percent) = (false, false);
     for (i, ch) in value.chars().enumerate() {
