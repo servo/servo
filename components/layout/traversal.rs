@@ -9,7 +9,7 @@ use crate::context::LayoutContext;
 use crate::display_list::DisplayListBuildState;
 use crate::flow::{Flow, FlowFlags, GetBaseFlow, ImmutableFlowUtils};
 use crate::wrapper::ThreadSafeLayoutNodeHelpers;
-use crate::wrapper::{GetRawData, LayoutNodeLayoutData};
+use crate::wrapper::{GetStyleAndLayoutData, LayoutNodeLayoutData};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use servo_config::opts;
 use style::context::{SharedStyleContext, StyleContext};
@@ -73,7 +73,7 @@ where
         // flow construction:
         // (1) They child doesn't yet have layout data (preorder traversal initializes it).
         // (2) The parent element has restyle damage (so the text flow also needs fixup).
-        node.get_raw_data().is_none() || !parent_data.damage.is_empty()
+        node.get_style_and_layout_data().is_none() || !parent_data.damage.is_empty()
     }
 
     fn shared_context(&self) -> &SharedStyleContext {

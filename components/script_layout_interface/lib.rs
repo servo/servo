@@ -29,12 +29,13 @@ use std::any::Any;
 use std::sync::atomic::AtomicIsize;
 use style::data::ElementData;
 
-#[repr(C)]
+#[derive(MallocSizeOf)]
 pub struct StyleData {
     /// Data that the style system associates with a node. When the
     /// style system is being used standalone, this is all that hangs
     /// off the node. This must be first to permit the various
     /// transmutations between ElementData and PersistentLayoutData.
+    #[ignore_malloc_size_of = "This probably should not be ignored"]
     pub element_data: AtomicRefCell<ElementData>,
 
     /// Information needed during parallel traversals.
@@ -50,36 +51,32 @@ impl StyleData {
     }
 }
 
+pub type StyleAndOpaqueLayoutData = StyleAndGenericData<dyn Any + Send + Sync>;
+
 #[derive(MallocSizeOf)]
-pub struct OpaqueStyleAndLayoutData {
-    // NB: We really store a `StyleAndLayoutData` here, so be careful!
+pub struct StyleAndGenericData<T>
+where
+    T: ?Sized,
+{
+    /// The style data.
+    pub style_data: StyleData,
+    /// The opaque layout data.
     #[ignore_malloc_size_of = "Trait objects are hard"]
-    ptr: Box<dyn Any + Send + Sync>,
+    pub generic_data: T,
 }
 
-impl OpaqueStyleAndLayoutData {
+impl StyleAndOpaqueLayoutData {
     #[inline]
-    pub fn new<T>(value: T) -> Self
+    pub fn new<T>(style_data: StyleData, layout_data: T) -> Box<Self>
     where
         T: Any + Send + Sync,
     {
-        Self {
-            ptr: Box::new(value) as Box<dyn Any + Send + Sync>,
-        }
-    }
-
-    /// Extremely cursed.
-    #[inline]
-    pub fn downcast_ref<T>(&self) -> Option<&T>
-    where
-        T: Any + Send + Sync,
-    {
-        self.ptr.downcast_ref()
+        Box::new(StyleAndGenericData {
+            style_data,
+            generic_data: layout_data,
+        })
     }
 }
-
-#[allow(unsafe_code)]
-unsafe impl Send for OpaqueStyleAndLayoutData {}
 
 /// Information that we need stored in each DOM node.
 #[derive(MallocSizeOf)]

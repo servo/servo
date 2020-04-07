@@ -122,7 +122,7 @@ pub enum QueryMsg {
     // garbage values such as `0xdeadbeef as *const _`, this is unsound.
     NodeScrollIdQuery(TrustedNodeAddress),
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, PropertyId),
-    StyleQuery(TrustedNodeAddress),
+    StyleQuery,
     ElementInnerTextQuery(TrustedNodeAddress),
     InnerWindowDimensionsQuery(BrowsingContextId),
 }
@@ -153,7 +153,7 @@ impl ReflowGoal {
                 QueryMsg::NodeScrollIdQuery(_) |
                 QueryMsg::ResolvedStyleQuery(..) |
                 QueryMsg::OffsetParentQuery(_) |
-                QueryMsg::StyleQuery(_) => false,
+                QueryMsg::StyleQuery => false,
             },
         }
     }
@@ -175,7 +175,7 @@ impl ReflowGoal {
                 QueryMsg::ResolvedStyleQuery(..) |
                 QueryMsg::OffsetParentQuery(_) |
                 QueryMsg::InnerWindowDimensionsQuery(_) |
-                QueryMsg::StyleQuery(_) => false,
+                QueryMsg::StyleQuery => false,
             },
         }
     }

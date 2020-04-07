@@ -6,25 +6,14 @@ use crate::construct::ConstructionResult;
 use atomic_refcell::AtomicRefCell;
 use script_layout_interface::StyleData;
 
-#[repr(C)]
-pub struct StyleAndLayoutData {
+pub struct StyleAndLayoutData<'dom> {
     /// The style data associated with a node.
-    pub style_data: StyleData,
+    pub style_data: &'dom StyleData,
     /// The layout data associated with a node.
-    pub layout_data: AtomicRefCell<LayoutData>,
-}
-
-impl StyleAndLayoutData {
-    pub fn new() -> Self {
-        Self {
-            style_data: StyleData::new(),
-            layout_data: AtomicRefCell::new(LayoutData::new()),
-        }
-    }
+    pub layout_data: &'dom AtomicRefCell<LayoutData>,
 }
 
 /// Data that layout associates with a node.
-#[repr(C)]
 pub struct LayoutData {
     /// The current results of flow construction for this node. This is either a
     /// flow or a `ConstructionItem`. See comments in `construct.rs` for more

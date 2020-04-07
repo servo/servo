@@ -7,8 +7,8 @@
 use crate::HTMLCanvasData;
 use crate::HTMLMediaData;
 use crate::LayoutNodeType;
-use crate::OpaqueStyleAndLayoutData;
 use crate::SVGSVGData;
+use crate::StyleAndOpaqueLayoutData;
 use atomic_refcell::AtomicRef;
 use gfx_traits::{combine_id_with_fragment_type, ByteIndex, FragmentType};
 use html5ever::{LocalName, Namespace};
@@ -79,13 +79,13 @@ impl PseudoElementType {
 }
 
 /// Trait to abstract access to layout data across various data structures.
-pub trait GetLayoutData<'dom> {
-    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData>;
+pub trait GetStyleAndOpaqueLayoutData<'dom> {
+    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData>;
 }
 
 /// A wrapper so that layout can access only the methods that it should have access to. Layout must
 /// only ever see these and must never see instances of `LayoutDom`.
-pub trait LayoutNode<'dom>: Debug + GetLayoutData<'dom> + TNode {
+pub trait LayoutNode<'dom>: Debug + GetStyleAndOpaqueLayoutData<'dom> + TNode {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<'dom>;
     fn to_threadsafe(&self) -> Self::ConcreteThreadSafeLayoutNode;
 
@@ -93,8 +93,8 @@ pub trait LayoutNode<'dom>: Debug + GetLayoutData<'dom> + TNode {
     fn type_id(&self) -> LayoutNodeType;
 
     unsafe fn initialize_data(&self);
-    unsafe fn init_style_and_layout_data(&self, data: OpaqueStyleAndLayoutData);
-    unsafe fn take_style_and_layout_data(&self) -> OpaqueStyleAndLayoutData;
+    unsafe fn init_style_and_opaque_layout_data(&self, data: Box<StyleAndOpaqueLayoutData>);
+    unsafe fn take_style_and_opaque_layout_data(&self) -> Box<StyleAndOpaqueLayoutData>;
 
     fn rev_children(self) -> LayoutIterator<ReverseChildrenIterator<Self>> {
         LayoutIterator(ReverseChildrenIterator {
@@ -160,7 +160,7 @@ where
 /// A thread-safe version of `LayoutNode`, used during flow construction. This type of layout
 /// node does not allow any parents or siblings of nodes to be accessed, to avoid races.
 pub trait ThreadSafeLayoutNode<'dom>:
-    Clone + Copy + Debug + GetLayoutData<'dom> + NodeInfo + PartialEq + Sized
+    Clone + Copy + Debug + GetStyleAndOpaqueLayoutData<'dom> + NodeInfo + PartialEq + Sized
 {
     type ConcreteNode: LayoutNode<'dom, ConcreteThreadSafeLayoutNode = Self>;
     type ConcreteElement: TElement;
@@ -224,7 +224,7 @@ pub trait ThreadSafeLayoutNode<'dom>:
             .map_or(PseudoElementType::Normal, |el| el.get_pseudo_element_type())
     }
 
-    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData>;
+    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData>;
 
     fn style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {
         if let Some(el) = self.as_element() {
@@ -314,7 +314,12 @@ pub trait DangerousThreadSafeLayoutNode<'dom>: ThreadSafeLayoutNode<'dom> {
 }
 
 pub trait ThreadSafeLayoutElement<'dom>:
-    Clone + Copy + Sized + Debug + ::selectors::Element<Impl = SelectorImpl> + GetLayoutData<'dom>
+    Clone
+    + Copy
+    + Sized
+    + Debug
+    + ::selectors::Element<Impl = SelectorImpl>
+    + GetStyleAndOpaqueLayoutData<'dom>
 {
     type ConcreteThreadSafeLayoutNode: ThreadSafeLayoutNode<
         'dom,

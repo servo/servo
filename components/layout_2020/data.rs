@@ -6,17 +6,7 @@ use crate::element_data::LayoutDataForElement;
 use atomic_refcell::AtomicRefCell;
 use script_layout_interface::StyleData;
 
-#[repr(C)]
-pub struct StyleAndLayoutData {
-    pub style_data: StyleData,
-    pub(super) layout_data: AtomicRefCell<LayoutDataForElement>,
-}
-
-impl StyleAndLayoutData {
-    pub fn new() -> Self {
-        Self {
-            style_data: StyleData::new(),
-            layout_data: Default::default(),
-        }
-    }
+pub struct StyleAndLayoutData<'dom> {
+    pub style_data: &'dom StyleData,
+    pub(super) layout_data: &'dom AtomicRefCell<LayoutDataForElement>,
 }

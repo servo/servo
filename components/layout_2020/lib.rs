@@ -14,7 +14,7 @@ pub mod context;
 pub mod data;
 pub mod display_list;
 mod dom_traversal;
-mod element_data;
+pub mod element_data;
 mod flow;
 mod formatting_contexts;
 mod fragments;

@@ -15,7 +15,7 @@ use msg::constellation_msg::PipelineId;
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{NodeGeometryResponse, NodeScrollIdResponse};
-use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, StyleResponse};
+use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse};
 use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
@@ -58,9 +58,6 @@ pub struct LayoutThreadData {
 
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
-
-    /// A queued response for the style of a node.
-    pub style_response: StyleResponse,
 
     /// Scroll offsets of scrolling regions.
     pub scroll_offsets: HashMap<ExternalScrollId, Vector2D<f32, LayoutPixel>>,
@@ -139,12 +136,6 @@ impl LayoutRPC for LayoutRPCImpl {
         rw_data.offset_parent_response.clone()
     }
 
-    fn style(&self) -> StyleResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        rw_data.style_response.clone()
-    }
-
     fn text_index(&self) -> TextIndexResponse {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
@@ -218,10 +209,6 @@ pub fn process_resolved_style_request<'dom>(
 
 pub fn process_offset_parent_query(_requested_node: OpaqueNode) -> OffsetParentResponse {
     OffsetParentResponse::empty()
-}
-
-pub fn process_style_query<'dom>(_requested_node: impl LayoutNode<'dom>) -> StyleResponse {
-    StyleResponse(None)
 }
 
 // https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute

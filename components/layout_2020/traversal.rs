@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
-use crate::wrapper::GetRawData;
+use crate::wrapper::GetStyleAndLayoutData;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use style::context::{SharedStyleContext, StyleContext};
 use style::data::ElementData;
@@ -45,25 +45,28 @@ where
     ) where
         F: FnMut(E::ConcreteNode),
     {
-        unsafe { node.initialize_data() };
-
-        if !node.is_text_node() {
-            let el = node.as_element().unwrap();
-            let mut data = el.mutate_data().unwrap();
-            recalc_style_at(self, traversal_data, context, el, &mut data, note_child);
-        }
-    }
-
-    fn process_postorder(&self, _style_context: &mut StyleContext<E>, node: E::ConcreteNode) {
-        if let Some(el) = node.as_element() {
-            unsafe {
+        unsafe {
+            node.initialize_data();
+            if !node.is_text_node() {
+                let el = node.as_element().unwrap();
+                let mut data = el.mutate_data().unwrap();
+                recalc_style_at(self, traversal_data, context, el, &mut data, note_child);
                 el.unset_dirty_descendants();
             }
         }
     }
 
+    #[inline]
+    fn needs_postorder_traversal() -> bool {
+        false
+    }
+
+    fn process_postorder(&self, _style_context: &mut StyleContext<E>, _node: E::ConcreteNode) {
+        panic!("this should never be called")
+    }
+
     fn text_node_needs_traversal(node: E::ConcreteNode, parent_data: &ElementData) -> bool {
-        node.get_raw_data().is_none() || !parent_data.damage.is_empty()
+        node.get_style_and_layout_data().is_none() || !parent_data.damage.is_empty()
     }
 
     fn shared_context(&self) -> &SharedStyleContext {

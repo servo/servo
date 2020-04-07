@@ -6,8 +6,6 @@ use app_units::Au;
 use euclid::default::Rect;
 use euclid::Size2D;
 use script_traits::UntrustedNodeAddress;
-use servo_arc::Arc;
-use style::properties::ComputedValues;
 use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
 
@@ -33,9 +31,6 @@ pub trait LayoutRPC {
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
     fn offset_parent(&self) -> OffsetParentResponse;
-    /// Requests the styles for an element. Contains a `None` value if the element is in a `display:
-    /// none` subtree.
-    fn style(&self) -> StyleResponse;
     fn text_index(&self) -> TextIndexResponse;
     /// Requests the list of nodes from the given point.
     fn nodes_from_point_response(&self) -> Vec<UntrustedNodeAddress>;
@@ -71,9 +66,6 @@ impl OffsetParentResponse {
         }
     }
 }
-
-#[derive(Clone)]
-pub struct StyleResponse(pub Option<Arc<ComputedValues>>);
 
 #[derive(Clone)]
 pub struct TextIndexResponse(pub Option<usize>);

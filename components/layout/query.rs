@@ -6,7 +6,6 @@
 
 use crate::construct::ConstructionResult;
 use crate::context::LayoutContext;
-use crate::data::StyleAndLayoutData;
 use crate::display_list::items::{DisplayList, OpaqueNode, ScrollOffsetMap};
 use crate::display_list::IndexableText;
 use crate::flow::{Flow, GetBaseFlow};
@@ -23,7 +22,7 @@ use msg::constellation_msg::PipelineId;
 use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{NodeGeometryResponse, NodeScrollIdResponse};
-use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse, StyleResponse};
+use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse};
 use script_layout_interface::wrapper_traits::{
     LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
 };
@@ -76,9 +75,6 @@ pub struct LayoutThreadData {
 
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
-
-    /// A queued response for the style of a node.
-    pub style_response: StyleResponse,
 
     /// Scroll offsets of scrolling regions.
     pub scroll_offsets: ScrollOffsetMap,
@@ -178,12 +174,6 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         rw_data.offset_parent_response.clone()
-    }
-
-    fn style(&self) -> StyleResponse {
-        let &LayoutRPCImpl(ref rw_data) = self;
-        let rw_data = rw_data.lock().unwrap();
-        rw_data.style_response.clone()
     }
 
     fn text_index(&self) -> TextIndexResponse {
@@ -966,13 +956,6 @@ pub fn process_offset_parent_query(
     }
 }
 
-pub fn process_style_query<'dom>(requested_node: impl LayoutNode<'dom>) -> StyleResponse {
-    let element = requested_node.as_element().unwrap();
-    let data = element.borrow_data();
-
-    StyleResponse(data.map(|d| d.styles.primary().clone()))
-}
-
 enum InnerTextItem {
     Text(String),
     RequiredLineBreakCount(u32),
@@ -1036,21 +1019,12 @@ fn inner_text_collection_steps<'dom>(
             _ => child,
         };
 
-        let element_data = {
-            &node.get_style_and_layout_data().as_ref().map(|opaque| {
-                &opaque
-                    .downcast_ref::<StyleAndLayoutData>()
-                    .unwrap()
-                    .style_data
-                    .element_data
-            })
+        let element_data = match node.get_style_and_opaque_layout_data() {
+            Some(data) => &data.style_data.element_data,
+            None => continue,
         };
 
-        if element_data.is_none() {
-            continue;
-        }
-
-        let style = match element_data.unwrap().borrow().styles.get_primary() {
+        let style = match element_data.borrow().styles.get_primary() {
             None => continue,
             Some(style) => style.clone(),
         };

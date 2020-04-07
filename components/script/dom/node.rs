@@ -75,8 +75,9 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use net_traits::image::base::{Image, ImageMetadata};
 use ref_slice::ref_slice;
+use script_layout_interface::message::QueryMsg;
 use script_layout_interface::{HTMLCanvasData, HTMLMediaData, LayoutElementType, LayoutNodeType};
-use script_layout_interface::{OpaqueStyleAndLayoutData, SVGSVGData, TrustedNodeAddress};
+use script_layout_interface::{SVGSVGData, StyleAndOpaqueLayoutData, TrustedNodeAddress};
 use script_traits::DocumentActivity;
 use script_traits::UntrustedNodeAddress;
 use selectors::matching::{matches_selector_list, MatchingContext, MatchingMode};
@@ -95,6 +96,7 @@ use std::ops::Range;
 use std::sync::Arc as StdArc;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
+use style::properties::ComputedValues;
 use style::selector_parser::{SelectorImpl, SelectorParser};
 use style::stylesheets::Stylesheet;
 use uuid::Uuid;
@@ -152,8 +154,8 @@ pub struct Node {
     ///
     /// Must be sent back to the layout thread to be destroyed when this
     /// node is finalized.
-    #[ignore_malloc_size_of = "shrug"]
-    style_and_layout_data: UnsafeCell<Option<OpaqueStyleAndLayoutData>>,
+    #[ignore_malloc_size_of = "Unsafe cell"]
+    style_and_layout_data: UnsafeCell<Option<Box<StyleAndOpaqueLayoutData>>>,
 }
 
 bitflags! {
@@ -1229,6 +1231,23 @@ impl Node {
             _ => false,
         }
     }
+
+    #[allow(unsafe_code)]
+    pub fn style(&self) -> Option<Arc<ComputedValues>> {
+        if !window_from_node(self).layout_reflow(QueryMsg::StyleQuery) {
+            return None;
+        }
+        unsafe {
+            (*self.style_and_layout_data.get()).as_ref().map(|data| {
+                data.style_data
+                    .element_data
+                    .borrow()
+                    .styles
+                    .primary()
+                    .clone()
+            })
+        }
+    }
 }
 
 /// Iterate through `nodes` until we find a `Node` that is not in `not_in`
@@ -1282,9 +1301,9 @@ pub trait LayoutNodeHelpers<'dom> {
 
     fn children_count(self) -> u32;
 
-    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData>;
-    unsafe fn init_style_and_layout_data(self, data: OpaqueStyleAndLayoutData);
-    unsafe fn take_style_and_layout_data(self) -> OpaqueStyleAndLayoutData;
+    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData>;
+    unsafe fn init_style_and_opaque_layout_data(self, data: Box<StyleAndOpaqueLayoutData>);
+    unsafe fn take_style_and_opaque_layout_data(self) -> Box<StyleAndOpaqueLayoutData>;
 
     fn text_content(self) -> Cow<'dom, str>;
     fn selection(self) -> Option<Range<usize>>;
@@ -1410,13 +1429,13 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    fn get_style_and_layout_data(self) -> Option<&'dom OpaqueStyleAndLayoutData> {
-        unsafe { (*self.unsafe_get().style_and_layout_data.get()).as_ref() }
+    fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData> {
+        unsafe { (*self.unsafe_get().style_and_layout_data.get()).as_deref() }
     }
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn init_style_and_layout_data(self, val: OpaqueStyleAndLayoutData) {
+    unsafe fn init_style_and_opaque_layout_data(self, val: Box<StyleAndOpaqueLayoutData>) {
         let data = &mut *self.unsafe_get().style_and_layout_data.get();
         debug_assert!(data.is_none());
         *data = Some(val);
@@ -1424,7 +1443,7 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
 
     #[inline]
     #[allow(unsafe_code)]
-    unsafe fn take_style_and_layout_data(self) -> OpaqueStyleAndLayoutData {
+    unsafe fn take_style_and_opaque_layout_data(self) -> Box<StyleAndOpaqueLayoutData> {
         (*self.unsafe_get().style_and_layout_data.get())
             .take()
             .unwrap()
