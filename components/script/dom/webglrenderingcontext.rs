@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::Ref;
+use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
@@ -148,6 +148,13 @@ bitflags! {
     }
 }
 
+#[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
+pub enum VertexAttrib {
+    Float(f32, f32, f32, f32),
+    Int(i32, i32, i32, i32),
+    Uint(u32, u32, u32, u32),
+}
+
 #[dom_struct]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
@@ -173,9 +180,7 @@ pub struct WebGLRenderingContext {
     bound_renderbuffer: MutNullableDom<WebGLRenderbuffer>,
     bound_buffer_array: MutNullableDom<WebGLBuffer>,
     current_program: MutNullableDom<WebGLProgram>,
-    /// https://www.khronos.org/webgl/wiki/WebGL_and_OpenGL_Differences#Vertex_Attribute_0
-    #[ignore_malloc_size_of = "Because it's small"]
-    current_vertex_attrib_0: Cell<(f32, f32, f32, f32)>,
+    current_vertex_attribs: DomRefCell<Box<[VertexAttrib]>>,
     #[ignore_malloc_size_of = "Because it's small"]
     current_scissor: Cell<(i32, i32, u32, u32)>,
     #[ignore_malloc_size_of = "Because it's small"]
@@ -216,6 +221,7 @@ impl WebGLRenderingContext {
 
         result.map(|ctx_data| {
             let max_combined_texture_image_units = ctx_data.limits.max_combined_texture_image_units;
+            let max_vertex_attribs = ctx_data.limits.max_vertex_attribs as usize;
             Self {
                 reflector_: Reflector::new(),
                 webgl_sender: WebGLMessageSender::new(
@@ -236,7 +242,9 @@ impl WebGLRenderingContext {
                 bound_buffer_array: MutNullableDom::new(None),
                 bound_renderbuffer: MutNullableDom::new(None),
                 current_program: MutNullableDom::new(None),
-                current_vertex_attrib_0: Cell::new((0f32, 0f32, 0f32, 1f32)),
+                current_vertex_attribs: DomRefCell::new(
+                    vec![VertexAttrib::Float(0f32, 0f32, 0f32, 1f32); max_vertex_attribs].into(),
+                ),
                 current_scissor: Cell::new((0, 0, size.width, size.height)),
                 // FIXME(#21718) The backend is allowed to choose a size smaller than
                 // what was requested
@@ -303,6 +311,10 @@ impl WebGLRenderingContext {
                     .init_once(|| WebGLVertexArrayObject::new(self, None)),
             )
         })
+    }
+
+    pub fn current_vertex_attribs(&self) -> RefMut<Box<[VertexAttrib]>> {
+        self.current_vertex_attribs.borrow_mut()
     }
 
     pub fn recreate(&self, size: Size2D<u32>) {
@@ -521,9 +533,15 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        if indx == 0 {
-            self.current_vertex_attrib_0.set((x, y, z, w))
-        }
+        match self.webgl_version() {
+            WebGLVersion::WebGL1 => self
+                .current_vao()
+                .set_vertex_attrib_type(indx, constants::FLOAT),
+            WebGLVersion::WebGL2 => self
+                .current_vao_webgl2()
+                .set_vertex_attrib_type(indx, constants::FLOAT),
+        };
+        self.current_vertex_attribs.borrow_mut()[indx as usize] = VertexAttrib::Float(x, y, z, w);
 
         self.send_command(WebGLCommand::VertexAttrib(indx, x, y, z, w));
     }
@@ -3032,21 +3050,48 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn GetVertexAttrib(&self, cx: SafeJSContext, index: u32, param: u32) -> JSVal {
         let get_attrib = |data: Ref<VertexAttribData>| -> JSVal {
             if param == constants::CURRENT_VERTEX_ATTRIB {
-                let value = if index == 0 {
-                    let (x, y, z, w) = self.current_vertex_attrib_0.get();
-                    [x, y, z, w]
-                } else {
-                    let (sender, receiver) = webgl_channel().unwrap();
-                    self.send_command(WebGLCommand::GetCurrentVertexAttrib(index, sender));
-                    receiver.recv().unwrap()
-                };
-                unsafe {
-                    rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
-                    let _ =
-                        Float32Array::create(*cx, CreateWith::Slice(&value), result.handle_mut())
+                let attrib = self.current_vertex_attribs.borrow()[index as usize];
+                match attrib {
+                    VertexAttrib::Float(x, y, z, w) => {
+                        let value = [x, y, z, w];
+                        unsafe {
+                            rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
+                            let _ = Float32Array::create(
+                                *cx,
+                                CreateWith::Slice(&value),
+                                result.handle_mut(),
+                            )
                             .unwrap();
-                    return ObjectValue(result.get());
-                }
+                            return ObjectValue(result.get());
+                        }
+                    },
+                    VertexAttrib::Int(x, y, z, w) => {
+                        let value = [x, y, z, w];
+                        unsafe {
+                            rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
+                            let _ = Int32Array::create(
+                                *cx,
+                                CreateWith::Slice(&value),
+                                result.handle_mut(),
+                            )
+                            .unwrap();
+                            return ObjectValue(result.get());
+                        }
+                    },
+                    VertexAttrib::Uint(x, y, z, w) => {
+                        let value = [x, y, z, w];
+                        unsafe {
+                            rooted!(in(*cx) let mut result = ptr::null_mut::<JSObject>());
+                            let _ = Uint32Array::create(
+                                *cx,
+                                CreateWith::Slice(&value),
+                                result.handle_mut(),
+                            )
+                            .unwrap();
+                            return ObjectValue(result.get());
+                        }
+                    },
+                };
             }
             if !self
                 .extension_manager
