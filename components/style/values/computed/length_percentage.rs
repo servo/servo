@@ -193,6 +193,12 @@ impl LengthPercentage {
         Self::new_length(Length::new(1.))
     }
 
+    /// 0%
+    #[inline]
+    pub fn zero_percent() -> Self {
+        Self::new_percent(Percentage::zero())
+    }
+
     fn to_calc_node(&self) -> Cow<CalcNode> {
         match self.unpack() {
             Unpacked::Length(l) => Cow::Owned(CalcNode::Leaf(CalcLengthPercentageLeaf::Length(l))),

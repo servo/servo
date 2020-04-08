@@ -111,7 +111,7 @@ ${helpers.predefined_type(
     ${helpers.predefined_type(
         "mask-position-" + axis,
         "position::" + direction + "Position",
-        "computed::LengthPercentage::zero()",
+        "computed::LengthPercentage::zero_percent()",
         engines="gecko",
         extra_prefixes="webkit",
         initial_specified_value="specified::PositionComponent::Center",

@@ -245,7 +245,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "text-emphasis-style",
     "TextEmphasisStyle",
-    None,
+    "computed::TextEmphasisStyle::None",
     engines="gecko",
     initial_specified_value="SpecifiedValue::None",
     animation_value_type="discrete",
@@ -368,13 +368,12 @@ ${helpers.single_keyword(
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
-// FIXME Firefox expects the initial value of this property to change depending
-// on the value of the layout.css.control-characters.visible pref.
 ${helpers.single_keyword(
     "-moz-control-character-visibility",
     "hidden visible",
     engines="gecko",
     gecko_enum_prefix="StyleControlCharacterVisibility",
+    gecko_pref_controlled_initial_value="layout.css.control-characters.visible=visible",
     animation_value_type="none",
     gecko_ffi_name="mControlCharacterVisibility",
     spec="Nonstandard",

@@ -64,10 +64,12 @@ ${helpers.single_keyword(
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/box-pack)",
 )}
 
+// NOTE(heycam): Odd that the initial value is 1 yet 0 is a valid value. There
+// are uses of `-moz-box-ordinal-group: 0` in the tree, too.
 ${helpers.predefined_type(
     "-moz-box-ordinal-group",
     "Integer",
-    "0",
+    "1",
     engines="gecko",
     parse_method="parse_non_negative",
     alias="-webkit-box-ordinal-group",

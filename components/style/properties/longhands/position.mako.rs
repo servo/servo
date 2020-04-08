@@ -333,7 +333,7 @@ ${helpers.single_keyword(
 ${helpers.predefined_type(
     "object-position",
     "Position",
-    "computed::Position::zero()",
+    "computed::Position::center()",
     engines="gecko",
     boxed=True,
     spec="https://drafts.csswg.org/css-images-3/#the-object-position",
