@@ -17,7 +17,13 @@ const imageBitmapTests =
         createDetector: () => { return new BarcodeDetector(); },
         mockTestName: "BarcodeDetectionTest",
         detectionResultTest: BarcodeDetectorDetectionResultTest,
-        name: "Barcode - detect(ImageBitmap)",
+        name: "Barcode - detect(ImageBitmap)"
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        mockTestName: "TextDetectionTest",
+        detectionResultTest: TextDetectorDetectionResultTest,
+        name: "Text - detect(ImageBitmap)",
       }
     ];
 
@@ -49,6 +55,12 @@ function BarcodeDetectorDetectionResultTest(detectionResult, mockTest) {
   assert_equals(detectionResult[0].format, "qr_code", "barcode 1 format");
   assert_equals(detectionResult[1].rawValue, "dogs", "barcode 2");
   assert_equals(detectionResult[1].format, "code_128", "barcode 2 format");
+}
+
+function TextDetectorDetectionResultTest(detectionResult, mockTest) {
+  assert_equals(detectionResult.length, 2, "Number of textBlocks");
+  assert_equals(detectionResult[0].rawValue, "cats", "textBlock 1");
+  assert_equals(detectionResult[1].rawValue, "dogs", "textBlock 2");
 }
 
 </script>

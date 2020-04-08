@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html style="reftest-wait">
+<html class="reftest-wait">
   <link rel="match" href="image-loading-lazy-slow-aspect-ratio-ref.html">
   <link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
   <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-img-element">
   <script src="/common/reftest-wait.js"></script>
-  <img id=target loading="lazy" src="resources/image.png"
+  <img id=target loading="lazy"
       width="200" height="100" style="width: 100px; height: auto; border: 1px solid black">
 <script>
   let loaded = false;
@@ -17,4 +17,5 @@
       takeScreenshot();
     }));
   };
+  target.src = "resources/image.png";
 </script>

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html style="reftest-wait">
+<html class="reftest-wait">
   <link rel="match" href="image-loading-lazy-slow-ref.html">
   <link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
   <link rel="help" href="https://html.spec.whatwg.org/multipage/#the-img-element">
 
   <script src="/common/reftest-wait.js"></script>
-  <img id=target loading="lazy" src="resources/image.png"
+  <img id=target loading="lazy"
        width="330" height="254" style="border: 1px solid black">
 <script>
   let loaded = false;
@@ -18,4 +18,5 @@
       takeScreenshot();
     }));
   };
+  target.src = "resources/image.png";
 </script>

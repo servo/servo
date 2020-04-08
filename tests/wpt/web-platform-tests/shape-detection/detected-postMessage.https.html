@@ -4,7 +4,7 @@
 <script src="resources/shapedetection-helpers.js"></script>
 <script>
 
-// These tests verify that Detected{Face, Barcode} can be passed to
+// These tests verify that Detected{Face, Barcode, Text} can be passed to
 // postMessage().
 const postMessageTests =
     [
@@ -19,7 +19,13 @@ const postMessageTests =
         mockTestName: "BarcodeDetectionTest",
         detectionResultTest: BarcodeDetectorDetectionResultTest,
         name: "Barcode - DetectedBarcode can be passed to postMessage()"
-      }
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        mockTestName: "TextDetectionTest",
+        detectionResultTest: TextDetectorDetectionResultTest,
+        name: "Text - DetectedText can be passed to postMessage()",
+      },
     ];
 
 for (let postMessageTest of postMessageTests) {
@@ -64,6 +70,21 @@ function BarcodeDetectorDetectionResultTest(detectionResult) {
   assert_equals(detectionResult[0].format, "qr_code", "barcode 1 format");
   assert_equals(detectionResult[1].rawValue, "dogs", "barcode 2");
   assert_equals(detectionResult[1].format, "code_128", "barcode 2 format");
+}
+
+function TextDetectorDetectionResultTest(detectionResult) {
+  assert_equals(detectionResult.length, 2, "Number of textBlocks");
+  assert_equals(detectionResult[0].rawValue, "cats", "textBlock 1");
+  assert_equals(detectionResult[1].rawValue, "dogs", "textBlock 2");
+  for (let i = 0; i < detectionResult.length; i++) {
+    assert_equals(detectionResult[i].boundingBox.x, detectionResult[i].cornerPoints[0].x);
+    assert_equals(detectionResult[i].boundingBox.y, detectionResult[i].cornerPoints[0].y);
+    assert_equals(detectionResult[i].boundingBox.width,
+                  detectionResult[i].cornerPoints[2].x - detectionResult[i].cornerPoints[3].x);
+    assert_equals(detectionResult[i].boundingBox.height,
+                  detectionResult[i].cornerPoints[2].y - detectionResult[i].cornerPoints[1].y);
+  }
+
 }
 
 </script>

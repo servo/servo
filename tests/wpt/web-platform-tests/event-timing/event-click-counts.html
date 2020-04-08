@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<meta charset=utf-8 />
+<title>Event Timing: eventCounts.</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<div id='div'>Click me</div>
+<button id='button'>Click me</button>
+<script>
+  promise_test( t => {
+    assert_precondition(window.EventCounts, "Event Counts isn't supported");
+    function testClicks(expectedCount, resolve) {
+      const clickCount = performance.eventCounts.get('click');
+      if (!clickCount || clickCount < expectedCount) {
+        t.step_timeout(function() {
+          testClicks(expectedCount, resolve);
+        }, 5);
+        return;
+      }
+      assert_equals(clickCount, expectedCount,'Incorrect click count.');
+      assert_equals(performance.eventCounts.get('mousedown'), expectedCount, 'Incorrect mousedown count');
+      assert_equals(performance.eventCounts.get('mouseup'), expectedCount, 'Incorrect mouseup count.');
+      assert_equals(performance.eventCounts.get('mouseover'), expectedCount, 'Incorrect mouseover count.');
+      if (expectedCount == 1) {
+        assert_equals(performance.eventCounts.size, 4, 'There should only be 4 types observed.');
+      } else {
+        assert_equals(performance.eventCounts.get('mouseout'), expectedCount - 1, 'Incorrect mouseout count.');
+        assert_equals(performance.eventCounts.size, 5, 'There should only be 5 types observed.');
+      }
+      resolve();
+    }
+    function promiseClicks(expectedCount) {
+      return new Promise(resolve => {
+        testClicks(expectedCount, resolve)
+      });
+    }
+
+    assert_equals(performance.eventCounts.size, 0);
+    return test_driver.click(document.getElementById('div')).then(() => {
+      return promiseClicks(1);
+    }).then(() => {
+      return test_driver.click(document.getElementById('button'));
+    }).then(() => {
+      return promiseClicks(2);
+    }).then(() => {
+      return test_driver.click(document.getElementById('div'));
+    }).then(() => {
+      return promiseClicks(3);
+    });
+  })
+</script>
+</html>

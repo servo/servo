@@ -31,4 +31,16 @@ promise_test(async () => {
   }
 }, 'BarcodeDetector.detect() rejects on a detached buffer');
 
+promise_test(async () => {
+  let data = new ImageData(1024, 1024);
+  detachBuffer(data.data.buffer);
+  let detector = new TextDetector();
+  try {
+    await detector.detect(data);
+    assert_unreached();
+  } catch (e) {
+    assert_equals(e.code, DOMException.INVALID_STATE_ERR);
+  }
+}, 'TextDetector.detect() rejects on a detached buffer');
+
 </script>

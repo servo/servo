@@ -4,7 +4,7 @@
 <script src="resources/shapedetection-helpers.js"></script>
 <script>
 
-// These tests verify that detect()ed Detected{Barcode,Face}'s individual
+// These tests verify that detect()ed Detected{Barcode,Face, Text}'s individual
 // fields are [SameObject].
 const imageDataTests =
     [
@@ -19,6 +19,12 @@ const imageDataTests =
         mockTestName: "BarcodeDetectionTest",
         detectionResultTest: CheckDetectedBarcodesSameObjects,
         name: "Barcode - detect(ImageData), [SameObject]"
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        mockTestName: "TextDetectionTest",
+        detectionResultTest: CheckDetectedTextBlocksSameObjects,
+        name: "Text - detect(ImageData), [SameObject]",
       }
     ];
 
@@ -50,6 +56,12 @@ function CheckDetectedBarcodesSameObjects(detectedBarcodes) {
   assert_equals(detectedBarcodes[0].boundingBox, detectedBarcodes[0].boundingBox);
   assert_equals(detectedBarcodes[0].format, detectedBarcodes[0].format);
   assert_equals(detectedBarcodes[0].cornerPoints, detectedBarcodes[0].cornerPoints);
+}
+
+function CheckDetectedTextBlocksSameObjects(detectedTextBlocks) {
+  assert_greater_than(detectedTextBlocks.length, 0, "Number of textBlocks");
+  assert_equals(detectedTextBlocks[0].rawValue, detectedTextBlocks[0].rawValue);
+  assert_equals(detectedTextBlocks[0].boundingBox, detectedTextBlocks[0].boundingBox);
 }
 
 </script>

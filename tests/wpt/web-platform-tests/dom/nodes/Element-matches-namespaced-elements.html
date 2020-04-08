@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>matches/webkitMatchesSelector must work when an element has a namespace</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression tests for https://github.com/jsdom/jsdom/issues/1846, https://github.com/jsdom/jsdom/issues/2247 -->
+
+<script>
+"use strict";
+
+for (const method of ["matches", "webkitMatchesSelector"]) {
+  test(() => {
+    assert_true(document.createElementNS("", "element")[method]("element"));
+  }, `empty string namespace, ${method}`);
+
+  test(() => {
+    assert_true(document.createElementNS("urn:ns", "h")[method]("h"));
+  }, `has a namespace, ${method}`);
+
+  test(() => {
+    assert_true(document.createElementNS("urn:ns", "h")[method]("*|h"));
+  }, `has a namespace, *|, ${method}`);
+}
+</script>

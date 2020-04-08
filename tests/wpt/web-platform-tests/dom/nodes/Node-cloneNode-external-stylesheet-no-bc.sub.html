@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>cloneNode on a stylesheet link in a browsing-context-less document</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/2497 -->
+
+<script>
+"use strict";
+
+setup({ single_test: true });
+
+const doc = document.implementation.createHTMLDocument();
+
+// Bug was only triggered by absolute URLs, for some reason...
+const absoluteURL = new URL("/common/canvas-frame.css", location.href);
+doc.head.innerHTML = `<link rel="stylesheet" href="${absoluteURL}">`;
+
+// Test passes if this does not throw/crash
+doc.cloneNode(true);
+
+done();
+</script>

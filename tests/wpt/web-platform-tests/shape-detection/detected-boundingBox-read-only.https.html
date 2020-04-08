@@ -4,7 +4,7 @@
 <script src="resources/shapedetection-helpers.js"></script>
 <script>
 
-// These tests verify that detected{Face, Barcode}'s boundingBox
+// These tests verify that detected{Face, Barcode, Text}'s boundingBox
 // should be DOMRectReadOnly.
 const imageDataTests =
     [
@@ -17,6 +17,11 @@ const imageDataTests =
         createDetector: () => { return new BarcodeDetector(); },
         mockTestName: "BarcodeDetectionTest",
         name: "Barcode - detectedBarcode.boundingBox should be DOMRectReadOnly"
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        mockTestName: "TextDetectionTest",
+        name: "Text - detectedText.boundingBox should be DOMRectReadOnly"
       }
     ];
 

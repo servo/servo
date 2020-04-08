@@ -13,4 +13,13 @@ detection_test('BarcodeDetectionTest', async t => {
   assert_equals(result[2], 'qr_code', 'format 3');
 }, 'get supported barcode formats');
 
+detection_test('BarcodeDetectionTest', async (t, detectionTest) => {
+  // Disable built-in support for barcode detection to test fallback handling.
+  detectionTest.MockBarcodeDetectionProvider().simulateNoImplementation();
+
+  const result = await BarcodeDetector.getSupportedFormats();
+  assert_equals(result.length, 0, 'result.length');
+
+}, 'getSupportedFormats() resolves with empty list when unsupported');
+
 </script>

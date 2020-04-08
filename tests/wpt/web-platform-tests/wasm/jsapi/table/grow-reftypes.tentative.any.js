@@ -16,7 +16,7 @@ test(() => {
   const builder = new WasmModuleBuilder();
   builder
     .addFunction("fn", kSig_v_v)
-    .addBody([kExprEnd])
+    .addBody([])
     .exportFunc();
   const bin = builder.toBuffer()
   const argument = { "element": "anyfunc", "initial": 1 };

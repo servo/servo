@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DocumentFragment constructor</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-documentfragment-documentfragment">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  const fragment = new DocumentFragment();
+  assert_equals(fragment.ownerDocument, document);
+}, "Sets the owner document to the current global object associated document");
+
+test(() => {
+  const fragment = new DocumentFragment();
+  const text = document.createTextNode("");
+  fragment.appendChild(text);
+  assert_equals(fragment.firstChild, text);
+}, "Create a valid document DocumentFragment");
+</script>
