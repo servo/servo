@@ -3139,9 +3139,9 @@ dependencies = [
 
 [[package]]
 name = "libloading"
-version = "0.5.0"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c3ad660d7cb8c5822cd83d10897b0f1f1526792737a179e73896152f85b88c2"
+checksum = "f2b111a074963af1d37a139918ac6d49ad1d0d5e47f72fd55388619691a7d753"
 dependencies = [
  "cc",
  "winapi",
@@ -3947,21 +3947,21 @@ dependencies = [
 
 [[package]]
 name = "openxr"
-version = "0.9.1"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd30879fa0a4815c204a199a06f08826c892208e6d93617194bd5a9e0b12e9e0"
+checksum = "eafe24b961abab46839a7fd469b6958a711181df3e417bf8daa29f5f590c08ce"
 dependencies = [
  "libc",
+ "libloading",
  "openxr-sys",
- "shared_library",
  "winapi",
 ]
 
 [[package]]
 name = "openxr-sys"
-version = "0.6.4"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "875181a679f13b1b7c6b37b7f221c11a9cabc67a51399bc8051165d2c03a17a0"
+checksum = "b1a982ff6f4e59b3823325cd36864a242a015f9f980e7eda0843c5e6c7103a47"
 dependencies = [
  "libc",
  "winapi",
@@ -6680,7 +6680,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#2ff799c23431d5c20f38b49b211101c86cc1728f"
+source = "git+https://github.com/servo/webxr#373a2fa762a859054070dad921ace05bea9fa712"
 dependencies = [
  "bindgen",
  "crossbeam-channel",
@@ -6702,7 +6702,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#2ff799c23431d5c20f38b49b211101c86cc1728f"
+source = "git+https://github.com/servo/webxr#373a2fa762a859054070dad921ace05bea9fa712"
 dependencies = [
  "euclid",
  "ipc-channel",
