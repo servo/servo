@@ -766,6 +766,18 @@ class MachCommands(CommandBase):
             print('Removing virtualenv directory: %s' % virtualenv_path)
             shutil.rmtree(virtualenv_path)
 
+        self.clean_uwp()
+
+        opts = ["--manifest-path", manifest_path or path.join(self.context.topdir, "Cargo.toml")]
+        if verbose:
+            opts += ["-v"]
+        opts += params
+        return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
+
+    @Command('clean-uwp',
+             description='Clean the support/hololens/ directory.',
+             category='build')
+    def clean_uwp(self):
         uwp_artifacts = [
             "support/hololens/x64/",
             "support/hololens/ARM/",
@@ -780,18 +792,16 @@ class MachCommands(CommandBase):
             "support/hololens/ServoApp/Release/",
             "support/hololens/packages/",
             "support/hololens/AppPackages/",
+            "support/hololens/ServoApp/ServoApp.vcxproj.user",
         ]
 
         for uwp_artifact in uwp_artifacts:
-            dir_path = path.join(self.get_top_dir(), uwp_artifact)
-            if path.exists(dir_path):
-                shutil.rmtree(dir_path)
-
-        opts = ["--manifest-path", manifest_path or path.join(self.context.topdir, "Cargo.toml")]
-        if verbose:
-            opts += ["-v"]
-        opts += params
-        return check_call(["cargo", "clean"] + opts, env=self.build_env(), verbose=verbose)
+            artifact = path.join(self.get_top_dir(), uwp_artifact)
+            if path.exists(artifact):
+                if path.isdir(artifact):
+                    shutil.rmtree(artifact)
+                else:
+                    os.remove(artifact)
 
 
 def angle_root(target, nuget_env):
