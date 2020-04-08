@@ -3,9 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerInit;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
+use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLRenderingContext;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -13,6 +15,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
 use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
@@ -24,6 +27,13 @@ use std::convert::TryInto;
 use webxr_api::SwapChainId as WebXRSwapChainId;
 use webxr_api::{Viewport, Views};
 
+#[derive(JSTraceable, MallocSizeOf)]
+#[unrooted_must_root_lint::must_root]
+pub enum RenderingContext {
+    WebGL1(Dom<WebGLRenderingContext>),
+    WebGL2(Dom<WebGL2RenderingContext>),
+}
+
 #[dom_struct]
 pub struct XRWebGLLayer {
     reflector_: Reflector,
@@ -33,7 +43,7 @@ pub struct XRWebGLLayer {
     alpha: bool,
     #[ignore_malloc_size_of = "ids don't malloc"]
     swap_chain_id: Option<WebXRSwapChainId>,
-    context: Dom<WebGLRenderingContext>,
+    context: RenderingContext,
     session: Dom<XRSession>,
     /// If none, this is an inline session (the composition disabled flag is true)
     framebuffer: Option<Dom<WebGLFramebuffer>>,
@@ -43,7 +53,7 @@ impl XRWebGLLayer {
     pub fn new_inherited(
         swap_chain_id: Option<WebXRSwapChainId>,
         session: &XRSession,
-        context: &WebGLRenderingContext,
+        context: XRWebGLRenderingContext,
         init: &XRWebGLLayerInit,
         framebuffer: Option<&WebGLFramebuffer>,
     ) -> XRWebGLLayer {
@@ -54,7 +64,14 @@ impl XRWebGLLayer {
             stencil: init.stencil,
             alpha: init.alpha,
             swap_chain_id,
-            context: Dom::from_ref(context),
+            context: match context {
+                XRWebGLRenderingContext::WebGLRenderingContext(ctx) => {
+                    RenderingContext::WebGL1(Dom::from_ref(&*ctx))
+                },
+                XRWebGLRenderingContext::WebGL2RenderingContext(ctx) => {
+                    RenderingContext::WebGL2(Dom::from_ref(&*ctx))
+                },
+            },
             session: Dom::from_ref(session),
             framebuffer: framebuffer.map(Dom::from_ref),
         }
@@ -64,7 +81,7 @@ impl XRWebGLLayer {
         global: &GlobalScope,
         swap_chain_id: Option<WebXRSwapChainId>,
         session: &XRSession,
-        context: &WebGLRenderingContext,
+        context: XRWebGLRenderingContext,
         init: &XRWebGLLayerInit,
         framebuffer: Option<&WebGLFramebuffer>,
     ) -> DomRoot<XRWebGLLayer> {
@@ -85,7 +102,7 @@ impl XRWebGLLayer {
     pub fn Constructor(
         global: &Window,
         session: &XRSession,
-        context: &WebGLRenderingContext,
+        context: XRWebGLRenderingContext,
         init: &XRWebGLLayerInit,
     ) -> Fallible<DomRoot<Self>> {
         let framebuffer;
@@ -99,7 +116,7 @@ impl XRWebGLLayer {
         // Step 9.2. "Initialize layer’s framebuffer to a new opaque framebuffer created with context."
         let (swap_chain_id, framebuffer) = if session.is_immersive() {
             let size = session.with_session(|session| session.recommended_framebuffer_resolution());
-            let (swap_chain_id, fb) = WebGLFramebuffer::maybe_new_webxr(session, context, size)
+            let (swap_chain_id, fb) = WebGLFramebuffer::maybe_new_webxr(session, &context, size)
                 .ok_or(Error::Operation)?;
             framebuffer = fb;
             (Some(swap_chain_id), Some(&*framebuffer))
@@ -114,7 +131,10 @@ impl XRWebGLLayer {
         // throw an OperationError and abort these steps."
 
         // Ensure that we finish setting up this layer before continuing.
-        context.Finish();
+        match context {
+            XRWebGLRenderingContext::WebGLRenderingContext(ref ctx) => ctx.Finish(),
+            XRWebGLRenderingContext::WebGL2RenderingContext(ref ctx) => ctx.Finish(),
+        }
 
         // Step 10. "Return layer."
         Ok(XRWebGLLayer::new(
@@ -143,7 +163,10 @@ impl XRWebGLLayer {
             .expect("swap_buffers must not be called for inline sessions")
             .id()
         {
-            self.context.swap_buffers(Some(id));
+            match self.context {
+                RenderingContext::WebGL1(ref ctx) => ctx.swap_buffers(Some(id)),
+                RenderingContext::WebGL2(ref ctx) => ctx.base_context().swap_buffers(Some(id)),
+            }
         }
     }
 
@@ -155,7 +178,11 @@ impl XRWebGLLayer {
                 size.1.try_into().unwrap_or(0),
             )
         } else {
-            Size2D::from_untyped(self.context.Canvas().get_size())
+            let size = match self.context {
+                RenderingContext::WebGL1(ref ctx) => ctx.Canvas().get_size(),
+                RenderingContext::WebGL2(ref ctx) => ctx.base_context().Canvas().get_size(),
+            };
+            Size2D::from_untyped(size)
         }
     }
 }
@@ -182,8 +209,15 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-context
-    fn Context(&self) -> DomRoot<WebGLRenderingContext> {
-        DomRoot::from_ref(&self.context)
+    fn Context(&self) -> XRWebGLRenderingContext {
+        match self.context {
+            RenderingContext::WebGL1(ref ctx) => {
+                XRWebGLRenderingContext::WebGLRenderingContext(DomRoot::from_ref(&**ctx))
+            },
+            RenderingContext::WebGL2(ref ctx) => {
+                XRWebGLRenderingContext::WebGL2RenderingContext(DomRoot::from_ref(&**ctx))
+            },
+        }
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebuffer

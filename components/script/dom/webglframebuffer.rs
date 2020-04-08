@@ -5,6 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
+use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLRenderingContext;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -141,10 +142,14 @@ impl WebGLFramebuffer {
     // https://github.com/servo/servo/issues/24498
     pub fn maybe_new_webxr(
         session: &XRSession,
-        context: &WebGLRenderingContext,
+        context: &XRWebGLRenderingContext,
         size: Size2D<i32, Viewport>,
     ) -> Option<(WebXRSwapChainId, DomRoot<Self>)> {
         let (sender, receiver) = webgl_channel().unwrap();
+        let context = match context {
+            XRWebGLRenderingContext::WebGLRenderingContext(ref ctx) => DomRoot::from_ref(&**ctx),
+            XRWebGLRenderingContext::WebGL2RenderingContext(ref ctx) => ctx.base_context(),
+        };
         let _ = context.webgl_sender().send_create_webxr_swap_chain(
             size.to_untyped(),
             sender,
@@ -153,7 +158,7 @@ impl WebGLFramebuffer {
         let swap_chain_id = receiver.recv().unwrap()?;
         let framebuffer_id =
             WebGLFramebufferId::Opaque(WebGLOpaqueFramebufferId::WebXR(swap_chain_id));
-        let framebuffer = WebGLFramebuffer::new(context, framebuffer_id);
+        let framebuffer = WebGLFramebuffer::new(&*context, framebuffer_id);
         framebuffer.size.set(Some((size.width, size.height)));
         framebuffer.status.set(constants::FRAMEBUFFER_COMPLETE);
         framebuffer.xr_session.set(Some(session));
