@@ -193,7 +193,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 }
 
                 if let AllowImportRules::No = self.allow_import_rules {
-                    return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedImportRule))
+                    return Err(input.new_custom_error(StyleParseErrorKind::DisallowedImportRule))
                 }
 
                 // FIXME(emilio): We should always be able to have a loader
