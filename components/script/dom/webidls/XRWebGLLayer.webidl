@@ -4,10 +4,8 @@
 
 // https://immersive-web.github.io/webxr/#xrwebgllayer-interface
 
-// typedef (WebGLRenderingContext or
-//          WebGL2RenderingContext) XRWebGLRenderingContext;
-
-typedef WebGLRenderingContext XRWebGLRenderingContext;
+typedef (WebGLRenderingContext or
+         WebGL2RenderingContext) XRWebGLRenderingContext;
 
 dictionary XRWebGLLayerInit {
   boolean antialias = true;
