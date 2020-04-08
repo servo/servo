@@ -6,12 +6,16 @@ use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRayBinding::XRRayMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::utils::create_typed_array;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
 use crate::dom::xrrigidtransform::XRRigidTransform;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
-use euclid::Vector3D;
+use euclid::{Angle, RigidTransform3D, Rotation3D, Vector3D};
+use js::jsapi::{Heap, JSObject};
+use std::ptr::NonNull;
 use webxr_api::{ApiSpace, Ray};
 
 #[dom_struct]
@@ -19,6 +23,8 @@ pub struct XRRay {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webxr"]
     ray: Ray<ApiSpace>,
+    #[ignore_malloc_size_of = "defined in mozjs"]
+    matrix: Heap<*mut JSObject>,
 }
 
 impl XRRay {
@@ -26,6 +32,7 @@ impl XRRay {
         XRRay {
             reflector_: Reflector::new(),
             ray,
+            matrix: Heap::default(),
         }
     }
 
@@ -81,5 +88,39 @@ impl XRRayMethods for XRRay {
             self.ray.direction.z as f64,
             0.,
         )
+    }
+
+    /// https://immersive-web.github.io/hit-test/#dom-xrray-matrix
+    fn Matrix(&self, _cx: JSContext) -> NonNull<JSObject> {
+        // https://immersive-web.github.io/hit-test/#xrray-obtain-the-matrix
+        // Step 1
+        if self.matrix.get().is_null() {
+            let cx = self.global().get_cx();
+            // Step 2
+            let z = Vector3D::new(0., 0., -1.);
+            // Step 3
+            let axis = z.cross(self.ray.direction);
+            // Step 4
+            let cos_angle = z.dot(self.ray.direction);
+            // Step 5
+            let rotation = if cos_angle > -1. && cos_angle < 1. {
+                Rotation3D::around_axis(axis, Angle::radians(cos_angle.acos()))
+            } else if cos_angle == -1. {
+                let axis = Vector3D::new(1., 0., 0.);
+                Rotation3D::around_axis(axis, Angle::radians(cos_angle.acos()))
+            } else {
+                Rotation3D::identity()
+            };
+            // Step 6
+            let translation = self.ray.origin;
+            // Step 7
+            // According to the spec all matrices are column-major,
+            // however euclid uses row vectors so we use .to_row_major_array()
+            let arr = RigidTransform3D::new(rotation, translation)
+                .to_transform()
+                .to_row_major_array();
+            create_typed_array(cx, &arr, &self.matrix);
+        }
+        NonNull::new(self.matrix.get()).unwrap()
     }
 }
