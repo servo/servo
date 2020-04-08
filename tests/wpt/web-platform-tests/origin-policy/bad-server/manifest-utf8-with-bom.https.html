@@ -1,0 +1,17 @@
+<!DOCTYPE HTML>
+<meta charset="utf-8">
+<title>Origin policy manifests delivered with a UTF-8 BOM must work (the BOM is ignored)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/origin-policy-test-runner.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+runTestsInSubframe({
+  hostname: "op97",
+  testJS: "../content-security/resources/disallow-unsafe-eval-disallow-images.mjs",
+  expectedIds: ["this-file-has-a-utf8-bom"]
+});
+</script>

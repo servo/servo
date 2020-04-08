@@ -71,9 +71,12 @@ function buildElementFromDestination(resource_url, destination, attrs) {
   return element;
 }
 
+// When using SRIPreloadTest, also include /preload/resources/preload_helper.js
+// |number_of_requests| is used to ensure that preload requests are actually
+// reused as expected.
 const SRIPreloadTest = (preload_sri_success, subresource_sri_success, name,
-                        destination, resource_url, link_attrs,
-                        subresource_attrs) => {
+                        number_of_requests, destination, resource_url,
+                        link_attrs, subresource_attrs) => {
   const test = async_test(name);
   const link = document.createElement('link');
 
@@ -101,7 +104,10 @@ const SRIPreloadTest = (preload_sri_success, subresource_sri_success, name,
     { assert_unreached("Valid subresource fired error handler.") });
   const invalid_subresource_succeeded = test.step_func(() =>
     { assert_unreached("Invalid subresource load succeeded.") });
-  const subresource_pass = test.step_func(() => { test.done(); });
+  const subresource_pass = test.step_func(() => {
+    verifyNumberOfResourceTimingEntries(resource_url, number_of_requests);
+    test.done();
+  });
   const preload_pass = test.step_func(() => {
     const subresource_element = buildElementFromDestination(
       resource_url,

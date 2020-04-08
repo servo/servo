@@ -13,7 +13,11 @@ const badImageTests =
       },
       {
         createDetector: () => { return new BarcodeDetector(); },
-        name: "Barcode - detect(broken image)",
+        name: "Barcode - detect(broken image)"
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        name: "Text - detect(broken image)"
       }
     ];
 
@@ -38,6 +42,10 @@ const badVideoTests =
       {
         createDetector: () => { return new BarcodeDetector(); },
         name: "Barcode - detect(broken video)"
+      },
+      {
+        createDetector: () => { return new TextDetector(); },
+        name: "Text - detect(broken video)"
       }
     ];
 

@@ -17,7 +17,14 @@ test(function() {
   assert_equals(document.createElementNS(SVGNS, "SVG").tagName, "SVG")
   assert_equals(document.createElementNS(SVGNS, "s:svg").tagName, "s:svg")
   assert_equals(document.createElementNS(SVGNS, "s:SVG").tagName, "s:SVG")
+
+  assert_equals(document.createElementNS(SVGNS, "textPath").tagName, "textPath");
 }, "tagName should not upper-case for SVG elements in HTML documents.")
+
+test(() => {
+  const el2 = document.createElementNS("http://example.com/", "mixedCase");
+  assert_equals(el2.tagName, "mixedCase");
+}, "tagName should not upper-case for other non-HTML namespaces");
 
 test(function() {
   if ("DOMParser" in window) {

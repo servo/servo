@@ -6,6 +6,8 @@
 <script src="/resources/sriharness.js"></script>
 <script src="/common/utils.js"></script>
 <script src="/subresource-integrity/sri-test-helpers.sub.js"></script>
+<script src="./resources/preload_helper.js"></script>
+
 
 <div id="log"></div>
 
@@ -53,6 +55,7 @@
         true,                                                   /* preload_sri_success */
         true,                                                   /* subresource_sri_success */
         `Same-origin ${destination} with correct sha256 hash.`, /* name */
+        1,                                                      /* number_of_requests */
         destination,                                            /* destination */
         same_origin_prefix + destination + ext + `?${token()}`, /* resource_url (for preload + subresource) */
         {integrity: sha256},                                    /* link_attrs */
@@ -63,6 +66,7 @@
         true,
         true,
         `Same-origin ${destination} with correct sha384 hash.`,
+        1,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: sha384},
@@ -73,6 +77,7 @@
         true,
         true,
         `Same-origin ${destination} with correct sha512 hash.`,
+        1,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: sha512},
@@ -83,6 +88,7 @@
         true,
         true,
         `Same-origin ${destination} with empty integrity.`,
+        1,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {},
@@ -93,6 +99,7 @@
         false,
         false,
         `Same-origin ${destination} with incorrect hash.`,
+        1,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: "sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead"},
@@ -103,6 +110,7 @@
         true,
         true,
         `Same-origin ${destination} with multiple sha256 hashes, including correct.`,
+        1,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: `${sha256} sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead`},
@@ -113,6 +121,7 @@
         true,
         true,
         `Same-origin ${destination} with multiple sha256 hashes, including unknown algorithm.`,
+        1,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: `${sha256} foo666-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead`},
@@ -123,6 +132,7 @@
         true,
         true,
         `Same-origin ${destination} with sha256 mismatch, sha512 match`,
+        1,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: `${sha512} sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead`},
@@ -133,6 +143,7 @@
         false,
         false,
         `Same-origin ${destination} with sha256 match, sha512 mismatch`,
+        1,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: `sha512-deadbeefspbnUnwooKGNNCb39nvg+EW0O9hDScTXeo/9pVZztLSUYU3LNV6H0lZapo8bCJUpyPPLAzE9fDzpxg== ${sha256}`},
@@ -143,6 +154,7 @@
         true,
         true,
         `<crossorigin='anonymous'> ${destination} with correct hash, ACAO: *`,
+        1,
         destination,
         xorigin_prefix + destination + ext + `?${token()}` + anonymous,
         {integrity: sha256, crossOrigin: 'anonymous'},
@@ -153,6 +165,7 @@
         false,
         false,
         `<crossorigin='anonymous'> ${destination} with incorrect hash, ACAO: *`,
+        1,
         destination,
         xorigin_prefix + destination + ext + `?${token()}` + anonymous,
         {integrity: "sha256-sha256-deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdead", crossOrigin: "anonymous"},
@@ -163,6 +176,7 @@
         true,
         true,
         `<crossorigin='use-credentials'> ${destination} with correct hash, CORS-eligible`,
+        1,
         destination,
         xorigin_prefix + destination + ext + `?${token()}` + use_credentials,
         {integrity: sha256, crossOrigin: "use-credentials"},
@@ -173,6 +187,7 @@
         false,
         false,
         `<crossorigin='use-credentials'> ${destination} with incorrect hash CORS-eligible`,
+        1,
         destination,
         xorigin_prefix + destination + ext + `?${token()}` + use_credentials,
         {integrity: "sha256-deadbeef2S+pTRZgiw3DWrhC6JLDlt2zRyGpwH7unU8=", crossOrigin: "use-credentials"},
@@ -183,6 +198,7 @@
         false,
         false,
         `<crossorigin='anonymous'> ${destination} with CORS-ineligible resource`,
+        0,
         destination,
         // not piping ACAO header makes this CORS-ineligible
         xorigin_prefix + destination + ext + `?${token()}`,
@@ -194,6 +210,7 @@
         false,
         false,
         `Cross-origin ${destination}, not CORS request, with correct hash`,
+        1,
         destination,
         xorigin_prefix + destination + ext + `?${token()}` + anonymous,
         {integrity: sha256},
@@ -204,6 +221,7 @@
         false,
         false,
         `Cross-origin ${destination}, not CORS request, with hash mismatch`,
+        1,
         destination,
         xorigin_prefix + destination + ext + `?${token()}` + anonymous,
         {integrity: "sha256-deadbeef01Y0yKSx3/UoIKtIY2UQ9+H8WGyyMuOWOC0="},
@@ -214,6 +232,7 @@
         true,
         true,
         `Cross-origin ${destination}, empty integrity`,
+        1,
         destination,
         xorigin_prefix + destination + ext + `?${token()}` + anonymous,
         {},
@@ -224,6 +243,7 @@
         true,
         true,
         `Same-origin ${destination} with correct hash, options.`,
+        1,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: `${sha256}?foo=bar?spam=eggs`},
@@ -234,6 +254,7 @@
         true,
         true,
         `Same-origin ${destination} with unknown algorithm only.`,
+        1,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: "foo666-8aBiAJl3ukQwSJ6eTs5wl6hGjnOtyXjcTRdAf89uIfY="},
@@ -248,6 +269,7 @@
         true,
         true,
         `Same-origin ${destination} with matching digest re-uses preload with matching digest.`,
+        1,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: sha256},
@@ -258,6 +280,7 @@
         true,
         false,
         `Same-origin ${destination} with non-matching digest does not re-use preload with matching digest.`,
+        2,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: sha256},
@@ -268,6 +291,7 @@
         false,
         true,
         `Same-origin ${destination} with matching digest does not re-use preload with non-matching digest.`,
+        2,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: "sha256-deadbeefQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA="},
@@ -278,6 +302,7 @@
         false,
         false,
         `Same-origin ${destination} with non-matching digest does not re-use preload with non-matching digest.`,
+        2,
         destination,
         same_origin_prefix + destination + ext + `?${token()}`,
         {integrity: "sha256-deadbeefQ15RYHFvsYdWumweeFAw0hJDTFt9seErghA="},

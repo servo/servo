@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>EventTarget's addEventListener + removeEventListener</title>
+<link rel="author" title="Sebastian Mayr" href="mailto:wpt@smayr.name">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+"use strict";
+
+function listener(evt) {
+  evt.preventDefault();
+  return false;
+}
+
+test(() => {
+  document.addEventListener("x", listener, false);
+  let event = new Event("x", { cancelable: true });
+  let ret = document.dispatchEvent(event);
+  assert_false(ret);
+
+  document.removeEventListener("x", listener);
+  event = new Event("x", { cancelable: true });
+  ret = document.dispatchEvent(event);
+  assert_true(ret);
+}, "Removing an event listener without explicit capture arg should succeed");
+</script>

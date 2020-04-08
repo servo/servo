@@ -15,9 +15,17 @@ def main(request, response):
     # Default mime type for returned data.
     content_type = "application/originpolicy+json"
 
-    # Reserve 'op100' for testing incorrect mime type for manifest file.
+    # op100 tests an invalid MIME type.
     if host_piece == "op100":
         content_type = "text/plain"
+
+    # op98 tests that charset is ignored and the result is always processed as UTF-8.
+    if host_piece == "op98":
+        content_type = "application/originpolicy+json;charset=utf-16"
+
+    # op97 tests that adding charset=utf-8 (and a BOM) does not break anything.
+    if host_piece == "op97":
+        content_type = "application/originpolicy+json;charset=utf-8"
 
     filepath_pattern = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(
         __file__)), "../origin-policy/policies/", "{} *.json".format(host_piece)))

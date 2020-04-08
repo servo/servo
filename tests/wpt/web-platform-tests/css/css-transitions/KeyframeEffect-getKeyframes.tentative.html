@@ -131,4 +131,39 @@ test(t => {
 }, 'KeyframeEffect.getKeyframes() returns expected frames for a'
    + ' transition with a CSS variable endpoint');
 
+test(t => {
+  const div = addDiv(t);
+  div.style.left = '0px';
+  getComputedStyle(div).transitionProperty;
+  div.style.transition = 'left 100s';
+  div.style.left = '100px';
+
+  // Resetting the effect target before retrieving the keyframes should not
+  // affect the computed property values.
+  const anim = div.getAnimations()[0];
+  anim.effect.target = null;
+  const frames = anim.effect.getKeyframes();
+
+  const expected = [
+    {
+      offset: 0,
+      computedOffset: 0,
+      easing: 'linear',
+      composite: 'auto',
+      left: '0px',
+    },
+    {
+      offset: 1,
+      computedOffset: 1,
+      easing: 'linear',
+      composite: 'auto',
+      left: '100px',
+    },
+  ];
+  for (let i = 0; i < frames.length; i++) {
+    assert_frames_equal(frames[i], expected[i], `ComputedKeyframe #${i}`);
+  }
+}, 'KeyframeEffect.getKeyframes() returns expected frames for a'
+   + ' transition after resetting the effect target');
+
 </script>

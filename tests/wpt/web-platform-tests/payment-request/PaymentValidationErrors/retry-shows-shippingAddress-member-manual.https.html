@@ -82,6 +82,11 @@ function retryShowsShippingAddressMember(button, error) {
     </button>
   </li>
   <li>
+    <button onclick="retryShowsShippingAddressMember(this, { regionCode: 'REGIONCODE ERROR' });">
+      The payment sheet shows "REGIONCODE ERROR" for the shipping address' region code.
+    </button>
+  </li>
+  <li>
     <button onclick="retryShowsShippingAddressMember(this, { sortingCode: 'SORTINGCODE ERROR' });">
       The payment sheet shows "SORTINGCODE ERROR" for the shipping address' sorting code.
     </button>

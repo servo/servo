@@ -40,27 +40,16 @@ detection_test("BarcodeDetectionTest", async (t, detectionTest) => {
        shapeDetection.mojom.BarcodeFormat.QR_CODE],
       "formats");
 
-  try {
-    new BarcodeDetector({formats: []});
-    assert_unreached("providing hint option that is empty should fail");
-  } catch (error) {
-    assert_equals(error.name, "TypeError");
-  }
+  const invalidFormats = [
+    [],
+    ["unknown"],
+    ["foo", "bar"]
+  ];
 
-  try {
-    new BarcodeDetector({formats: ["unknown"]});
-    assert_unreached("providing \"unknown\" as a hint option should fail");
-  } catch (error) {
-    assert_equals(error.name, "TypeError");
-  }
+  invalidFormats.forEach(invalidFormat => {
+    assert_throws_js(TypeError, () => new BarcodeDetector({formats: invalidFormat}));
+  });
 
-  try {
-    new BarcodeDetector({formats: ["foo", "bar"]});
-    assert_unreached(
-        "providing hint option with unrecognized formats should fail");
-  } catch (error) {
-    assert_equals(error.name, "TypeError");
-  }
 }, "Test that BarcodeDetectorOptions are correctly propagated");
 
 </script>
