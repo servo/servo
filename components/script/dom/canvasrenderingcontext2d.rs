@@ -2,8 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::canvas_state::{CanvasContextState, CanvasState};
-use crate::dom::bindings::cell::DomRefCell;
+use crate::canvas_state::CanvasState;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
@@ -80,17 +79,10 @@ impl CanvasRenderingContext2D {
             .unwrap();
     }
 
-    //  TODO: This duplicates functionality in canvas state
     // https://html.spec.whatwg.org/multipage/#reset-the-rendering-context-to-its-default-state
     fn reset_to_initial_state(&self) {
-        self.canvas_state.get_saved_state().borrow_mut().clear();
-        *self.canvas_state.get_state().borrow_mut() = CanvasContextState::new();
+        self.canvas_state.reset_to_initial_state();
     }
-    /*
-        pub fn get_canvas_state(&self) -> Ref<CanvasState> {
-            self.canvas_state.borrow()
-        }
-    */
 
     pub fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.canvas_state.set_bitmap_dimensions(size);
