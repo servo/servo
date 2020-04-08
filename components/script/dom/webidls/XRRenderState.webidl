@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+typedef (XRWebGLLayer or XRLayer) XRGenericLayer;
+
 // https://immersive-web.github.io/webxr/#xrrenderstate-interface
 
 dictionary XRRenderStateInit {
@@ -9,6 +11,7 @@ dictionary XRRenderStateInit {
   double depthFar;
   double inlineVerticalFieldOfView;
   XRWebGLLayer baseLayer;
+  sequence<XRGenericLayer> layers;
 };
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"] interface XRRenderState {

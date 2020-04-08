@@ -34,6 +34,7 @@
   "dom.webvtt.enabled": false,
   "dom.webxr.enabled": true,
   "dom.webxr.glwindow": true,
+  "dom.webxr.layers.enabled": false,
   "dom.webxr.test": false,
   "dom.worklet.timeout_ms": 10,
   "gfx.subpixel-text-antialiasing.enabled": true,
