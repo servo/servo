@@ -29,6 +29,7 @@ use crate::gecko_bindings::bindings::Gecko_nsStyleFont_CopyLangFrom;
 use crate::gecko_bindings::structs;
 use crate::gecko_bindings::structs::nsCSSPropertyID;
 use crate::gecko_bindings::structs::mozilla::PseudoStyleType;
+use crate::gecko::data::PerDocumentStyleData;
 use crate::gecko::values::round_border_to_device_pixels;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
@@ -2128,3 +2129,40 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
 ${declare_style_struct(style_struct)}
 ${impl_style_struct(style_struct)}
 % endfor
+
+/// Assert that the initial values set in Gecko style struct constructors
+/// match the values returned by `get_initial_value()` for each longhand.
+#[cfg(feature = "gecko")]
+#[inline]
+pub fn assert_initial_values_match(data: &PerDocumentStyleData) {
+    if cfg!(debug_assertions) {
+        let data = data.borrow();
+        let cv = data.stylist.device().default_computed_values();
+        <%
+            # Skip properties with initial values that change at computed value time.
+            SKIPPED = [
+                "border-top-width",
+                "border-bottom-width",
+                "border-left-width",
+                "border-right-width",
+                "font-family",
+                "font-size",
+                "outline-width",
+            ]
+            TO_TEST = [p for p in data.longhands if p.enabled_in != "" and not p.logical and not p.name in SKIPPED]
+        %>
+        % for property in TO_TEST:
+        assert_eq!(
+            cv.clone_${property.ident}(),
+            longhands::${property.ident}::get_initial_value(),
+            concat!(
+                "initial value in Gecko style struct for ",
+                stringify!(${property.ident}),
+                " must match longhands::",
+                stringify!(${property.ident}),
+                "::get_initial_value()"
+            )
+        );
+        % endfor
+    }
+}
