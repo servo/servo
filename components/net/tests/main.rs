@@ -51,7 +51,7 @@ use tokio::runtime::Runtime;
 use tokio_openssl::SslAcceptorExt;
 
 lazy_static! {
-    pub static ref HANDLE: Mutex<Runtime> = { Mutex::new(Runtime::new().unwrap()) };
+    pub static ref HANDLE: Mutex<Runtime> = Mutex::new(Runtime::new().unwrap());
 }
 
 const DEFAULT_USER_AGENT: &'static str = "Such Browser. Very Layout. Wow.";

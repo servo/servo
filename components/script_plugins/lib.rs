@@ -101,8 +101,16 @@ fn has_lint_attr(sym: &Symbols, attrs: &[Attribute], name: Symbol) -> bool {
 /// Checks if a type is unrooted or contains any owned unrooted types
 fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool {
     let mut ret = false;
-    ty.maybe_walk(|t| {
-        match t.kind {
+    let mut walker = ty.walk();
+    while let Some(generic_arg) = walker.next() {
+        let t = match generic_arg.unpack() {
+            rustc_middle::ty::subst::GenericArgKind::Type(t) => t,
+            _ => {
+                walker.skip_current_subtree();
+                continue;
+            },
+        };
+        let recur_into_subtree = match t.kind {
             ty::Adt(did, substs) => {
                 let has_attr = |did, name| has_lint_attr(sym, &cx.tcx.get_attrs(did), name);
                 if has_attr(did.did, sym.must_root) {
@@ -180,8 +188,11 @@ fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function
             ty::FnDef(..) | ty::FnPtr(_) => false,
 
             _ => true,
+        };
+        if !recur_into_subtree {
+            walker.skip_current_subtree();
         }
-    });
+    }
     ret
 }
 

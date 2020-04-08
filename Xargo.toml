@@ -3,5 +3,5 @@ std = { features = ["panic-unwind"] }
 
 # https://github.com/rust-lang/rust/issues/65313
 [target.aarch64-uwp-windows-msvc.dependencies]
-std = {}
+std = { features = ["panic-unwind"] }
 

@@ -96,7 +96,7 @@ impl EventsLoop {
             }
             EventLoop::Headless(ref data) => {
                 let &(ref flag, ref condvar) = &**data;
-                while { !*flag.lock().unwrap() } {
+                while !*flag.lock().unwrap() {
                     self.sleep(flag, condvar);
                     if callback(glutin::Event::Awakened) == glutin::ControlFlow::Break {
                         break;
