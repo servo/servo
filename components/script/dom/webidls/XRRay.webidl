@@ -7,7 +7,7 @@
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRRay {
   constructor(optional DOMPointInit origin = {}, optional DOMPointInit direction = {});
-  // constructor(XRRigidTransform transform);
+  constructor(XRRigidTransform transform);
   [SameObject] readonly attribute DOMPointReadOnly origin;
   [SameObject] readonly attribute DOMPointReadOnly direction;
   // [SameObject] readonly attribute Float32Array matrix;

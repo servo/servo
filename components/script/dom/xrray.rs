@@ -9,6 +9,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
+use crate::dom::xrrigidtransform::XRRigidTransform;
 use dom_struct::dom_struct;
 use euclid::Vector3D;
 use webxr_api::{ApiSpace, Ray};
@@ -42,6 +43,18 @@ impl XRRay {
         let origin = Vector3D::new(origin.x as f32, origin.y as f32, origin.z as f32);
         let direction =
             Vector3D::new(direction.x as f32, direction.y as f32, direction.z as f32).normalize();
+
+        Self::new(&window.global(), Ray { origin, direction })
+    }
+
+    #[allow(non_snake_case)]
+    /// https://immersive-web.github.io/hit-test/#dom-xrray-xrray-transform
+    pub fn Constructor_(window: &Window, transform: &XRRigidTransform) -> DomRoot<Self> {
+        let transform = transform.transform();
+        let origin = transform.translation;
+        let direction = transform
+            .rotation
+            .transform_vector3d(Vector3D::new(0., 0., -1.));
 
         Self::new(&window.global(), Ray { origin, direction })
     }

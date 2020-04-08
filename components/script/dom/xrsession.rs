@@ -47,8 +47,8 @@ use std::f64::consts::{FRAC_PI_2, PI};
 use std::mem;
 use std::rc::Rc;
 use webxr_api::{
-    self, util, Display, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent, SelectKind,
-    Session, SessionId, View, Viewer, Visibility,
+    self, util, ApiSpace, Display, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent,
+    SelectKind, Session, SessionId, View, Viewer, Visibility,
 };
 
 #[dom_struct]
@@ -711,8 +711,6 @@ impl XRSessionMethods for XRSession {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
-pub struct ApiSpace;
 // The pose of an object in native-space. Should never be exposed.
 pub type ApiPose = RigidTransform3D<f32, ApiSpace, webxr_api::Native>;
 // The pose of the viewer in some api-space.
