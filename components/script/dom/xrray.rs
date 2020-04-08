@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::XRRayBinding::XRRayMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use euclid::Vector3D;
 use webxr_api::{ApiSpace, Ray};
 
 #[dom_struct]
@@ -27,6 +30,20 @@ impl XRRay {
 
     pub fn new(global: &GlobalScope, ray: Ray<ApiSpace>) -> DomRoot<XRRay> {
         reflect_dom_object(Box::new(XRRay::new_inherited(ray)), global)
+    }
+
+    #[allow(non_snake_case)]
+    /// https://immersive-web.github.io/hit-test/#dom-xrray-xrray
+    pub fn Constructor(
+        window: &Window,
+        origin: &DOMPointInit,
+        direction: &DOMPointInit,
+    ) -> DomRoot<Self> {
+        let origin = Vector3D::new(origin.x as f32, origin.y as f32, origin.z as f32);
+        let direction =
+            Vector3D::new(direction.x as f32, direction.y as f32, direction.z as f32).normalize();
+
+        Self::new(&window.global(), Ray { origin, direction })
     }
 }
 
