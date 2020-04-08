@@ -25,6 +25,10 @@ interface FakeXRDevice {
 
   // behaves as if device was disconnected
   Promise<void> disconnect();
+
+  // Hit test extensions:
+  // void setWorld(FakeXRWorldInit world);
+  // void clearWorld();
 };
 
 // https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport
@@ -60,4 +64,27 @@ dictionary FakeXRFieldOfViewInit {
   required float downDegrees;
   required float leftDegrees;
   required float rightDegrees;
+};
+
+// hit testing
+dictionary FakeXRWorldInit {
+  required sequence<FakeXRRegionInit> hitTestRegions;
+};
+
+
+dictionary FakeXRRegionInit {
+  required sequence<FakeXRTriangleInit> faces;
+  required FakeXRRegionType type;
+};
+
+
+dictionary FakeXRTriangleInit {
+  required sequence<DOMPointInit> vertices;  // size = 3
+};
+
+
+enum FakeXRRegionType {
+  "point",
+  "plane",
+  "mesh"
 };

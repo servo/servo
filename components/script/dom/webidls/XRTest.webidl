@@ -33,5 +33,8 @@ dictionary FakeXRDeviceInit {
     // Eye level used for calculating floor-level spaces
     FakeXRRigidTransformInit floorOrigin;
     FakeXRRigidTransformInit viewerOrigin;
+
+    // Hit test extensions:
+    FakeXRWorldInit world;
 };
 

@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::{
-    FakeXRDeviceMethods, FakeXRRigidTransformInit, FakeXRViewInit,
+    FakeXRDeviceMethods, FakeXRRegionType, FakeXRRigidTransformInit, FakeXRViewInit,
+    FakeXRWorldInit,
 };
 use crate::dom::bindings::codegen::Bindings::FakeXRInputControllerBinding::FakeXRInputSourceInit;
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
@@ -21,15 +23,15 @@ use crate::dom::promise::Promise;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use euclid::{Point2D, Rect, Size2D};
-use euclid::{RigidTransform3D, Rotation3D, Transform3D, Vector3D};
+use euclid::{Point3D, RigidTransform3D, Rotation3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use profile_traits::ipc;
 use std::cell::Cell;
 use std::rc::Rc;
 use webxr_api::{
-    Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockViewInit, MockViewsInit,
-    TargetRayMode, Visibility,
+    EntityType, Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockRegion,
+    MockViewInit, MockViewsInit, MockWorld, TargetRayMode, Triangle, Visibility,
 };
 
 #[dom_struct]
@@ -97,6 +99,7 @@ pub fn view<Eye>(view: &FakeXRViewInit) -> Fallible<MockViewInit<Eye>> {
         fov,
     })
 }
+
 pub fn get_views(views: &[FakeXRViewInit]) -> Fallible<MockViewsInit> {
     match views.len() {
         1 => Ok(MockViewsInit::Mono(view(&views[0])?)),
@@ -131,6 +134,50 @@ pub fn get_origin<T, U>(
     );
 
     Ok(RigidTransform3D::new(o, p))
+}
+
+pub fn get_point<T>(pt: &DOMPointInit) -> Point3D<f32, T> {
+    Point3D::new(pt.x / pt.w, pt.y / pt.w, pt.z / pt.w).cast()
+}
+
+pub fn get_world(world: &FakeXRWorldInit) -> Fallible<MockWorld> {
+    let regions = world
+        .hitTestRegions
+        .iter()
+        .map(|region| {
+            let ty = region.type_.into();
+            let faces = region
+                .faces
+                .iter()
+                .map(|face| {
+                    if face.vertices.len() != 3 {
+                        return Err(Error::Type(
+                            "Incorrectly sized array for triangle list".into(),
+                        ));
+                    }
+
+                    Ok(Triangle {
+                        first: get_point(&face.vertices[0]),
+                        second: get_point(&face.vertices[1]),
+                        third: get_point(&face.vertices[2]),
+                    })
+                })
+                .collect::<Fallible<Vec<_>>>()?;
+            Ok(MockRegion { faces, ty })
+        })
+        .collect::<Fallible<Vec<_>>>()?;
+
+    Ok(MockWorld { regions })
+}
+
+impl From<FakeXRRegionType> for EntityType {
+    fn from(x: FakeXRRegionType) -> Self {
+        match x {
+            FakeXRRegionType::Point => EntityType::Point,
+            FakeXRRegionType::Plane => EntityType::Plane,
+            FakeXRRegionType::Mesh => EntityType::Mesh,
+        }
+    }
 }
 
 impl FakeXRDeviceMethods for FakeXRDevice {
