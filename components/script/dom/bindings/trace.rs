@@ -157,8 +157,8 @@ use webgpu::{
     WebGPUPipelineLayout, WebGPUQueue, WebGPUShaderModule,
 };
 use webrender_api::{DocumentId, ImageKey};
-use webxr_api::SwapChainId as WebXRSwapChainId;
 use webxr_api::Ray;
+use webxr_api::SwapChainId as WebXRSwapChainId;
 
 unsafe_no_jsmanaged_fields!(Tm);
 
