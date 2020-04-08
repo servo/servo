@@ -219,6 +219,17 @@ impl FakeXRDeviceMethods for FakeXRDevice {
         Ok(())
     }
 
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-clearworld
+    fn ClearWorld(&self) {
+        let _ = self.sender.send(MockDeviceMsg::ClearWorld);
+    }
+
+    /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-setworld
+    fn SetWorld(&self, world: &FakeXRWorldInit) -> Fallible<()> {
+        let _ = self.sender.send(MockDeviceMsg::SetWorld(get_world(world)?));
+        Ok(())
+    }
+
     /// https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-simulatevisibilitychange
     fn SimulateVisibilityChange(&self, v: XRVisibilityState) {
         let v = match v {

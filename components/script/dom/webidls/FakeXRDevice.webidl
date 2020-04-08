@@ -27,8 +27,8 @@ interface FakeXRDevice {
   Promise<void> disconnect();
 
   // Hit test extensions:
-  // void setWorld(FakeXRWorldInit world);
-  // void clearWorld();
+  [Throws] void setWorld(FakeXRWorldInit world);
+  void clearWorld();
 };
 
 // https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport
