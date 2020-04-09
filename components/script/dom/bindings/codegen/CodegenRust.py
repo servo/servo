@@ -429,8 +429,8 @@ class CGMethodCall(CGThing):
 
             # Check for vanilla JS objects
             # XXXbz Do we need to worry about security wrappers?
-            pickFirstSignature("%s.get().is_object() && !is_platform_object(%s.get().to_object(), *cx)" %
-                               (distinguishingArg, distinguishingArg),
+            pickFirstSignature("%s.get().is_object()" %
+                               distinguishingArg,
                                lambda s: (s[1][distinguishingIndex].type.isCallback() or
                                           s[1][distinguishingIndex].type.isCallbackInterface() or
                                           s[1][distinguishingIndex].type.isDictionary() or
