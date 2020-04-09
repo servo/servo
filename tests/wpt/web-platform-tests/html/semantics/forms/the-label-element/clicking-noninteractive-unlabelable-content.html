@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Label event handling when a descendant noninteractive and unlabelable content is clicked</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<label id=label></label>
+<template id=noninteractive-unlabelable-content>
+  <div></div>
+  <svg></svg>
+
+  <!-- These are "almost interactive": they could become interactive with the
+  addition/removal of a non-tabindex attribute. -->
+  <a></a>
+  <audio></audio>
+  <img>
+  <input type=hidden>
+  <object></object>
+  <video></video>
+</template>
+
+<script>
+"use strict";
+
+const template = document.getElementById("noninteractive-unlabelable-content");
+{
+  const details = document.createElementNS("http://www.w3.org/2000/svg", "details");
+  template.content.appendChild(details);
+}
+
+const elements = Array.from(template.content.children);
+const label = document.getElementById("label");
+
+for (const srcElement of elements) {
+  test(t => {
+    t.add_cleanup(() => {
+      label.innerHTML = "";
+    });
+
+    const element = srcElement.cloneNode();
+    label.appendChild(element);
+
+    let clicked = 0;
+    element.addEventListener("click", () => {
+      clicked++;
+    });
+    element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    assert_equals(clicked, 1, "clicking interactive content");
+
+    clicked = 0;
+    const span = document.createElement("span");
+    element.appendChild(span);
+    span.click();
+    assert_equals(clicked, 1, "clicking descendant of interactive content");
+  }, `noninteractive unlabelable content ${srcElement.outerHTML} as first child of <label>`);
+
+  test(t => {
+    t.add_cleanup(() => {
+      label.innerHTML = "";
+    });
+
+    const element = srcElement.cloneNode();
+    const div = document.createElement("div");
+    div.appendChild(element);
+    label.appendChild(div);
+
+    let clicked = 0;
+    element.addEventListener("click", () => {
+      clicked++;
+    });
+    element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    assert_equals(clicked, 1, "clicking nested interactive content");
+
+    clicked = 0;
+    const span = document.createElement("span");
+    element.appendChild(span);
+    span.click();
+    assert_equals(clicked, 1, "clicking descendant of nested interactive content");
+  }, `noninteractive unlabelable content ${srcElement.outerHTML} deeply nested under <label>`);
+
+  test(t => {
+    t.add_cleanup(() => {
+      label.innerHTML = "";
+    });
+
+    const button = document.createElement("button");
+    label.appendChild(button);
+
+    const element = srcElement.cloneNode();
+    label.appendChild(element);
+
+    let buttonClicked = 0;
+    button.addEventListener("click", () => {
+      buttonClicked++;
+    });
+
+    let clicked = 0;
+    element.addEventListener("click", () => {
+      clicked++;
+    });
+    element.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    assert_equals(clicked, 1, "clicking noninteractive unlabelable content");
+    assert_equals(buttonClicked, 1, "clicking noninteractive unlabelable content should click button");
+
+    buttonClicked = 0;
+    clicked = 0;
+    const span = document.createElement("span");
+    element.appendChild(span);
+    span.click();
+    assert_equals(clicked, 1, "clicking descendant of nested noninteractive unlabelable content");
+    assert_equals(
+      buttonClicked, 1,
+      "clicking descendant of nested noninteractive unlabelable content should click button"
+    );
+  }, `noninteractive unlabelable content ${srcElement.outerHTML} as second child under <label>`);
+}
+
+</script>
+</body>

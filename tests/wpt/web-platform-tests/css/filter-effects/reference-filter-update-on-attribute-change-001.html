@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>SVG Filters: Invalidation of SVG filter attributes on HTML</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feColorMatrixElement">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=105635">
+<link rel="match" href="reference/reference-filter-update-on-attribute-change-001-ref.html">
+<meta name="assert" content="Dynamically adding an attribute of a filter primitive"/>
+<head>
+  <script>
+    function run() {
+      document.getElementById('color').setAttribute('values', '90');
+    }
+ </script>
+</head>
+<body onload="run()">
+   <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" version="1.1">
+    <defs>
+      <filter id="MyFilter">
+        <fecolormatrix id="color" type="hueRotate"></fecolormatrix>
+      </filter>
+    </defs>
+  </svg>
+  <div style="filter: url(#MyFilter); width:100px; height:100px; background-color:red;"></div>
+</body>

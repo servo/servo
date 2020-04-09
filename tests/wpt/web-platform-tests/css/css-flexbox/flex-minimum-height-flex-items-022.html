@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Minimum height of a replaced element with borders</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/" />
+<link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#min-size-auto" title="4.5. Implied Minimum Size of Flex Items" />
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht" />
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="height: 100px; overflow: hidden;">
+  <div style="display: flex; flex-direction: column; height: 0; width: 100px;">
+    <img src="support/1x1-green.png" style="border-bottom: 99px solid green;">
+    <div style="background-color: red; min-height: 100px;"></div>
+  </div>
+</div>

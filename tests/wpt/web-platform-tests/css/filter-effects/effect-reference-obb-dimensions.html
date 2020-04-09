@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Filters: objectBoundingBox type of primitiveUnits in SVG filters</title>
+<link rel="author" title="Fredrik Söderquist" href="mailto:fs@opera.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#InterfaceSVGFilterElement">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#attr-valuedef-primitiveunits-objectboundingbox">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=532938">
+<link rel="match" href="reference/effect-reference-obb-dimensions-ref.html">
+<meta name="assert" content="Check that primitiveUnits of type objectBoundingBox get properly applied in SVG filter primitives."/>
+
+<style>
+body {
+  margin: 0;
+  padding: 0;
+}
+#target {
+  position: absolute;
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  filter: url('#bboxOffset');
+}
+</style>
+<div id="target"></div>
+<svg height="0">
+  <filter id="bboxOffset" primitiveUnits="objectBoundingBox" x="0" y="0" width="1.25" height="1.25">
+    <feOffset dx="0.2" dy="0.2"/>
+  </filter>
+</svg>

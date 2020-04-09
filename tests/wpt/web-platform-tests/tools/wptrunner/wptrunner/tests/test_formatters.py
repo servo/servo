@@ -7,6 +7,7 @@ import mock
 from mozlog import handlers, structuredlog
 
 from ..formatters import wptreport
+from ..formatters.wptscreenshot import WptscreenshotFormatter
 from ..formatters.wptreport import WptreportFormatter
 
 
@@ -166,3 +167,26 @@ def test_wptreport_known_intermittent(capfd):
     subtest = test["subtests"][0]
     assert subtest["expected"] == u"PASS"
     assert subtest["known_intermittent"] == [u'FAIL']
+
+
+def test_wptscreenshot_test_end(capfd):
+    formatter = WptscreenshotFormatter()
+
+    # Empty
+    data = {}
+    assert formatter.test_end(data) is None
+
+    # No items
+    data['extra'] = {"reftest_screenshots": []}
+    assert formatter.test_end(data) is None
+
+    # Invalid item
+    data['extra']['reftest_screenshots'] = ["no dict item"]
+    assert formatter.test_end(data) is None
+
+    # Random hash
+    data['extra']['reftest_screenshots'] = [{"hash": "HASH", "screenshot": "DATA"}]
+    assert 'data:image/png;base64,DATA\n' == formatter.test_end(data)
+
+    # Already cached hash
+    assert formatter.test_end(data) is None

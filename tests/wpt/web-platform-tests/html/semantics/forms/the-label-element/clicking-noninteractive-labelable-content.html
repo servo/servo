@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Label event handling when a descendant labelable but not interactive element is clicked</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<label id=label></label>
+<template id=labelable-not-interactive-content>
+  <meter></meter>
+  <output></output>
+  <progress></progress>
+</template>
+
+<script>
+"use strict";
+
+const template = document.getElementById("labelable-not-interactive-content");
+const labelableNotInteractiveElements = Array.from(template.content.children);
+const label = document.getElementById("label");
+
+// This part may be subject to platform-dependent operations in the spec, so we
+// only check for obvious errors. (Clicking once should register at least one
+// click, but less than 30 clicks.) See
+// https://github.com/whatwg/html/issues/5415 for possibly tightening this up.
+function checkClickCount(clicked, description) {
+  assert_greater_than(clicked, 0, description);
+  assert_less_than(clicked, 30, description);
+}
+
+for (const srcElement of labelableNotInteractiveElements) {
+  test(t => {
+    t.add_cleanup(() => {
+      label.innerHTML = "";
+    });
+
+    const element = srcElement.cloneNode();
+    label.appendChild(element);
+
+    let clicked = 0;
+    element.addEventListener("click", () => {
+      clicked++;
+    });
+    element.click();
+    checkClickCount(clicked, "clicking labelable content");
+
+    clicked = 0;
+    const span = document.createElement("span");
+    element.appendChild(span);
+    span.click();
+    checkClickCount(clicked, "clicking descendant of labelable content");
+  }, `labelable element ${srcElement.outerHTML} as first child of <label>`);
+
+  test(t => {
+    t.add_cleanup(() => {
+      label.innerHTML = "";
+    });
+
+    const element = srcElement.cloneNode();
+    const div = document.createElement("div");
+    div.appendChild(element);
+    label.appendChild(div);
+
+    let clicked = 0;
+    element.addEventListener("click", () => {
+      clicked++;
+    });
+    element.click();
+    checkClickCount(clicked, "clicking nested labelable content");
+
+    clicked = 0;
+    const span = document.createElement("span");
+    element.appendChild(span);
+    span.click();
+    checkClickCount(clicked, "clicking descendant of nested labelable content");
+  }, `labelable element ${srcElement.outerHTML} deeply nested under <label>`);
+
+  test(t => {
+    t.add_cleanup(() => {
+      label.innerHTML = "";
+    });
+
+    const button = document.createElement("button");
+    label.appendChild(button);
+
+    const element = srcElement.cloneNode();
+    label.appendChild(element);
+
+    let buttonClicked = 0;
+    button.addEventListener("click", () => {
+      buttonClicked++;
+    });
+
+    let clicked = 0;
+    element.addEventListener("click", () => {
+      clicked++;
+    });
+    element.click();
+    assert_equals(clicked, 1, "clicking nested labelable content");
+    assert_equals(buttonClicked, 1, "clicking nested labelable content should click button");
+
+    buttonClicked = 0;
+    clicked = 0;
+    const span = document.createElement("span");
+    element.appendChild(span);
+    span.click();
+    assert_equals(clicked, 1, "clicking descendant of nested labelable content");
+    assert_equals(buttonClicked, 1, "clicking descendant of nested labelable content should not click button");
+  }, `labelable element ${srcElement.outerHTML} as second child under <label>`);
+}
+
+</script>
+</body>
