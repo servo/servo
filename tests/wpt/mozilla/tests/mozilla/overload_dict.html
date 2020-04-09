@@ -1,0 +1,18 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Test for overload with dictionary object</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+test(function() {
+  var t = new TestBinding();
+
+  assert_equals(t.passOverloadedDict({href: "a"}), "a");
+  assert_equals(t.passOverloadedDict(document.documentElement), "node");
+  // interface objects should be converted to the dictionary if
+  // they're incompatible with the interface
+  // See https://github.com/servo/servo/pull/26154
+  assert_equals(t.passOverloadedDict(new URL("https://example.org/foo")), "https://example.org/foo");
+
+}, "Overload of dictionary and interface item works")
+</script>

@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
     TestBindingMethods, TestDictionary,
 };
 use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
-    TestDictionaryDefaults, TestEnum,
+    TestDictionaryDefaults, TestEnum, TestURLLike,
 };
 use crate::dom::bindings::codegen::UnionTypes;
 use crate::dom::bindings::codegen::UnionTypes::{
@@ -45,6 +45,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::blob::Blob;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::node::Node;
 use crate::dom::promise::Promise;
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::url::URL;
@@ -678,6 +679,14 @@ impl TestBindingMethods for TestBinding {
 
     fn PassOverloaded(&self, _: CustomAutoRooterGuard<typedarray::ArrayBuffer>) {}
     fn PassOverloaded_(&self, _: DOMString) {}
+
+    fn PassOverloadedDict(&self, _: &Node) -> DOMString {
+        "node".into()
+    }
+
+    fn PassOverloadedDict_(&self, u: &TestURLLike) -> DOMString {
+        u.href.clone()
+    }
 
     fn PassNullableBoolean(&self, _: Option<bool>) {}
     fn PassNullableByte(&self, _: Option<i8>) {}

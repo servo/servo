@@ -86,6 +86,10 @@ dictionary TestDictionaryDefaults {
   object? nullableObjectValue = null;
 };
 
+dictionary TestURLLike {
+  required DOMString href;
+};
+
 [Pref="dom.testbinding.enabled",
  Exposed=(Window,Worker)
 ]
@@ -278,6 +282,10 @@ interface TestBinding {
 
   void passOverloaded(ArrayBuffer arg);
   void passOverloaded(DOMString arg);
+
+  // https://github.com/servo/servo/pull/26154
+  DOMString passOverloadedDict(Node arg);
+  DOMString passOverloadedDict(TestURLLike arg);
 
   void passNullableBoolean(boolean? arg);
   void passNullableByte(byte? arg);
