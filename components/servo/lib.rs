@@ -1126,27 +1126,27 @@ enum UserAgent {
 fn default_user_agent_string_for(agent: UserAgent) -> &'static str {
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (X11; Linux x86_64; rv:72.0) Servo/1.0 Firefox/72.0";
+        "Mozilla/5.0 (X11; Linux x86_64; rv:75.0) Servo/1.0 Firefox/75.0";
     #[cfg(all(target_os = "linux", not(target_arch = "x86_64")))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (X11; Linux i686; rv:72.0) Servo/1.0 Firefox/72.0";
+        "Mozilla/5.0 (X11; Linux i686; rv:75.0) Servo/1.0 Firefox/75.0";
 
     #[cfg(all(target_os = "windows", target_arch = "x86_64"))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:72.0) Servo/1.0 Firefox/72.0";
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:75.0) Servo/1.0 Firefox/75.0";
     #[cfg(all(target_os = "windows", not(target_arch = "x86_64")))]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Windows NT 10.0; rv:72.0) Servo/1.0 Firefox/72.0";
+        "Mozilla/5.0 (Windows NT 10.0; rv:75.0) Servo/1.0 Firefox/75.0";
 
     #[cfg(target_os = "macos")]
     const DESKTOP_UA_STRING: &'static str =
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:72.0) Servo/1.0 Firefox/72.0";
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:75.0) Servo/1.0 Firefox/75.0";
 
     match agent {
         UserAgent::Desktop => DESKTOP_UA_STRING,
         UserAgent::Android => "Mozilla/5.0 (Android; Mobile; rv:68.0) Servo/1.0 Firefox/68.0",
         UserAgent::iOS => {
-            "Mozilla/5.0 (iPhone; CPU iPhone OS 13_3 like Mac OS X; rv:72.0) Servo/1.0 Firefox/72.0"
+            "Mozilla/5.0 (iPhone; CPU iPhone OS 13_4 like Mac OS X; rv:75.0) Servo/1.0 Firefox/75.0"
         },
     }
 }
