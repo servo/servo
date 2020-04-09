@@ -46,6 +46,10 @@ dictionary DevicePermissionDescriptor : PermissionDescriptor {
   DOMString deviceId;
 };
 
+dictionary CameraDevicePermissionDescriptor : DevicePermissionDescriptor {
+  boolean panTiltZoom = false;
+};
+
 dictionary PermissionSetParameters {
   required PermissionDescriptor descriptor;
   required PermissionState state;

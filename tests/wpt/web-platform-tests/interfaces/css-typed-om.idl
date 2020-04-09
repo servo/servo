@@ -41,9 +41,9 @@ partial interface mixin ElementCSSInlineStyle {
     [SameObject] readonly attribute StylePropertyMap attributeStyleMap;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(sequence<CSSUnparsedSegment> members)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSUnparsedValue : CSSStyleValue {
+    constructor(sequence<CSSUnparsedSegment> members);
     iterable<CSSUnparsedSegment>;
     readonly attribute unsigned long length;
     getter CSSUnparsedSegment (unsigned long index);
@@ -52,16 +52,16 @@ interface CSSUnparsedValue : CSSStyleValue {
 
 typedef (USVString or CSSVariableReferenceValue) CSSUnparsedSegment;
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(USVString variable, optional CSSUnparsedValue? fallback = null)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSVariableReferenceValue {
+    constructor(USVString variable, optional CSSUnparsedValue? fallback = null);
     attribute USVString variable;
     readonly attribute CSSUnparsedValue? fallback;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(USVString value)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSKeywordValue : CSSStyleValue {
+    constructor(USVString value);
     attribute USVString value;
 };
 
@@ -108,9 +108,9 @@ interface CSSNumericValue : CSSStyleValue {
     [Exposed=Window] static CSSNumericValue parse(USVString cssText);
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(double value, USVString unit)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSUnitValue : CSSNumericValue {
+    constructor(double value, USVString unit);
     attribute double value;
     readonly attribute USVString unit;
 };
@@ -120,45 +120,45 @@ interface CSSMathValue : CSSNumericValue {
     readonly attribute CSSMathOperator operator;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumberish... args)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSMathSum : CSSMathValue {
+    constructor(CSSNumberish... args);
     readonly attribute CSSNumericArray values;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumberish... args)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSMathProduct : CSSMathValue {
+    constructor(CSSNumberish... args);
     readonly attribute CSSNumericArray values;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumberish arg)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSMathNegate : CSSMathValue {
+    constructor(CSSNumberish arg);
     readonly attribute CSSNumericValue value;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumberish arg)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSMathInvert : CSSMathValue {
+    constructor(CSSNumberish arg);
     readonly attribute CSSNumericValue value;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumberish... args)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSMathMin : CSSMathValue {
+    constructor(CSSNumberish... args);
     readonly attribute CSSNumericArray values;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumberish... args)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSMathMax : CSSMathValue {
+    constructor(CSSNumberish... args);
     readonly attribute CSSNumericArray values;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumberish min, CSSNumberish val, CSSNumberish max)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSMathClamp : CSSMathValue {
+    constructor(CSSNumberish min, CSSNumberish val, CSSNumberish max);
     readonly attribute CSSNumericValue min;
     readonly attribute CSSNumericValue val;
     readonly attribute CSSNumericValue max;
@@ -230,9 +230,9 @@ partial namespace CSS {
     CSSUnitValue fr(double value);
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(sequence<CSSTransformComponent> transforms)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSTransformValue : CSSStyleValue {
+    constructor(sequence<CSSTransformComponent> transforms);
     iterable<CSSTransformComponent>;
     readonly attribute unsigned long length;
     getter CSSTransformComponent (unsigned long index);
@@ -249,63 +249,63 @@ interface CSSTransformComponent {
     DOMMatrix toMatrix();
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumericValue x, CSSNumericValue y, optional CSSNumericValue z)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSTranslate : CSSTransformComponent {
+    constructor(CSSNumericValue x, CSSNumericValue y, optional CSSNumericValue z);
     attribute CSSNumericValue x;
     attribute CSSNumericValue y;
     attribute CSSNumericValue z;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumericValue angle),
- Constructor(CSSNumberish x, CSSNumberish y, CSSNumberish z, CSSNumericValue angle)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSRotate : CSSTransformComponent {
+    constructor(CSSNumericValue angle);
+    constructor(CSSNumberish x, CSSNumberish y, CSSNumberish z, CSSNumericValue angle);
     attribute CSSNumberish x;
     attribute CSSNumberish y;
     attribute CSSNumberish z;
     attribute CSSNumericValue angle;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumberish x, CSSNumberish y, optional CSSNumberish z)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSScale : CSSTransformComponent {
+    constructor(CSSNumberish x, CSSNumberish y, optional CSSNumberish z);
     attribute CSSNumberish x;
     attribute CSSNumberish y;
     attribute CSSNumberish z;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumericValue ax, CSSNumericValue ay)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSSkew : CSSTransformComponent {
+    constructor(CSSNumericValue ax, CSSNumericValue ay);
     attribute CSSNumericValue ax;
     attribute CSSNumericValue ay;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumericValue ax)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSSkewX : CSSTransformComponent {
+    constructor(CSSNumericValue ax);
     attribute CSSNumericValue ax;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumericValue ay)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSSkewY : CSSTransformComponent {
+    constructor(CSSNumericValue ay);
     attribute CSSNumericValue ay;
 };
 
 /* Note that skew(x,y) is *not* the same as skewX(x) skewY(y),
    thus the separate interfaces for all three. */
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(CSSNumericValue length)]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSPerspective : CSSTransformComponent {
+    constructor(CSSNumericValue length);
     attribute CSSNumericValue length;
 };
 
-[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet),
- Constructor(DOMMatrixReadOnly matrix, optional CSSMatrixComponentOptions options = {})]
+[Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
 interface CSSMatrixComponent : CSSTransformComponent {
+    constructor(DOMMatrixReadOnly matrix, optional CSSMatrixComponentOptions options = {});
     attribute DOMMatrix matrix;
 };
 

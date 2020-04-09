@@ -10,6 +10,7 @@
 <meta name="assert" content="An element with background-image and a filter should be rendered correctly after other elements on the page change size. You should see a 50x50 green box over a blurred background."/>
 
 <script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
 <script>
 function runTest() {
   function shrinkBox() {
@@ -18,13 +19,9 @@ function runTest() {
     box.style.height = "50px";
   }
 
-  // Wait for two requestAnimationFrame() calls to make sure that at least one
-  // frame has been rendered before shrinking the box and taking the screenshot.
-  requestAnimationFrame(function() {
-    requestAnimationFrame(function() {
-      shrinkBox();
-      takeScreenshot();
-    });
+  waitForAtLeastOneFrame().then(function() {
+    shrinkBox();
+    takeScreenshot();
   });
 }
 </script>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>CSS Filters: feMerge with no input feMergeNode</title>
+<link rel="author" title="Fredrik Söderquist" href="mailto:fs@opera.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feMergeElement">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#feCompositeElement">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=533457">
+<link rel="match" href="reference/effect-reference-merge-no-inputs.tentative-ref.html">
+<meta name="assert" content="Check that the result of an feMerge with no feMergeNode children is transparent black."/>
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: blue;
+  filter: url(#emptyMerge);
+}
+</style>
+<div id="target"></div>
+<svg height="0">
+  <filter id="emptyMerge">
+    <feColorMatrix values="0 0 0 0 0, 0 0 1 0 0, 0 0 0 0 0, 0 0 0 1 0" result="lime"/>
+    <feColorMatrix values="0 1 0 0 0, 0 0 0 0 0, 0 0 0 0 0, 0 0 0 1 0" result="red"/>
+    <feMerge/>
+    <feComposite in2="lime"/>
+  </filter>
+</svg>

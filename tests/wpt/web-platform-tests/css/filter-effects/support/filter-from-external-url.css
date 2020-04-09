@@ -1,0 +1,3 @@
+.hue-rotate {
+    filter: url('hueRotate.svg#MyFilter');
+}

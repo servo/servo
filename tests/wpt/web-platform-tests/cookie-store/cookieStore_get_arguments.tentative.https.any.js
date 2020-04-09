@@ -139,11 +139,6 @@ promise_test(async testCase => {
 }, 'cookieStore.get with relative url in options');
 
 promise_test(async testCase => {
-  await cookieStore.set('cookie-name', 'cookie-value');
-  testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
-  });
-
   const invalid_url =
       `${self.location.protocol}//${self.location.host}/different/path`;
   await promise_rejects_js(testCase, TypeError, cookieStore.get(
@@ -151,11 +146,6 @@ promise_test(async testCase => {
 }, 'cookieStore.get with invalid url path in options');
 
 promise_test(async testCase => {
-  await cookieStore.set('cookie-name', 'cookie-value');
-  testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
-  });
-
   const invalid_url =
       `${self.location.protocol}//www.example.com${self.location.pathname}`;
   await promise_rejects_js(testCase, TypeError, cookieStore.get(

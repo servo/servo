@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Filters: reference to renamed SVG filter</title>
+<link rel="author" title="Stephen White" href="mailto:senorblanco@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=90405">
+<link rel="match" href="reference/effect-reference-rename-001-ref.html">
+<meta name="assert" content="Check that a SVG filter, initially named differently than what an element expects, gets applied to such element once renamed with the expected value."/>
+
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="0" height="0">
+  <defs>
+    <filter id="NotMyFilter">
+      <feColorMatrix type="hueRotate" values="180"/>
+    </filter>
+  </defs>
+</svg>
+<img style="filter: url(#MyFilter);" src="support/color-palette.png">
+<script>
+document.getElementById("NotMyFilter").id = "MyFilter";
+</script>
+</body>
+</html>

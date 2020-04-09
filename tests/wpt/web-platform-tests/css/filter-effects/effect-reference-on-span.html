@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Filters: filters on <span> elements</title>
+<link rel="author" title="Stephen White" href="mailto:senorblanco@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=513408">
+<link rel="match" href="reference/effect-reference-on-span-ref.html">
+<meta name="assert" content="Check that a CSS filter to a <span> element works as expected."/>
+
+<body>
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" version="1.1">
+  <defs>
+    <filter id="colormatrix" color-interpolation-filters="sRGB">
+      <feColorMatrix values="0 0 0 0 0, 0 0 0 0 0, 1 0 0 0 0, 0 0 0 1 0"/>
+    </filter>
+  </defs>
+</svg><span style="background-color: red; filter: url(#colormatrix);">This text's background should be blue.</span>
+</body>
+</html>
