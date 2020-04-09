@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
-use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
@@ -16,13 +15,10 @@ use crate::dom::mimetypearray::MimeTypeArray;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::pluginarray::PluginArray;
-use crate::dom::promise::Promise;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::window::Window;
 use crate::dom::xrsystem::XRSystem;
-use crate::realms::InRealm;
 use dom_struct::dom_struct;
-use std::rc::Rc;
 
 #[dom_struct]
 pub struct Navigator {
@@ -159,26 +155,13 @@ impl NavigatorMethods for Navigator {
             .gamepads
             .or_init(|| GamepadList::new(&self.global(), &[]));
 
-        let vr_gamepads = self.Xr().get_gamepads();
-        root.add_if_not_exists(&vr_gamepads);
-        // TODO: Add not VR related gamepads
+        // TODO: Add gamepads
         root
     }
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
     fn Permissions(&self) -> DomRoot<Permissions> {
         self.permissions
             .or_init(|| Permissions::new(&self.global()))
-    }
-
-    // https://w3c.github.io/webvr/spec/1.1/#navigator-getvrdisplays-attribute
-    fn GetVRDisplays(&self, comp: InRealm) -> Rc<Promise> {
-        let promise = Promise::new_in_current_realm(&self.global(), comp);
-        let displays = self.Xr().get_displays();
-        match displays {
-            Ok(displays) => promise.resolve_native(&displays),
-            Err(_) => promise.reject_error(Error::Security),
-        }
-        promise
     }
 
     /// https://immersive-web.github.io/webxr/#dom-navigator-xr

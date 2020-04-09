@@ -60,11 +60,6 @@ interface mixin NavigatorCookies {
   readonly attribute boolean cookieEnabled;
 };
 
-// https://w3c.github.io/webvr/spec/1.1/#interface-navigator
-partial interface Navigator {
-  [Pref="dom.webvr.enabled"] Promise<sequence<VRDisplay>> getVRDisplays();
-};
-
 // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
 [Exposed=(Window)]
 partial interface Navigator {

@@ -139,7 +139,6 @@ use style_traits::{CSSPixel, DevicePixel, ParsingMode};
 use url::Position;
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, LayoutPixel};
 use webrender_api::{DocumentId, ExternalScrollId};
-use webvr_traits::WebVRMsg;
 
 /// Current state of the window object
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf, PartialEq)]
@@ -267,10 +266,6 @@ pub struct Window {
     /// A handle for communicating messages to the WebGL thread, if available.
     #[ignore_malloc_size_of = "channels are hard"]
     webgl_chan: Option<WebGLChan>,
-
-    /// A handle for communicating messages to the webvr thread, if available.
-    #[ignore_malloc_size_of = "channels are hard"]
-    webvr_chan: Option<IpcSender<WebVRMsg>>,
 
     #[ignore_malloc_size_of = "defined in webxr"]
     webxr_registry: webxr_api::Registry,
@@ -466,10 +461,6 @@ impl Window {
         self.webgl_chan
             .as_ref()
             .map(|chan| WebGLCommandSender::new(chan.clone(), self.get_event_loop_waker()))
-    }
-
-    pub fn webvr_thread(&self) -> Option<IpcSender<WebVRMsg>> {
-        self.webvr_chan.clone()
     }
 
     pub fn webxr_registry(&self) -> webxr_api::Registry {
@@ -2272,7 +2263,6 @@ impl Window {
         navigation_start: u64,
         navigation_start_precise: u64,
         webgl_chan: Option<WebGLChan>,
-        webvr_chan: Option<IpcSender<WebVRMsg>>,
         webxr_registry: webxr_api::Registry,
         microtask_queue: Rc<MicrotaskQueue>,
         webrender_document: DocumentId,
@@ -2350,7 +2340,6 @@ impl Window {
             media_query_lists: DOMTracker::new(),
             test_runner: Default::default(),
             webgl_chan,
-            webvr_chan,
             webxr_registry,
             pending_layout_images: Default::default(),
             unminified_js_dir: Default::default(),

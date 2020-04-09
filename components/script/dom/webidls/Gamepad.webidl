@@ -14,13 +14,16 @@ interface Gamepad {
     [SameObject] readonly attribute GamepadButtonList buttons;
 };
 
-// https://w3c.github.io/gamepad/extensions.html#dom-gamepad
+// https://w3c.github.io/gamepad/extensions.html#partial-gamepad-interface
 partial interface Gamepad {
-  readonly attribute DOMString hand;
-  readonly attribute VRPose? pose;
+  readonly attribute GamepadHand hand;
+  // readonly attribute FrozenArray<GamepadHapticActuator> hapticActuators;
+  readonly attribute GamepadPose? pose;
 };
 
-// https://w3c.github.io/webvr/spec/1.1/#interface-gamepad
-partial interface Gamepad {
-  readonly attribute unsigned long displayId;
+// https://w3c.github.io/gamepad/extensions.html#gamepadhand-enum
+enum GamepadHand {
+  "",  /* unknown, both hands, or not applicable */
+  "left",
+  "right"
 };

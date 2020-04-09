@@ -7,13 +7,11 @@ use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use pixels::PixelFormat;
 use serde::{Deserialize, Serialize};
 use sparkle::gl;
-use sparkle::gl::Gl;
 use std::borrow::Cow;
 use std::fmt;
 use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
-use webvr_traits::WebVRPoseInformation;
 use webxr_api::SessionId;
 use webxr_api::SwapChainId as WebXRSwapChainId;
 
@@ -72,8 +70,6 @@ pub enum WebGLMsg {
     RemoveContext(WebGLContextId),
     /// Runs a WebGLCommand in a specific WebGLContext.
     WebGLCommand(WebGLContextId, WebGLCommand, WebGLCommandBacktrace),
-    /// Runs a WebVRCommand in a specific WebGLContext.
-    WebVRCommand(WebGLContextId, WebVRCommand),
     /// Commands used for the DOMToTexture feature.
     DOMToTextureCommand(DOMToTextureCommand),
     /// Creates a new opaque framebuffer for WebXR.
@@ -160,13 +156,6 @@ impl WebGLMsgSender {
     pub fn send(&self, command: WebGLCommand, backtrace: WebGLCommandBacktrace) -> WebGLSendResult {
         self.sender
             .send(WebGLMsg::WebGLCommand(self.ctx_id, command, backtrace))
-    }
-
-    /// Send a WebVRCommand message
-    #[inline]
-    pub fn send_vr(&self, command: WebVRCommand) -> WebGLSendResult {
-        self.sender
-            .send(WebGLMsg::WebVRCommand(self.ctx_id, command))
     }
 
     /// Send a resize message
@@ -685,36 +674,6 @@ pub enum WebGLFramebufferBindingRequest {
 }
 
 pub type WebGLResult<T> = Result<T, WebGLError>;
-
-pub type WebVRDeviceId = u32;
-
-// WebVR commands that must be called in the WebGL render thread.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum WebVRCommand {
-    /// Start presenting to a VR device.
-    Create(WebVRDeviceId),
-    /// Synchronize the pose information to be used in the frame.
-    SyncPoses(
-        WebVRDeviceId,
-        // near
-        f64,
-        // far
-        f64,
-        // sync gamepads too
-        bool,
-        WebGLSender<Result<WebVRPoseInformation, ()>>,
-    ),
-    /// Submit the frame to a VR device using the specified texture coordinates.
-    SubmitFrame(WebVRDeviceId, [f32; 4], [f32; 4]),
-    /// Stop presenting to a VR device
-    Release(WebVRDeviceId),
-}
-
-// Trait object that handles WebVR commands.
-// Receives the texture id and size associated to the WebGLContext.
-pub trait WebVRRenderHandler: Send {
-    fn handle(&mut self, gl: &Gl, command: WebVRCommand, texture: Option<(u32, Size2D<i32>)>);
-}
 
 /// WebGL commands required to implement DOMToTexture feature.
 #[derive(Clone, Debug, Deserialize, Serialize)]

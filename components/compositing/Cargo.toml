@@ -32,7 +32,6 @@ net_traits = {path = "../net_traits"}
 num-traits = "0.2"
 pixels = {path = "../pixels", optional = true}
 profile_traits = {path = "../profile_traits"}
-rust-webvr = {version = "0.19", features = ["mock", "openvr", "vrexternal"]}
 script_traits = {path = "../script_traits"}
 servo_geometry = {path = "../geometry"}
 servo-media = {git = "https://github.com/servo/media"}
@@ -41,7 +40,6 @@ style_traits = {path = "../style_traits"}
 time = "0.1.17"
 webrender = {git = "https://github.com/servo/webrender", features = ["capture"]}
 webrender_api = {git = "https://github.com/servo/webrender"}
-webvr_traits = {path = "../webvr_traits"}
 webxr = {git = "https://github.com/servo/webxr"}
 
 [build-dependencies]

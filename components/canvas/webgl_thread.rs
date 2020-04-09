@@ -42,8 +42,6 @@ use canvas_traits::webgl::WebGLTextureId;
 use canvas_traits::webgl::WebGLTransparentFramebufferId;
 use canvas_traits::webgl::WebGLVersion;
 use canvas_traits::webgl::WebGLVertexArrayId;
-use canvas_traits::webgl::WebVRCommand;
-use canvas_traits::webgl::WebVRRenderHandler;
 use canvas_traits::webgl::YAxisTreatment;
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
@@ -130,10 +128,6 @@ pub(crate) struct WebGLThread {
     cached_context_info: FnvHashMap<WebGLContextId, WebGLContextInfo>,
     /// Current bound context.
     bound_context_id: Option<WebGLContextId>,
-    /// Handler user to send WebVR commands.
-    // TODO: replace webvr implementation with one built on top of webxr
-    #[allow(dead_code)]
-    webvr_compositor: Option<Box<dyn WebVRRenderHandler>>,
     /// Texture ids and sizes used in DOM to texture outputs.
     dom_outputs: FnvHashMap<webrender_api::PipelineId, DOMToTextureData>,
     /// List of registered webrender external images.
@@ -164,7 +158,6 @@ pub type SurfaceProvider = Box<dyn surfman_chains::SurfaceProvider + Send>;
 pub(crate) struct WebGLThreadInit {
     pub webxr_surface_providers: SurfaceProviders,
     pub webrender_api_sender: webrender_api::RenderApiSender,
-    pub webvr_compositor: Option<Box<dyn WebVRRenderHandler>>,
     pub external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     pub sender: WebGLSender<WebGLMsg>,
     pub receiver: WebGLReceiver<WebGLMsg>,
@@ -184,7 +177,6 @@ impl WebGLThread {
     pub(crate) fn new(
         WebGLThreadInit {
             webrender_api_sender,
-            webvr_compositor,
             external_images,
             sender,
             receiver,
@@ -203,7 +195,6 @@ impl WebGLThread {
             contexts: Default::default(),
             cached_context_info: Default::default(),
             bound_context_id: None,
-            webvr_compositor,
             dom_outputs: Default::default(),
             external_images,
             sender,
@@ -320,9 +311,6 @@ impl WebGLThread {
             WebGLMsg::WebGLCommand(ctx_id, command, backtrace) => {
                 self.handle_webgl_command(ctx_id, command, backtrace);
             },
-            WebGLMsg::WebVRCommand(ctx_id, command) => {
-                self.handle_webvr_command(ctx_id, command);
-            },
             WebGLMsg::CreateWebXRSwapChain(ctx_id, size, sender, id) => {
                 let _ = sender.send(self.create_webxr_swap_chain(ctx_id, size, id));
             },
@@ -396,11 +384,6 @@ impl WebGLThread {
                 backtrace,
             );
         }
-    }
-
-    /// Handles a WebVRCommand for a specific WebGLContext
-    fn handle_webvr_command(&mut self, _context_id: WebGLContextId, _command: WebVRCommand) {
-        // TODO(pcwalton): Reenable.
     }
 
     /// Creates a new WebGLContext

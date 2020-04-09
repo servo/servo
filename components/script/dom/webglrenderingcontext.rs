@@ -60,7 +60,7 @@ use canvas_traits::webgl::{
     Parameter, TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand,
     WebGLCommandBacktrace, WebGLContextId, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg,
     WebGLMsgSender, WebGLOpaqueFramebufferId, WebGLProgramId, WebGLResult, WebGLSLVersion,
-    WebGLSendResult, WebGLSender, WebGLVersion, WebVRCommand, YAxisTreatment,
+    WebGLSendResult, WebGLSender, WebGLVersion, YAxisTreatment,
 };
 use dom_struct::dom_struct;
 use embedder_traits::EventLoopWaker;
@@ -393,11 +393,6 @@ impl WebGLRenderingContext {
 
     pub fn swap_buffers(&self, id: Option<WebGLOpaqueFramebufferId>) {
         let _ = self.webgl_sender.send_swap_buffers(id);
-    }
-
-    #[inline]
-    pub fn send_vr_command(&self, command: WebVRCommand) {
-        self.webgl_sender.send_vr(command).unwrap();
     }
 
     pub fn webgl_error(&self, err: WebGLError) {
@@ -4759,10 +4754,6 @@ impl WebGLMessageSender {
 
     pub fn send(&self, msg: WebGLCommand, backtrace: WebGLCommandBacktrace) -> WebGLSendResult {
         self.wake_after_send(|| self.sender.send(msg, backtrace))
-    }
-
-    pub fn send_vr(&self, command: WebVRCommand) -> WebGLSendResult {
-        self.wake_after_send(|| self.sender.send_vr(command))
     }
 
     pub fn send_swap_buffers(&self, id: Option<WebGLOpaqueFramebufferId>) -> WebGLSendResult {

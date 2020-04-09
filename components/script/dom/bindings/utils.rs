@@ -44,6 +44,7 @@ use js::rust::wrappers::JS_HasPropertyById;
 use js::rust::wrappers::JS_SetProperty;
 use js::rust::{get_object_class, is_dom_class, GCMethods, ToString, ToWindowProxyIfWindow};
 use js::rust::{Handle, HandleId, HandleObject, HandleValue, MutableHandleValue};
+use js::typedarray::{CreateWith, Float32Array};
 use js::JS_CALLEE;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::ffi::CString;
@@ -132,6 +133,15 @@ pub fn to_frozen_array<T: ToJSValConvertible>(convertibles: &[T], cx: SafeJSCont
     rooted!(in(*cx) let obj = ports.to_object());
     unsafe { JS_FreezeObject(*cx, RawHandleObject::from(obj.handle())) };
     *ports
+}
+
+/// Creates a Float32 array
+pub fn create_typed_array(cx: SafeJSContext, src: &[f32], dst: &Heap<*mut JSObject>) {
+    rooted!(in (*cx) let mut array = ptr::null_mut::<JSObject>());
+    unsafe {
+        let _ = Float32Array::create(*cx, CreateWith::Slice(src), array.handle_mut());
+    }
+    (*dst).set(array.get());
 }
 
 /// Returns the ProtoOrIfaceArray for the given global object.

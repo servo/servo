@@ -21,11 +21,9 @@ use std::rc::Rc;
 use std::time::Duration;
 use style_traits::DevicePixel;
 
-use rust_webvr::VRServiceManager;
 use webrender_api::units::DevicePoint;
 use webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use webrender_api::ScrollLocation;
-use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Clone)]
 pub enum MouseWindowEvent {
@@ -176,13 +174,6 @@ pub trait WindowMethods {
 pub trait EmbedderMethods {
     /// Returns a thread-safe object to wake up the window's event loop.
     fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker>;
-    /// Register services with a VRServiceManager.
-    fn register_vr_services(
-        &mut self,
-        _: &mut VRServiceManager,
-        _: &mut Vec<Box<dyn WebVRMainThreadHeartbeat>>,
-    ) {
-    }
 
     /// Register services with a WebXR Registry.
     fn register_webxr(

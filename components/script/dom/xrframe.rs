@@ -21,7 +21,7 @@ use webxr_api::Frame;
 pub struct XRFrame {
     reflector_: Reflector,
     session: Dom<XRSession>,
-    #[ignore_malloc_size_of = "defined in rust-webvr"]
+    #[ignore_malloc_size_of = "defined in webxr_api"]
     data: Frame,
     active: Cell<bool>,
     animation_frame: Cell<bool>,

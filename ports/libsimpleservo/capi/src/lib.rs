@@ -18,7 +18,7 @@ use log::LevelFilter;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
     ContextMenuResult, Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionActionType,
-    MediaSessionPlaybackState, MouseButton, PromptResult, VRInitOptions,
+    MediaSessionPlaybackState, MouseButton, PromptResult,
 };
 use std::ffi::{CStr, CString};
 #[cfg(target_os = "windows")]
@@ -242,7 +242,6 @@ pub struct CInitOptions {
     pub width: i32,
     pub height: i32,
     pub density: f32,
-    pub vr_pointer: *mut c_void,
     pub enable_subpixel_text_antialiasing: bool,
     pub vslogger_mod_list: *const *const c_char,
     pub vslogger_mod_size: u32,
@@ -439,11 +438,6 @@ unsafe fn init(
         url,
         coordinates,
         density: opts.density,
-        vr_init: if opts.vr_pointer.is_null() {
-            VRInitOptions::None
-        } else {
-            VRInitOptions::VRExternal(opts.vr_pointer)
-        },
         xr_discovery: None,
         enable_subpixel_text_antialiasing: opts.enable_subpixel_text_antialiasing,
         gl_context_pointer: gl_context,

@@ -46,7 +46,6 @@ use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize, DevicePoint, LayoutVector2D};
 use webrender_api::{self, HitTestFlags, HitTestResult, ScrollLocation};
-use webvr_traits::WebVRMainThreadHeartbeat;
 
 #[derive(Debug, PartialEq)]
 enum UnableToComposite {
@@ -178,9 +177,6 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
 
     /// The webrender interface, if enabled.
     webrender_api: webrender_api::RenderApi,
-
-    /// Some VR displays want to be sent a heartbeat from the main thread.
-    webvr_heartbeats: Vec<Box<dyn WebVRMainThreadHeartbeat>>,
 
     /// Some XR devices want to run on the main thread.
     pub webxr_main_thread: webxr::MainThreadRegistry,
@@ -320,7 +316,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             webrender: state.webrender,
             webrender_document: state.webrender_document,
             webrender_api: state.webrender_api,
-            webvr_heartbeats: state.webvr_heartbeats,
             webxr_main_thread: state.webxr_main_thread,
             pending_paint_metrics: HashMap::new(),
             cursor: Cursor::None,
@@ -1017,10 +1012,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 pipeline_ids.push(*pipeline_id);
             }
         }
-        let animation_state = if pipeline_ids.is_empty() &&
-            !self.webvr_heartbeats_racing() &&
-            !self.webxr_main_thread.running()
-        {
+        let animation_state = if pipeline_ids.is_empty() && !self.webxr_main_thread.running() {
             windowing::AnimationState::Idle
         } else {
             windowing::AnimationState::Animating
@@ -1029,10 +1021,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         for pipeline_id in &pipeline_ids {
             self.tick_animations_for_pipeline(*pipeline_id)
         }
-    }
-
-    fn webvr_heartbeats_racing(&self) -> bool {
-        self.webvr_heartbeats.iter().any(|hb| hb.heart_racing())
     }
 
     fn tick_animations_for_pipeline(&mut self, pipeline_id: PipelineId) {
@@ -1497,11 +1485,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         match self.composition_request {
             CompositionRequest::NoCompositingNecessary => {},
             CompositionRequest::CompositeNow(_) => self.composite(),
-        }
-
-        // Send every VR display that wants one a main-thread heartbeat
-        for webvr_heartbeat in &mut self.webvr_heartbeats {
-            webvr_heartbeat.heartbeat();
         }
 
         // Run the WebXR main thread

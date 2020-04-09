@@ -62,12 +62,6 @@ impl EventsLoop {
                 panic!("Can't access winit event loop while using the fake headless event loop"),
         }
     }
-    pub fn take(&mut self) -> Option<glutin::EventsLoop> {
-        match self.0 {
-            EventLoop::Glutin(ref mut event_loop) => event_loop.take(),
-            EventLoop::Headless(..) => None,
-        }
-    }
     pub fn poll_events<F>(&mut self, callback: F) where F: FnMut(glutin::Event) {
         match self.0 {
             EventLoop::Glutin(Some(ref mut events_loop)) => events_loop.poll_events(callback),
