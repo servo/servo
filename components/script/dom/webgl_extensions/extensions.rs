@@ -18,7 +18,7 @@ use crate::dom::oestexturehalffloat::OESTextureHalfFloat;
 use crate::dom::webglcolorbufferfloat::WEBGLColorBufferFloat;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgltexture::TexCompression;
-use canvas_traits::webgl::{GlType, WebGLVersion};
+use canvas_traits::webgl::{GlType, TexFormat, WebGLVersion};
 use fnv::{FnvHashMap, FnvHashSet};
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
@@ -82,7 +82,7 @@ struct WebGLExtensionFeatures {
     gl_extensions: FnvHashSet<String>,
     disabled_tex_types: FnvHashSet<GLenum>,
     not_filterable_tex_types: FnvHashSet<GLenum>,
-    effective_tex_internal_formats: FnvHashMap<TexFormatType, u32>,
+    effective_tex_internal_formats: FnvHashMap<TexFormatType, TexFormat>,
     /// WebGL Hint() targets enabled by extensions.
     hint_targets: FnvHashSet<GLenum>,
     /// WebGL GetParameter() names enabled by extensions.
@@ -273,9 +273,9 @@ impl WebGLExtensions {
 
     pub fn add_effective_tex_internal_format(
         &self,
-        source_internal_format: u32,
+        source_internal_format: TexFormat,
         source_data_type: u32,
-        effective_internal_format: u32,
+        effective_internal_format: TexFormat,
     ) {
         let format = TexFormatType(source_internal_format, source_data_type);
         self.features
@@ -286,9 +286,9 @@ impl WebGLExtensions {
 
     pub fn get_effective_tex_internal_format(
         &self,
-        source_internal_format: u32,
+        source_internal_format: TexFormat,
         source_data_type: u32,
-    ) -> u32 {
+    ) -> TexFormat {
         let format = TexFormatType(source_internal_format, source_data_type);
         *(self
             .features
@@ -453,4 +453,4 @@ impl WebGLExtensions {
 
 // Helper structs
 #[derive(Eq, Hash, JSTraceable, MallocSizeOf, PartialEq)]
-struct TexFormatType(u32, u32);
+struct TexFormatType(TexFormat, u32);

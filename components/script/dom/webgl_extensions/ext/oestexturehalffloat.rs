@@ -2,14 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use super::{
-    constants as webgl, ext_constants as gl, WebGLExtension, WebGLExtensionSpec, WebGLExtensions,
-};
+use super::{WebGLExtension, WebGLExtensionSpec, WebGLExtensions};
 use crate::dom::bindings::codegen::Bindings::OESTextureHalfFloatBinding::OESTextureHalfFloatConstants;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use canvas_traits::webgl::WebGLVersion;
+use canvas_traits::webgl::{TexFormat, WebGLVersion};
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -50,14 +48,14 @@ impl WebGLExtension for OESTextureHalfFloat {
     fn enable(ext: &WebGLExtensions) {
         let hf = OESTextureHalfFloatConstants::HALF_FLOAT_OES;
         ext.enable_tex_type(hf);
-        ext.add_effective_tex_internal_format(webgl::RGBA, hf, gl::RGBA16F);
-        ext.add_effective_tex_internal_format(webgl::RGB, hf, gl::RGB16F);
-        ext.add_effective_tex_internal_format(webgl::LUMINANCE, hf, gl::LUMINANCE16F_ARB);
-        ext.add_effective_tex_internal_format(webgl::ALPHA, hf, gl::ALPHA16F_ARB);
+        ext.add_effective_tex_internal_format(TexFormat::RGBA, hf, TexFormat::RGBA16f);
+        ext.add_effective_tex_internal_format(TexFormat::RGB, hf, TexFormat::RGB16f);
+        ext.add_effective_tex_internal_format(TexFormat::Luminance, hf, TexFormat::Luminance16f);
+        ext.add_effective_tex_internal_format(TexFormat::Alpha, hf, TexFormat::Alpha16f);
         ext.add_effective_tex_internal_format(
-            webgl::LUMINANCE_ALPHA,
+            TexFormat::LuminanceAlpha,
             hf,
-            gl::LUMINANCE_ALPHA16F_ARB,
+            TexFormat::LuminanceAlpha16f,
         );
     }
 

@@ -954,6 +954,13 @@ mod gl_ext_constants {
         COMPRESSED_RGBA_S3TC_DXT5_EXT,
         COMPRESSED_RGB_ETC1_WEBGL,
     ];
+
+    pub const ALPHA16F_ARB: u32 = 0x881C;
+    pub const ALPHA32F_ARB: u32 = 0x8816;
+    pub const LUMINANCE16F_ARB: u32 = 0x881E;
+    pub const LUMINANCE32F_ARB: u32 = 0x8818;
+    pub const LUMINANCE_ALPHA16F_ARB: u32 = 0x881F;
+    pub const LUMINANCE_ALPHA32F_ARB: u32 = 0x8819;
 }
 
 gl_enums! {
@@ -961,6 +968,8 @@ gl_enums! {
         DepthComponent = gl::DEPTH_COMPONENT,
         DepthStencil = gl::DEPTH_STENCIL,
         Alpha = gl::ALPHA,
+        Alpha32f = gl_ext_constants::ALPHA32F_ARB,
+        Alpha16f = gl_ext_constants::ALPHA16F_ARB,
         Red = gl::RED,
         RedInteger = gl::RED_INTEGER,
         RG = gl::RG,
@@ -971,6 +980,10 @@ gl_enums! {
         RGBAInteger = gl::RGBA_INTEGER,
         Luminance = gl::LUMINANCE,
         LuminanceAlpha = gl::LUMINANCE_ALPHA,
+        Luminance32f = gl_ext_constants::LUMINANCE32F_ARB,
+        Luminance16f = gl_ext_constants::LUMINANCE16F_ARB,
+        LuminanceAlpha32f = gl_ext_constants::LUMINANCE_ALPHA32F_ARB,
+        LuminanceAlpha16f = gl_ext_constants::LUMINANCE_ALPHA16F_ARB,
         CompressedRgbS3tcDxt1 = gl_ext_constants::COMPRESSED_RGB_S3TC_DXT1_EXT,
         CompressedRgbaS3tcDxt1 = gl_ext_constants::COMPRESSED_RGBA_S3TC_DXT1_EXT,
         CompressedRgbaS3tcDxt3 = gl_ext_constants::COMPRESSED_RGBA_S3TC_DXT3_EXT,
@@ -1143,21 +1156,40 @@ impl TexFormat {
             TexFormat::DepthComponent32f => TexFormat::DepthComponent,
             TexFormat::Depth24Stencil8 => TexFormat::DepthStencil,
             TexFormat::Depth32fStencil8 => TexFormat::DepthStencil,
+            TexFormat::Alpha32f => TexFormat::Alpha,
+            TexFormat::Alpha16f => TexFormat::Alpha,
+            TexFormat::Luminance32f => TexFormat::Luminance,
+            TexFormat::Luminance16f => TexFormat::Luminance,
+            TexFormat::LuminanceAlpha32f => TexFormat::LuminanceAlpha,
+            TexFormat::LuminanceAlpha16f => TexFormat::LuminanceAlpha,
             _ => self,
         }
     }
 
     pub fn compatible_data_types(self) -> &'static [TexDataType] {
         match self {
-            TexFormat::RGB => &[TexDataType::UnsignedByte, TexDataType::UnsignedShort565][..],
+            TexFormat::RGB => &[
+                TexDataType::UnsignedByte,
+                TexDataType::UnsignedShort565,
+                TexDataType::Float,
+                TexDataType::HalfFloat,
+            ][..],
             TexFormat::RGBA => &[
                 TexDataType::UnsignedByte,
                 TexDataType::UnsignedShort4444,
                 TexDataType::UnsignedShort5551,
+                TexDataType::Float,
+                TexDataType::HalfFloat,
             ][..],
-            TexFormat::LuminanceAlpha => &[TexDataType::UnsignedByte][..],
-            TexFormat::Luminance => &[TexDataType::UnsignedByte][..],
-            TexFormat::Alpha => &[TexDataType::UnsignedByte][..],
+            TexFormat::LuminanceAlpha => &[TexDataType::UnsignedByte, TexDataType::Float, TexDataType::HalfFloat][..],
+            TexFormat::Luminance => &[TexDataType::UnsignedByte, TexDataType::Float, TexDataType::HalfFloat][..],
+            TexFormat::Alpha => &[TexDataType::UnsignedByte, TexDataType::Float, TexDataType::HalfFloat][..],
+            TexFormat::LuminanceAlpha32f => &[TexDataType::Float][..],
+            TexFormat::LuminanceAlpha16f => &[TexDataType::HalfFloat][..],
+            TexFormat::Luminance32f => &[TexDataType::Float][..],
+            TexFormat::Luminance16f => &[TexDataType::HalfFloat][..],
+            TexFormat::Alpha32f => &[TexDataType::Float][..],
+            TexFormat::Alpha16f => &[TexDataType::HalfFloat][..],
             TexFormat::R8 => &[TexDataType::UnsignedByte][..],
             TexFormat::R8SNorm => &[TexDataType::Byte][..],
             TexFormat::R16f => &[TexDataType::HalfFloat, TexDataType::Float][..],

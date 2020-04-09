@@ -790,6 +790,10 @@ impl WebGLRenderingContext {
             YAxisTreatment::AsIs
         };
 
+        let internal_format = self
+            .extension_manager
+            .get_effective_tex_internal_format(internal_format, data_type.as_gl_constant());
+
         let effective_data_type = self
             .extension_manager
             .effective_type(data_type.as_gl_constant());
