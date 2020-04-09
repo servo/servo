@@ -130,7 +130,7 @@ def main():
 
 
 def abort(message):
-    sys.stderr.write(message + b"\n")
+    print(message, file=sys.stderr)
     sys.exit(1)
 
 
@@ -146,18 +146,18 @@ def render(filename, **context):
                             strict_undefined=True)
         # Uncomment to debug generated Python code:
         # write("/tmp", "mako_%s.py" % os.path.basename(filename), template.code)
-        return template.render(**context).encode("utf8")
+        return template.render(**context)
     except Exception:
         # Uncomment to see a traceback in generated Python code:
         # raise
-        abort(exceptions.text_error_template().render().encode("utf8"))
+        abort(exceptions.text_error_template().render())
 
 
 def write(directory, filename, content):
     if not os.path.exists(directory):
         os.makedirs(directory)
     full_path = os.path.join(directory, filename)
-    open(full_path, "wb").write(content)
+    open(full_path, "w", encoding="utf-8").write(content)
 
     python_addr = RE_PYTHON_ADDR.search(content)
     if python_addr:

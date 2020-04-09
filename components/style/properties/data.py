@@ -603,7 +603,7 @@ class PropertiesData(object):
 
         longhand = Longhand(self.current_style_struct, name, **kwargs)
         self.add_prefixed_aliases(longhand)
-        longhand.alias = list(map(lambda xp: Alias(xp[0], longhand, xp[1]), longhand.alias))
+        longhand.alias = [Alias(xp[0], longhand, xp[1]) for xp in longhand.alias]
         self.longhand_aliases += longhand.alias
         self.current_style_struct.longhands.append(longhand)
         self.longhands.append(longhand)
@@ -621,7 +621,7 @@ class PropertiesData(object):
         sub_properties = [self.longhands_by_name[s] for s in sub_properties]
         shorthand = Shorthand(name, sub_properties, *args, **kwargs)
         self.add_prefixed_aliases(shorthand)
-        shorthand.alias = list(map(lambda xp: Alias(xp[0], shorthand, xp[1]), shorthand.alias))
+        shorthand.alias = [Alias(xp[0], shorthand, xp[1]) for xp in shorthand.alias]
         self.shorthand_aliases += shorthand.alias
         self.shorthands.append(shorthand)
         self.shorthands_by_name[name] = shorthand
@@ -670,17 +670,17 @@ def _remove_common_first_line_and_first_letter_properties(props, engine):
 class PropertyRestrictions:
     @staticmethod
     def logical_group(data, group):
-        return map(lambda p: p.name, data.longhands_by_logical_group[group])
+        return [p.name for p in data.longhands_by_logical_group[group]]
 
     @staticmethod
     def shorthand(data, shorthand):
         if shorthand not in data.shorthands_by_name:
             return []
-        return map(lambda p: p.name, data.shorthands_by_name[shorthand].sub_properties)
+        return [p.name for p in data.shorthands_by_name[shorthand].sub_properties]
 
     @staticmethod
     def spec(data, spec_path):
-        return map(lambda p: p.name, filter(lambda p: spec_path in p.spec, data.longhands))
+        return [p.name for p in data.longhands if spec_path in p.spec]
 
     # https://drafts.csswg.org/css-pseudo/#first-letter-styling
     @staticmethod

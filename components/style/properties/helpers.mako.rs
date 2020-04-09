@@ -680,7 +680,7 @@
             % endfor
 
             let mut bits = ${type}::empty();
-            % for servo_bit, gecko_bit in bit_map.iteritems():
+            % for servo_bit, gecko_bit in bit_map.items():
                 if kw & (${gecko_bit_prefix}${gecko_bit} as ${kw_type}) != 0 {
                     bits |= ${servo_bit};
                 }
@@ -696,7 +696,7 @@
             let mut bits: ${kw_type} = 0;
             // FIXME: if we ensure that the Servo bitflags storage is the same
             // as Gecko's one, we can just copy it.
-            % for servo_bit, gecko_bit in bit_map.iteritems():
+            % for servo_bit, gecko_bit in bit_map.items():
                 if self.contains(${servo_bit}) {
                     bits |= ${gecko_bit_prefix}${gecko_bit} as ${kw_type};
                 }
@@ -732,7 +732,7 @@
             % if include_aliases:
             <%
                 aliases = []
-                for alias, v in keyword.aliases_for(engine).iteritems():
+                for alias, v in keyword.aliases_for(engine).items():
                     if variant == v:
                         aliases.append(alias)
             %>
