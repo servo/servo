@@ -1,0 +1,11 @@
+<!doctype HTML>
+<title>CSS Filters: drop-shadow clipping</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#dropshadowEquivalent">
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=804670">
+<link rel="match" href="reference/drop-shadow-clipped-001-ref.html">
+<meta name="assert" content="This test ensures that the overflowing parts of drop-shadowed elements cast shadows.">
+<div style="overflow: hidden; width: 100px; height: 100px">
+  <div style="filter: drop-shadow(-105px 0 0 green);">
+    <div style="width: 50px; height: 50px; position: relative; left: 105px; background: red"></div>
+  </div>
+</div>

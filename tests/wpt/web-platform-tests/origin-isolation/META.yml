@@ -1,0 +1,5 @@
+spec: https://github.com/WICG/origin-isolation
+suggested_reviewers:
+  - domenic
+  - annevk
+  - wjmaclean

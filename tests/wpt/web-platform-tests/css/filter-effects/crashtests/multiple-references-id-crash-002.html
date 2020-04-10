@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>CSS Filters: multiple references to filter in mutating subtree</title>
+<link rel="author" title="Fredrik Söderquist" href="mailto:fs@opera.com">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#FilterProperty">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=439970">
+<meta name="assert" content="Check that applying the same filter pointing to several target elements in a mutating subtree does not crash."/>
+
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+#move, #obj, #bdo {
+  filter: url(#target);
+}
+</style>
+
+<body>
+<object id="obj">PASS if no crash</object>
+<div id="move">
+  <span id="target"></span>
+</div>
+<div id="bdo"></div>
+
+<script>
+waitForAtLeastOneFrame().then(function() {
+  bdo.style.zoom = 2;
+  obj.appendChild(move);
+  document.documentElement.classList.remove('test-wait');
+});
+</script>
+</body>
+</html>
