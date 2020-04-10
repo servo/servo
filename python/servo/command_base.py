@@ -687,7 +687,7 @@ install them, let us know by filing a bug!")
             distrib, version, _ = distro.linux_distribution()
             distrib = six.ensure_str(distrib)
             version = six.ensure_str(version)
-            if distrib == "Ubuntu" and (version == "16.04" or version == "14.04"):
+            if distrib == "Ubuntu" and version == "16.04":
                 env["HARFBUZZ_SYS_NO_PKG_CONFIG"] = "true"
 
         if extra_path:

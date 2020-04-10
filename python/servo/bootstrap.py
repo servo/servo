@@ -21,33 +21,6 @@ import servo.packages as packages
 from servo.util import extract, download_file, host_triple
 
 
-def install_trusty_deps(force):
-    version = str(subprocess.check_output(['gcc', '-dumpversion'])).split('.')
-    gcc = True
-    if int(version[0]) > 4:
-        gcc = False
-    elif int(version[0]) == 4 and int(version[1]) >= 9:
-        gcc = False
-
-    version = str(subprocess.check_output(['clang', '-dumpversion'])).split('.')
-    clang = int(version[0]) < 4
-
-    if gcc:
-        run_as_root(["add-apt-repository", "ppa:ubuntu-toolchain-r/test"], force)
-        run_as_root(["apt-get", "update"])
-        run_as_root(["apt-get", "install", "gcc-4.9", "g++-4.9"], force)
-        run_as_root(['update-alternatives', '--install', '/usr/bin/gcc', 'gcc',
-                     '/usr/bin/gcc-4.9', '60', '--slave', '/usr/bin/g++', 'g++',
-                     '/usr/bin/g++-4.9'])
-    if clang:
-        run_as_root(["bash", "-c", 'wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -'])
-        run_as_root(["apt-add-repository", "deb http://apt.llvm.org/trusty/ llvm-toolchain-xenial-4.0 main"], force)
-        run_as_root(["apt-get", "update"])
-        run_as_root(["apt-get", "install", "clang-4.0"], force)
-
-    return gcc or clang
-
-
 def check_gstreamer_lib():
     return subprocess.call(["pkg-config", "--atleast-version=1.16", "gstreamer-1.0"],
                            stdout=PIPE, stderr=PIPE) == 0
@@ -113,32 +86,26 @@ def linux(context, force=False):
     # Please keep these in sync with the packages in README.md
     pkgs_apt = ['git', 'curl', 'autoconf', 'libx11-dev', 'libfreetype6-dev',
                 'libgl1-mesa-dri', 'libglib2.0-dev', 'xorg-dev', 'gperf', 'g++',
-                'build-essential', 'cmake', "libssl-dev", 'libbz2-dev',
+                'build-essential', 'cmake', "libssl-dev",
                 'liblzma-dev', 'libosmesa6-dev', 'libxmu6', 'libxmu-dev',
-                'libglu1-mesa-dev', 'libgles2-mesa-dev', 'libegl1-mesa-dev',
-                'libdbus-1-dev', 'libharfbuzz-dev', 'ccache', 'clang',
+                'libgles2-mesa-dev', 'libegl1-mesa-dev', 'libdbus-1-dev',
+                'libharfbuzz-dev', 'ccache', 'clang',
                 'autoconf2.13', 'libunwind-dev', 'llvm-dev']
     pkgs_dnf = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
                 'libunwind-devel', 'mesa-libGL-devel', 'mesa-libEGL-devel',
                 'glib2-devel', 'libX11-devel', 'libXrandr-devel', 'gperf',
                 'fontconfig-devel', 'cabextract', 'ttmkfdir', 'expat-devel',
-                'rpm-build', 'openssl-devel', 'cmake', 'bzip2-devel',
+                'rpm-build', 'openssl-devel', 'cmake',
                 'libXcursor-devel', 'libXmu-devel', 'mesa-libOSMesa-devel',
                 'dbus-devel', 'ncurses-devel', 'harfbuzz-devel', 'ccache',
-                'mesa-libGLU-devel', 'clang', 'clang-libs', 'gstreamer1-devel',
-                'gstreamer1-plugins-base-devel', 'python3-devel',
-                'gstreamer1-plugins-bad-free-devel', 'autoconf213']
-    if context.distro == "Ubuntu" and context.distro_version != "14.04":
-        pkgs_apt += ['libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
-                     'libgstreamer-plugins-bad1.0-dev']
+                'clang', 'clang-libs', 'autoconf213', 'python3-devel'
+                'gstreamer1-devel', 'gstreamer1-plugins-base-devel',
+                'gstreamer1-plugins-bad-free-devel']
 
     installed_something = install_linux_deps(context, pkgs_apt, pkgs_dnf, force)
 
     if not check_gstreamer_lib():
         installed_something |= gstreamer(context, force)
-
-    if context.distro == "Ubuntu" and context.distro_version == "14.04":
-        installed_something |= install_trusty_deps(force)
 
     if not installed_something:
         print("Dependencies were already installed!")
@@ -150,7 +117,7 @@ def salt(context, force=False):
     # Ensure Salt dependencies are installed
     install_salt_dependencies(context, force)
     # Ensure Salt is installed in the virtualenv
-    # It's not instaled globally because it's a large, non-required dependency,
+    # It's not installed globally because it's a large, non-required dependency,
     # and the installation fails on Windows
     print("Checking Salt installation...", end='')
     reqs_path = os.path.join(context.topdir, 'python', 'requirements-salt.txt')
@@ -356,8 +323,6 @@ def get_linux_distribution():
             base_version = '18.04'
         elif major == '18':
             base_version = '16.04'
-        elif major == '17':
-            base_version = '14.04'
         else:
             raise Exception('unsupported version of %s: %s' % (distrib, version))
 
@@ -372,8 +337,6 @@ def get_linux_distribution():
             base_version = '18.04'
         elif major == '18':
             base_version = '16.04'
-        elif major == '17':
-            base_version = '14.04'
         else:
             raise Exception('unsupported version of %s: %s' % (distrib, version))
 
@@ -383,12 +346,6 @@ def get_linux_distribution():
             base_version = '18.04'
         elif version[0:3] == '0.4':
             base_version = '16.04'
-        elif version[0:3] == '0.3':
-            base_version = '14.04'
-        elif version == '0.2':
-            base_version = '12.04'
-        elif version == '0.1':
-            base_version = '10.10'
         else:
             raise Exception('unsupported version of %s: %s' % (distrib, version))
         distrib, version = 'Ubuntu', base_version

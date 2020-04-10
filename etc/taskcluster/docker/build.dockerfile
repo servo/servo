@@ -34,10 +34,6 @@ RUN \
         # blurz
         libdbus-1-dev \
         #
-        # Skia
-        libglu1-mesa-dev \
-        libbz2-dev \
-        #
         # sampling profiler
         libunwind-dev \
         #
