@@ -3,7 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
-use crate::dom::bindings::codegen::Bindings::XRRayBinding::XRRayMethods;
+use crate::dom::bindings::codegen::Bindings::XRRayBinding::{XRRayDirectionInit, XRRayMethods};
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::utils::create_typed_array;
@@ -45,25 +46,35 @@ impl XRRay {
     pub fn Constructor(
         window: &Window,
         origin: &DOMPointInit,
-        direction: &DOMPointInit,
-    ) -> DomRoot<Self> {
+        direction: &XRRayDirectionInit,
+    ) -> Fallible<DomRoot<Self>> {
+        if origin.w != 1.0 {
+            return Err(Error::Type("Origin w coordinate must be 1".into()));
+        }
+        if *direction.w != 0.0 {
+            return Err(Error::Type("Direction w coordinate must be 0".into()));
+        }
+        if *direction.x == 0.0 && *direction.y == 0.0 && *direction.z == 0.0 {
+            return Err(Error::Type("Direction vector cannot have zero length".into()));
+        }
+
         let origin = Vector3D::new(origin.x as f32, origin.y as f32, origin.z as f32);
         let direction =
-            Vector3D::new(direction.x as f32, direction.y as f32, direction.z as f32).normalize();
+            Vector3D::new(*direction.x as f32, *direction.y as f32, *direction.z as f32).normalize();
 
-        Self::new(&window.global(), Ray { origin, direction })
+        Ok(Self::new(&window.global(), Ray { origin, direction }))
     }
 
     #[allow(non_snake_case)]
     /// https://immersive-web.github.io/hit-test/#dom-xrray-xrray-transform
-    pub fn Constructor_(window: &Window, transform: &XRRigidTransform) -> DomRoot<Self> {
+    pub fn Constructor_(window: &Window, transform: &XRRigidTransform) -> Fallible<DomRoot<Self>> {
         let transform = transform.transform();
         let origin = transform.translation;
         let direction = transform
             .rotation
             .transform_vector3d(Vector3D::new(0., 0., -1.));
 
-        Self::new(&window.global(), Ray { origin, direction })
+        Ok(Self::new(&window.global(), Ray { origin, direction }))
     }
 }
 

@@ -4,10 +4,17 @@
 
 // https://immersive-web.github.io/hit-test/#xrray-interface
 
+dictionary XRRayDirectionInit {
+  double x = 0;
+  double y = 0;
+  double z = -1;
+  double w = 0;
+};
+
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
 interface XRRay {
-  constructor(optional DOMPointInit origin = {}, optional DOMPointInit direction = {});
-  constructor(XRRigidTransform transform);
+  [Throws] constructor(optional DOMPointInit origin = {}, optional XRRayDirectionInit direction = {});
+  [Throws] constructor(XRRigidTransform transform);
   [SameObject] readonly attribute DOMPointReadOnly origin;
   [SameObject] readonly attribute DOMPointReadOnly direction;
   [SameObject] readonly attribute Float32Array matrix;
