@@ -1004,17 +1004,16 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
                             "yet")
         enum = type.inner.identifier.name
         if invalidEnumValueFatal:
-            handleInvalidEnumValueCode = onFailureInvalidEnumValue(failureCode, 'search').define()
+            handleInvalidEnumValueCode = failureCode or "throw_type_error(*cx, &error); %s" % exceptionCode
         else:
             handleInvalidEnumValueCode = "return true;"
 
         template = (
-            "match find_enum_value(*cx, ${val}, %(pairs)s) {\n"
+            "match FromJSValConvertible::from_jsval(*cx, ${val}, ()) {"
             "    Err(_) => { %(exceptionCode)s },\n"
-            "    Ok((None, search)) => { %(handleInvalidEnumValueCode)s },\n"
-            "    Ok((Some(&value), _)) => value,\n"
-            "}" % {"pairs": enum + "Values::pairs",
-                   "exceptionCode": exceptionCode,
+            "    Ok(ConversionResult::Success(v)) => v,\n"
+            "    Ok(ConversionResult::Failure(error)) => { %(handleInvalidEnumValueCode)s },\n"
+            "}" % {"exceptionCode": exceptionCode,
                    "handleInvalidEnumValueCode": handleInvalidEnumValueCode})
 
         if defaultValue is not None:
@@ -2418,7 +2417,6 @@ def UnionTypes(descriptors, dictionaries, callbacks, typedefs, config):
         'crate::dom::bindings::str::DOMString',
         'crate::dom::bindings::str::USVString',
         'crate::dom::bindings::trace::RootedTraceableBox',
-        'crate::dom::bindings::utils::find_enum_value',
         'crate::dom::types::*',
         'crate::dom::windowproxy::WindowProxy',
         'crate::script_runtime::JSContext as SafeJSContext',
@@ -6158,7 +6156,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::utils::ProtoOrIfaceArray',
         'crate::dom::bindings::utils::enumerate_global',
         'crate::dom::bindings::utils::finalize_global',
-        'crate::dom::bindings::utils::find_enum_value',
         'crate::dom::bindings::utils::generic_getter',
         'crate::dom::bindings::utils::generic_lenient_getter',
         'crate::dom::bindings::utils::generic_lenient_setter',
