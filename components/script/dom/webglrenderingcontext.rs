@@ -503,7 +503,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    fn mark_as_dirty(&self) {
+    pub fn mark_as_dirty(&self) {
         // If we have a bound framebuffer, then don't mark the canvas as dirty.
         if self.bound_draw_framebuffer.get().is_some() {
             return;
