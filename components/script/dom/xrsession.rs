@@ -6,6 +6,8 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::Bindings::XRHitTestSourceBinding::XRHitTestOptionsInit;
+use crate::dom::bindings::codegen::Bindings::XRHitTestSourceBinding::XRHitTestTrackableType;
 use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceBinding::XRReferenceSpaceType;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateInit;
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
@@ -28,6 +30,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::reduce_timing_resolution;
 use crate::dom::promise::Promise;
 use crate::dom::xrframe::XRFrame;
+use crate::dom::xrhittestsource::XRHitTestSource;
 use crate::dom::xrinputsourcearray::XRInputSourceArray;
 use crate::dom::xrinputsourceevent::XRInputSourceEvent;
 use crate::dom::xrreferencespace::XRReferenceSpace;
@@ -37,18 +40,20 @@ use crate::dom::xrspace::XRSpace;
 use crate::realms::InRealm;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use euclid::{Rect, RigidTransform3D, Transform3D};
+use euclid::{Rect, RigidTransform3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use metrics::ToMs;
 use profile_traits::ipc;
 use std::cell::Cell;
+use std::collections::HashMap;
 use std::f64::consts::{FRAC_PI_2, PI};
 use std::mem;
 use std::rc::Rc;
 use webxr_api::{
-    self, util, ApiSpace, Display, EnvironmentBlendMode, Event as XREvent, Frame, SelectEvent,
-    SelectKind, Session, SessionId, View, Viewer, Visibility,
+    self, util, ApiSpace, Display, EntityTypes, EnvironmentBlendMode, Event as XREvent, Frame,
+    FrameUpdateEvent, HitTestId, HitTestSource, Ray, SelectEvent, SelectKind, Session, SessionId,
+    View, Viewer, Visibility,
 };
 
 #[dom_struct]
@@ -75,6 +80,10 @@ pub struct XRSession {
     end_promises: DomRefCell<Vec<Rc<Promise>>>,
     /// https://immersive-web.github.io/webxr/#ended
     ended: Cell<bool>,
+    #[ignore_malloc_size_of = "defined in webxr"]
+    next_hit_test_id: Cell<HitTestId>,
+    #[ignore_malloc_size_of = "defined in webxr"]
+    pending_hit_test_promises: DomRefCell<HashMap<HitTestId, Rc<Promise>>>,
     /// Opaque framebuffers need to know the session is "outside of a requestAnimationFrame"
     /// https://immersive-web.github.io/webxr/#opaque-framebuffer
     outside_raf: Cell<bool>,
@@ -104,6 +113,8 @@ impl XRSession {
             input_sources: Dom::from_ref(input_sources),
             end_promises: DomRefCell::new(vec![]),
             ended: Cell::new(false),
+            next_hit_test_id: Cell::new(HitTestId(0)),
+            pending_hit_test_promises: DomRefCell::new(HashMap::new()),
             outside_raf: Cell::new(true),
         }
     }
@@ -373,7 +384,7 @@ impl XRSession {
         }
 
         for event in frame.events.drain(..) {
-            self.session.borrow_mut().apply_event(event)
+            self.handle_frame_update(event);
         }
 
         // Step 2
@@ -478,6 +489,22 @@ impl XRSession {
                     c.base_context().mark_as_dirty()
                 },
             }
+        }
+    }
+
+    fn handle_frame_update(&self, event: FrameUpdateEvent) {
+        match event {
+            FrameUpdateEvent::HitTestSourceAdded(id) => {
+                if let Some(promise) = self.pending_hit_test_promises.borrow_mut().remove(&id) {
+                    promise.resolve_native(&XRHitTestSource::new(&self.global(), id, &self));
+                } else {
+                    warn!(
+                        "received hit test add request for unknown hit test {:?}",
+                        id
+                    )
+                }
+            },
+            _ => self.session.borrow_mut().apply_event(event),
         }
     }
 }
@@ -707,6 +734,52 @@ impl XRSessionMethods for XRSession {
         self.ended.set(true);
         global.as_window().Navigator().Xr().end_session(self);
         self.session.borrow_mut().end_session();
+        p
+    }
+
+    // https://immersive-web.github.io/hit-test/#dom-xrsession-requesthittestsource
+    fn RequestHitTestSource(&self, options: &XRHitTestOptionsInit) -> Rc<Promise> {
+        let p = Promise::new(&self.global());
+
+        let id = self.next_hit_test_id.get();
+        self.next_hit_test_id.set(HitTestId(id.0 + 1));
+
+        let space = options.space.space();
+        let ray = if let Some(ref ray) = options.offsetRay {
+            ray.ray()
+        } else {
+            Ray {
+                origin: Vector3D::new(0., 0., 0.),
+                direction: Vector3D::new(0., 0., -1.),
+            }
+        };
+
+        let mut types = EntityTypes::default();
+
+        if let Some(ref tys) = options.entityTypes {
+            for ty in tys {
+                match ty {
+                    XRHitTestTrackableType::Point => types.point = true,
+                    XRHitTestTrackableType::Plane => types.plane = true,
+                    XRHitTestTrackableType::Mesh => types.mesh = true,
+                }
+            }
+        } else {
+            types.plane = true;
+        }
+
+        let source = HitTestSource {
+            id,
+            space,
+            ray,
+            types,
+        };
+        self.pending_hit_test_promises
+            .borrow_mut()
+            .insert(id, p.clone());
+
+        self.session.borrow().request_hit_test(source);
+
         p
     }
 }

@@ -82,6 +82,10 @@ impl XRRay {
 
         Ok(Self::new(&window.global(), Ray { origin, direction }))
     }
+
+    pub fn ray(&self) -> Ray<ApiSpace> {
+        self.ray
+    }
 }
 
 impl XRRayMethods for XRRay {

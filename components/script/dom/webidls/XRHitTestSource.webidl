@@ -4,6 +4,17 @@
 
 // https://immersive-web.github.io/hit-test/#xrhittestsource-interface
 
+enum XRHitTestTrackableType {
+  "point",
+  "plane",
+  "mesh"
+};
+
+dictionary XRHitTestOptionsInit {
+  required XRSpace space;
+  sequence<XRHitTestTrackableType> entityTypes;
+  XRRay offsetRay;
+};
 
 [SecureContext, Exposed=Window]
 interface XRHitTestSource {

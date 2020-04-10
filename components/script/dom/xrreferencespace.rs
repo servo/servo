@@ -13,7 +13,7 @@ use crate::dom::xrsession::{cast_transform, ApiPose, ApiViewerPose, XRSession};
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
-use webxr_api::Frame;
+use webxr_api::{BaseSpace, Frame, Space};
 
 #[dom_struct]
 pub struct XRReferenceSpace {
@@ -56,6 +56,17 @@ impl XRReferenceSpace {
             Box::new(XRReferenceSpace::new_inherited(session, &offset, ty)),
             global,
         )
+    }
+
+    pub fn space(&self) -> Space {
+        let base = match self.ty {
+            XRReferenceSpaceType::Local => BaseSpace::Local,
+            XRReferenceSpaceType::Viewer => BaseSpace::Viewer,
+            XRReferenceSpaceType::Local_floor => BaseSpace::Floor,
+            _ => panic!("unsupported reference space found"),
+        };
+        let offset = self.offset.transform();
+        Space { base, offset }
     }
 }
 
