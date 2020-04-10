@@ -3,13 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
-use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionInit;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{XRSessionMode, XRSystemMethods};
-use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
-    XRWebGLLayerMethods, XRWebGLRenderingContext,
-};
 use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
@@ -86,17 +81,9 @@ impl XRSystem {
         if let Some(active) = self.active_immersive_session.get() {
             if Dom::from_ref(&*active) == Dom::from_ref(session) {
                 self.active_immersive_session.set(None);
-
                 // Dirty the canvas, since it has been skipping this step whilst in immersive
                 // mode
-                if let Some(layer) = session.RenderState().GetBaseLayer() {
-                    match layer.Context() {
-                        XRWebGLRenderingContext::WebGLRenderingContext(c) => c.mark_as_dirty(),
-                        XRWebGLRenderingContext::WebGL2RenderingContext(c) => {
-                            c.base_context().mark_as_dirty()
-                        },
-                    }
-                }
+                session.dirty_layers();
             }
         }
         self.active_inline_sessions
