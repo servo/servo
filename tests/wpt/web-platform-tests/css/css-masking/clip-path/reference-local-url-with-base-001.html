@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>CSS Masking: clip path with local URL using a base element</title>
+<link rel="author" title="Fredrik Söderquist" href="mailto:fs@opera.com">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<link rel="help" href="https://drafts.csswg.org/css-values/#local-urls">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=470608">
+<link rel="match" href="reference/reference-local-url-with-base-001-ref.html">
+<meta name="assert" content="Check that fragment-only URLs are always document-local references.">
+
+<base href="http://www.example.com/">
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  border-right: 100px solid red;
+  background-color: green;
+  clip-path: url(#clip);
+}
+</style>
+<div id="target"></div>
+<svg>
+  <clipPath id="clip">
+    <rect width="100" height="100"/>
+  </clipPath>
+</svg>

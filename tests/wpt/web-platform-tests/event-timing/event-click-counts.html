@@ -13,7 +13,7 @@
     assert_precondition(window.EventCounts, "Event Counts isn't supported");
     function testClicks(expectedCount, resolve) {
       const clickCount = performance.eventCounts.get('click');
-      if (!clickCount || clickCount < expectedCount) {
+      if (clickCount < expectedCount) {
         t.step_timeout(function() {
           testClicks(expectedCount, resolve);
         }, 5);
@@ -23,11 +23,8 @@
       assert_equals(performance.eventCounts.get('mousedown'), expectedCount, 'Incorrect mousedown count');
       assert_equals(performance.eventCounts.get('mouseup'), expectedCount, 'Incorrect mouseup count.');
       assert_equals(performance.eventCounts.get('mouseover'), expectedCount, 'Incorrect mouseover count.');
-      if (expectedCount == 1) {
-        assert_equals(performance.eventCounts.size, 4, 'There should only be 4 types observed.');
-      } else {
+      if (expectedCount != 1) {
         assert_equals(performance.eventCounts.get('mouseout'), expectedCount - 1, 'Incorrect mouseout count.');
-        assert_equals(performance.eventCounts.size, 5, 'There should only be 5 types observed.');
       }
       resolve();
     }
@@ -37,7 +34,6 @@
       });
     }
 
-    assert_equals(performance.eventCounts.size, 0);
     return test_driver.click(document.getElementById('div')).then(() => {
       return promiseClicks(1);
     }).then(() => {

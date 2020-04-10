@@ -11,12 +11,12 @@
   promise_test(async t => {
       assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
       await new Promise(r => window.addEventListener('load', r));
-      await assertNoFirstContentfulPaint();
+      await assertNoFirstContentfulPaint(t);
       const input = document.getElementById('input');
       input.setAttribute('value', '  ');
-      await assertNoFirstContentfulPaint();
+      await assertNoFirstContentfulPaint(t);
       input.setAttribute('value', 'value');
-      await assertFirstContentfulPaint();
+      await assertFirstContentfulPaint(t);
   }, 'Text input should become contentful when its value is non-empty');
 </script>
 </body>

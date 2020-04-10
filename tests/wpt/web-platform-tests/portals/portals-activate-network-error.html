@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test(t => {
+  assert_precondition("HTMLPortalElement" in self);
+  let portal = document.createElement('portal');
+  portal.src = "resources/invalid.asis";
+  document.body.appendChild(portal);
+  t.add_cleanup(() => { document.body.removeChild(portal); });
+  t.step_timeout(async () => {
+    await promise_rejects_dom(t, 'InvalidStateError', portal.activate());
+    t.done();
+  }, 2000);
+}, "A portal that is showing inline content for a network error cannot be activated");
+</script>
+</body>

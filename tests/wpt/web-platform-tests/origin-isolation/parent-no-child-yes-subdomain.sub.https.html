@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parent is not isolated, child is isolated, child is a subdomain of the parent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import { insertIframe, sendWasmModule, setBothDocumentDomains } from "./resources/helpers.mjs";
+
+let frameWindow;
+promise_setup(async () => {
+  frameWindow = await insertIframe("{{hosts[][www]}}", "?1");
+});
+
+// Since they're different-origin, the child's isolation request is respected,
+// so the parent ends up in the site-keyed agent cluster and the child in the
+// origin-keyed one.
+
+promise_test(async () => {
+  const whatHappened = await sendWasmModule(frameWindow);
+
+  assert_equals(whatHappened, "messageerror");
+}, "messageerror event must occur");
+
+promise_test(async () => {
+  await setBothDocumentDomains(frameWindow);
+
+  assert_throws_dom("SecurityError", DOMException, () => {
+    frameWindow.document;
+  });
+}, "setting document.domain should no-op instead of giving sync access");
+</script>

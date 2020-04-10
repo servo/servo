@@ -26,5 +26,18 @@ async_test(t => {
   t.add_cleanup(() => portal.remove());
   t.step_timeout(() => t.done(), 2000);
 }, "`XFO: DENY` blocks cross-origin portals.");
+
+async_test(t => {
+  assert_precondition("HTMLPortalElement" in self);
+  var portal = document.createElement('portal');
+  portal.src = "/portals/xfo/resources/xfo-deny.asis";
+  portal.onmessage = t.unreached_func("should not have received a message");
+  document.body.appendChild(portal);
+  t.add_cleanup(() => portal.remove());
+  t.step_timeout(async () => {
+    await promise_rejects_dom(t, 'InvalidStateError', portal.activate());
+    t.done();
+  }, 2000);
+}, "Portals blocked by `XFO: DENY` cannot be activated.");
 </script>
 </body>

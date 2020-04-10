@@ -10,48 +10,51 @@
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
   <script>
+    let chained_timeout_test = async_test("Chained setTimeout test");
+
     const max_call_depth = 3;
-    let initial_async_tests = {};
-    let final_async_tests = {};
+    const delay_ms = 10;
 
     function testInitialStates(depth) {
         assert_true(1 <= depth && depth <= max_call_depth);
 
-        initial_async_tests[depth].step_timeout(() => {
-            assert_false(navigator.userActivation.isActive);
-            assert_false(navigator.userActivation.hasBeenActive);
-            initial_async_tests[depth].done();
+        chained_timeout_test.step_timeout(() => {
+            let test_name = "Call-depth=" + depth + ": initial activation states are false";
+            test(() => {
+                assert_false(navigator.userActivation.isActive);
+                assert_false(navigator.userActivation.hasBeenActive);
+            }, test_name);
 
             if (depth < max_call_depth)
                 testInitialStates(depth+1);
-        }, 10);
+            else
+                test_driver.click(document.body);
+        }, delay_ms);
     }
 
     function testFinalStates(depth) {
         assert_true(1 <= depth && depth <= max_call_depth);
 
-        final_async_tests[depth].step_timeout(() => {
-            assert_true(navigator.userActivation.isActive);
-            assert_true(navigator.userActivation.hasBeenActive);
-            final_async_tests[depth].done();
+        chained_timeout_test.step_timeout(() => {
+            let test_name = "Call-depth=" + depth + ": after-click activation states are true";
+            test(() => {
+                assert_true(navigator.userActivation.isActive);
+                assert_true(navigator.userActivation.hasBeenActive);
+            }, test_name);
 
             if (depth < max_call_depth)
                 testFinalStates(depth+1);
-        }, 10)
+            else
+                chained_timeout_test.done();
+        }, delay_ms)
     }
 
     function run() {
-        for (let i = 1; i <= max_call_depth; i++) {
-            initial_async_tests[i] = async_test("Call-depth=" + i + " initial state");
-            final_async_tests[i] =   async_test("Call-depth=" + i + " final state");
-        }
-
-        testInitialStates(1);
-
         window.addEventListener("click", event => {
             testFinalStates(1);
         });
-        test_driver.click(document.body);
+
+        testInitialStates(1);
     }
   </script>
 </head>

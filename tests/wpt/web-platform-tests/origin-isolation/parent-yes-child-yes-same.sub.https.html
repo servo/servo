@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parent is isolated, child is not isolated, child is same-origin to the parent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import { insertIframe, sendWasmModule, setBothDocumentDomains } from "./resources/helpers.mjs";
+
+let frameWindow;
+promise_setup(async () => {
+  frameWindow = await insertIframe("{{hosts[][]}}", "?1");
+});
+
+// Both request isolation, and they're same-origin, so they both end up in the
+// same origin-keyed agent cluster.
+
+promise_test(async () => {
+  const whatHappened = await sendWasmModule(frameWindow);
+
+  assert_equals(whatHappened, "WebAssembly.Module message received");
+}, "message event must occur");
+
+promise_test(async () => {
+  await setBothDocumentDomains(frameWindow);
+
+  // Must not throw
+  frameWindow.document;
+}, "setting document.domain must give sync access");
+</script>
