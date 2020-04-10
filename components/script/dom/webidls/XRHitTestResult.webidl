@@ -6,5 +6,5 @@
 
 [SecureContext, Exposed=Window]
 interface XRHitTestResult {
-  // XRPose? getPose(XRSpace baseSpace);
+  XRPose? getPose(XRSpace baseSpace);
 };

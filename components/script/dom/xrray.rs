@@ -55,12 +55,18 @@ impl XRRay {
             return Err(Error::Type("Direction w coordinate must be 0".into()));
         }
         if *direction.x == 0.0 && *direction.y == 0.0 && *direction.z == 0.0 {
-            return Err(Error::Type("Direction vector cannot have zero length".into()));
+            return Err(Error::Type(
+                "Direction vector cannot have zero length".into(),
+            ));
         }
 
         let origin = Vector3D::new(origin.x as f32, origin.y as f32, origin.z as f32);
-        let direction =
-            Vector3D::new(*direction.x as f32, *direction.y as f32, *direction.z as f32).normalize();
+        let direction = Vector3D::new(
+            *direction.x as f32,
+            *direction.y as f32,
+            *direction.z as f32,
+        )
+        .normalize();
 
         Ok(Self::new(&window.global(), Ray { origin, direction }))
     }
