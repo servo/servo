@@ -19,21 +19,21 @@
 #![feature(rustc_private)]
 #![cfg(feature = "unrooted_must_root_lint")]
 
-extern crate rustc;
 extern crate rustc_ast;
 extern crate rustc_driver;
 extern crate rustc_hir;
 extern crate rustc_lint;
+extern crate rustc_middle;
 extern crate rustc_session;
 extern crate rustc_span;
 
-use rustc::ty;
 use rustc_ast::ast::{AttrKind, Attribute};
 use rustc_driver::plugin::Registry;
 use rustc_hir::def_id::DefId;
 use rustc_hir::intravisit as visit;
 use rustc_hir::{self as hir, ExprKind, HirId};
 use rustc_lint::{LateContext, LateLintPass, LintContext, LintPass};
+use rustc_middle::ty;
 use rustc_session::declare_lint;
 use rustc_span::source_map;
 use rustc_span::source_map::{ExpnKind, MacroKind, Span};
@@ -101,8 +101,16 @@ fn has_lint_attr(sym: &Symbols, attrs: &[Attribute], name: Symbol) -> bool {
 /// Checks if a type is unrooted or contains any owned unrooted types
 fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function: bool) -> bool {
     let mut ret = false;
-    ty.maybe_walk(|t| {
-        match t.kind {
+    let mut walker = ty.walk();
+    while let Some(generic_arg) = walker.next() {
+        let t = match generic_arg.unpack() {
+            rustc_middle::ty::subst::GenericArgKind::Type(t) => t,
+            _ => {
+                walker.skip_current_subtree();
+                continue;
+            },
+        };
+        let recur_into_subtree = match t.kind {
             ty::Adt(did, substs) => {
                 let has_attr = |did, name| has_lint_attr(sym, &cx.tcx.get_attrs(did), name);
                 if has_attr(did.did, sym.must_root) {
@@ -180,8 +188,11 @@ fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function
             ty::FnDef(..) | ty::FnPtr(_) => false,
 
             _ => true,
+        };
+        if !recur_into_subtree {
+            walker.skip_current_subtree();
         }
-    });
+    }
     ret
 }
 
@@ -298,7 +309,7 @@ struct FnDefVisitor<'a, 'b: 'a, 'tcx: 'a + 'b> {
 }
 
 impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
-    type Map = rustc::hir::map::Map<'tcx>;
+    type Map = rustc_middle::hir::map::Map<'tcx>;
 
     fn visit_expr(&mut self, expr: &'tcx hir::Expr) {
         let cx = self.cx;

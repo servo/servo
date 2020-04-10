@@ -55,7 +55,7 @@ use tokio::prelude::{future, Future, Stream};
 use tokio::runtime::Runtime;
 
 lazy_static! {
-    pub static ref HANDLE: Mutex<Runtime> = { Mutex::new(Runtime::new().unwrap()) };
+    pub static ref HANDLE: Mutex<Runtime> = Mutex::new(Runtime::new().unwrap());
 }
 
 /// The various states an entry of the HttpCache can be in.

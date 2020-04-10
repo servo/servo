@@ -625,9 +625,6 @@ def check_rust(file_name, lines):
             (r": &Root<", "use &T instead of &Root<T>", no_filter),
             (r": &DomRoot<", "use &T instead of &DomRoot<T>", no_filter),
             (r"^&&", "operators should go at the end of the first line", no_filter),
-            # This particular pattern is not reentrant-safe in script_thread.rs
-            (r"match self.documents.borrow", "use a separate variable for the match expression",
-             lambda match, line: file_name.endswith('script_thread.rs')),
             # -> () is unnecessary
             (r"-> \(\)", "encountered function signature with -> ()", no_filter),
         ]

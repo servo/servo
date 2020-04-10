@@ -37,7 +37,7 @@ extern "C" fn default_panic_handler(msg: *const c_char) {
 lazy_static! {
     static ref ON_PANIC: RwLock<extern "C" fn(*const c_char)> = RwLock::new(default_panic_handler);
     static ref SERVO_VERSION: CString =
-        { CString::new(simpleservo::servo_version()).expect("Can't create string") };
+        CString::new(simpleservo::servo_version()).expect("Can't create string");
 }
 
 #[no_mangle]

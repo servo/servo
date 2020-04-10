@@ -15,7 +15,7 @@ use servo_config::opts;
 use std::fmt;
 
 lazy_static! {
-    static ref IS_MULTIPROCESS: bool = { opts::multiprocess() };
+    static ref IS_MULTIPROCESS: bool = opts::multiprocess();
 }
 
 #[derive(Deserialize, Serialize)]
