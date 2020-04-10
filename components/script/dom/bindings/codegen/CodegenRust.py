@@ -4347,8 +4347,12 @@ pub enum %s {
         pairs = ",\n    ".join(['("%s", super::%s::%s)' % (val, ident, getEnumValueName(val)) for val in enum.values()])
 
         inner = string.Template("""\
+use crate::dom::bindings::conversions::ConversionResult;
+use crate::dom::bindings::conversions::FromJSValConvertible;
 use crate::dom::bindings::conversions::ToJSValConvertible;
+use crate::dom::bindings::utils::find_enum_value;
 use js::jsapi::JSContext;
+use js::rust::HandleValue;
 use js::rust::MutableHandleValue;
 use js::jsval::JSVal;
 
@@ -4371,6 +4375,22 @@ impl Default for super::${ident} {
 impl ToJSValConvertible for super::${ident} {
     unsafe fn to_jsval(&self, cx: *mut JSContext, rval: MutableHandleValue) {
         pairs[*self as usize].0.to_jsval(cx, rval);
+    }
+}
+
+impl FromJSValConvertible for super::${ident} {
+    type Config = ();
+    unsafe fn from_jsval(cx: *mut JSContext, value: HandleValue, _option: ())
+                         -> Result<ConversionResult<super::${ident}>, ()> {
+        match find_enum_value(cx, value, pairs) {
+            Err(_) => Err(()),
+            Ok((None, search)) => {
+                Ok(ConversionResult::Failure(
+                    format!("'{}' is not a valid enum value for enumeration '${ident}'.", search).into()
+                ))
+            }
+            Ok((Some(&value), _)) => Ok(ConversionResult::Success(value)),
+        }
     }
 }
     """).substitute({
