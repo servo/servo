@@ -2280,7 +2280,6 @@ impl WebGLImpl {
 
     fn uniform_location(gl: &Gl, program_id: WebGLProgramId, name: &str, chan: &WebGLSender<i32>) {
         let location = gl.get_uniform_location(program_id.get(), &to_name_in_compiled_shader(name));
-        assert!(location >= 0);
         chan.send(location).unwrap();
     }
 
