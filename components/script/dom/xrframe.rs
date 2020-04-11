@@ -8,6 +8,8 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::xrhittestresult::XRHitTestResult;
+use crate::dom::xrhittestsource::XRHitTestSource;
 use crate::dom::xrpose::XRPose;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::{ApiPose, XRSession};
@@ -108,5 +110,15 @@ impl XRFrameMethods for XRFrame {
         };
         let pose = relative_to.inverse().pre_transform(&space);
         Ok(Some(XRPose::new(&self.global(), pose)))
+    }
+
+    /// https://immersive-web.github.io/hit-test/#dom-xrframe-gethittestresults
+    fn GetHitTestResults(&self, source: &XRHitTestSource) -> Vec<DomRoot<XRHitTestResult>> {
+        self.data
+            .hit_test_results
+            .iter()
+            .filter(|r| r.id == source.id())
+            .map(|r| XRHitTestResult::new(&self.global(), *r, self))
+            .collect()
     }
 }

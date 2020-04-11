@@ -37,6 +37,10 @@ impl XRHitTestSource {
             global,
         )
     }
+
+    pub fn id(&self) -> HitTestId {
+        self.id
+    }
 }
 
 impl XRHitTestSourceMethods for XRHitTestSource {
