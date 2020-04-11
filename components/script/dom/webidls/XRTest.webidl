@@ -20,7 +20,9 @@ interface XRTest {
 };
 
 dictionary FakeXRDeviceInit {
-    required boolean supportsImmersive;
+    boolean supportsImmersive = false;
+    sequence<XRSessionMode> supportedModes;
+
     required sequence<FakeXRViewInit> views;
 
     // this is actually sequence<any>, but we don't support

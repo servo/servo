@@ -8,7 +8,7 @@
         <script>
           async_test(function(t) {
               navigator.xr.test.simulateDeviceConnection({
-              supportsImmersive: true,
+              supportedModes: ["immersive-vr"],
               views: TEST_VIEWS,
               viewerOrigin: {position: [0.5, 0.1, 0.1], orientation: [1, 0, 0, 1] }
             }).then((m) => {

@@ -9,6 +9,7 @@
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRTestBinding::{FakeXRDeviceInit, XRTestMethods};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -119,12 +120,24 @@ impl XRTestMethods for XRTest {
             None
         };
 
+        let (mut supports_inline, mut supports_vr, mut supports_ar) = (false, false, false);
+
+        if let Some(ref modes) = init.supportedModes {
+            for mode in modes {
+                match mode {
+                    XRSessionMode::Immersive_vr => supports_vr = true,
+                    XRSessionMode::Immersive_ar => supports_ar = true,
+                    XRSessionMode::Inline => supports_inline = true,
+                }
+            }
+        }
+
         let init = MockDeviceInit {
             viewer_origin: origin,
             views,
-            supports_inline: false,
-            supports_vr: init.supportsImmersive,
-            supports_ar: false,
+            supports_inline,
+            supports_vr,
+            supports_ar,
             floor_origin,
             supported_features,
             world,
