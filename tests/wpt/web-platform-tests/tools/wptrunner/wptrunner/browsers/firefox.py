@@ -319,7 +319,7 @@ class SingleInstanceManager(FirefoxInstanceManager):
         return self.current
 
     def teardown(self, force=False):
-        for instance, skip_marionette in [self.previous, self.current]:
+        for instance in [self.previous, self.current]:
             if instance:
                 instance.stop(force)
                 instance.cleanup()
@@ -345,10 +345,13 @@ class PreloadInstanceManager(FirefoxInstanceManager):
         return self.current
 
     def teardown(self, force=False):
-        for instance, skip_marionette in [(self.previous, False), (self.current, False), (self.pending, True)]:
+        for instance, skip_marionette in [(self.previous, False),
+                                          (self.current, False),
+                                          (self.pending, True)]:
             if instance:
                 instance.stop(force, skip_marionette=skip_marionette)
                 instance.cleanup()
+
 
 class BrowserInstance(object):
     shutdown_timeout = 70

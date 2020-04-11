@@ -277,4 +277,29 @@ test(() => {
   assert_equals(tTree.c2.assignedSlot, null);
   assert_equals(tTree.c3.assignedSlot, null);
 }, 'Removing a slot from DOM resets its slotable\'s slot assignment.');
+
+test(() => {
+  let tTree = createTestTree(test_assign);
+
+  tTree.s1.assign([tTree.c1]);
+  tTree.s2.assign([tTree.c2]);
+  tTree.s3.assign([tTree.c3]);
+  tTree.shadow_root.insertBefore(tTree.s2, tTree.s1);
+  tTree.shadow_root.insertBefore(tTree.s3, tTree.s1);
+
+  assert_array_equals(tTree.s1.assignedNodes(), [tTree.c1]);
+  assert_array_equals(tTree.s2.assignedNodes(), []);
+  assert_array_equals(tTree.s3.assignedNodes(), []);
+  assert_equals(tTree.c1.assignedSlot, tTree.s1);
+  assert_equals(tTree.c2.assignedSlot, null);
+  assert_equals(tTree.c3.assignedSlot, null);
+
+  tTree.s2.remove();
+
+  assert_array_equals(tTree.s1.assignedNodes(), [tTree.c1]);
+  assert_array_equals(tTree.s3.assignedNodes(), []);
+  assert_equals(tTree.c1.assignedSlot, tTree.s1);
+  assert_equals(tTree.c2.assignedSlot, null);
+  assert_equals(tTree.c3.assignedSlot, null);
+}, 'A slot should be cleared of assigned nodes even if it\'s re-inserted into the same shadow root.');
 </script>
