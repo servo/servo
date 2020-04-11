@@ -741,6 +741,18 @@ impl XRSessionMethods for XRSession {
     fn RequestHitTestSource(&self, options: &XRHitTestOptionsInit) -> Rc<Promise> {
         let p = Promise::new(&self.global());
 
+        if self
+            .session
+            .borrow()
+            .granted_features()
+            .iter()
+            .find(|f| &**f == "hit-test")
+            .is_none()
+        {
+            p.reject_error(Error::NotSupported);
+            return p;
+        }
+
         let id = self.next_hit_test_id.get();
         self.next_hit_test_id.set(HitTestId(id.0 + 1));
 
