@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Filters: Remove a filter effect from an unattached element</title>
+<link rel="author" title="Ali Juma" href="mailto:ajuma@chromium.org">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-1/#feGaussianBlurElement">
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=502026">
+<link rel="match" href="reference/filter-effect-remove-unattached-ref.html">
+<meta name="assert" content="This test ensures that we can remove a filter effect from an unattached element.">
+<script src="/common/reftest-wait.js"></script>
+<svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" version="1.1">
+  <defs id="svgDefs" style="display:none">
+   <filter id="blurY" color-interpolation-filters="sRGB">
+    <feGaussianBlur id="blurEffect" stdDeviation="0 5">
+    </feGaussianBlur>
+   </filter>
+  </defs>
+</svg>
+
+<script>
+  onload = function() {
+    // Render one frame with the blur effect, then remove it.
+    window.requestAnimationFrame(function() {
+      window.requestAnimationFrame(function() {
+        var filterElement = document.getElementById("blurY");
+        var filterEffectElement = document.getElementById("blurEffect");
+        filterElement.removeChild(filterEffectElement);
+
+        // Ensure we draw a frame.
+        document.getElementById("other").style.backgroundColor = "blue";
+        takeScreenshot();
+      });
+    });
+  }
+</script>
+
+<img src="resources/reference.png" style="filter: url(#blurY);">
+
+<div id="other" style="width: 10px; height: 10px"></div>
+</html>

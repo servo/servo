@@ -1,0 +1,10 @@
+<script>
+  function start() {
+    document.execCommand('selectAll', false)
+    document.documentElement.appendChild(document.getElementById('input'))
+  }
+</script>
+<body onload="start()">
+<input id="input" autofocus>
+<canvas contenteditable="true" hidden></canvas>
+</body>
