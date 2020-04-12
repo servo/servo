@@ -46,7 +46,7 @@ behavior. The tests can be classified based on the way they express
 expectations:
 
 * Rendering tests should be used to verify that the browser graphically
-  displays pages as expected. See the [rendering test guidelines][rendering]
+  displays pages as expected. See the [rendering test guidelines](rendering)
   for tips on how to write great rendering tests. There are a few different
   ways to write rendering tests:
 
