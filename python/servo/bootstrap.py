@@ -126,7 +126,7 @@ def linux(context, force=False):
                 'libXcursor-devel', 'libXmu-devel', 'mesa-libOSMesa-devel',
                 'dbus-devel', 'ncurses-devel', 'harfbuzz-devel', 'ccache',
                 'mesa-libGLU-devel', 'clang', 'clang-libs', 'gstreamer1-devel',
-                'gstreamer1-plugins-base-devel',
+                'gstreamer1-plugins-base-devel', 'python3-devel',
                 'gstreamer1-plugins-bad-free-devel', 'autoconf213']
     if context.distro == "Ubuntu" and context.distro_version != "14.04":
         pkgs_apt += ['libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
