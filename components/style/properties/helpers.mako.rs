@@ -737,7 +737,7 @@
                         aliases.append(alias)
             %>
             % if aliases:
-            #[parse(aliases = "${','.join(aliases)}")]
+            #[parse(aliases = "${','.join(sorted(aliases))}")]
             % endif
             % endif
             ${to_camel_case(variant)},

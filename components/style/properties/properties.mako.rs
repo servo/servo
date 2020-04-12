@@ -312,7 +312,7 @@ impl Clone for PropertyDeclaration {
             trait AssertCopy { fn assert() {} }
             trait AssertNotCopy { fn assert() {} }
             impl<T: Copy> AssertCopy for Helper<T> {}
-            % for ty in set(x["type"] for x in others):
+            % for ty in sorted(set(x["type"] for x in others)):
             impl AssertNotCopy for Helper<${ty}> {}
             Helper::<${ty}>::assert();
             % endfor
@@ -789,7 +789,7 @@ static ${name}: LonghandIdSet = LonghandIdSet {
 /// via logical resolution.
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub enum LogicalGroup {
-    % for group in logical_groups.keys():
+    % for group in sorted(logical_groups.keys()):
     /// ${group}
     ${to_camel_case(group)},
     % endfor
