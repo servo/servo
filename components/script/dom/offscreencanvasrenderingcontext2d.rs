@@ -513,4 +513,14 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         self.canvas_state
             .ellipse(x, y, rx, ry, rotation, start, end, ccw)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    fn Font(&self) -> DOMString {
+        self.canvas_state.borrow().font()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    fn SetFont(&self, value: DOMString) {
+        self.canvas_state.borrow().set_font(value)
+    }
 }

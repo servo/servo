@@ -606,6 +606,16 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
     fn SetShadowColor(&self, value: DOMString) {
         self.canvas_state.set_shadow_color(value)
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    fn Font(&self) -> DOMString {
+        self.canvas_state.borrow().font()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    fn SetFont(&self, value: DOMString) {
+        self.canvas_state.borrow().set_font(value)
+    }
 }
 
 impl Drop for CanvasRenderingContext2D {

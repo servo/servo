@@ -1558,6 +1558,16 @@ impl CanvasState {
         ));
         Ok(())
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    pub fn font(&self) -> DOMString {
+        unimplemented!()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    pub fn set_font(&self, _value: DOMString) {
+        unimplemented!()
+    }
 }
 
 pub fn parse_color(string: &str) -> Result<RGBA, ()> {
