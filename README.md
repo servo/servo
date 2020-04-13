@@ -101,7 +101,7 @@ sudo dnf install curl libtool gcc-c++ libXi-devel libunwind-devel \
     libXrandr-devel gperf fontconfig-devel cabextract ttmkfdir  expat-devel \
     rpm-build openssl-devel cmake bzip2-devel libX11-devel libXcursor-devel \
     libXmu-devel mesa-libOSMesa-devel dbus-devel ncurses-devel harfbuzz-devel \
-    ccache mesa-libGLU-devel clang clang-libs gstreamer1-devel \
+    ccache mesa-libGLU-devel clang clang-libs gstreamer1-devel python3-devel \
     gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213
 ```
 
