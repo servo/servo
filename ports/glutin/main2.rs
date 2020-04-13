@@ -20,7 +20,6 @@ mod headed_window;
 mod headless_window;
 mod keyutils;
 mod resources;
-mod skia_symbols;
 mod window_trait;
 
 use app::App;

@@ -74,7 +74,7 @@ If `./mach bootstrap` doesn't work, file a bug, and, run the commands below:
 ``` sh
 sudo apt install git curl autoconf libx11-dev libfreetype6-dev libgl1-mesa-dri \
     libglib2.0-dev xorg-dev gperf g++ build-essential cmake libssl-dev \
-    libbz2-dev liblzma-dev libosmesa6-dev libxmu6 libxmu-dev libglu1-mesa-dev \
+    liblzma-dev libosmesa6-dev libxmu6 libxmu-dev \
     libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libharfbuzz-dev ccache \
     clang libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
     libgstreamer-plugins-bad1.0-dev autoconf2.13 llvm-dev
@@ -99,9 +99,9 @@ If `python3 ./mach bootstrap` doesn't work, file a bug, and, run the commands be
 sudo dnf install curl libtool gcc-c++ libXi-devel libunwind-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel \
     libXrandr-devel gperf fontconfig-devel cabextract ttmkfdir  expat-devel \
-    rpm-build openssl-devel cmake bzip2-devel libX11-devel libXcursor-devel \
+    rpm-build openssl-devel cmake libX11-devel libXcursor-devel \
     libXmu-devel mesa-libOSMesa-devel dbus-devel ncurses-devel harfbuzz-devel \
-    ccache mesa-libGLU-devel clang clang-libs gstreamer1-devel python3-devel \
+    ccache clang clang-libs python3-devel gstreamer1-devel \
     gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213
 ```
 
@@ -118,8 +118,8 @@ If `./mach bootstrap` doesn't work, file a bug, and, run the commands below:
 sudo yum install curl libtool gcc-c++ libXi-devel freetype-devel \
     mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel \
     gperf fontconfig-devel cabextract ttmkfdir python expat-devel rpm-build \
-    openssl-devel cmake3 bzip2-devel libXcursor-devel libXmu-devel \
-    mesa-libOSMesa-devel dbus-devel ncurses-devel python34 harfbuzz-devel \
+    openssl-devel cmake3 libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
+    dbus-devel ncurses-devel python34 harfbuzz-devel \
     ccache clang clang-libs llvm-toolset-7
 ```
 
@@ -139,17 +139,17 @@ export LIBCLANG_PATH=/opt/rh/llvm-toolset-7/root/usr/lib64
 #### On openSUSE Linux
 
 ``` sh
-sudo zypper install libX11-devel libexpat-devel libbz2-devel Mesa-libEGL-devel Mesa-libGL-devel cabextract cmake \
+sudo zypper install libX11-devel libexpat-devel Mesa-libEGL-devel Mesa-libGL-devel cabextract cmake \
     dbus-1-devel fontconfig-devel freetype-devel gcc-c++ git glib2-devel gperf \
     harfbuzz-devel libOSMesa-devel libXcursor-devel libXi-devel libXmu-devel libXrandr-devel libopenssl-devel \
-    python-pip python-virtualenv rpm-build glu-devel ccache llvm-clang libclang autoconf213 gstreamer-devel \
+    python-pip python-virtualenv rpm-build ccache llvm-clang libclang autoconf213 gstreamer-devel \
     gstreamer-plugins-base-devel gstreamer-plugins-bad-devel
 ```
 
 #### On Arch Linux
 
 ``` sh
-sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake bzip2 libxmu glu \
+sudo pacman -S --needed base-devel git python2 python2-virtualenv python2-pip mesa cmake libxmu \
     pkg-config ttf-fira-sans harfbuzz ccache llvm clang autoconf2.13 gstreamer gstreamer-vaapi
 ```
 
@@ -160,7 +160,7 @@ sudo emerge net-misc/curl \
     media-libs/freetype media-libs/mesa dev-util/gperf \
     dev-python/virtualenv dev-python/pip dev-libs/openssl \
     media-libs/harfbuzz dev-util/ccache sys-libs/libunwind \
-    x11-libs/libXmu media-libs/glu x11-base/xorg-server sys-devel/clang \
+    x11-libs/libXmu x11-base/xorg-server sys-devel/clang \
     media-libs/gstreamer media-libs/gst-plugins-bad media-libs/gst-plugins-base
 ```
 
