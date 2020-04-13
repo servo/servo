@@ -31,7 +31,6 @@ use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
 use crate::dom::xrsessionevent::XRSessionEvent;
 use crate::dom::xrspace::XRSpace;
-use crate::dom::xrwebgllayer::XRWebGLLayer;
 use crate::realms::InRealm;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
@@ -52,7 +51,6 @@ use webxr_api::{
 #[dom_struct]
 pub struct XRSession {
     eventtarget: EventTarget,
-    base_layer: MutNullableDom<XRWebGLLayer>,
     blend_mode: XREnvironmentBlendMode,
     mode: XRSessionMode,
     visibility_state: Cell<XRVisibilityState>,
@@ -88,7 +86,6 @@ impl XRSession {
     ) -> XRSession {
         XRSession {
             eventtarget: EventTarget::new_inherited(),
-            base_layer: Default::default(),
             blend_mode: session.environment_blend_mode().into(),
             mode,
             visibility_state: Cell::new(XRVisibilityState::Visible),
@@ -119,7 +116,7 @@ impl XRSession {
         } else {
             None
         };
-        let render_state = XRRenderState::new(global, 0.1, 1000.0, ivfov, None);
+        let render_state = XRRenderState::new(global, 0.1, 1000.0, ivfov, None, &[]);
         let input_sources = XRInputSourceArray::new(global);
         let ret = reflect_dom_object(
             Box::new(XRSession::new_inherited(
@@ -355,7 +352,14 @@ impl XRSession {
             // Step 6-7: XXXManishearth handle inlineVerticalFieldOfView
 
             if self.is_immersive() {
-                let swap_chain_id = pending.GetBaseLayer().map(|layer| layer.swap_chain_id());
+                let swap_chain_id = pending
+                    .GetBaseLayer()
+                    .map(|layer| layer.swap_chain_id())
+                    .or_else(|| {
+                        self.active_render_state.get().with_layers(|layers| {
+                            layers.get(0).and_then(|layer| layer.swap_chain_id())
+                        })
+                    });
                 self.session.borrow_mut().set_swap_chain(swap_chain_id);
             } else {
                 self.update_inline_projection_matrix()
@@ -367,10 +371,9 @@ impl XRSession {
         }
 
         // Step 2
-        let base_layer = match self.active_render_state.get().GetBaseLayer() {
-            Some(layer) => layer,
-            None => return,
-        };
+        if !self.active_render_state.get().has_layer() {
+            return;
+        }
 
         // Step 3: XXXManishearth handle inline session
 
@@ -395,7 +398,15 @@ impl XRSession {
 
         frame.set_active(false);
         if self.is_immersive() {
-            base_layer.swap_buffers();
+            if let Some(base_layer) = self.active_render_state.get().GetBaseLayer() {
+                base_layer.swap_buffers();
+            } else {
+                self.active_render_state.get().with_layers(|layers| {
+                    for layer in layers {
+                        layer.swap_buffers();
+                    }
+                });
+            }
             self.session.borrow_mut().render_animation_frame();
         } else {
             self.session.borrow_mut().start_render_loop();
@@ -513,6 +524,23 @@ impl XRSessionMethods for XRSession {
             return Err(Error::InvalidState);
         }
 
+        // TODO: add spec link for this step once XR layers has settled down
+        // https://immersive-web.github.io/layers/
+        if init.baseLayer.is_some() && init.layers.is_some() {
+            return Err(Error::InvalidState);
+        }
+
+        // TODO: add spec link for this step once XR layers has settled down
+        // https://immersive-web.github.io/layers/
+        if init
+            .layers
+            .as_ref()
+            .map(|layers| layers.is_empty())
+            .unwrap_or(false)
+        {
+            return Err(Error::InvalidState);
+        }
+
         let pending = self
             .pending_render_state
             .or_init(|| self.active_render_state.get().clone_object());
@@ -546,7 +574,8 @@ impl XRSessionMethods for XRSession {
             pending.set_inline_vertical_fov(fov);
         }
         if let Some(ref layer) = init.baseLayer {
-            pending.set_layer(Some(&layer))
+            pending.set_layer(Some(&layer));
+            pending.set_layers(&[]);
         }
 
         if init.depthFar.is_some() || init.depthNear.is_some() {
@@ -554,6 +583,14 @@ impl XRSessionMethods for XRSession {
                 .borrow_mut()
                 .update_clip_planes(*pending.DepthNear() as f32, *pending.DepthFar() as f32);
         }
+
+        // TODO: add spec link for this step once XR layers has settled down
+        // https://immersive-web.github.io/layers/
+        if let Some(ref layers) = init.layers {
+            pending.set_layer(None);
+            pending.set_layers(layers);
+        }
+
         Ok(())
     }
 
