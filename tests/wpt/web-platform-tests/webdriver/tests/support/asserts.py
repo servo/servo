@@ -2,6 +2,8 @@ import base64
 import imghdr
 import struct
 
+from six import PY3
+
 from webdriver import Element, NoSuchAlertException, WebDriverException
 
 
@@ -81,8 +83,15 @@ def assert_response_headers(headers):
     """
     assert 'cache-control' in headers
     assert 'no-cache' == headers['cache-control']
-    assert 'content-type' in headers
-    assert 'application/json; charset=utf-8' == headers['content-type']
+    # In Python 2, HTTPResponse normalizes header keys to lowercase, whereas
+    # Python 3 preserves the case. See
+    # https://github.com/web-platform-tests/wpt/pull/22858#issuecomment-612656097
+    if PY3:
+        assert 'Content-Type' in headers
+        assert 'application/json; charset=utf-8' == headers['Content-Type']
+    else:
+        assert 'content-type' in headers
+        assert 'application/json; charset=utf-8' == headers['content-type']
 
 
 def assert_dialog_handled(session, expected_text, expected_retval):

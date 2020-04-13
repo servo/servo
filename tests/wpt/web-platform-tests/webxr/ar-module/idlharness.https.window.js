@@ -10,7 +10,8 @@ idl_test(
   ['webxr', 'dom'],
   async idl_array => {
     idl_array.add_objects({
-      // TODO: XRSession
+      XRSession: ['xrSession'],
     });
+    self.xrSession = await navigator.xr.requestSession('inline');
   }
 );
