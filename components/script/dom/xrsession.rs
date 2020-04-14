@@ -14,6 +14,9 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCal
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
+use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
+    XRWebGLLayerMethods, XRWebGLRenderingContext,
+};
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -319,6 +322,9 @@ impl XRSession {
                     self,
                 );
                 event.upcast::<Event>().fire(self.upcast());
+                // The page may be visible again, dirty the layers
+                // This also wakes up the event loop if necessary
+                self.dirty_layers();
             },
             XREvent::AddInput(info) => {
                 self.input_sources.add_input_sources(self, &[info]);
@@ -462,6 +468,17 @@ impl XRSession {
 
     pub fn session_id(&self) -> SessionId {
         self.session.borrow().id()
+    }
+
+    pub fn dirty_layers(&self) {
+        if let Some(layer) = self.RenderState().GetBaseLayer() {
+            match layer.Context() {
+                XRWebGLRenderingContext::WebGLRenderingContext(c) => c.mark_as_dirty(),
+                XRWebGLRenderingContext::WebGL2RenderingContext(c) => {
+                    c.base_context().mark_as_dirty()
+                },
+            }
+        }
     }
 }
 
