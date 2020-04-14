@@ -14,9 +14,31 @@
         --inherited: revert;
         --non-inherited: revert;
     }
+
+    @keyframes revert_animation {
+        from {
+            --animated-inherited: revert;
+            --animated-non-inherited: revert;
+        }
+        to {
+            --animated-inherited: 100px;
+            --animated-non-inherited: 100px;
+        }
+    }
+
+    #animated_parent {
+        --animated-inherited: 0px;
+    }
+    #animated_child {
+        animation: revert_animation 10s -5s linear paused;
+    }
 </style>
 <div id=parent>
     <div id=child>
+    </div>
+</div>
+<div id=animated_parent>
+    <div id=animated_child>
     </div>
 </div>
 <script>
@@ -35,6 +57,20 @@ CSS.registerProperty({
     inherits: false
 });
 
+CSS.registerProperty({
+    name: "--animated-non-inherited",
+    syntax: "<length>",
+    initialValue: "0px",
+    inherits: false
+});
+
+CSS.registerProperty({
+    name: "--animated-inherited",
+    syntax: "<length>",
+    initialValue: "10000px",
+    inherits: true
+});
+
 test(function(){
     let cs = getComputedStyle(child);
     assert_equals(cs.getPropertyValue('--inherited'), '10px');
@@ -44,5 +80,15 @@ test(function(){
     let cs = getComputedStyle(child);
     assert_equals(cs.getPropertyValue('--non-inherited'), '0px');
 }, 'Non-inherited registered custom property can be reverted');
+
+test(function(){
+    let cs = getComputedStyle(animated_child);
+    assert_equals(cs.getPropertyValue('--animated-non-inherited'), '50px');
+}, 'Non-inherited registered custom property can be reverted in animation');
+
+test(function(){
+    let cs = getComputedStyle(animated_child);
+    assert_equals(cs.getPropertyValue('--animated-inherited'), '50px');
+}, 'Inherited registered custom property can be reverted in animation');
 
 </script>

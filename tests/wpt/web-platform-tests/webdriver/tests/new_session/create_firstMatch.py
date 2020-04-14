@@ -2,7 +2,7 @@
 
 import pytest
 
-from conftest import product, flatten
+from .conftest import product, flatten
 
 
 from tests.support.asserts import assert_success

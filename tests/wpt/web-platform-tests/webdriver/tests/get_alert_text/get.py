@@ -1,3 +1,5 @@
+from six import text_type
+
 from webdriver.error import NoSuchAlertException
 
 from tests.support.asserts import assert_error, assert_success
@@ -27,7 +29,7 @@ def test_get_alert_text(session):
     assert isinstance(response.body, dict)
     assert "value" in response.body
     alert_text = response.body["value"]
-    assert isinstance(alert_text, basestring)
+    assert isinstance(alert_text, text_type)
     assert alert_text == "Hello"
 
 
@@ -38,7 +40,7 @@ def test_get_confirm_text(session):
     assert isinstance(response.body, dict)
     assert "value" in response.body
     confirm_text = response.body["value"]
-    assert isinstance(confirm_text, basestring)
+    assert isinstance(confirm_text, text_type)
     assert confirm_text == "Hello"
 
 
@@ -49,7 +51,7 @@ def test_get_prompt_text(session):
     assert isinstance(response.body, dict)
     assert "value" in response.body
     prompt_text = response.body["value"]
-    assert isinstance(prompt_text, basestring)
+    assert isinstance(prompt_text, text_type)
     assert prompt_text == "Enter Your Name: "
 
 

@@ -1,0 +1,13 @@
+<!doctype html>
+<title>CSS Grid: Do not add non-children of the grid into the grid container</title>
+
+<style>
+  embed { position: absolute; }
+  .c1 { animation-delay: 45762s; }
+</style>
+
+<p>This test passes if it doesn't crash and it matches the reference.</p>
+<div style="display: grid;">
+  <embed type="something-not-js">
+</div>
+<highlight class="c1"></highlight>

@@ -1,4 +1,4 @@
-import urllib
+from six.moves.urllib.parse import urlencode
 
 
 def basic_authentication(username=None, password=None, protocol="http"):
@@ -8,7 +8,7 @@ def basic_authentication(username=None, password=None, protocol="http"):
     query = {}
 
     return build_url("/webdriver/tests/support/authentication.py",
-                     query=urllib.urlencode(query),
+                     query=urlencode(query),
                      protocol=protocol)
 
 

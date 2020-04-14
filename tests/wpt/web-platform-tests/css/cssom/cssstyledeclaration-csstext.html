@@ -97,6 +97,18 @@
 
         }, 'invalid property does not appear');
 
+        // https://github.com/w3c/csswg-drafts/issues/1033
+        test(function() {
+            var elm = newElm();
+            var style = elm.style;
+
+            style.color = 'red';
+            style.unknown = 'unknown';
+            style.fontSize = '10pt';
+
+            assert_not_equals(getComputedStyle(elm).length, 0, "Should have a style");
+            assert_equals(getComputedStyle(elm).cssText, "", "cssText is empty");
+        }, 'cssText on computed style declaration returns the empty string');
     </script>
     </body>
 </html>

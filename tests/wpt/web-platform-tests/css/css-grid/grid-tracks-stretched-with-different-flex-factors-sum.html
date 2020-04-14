@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<title>CSS Grid: 'stretch' content alignment on flex tracks.</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-align-content-stretch">
+<meta name="assert" content="This test ensures that using flex tracks and 'stretch' value for the content alignment css properties work properly."/>
+<link href="/css/support/grid.css" rel="stylesheet"/>
+<link href="/css/support/alignment.css" rel="stylesheet"/>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+body {
+  margin: 0;
+}
+
+.grid {
+  position: relative;
+  width: 200px;
+  height: 300px;
+}
+
+.fractionFlexTracks {
+  grid-template-columns: auto 0.25fr;
+  grid-template-rows: 0.2fr auto;
+}
+
+.flexTracks {
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1.5fr auto;
+}
+
+</style>
+</head>
+<body onload="checkLayout('.grid')">
+
+<div style="position: relative">
+  <p>When the sum of all track's flex factor is < 1, they don't exhaust the available space, which is used to stretch the 'auto' sized tracks.</p>
+  <div class="grid fractionFlexTracks contentStretch" data-expected-width="200" data-expected-height="300">
+    <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="150" data-expected-height="60"></div>
+    <div class="firstRowSecondColumn" data-offset-x="150" data-offset-y="0" data-expected-width="50" data-expected-height="60"></div>
+    <div class="secondRowFirstColumn" data-offset-x="0" data-offset-y="60" data-expected-width="150" data-expected-height="240"></div>
+    <div class="secondRowSecondColumn" data-offset-x="150" data-offset-y="60" data-expected-width="50" data-expected-height="240"></div>
+  </div>
+</div>
+
+<div style="position: relative">
+  <p>When the sum of all track's flex factor is >= 1, they exhaust the available space, hence the 'stretch' alignment is not applied to the 'auto' sized tracks.</p>
+  <div class="grid flexTracks contentStretch" data-expected-width="200" data-expected-height="300">
+    <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="0" data-expected-height="300"></div>
+    <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="300"></div>
+    <div class="secondRowFirstColumn" data-offset-x="0" data-offset-y="300" data-expected-width="0" data-expected-height="0"></div>
+    <div class="secondRowSecondColumn" data-offset-x="0" data-offset-y="300" data-expected-width="200" data-expected-height="0"></div>
+  </div>
+</div>
+</body>

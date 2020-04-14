@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<title>CSS Flexbox: Crash caused by rounding error in flex-shrink</title>
+<link rel="author" title="Tony Chang" href="mailto:tony@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#resolve-flexible-lengths">
+<link rel="issue" href="https://bugs.webkit.org/show_bug.cgi?id=97606">
+<meta name="assert" content="Check that crash doesn't happen in flex-shrink due to floating point precision errors.">
+
+<style>
+.math {
+    display: inline-flex;
+}
+.math > * {
+    padding-bottom: 0.35em;
+}
+.mfrac {
+    display: inline-flex;
+    flex-direction: column;
+}
+.mfrac > :first-child {
+    margin-block-end: 0.2em;
+}
+.mfrac > :last-child {
+    margin-block-start: 0.2em;
+}
+.x {
+    line-height: 9px;
+}
+.y {
+    line-height: 12px;
+}
+</style>
+<div class=math>
+    <div class=mfrac>
+        <div class=mfrac>
+            <div class=x>x</div>
+            <div class=y>y</div>
+        </div>
+        <div class=mfrac>
+            <div class=mfrac>
+                <div class=x>x</div>
+                <div class=y>y</div>
+            </div>
+            <div class=x>z</div>
+        </div>
+    </div>
+</div>

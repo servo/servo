@@ -2,7 +2,7 @@ import base64
 import imghdr
 import struct
 
-from six import PY3
+from six import ensure_binary, text_type, PY3
 
 from webdriver import Element, NoSuchAlertException, WebDriverException
 
@@ -52,8 +52,8 @@ def assert_error(response, error_code):
     assert response.status == errors[error_code]
     assert "value" in response.body
     assert response.body["value"]["error"] == error_code
-    assert isinstance(response.body["value"]["message"], basestring)
-    assert isinstance(response.body["value"]["stacktrace"], basestring)
+    assert isinstance(response.body["value"]["message"], text_type)
+    assert isinstance(response.body["value"]["stacktrace"], text_type)
     assert_response_headers(response.headers)
 
 
@@ -221,6 +221,6 @@ def assert_move_to_coordinates(point, target, events):
 
 def assert_png(screenshot):
     """Test that screenshot is a Base64 encoded PNG file."""
-    image = base64.decodestring(screenshot)
+    image = base64.decodestring(ensure_binary(screenshot))
     mime_type = imghdr.what("", image)
     assert mime_type == "png", "Expected image to be PNG, but it was {}".format(mime_type)
