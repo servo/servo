@@ -1,5 +1,7 @@
 import json
 
+from six import text_type
+
 from tests.support.asserts import assert_success
 
 
@@ -16,7 +18,7 @@ def test_get_status_no_session(http):
         value = parsed_obj["value"]
 
         assert value["ready"] in [True, False]
-        assert isinstance(value["message"], basestring)
+        assert isinstance(value["message"], text_type)
 
 
 def test_status_with_session_running_on_endpoint_node(session):

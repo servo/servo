@@ -1,8 +1,9 @@
 import contextlib
-import httplib
 import json
 
 from six import text_type
+
+from six.moves.http_client import HTTPConnection
 
 
 class HTTPRequest(object):
@@ -33,7 +34,7 @@ class HTTPRequest(object):
             if isinstance(payload, text_type):
                 payload = body.encode("utf-8")
 
-        conn = httplib.HTTPConnection(self.host, self.port)
+        conn = HTTPConnection(self.host, self.port)
         try:
             conn.request(method, path, payload)
             yield conn.getresponse()

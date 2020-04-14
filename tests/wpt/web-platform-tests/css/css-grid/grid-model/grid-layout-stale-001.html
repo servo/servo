@@ -1,0 +1,42 @@
+<!doctype html>
+<title>CSS Grid: Do not add non-children of the grid into the grid container</title>
+<link rel="author" title="Sergio Villar" href="mailto:svillar@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid">
+<link rel="help" href="https://crbug.com/313293">
+<link rel="match" href="reference/grid-layout-stale-001-ref.html">
+<meta name="assert" content="Check that we do not add non-children of the grid into the grid representation."/>
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  embed { position: absolute; }
+  .c1 { animation-delay: 45762s; }
+</style>
+
+<p>This test passes if it doesn't crash and it matches the reference.</p>
+<div style="display: grid;">
+    <embed type="something-not-js">
+</div>
+
+<script>
+function keyPress(key) {
+  let actions = new test_driver.Actions()
+    .keyDown(key)
+    .keyUp(key);
+
+  return actions.send();
+}
+function crash() {
+  var highlight = document.createElementNS("http://www.w3.org/1999/xhtml", "highlight");
+  highlight.setAttribute("class", "c1");
+  document.body.appendChild(highlight);
+
+  for (i=0; i != 8; i++)
+    keyPress("\t");
+  keyPress("X");
+}
+
+document.addEventListener("DOMContentLoaded", crash, false);
+</script>

@@ -1,5 +1,7 @@
 import os
 
+from six import text_type
+
 from tests.support.asserts import assert_same_element, assert_success
 from tests.support.inline import inline
 
@@ -45,7 +47,7 @@ def test_file_list(session, tmpdir):
     for expected, actual in zip(files, value):
         assert isinstance(actual, dict)
         assert "name" in actual
-        assert isinstance(actual["name"], basestring)
+        assert isinstance(actual["name"], text_type)
         assert os.path.basename(str(expected)) == actual["name"]
 
 

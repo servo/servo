@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from six import text_type
 
 from webdriver.transport import Response
 
@@ -59,11 +60,11 @@ def test_add_domain_cookie(session, url, server_config):
 
     cookie = session.cookies("hello")
     assert "domain" in cookie
-    assert isinstance(cookie["domain"], basestring)
+    assert isinstance(cookie["domain"], text_type)
     assert "name" in cookie
-    assert isinstance(cookie["name"], basestring)
+    assert isinstance(cookie["name"], text_type)
     assert "value" in cookie
-    assert isinstance(cookie["value"], basestring)
+    assert isinstance(cookie["value"], text_type)
 
     assert cookie["name"] == "hello"
     assert cookie["value"] == "world"
@@ -89,11 +90,11 @@ def test_add_cookie_for_ip(session, url, server_config, configuration):
 
     cookie = session.cookies("hello")
     assert "name" in cookie
-    assert isinstance(cookie["name"], basestring)
+    assert isinstance(cookie["name"], text_type)
     assert "value" in cookie
-    assert isinstance(cookie["value"], basestring)
+    assert isinstance(cookie["value"], text_type)
     assert "domain" in cookie
-    assert isinstance(cookie["domain"], basestring)
+    assert isinstance(cookie["domain"], text_type)
 
     assert cookie["name"] == "hello"
     assert cookie["value"] == "world"
@@ -118,9 +119,9 @@ def test_add_non_session_cookie(session, url):
 
     cookie = session.cookies("hello")
     assert "name" in cookie
-    assert isinstance(cookie["name"], basestring)
+    assert isinstance(cookie["name"], text_type)
     assert "value" in cookie
-    assert isinstance(cookie["value"], basestring)
+    assert isinstance(cookie["value"], text_type)
     assert "expiry" in cookie
     assert isinstance(cookie["expiry"], int)
 
@@ -143,9 +144,9 @@ def test_add_session_cookie(session, url):
 
     cookie = session.cookies("hello")
     assert "name" in cookie
-    assert isinstance(cookie["name"], basestring)
+    assert isinstance(cookie["name"], text_type)
     assert "value" in cookie
-    assert isinstance(cookie["value"], basestring)
+    assert isinstance(cookie["value"], text_type)
     if "expiry" in cookie:
         assert cookie.get("expiry") is None
 
@@ -168,11 +169,11 @@ def test_add_session_cookie_with_leading_dot_character_in_domain(session, url, s
 
     cookie = session.cookies("hello")
     assert "name" in cookie
-    assert isinstance(cookie["name"], basestring)
+    assert isinstance(cookie["name"], text_type)
     assert "value" in cookie
-    assert isinstance(cookie["value"], basestring)
+    assert isinstance(cookie["value"], text_type)
     assert "domain" in cookie
-    assert isinstance(cookie["domain"], basestring)
+    assert isinstance(cookie["domain"], text_type)
 
     assert cookie["name"] == "hello"
     assert cookie["value"] == "world"

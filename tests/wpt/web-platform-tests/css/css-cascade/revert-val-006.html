@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>CSS Cascade: 'revert' keyword in keyframe animations</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#default">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes test {
+    from { margin-top: 0px; }
+    50% { margin-top: revert; }
+    to { margin-top: 0px; }
+  }
+  #h1 {
+    margin-top: 0px;
+    animation: test linear 1000s -500s;
+  }
+</style>
+<h1 id=h1></h1>
+<h1 id=ref></h1>
+<script>
+  test(function() {
+    let actual = getComputedStyle(h1).marginTop;
+    let expected = getComputedStyle(ref).marginTop;
+    // This test assumes that the UA style sheet sets a non-0px value on
+    // <h1> elements:
+    assert_not_equals(expected, '0px');
+    assert_equals(actual, expected);
+  }, 'The revert keyword works with @keyframes');
+</script>

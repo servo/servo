@@ -1,6 +1,6 @@
 """Helpers for inlining extracts of documents in tests."""
 
-import urllib
+from six.moves.urllib.parse import urlencode
 
 
 BOILERPLATES = {
@@ -58,7 +58,7 @@ def inline(src, doctype="html", mime=None, charset=None, **kwargs):
     query = {"doc": doc, "mime": mime, "charset": charset}
     return build_url(
         "/webdriver/tests/support/inline.py",
-        query=urllib.urlencode(query),
+        query=urlencode(query),
         **kwargs)
 
 

@@ -1,10 +1,13 @@
 import copy
 import json
 import os
-import urlparse
 
 import pytest
 import webdriver
+
+from six import string_types
+
+from six.moves.urllib.parse import urlunsplit
 
 from tests.support import defaults
 from tests.support.helpers import cleanup_session
@@ -172,7 +175,7 @@ def url(server_config):
         domain = server_config["domains"][domain][subdomain]
         port = server_config["ports"][protocol][0]
         host = "{0}:{1}".format(domain, port)
-        return urlparse.urlunsplit((protocol, host, path, query, fragment))
+        return urlunsplit((protocol, host, path, query, fragment))
 
     inner.__name__ = "url"
     return inner
@@ -191,7 +194,7 @@ def create_dialog(session):
         if text is None:
             text = ""
 
-        assert isinstance(text, basestring), "`text` parameter must be a string"
+        assert isinstance(text, string_types), "`text` parameter must be a string"
 
         # Script completes itself when the user prompt has been opened.
         # For prompt() dialogs, add a value for the 'default' argument,
