@@ -1167,7 +1167,13 @@ impl WebGLImpl {
                 gl.enable_vertex_attrib_array(attrib_id)
             },
             WebGLCommand::Hint(name, val) => gl.hint(name, val),
-            WebGLCommand::LineWidth(width) => gl.line_width(width),
+            WebGLCommand::LineWidth(width) => {
+                gl.line_width(width);
+                // In OpenGL Core Profile >3.2, any non-1.0 value will generate INVALID_VALUE.
+                if width != 1.0 {
+                    let _ = gl.get_error();
+                }
+            },
             WebGLCommand::PixelStorei(name, val) => gl.pixel_store_i(name, val),
             WebGLCommand::PolygonOffset(factor, units) => gl.polygon_offset(factor, units),
             WebGLCommand::ReadPixels(rect, format, pixel_type, ref sender) => {
