@@ -2623,32 +2623,31 @@ where
     }
 
     fn handle_register_serviceworker(&mut self, scope_things: ScopeThings, scope: ServoUrl) {
-        let origin = scope.origin();
+        // This match is equivalent to Entry.or_insert_with but allows for early return.
+        let sw_manager = match self.sw_managers.entry(scope.origin()) {
+            Entry::Occupied(entry) => entry.into_mut(),
+            Entry::Vacant(entry) => {
+                let (own_sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
 
-        if let Some(mgr) = self.sw_managers.get(&origin) {
-            let _ = mgr.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
-        } else {
-            let (own_sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+                let sw_senders = SWManagerSenders {
+                    swmanager_sender: self.swmanager_sender.clone(),
+                    resource_sender: self.public_resource_threads.sender(),
+                    own_sender: own_sender.clone(),
+                    receiver,
+                };
+                let content = ServiceWorkerUnprivilegedContent::new(sw_senders, scope.origin());
 
-            let sw_senders = SWManagerSenders {
-                swmanager_sender: self.swmanager_sender.clone(),
-                resource_sender: self.public_resource_threads.sender(),
-                own_sender: own_sender.clone(),
-                receiver,
-            };
-            let content = ServiceWorkerUnprivilegedContent::new(sw_senders, origin.clone());
-
-            if opts::multiprocess() {
-                if content.spawn_multiprocess().is_err() {
-                    return warn!("Failed to spawn process for SW manager.");
+                if opts::multiprocess() {
+                    if content.spawn_multiprocess().is_err() {
+                        return warn!("Failed to spawn process for SW manager.");
+                    }
+                } else {
+                    content.start::<SWF>();
                 }
-            } else {
-                content.start::<SWF>();
-            }
-
-            let _ = own_sender.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
-            self.sw_managers.insert(origin, own_sender);
-        }
+                entry.insert(own_sender)
+            },
+        };
+        let _ = sw_manager.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
     }
 
     fn handle_broadcast_storage_event(
