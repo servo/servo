@@ -328,8 +328,8 @@ impl PropertyAnimation {
 
         let property_animation = PropertyAnimation {
             property: animated_property,
-            timing_function: timing_function,
-            duration: duration,
+            timing_function,
+            duration,
         };
 
         if property_animation.does_animate() {
@@ -411,7 +411,7 @@ pub fn start_transitions_if_applicable(
     old_style: &ComputedValues,
     new_style: &mut Arc<ComputedValues>,
     timer: &Timer,
-    possibly_expired_animations: &[PropertyAnimation],
+    running_and_expired_transitions: &[PropertyAnimation],
 ) -> bool {
     let mut had_animations = false;
     for i in 0..new_style.get_box().transition_property_count() {
@@ -425,17 +425,16 @@ pub fn start_transitions_if_applicable(
             // above.
             property_animation.update(Arc::get_mut(new_style).unwrap(), 0.0);
 
-            debug!(
-                "checking {:?} for matching end value",
-                possibly_expired_animations
-            );
-
             // Per [1], don't trigger a new transition if the end state for that
             // transition is the same as that of a transition that's already
             // running on the same node.
             //
             // [1]: https://drafts.csswg.org/css-transitions/#starting
-            if possibly_expired_animations
+            debug!(
+                "checking {:?} for matching end value",
+                running_and_expired_transitions
+            );
+            if running_and_expired_transitions
                 .iter()
                 .any(|animation| animation.has_the_same_end_value_as(&property_animation))
             {
@@ -447,9 +446,8 @@ pub fn start_transitions_if_applicable(
                 continue;
             }
 
-            debug!("Kicking off transition of {:?}", property_animation);
-
             // Kick off the animation.
+            debug!("Kicking off transition of {:?}", property_animation);
             let box_style = new_style.get_box();
             let now = timer.seconds();
             let start_time = now + (box_style.transition_delay_mod(i).seconds() as f64);
@@ -848,27 +846,5 @@ where
             *style = new_style;
             AnimationUpdate::Regular
         },
-    }
-}
-
-/// Update the style in the node when it finishes.
-#[cfg(feature = "servo")]
-pub fn complete_expired_transitions(
-    node: OpaqueNode,
-    style: &mut Arc<ComputedValues>,
-    context: &SharedStyleContext,
-    expired_animations: &mut Vec<crate::animation::PropertyAnimation>,
-) {
-    let mut all_expired_animations = context.expired_animations.write();
-    if let Some(animations) = all_expired_animations.remove(&node) {
-        debug!("removing expired animations for {:?}", node);
-        for animation in animations {
-            debug!("Updating expired animation {:?}", animation);
-            // TODO: support animation-fill-mode
-            if let Animation::Transition(_, _, frame) = animation {
-                frame.property_animation.update(Arc::make_mut(style), 1.0);
-                expired_animations.push(frame.property_animation);
-            }
-        }
     }
 }
