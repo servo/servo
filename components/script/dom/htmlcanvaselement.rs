@@ -41,7 +41,6 @@ use js::error::throw_type_error;
 use js::rust::HandleValue;
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
-use servo_config::pref;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 const DEFAULT_WIDTH: u32 = 300;
@@ -222,7 +221,8 @@ impl HTMLCanvasElement {
         cx: JSContext,
         options: HandleValue,
     ) -> Option<DomRoot<WebGL2RenderingContext>> {
-        if !pref!(dom.webgl2.enabled) {
+        if !WebGL2RenderingContext::is_webgl2_enabled(cx, self.global().reflector().get_jsobject())
+        {
             return None;
         }
         if let Some(ctx) = self.context() {
