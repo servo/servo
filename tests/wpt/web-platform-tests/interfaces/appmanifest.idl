@@ -3,26 +3,6 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Web App Manifest (https://w3c.github.io/manifest/)
 
-[Exposed=Window]
-interface BeforeInstallPromptEvent : Event {
-  constructor(DOMString type, optional EventInit eventInitDict = {});
-  Promise<PromptResponseObject> prompt();
-};
-
-dictionary PromptResponseObject {
-  AppBannerPromptOutcome userChoice;
-};
-
-enum AppBannerPromptOutcome {
-  "accepted",
-  "dismissed"
-};
-
-partial interface Window {
-  attribute EventHandler onappinstalled;
-  attribute EventHandler onbeforeinstallprompt;
-};
-
 dictionary WebAppManifest {
    TextDirectionType dir = "auto";
    DOMString lang;

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Grid: column-* properties are ignored.</title>
+<link rel="author" title="Sunil Ratnu" href="mailto:sunil.ratnu@samsung.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-model">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/1364">
+<link rel="match" href="reference/column-property-should-not-apply-on-grid-container-001-ref.html">
+<meta name="assert" content="This test ensures the column-* properties (in the Multicol module) have no effect on a grid container."/>
+<link href="/css/support/grid.css" rel="stylesheet"/>
+<style>
+.grid, .inline-grid
+{
+  width: 20em;
+  column-count: 2;
+  column-gap: 100px;
+  font-kerning: none;
+}
+</style>
+
+<body>
+
+<div class='grid'>
+AAAAAAAAAA BBBBBBBBBB CCCCCCCCCC DDDDDDDDDD
+</div>
+
+<div class='inline-grid'>
+AAAAAAAAAA BBBBBBBBBB CCCCCCCCCC DDDDDDDDDD
+</div>
+
+</body>
+</html>

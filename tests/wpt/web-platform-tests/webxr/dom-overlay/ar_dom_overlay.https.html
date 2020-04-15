@@ -106,6 +106,7 @@ let watcherStep = new Event("watcherstep");
 let watcherDone = new Event("watcherdone");
 
 let testInput = function(overlayElement, session, fakeDeviceController, t) {
+  let debug = xr_debug.bind(this, 'testInput');
 
   // Use two DIVs for this test. "inner_a" uses a "beforexrselect" handler
   // that uses preventDefault(). Controller interactions with it should trigger
@@ -135,30 +136,38 @@ let testInput = function(overlayElement, session, fakeDeviceController, t) {
       fakeDeviceController.simulateInputSourceConnection(SCREEN_CONTROLLER);
   session.requestReferenceSpace('viewer').then(function(viewerSpace) {
     // Press the primary input button and then release it a short time later.
+    debug('got viewerSpace');
     session.requestAnimationFrame((time, xrFrame) => {
+      debug('got rAF 1');
       input_source.setOverlayPointerPosition(inner_a.offsetLeft + 1,
                                              inner_a.offsetTop + 1);
       input_source.startSelection();
 
       session.requestAnimationFrame((time, xrFrame) => {
+        debug('got rAF 2');
         input_source.endSelection();
 
         session.requestAnimationFrame((time, xrFrame) => {
+          debug('got rAF 3');
           // Need to process one more frame to allow select to propagate.
           session.requestAnimationFrame((time, xrFrame) => {
+            debug('got rAF 4');
             session.dispatchEvent(watcherStep);
 
             assert_true(got_beforexrselect);
 
             session.requestAnimationFrame((time, xrFrame) => {
+              debug('got rAF 5');
               input_source.setOverlayPointerPosition(inner_b.offsetLeft + 1,
                                                      inner_b.offsetTop + 1);
               input_source.startSelection();
 
               session.requestAnimationFrame((time, xrFrame) => {
+                debug('got rAF 6');
                 input_source.endSelection();
 
                 session.requestAnimationFrame((time, xrFrame) => {
+                  debug('got rAF 7');
                   // Need to process one more frame to allow select to propagate.
                   session.dispatchEvent(watcherDone);
                 });
@@ -173,6 +182,8 @@ let testInput = function(overlayElement, session, fakeDeviceController, t) {
 };
 
 let testCrossOriginContent = function(overlayElement, session, fakeDeviceController, t) {
+  let debug = xr_debug.bind(this, 'testCrossOriginContent');
+
   let iframe = document.getElementById('iframe');
   assert_true(iframe != null);
   let inner_b = document.getElementById('inner_b');
@@ -192,27 +203,34 @@ let testCrossOriginContent = function(overlayElement, session, fakeDeviceControl
   session.requestReferenceSpace('viewer').then(function(viewerSpace) {
     // Press the primary input button and then release it a short time later.
     session.requestAnimationFrame((time, xrFrame) => {
+      debug('got rAF 1');
       input_source.setOverlayPointerPosition(iframe.offsetLeft + 1,
                                              iframe.offsetTop + 1);
       input_source.startSelection();
 
       session.requestAnimationFrame((time, xrFrame) => {
+        debug('got rAF 2');
         input_source.endSelection();
 
         session.requestAnimationFrame((time, xrFrame) => {
+          debug('got rAF 3');
           // Need to process one more frame to allow select to propagate.
           session.requestAnimationFrame((time, xrFrame) => {
+            debug('got rAF 4');
             session.dispatchEvent(watcherStep);
 
             session.requestAnimationFrame((time, xrFrame) => {
+              debug('got rAF 5');
               input_source.setOverlayPointerPosition(inner_b.offsetLeft + 1,
                                                      inner_b.offsetTop + 1);
               input_source.startSelection();
 
               session.requestAnimationFrame((time, xrFrame) => {
+                debug('got rAF 6');
                 input_source.endSelection();
 
                 session.requestAnimationFrame((time, xrFrame) => {
+                  debug('got rAF 7');
                   // Need to process one more frame to allow select to propagate.
                   session.dispatchEvent(watcherDone);
                 });

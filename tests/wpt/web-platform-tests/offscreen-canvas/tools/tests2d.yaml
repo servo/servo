@@ -9783,15 +9783,15 @@
         ("space", "  100", 100),
         ("whitespace", "\t\f100", 100),
         ("plus", "+100", 100),
-        ("minus", "-100", None),
+        ("minus", "-100", "exception"),
         ("octal", "0100", 100),
         ("hex", "0x100", 0x100),
         ("exp", "100e1", 100e1),
         ("decimal", "100.999", 100),
-        ("percent", "100%", 100),
-        ("em", "100em", 100),
-        ("junk", "#!?", None),
-        ("trailingjunk", "100#!?", 100),
+        ("percent", "100%", "exception"),
+        ("em", "100em", "exception"),
+        ("junk", "#!?", "exception"),
+        ("trailingjunk", "100#!?", "exception"),
     ]
     def gen(name, string, exp, code):
         testing = ["size.nonnegativeinteger"]
@@ -9799,6 +9799,9 @@
             testing.append("size.error")
             code += "offscreenCanvas.width = '%s';\noffscreenCanvas.height = '%s';\n" % (string, string)
             code += "@assert offscreenCanvas.width === 100;\n@assert offscreenCanvas.height === 50;\n"
+            expected = None
+        elif exp == "exception":
+            code += "@assert throws TypeError offscreenCanvas.width = '%s';\n" % string
             expected = None
         else:
             code += "offscreenCanvas.width = '%s';\noffscreenCanvas.height = '%s';\n" % (string, string)

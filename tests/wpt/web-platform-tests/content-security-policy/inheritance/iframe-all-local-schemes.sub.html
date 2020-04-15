@@ -80,7 +80,26 @@
     wait_for_error_from_frame(i, t);
 
     document.body.appendChild(i);
-  }, "<iframe src='javascript:...'>'s inherits policy.");
+  }, "<iframe src='javascript:...'>'s inherits policy (static <img> is blocked)");
+
+  // Same as the previous javascript-URL test, but instead of loading the <img>
+  // from the new document, this one is created from the initial empty document,
+  // while evaluating the javascript-url.
+  // See https://crbug.com/1064676
+  async_test(t => {
+    let url = `javascript:
+      let img = document.createElement('img');
+      img.onload = () => window.top.postMessage('load', '*');
+      img.onerror = () => window.top.postMessage('error', '*');
+      img.src = '{{location[server]}}/images/red-16x16.png';
+      document.body.appendChild(img);
+    `;
+    var i = document.createElement('iframe');
+    i.src = encodeURI(url.replace(/\n/g, ""));
+    wait_for_error_from_frame(i, t);
+
+    document.body.appendChild(i);
+  }, "<iframe src='javascript:...'>'s inherits policy (dynamically inserted <img> is blocked)");
 
   async_test(t => {
     var i = document.createElement('iframe');

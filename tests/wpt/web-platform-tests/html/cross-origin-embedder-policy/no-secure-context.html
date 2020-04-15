@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<div id=log></div>
+<script>
+async_test(t => {
+  const frame = document.body.appendChild(document.createElement("iframe"));
+  t.add_cleanup(() => frame.remove());
+  frame.src = get_host_info().HTTP_NOTSAMESITE_ORIGIN + new URL("resources/iframe.html", location).pathname;
+  window.onmessage = t.step_func_done(({ data }) => {
+    assert_equals(data, "success");
+  });
+  frame.onload = t.step_func(() => {
+    frame.contentWindow.postMessage("parent.postMessage('success', '*');", "*");
+  });
+}, "COEP requires a secure context");
+</script>

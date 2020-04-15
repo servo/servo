@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+sensor_test(async (t, sensorProvider) => {
+  const motionData1 = generateMotionData(1, 2, 3,
+                                         null, null, null,
+                                         null, null, null);
+
+  const motionData2 = generateMotionData(null, null, null,
+                                         1, 2, 3,
+                                         null, null, null);
+
+  const motionData3 = generateMotionData(null, null, null,
+                                         null, null, null,
+                                         1, 2, 3);
+
+  const motionData4 = generateMotionData(null, null, null,
+                                         null, null, null,
+                                         null, null, null);
+
+  setMockMotionData(sensorProvider, motionData1);
+  await waitForMotion(motionData1);
+
+  setMockMotionData(sensorProvider, motionData2);
+  await waitForMotion(motionData2);
+
+  setMockMotionData(sensorProvider, motionData3);
+  await waitForMotion(motionData3);
+
+  setMockMotionData(sensorProvider, motionData4);
+  return waitForMotion(motionData4);
+}, 'Tests using null values for some or all of the event properties.');
+</script>

@@ -1,5 +1,31 @@
 'use strict';
 
+// A "sliding window" that iterates over |data| and returns one item at a
+// time, advancing and wrapping around as needed. |data| must be an array of
+// arrays.
+class RingBuffer {
+  constructor(data) {
+    this.bufferPosition_ = 0;
+    // Validate |data|'s format and deep-copy every element.
+    this.data_ = Array.from(data, element => {
+      if (!Array.isArray(element)) {
+        throw new TypeError('Every |data| element must be an array.');
+      }
+      return Array.from(element);
+    })
+  }
+
+  next() {
+    const value = this.data_[this.bufferPosition_];
+    this.bufferPosition_ = (this.bufferPosition_ + 1) % this.data_.length;
+    return { done: false, value: value };
+  }
+
+  [Symbol.iterator]() {
+    return this;
+  }
+}
+
 var GenericSensorTest = (() => {
   // Default sensor frequency in default configurations.
   const DEFAULT_FREQUENCY = 5;
@@ -10,6 +36,7 @@ var GenericSensorTest = (() => {
     constructor(sensorRequest, handle, offset, size, reportingMode) {
       this.client_ = null;
       this.startShouldFail_ = false;
+      this.notifyOnReadingChange_ = true;
       this.reportingMode_ = reportingMode;
       this.sensorReadingTimerId_ = null;
       this.readingData_ = null;
@@ -59,6 +86,13 @@ var GenericSensorTest = (() => {
         this.stopReading();
     }
 
+    // ConfigureReadingChangeNotifications(bool enabled)
+    // Configures whether to report a reading change when in ON_CHANGE
+    // reporting mode.
+    configureReadingChangeNotifications(notifyOnReadingChange) {
+      this.notifyOnReadingChange_ = notifyOnReadingChange;
+    }
+
     // Mock functions
 
     // Resets mock Sensor state.
@@ -66,6 +100,7 @@ var GenericSensorTest = (() => {
       this.stopReading();
       this.startShouldFail_ = false;
       this.requestedFrequencies_ = [];
+      this.notifyOnReadingChange_ = true;
       this.readingData_ = null;
       this.buffer_.fill(0);
       this.binding_.close();
@@ -100,7 +135,8 @@ var GenericSensorTest = (() => {
         // For all tests sensor reading should have monotonically
         // increasing timestamp in seconds.
         this.buffer_[1] = window.performance.now() * 0.001;
-        if (this.reportingMode_ === device.mojom.ReportingMode.ON_CHANGE) {
+        if (this.reportingMode_ === device.mojom.ReportingMode.ON_CHANGE &&
+            this.notifyOnReadingChange_) {
           this.client_.sensorReadingChanged();
         }
       }, timeout);

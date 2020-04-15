@@ -35,6 +35,7 @@ const fakeDeviceInitParams = {
   views: VALID_VIEWS,
   viewerOrigin: IDENTITY_TRANSFORM,
   supportedFeatures: ALL_FEATURES,
+  world: createFakeWorld(5.0, 2.0, 5.0),  // see webxr_test_constants_fake_world.js for details
 };
 
 const hitTestOptionsInit = {
@@ -58,40 +59,54 @@ const testCrossOriginContent = function(overlayElement, session, fakeDeviceContr
   const iframe = document.getElementById('iframe');
   const inner_b = document.getElementById('inner_b');
 
+  let debug = xr_debug.bind(this, 'testCrossOriginContent');
+
   const input_source =
       fakeDeviceController.simulateInputSourceConnection(screen_controller_init);
+  debug('start');
   return session.requestReferenceSpace('viewer').then(function(viewerSpace) {
+    debug('got viewerSpace');
     return session.requestHitTestSourceForTransientInput(hitTestOptionsInit)
                   .then((hitTestSource) => {
-      // Press the primary input button and then release it a short time later.
-      session.requestAnimationFrame((time, xrFrame) => {
-        input_source.setOverlayPointerPosition(iframe.offsetLeft + 1,
-                                               iframe.offsetTop + 1);
-        input_source.startSelection();
-
+      debug('got hitTestSource');
+      return new Promise((resolve) => {
+        // Press the primary input button and then release it a short time later.
         session.requestAnimationFrame((time, xrFrame) => {
-          input_source.endSelection();
-
-          // There should be no results for transient input for cross origin content:
-          const results = xrFrame.getHitTestResultsForTransientInput(hitTestSource);
-          t.step(() => {
-            assert_true(results.length === 0, "Hit test results should be suppressed for cross-origin content");
-          });
+          debug('got rAF 1');
+          input_source.setOverlayPointerPosition(iframe.offsetLeft + 1,
+                                                 iframe.offsetTop + 1);
+          input_source.startSelection();
 
           session.requestAnimationFrame((time, xrFrame) => {
-            // Need to process one more frame to allow select to propagate
+            input_source.endSelection();
+
+            // There should be no results for transient input for cross origin content:
+            const results = xrFrame.getHitTestResultsForTransientInput(hitTestSource);
+            t.step(() => {
+              assert_equals(results.length, 0, "Hit test results should be suppressed for cross-origin content");
+            });
 
             session.requestAnimationFrame((time, xrFrame) => {
-              input_source.setOverlayPointerPosition(inner_b.offsetLeft + 1,
-                                                      inner_b.offsetTop + 1);
-              input_source.startSelection();
+              debug('got rAF 2');
+              // Need to process one more frame to allow select to propagate
 
               session.requestAnimationFrame((time, xrFrame) => {
-                input_source.endSelection();
+                debug('got rAF 3');
+                input_source.setOverlayPointerPosition(inner_b.offsetLeft + 1,
+                                                       inner_b.offsetTop + 1);
+                input_source.startSelection();
 
-                const results = xrFrame.getHitTestResultsForTransientInput(hitTestSource);
-                t.step(() => {
-                  assert_true(results.length === 1, "Hit test results should not be for cross-origin content");
+                session.requestAnimationFrame((time, xrFrame) => {
+                  debug('got rAF 4');
+                  input_source.endSelection();
+
+                  const results = xrFrame.getHitTestResultsForTransientInput(hitTestSource);
+                  t.step(() => {
+                    // TODO(bialpio): this assertion is currently failing, FIXME
+                    assert_equals(results.length, 1, "Hit test results should be available for same-origin content");
+                  });
+                  debug('resolving');
+                  resolve();
                 });
               });
             });

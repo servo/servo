@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+sensor_test(async (t, sensorProvider) => {
+  const motionData1 = generateMotionData(1, 2, 3,
+                                         4, 5, 6,
+                                         7, 8, 9);
+  const motionData2 = generateMotionData(11, 12, 13,
+                                         14, 15, 16,
+                                         17, 18, 19);
+
+  let firstListener = null;
+  let firstEventPromise = new Promise(resolve => {
+    firstListener = resolve;
+  });
+  // We directly add the listener instead of using waitForMotion
+  // because we want the listener to stay active after the first event fires.
+  window.addEventListener('devicemotion', firstListener);
+  let secondEventPromise = waitForMotion(motionData1);
+  setMockMotionData(sensorProvider, motionData1);
+  let firstEvent = await firstEventPromise;
+  checkMotion(firstEvent, motionData1);
+  await secondEventPromise;
+
+  // At this point only the first event listener is active.
+  setMockMotionData(sensorProvider, motionData2);
+  window.removeEventListener('devicemotion', firstListener);
+
+  return waitForMotion(motionData2);
+}, 'Tests using multiple event handlers for the Device Motion API.');
+</script>

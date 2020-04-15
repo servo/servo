@@ -1,0 +1,19 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<title>Accept-CH Persistence test</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/accept-ch-test.js"></script>
+
+<script>
+run_test({ name: "cross origin subresources authorized by FP gets it own resources",
+    initial_url: echo,
+    accept_url: accept,
+    expect_url: "resources/feature-policy-with-cross-origin-subresource.html",
+    type: "navigation" });
+</script>
+</body>
+</html>
+

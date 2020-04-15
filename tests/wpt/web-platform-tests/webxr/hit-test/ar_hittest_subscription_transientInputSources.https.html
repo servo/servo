@@ -52,11 +52,13 @@ const fakeDeviceInitParams = {
 //                            Null entries in the array mean that the given entry will not be validated.
 let testFunctionGenerator = function(ray, expectedPoses, inputFromPointer, nextFrameExpectedPoses) {
   const testFunction = function(session, fakeDeviceController, t) {
+    let debug = xr_debug.bind(this, 'testFunction');
     return session.requestReferenceSpace('local').then((localRefSpace) => new Promise((resolve, reject) => {
 
       const input_source_controller = fakeDeviceController.simulateInputSourceConnection(screen_controller_init);
 
       session.requestAnimationFrame((time, frame) => {
+        debug('rAF 1');
         t.step(() => {
           assert_equals(session.inputSources.length, 1);
         });
@@ -74,6 +76,7 @@ let testFunctionGenerator = function(ray, expectedPoses, inputFromPointer, nextF
 
           // We got a hit test source, now get the results in subsequent rAFcb:
           session.requestAnimationFrame((time, frame) => {
+            debug('rAF 2');
             const results = frame.getHitTestResultsForTransientInput(hitTestSource);
 
             t.step(() => {
@@ -92,6 +95,7 @@ let testFunctionGenerator = function(ray, expectedPoses, inputFromPointer, nextF
             input_source_controller.setPointerOrigin(inputFromPointer, false);
 
             session.requestAnimationFrame((time, frame) => {
+              debug('rAF 3');
               const results = frame.getHitTestResultsForTransientInput(hitTestSource);
 
               t.step(() => {
@@ -105,6 +109,7 @@ let testFunctionGenerator = function(ray, expectedPoses, inputFromPointer, nextF
                 }
               });
 
+              debug('resolving');
               resolve();
             });
           });

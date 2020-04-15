@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Test: will-change: backdrop-filter on the root should not generate a containing block for fixed positioned elements.</title>
+<link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=960953">
+<link rel="help" href="https://drafts.csswg.org/css-will-change/#will-change">
+<link rel="help" href="https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty">
+<link rel="match" href="will-change-fixedpos-cb-006-ref.html">
+<style>
+  html {
+    will-change: backdrop-filter;
+  }
+  body {
+    margin: 0;
+  }
+  .hidden {
+    width: 100px;
+    height: 100px;
+    background: red;
+    margin-left: 100px;
+    margin-top: 200px;
+  }
+  .fixedpos {
+    position: fixed;
+    top: 100px;
+    left: 100px;
+    background: green;
+    height: 100px;
+    width: 100px;
+  }
+  .spacer {
+    height: 2000px;
+  }
+</style>
+<!-- This object should be fully hidden by the fixed position object. -->
+<div class="hidden"></div>
+<div class="fixedpos"></div>
+<div class="spacer"></div>
+<script>
+  window.onload = function() { window.scrollTo(0, 100); };
+</script>

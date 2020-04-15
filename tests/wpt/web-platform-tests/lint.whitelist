@@ -300,6 +300,7 @@ SET TIMEOUT: html/cross-origin-embedder-policy/resources/navigate-require-corp.s
 SET TIMEOUT: html/cross-origin-embedder-policy/resources/navigate-require-corp-same-site.sub.html
 SET TIMEOUT: html/dom/documents/dom-tree-accessors/Document.currentScript.html
 SET TIMEOUT: html/webappapis/timers/*
+SET TIMEOUT: orientation-event/resources/orientation-event-helpers.js
 SET TIMEOUT: portals/history/resources/portal-harness.js
 SET TIMEOUT: resources/chromium/*
 SET TIMEOUT: resources/test/tests/functional/add_cleanup.html
@@ -703,6 +704,7 @@ MISSING DEPENDENCY: shape-detection/resources/shapedetection-helpers.js
 MISSING DEPENDENCY: webxr/resources/webxr_util.js
 MISSING DEPENDENCY: contacts/resources/helpers.js
 MISSING DEPENDENCY: generic-sensor/resources/generic-sensor-helpers.js
+MISSING DEPENDENCY: orientation-event/resources/orientation-event-helpers.js
 
 # Tests that are false positives for using Ahem as a system font
 AHEM SYSTEM FONT: acid/acid3/test.html

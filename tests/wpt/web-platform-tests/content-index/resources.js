@@ -14,8 +14,8 @@ async function expectTypeError(promise) {
 
 function createDescription({id = 'id', title = 'title', description = 'description',
                             category = 'homepage', iconUrl = '/images/green-256x256.png',
-                            launchUrl = scope, includeIcons = true}) {
-  return {id, title, description, category, icons: includeIcons ? [{src: iconUrl}] : [], launchUrl};
+                            url = scope, includeIcons = true}) {
+  return {id, title, description, category, icons: includeIcons ? [{src: iconUrl}] : [], url};
 }
 
 // Creates a Promise test for |func| given the |description|. The |func| will be
