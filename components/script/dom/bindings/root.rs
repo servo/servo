@@ -383,7 +383,7 @@ where
     #[allow(unrooted_must_root)]
     pub unsafe fn from_box(value: Box<T>) -> Self {
         Self {
-            ptr: Box::into_raw_non_null(value),
+            ptr: Box::leak(value).into(),
         }
     }
 }
