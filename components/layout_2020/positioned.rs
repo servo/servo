@@ -100,7 +100,7 @@ impl AbsolutelyPositionedBox {
     }
 
     pub(crate) fn to_hoisted(
-        self: Arc<Self>,
+        self_: Arc<Self>,
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
     ) -> HoistedAbsolutelyPositionedBox {
@@ -124,7 +124,7 @@ impl AbsolutelyPositionedBox {
             }
         }
 
-        let box_offsets = self.contents.style.box_offsets();
+        let box_offsets = self_.contents.style.box_offsets();
         HoistedAbsolutelyPositionedBox {
             tree_rank,
             box_offsets: Vec2 {
@@ -140,7 +140,7 @@ impl AbsolutelyPositionedBox {
                 ),
             },
             fragment: ArcRefCell::new(None),
-            absolutely_positioned_box: self,
+            absolutely_positioned_box: self_,
         }
     }
 }
