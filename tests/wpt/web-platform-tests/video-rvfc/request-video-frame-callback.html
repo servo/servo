@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<title>Test the basics of the video.requestVideoFrameCallback() API.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<script>
+var testVideo = {
+  url: getVideoURI('/media/movie_5'),
+  height: 240,
+  width: 320,
+}
+
+async_test(function(t) {
+    let video = document.createElement('video');
+
+    let id = video.requestVideoFrameCallback(
+      t.step_func_done((time, metadata) => {
+        assert_true(time > 0);
+        assert_equals(metadata.height, testVideo.height);
+        assert_equals(metadata.width, testVideo.width);
+      })
+    );
+
+    assert_true(id > 0);
+
+    video.src = testVideo.url;
+    video.play();
+
+}, 'Test we can register a video.rVFC callback.');
+
+
+async_test(function(t) {
+    let video = document.createElement('video');
+
+    let id = video.requestVideoFrameCallback(
+      t.step_func(_ => {
+        assert_unreached("Cancelled callbacks shouldn't be executed")
+      })
+    );
+
+    video.cancelVideoFrameCallback(id);
+
+    video.requestVideoFrameCallback(
+      t.step_func(_ => {
+        // At this point, the other callback shouldn't have fired, but
+        // give it some more time and really make sure it doesn't, by going
+        // throught the event loop once more.
+        t.step_timeout(() => { t.done(); }, 0);
+      })
+    );
+
+    video.src = testVideo.url;
+    video.play();
+}, 'Test we can cancel a video.rVFC request.');
+
+test(function(t) {
+    let video = document.createElement('video');
+
+    // requestVideoFrameCallback() expects 1 function as a parameter.
+    assert_throws_js(TypeError, _ => { video.requestVideoFrameCallback() } );
+    assert_throws_js(TypeError, _ => { video.requestVideoFrameCallback(0) });
+    assert_throws_js(TypeError, _ => { video.requestVideoFrameCallback("foo") });
+
+    // cancelVideoFrameCallback() expects 1 number as a parameter
+    assert_throws_js(TypeError, _ => { video.cancelVideoFrameCallback() } );
+
+    // Invalid calls are just no-ops
+    video.cancelVideoFrameCallback(_ => {});
+    video.cancelVideoFrameCallback(NaN);
+    video.cancelVideoFrameCallback("foo");
+    video.cancelVideoFrameCallback(12345);
+    video.cancelVideoFrameCallback(-1);
+
+}, 'Test invalid calls to the video.rVFC API.');
+</script>
+</html>

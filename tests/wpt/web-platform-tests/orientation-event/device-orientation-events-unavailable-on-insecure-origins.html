@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Device Sensor Events not exposed to insecure origins</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/orientation-event-helpers.js"></script>
+<script>
+
+function waitForLackOfEvent(t, eventName) {
+  return new Promise(async (resolve, reject) => {
+    window.addEventListener(eventName, reject);
+    await new Promise(r => t.step_timeout(r, 1000));
+    window.removeEventListener(eventName, reject);
+    resolve();
+  });
+}
+
+if (window.location.origin != get_host_info().HTTP_ORIGIN) {
+  window.location = get_host_info().HTTP_ORIGIN + window.location.pathname;
+  promise_test(_ => new Promise(_ => {}), "Stall tests on the wrong host.");
+} else {
+  test(() => {
+    assert_false('DeviceMotionEvent' in window);
+    assert_false('DeviceOrientationEvent' in window);
+    assert_false('DeviceOrientationAbsoluteEvent' in window);
+    assert_false('DeviceMotionEventAcceleration' in window);
+    assert_false('DeviceMotionEventRotationRate' in window);
+    assert_false('ondevicemotion' in window);
+    assert_false('ondeviceorientation' in window);
+    assert_false('ondeviceorientationabsolute' in window);
+  }, 'Event interfaces and event handlers are not exposed on `window`.');
+
+  sensor_test(async (t, sensorProvider) => {
+    const FAKE_ACCELERATION_DATA = [1, 2, 3];
+    const FAKE_LINEAR_ACCELERATION_DATA = [4, 5, 6];
+    const FAKE_GYROSCOPE_DATA = [7, 8, 9];
+    setMockSensorDataForType(sensorProvider, 'Accelerometer', FAKE_ACCELERATION_DATA);
+    setMockSensorDataForType(sensorProvider, 'LinearAccelerationSensor', FAKE_LINEAR_ACCELERATION_DATA);
+    setMockSensorDataForType(sensorProvider, 'Gyroscope', FAKE_GYROSCOPE_DATA);
+
+    return waitForLackOfEvent(t, 'devicemotion');
+  }, 'addEventListener() for `devicemotion` does not crash but the handler never fires.');
+
+  sensor_test(async (t, sensorProvider) => {
+    const FAKE_ORIENTATION_DATA = [1.1, 2.2, 3.3];
+    setMockSensorDataForType(sensorProvider, 'RelativeOrientationEulerAngles', FAKE_ORIENTATION_DATA);
+
+    return waitForLackOfEvent(t, 'deviceorientation');
+  }, 'addEventListener() for `deviceorientation` does not crash but the handler never fires.');
+
+  sensor_test(async (t, sensorProvider) => {
+    const FAKE_ORIENTATION_DATA = [1.1, 2.2, 3.3];
+    setMockSensorDataForType(sensorProvider, 'AbsoluteOrientationEulerAngles', FAKE_ORIENTATION_DATA);
+
+    return waitForLackOfEvent(t, 'deviceorientationabsolute');
+  }, 'addEventListener() for `deviceorientationabsolute` does not crash but the handler never fires.');
+}
+</script>

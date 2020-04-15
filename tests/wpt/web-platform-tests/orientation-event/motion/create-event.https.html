@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+test(test => {
+  const event = document.createEvent('DeviceMotionEvent');
+  const newEvent = new CustomEvent("devicemotion", {
+      bubbles: false, cancelable: false,
+      acceleration: {x:1.5,y:2.5,z:3.5},
+      accelerationIncludingGravity: {x:4.5,y:5.5,z:6.5},
+      rotationRate: {alpha:7.5,beta:8.5,gamma:9.5},
+      interval: 0.5
+  });
+
+  assert_equals(typeof event, 'object');
+  assert_equals(event.__proto__, DeviceMotionEvent.prototype);
+
+  assert_true('type' in event);
+  assert_true('bubbles' in event);
+  assert_true('cancelable' in event);
+  assert_true('acceleration' in event);
+  assert_true('accelerationIncludingGravity' in event);
+  assert_true('rotationRate' in event);
+  assert_true('interval' in event);
+
+  assert_equals(typeof newEvent.type, 'string');
+  assert_equals(newEvent.type, "devicemotion");
+  assert_equals(typeof newEvent.bubbles, 'boolean');
+  assert_false(event.bubbles);
+  assert_false(newEvent.bubbles);
+  assert_equals(typeof newEvent.cancelable, 'boolean');
+  assert_false(event.cancelable);
+  assert_false(newEvent.cancelable);
+  assert_equals(typeof event.acceleration, 'object');
+  assert_equals(typeof event.accelerationIncludingGravity, 'object');
+  assert_equals(typeof event.rotationRate, 'object');
+  assert_equals(typeof event.interval, 'number');
+}, 'Tests that document.createEvent() works with DeviceMotionEvent.');
+</script>

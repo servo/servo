@@ -163,4 +163,62 @@ promise_test(async t => {
       "Animation start time is resolved when the animation is ready.");
 }, 'Animation start and current times are correct if scroll timeline is ' +
    'activated after animation.play call.');
+
+promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    const scroller = animation.timeline.scrollSource;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    const timeRange = animation.timeline.timeRange;
+
+    animation.play();
+    await animation.ready;
+
+    // Advance the scroller to max position.
+    scroller.scrollTop =  maxScroll;
+    await animation.finished;
+
+    // Scroll back.
+    scroller.scrollTop = 0.2 * maxScroll;
+
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    // Verify animation state and current time on reverse scrolling.
+    assert_equals(animation.playState,  'running',
+      'Animation state is playing on reverse scrolling.');
+    assert_equals(animation.currentTime,  0.2 * timeRange,
+      'Animation current time is updated on reverse scrolling.');
+}, 'Finished animation plays on reverse scrolling.');
+
+promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    const scroller = animation.timeline.scrollSource;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+    animation.play();
+    await animation.ready;
+
+    // Advance the scroller to max position.
+    scroller.scrollTop =  maxScroll;
+    await animation.finished;
+
+    var sent_finish_event = false;
+    animation.onfinish = function() {
+      sent_finish_event = true;
+    };
+
+    // Scroll back.
+    scroller.scrollTop = 0.2 * maxScroll;
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    assert_false(sent_finish_event,
+                 "No animation finished event is sent on reverse scroll.");
+
+    scroller.scrollTop = maxScroll;
+    await animation.finished;
+    assert_true(sent_finish_event,
+                 "Animation finished event is sent on reaching max scroll.");
+}, 'Sending animation finished events by finished animation on reverse ' +
+   'scrolling.');
 </script>

@@ -176,9 +176,9 @@ nfc_test(async (t, mockNFC) => {
     assertWebNDEFMessagesEqual(event.message, new NDEFMessage(mimeMsg));
   });
 
-  const scanOptions1 = { recordType: "text", signal: signal };
-  const scanOptions2 = {recordType: "url", signal: signal };
-  const scanOptions3 = {recordType: "mime", signal: signal };
+  const scanOptions1 = {recordType: "text", signal: signal};
+  const scanOptions2 = {recordType: "url", signal: signal};
+  const scanOptions3 = {recordType: "mime", signal: signal};
 
   await reader.scan(scanOptions1);
   await reader.scan(scanOptions2);
@@ -192,5 +192,49 @@ nfc_test(async (t, mockNFC) => {
   await promise;
 }, "Multiple scan() from the same NDEFReader object with new options should \
 replace existing filters.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller1 = new AbortController();
+  const controller2 = new AbortController();
+  const urlMsg = createMessage([createUrlRecord(test_url_data)]);
+  const mimeMsg = createMessage([createMimeRecord(test_buffer_data)]);
+
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const promise = readerWatcher.wait_for("reading").then(event => {
+    assertWebNDEFMessagesEqual(event.message, new NDEFMessage(mimeMsg));
+    controller2.abort();
+  });
+
+  const scanOptions1 = {recordType: "url", signal: controller1.signal};
+  const scanOptions2 = {recordType: "mime", signal: controller2.signal};
+
+  // There is maximum one filter for an NDEFReader object,
+  // last filter will replace all previous ones.
+  await reader.scan(scanOptions1);
+  await reader.scan(scanOptions2);
+
+  mockNFC.setReadingMessage(urlMsg);
+
+  controller1.abort();
+
+  mockNFC.setReadingMessage(mimeMsg);
+  await promise;
+}, "Aborting on previous signal should not stop current reading for multiple \
+scan() with different signals.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  const scanOptions1 = {recordType: "url", signal: controller.signal };
+  const scanOptions2 = {recordType: "mime"};
+
+  await reader.scan(scanOptions1);
+  const promise = reader.scan(scanOptions2);
+  controller.abort();
+
+  await promise_rejects_dom(t, 'AbortError', promise);
+}, "Aborting on previous signal can stop current reading if no new signals \
+passed to successive scan().");
 
 </script>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Masking: SVG clipPath dynamically updated.</title>
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<link rel="match" href="reference/reference-mutated-ref.html">
+<meta name="assert" content="Test ensures that SVG clipPath updates properly when dynamically changed."/>
+
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+  clip-path: url(#clip);
+}
+</style>
+<div id="target"></div>
+<svg height="0" width="0">
+  <defs>
+    <clipPath id="clip" clipPathUnits="objectBoundingBox">
+      <circle cx="0.5" cy="0.5" r="0.25"></circle>
+    </clipPath>
+  </defs>
+</svg>
+<script>
+waitForAtLeastOneFrame().then(function() {
+  document.querySelector('circle').setAttribute('r', 1);
+  takeScreenshot();
+});
+</script>

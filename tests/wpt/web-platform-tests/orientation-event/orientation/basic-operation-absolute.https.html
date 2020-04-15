@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+sensor_test(async (t, sensorProvider) => {
+  const orientationData = generateOrientationData(1.1, 2.2, 3.3, true);
+
+  setMockOrientationData(sensorProvider, orientationData);
+  return waitForAbsoluteOrientation(orientationData);
+}, 'Tests basic operation of deviceorientationabsolute event using mock data.');
+</script>

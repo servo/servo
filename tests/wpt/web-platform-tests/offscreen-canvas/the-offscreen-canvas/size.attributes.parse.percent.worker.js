@@ -16,10 +16,7 @@ t.step(function() {
 var offscreenCanvas = new OffscreenCanvas(100, 50);
 var ctx = offscreenCanvas.getContext('2d');
 
-offscreenCanvas.width = '100%';
-offscreenCanvas.height = '100%';
-_assertSame(offscreenCanvas.width, 100, "offscreenCanvas.width", "100");
-_assertSame(offscreenCanvas.height, 100, "offscreenCanvas.height", "100");
+assert_throws_js(TypeError, function() { offscreenCanvas.width = '100%'; });
 t.done();
 
 });

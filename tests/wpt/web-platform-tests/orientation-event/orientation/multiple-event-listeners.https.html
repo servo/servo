@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/orientation-event-helpers.js"></script>
+<script>
+'use strict';
+
+sensor_test(async (t, sensorProvider) => {
+  const orientationData1 = generateOrientationData(1, 2, 3, false);
+  const orientationData2 = generateOrientationData(11, 12, 13, false);
+
+  let firstListener = null;
+  let firstEventPromise = new Promise(resolve => {
+    firstListener = resolve;
+  });
+  // We directly add the listener instead of using waitForOrientation
+  // because we want the listener to stay active after the first event fires.
+  window.addEventListener('deviceorientation', firstListener);
+  let secondEventPromise = waitForOrientation(orientationData1);
+  setMockOrientationData(sensorProvider, orientationData1);
+  let firstEvent = await firstEventPromise;
+  checkOrientation(firstEvent, orientationData1);
+  await secondEventPromise;
+
+  // At this point only the first listener is still active.
+  setMockOrientationData(sensorProvider, orientationData2);
+  window.removeEventListener('deviceorientation', firstListener);
+  return waitForOrientation(orientationData2);
+}, 'Tests using multiple event handlers for the Device Orientation API.');
+</script>

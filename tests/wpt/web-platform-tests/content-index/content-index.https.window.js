@@ -22,8 +22,8 @@ contentIndexTest(async (t, index) => {
   await expectTypeError(index.add(createDescription({iconUrl: '/non-existent-icon.png'})));
   await expectTypeError(index.add(createDescription({iconUrl: '/images/broken.png'})));
 
-  await expectTypeError(index.add(createDescription({launchUrl: 'https://other-domain.com/'})));
-  await expectTypeError(index.add(createDescription({launchUrl: '/different-scope'})));
+  await expectTypeError(index.add(createDescription({url: 'https://other-domain.com/'})));
+  await expectTypeError(index.add(createDescription({url: '/different-scope'})));
 
   await index.add(createDescription({}));
 

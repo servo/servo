@@ -16,6 +16,7 @@
         if (!run) {
           run = true;
           t.step(function () {
+            assert_true(e instanceof DeviceOrientationEvent, "instanceof DeviceOrientationEvent");
             assert_equals(e.type, "deviceorientationabsolute", "type is set to \"deviceorientationabsolute\"");
             assert_equals(e.alpha, null, "alpha is set to null");
             assert_equals(e.beta, null, "beta is set to null");

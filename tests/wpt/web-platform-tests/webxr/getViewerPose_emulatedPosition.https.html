@@ -16,9 +16,12 @@
     };
 
     let testFunction = function(session, fakeDeviceController, t) {
+      let debug = xr_debug.bind(this, 'testFunction');
       return session.requestReferenceSpace('local')
         .then((referenceSpace) => new Promise((resolve, reject) => {
+          debug('refSpace promise');
           function CheckPositionNotEmulated(time, vrFrame){
+            debug('rAF 1: checkPositionNotEmulated');
             t.step(() => {
               let pose = vrFrame.getViewerPose(referenceSpace);
               assert_not_equals(pose, null);
@@ -30,6 +33,7 @@
           }
 
           function CheckPositionEmulated(time, vrFrame) {
+            debug('rAF 2: checkPositionEmulated');
             t.step(() => {
               let pose = vrFrame.getViewerPose(referenceSpace);
               assert_not_equals(pose, null);
@@ -37,6 +41,7 @@
             });
 
             // Finished.
+            debug('resolve');
             resolve();
           }
 

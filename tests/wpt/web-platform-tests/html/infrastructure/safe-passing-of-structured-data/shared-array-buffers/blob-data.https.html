@@ -16,7 +16,7 @@ promise_test(t => {
 `;
 }
 
-function dataWorkerIncrementerTest(name, origin = "null") {
+function blobWorkerIncrementerTest(name, origin = "null") {
   return `
 promise_test(t => {
   const worker = new Worker(URL.createObjectURL(new Blob([\`
@@ -71,7 +71,7 @@ importScripts("${url.href}resources/test-incrementer.js");
 
 ${httpWorkerIncrementerTest("blob worker")}
 
-${dataWorkerIncrementerTest("blob worker", self.location.origin)}
+${blobWorkerIncrementerTest("blob worker", self.location.origin)}
 
 ${propertyTests("blob worker")}
 
@@ -87,7 +87,7 @@ const frameScript = `
 <script>
 ${httpWorkerIncrementerTest("blob frame")}
 
-${dataWorkerIncrementerTest("blob frame", self.location.origin)}
+${blobWorkerIncrementerTest("blob frame", self.location.origin)}
 
 ${propertyTests("blob frame")}
 <\/script>
@@ -99,11 +99,11 @@ frame.style = "display:none";
 fetch_tests_from_window(frame.contentWindow);
 
 const dataWorkerScript = `
-importScripts("${url.origin}/resources/testharness.js");
+importScripts("${url.origin}/resources/testharness.js?pipe=header(Cross-Origin-Resource-Policy,cross-origin)");
 
 // Cannot use httpWorkerIncrementerTest() here as the HTTP URL is not same origin.
 
-${dataWorkerIncrementerTest("data worker")}
+${blobWorkerIncrementerTest("data worker")}
 
 ${propertyTests("data worker")}
 
@@ -114,11 +114,11 @@ fetch_tests_from_worker(new Worker(`data:,${dataWorkerScript}`));
 
 const dataFrameScript = `
 <!doctype html>
-<script src=${url.origin}/resources/testharness.js><\/script>
+<script src=${url.origin}/resources/testharness.js?pipe=header(Cross-Origin-Resource-Policy,cross-origin)><\/script>
 <script>
 // Cannot use httpWorkerIncrementerTest() here as the HTTP URL is not same origin.
 
-${dataWorkerIncrementerTest("data frame")}
+${blobWorkerIncrementerTest("data frame")}
 
 ${propertyTests("data frame")}
 <\/script>

@@ -100,29 +100,3 @@ function verifyGeoSensorReading(pattern, {latitude, longitude, altitude,
 function verifyProximitySensorReading(pattern, {distance, max, near, timestamp}, isNull) {
   return verifySensorReading(pattern, [distance, max, near], timestamp, isNull);
 }
-
-// A "sliding window" that iterates over |data| and returns one item at a
-// time, advancing and wrapping around as needed. |data| must be an array of
-// arrays.
-class RingBuffer {
-  constructor(data) {
-    this.bufferPosition_ = 0;
-    // Validate |data|'s format and deep-copy every element.
-    this.data_ = Array.from(data, element => {
-      if (!Array.isArray(element)) {
-        throw new TypeError('Every |data| element must be an array.');
-      }
-      return Array.from(element);
-    })
-  }
-
-  next() {
-    const value = this.data_[this.bufferPosition_];
-    this.bufferPosition_ = (this.bufferPosition_ + 1) % this.data_.length;
-    return { done: false, value: value };
-  }
-
-  [Symbol.iterator]() {
-    return this;
-  }
-}

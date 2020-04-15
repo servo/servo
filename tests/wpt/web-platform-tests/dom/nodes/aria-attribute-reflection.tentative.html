@@ -360,13 +360,24 @@ test(function(t) {
 }, "aria-rowspan attribute reflects.");
 </script>
 
+<div id="selected" aria-selected="true"></div>
+
+<script>
+test(function(t) {
+    var element = document.getElementById("selected");
+    assert_equals(element.ariaSelected, "true");
+    element.ariaSelected = "false";
+    assert_equals(element.getAttribute("aria-selected"), "false");
+}, "aria-selected attribute reflects.");
+</script>
+
 <div id="setsize" aria-setsize="10"></div>
 
 <script>
 test(function(t) {
     var element = document.getElementById("setsize");
-    assert_equals(element.ariaSelected, "10");
-    element.ariaSelected = "11";
+    assert_equals(element.ariaSetSize, "10");
+    element.ariaSetSize = "11";
     assert_equals(element.getAttribute("aria-setsize"), "11");
 }, "aria-setsize attribute reflects.");
 </script>
