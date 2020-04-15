@@ -7,7 +7,6 @@
 #![feature(const_transmute)]
 #![feature(core_intrinsics)]
 #![feature(drain_filter)]
-#![feature(inner_deref)]
 #![feature(plugin)]
 #![feature(register_tool)]
 #![deny(unsafe_code)]

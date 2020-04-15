@@ -15,8 +15,6 @@
 //!
 //! [glutin]: https://github.com/tomaka/glutin
 
-#![feature(core_intrinsics)]
-
 #[cfg(not(target_os = "android"))]
 include!("main2.rs");
 
