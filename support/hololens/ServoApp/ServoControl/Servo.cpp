@@ -109,6 +109,7 @@ const char *prompt_input(const char *message, const char *default,
 Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
              float dpi, ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
+  SetEnvironmentVariableA("PreviewRuntimeEnabled", "1");
 
   capi::CInitOptions o;
   hstring defaultPrefs = L" --pref dom.webxr.enabled --devtools";
