@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::utils::create_typed_array;
@@ -24,17 +25,24 @@ pub struct XRView {
     proj: Heap<*mut JSObject>,
     #[ignore_malloc_size_of = "mozjs"]
     view: Heap<*mut JSObject>,
+    proj_array: Vec<f32>,
     transform: Dom<XRRigidTransform>,
 }
 
 impl XRView {
-    fn new_inherited(session: &XRSession, transform: &XRRigidTransform, eye: XREye) -> XRView {
+    fn new_inherited(
+        session: &XRSession,
+        transform: &XRRigidTransform,
+        eye: XREye,
+        proj_array: Vec<f32>,
+    ) -> XRView {
         XRView {
             reflector_: Reflector::new(),
             session: Dom::from_ref(session),
             eye,
             proj: Heap::default(),
             view: Heap::default(),
+            proj_array,
             transform: Dom::from_ref(transform),
         }
     }
@@ -55,13 +63,18 @@ impl XRView {
         let transform = pose.pre_transform(&offset);
         let transform = XRRigidTransform::new(global, cast_transform(transform));
 
+        // row_major since euclid uses row vectors
+        let proj = view.projection.to_row_major_array();
         let ret = reflect_dom_object(
-            Box::new(XRView::new_inherited(session, &transform, eye)),
+            Box::new(XRView::new_inherited(
+                session,
+                &transform,
+                eye,
+                (&proj).to_vec(),
+            )),
             global,
         );
 
-        // row_major since euclid uses row vectors
-        let proj = view.projection.to_row_major_array();
         let cx = global.get_cx();
         create_typed_array(cx, &proj, &ret.proj);
         ret
@@ -80,6 +93,10 @@ impl XRViewMethods for XRView {
 
     /// https://immersive-web.github.io/webxr/#dom-xrview-projectionmatrix
     fn ProjectionMatrix(&self, _cx: JSContext) -> NonNull<JSObject> {
+        if self.proj.get().is_null() {
+            let cx = self.global().get_cx();
+            create_typed_array(cx, &self.proj_array, &self.proj);
+        }
         NonNull::new(self.proj.get()).unwrap()
     }
 
