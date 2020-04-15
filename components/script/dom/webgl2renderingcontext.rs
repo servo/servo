@@ -3456,7 +3456,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                 return;
             },
         };
-        if !program.is_linked() || program.transform_feedback_varyings_length() != 0 {
+        if !program.is_linked() || program.transform_feedback_varyings_length() == 0 {
             self.base.webgl_error(InvalidOperation);
             return;
         };
