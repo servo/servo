@@ -5,7 +5,6 @@
 //! Implements the global methods required by Servo (not window/gl/compositor related).
 
 use crate::events_loop::EventsLoop;
-use servo::canvas::{SurfaceProviders, WebGlExecutor};
 use servo::compositing::windowing::EmbedderMethods;
 use servo::embedder_traits::{EmbedderProxy, EventLoopWaker};
 use servo::servo_config::pref;
@@ -38,8 +37,6 @@ impl EmbedderMethods for EmbedderCallbacks {
     fn register_webxr(
         &mut self,
         xr: &mut webxr::MainThreadRegistry,
-        _executor: WebGlExecutor,
-        _surface_provider_registration: SurfaceProviders,
         _embedder_proxy: EmbedderProxy,
     ) {
         if pref!(dom.webxr.test) {

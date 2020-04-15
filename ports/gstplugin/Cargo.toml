@@ -29,8 +29,8 @@ libservo = { path = "../../components/servo" }
 log = "0.4"
 servo-media = { git = "https://github.com/servo/media" }
 sparkle = "0.1"
-surfman = { git = "https://github.com/servo/surfman" }
-surfman-chains = { git = "https://github.com/asajeffrey/surfman-chains" }
+surfman = "0.3"
+surfman-chains = "0.4"
 surfman-chains-api = "0.2"
 
 [build-dependencies]

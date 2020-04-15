@@ -4,7 +4,6 @@
 
 //! Abstract windowing methods. The concrete implementations of these can be found in `platform/`.
 
-use canvas::{SurfaceProviders, WebGlExecutor};
 use embedder_traits::{EmbedderProxy, EventLoopWaker};
 use euclid::Scale;
 use keyboard_types::KeyboardEvent;
@@ -171,14 +170,7 @@ pub trait EmbedderMethods {
     fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker>;
 
     /// Register services with a WebXR Registry.
-    fn register_webxr(
-        &mut self,
-        _: &mut webxr::MainThreadRegistry,
-        _: WebGlExecutor,
-        _: SurfaceProviders,
-        _: EmbedderProxy,
-    ) {
-    }
+    fn register_webxr(&mut self, _: &mut webxr::MainThreadRegistry, _: EmbedderProxy) {}
 
     /// Returns the user agent string to report in network requests.
     fn get_user_agent_string(&self) -> Option<String> {

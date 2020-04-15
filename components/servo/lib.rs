@@ -65,7 +65,7 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
 use canvas::canvas_paint_thread::{self, CanvasPaintThread};
-use canvas::{SurfaceProviders, WebGLComm, WebGlExecutor};
+use canvas::WebGLComm;
 use canvas_traits::webgl::WebGLThreads;
 use compositing::compositor_thread::{
     CompositorProxy, CompositorReceiver, InitialCompositorState, Msg, WebrenderCanvasMsg,
@@ -118,12 +118,13 @@ use std::cmp::max;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+use std::sync::Mutex;
 use surfman::GLApi;
 use webrender::ShaderPrecacheFlags;
-use webrender_surfman::WebrenderSurfman;
+use webrender_traits::WebrenderExternalImageHandlers;
+use webrender_traits::WebrenderExternalImageRegistry;
 use webrender_traits::WebrenderImageHandlerType;
-use webrender_traits::{WebrenderExternalImageHandlers, WebrenderExternalImageRegistry};
 
 pub use gleam::gl;
 pub use keyboard_types;
@@ -446,32 +447,43 @@ where
             None
         };
 
+        // Create the webgl thread
+        let gl_type = match webrender_gl.get_type() {
+            gleam::gl::GlType::Gl => sparkle::gl::GlType::Gl,
+            gleam::gl::GlType::Gles => sparkle::gl::GlType::Gles,
+        };
+
         let (external_image_handlers, external_images) = WebrenderExternalImageHandlers::new();
         let mut external_image_handlers = Box::new(external_image_handlers);
 
-        let mut webxr_main_thread = webxr::MainThreadRegistry::new(event_loop_waker)
-            .expect("Failed to create WebXR device registry");
-
-        let (webgl_threads, webgl_extras) = create_webgl_threads(
+        let WebGLComm {
+            webgl_threads,
+            webxr_layer_grand_manager,
+            image_handler,
+            output_handler,
+        } = WebGLComm::new(
             webrender_surfman.clone(),
             webrender_gl.clone(),
-            &mut webrender,
             webrender_api.create_sender(),
             webrender_document,
-            &mut webxr_main_thread,
-            &mut external_image_handlers,
             external_images.clone(),
+            gl_type,
         );
 
+        // Set webrender external image handler for WebGL textures
+        external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
+
+        // Set DOM to texture handler, if enabled.
+        if let Some(output_handler) = output_handler {
+            webrender.set_output_image_handler(output_handler);
+        }
+
+        // Create the WebXR main thread
+        let mut webxr_main_thread =
+            webxr::MainThreadRegistry::new(event_loop_waker, webxr_layer_grand_manager)
+                .expect("Failed to create WebXR device registry");
         if pref!(dom.webxr.enabled) {
-            if let Some((webxr_surface_providers, webgl_executor)) = webgl_extras {
-                embedder.register_webxr(
-                    &mut webxr_main_thread,
-                    webgl_executor,
-                    webxr_surface_providers,
-                    embedder_proxy.clone(),
-                );
-            }
+            embedder.register_webxr(&mut webxr_main_thread, embedder_proxy.clone());
         }
 
         let glplayer_threads = match window.get_gl_context() {
@@ -526,7 +538,7 @@ where
             webrender_api_sender,
             webxr_main_thread.registry(),
             player_context,
-            webgl_threads,
+            Some(webgl_threads),
             glplayer_threads,
             event_loop_waker,
             window_size,
@@ -1093,58 +1105,6 @@ fn create_sandbox() {
 ))]
 fn create_sandbox() {
     panic!("Sandboxing is not supported on Windows, iOS, ARM targets and android.");
-}
-
-// Initializes the WebGL thread.
-fn create_webgl_threads(
-    webrender_surfman: WebrenderSurfman,
-    webrender_gl: Rc<dyn gl::Gl>,
-    webrender: &mut webrender::Renderer,
-    webrender_api_sender: webrender_api::RenderApiSender,
-    webrender_doc: webrender_api::DocumentId,
-    webxr_main_thread: &mut webxr::MainThreadRegistry,
-    external_image_handlers: &mut WebrenderExternalImageHandlers,
-    external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
-) -> (
-    Option<WebGLThreads>,
-    Option<(SurfaceProviders, WebGlExecutor)>,
-) {
-    let gl_type = match webrender_gl.get_type() {
-        gleam::gl::GlType::Gl => sparkle::gl::GlType::Gl,
-        gleam::gl::GlType::Gles => sparkle::gl::GlType::Gles,
-    };
-
-    let WebGLComm {
-        webgl_threads,
-        webxr_swap_chains,
-        webxr_surface_providers,
-        image_handler,
-        output_handler,
-        webgl_executor,
-    } = WebGLComm::new(
-        webrender_surfman,
-        webrender_gl,
-        webrender_api_sender,
-        webrender_doc,
-        external_images,
-        gl_type,
-    );
-
-    // Set webrender external image handler for WebGL textures
-    external_image_handlers.set_handler(image_handler, WebrenderImageHandlerType::WebGL);
-
-    // Set webxr external image handler for WebGL textures
-    webxr_main_thread.set_swap_chains(webxr_swap_chains);
-
-    // Set DOM to texture handler, if enabled.
-    if let Some(output_handler) = output_handler {
-        webrender.set_output_image_handler(output_handler);
-    }
-
-    (
-        Some(webgl_threads),
-        Some((webxr_surface_providers, webgl_executor)),
-    )
 }
 
 enum UserAgent {

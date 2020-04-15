@@ -26,7 +26,6 @@ use surfman::SurfaceAccess;
 use surfman::SurfaceInfo;
 use surfman::SurfaceTexture;
 use surfman::SurfaceType;
-use surfman_chains::SurfmanProvider;
 use surfman_chains::SwapChain;
 
 /// A bridge between webrender and surfman
@@ -68,7 +67,7 @@ impl WebrenderSurfman {
         };
         let context_attributes = ContextAttributes { flags, version };
         let context_descriptor = device.create_context_descriptor(&context_attributes)?;
-        let mut context = device.create_context(&context_descriptor)?;
+        let mut context = device.create_context(&context_descriptor, None)?;
         let surface_access = SurfaceAccess::GPUOnly;
         let headless = match surface_type {
             SurfaceType::Widget { .. } => false,
@@ -82,11 +81,10 @@ impl WebrenderSurfman {
                 err
             })?;
         let swap_chain = if headless {
-            let surface_provider = Box::new(SurfmanProvider::new(surface_access));
             Some(SwapChain::create_attached(
                 &mut device,
                 &mut context,
-                surface_provider,
+                surface_access,
             )?)
         } else {
             None

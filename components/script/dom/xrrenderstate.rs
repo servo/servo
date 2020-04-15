@@ -11,9 +11,11 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrwebgllayer::XRWebGLLayer;
+use canvas_traits::webgl::WebGLContextId;
 use dom_struct::dom_struct;
 use std::cell::Cell;
-use webxr_api::SwapChainId;
+use webxr_api::LayerId;
+use webxr_api::SubImages;
 
 #[dom_struct]
 pub struct XRRenderState {
@@ -21,7 +23,7 @@ pub struct XRRenderState {
     depth_near: Cell<f64>,
     depth_far: Cell<f64>,
     inline_vertical_fov: Cell<Option<f64>>,
-    layer: MutNullableDom<XRWebGLLayer>,
+    base_layer: MutNullableDom<XRWebGLLayer>,
     layers: DomRefCell<Vec<XRWebGLLayerOrXRLayer>>,
 }
 
@@ -45,17 +47,26 @@ impl XRWebGLLayerOrXRLayer {
         }
     }
 
-    pub fn swap_chain_id(&self) -> Option<SwapChainId> {
+    pub(crate) fn layer_id(&self) -> Option<LayerId> {
         match self {
-            XRWebGLLayerOrXRLayer::XRWebGLLayer(layer) => Some(layer.swap_chain_id()),
-            XRWebGLLayerOrXRLayer::XRLayer(_) => None,
+            XRWebGLLayerOrXRLayer::XRWebGLLayer(ref layer) => layer.layer_id(),
+            XRWebGLLayerOrXRLayer::XRLayer(ref layer) => Some(layer.layer_id()),
+        }
+    }
+}
+
+impl RootedXRWebGLLayerOrXRLayer {
+    pub(crate) fn layer_id(&self) -> Option<LayerId> {
+        match self {
+            RootedXRWebGLLayerOrXRLayer::XRWebGLLayer(ref layer) => layer.layer_id(),
+            RootedXRWebGLLayerOrXRLayer::XRLayer(ref layer) => Some(layer.layer_id()),
         }
     }
 
-    pub fn swap_buffers(&self) {
+    pub(crate) fn context_id(&self) -> WebGLContextId {
         match self {
-            XRWebGLLayerOrXRLayer::XRWebGLLayer(layer) => layer.swap_buffers(),
-            XRWebGLLayerOrXRLayer::XRLayer(_) => (),
+            RootedXRWebGLLayerOrXRLayer::XRWebGLLayer(ref layer) => layer.context_id(),
+            RootedXRWebGLLayerOrXRLayer::XRLayer(ref layer) => layer.context_id(),
         }
     }
 }
@@ -74,7 +85,7 @@ impl XRRenderState {
             depth_near: Cell::new(depth_near),
             depth_far: Cell::new(depth_far),
             inline_vertical_fov: Cell::new(inline_vertical_fov),
-            layer: MutNullableDom::new(layer),
+            base_layer: MutNullableDom::new(layer),
             layers: DomRefCell::new(layers.iter().cloned().collect()),
         }
     }
@@ -106,7 +117,7 @@ impl XRRenderState {
             self.depth_near.get(),
             self.depth_far.get(),
             self.inline_vertical_fov.get(),
-            self.layer.get().as_ref().map(|x| &**x),
+            self.base_layer.get().as_ref().map(|x| &**x),
             &layers,
         )
     }
@@ -121,8 +132,8 @@ impl XRRenderState {
         debug_assert!(self.inline_vertical_fov.get().is_some());
         self.inline_vertical_fov.set(Some(fov))
     }
-    pub fn set_layer(&self, layer: Option<&XRWebGLLayer>) {
-        self.layer.set(layer)
+    pub fn set_base_layer(&self, layer: Option<&XRWebGLLayer>) {
+        self.base_layer.set(layer)
     }
     pub fn set_layers(&self, layers: &[RootedXRWebGLLayerOrXRLayer]) {
         *self.layers.borrow_mut() = layers.iter().map(XRWebGLLayerOrXRLayer::from_ref).collect();
@@ -134,8 +145,25 @@ impl XRRenderState {
         let layers = self.layers.borrow();
         f(&*layers)
     }
-    pub fn has_layer(&self) -> bool {
-        self.layer.get().is_some() || !self.layers.borrow().is_empty()
+    pub fn has_sub_images(&self, sub_images: &[SubImages]) -> bool {
+        if let Some(base_layer) = self.base_layer.get() {
+            match sub_images.len() {
+                // For inline sessions, there may be a base layer, but it won't have a framebuffer
+                0 => base_layer.layer_id() == None,
+                // For immersive sessions, the base layer will have a framebuffer,
+                // so we make sure the layer id's match up
+                1 => base_layer.layer_id() == Some(sub_images[0].layer_id),
+                _ => false,
+            }
+        } else {
+            // The layers API is only for immersive sessions
+            let layers = self.layers.borrow();
+            sub_images.len() == layers.len() &&
+                sub_images
+                    .iter()
+                    .zip(layers.iter())
+                    .all(|(sub_image, layer)| Some(sub_image.layer_id) == layer.layer_id())
+        }
     }
 }
 
@@ -157,6 +185,6 @@ impl XRRenderStateMethods for XRRenderState {
 
     /// https://immersive-web.github.io/webxr/#dom-xrrenderstate-baselayer
     fn GetBaseLayer(&self) -> Option<DomRoot<XRWebGLLayer>> {
-        self.layer.get()
+        self.base_layer.get()
     }
 }

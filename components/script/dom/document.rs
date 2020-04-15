@@ -106,7 +106,7 @@ use crate::stylesheet_set::StylesheetSetRef;
 use crate::task::TaskBox;
 use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::OneshotTimerCallback;
-use canvas_traits::webgl::{self, SwapChainId, WebGLContextId, WebGLMsg};
+use canvas_traits::webgl::{self, WebGLContextId, WebGLMsg};
 use content_security_policy::{self as csp, CspList};
 use cookie::Cookie;
 use devtools_traits::ScriptToDevtoolsControlMsg;
@@ -2707,7 +2707,7 @@ impl Document {
             .borrow_mut()
             .drain()
             .filter(|(_, context)| context.onscreen())
-            .map(|(id, _)| SwapChainId::Context(id))
+            .map(|(id, _)| id)
             .collect();
 
         if dirty_context_ids.is_empty() {

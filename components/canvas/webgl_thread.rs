@@ -5,6 +5,7 @@
 use crate::webgl_limits::GLLimitsDetect;
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use canvas_traits::webgl;
+use canvas_traits::webgl::webgl_channel;
 use canvas_traits::webgl::ActiveAttribInfo;
 use canvas_traits::webgl::ActiveUniformBlockInfo;
 use canvas_traits::webgl::ActiveUniformInfo;
@@ -15,7 +16,6 @@ use canvas_traits::webgl::GLLimits;
 use canvas_traits::webgl::GlType;
 use canvas_traits::webgl::InternalFormatIntVec;
 use canvas_traits::webgl::ProgramLinkInfo;
-use canvas_traits::webgl::SwapChainId;
 use canvas_traits::webgl::TexDataType;
 use canvas_traits::webgl::TexFormat;
 use canvas_traits::webgl::WebGLBufferId;
@@ -28,7 +28,6 @@ use canvas_traits::webgl::WebGLFramebufferBindingRequest;
 use canvas_traits::webgl::WebGLFramebufferId;
 use canvas_traits::webgl::WebGLMsg;
 use canvas_traits::webgl::WebGLMsgSender;
-use canvas_traits::webgl::WebGLOpaqueFramebufferId;
 use canvas_traits::webgl::WebGLProgramId;
 use canvas_traits::webgl::WebGLQueryId;
 use canvas_traits::webgl::WebGLReceiver;
@@ -39,9 +38,10 @@ use canvas_traits::webgl::WebGLSender;
 use canvas_traits::webgl::WebGLShaderId;
 use canvas_traits::webgl::WebGLSyncId;
 use canvas_traits::webgl::WebGLTextureId;
-use canvas_traits::webgl::WebGLTransparentFramebufferId;
 use canvas_traits::webgl::WebGLVersion;
 use canvas_traits::webgl::WebGLVertexArrayId;
+use canvas_traits::webgl::WebXRCommand;
+use canvas_traits::webgl::WebXRLayerManagerId;
 use canvas_traits::webgl::YAxisTreatment;
 use euclid::default::Size2D;
 use fnv::FnvHashMap;
@@ -68,11 +68,22 @@ use surfman::GLVersion;
 use surfman::SurfaceAccess;
 use surfman::SurfaceInfo;
 use surfman::SurfaceType;
-use surfman_chains::{SurfmanProvider, SwapChains};
+use surfman_chains::SwapChains;
 use surfman_chains_api::SwapChainsAPI;
 use webrender_traits::{WebrenderExternalImageRegistry, WebrenderImageHandlerType};
-use webxr_api::SessionId;
-use webxr_api::SwapChainId as WebXRSwapChainId;
+use webxr::SurfmanGL as WebXRSurfman;
+use webxr_api::ContextId as WebXRContextId;
+use webxr_api::Error as WebXRError;
+use webxr_api::GLContexts as WebXRContexts;
+use webxr_api::GLTypes as WebXRTypes;
+use webxr_api::LayerGrandManager as WebXRLayerGrandManager;
+use webxr_api::LayerGrandManagerAPI as WebXRLayerGrandManagerAPI;
+use webxr_api::LayerId as WebXRLayerId;
+use webxr_api::LayerInit as WebXRLayerInit;
+use webxr_api::LayerManager as WebXRLayerManager;
+use webxr_api::LayerManagerAPI as WebXRLayerManagerAPI;
+use webxr_api::LayerManagerFactory as WebXRLayerManagerFactory;
+use webxr_api::SubImages as WebXRSubImages;
 
 #[cfg(feature = "xr-profile")]
 fn to_ms(ns: u64) -> f64 {
@@ -239,35 +250,24 @@ pub(crate) struct WebGLThread {
     sender: WebGLSender<WebGLMsg>,
     /// The swap chains used by webrender
     webrender_swap_chains: SwapChains<WebGLContextId, Device>,
-    /// The swap chains used by webxr
-    webxr_swap_chains: SwapChains<WebXRSwapChainId, Device>,
-    /// The set of all surface providers corresponding to WebXR sessions.
-    webxr_surface_providers: SurfaceProviders,
-    /// A channel to allow arbitrary threads to execute tasks that run in the WebGL thread.
-    runnable_receiver: crossbeam_channel::Receiver<WebGlRunnable>,
     /// Whether this context is a GL or GLES context.
     api_type: gl::GlType,
+    /// The bridge to WebXR
+    pub webxr_bridge: WebXRBridge,
 }
-
-pub type WebGlExecutor = crossbeam_channel::Sender<WebGlRunnable>;
-pub type WebGlRunnable = Box<dyn FnOnce(&Device) + Send>;
-pub type SurfaceProviders = Arc<Mutex<HashMap<SessionId, SurfaceProvider>>>;
-pub type SurfaceProvider = Box<dyn surfman_chains::SurfaceProvider<Device> + Send>;
 
 /// The data required to initialize an instance of the WebGLThread type.
 pub(crate) struct WebGLThreadInit {
-    pub webxr_surface_providers: SurfaceProviders,
     pub webrender_api_sender: webrender_api::RenderApiSender,
     pub webrender_doc: webrender_api::DocumentId,
     pub external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     pub sender: WebGLSender<WebGLMsg>,
     pub receiver: WebGLReceiver<WebGLMsg>,
     pub webrender_swap_chains: SwapChains<WebGLContextId, Device>,
-    pub webxr_swap_chains: SwapChains<WebXRSwapChainId, Device>,
     pub connection: Connection,
     pub adapter: Adapter,
     pub api_type: gl::GlType,
-    pub runnable_receiver: crossbeam_channel::Receiver<WebGlRunnable>,
+    pub webxr_init: WebXRBridgeInit,
 }
 
 // A size at which it should be safe to create GL contexts
@@ -283,12 +283,10 @@ impl WebGLThread {
             sender,
             receiver,
             webrender_swap_chains,
-            webxr_swap_chains,
-            webxr_surface_providers,
             connection,
             adapter,
             api_type,
-            runnable_receiver,
+            webxr_init,
         }: WebGLThreadInit,
     ) -> Self {
         WebGLThread {
@@ -305,10 +303,8 @@ impl WebGLThread {
             sender,
             receiver: receiver.into_inner(),
             webrender_swap_chains,
-            webxr_swap_chains,
-            webxr_surface_providers,
-            runnable_receiver,
             api_type,
+            webxr_bridge: WebXRBridge::new(webxr_init),
         }
     }
 
@@ -326,34 +322,18 @@ impl WebGLThread {
 
     fn process(&mut self) {
         let webgl_chan = WebGLChan(self.sender.clone());
-        loop {
-            crossbeam_channel::select! {
-                recv(self.receiver) -> msg => {
-                    match msg {
-                        Ok(msg) => {
-                            let exit = self.handle_msg(msg, &webgl_chan);
-                            if exit {
-                                // Call remove_context functions in order to correctly delete WebRender image keys.
-                                let context_ids: Vec<WebGLContextId> = self.contexts.keys().map(|id| *id).collect();
-                                for id in context_ids {
-                                    self.remove_webgl_context(id);
-                                }
+        while let Ok(msg) = self.receiver.recv() {
+            let exit = self.handle_msg(msg, &webgl_chan);
+            if exit {
+                // Call remove_context functions in order to correctly delete WebRender image keys.
+                let context_ids: Vec<WebGLContextId> = self.contexts.keys().map(|id| *id).collect();
+                for id in context_ids {
+                    self.remove_webgl_context(id);
+                }
 
-                                // Block on shutting-down WebRender.
-                                self.webrender_api.shut_down(true);
-                                return;
-                            }
-                        }
-                        _ => break,
-                    }
-                }
-                recv(self.runnable_receiver) -> msg => {
-                    if let Ok(msg) = msg {
-                        msg(&self.device);
-                    } else {
-                        self.runnable_receiver = crossbeam_channel::never();
-                    }
-                }
+                // Block on shutting-down WebRender.
+                self.webrender_api.shut_down(true);
+                return;
             }
         }
     }
@@ -424,8 +404,8 @@ impl WebGLThread {
             WebGLMsg::WebGLCommand(ctx_id, command, backtrace) => {
                 self.handle_webgl_command(ctx_id, command, backtrace);
             },
-            WebGLMsg::CreateWebXRSwapChain(ctx_id, size, sender, id) => {
-                let _ = sender.send(self.create_webxr_swap_chain(ctx_id, size, id));
+            WebGLMsg::WebXRCommand(command) => {
+                self.handle_webxr_command(command);
             },
             WebGLMsg::SwapBuffers(swap_ids, sender, sent_time) => {
                 self.handle_swap_buffers(swap_ids, sender, sent_time);
@@ -439,6 +419,63 @@ impl WebGLThread {
         }
 
         false
+    }
+
+    /// Handles a WebXR message
+    fn handle_webxr_command(&mut self, command: WebXRCommand) {
+        trace!("processing {:?}", command);
+        let mut contexts = WebXRBridgeContexts {
+            contexts: &mut self.contexts,
+            bound_context_id: &mut self.bound_context_id,
+        };
+        match command {
+            WebXRCommand::CreateLayerManager(sender) => {
+                let result = self
+                    .webxr_bridge
+                    .create_layer_manager(&mut self.device, &mut contexts);
+                let _ = sender.send(result);
+            },
+            WebXRCommand::DestroyLayerManager(manager_id) => {
+                self.webxr_bridge.destroy_layer_manager(manager_id);
+            },
+            WebXRCommand::CreateLayer(manager_id, context_id, layer_init, sender) => {
+                let result = self.webxr_bridge.create_layer(
+                    manager_id,
+                    &mut self.device,
+                    &mut contexts,
+                    context_id,
+                    layer_init,
+                );
+                let _ = sender.send(result);
+            },
+            WebXRCommand::DestroyLayer(manager_id, context_id, layer_id) => {
+                self.webxr_bridge.destroy_layer(
+                    manager_id,
+                    &mut self.device,
+                    &mut contexts,
+                    context_id,
+                    layer_id,
+                );
+            },
+            WebXRCommand::BeginFrame(manager_id, layers, sender) => {
+                let result = self.webxr_bridge.begin_frame(
+                    manager_id,
+                    &mut self.device,
+                    &mut contexts,
+                    &layers[..],
+                );
+                let _ = sender.send(result);
+            },
+            WebXRCommand::EndFrame(manager_id, layers, sender) => {
+                let result = self.webxr_bridge.end_frame(
+                    manager_id,
+                    &mut self.device,
+                    &mut contexts,
+                    &layers[..],
+                );
+                let _ = sender.send(result);
+            },
+        }
     }
 
     /// Handles a WebGLCommand for a specific WebGLContext
@@ -457,36 +494,7 @@ impl WebGLThread {
             &mut self.contexts,
             &mut self.bound_context_id,
         );
-
         if let Some(data) = data {
-            match command {
-                // We have to handle framebuffer binding differently, because `apply`
-                // assumes that the currently attached surface is the right one for binding
-                // the framebuffer, and since it doesn't get passed the swap buffers
-                // it casn't do that itself. At some point we could refactor apply so
-                // it takes a self parameter, at which point that won't be necessary.
-                WebGLCommand::BindFramebuffer(_, request) => {
-                    WebGLImpl::attach_surface(
-                        context_id,
-                        &self.webrender_swap_chains,
-                        &self.webxr_swap_chains,
-                        request,
-                        &mut data.ctx,
-                        &mut self.device,
-                    );
-                },
-                // Similarly, dropping a WebGL framebuffer needs access to the swap chains,
-                // in order to delete the entry.
-                WebGLCommand::DeleteFramebuffer(WebGLFramebufferId::Opaque(
-                    WebGLOpaqueFramebufferId::WebXR(id),
-                )) => {
-                    let _ = self
-                        .webxr_swap_chains
-                        .destroy(id, &mut self.device, &mut data.ctx);
-                },
-                _ => {},
-            }
-
             WebGLImpl::apply(
                 &self.device,
                 &data.ctx,
@@ -545,11 +553,10 @@ impl WebGLThread {
             size: safe_size.to_i32(),
         };
         let surface_access = self.surface_access();
-        let surface_provider = Box::new(SurfmanProvider::new(surface_access));
 
         let mut ctx = self
             .device
-            .create_context(&context_descriptor)
+            .create_context(&context_descriptor, None)
             .map_err(|err| format!("Failed to create the GL context: {:?}", err))?;
         let surface = self
             .device
@@ -572,7 +579,7 @@ impl WebGLThread {
         );
 
         self.webrender_swap_chains
-            .create_attached_swap_chain(id, &mut self.device, &mut ctx, surface_provider)
+            .create_attached_swap_chain(id, &mut self.device, &mut ctx, surface_access)
             .map_err(|err| format!("Failed to create swap chain: {:?}", err))?;
 
         let swap_chain = self
@@ -766,9 +773,11 @@ impl WebGLThread {
         self.webrender_swap_chains
             .destroy(context_id, &mut self.device, &mut data.ctx)
             .unwrap();
-        self.webxr_swap_chains
-            .destroy_all(&mut self.device, &mut data.ctx)
-            .unwrap();
+
+        // Destroy WebXR layers associated with this context
+        let webxr_context_id = WebXRContextId::from(context_id);
+        self.webxr_bridge
+            .destroy_all_layers(&mut self.device, &mut data.ctx, webxr_context_id);
 
         // Destroy the context
         self.device.destroy_context(&mut data.ctx).unwrap();
@@ -779,21 +788,12 @@ impl WebGLThread {
 
     fn handle_swap_buffers(
         &mut self,
-        swap_ids: Vec<SwapChainId>,
+        context_ids: Vec<WebGLContextId>,
         completed_sender: WebGLSender<u64>,
         _sent_time: u64,
     ) {
-        #[cfg(feature = "xr-profile")]
-        let start_swap = time::precise_time_ns();
-        #[cfg(feature = "xr-profile")]
-        println!(
-            "WEBXR PROFILING [swap request]:\t{}ms",
-            to_ms(start_swap - _sent_time)
-        );
         debug!("handle_swap_buffers()");
-        for swap_id in swap_ids {
-            let context_id = swap_id.context_id();
-
+        for context_id in context_ids {
             let data = Self::make_current_if_needed_mut(
                 &self.device,
                 context_id,
@@ -811,16 +811,13 @@ impl WebGLThread {
                 FramebufferRebindingInfo::detect(&self.device, &data.ctx, &*data.gl);
             debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
-            debug!("Getting swap chain for {:?}", swap_id);
-            let swap_chain = match swap_id {
-                SwapChainId::Context(id) => self.webrender_swap_chains.get(id),
-                SwapChainId::Framebuffer(_, WebGLOpaqueFramebufferId::WebXR(id)) => {
-                    self.webxr_swap_chains.get(id)
-                },
-            }
-            .expect("Where's the swap chain?");
+            debug!("Getting swap chain for {:?}", context_id);
+            let swap_chain = self
+                .webrender_swap_chains
+                .get(context_id)
+                .expect("Where's the swap chain?");
 
-            debug!("Swapping {:?}", swap_id);
+            debug!("Swapping {:?}", context_id);
             swap_chain
                 .swap_buffers(&mut self.device, &mut data.ctx)
                 .unwrap();
@@ -828,7 +825,7 @@ impl WebGLThread {
 
             // TODO: if preserveDrawingBuffer is true, then blit the front buffer to the back buffer
             // https://github.com/servo/servo/issues/24604
-            debug!("Clearing {:?}", swap_id);
+            debug!("Clearing {:?}", context_id);
             let alpha = data
                 .state
                 .requested_flags
@@ -840,7 +837,7 @@ impl WebGLThread {
             debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
             // Rebind framebuffers as appropriate.
-            debug!("Rebinding {:?}", swap_id);
+            debug!("Rebinding {:?}", context_id);
             framebuffer_rebinding_info.apply(&self.device, &data.ctx, &*data.gl);
             debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
@@ -870,36 +867,6 @@ impl WebGLThread {
             );
         }
         completed_sender.send(end_swap).unwrap();
-    }
-
-    /// Creates a new WebXR swap chain
-    #[allow(unsafe_code)]
-    fn create_webxr_swap_chain(
-        &mut self,
-        context_id: WebGLContextId,
-        size: Size2D<i32>,
-        session_id: SessionId,
-    ) -> Option<WebXRSwapChainId> {
-        debug!("WebGLThread::create_webxr_swap_chain()");
-        let id = WebXRSwapChainId::new();
-        let surface_access = self.surface_access();
-        let data = Self::make_current_if_needed_mut(
-            &self.device,
-            context_id,
-            &mut self.contexts,
-            &mut self.bound_context_id,
-        )?;
-        let surface_provider = self
-            .webxr_surface_providers
-            .lock()
-            .unwrap()
-            .remove(&session_id)
-            .unwrap_or_else(|| Box::new(SurfmanProvider::new(surface_access)));
-        self.webxr_swap_chains
-            .create_detached_swap_chain(id, size, &mut self.device, &mut data.ctx, surface_provider)
-            .ok()?;
-        debug!("Created swap chain {:?}", id);
-        Some(id)
     }
 
     /// Which access mode to use
@@ -1459,10 +1426,7 @@ impl WebGLImpl {
                 Self::create_shader(gl, shader_type, chan)
             },
             WebGLCommand::DeleteBuffer(id) => gl.delete_buffers(&[id.get()]),
-            WebGLCommand::DeleteFramebuffer(WebGLFramebufferId::Transparent(id)) => {
-                gl.delete_framebuffers(&[id.get()])
-            },
-            WebGLCommand::DeleteFramebuffer(WebGLFramebufferId::Opaque(_)) => {},
+            WebGLCommand::DeleteFramebuffer(id) => gl.delete_framebuffers(&[id.get()]),
             WebGLCommand::DeleteRenderbuffer(id) => gl.delete_renderbuffers(&[id.get()]),
             WebGLCommand::DeleteTexture(id) => gl.delete_textures(&[id.get()]),
             WebGLCommand::DeleteProgram(id) => gl.delete_program(id.get()),
@@ -2498,12 +2462,12 @@ impl WebGLImpl {
     }
 
     #[allow(unsafe_code)]
-    fn create_framebuffer(gl: &Gl, chan: &WebGLSender<Option<WebGLTransparentFramebufferId>>) {
+    fn create_framebuffer(gl: &Gl, chan: &WebGLSender<Option<WebGLFramebufferId>>) {
         let framebuffer = gl.gen_framebuffers(1)[0];
         let framebuffer = if framebuffer == 0 {
             None
         } else {
-            Some(unsafe { WebGLTransparentFramebufferId::new(framebuffer) })
+            Some(unsafe { WebGLFramebufferId::new(framebuffer) })
         };
         chan.send(framebuffer).unwrap();
     }
@@ -2611,54 +2575,6 @@ impl WebGLImpl {
         debug_assert_eq!(gl.get_error(), gl::NO_ERROR);
     }
 
-    /// Updates the swap buffers if the context surface needs to be changed
-    fn attach_surface(
-        context_id: WebGLContextId,
-        webrender_swap_chains: &SwapChains<WebGLContextId, Device>,
-        webxr_swap_chains: &SwapChains<WebXRSwapChainId, Device>,
-        request: WebGLFramebufferBindingRequest,
-        ctx: &mut Context,
-        device: &mut Device,
-    ) -> Option<()> {
-        debug!(
-            "WebGLImpl::attach_surface({:?} in {:?})",
-            request, context_id
-        );
-        let requested_framebuffer = match request {
-            WebGLFramebufferBindingRequest::Explicit(WebGLFramebufferId::Opaque(id)) => Some(id),
-            WebGLFramebufferBindingRequest::Explicit(WebGLFramebufferId::Transparent(_)) => {
-                return None
-            },
-            WebGLFramebufferBindingRequest::Default => None,
-        };
-        let attached_framebuffer = webxr_swap_chains
-            .iter(device, ctx)
-            .filter_map(|(id, swap_chain)| {
-                if swap_chain.is_attached() {
-                    Some(id)
-                } else {
-                    None
-                }
-            })
-            .map(WebGLOpaqueFramebufferId::WebXR)
-            .next();
-        if requested_framebuffer == attached_framebuffer {
-            return None;
-        }
-        let requested_swap_chain = match requested_framebuffer {
-            Some(WebGLOpaqueFramebufferId::WebXR(id)) => webxr_swap_chains.get(id)?,
-            None => webrender_swap_chains.get(context_id)?,
-        };
-        let current_swap_chain = match attached_framebuffer {
-            Some(WebGLOpaqueFramebufferId::WebXR(id)) => webxr_swap_chains.get(id)?,
-            None => webrender_swap_chains.get(context_id)?,
-        };
-        requested_swap_chain
-            .take_attachment_from(device, ctx, &current_swap_chain)
-            .unwrap();
-        Some(())
-    }
-
     #[inline]
     fn bind_framebuffer(
         gl: &Gl,
@@ -2669,10 +2585,7 @@ impl WebGLImpl {
         state: &mut GLState,
     ) {
         let id = match request {
-            WebGLFramebufferBindingRequest::Explicit(WebGLFramebufferId::Transparent(id)) => {
-                id.get()
-            },
-            WebGLFramebufferBindingRequest::Explicit(WebGLFramebufferId::Opaque(_)) |
+            WebGLFramebufferBindingRequest::Explicit(id) => id.get(),
             WebGLFramebufferBindingRequest::Default => {
                 device
                     .context_surface_info(ctx)
@@ -3221,5 +3134,319 @@ impl FramebufferRebindingInfo {
             self.viewport[2],
             self.viewport[3],
         );
+    }
+}
+
+/// Bridge between WebGL and WebXR
+pub(crate) struct WebXRBridge {
+    factory_receiver: crossbeam_channel::Receiver<WebXRLayerManagerFactory<WebXRSurfman>>,
+    managers: HashMap<WebXRLayerManagerId, Box<dyn WebXRLayerManagerAPI<WebXRSurfman>>>,
+    next_manager_id: u32,
+}
+
+impl WebXRBridge {
+    pub(crate) fn new(init: WebXRBridgeInit) -> WebXRBridge {
+        let WebXRBridgeInit {
+            factory_receiver, ..
+        } = init;
+        let managers = HashMap::new();
+        let next_manager_id = 1;
+        WebXRBridge {
+            factory_receiver,
+            managers,
+            next_manager_id,
+        }
+    }
+}
+
+impl WebXRBridge {
+    #[allow(unsafe_code)]
+    fn create_layer_manager(
+        &mut self,
+        device: &mut Device,
+        contexts: &mut dyn WebXRContexts<WebXRSurfman>,
+    ) -> Result<WebXRLayerManagerId, WebXRError> {
+        let factory = self
+            .factory_receiver
+            .recv()
+            .map_err(|_| WebXRError::CommunicationError)?;
+        let manager = factory.build(device, contexts)?;
+        let manager_id = unsafe { WebXRLayerManagerId::new(self.next_manager_id) };
+        self.next_manager_id = self.next_manager_id + 1;
+        self.managers.insert(manager_id, manager);
+        Ok(manager_id)
+    }
+
+    fn destroy_layer_manager(&mut self, manager_id: WebXRLayerManagerId) {
+        self.managers.remove(&manager_id);
+    }
+
+    fn create_layer(
+        &mut self,
+        manager_id: WebXRLayerManagerId,
+        device: &mut Device,
+        contexts: &mut dyn WebXRContexts<WebXRSurfman>,
+        context_id: WebXRContextId,
+        layer_init: WebXRLayerInit,
+    ) -> Result<WebXRLayerId, WebXRError> {
+        let manager = self
+            .managers
+            .get_mut(&manager_id)
+            .ok_or(WebXRError::NoMatchingDevice)?;
+        let context = contexts
+            .context(device, context_id)
+            .ok_or(WebXRError::NoMatchingDevice)?;
+        manager.create_layer(device, context, context_id, layer_init)
+    }
+
+    fn destroy_layer(
+        &mut self,
+        manager_id: WebXRLayerManagerId,
+        device: &mut Device,
+        contexts: &mut dyn WebXRContexts<WebXRSurfman>,
+        context_id: WebXRContextId,
+        layer_id: WebXRLayerId,
+    ) {
+        if let Some(manager) = self.managers.get_mut(&manager_id) {
+            if let Some(context) = contexts.context(device, context_id) {
+                manager.destroy_layer(device, context, context_id, layer_id);
+            }
+        }
+    }
+
+    fn destroy_all_layers(
+        &mut self,
+        device: &mut Device,
+        context: &mut Context,
+        context_id: WebXRContextId,
+    ) {
+        for (_, manager) in &mut self.managers {
+            for (other_id, layer_id) in manager.layers().to_vec() {
+                if other_id == context_id {
+                    manager.destroy_layer(device, context, context_id, layer_id);
+                }
+            }
+        }
+    }
+
+    fn begin_frame(
+        &mut self,
+        manager_id: WebXRLayerManagerId,
+        device: &mut Device,
+        contexts: &mut dyn WebXRContexts<WebXRSurfman>,
+        layers: &[(WebXRContextId, WebXRLayerId)],
+    ) -> Result<Vec<WebXRSubImages>, WebXRError> {
+        let manager = self
+            .managers
+            .get_mut(&manager_id)
+            .ok_or(WebXRError::NoMatchingDevice)?;
+        manager.begin_frame(device, contexts, layers)
+    }
+
+    fn end_frame(
+        &mut self,
+        manager_id: WebXRLayerManagerId,
+        device: &mut Device,
+        contexts: &mut dyn WebXRContexts<WebXRSurfman>,
+        layers: &[(WebXRContextId, WebXRLayerId)],
+    ) -> Result<(), WebXRError> {
+        let manager = self
+            .managers
+            .get_mut(&manager_id)
+            .ok_or(WebXRError::NoMatchingDevice)?;
+        manager.end_frame(device, contexts, layers)
+    }
+}
+
+pub(crate) struct WebXRBridgeInit {
+    sender: WebGLSender<WebGLMsg>,
+    factory_receiver: crossbeam_channel::Receiver<WebXRLayerManagerFactory<WebXRSurfman>>,
+    factory_sender: crossbeam_channel::Sender<WebXRLayerManagerFactory<WebXRSurfman>>,
+}
+
+impl WebXRBridgeInit {
+    pub(crate) fn new(sender: WebGLSender<WebGLMsg>) -> WebXRBridgeInit {
+        let (factory_sender, factory_receiver) = crossbeam_channel::unbounded();
+        WebXRBridgeInit {
+            sender,
+            factory_sender,
+            factory_receiver,
+        }
+    }
+
+    pub(crate) fn layer_grand_manager(&self) -> WebXRLayerGrandManager<WebXRSurfman> {
+        WebXRLayerGrandManager::new(WebXRBridgeGrandManager {
+            sender: self.sender.clone(),
+            factory_sender: self.factory_sender.clone(),
+        })
+    }
+}
+
+struct WebXRBridgeGrandManager {
+    sender: WebGLSender<WebGLMsg>,
+    // WebXR layer manager factories use generic trait objects under the
+    // hood, which aren't deserializable (even using typetag)
+    // so we can't send them over the regular webgl channel.
+    // Fortunately, the webgl thread runs in the same process as
+    // the webxr threads, so we can use a crossbeam channel to send
+    // factories.
+    factory_sender: crossbeam_channel::Sender<WebXRLayerManagerFactory<WebXRSurfman>>,
+}
+
+impl WebXRLayerGrandManagerAPI<WebXRSurfman> for WebXRBridgeGrandManager {
+    fn create_layer_manager(
+        &self,
+        factory: WebXRLayerManagerFactory<WebXRSurfman>,
+    ) -> Result<WebXRLayerManager, WebXRError> {
+        let (sender, receiver) = webgl_channel().map_err(|_| WebXRError::CommunicationError)?;
+        let _ = self.factory_sender.send(factory);
+        let _ = self
+            .sender
+            .send(WebGLMsg::WebXRCommand(WebXRCommand::CreateLayerManager(
+                sender,
+            )));
+        let sender = self.sender.clone();
+        let manager_id = receiver
+            .recv()
+            .map_err(|_| WebXRError::CommunicationError)??;
+        let layers = Vec::new();
+        Ok(WebXRLayerManager::new(WebXRBridgeManager {
+            manager_id,
+            sender,
+            layers,
+        }))
+    }
+
+    fn clone_layer_grand_manager(&self) -> WebXRLayerGrandManager<WebXRSurfman> {
+        WebXRLayerGrandManager::new(WebXRBridgeGrandManager {
+            sender: self.sender.clone(),
+            factory_sender: self.factory_sender.clone(),
+        })
+    }
+}
+
+struct WebXRBridgeManager {
+    sender: WebGLSender<WebGLMsg>,
+    manager_id: WebXRLayerManagerId,
+    layers: Vec<(WebXRContextId, WebXRLayerId)>,
+}
+
+impl<GL: WebXRTypes> WebXRLayerManagerAPI<GL> for WebXRBridgeManager {
+    fn create_layer(
+        &mut self,
+        _: &mut GL::Device,
+        _: &mut GL::Context,
+        context_id: WebXRContextId,
+        init: WebXRLayerInit,
+    ) -> Result<WebXRLayerId, WebXRError> {
+        let (sender, receiver) = webgl_channel().map_err(|_| WebXRError::CommunicationError)?;
+        let _ = self
+            .sender
+            .send(WebGLMsg::WebXRCommand(WebXRCommand::CreateLayer(
+                self.manager_id,
+                context_id,
+                init,
+                sender,
+            )));
+        let layer_id = receiver
+            .recv()
+            .map_err(|_| WebXRError::CommunicationError)??;
+        self.layers.push((context_id, layer_id));
+        Ok(layer_id)
+    }
+
+    fn destroy_layer(
+        &mut self,
+        _: &mut GL::Device,
+        _: &mut GL::Context,
+        context_id: WebXRContextId,
+        layer_id: WebXRLayerId,
+    ) {
+        self.layers.retain(|&ids| ids != (context_id, layer_id));
+        let _ = self
+            .sender
+            .send(WebGLMsg::WebXRCommand(WebXRCommand::DestroyLayer(
+                self.manager_id,
+                context_id,
+                layer_id,
+            )));
+    }
+
+    fn layers(&self) -> &[(WebXRContextId, WebXRLayerId)] {
+        &self.layers[..]
+    }
+
+    fn begin_frame(
+        &mut self,
+        _: &mut GL::Device,
+        _: &mut dyn WebXRContexts<GL>,
+        layers: &[(WebXRContextId, WebXRLayerId)],
+    ) -> Result<Vec<WebXRSubImages>, WebXRError> {
+        let (sender, receiver) = webgl_channel().map_err(|_| WebXRError::CommunicationError)?;
+        let _ = self
+            .sender
+            .send(WebGLMsg::WebXRCommand(WebXRCommand::BeginFrame(
+                self.manager_id,
+                layers.to_vec(),
+                sender,
+            )));
+        receiver
+            .recv()
+            .map_err(|_| WebXRError::CommunicationError)?
+    }
+
+    fn end_frame(
+        &mut self,
+        _: &mut GL::Device,
+        _: &mut dyn WebXRContexts<GL>,
+        layers: &[(WebXRContextId, WebXRLayerId)],
+    ) -> Result<(), WebXRError> {
+        let (sender, receiver) = webgl_channel().map_err(|_| WebXRError::CommunicationError)?;
+        let _ = self
+            .sender
+            .send(WebGLMsg::WebXRCommand(WebXRCommand::EndFrame(
+                self.manager_id,
+                layers.to_vec(),
+                sender,
+            )));
+        receiver
+            .recv()
+            .map_err(|_| WebXRError::CommunicationError)?
+    }
+}
+
+impl Drop for WebXRBridgeManager {
+    fn drop(&mut self) {
+        let _ = self
+            .sender
+            .send(WebGLMsg::WebXRCommand(WebXRCommand::DestroyLayerManager(
+                self.manager_id,
+            )));
+    }
+}
+
+struct WebXRBridgeContexts<'a> {
+    contexts: &'a mut FnvHashMap<WebGLContextId, GLContextData>,
+    bound_context_id: &'a mut Option<WebGLContextId>,
+}
+
+impl<'a> WebXRContexts<WebXRSurfman> for WebXRBridgeContexts<'a> {
+    fn context(&mut self, device: &Device, context_id: WebXRContextId) -> Option<&mut Context> {
+        let data = WebGLThread::make_current_if_needed_mut(
+            device,
+            WebGLContextId::from(context_id),
+            &mut self.contexts,
+            &mut self.bound_context_id,
+        )?;
+        Some(&mut data.ctx)
+    }
+    fn bindings(&mut self, device: &Device, context_id: WebXRContextId) -> Option<&Gl> {
+        let data = WebGLThread::make_current_if_needed(
+            device,
+            WebGLContextId::from(context_id),
+            &self.contexts,
+            &mut self.bound_context_id,
+        )?;
+        Some(&data.gl)
     }
 }

@@ -15,7 +15,6 @@ pub use servo::script_traits::{MediaSessionActionType, MouseButton};
 
 use getopts::Options;
 use ipc_channel::ipc::IpcSender;
-use servo::canvas::{SurfaceProviders, WebGlExecutor};
 use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderMethods, MouseWindowEvent, WindowEvent,
     WindowMethods,
@@ -794,8 +793,6 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
     fn register_webxr(
         &mut self,
         registry: &mut webxr::MainThreadRegistry,
-        executor: WebGlExecutor,
-        surface_providers: SurfaceProviders,
         embedder_proxy: EmbedderProxy,
     ) {
         use ipc_channel::ipc::{self, IpcReceiver};
@@ -805,16 +802,6 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
             self.xr_discovery.is_none(),
             "UWP builds should not be initialized with a WebXR Discovery object"
         );
-
-        struct ProviderRegistration(SurfaceProviders);
-        impl openxr::SurfaceProviderRegistration for ProviderRegistration {
-            fn register(&self, id: webxr_api::SessionId, provider: servo::canvas::SurfaceProvider) {
-                self.0.lock().unwrap().insert(id, provider);
-            }
-            fn clone(&self) -> Box<dyn openxr::SurfaceProviderRegistration> {
-                Box::new(ProviderRegistration(self.0.clone()))
-            }
-        }
 
         #[derive(Clone)]
         struct ContextMenuCallback(EmbedderProxy);
@@ -854,22 +841,9 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
             }
         }
 
-        struct GlThread(WebGlExecutor);
-        impl openxr::GlThread for GlThread {
-            fn execute(&self, runnable: Box<dyn FnOnce(&surfman::Device) + Send>) {
-                let _ = self.0.send(runnable);
-            }
-            fn clone(&self) -> Box<dyn webxr::openxr::GlThread> {
-                Box::new(GlThread(self.0.clone()))
-            }
-        }
-
         if openxr::create_instance(false).is_ok() {
-            let discovery = openxr::OpenXrDiscovery::new(
-                Box::new(GlThread(executor)),
-                Box::new(ProviderRegistration(surface_providers)),
-                Box::new(ContextMenuCallback(embedder_proxy)),
-            );
+            let discovery =
+                openxr::OpenXrDiscovery::new(Box::new(ContextMenuCallback(embedder_proxy)));
             registry.register(discovery);
         } else {
             let msg =
@@ -891,8 +865,6 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
     fn register_webxr(
         &mut self,
         registry: &mut webxr::MainThreadRegistry,
-        _executor: WebGlExecutor,
-        _surface_provider_registration: SurfaceProviders,
         _embedder_proxy: EmbedderProxy,
     ) {
         debug!("EmbedderMethods::register_xr");

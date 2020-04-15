@@ -60,7 +60,6 @@ use canvas_traits::webgl::{
 use canvas_traits::webgl::{GLLimits, WebGLQueryId, WebGLSamplerId};
 use canvas_traits::webgl::{WebGLBufferId, WebGLChan, WebGLContextId, WebGLError};
 use canvas_traits::webgl::{WebGLFramebufferId, WebGLMsgSender, WebGLPipeline, WebGLProgramId};
-use canvas_traits::webgl::{WebGLOpaqueFramebufferId, WebGLTransparentFramebufferId};
 use canvas_traits::webgl::{WebGLReceiver, WebGLRenderbufferId, WebGLSLVersion, WebGLSender};
 use canvas_traits::webgl::{WebGLShaderId, WebGLSyncId, WebGLTextureId, WebGLVersion};
 use content_security_policy::CspList;
@@ -172,7 +171,6 @@ use webgpu::{
     WebGPUTexture, WebGPUTextureView,
 };
 use webrender_api::{DocumentId, ExternalImageId, ImageKey};
-use webxr_api::SwapChainId as WebXRSwapChainId;
 use webxr_api::{Finger, Hand, Ray, View};
 
 unsafe_no_jsmanaged_fields!(Tm);
@@ -550,8 +548,6 @@ unsafe_no_jsmanaged_fields!(ExternalImageId);
 unsafe_no_jsmanaged_fields!(WebGLBufferId);
 unsafe_no_jsmanaged_fields!(WebGLChan);
 unsafe_no_jsmanaged_fields!(WebGLFramebufferId);
-unsafe_no_jsmanaged_fields!(WebGLOpaqueFramebufferId);
-unsafe_no_jsmanaged_fields!(WebGLTransparentFramebufferId);
 unsafe_no_jsmanaged_fields!(WebGLMsgSender);
 unsafe_no_jsmanaged_fields!(WebGLPipeline);
 unsafe_no_jsmanaged_fields!(WebGLProgramId);
@@ -587,12 +583,12 @@ unsafe_no_jsmanaged_fields!(Option<ComputePass>);
 unsafe_no_jsmanaged_fields!(GPUBufferState);
 unsafe_no_jsmanaged_fields!(GPUCommandEncoderState);
 unsafe_no_jsmanaged_fields!(Range<u64>);
-unsafe_no_jsmanaged_fields!(WebXRSwapChainId);
 unsafe_no_jsmanaged_fields!(MediaList);
 unsafe_no_jsmanaged_fields!(
     webxr_api::Registry,
     webxr_api::Session,
     webxr_api::Frame,
+    webxr_api::LayerId,
     webxr_api::InputSource,
     webxr_api::InputId,
     webxr_api::Joint,

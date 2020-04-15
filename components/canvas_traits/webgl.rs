@@ -12,8 +12,11 @@ use std::fmt;
 use std::num::{NonZeroU32, NonZeroU64};
 use std::ops::Deref;
 use webrender_api::{DocumentId, ImageKey, PipelineId};
-use webxr_api::SessionId;
-use webxr_api::SwapChainId as WebXRSwapChainId;
+use webxr_api::ContextId as WebXRContextId;
+use webxr_api::Error as WebXRError;
+use webxr_api::LayerId as WebXRLayerId;
+use webxr_api::LayerInit as WebXRLayerInit;
+use webxr_api::SubImages as WebXRSubImages;
 
 /// Helper function that creates a WebGL channel (WebGLSender, WebGLReceiver) to be used in WebGLCommands.
 pub use crate::webgl_channel::webgl_channel;
@@ -70,21 +73,17 @@ pub enum WebGLMsg {
     RemoveContext(WebGLContextId),
     /// Runs a WebGLCommand in a specific WebGLContext.
     WebGLCommand(WebGLContextId, WebGLCommand, WebGLCommandBacktrace),
+    /// Runs a WebXRCommand (WebXR layers need to be created in the WebGL
+    /// thread, as they may have thread affinity).
+    WebXRCommand(WebXRCommand),
     /// Commands used for the DOMToTexture feature.
     DOMToTextureCommand(DOMToTextureCommand),
-    /// Creates a new opaque framebuffer for WebXR.
-    CreateWebXRSwapChain(
-        WebGLContextId,
-        Size2D<i32>,
-        WebGLSender<Option<WebXRSwapChainId>>,
-        SessionId,
-    ),
     /// Performs a buffer swap.
     ///
     /// The third field contains the time (in ns) when the request
     /// was initiated. The u64 in the second field will be the time the
     /// request is fulfilled
-    SwapBuffers(Vec<SwapChainId>, WebGLSender<u64>, u64),
+    SwapBuffers(Vec<WebGLContextId>, WebGLSender<u64>, u64),
     /// Frees all resources and closes the thread.
     Exit,
 }
@@ -176,47 +175,6 @@ impl WebGLMsgSender {
         self.sender.send(WebGLMsg::RemoveContext(self.ctx_id))
     }
 
-    #[inline]
-    pub fn send_create_webxr_swap_chain(
-        &self,
-        size: Size2D<i32>,
-        sender: WebGLSender<Option<WebXRSwapChainId>>,
-        id: SessionId,
-    ) -> WebGLSendResult {
-        self.sender.send(WebGLMsg::CreateWebXRSwapChain(
-            self.ctx_id,
-            size,
-            sender,
-            id,
-        ))
-    }
-
-    #[inline]
-    pub fn send_swap_buffers(&self, id: Option<WebGLOpaqueFramebufferId>) -> WebGLSendResult {
-        let swap_id = id
-            .map(|id| SwapChainId::Framebuffer(self.ctx_id, id))
-            .unwrap_or_else(|| SwapChainId::Context(self.ctx_id));
-        let (sender, receiver) = webgl_channel()?;
-        #[allow(unused)]
-        let mut time = 0;
-        #[cfg(feature = "xr-profile")]
-        {
-            time = time::precise_time_ns();
-        }
-
-        self.sender
-            .send(WebGLMsg::SwapBuffers(vec![swap_id], sender, time))?;
-
-        #[allow(unused)]
-        let sent_time = receiver.recv()?;
-        #[cfg(feature = "xr-profile")]
-        println!(
-            "WEBXR PROFILING [swap complete]:\t{}ms",
-            (time::precise_time_ns() - sent_time) as f64 / 1_000_000.
-        );
-        Ok(())
-    }
-
     pub fn send_dom_to_texture(&self, command: DOMToTextureCommand) -> WebGLSendResult {
         self.sender.send(WebGLMsg::DOMToTextureCommand(command))
     }
@@ -282,7 +240,7 @@ pub enum WebGLCommand {
     CopyTexImage2D(u32, i32, u32, i32, i32, i32, i32, i32),
     CopyTexSubImage2D(u32, i32, i32, i32, i32, i32, i32, i32),
     CreateBuffer(WebGLSender<Option<WebGLBufferId>>),
-    CreateFramebuffer(WebGLSender<Option<WebGLTransparentFramebufferId>>),
+    CreateFramebuffer(WebGLSender<Option<WebGLFramebufferId>>),
     CreateRenderbuffer(WebGLSender<Option<WebGLRenderbufferId>>),
     CreateTexture(WebGLSender<Option<WebGLTextureId>>),
     CreateProgram(WebGLSender<Option<WebGLProgramId>>),
@@ -555,6 +513,30 @@ pub enum WebGLCommand {
     DrawBuffers(Vec<u32>),
 }
 
+/// WebXR layer management
+#[derive(Debug, Deserialize, Serialize)]
+pub enum WebXRCommand {
+    CreateLayerManager(WebGLSender<Result<WebXRLayerManagerId, WebXRError>>),
+    DestroyLayerManager(WebXRLayerManagerId),
+    CreateLayer(
+        WebXRLayerManagerId,
+        WebXRContextId,
+        WebXRLayerInit,
+        WebGLSender<Result<WebXRLayerId, WebXRError>>,
+    ),
+    DestroyLayer(WebXRLayerManagerId, WebXRContextId, WebXRLayerId),
+    BeginFrame(
+        WebXRLayerManagerId,
+        Vec<(WebXRContextId, WebXRLayerId)>,
+        WebGLSender<Result<Vec<WebXRSubImages>, WebXRError>>,
+    ),
+    EndFrame(
+        WebXRLayerManagerId,
+        Vec<(WebXRContextId, WebXRLayerId)>,
+        WebGLSender<Result<(), WebXRError>>,
+    ),
+}
+
 macro_rules! nonzero_type {
     (u32) => {
         NonZeroU32
@@ -574,6 +556,11 @@ macro_rules! define_resource_id {
             #[inline]
             pub unsafe fn new(id: $type) -> Self {
                 $name(<nonzero_type!($type)>::new_unchecked(id))
+            }
+
+            #[inline]
+            pub fn maybe_new(id: $type) -> Option<Self> {
+                <nonzero_type!($type)>::new(id).map($name)
             }
 
             #[inline]
@@ -629,7 +616,7 @@ macro_rules! define_resource_id {
 }
 
 define_resource_id!(WebGLBufferId, u32);
-define_resource_id!(WebGLTransparentFramebufferId, u32);
+define_resource_id!(WebGLFramebufferId, u32);
 define_resource_id!(WebGLRenderbufferId, u32);
 define_resource_id!(WebGLTextureId, u32);
 define_resource_id!(WebGLProgramId, u32);
@@ -638,24 +625,22 @@ define_resource_id!(WebGLSamplerId, u32);
 define_resource_id!(WebGLShaderId, u32);
 define_resource_id!(WebGLSyncId, u64);
 define_resource_id!(WebGLVertexArrayId, u32);
+define_resource_id!(WebXRLayerManagerId, u32);
 
 #[derive(
     Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
 )]
 pub struct WebGLContextId(pub u64);
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub enum SwapChainId {
-    Context(WebGLContextId),
-    Framebuffer(WebGLContextId, WebGLOpaqueFramebufferId),
+impl From<WebXRContextId> for WebGLContextId {
+    fn from(id: WebXRContextId) -> Self {
+        Self(id.0)
+    }
 }
 
-impl SwapChainId {
-    pub fn context_id(&self) -> WebGLContextId {
-        match *self {
-            SwapChainId::Context(id) => id,
-            SwapChainId::Framebuffer(id, _) => id,
-        }
+impl From<WebGLContextId> for WebXRContextId {
+    fn from(id: WebGLContextId) -> Self {
+        Self(id.0)
     }
 }
 
@@ -667,18 +652,6 @@ pub enum WebGLError {
     InvalidValue,
     OutOfMemory,
     ContextLost,
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub enum WebGLOpaqueFramebufferId {
-    // At the moment the only source of opaque framebuffers is webxr
-    WebXR(#[ignore_malloc_size_of = "ids don't malloc"] WebXRSwapChainId),
-}
-
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub enum WebGLFramebufferId {
-    Transparent(WebGLTransparentFramebufferId),
-    Opaque(WebGLOpaqueFramebufferId),
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
