@@ -7,7 +7,7 @@
 //! The rule tree.
 
 use crate::applicable_declarations::ApplicableDeclarationList;
-use crate::hash::{self, FxHashMap};
+use crate::hash::FxHashMap;
 use crate::properties::{Importance, LonghandIdSet, PropertyDeclarationBlock};
 use crate::shared_lock::{Locked, SharedRwLockReadGuard, StylesheetGuards};
 use crate::stylesheets::{Origin, StyleRule};
@@ -20,6 +20,9 @@ use std::io::{self, Write};
 use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
+
+mod map;
+use self::map::Map;
 
 /// The rule tree, the structure servo uses to preserve the results of selector
 /// matching.
@@ -80,7 +83,9 @@ impl MallocSizeOf for RuleTree {
             n += unsafe { ops.malloc_size_of(node.ptr()) };
             let children = unsafe { (*node.ptr()).children.read() };
             children.shallow_size_of(ops);
-            children.each(|c| stack.push(c.clone()));
+            for c in &*children {
+                stack.push(c.clone());
+            }
         }
 
         n
@@ -450,7 +455,9 @@ impl RuleTree {
         while let Some(node) = stack.pop() {
             let children = node.get().children.read();
             *children_count.entry(children.len()).or_insert(0) += 1;
-            children.each(|c| stack.push(c.upgrade()));
+            for c in &*children {
+                stack.push(c.upgrade());
+            }
         }
 
         trace!("Rule tree stats:");
@@ -841,161 +848,6 @@ impl CascadeLevel {
     }
 }
 
-/// The children of a single rule node.
-///
-/// We optimize the case of no kids and a single child, since they're by far the
-/// most common case and it'd cause a bunch of bloat for no reason.
-///
-/// The children remove themselves when they go away, which means that it's ok
-/// for us to store weak pointers to them.
-enum RuleNodeChildren {
-    /// There are no kids.
-    Empty,
-    /// There's just one kid. This is an extremely common case, so we don't
-    /// bother allocating a map for it.
-    One(WeakRuleNode),
-    /// At least at one point in time there was more than one kid (that is to
-    /// say, we don't bother re-allocating if children are removed dynamically).
-    Map(Box<FxHashMap<ChildKey, WeakRuleNode>>),
-}
-
-impl MallocShallowSizeOf for RuleNodeChildren {
-    fn shallow_size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
-        match *self {
-            RuleNodeChildren::One(..) | RuleNodeChildren::Empty => 0,
-            RuleNodeChildren::Map(ref m) => {
-                // Want to account for both the box and the hashmap.
-                m.shallow_size_of(ops) + (**m).shallow_size_of(ops)
-            },
-        }
-    }
-}
-
-impl Default for RuleNodeChildren {
-    fn default() -> Self {
-        RuleNodeChildren::Empty
-    }
-}
-
-impl RuleNodeChildren {
-    /// Executes a given function for each of the children.
-    fn each(&self, mut f: impl FnMut(&WeakRuleNode)) {
-        match *self {
-            RuleNodeChildren::Empty => {},
-            RuleNodeChildren::One(ref child) => f(child),
-            RuleNodeChildren::Map(ref map) => {
-                for (_key, kid) in map.iter() {
-                    f(kid)
-                }
-            },
-        }
-    }
-
-    fn len(&self) -> usize {
-        match *self {
-            RuleNodeChildren::Empty => 0,
-            RuleNodeChildren::One(..) => 1,
-            RuleNodeChildren::Map(ref map) => map.len(),
-        }
-    }
-
-    fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-
-    fn get(&self, key: &ChildKey) -> Option<&WeakRuleNode> {
-        match *self {
-            RuleNodeChildren::Empty => return None,
-            RuleNodeChildren::One(ref kid) => {
-                // We're read-locked, so no need to do refcount stuff, since the
-                // child is only removed from the main thread, _and_ it'd need
-                // to write-lock us anyway.
-                if unsafe { (*kid.ptr()).key() } == *key {
-                    Some(kid)
-                } else {
-                    None
-                }
-            },
-            RuleNodeChildren::Map(ref map) => map.get(&key),
-        }
-    }
-
-    fn get_or_insert_with(
-        &mut self,
-        key: ChildKey,
-        get_new_child: impl FnOnce() -> StrongRuleNode,
-    ) -> StrongRuleNode {
-        let existing_child_key = match *self {
-            RuleNodeChildren::Empty => {
-                let new = get_new_child();
-                debug_assert_eq!(new.get().key(), key);
-                *self = RuleNodeChildren::One(new.downgrade());
-                return new;
-            },
-            RuleNodeChildren::One(ref weak) => unsafe {
-                // We're locked necessarily, so it's fine to look at our
-                // weak-child without refcount-traffic.
-                let existing_child_key = (*weak.ptr()).key();
-                if existing_child_key == key {
-                    return weak.upgrade();
-                }
-                existing_child_key
-            },
-            RuleNodeChildren::Map(ref mut map) => {
-                return match map.entry(key) {
-                    hash::map::Entry::Occupied(ref occupied) => occupied.get().upgrade(),
-                    hash::map::Entry::Vacant(vacant) => {
-                        let new = get_new_child();
-
-                        debug_assert_eq!(new.get().key(), key);
-                        vacant.insert(new.downgrade());
-
-                        new
-                    },
-                };
-            },
-        };
-
-        let existing_child = match mem::replace(self, RuleNodeChildren::Empty) {
-            RuleNodeChildren::One(o) => o,
-            _ => unreachable!(),
-        };
-        // Two rule-nodes are still a not-totally-uncommon thing, so
-        // avoid over-allocating entries.
-        //
-        // TODO(emilio): Maybe just inline two kids too?
-        let mut children = Box::new(FxHashMap::with_capacity_and_hasher(2, Default::default()));
-        children.insert(existing_child_key, existing_child);
-
-        let new = get_new_child();
-        debug_assert_eq!(new.get().key(), key);
-        children.insert(key, new.downgrade());
-
-        *self = RuleNodeChildren::Map(children);
-
-        new
-    }
-
-    fn remove(&mut self, key: &ChildKey) -> Option<WeakRuleNode> {
-        match *self {
-            RuleNodeChildren::Empty => return None,
-            RuleNodeChildren::One(ref one) => {
-                if unsafe { (*one.ptr()).key() } != *key {
-                    return None;
-                }
-            },
-            RuleNodeChildren::Map(ref mut multiple) => {
-                return multiple.remove(key);
-            },
-        }
-
-        match mem::replace(self, RuleNodeChildren::Empty) {
-            RuleNodeChildren::One(o) => Some(o),
-            _ => unreachable!(),
-        }
-    }
-}
-
 /// A node in the rule tree.
 pub struct RuleNode {
     /// The root node. Only the root has no root pointer, for obvious reasons.
@@ -1021,7 +873,7 @@ pub struct RuleNode {
 
     /// The children of a given rule node. Children remove themselves from here
     /// when they go away.
-    children: RwLock<RuleNodeChildren>,
+    children: RwLock<Map<ChildKey, WeakRuleNode>>,
 
     /// The next item in the rule tree free list, that starts on the root node.
     ///
@@ -1142,7 +994,11 @@ impl RuleNode {
         );
 
         if let Some(parent) = self.parent.as_ref() {
-            let weak = parent.get().children.write().remove(&self.key());
+            let weak = parent
+                .get()
+                .children
+                .write()
+                .remove(&self.key(), |node| (*node.ptr()).key());
             assert_eq!(weak.unwrap().ptr() as *const _, self as *const _);
         }
     }
@@ -1179,12 +1035,12 @@ impl RuleNode {
         }
 
         let _ = write!(writer, "\n");
-        self.children.read().each(|child| {
+        for child in &*self.children.read() {
             child
                 .upgrade()
                 .get()
                 .dump(guards, writer, indent + INDENT_INCREMENT);
-        });
+        }
     }
 }
 
@@ -1250,19 +1106,24 @@ impl StrongRuleNode {
 
         let key = ChildKey(level, source.key());
 
-        let read_guard = self.get().children.upgradable_read();
-        if let Some(child) = read_guard.get(&key) {
+        let children = self.get().children.upgradable_read();
+        if let Some(child) = children.get(&key, |node| unsafe { (*node.ptr()).key() }) {
             return child.upgrade();
         }
+        let mut children = RwLockUpgradableReadGuard::upgrade(children);
+        let weak = children.get_or_insert_with(
+            key,
+            |node| unsafe { (*node.ptr()).key() },
+            move || {
+                let strong =
+                    StrongRuleNode::new(Box::new(RuleNode::new(root, self.clone(), source, level)));
+                let weak = strong.downgrade();
+                mem::forget(strong);
+                weak
+            },
+        );
 
-        RwLockUpgradableReadGuard::upgrade(read_guard).get_or_insert_with(key, move || {
-            StrongRuleNode::new(Box::new(RuleNode::new(
-                root,
-                self.clone(),
-                source.clone(),
-                level,
-            )))
-        })
+        StrongRuleNode::from_ptr(weak.p)
     }
 
     /// Raw pointer to the RuleNode
