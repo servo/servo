@@ -40,6 +40,11 @@ use dom_struct::dom_struct;
 use euclid::{Rect, RigidTransform3D, Transform3D};
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
+use js::jsapi::GCReason;
+use js::jsapi::IsIdleGCTaskNeeded;
+use js::jsapi::JS_GetRuntime;
+use js::jsapi::JS_GC;
+
 use metrics::ToMs;
 use profile_traits::ipc;
 use std::cell::Cell;
@@ -423,6 +428,28 @@ impl XRSession {
             "WEBXR PROFILING [raf execute]:\t{}ms",
             (time::precise_time_ns() - raf_start) as f64 / 1_000_000.
         );
+
+        self.gc_hint();
+    }
+
+    #[allow(unsafe_code)]
+    fn gc_hint(&self) {
+        let cx = *self.global().get_cx();
+        let rt = unsafe { JS_GetRuntime(cx) };
+
+        if unsafe { IsIdleGCTaskNeeded(rt) } {
+            #[cfg(feature = "xr-profile")]
+            let gc_start = time::precise_time_ns();
+
+            debug!("GC at the end of an XR rAF");
+            unsafe { JS_GC(cx, GCReason::API) };
+
+            #[cfg(feature = "xr-profile")]
+            println!(
+                "WEBXR PROFILING [gc]:\t{}ms",
+                (time::precise_time_ns() - gc_start) as f64 / 1_000_000.
+            );
+        }
     }
 
     fn update_inline_projection_matrix(&self) {
