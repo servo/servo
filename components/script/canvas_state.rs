@@ -175,14 +175,6 @@ impl CanvasState {
         &self.missing_image_urls
     }
 
-    pub fn get_state(&self) -> &DomRefCell<CanvasContextState> {
-        &self.state
-    }
-
-    pub fn get_saved_state(&self) -> &DomRefCell<Vec<CanvasContextState>> {
-        &self.saved_states
-    }
-
     pub fn get_canvas_id(&self) -> CanvasId {
         self.canvas_id.clone()
     }
