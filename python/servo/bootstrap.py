@@ -86,11 +86,13 @@ def linux(context, force=False):
     # Please keep these in sync with the packages in README.md
     pkgs_apt = ['git', 'curl', 'autoconf', 'libx11-dev', 'libfreetype6-dev',
                 'libgl1-mesa-dri', 'libglib2.0-dev', 'xorg-dev', 'gperf', 'g++',
-                'build-essential', 'cmake', "libssl-dev",
+                'build-essential', 'cmake', 'libssl-dev',
                 'liblzma-dev', 'libosmesa6-dev', 'libxmu6', 'libxmu-dev',
                 'libgles2-mesa-dev', 'libegl1-mesa-dev', 'libdbus-1-dev',
-                'libharfbuzz-dev', 'ccache', 'clang',
-                'autoconf2.13', 'libunwind-dev', 'llvm-dev']
+                'libharfbuzz-dev', 'ccache', 'clang', 'libunwind-dev',
+                'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
+                'libgstreamer-plugins-bad1.0-dev', 'autoconf2.13',
+                'libunwind-dev', 'llvm-dev']
     pkgs_dnf = ['libtool', 'gcc-c++', 'libXi-devel', 'freetype-devel',
                 'libunwind-devel', 'mesa-libGL-devel', 'mesa-libEGL-devel',
                 'glib2-devel', 'libX11-devel', 'libXrandr-devel', 'gperf',
