@@ -36,6 +36,10 @@ void on_animating_changed(bool aAnimating) {
 }
 
 void on_panic(const char *backtrace) {
+  if (sLogHandle != INVALID_HANDLE_VALUE) {
+    CloseHandle(sLogHandle);
+    sLogHandle = INVALID_HANDLE_VALUE;
+  }
   throw hresult_error(E_FAIL, char2hstring(backtrace));
 }
 
@@ -84,6 +88,23 @@ void on_devtools_started(Servo::DevtoolsServerState result,
                          const unsigned int port) {
   sServo->Delegate().OnServoDevtoolsStarted(
       result == Servo::DevtoolsServerState::Started, port);
+}
+
+void on_log_output(const char *buffer, uint32_t buffer_length) {
+  OutputDebugStringA(buffer);
+
+  if (sLogHandle == INVALID_HANDLE_VALUE) {
+    return;
+  }
+
+  DWORD bytesWritten;
+  auto writeResult =
+      WriteFile(sLogHandle, buffer, buffer_length, &bytesWritten, nullptr);
+
+  if (writeResult == FALSE || bytesWritten != buffer_length)
+    throw std::runtime_error(
+        "Failed to write log message to the log file: error code " +
+        std::to_string(GetLastError()));
 }
 
 Servo::PromptResult prompt_ok_cancel(const char *message, bool trusted) {
@@ -140,6 +161,22 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
 
   sServo = this; // FIXME;
 
+#ifdef _DEBUG
+  auto current = winrt::Windows::Storage::ApplicationData::Current();
+  auto filePath = std::wstring(current.LocalFolder().Path()) + L"\\stdout.txt";
+  sLogHandle =
+      CreateFile2(filePath.c_str(), GENERIC_WRITE, 0, CREATE_ALWAYS, nullptr);
+  if (sLogHandle == INVALID_HANDLE_VALUE)
+    throw std::runtime_error("Failed to open the log file: error code " +
+                             std::to_string(GetLastError()));
+
+  if (SetFilePointer(sLogHandle, 0, nullptr, FILE_END) ==
+      INVALID_SET_FILE_POINTER)
+    throw std::runtime_error(
+        "Failed to set file pointer to the end of file: error code " +
+        std::to_string(GetLastError()));
+#endif
+
   capi::CHostCallbacks c;
   c.flush = &flush;
   c.make_current = &make_current;
@@ -163,13 +200,18 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
   c.prompt_input = &prompt_input;
   c.on_devtools_started = &on_devtools_started;
   c.show_context_menu = &show_context_menu;
+  c.on_log_output = &on_log_output;
 
   capi::register_panic_handler(&on_panic);
 
   capi::init_with_egl(o, &wakeup, c);
 }
 
-Servo::~Servo() { sServo = nullptr; }
+Servo::~Servo() {
+  sServo = nullptr;
+  if (sLogHandle != INVALID_HANDLE_VALUE)
+    CloseHandle(sLogHandle);
+}
 
 winrt::hstring char2hstring(const char *c_str) {
   // FIXME: any better way of doing this?
