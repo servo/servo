@@ -1473,6 +1473,20 @@ impl WebGLImpl {
             WebGLCommand::BindTexture(target, id) => {
                 gl.bind_texture(target, id.map_or(0, WebGLTextureId::get))
             },
+            WebGLCommand::BlitFrameBuffer(
+                src_x0,
+                src_y0,
+                src_x1,
+                src_y1,
+                dst_x0,
+                dst_y0,
+                dst_x1,
+                dst_y1,
+                mask,
+                filter,
+            ) => gl.blit_framebuffer(
+                src_x0, src_y0, src_x1, src_y1, dst_x0, dst_y0, dst_x1, dst_y1, mask, filter,
+            ),
             WebGLCommand::Uniform1f(uniform_id, v) => gl.uniform_1f(uniform_id, v),
             WebGLCommand::Uniform1fv(uniform_id, ref v) => gl.uniform_1fv(uniform_id, v),
             WebGLCommand::Uniform1i(uniform_id, v) => gl.uniform_1i(uniform_id, v),

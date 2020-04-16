@@ -2893,6 +2893,108 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             .RenderbufferStorage(target, internal_format, width, height)
     }
 
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.4
+    fn BlitFramebuffer(
+        &self,
+        src_x0: i32,
+        src_y0: i32,
+        src_x1: i32,
+        src_y1: i32,
+        dst_x0: i32,
+        dst_y0: i32,
+        dst_x1: i32,
+        dst_y1: i32,
+        mask: u32,
+        filter: u32,
+    ) {
+        bitflags! {
+            struct BlitFrameBufferFlags: u32 {
+                const DEPTH = constants::DEPTH_BUFFER_BIT;
+                const COLOR = constants::COLOR_BUFFER_BIT;
+                const STENCIL = constants::STENCIL_BUFFER_BIT;
+                const DEPTH_STENCIL = Self::DEPTH.bits | Self::STENCIL.bits;
+            }
+        };
+        let bits = match BlitFrameBufferFlags::from_bits(mask) {
+            Some(bits) => bits,
+            None => return self.base.webgl_error(InvalidValue),
+        };
+        let attributes = self.base.GetContextAttributes().unwrap();
+
+        if bits.intersects(BlitFrameBufferFlags::DEPTH_STENCIL) {
+            match filter {
+                constants::LINEAR => return self.base.webgl_error(InvalidOperation),
+                constants::NEAREST => {},
+                _ => return self.base.webgl_error(InvalidOperation),
+            }
+        }
+
+        let src_fb = self.base.get_read_framebuffer_slot().get();
+        let dst_fb = self.base.get_draw_framebuffer_slot().get();
+
+        let get_default_formats = || -> WebGLResult<(Option<u32>, Option<u32>, Option<u32>)> {
+            // All attempts to blit to an antialiased back buffer should fail.
+            if attributes.antialias {
+                return Err(InvalidOperation);
+            };
+            let color = if attributes.alpha {
+                Some(constants::RGBA8)
+            } else {
+                Some(constants::RGB8)
+            };
+            let (depth, stencil) = match (attributes.depth, attributes.stencil) {
+                (true, true) => (
+                    Some(constants::DEPTH24_STENCIL8),
+                    Some(constants::DEPTH24_STENCIL8),
+                ),
+                (true, false) => (Some(constants::DEPTH_COMPONENT16), None),
+                (false, true) => (None, Some(constants::STENCIL_INDEX8)),
+                _ => (None, None),
+            };
+            Ok((color, depth, stencil))
+        };
+
+        let (src_color, src_depth, src_stencil) = match src_fb {
+            Some(fb) => {
+                handle_potential_webgl_error!(self.base, fb.get_attachment_formats(), return)
+            },
+            None => handle_potential_webgl_error!(self.base, get_default_formats(), return),
+        };
+        let (dst_color, dst_depth, dst_stencil) = match dst_fb {
+            Some(fb) => {
+                handle_potential_webgl_error!(self.base, fb.get_attachment_formats(), return)
+            },
+            None => handle_potential_webgl_error!(self.base, get_default_formats(), return),
+        };
+
+        if bits.intersects(BlitFrameBufferFlags::COLOR) && src_color != dst_color {
+            return self.base.webgl_error(InvalidOperation);
+        }
+        if bits.intersects(BlitFrameBufferFlags::DEPTH) && src_depth != dst_depth {
+            return self.base.webgl_error(InvalidOperation);
+        }
+        if bits.intersects(BlitFrameBufferFlags::STENCIL) && src_stencil != dst_stencil {
+            return self.base.webgl_error(InvalidOperation);
+        }
+
+        let src_width = src_x1.checked_sub(src_x0);
+        let dst_width = dst_x1.checked_sub(dst_x0);
+        let src_height = src_y1.checked_sub(src_y0);
+        let dst_height = dst_y1.checked_sub(dst_y0);
+
+        if src_width.is_none() ||
+            dst_width.is_none() ||
+            src_height.is_none() ||
+            dst_height.is_none()
+        {
+            return self.base.webgl_error(InvalidOperation);
+        }
+
+        self.base.send_command(WebGLCommand::BlitFrameBuffer(
+            src_x0, src_y0, src_x1, src_y1, dst_x0, dst_y0, dst_x1, dst_y1, mask, filter,
+        ));
+    }
+
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
     fn FramebufferRenderbuffer(
         &self,
