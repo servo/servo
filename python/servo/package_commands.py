@@ -627,8 +627,8 @@ class PackageCommands(CommandBase):
             nightly_dir = 'nightly/{}'.format(platform)
             filename = nightly_filename(package, timestamp)
             package_upload_key = '{}/{}'.format(nightly_dir, filename)
-            extension = path.basename(package).partition('.')[2]
-            latest_upload_key = '{}/servo-latest.{}'.format(nightly_dir, extension)
+            extension = path.splitext(path.basename(package))[1]
+            latest_upload_key = '{}/servo-latest{}'.format(nightly_dir, extension)
 
             s3.upload_file(package, BUCKET, package_upload_key)
             copy_source = {
