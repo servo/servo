@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![deny(unsafe_code)]
+
 //! The rule tree.
 
 use crate::applicable_declarations::ApplicableDeclarationList;
@@ -15,6 +17,7 @@ mod core;
 mod level;
 mod map;
 mod source;
+mod unsafe_box;
 
 pub use self::core::{RuleTree, StrongRuleNode};
 pub use self::level::{CascadeLevel, ShadowCascadeOrder};
