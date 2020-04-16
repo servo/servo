@@ -103,10 +103,14 @@ void App::OnActivated(IActivatedEventArgs const &args) {
 }
 
 void App::OnSuspending(IInspectable const &, SuspendingEventArgs const &) {
-  auto content = Window::Current().Content();
+  // FIXME: Apps can be suspended for various reasons, not just closing them.
+  //        * Figure out how to save state like the current URL so it can be
+  //          restored if necessary.
+  //        * Determine if the user has actually closed the app and shutdown.
+  /*auto content = Window::Current().Content();
   Frame rootFrame = content.try_as<Frame>();
   auto page = rootFrame.Content().try_as<BrowserPage>();
-  page->Shutdown();
+  page->Shutdown();*/
 }
 
 void App::OnNavigationFailed(IInspectable const &,
