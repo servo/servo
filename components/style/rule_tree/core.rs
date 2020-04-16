@@ -369,7 +369,7 @@ impl StrongRuleNode {
     }
 
     pub(super) fn downgrade(&self) -> WeakRuleNode {
-        WeakRuleNode::from_ptr(self.p)
+        unsafe { WeakRuleNode::from_ptr(self.p) }
     }
 
     /// Get the parent rule node of this rule node.
@@ -750,12 +750,6 @@ impl Drop for StrongRuleNode {
     }
 }
 
-impl<'a> From<&'a StrongRuleNode> for WeakRuleNode {
-    fn from(node: &'a StrongRuleNode) -> Self {
-        WeakRuleNode::from_ptr(node.p)
-    }
-}
-
 impl WeakRuleNode {
     #[inline]
     fn ptr(&self) -> *mut RuleNode {
@@ -770,7 +764,7 @@ impl WeakRuleNode {
         unsafe { StrongRuleNode::from_ptr(self.p) }
     }
 
-    fn from_ptr(p: ptr::NonNull<RuleNode>) -> Self {
+    unsafe fn from_ptr(p: ptr::NonNull<RuleNode>) -> Self {
         WeakRuleNode { p }
     }
 }
