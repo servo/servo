@@ -95,7 +95,7 @@ impl RuleTree {
                 debug_assert!(transition.is_none());
                 transition = Some(source);
             } else {
-                current = current.ensure_child(self.root().downgrade(), source, level);
+                current = current.ensure_child(self.root(), source, level);
             }
         }
 
@@ -131,7 +131,7 @@ impl RuleTree {
 
         for (source, shadow_cascade_order) in important_author.drain(..) {
             current = current.ensure_child(
-                self.root().downgrade(),
+                self.root(),
                 source,
                 AuthorImportant {
                     shadow_cascade_order: -shadow_cascade_order,
@@ -140,15 +140,15 @@ impl RuleTree {
         }
 
         for source in important_user.drain(..) {
-            current = current.ensure_child(self.root().downgrade(), source, UserImportant);
+            current = current.ensure_child(self.root(), source, UserImportant);
         }
 
         for source in important_ua.drain(..) {
-            current = current.ensure_child(self.root().downgrade(), source, UAImportant);
+            current = current.ensure_child(self.root(), source, UAImportant);
         }
 
         if let Some(source) = transition {
-            current = current.ensure_child(self.root().downgrade(), source, Transitions);
+            current = current.ensure_child(self.root(), source, Transitions);
         }
 
         current
@@ -182,7 +182,7 @@ impl RuleTree {
     {
         let mut current = from;
         for (source, level) in iter {
-            current = current.ensure_child(self.root().downgrade(), source, level);
+            current = current.ensure_child(self.root(), source, level);
         }
         current
     }
@@ -262,7 +262,7 @@ impl RuleTree {
             if level.is_important() {
                 if pdb.read_with(level.guard(guards)).any_important() {
                     current = current.ensure_child(
-                        self.root().downgrade(),
+                        self.root(),
                         StyleSource::from_declarations(pdb.clone_arc()),
                         level,
                     );
@@ -271,7 +271,7 @@ impl RuleTree {
             } else {
                 if pdb.read_with(level.guard(guards)).any_normal() {
                     current = current.ensure_child(
-                        self.root().downgrade(),
+                        self.root(),
                         StyleSource::from_declarations(pdb.clone_arc()),
                         level,
                     );

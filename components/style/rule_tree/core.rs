@@ -367,7 +367,7 @@ impl StrongRuleNode {
         StrongRuleNode { p }
     }
 
-    pub(super) fn downgrade(&self) -> WeakRuleNode {
+    fn downgrade(&self) -> WeakRuleNode {
         unsafe { WeakRuleNode::from_ptr(self.p) }
     }
 
@@ -378,7 +378,7 @@ impl StrongRuleNode {
 
     pub(super) fn ensure_child(
         &self,
-        root: WeakRuleNode,
+        root: &StrongRuleNode,
         source: StyleSource,
         level: CascadeLevel,
     ) -> StrongRuleNode {
@@ -404,6 +404,7 @@ impl StrongRuleNode {
             key,
             |node| unsafe { (*node.ptr()).key() },
             move || {
+                let root = root.downgrade();
                 let strong =
                     StrongRuleNode::new(Box::new(RuleNode::new(root, self.clone(), source, level)));
                 let weak = strong.downgrade();
