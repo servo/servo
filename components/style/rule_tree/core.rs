@@ -367,8 +367,8 @@ impl StrongRuleNode {
         StrongRuleNode { p }
     }
 
-    fn downgrade(&self) -> WeakRuleNode {
-        unsafe { WeakRuleNode::from_ptr(self.p) }
+    unsafe fn downgrade(&self) -> WeakRuleNode {
+        WeakRuleNode::from_ptr(self.p)
     }
 
     /// Get the parent rule node of this rule node.
@@ -404,10 +404,10 @@ impl StrongRuleNode {
             key,
             |node| unsafe { (*node.ptr()).key() },
             move || {
-                let root = root.downgrade();
+                let root = unsafe { root.downgrade() };
                 let strong =
                     StrongRuleNode::new(Box::new(RuleNode::new(root, self.clone(), source, level)));
-                let weak = strong.downgrade();
+                let weak = unsafe { strong.downgrade() };
                 mem::forget(strong);
                 weak
             },
