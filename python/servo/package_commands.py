@@ -31,7 +31,7 @@ from mach.decorators import (
 from mach.registrar import Registrar
 # Note: mako cannot be imported at the top level because it breaks mach bootstrap
 sys.path.append(path.join(path.dirname(__file__), "..", "..",
-                          "components", "style", "properties", "Mako-0.9.1.zip"))
+                          "components", "style", "properties", "Mako-1.1.2-py2.py3-none-any.whl"))
 
 from servo.command_base import (
     archive_deterministically,
