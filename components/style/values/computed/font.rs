@@ -703,7 +703,7 @@ pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
 /// (see http://www.microsoft.com/typography/otspec/languagetags.htm).
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToResolvedValue)]
 #[repr(C)]
-pub struct FontLanguageOverride(u32);
+pub struct FontLanguageOverride(pub u32);
 
 impl FontLanguageOverride {
     #[inline]
@@ -759,6 +759,15 @@ impl ToCss for FontLanguageOverride {
         W: fmt::Write,
     {
         self.to_str(&mut [0; 4]).to_css(dest)
+    }
+}
+
+// FIXME(emilio): Make Gecko use the cbindgen'd fontLanguageOverride, then
+// remove this.
+#[cfg(feature = "gecko")]
+impl From<u32> for FontLanguageOverride {
+    fn from(v: u32) -> Self {
+        unsafe { Self::from_u32(v) }
     }
 }
 

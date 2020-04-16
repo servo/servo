@@ -72,7 +72,7 @@ use crate::values::computed::Length;
 use crate::values::specified::length::FontBaseSize;
 use crate::CaseSensitivityExt;
 use app_units::Au;
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::matching::VisitedHandlingMode;
@@ -557,8 +557,9 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
 }
 
 impl<'le> GeckoElement<'le> {
+    /// Gets the raw `ElementData` refcell for the element.
     #[inline(always)]
-    fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
+    pub fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe { self.0.mServoData.get().as_ref() }
     }
 
@@ -1391,21 +1392,6 @@ impl<'le> TElement for GeckoElement<'le> {
         panic!("Atomic child count not implemented in Gecko");
     }
 
-    /// Whether there is an ElementData container.
-    fn has_data(&self) -> bool {
-        self.get_data().is_some()
-    }
-
-    /// Immutably borrows the ElementData.
-    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
-        self.get_data().map(|x| x.borrow())
-    }
-
-    /// Mutably borrows the ElementData.
-    fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
-        self.get_data().map(|x| x.borrow_mut())
-    }
-
     unsafe fn ensure_data(&self) -> AtomicRefMut<ElementData> {
         if !self.has_data() {
             debug!("Creating ElementData for {:?}", self);
@@ -1640,6 +1626,22 @@ impl<'le> TElement for GeckoElement<'le> {
         existing_transitions
             .keys()
             .any(|property| !transitions_to_keep.contains(*property))
+    }
+
+    /// Whether there is an ElementData container.
+    #[inline]
+    fn has_data(&self) -> bool {
+        self.get_data().is_some()
+    }
+
+    /// Immutably borrows the ElementData.
+    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
+        self.get_data().map(|x| x.borrow())
+    }
+
+    /// Mutably borrows the ElementData.
+    fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
+        self.get_data().map(|x| x.borrow_mut())
     }
 
     #[inline]
