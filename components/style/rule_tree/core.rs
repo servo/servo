@@ -361,10 +361,10 @@ impl StrongRuleNode {
 
         debug!("Creating rule node: {:p}", ptr);
 
-        StrongRuleNode::from_ptr(ptr)
+        unsafe { StrongRuleNode::from_ptr(ptr) }
     }
 
-    fn from_ptr(p: ptr::NonNull<RuleNode>) -> Self {
+    unsafe fn from_ptr(p: ptr::NonNull<RuleNode>) -> Self {
         StrongRuleNode { p }
     }
 
@@ -413,7 +413,7 @@ impl StrongRuleNode {
             },
         );
 
-        StrongRuleNode::from_ptr(weak.p)
+        unsafe { StrongRuleNode::from_ptr(weak.p) }
     }
 
     /// Raw pointer to the RuleNode
@@ -606,7 +606,7 @@ impl Clone for StrongRuleNode {
         );
         debug_assert!(self.get().refcount.load(Ordering::Relaxed) > 0);
         self.get().refcount.fetch_add(1, Ordering::Relaxed);
-        StrongRuleNode::from_ptr(self.p)
+        unsafe { StrongRuleNode::from_ptr(self.p) }
     }
 }
 
@@ -767,7 +767,7 @@ impl WeakRuleNode {
 
         let node = unsafe { &*self.ptr() };
         node.refcount.fetch_add(1, Ordering::Relaxed);
-        StrongRuleNode::from_ptr(self.p)
+        unsafe { StrongRuleNode::from_ptr(self.p) }
     }
 
     fn from_ptr(p: ptr::NonNull<RuleNode>) -> Self {
