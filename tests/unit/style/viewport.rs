@@ -12,7 +12,7 @@ use style::media_queries::{Device, MediaList, MediaType};
 use style::parser::ParserContext;
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
 use style::stylesheets::viewport_rule::*;
-use style::stylesheets::{CssRuleType, Origin, Stylesheet, StylesheetInDocument};
+use style::stylesheets::{AllowImportRules, CssRuleType, Origin, Stylesheet, StylesheetInDocument};
 use style::values::generics::length::LengthPercentageOrAuto::{self, Auto};
 use style::values::generics::NonNegative;
 use style::values::specified::LengthPercentage;
@@ -36,6 +36,7 @@ macro_rules! stylesheet {
             None,
             QuirksMode::NoQuirks,
             0,
+            AllowImportRules::Yes,
         ))
     };
 }

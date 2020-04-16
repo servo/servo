@@ -12,7 +12,7 @@ use style::media_queries::MediaList;
 use style::properties::{longhands, Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use style::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
 use style::shared_lock::{SharedRwLock, StylesheetGuards};
-use style::stylesheets::{CssRule, Origin, Stylesheet};
+use style::stylesheets::{AllowImportRules, CssRule, Origin, Stylesheet};
 use style::thread_state::{self, ThreadState};
 use test::{self, Bencher};
 
@@ -67,6 +67,7 @@ fn parse_rules(lock: &SharedRwLock, css: &str) -> Vec<(StyleSource, CascadeLevel
         Some(&ErrorringErrorReporter),
         QuirksMode::NoQuirks,
         0,
+        AllowImportRules::Yes,
     );
     let guard = s.shared_lock.read();
     let rules = s.contents.rules.read_with(&guard);
