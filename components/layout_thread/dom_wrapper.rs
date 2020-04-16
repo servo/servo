@@ -914,10 +914,6 @@ impl<'le> ::selectors::Element for ServoLayoutElement<'le> {
         false
     }
 
-    fn exported_part(&self, _: &Atom) -> Option<Atom> {
-        None
-    }
-
     fn imported_part(&self, _: &Atom) -> Option<Atom> {
         None
     }
@@ -1439,11 +1435,6 @@ impl<'le> ::selectors::Element for ServoThreadSafeLayoutElement<'le> {
     fn is_part(&self, _name: &Atom) -> bool {
         debug!("ServoThreadSafeLayoutElement::is_part called");
         false
-    }
-
-    fn exported_part(&self, _: &Atom) -> Option<Atom> {
-        debug!("ServoThreadSafeLayoutElement::exported_part called");
-        None
     }
 
     fn imported_part(&self, _: &Atom) -> Option<Atom> {

@@ -26,7 +26,7 @@ use servo_arc::Arc;
 use std::cell::Cell;
 use style::media_queries::MediaList;
 use style::parser::ParserContext as CssParserContext;
-use style::stylesheets::{CssRuleType, Origin, Stylesheet};
+use style::stylesheets::{AllowImportRules, CssRuleType, Origin, Stylesheet};
 use style_traits::ParsingMode;
 
 #[dom_struct]
@@ -119,6 +119,7 @@ impl HTMLStyleElement {
             css_error_reporter,
             doc.quirks_mode(),
             self.line_number as u32,
+            AllowImportRules::Yes,
         );
 
         let sheet = Arc::new(sheet);

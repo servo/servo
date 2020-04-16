@@ -79,6 +79,8 @@ trivial_to_resolved_value!(computed::url::ComputedUrl);
 #[cfg(feature = "gecko")]
 trivial_to_resolved_value!(computed::url::ComputedImageUrl);
 #[cfg(feature = "servo")]
+trivial_to_resolved_value!(html5ever::Namespace);
+#[cfg(feature = "servo")]
 trivial_to_resolved_value!(html5ever::Prefix);
 trivial_to_resolved_value!(computed::LengthPercentage);
 trivial_to_resolved_value!(style_traits::values::specified::AllowedNumericType);

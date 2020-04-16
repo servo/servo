@@ -60,10 +60,10 @@ use style::logical_geometry::{LogicalMargin, LogicalPoint, LogicalRect};
 use style::properties::{style_structs, ComputedValues};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::effects::SimpleShadow;
-use style::values::computed::image::{Image, ImageLayer};
+use style::values::computed::image::Image;
 use style::values::computed::{ClipRectOrAuto, Gradient, LengthOrAuto};
 use style::values::generics::background::BackgroundSize;
-use style::values::generics::image::{GradientKind, PaintWorklet};
+use style::values::generics::image::PaintWorklet;
 use style::values::specified::ui::CursorKind;
 use style::values::RGBA;
 use style_traits::ToCss;
@@ -732,12 +732,8 @@ impl Fragment {
         // http://www.w3.org/TR/CSS21/colors.html#background
         let background = style.get_background();
         for (i, background_image) in background.background_image.0.iter().enumerate().rev() {
-            let background_image = match *background_image {
-                ImageLayer::None => continue,
-                ImageLayer::Image(ref image) => image,
-            };
-
             match *background_image {
+                Image::None => {},
                 Image::Gradient(ref gradient) => {
                     self.build_display_list_for_background_gradient(
                         state,
@@ -975,15 +971,15 @@ impl Fragment {
                 display_list_section,
             );
 
-            let display_item = match gradient.kind {
-                GradientKind::Linear(angle_or_corner) => {
-                    let (gradient, stops) = gradient::linear(
-                        style,
-                        placement.tile_size,
-                        &gradient.items[..],
-                        angle_or_corner,
-                        gradient.repeating,
-                    );
+            let display_item = match gradient {
+                Gradient::Linear {
+                    ref direction,
+                    ref items,
+                    ref repeating,
+                    compat_mode: _,
+                } => {
+                    let (gradient, stops) =
+                        gradient::linear(style, placement.tile_size, items, *direction, *repeating);
                     let item = webrender_api::GradientDisplayItem {
                         gradient,
                         bounds: placement.bounds.to_f32_px(),
@@ -993,14 +989,20 @@ impl Fragment {
                     };
                     DisplayItem::Gradient(CommonDisplayItem::with_data(base, item, stops))
                 },
-                GradientKind::Radial(ref shape, ref center) => {
+                Gradient::Radial {
+                    ref shape,
+                    ref position,
+                    ref items,
+                    ref repeating,
+                    compat_mode: _,
+                } => {
                     let (gradient, stops) = gradient::radial(
                         style,
                         placement.tile_size,
-                        &gradient.items[..],
+                        items,
                         shape,
-                        center,
-                        gradient.repeating,
+                        position,
+                        *repeating,
                     );
                     let item = webrender_api::RadialGradientDisplayItem {
                         gradient,
@@ -1011,6 +1013,7 @@ impl Fragment {
                     };
                     DisplayItem::RadialGradient(CommonDisplayItem::with_data(base, item, stops))
                 },
+                Gradient::Conic { .. } => unimplemented!(),
             };
             state.add_display_item(display_item);
         });
@@ -1122,22 +1125,20 @@ impl Fragment {
         let border_radius = border::radii(bounds, border_style_struct);
         let border_widths = border.to_physical(style.writing_mode);
 
-        if let ImageLayer::Image(ref image) = border_style_struct.border_image_source {
-            if self
-                .build_display_list_for_border_image(
-                    state,
-                    style,
-                    base.clone(),
-                    bounds,
-                    image,
-                    border_widths,
-                )
-                .is_some()
-            {
-                return;
-            }
-            // Fallback to rendering a solid border.
+        if self
+            .build_display_list_for_border_image(
+                state,
+                style,
+                base.clone(),
+                bounds,
+                &border_style_struct.border_image_source,
+                border_widths,
+            )
+            .is_some()
+        {
+            return;
         }
+
         if border_widths == SideOffsets2D::zero() {
             return;
         }
@@ -1224,30 +1225,37 @@ impl Fragment {
                 height = image.height;
                 NinePatchBorderSource::Image(image.key?)
             },
-            Image::Gradient(ref gradient) => match gradient.kind {
-                GradientKind::Linear(angle_or_corner) => {
-                    let (wr_gradient, linear_stops) = gradient::linear(
-                        style,
-                        border_image_area,
-                        &gradient.items[..],
-                        angle_or_corner,
-                        gradient.repeating,
-                    );
+            Image::Gradient(ref gradient) => match **gradient {
+                Gradient::Linear {
+                    ref direction,
+                    ref items,
+                    ref repeating,
+                    compat_mode: _,
+                } => {
+                    let (wr_gradient, linear_stops) =
+                        gradient::linear(style, border_image_area, items, *direction, *repeating);
                     stops = linear_stops;
                     NinePatchBorderSource::Gradient(wr_gradient)
                 },
-                GradientKind::Radial(ref shape, ref center) => {
+                Gradient::Radial {
+                    ref shape,
+                    ref position,
+                    ref items,
+                    ref repeating,
+                    compat_mode: _,
+                } => {
                     let (wr_gradient, radial_stops) = gradient::radial(
                         style,
                         border_image_area,
-                        &gradient.items[..],
+                        items,
                         shape,
-                        center,
-                        gradient.repeating,
+                        position,
+                        *repeating,
                     );
                     stops = radial_stops;
                     NinePatchBorderSource::RadialGradient(wr_gradient)
                 },
+                Gradient::Conic { .. } => unimplemented!(),
             },
             _ => return None,
         };

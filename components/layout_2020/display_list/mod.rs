@@ -333,7 +333,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_background(&mut self, builder: &mut DisplayListBuilder) {
-        use style::values::computed::image::{Image, ImageLayer};
+        use style::values::computed::image::Image;
         let b = self.fragment.style.get_background();
         let background_color = self.fragment.style.resolve_color(b.background_color);
         if background_color.alpha > 0 {
@@ -345,85 +345,80 @@ impl<'a> BuilderForBoxFragment<'a> {
             builder.wr.push_rect(&common, rgba(background_color))
         }
         // Reverse because the property is top layer first, we want to paint bottom layer first.
-        for (index, layer) in b.background_image.0.iter().enumerate().rev() {
-            match layer {
-                ImageLayer::None => {},
-                ImageLayer::Image(image) => match image {
-                    Image::Gradient(gradient) => {
-                        let intrinsic = IntrinsicSizes {
-                            width: None,
-                            height: None,
-                            ratio: None,
-                        };
-                        if let Some(layer) =
-                            &background::layout_layer(self, builder, index, intrinsic)
-                        {
-                            gradient::build(&self.fragment.style, gradient, layer, builder)
-                        }
-                    },
-                    Image::Url(image_url) => {
-                        // FIXME: images won’t always have in intrinsic width or height
-                        // when support for SVG is added.
-                        // Or a WebRender `ImageKey`, for that matter.
-                        let (width, height, key) = match image_url.url() {
-                            Some(url) => {
-                                match builder.context.get_webrender_image_for_url(
-                                    self.fragment.tag,
-                                    url.clone(),
-                                    UsePlaceholder::No,
-                                ) {
-                                    Some(WebRenderImageInfo {
-                                        width,
-                                        height,
-                                        key: Some(key),
-                                    }) => (width, height, key),
-                                    _ => continue,
-                                }
-                            },
-                            None => continue,
-                        };
-
-                        // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
-                        let dppx = 1.0;
-
-                        let intrinsic = IntrinsicSizes {
-                            width: Some(Length::new(width as f32 / dppx)),
-                            height: Some(Length::new(height as f32 / dppx)),
-                            // FIXME https://github.com/w3c/csswg-drafts/issues/4572
-                            ratio: Some(width as f32 / height as f32),
-                        };
-
-                        if let Some(layer) =
-                            background::layout_layer(self, builder, index, intrinsic)
-                        {
-                            let image_rendering =
-                                image_rendering(self.fragment.style.clone_image_rendering());
-                            if layer.repeat {
-                                builder.wr.push_repeating_image(
-                                    &layer.common,
-                                    layer.bounds,
-                                    layer.tile_size,
-                                    layer.tile_spacing,
-                                    image_rendering,
-                                    wr::AlphaType::PremultipliedAlpha,
-                                    key,
-                                    wr::ColorF::WHITE,
-                                )
-                            } else {
-                                builder.wr.push_image(
-                                    &layer.common,
-                                    layer.bounds,
-                                    image_rendering,
-                                    wr::AlphaType::PremultipliedAlpha,
-                                    key,
-                                    wr::ColorF::WHITE,
-                                )
-                            }
-                        }
-                    },
-                    // Gecko-only value, represented as a (boxed) empty enum on non-Gecko.
-                    Image::Rect(rect) => match **rect {},
+        for (index, image) in b.background_image.0.iter().enumerate().rev() {
+            match image {
+                Image::None => {},
+                Image::Gradient(ref gradient) => {
+                    let intrinsic = IntrinsicSizes {
+                        width: None,
+                        height: None,
+                        ratio: None,
+                    };
+                    if let Some(layer) = &background::layout_layer(self, builder, index, intrinsic)
+                    {
+                        gradient::build(&self.fragment.style, &gradient, layer, builder)
+                    }
                 },
+                Image::Url(ref image_url) => {
+                    // FIXME: images won’t always have in intrinsic width or height
+                    // when support for SVG is added.
+                    // Or a WebRender `ImageKey`, for that matter.
+                    let (width, height, key) = match image_url.url() {
+                        Some(url) => {
+                            match builder.context.get_webrender_image_for_url(
+                                self.fragment.tag,
+                                url.clone(),
+                                UsePlaceholder::No,
+                            ) {
+                                Some(WebRenderImageInfo {
+                                    width,
+                                    height,
+                                    key: Some(key),
+                                }) => (width, height, key),
+                                _ => continue,
+                            }
+                        },
+                        None => continue,
+                    };
+
+                    // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
+                    let dppx = 1.0;
+
+                    let intrinsic = IntrinsicSizes {
+                        width: Some(Length::new(width as f32 / dppx)),
+                        height: Some(Length::new(height as f32 / dppx)),
+                        // FIXME https://github.com/w3c/csswg-drafts/issues/4572
+                        ratio: Some(width as f32 / height as f32),
+                    };
+
+                    if let Some(layer) = background::layout_layer(self, builder, index, intrinsic) {
+                        let image_rendering =
+                            image_rendering(self.fragment.style.clone_image_rendering());
+                        if layer.repeat {
+                            builder.wr.push_repeating_image(
+                                &layer.common,
+                                layer.bounds,
+                                layer.tile_size,
+                                layer.tile_spacing,
+                                image_rendering,
+                                wr::AlphaType::PremultipliedAlpha,
+                                key,
+                                wr::ColorF::WHITE,
+                            )
+                        } else {
+                            builder.wr.push_image(
+                                &layer.common,
+                                layer.bounds,
+                                image_rendering,
+                                wr::AlphaType::PremultipliedAlpha,
+                                key,
+                                wr::ColorF::WHITE,
+                            )
+                        }
+                    }
+                },
+                // Gecko-only value, represented as a (boxed) empty enum on non-Gecko.
+                Image::Rect(ref rect) => match **rect {},
             }
         }
     }

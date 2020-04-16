@@ -52,6 +52,16 @@ pub type Gradient = generic::Gradient<
 
 type LengthPercentageItemList = crate::OwnedSlice<generic::GradientItem<Color, LengthPercentage>>;
 
+#[cfg(feature = "gecko")]
+fn conic_gradients_enabled() -> bool {
+    static_prefs::pref!("layout.css.conic-gradient.enabled")
+}
+
+#[cfg(feature = "servo")]
+fn conic_gradients_enabled() -> bool {
+    false
+}
+
 impl SpecifiedValueInfo for Gradient {
     const SUPPORTED_TYPES: u8 = CssType::GRADIENT;
 
@@ -73,7 +83,7 @@ impl SpecifiedValueInfo for Gradient {
             "-webkit-gradient",
         ]);
 
-        if static_prefs::pref!("layout.css.conic-gradient.enabled") {
+        if conic_gradients_enabled() {
             f(&["conic-gradient", "repeating-conic-gradient"]);
         }
     }
@@ -240,10 +250,10 @@ impl Parse for Gradient {
             "-moz-repeating-radial-gradient" => {
                 (Shape::Radial, true, GradientCompatMode::Moz)
             },
-            "conic-gradient" if static_prefs::pref!("layout.css.conic-gradient.enabled") => {
+            "conic-gradient" if conic_gradients_enabled() => {
                 (Shape::Conic, false, GradientCompatMode::Modern)
             },
-            "repeating-conic-gradient" if static_prefs::pref!("layout.css.conic-gradient.enabled") => {
+            "repeating-conic-gradient" if conic_gradients_enabled() => {
                 (Shape::Conic, true, GradientCompatMode::Modern)
             },
             "-webkit-gradient" => {

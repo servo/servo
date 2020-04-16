@@ -17,7 +17,9 @@ use crate::stylesheet_loader::StylesheetLoader;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
 use style::shared_lock::Locked;
-use style::stylesheets::{CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError};
+use style::stylesheets::{
+    AllowImportRules, CssRules, CssRulesHelpers, KeyframesRule, RulesMutateError,
+};
 
 #[allow(unsafe_code)]
 unsafe_no_jsmanaged_fields!(RulesSource);
@@ -116,6 +118,7 @@ impl CSSRuleList {
                 index,
                 nested,
                 Some(&loader),
+                AllowImportRules::Yes,
             )
         })?;
 
