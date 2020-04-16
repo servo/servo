@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+</head>
+
+<body>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200">
+      <div style="width: 200px; height: 200px; background: red"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200">
+      <div style="width: 200px; height: 200px; background: red"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200">
+      <div style="width: 200px; height: 200px;"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200">
+      <div style="width: 200px; height: 200px;"></div>
+    </foreignObject>
+  </svg>
+
+  <!-- make sure masking actually works -->
+  <svg width="200" height="200">
+      <rect x="0" y="0" width="100" height="50" fill="red"></rect>
+      <rect x="0" y="100" width="100" height="50" fill="red"></rect>
+  </svg>
+  <svg width="200" height="200">
+      <rect x="0" y="0" width="100" height="50" fill="red"></rect>
+      <rect x="0" y="100" width="100" height="50" fill="red"></rect>
+  </svg>
+
+  <!-- make sure masking works on active content -->
+  <svg width="200" height="200">
+    <rect x="0" y="0" width="100" height="50" fill="red"></rect>
+    <rect x="0" y="100" width="100" height="50" fill="red"></rect>
+  </svg>
+  <svg width="200" height="200">
+    <rect x="0" y="0" width="100" height="50" fill="red"></rect>
+    <rect x="0" y="100" width="100" height="50" fill="red"></rect>
+  </svg>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!doctype html>
+<title>CSS Test: @keyframes applies to ::slotted.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#shadow-names">
+<div id="host"><div id="in-document"></div></div>
+<script>
+  test(function() {
+    host.attachShadow({ mode: "open" }).innerHTML = `
+      <style>
+        @keyframes myanim {
+          from { background: red; }
+          to { background: green; }
+        }
+        ::slotted(#in-document) {
+          width: 100px;
+          height: 100px;
+          background: blue;
+          animation: myanim 10s infinite;
+        }
+      </style>
+      <slot />
+    `;
+
+    assert_equals(document.getElementById('in-document').getAnimations().length, 1);
+  }, "@keyframes in shadow tree applies to the slotted element");
+</script>

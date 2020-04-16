@@ -3,28 +3,11 @@
     unbreakable line box.
 */
 .min-content {
-    /* Webkit, but not actually implemented outside deprecated flexbox */
-    width: min-intrinsic;
-    width: -webkit-min-content;
-    width: -moz-min-content;
     width: min-content;
 }
 
 .max-content {
-    width: -webkit-max-content;
-    width: -moz-max-content;
     width: max-content;
-}
-
-/*
-    Identical to auto except for elements with an instrinsic width like an
-    img where this overrides the intrinsic width to get regular block "auto".
-*/
-.fill-available {
-    width: -webkit-fill-available;
-    /* Firefox is missing the fill- prefix because they followed an older spec */
-    width: -moz-available;
-    width: fill-available;
 }
 
 /*
@@ -32,59 +15,32 @@
    max(min-content, min(max-content, fill-available))
 */
 .fit-content {
-    /* Webkit, but only outside a deprecated flexbox. */
-    width: intrinsic;
-    width: -webkit-fit-content;
     width: -moz-fit-content;
     width: fit-content;
 }
 
 .max-width-min-content {
-    max-width: -webkit-min-content;
-    max-width: -moz-min-content;
     max-width: min-content;
 }
 
 .max-width-max-content {
-    max-width: -webkit-max-content;
-    max-width: -moz-max-content;
     max-width: max-content;
 }
 
-.max-width-fill-available {
-    max-width: -webkit-fill-available;
-    max-width: -moz-available;
-    max-width: fill-available;
-}
-
 .max-width-fit-content {
-    max-width: intrinsic;
-    max-width: -webkit-fit-content;
     max-width: -moz-fit-content;
     max-width: fit-content;
 }
 
 .min-width-min-content {
-    min-width: -webkit-min-content;
-    min-width: -moz-min-content;
     min-width: min-content;
 }
 
 .min-width-max-content {
-    min-width: -webkit-max-content;
-    min-width: -moz-max-content;
     min-width: max-content;
 }
 
-.min-width-fill-available {
-    min-width: -webkit-fill-available;
-    min-width: -moz-available;
-    min-width: fill-available;
-}
-
 .min-width-fit-content {
-    min-width: intrinsic;
-    min-width: -webkit-fit-content;
     min-width: -moz-fit-content;
     min-width: fit-content;
 }

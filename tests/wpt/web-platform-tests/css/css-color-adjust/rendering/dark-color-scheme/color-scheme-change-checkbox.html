@@ -1,0 +1,21 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+  <title>CSS Color Adjustment Test: Checkbox rendering should change between dark and light schemes</title>
+  <link rel="help" href="https://drafts.csswg.org/css-color-adjust/#color-scheme-processing">
+  <link rel="mismatch" href="color-scheme-change-checkbox-notref.html">
+  <link rel="stylesheet" href="support/assert-preferred-dark.css">
+  <script src="/common/reftest-wait.js"></script>
+</head>
+<body>
+  <input type="checkbox">
+</body>
+<script>
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.querySelector("input").style.colorScheme = "dark";
+      takeScreenshot();
+    });
+  });
+</script>
+</html>

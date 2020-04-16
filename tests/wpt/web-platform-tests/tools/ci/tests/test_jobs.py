@@ -134,3 +134,7 @@ def test_wpt_infrastructure():
                          includes=["wptrunner_infrastructure"]) == {"wptrunner_infrastructure"}
     assert jobs.get_jobs(["infrastructure/assumptions/ahem.html"],
                          includes=["wptrunner_infrastructure"]) == {"wptrunner_infrastructure"}
+
+def test_wdspec_support():
+    assert jobs.get_jobs(["webdriver/tests/support/__init__.py"],
+                         includes=["wptrunner_infrastructure"]) == {"wptrunner_infrastructure"}
