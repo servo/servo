@@ -2043,7 +2043,10 @@ where
                 //     given selector is allowed to match a featureless element,
                 //     it must do so while ignoring the default namespace.
                 //
-                if !matches!(result, SimpleSelectorParseResult::SimpleSelector(Component::Host(..))) {
+                if !matches!(
+                    result,
+                    SimpleSelectorParseResult::SimpleSelector(Component::Host(..))
+                ) {
                     builder.push_simple_selector(Component::DefaultNamespace(url));
                 }
             }

@@ -10,7 +10,7 @@ use crate::str::CssStringWriter;
 use crate::stylesheets::loader::StylesheetLoader;
 use crate::stylesheets::rule_parser::{InsertRuleContext, State};
 use crate::stylesheets::stylesheet::StylesheetContents;
-use crate::stylesheets::{CssRule, RulesMutateError, AllowImportRules};
+use crate::stylesheets::{AllowImportRules, CssRule, RulesMutateError};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOfOps};
 use servo_arc::{Arc, RawOffsetArc};

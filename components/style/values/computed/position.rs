@@ -61,7 +61,7 @@ impl GenericPositionComponent for LengthPercentage {
     fn is_center(&self) -> bool {
         match self.to_percentage() {
             Some(Percentage(per)) => per == 0.5,
-            _ => false
+            _ => false,
         }
     }
 }

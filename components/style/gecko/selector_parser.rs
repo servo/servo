@@ -173,7 +173,7 @@ impl NonTSPseudoClass {
     #[inline]
     fn is_enabled_in_content(&self) -> bool {
         if matches!(*self, NonTSPseudoClass::FocusVisible) {
-            return static_prefs::pref!("layout.css.focus-visible.enabled")
+            return static_prefs::pref!("layout.css.focus-visible.enabled");
         }
         !self.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME)
     }

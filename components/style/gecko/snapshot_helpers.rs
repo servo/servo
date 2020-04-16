@@ -93,13 +93,7 @@ pub(super) fn each_exported_part(
         None => return,
     };
     let mut length = 0;
-    let atoms = unsafe {
-        bindings::Gecko_Element_ExportedParts(
-            attr,
-            name.as_ptr(),
-            &mut length,
-        )
-    };
+    let atoms = unsafe { bindings::Gecko_Element_ExportedParts(attr, name.as_ptr(), &mut length) };
     if atoms.is_null() {
         return;
     }

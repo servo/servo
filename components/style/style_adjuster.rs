@@ -229,10 +229,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
 
         if !display.is_contents() {
             if !self
-                    .style
-                    .get_text()
-                    .clone_text_decoration_line()
-                    .is_empty()
+                .style
+                .get_text()
+                .clone_text_decoration_line()
+                .is_empty()
             {
                 self.style
                     .add_flags(ComputedValueFlags::HAS_TEXT_DECORATION_LINES);

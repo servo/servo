@@ -21,9 +21,9 @@ use crate::media_queries::Device;
 use crate::properties;
 use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
 use crate::rule_cache::RuleCacheConditions;
-use crate::{ArcSlice, Atom};
 #[cfg(feature = "servo")]
 use crate::Prefix;
+use crate::{ArcSlice, Atom};
 use euclid::default::Size2D;
 use servo_arc::Arc;
 use std::cell::RefCell;

@@ -13,7 +13,8 @@ use crate::values::computed::url::ComputedImageUrl;
 use crate::values::computed::NumberOrPercentage;
 use crate::values::computed::{Angle, Color, Context};
 use crate::values::computed::{
-    AngleOrPercentage, LengthPercentage, NonNegativeLength, NonNegativeLengthPercentage, ToComputedValue,
+    AngleOrPercentage, LengthPercentage, NonNegativeLength, NonNegativeLengthPercentage,
+    ToComputedValue,
 };
 use crate::values::generics::image::{self as generic, GradientCompatMode};
 use crate::values::specified::image::LineDirection as SpecifiedLineDirection;

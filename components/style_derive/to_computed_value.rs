@@ -102,7 +102,10 @@ pub fn derive_to_value(
     } else {
         let to_body = cg::fmap_match(&input, bind_style, |binding| {
             let attrs = binding_attrs(&binding);
-            assert!(!attrs.no_field_bound, "It doesn't make sense on a generic implementation");
+            assert!(
+                !attrs.no_field_bound,
+                "It doesn't make sense on a generic implementation"
+            );
             if attrs.field_bound {
                 add_field_bound(&binding);
             }
@@ -111,8 +114,16 @@ pub fn derive_to_value(
 
         let from_body = cg::fmap_match(&input, bind_style, |binding| call_from(&binding));
 
-        let self_ = if moves { quote! { self } } else { quote! { *self } };
-        let from_ = if moves { quote! { from } } else { quote! { *from } };
+        let self_ = if moves {
+            quote! { self }
+        } else {
+            quote! { *self }
+        };
+        let from_ = if moves {
+            quote! { from }
+        } else {
+            quote! { *from }
+        };
 
         let to_body = quote! {
             match #self_ {

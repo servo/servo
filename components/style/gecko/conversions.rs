@@ -10,7 +10,7 @@
 
 #![allow(unsafe_code)]
 
-use crate::gecko_bindings::structs::{Matrix4x4Components, nsresult};
+use crate::gecko_bindings::structs::{nsresult, Matrix4x4Components};
 use crate::stylesheets::RulesMutateError;
 use crate::values::computed::transform::Matrix3D;
 

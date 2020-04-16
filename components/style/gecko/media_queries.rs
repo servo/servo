@@ -318,7 +318,9 @@ impl Device {
         let mut right = 0.0;
         let mut bottom = 0.0;
         let mut left = 0.0;
-        unsafe { bindings::Gecko_GetSafeAreaInsets(pc, &mut top, &mut right, &mut bottom, &mut left) };
+        unsafe {
+            bindings::Gecko_GetSafeAreaInsets(pc, &mut top, &mut right, &mut bottom, &mut left)
+        };
         SideOffsets2D::new(top, right, bottom, left)
     }
 }

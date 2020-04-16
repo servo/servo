@@ -126,12 +126,7 @@ impl Parse for ClipPath {
             return Ok(ClipPath::Url(url));
         }
 
-        parse_shape_or_box(
-            context,
-            input,
-            ClipPath::Shape,
-            ClipPath::Box,
-        )
+        parse_shape_or_box(context, input, ClipPath::Shape, ClipPath::Box)
     }
 }
 
@@ -152,12 +147,7 @@ impl Parse for ShapeOutside {
             return Ok(ShapeOutside::Image(image));
         }
 
-        parse_shape_or_box(
-            context,
-            input,
-            ShapeOutside::Shape,
-            ShapeOutside::Box,
-        )
+        parse_shape_or_box(context, input, ShapeOutside::Shape, ShapeOutside::Box)
     }
 }
 

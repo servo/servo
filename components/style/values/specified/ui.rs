@@ -58,7 +58,12 @@ impl Parse for CursorImage {
             hotspot_y = Number::parse(context, input)?;
         }
 
-        Ok(Self { url, has_hotspot, hotspot_x, hotspot_y })
+        Ok(Self {
+            url,
+            has_hotspot,
+            hotspot_x,
+            hotspot_y,
+        })
     }
 }
 

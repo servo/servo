@@ -582,7 +582,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
                             // Don't touch the map, this has the same effect as
                             // making it compute to the inherited one.
                             return;
-                        }
+                        },
                     }
                 } else {
                     (*unparsed_value).clone()
@@ -848,7 +848,7 @@ fn substitute_all(
         match result {
             Ok(computed_value) => {
                 context.map.insert(name, Arc::new(computed_value));
-            }
+            },
             Err(..) => {
                 // This is invalid, reset it to the unset (inherited) value.
                 let inherited = context.inherited.and_then(|m| m.get(&name)).cloned();
@@ -860,7 +860,7 @@ fn substitute_all(
                         context.map.remove(&name);
                     },
                 };
-            }
+            },
         }
 
         // All resolved, so return the signal value.

@@ -341,8 +341,16 @@ where
         W: Write,
     {
         let (compat_mode, repeating) = match *self {
-            Gradient::Linear { compat_mode, repeating, .. } => (compat_mode, repeating),
-            Gradient::Radial { compat_mode, repeating, .. } => (compat_mode, repeating),
+            Gradient::Linear {
+                compat_mode,
+                repeating,
+                ..
+            } => (compat_mode, repeating),
+            Gradient::Radial {
+                compat_mode,
+                repeating,
+                ..
+            } => (compat_mode, repeating),
             Gradient::Conic { repeating, .. } => (GradientCompatMode::Modern, repeating),
         };
 
@@ -357,7 +365,12 @@ where
         }
 
         match *self {
-            Gradient::Linear { ref direction, ref items, compat_mode, .. } => {
+            Gradient::Linear {
+                ref direction,
+                ref items,
+                compat_mode,
+                ..
+            } => {
                 dest.write_str("linear-gradient(")?;
                 let mut skip_comma = if !direction.points_downwards(compat_mode) {
                     direction.to_css(dest, compat_mode)?;
@@ -373,7 +386,13 @@ where
                     item.to_css(dest)?;
                 }
             },
-            Gradient::Radial { ref shape, ref position, ref items, compat_mode, .. } => {
+            Gradient::Radial {
+                ref shape,
+                ref position,
+                ref items,
+                compat_mode,
+                ..
+            } => {
                 dest.write_str("radial-gradient(")?;
                 let omit_shape = match *shape {
                     EndingShape::Ellipse(Ellipse::Extent(ShapeExtent::Cover)) |
@@ -412,7 +431,12 @@ where
                     item.to_css(dest)?;
                 }
             },
-            Gradient::Conic { ref angle, ref position, ref items, .. } => {
+            Gradient::Conic {
+                ref angle,
+                ref position,
+                ref items,
+                ..
+            } => {
                 dest.write_str("conic-gradient(")?;
                 let omit_angle = angle.is_zero();
                 let omit_position = position.is_center();

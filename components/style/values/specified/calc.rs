@@ -15,8 +15,8 @@ use crate::values::specified::{self, Angle, Time};
 use crate::values::{CSSFloat, CSSInteger};
 use cssparser::{AngleOrNumber, CowRcStr, NumberOrPercentage, Parser, Token};
 use smallvec::SmallVec;
-use std::fmt::{self, Write};
 use std::cmp;
+use std::fmt::{self, Write};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
@@ -116,8 +116,10 @@ impl PartialOrd for Leaf {
                 match *self {
                     Length(..) | Percentage(..) | Angle(..) | Time(..) | Number(..) => {},
                 }
-                unsafe { debug_unreachable!("Forgot a branch?"); }
-            }
+                unsafe {
+                    debug_unreachable!("Forgot a branch?");
+                }
+            },
         }
     }
 }
@@ -126,8 +128,7 @@ impl generic::CalcNodeLeaf for Leaf {
     fn is_negative(&self) -> bool {
         match *self {
             Self::Length(ref l) => l.is_negative(),
-            Self::Percentage(n) |
-            Self::Number(n) => n < 0.,
+            Self::Percentage(n) | Self::Number(n) => n < 0.,
             Self::Angle(ref a) => a.degrees() < 0.,
             Self::Time(ref t) => t.seconds() < 0.,
         }
@@ -215,8 +216,10 @@ impl generic::CalcNodeLeaf for Leaf {
                 match *other {
                     Number(..) | Percentage(..) | Angle(..) | Time(..) | Length(..) => {},
                 }
-                unsafe { debug_unreachable!(); }
-            }
+                unsafe {
+                    debug_unreachable!();
+                }
+            },
         }
 
         Ok(())
@@ -252,11 +255,9 @@ impl CalcNode {
                     value, ref unit, ..
                 },
                 CalcUnit::LengthPercentage,
-            ) => {
-                match NoCalcLength::parse_dimension(context, value, unit) {
-                    Ok(l) => Ok(CalcNode::Leaf(Leaf::Length(l))),
-                    Err(()) => Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
-                }
+            ) => match NoCalcLength::parse_dimension(context, value, unit) {
+                Ok(l) => Ok(CalcNode::Leaf(Leaf::Length(l))),
+                Err(()) => Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
             },
             (
                 &Token::Dimension {
@@ -266,7 +267,9 @@ impl CalcNode {
             ) => {
                 match Angle::parse_dimension(value, unit, /* from_calc = */ true) {
                     Ok(a) => Ok(CalcNode::Leaf(Leaf::Angle(a))),
-                    Err(()) => Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+                    Err(()) => {
+                        Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                    },
                 }
             },
             (
@@ -277,7 +280,9 @@ impl CalcNode {
             ) => {
                 match Time::parse_dimension(value, unit, /* from_calc = */ true) {
                     Ok(t) => Ok(CalcNode::Leaf(Leaf::Time(t))),
-                    Err(()) => Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
+                    Err(()) => {
+                        Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+                    },
                 }
             },
             (&Token::Percentage { unit_value, .. }, CalcUnit::LengthPercentage) |
@@ -328,10 +333,9 @@ impl CalcNode {
                     //
                     // Consider adding an API to cssparser to specify the
                     // initial vector capacity?
-                    let arguments = input
-                        .parse_comma_separated(|input| {
-                            Self::parse_argument(context, input, expected_unit)
-                        })?;
+                    let arguments = input.parse_comma_separated(|input| {
+                        Self::parse_argument(context, input, expected_unit)
+                    })?;
 
                     let op = match function {
                         MathFunction::Min => MinMaxOp::Min,
@@ -474,43 +478,35 @@ impl CalcNode {
 
     /// Tries to simplify this expression into a `<time>` value.
     fn to_time(&self) -> Result<Time, ()> {
-        let seconds = self.resolve(|leaf| {
-            match *leaf {
-                Leaf::Time(ref t) => Ok(t.seconds()),
-                _ => Err(()),
-            }
+        let seconds = self.resolve(|leaf| match *leaf {
+            Leaf::Time(ref t) => Ok(t.seconds()),
+            _ => Err(()),
         })?;
         Ok(Time::from_calc(seconds))
     }
 
     /// Tries to simplify this expression into an `Angle` value.
     fn to_angle(&self) -> Result<Angle, ()> {
-        let degrees = self.resolve(|leaf| {
-            match *leaf {
-                Leaf::Angle(ref angle) => Ok(angle.degrees()),
-                _ => Err(()),
-            }
+        let degrees = self.resolve(|leaf| match *leaf {
+            Leaf::Angle(ref angle) => Ok(angle.degrees()),
+            _ => Err(()),
         })?;
         Ok(Angle::from_calc(degrees))
     }
 
     /// Tries to simplify this expression into a `<number>` value.
     fn to_number(&self) -> Result<CSSFloat, ()> {
-        self.resolve(|leaf| {
-            match *leaf {
-                Leaf::Number(n) => Ok(n),
-                _ => Err(()),
-            }
+        self.resolve(|leaf| match *leaf {
+            Leaf::Number(n) => Ok(n),
+            _ => Err(()),
         })
     }
 
     /// Tries to simplify this expression into a `<percentage>` value.
     fn to_percentage(&self) -> Result<CSSFloat, ()> {
-        self.resolve(|leaf| {
-            match *leaf {
-                Leaf::Percentage(p) => Ok(p),
-                _ => Err(()),
-            }
+        self.resolve(|leaf| match *leaf {
+            Leaf::Percentage(p) => Ok(p),
+            _ => Err(()),
         })
     }
 
