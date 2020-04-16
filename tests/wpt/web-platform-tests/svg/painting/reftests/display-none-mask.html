@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="match"  href="display-none-mask-ref.html" />
+</head>
+
+<body>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200" style="mask: url('#notfound');">
+      <div style="width: 200px; height: 200px; background: red"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200" style="mask: url('#noneMask');">
+      <div style="width: 200px; height: 200px; background: red"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200">
+      <div style="width: 200px; height: 200px; background: red; mask: url('#notfound');"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200">
+      <div style="width: 200px; height: 200px; background: red; mask: url('#noneMask');"></div>
+    </foreignObject>
+  </svg>
+
+  <svg width="200" height="200" style="display:none">
+    <defs>
+      <mask id="noneMask">
+        <rect x="0" y="0" width="200" height="200" fill="#4d4d4d"></rect>
+      </mask>
+    </defs>
+  </svg>
+
+  <!-- make sure masking actually works -->
+  <svg width="200" height="200">
+    <defs>
+      <mask id="aMask">
+        <rect x="0" y="0" width="100" height="50" fill="#ffffff"></rect>
+        <rect x="0" y="100" width="100" height="50" fill="#ffffff"></rect>
+      </mask>
+    </defs>
+    <foreignObject x="0" y="0" width="200" height="200" style="mask: url('#aMask');">
+      <div style="width: 200px; height: 200px; background: red;"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200">
+      <div style="width: 200px; height: 200px; background: red; mask: url('#aMask');"></div>
+    </foreignObject>
+  </svg>
+
+  <!-- make sure masking works on active content -->
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200" style="mask: url('#aMask');">
+      <div style="width: 200px; height: 200px; background: red; will-change: transform"></div>
+    </foreignObject>
+  </svg>
+  <svg width="200" height="200">
+    <foreignObject x="0" y="0" width="200" height="200">
+      <div style="width: 200px; height: 200px; background: red; will-change: transform; mask: url('#aMask');"></div>
+    </foreignObject>
+  </svg>
+</body>
+</html>

@@ -41,7 +41,10 @@ job_path_map = {
                      "css/css-ui/",
                      "WebIDL"],
     "wpt_integration": ["tools/"],
-    "wptrunner_infrastructure": ["infrastructure/", "tools/", "resources/"],
+    "wptrunner_infrastructure": ["infrastructure/",
+                                 "tools/",
+                                 "resources/",
+                                 "webdriver/tests/support"],
 }
 
 

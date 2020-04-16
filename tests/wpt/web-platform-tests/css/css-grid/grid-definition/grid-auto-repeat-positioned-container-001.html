@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>CSS Grid: auto-repeat tracks on a positioned grid container.</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com"/>
+<link rel="issue" href="https://crbug.com/624301"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#repeat-notation"/>
+<link rel="match" href="grid-auto-repeat-positioned-container-001-ref.html"/>
+<meta name="assert" content="Checks that auto repeat tracks are properly computed for a positioned grid container with a definite width and height."/>
+<link href="/css/support/grid.css" rel="stylesheet"/>
+<style>
+.wrapper {
+    position: relative;
+    width: 100px;
+    height: 100px;
+}
+
+.grid {
+    position: absolute;
+    left: 0; right: 0; top: 0; bottom: 0;
+    grid: repeat(auto-fill, 20px) / repeat(auto-fill, 25px);
+    justify-content: start;
+    align-content: start;
+}
+
+.item {
+    background: green;
+}
+</style>
+
+<p>Test passes if you get a grid with 5 rows of 20px and 4 columns of 25px.</p>
+
+<pre id="log"></pre>
+
+<div class="wrapper">
+    <div id="grid" class="grid">
+        <div class="item" style="grid-area: 1 / 1;"></div>
+        <div class="item" style="grid-area: 2 / 2;"></div>
+        <div class="item" style="grid-area: 3 / 3;"></div>
+        <div class="item" style="grid-area: 4 / 4;"></div>
+        <div class="item" style="grid-row: 5; grid-column: 1 / -1;"></div>
+    </div>
+</div>
+
+<script>
+    var log = document.getElementById("log");
+
+    var grid = document.getElementById("grid");
+    var computedStyle = getComputedStyle(grid);
+
+    log.innerHTML = "grid: " + computedStyle.getPropertyValue("grid-template-rows") + " / " + computedStyle.getPropertyValue("grid-template-columns") + ";";
+</script>
