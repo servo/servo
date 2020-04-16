@@ -71,14 +71,14 @@ impl MallocSizeOf for RuleTree {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         let mut n = 0;
         let mut stack = SmallVec::<[_; 32]>::new();
-        stack.push(self.root.downgrade());
+        stack.push(self.root.clone());
 
         while let Some(node) = stack.pop() {
             n += unsafe { ops.malloc_size_of(node.ptr()) };
             let children = unsafe { (*node.ptr()).children.read() };
             children.shallow_size_of(ops);
             for c in &*children {
-                stack.push(c.clone());
+                stack.push(c.upgrade());
             }
         }
 
@@ -335,7 +335,6 @@ impl RuleNode {
     }
 }
 
-#[derive(Clone)]
 pub(crate) struct WeakRuleNode {
     p: ptr::NonNull<RuleNode>,
 }
