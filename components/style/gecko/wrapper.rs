@@ -1560,9 +1560,7 @@ impl<'le> TElement for GeckoElement<'le> {
         before_change_style: &ComputedValues,
         after_change_style: &ComputedValues,
     ) -> bool {
-        use crate::gecko_bindings::structs::nsCSSPropertyID;
         use crate::properties::LonghandIdSet;
-        use crate::values::computed::TransitionProperty;
 
         debug_assert!(
             self.might_need_transitions_update(Some(before_change_style), after_change_style),
@@ -1571,53 +1569,21 @@ impl<'le> TElement for GeckoElement<'le> {
         );
 
         let after_change_box_style = after_change_style.get_box();
-        let transitions_count = after_change_box_style.transition_property_count();
         let existing_transitions = self.css_transitions_info();
-
-        // Check if this property is none, custom or unknown.
-        let is_none_or_custom_property = |property: nsCSSPropertyID| -> bool {
-            return property == nsCSSPropertyID::eCSSPropertyExtra_no_properties ||
-                property == nsCSSPropertyID::eCSSPropertyExtra_variable ||
-                property == nsCSSPropertyID::eCSSProperty_UNKNOWN;
-        };
-
         let mut transitions_to_keep = LonghandIdSet::new();
-
-        for i in 0..transitions_count {
-            let property = after_change_box_style.transition_nscsspropertyid_at(i);
-            let combined_duration = after_change_box_style.transition_combined_duration_at(i);
-
-            // We don't need to update transition for none/custom properties.
-            if is_none_or_custom_property(property) {
-                continue;
-            }
-
-            let transition_property: TransitionProperty = property.into();
-
-            let mut property_check_helper = |property: LonghandId| -> bool {
-                let property = property.to_physical(after_change_style.writing_mode);
-                transitions_to_keep.insert(property);
-                self.needs_transitions_update_per_property(
-                    property,
-                    combined_duration,
-                    before_change_style,
-                    after_change_style,
-                    &existing_transitions,
-                )
-            };
-
-            match transition_property {
-                TransitionProperty::Custom(..) | TransitionProperty::Unsupported(..) => {},
-                TransitionProperty::Shorthand(ref shorthand) => {
-                    if shorthand.longhands().any(property_check_helper) {
-                        return true;
-                    }
-                },
-                TransitionProperty::Longhand(longhand_id) => {
-                    if property_check_helper(longhand_id) {
-                        return true;
-                    }
-                },
+        for transition_property in after_change_style.transition_properties() {
+            let physical_longhand = transition_property
+                .longhand_id
+                .to_physical(after_change_style.writing_mode);
+            transitions_to_keep.insert(physical_longhand);
+            if self.needs_transitions_update_per_property(
+                physical_longhand,
+                after_change_box_style.transition_combined_duration_at(transition_property.index),
+                before_change_style,
+                after_change_style,
+                &existing_transitions,
+            ) {
+                return true;
             }
         }
 
