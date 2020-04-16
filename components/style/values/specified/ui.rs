@@ -14,10 +14,10 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// A specified value for the `cursor` property.
-pub type Cursor = generics::Cursor<CursorImage>;
+pub type Cursor = generics::GenericCursor<CursorImage>;
 
 /// A specified value for item of `image cursors`.
-pub type CursorImage = generics::CursorImage<SpecifiedImageUrl, Number>;
+pub type CursorImage = generics::GenericCursorImage<SpecifiedImageUrl, Number>;
 
 impl Parse for Cursor {
     /// cursor: [<url> [<number> <number>]?]# [auto | default | ...]
@@ -34,7 +34,7 @@ impl Parse for Cursor {
             input.expect_comma()?;
         }
         Ok(Self {
-            images: images.into_boxed_slice(),
+            images: images.into(),
             keyword: CursorKind::parse(input)?,
         })
     }
@@ -45,12 +45,24 @@ impl Parse for CursorImage {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
+        use crate::Zero;
+
+        let url = SpecifiedImageUrl::parse(context, input)?;
+        let mut has_hotspot = false;
+        let mut hotspot_x = Number::zero();
+        let mut hotspot_y = Number::zero();
+
+        if let Ok(x) = input.try(|input| Number::parse(context, input)) {
+            has_hotspot = true;
+            hotspot_x = x;
+            hotspot_y = Number::parse(context, input)?;
+        }
+
         Ok(Self {
-            url: SpecifiedImageUrl::parse(context, input)?,
-            hotspot: match input.try(|input| Number::parse(context, input)) {
-                Ok(number) => Some((number, Number::parse(context, input)?)),
-                Err(_) => None,
-            },
+            url,
+            has_hotspot,
+            hotspot_x,
+            hotspot_y,
         })
     }
 }

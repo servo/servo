@@ -31,6 +31,17 @@ pub struct GenericPosition<H, V> {
     pub vertical: V,
 }
 
+impl<H, V> PositionComponent for Position<H, V>
+where
+    H: PositionComponent,
+    V: PositionComponent,
+{
+    #[inline]
+    fn is_center(&self) -> bool {
+        self.horizontal.is_center() && self.vertical.is_center()
+    }
+}
+
 pub use self::GenericPosition as Position;
 
 impl<H, V> Position<H, V> {
@@ -41,6 +52,13 @@ impl<H, V> Position<H, V> {
             vertical,
         }
     }
+}
+
+/// Implements a method that checks if the position is centered.
+pub trait PositionComponent {
+    /// Returns if the position component is 50% or center.
+    /// For pixel lengths, it always returns false.
+    fn is_center(&self) -> bool;
 }
 
 /// A generic type for representing an `Auto | <position>`.

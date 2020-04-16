@@ -134,12 +134,6 @@ impl PseudoElement {
         *self == PseudoElement::FirstLine
     }
 
-    /// Whether this pseudo-element is ::-moz-fieldset-content.
-    #[inline]
-    pub fn is_fieldset_content(&self) -> bool {
-        *self == PseudoElement::FieldsetContent
-    }
-
     /// Whether this pseudo-element is the ::-moz-color-swatch pseudo.
     #[inline]
     pub fn is_color_swatch(&self) -> bool {

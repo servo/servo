@@ -25,15 +25,16 @@
 //! our expectations.
 
 use super::{Context, Length, Percentage, ToComputedValue};
-use crate::values::animated::{ToAnimatedValue, ToAnimatedZero};
+use crate::values::animated::{Animate, Procedure, ToAnimatedValue, ToAnimatedZero};
 use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
-use crate::values::generics::NonNegative;
+use crate::values::generics::{calc, NonNegative};
 use crate::values::specified::length::FontBaseSize;
 use crate::values::{specified, CSSFloat};
 use crate::Zero;
 use app_units::Au;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::fmt::{self, Write};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ToCss};
@@ -162,9 +163,16 @@ impl MallocSizeOf for LengthPercentage {
 }
 
 /// An unpacked `<length-percentage>` that borrows the `calc()` variant.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, ToCss)]
 enum Unpacked<'a> {
     Calc(&'a CalcLengthPercentage),
+    Length(Length),
+    Percentage(Percentage),
+}
+
+/// An unpacked `<length-percentage>` that mutably borrows the `calc()` variant.
+enum UnpackedMut<'a> {
+    Calc(&'a mut CalcLengthPercentage),
     Length(Length),
     Percentage(Percentage),
 }
@@ -183,6 +191,22 @@ impl LengthPercentage {
     #[inline]
     pub fn one() -> Self {
         Self::new_length(Length::new(1.))
+    }
+
+    /// 0%
+    #[inline]
+    pub fn zero_percent() -> Self {
+        Self::new_percent(Percentage::zero())
+    }
+
+    fn to_calc_node(&self) -> Cow<CalcNode> {
+        match self.unpack() {
+            Unpacked::Length(l) => Cow::Owned(CalcNode::Leaf(CalcLengthPercentageLeaf::Length(l))),
+            Unpacked::Percentage(p) => {
+                Cow::Owned(CalcNode::Leaf(CalcLengthPercentageLeaf::Percentage(p)))
+            },
+            Unpacked::Calc(p) => Cow::Borrowed(&p.node),
+        }
     }
 
     /// Constructs a length value.
@@ -211,25 +235,46 @@ impl LengthPercentage {
         percent
     }
 
+    /// Given a `LengthPercentage` value `v`, construct the value representing
+    /// `calc(100% - v)`.
+    pub fn hundred_percent_minus(v: Self, clamping_mode: AllowedNumericType) -> Self {
+        // TODO: This could in theory take ownership of the calc node in `v` if
+        // possible instead of cloning.
+        let mut node = v.to_calc_node().into_owned();
+        node.negate();
+
+        let new_node = CalcNode::Sum(
+            vec![
+                CalcNode::Leaf(CalcLengthPercentageLeaf::Percentage(Percentage::hundred())),
+                node,
+            ]
+            .into(),
+        );
+
+        Self::new_calc(new_node, clamping_mode)
+    }
+
     /// Constructs a `calc()` value.
     #[inline]
-    pub fn new_calc(
-        length: Length,
-        percentage: Option<Percentage>,
-        clamping_mode: AllowedNumericType,
-    ) -> Self {
-        let percentage = match percentage {
-            Some(p) => p,
-            None => return Self::new_length(Length::new(clamping_mode.clamp(length.px()))),
-        };
-        if length.is_zero() {
-            return Self::new_percent(Percentage(clamping_mode.clamp(percentage.0)));
+    pub fn new_calc(mut node: CalcNode, clamping_mode: AllowedNumericType) -> Self {
+        node.simplify_and_sort();
+
+        match node {
+            CalcNode::Leaf(l) => {
+                return match l {
+                    CalcLengthPercentageLeaf::Length(l) => {
+                        Self::new_length(Length::new(clamping_mode.clamp(l.px())))
+                    },
+                    CalcLengthPercentageLeaf::Percentage(p) => {
+                        Self::new_percent(Percentage(clamping_mode.clamp(p.0)))
+                    },
+                }
+            },
+            _ => Self::new_calc_unchecked(Box::new(CalcLengthPercentage {
+                clamping_mode,
+                node,
+            })),
         }
-        Self::new_calc_unchecked(Box::new(CalcLengthPercentage {
-            length,
-            percentage,
-            clamping_mode,
-        }))
     }
 
     /// Private version of new_calc() that constructs a calc() variant without
@@ -262,7 +307,18 @@ impl LengthPercentage {
             LengthPercentageUnion::TAG_CALC => Tag::Calc,
             LengthPercentageUnion::TAG_LENGTH => Tag::Length,
             LengthPercentageUnion::TAG_PERCENTAGE => Tag::Percentage,
-            _ => unreachable!("Bogus tag?"),
+            _ => unsafe { debug_unreachable!("Bogus tag?") },
+        }
+    }
+
+    #[inline]
+    fn unpack_mut<'a>(&'a mut self) -> UnpackedMut<'a> {
+        unsafe {
+            match self.tag() {
+                Tag::Calc => UnpackedMut::Calc(&mut *self.calc_ptr()),
+                Tag::Length => UnpackedMut::Length(self.0.length.length),
+                Tag::Percentage => UnpackedMut::Percentage(self.0.percentage.percentage),
+            }
         }
     }
 
@@ -313,57 +369,7 @@ impl LengthPercentage {
         match self.unpack() {
             Unpacked::Length(l) => l.px() == 0.0,
             Unpacked::Percentage(p) => p.0 == 0.0,
-            Unpacked::Calc(ref c) => {
-                debug_assert_ne!(
-                    c.length.px(),
-                    0.0,
-                    "Should've been simplified to a percentage"
-                );
-                false
-            },
-        }
-    }
-
-    /// Returns the `<length>` component of this `calc()`, unclamped.
-    #[inline]
-    pub fn unclamped_length(&self) -> Length {
-        match self.unpack() {
-            Unpacked::Length(l) => l,
-            Unpacked::Percentage(..) => Zero::zero(),
-            Unpacked::Calc(c) => c.unclamped_length(),
-        }
-    }
-
-    /// Returns this `calc()` as a `<length>`.
-    ///
-    /// Panics in debug mode if a percentage is present in the expression.
-    #[inline]
-    fn length(&self) -> Length {
-        debug_assert!(!self.has_percentage());
-        self.length_component()
-    }
-
-    /// Returns the `<length>` component of this `calc()`, clamped.
-    #[inline]
-    pub fn length_component(&self) -> Length {
-        match self.unpack() {
-            Unpacked::Length(l) => l,
-            Unpacked::Percentage(..) => Zero::zero(),
-            Unpacked::Calc(c) => c.length_component(),
-        }
-    }
-
-    /// Returns the `<percentage>` component of this `calc()`, unclamped, as a
-    /// float.
-    ///
-    /// FIXME: This are very different semantics from length(), we should
-    /// probably rename this.
-    #[inline]
-    pub fn percentage(&self) -> CSSFloat {
-        match self.unpack() {
-            Unpacked::Length(..) => 0.,
-            Unpacked::Percentage(p) => p.0,
-            Unpacked::Calc(c) => c.percentage.0,
+            Unpacked::Calc(..) => false,
         }
     }
 
@@ -407,25 +413,8 @@ impl LengthPercentage {
     #[inline]
     pub fn to_percentage(&self) -> Option<Percentage> {
         match self.unpack() {
-            Unpacked::Length(..) => None,
             Unpacked::Percentage(p) => Some(p),
-            Unpacked::Calc(ref c) => {
-                debug_assert!(!c.length.is_zero());
-                None
-            },
-        }
-    }
-
-    /// Return the specified percentage if any.
-    #[inline]
-    pub fn specified_percentage(&self) -> Option<Percentage> {
-        match self.unpack() {
-            Unpacked::Length(..) => None,
-            Unpacked::Percentage(p) => Some(p),
-            Unpacked::Calc(ref c) => {
-                debug_assert!(self.has_percentage());
-                Some(c.percentage)
-            },
+            Unpacked::Length(..) | Unpacked::Calc(..) => None,
         }
     }
 
@@ -452,19 +441,22 @@ impl LengthPercentage {
     /// the height property), they apply whenever a calc() expression contains
     /// percentages.
     pub fn maybe_percentage_relative_to(&self, container_len: Option<Length>) -> Option<Length> {
-        if self.has_percentage() {
-            return Some(self.resolve(container_len?));
+        if let Unpacked::Length(l) = self.unpack() {
+            return Some(l);
         }
-        Some(self.length())
+        Some(self.resolve(container_len?))
     }
 
     /// Returns the clamped non-negative values.
     #[inline]
-    pub fn clamp_to_non_negative(&self) -> Self {
-        match self.unpack() {
-            Unpacked::Length(l) => Self::new_length(l.clamp_to_non_negative()),
-            Unpacked::Percentage(p) => Self::new_percent(p.clamp_to_non_negative()),
-            Unpacked::Calc(c) => c.clamp_to_non_negative(),
+    pub fn clamp_to_non_negative(mut self) -> Self {
+        match self.unpack_mut() {
+            UnpackedMut::Length(l) => Self::new_length(l.clamp_to_non_negative()),
+            UnpackedMut::Percentage(p) => Self::new_percent(p.clamp_to_non_negative()),
+            UnpackedMut::Calc(ref mut c) => {
+                c.clamping_mode = AllowedNumericType::NonNegative;
+                self
+            },
         }
     }
 }
@@ -549,7 +541,7 @@ impl ToCss for LengthPercentage {
     where
         W: Write,
     {
-        specified::LengthPercentage::from_computed_value(self).to_css(dest)
+        self.unpack().to_css(dest)
     }
 }
 
@@ -584,46 +576,138 @@ impl<'de> Deserialize<'de> for LengthPercentage {
     }
 }
 
+/// The leaves of a `<length-percentage>` calc expression.
+#[derive(
+    Clone,
+    Debug,
+    Deserialize,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+    ToAnimatedZero,
+    ToCss,
+    ToResolvedValue,
+)]
+#[allow(missing_docs)]
+#[repr(u8)]
+pub enum CalcLengthPercentageLeaf {
+    Length(Length),
+    Percentage(Percentage),
+}
+
+impl CalcLengthPercentageLeaf {
+    fn is_zero_length(&self) -> bool {
+        match *self {
+            Self::Length(ref l) => l.is_zero(),
+            Self::Percentage(..) => false,
+        }
+    }
+}
+
+impl PartialOrd for CalcLengthPercentageLeaf {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        use self::CalcLengthPercentageLeaf::*;
+
+        if std::mem::discriminant(self) != std::mem::discriminant(other) {
+            return None;
+        }
+
+        match (self, other) {
+            (&Length(ref one), &Length(ref other)) => one.partial_cmp(other),
+            (&Percentage(ref one), &Percentage(ref other)) => one.partial_cmp(other),
+            _ => {
+                match *self {
+                    Length(..) | Percentage(..) => {},
+                }
+                unsafe {
+                    debug_unreachable!("Forgot a branch?");
+                }
+            },
+        }
+    }
+}
+
+impl calc::CalcNodeLeaf for CalcLengthPercentageLeaf {
+    fn is_negative(&self) -> bool {
+        match *self {
+            Self::Length(ref l) => l.px() < 0.,
+            Self::Percentage(ref p) => p.0 < 0.,
+        }
+    }
+
+    fn try_sum_in_place(&mut self, other: &Self) -> Result<(), ()> {
+        use self::CalcLengthPercentageLeaf::*;
+
+        // 0px plus anything else is equal to the right hand side.
+        if self.is_zero_length() {
+            *self = other.clone();
+            return Ok(());
+        }
+
+        if other.is_zero_length() {
+            return Ok(());
+        }
+
+        match (self, other) {
+            (&mut Length(ref mut one), &Length(ref other)) => {
+                *one += *other;
+            },
+            (&mut Percentage(ref mut one), &Percentage(ref other)) => {
+                one.0 += other.0;
+            },
+            _ => return Err(()),
+        }
+
+        Ok(())
+    }
+
+    fn mul_by(&mut self, scalar: f32) {
+        match *self {
+            Self::Length(ref mut l) => *l = *l * scalar,
+            Self::Percentage(ref mut p) => p.0 *= scalar,
+        }
+    }
+
+    fn simplify(&mut self) {}
+
+    fn sort_key(&self) -> calc::SortKey {
+        match *self {
+            Self::Length(..) => calc::SortKey::Px,
+            Self::Percentage(..) => calc::SortKey::Percentage,
+        }
+    }
+}
+
+/// The computed version of a calc() node for `<length-percentage>` values.
+pub type CalcNode = calc::GenericCalcNode<CalcLengthPercentageLeaf>;
+
 /// The representation of a calc() function with mixed lengths and percentages.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue)]
+#[derive(
+    Clone, Debug, Deserialize, MallocSizeOf, Serialize, ToAnimatedZero, ToResolvedValue, ToCss,
+)]
 #[repr(C)]
 pub struct CalcLengthPercentage {
-    length: Length,
-
-    percentage: Percentage,
-
     #[animation(constant)]
+    #[css(skip)]
     clamping_mode: AllowedNumericType,
+    node: CalcNode,
 }
 
 impl CalcLengthPercentage {
-    /// Returns the length component of this `calc()`, clamped.
-    #[inline]
-    fn length_component(&self) -> Length {
-        Length::new(self.clamping_mode.clamp(self.length.px()))
-    }
-
     /// Resolves the percentage.
     #[inline]
-    pub fn resolve(&self, basis: Length) -> Length {
-        let length = self.length.px() + basis.px() * self.percentage.0;
-        Length::new(self.clamping_mode.clamp(length))
-    }
-
-    /// Returns the length, without clamping.
-    #[inline]
-    fn unclamped_length(&self) -> Length {
-        self.length
-    }
-
-    /// Returns the clamped non-negative values.
-    #[inline]
-    fn clamp_to_non_negative(&self) -> LengthPercentage {
-        LengthPercentage::new_calc(
-            self.length,
-            Some(self.percentage),
-            AllowedNumericType::NonNegative,
-        )
+    fn resolve(&self, basis: Length) -> Length {
+        // unwrap() is fine because the conversion below is infallible.
+        let px = self
+            .node
+            .resolve(|l| {
+                Ok(match *l {
+                    CalcLengthPercentageLeaf::Length(l) => l.px(),
+                    CalcLengthPercentageLeaf::Percentage(ref p) => basis.px() * p.0,
+                })
+            })
+            .unwrap();
+        Length::new(self.clamping_mode.clamp(px))
     }
 }
 
@@ -641,7 +725,7 @@ impl CalcLengthPercentage {
 // maybe.
 impl PartialEq for CalcLengthPercentage {
     fn eq(&self, other: &Self) -> bool {
-        self.length == other.length && self.percentage == other.percentage
+        self.node == other.node
     }
 }
 
@@ -656,43 +740,22 @@ impl specified::CalcLengthPercentage {
     where
         F: Fn(Length) -> Length,
     {
-        use crate::values::specified::length::{FontRelativeLength, ViewportPercentageLength};
-        use std::f32;
+        use crate::values::specified::calc::Leaf;
+        use crate::values::specified::length::NoCalcLength;
 
-        let mut length = 0.;
+        let node = self.node.map_leaves(|leaf| match *leaf {
+            Leaf::Percentage(p) => CalcLengthPercentageLeaf::Percentage(Percentage(p)),
+            Leaf::Length(l) => CalcLengthPercentageLeaf::Length(match l {
+                NoCalcLength::Absolute(ref abs) => zoom_fn(abs.to_computed_value(context)),
+                NoCalcLength::FontRelative(ref fr) => fr.to_computed_value(context, base_size),
+                other => other.to_computed_value(context),
+            }),
+            Leaf::Number(..) | Leaf::Angle(..) | Leaf::Time(..) => {
+                unreachable!("Shouldn't have parsed")
+            },
+        });
 
-        if let Some(absolute) = self.absolute {
-            length += zoom_fn(absolute.to_computed_value(context)).px();
-        }
-
-        for val in &[
-            self.vw.map(ViewportPercentageLength::Vw),
-            self.vh.map(ViewportPercentageLength::Vh),
-            self.vmin.map(ViewportPercentageLength::Vmin),
-            self.vmax.map(ViewportPercentageLength::Vmax),
-        ] {
-            if let Some(val) = *val {
-                let viewport_size = context.viewport_size_for_viewport_unit_resolution();
-                length += val.to_computed_value(viewport_size).px();
-            }
-        }
-
-        for val in &[
-            self.ch.map(FontRelativeLength::Ch),
-            self.em.map(FontRelativeLength::Em),
-            self.ex.map(FontRelativeLength::Ex),
-            self.rem.map(FontRelativeLength::Rem),
-        ] {
-            if let Some(val) = *val {
-                length += val.to_computed_value(context, base_size).px();
-            }
-        }
-
-        LengthPercentage::new_calc(
-            Length::new(length.min(f32::MAX).max(f32::MIN)),
-            self.percentage,
-            self.clamping_mode,
-        )
+        LengthPercentage::new_calc(node, self.clamping_mode)
     }
 
     /// Compute font-size or line-height taking into account text-zoom if necessary.
@@ -711,25 +774,14 @@ impl specified::CalcLengthPercentage {
     /// Compute the value into pixel length as CSSFloat without context,
     /// so it returns Err(()) if there is any non-absolute unit.
     pub fn to_computed_pixel_length_without_context(&self) -> Result<CSSFloat, ()> {
-        if self.vw.is_some() ||
-            self.vh.is_some() ||
-            self.vmin.is_some() ||
-            self.vmax.is_some() ||
-            self.em.is_some() ||
-            self.ex.is_some() ||
-            self.ch.is_some() ||
-            self.rem.is_some() ||
-            self.percentage.is_some()
-        {
-            return Err(());
-        }
+        use crate::values::specified::calc::Leaf;
+        use crate::values::specified::length::NoCalcLength;
 
-        match self.absolute {
-            Some(abs) => Ok(abs.to_px()),
-            None => {
-                debug_assert!(false, "Someone forgot to handle an unit here: {:?}", self);
-                Err(())
-            },
+        // Simplification should've turned this into an absolute length,
+        // otherwise it wouldn't have been able to.
+        match self.node {
+            calc::CalcNode::Leaf(Leaf::Length(NoCalcLength::Absolute(ref l))) => Ok(l.to_px()),
+            _ => Err(()),
         }
     }
 
@@ -740,14 +792,48 @@ impl specified::CalcLengthPercentage {
 
     #[inline]
     fn from_computed_value(computed: &CalcLengthPercentage) -> Self {
-        use crate::values::specified::length::AbsoluteLength;
+        use crate::values::specified::calc::Leaf;
+        use crate::values::specified::length::NoCalcLength;
 
         specified::CalcLengthPercentage {
             clamping_mode: computed.clamping_mode,
-            absolute: Some(AbsoluteLength::from_computed_value(&computed.length)),
-            percentage: Some(computed.percentage),
-            ..Default::default()
+            node: computed.node.map_leaves(|l| match l {
+                CalcLengthPercentageLeaf::Length(ref l) => {
+                    Leaf::Length(NoCalcLength::from_px(l.px()))
+                },
+                CalcLengthPercentageLeaf::Percentage(ref p) => Leaf::Percentage(p.0),
+            }),
         }
+    }
+}
+
+/// https://drafts.csswg.org/css-transitions/#animtype-lpcalc
+/// https://drafts.csswg.org/css-values-4/#combine-math
+/// https://drafts.csswg.org/css-values-4/#combine-mixed
+impl Animate for LengthPercentage {
+    #[inline]
+    fn animate(&self, other: &Self, procedure: Procedure) -> Result<Self, ()> {
+        Ok(match (self.unpack(), other.unpack()) {
+            (Unpacked::Length(one), Unpacked::Length(other)) => {
+                Self::new_length(one.animate(&other, procedure)?)
+            },
+            (Unpacked::Percentage(one), Unpacked::Percentage(other)) => {
+                Self::new_percent(one.animate(&other, procedure)?)
+            },
+            _ => {
+                let mut one = self.to_calc_node().into_owned();
+                let mut other = other.to_calc_node().into_owned();
+                let (l, r) = procedure.weights();
+
+                one.mul_by(l as f32);
+                other.mul_by(r as f32);
+
+                Self::new_calc(
+                    CalcNode::Sum(vec![one, other].into()),
+                    AllowedNumericType::All,
+                )
+            },
+        })
     }
 }
 

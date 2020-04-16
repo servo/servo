@@ -492,7 +492,9 @@ impl ToComputedValue for FontStretch {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToAnimatedZero,
+    ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 #[allow(missing_docs)]
@@ -534,7 +536,9 @@ impl Default for KeywordSize {
     PartialEq,
     ToAnimatedValue,
     ToAnimatedZero,
+    ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 /// Additional information for keyword-derived font sizes.
@@ -567,7 +571,7 @@ impl KeywordInfo {
     /// Computes the final size for this font-size keyword, accounting for
     /// text-zoom.
     fn to_computed_value(&self, context: &Context) -> CSSPixelLength {
-        let base = context.maybe_zoom_text(self.kw.to_computed_value(context).0);
+        let base = context.maybe_zoom_text(self.kw.to_length(context).0);
         base * self.factor + context.maybe_zoom_text(self.offset)
     }
 
@@ -760,11 +764,10 @@ const LARGER_FONT_SIZE_RATIO: f32 = 1.2;
 /// The default font size.
 pub const FONT_MEDIUM_PX: i32 = 16;
 
-#[cfg(feature = "servo")]
-impl ToComputedValue for KeywordSize {
-    type ComputedValue = NonNegativeLength;
+impl KeywordSize {
     #[inline]
-    fn to_computed_value(&self, _: &Context) -> NonNegativeLength {
+    #[cfg(feature = "servo")]
+    fn to_length(&self, _: &Context) -> NonNegativeLength {
         let medium = Length::new(FONT_MEDIUM_PX as f32);
         // https://drafts.csswg.org/css-fonts-3/#font-size-prop
         NonNegative(match *self {
@@ -779,17 +782,9 @@ impl ToComputedValue for KeywordSize {
         })
     }
 
+    #[cfg(feature = "gecko")]
     #[inline]
-    fn from_computed_value(_: &NonNegativeLength) -> Self {
-        unreachable!()
-    }
-}
-
-#[cfg(feature = "gecko")]
-impl ToComputedValue for KeywordSize {
-    type ComputedValue = NonNegativeLength;
-    #[inline]
-    fn to_computed_value(&self, cx: &Context) -> NonNegativeLength {
+    fn to_length(&self, cx: &Context) -> NonNegativeLength {
         use crate::context::QuirksMode;
 
         // The tables in this function are originally from
@@ -856,11 +851,6 @@ impl ToComputedValue for KeywordSize {
         } else {
             base_size * FONT_SIZE_FACTORS[html_size] as f32 / 100.0
         })
-    }
-
-    #[inline]
-    fn from_computed_value(_: &NonNegativeLength) -> Self {
-        unreachable!()
     }
 }
 

@@ -104,6 +104,8 @@ pub enum DisplayInside {
     #[cfg(feature = "gecko")]
     MozGridLine,
     #[cfg(feature = "gecko")]
+    MozStack,
+    #[cfg(feature = "gecko")]
     MozDeck,
     #[cfg(feature = "gecko")]
     MozPopup,
@@ -226,6 +228,8 @@ impl Display {
     pub const MozGridGroup: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridGroup);
     #[cfg(feature = "gecko")]
     pub const MozGridLine: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozGridLine);
+    #[cfg(feature = "gecko")]
+    pub const MozStack: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozStack);
     #[cfg(feature = "gecko")]
     pub const MozDeck: Self = Self::new(DisplayOutside::XUL, DisplayInside::MozDeck);
     #[cfg(feature = "gecko")]
@@ -615,6 +619,8 @@ impl Parse for Display {
             "-moz-grid-group" if moz_display_values_enabled(context) => Display::MozGridGroup,
             #[cfg(feature = "gecko")]
             "-moz-grid-line" if moz_display_values_enabled(context) => Display::MozGridLine,
+            #[cfg(feature = "gecko")]
+            "-moz-stack" if moz_display_values_enabled(context) => Display::MozStack,
             #[cfg(feature = "gecko")]
             "-moz-deck" if moz_display_values_enabled(context) => Display::MozDeck,
             #[cfg(feature = "gecko")]
@@ -1595,7 +1601,7 @@ pub enum Appearance {
     Meterchunk,
     /// The "arrowed" part of the dropdown button that open up a dropdown list.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    MozMenulistButton,
+    MozMenulistArrowButton,
     /// For HTML's <input type=number>
     NumberInput,
     /// A horizontal progress bar.
@@ -1624,7 +1630,7 @@ pub enum Appearance {
     RadioLabel,
     /// nsRangeFrame and its subparts
     Range,
-    RangeThumb,
+    RangeThumb, // FIXME: This should not be exposed to content.
     /// The resizer background area in a status bar for the resizer widget in
     /// the corner of a window.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
@@ -1848,6 +1854,14 @@ pub enum Appearance {
     /// A dummy variant that should be last to let the GTK widget do hackery.
     #[css(skip)]
     Count,
+}
+
+impl Appearance {
+    /// Returns whether we're the `none` value.
+    #[inline]
+    pub fn is_none(self) -> bool {
+        self == Appearance::None
+    }
 }
 
 /// A kind of break between two boxes.

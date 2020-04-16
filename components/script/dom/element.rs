@@ -682,10 +682,7 @@ impl<'dom> LayoutElementHelpers<'dom> for LayoutDom<'dom, Element> {
             hints.push(from_declaration(
                 shared_lock,
                 PropertyDeclaration::BackgroundImage(background_image::SpecifiedValue(
-                    vec![specified::ImageLayer::Image(specified::Image::for_cascade(
-                        url.into(),
-                    ))]
-                    .into(),
+                    vec![specified::Image::for_cascade(url.into())].into(),
                 )),
             ));
         }
@@ -3162,10 +3159,6 @@ impl<'a> SelectorsElement for DomRoot<Element> {
 
     fn is_part(&self, _name: &Atom) -> bool {
         false
-    }
-
-    fn exported_part(&self, _: &Atom) -> Option<Atom> {
-        None
     }
 
     fn imported_part(&self, _: &Atom) -> Option<Atom> {

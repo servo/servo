@@ -67,6 +67,23 @@ bitflags! {
 
         /// Whether this style is the style of the document element.
         const IS_ROOT_ELEMENT_STYLE = 1 << 11;
+
+        /// Whether this element is inside an `opacity: 0` subtree.
+        const IS_IN_OPACITY_ZERO_SUBTREE = 1 << 12;
+
+        /// Whether there are author-specified rules for border-* properties
+        /// (except border-image-*), background-color, or background-image.
+        ///
+        /// TODO(emilio): Maybe do include border-image, see:
+        ///
+        /// https://github.com/w3c/csswg-drafts/issues/4777#issuecomment-604424845
+        const HAS_AUTHOR_SPECIFIED_BORDER_BACKGROUND = 1 << 13;
+
+        /// Whether there are author-specified rules for padding-* properties.
+        ///
+        /// FIXME(emilio): Try to merge this with BORDER_BACKGROUND, see
+        /// https://github.com/w3c/csswg-drafts/issues/4777
+        const HAS_AUTHOR_SPECIFIED_PADDING = 1 << 14;
     }
 }
 
@@ -74,10 +91,11 @@ impl ComputedValueFlags {
     /// Flags that are unconditionally propagated to descendants.
     #[inline]
     fn inherited_flags() -> Self {
-        ComputedValueFlags::IS_RELEVANT_LINK_VISITED |
-            ComputedValueFlags::CAN_BE_FRAGMENTED |
-            ComputedValueFlags::IS_IN_PSEUDO_ELEMENT_SUBTREE |
-            ComputedValueFlags::HAS_TEXT_DECORATION_LINES
+        Self::IS_RELEVANT_LINK_VISITED |
+            Self::CAN_BE_FRAGMENTED |
+            Self::IS_IN_PSEUDO_ELEMENT_SUBTREE |
+            Self::HAS_TEXT_DECORATION_LINES |
+            Self::IS_IN_OPACITY_ZERO_SUBTREE
     }
 
     /// Flags that may be propagated to descendants.

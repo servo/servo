@@ -549,7 +549,7 @@
     use crate::properties::longhands::{grid_auto_columns, grid_auto_rows, grid_auto_flow};
     use crate::values::generics::grid::GridTemplateComponent;
     use crate::values::specified::{GenericGridTemplateComponent, ImplicitGridTracks};
-    use crate::values::specified::position::{AutoFlow, GridAutoFlow, GridTemplateAreas};
+    use crate::values::specified::position::{GridAutoFlow, GridTemplateAreas};
 
     pub fn parse_value<'i, 't>(
         context: &ParserContext,
@@ -566,28 +566,28 @@
             input: &mut Parser<'i, 't>,
             is_row: bool,
         ) -> Result<GridAutoFlow, ParseError<'i>> {
-            let mut auto_flow = None;
-            let mut dense = false;
+            let mut track = None;
+            let mut dense = GridAutoFlow::empty();
+
             for _ in 0..2 {
                 if input.try(|i| i.expect_ident_matching("auto-flow")).is_ok() {
-                    auto_flow = if is_row {
-                        Some(AutoFlow::Row)
+                    track = if is_row {
+                        Some(GridAutoFlow::ROW)
                     } else {
-                        Some(AutoFlow::Column)
+                        Some(GridAutoFlow::COLUMN)
                     };
                 } else if input.try(|i| i.expect_ident_matching("dense")).is_ok() {
-                    dense = true;
+                    dense = GridAutoFlow::DENSE
                 } else {
                     break
                 }
             }
 
-            auto_flow.map(|flow| {
-                GridAutoFlow {
-                    autoflow: flow,
-                    dense: dense,
-                }
-            }).ok_or(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            if track.is_some() {
+                Ok(track.unwrap() | dense)
+            } else {
+                Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+            }
         }
 
         if let Ok((rows, cols, areas)) = input.try(|i| super::grid_template::parse_grid_template(context, i)) {
@@ -637,7 +637,7 @@
                                                                      self.grid_template_areas, dest);
             }
 
-            if self.grid_auto_flow.autoflow == AutoFlow::Column {
+            if self.grid_auto_flow.contains(GridAutoFlow::COLUMN) {
                 // It should fail to serialize if other branch of the if condition's values are set.
                 if !self.grid_auto_rows.is_initial() ||
                     !self.grid_template_columns.is_initial() {
@@ -653,7 +653,7 @@
 
                 self.grid_template_rows.to_css(dest)?;
                 dest.write_str(" / auto-flow")?;
-                if self.grid_auto_flow.dense {
+                if self.grid_auto_flow.contains(GridAutoFlow::DENSE) {
                     dest.write_str(" dense")?;
                 }
 
@@ -676,7 +676,7 @@
                 }
 
                 dest.write_str("auto-flow")?;
-                if self.grid_auto_flow.dense {
+                if self.grid_auto_flow.contains(GridAutoFlow::DENSE) {
                     dest.write_str(" dense")?;
                 }
 

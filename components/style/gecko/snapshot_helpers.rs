@@ -83,16 +83,26 @@ pub fn get_id(attrs: &[structs::AttrArray_InternalAttr]) -> Option<&WeakAtom> {
 }
 
 #[inline(always)]
-pub(super) fn exported_part(
+pub(super) fn each_exported_part(
     attrs: &[structs::AttrArray_InternalAttr],
     name: &Atom,
-) -> Option<Atom> {
-    let attr = find_attr(attrs, &atom!("exportparts"))?;
-    let atom = unsafe { bindings::Gecko_Element_ExportedPart(attr, name.as_ptr()) };
-    if atom.is_null() {
-        return None;
+    mut callback: impl FnMut(&Atom),
+) {
+    let attr = match find_attr(attrs, &atom!("exportparts")) {
+        Some(attr) => attr,
+        None => return,
+    };
+    let mut length = 0;
+    let atoms = unsafe { bindings::Gecko_Element_ExportedParts(attr, name.as_ptr(), &mut length) };
+    if atoms.is_null() {
+        return;
     }
-    Some(unsafe { Atom::from_raw(atom) })
+
+    unsafe {
+        for atom in std::slice::from_raw_parts(atoms, length) {
+            Atom::with(*atom, &mut callback)
+        }
+    }
 }
 
 #[inline(always)]

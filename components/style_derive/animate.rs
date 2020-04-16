@@ -6,12 +6,11 @@ use darling::util::PathList;
 use derive_common::cg;
 use proc_macro2::TokenStream;
 use quote::TokenStreamExt;
-use syn::{DeriveInput, Path, WhereClause};
+use syn::{DeriveInput, WhereClause};
 use synstructure::{Structure, VariantInfo};
 
 pub fn derive(mut input: DeriveInput) -> TokenStream {
     let animation_input_attrs = cg::parse_input_attrs::<AnimationInputAttrs>(&input);
-    let input_attrs = cg::parse_input_attrs::<AnimateInputAttrs>(&input);
 
     let no_bound = animation_input_attrs.no_bound.unwrap_or_default();
     let mut where_clause = input.generics.where_clause.take();
@@ -44,11 +43,6 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
-    let fallback = match input_attrs.fallback {
-        Some(fallback) => quote! { #fallback(self, other, procedure) },
-        None => quote! { Err(()) },
-    };
-
     quote! {
         impl #impl_generics crate::values::animated::Animate for #name #ty_generics #where_clause {
             #[allow(unused_variables, unused_imports)]
@@ -59,7 +53,7 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
                 procedure: crate::values::animated::Procedure,
             ) -> Result<Self, ()> {
                 if std::mem::discriminant(self) != std::mem::discriminant(other) {
-                    return #fallback;
+                    return Err(());
                 }
                 match (self, other) {
                     #match_body
@@ -116,12 +110,6 @@ fn derive_variant_arm(
             Ok(#result_value)
         }
     }
-}
-
-#[darling(attributes(animate), default)]
-#[derive(Default, FromDeriveInput)]
-struct AnimateInputAttrs {
-    fallback: Option<Path>,
 }
 
 #[darling(attributes(animation), default)]

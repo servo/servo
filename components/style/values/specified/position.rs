@@ -13,6 +13,7 @@ use crate::str::HTML_SPACE_CHARACTERS;
 use crate::values::computed::LengthPercentage as ComputedLengthPercentage;
 use crate::values::computed::{Context, Percentage, ToComputedValue};
 use crate::values::generics::position::Position as GenericPosition;
+use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
 use crate::values::generics::position::ZIndex as GenericZIndex;
 use crate::values::specified::{AllowQuirks, Integer, LengthPercentage};
@@ -262,6 +263,18 @@ impl<S: Parse> PositionComponent<S> {
     }
 }
 
+impl<S> GenericPositionComponent for PositionComponent<S> {
+    fn is_center(&self) -> bool {
+        match *self {
+            PositionComponent::Center => true,
+            PositionComponent::Length(LengthPercentage::Percentage(ref per)) => per.0 == 0.5,
+            // 50% from any side is still the center.
+            PositionComponent::Side(_, Some(LengthPercentage::Percentage(ref per))) => per.0 == 0.5,
+            _ => false,
+        }
+    }
+}
+
 impl<S> PositionComponent<S> {
     /// `0%`
     pub fn zero() -> Self {
@@ -295,10 +308,8 @@ impl<S: Side> ToComputedValue for PositionComponent<S> {
             },
             PositionComponent::Side(ref keyword, Some(ref length)) if !keyword.is_start() => {
                 let length = length.to_computed_value(context);
-                let p = Percentage(1. - length.percentage());
-                let l = -length.unclamped_length();
                 // We represent `<end-side> <length>` as `calc(100% - <length>)`.
-                ComputedLengthPercentage::new_calc(l, Some(p), AllowedNumericType::All)
+                ComputedLengthPercentage::hundred_percent_minus(length, AllowedNumericType::All)
             },
             PositionComponent::Side(_, Some(ref length)) |
             PositionComponent::Length(ref length) => length.to_computed_value(context),
@@ -350,66 +361,25 @@ impl Side for VerticalPositionKeyword {
     }
 }
 
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-/// Auto-placement algorithm Option
-pub enum AutoFlow {
-    /// The auto-placement algorithm places items by filling each row in turn,
-    /// adding new rows as necessary.
-    Row,
-    /// The auto-placement algorithm places items by filling each column in turn,
-    /// adding new columns as necessary.
-    Column,
-}
-
-/// If `dense` is specified, `row` is implied.
-fn is_row_dense(autoflow: &AutoFlow, dense: &bool) -> bool {
-    *autoflow == AutoFlow::Row && *dense
-}
-
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
-)]
-/// Controls how the auto-placement algorithm works
-/// specifying exactly how auto-placed items get flowed into the grid
-pub struct GridAutoFlow {
-    /// Specifiy how auto-placement algorithm fills each `row` or `column` in turn
-    #[css(contextual_skip_if = "is_row_dense")]
-    pub autoflow: AutoFlow,
-    /// Specify use `dense` packing algorithm or not
-    #[css(represents_keyword)]
-    pub dense: bool,
-}
-
-impl GridAutoFlow {
-    #[inline]
-    /// Get default `grid-auto-flow` as `row`
-    pub fn row() -> GridAutoFlow {
-        GridAutoFlow {
-            autoflow: AutoFlow::Row,
-            dense: false,
-        }
+bitflags! {
+    /// Controls how the auto-placement algorithm works
+    /// specifying exactly how auto-placed items get flowed into the grid
+    #[derive(
+        MallocSizeOf,
+        SpecifiedValueInfo,
+        ToComputedValue,
+        ToResolvedValue,
+        ToShmem
+    )]
+    #[value_info(other_values = "row,column,dense")]
+    #[repr(C)]
+    pub struct GridAutoFlow: u8 {
+        /// 'row' - mutually exclusive with 'column'
+        const ROW = 1 << 0;
+        /// 'column' - mutually exclusive with 'row'
+        const COLUMN = 1 << 1;
+        /// 'dense'
+        const DENSE = 1 << 2;
     }
 }
 
@@ -419,26 +389,26 @@ impl Parse for GridAutoFlow {
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<GridAutoFlow, ParseError<'i>> {
-        let mut value = None;
-        let mut dense = false;
+        let mut track = None;
+        let mut dense = GridAutoFlow::empty();
 
         while !input.is_exhausted() {
             let location = input.current_source_location();
             let ident = input.expect_ident()?;
             let success = match_ignore_ascii_case! { &ident,
-                "row" if value.is_none() => {
-                    value = Some(AutoFlow::Row);
+                "row" if track.is_none() => {
+                    track = Some(GridAutoFlow::ROW);
                     true
                 },
-                "column" if value.is_none() => {
-                    value = Some(AutoFlow::Column);
+                "column" if track.is_none() => {
+                    track = Some(GridAutoFlow::COLUMN);
                     true
                 },
-                "dense" if !dense => {
-                    dense = true;
+                "dense" if dense.is_empty() => {
+                    dense = GridAutoFlow::DENSE;
                     true
                 },
-                _ => false
+                _ => false,
             };
             if !success {
                 return Err(location
@@ -446,47 +416,37 @@ impl Parse for GridAutoFlow {
             }
         }
 
-        if value.is_some() || dense {
-            Ok(GridAutoFlow {
-                autoflow: value.unwrap_or(AutoFlow::Row),
-                dense: dense,
-            })
+        if track.is_some() || !dense.is_empty() {
+            Ok(track.unwrap_or(GridAutoFlow::ROW) | dense)
         } else {
             Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }
 
-#[cfg(feature = "gecko")]
-impl From<u8> for GridAutoFlow {
-    fn from(bits: u8) -> GridAutoFlow {
-        use crate::gecko_bindings::structs;
-
-        GridAutoFlow {
-            autoflow: if bits & structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8 != 0 {
-                AutoFlow::Row
-            } else {
-                AutoFlow::Column
-            },
-            dense: bits & structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8 != 0,
+impl ToCss for GridAutoFlow {
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        if *self == GridAutoFlow::ROW {
+            return dest.write_str("row");
         }
-    }
-}
 
-#[cfg(feature = "gecko")]
-impl From<GridAutoFlow> for u8 {
-    fn from(v: GridAutoFlow) -> u8 {
-        use crate::gecko_bindings::structs;
-
-        let mut result: u8 = match v.autoflow {
-            AutoFlow::Row => structs::NS_STYLE_GRID_AUTO_FLOW_ROW as u8,
-            AutoFlow::Column => structs::NS_STYLE_GRID_AUTO_FLOW_COLUMN as u8,
-        };
-
-        if v.dense {
-            result |= structs::NS_STYLE_GRID_AUTO_FLOW_DENSE as u8;
+        if *self == GridAutoFlow::COLUMN {
+            return dest.write_str("column");
         }
-        result
+
+        if *self == GridAutoFlow::ROW | GridAutoFlow::DENSE {
+            return dest.write_str("dense");
+        }
+
+        if *self == GridAutoFlow::COLUMN | GridAutoFlow::DENSE {
+            return dest.write_str("column dense");
+        }
+
+        debug_assert!(false, "Unknown or invalid grid-autoflow value");
+        Ok(())
     }
 }
 
@@ -592,7 +552,7 @@ impl TemplateAreas {
         Ok(TemplateAreas {
             areas: areas.into(),
             strings: strings.into(),
-            width: width,
+            width,
         })
     }
 }
@@ -642,7 +602,16 @@ impl Parse for TemplateAreasArc {
 /// A range of rows or columns. Using this instead of std::ops::Range for FFI
 /// purposes.
 #[repr(C)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 pub struct UnsignedRange {
     /// The start of the range.
     pub start: u32,
@@ -650,7 +619,16 @@ pub struct UnsignedRange {
     pub end: u32,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(C)]
 /// Not associated with any particular grid item, but can be referenced from the
 /// grid-placement properties.

@@ -333,7 +333,7 @@ ${helpers.single_keyword(
 ${helpers.predefined_type(
     "object-position",
     "Position",
-    "computed::Position::zero()",
+    "computed::Position::center()",
     engines="gecko",
     boxed=True,
     spec="https://drafts.csswg.org/css-images-3/#the-object-position",
@@ -375,7 +375,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "grid-auto-flow",
     "GridAutoFlow",
-    "computed::GridAutoFlow::row()",
+    "computed::GridAutoFlow::ROW",
     engines="gecko",
     animation_value_type="discrete",
     spec="https://drafts.csswg.org/css-grid/#propdef-grid-auto-flow",

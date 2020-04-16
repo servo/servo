@@ -19,7 +19,8 @@ use crate::values::specified::position::{HorizontalPositionKeyword, VerticalPosi
 use crate::values::specified::position::{Position, PositionComponent, Side};
 use crate::values::specified::url::SpecifiedImageUrl;
 use crate::values::specified::{
-    Angle, Color, Length, LengthPercentage, NonNegativeLength, NonNegativeLengthPercentage,
+    Angle, AngleOrPercentage, Color, Length, LengthPercentage, NonNegativeLength,
+    NonNegativeLengthPercentage,
 };
 use crate::values::specified::{Number, NumberOrPercentage, Percentage};
 use crate::Atom;
@@ -31,24 +32,6 @@ use std::cmp::Ordering;
 use std::fmt::{self, Write};
 use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
-
-/// A specified image layer.
-pub type ImageLayer = generic::GenericImageLayer<Image>;
-
-impl ImageLayer {
-    /// This is a specialization of Either with an alternative parse
-    /// method to provide anonymous CORS headers for the Image url fetch.
-    pub fn parse_with_cors_anonymous<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(v) = input.try(|i| Image::parse_with_cors_anonymous(context, i)) {
-            return Ok(generic::GenericImageLayer::Image(v));
-        }
-        input.expect_ident_matching("none")?;
-        Ok(generic::GenericImageLayer::None)
-    }
-}
 
 /// Specified values for an image according to CSS-IMAGES.
 /// <https://drafts.csswg.org/css-images/#image-values>
@@ -62,8 +45,22 @@ pub type Gradient = generic::Gradient<
     NonNegativeLength,
     NonNegativeLengthPercentage,
     Position,
+    Angle,
+    AngleOrPercentage,
     Color,
 >;
+
+type LengthPercentageItemList = crate::OwnedSlice<generic::GradientItem<Color, LengthPercentage>>;
+
+#[cfg(feature = "gecko")]
+fn conic_gradients_enabled() -> bool {
+    static_prefs::pref!("layout.css.conic-gradient.enabled")
+}
+
+#[cfg(feature = "servo")]
+fn conic_gradients_enabled() -> bool {
+    false
+}
 
 impl SpecifiedValueInfo for Gradient {
     const SUPPORTED_TYPES: u8 = CssType::GRADIENT;
@@ -85,12 +82,12 @@ impl SpecifiedValueInfo for Gradient {
             "-moz-repeating-radial-gradient",
             "-webkit-gradient",
         ]);
+
+        if conic_gradients_enabled() {
+            f(&["conic-gradient", "repeating-conic-gradient"]);
+        }
     }
 }
-
-/// A specified gradient kind.
-pub type GradientKind =
-    generic::GradientKind<LineDirection, NonNegativeLength, NonNegativeLengthPercentage, Position>;
 
 /// A specified gradient line direction.
 ///
@@ -110,16 +107,10 @@ pub enum LineDirection {
 /// A specified ending shape.
 pub type EndingShape = generic::EndingShape<NonNegativeLength, NonNegativeLengthPercentage>;
 
-/// A specified gradient item.
-pub type GradientItem = generic::GradientItem<Color, LengthPercentage>;
-
-/// A computed color stop.
-pub type ColorStop = generic::ColorStop<Color, LengthPercentage>;
-
 /// Specified values for `moz-image-rect`
 /// -moz-image-rect(<uri>, top, right, bottom, left);
-#[cfg(feature = "gecko")]
-pub type MozImageRect = generic::MozImageRect<NumberOrPercentage, SpecifiedImageUrl>;
+#[cfg(all(feature = "gecko", not(feature = "cbindgen")))]
+pub type MozImageRect = generic::GenericMozImageRect<NumberOrPercentage, SpecifiedImageUrl>;
 
 #[cfg(not(feature = "gecko"))]
 #[derive(
@@ -141,6 +132,9 @@ impl Parse for Image {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Image, ParseError<'i>> {
+        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+            return Ok(generic::Image::None);
+        }
         if let Ok(url) = input.try(|input| SpecifiedImageUrl::parse(context, input)) {
             return Ok(generic::Image::Url(url));
         }
@@ -211,10 +205,11 @@ impl Parse for Gradient {
         enum Shape {
             Linear,
             Radial,
+            Conic,
         }
 
         let func = input.expect_function()?;
-        let (shape, repeating, mut compat_mode) = match_ignore_ascii_case! { &func,
+        let (shape, repeating, compat_mode) = match_ignore_ascii_case! { &func,
             "linear-gradient" => {
                 (Shape::Linear, false, GradientCompatMode::Modern)
             },
@@ -255,6 +250,12 @@ impl Parse for Gradient {
             "-moz-repeating-radial-gradient" => {
                 (Shape::Radial, true, GradientCompatMode::Moz)
             },
+            "conic-gradient" if conic_gradients_enabled() => {
+                (Shape::Conic, false, GradientCompatMode::Modern)
+            },
+            "repeating-conic-gradient" if conic_gradients_enabled() => {
+                (Shape::Conic, true, GradientCompatMode::Modern)
+            },
             "-webkit-gradient" => {
                 return input.parse_nested_block(|i| {
                     Self::parse_webkit_gradient_argument(context, i)
@@ -266,25 +267,13 @@ impl Parse for Gradient {
             }
         };
 
-        let (kind, items) = input.parse_nested_block(|i| {
-            let shape = match shape {
-                Shape::Linear => GradientKind::parse_linear(context, i, &mut compat_mode)?,
-                Shape::Radial => GradientKind::parse_radial(context, i, &mut compat_mode)?,
-            };
-            let items = GradientItem::parse_comma_separated(context, i)?;
-            Ok((shape, items))
-        })?;
-
-        if items.len() < 2 {
-            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
-        }
-
-        Ok(Gradient {
-            items,
-            repeating,
-            kind,
-            compat_mode,
-        })
+        Ok(input.parse_nested_block(|i| {
+            Ok(match shape {
+                Shape::Linear => Self::parse_linear(context, i, repeating, compat_mode)?,
+                Shape::Radial => Self::parse_radial(context, i, repeating, compat_mode)?,
+                Shape::Conic => Self::parse_conic(context, i, repeating)?,
+            })
+        })?)
     }
 }
 
@@ -404,16 +393,21 @@ impl Gradient {
         let ident = input.expect_ident_cloned()?;
         input.expect_comma()?;
 
-        let (kind, reverse_stops) = match_ignore_ascii_case! { &ident,
+        Ok(match_ignore_ascii_case! { &ident,
             "linear" => {
                 let first = Point::parse(context, input)?;
                 input.expect_comma()?;
                 let second = Point::parse(context, input)?;
 
                 let direction = LineDirection::from_points(first, second);
-                let kind = generic::GradientKind::Linear(direction);
+                let items = Gradient::parse_webkit_gradient_stops(context, input, false)?;
 
-                (kind, false)
+                generic::Gradient::Linear {
+                    direction,
+                    items,
+                    repeating: false,
+                    compat_mode: GradientCompatMode::Modern,
+                }
             },
             "radial" => {
                 let first_point = Point::parse(context, input)?;
@@ -433,16 +427,28 @@ impl Gradient {
                 let rad = Circle::Radius(NonNegative(Length::from_px(radius.value)));
                 let shape = generic::EndingShape::Circle(rad);
                 let position: Position = point.into();
+                let items = Gradient::parse_webkit_gradient_stops(context, input, reverse_stops)?;
 
-                let kind = generic::GradientKind::Radial(shape, position);
-                (kind, reverse_stops)
+                generic::Gradient::Radial {
+                    shape,
+                    position,
+                    items,
+                    repeating: false,
+                    compat_mode: GradientCompatMode::Modern,
+                }
             },
             _ => {
                 let e = SelectorParseErrorKind::UnexpectedIdent(ident.clone());
                 return Err(input.new_custom_error(e));
             },
-        };
+        })
+    }
 
+    fn parse_webkit_gradient_stops<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        reverse_stops: bool,
+    ) -> Result<LengthPercentageItemList, ParseError<'i>> {
         let mut items = input
             .try(|i| {
                 i.expect_comma()?;
@@ -521,46 +527,62 @@ impl Gradient {
                 }
             })
         }
-
-        Ok(generic::Gradient {
-            kind,
-            items: items.into(),
-            repeating: false,
-            compat_mode: GradientCompatMode::Modern,
-        })
+        Ok(items.into())
     }
-}
 
-impl GradientKind {
+    /// Not used for -webkit-gradient syntax and conic-gradient
+    fn parse_stops<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<LengthPercentageItemList, ParseError<'i>> {
+        let items =
+            generic::GradientItem::parse_comma_separated(context, input, LengthPercentage::parse)?;
+        if items.len() < 2 {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+        Ok(items)
+    }
+
     /// Parses a linear gradient.
     /// GradientCompatMode can change during `-moz-` prefixed gradient parsing if it come across a `to` keyword.
     fn parse_linear<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        compat_mode: &mut GradientCompatMode,
+        repeating: bool,
+        mut compat_mode: GradientCompatMode,
     ) -> Result<Self, ParseError<'i>> {
-        let direction = if let Ok(d) = input.try(|i| LineDirection::parse(context, i, compat_mode))
-        {
-            input.expect_comma()?;
-            d
-        } else {
-            match *compat_mode {
-                GradientCompatMode::Modern => {
-                    LineDirection::Vertical(VerticalPositionKeyword::Bottom)
-                },
-                _ => LineDirection::Vertical(VerticalPositionKeyword::Top),
-            }
-        };
-        Ok(generic::GradientKind::Linear(direction))
+        let direction =
+            if let Ok(d) = input.try(|i| LineDirection::parse(context, i, &mut compat_mode)) {
+                input.expect_comma()?;
+                d
+            } else {
+                match compat_mode {
+                    GradientCompatMode::Modern => {
+                        LineDirection::Vertical(VerticalPositionKeyword::Bottom)
+                    },
+                    _ => LineDirection::Vertical(VerticalPositionKeyword::Top),
+                }
+            };
+        let items = Gradient::parse_stops(context, input)?;
+
+        Ok(Gradient::Linear {
+            direction,
+            items,
+            repeating,
+            compat_mode,
+        })
     }
+
+    /// Parses a radial gradient.
     fn parse_radial<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
-        compat_mode: &mut GradientCompatMode,
+        repeating: bool,
+        compat_mode: GradientCompatMode,
     ) -> Result<Self, ParseError<'i>> {
-        let (shape, position) = match *compat_mode {
+        let (shape, position) = match compat_mode {
             GradientCompatMode::Modern => {
-                let shape = input.try(|i| EndingShape::parse(context, i, *compat_mode));
+                let shape = input.try(|i| EndingShape::parse(context, i, compat_mode));
                 let position = input.try(|i| {
                     i.expect_ident_matching("at")?;
                     Position::parse(context, i)
@@ -573,7 +595,7 @@ impl GradientKind {
                     if position.is_ok() {
                         i.expect_comma()?;
                     }
-                    EndingShape::parse(context, i, *compat_mode)
+                    EndingShape::parse(context, i, compat_mode)
                 });
                 (shape, position.ok())
             },
@@ -588,7 +610,54 @@ impl GradientKind {
         });
 
         let position = position.unwrap_or(Position::center());
-        Ok(generic::GradientKind::Radial(shape, position))
+
+        let items = Gradient::parse_stops(context, input)?;
+
+        Ok(Gradient::Radial {
+            shape,
+            position,
+            items,
+            repeating,
+            compat_mode,
+        })
+    }
+    fn parse_conic<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+        repeating: bool,
+    ) -> Result<Self, ParseError<'i>> {
+        let angle = input.try(|i| {
+            i.expect_ident_matching("from")?;
+            // Spec allows unitless zero start angles
+            // https://drafts.csswg.org/css-images-4/#valdef-conic-gradient-angle
+            Angle::parse_with_unitless(context, i)
+        });
+        let position = input.try(|i| {
+            i.expect_ident_matching("at")?;
+            Position::parse(context, i)
+        });
+        if angle.is_ok() || position.is_ok() {
+            input.expect_comma()?;
+        }
+
+        let angle = angle.unwrap_or(Angle::zero());
+        let position = position.unwrap_or(Position::center());
+        let items = generic::GradientItem::parse_comma_separated(
+            context,
+            input,
+            AngleOrPercentage::parse_with_unitless,
+        )?;
+
+        if items.len() < 2 {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        Ok(Gradient::Conic {
+            angle,
+            position,
+            items,
+            repeating,
+        })
     }
 }
 
@@ -793,10 +862,12 @@ impl ShapeExtent {
     }
 }
 
-impl GradientItem {
+impl<T> generic::GradientItem<Color, T> {
     fn parse_comma_separated<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        parse_position: impl for<'i1, 't1> Fn(&ParserContext, &mut Parser<'i1, 't1>) -> Result<T, ParseError<'i1>>
+            + Copy,
     ) -> Result<crate::OwnedSlice<Self>, ParseError<'i>> {
         let mut items = Vec::new();
         let mut seen_stop = false;
@@ -804,20 +875,20 @@ impl GradientItem {
         loop {
             input.parse_until_before(Delimiter::Comma, |input| {
                 if seen_stop {
-                    if let Ok(hint) = input.try(|i| LengthPercentage::parse(context, i)) {
+                    if let Ok(hint) = input.try(|i| parse_position(context, i)) {
                         seen_stop = false;
                         items.push(generic::GradientItem::InterpolationHint(hint));
                         return Ok(());
                     }
                 }
 
-                let stop = ColorStop::parse(context, input)?;
+                let stop = generic::ColorStop::parse(context, input, parse_position)?;
 
-                if let Ok(multi_position) = input.try(|i| LengthPercentage::parse(context, i)) {
+                if let Ok(multi_position) = input.try(|i| parse_position(context, i)) {
                     let stop_color = stop.color.clone();
                     items.push(stop.into_item());
                     items.push(
-                        ColorStop {
+                        generic::ColorStop {
                             color: stop_color,
                             position: Some(multi_position),
                         }
@@ -845,14 +916,18 @@ impl GradientItem {
     }
 }
 
-impl Parse for ColorStop {
+impl<T> generic::ColorStop<Color, T> {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
+        parse_position: impl for<'i1, 't1> Fn(
+            &ParserContext,
+            &mut Parser<'i1, 't1>,
+        ) -> Result<T, ParseError<'i1>>,
     ) -> Result<Self, ParseError<'i>> {
-        Ok(ColorStop {
+        Ok(generic::ColorStop {
             color: Color::parse(context, input)?,
-            position: input.try(|i| LengthPercentage::parse(context, i)).ok(),
+            position: input.try(|i| parse_position(context, i)).ok(),
         })
     }
 }

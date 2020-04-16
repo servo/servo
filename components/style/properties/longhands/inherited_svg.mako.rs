@@ -36,15 +36,16 @@ ${helpers.single_keyword(
     engines="gecko",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVG11/painting.html#ColorInterpolationProperty",
+    gecko_enum_prefix="StyleColorInterpolation",
 )}
 
 ${helpers.single_keyword(
     "color-interpolation-filters",
     "linearrgb auto srgb",
     engines="gecko",
-    gecko_constant_prefix="NS_STYLE_COLOR_INTERPOLATION",
     animation_value_type="discrete",
     spec="https://www.w3.org/TR/SVG11/painting.html#ColorInterpolationFiltersProperty",
+    gecko_enum_prefix="StyleColorInterpolation",
 )}
 
 ${helpers.predefined_type(

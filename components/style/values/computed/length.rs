@@ -17,7 +17,7 @@ use crate::values::{specified, CSSFloat};
 use crate::Zero;
 use app_units::Au;
 use std::fmt::{self, Write};
-use std::ops::{Add, AddAssign, Div, Mul, Neg, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, MulAssign, Neg, Sub};
 use style_traits::{CSSPixel, CssWriter, ToCss};
 
 pub use super::image::Image;
@@ -203,6 +203,7 @@ impl Size {
     Serialize,
     ToAnimatedValue,
     ToAnimatedZero,
+    ToComputedValue,
     ToResolvedValue,
     ToShmem,
 )]
@@ -328,6 +329,13 @@ impl Div<CSSFloat> for CSSPixelLength {
     #[inline]
     fn div(self, other: CSSFloat) -> Self {
         Self::new(self.px() / other)
+    }
+}
+
+impl MulAssign<CSSFloat> for CSSPixelLength {
+    #[inline]
+    fn mul_assign(&mut self, other: CSSFloat) {
+        self.0 *= other;
     }
 }
 

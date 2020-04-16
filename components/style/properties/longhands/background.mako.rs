@@ -21,10 +21,10 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "background-image",
-    "ImageLayer",
+    "Image",
     engines="gecko servo-2013 servo-2020",
-    initial_value="computed::ImageLayer::none()",
-    initial_specified_value="specified::ImageLayer::none()",
+    initial_value="computed::Image::None",
+    initial_specified_value="specified::Image::None",
     spec="https://drafts.csswg.org/css-backgrounds/#the-background-image",
     vector="True",
     animation_value_type="discrete",
@@ -35,8 +35,8 @@ ${helpers.predefined_type(
     ${helpers.predefined_type(
         "background-position-" + axis,
         "position::" + direction + "Position",
+        "computed::LengthPercentage::zero_percent()",
         engines="gecko servo-2013 servo-2020",
-        initial_value="computed::LengthPercentage::zero()",
         initial_specified_value="SpecifiedValue::initial_specified_value()",
         spec="https://drafts.csswg.org/css-backgrounds-4/#propdef-background-position-" + axis,
         animation_value_type="ComputedValue",
@@ -107,7 +107,7 @@ ${helpers.single_keyword(
     """normal multiply screen overlay darken lighten color-dodge
     color-burn hard-light soft-light difference exclusion hue
     saturation color luminosity""",
-    gecko_constant_prefix="NS_STYLE_BLEND",
+    gecko_enum_prefix="StyleBlend",
     vector=True,
     engines="gecko",
     animation_value_type="discrete",

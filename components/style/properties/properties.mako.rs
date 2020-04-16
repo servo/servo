@@ -312,7 +312,7 @@ impl Clone for PropertyDeclaration {
             trait AssertCopy { fn assert() {} }
             trait AssertNotCopy { fn assert() {} }
             impl<T: Copy> AssertCopy for Helper<T> {}
-            % for ty in set(x["type"] for x in others):
+            % for ty in sorted(set(x["type"] for x in others)):
             impl AssertNotCopy for Helper<${ty}> {}
             Helper::<${ty}>::assert();
             % endfor
@@ -729,10 +729,10 @@ impl NonCustomPropertyIdSet {
 <%def name="static_non_custom_property_id_set(name, is_member)">
 static ${name}: NonCustomPropertyIdSet = NonCustomPropertyIdSet {
     <%
-        storage = [0] * ((len(data.longhands) + len(data.shorthands) + len(data.all_aliases()) - 1 + 32) / 32)
+        storage = [0] * int((len(data.longhands) + len(data.shorthands) + len(data.all_aliases()) - 1 + 32) / 32)
         for i, property in enumerate(data.longhands + data.shorthands + data.all_aliases()):
             if is_member(property):
-                storage[i / 32] |= 1 << (i % 32)
+                storage[int(i / 32)] |= 1 << (i % 32)
     %>
     storage: [${", ".join("0x%x" % word for word in storage)}]
 };
@@ -741,14 +741,60 @@ static ${name}: NonCustomPropertyIdSet = NonCustomPropertyIdSet {
 <%def name="static_longhand_id_set(name, is_member)">
 static ${name}: LonghandIdSet = LonghandIdSet {
     <%
-        storage = [0] * ((len(data.longhands) - 1 + 32) / 32)
+        storage = [0] * int((len(data.longhands) - 1 + 32) / 32)
         for i, property in enumerate(data.longhands):
             if is_member(property):
-                storage[i / 32] |= 1 << (i % 32)
+                storage[int(i / 32)] |= 1 << (i % 32)
     %>
     storage: [${", ".join("0x%x" % word for word in storage)}]
 };
 </%def>
+
+<%
+    logical_groups = defaultdict(list)
+    for prop in data.longhands:
+        if prop.logical_group:
+            logical_groups[prop.logical_group].append(prop)
+
+    for group, props in logical_groups.items():
+        logical_count = sum(1 for p in props if p.logical)
+        if logical_count * 2 != len(props):
+            raise RuntimeError("Logical group {} has ".format(group) +
+                               "unbalanced logical / physical properties")
+
+    FIRST_LINE_RESTRICTIONS = PropertyRestrictions.first_line(data)
+    FIRST_LETTER_RESTRICTIONS = PropertyRestrictions.first_letter(data)
+    MARKER_RESTRICTIONS = PropertyRestrictions.marker(data)
+    PLACEHOLDER_RESTRICTIONS = PropertyRestrictions.placeholder(data)
+    CUE_RESTRICTIONS = PropertyRestrictions.cue(data)
+
+    def restriction_flags(property):
+        name = property.name
+        flags = []
+        if name in FIRST_LINE_RESTRICTIONS:
+            flags.append("APPLIES_TO_FIRST_LINE")
+        if name in FIRST_LETTER_RESTRICTIONS:
+            flags.append("APPLIES_TO_FIRST_LETTER")
+        if name in PLACEHOLDER_RESTRICTIONS:
+            flags.append("APPLIES_TO_PLACEHOLDER")
+        if name in MARKER_RESTRICTIONS:
+            flags.append("APPLIES_TO_MARKER")
+        if name in CUE_RESTRICTIONS:
+            flags.append("APPLIES_TO_CUE")
+        return flags
+
+%>
+
+/// A group for properties which may override each other
+/// via logical resolution.
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+pub enum LogicalGroup {
+    % for group in sorted(logical_groups.keys()):
+    /// ${group}
+    ${to_camel_case(group)},
+    % endfor
+}
+
 
 /// A set of longhand properties
 #[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
@@ -835,6 +881,30 @@ impl LonghandIdSet {
             lambda p: p.has_effect_on_gecko_scrollbars is False
         )}
         &HAS_NO_EFFECT_ON_SCROLLBARS
+    }
+
+    /// Returns the set of padding properties for the purpose of disabling
+    /// native appearance.
+    #[inline]
+    pub fn padding_properties() -> &'static Self {
+        <% assert "padding" in logical_groups %>
+        ${static_longhand_id_set(
+            "PADDING_PROPERTIES",
+            lambda p: p.logical_group == "padding"
+        )}
+        &PADDING_PROPERTIES
+    }
+
+    /// Returns the set of border properties for the purpose of disabling native
+    /// appearance.
+    #[inline]
+    pub fn border_background_properties() -> &'static Self {
+        ${static_longhand_id_set(
+            "BORDER_BACKGROUND_PROPERTIES",
+            lambda p: (p.logical_group and p.logical_group.startswith("border")) or \
+                       p.name in ["background-color", "background-image"]
+        )}
+        &BORDER_BACKGROUND_PROPERTIES
     }
 
     /// Iterate over the current longhand id set.
@@ -998,53 +1068,8 @@ bitflags! {
     }
 }
 
-<%
-    logical_groups = defaultdict(list)
-    for prop in data.longhands:
-        if prop.logical_group:
-            logical_groups[prop.logical_group].append(prop)
-
-    for group, props in logical_groups.iteritems():
-        logical_count = sum(1 for p in props if p.logical)
-        if logical_count * 2 != len(props):
-            raise RuntimeError("Logical group {} has ".format(group) +
-                               "unbalanced logical / physical properties")
-
-    FIRST_LINE_RESTRICTIONS = PropertyRestrictions.first_line(data)
-    FIRST_LETTER_RESTRICTIONS = PropertyRestrictions.first_letter(data)
-    MARKER_RESTRICTIONS = PropertyRestrictions.marker(data)
-    PLACEHOLDER_RESTRICTIONS = PropertyRestrictions.placeholder(data)
-    CUE_RESTRICTIONS = PropertyRestrictions.cue(data)
-
-    def restriction_flags(property):
-        name = property.name
-        flags = []
-        if name in FIRST_LINE_RESTRICTIONS:
-            flags.append("APPLIES_TO_FIRST_LINE")
-        if name in FIRST_LETTER_RESTRICTIONS:
-            flags.append("APPLIES_TO_FIRST_LETTER")
-        if name in PLACEHOLDER_RESTRICTIONS:
-            flags.append("APPLIES_TO_PLACEHOLDER")
-        if name in MARKER_RESTRICTIONS:
-            flags.append("APPLIES_TO_MARKER")
-        if name in CUE_RESTRICTIONS:
-            flags.append("APPLIES_TO_CUE")
-        return flags
-
-%>
-
-/// A group for properties which may override each other
-/// via logical resolution.
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
-pub enum LogicalGroup {
-    % for group in logical_groups.iterkeys():
-    /// ${group}
-    ${to_camel_case(group)},
-    % endfor
-}
-
 /// An identifier for a given longhand property.
-#[derive(Clone, Copy, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
 #[repr(u16)]
 pub enum LonghandId {
     % for i, property in enumerate(data.longhands):
@@ -1089,6 +1114,7 @@ impl LonghandId {
         // could potentially do so, which would speed up serialization
         // algorithms and what not, I guess.
         <%
+            from functools import cmp_to_key
             longhand_to_shorthand_map = {}
             num_sub_properties = {}
             for shorthand in data.shorthands:
@@ -1098,6 +1124,9 @@ impl LonghandId {
                         longhand_to_shorthand_map[sub_property.ident] = []
 
                     longhand_to_shorthand_map[sub_property.ident].append(shorthand.camel_case)
+
+            def cmp(a, b):
+                return (a > b) - (a < b)
 
             def preferred_order(x, y):
                 # Since we want properties in order from most subproperties to least,
@@ -1110,8 +1139,8 @@ impl LonghandId {
 
             # Sort the lists of shorthand properties according to preferred order:
             # https://drafts.csswg.org/cssom/#concept-shorthands-preferred-order
-            for shorthand_list in longhand_to_shorthand_map.itervalues():
-                shorthand_list.sort(cmp=preferred_order)
+            for shorthand_list in longhand_to_shorthand_map.values():
+                shorthand_list.sort(key=cmp_to_key(preferred_order))
         %>
 
         // based on lookup results for each longhand, create result arrays
@@ -1353,7 +1382,7 @@ where
 }
 
 /// An identifier for a given shorthand property.
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
 #[repr(u16)]
 pub enum ShorthandId {
     % for i, property in enumerate(data.shorthands):
@@ -1590,10 +1619,7 @@ impl UnparsedValue {
             } else {
                 CSSWideKeyword::Initial
             };
-            PropertyDeclaration::CSSWideKeyword(WideKeywordDeclaration {
-                id: longhand_id,
-                keyword,
-            })
+            PropertyDeclaration::css_wide_keyword(longhand_id, keyword)
         };
 
         let css = match crate::custom_properties::substitute(
@@ -1630,10 +1656,7 @@ impl UnparsedValue {
         let mut input = Parser::new(&mut input);
         input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
         if let Ok(keyword) = input.try(CSSWideKeyword::parse) {
-            return PropertyDeclaration::CSSWideKeyword(WideKeywordDeclaration {
-                id: longhand_id,
-                keyword,
-            });
+            return PropertyDeclaration::css_wide_keyword(longhand_id, keyword);
         }
 
         let declaration = input.parse_entirely(|input| {
@@ -2239,6 +2262,12 @@ impl PropertyDeclaration {
         }
     }
 
+    /// Returns a CSS-wide keyword declaration for a given property.
+    #[inline]
+    pub fn css_wide_keyword(id: LonghandId, keyword: CSSWideKeyword) -> Self {
+        Self::CSSWideKeyword(WideKeywordDeclaration { id, keyword })
+    }
+
     /// Returns a CSS-wide keyword if the declaration's value is one.
     #[inline]
     pub fn get_css_wide_keyword(&self) -> Option<CSSWideKeyword> {
@@ -2367,9 +2396,7 @@ impl PropertyDeclaration {
             PropertyId::Longhand(id) => {
                 input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
                 input.try(CSSWideKeyword::parse).map(|keyword| {
-                    PropertyDeclaration::CSSWideKeyword(
-                        WideKeywordDeclaration { id, keyword },
-                    )
+                    PropertyDeclaration::css_wide_keyword(id, keyword)
                 }).or_else(|()| {
                     input.look_for_var_or_env_functions();
                     input.parse_entirely(|input| id.parse_value(context, input))
@@ -2403,12 +2430,7 @@ impl PropertyDeclaration {
                         declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword)
                     } else {
                         for longhand in id.longhands() {
-                            declarations.push(PropertyDeclaration::CSSWideKeyword(
-                                WideKeywordDeclaration {
-                                    id: longhand,
-                                    keyword,
-                                },
-                            ))
+                            declarations.push(PropertyDeclaration::css_wide_keyword(longhand, keyword));
                         }
                     }
                 } else {
@@ -2550,12 +2572,7 @@ impl<'a> Iterator for AllShorthandDeclarationIterator<'a> {
         match *self.all_shorthand {
             AllShorthand::NotSet => None,
             AllShorthand::CSSWideKeyword(ref keyword) => {
-                Some(PropertyDeclaration::CSSWideKeyword(
-                    WideKeywordDeclaration {
-                        id: self.longhands.next()?,
-                        keyword: *keyword
-                    }
-                ))
+                Some(PropertyDeclaration::css_wide_keyword(self.longhands.next()?, *keyword))
             }
             AllShorthand::WithVariables(ref unparsed) => {
                 Some(PropertyDeclaration::WithVariables(

@@ -655,8 +655,10 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
 pub struct LineNameList {
     /// The optional `<line-name-list>`
     pub names: crate::OwnedSlice<crate::OwnedSlice<CustomIdent>>,
-    /// Indicates the line name that requires `auto-fill`, if in bounds.
-    pub fill_idx: usize,
+    /// Indicates the starting line names that requires `auto-fill`, if in bounds.
+    pub fill_start: usize,
+    /// Indicates the number of line names in the auto-fill
+    pub fill_len: usize,
 }
 
 impl Parse for LineNameList {
@@ -666,7 +668,7 @@ impl Parse for LineNameList {
     ) -> Result<Self, ParseError<'i>> {
         input.expect_ident_matching("subgrid")?;
         let mut line_names = vec![];
-        let mut fill_idx = None;
+        let mut fill_data = None;
 
         loop {
             let repeat_parse_result = input.try(|input| {
@@ -682,8 +684,7 @@ impl Parse for LineNameList {
                     Ok((names_list, count))
                 })
             });
-
-            if let Ok((mut names_list, count)) = repeat_parse_result {
+            if let Ok((names_list, count)) = repeat_parse_result {
                 match count {
                     // FIXME(emilio): we shouldn't expand repeat() at
                     // parse time for subgrid. (bug 1583429)
@@ -694,19 +695,11 @@ impl Parse for LineNameList {
                             .cycle()
                             .take(num.value() as usize * names_list.len()),
                     ),
-                    RepeatCount::AutoFill if fill_idx.is_none() => {
-                        // `repeat(autof-fill, ..)` should have just one line name.
-                        // FIXME(bug 1341507) the above comment is wrong per:
-                        // https://drafts.csswg.org/css-grid-2/#typedef-name-repeat
-                        if names_list.len() != 1 {
-                            return Err(
-                                input.new_custom_error(StyleParseErrorKind::UnspecifiedError)
-                            );
-                        }
-                        let names = names_list.pop().unwrap();
-
-                        line_names.push(names);
-                        fill_idx = Some(line_names.len() - 1);
+                    RepeatCount::AutoFill if fill_data.is_none() => {
+                        let fill_idx = line_names.len();
+                        let fill_len = names_list.len();
+                        fill_data = Some((fill_idx, fill_len));
+                        line_names.extend(names_list.into_iter());
                     },
                     _ => return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError)),
                 }
@@ -721,9 +714,12 @@ impl Parse for LineNameList {
             line_names.truncate(MAX_GRID_LINE as usize);
         }
 
+        let (fill_start, fill_len) = fill_data.unwrap_or((usize::MAX, 0));
+
         Ok(LineNameList {
             names: line_names.into(),
-            fill_idx: fill_idx.unwrap_or(usize::MAX),
+            fill_start: fill_start,
+            fill_len: fill_len,
         })
     }
 }
@@ -734,9 +730,10 @@ impl ToCss for LineNameList {
         W: Write,
     {
         dest.write_str("subgrid")?;
-        let fill_idx = self.fill_idx;
+        let fill_start = self.fill_start;
+        let fill_len = self.fill_len;
         for (i, names) in self.names.iter().enumerate() {
-            if i == fill_idx {
+            if i == fill_start {
                 dest.write_str(" repeat(auto-fill,")?;
             }
 
@@ -751,7 +748,7 @@ impl ToCss for LineNameList {
             }
 
             dest.write_str("]")?;
-            if i == fill_idx {
+            if i == fill_start + fill_len - 1 {
                 dest.write_str(")")?;
             }
         }

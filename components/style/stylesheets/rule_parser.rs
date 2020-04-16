@@ -19,6 +19,7 @@ use crate::stylesheets::keyframes_rule::parse_keyframe_list;
 use crate::stylesheets::stylesheet::Namespaces;
 use crate::stylesheets::supports_rule::SupportsCondition;
 use crate::stylesheets::viewport_rule;
+use crate::stylesheets::AllowImportRules;
 use crate::stylesheets::{CorsMode, DocumentRule, FontFeatureValuesRule, KeyframesRule, MediaRule};
 use crate::stylesheets::{CssRule, CssRuleType, CssRules, RulesMutateError, StylesheetLoader};
 use crate::stylesheets::{NamespaceRule, PageRule, StyleRule, SupportsRule, ViewportRule};
@@ -50,7 +51,7 @@ pub struct TopLevelRuleParser<'a> {
     /// This won't contain any namespaces, and only nested parsers created with
     /// `ParserContext::new_with_rule_type` will.
     pub context: ParserContext<'a>,
-    /// The current state of the parser.
+    /// The current stajkj/te of the parser.
     pub state: State,
     /// Whether we have tried to parse was invalid due to being in the wrong
     /// place (e.g. an @import rule was found while in the `Body` state). Reset
@@ -62,6 +63,8 @@ pub struct TopLevelRuleParser<'a> {
     pub namespaces: &'a mut Namespaces,
     /// The info we need insert a rule in a list.
     pub insert_rule_context: Option<InsertRuleContext<'a>>,
+    /// Whether @import rules will be allowed.
+    pub allow_import_rules: AllowImportRules,
 }
 
 impl<'b> TopLevelRuleParser<'b> {
@@ -189,6 +192,10 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     return Err(input.new_custom_error(StyleParseErrorKind::UnexpectedImportRule))
                 }
 
+                if let AllowImportRules::No = self.allow_import_rules {
+                    return Err(input.new_custom_error(StyleParseErrorKind::DisallowedImportRule))
+                }
+
                 // FIXME(emilio): We should always be able to have a loader
                 // around! See bug 1533783.
                 if self.loader.is_none() {
@@ -203,6 +210,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 let media = Arc::new(self.shared_lock.wrap(media));
 
                 let prelude = AtRuleNonBlockPrelude::Import(url, media);
+
                 return Ok(AtRuleType::WithoutBlock(prelude));
             },
             "namespace" => {

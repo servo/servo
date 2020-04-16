@@ -72,7 +72,7 @@ use crate::values::computed::Length;
 use crate::values::specified::length::FontBaseSize;
 use crate::CaseSensitivityExt;
 use app_units::Au;
-use atomic_refcell::{AtomicRefCell, AtomicRefMut};
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::matching::VisitedHandlingMode;
@@ -557,8 +557,9 @@ impl<'le> fmt::Debug for GeckoElement<'le> {
 }
 
 impl<'le> GeckoElement<'le> {
+    /// Gets the raw `ElementData` refcell for the element.
     #[inline(always)]
-    fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
+    pub fn get_data(&self) -> Option<&AtomicRefCell<ElementData>> {
         unsafe { self.0.mServoData.get().as_ref() }
     }
 
@@ -1281,6 +1282,14 @@ impl<'le> TElement for GeckoElement<'le> {
         snapshot_helpers::each_class_or_part(attr, callback)
     }
 
+    #[inline]
+    fn each_exported_part<F>(&self, name: &Atom, callback: F)
+    where
+        F: FnMut(&Atom),
+    {
+        snapshot_helpers::each_exported_part(self.attrs(), name, callback)
+    }
+
     fn each_part<F>(&self, callback: F)
     where
         F: FnMut(&Atom),
@@ -1381,21 +1390,6 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn did_process_child(&self) -> isize {
         panic!("Atomic child count not implemented in Gecko");
-    }
-
-    /// Whether there is an ElementData container.
-    fn has_data(&self) -> bool {
-        self.get_data().is_some()
-    }
-
-    /// Immutably borrows the ElementData.
-    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
-        self.get_data().map(|x| x.borrow())
-    }
-
-    /// Mutably borrows the ElementData.
-    fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
-        self.get_data().map(|x| x.borrow_mut())
     }
 
     unsafe fn ensure_data(&self) -> AtomicRefMut<ElementData> {
@@ -1632,6 +1626,22 @@ impl<'le> TElement for GeckoElement<'le> {
         existing_transitions
             .keys()
             .any(|property| !transitions_to_keep.contains(*property))
+    }
+
+    /// Whether there is an ElementData container.
+    #[inline]
+    fn has_data(&self) -> bool {
+        self.get_data().is_some()
+    }
+
+    /// Immutably borrows the ElementData.
+    fn borrow_data(&self) -> Option<AtomicRef<ElementData>> {
+        self.get_data().map(|x| x.borrow())
+    }
+
+    /// Mutably borrows the ElementData.
+    fn mutate_data(&self) -> Option<AtomicRefMut<ElementData>> {
+        self.get_data().map(|x| x.borrow_mut())
     }
 
     #[inline]
@@ -2064,6 +2074,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozReadOnly |
             NonTSPseudoClass::MozReadWrite |
             NonTSPseudoClass::FocusWithin |
+            NonTSPseudoClass::FocusVisible |
             NonTSPseudoClass::MozDragOver |
             NonTSPseudoClass::MozDevtoolsHighlighted |
             NonTSPseudoClass::MozStyleeditorTransitioning |
@@ -2223,11 +2234,6 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
         };
 
         snapshot_helpers::has_class_or_part(name, CaseSensitivity::CaseSensitive, attr)
-    }
-
-    #[inline]
-    fn exported_part(&self, name: &Atom) -> Option<Atom> {
-        snapshot_helpers::exported_part(self.attrs(), name)
     }
 
     #[inline]

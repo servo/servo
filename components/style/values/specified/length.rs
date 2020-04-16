@@ -16,7 +16,7 @@ use crate::values::generics::length::{
     GenericLengthOrNumber, GenericLengthPercentageOrNormal, GenericMaxSize, GenericSize,
 };
 use crate::values::generics::NonNegative;
-use crate::values::specified::calc::CalcNode;
+use crate::values::specified::calc::{self, CalcNode};
 use crate::values::specified::NonNegativeNumber;
 use crate::values::CSSFloat;
 use crate::Zero;
@@ -28,8 +28,8 @@ use std::ops::{Add, Mul};
 use style_traits::values::specified::AllowedNumericType;
 use style_traits::{ParseError, SpecifiedValueInfo, StyleParseErrorKind};
 
-pub use super::image::{ColorStop, EndingShape as GradientEndingShape, Gradient};
-pub use super::image::{GradientKind, Image};
+pub use super::image::Image;
+pub use super::image::{EndingShape as GradientEndingShape, Gradient};
 pub use crate::values::specified::calc::CalcLengthPercentage;
 
 /// Number of app units per pixel
@@ -92,7 +92,16 @@ impl FontRelativeLength {
             FontRelativeLength::Em(v) |
             FontRelativeLength::Ex(v) |
             FontRelativeLength::Ch(v) |
-            FontRelativeLength::Rem(v) => v == 0.0,
+            FontRelativeLength::Rem(v) => v == 0.,
+        }
+    }
+
+    fn is_negative(&self) -> bool {
+        match *self {
+            FontRelativeLength::Em(v) |
+            FontRelativeLength::Ex(v) |
+            FontRelativeLength::Ch(v) |
+            FontRelativeLength::Rem(v) => v < 0.,
         }
     }
 
@@ -266,7 +275,16 @@ impl ViewportPercentageLength {
             ViewportPercentageLength::Vw(v) |
             ViewportPercentageLength::Vh(v) |
             ViewportPercentageLength::Vmin(v) |
-            ViewportPercentageLength::Vmax(v) => v == 0.0,
+            ViewportPercentageLength::Vmax(v) => v == 0.,
+        }
+    }
+
+    fn is_negative(&self) -> bool {
+        match *self {
+            ViewportPercentageLength::Vw(v) |
+            ViewportPercentageLength::Vh(v) |
+            ViewportPercentageLength::Vmin(v) |
+            ViewportPercentageLength::Vmax(v) => v < 0.,
         }
     }
 
@@ -367,6 +385,18 @@ impl AbsoluteLength {
             AbsoluteLength::Q(v) |
             AbsoluteLength::Pt(v) |
             AbsoluteLength::Pc(v) => v == 0.,
+        }
+    }
+
+    fn is_negative(&self) -> bool {
+        match *self {
+            AbsoluteLength::Px(v) |
+            AbsoluteLength::In(v) |
+            AbsoluteLength::Cm(v) |
+            AbsoluteLength::Mm(v) |
+            AbsoluteLength::Q(v) |
+            AbsoluteLength::Pt(v) |
+            AbsoluteLength::Pc(v) => v < 0.,
         }
     }
 
@@ -484,6 +514,16 @@ impl Mul<CSSFloat> for NoCalcLength {
 }
 
 impl NoCalcLength {
+    /// Returns whether the value of this length without unit is less than zero.
+    pub fn is_negative(&self) -> bool {
+        match *self {
+            NoCalcLength::Absolute(v) => v.is_negative(),
+            NoCalcLength::FontRelative(v) => v.is_negative(),
+            NoCalcLength::ViewportPercentage(v) => v.is_negative(),
+            NoCalcLength::ServoCharacterWidth(c) => c.0 < 0,
+        }
+    }
+
     /// Parse a given absolute or relative dimension.
     pub fn parse_dimension(
         context: &ParserContext,
@@ -912,9 +952,10 @@ impl From<Percentage> for LengthPercentage {
     #[inline]
     fn from(pc: Percentage) -> Self {
         if pc.is_calc() {
+            // FIXME(emilio): Hard-coding the clamping mode is suspect.
             LengthPercentage::Calc(Box::new(CalcLengthPercentage {
-                percentage: Some(computed::Percentage(pc.get())),
-                ..Default::default()
+                clamping_mode: AllowedNumericType::All,
+                node: CalcNode::Leaf(calc::Leaf::Percentage(pc.get())),
             }))
         } else {
             LengthPercentage::Percentage(computed::Percentage(pc.get()))

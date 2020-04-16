@@ -4,9 +4,8 @@
 
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, Gradient, LineDirection};
-use style::values::computed::{GradientItem, Length, Position};
-use style::values::generics::image::GenericGradientKind as Kind;
-use style::values::generics::image::{Circle, ColorStop, Ellipse, ShapeExtent};
+use style::values::computed::{Color, Length, LengthPercentage, Position};
+use style::values::generics::image::{Circle, ColorStop, Ellipse, GradientItem, ShapeExtent};
 use webrender_api::{self as wr, units};
 
 pub(super) fn build(
@@ -15,36 +14,51 @@ pub(super) fn build(
     layer: &super::background::BackgroundLayer,
     builder: &mut super::DisplayListBuilder,
 ) {
-    let extend_mode = if gradient.repeating {
-        wr::ExtendMode::Repeat
-    } else {
-        wr::ExtendMode::Clamp
-    };
-    match &gradient.kind {
-        Kind::Linear(line_direction) => build_linear(
+    match gradient {
+        Gradient::Linear {
+            ref items,
+            ref direction,
+            ref repeating,
+            compat_mode: _,
+        } => build_linear(
             style,
-            &gradient.items,
-            line_direction,
-            extend_mode,
+            items,
+            direction,
+            if *repeating {
+                wr::ExtendMode::Repeat
+            } else {
+                wr::ExtendMode::Clamp
+            },
             &layer,
             builder,
         ),
-        Kind::Radial(ending_shape, center) => build_radial(
+        Gradient::Radial {
+            ref shape,
+            ref position,
+            ref items,
+            ref repeating,
+            compat_mode: _,
+        } => build_radial(
             style,
-            &gradient.items,
-            ending_shape,
-            center,
-            extend_mode,
+            items,
+            shape,
+            position,
+            if *repeating {
+                wr::ExtendMode::Repeat
+            } else {
+                wr::ExtendMode::Clamp
+            },
             &layer,
             builder,
         ),
+        Gradient::Conic { .. } => unimplemented!(),
     }
 }
 
 /// https://drafts.csswg.org/css-images-3/#linear-gradients
 pub(super) fn build_linear(
     style: &ComputedValues,
-    items: &[GradientItem],
+    items: &[GradientItem<Color, LengthPercentage>],
     line_direction: &LineDirection,
     extend_mode: wr::ExtendMode,
     layer: &super::background::BackgroundLayer,
@@ -144,7 +158,7 @@ pub(super) fn build_linear(
 /// https://drafts.csswg.org/css-images-3/#radial-gradients
 pub(super) fn build_radial(
     style: &ComputedValues,
-    items: &[GradientItem],
+    items: &[GradientItem<Color, LengthPercentage>],
     shape: &EndingShape,
     center: &Position,
     extend_mode: wr::ExtendMode,
@@ -244,7 +258,7 @@ pub(super) fn build_radial(
 /// https://drafts.csswg.org/css-images-4/#color-stop-fixup
 fn fixup_stops(
     style: &ComputedValues,
-    items: &[GradientItem],
+    items: &[GradientItem<Color, LengthPercentage>],
     gradient_line_length: Length,
 ) -> Vec<wr::GradientStop> {
     // Remove color transititon hints, which are not supported yet.

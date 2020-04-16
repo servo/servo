@@ -140,8 +140,10 @@ pub enum SystemColor {
     Windowframe,
     Windowtext,
     MozButtondefault,
-    MozDefaultColor,
-    MozDefaultBackgroundColor,
+    #[parse(aliases = "-moz-default-color")]
+    Canvastext,
+    #[parse(aliases = "-moz-default-background-color")]
+    Canvas,
     MozDialog,
     MozDialogtext,
     /// Used to highlight valid regions to drop something onto.
@@ -230,9 +232,12 @@ pub enum SystemColor {
     /// colors.
     MozNativehyperlinktext,
 
-    MozHyperlinktext,
-    MozActivehyperlinktext,
-    MozVisitedhyperlinktext,
+    #[parse(aliases = "-moz-hyperlinktext")]
+    Linktext,
+    #[parse(aliases = "-moz-activehyperlinktext")]
+    Activetext,
+    #[parse(aliases = "-moz-visitedhyperlinktext")]
+    Visitedtext,
 
     /// Combobox widgets
     MozComboboxtext,
@@ -253,11 +258,11 @@ impl SystemColor {
         let prefs = cx.device().pref_sheet_prefs();
 
         convert_nscolor_to_computedcolor(match *self {
-            SystemColor::MozDefaultColor => prefs.mDefaultColor,
-            SystemColor::MozDefaultBackgroundColor => prefs.mDefaultBackgroundColor,
-            SystemColor::MozHyperlinktext => prefs.mLinkColor,
-            SystemColor::MozActivehyperlinktext => prefs.mActiveLinkColor,
-            SystemColor::MozVisitedhyperlinktext => prefs.mVisitedLinkColor,
+            SystemColor::Canvastext => prefs.mDefaultColor,
+            SystemColor::Canvas => prefs.mDefaultBackgroundColor,
+            SystemColor::Linktext => prefs.mLinkColor,
+            SystemColor::Activetext => prefs.mActiveLinkColor,
+            SystemColor::Visitedtext => prefs.mVisitedLinkColor,
 
             _ => unsafe {
                 bindings::Gecko_GetLookAndFeelSystemColor(*self as i32, cx.device().document())

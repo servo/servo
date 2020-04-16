@@ -7,8 +7,8 @@ use app_units::Au;
 use euclid::default::{Point2D, Size2D, Vector2D};
 use style::properties::ComputedValues;
 use style::values::computed::image::{EndingShape, LineDirection};
-use style::values::computed::{Angle, GradientItem, LengthPercentage, Percentage, Position};
-use style::values::generics::image::{Circle, ColorStop, Ellipse, ShapeExtent};
+use style::values::computed::{Angle, Color, LengthPercentage, Percentage, Position};
+use style::values::generics::image::{Circle, ColorStop, Ellipse, GradientItem, ShapeExtent};
 use webrender_api::{ExtendMode, Gradient, GradientBuilder, GradientStop, RadialGradient};
 
 /// A helper data structure for gradients.
@@ -78,7 +78,7 @@ fn ellipse_size_keyword(
 
 fn convert_gradient_stops(
     style: &ComputedValues,
-    gradient_items: &[GradientItem],
+    gradient_items: &[GradientItem<Color, LengthPercentage>],
     total_length: Au,
 ) -> GradientBuilder {
     // Determine the position of each stop per CSS-IMAGES § 3.4.
@@ -237,7 +237,7 @@ fn position_to_offset(position: &LengthPercentage, total_length: Au) -> f32 {
 pub fn linear(
     style: &ComputedValues,
     size: Size2D<Au>,
-    stops: &[GradientItem],
+    stops: &[GradientItem<Color, LengthPercentage>],
     direction: LineDirection,
     repeating: bool,
 ) -> (Gradient, Vec<GradientStop>) {
@@ -303,7 +303,7 @@ pub fn linear(
 pub fn radial(
     style: &ComputedValues,
     size: Size2D<Au>,
-    stops: &[GradientItem],
+    stops: &[GradientItem<Color, LengthPercentage>],
     shape: &EndingShape,
     center: &Position,
     repeating: bool,

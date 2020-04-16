@@ -11,8 +11,7 @@ use style::context::QuirksMode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries::MediaList;
 use style::shared_lock::SharedRwLock;
-use style::stylesheets::Origin;
-use style::stylesheets::Stylesheet;
+use style::stylesheets::{AllowImportRules, Origin, Stylesheet};
 
 #[derive(Debug)]
 struct CSSError {
@@ -106,6 +105,7 @@ fn test_report_error_stylesheet() {
         Some(&error_reporter),
         QuirksMode::NoQuirks,
         5,
+        AllowImportRules::Yes,
     );
 
     error_reporter.assert_messages_contain(&[
@@ -116,7 +116,7 @@ fn test_report_error_stylesheet() {
         ),
         (
             9,
-            27,
+            43,
             "Unsupported property declaration: 'background-image:",
         ), // FIXME: column should be around 56
         (10, 17, "Unsupported property declaration: 'invalid: true;'"),
@@ -169,6 +169,7 @@ fn test_no_report_unrecognized_vendor_properties() {
         Some(&error_reporter),
         QuirksMode::NoQuirks,
         0,
+        AllowImportRules::Yes,
     );
 
     error_reporter.assert_messages_contain(&[(
@@ -202,6 +203,7 @@ fn test_source_map_url() {
             None,
             QuirksMode::NoQuirks,
             0,
+            AllowImportRules::Yes,
         );
         let url_opt = stylesheet.contents.source_map_url.read();
         assert_eq!(*url_opt, test.1);
@@ -229,6 +231,7 @@ fn test_source_url() {
             None,
             QuirksMode::NoQuirks,
             0,
+            AllowImportRules::Yes,
         );
         let url_opt = stylesheet.contents.source_url.read();
         assert_eq!(*url_opt, test.1);

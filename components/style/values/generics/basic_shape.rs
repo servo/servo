@@ -15,18 +15,17 @@ use crate::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
-/// A clipping shape, for `clip-path`.
-pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, Url>;
-
 /// <https://drafts.fxtf.org/css-masking-1/#typedef-geometry-box>
 #[allow(missing_docs)]
 #[derive(
     Animate,
     Clone,
+    ComputeSquaredDistance,
     Copy,
     Debug,
     MallocSizeOf,
     PartialEq,
+    Parse,
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToComputedValue,
@@ -34,15 +33,27 @@ pub type ClippingShape<BasicShape, Url> = ShapeSource<BasicShape, GeometryBox, U
     ToResolvedValue,
     ToShmem,
 )]
-pub enum GeometryBox {
+#[repr(u8)]
+pub enum ShapeGeometryBox {
+    /// Depending on which kind of element this style value applied on, the
+    /// default value of the reference-box can be different.  For an HTML
+    /// element, the default value of reference-box is border-box; for an SVG
+    /// element, the default value is fill-box.  Since we can not determine the
+    /// default value at parsing time, we keep this value to make a decision on
+    /// it.
+    #[css(skip)]
+    ElementDependent,
     FillBox,
     StrokeBox,
     ViewBox,
     ShapeBox(ShapeBox),
 }
 
-/// A float area shape, for `shape-outside`.
-pub type FloatAreaShape<BasicShape, Image> = ShapeSource<BasicShape, ShapeBox, Image>;
+impl Default for ShapeGeometryBox {
+    fn default() -> Self {
+        Self::ElementDependent
+    }
+}
 
 /// https://drafts.csswg.org/css-shapes-1/#typedef-shape-box
 #[allow(missing_docs)]
@@ -51,6 +62,7 @@ pub type FloatAreaShape<BasicShape, Image> = ShapeSource<BasicShape, ShapeBox, I
     Animate,
     Clone,
     Copy,
+    ComputeSquaredDistance,
     Debug,
     Eq,
     MallocSizeOf,
@@ -63,6 +75,7 @@ pub type FloatAreaShape<BasicShape, Image> = ShapeSource<BasicShape, ShapeBox, I
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(u8)]
 pub enum ShapeBox {
     MarginBox,
     BorderBox,
@@ -70,12 +83,19 @@ pub enum ShapeBox {
     ContentBox,
 }
 
-/// A shape source, for some reference box.
+impl Default for ShapeBox {
+    fn default() -> Self {
+        ShapeBox::MarginBox
+    }
+}
+
+/// A value for the `clip-path` property.
 #[allow(missing_docs)]
-#[animation(no_bound(ImageOrUrl))]
+#[animation(no_bound(U))]
 #[derive(
     Animate,
     Clone,
+    ComputeSquaredDistance,
     Debug,
     MallocSizeOf,
     PartialEq,
@@ -86,17 +106,53 @@ pub enum ShapeBox {
     ToResolvedValue,
     ToShmem,
 )]
-pub enum ShapeSource<BasicShape, ReferenceBox, ImageOrUrl> {
-    #[animation(error)]
-    ImageOrUrl(ImageOrUrl),
-    Shape(Box<BasicShape>, Option<ReferenceBox>),
-    #[animation(error)]
-    Box(ReferenceBox),
-    #[css(function)]
-    Path(Path),
+#[repr(u8)]
+pub enum GenericClipPath<BasicShape, U> {
     #[animation(error)]
     None,
+    #[animation(error)]
+    Url(U),
+    #[css(function)]
+    Path(Path),
+    Shape(
+        Box<BasicShape>,
+        #[css(skip_if = "is_default")] ShapeGeometryBox,
+    ),
+    #[animation(error)]
+    Box(ShapeGeometryBox),
 }
+
+pub use self::GenericClipPath as ClipPath;
+
+/// A value for the `shape-outside` property.
+#[allow(missing_docs)]
+#[animation(no_bound(I))]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedValue,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum GenericShapeOutside<BasicShape, I> {
+    #[animation(error)]
+    None,
+    #[animation(error)]
+    Image(I),
+    Shape(Box<BasicShape>, #[css(skip_if = "is_default")] ShapeBox),
+    #[animation(error)]
+    Box(ShapeBox),
+}
+
+pub use self::GenericShapeOutside as ShapeOutside;
 
 #[allow(missing_docs)]
 #[derive(
@@ -252,7 +308,7 @@ pub use self::GenericShapeRadius as ShapeRadius;
 #[repr(C)]
 pub struct GenericPolygon<LengthPercentage> {
     /// The filling rule for a polygon.
-    #[css(skip_if = "fill_is_default")]
+    #[css(skip_if = "is_default")]
     pub fill: FillRule,
     /// A collection of (x, y) coordinates to draw the polygon.
     #[css(iterable)]
@@ -311,6 +367,7 @@ pub enum FillRule {
 #[derive(
     Animate,
     Clone,
+    ComputeSquaredDistance,
     Debug,
     MallocSizeOf,
     PartialEq,
@@ -321,39 +378,23 @@ pub enum FillRule {
     ToResolvedValue,
     ToShmem,
 )]
+#[repr(C)]
 pub struct Path {
     /// The filling rule for the svg path.
-    #[css(skip_if = "fill_is_default")]
+    #[css(skip_if = "is_default")]
     #[animation(constant)]
     pub fill: FillRule,
     /// The svg path data.
     pub path: SVGPathData,
 }
 
-// FIXME(nox): Implement ComputeSquaredDistance for T types and stop
-// using PartialEq here, this will let us derive this impl.
-impl<B, T, U> ComputeSquaredDistance for ShapeSource<B, T, U>
-where
-    B: ComputeSquaredDistance,
-    T: PartialEq,
-{
-    fn compute_squared_distance(&self, other: &Self) -> Result<SquaredDistance, ()> {
-        match (self, other) {
-            (
-                &ShapeSource::Shape(ref this, ref this_box),
-                &ShapeSource::Shape(ref other, ref other_box),
-            ) if this_box == other_box => this.compute_squared_distance(other),
-            (&ShapeSource::Path(ref this), &ShapeSource::Path(ref other))
-                if this.fill == other.fill =>
-            {
-                this.path.compute_squared_distance(&other.path)
-            },
-            _ => Err(()),
-        }
+impl<B, U> ToAnimatedZero for ClipPath<B, U> {
+    fn to_animated_zero(&self) -> Result<Self, ()> {
+        Err(())
     }
 }
 
-impl<B, T, U> ToAnimatedZero for ShapeSource<B, T, U> {
+impl<B, U> ToAnimatedZero for ShapeOutside<B, U> {
     fn to_animated_zero(&self) -> Result<Self, ()> {
         Err(())
     }
@@ -488,6 +529,6 @@ impl Default for FillRule {
 }
 
 #[inline]
-fn fill_is_default(fill: &FillRule) -> bool {
-    *fill == FillRule::default()
+fn is_default<T: Default + PartialEq>(fill: &T) -> bool {
+    *fill == Default::default()
 }

@@ -676,19 +676,22 @@ where
                 None => return false,
             };
 
-            loop {
-                let outer_host = host.containing_shadow_host();
-                if outer_host.as_ref().map(|h| h.opaque()) == context.shared.current_host {
-                    break;
+            let current_host = context.shared.current_host;
+            if current_host != Some(host.opaque()) {
+                loop {
+                    let outer_host = host.containing_shadow_host();
+                    if outer_host.as_ref().map(|h| h.opaque()) == current_host {
+                        break;
+                    }
+                    let outer_host = match outer_host {
+                        Some(h) => h,
+                        None => return false,
+                    };
+                    // TODO(emilio): if worth it, we could early return if
+                    // host doesn't have the exportparts attribute.
+                    hosts.push(host);
+                    host = outer_host;
                 }
-                let outer_host = match outer_host {
-                    Some(h) => h,
-                    None => return false,
-                };
-                // TODO(emilio): if worth it, we could early return if
-                // host doesn't have the exportparts attribute.
-                hosts.push(host);
-                host = outer_host;
             }
 
             // Translate the part into the right scope.

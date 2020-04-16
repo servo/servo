@@ -117,13 +117,6 @@ pub trait Element: Sized + Clone + Debug {
         case_sensitivity: CaseSensitivity,
     ) -> bool;
 
-    /// Returns the mapping from the `exportparts` attribute in the regular
-    /// direction, that is, inner-tree -> outer-tree.
-    fn exported_part(
-        &self,
-        name: &<Self::Impl as SelectorImpl>::PartName,
-    ) -> Option<<Self::Impl as SelectorImpl>::PartName>;
-
     /// Returns the mapping from the `exportparts` attribute in the reverse
     /// direction, that is, in an outer-tree -> inner-tree direction.
     fn imported_part(

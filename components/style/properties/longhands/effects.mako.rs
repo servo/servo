@@ -83,7 +83,7 @@ ${helpers.single_keyword(
     color-burn hard-light soft-light difference exclusion hue
     saturation color luminosity""",
     engines="gecko servo-2013 servo-2020",
-    gecko_constant_prefix="NS_STYLE_BLEND",
+    gecko_enum_prefix="StyleBlend",
     animation_value_type="discrete",
     flags="CREATES_STACKING_CONTEXT",
     spec="https://drafts.fxtf.org/compositing/#propdef-mix-blend-mode",

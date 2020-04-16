@@ -70,11 +70,10 @@ pub fn parse_border<'i, 't>(
     let mut width = None;
     let mut any = false;
     loop {
-        if color.is_none() {
-            if let Ok(value) = input.try(|i| Color::parse(context, i)) {
-                color = Some(value);
+        if width.is_none() {
+            if let Ok(value) = input.try(|i| BorderSideWidth::parse(context, i)) {
+                width = Some(value);
                 any = true;
-                continue
             }
         }
         if style.is_none() {
@@ -84,9 +83,9 @@ pub fn parse_border<'i, 't>(
                 continue
             }
         }
-        if width.is_none() {
-            if let Ok(value) = input.try(|i| BorderSideWidth::parse(context, i)) {
-                width = Some(value);
+        if color.is_none() {
+            if let Ok(value) = input.try(|i| Color::parse(context, i)) {
+                color = Some(value);
                 any = true;
                 continue
             }

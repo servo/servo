@@ -42,7 +42,7 @@ bitflags! {
 pub type Lang = Atom;
 
 macro_rules! pseudo_class_name {
-    ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
+    ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
         /// Our representation of a non tree-structural pseudo-class.
         #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
         pub enum NonTSPseudoClass {
@@ -72,7 +72,7 @@ impl ToCss for NonTSPseudoClass {
         W: fmt::Write,
     {
         macro_rules! pseudo_class_serialize {
-            ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
+            ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => concat!(":", $css),)*
                     NonTSPseudoClass::Lang(ref s) => {
@@ -134,7 +134,7 @@ impl NonTSPseudoClass {
     /// in a particular state.
     pub fn parse_non_functional(name: &str) -> Option<Self> {
         macro_rules! pseudo_class_parse {
-            ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
+            ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
                 match_ignore_ascii_case! { &name,
                     $($css => Some(NonTSPseudoClass::$name),)*
                     "-moz-full-screen" => Some(NonTSPseudoClass::Fullscreen),
@@ -156,7 +156,7 @@ impl NonTSPseudoClass {
             };
         }
         macro_rules! pseudo_class_check_is_enabled_in {
-            ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
+            ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => check_flag!($flags),)*
                     NonTSPseudoClass::MozLocaleDir(_) |
@@ -172,6 +172,9 @@ impl NonTSPseudoClass {
     /// Returns whether the pseudo-class is enabled in content sheets.
     #[inline]
     fn is_enabled_in_content(&self) -> bool {
+        if matches!(*self, NonTSPseudoClass::FocusVisible) {
+            return static_prefs::pref!("layout.css.focus-visible.enabled");
+        }
         !self.has_any_flag(NonTSPseudoClassFlag::PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME)
     }
 
@@ -186,7 +189,7 @@ impl NonTSPseudoClass {
             };
         }
         macro_rules! pseudo_class_state {
-            ([$(($css:expr, $name:ident, $gecko_type:tt, $state:tt, $flags:tt),)*]) => {
+            ([$(($css:expr, $name:ident, $state:tt, $flags:tt),)*]) => {
                 match *self {
                     $(NonTSPseudoClass::$name => flag!($state),)*
                     NonTSPseudoClass::Dir(..) |

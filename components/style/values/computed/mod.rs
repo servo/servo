@@ -21,10 +21,9 @@ use crate::media_queries::Device;
 use crate::properties;
 use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
 use crate::rule_cache::RuleCacheConditions;
-use crate::Atom;
-#[cfg(feature = "servo")]
-use crate::Prefix;
+use crate::{ArcSlice, Atom};
 use euclid::default::Size2D;
+use servo_arc::Arc;
 use std::cell::RefCell;
 use std::cmp;
 use std::f32;
@@ -57,7 +56,7 @@ pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis};
 pub use self::font::{FontVariantAlternates, FontWeight};
 pub use self::font::{FontVariantEastAsian, FontVariationSettings};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
-pub use self::image::{Gradient, GradientItem, Image, ImageLayer, LineDirection, MozImageRect};
+pub use self::image::{Gradient, Image, LineDirection, MozImageRect};
 pub use self::length::{CSSPixelLength, ExtremumLength, NonNegativeLength};
 pub use self::length::{Length, LengthOrNumber, LengthPercentage, NonNegativeLengthOrNumber};
 pub use self::length::{LengthOrAuto, LengthPercentageOrAuto, MaxSize, Size};
@@ -78,7 +77,7 @@ pub use self::svg::{SVGPaintOrder, SVGStrokeDashArray, SVGWidth};
 pub use self::text::TextUnderlinePosition;
 pub use self::text::{InitialLetter, LetterSpacing, LineBreak, LineHeight};
 pub use self::text::{OverflowWrap, TextOverflow, WordBreak, WordSpacing};
-pub use self::text::{TextAlign, TextEmphasisPosition, TextEmphasisStyle};
+pub use self::text::{TextAlign, TextAlignLast, TextEmphasisPosition, TextEmphasisStyle};
 pub use self::text::{TextDecorationLength, TextDecorationSkipInk};
 pub use self::time::Time;
 pub use self::transform::{Rotate, Scale, Transform, TransformOperation};
@@ -450,6 +449,46 @@ where
     }
 }
 
+// NOTE(emilio): This is implementable more generically, but it's unlikely
+// what you want there, as it forces you to have an extra allocation.
+//
+// We could do that if needed, ideally with specialization for the case where
+// ComputedValue = T. But we don't need it for now.
+impl<T> ToComputedValue for Arc<T>
+where
+    T: ToComputedValue<ComputedValue = T>,
+{
+    type ComputedValue = Self;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> Self {
+        self.clone()
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self) -> Self {
+        computed.clone()
+    }
+}
+
+// Same caveat as above applies.
+impl<T> ToComputedValue for ArcSlice<T>
+where
+    T: ToComputedValue<ComputedValue = T>,
+{
+    type ComputedValue = Self;
+
+    #[inline]
+    fn to_computed_value(&self, _: &Context) -> Self {
+        self.clone()
+    }
+
+    #[inline]
+    fn from_computed_value(computed: &Self) -> Self {
+        computed.clone()
+    }
+}
+
 trivial_to_computed_value!(());
 trivial_to_computed_value!(bool);
 trivial_to_computed_value!(f32);
@@ -460,10 +499,13 @@ trivial_to_computed_value!(u32);
 trivial_to_computed_value!(usize);
 trivial_to_computed_value!(Atom);
 #[cfg(feature = "servo")]
-trivial_to_computed_value!(Prefix);
+trivial_to_computed_value!(html5ever::Namespace);
+#[cfg(feature = "servo")]
+trivial_to_computed_value!(html5ever::Prefix);
 trivial_to_computed_value!(String);
 trivial_to_computed_value!(Box<str>);
 trivial_to_computed_value!(crate::OwnedStr);
+trivial_to_computed_value!(style_traits::values::specified::AllowedNumericType);
 
 #[allow(missing_docs)]
 #[derive(

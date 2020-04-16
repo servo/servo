@@ -122,7 +122,18 @@ impl ToComputedValue for LineHeight {
 }
 
 /// A generic value for the `text-overflow` property.
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(
+    Clone,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(C, u8)]
 pub enum TextOverflowSide {
     /// Clip inline content.
@@ -517,6 +528,35 @@ impl ToCss for TextTransformOther {
     }
 }
 
+/// Specified and computed value of text-align-last.
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    Hash,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[allow(missing_docs)]
+#[repr(u8)]
+pub enum TextAlignLast {
+    Auto,
+    Start,
+    End,
+    Left,
+    Right,
+    Center,
+    Justify,
+}
+
 /// Specified value of text-align keyword value.
 #[derive(
     Clone,
@@ -535,14 +575,18 @@ impl ToCss for TextTransformOther {
     ToShmem,
 )]
 #[allow(missing_docs)]
+#[repr(u8)]
 pub enum TextAlignKeyword {
     Start,
-    End,
     Left,
     Right,
     Center,
     #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     Justify,
+    #[css(skip)]
+    #[cfg(feature = "gecko")]
+    Char,
+    End,
     #[cfg(feature = "gecko")]
     MozCenter,
     #[cfg(feature = "gecko")]
@@ -555,9 +599,6 @@ pub enum TextAlignKeyword {
     ServoLeft,
     #[cfg(feature = "servo-layout-2013")]
     ServoRight,
-    #[css(skip)]
-    #[cfg(feature = "gecko")]
-    Char,
 }
 
 /// Specified value of text-align property.
@@ -577,14 +618,6 @@ pub enum TextAlign {
     #[cfg(feature = "gecko")]
     #[css(skip)]
     MozCenterOrInherit,
-}
-
-impl TextAlign {
-    /// Convert an enumerated value coming from Gecko to a `TextAlign`.
-    #[cfg(feature = "gecko")]
-    pub fn from_gecko_keyword(kw: u32) -> Self {
-        TextAlign::Keyword(TextAlignKeyword::from_gecko_keyword(kw))
-    }
 }
 
 impl ToComputedValue for TextAlign {
@@ -665,7 +698,19 @@ pub enum TextEmphasisStyle {
 }
 
 /// Fill mode for the text-emphasis-style property
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
 #[repr(u8)]
 pub enum TextEmphasisFillMode {
     /// `filled`
@@ -684,7 +729,18 @@ impl TextEmphasisFillMode {
 
 /// Shape keyword for the text-emphasis-style property
 #[derive(
-    Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(u8)]
 pub enum TextEmphasisShapeKeyword {
@@ -1010,7 +1066,7 @@ pub enum OverflowWrap {
     Anywhere,
 }
 
-/// Implements text-decoration-skip-ink which takes the keywords auto | none
+/// Implements text-decoration-skip-ink which takes the keywords auto | none | all
 ///
 /// https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-ink-property
 #[repr(u8)]
@@ -1033,6 +1089,7 @@ pub enum OverflowWrap {
 pub enum TextDecorationSkipInk {
     Auto,
     None,
+    All,
 }
 
 /// Implements type for `text-decoration-thickness` property

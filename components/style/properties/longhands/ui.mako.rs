@@ -56,7 +56,7 @@ ${helpers.single_keyword(
 
 ${helpers.single_keyword(
     "-moz-window-shadow",
-    "none default menu tooltip sheet",
+    "default none menu tooltip sheet",
     engines="gecko",
     gecko_ffi_name="mWindowShadow",
     gecko_enum_prefix="StyleWindowShadow",

@@ -137,6 +137,8 @@ pub enum StyleParseErrorKind<'i> {
     UnexpectedNamespaceRule,
     /// @import must be before any rule but @charset
     UnexpectedImportRule,
+    /// @import rules are disallowed in the parser.
+    DisallowedImportRule,
     /// Unexpected @charset rule encountered.
     UnexpectedCharsetRule,
     /// Unsupported @ rule
@@ -149,7 +151,6 @@ pub enum StyleParseErrorKind<'i> {
     ValueError(ValueParseErrorKind<'i>),
     /// An error was encountered while parsing a selector
     SelectorError(SelectorParseErrorKind<'i>),
-
     /// The property declaration was for an unknown property.
     UnknownProperty(CowRcStr<'i>),
     /// The property declaration was for a disabled experimental property.

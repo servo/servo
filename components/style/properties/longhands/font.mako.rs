@@ -230,7 +230,7 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "-moz-script-level",
     "MozScriptLevel",
-    0,
+    "0",
     engines="gecko",
     animation_value_type="none",
     enabled_in="ua",

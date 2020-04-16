@@ -178,7 +178,7 @@ impl ToAnimatedValue for FontSize {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, ToResolvedValue)]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToResolvedValue)]
 #[cfg_attr(feature = "servo", derive(Hash, MallocSizeOf))]
 /// Specifies a prioritized list of font family names or generic family names.
 pub struct FontFamily {
@@ -227,7 +227,9 @@ impl ToCss for FontFamily {
     }
 }
 
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
+)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 /// The name of a font family of choice
 pub struct FamilyName {
@@ -270,7 +272,9 @@ impl ToCss for FamilyName {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
+)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 /// Font family names must either be given quoted as strings,
 /// or unquoted as a sequence of one or more identifiers.
@@ -285,7 +289,9 @@ pub enum FontFamilyNameSyntax {
     Identifiers,
 }
 
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToComputedValue, ToResolvedValue, ToShmem,
+)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize, Hash))]
 /// A set of faces that vary in weight, width or slope.
 pub enum SingleFontFamily {
@@ -301,15 +307,28 @@ pub enum SingleFontFamily {
 /// `gfxPlatformFontList.h`s ranged array and `gfxFontFamilyList`'s
 /// sSingleGenerics are updated as well.
 #[derive(
-    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, Parse, ToCss, ToResolvedValue, ToShmem,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    Parse,
+    ToCss,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum GenericFontFamily {
     /// No generic family specified, only for internal usage.
+    ///
+    /// NOTE(emilio): Gecko code relies on this variant being zero.
     #[css(skip)]
-    None,
+    None = 0,
     Serif,
     SansSerif,
     #[parse(aliases = "-moz-fixed")]
@@ -350,19 +369,22 @@ impl SingleFontFamily {
         };
 
         let mut value = first_ident.as_ref().to_owned();
+        let mut serialize_quoted = value.contains(' ');
 
         // These keywords are not allowed by themselves.
         // The only way this value can be valid with with another keyword.
         if reserved {
             let ident = input.expect_ident()?;
+            serialize_quoted = serialize_quoted || ident.contains(' ');
             value.push(' ');
             value.push_str(&ident);
         }
         while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
+            serialize_quoted = serialize_quoted || ident.contains(' ');
             value.push(' ');
             value.push_str(&ident);
         }
-        let syntax = if value.starts_with(' ') || value.ends_with(' ') || value.contains("  ") {
+        let syntax = if serialize_quoted {
             // For font family names which contains special white spaces, e.g.
             // `font-family: \ a\ \ b\ \ c\ ;`, it is tricky to serialize them
             // as identifiers correctly. Just mark them quoted so we don't need
@@ -422,16 +444,22 @@ impl SingleFontFamily {
 }
 
 #[cfg(feature = "servo")]
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToResolvedValue, ToShmem)]
+#[derive(
+    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
+)]
 /// A list of SingleFontFamily
 pub struct FontFamilyList(Box<[SingleFontFamily]>);
 
 #[cfg(feature = "gecko")]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, ToComputedValue, ToResolvedValue)]
 /// A list of SingleFontFamily
 pub enum FontFamilyList {
     /// A strong reference to a Gecko SharedFontList object.
-    SharedFontList(RefPtr<structs::SharedFontList>),
+    SharedFontList(
+        #[compute(no_field_bound)]
+        #[resolve(no_field_bound)]
+        RefPtr<structs::SharedFontList>,
+    ),
     /// A font-family generic ID.
     Generic(GenericFontFamily),
 }
@@ -675,7 +703,7 @@ pub type FontVariationSettings = FontSettings<VariationValue<Number>>;
 /// (see http://www.microsoft.com/typography/otspec/languagetags.htm).
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToResolvedValue)]
 #[repr(C)]
-pub struct FontLanguageOverride(u32);
+pub struct FontLanguageOverride(pub u32);
 
 impl FontLanguageOverride {
     #[inline]
@@ -686,10 +714,7 @@ impl FontLanguageOverride {
 
     /// Returns this value as a `&str`, backed by `storage`.
     #[inline]
-    pub fn to_str(self, storage: &mut [u8; 4]) -> &str {
-        if self.0 == 0 {
-            return "normal";
-        }
+    pub(crate) fn to_str(self, storage: &mut [u8; 4]) -> &str {
         *storage = u32::to_be_bytes(self.0);
         // Safe because we ensure it's ASCII during computing
         let slice = if cfg!(debug_assertions) {
@@ -730,7 +755,19 @@ impl ToCss for FontLanguageOverride {
     where
         W: fmt::Write,
     {
+        if self.0 == 0 {
+            return dest.write_str("normal");
+        }
         self.to_str(&mut [0; 4]).to_css(dest)
+    }
+}
+
+// FIXME(emilio): Make Gecko use the cbindgen'd fontLanguageOverride, then
+// remove this.
+#[cfg(feature = "gecko")]
+impl From<u32> for FontLanguageOverride {
+    fn from(v: u32) -> Self {
+        unsafe { Self::from_u32(v) }
     }
 }
 

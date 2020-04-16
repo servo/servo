@@ -159,6 +159,8 @@ impl ComputeSquaredDistance for SVGPathData {
     Serialize,
     SpecifiedValueInfo,
     ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
     ToShmem,
 )]
 #[allow(missing_docs)]
@@ -488,6 +490,8 @@ impl ToCss for PathCommand {
     Serialize,
     SpecifiedValueInfo,
     ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
     ToShmem,
 )]
 #[repr(u8)]
@@ -518,7 +522,9 @@ impl IsAbsolute {
     Serialize,
     SpecifiedValueInfo,
     ToAnimatedZero,
+    ToComputedValue,
     ToCss,
+    ToResolvedValue,
     ToShmem,
 )]
 #[repr(C)]
@@ -534,7 +540,17 @@ impl CoordPair {
 
 /// The EllipticalArc flag type.
 #[derive(
-    Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize, SpecifiedValueInfo, ToShmem,
+    Clone,
+    Copy,
+    Debug,
+    Deserialize,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
 #[repr(C)]
 pub struct ArcFlag(bool);

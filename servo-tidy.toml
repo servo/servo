@@ -89,6 +89,7 @@ files = [
   # Python 3 syntax causes "E901 SyntaxError" when flake8 runs in Python 2
   "./etc/taskcluster/decision_task.py",
   "./etc/taskcluster/decisionlib.py",
+  "./components/style/properties/build.py",
 ]
 # Directories that are ignored for the non-WPT tidy check.
 directories = [

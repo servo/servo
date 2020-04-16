@@ -94,7 +94,7 @@ class FileAvoidWrite(BytesIO):
         self.name = filename
 
     def write(self, buf):
-        if isinstance(buf, unicode):
+        if isinstance(buf, str):
             buf = buf.encode('utf-8')
         BytesIO.write(self, buf)
 

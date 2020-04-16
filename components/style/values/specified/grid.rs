@@ -185,16 +185,6 @@ impl TrackRepeat<LengthPercentage, Integer> {
 
                             values.push(track_size);
                             names.push(current_names);
-                            if is_auto {
-                                // FIXME: In the older version of the spec
-                                // (https://www.w3.org/TR/2015/WD-css-grid-1-20150917/#typedef-auto-repeat),
-                                // if the repeat type is `<auto-repeat>` we shouldn't try to parse more than
-                                // one `TrackSize`. But in current version of the spec, this is deprecated
-                                // but we are adding this for gecko parity. We should remove this when
-                                // gecko implements new spec.
-                                names.push(input.try(parse_line_names).unwrap_or_default());
-                                break;
-                            }
                         } else {
                             if values.is_empty() {
                                 // expecting at least one <track-size>

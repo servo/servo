@@ -58,8 +58,8 @@ pub use self::rule_parser::{InsertRuleContext, State, TopLevelRuleParser};
 pub use self::rules_iterator::{AllRules, EffectiveRules};
 pub use self::rules_iterator::{NestedRuleIterationCondition, RulesIterator};
 pub use self::style_rule::StyleRule;
+pub use self::stylesheet::{AllowImportRules, SanitizationData, SanitizationKind};
 pub use self::stylesheet::{DocumentStyleSheet, Namespaces, Stylesheet};
-pub use self::stylesheet::{SanitizationData, SanitizationKind};
 pub use self::stylesheet::{StylesheetContents, StylesheetInDocument, UserAgentStylesheets};
 pub use self::supports_rule::SupportsRule;
 pub use self::viewport_rule::ViewportRule;
@@ -369,6 +369,7 @@ impl CssRule {
         shared_lock: &SharedRwLock,
         state: State,
         loader: Option<&dyn StylesheetLoader>,
+        allow_import_rules: AllowImportRules,
     ) -> Result<Self, RulesMutateError> {
         let url_data = parent_stylesheet_contents.url_data.read();
         let context = ParserContext::new(
@@ -395,6 +396,7 @@ impl CssRule {
             dom_error: None,
             namespaces: &mut *guard,
             insert_rule_context: Some(insert_rule_context),
+            allow_import_rules,
         };
 
         parse_one_rule(&mut input, &mut rule_parser)
