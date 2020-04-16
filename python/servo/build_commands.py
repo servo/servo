@@ -256,10 +256,11 @@ class MachCommands(CommandBase):
             vs_dirs = self.vs_dirs()
 
         if host != target_triple and 'windows' in target_triple:
-            if os.environ.get('VisualStudioVersion'):
+            if os.environ.get('VisualStudioVersion') or os.environ.get('VCINSTALLDIR'):
                 print("Can't cross-compile for Windows inside of a Visual Studio shell.\n"
                       "Please run `python mach build [arguments]` to bypass automatic "
-                      "Visual Studio shell.")
+                      "Visual Studio shell, and make sure the VisualStudioVersion and "
+                      "VCINSTALLDIR environment variables are not set.")
                 sys.exit(1)
             vcinstalldir = vs_dirs['vcdir']
             if not os.path.exists(vcinstalldir):
