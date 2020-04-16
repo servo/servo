@@ -7,7 +7,6 @@
 //! to depend on script.
 
 #![deny(unsafe_code)]
-#![feature(box_into_raw_non_null)]
 
 #[macro_use]
 extern crate html5ever;

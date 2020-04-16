@@ -315,7 +315,8 @@ impl BlockLevelBox {
                 ))
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
-                let hoisted_box = box_.clone().to_hoisted(Vec2::zero(), tree_rank);
+                let hoisted_box =
+                    AbsolutelyPositionedBox::to_hoisted(box_.clone(), Vec2::zero(), tree_rank);
                 let hoisted_fragment = hoisted_box.fragment.clone();
                 positioning_context.push(hoisted_box);
                 Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment {

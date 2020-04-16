@@ -303,7 +303,11 @@ impl InlineFormattingContext {
                                     panic!("display:none does not generate an abspos box")
                                 },
                             };
-                        let hoisted_box = box_.clone().to_hoisted(initial_start_corner, tree_rank);
+                        let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
+                            box_.clone(),
+                            initial_start_corner,
+                            tree_rank,
+                        );
                         let hoisted_fragment = hoisted_box.fragment.clone();
                         ifc.push_hoisted_box_to_positioning_context(hoisted_box);
                         ifc.current_nesting_level.fragments_so_far.push(
@@ -786,7 +790,7 @@ impl TextRun {
                     glyphs,
                     text_decoration_line: ifc.current_nesting_level.text_decoration_line,
                 }));
-            if runs.is_empty() {
+            if runs.as_slice().is_empty() {
                 break;
             } else {
                 // New line

@@ -2,12 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![feature(box_into_raw_non_null)]
 #![feature(const_fn)]
-#![feature(const_transmute)]
 #![feature(core_intrinsics)]
 #![feature(drain_filter)]
-#![feature(inner_deref)]
 #![feature(plugin)]
 #![feature(register_tool)]
 #![deny(unsafe_code)]

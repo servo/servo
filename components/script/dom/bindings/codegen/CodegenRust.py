@@ -3992,8 +3992,8 @@ class CGMemberJITInfo(CGThing):
                         protoID: PrototypeList::ID::${name} as u16,
                     },
                     __bindgen_anon_3: JSJitInfo__bindgen_ty_3 { depth: ${depth} },
-                    _bitfield_1: unsafe {
-                        mem::transmute(new_jsjitinfo_bitfield_1!(
+                    _bitfield_1: __BindgenBitfieldUnit::new(
+                        new_jsjitinfo_bitfield_1!(
                             JSJitInfo_OpType::${opType} as u8,
                             JSJitInfo_AliasSet::${aliasSet} as u8,
                             JSValueType::${returnType} as u8,
@@ -4004,8 +4004,8 @@ class CGMemberJITInfo(CGThing):
                             ${isLazilyCachedInSlot},
                             ${isTypedMethod},
                             ${slotIndex},
-                        ))
-                    },
+                        ).to_ne_bytes()
+                    ),
                 }
                 """,
                 opName=opName,
@@ -5988,6 +5988,7 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'js::error::throw_type_error',
         'js::error::throw_internal_error',
         'js::rust::wrappers::Call',
+        'js::jsapi::__BindgenBitfieldUnit',
         'js::jsapi::CallArgs',
         'js::jsapi::CurrentGlobalOrNull',
         'js::rust::wrappers::GetPropertyKeys',
