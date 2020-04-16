@@ -16,6 +16,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::webglactiveinfo::WebGLActiveInfo;
@@ -50,12 +51,14 @@ use ipc_channel::ipc;
 use js::jsapi::{JSObject, Type};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, UInt32Value};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
-use js::rust::CustomAutoRooterGuard;
+use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{ArrayBufferView, CreateWith, Float32, Int32Array, Uint32, Uint32Array};
 use script_layout_interface::HTMLCanvasDataSource;
+use servo_config::pref;
 use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
+use url::Host;
 
 #[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -178,7 +181,25 @@ impl WebGL2RenderingContext {
         WebGL2RenderingContext::new_inherited(window, canvas, size, attrs)
             .map(|ctx| reflect_dom_object(Box::new(ctx), window))
     }
+
+    #[allow(unsafe_code)]
+    pub fn is_webgl2_enabled(_cx: JSContext, global: HandleObject) -> bool {
+        if pref!(dom.webgl2.enabled) {
+            return true;
+        }
+
+        let global = unsafe { GlobalScope::from_object(global.get()) };
+        let origin = global.origin();
+        let host = origin.host();
+        WEBGL2_ORIGINS
+            .iter()
+            .any(|origin| host == Host::parse(origin).ok().as_ref())
+    }
 }
+
+/// List of domains for which WebGL 2 is enabled automatically, regardless
+/// of the status of the dom.webgl2.enabled preference.
+static WEBGL2_ORIGINS: &[&str] = &["www.servoexperiments.com"];
 
 impl WebGL2RenderingContext {
     pub fn recreate(&self, size: Size2D<u32>) {
