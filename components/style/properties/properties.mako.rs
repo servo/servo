@@ -3020,6 +3020,13 @@ impl ComputedValues {
         % endfor
         set
     }
+
+    /// Create a `TransitionPropertyIterator` for this styles transition properties.
+    pub fn transition_properties<'a>(
+        &'a self
+    ) -> animated_properties::TransitionPropertyIterator<'a> {
+        animated_properties::TransitionPropertyIterator::from_style(self)
+    }
 }
 
 #[cfg(feature = "servo")]

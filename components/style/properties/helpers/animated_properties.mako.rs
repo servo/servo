@@ -11,7 +11,7 @@
 
 #[cfg(feature = "gecko")] use crate::gecko_bindings::structs::nsCSSPropertyID;
 use itertools::{EitherOrBoth, Itertools};
-use crate::properties::{CSSWideKeyword, PropertyDeclaration};
+use crate::properties::{CSSWideKeyword, PropertyDeclaration, NonCustomPropertyIterator};
 use crate::properties::longhands;
 use crate::properties::longhands::visibility::computed_value::T as Visibility;
 use crate::properties::LonghandId;
@@ -880,6 +880,69 @@ impl ToAnimatedZero for AnimatedFilter {
             Filter::DropShadow(ref this) => Ok(Filter::DropShadow(this.to_animated_zero()?)),
             % endif
             _ => Err(()),
+        }
+    }
+}
+
+/// An iterator over all the properties that transition on a given style.
+pub struct TransitionPropertyIterator<'a> {
+    style: &'a ComputedValues,
+    index_range: core::ops::Range<usize>,
+    longhand_iterator: Option<NonCustomPropertyIterator<LonghandId>>,
+}
+
+impl<'a> TransitionPropertyIterator<'a> {
+    /// Create a `TransitionPropertyIterator` for the given style.
+    pub fn from_style(style: &'a ComputedValues) -> Self {
+        Self {
+            style,
+            index_range: 0..style.get_box().transition_property_count(),
+            longhand_iterator: None,
+        }
+    }
+}
+
+/// A single iteration of the TransitionPropertyIterator.
+pub struct TransitionPropertyIteration {
+    /// The id of the longhand for this property.
+    pub longhand_id: LonghandId,
+
+    /// The index of this property in the list of transition properties for this
+    /// iterator's style.
+    pub index: usize,
+}
+
+impl<'a> Iterator for TransitionPropertyIterator<'a> {
+    type Item = TransitionPropertyIteration;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        use crate::values::computed::TransitionProperty;
+        loop {
+            if let Some(ref mut longhand_iterator) = self.longhand_iterator {
+                if let Some(longhand_id) = longhand_iterator.next() {
+                    return Some(TransitionPropertyIteration {
+                        longhand_id,
+                        index: self.index_range.start,
+                    });
+                }
+                self.longhand_iterator = None;
+            }
+
+            let index = self.index_range.next()?;
+            match self.style.get_box().transition_property_at(index) {
+                TransitionProperty::Longhand(longhand_id) => {
+                    return Some(TransitionPropertyIteration {
+                        longhand_id,
+                        index,
+                    })
+                }
+                // In the other cases, we set up our state so that we are ready to
+                // compute the next value of the iterator and then loop (equivalent
+                // to calling self.next()).
+                TransitionProperty::Shorthand(ref shorthand_id) =>
+                    self.longhand_iterator = Some(shorthand_id.longhands()),
+                TransitionProperty::Custom(..) | TransitionProperty::Unsupported(..) => {}
+            }
         }
     }
 }

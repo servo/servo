@@ -12,14 +12,13 @@ use crate::bezier::Bezier;
 use crate::context::SharedStyleContext;
 use crate::dom::{OpaqueNode, TElement};
 use crate::font_metrics::FontMetricsProvider;
-use crate::properties::animated_properties::AnimatedProperty;
+use crate::properties::animated_properties::{AnimatedProperty, TransitionPropertyIteration};
 use crate::properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use crate::properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use crate::properties::{self, CascadeMode, ComputedValues, LonghandId};
 use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
 use crate::stylesheets::Origin;
 use crate::timer::Timer;
-use crate::values::computed::box_::TransitionProperty;
 use crate::values::computed::Time;
 use crate::values::computed::TimingFunction;
 use crate::values::generics::box_::AnimationIterationCount;
@@ -271,52 +270,6 @@ impl PropertyAnimation {
         self.property.name()
     }
 
-    /// Creates a new property animation for the given transition index and old
-    /// and new styles.  Any number of animations may be returned, from zero (if
-    /// the property did not animate) to one (for a single transition property)
-    /// to arbitrarily many (for `all`).
-    pub fn from_transition(
-        transition_index: usize,
-        old_style: &ComputedValues,
-        new_style: &mut ComputedValues,
-    ) -> Vec<PropertyAnimation> {
-        let mut result = vec![];
-        let box_style = new_style.get_box();
-        let transition_property = box_style.transition_property_at(transition_index);
-        let timing_function = box_style.transition_timing_function_mod(transition_index);
-        let duration = box_style.transition_duration_mod(transition_index);
-
-        match transition_property {
-            TransitionProperty::Custom(..) | TransitionProperty::Unsupported(..) => result,
-            TransitionProperty::Shorthand(ref shorthand_id) => shorthand_id
-                .longhands()
-                .filter_map(|longhand| {
-                    PropertyAnimation::from_longhand(
-                        longhand,
-                        timing_function,
-                        duration,
-                        old_style,
-                        new_style,
-                    )
-                })
-                .collect(),
-            TransitionProperty::Longhand(longhand_id) => {
-                let animation = PropertyAnimation::from_longhand(
-                    longhand_id,
-                    timing_function,
-                    duration,
-                    old_style,
-                    new_style,
-                );
-
-                if let Some(animation) = animation {
-                    result.push(animation);
-                }
-                result
-            },
-        }
-    }
-
     fn from_longhand(
         longhand: LonghandId,
         timing_function: TimingFunction,
@@ -414,56 +367,70 @@ pub fn start_transitions_if_applicable(
     running_and_expired_transitions: &[PropertyAnimation],
 ) -> bool {
     let mut had_animations = false;
-    for i in 0..new_style.get_box().transition_property_count() {
-        // Create any property animations, if applicable.
-        let property_animations =
-            PropertyAnimation::from_transition(i, old_style, Arc::make_mut(new_style));
-        for property_animation in property_animations {
-            // Set the property to the initial value.
-            //
-            // NB: get_mut is guaranteed to succeed since we called make_mut()
-            // above.
-            property_animation.update(Arc::get_mut(new_style).unwrap(), 0.0);
+    let transitions: Vec<TransitionPropertyIteration> = new_style.transition_properties().collect();
+    for transition in &transitions {
+        let property_animation = match PropertyAnimation::from_longhand(
+            transition.longhand_id,
+            new_style
+                .get_box()
+                .transition_timing_function_mod(transition.index),
+            new_style
+                .get_box()
+                .transition_duration_mod(transition.index),
+            old_style,
+            Arc::make_mut(new_style),
+        ) {
+            Some(property_animation) => property_animation,
+            None => continue,
+        };
 
-            // Per [1], don't trigger a new transition if the end state for that
-            // transition is the same as that of a transition that's already
-            // running on the same node.
-            //
-            // [1]: https://drafts.csswg.org/css-transitions/#starting
+        // Set the property to the initial value.
+        //
+        // NB: get_mut is guaranteed to succeed since we called make_mut()
+        // above.
+        property_animation.update(Arc::get_mut(new_style).unwrap(), 0.0);
+
+        // Per [1], don't trigger a new transition if the end state for that
+        // transition is the same as that of a transition that's already
+        // running on the same node.
+        //
+        // [1]: https://drafts.csswg.org/css-transitions/#starting
+        debug!(
+            "checking {:?} for matching end value",
+            running_and_expired_transitions
+        );
+        if running_and_expired_transitions
+            .iter()
+            .any(|animation| animation.has_the_same_end_value_as(&property_animation))
+        {
             debug!(
-                "checking {:?} for matching end value",
-                running_and_expired_transitions
+                "Not initiating transition for {}, other transition \
+                 found with the same end value",
+                property_animation.property_name()
             );
-            if running_and_expired_transitions
-                .iter()
-                .any(|animation| animation.has_the_same_end_value_as(&property_animation))
-            {
-                debug!(
-                    "Not initiating transition for {}, other transition \
-                     found with the same end value",
-                    property_animation.property_name()
-                );
-                continue;
-            }
-
-            // Kick off the animation.
-            debug!("Kicking off transition of {:?}", property_animation);
-            let box_style = new_style.get_box();
-            let now = timer.seconds();
-            let start_time = now + (box_style.transition_delay_mod(i).seconds() as f64);
-            new_animations_sender
-                .send(Animation::Transition(
-                    opaque_node,
-                    start_time,
-                    AnimationFrame {
-                        duration: box_style.transition_duration_mod(i).seconds() as f64,
-                        property_animation,
-                    },
-                ))
-                .unwrap();
-
-            had_animations = true;
+            continue;
         }
+
+        // Kick off the animation.
+        debug!("Kicking off transition of {:?}", property_animation);
+        let box_style = new_style.get_box();
+        let now = timer.seconds();
+        let start_time = now + (box_style.transition_delay_mod(transition.index).seconds() as f64);
+        let duration = box_style
+            .transition_duration_mod(transition.index)
+            .seconds() as f64;
+        new_animations_sender
+            .send(Animation::Transition(
+                opaque_node,
+                start_time,
+                AnimationFrame {
+                    duration,
+                    property_animation,
+                },
+            ))
+            .unwrap();
+
+        had_animations = true;
     }
 
     had_animations
