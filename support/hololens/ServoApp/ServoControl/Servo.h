@@ -119,5 +119,6 @@ protected:
 // pointer as callback in Servo, and these functions need a way to get
 // the Servo instance. See https://github.com/servo/servo/issues/22967
 static Servo *sServo = nullptr;
+static HANDLE sLogHandle = INVALID_HANDLE_VALUE;
 
 } // namespace winrt::servo

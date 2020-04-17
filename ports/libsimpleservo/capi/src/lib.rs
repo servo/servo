@@ -27,17 +27,20 @@ use std::os::raw::{c_char, c_uint, c_void};
 use std::panic::{self, UnwindSafe};
 use std::slice;
 use std::str::FromStr;
-use std::sync::RwLock;
+use std::sync::{Mutex, RwLock};
 
 extern "C" fn default_panic_handler(msg: *const c_char) {
     let c_str: &CStr = unsafe { CStr::from_ptr(msg) };
     error!("{}", c_str.to_str().unwrap());
 }
 
+type LogHandlerFn = extern "C" fn(buffer: *const c_char, len: u32);
+
 lazy_static! {
     static ref ON_PANIC: RwLock<extern "C" fn(*const c_char)> = RwLock::new(default_panic_handler);
     static ref SERVO_VERSION: CString =
         CString::new(simpleservo::servo_version()).expect("Can't create string");
+    pub(crate) static ref OUTPUT_LOG_HANDLER: Mutex<Option<LogHandlerFn>> = Mutex::new(None);
 }
 
 #[no_mangle]
@@ -64,13 +67,13 @@ fn catch_any_panic<T, F: FnOnce() -> T + UnwindSafe>(function: F) -> T {
 }
 
 #[cfg(not(target_os = "windows"))]
-fn redirect_stdout_stderr() -> Result<(), String> {
+fn redirect_stdout_stderr(_handler: LogHandlerFn) -> Result<(), String> {
     Ok(())
 }
 
 #[cfg(target_os = "windows")]
-fn redirect_stdout_stderr() -> Result<(), String> {
-    do_redirect_stdout_stderr().map_err(|()| {
+fn redirect_stdout_stderr(handler: LogHandlerFn) -> Result<(), String> {
+    do_redirect_stdout_stderr(handler).map_err(|()| {
         format!("GetLastError() = {}", unsafe {
             winapi::um::errhandlingapi::GetLastError()
         })
@@ -83,10 +86,9 @@ fn redirect_stdout_stderr() -> Result<(), String> {
 // Return Value: Result<(), String>
 //              Ok() - stdout and stderr redirects.
 //              Err(str) - The Err value can contain the string value of GetLastError.
-fn do_redirect_stdout_stderr() -> Result<(), ()> {
+fn do_redirect_stdout_stderr(handler: LogHandlerFn) -> Result<(), ()> {
     use std::thread;
     use winapi::shared;
-    use winapi::um::debugapi;
     use winapi::um::handleapi;
     use winapi::um::minwinbase;
     use winapi::um::namedpipeapi;
@@ -163,24 +165,20 @@ fn do_redirect_stdout_stderr() -> Result<(), ()> {
         }
 
         // Spawn a thread.  The thread will redirect all STDOUT and STDERR messages
-        // to OutputDebugString()
-        let _handler = thread::spawn(move || {
-            loop {
-                let mut read_buf: [i8; BUF_LENGTH] = [0; BUF_LENGTH];
+        // to the provided handler function.
+        let _handler = thread::spawn(move || loop {
+            let mut read_buf: [i8; BUF_LENGTH] = [0; BUF_LENGTH];
 
-                let result = libc::read(
-                    h_read_pipe_fd,
-                    read_buf.as_mut_ptr() as *mut _,
-                    read_buf.len() as u32 - 1,
-                );
+            let result = libc::read(
+                h_read_pipe_fd,
+                read_buf.as_mut_ptr() as *mut _,
+                read_buf.len() as u32 - 1,
+            );
 
-                if result == -1 {
-                    break;
-                }
-
-                // Write to Debug port.
-                debugapi::OutputDebugStringA(read_buf.as_mut_ptr() as winnt::LPSTR);
+            if result == -1 {
+                break;
             }
+            handler(read_buf.as_ptr(), result as u32);
         });
     }
 
@@ -232,6 +230,7 @@ pub struct CHostCallbacks {
     pub on_devtools_started: extern "C" fn(result: CDevtoolsServerState, port: c_uint),
     pub show_context_menu:
         extern "C" fn(title: *const c_char, items_list: *const *const c_char, items_size: u32),
+    pub on_log_output: extern "C" fn(buffer: *const c_char, buffer_length: u32),
 }
 
 /// Servo options
@@ -422,9 +421,10 @@ unsafe fn init(
         slice::from_raw_parts(opts.vslogger_mod_list, opts.vslogger_mod_size as usize)
     };
 
+    *OUTPUT_LOG_HANDLER.lock().unwrap() = Some(callbacks.on_log_output);
     init_logger(logger_modules, logger_level);
 
-    if let Err(reason) = redirect_stdout_stderr() {
+    if let Err(reason) = redirect_stdout_stderr(callbacks.on_log_output) {
         warn!("Error redirecting stdout/stderr: {}", reason);
     }
 
