@@ -44,6 +44,16 @@ impl<T> UnsafeBox<T> {
         }
     }
 
+    /// Returns a mutable reference to the inner value of this unsafe box.
+    ///
+    /// # Safety
+    ///
+    /// Given `Self::clone`, nothing prevents anyone from creating
+    /// multiple mutable references to the inner value, which is completely UB.
+    pub(crate) unsafe fn deref_mut(this: &mut Self) -> &mut T {
+        &mut this.inner
+    }
+
     /// Drops the inner value of this unsafe box.
     ///
     /// # Safety
