@@ -20,7 +20,7 @@ use crate::positioned::AbsolutelyPositionedBox;
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::ContentSizesRequest;
-use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
+use crate::style_ext::{Display, DisplayGeneratingBox};
 use crate::DefiniteContainingBlock;
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
@@ -65,22 +65,22 @@ fn construct_for_root_element<'dom>(
     root_element: impl NodeExt<'dom>,
 ) -> (ContainsFloats, Vec<ArcRefCell<BlockLevelBox>>) {
     let style = root_element.style(context);
-    let replaced = ReplacedContent::for_element(root_element);
     let box_style = style.get_box();
 
     let display_inside = match Display::from(box_style.display) {
         Display::None => return (ContainsFloats::No, Vec::new()),
-        Display::Contents if replaced.is_some() => {
-            // 'display: contents' computes to 'none' for replaced elements
-            return (ContainsFloats::No, Vec::new());
+        Display::Contents => {
+            // Unreachable because the style crate adjusts the computed values:
+            // https://drafts.csswg.org/css-display-3/#transformations
+            // “'display' of 'contents' computes to 'block' on the root element”
+            unreachable!()
         },
-        // https://drafts.csswg.org/css-display-3/#transformations
-        Display::Contents => DisplayInside::Flow,
         // The root element is blockified, ignore DisplayOutside
         Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { inside, .. }) => inside,
     };
 
-    let contents = replaced.map_or(Contents::OfElement, Contents::Replaced);
+    let contents =
+        ReplacedContent::for_element(root_element).map_or(Contents::OfElement, Contents::Replaced);
     if box_style.position.is_absolutely_positioned() {
         (
             ContainsFloats::No,
