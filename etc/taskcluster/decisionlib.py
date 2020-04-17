@@ -157,6 +157,10 @@ class Task:
 
     with_extra = chaining(update_attr, "extra")
 
+    def with_index_at(self, index_path):
+        self.routes.append("index.%s.%s" % (CONFIG.index_prefix, index_path))
+        return self
+
     def with_treeherder_required(self):
         self.treeherder_required = True
         return self
@@ -291,7 +295,7 @@ class Task:
             if e.status_code != 404:  # pragma: no cover
                 raise
             if not CONFIG.index_read_only:
-                self.routes.append("index.%s.%s" % (CONFIG.index_prefix, index_path))
+                self.with_index_at(index_path)
             task_id = self.create()
 
         SHARED.found_or_created_indexed_tasks[index_path] = task_id

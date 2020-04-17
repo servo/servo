@@ -265,7 +265,8 @@ def layout_2020_regressions_report():
         )
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
         .with_artifacts("/repo/tests/wpt/reftests-report/report.html")
-        .find_or_create("layout-2020-regressions-report")
+        .with_index_at("layout-2020-regressions-report")
+        .create()
     )
 
 def macos_unit():
