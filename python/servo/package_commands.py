@@ -827,10 +827,12 @@ def build_uwp(platforms, dev, msbuild_dir, ms_app_store):
         subprocess.check_call([msbuild, "/m", build_file.name] + msbuild_args)
         os.unlink(build_file.name)
 
-    print("Creating ZIP")
-    out_dir = path.join(os.getcwd(), 'support', 'hololens', 'AppPackages', 'ServoApp')
-    name = 'ServoApp_%s_%sTest' % (version, 'Debug_' if dev else '')
-    artifacts_dir = path.join(out_dir, name)
-    zip_path = path.join(out_dir, "FirefoxReality.zip")
-    archive_deterministically(artifacts_dir, zip_path, prepend_path='servo/')
-    print("Packaged Servo into " + zip_path)
+    # Don't bother creating an archive that contains unsigned app packages.
+    if not ms_app_store:
+        print("Creating ZIP")
+        out_dir = path.join(os.getcwd(), 'support', 'hololens', 'AppPackages', 'ServoApp')
+        name = 'ServoApp_%s_%sTest' % (version, 'Debug_' if dev else '')
+        artifacts_dir = path.join(out_dir, name)
+        zip_path = path.join(out_dir, "FirefoxReality.zip")
+        archive_deterministically(artifacts_dir, zip_path, prepend_path='servo/')
+        print("Packaged Servo into " + zip_path)
