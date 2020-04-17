@@ -12,7 +12,7 @@
     const crossOriginUrl = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-post-message-portal.html"
 
     async function createAndInsertPortal(portalSrc) {
-      assert_precondition("HTMLPortalElement" in self);
+      assert_implements("HTMLPortalElement" in self);
       var portal = document.createElement("portal");
       portal.src = portalSrc;
       document.body.append(portal);
@@ -185,7 +185,7 @@
     }
 
     promise_test(async t => {
-      assert_precondition("HTMLPortalElement" in self);
+      assert_implements("HTMLPortalElement" in self);
       window.open("resources/portal-post-message-before-activate-window.html");
       let {postMessageTS, activateTS} = await waitForMessage(
           "portals-post-message-before-activate");
@@ -193,14 +193,14 @@
     }, "postMessage before activate should work and preserve order");
 
     promise_test(async t => {
-      assert_precondition("HTMLPortalElement" in self);
+      assert_implements("HTMLPortalElement" in self);
       window.open("resources/portal-post-message-during-activate-window.html");
       let error = await waitForMessage("portals-post-message-during-activate");
       assert_equals(error, "InvalidStateError");
     }, "postMessage during activate throws error");
 
     promise_test(async t => {
-      assert_precondition("HTMLPortalElement" in self);
+      assert_implements("HTMLPortalElement" in self);
       window.open("resources/portal-post-message-after-activate-window.html");
       let error = await waitForMessage("portals-post-message-after-activate");
       assert_equals(error, "InvalidStateError");

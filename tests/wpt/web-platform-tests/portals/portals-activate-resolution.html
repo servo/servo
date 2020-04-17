@@ -4,7 +4,7 @@
 <script src="resources/open-blank-host.js"></script>
 <script>
   promise_test(async () => {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     var win = await openBlankPortalHost();
     var portal = win.document.createElement("portal");
     portal.src = new URL("resources/simple-portal.html", location.href)

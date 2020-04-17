@@ -6,8 +6,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
   async_test(function (t) {
-    assert_precondition(window.PerformancePaintTiming, "PerformancePaintTiming is not implemented");
-    assert_precondition(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    assert_implements(window.PerformancePaintTiming, "PerformancePaintTiming is not implemented");
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     let firstPaintTime = 0;
     let firstContentfulPaintTime = 0;
     let largestContentfulPaintTime = 0;

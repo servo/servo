@@ -11,7 +11,7 @@
 <body>
 <script>
 async_test(t => {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     let destUrl = get_host_info().HTTP_REMOTE_ORIGIN
         + '/element-timing/resources/multiple-redirects.py?';
     destUrl += 'redirect_count=2';

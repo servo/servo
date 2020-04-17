@@ -3,7 +3,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 promise_test(async t => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   let waitForMessage = new Promise((resolve, reject) => {
     window.onmessage = e => resolve(e.data);
   });
@@ -13,7 +13,7 @@ promise_test(async t => {
 }, "Calling activate when a portal is already activating should fail");
 
 promise_test(async t => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   let waitForMessage = new Promise((resolve, reject) => {
     window.onmessage = e => resolve(e.data);
   });

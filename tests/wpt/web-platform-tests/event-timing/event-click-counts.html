@@ -10,7 +10,7 @@
 <button id='button'>Click me</button>
 <script>
   promise_test( t => {
-    assert_precondition(window.EventCounts, "Event Counts isn't supported");
+    assert_implements(window.EventCounts, "Event Counts isn't supported");
     function testClicks(expectedCount, resolve) {
       const clickCount = performance.eventCounts.get('click');
       if (clickCount < expectedCount) {

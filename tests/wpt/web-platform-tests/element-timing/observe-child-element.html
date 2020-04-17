@@ -12,7 +12,7 @@ body {
 <script src="resources/element-timing-helpers.js"></script>
 <script>
   async_test((t) => {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     const observer = new PerformanceObserver(
       t.step_func_done((entryList) => {
         assert_unreached("Should not have received an entry!");

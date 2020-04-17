@@ -4,7 +4,7 @@
 <body>
 <script>
 promise_test(async t => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   let portal = document.createElement('portal');
   document.body.appendChild(portal);
   t.add_cleanup(() => { document.body.removeChild(portal); });
@@ -13,7 +13,7 @@ promise_test(async t => {
 }, "A portal that has never been navigated cannot be activated");
 
 promise_test(async t => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   let portal = document.createElement('portal');
   document.body.appendChild(portal);
   t.add_cleanup(() => { document.body.removeChild(portal); });

@@ -214,6 +214,7 @@ class MockRuntime {
     'unbounded': device.mojom.XRSessionFeature.REF_SPACE_UNBOUNDED,
     'hit-test': device.mojom.XRSessionFeature.HIT_TEST,
     'dom-overlay': device.mojom.XRSessionFeature.DOM_OVERLAY,
+    'light-estimation': device.mojom.XRSessionFeature.LIGHT_ESTIMATION,
   };
 
   static sessionModeToMojoMap = {

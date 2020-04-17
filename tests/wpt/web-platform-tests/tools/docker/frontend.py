@@ -8,6 +8,7 @@ wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 def build(*args, **kwargs):
     subprocess.check_call(["docker",
                            "build",
+                           "--pull",
                            "--tag", "wpt:local",
                            here])
 

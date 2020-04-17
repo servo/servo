@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<title>CSS Grid: auto-repeat tracks and intrinsic sizes.</title>
+<link rel="author" title="Sergio Villar" href="mailto:svillar@igalia.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#repeat-notation"/>
+<meta name="assert" content="Test ensure that grids properly recompute the number of auto repeat tracks when the min|max-content contributions of grid items changed."/>
+<link rel="issue" href="https://crbug.com/621517"/>
+<link rel="issue" href="https://crbug.com/633474"/>
+<link href="/css/support/grid.css" rel="stylesheet"/>
+<link href="/css/support/width-keyword-classes.css" rel="stylesheet"/>
+<style>
+.grid {
+    border: 2px solid black;
+    position: relative;
+    min-width: 30px;
+
+    grid-auto-columns: 20px;
+
+    padding-top: 10px;
+    margin-bottom: 10px;
+}
+
+.abs { height: 5px; position: absolute; width: 100%; }
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+function setGridTemplate(id, gridTemplateRows, gridTemplateColumns)
+{
+     var gridElement = document.getElementById(id);
+     gridElement.style.gridTemplateRows = gridTemplateRows;
+     gridElement.style.gridTemplateColumns = gridTemplateColumns;
+}
+
+function setItemSize(id, width, height)
+{
+     var gridElement = document.getElementById(id);
+     gridElement.style.width = width;
+     gridElement.style.height = height;
+}
+
+function testGridDefinitions(gridItemsData)
+{
+    var length = gridItemsData.length;
+    for (i = 0; i < length; ++i) {
+        var item = document.getElementById(gridItemsData[i].id);
+        item.setAttribute("data-expected-width", gridItemsData[i].width);
+        item.setAttribute("data-expected-height", gridItemsData[i].height);
+        item.setAttribute("data-offset-x", gridItemsData[i].x);
+        item.setAttribute("data-offset-y", gridItemsData[i].y);
+    }
+
+    checkLayout(".grid", false);
+}
+
+function testChangingGridDefinitions()
+{
+     setGridTemplate('grid1', 'none', 'repeat(auto-fill, 20px) minmax(min-content, 40px)');
+
+     setItemSize('item', '100px', '30px');
+     testGridDefinitions([
+         { 'id': 'item', 'width': '100', 'height': '30', 'x': '0', 'y': '10' },
+         { 'id': 'a1', 'width': '20', 'height': '5', 'x': '0', 'y': '0' },
+         { 'id': 'a2', 'width': '20', 'height': '5', 'x': '20', 'y': '0' },
+         { 'id': 'a3', 'width': '20', 'height': '5', 'x': '40', 'y': '0' },
+         { 'id': 'a4', 'width': '40', 'height': '5', 'x': '60', 'y': '0' }
+     ]);
+
+     setItemSize('item', '80px', '30px');
+     testGridDefinitions([
+         { 'id': 'item', 'width': '80', 'height': '30', 'x': '0', 'y': '10' },
+         { 'id': 'a1', 'width': '20', 'height': '5', 'x': '0', 'y': '0' },
+         { 'id': 'a2', 'width': '20', 'height': '5', 'x': '20', 'y': '0' },
+         { 'id': 'a3', 'width': '40', 'height': '5', 'x': '40', 'y': '0' },
+         { 'id': 'a4', 'width': '0', 'height': '5', 'x': '80', 'y': '0' }
+     ]);
+
+     setItemSize('item', '15px', '30px');
+     testGridDefinitions([
+         { 'id': 'item', 'width': '15', 'height': '30', 'x': '0', 'y': '10' },
+         { 'id': 'a1', 'width': '20', 'height': '5', 'x': '0', 'y': '0' },
+         { 'id': 'a2', 'width': '40', 'height': '5', 'x': '20', 'y': '0' },
+         { 'id': 'a3', 'width': '0', 'height': '5', 'x': '60', 'y': '0' },
+         { 'id': 'a4', 'width': '60', 'height': '5', 'x': '0', 'y': '0' }
+     ]);
+
+     setItemSize('item', '120px', '30px');
+     testGridDefinitions([
+         { 'id': 'item', 'width': '120', 'height': '30', 'x': '0', 'y': '10' },
+         { 'id': 'a1', 'width': '20', 'height': '5', 'x': '0', 'y': '0' },
+         { 'id': 'a2', 'width': '20', 'height': '5', 'x': '20', 'y': '0' },
+         { 'id': 'a3', 'width': '20', 'height': '5', 'x': '40', 'y': '0' },
+         { 'id': 'a4', 'width': '20', 'height': '5', 'x': '60', 'y': '0' }
+     ]);
+
+     var grid = document.getElementById('grid1');
+     grid.className = grid.className.replace('max-content', 'min-content');
+
+     setItemSize('item', '100px', '30px');
+     testGridDefinitions([
+         { 'id': 'item', 'width': '100', 'height': '30', 'x': '0', 'y': '10' },
+         { 'id': 'a1', 'width': '20', 'height': '5', 'x': '0', 'y': '0' },
+         { 'id': 'a2', 'width': '20', 'height': '5', 'x': '20', 'y': '0' },
+         { 'id': 'a3', 'width': '20', 'height': '5', 'x': '40', 'y': '0' },
+         { 'id': 'a4', 'width': '40', 'height': '5', 'x': '60', 'y': '0' }
+     ]);
+
+     setItemSize('item', '80px', '30px');
+     testGridDefinitions([
+         { 'id': 'item', 'width': '80', 'height': '30', 'x': '0', 'y': '10' },
+         { 'id': 'a1', 'width': '20', 'height': '5', 'x': '0', 'y': '0' },
+         { 'id': 'a2', 'width': '20', 'height': '5', 'x': '20', 'y': '0' },
+         { 'id': 'a3', 'width': '40', 'height': '5', 'x': '40', 'y': '0' },
+         { 'id': 'a4', 'width': '0', 'height': '5', 'x': '80', 'y': '0' }
+     ]);
+
+     setItemSize('item', '15px', '30px');
+     testGridDefinitions([
+         { 'id': 'item', 'width': '15', 'height': '30', 'x': '0', 'y': '10' },
+         { 'id': 'a1', 'width': '20', 'height': '5', 'x': '0', 'y': '0' },
+         { 'id': 'a2', 'width': '10', 'height': '5', 'x': '20', 'y': '0' },
+         { 'id': 'a3', 'width': '0', 'height': '5', 'x': '30', 'y': '0' },
+         { 'id': 'a4', 'width': '30', 'height': '5', 'x': '0', 'y': '0' }
+     ]);
+
+     setItemSize('item', '120px', '30px');
+     testGridDefinitions([
+         { 'id': 'item', 'width': '120', 'height': '30', 'x': '0', 'y': '10' },
+         { 'id': 'a1', 'width': '20', 'height': '5', 'x': '0', 'y': '0' },
+         { 'id': 'a2', 'width': '20', 'height': '5', 'x': '20', 'y': '0' },
+         { 'id': 'a3', 'width': '20', 'height': '5', 'x': '40', 'y': '0' },
+         { 'id': 'a4', 'width': '20', 'height': '5', 'x': '60', 'y': '0' }
+     ]);
+
+     done();
+}
+
+window.addEventListener("load", testChangingGridDefinitions, false);
+</script>
+
+<div>This test checks that changing the min|max-content contributions of grid items properly recomputes both track sizes and grid positions in grids with auto repeat tracks.</div>
+<div id="log"></div>
+
+<div id="grid1" class="grid max-content">
+    <div id="item" style="grid-column: 1 / -1; background: cyan;"></div>
+    <div id="a1" class="abs" style="grid-column: 1 / 2; background: purple;"></div>
+    <div id="a2" class="abs" style="grid-column: 2 / 3; background: orange;"></div>
+    <div id="a3" class="abs" style="grid-column: 3 / 4; background: yellow;"></div>
+    <div id="a4" class="abs" style="grid-column: 4 / 5; background: magenta;"></div>
+</div>

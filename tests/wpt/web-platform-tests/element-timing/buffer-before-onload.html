@@ -13,7 +13,7 @@
   is available from the observer with the buffered flag set to true.
   */
   async_test(function(t) {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     beforeRender = performance.now();
     const img = document.createElement('img');
     img.src = 'resources/square20.jpg';

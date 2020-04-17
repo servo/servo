@@ -8,7 +8,7 @@
 
 <script>
   async_test(t => {
-    assert_precondition(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+    assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
     window.addEventListener('message', t.step_func(e => {
       assert_equals(e.data['entryType'], 'longtask');
       assert_equals(e.data['frame-attribution'], 'cross-origin-unreachable');

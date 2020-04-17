@@ -20,7 +20,7 @@ body {
   let img;
   let img2;
   async_test(function (t) {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     const observer = new PerformanceObserver(
       t.step_func(function(entryList) {
         assert_equals(entryList.getEntries().length, 1);

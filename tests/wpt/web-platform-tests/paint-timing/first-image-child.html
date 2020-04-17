@@ -10,7 +10,7 @@
 <img src='resources/circles.png'/>
 <script>
 async_test(function (t) {
-    assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
 
     window.addEventListener('message', t.step_func(e => {
         // Child iframe should not have any paint-timing entries.

@@ -11,7 +11,7 @@
 <body>
 <script>
 async_test(t => {
-    assert_precondition(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     let destUrl = get_host_info().HTTP_REMOTE_ORIGIN
             + '/resource-timing/resources/multi_redirect.py?';
     destUrl += 'page_origin=' +  get_host_info().HTTP_ORIGIN;

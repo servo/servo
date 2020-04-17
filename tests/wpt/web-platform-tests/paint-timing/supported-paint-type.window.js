@@ -1,13 +1,13 @@
 test(() => {
-  assert_precondition(typeof PerformanceObserver.supportedEntryTypes !== "undefined", 'supportedEntryTypes is not supported');
+  assert_implements(typeof PerformanceObserver.supportedEntryTypes !== "undefined", 'supportedEntryTypes is not supported');
   assert_true(PerformanceObserver.supportedEntryTypes.includes("paint"),
     "There should be an entry 'paint' in PerformanceObserver.supportedEntryTypes");
 }, "supportedEntryTypes contains 'paint'.");
 
 const entryType = 'paint';
 promise_test(async() => {
-  assert_precondition(typeof PerformanceObserver.supportedEntryTypes !== "undefined", 'supportedEntryTypes is not supported');
-  assert_precondition(typeof PerformanceObserver.supportedEntryTypes.includes(entryType), `supportedEntryTypes does not include '${entryType}'`);
+  assert_implements(typeof PerformanceObserver.supportedEntryTypes !== "undefined", 'supportedEntryTypes is not supported');
+  assert_implements(typeof PerformanceObserver.supportedEntryTypes.includes(entryType), `supportedEntryTypes does not include '${entryType}'`);
   await new Promise((resolve) => {
     new PerformanceObserver(function (list, observer) {
       observer.disconnect();

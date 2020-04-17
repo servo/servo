@@ -4,7 +4,7 @@
 <body>
 <script>
 promise_test(async () => {
-  assert_precondition('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
+  assert_implements('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
   let portal = document.createElement('portal');
   let referrerPromise = new Promise((resolve, reject) => {
     portal.addEventListener('message', e => resolve(e.data), {once: true});
@@ -21,7 +21,7 @@ promise_test(async () => {
 }, "portal contents should be loaded with referrer");
 
 promise_test(async () => {
-  assert_precondition('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
+  assert_implements('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
   let portal = document.createElement('portal');
   portal.referrerPolicy = 'no-referrer';
   let referrerPromise = new Promise((resolve, reject) => {
@@ -39,7 +39,7 @@ promise_test(async () => {
 }, "portal contents should be loaded with no referrer if referrerpolicy=no-referrer");
 
 promise_test(async () => {
-  assert_precondition('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
+  assert_implements('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
   let portal = document.createElement('portal');
   portal.referrerPolicy = 'origin';
   let referrerPromise = new Promise((resolve, reject) => {

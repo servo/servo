@@ -16,7 +16,7 @@
 <script>
   let beforeRender = performance.now();
   async_test(function (t) {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     const div = document.getElementById('target');
     let textObserved = false;
     let imageObserved = false;

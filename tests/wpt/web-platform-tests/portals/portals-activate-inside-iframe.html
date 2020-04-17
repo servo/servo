@@ -4,7 +4,7 @@
 <body>
   <script>
     promise_test(async t => {
-      assert_precondition("HTMLPortalElement" in self);
+      assert_implements("HTMLPortalElement" in self);
       var iframe = document.createElement("iframe");
       iframe.src = "resources/portal-inside-iframe.html"
       var waitForLoad = new Promise((resolve, reject) => {

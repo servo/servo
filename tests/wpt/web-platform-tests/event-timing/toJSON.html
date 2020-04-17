@@ -10,7 +10,7 @@
 <button id='button'>Generate a 'click' event</button>
 <script>
   async_test(function (t) {
-    assert_precondition(window.PerformanceEventTiming, 'Event Timing is not supported.');
+    assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
     const observer = new PerformanceObserver(
       t.step_func_done(function(entryList) {
         const entry = entryList.getEntries()[0];

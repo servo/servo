@@ -8,7 +8,7 @@
 <body>
 <script>
   async_test((t) => {
-    assert_precondition(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     const observer = new PerformanceObserver(
       t.step_func_done(entryList => {
         assert_unreached("Should not have received an entry!");

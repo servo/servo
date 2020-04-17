@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Grid: Grid container baseline</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#grid-baselines">
+<link rel="help" href="https://crbug.com/234191">
+<link rel="match" href="references/grid-baseline-001-ref.html">
+<meta name="assert" content="Check the first baselines of a grid container."/>
+
+<style>
+body {
+    margin: 0;
+}
+.inline-grid {
+    display: inline-grid;
+    background-color: lightgrey;
+    margin-top: 5px;
+    grid-auto-flow: column;
+}
+.grid {
+    display: grid;
+    background-color: grey;
+    margin-top: 10px;
+    grid-auto-flow: column;
+}
+.empty {
+    border-style: solid;
+    border-width: 5px 0px 10px;
+    padding: 2px 0px 4px;
+    margin: 10px 0px 20px;
+}
+.column {
+    grid-auto-flow: row;
+}
+.firstRowFirstColumn {
+    grid-column: 1;
+    grid-row: 1;
+}
+.secondRowFirstColumn {
+    grid-column: 1;
+    grid-row: 2;
+}
+</style>
+
+<body style="position: relative">
+
+<!-- If any of the grid items whose areas intersect the grid container's first
+row/column participate in baseline alignment, the grid container's baseline is
+the baseline of those grid items. -->
+<div>
+before text
+<div class="inline-grid" style="grid-auto-rows: 50px;">
+    <div style="align-self: end">below</div>
+    <div style="align-self: baseline; margin-top: 15px">baseline</div>
+    <div style="align-self: start">above</div>
+</div>
+after text
+</div>
+
+<!-- This grid has a baseline item, it's orthogonal but it still participates
+in baseline alignment. -->
+<div>
+before text
+<div class="inline-grid" style="grid-auto-rows: 40px">
+    <div style="align-self: end">below</div>
+    <div style="align-self: baseline; margin-top: 20px; writing-mode: vertical-rl"></div>
+    <div style="align-self: start">above</div>
+</div>
+after text
+</div>
+
+<div>
+before text
+<div class="inline-grid">
+    <h2>h2 baseline</h2>
+    <div>above</div>
+</div>
+after text
+</div>
+
+<div>
+before text
+<div class="inline-grid">
+    <div>baseline</div>
+    <h2>h2 below</h2>
+</div>
+after text
+</div>
+
+<!-- If the first grid item has an orthogonal baseline, use the synthesized
+baseline (bottom of the content box of the first item). -->
+<div>
+should align with the middle
+<div class="inline-grid" style="width: 40px; height: 40px">
+    <div style="writing-mode: vertical-rl; height: 20px; width: 40px; border-bottom: 1px solid black"></div>
+</div>
+of the grey box
+</div>
+
+<!-- If there are no griditems, align to the bottom of the margin box. -->
+<div>
+should align below the bottom
+<div class="empty inline-grid" style="width: 30px; height: 30px">
+</div>
+of the black line
+</div>
+
+<div>
+should align with the bottom
+<div class="inline-grid" style="width: 40px; height: 40px;">
+    <div style="width: 20px; height: 20px; border: 5px solid black; background: red;"></div>
+</div>
+of the red box
+</div>
+
+<!-- column-axis test cases. -->
+<div>
+before text
+<div class="inline-grid column">
+    <div>baseline</div>
+    <div>below</div>
+</div>
+after text
+</div>
+
+<!-- If the first grid item has an orthogonal baseline, use the synthesized
+baseline (bottom of the border box of the first item). -->
+<div>
+should align with the middle
+<div class="inline-grid column" style="width: 40px; height: 40px;">
+    <div style="writing-mode: vertical-rl; width: 40px; height: 20px; border-bottom: 1px solid black"></div>
+    <div style="writing-mode: vertical-rl; width: 40px; height: 19px"></div>
+</div>
+of the grey box
+</div>
+
+<!-- More tests on the right side of the page. -->
+<div style="position: absolute; top: 0; left: 400px; width: 360px">
+
+<!-- Ignore absolutely positioned grid items. -->
+<div>
+before text
+<div class="inline-grid">
+    <div style="position: absolute">absolute</div>
+    <div style="margin-top: 30px">baseline</div>
+</div>
+after text
+</div>
+
+<!-- We don't participate in baseline alignment if there's an auto margin. -->
+<div>
+before text
+<div class="inline-grid" style="grid-auto-rows: 40px;">
+    <div>baseline</div>
+    <div style="align-self: baseline; margin-top: auto">below</div>
+</div>
+after text
+</div>
+
+<div>
+before text
+<div style="display: inline-block">
+<div class="inline-grid" style="height: 40px;">
+    <div>above</div>
+    <div style="align-self: baseline; margin-top: 10px">baseline</div>
+    <div>above</div>
+</div>
+after
+</div>
+text
+</div>
+
+<!-- The spec is a little unclear what should happen here. For now,
+align to the last line box. -->
+<div>
+    before text
+    <div style="display: inline-block">
+        <div class="grid" style="height: 30px;">
+            baseline
+        </div>
+    </div>
+    after text
+</div>
+
+<table style="background-color: lightgrey; margin-top: 5px">
+<tr style="height: 50px">
+  <td style="vertical-align: bottom">bottom</td>
+  <td style="vertical-align: baseline">baseline</td>
+  <td style="vertical-align: top">top</td>
+  <td style="vertical-align: baseline"><div class="grid">
+    <h2>h2 baseline</h2>
+    <div>above</div>
+  </div></td>
+</table>
+
+<!-- If a box contributing a baseline has a scrollbar, the box must be treated
+as being in its initial scroll position when computing the baseline. -->
+<div>
+before text
+<div id="grid-with-scrollbar" class="inline-grid" style="height: 65px; width: 150px">
+    <div id="griditem-with-scrollbar" style="align-self: baseline; padding-top: 15px; height: 50px; overflow-y: scroll;">
+        The baseline is based on<br>
+        the non-scrolled position;<br>
+        this won't line up.
+    </div>
+</div>
+after text
+</div>
+
+</div>
+
+<script>
+document.getElementById("griditem-with-scrollbar").scrollTop = 999;
+document.getElementById("grid-with-scrollbar").style.width = "auto";
+</script>
+
+</body>
+</html>

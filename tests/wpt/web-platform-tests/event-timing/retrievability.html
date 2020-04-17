@@ -30,7 +30,7 @@
      Validate entries
   */
   async_test(function(t) {
-    assert_precondition(window.PerformanceEventTiming, 'Event Timing is not supported.');
+    assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
     new PerformanceObserver(t.step_func_done(() => {
       validateEntries();
       t.done();

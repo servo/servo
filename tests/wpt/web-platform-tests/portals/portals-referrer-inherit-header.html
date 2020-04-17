@@ -4,7 +4,7 @@
 <body>
 <script>
 promise_test(async () => {
-  assert_precondition('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
+  assert_implements('HTMLPortalElement' in self, 'HTMLPortalElement is required for this test');
   let portal = document.createElement('portal');
   let referrerPromise = new Promise((resolve, reject) => {
     portal.addEventListener('message', e => resolve(e.data), {once: true});

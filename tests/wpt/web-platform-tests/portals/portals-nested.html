@@ -4,7 +4,7 @@
 <body>
   <script>
     promise_test(() => {
-      assert_precondition("HTMLPortalElement" in self);
+      assert_implements("HTMLPortalElement" in self);
       var portal = document.createElement("portal");
       portal.src = "resources/portals-nested-portal.html";
       document.body.appendChild(portal);

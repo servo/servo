@@ -11,7 +11,7 @@
 <footer>
 <script>
 async_test(function (t) {
-    assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     document.body.style.backgroundColor = "#AA0000";
 
     function testPaintEntries() {

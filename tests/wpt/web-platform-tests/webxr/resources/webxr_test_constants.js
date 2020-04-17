@@ -128,6 +128,7 @@ const ALL_FEATURES = [
   'unbounded',
   'hit-test',
   'dom-overlay',
+  'light-estimation',
 ];
 
 const TRACKED_IMMERSIVE_DEVICE = {

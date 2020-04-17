@@ -11,7 +11,7 @@
 <footer>
 <script>
 async_test(function (t) {
-    assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     const body = document.getElementsByTagName('body')[0];
     body.style.backgroundImage = 'url(resources/circles.png)';
     window.onload = function() {

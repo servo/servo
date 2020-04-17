@@ -6,7 +6,18 @@
 
   <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
   <link rel="help" href="https://www.w3.org/TR/css-text-3/#hyphenation">
-  <link rel="match" href="reference/hyphens-auto-inline-010-ref.html">
+  <link rel="match" href="reference/hyphens-auto-inline-010M-ref.html">
+  <link rel="match" href="reference/hyphens-auto-inline-010H-ref.html">
+
+  <!--
+  User agents may use U+2010 HYPHEN <https://codepoints.net/U+2010>
+  when the font has the glyph, or
+  may use U+002D HYPHEN-MINUS <https://codepoints.net/U+002d>
+  otherwise. Some fonts will display slightly different glyphs for
+  these code points. Therefore these 2 reference files.
+  The M-ref.html reference file means the hyphen-Minus character U+002D.
+  The H-ref.html reference file means the Hyphen character U+2010.
+  -->
 
   <meta content="" name="flags">
   <meta content="When 'hyphens' is set to 'auto' and applied to an inline element and when 'lang' attribute is also set to a valid value, then words may be broken at hyphenation opportunities determined automatically by an hyphenation resource appropriate to the language of the text involved.">
@@ -17,25 +28,25 @@
       border: black solid 2px;
       font-family: monospace;
       font-size: 32px;
-      margin-bottom: 0.25em;
       width: 6ch;
     }
 
-  span#test
+  span
     {
       hyphens: auto;
-    }
-
-  div#reference
-    {
-      hyphens: none;
     }
   </style>
 
  <body lang="en">
 
-  <p>Test passes if the characters inside of each black-bordered rectangles are laid out identically.
+  <div>There are <span>new guidelines now</span>.</div>
 
-  <div>There are <span id="test">new guidelines now</span>.</div>
-
-  <div id="reference">There are new guide-lines now.</div>
+  <!--
+        Expected result:
+        There
+        are
+        new
+        guide-
+        lines
+        now.
+  -->

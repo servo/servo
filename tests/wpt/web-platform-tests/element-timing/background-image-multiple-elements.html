@@ -23,7 +23,7 @@ body {
 <script src="resources/element-timing-helpers.js"></script>
 <script>
   async_test(function (t) {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     let beforeRender = performance.now();
     let numObservedElements = 0;
     let observedDiv1 = false;

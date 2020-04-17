@@ -4,7 +4,7 @@
 <body>
   <script>
     promise_test(async () => {
-      assert_precondition("HTMLPortalElement" in self);
+      assert_implements("HTMLPortalElement" in self);
       var portal = document.createElement("portal");
       portal.src = "resources/portal-activate-inside-portal.html";
       let waitForMessage = new Promise((resolve, reject) => {

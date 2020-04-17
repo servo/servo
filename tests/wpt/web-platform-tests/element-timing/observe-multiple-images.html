@@ -22,7 +22,7 @@ body {
 <script>
   let beforeRender, image1Observed=0, image2Observed=0, image3Observed=0;
   async_test(function (t) {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     const observer = new PerformanceObserver(
       t.step_func(function(entryList) {
         entryList.getEntries().forEach( entry => {

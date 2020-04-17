@@ -10,7 +10,7 @@
 <body>
 <script>
 async_test(t => {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     // First redirect
     let destUrl = '/common/redirect.py?location='
     // Second redirect

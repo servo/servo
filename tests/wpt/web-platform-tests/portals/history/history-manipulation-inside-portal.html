@@ -16,42 +16,42 @@
   }
 
   promise_test(async () => {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testHistoryPushStateInPortal');
     assertInitialHistoryState();
   }, 'history.pushState navigates independently with replacement in a portal');
 
   promise_test(async () => {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testHistoryReplaceStateInPortal');
     assertInitialHistoryState();
   }, 'history.replaceState navigates independently in a portal');
 
   promise_test(async () => {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testLocationAssignInPortal');
     assertInitialHistoryState();
   }, 'location.assign navigates independently with replacement in a portal');
 
   promise_test(async () => {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testLocationReplaceInPortal');
     assertInitialHistoryState();
   }, 'location.replace navigates independently in a portal');
 
   promise_test(async () => {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testSetLocationHrefInPortal');
     assertInitialHistoryState();
   }, 'Setting location.href navigates independently with replacement in a portal');
 
   promise_test(async () => {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     assertInitialHistoryState();
     await runTestInPortal(portalSrc, 'testSyntheticAnchorClickInPortal');
     assertInitialHistoryState();

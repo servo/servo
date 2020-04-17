@@ -7,8 +7,8 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 test(() => {
-  assert_precondition(window.LayoutShift, 'Layout Instability is not supported.');
-  assert_precondition(typeof PerformanceObserver.supportedEntryTypes !== "undefined",
+  assert_implements(window.LayoutShift, 'Layout Instability is not supported.');
+  assert_implements(typeof PerformanceObserver.supportedEntryTypes !== "undefined",
       'supportedEntryTypes is not supported.');
   assert_greater_than(PerformanceObserver.supportedEntryTypes.indexOf("layout-shift"), -1,
     "There should be an entry 'layout-shift' in PerformanceObserver.supportedEntryTypes");

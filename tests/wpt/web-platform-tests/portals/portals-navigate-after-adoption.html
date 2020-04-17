@@ -27,7 +27,7 @@ async function openPortalAndActivate(logic) {
 }
 
 promise_test(async () => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   let messageFromNewSrc = await openPortalAndActivate(
       'let predecessor = event.adoptPredecessor();' +
       'let readyPromise = new Promise((resolve, reject) => {' +

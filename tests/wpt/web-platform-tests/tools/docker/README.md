@@ -4,7 +4,8 @@ images must be updated as well. To do this, assuming you have docker installed:
 
 In this directory, run
 ```sh
-docker build -t <tag> .
+# --pull forces Docker to get the newest base image.
+docker build --pull -t <tag> .
 docker push <tag>
 ```
 

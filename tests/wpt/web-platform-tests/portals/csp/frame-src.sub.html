@@ -6,7 +6,7 @@
 </body>
 <script>
   async_test(function(t) {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     var w = window.open("resources/frame-src.sub.html?frame_src_policy=%27none%27");
     w.onload = function() {
       w.document.addEventListener("securitypolicyviolation",
@@ -21,7 +21,7 @@
   }, "Tests that a portal can't be loaded when it violates frame-src");
 
   async_test(function(t) {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     var w = window.open(`resources/frame-src.sub.html?frame_src_policy=http://{{hosts[][www]}}:{{ports[http][0]}}`);
     w.onload = function() {
       w.document.onsecuritypolicyviolation = t.unreached_func("Portal should load.");
@@ -32,7 +32,7 @@
     }
   }, "Tests that a portal can be loaded when the origin matches the frame-src CSP header.");
   async_test(function(t) {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     var w = window.open(`resources/frame-src.sub.html?frame_src_policy=http://{{hosts[][www]}}:{{ports[http][0]}}`);
     w.onload = function() {
       var portal = w.document.createElement("portal");

@@ -9,7 +9,7 @@
 <video id="video" width="50" height="50"></video>
 <script>
   promise_test(async t => {
-    assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     await new Promise(r => window.addEventListener('load', r));
     await assertNoFirstContentfulPaint(t);
     const video = document.getElementById('video');

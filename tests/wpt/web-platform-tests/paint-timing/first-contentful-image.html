@@ -9,7 +9,7 @@
 
 <script>
 async_test(function (t) {
-    assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     const img = document.createElement("IMG");
     img.src = "resources/circles.png";
     img.onload = function() {

@@ -13,7 +13,7 @@ body {
 <img src='resources/square100.png' elementtiming='my_image' id='my_id'/>
 <script>
   async_test(function (t) {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     let beforeRender = performance.now();
     const img = document.getElementById('my_id');
     let firstCallback = true;

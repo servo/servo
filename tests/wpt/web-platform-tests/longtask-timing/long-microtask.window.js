@@ -1,5 +1,5 @@
 async_test(function (t) {
-    assert_precondition(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+    assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
     new PerformanceObserver(
         t.step_func_done(entryList => {
             const entries = entryList.getEntries();

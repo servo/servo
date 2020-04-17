@@ -3,28 +3,10 @@
 <meta charset="utf-8">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test/tests/unit/helpers.js"></script>
 <title>Assertion functions</title>
 <script>
 'use strict';
-
-// The `assert_throws_*` functions cannot be used for this
-// purpose because they fail in response to AssertionError exceptions, even
-// when this is expressed as the expected error.
-function test_failure(fn, name) {
-  test(function() {
-    try {
-      fn();
-    } catch (err) {
-      if (err instanceof AssertionError) {
-        return;
-      }
-      throw new AssertionError('Expected an AssertionError, but');
-    }
-    throw new AssertionError(
-      'Expected an AssertionError, but no error was thrown'
-    );
-  }, name);
-}
 
 test(function() {
   assert_object_equals({}, {});

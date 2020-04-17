@@ -174,7 +174,7 @@ This table gets populated by the script.
     // wait for images to load
     await new Promise(resolve => window.onload = e => resolve());
     for (const img of document.images) {
-      assert_precondition(img.complete); // either error state or loaded
+      assert_true(img.complete); // either error state or loaded
     }
 
     // get layout info from refs
@@ -218,7 +218,7 @@ This table gets populated by the script.
       const allowedDelta = 3;
       // This is not using test() because promise_setup() only allows promise_test().
       promise_test(async () => {
-        assert_precondition(input.type === input.getAttribute('type'), 'input type should be supported')
+        assert_equals(input.type, input.getAttribute('type'), 'input type should be supported')
         const offsetTopActual = row.firstChild.firstChild.offsetTop;
         assert_approx_equals(offsetTopActual, expectedOffsetTop(input), allowedDelta, '<span>.offsetTop');
       }, testName(input.outerHTML));

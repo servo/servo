@@ -8,7 +8,7 @@
 <body>
 <script>
   async function createPortal(doc, url) {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     let portal = doc.createElement("portal");
     portal.src = url;
     doc.body.appendChild(portal);

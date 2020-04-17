@@ -12,7 +12,7 @@
 for (const format of ['mp4', 'webm']) {
   promise_test(async (t) => {
     const video = document.createElement('video');
-    assert_precondition(video.canPlayType(`video/${format}`), `${format} supported`);
+    assert_implements_optional(video.canPlayType(`video/${format}`), `${format} supported`);
 
     // Load the video and wait for initial resize event.
     video.src = `/media/400x300-red-resize-200x150-green.${format}`;
