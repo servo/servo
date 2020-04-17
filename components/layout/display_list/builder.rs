@@ -1733,8 +1733,18 @@ impl Fragment {
                 build_border_radius_for_inner_rect(stacking_relative_border_box, &self.style);
 
             if !radii.is_zero() {
-                let clip_id =
-                    state.add_late_clip_node(stacking_relative_border_box.to_layout(), radii);
+                // This is already calculated inside of build_border_radius_for_inner_rect(), it would be
+                // nice if it were only calculated once.
+                let border_widths = self
+                    .style
+                    .logical_border_width()
+                    .to_physical(self.style.writing_mode);
+                let clip_id = state.add_late_clip_node(
+                    stacking_relative_border_box
+                        .inner_rect(border_widths)
+                        .to_layout(),
+                    radii,
+                );
                 state.current_clipping_and_scrolling = ClippingAndScrolling::simple(clip_id);
             }
 
