@@ -260,11 +260,11 @@ def layout_2020_regressions_report():
         .with_dockerfile(dockerfile_path("base"))
         .with_repo_bundle()
         .with_script(
-            "python3 etc/layout-2020-regressions/gen.py %s %s"
+            "python3 tests/wpt/reftests-report/gen.py %s %s"
             % (CONFIG.tree_hash(), CONFIG.git_sha)
         )
         .with_index_and_artifacts_expire_in(log_artifacts_expire_in)
-        .with_artifacts("/repo/etc/layout-2020-regressions/regressions.html")
+        .with_artifacts("/repo/tests/wpt/reftests-report/report.html")
         .find_or_create("layout-2020-regressions-report")
     )
 
