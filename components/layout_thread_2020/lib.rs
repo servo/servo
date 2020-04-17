@@ -45,7 +45,7 @@ use layout::query::{
     process_offset_parent_query, process_resolved_style_request, process_text_index_request,
 };
 use layout::traversal::RecalcStyle;
-use layout::{BoxTreeRoot, FragmentTreeRoot};
+use layout::{BoxTree, FragmentTree};
 use layout_traits::LayoutThreadFactory;
 use libc::c_void;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -160,11 +160,11 @@ pub struct LayoutThread {
     /// The number of Web fonts that have been requested but not yet loaded.
     outstanding_web_fonts: Arc<AtomicUsize>,
 
-    /// The root of the box tree.
-    box_tree_root: RefCell<Option<Arc<BoxTreeRoot>>>,
+    /// The box tree.
+    box_tree: RefCell<Option<Arc<BoxTree>>>,
 
-    /// The root of the fragment tree.
-    fragment_tree_root: RefCell<Option<Arc<FragmentTreeRoot>>>,
+    /// The fragment tree.
+    fragment_tree: RefCell<Option<Arc<FragmentTree>>>,
 
     /// The document-specific shared lock used for author-origin stylesheets
     document_shared_lock: Option<SharedRwLock>,
@@ -513,8 +513,8 @@ impl LayoutThread {
             font_cache_sender: ipc_font_cache_sender,
             generation: Cell::new(0),
             outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
-            box_tree_root: Default::default(),
-            fragment_tree_root: Default::default(),
+            box_tree: Default::default(),
+            fragment_tree: Default::default(),
             document_shared_lock: None,
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
@@ -1078,7 +1078,7 @@ impl LayoutThread {
             driver::traverse_dom(&traversal, token, rayon_pool);
 
             let root_node = document.root_element().unwrap().as_node();
-            let build_box_tree = || BoxTreeRoot::construct(traversal.context(), root_node);
+            let build_box_tree = || BoxTree::construct(traversal.context(), root_node);
             let box_tree = if let Some(pool) = rayon_pool {
                 pool.install(build_box_tree)
             } else {
@@ -1103,8 +1103,8 @@ impl LayoutThread {
             } else {
                 run_layout()
             });
-            *self.box_tree_root.borrow_mut() = Some(box_tree);
-            *self.fragment_tree_root.borrow_mut() = Some(fragment_tree);
+            *self.box_tree.borrow_mut() = Some(box_tree);
+            *self.fragment_tree.borrow_mut() = Some(fragment_tree);
         }
 
         for element in elements_with_snapshot {
@@ -1130,7 +1130,7 @@ impl LayoutThread {
         layout_context.style_context.stylist.rule_tree().maybe_gc();
 
         // Perform post-style recalculation layout passes.
-        if let Some(root) = &*self.fragment_tree_root.borrow() {
+        if let Some(root) = &*self.fragment_tree.borrow() {
             self.perform_post_style_recalc_layout_passes(
                 root.clone(),
                 &data.reflow_goal,
@@ -1162,7 +1162,7 @@ impl LayoutThread {
             ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
                 &QueryMsg::ContentBoxQuery(node) => {
                     rw_data.content_box_response =
-                        process_content_box_request(node, self.fragment_tree_root.borrow().clone());
+                        process_content_box_request(node, self.fragment_tree.borrow().clone());
                 },
                 &QueryMsg::ContentBoxesQuery(node) => {
                     rw_data.content_boxes_response = process_content_boxes_request(node);
@@ -1175,10 +1175,8 @@ impl LayoutThread {
                     rw_data.text_index_response = process_text_index_request(node, point_in_node);
                 },
                 &QueryMsg::ClientRectQuery(node) => {
-                    rw_data.client_rect_response = process_node_geometry_request(
-                        node,
-                        self.fragment_tree_root.borrow().clone(),
-                    );
+                    rw_data.client_rect_response =
+                        process_node_geometry_request(node, self.fragment_tree.borrow().clone());
                 },
                 &QueryMsg::NodeScrollGeometryQuery(node) => {
                     rw_data.scroll_area_response = process_node_scroll_area_request(node);
@@ -1190,7 +1188,7 @@ impl LayoutThread {
                 },
                 &QueryMsg::ResolvedStyleQuery(node, ref pseudo, ref property) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
-                    let fragment_tree = self.fragment_tree_root.borrow().clone();
+                    let fragment_tree = self.fragment_tree.borrow().clone();
                     rw_data.resolved_style_response = process_resolved_style_request(
                         context,
                         node,
@@ -1270,13 +1268,13 @@ impl LayoutThread {
 
     fn perform_post_style_recalc_layout_passes(
         &self,
-        fragment_tree: Arc<FragmentTreeRoot>,
+        fragment_tree: Arc<FragmentTree>,
         reflow_goal: &ReflowGoal,
         document: Option<&ServoLayoutDocument>,
         context: &mut LayoutContext,
     ) {
         if self.trace_layout {
-            if let Some(box_tree) = &*self.box_tree_root.borrow() {
+            if let Some(box_tree) = &*self.box_tree.borrow() {
                 layout_debug::begin_trace(box_tree.clone(), fragment_tree.clone());
             }
         }

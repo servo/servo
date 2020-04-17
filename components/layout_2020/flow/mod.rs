@@ -29,7 +29,7 @@ mod float;
 pub mod inline;
 mod root;
 
-pub use root::{BoxTreeRoot, FragmentTreeRoot};
+pub use root::{BoxTree, FragmentTree};
 
 #[derive(Debug, Serialize)]
 pub(crate) struct BlockFormattingContext {

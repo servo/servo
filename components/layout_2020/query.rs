@@ -4,7 +4,7 @@
 
 //! Utilities for querying the layout, as needed by the layout thread.
 use crate::context::LayoutContext;
-use crate::flow::FragmentTreeRoot;
+use crate::flow::FragmentTree;
 use crate::fragments::Fragment;
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
@@ -166,14 +166,9 @@ impl LayoutRPC for LayoutRPCImpl {
 
 pub fn process_content_box_request(
     requested_node: OpaqueNode,
-    fragment_tree_root: Option<Arc<FragmentTreeRoot>>,
+    fragment_tree: Option<Arc<FragmentTree>>,
 ) -> Option<Rect<Au>> {
-    let fragment_tree_root = match fragment_tree_root {
-        Some(fragment_tree_root) => fragment_tree_root,
-        None => return None,
-    };
-
-    Some(fragment_tree_root.get_content_box_for_node(requested_node))
+    Some(fragment_tree?.get_content_box_for_node(requested_node))
 }
 
 pub fn process_content_boxes_request(_requested_node: OpaqueNode) -> Vec<Rect<Au>> {
@@ -182,14 +177,13 @@ pub fn process_content_boxes_request(_requested_node: OpaqueNode) -> Vec<Rect<Au
 
 pub fn process_node_geometry_request(
     requested_node: OpaqueNode,
-    fragment_tree_root: Option<Arc<FragmentTreeRoot>>,
+    fragment_tree: Option<Arc<FragmentTree>>,
 ) -> Rect<i32> {
-    let fragment_tree_root = match fragment_tree_root {
-        Some(fragment_tree_root) => fragment_tree_root,
-        None => return Rect::zero(),
-    };
-
-    fragment_tree_root.get_border_dimensions_for_node(requested_node)
+    if let Some(fragment_tree) = fragment_tree {
+        fragment_tree.get_border_dimensions_for_node(requested_node)
+    } else {
+        Rect::zero()
+    }
 }
 
 pub fn process_node_scroll_id_request<'dom>(
@@ -212,7 +206,7 @@ pub fn process_resolved_style_request<'dom>(
     node: impl LayoutNode<'dom>,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
-    fragment_tree_root: Option<Arc<FragmentTreeRoot>>,
+    fragment_tree: Option<Arc<FragmentTree>>,
 ) -> String {
     if !node.as_element().unwrap().has_data() {
         return process_resolved_style_request_for_unstyled_node(context, node, pseudo, property);
@@ -286,11 +280,11 @@ pub fn process_resolved_style_request<'dom>(
         return computed_style();
     }
 
-    let fragment_tree_root = match fragment_tree_root {
-        Some(fragment_tree_root) => fragment_tree_root,
+    let fragment_tree = match fragment_tree {
+        Some(fragment_tree) => fragment_tree,
         None => return computed_style(),
     };
-    fragment_tree_root
+    fragment_tree
         .find(|fragment, containing_block| {
             let box_fragment = match fragment {
                 Fragment::Box(ref box_fragment) if box_fragment.tag == node.opaque() => {

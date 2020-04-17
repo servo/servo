@@ -30,7 +30,7 @@ mod style_ext;
 pub mod traversal;
 pub mod wrapper;
 
-pub use flow::{BoxTreeRoot, FragmentTreeRoot};
+pub use flow::{BoxTree, FragmentTree};
 
 use crate::geom::flow_relative::Vec2;
 use style::properties::ComputedValues;

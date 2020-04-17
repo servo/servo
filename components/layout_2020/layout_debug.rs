@@ -5,7 +5,7 @@
 //! Supports writing a trace file created during each layout scope
 //! that can be viewed by an external tool to make layout debugging easier.
 
-use crate::flow::{BoxTreeRoot, FragmentTreeRoot};
+use crate::flow::{BoxTree, FragmentTree};
 use serde_json::{to_string, to_value, Value};
 use std::cell::RefCell;
 use std::fs;
@@ -63,8 +63,8 @@ impl ScopeData {
 }
 
 struct State {
-    fragment_tree: Arc<FragmentTreeRoot>,
-    box_tree: Arc<BoxTreeRoot>,
+    fragment_tree: Arc<FragmentTree>,
+    box_tree: Arc<BoxTree>,
     scope_stack: Vec<Box<ScopeData>>,
 }
 
@@ -109,7 +109,7 @@ pub fn generate_unique_debug_id() -> u16 {
 
 /// Begin a layout debug trace. If this has not been called,
 /// creating debug scopes has no effect.
-pub fn begin_trace(box_tree: Arc<BoxTreeRoot>, fragment_tree: Arc<FragmentTreeRoot>) {
+pub fn begin_trace(box_tree: Arc<BoxTree>, fragment_tree: Arc<FragmentTree>) {
     assert!(STATE_KEY.with(|ref r| r.borrow().is_none()));
 
     STATE_KEY.with(|ref r| {
