@@ -9,6 +9,7 @@ use crate::display_list::stacking_context::{
     StackingContextBuilder,
 };
 use crate::dom_traversal::{Contents, NodeExt};
+use crate::element_data::LayoutBox;
 use crate::flow::construct::ContainsFloats;
 use crate::flow::float::FloatBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
@@ -53,6 +54,10 @@ impl BoxTreeRoot {
         Node: 'dom + Copy + LayoutNode<'dom> + Send + Sync,
     {
         let (contains_floats, boxes) = construct_for_root_element(&context, root_element);
+
+        // Zero box for `:root { display: none }`, one for the root element otherwise.
+        assert!(boxes.len() <= 1);
+
         Self(BlockFormattingContext {
             contains_floats: contains_floats == ContainsFloats::Yes,
             contents: BlockContainer::BlockLevelBoxes(boxes),
@@ -68,7 +73,10 @@ fn construct_for_root_element<'dom>(
     let box_style = style.get_box();
 
     let display_inside = match Display::from(box_style.display) {
-        Display::None => return (ContainsFloats::No, Vec::new()),
+        Display::None => {
+            root_element.unset_boxes_in_subtree();
+            return (ContainsFloats::No, Vec::new());
+        },
         Display::Contents => {
             // Unreachable because the style crate adjusts the computed values:
             // https://drafts.csswg.org/css-display-3/#transformations
@@ -81,45 +89,50 @@ fn construct_for_root_element<'dom>(
 
     let contents =
         ReplacedContent::for_element(root_element).map_or(Contents::OfElement, Contents::Replaced);
-    if box_style.position.is_absolutely_positioned() {
+    let (contains_floats, root_box) = if box_style.position.is_absolutely_positioned() {
         (
             ContainsFloats::No,
-            vec![ArcRefCell::new(
-                BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
-                    AbsolutelyPositionedBox::construct(
-                        context,
-                        root_element,
-                        style,
-                        display_inside,
-                        contents,
-                    ),
-                )),
-            )],
-        )
-    } else if box_style.float.is_floating() {
-        (
-            ContainsFloats::Yes,
-            vec![ArcRefCell::new(BlockLevelBox::OutOfFlowFloatBox(
-                FloatBox::construct(context, root_element, style, display_inside, contents),
-            ))],
-        )
-    } else {
-        let propagated_text_decoration_line = style.clone_text_decoration_line();
-        (
-            ContainsFloats::No,
-            vec![ArcRefCell::new(BlockLevelBox::Independent(
-                IndependentFormattingContext::construct(
+            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
+                AbsolutelyPositionedBox::construct(
                     context,
                     root_element,
                     style,
                     display_inside,
                     contents,
-                    ContentSizesRequest::None,
-                    propagated_text_decoration_line,
                 ),
-            ))],
+            )),
         )
-    }
+    } else if box_style.float.is_floating() {
+        (
+            ContainsFloats::Yes,
+            BlockLevelBox::OutOfFlowFloatBox(FloatBox::construct(
+                context,
+                root_element,
+                style,
+                display_inside,
+                contents,
+            )),
+        )
+    } else {
+        let propagated_text_decoration_line = style.clone_text_decoration_line();
+        (
+            ContainsFloats::No,
+            BlockLevelBox::Independent(IndependentFormattingContext::construct(
+                context,
+                root_element,
+                style,
+                display_inside,
+                contents,
+                ContentSizesRequest::None,
+                propagated_text_decoration_line,
+            )),
+        )
+    };
+    let root_box = ArcRefCell::new(root_box);
+    root_element
+        .element_box_slot()
+        .set(LayoutBox::BlockLevel(root_box.clone()));
+    (contains_floats, vec![root_box])
 }
 
 impl BoxTreeRoot {
@@ -158,7 +171,14 @@ impl BoxTreeRoot {
             .fragments
             .into_iter()
             .map(|fragment| ArcRefCell::new(fragment))
-            .collect();
+            .collect::<Vec<_>>();
+
+        // Zero box for `:root { display: none }`, one for the root element otherwise.
+        assert!(children.len() <= 1);
+
+        // There may be more fragments at the top-level
+        // (for positioned boxes whose containing is the initial containing block)
+        // but only if there was one fragment for the root element.
         positioning_context.layout_initial_containing_block_children(
             layout_context,
             &initial_containing_block,
