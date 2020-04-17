@@ -8,20 +8,20 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::node::{window_from_node, Node};
 use crate::task_source::TaskSource;
 use ipc_channel::ipc;
+use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
-use net_traits::image_cache::{ImageCache, ImageResponder, ImageResponse, PendingImageId};
-use std::sync::Arc;
+use net_traits::image_cache::{ImageResponse, PendingImageResponse};
 
 pub trait ImageCacheListener {
     fn generation_id(&self) -> u32;
     fn process_image_response(&self, response: ImageResponse);
 }
 
-pub fn add_cache_listener_for_element<T: ImageCacheListener + DerivedFrom<Node> + DomObject>(
-    image_cache: Arc<dyn ImageCache>,
-    id: PendingImageId,
+pub fn generate_cache_listener_for_element<
+    T: ImageCacheListener + DerivedFrom<Node> + DomObject,
+>(
     elem: &T,
-) {
+) -> IpcSender<PendingImageResponse> {
     let trusted_node = Trusted::new(elem);
     let (responder_sender, responder_receiver) = ipc::channel().unwrap();
 
@@ -49,5 +49,5 @@ pub fn add_cache_listener_for_element<T: ImageCacheListener + DerivedFrom<Node> 
         }),
     );
 
-    image_cache.add_listener(id, ImageResponder::new(responder_sender, id));
+    responder_sender
 }

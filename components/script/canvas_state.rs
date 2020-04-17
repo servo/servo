@@ -38,12 +38,7 @@ use euclid::{
     vec2,
 };
 use ipc_channel::ipc::{self, IpcSender};
-use net_traits::image_cache::CanRequestImages;
-use net_traits::image_cache::ImageCache;
-use net_traits::image_cache::ImageOrMetadataAvailable;
-use net_traits::image_cache::ImageResponse;
-use net_traits::image_cache::ImageState;
-use net_traits::image_cache::UsePlaceholder;
+use net_traits::image_cache::{ImageCache, ImageResponse};
 use net_traits::request::CorsSettings;
 use pixels::PixelFormat;
 use profile_traits::ipc as profiled_ipc;
@@ -261,19 +256,12 @@ impl CanvasState {
         url: ServoUrl,
         cors_setting: Option<CorsSettings>,
     ) -> ImageResponse {
-        let response = self.image_cache.find_image_or_metadata(
-            url.clone(),
-            self.origin.clone(),
-            cors_setting,
-            UsePlaceholder::No,
-            CanRequestImages::No,
-        );
-        match response {
-            Ok(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
-                ImageResponse::Loaded(image, url)
-            },
-            Err(ImageState::Pending(_)) => ImageResponse::None,
-            _ => {
+        match self
+            .image_cache
+            .get_image(url.clone(), self.origin.clone(), cors_setting)
+        {
+            Some(image) => ImageResponse::Loaded(image, url),
+            None => {
                 // Rather annoyingly, we get the same response back from
                 // A load which really failed and from a load which hasn't started yet.
                 self.missing_image_urls.borrow_mut().push(url);
