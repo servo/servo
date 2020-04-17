@@ -1,5 +1,5 @@
 async_test(t => {
-  assert_precondition(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+  assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
   const observer = new PerformanceObserver(
     t.step_func(entryList => {
        entryList.getEntries().forEach(entry => {

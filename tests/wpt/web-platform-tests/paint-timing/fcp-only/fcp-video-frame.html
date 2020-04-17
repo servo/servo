@@ -9,7 +9,7 @@
 <video id="video" autoplay></video>
 <script>
   promise_test(async t => {
-      assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+      assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
       await new Promise(r => window.addEventListener('load', r));
       await assertNoFirstContentfulPaint(t);
       // Set actual video content to trigger FCP.

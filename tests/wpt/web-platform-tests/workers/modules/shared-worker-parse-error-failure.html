@@ -22,7 +22,7 @@ promise_setup(async () => {
     };
     worker.onerror = () => resolve(false);
   });
-  assert_precondition(
+  assert_implements(
     supportsModuleWorkers,
     "Static import must be supported on module shared worker to run this test."
   );

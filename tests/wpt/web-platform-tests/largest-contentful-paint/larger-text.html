@@ -18,7 +18,7 @@
 <img src='/images/green-2x2.png'/>
 <script>
   async_test(function (t) {
-    assert_precondition(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     let beforeRender;
     const observer = new PerformanceObserver(
       t.step_func(entryList => {

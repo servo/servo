@@ -56,7 +56,7 @@ tasks:
             owner: ${owner}
             source: ${event.repository.clone_url}
           payload:
-            image: harjgam/web-platform-tests:0.33
+            image: hexcles/web-platform-tests:0.35
             maxRunTime: 7200
             artifacts:
               public/results:

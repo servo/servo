@@ -8,7 +8,7 @@
 // completion event.
 
 async_test(t => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   var portal = document.createElement('portal');
   portal.src = "/portals/xfo/resources/xfo-deny.asis";
   portal.onmessage = t.unreached_func("should not have received a message");
@@ -18,7 +18,7 @@ async_test(t => {
 }, "`XFO: DENY` blocks same-origin portals.");
 
 async_test(t => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   var portal = document.createElement('portal');
   portal.src = "http://{{domains[www]}}:{{ports[http][0]}}/portals/xfo/resources/xfo-deny.asis";
   portal.onmessage = t.unreached_func("should not have received a message");
@@ -28,7 +28,7 @@ async_test(t => {
 }, "`XFO: DENY` blocks cross-origin portals.");
 
 async_test(t => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   var portal = document.createElement('portal');
   portal.src = "/portals/xfo/resources/xfo-deny.asis";
   portal.onmessage = t.unreached_func("should not have received a message");

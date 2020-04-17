@@ -18,7 +18,7 @@
     delayCalled = true;
   }
   async_test(function(t) {
-    assert_precondition(window.PerformanceEventTiming, 'Event Timing is not supported.');
+    assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
     const observer = new PerformanceObserver(t.step_func_done((entryList) => {
       const entries = entryList.getEntries().filter(e => e.name === 'mousedown');
       // There must only be one click entry: from the clickAndBlockMain() call.

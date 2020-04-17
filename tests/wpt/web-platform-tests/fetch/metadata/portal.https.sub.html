@@ -12,7 +12,7 @@
 
   function create_test(host, expectations) {
     async_test(t => {
-      assert_precondition("HTMLPortalElement" in window, "Portals are not supported.");
+      assert_implements("HTMLPortalElement" in window, "Portals are not supported.");
 
       let p = document.createElement('portal');
       p.addEventListener('message', t.step_func(e => {

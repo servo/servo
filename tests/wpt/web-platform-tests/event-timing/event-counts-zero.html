@@ -8,7 +8,7 @@
 <script src=/resources/testdriver-vendor.js></script>
 <script>
   test(() => {
-    assert_precondition(window.EventCounts, "Event Counts isn't supported");
+    assert_implements(window.EventCounts, "Event Counts isn't supported");
     const eventTypes = [
         'auxclick',
         'click',

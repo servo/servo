@@ -10,7 +10,7 @@
 <body>
 <script>
 async_test(t => {
-    assert_precondition(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     // First redirect
     let destUrl = '/common/redirect.py?location='
     // Second redirect

@@ -5,7 +5,7 @@
 
 <script>
 async_test(function (t) {
-    assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     window.addEventListener('message', t.step_func(e => {
         assert_equals(e.data, '2 paint first-paint paint first-contentful-paint');
         // When only child frame paints, expect only first-paint.

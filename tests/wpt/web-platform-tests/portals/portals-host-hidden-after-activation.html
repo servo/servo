@@ -19,7 +19,7 @@
   }
 
   promise_test(async () => {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     const portalUrl = encodeURIComponent("portal-host-hidden-after-activation-portal.html");
     window.open(`resources/portal-embed-and-activate.html?url=${portalUrl}`);
     var results = await waitForMessages();

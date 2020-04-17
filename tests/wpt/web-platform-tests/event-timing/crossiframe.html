@@ -48,7 +48,7 @@
   }
 
   promise_test(async t => {
-    assert_precondition(window.PerformanceEventTiming, "Event Timing is not supported");
+    assert_implements(window.PerformanceEventTiming, "Event Timing is not supported");
     clickTimeMin = performance.now();
     let observedEntries = false;
     const observerPromise = new Promise(resolve => {

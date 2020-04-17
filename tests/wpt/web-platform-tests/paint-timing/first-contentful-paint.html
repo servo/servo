@@ -10,7 +10,7 @@
 
 <script>
 async_test(function (t) {
-    assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     const bufferedEntries = performance.getEntriesByType('paint');
     assert_equals(bufferedEntries.length, 0, "No paint entries yet");
     const div = document.createElement("div");

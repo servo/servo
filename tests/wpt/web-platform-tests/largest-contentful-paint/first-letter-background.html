@@ -15,7 +15,7 @@ div {
 <script src="resources/largest-contentful-paint-helpers.js"></script>
 <script>
   async_test(function (t) {
-    assert_precondition(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     let beforeLoad = performance.now();
     let observedFirstLetter = false;
     const observer = new PerformanceObserver(

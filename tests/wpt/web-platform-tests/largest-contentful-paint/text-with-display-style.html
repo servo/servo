@@ -12,7 +12,7 @@
 <h1 id='title'>I am a title!</h1>
 <script>
   async_test(function (t) {
-    assert_precondition(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     let beforeRender;
     /* In this test, we first observe a header with style 'display: flex'.
      * Once observed, we remove it and add a header with style 'display: grid'.

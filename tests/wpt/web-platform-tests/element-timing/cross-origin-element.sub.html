@@ -12,7 +12,7 @@ body {
 <script src="resources/element-timing-helpers.js"></script>
 <script>
   async_test((t) => {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     let img;
     const pathname = 'http://{{domains[www]}}:{{ports[http][1]}}'
           + '/element-timing/resources/square100.png';

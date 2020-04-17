@@ -12,7 +12,7 @@ function timePasses(delay) {
 }
 
 promise_test(async () => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   const w = await openBlankPortalHost();
   try {
     const portal = w.document.createElement('portal');
@@ -30,7 +30,7 @@ promise_test(async () => {
 }, "pagehide and unload should fire if the predecessor is not adopted");
 
 promise_test(async () => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   localStorage.setItem('predecessor-fires-unload-events', '');
   window.open('resources/predecessor-fires-unload-watch-unload.html', '_blank', 'noopener');
   while (localStorage.getItem('predecessor-fires-unload-events') != 'pagehide unload') {

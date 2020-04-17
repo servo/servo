@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Containment Test: Size containment on grid containers with percentages</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-contain-1/#containment-size">
+<meta name="assert" content="Checks that grid containers with size containment and their grid items are sized correctly when the track sizing functions contain percentages.">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.grid {
+  display: grid;
+  contain: size;
+  font: 75px/1 Ahem;
+}
+.min-content {
+  height: min-content;
+  width: min-content;
+}
+.max-content {
+  height: max-content;
+  width: max-content;
+}
+.fixed {
+  height: 100px;
+  width: 100px;
+}
+.percent {
+  grid: 50% / 200%;
+}
+.calc {
+  grid: calc(100px + 50%) / calc(100px + 200%);
+}
+.minmax-percent-fixed {
+  grid: minmax(50%, 100px) / minmax(200%, 100px);
+}
+.minmax-fixed-percent {
+  grid: minmax(100px, 50%) / minmax(100px, 200%);
+}
+.minmax-percent-flex {
+  grid: minmax(50%, 1fr) / minmax(200%, 1fr);
+}
+.minmax-percent-intrinsic {
+  grid: minmax(50%, min-content) / minmax(200%, min-content);
+}
+.minmax-intrinsic-percent {
+  grid: minmax(min-content, 50%) / minmax(min-content, 200%);
+}
+.fit-content {
+  grid: fit-content(50%) / fit-content(200%);
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+
+<div id="log"></div>
+
+<div class="grid percent min-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0"></div>
+</div>
+<div class="grid percent min-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0">XXXX</div>
+</div>
+<div class="grid percent max-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0"></div>
+</div>
+<div class="grid percent max-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0">XXXX</div>
+</div>
+<div class="grid percent fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="50" data-expected-width="200"></div>
+</div>
+<div class="grid percent fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="50" data-expected-width="200">XXXX</div>
+</div>
+
+<div class="grid calc min-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="100" data-expected-width="100"></div>
+</div>
+<div class="grid calc min-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="100" data-expected-width="100">XXXX</div>
+</div>
+<div class="grid calc max-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="100" data-expected-width="100"></div>
+</div>
+<div class="grid calc max-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="100" data-expected-width="100">XXXX</div>
+</div>
+<div class="grid calc fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="150" data-expected-width="300"></div>
+</div>
+<div class="grid calc fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="150" data-expected-width="300">XXXX</div>
+</div>
+
+<div class="grid minmax-percent-fixed min-content" data-expected-height="100" data-expected-width="0">
+  <div data-expected-height="100" data-expected-width="0"></div>
+</div>
+<div class="grid minmax-percent-fixed min-content" data-expected-height="100" data-expected-width="0">
+  <div data-expected-height="100" data-expected-width="0">XXXX</div>
+</div>
+<div class="grid minmax-percent-fixed max-content" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="100" data-expected-width="200"></div>
+</div>
+<div class="grid minmax-percent-fixed max-content" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="100" data-expected-width="200">XXXX</div>
+</div>
+<div class="grid minmax-percent-fixed fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="100" data-expected-width="200"></div>
+</div>
+<div class="grid minmax-percent-fixed fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="100" data-expected-width="200">XXXX</div>
+</div>
+
+<div class="grid minmax-fixed-percent min-content" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="100" data-expected-width="100"></div>
+</div>
+<div class="grid minmax-fixed-percent min-content" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="100" data-expected-width="100">XXXX</div>
+</div>
+<div class="grid minmax-fixed-percent max-content" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="100" data-expected-width="100"></div>
+</div>
+<div class="grid minmax-fixed-percent max-content" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="100" data-expected-width="100">XXXX</div>
+</div>
+<div class="grid minmax-fixed-percent fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="100" data-expected-width="100"></div>
+</div>
+<div class="grid minmax-fixed-percent fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="100" data-expected-width="100">XXXX</div>
+</div>
+
+<div class="grid minmax-percent-flex min-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0"></div>
+</div>
+<div class="grid minmax-percent-flex min-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0">XXXX</div>
+</div>
+<div class="grid minmax-percent-flex max-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0"></div>
+</div>
+<div class="grid minmax-percent-flex max-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0">XXXX</div>
+</div>
+<div class="grid minmax-percent-flex fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="100" data-expected-width="200"></div>
+</div>
+<div class="grid minmax-percent-flex fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="100" data-expected-width="200">XXXX</div>
+</div>
+
+<div class="grid minmax-intrinsic-percent min-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0"></div>
+</div>
+<div class="grid minmax-intrinsic-percent min-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="75" data-expected-width="300">XXXX</div>
+</div>
+<div class="grid minmax-intrinsic-percent max-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0"></div>
+</div>
+<div class="grid minmax-intrinsic-percent max-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="75" data-expected-width="300">XXXX</div>
+</div>
+<div class="grid minmax-intrinsic-percent fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="50" data-expected-width="100"></div>
+</div>
+<div class="grid minmax-intrinsic-percent fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="75" data-expected-width="300">XXXX</div>
+</div>
+
+<div class="grid minmax-percent-intrinsic min-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0"></div>
+</div>
+<div class="grid minmax-percent-intrinsic min-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0">XXXX</div>
+</div>
+<div class="grid minmax-percent-intrinsic max-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0"></div>
+</div>
+<div class="grid minmax-percent-intrinsic max-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0">XXXX</div>
+</div>
+<div class="grid minmax-percent-intrinsic fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="50" data-expected-width="200"></div>
+</div>
+<div class="grid minmax-percent-intrinsic fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="75" data-expected-width="200">XXXX</div>
+</div>
+
+<div class="grid fit-content min-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0"></div>
+</div>
+<div class="grid fit-content min-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="75" data-expected-width="300">XXXX</div>
+</div>
+<div class="grid fit-content max-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="0" data-expected-width="0"></div>
+</div>
+<div class="grid fit-content max-content" data-expected-height="0" data-expected-width="0">
+  <div data-expected-height="75" data-expected-width="300">XXXX</div>
+</div>
+<div class="grid fit-content fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="0" data-expected-width="0"></div>
+</div>
+<div class="grid fit-content fixed" data-expected-height="100" data-expected-width="100">
+  <div data-expected-height="75" data-expected-width="300">XXXX</div>
+</div>
+
+</body>

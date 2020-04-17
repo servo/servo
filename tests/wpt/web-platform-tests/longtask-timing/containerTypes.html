@@ -19,7 +19,7 @@ const Containers = [
 ];
 Containers.forEach(container => {
   promise_test(async t => {
-    assert_precondition(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+    assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
     const initialTime = performance.now();
     return new Promise(resolve => {
       const observer = new PerformanceObserver(t.step_func(entryList => {

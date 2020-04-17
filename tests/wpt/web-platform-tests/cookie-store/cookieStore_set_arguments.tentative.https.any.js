@@ -41,6 +41,22 @@ promise_test(async testCase => {
 }, 'cookieStore.set with name in both positional arguments and options');
 
 promise_test(async testCase => {
+  await promise_rejects_js(testCase, TypeError,
+      cookieStore.set('', 'suspicious-value=resembles-name-and-value'));
+}, "cookieStore.set with empty name and an '=' in value");
+
+promise_test(async testCase => {
+  await cookieStore.delete('cookie-name');
+  cookieStore.set('cookie-name', 'suspicious-value=resembles-name-and-value');
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete('cookie-name');
+  });
+  const cookie = await cookieStore.get('cookie-name');
+  assert_equals(cookie.name, 'cookie-name');
+  assert_equals(cookie.value, 'suspicious-value=resembles-name-and-value');
+}, "cookieStore.set with normal name and an '=' in value");
+
+promise_test(async testCase => {
   await cookieStore.delete('cookie-name');
 
   cookieStore.set('cookie-name', 'cookie-value',

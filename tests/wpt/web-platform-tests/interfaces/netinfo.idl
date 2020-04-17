@@ -36,7 +36,6 @@ interface NetworkInformation : EventTarget {
   readonly attribute Megabit downlinkMax;
   readonly attribute Megabit downlink;
   readonly attribute Millisecond rtt;
-  readonly attribute boolean saveData;
   attribute EventHandler onchange;
 };
 

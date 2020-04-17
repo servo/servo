@@ -5,7 +5,7 @@
 <body>
 <script>
 async_test(t => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   var portal = document.createElement("portal");
   portal.src = "data:text/html,empty portal";
   portal.onload = t.unreached_func("Portal loaded data URL.");
@@ -14,7 +14,7 @@ async_test(t => {
 }, "Tests that a portal can't navigate to a data URL.");
 
 async_test(t => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   var portal = document.createElement("portal");
   portal.src = "about:blank";
   portal.onload = t.unreached_func("Portal loaded about:blank.");
@@ -23,7 +23,7 @@ async_test(t => {
 }, "Tests that a portal can't navigate to about:blank.");
 
 async_test(t => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   var portal = document.createElement("portal");
   portal.src = "resources/simple-portal.html";
   portal.onload = t.step_func(() => {

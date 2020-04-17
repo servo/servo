@@ -7,7 +7,7 @@
 <script src="resources/element-timing-helpers.js"></script>
 <script>
   async_test(t => {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     const beforeRender = performance.now();
     const remote_img = 'http://{{domains[www]}}:{{ports[http][1]}}/element-timing/resources/TAOImage.py?'
         + 'origin=' + window.location.origin +'&tao=';

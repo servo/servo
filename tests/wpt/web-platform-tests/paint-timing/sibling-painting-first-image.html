@@ -6,7 +6,7 @@
 <iframe id="listening-iframe" src="resources/subframe-sending-paint.html"></iframe>
 <script>
 async_test(function (t) {
-    assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     let paintingIframeHasDispatchedEntries = false;
     window.addEventListener('message', t.step_func(e => {
         if (!paintingIframeHasDispatchedEntries) {

@@ -1,5 +1,4 @@
 import os
-import sys
 
 import mock
 
@@ -109,7 +108,7 @@ def manifest_tree(draw):
 
 @h.given(manifest_tree())
 # FIXME: Workaround for https://github.com/web-platform-tests/wpt/issues/22758
-@h.settings(suppress_health_check=(h.HealthCheck.too_slow,) if sys.version_info.major == 3 else ())
+@h.settings(suppress_health_check=(h.HealthCheck.too_slow,))
 @h.example([SourceFileWithTest("a", "0"*40, item.ConformanceCheckerTest)])
 def test_manifest_to_json(s):
     m = manifest.Manifest()
@@ -126,7 +125,7 @@ def test_manifest_to_json(s):
 
 @h.given(manifest_tree())
 # FIXME: Workaround for https://github.com/web-platform-tests/wpt/issues/22758
-@h.settings(suppress_health_check=(h.HealthCheck.too_slow,) if sys.version_info.major == 3 else ())
+@h.settings(suppress_health_check=(h.HealthCheck.too_slow,))
 @h.example([SourceFileWithTest("a", "0"*40, item.TestharnessTest)])
 @h.example([SourceFileWithTest("a", "0"*40, item.RefTest, references=[("/aa", "==")])])
 def test_manifest_idempotent(s):

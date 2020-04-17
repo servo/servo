@@ -21,7 +21,7 @@
   let timeAfterSecondClick;
   let observedEntries = [];
   async_test(function(t) {
-    assert_precondition(window.PerformanceEventTiming, 'Event Timing is not supported.');
+    assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
     new PerformanceObserver(t.step_func(entryList => {
       observedEntries = observedEntries.concat(entryList.getEntries().filter(
         entry => entry.name === 'mousedown'));

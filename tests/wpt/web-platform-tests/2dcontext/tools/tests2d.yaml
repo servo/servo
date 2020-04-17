@@ -8646,6 +8646,27 @@
     @assert ctx.isPointInPath(NaN, NaN) === false;
 
 
+- name: 2d.path.isPointInStroke.scaleddashes
+  desc: isPointInStroke() should return correct results on dashed paths at high scale factors
+  testing:
+    - 2d.path.isPointInStroke
+  code: |
+    var scale = 20;
+    ctx.setLineDash([10, 21.4159]); // dash from t=0 to t=10 along the circle
+    ctx.scale(scale, scale);
+    ctx.ellipse(6, 10, 5, 5, 0, 2*Math.PI, false);
+    ctx.stroke();
+
+    // hit-test the beginning of the dash (t=0)
+    @assert ctx.isPointInStroke(11*scale, 10*scale) === true;
+    // hit-test the middle of the dash (t=5)
+    @assert ctx.isPointInStroke(8.70*scale, 14.21*scale) === true;
+    // hit-test the end of the dash (t=9.8)
+    @assert ctx.isPointInStroke(4.10*scale, 14.63*scale) === true;
+    // hit-test past the end of the dash (t=10.2)
+    @assert ctx.isPointInStroke(3.74*scale, 14.46*scale) === false;
+
+
 - name: 2d.drawImage.3arg
   testing:
     - 2d.drawImage.defaultsource

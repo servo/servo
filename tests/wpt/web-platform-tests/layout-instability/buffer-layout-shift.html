@@ -11,7 +11,7 @@
 <script src="resources/util.js"></script>
 <script>
 promise_test(async t => {
-  assert_precondition(window.LayoutShift, 'Layout Instability is not supported.');
+  assert_implements(window.LayoutShift, 'Layout Instability is not supported.');
   // Wait for the initial render to complete.
   await waitForAnimationFrames(2);
 

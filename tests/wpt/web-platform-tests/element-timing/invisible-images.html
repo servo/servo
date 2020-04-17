@@ -16,7 +16,7 @@
 </style>
 <script>
   async_test(function (t) {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     const observer = new PerformanceObserver(
       t.step_func_done((entries) => {
         // The image should not have caused an entry, so fail test.

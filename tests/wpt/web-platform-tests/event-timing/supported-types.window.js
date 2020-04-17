@@ -1,6 +1,6 @@
 test(() => {
-  assert_precondition(window.PerformanceEventTiming, 'Event Timing is not supported.');
-  assert_precondition(typeof PerformanceObserver.supportedEntryTypes !== "undefined",
+  assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+  assert_implements(typeof PerformanceObserver.supportedEntryTypes !== "undefined",
       'supportedEntryTypes is not supported');
   const types = PerformanceObserver.supportedEntryTypes;
   assert_true(types.includes("first-input"),

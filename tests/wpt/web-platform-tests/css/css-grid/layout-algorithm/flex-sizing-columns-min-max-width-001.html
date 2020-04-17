@@ -1,0 +1,94 @@
+<!DOCTYPE HTML>
+<title>CSS Grid Layout Test: min and max size when computing the flex fraction</title>
+<link rel="author" title="Sergio Villar" href="mailto:svillar@igalia.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid/#algo-flex-tracks"/>
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=660690"/>
+<link href="/css/support/grid.css" rel="stylesheet"/>
+<link href="/css/support/width-keyword-classes.css" rel="stylesheet">
+<meta name="assert" content="This test ensures that minimum and maximum sizes are used to compute the flex fraction for indefinite free spaces."/>
+<style>
+.grid {
+   margin: 3px;
+   grid: 50px / minmax(10px, 1fr) minmax(10px, 4fr);
+   grid-column-gap: 33px;
+   border: 5px dashed;
+   padding: 2px;
+}
+
+.float { float: left; }
+
+.item:nth-child(1) { background-color: purple; }
+.item:nth-child(2) { background-color: blue; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+
+<p>This test PASS if all the grids in the same row look the same.</p>
+
+<div class="grid float" style="max-width: 70px" data-expected-height="64" data-expected-width="84">
+    <div class="item" data-expected-height="50" data-expected-width="10"></div>
+    <div class="item" data-expected-height="50" data-expected-width="27"></div>
+</div>
+<div class="grid float" style="min-width: 70px; max-width: 60px" data-expected-height="64" data-expected-width="84">
+    <div class="item" data-expected-height="50" data-expected-width="10"></div>
+    <div class="item" data-expected-height="50" data-expected-width="27"></div>
+</div>
+<div class="grid float" style="width: 70px" data-expected-height="64" data-expected-width="84">
+    <div class="item" data-expected-height="50" data-expected-width="10"></div>
+    <div class="item" data-expected-height="50" data-expected-width="27"></div>
+</div>
+
+<br clear="all">
+
+<div class="grid float" style="min-width: 108px" data-expected-height="64" data-expected-width="122">
+    <div class="item" data-expected-height="50" data-expected-width="15"></div>
+    <div class="item" data-expected-height="50" data-expected-width="60"></div>
+</div>
+<div class="grid float" style="min-width: 108px; max-width: 60px" data-expected-height="64" data-expected-width="122">
+    <div class="item" data-expected-height="50" data-expected-width="15"></div>
+    <div class="item" data-expected-height="50" data-expected-width="60"></div>
+</div>
+<div class="grid float" style="width: 108px" data-expected-height="64" data-expected-width="122">
+    <div class="item" data-expected-height="50" data-expected-width="15"></div>
+    <div class="item" data-expected-height="50" data-expected-width="60"></div>
+</div>
+
+<br clear="all">
+
+<div class="grid float min-width-max-content" data-expected-height="64" data-expected-width="97">
+    <div class="item" data-expected-height="50" data-expected-width="10"></div>
+    <div class="item" data-expected-height="50" data-expected-width="40"></div>
+</div>
+<div class="grid float min-width-max-content max-width-min-content" data-expected-height="64" data-expected-width="97">
+    <div class="item" data-expected-height="50" data-expected-width="10"></div>
+    <div class="item" data-expected-height="50" data-expected-width="40"></div>
+</div>
+<div class="grid float max-content" data-expected-height="64" data-expected-width="97">
+    <div class="item" data-expected-height="50" data-expected-width="10"></div>
+    <div class="item" data-expected-height="50" data-expected-width="40"></div>
+</div>
+
+<br clear="all">
+
+<div class="float min-content">
+    <div class="grid min-width-max-content" data-expected-height="64" data-expected-width="97">
+        <div class="item" data-expected-height="50" data-expected-width="10"></div>
+        <div class="item" data-expected-height="50" data-expected-width="40"></div>
+    </div>
+</div>
+<div class="float max-content">
+    <div class="grid min-width-max-content max-width-min-content" data-expected-height="64" data-expected-width="97">
+        <div class="item" data-expected-height="50" data-expected-width="10"></div>
+        <div class="item" data-expected-height="50" data-expected-width="40"></div>
+    </div>
+</div>
+<div class="float fit-content">
+    <div class="grid max-content" data-expected-height="64" data-expected-width="97">
+        <div class="item" data-expected-height="50" data-expected-width="10"></div>
+        <div class="item" data-expected-height="50" data-expected-width="40"></div>
+    </div>
+</div>
+
+</body>

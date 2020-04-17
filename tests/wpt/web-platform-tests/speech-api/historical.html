@@ -18,7 +18,7 @@
 });
 
 test(() => {
-  assert_precondition('SpeechRecognition' in window, 'SpeechRecognition exposed');
+  assert_implements('SpeechRecognition' in window, 'SpeechRecognition exposed');
   assert_false("serviceURI" in SpeechRecognition.prototype);
 }, "SpeechRecognition's serviceURI attribute should not exist");
 
@@ -27,7 +27,7 @@ test(() => {
   "emma",
 ].forEach(name => {
   test(() => {
-    assert_precondition('SpeechRecognitionEvent' in window, 'SpeechRecognitionEvent exposed');
+    assert_implements('SpeechRecognitionEvent' in window, 'SpeechRecognitionEvent exposed');
     assert_false(name in SpeechRecognitionEvent.prototype);
   }, `SpeechRecognitionEvent's ${name} attribute should not exist`);
 });

@@ -13,7 +13,7 @@ function nextMessage(target) {
 }
 
 async function openPortalAndActivate(logic, activateOptions, testWindow) {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   const w = testWindow || await openBlankPortalHost();
   try {
     const portal = w.document.createElement('portal');

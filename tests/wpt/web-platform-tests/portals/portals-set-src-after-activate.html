@@ -10,7 +10,7 @@ function nextMessage(target) {
 }
 
 promise_test(async () => {
-  assert_precondition("HTMLPortalElement" in self);
+  assert_implements("HTMLPortalElement" in self);
   const w = await openBlankPortalHost();
   try {
     const portal = w.document.createElement('portal');

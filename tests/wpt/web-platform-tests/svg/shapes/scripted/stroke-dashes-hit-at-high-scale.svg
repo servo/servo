@@ -1,0 +1,27 @@
+<svg id="svg" xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" viewBox="0 0 36 36" width="600" height="600">
+  <title>Strokes w/dashes are properly hit-tested, even at large scale factors</title>
+  <h:script src="/resources/testharness.js"/>
+  <h:script src="/resources/testharnessreport.js"/>
+  <metadata>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/shapes.html#CircleElement"/>
+    <h:link rel="help" href="https://svgwg.org/svg2-draft/painting.html#StrokeProperties"/>
+  </metadata>
+  <circle id="circle" cx="6" cy="10" r="5" stroke="blue" stroke-width="1" stroke-dasharray="10 21.4159" fill="none"/>
+  <script>
+  <![CDATA[
+    test(function() {
+      let svg = document.getElementById("svg");
+      let circle = document.getElementById("circle");
+      let hitTest = function(x, y) {
+        return document.elementFromPoint(
+                x * svg.width.baseVal.value / svg.viewBox.baseVal.width,
+                y * svg.height.baseVal.value / svg.viewBox.baseVal.height);
+      }
+      assert_equals(hitTest(11, 10), circle, "hit-test the beginning of the dash (t=0)");
+      assert_equals(hitTest(8.70, 14.21), circle, "hit-test the middle of the dash (t=5)");
+      assert_equals(hitTest(4.10, 14.63), circle, "hit-test the end of the dash (t=9.8)");
+      assert_equals(hitTest(3.74, 14.46), svg, "hit-test past the end of the dash (t=10.2)");
+    });
+  ]]>
+  </script>
+</svg>

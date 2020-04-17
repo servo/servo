@@ -15,7 +15,7 @@ p {
 <script src="resources/element-timing-helpers.js"></script>
 <script>
   async_test((t) => {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     let paragraph;
     let beforeRender;
     const observer = new PerformanceObserver(

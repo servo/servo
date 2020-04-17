@@ -21,7 +21,7 @@ window.onload = function() {
   history.replaceState({}, "", current_url);
 }
 async_test(function(t) {
-  assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+  assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
   function testPaintEntries() {
       const bufferedEntries = performance.getEntriesByType('paint');
       if (bufferedEntries.length < 2) {

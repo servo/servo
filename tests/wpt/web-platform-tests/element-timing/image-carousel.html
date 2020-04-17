@@ -26,7 +26,7 @@ body {
 
 <script>
   async_test(function (t) {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     const beforeRenderTimes = [];
     let entry_count = 0;
     const entry_count_per_element = [0, 0];

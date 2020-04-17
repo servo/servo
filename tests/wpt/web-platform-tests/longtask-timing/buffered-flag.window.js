@@ -1,5 +1,5 @@
 async_test(t => {
-    assert_precondition(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
+    assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
     new PerformanceObserver(t.step_func((entryList, obs) => {
         const observer = new PerformanceObserver(t.step_func_done(list => {
             let longtaskObserved = false;

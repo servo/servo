@@ -8,7 +8,7 @@
 <img src='/images/blue.png' id='image_id'/>
 <script>
   async_test(function (t) {
-    assert_precondition(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     let beforeLoad = performance.now();
     let firstCallback = true;
     const observer = new PerformanceObserver(

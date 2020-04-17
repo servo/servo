@@ -7,7 +7,7 @@
 <p>Text!</p>
 <script>
   async_test(function (t) {
-    assert_precondition(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     const observer = new PerformanceObserver(
       t.step_func_done(function(entryList) {
         const entry = entryList.getEntries()[0];

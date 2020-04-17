@@ -36,7 +36,7 @@ async function test_fcp(label) {
   const style = document.createElement('style');
   document.head.appendChild(style);
   await promise_test(async t => {
-    assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     const main = document.getElementById('main');
     await new Promise(r => window.addEventListener('load', r));
     await assertNoFirstContentfulPaint(t);

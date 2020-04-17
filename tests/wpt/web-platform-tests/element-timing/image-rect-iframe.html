@@ -11,7 +11,7 @@ body {
 <script src="/resources/testharnessreport.js"></script>
 <script>
   async_test((t) => {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     on_event(window, 'message', e => {
       assert_equals(e.data.length, 1);
       assert_equals(e.data.entryType, 'element');

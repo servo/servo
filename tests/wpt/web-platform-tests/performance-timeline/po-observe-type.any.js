@@ -1,5 +1,15 @@
 // META: script=performanceobservers.js
 
+test(function () {
+  const obs = new PerformanceObserver(() => {});
+  assert_throws_js(TypeError, function () {
+    obs.observe({});
+  });
+  assert_throws_js(TypeError, function () {
+    obs.observe({entryType: ['mark', 'measure']});
+  });
+}, "Calling observe() without 'type' or 'entryTypes' throws a TypeError");
+
 test(() => {
   const obs = new PerformanceObserver(() =>{});
   obs.observe({entryTypes: ["mark"]});
@@ -18,10 +28,10 @@ test(() => {
 
 test(() => {
   const obs = new PerformanceObserver(() =>{});
-  assert_throws_dom("SyntaxError", function () {
+  assert_throws_js(TypeError, function () {
     obs.observe({type: "mark", entryTypes: ["measure"]});
   });
-}, "Calling observe() with type and entryTypes should throw a SyntaxError");
+}, "Calling observe() with type and entryTypes should throw a TypeError");
 
 test(function () {
   const obs = new PerformanceObserver(() =>{});

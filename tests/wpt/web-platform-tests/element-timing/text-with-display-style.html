@@ -21,7 +21,7 @@ h3 {
 <h3 id='title3' elementtiming='h3'>I am h3</h3>
 <script>
   async_test(function (t) {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     const beforeRender = performance.now();
     let observedFlex = false;
     let observedGrid = false;

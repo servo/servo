@@ -7,7 +7,7 @@
 <script>
 let beforeRender;
 async_test(function (t) {
-  assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+  assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
   let observedImage = false;
   let observedText = false;
   const observer = new PerformanceObserver(

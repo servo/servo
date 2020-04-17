@@ -4,7 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
   async_test(function(t) {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     let test = "eventlistener";
     var bc = new BroadcastChannel(`test-${test}`);
     bc.onmessage = t.step_func_done(function(e) {
@@ -16,7 +16,7 @@
   }, "Tests that the PortalActivateEvent is dispatched when a portal is activated.");
 
   async_test(function(t) {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     let test = "eventhandler";
     var bc = new BroadcastChannel(`test-${test}`);
     bc.onmessage = t.step_func_done(function(e) {
@@ -28,7 +28,7 @@
   }, "Tests that the portalactivate event handler is dispatched when a portal is activated.");
 
   async_test(function(t) {
-    assert_precondition("HTMLPortalElement" in self);
+    assert_implements("HTMLPortalElement" in self);
     let test = "bodyeventhandler";
     var bc = new BroadcastChannel(`test-${test}`);
     bc.onmessage = t.step_func_done(function(e) {

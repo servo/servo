@@ -17,7 +17,7 @@
     }
 
     async function createPortalAndLoopMessage(portalSrc, params) {
-      assert_precondition("HTMLPortalElement" in self);
+      assert_implements("HTMLPortalElement" in self);
       var portal = await createPortal(portalSrc);
       var waitForResponse = new Promise((resolve, reject) => {
         portal.addEventListener("message", e => { resolve(e); });
@@ -73,7 +73,7 @@
     }, "postMessage with object message");
 
     promise_test(async () => {
-      assert_precondition("HTMLPortalElement" in self);
+      assert_implements("HTMLPortalElement" in self);
       function checkPort(port) {
         return new Promise((resolve, reject) => {
           var channel = new MessageChannel();
@@ -138,7 +138,7 @@
     }, "postMessage with invalid transferable should throw error");
 
     promise_test(async () => {
-      assert_precondition("HTMLPortalElement" in self);
+      assert_implements("HTMLPortalElement" in self);
        var receiveMessage = new Promise((resolve, reject) => {
          var bc = new BroadcastChannel("portal-host-post-message-after-activate");
          bc.onmessage = e => { resolve(e); };
@@ -151,7 +151,7 @@
     }, "Calling postMessage after receiving onactivate event should fail");
 
     promise_test(() => {
-      assert_precondition("HTMLPortalElement" in self);
+      assert_implements("HTMLPortalElement" in self);
       var portal = document.createElement("portal");
       portal.src = "resources/portal-host-post-message-navigate-1.html";
       var count = 0;

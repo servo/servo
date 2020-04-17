@@ -1,5 +1,5 @@
 async_test(t => {
-  assert_precondition(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+  assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
   // First observer creates second in callback to ensure the entry has been dispatched by the time
   // the second observer begins observing.
   let entries_seen = 0;

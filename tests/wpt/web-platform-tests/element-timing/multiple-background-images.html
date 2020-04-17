@@ -18,7 +18,7 @@ body {
 <script>
   let beforeRender = performance.now();
   async_test(function (t) {
-    assert_precondition(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
+    assert_implements(window.PerformanceElementTiming, "PerformanceElementTiming is not implemented");
     let numObservedElements = 0;
     let observedCircle = false;
     let observedSquare = false;

@@ -29,6 +29,24 @@ async_test(function(t) {
 
 }, 'Test we can register a video.rVFC callback.');
 
+async_test(function(t) {
+    let video = document.createElement('video');
+
+    video.requestVideoFrameCallback(
+      t.step_func(video_now => {
+        // Queue a call to window.rAF, and make sure it is executed within the
+        // same turn of the event loop (with the same 'time' parameter).
+        window.requestAnimationFrame( t.step_func_done( window_now => {
+          assert_equals(video_now, window_now);
+        }));
+      })
+    );
+
+    video.src = testVideo.url;
+    video.play();
+
+}, 'Test video.rVFC callbacks run before window.rAF callbacks.');
+
 
 async_test(function(t) {
     let video = document.createElement('video');
