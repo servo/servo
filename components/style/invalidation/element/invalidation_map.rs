@@ -13,7 +13,7 @@ use fallible::FallibleVec;
 use hashglobe::FailedAllocationError;
 use selectors::attr::NamespaceConstraint;
 use selectors::parser::{Combinator, Component};
-use selectors::parser::{Selector, SelectorIter, Visit};
+use selectors::parser::{Selector, SelectorIter};
 use selectors::visitor::SelectorVisitor;
 use smallvec::SmallVec;
 
@@ -322,6 +322,17 @@ impl InvalidationMap {
 }
 
 /// A struct that collects invalidations for a given compound selector.
+///
+/// FIXME(emilio, bug 1509418): :where is mishandled, figure out the right way
+/// to do invalidation for :where when combinators are inside.
+///
+/// Simplest feasible idea seems to be: For each :where branch, if there are
+/// combinators in the branch, treat as its own selector (basically, call
+/// `.note_selector` with the nested selector). That may over-invalidate, but
+/// not too much. If there are no combinators, then behave like we do today and
+/// use the outer selector as a whole. If we care a lot about that potential
+/// over-invalidation where combinators are present then we need more complex
+/// data-structures in `Dependency`.
 struct CompoundSelectorDependencyCollector<'a> {
     /// The state this compound selector is affected by.
     state: ElementState,

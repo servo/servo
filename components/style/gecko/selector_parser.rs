@@ -15,7 +15,7 @@ use crate::values::serialize_atom_identifier;
 use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
 use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
 use selectors::parser::{self as selector_parser, Selector};
-use selectors::parser::{SelectorParseErrorKind, Visit};
+use selectors::parser::SelectorParseErrorKind;
 use selectors::visitor::SelectorVisitor;
 use selectors::SelectorList;
 use std::fmt;
@@ -106,25 +106,6 @@ impl ToCss for NonTSPseudoClass {
         }
         let ser = apply_non_ts_list!(pseudo_class_serialize);
         dest.write_str(ser)
-    }
-}
-
-impl Visit for NonTSPseudoClass {
-    type Impl = SelectorImpl;
-
-    fn visit<V>(&self, visitor: &mut V) -> bool
-    where
-        V: SelectorVisitor<Impl = Self::Impl>,
-    {
-        if let NonTSPseudoClass::MozAny(ref selectors) = *self {
-            for selector in selectors.iter() {
-                if !selector.visit(visitor) {
-                    return false;
-                }
-            }
-        }
-
-        true
     }
 }
 
@@ -280,6 +261,21 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
     fn has_zero_specificity(&self) -> bool {
         matches!(*self, NonTSPseudoClass::MozNativeAnonymousNoSpecificity)
     }
+
+    fn visit<V>(&self, visitor: &mut V) -> bool
+    where
+        V: SelectorVisitor<Impl = Self::Impl>,
+    {
+        if let NonTSPseudoClass::MozAny(ref selectors) = *self {
+            for selector in selectors.iter() {
+                if !selector.visit(visitor) {
+                    return false;
+                }
+            }
+        }
+
+        true
+    }
 }
 
 /// The dummy struct we use to implement our selector parsing.
@@ -352,6 +348,11 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     #[inline]
     fn parse_host(&self) -> bool {
         true
+    }
+
+    #[inline]
+    fn parse_is_and_where(&self) -> bool {
+        static_prefs::pref!("layout.css.is-where-selectors.enabled")
     }
 
     #[inline]

@@ -7,13 +7,13 @@
 #![deny(missing_docs)]
 
 use crate::attr::NamespaceConstraint;
-use crate::parser::{Combinator, Component, SelectorImpl};
+use crate::parser::{Combinator, Component, Selector, SelectorImpl};
 
 /// A trait to visit selector properties.
 ///
 /// All the `visit_foo` methods return a boolean indicating whether the
 /// traversal should continue or not.
-pub trait SelectorVisitor {
+pub trait SelectorVisitor: Sized {
     /// The selector implementation this visitor wants to visit.
     type Impl: SelectorImpl;
 
@@ -34,6 +34,19 @@ pub trait SelectorVisitor {
         true
     }
 
+    /// Visit a nested selector list. The caller is responsible to call visit
+    /// into the internal selectors if / as needed.
+    ///
+    /// The default implementation does this.
+    fn visit_selector_list(&mut self, list: &[Selector<Self::Impl>]) -> bool {
+        for nested in list {
+            if !nested.visit(self) {
+                return false;
+            }
+        }
+        true
+    }
+
     /// Visits a complex selector.
     ///
     /// Gets the combinator to the right of the selector, or `None` if the
@@ -41,32 +54,4 @@ pub trait SelectorVisitor {
     fn visit_complex_selector(&mut self, _combinator_to_right: Option<Combinator>) -> bool {
         true
     }
-}
-
-/// Enables traversing selector components stored in various types
-pub trait Visit {
-    /// The type parameter of selector component types.
-    type Impl: SelectorImpl;
-
-    /// Traverse selector components inside `self`.
-    ///
-    /// Implementations of this method should call `SelectorVisitor` methods
-    /// or other impls of `Visit` as appropriate based on the fields of `Self`.
-    ///
-    /// A return value of `false` indicates terminating the traversal.
-    /// It should be propagated with an early return.
-    /// On the contrary, `true` indicates that all fields of `self` have been traversed:
-    ///
-    /// ```rust,ignore
-    /// if !visitor.visit_simple_selector(&self.some_simple_selector) {
-    ///     return false;
-    /// }
-    /// if !self.some_component.visit(visitor) {
-    ///     return false;
-    /// }
-    /// true
-    /// ```
-    fn visit<V>(&self, visitor: &mut V) -> bool
-    where
-        V: SelectorVisitor<Impl = Self::Impl>;
 }

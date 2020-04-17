@@ -9,7 +9,7 @@ use crate::bloom::BLOOM_HASH_MASK;
 use crate::builder::{SelectorBuilder, SelectorFlags, SpecificityAndFlags};
 use crate::context::QuirksMode;
 use crate::sink::Push;
-pub use crate::visitor::{SelectorVisitor, Visit};
+pub use crate::visitor::SelectorVisitor;
 use cssparser::{parse_nth, serialize_identifier};
 use cssparser::{BasicParseError, BasicParseErrorKind, ParseError, ParseErrorKind};
 use cssparser::{CowRcStr, Delimiter, SourceLocation};
@@ -55,6 +55,13 @@ pub trait NonTSPseudoClass: Sized + ToCss {
 
     /// Whether this pseudo-class has zero specificity.
     fn has_zero_specificity(&self) -> bool;
+
+    fn visit<V>(&self, _visitor: &mut V) -> bool
+    where
+        V: SelectorVisitor<Impl = Self::Impl>,
+    {
+        true
+    }
 }
 
 /// Returns a Cow::Borrowed if `s` is already ASCII lowercase, and a
@@ -147,6 +154,7 @@ pub enum SelectorParseErrorKind<'i> {
     NonCompoundSelector,
     NonPseudoElementAfterSlotted,
     InvalidPseudoElementAfterSlotted,
+    InvalidPseudoElementInsideWhere,
     InvalidState,
     UnexpectedTokenInAttributeSelector(Token<'i>),
     PseudoElementExpectedColon(Token<'i>),
@@ -223,6 +231,11 @@ pub trait Parser<'i> {
 
     /// Whether to parse the `::part()` pseudo-element.
     fn parse_part(&self) -> bool {
+        false
+    }
+
+    /// Whether to parse the `:where` pseudo-class.
+    fn parse_is_and_where(&self) -> bool {
         false
     }
 
@@ -438,128 +451,6 @@ impl AncestorHashes {
         ((self.packed_hashes[0] & 0xff000000) >> 24) |
             ((self.packed_hashes[1] & 0xff000000) >> 16) |
             ((self.packed_hashes[2] & 0xff000000) >> 8)
-    }
-}
-
-impl<Impl: SelectorImpl> Visit for Selector<Impl>
-where
-    Impl::NonTSPseudoClass: Visit<Impl = Impl>,
-{
-    type Impl = Impl;
-
-    fn visit<V>(&self, visitor: &mut V) -> bool
-    where
-        V: SelectorVisitor<Impl = Impl>,
-    {
-        let mut current = self.iter();
-        let mut combinator = None;
-        loop {
-            if !visitor.visit_complex_selector(combinator) {
-                return false;
-            }
-
-            for selector in &mut current {
-                if !selector.visit(visitor) {
-                    return false;
-                }
-            }
-
-            combinator = current.next_sequence();
-            if combinator.is_none() {
-                break;
-            }
-        }
-
-        true
-    }
-}
-
-impl<Impl: SelectorImpl> Visit for Component<Impl>
-where
-    Impl::NonTSPseudoClass: Visit<Impl = Impl>,
-{
-    type Impl = Impl;
-
-    fn visit<V>(&self, visitor: &mut V) -> bool
-    where
-        V: SelectorVisitor<Impl = Impl>,
-    {
-        use self::Component::*;
-        if !visitor.visit_simple_selector(self) {
-            return false;
-        }
-
-        match *self {
-            Slotted(ref selector) => {
-                if !selector.visit(visitor) {
-                    return false;
-                }
-            },
-            Host(Some(ref selector)) => {
-                if !selector.visit(visitor) {
-                    return false;
-                }
-            },
-            Negation(ref negated) => {
-                for component in negated.iter() {
-                    if !component.visit(visitor) {
-                        return false;
-                    }
-                }
-            },
-
-            AttributeInNoNamespaceExists {
-                ref local_name,
-                ref local_name_lower,
-            } => {
-                if !visitor.visit_attribute_selector(
-                    &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
-                    local_name,
-                    local_name_lower,
-                ) {
-                    return false;
-                }
-            },
-            AttributeInNoNamespace {
-                ref local_name,
-                never_matches,
-                ..
-            } if !never_matches => {
-                if !visitor.visit_attribute_selector(
-                    &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
-                    local_name,
-                    local_name,
-                ) {
-                    return false;
-                }
-            },
-            AttributeOther(ref attr_selector) if !attr_selector.never_matches => {
-                let empty_string;
-                let namespace = match attr_selector.namespace() {
-                    Some(ns) => ns,
-                    None => {
-                        empty_string = crate::parser::namespace_empty_string::<Impl>();
-                        NamespaceConstraint::Specific(&empty_string)
-                    },
-                };
-                if !visitor.visit_attribute_selector(
-                    &namespace,
-                    &attr_selector.local_name,
-                    &attr_selector.local_name_lower,
-                ) {
-                    return false;
-                }
-            },
-
-            NonTSPseudoClass(ref pseudo_class) => {
-                if !pseudo_class.visit(visitor) {
-                    return false;
-                }
-            },
-            _ => {},
-        }
-
-        true
     }
 }
 
@@ -780,6 +671,50 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     /// Returns the address on the heap of the ThinArc for memory reporting.
     pub fn thin_arc_heap_ptr(&self) -> *const ::std::os::raw::c_void {
         self.0.heap_ptr()
+    }
+
+    /// Traverse selector components inside `self`.
+    ///
+    /// Implementations of this method should call `SelectorVisitor` methods
+    /// or other impls of `Visit` as appropriate based on the fields of `Self`.
+    ///
+    /// A return value of `false` indicates terminating the traversal.
+    /// It should be propagated with an early return.
+    /// On the contrary, `true` indicates that all fields of `self` have been traversed:
+    ///
+    /// ```rust,ignore
+    /// if !visitor.visit_simple_selector(&self.some_simple_selector) {
+    ///     return false;
+    /// }
+    /// if !self.some_component.visit(visitor) {
+    ///     return false;
+    /// }
+    /// true
+    /// ```
+    pub fn visit<V>(&self, visitor: &mut V) -> bool
+    where
+        V: SelectorVisitor<Impl = Impl>,
+    {
+        let mut current = self.iter();
+        let mut combinator = None;
+        loop {
+            if !visitor.visit_complex_selector(combinator) {
+                return false;
+            }
+
+            for selector in &mut current {
+                if !selector.visit(visitor) {
+                    return false;
+                }
+            }
+
+            combinator = current.next_sequence();
+            if combinator.is_none() {
+                break;
+            }
+        }
+
+        true
     }
 }
 
@@ -1027,6 +962,20 @@ pub enum Component<Impl: SelectorImpl> {
     ///
     /// See https://github.com/w3c/csswg-drafts/issues/2158
     Host(Option<Selector<Impl>>),
+    /// The `:where` pseudo-class.
+    ///
+    /// https://drafts.csswg.org/selectors/#zero-matches
+    ///
+    /// The inner argument is conceptually a SelectorList, but we move the
+    /// selectors to the heap to keep Component small.
+    Where(Box<[Selector<Impl>]>),
+    /// The `:is` pseudo-class.
+    ///
+    /// https://drafts.csswg.org/selectors/#matches-pseudo
+    ///
+    /// Same comment as above re. the argument.
+    Is(Box<[Selector<Impl>]>),
+    /// An implementation-dependent pseudo-element selector.
     PseudoElement(#[shmem(field_bound)] Impl::PseudoElement),
 }
 
@@ -1080,6 +1029,94 @@ impl<Impl: SelectorImpl> Component<Impl> {
             _ => None,
         }
     }
+
+    pub fn visit<V>(&self, visitor: &mut V) -> bool
+    where
+        V: SelectorVisitor<Impl = Impl>,
+    {
+        use self::Component::*;
+        if !visitor.visit_simple_selector(self) {
+            return false;
+        }
+
+        match *self {
+            Slotted(ref selector) => {
+                if !selector.visit(visitor) {
+                    return false;
+                }
+            },
+            Host(Some(ref selector)) => {
+                if !selector.visit(visitor) {
+                    return false;
+                }
+            },
+            Negation(ref negated) => {
+                for component in negated.iter() {
+                    if !component.visit(visitor) {
+                        return false;
+                    }
+                }
+            },
+
+            AttributeInNoNamespaceExists {
+                ref local_name,
+                ref local_name_lower,
+            } => {
+                if !visitor.visit_attribute_selector(
+                    &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
+                    local_name,
+                    local_name_lower,
+                ) {
+                    return false;
+                }
+            },
+            AttributeInNoNamespace {
+                ref local_name,
+                never_matches,
+                ..
+            } if !never_matches => {
+                if !visitor.visit_attribute_selector(
+                    &NamespaceConstraint::Specific(&namespace_empty_string::<Impl>()),
+                    local_name,
+                    local_name,
+                ) {
+                    return false;
+                }
+            },
+            AttributeOther(ref attr_selector) if !attr_selector.never_matches => {
+                let empty_string;
+                let namespace = match attr_selector.namespace() {
+                    Some(ns) => ns,
+                    None => {
+                        empty_string = crate::parser::namespace_empty_string::<Impl>();
+                        NamespaceConstraint::Specific(&empty_string)
+                    },
+                };
+                if !visitor.visit_attribute_selector(
+                    &namespace,
+                    &attr_selector.local_name,
+                    &attr_selector.local_name_lower,
+                ) {
+                    return false;
+                }
+            },
+
+            NonTSPseudoClass(ref pseudo_class) => {
+                if !pseudo_class.visit(visitor) {
+                    return false;
+                }
+            },
+
+            Is(ref list) | Where(ref list) => {
+                if !visitor.visit_selector_list(&list) {
+                    return false;
+                }
+            },
+            _ => {},
+        }
+
+        true
+    }
 }
 
 #[derive(Clone, Eq, PartialEq, ToShmem)]
@@ -1114,21 +1151,29 @@ impl<Impl: SelectorImpl> Debug for LocalName<Impl> {
     }
 }
 
+fn serialize_selector_list<'a, Impl, I, W>(mut iter: I, dest: &mut W) -> fmt::Result
+where
+    Impl: SelectorImpl,
+    I: Iterator<Item = &'a Selector<Impl>>,
+    W: fmt::Write,
+{
+    let first = iter
+        .next()
+        .expect("Empty SelectorList, should contain at least one selector");
+    first.to_css(dest)?;
+    for selector in iter {
+        dest.write_str(", ")?;
+        selector.to_css(dest)?;
+    }
+    Ok(())
+}
+
 impl<Impl: SelectorImpl> ToCss for SelectorList<Impl> {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
     where
         W: fmt::Write,
     {
-        let mut iter = self.0.iter();
-        let first = iter
-            .next()
-            .expect("Empty SelectorList, should contain at least one selector");
-        first.to_css(dest)?;
-        for selector in iter {
-            dest.write_str(", ")?;
-            selector.to_css(dest)?;
-        }
-        Ok(())
+        serialize_selector_list(self.0.iter(), dest)
     }
 }
 
@@ -1400,6 +1445,15 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                 }
                 write_affine(dest, a, b)?;
                 dest.write_char(')')
+            },
+            Is(ref list) | Where(ref list) => {
+                match *self {
+                    Where(..) => dest.write_str(":where(")?,
+                    Is(..) => dest.write_str(":is(")?,
+                    _ => unreachable!(),
+                }
+                serialize_selector_list(list.iter(), dest)?;
+                dest.write_str(")")
             },
             NonTSPseudoClass(ref pseudo) => pseudo.to_css(dest),
         }
@@ -2086,6 +2140,28 @@ where
     }
 }
 
+fn parse_is_or_where<'i, 't, P, Impl>(
+    parser: &P,
+    input: &mut CssParser<'i, 't>,
+    component: impl FnOnce(Box<[Selector<Impl>]>) -> Component<Impl>,
+) -> Result<Component<Impl>, ParseError<'i, P::Error>>
+where
+    P: Parser<'i, Impl = Impl>,
+    Impl: SelectorImpl,
+{
+    debug_assert!(parser.parse_is_and_where());
+    let inner = SelectorList::parse(parser, input)?;
+    // https://drafts.csswg.org/selectors/#matches-pseudo:
+    //
+    //     Pseudo-elements cannot be represented by the matches-any
+    //     pseudo-class; they are not valid within :is().
+    //
+    if inner.0.iter().any(|i| i.has_pseudo_element()) {
+        return Err(input.new_custom_error(SelectorParseErrorKind::InvalidPseudoElementInsideWhere));
+    }
+    Ok(component(inner.0.into_vec().into_boxed_slice()))
+}
+
 fn parse_functional_pseudo_class<'i, 't, P, Impl>(
     parser: &P,
     input: &mut CssParser<'i, 't>,
@@ -2105,6 +2181,8 @@ where
         "nth-of-type" => return Ok(parse_nth_pseudo_class(input, Component::NthOfType)?),
         "nth-last-child" => return Ok(parse_nth_pseudo_class(input, Component::NthLastChild)?),
         "nth-last-of-type" => return Ok(parse_nth_pseudo_class(input, Component::NthLastOfType)?),
+        "is" if parser.parse_is_and_where() => return parse_is_or_where(parser, input, Component::Is),
+        "where" if parser.parse_is_and_where() => return parse_is_or_where(parser, input, Component::Where),
         "host" => return Ok(Component::Host(Some(parse_inner_compound_selector(parser, input)?))),
         "not" => {
             if state.intersects(SelectorParsingState::INSIDE_NEGATION) {
@@ -2396,17 +2474,6 @@ pub mod tests {
         }
     }
 
-    impl Visit for PseudoClass {
-        type Impl = DummySelectorImpl;
-
-        fn visit<V>(&self, _visitor: &mut V) -> bool
-        where
-            V: SelectorVisitor<Impl = Self::Impl>,
-        {
-            true
-        }
-    }
-
     #[derive(Clone, Debug, PartialEq)]
     pub struct DummySelectorImpl;
 
@@ -2466,6 +2533,10 @@ pub mod tests {
         type Error = SelectorParseErrorKind<'i>;
 
         fn parse_slotted(&self) -> bool {
+            true
+        }
+
+        fn parse_is_and_where(&self) -> bool {
             true
         }
 
@@ -3100,6 +3171,10 @@ pub mod tests {
         assert!(parse("slot::slotted(div,foo)::first-line").is_err());
         assert!(parse("::slotted(div)::before").is_ok());
         assert!(parse("slot::slotted(div,foo)").is_err());
+
+        assert!(parse("foo:where()").is_err());
+        assert!(parse("foo:where(div, foo, .bar baz)").is_ok());
+        assert!(parse("foo:where(::before)").is_err());
     }
 
     #[test]
