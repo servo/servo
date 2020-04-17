@@ -301,15 +301,14 @@ def with_rust_nightly():
     )
 
 
-def appx_artifact(debug):
-    return '/'.join([
-        'repo',
-        'support',
-        'hololens',
-        'AppPackages',
-        'ServoApp',
-        'ServoApp_1.0.0.0_%sTest.zip' % ('Debug_' if debug else ''),
-    ])
+appx_artifact = '/'.join([
+    'repo',
+    'support',
+    'hololens',
+    'AppPackages',
+    'ServoApp',
+    'FirefoxReality.zip',
+])
 
 
 def windows_arm64(rdp=False):
@@ -322,7 +321,7 @@ def windows_arm64(rdp=False):
             "python mach build --dev --target=aarch64-uwp-windows-msvc",
             "python mach package --dev --target aarch64-uwp-windows-msvc --uwp=arm64",
         )
-        .with_artifacts(appx_artifact(debug=True))
+        .with_artifacts(appx_artifact)
         .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.tree_hash())
     )
 
@@ -338,7 +337,7 @@ def windows_uwp_x64(rdp=False):
             "python mach package --dev --target=x86_64-uwp-windows-msvc --uwp=x64",
             "python mach test-tidy --force-cpp --no-wpt",
         )
-        .with_artifacts(appx_artifact(debug=True))
+        .with_artifacts(appx_artifact)
         .find_or_create("build.windows_uwp_x64_dev." + CONFIG.tree_hash())
     )
 
@@ -358,7 +357,7 @@ def uwp_nightly(rdp=False):
             "mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64",
             "mach upload-nightly uwp --secret-from-taskcluster",
         )
-        .with_artifacts(appx_artifact(debug=False))
+        .with_artifacts(appx_artifact)
         .with_max_run_time_minutes(3 * 60)
         .find_or_create("build.windows_uwp_nightlies." + CONFIG.tree_hash())
     )
