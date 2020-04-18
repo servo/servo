@@ -278,7 +278,9 @@ class MachCommands(CommandBase):
         packages.discard('stylo')
 
         env = self.build_env(test_unit=True)
-        env["RUST_BACKTRACE"] = "1"
+        # FIXME: https://github.com/servo/servo/issues/26192
+        if "apple-darwin" not in host_triple():
+            env["RUST_BACKTRACE"] = "1"
 
         if "msvc" in host_triple():
             # on MSVC, we need some DLLs in the path. They were copied
