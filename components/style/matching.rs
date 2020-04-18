@@ -618,9 +618,9 @@ trait PrivateMatchMethods: TElement {
             for animation in animations {
                 debug!("Updating expired animation {:?}", animation);
                 // TODO: support animation-fill-mode
-                if let Animation::Transition(_, _, frame) = animation {
-                    frame.property_animation.update(Arc::make_mut(style), 1.0);
-                    expired_transitions.push(frame.property_animation);
+                if let Animation::Transition(_, _, property_animation) = animation {
+                    property_animation.update(Arc::make_mut(style), 1.0);
+                    expired_transitions.push(property_animation);
                 }
             }
         }
@@ -643,8 +643,8 @@ trait PrivateMatchMethods: TElement {
 
         let mut all_running_animations = context.running_animations.write();
         for mut running_animation in all_running_animations.get_mut(&node).unwrap() {
-            if let Animation::Transition(_, _, ref frame) = *running_animation {
-                running_transitions.push(frame.property_animation.clone());
+            if let Animation::Transition(_, _, ref property_animation) = *running_animation {
+                running_transitions.push(property_animation.clone());
                 continue;
             }
 

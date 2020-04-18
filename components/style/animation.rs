@@ -204,7 +204,8 @@ pub enum Animation {
     /// A transition is just a single frame triggered at a time, with a reflow.
     ///
     /// the f64 field is the start time as returned by `time::precise_time_s()`.
-    Transition(OpaqueNode, f64, AnimationFrame),
+    Transition(OpaqueNode, f64, PropertyAnimation),
+
     /// A keyframes animation is identified by a name, and can have a
     /// node-dependent state (i.e. iteration count, etc.).
     ///
@@ -246,22 +247,17 @@ impl Animation {
     }
 }
 
-/// A single animation frame of a single property.
-#[derive(Clone, Debug)]
-pub struct AnimationFrame {
-    /// A description of the property animation that is occurring.
-    pub property_animation: PropertyAnimation,
-    /// The duration of the animation. This is either relative in the keyframes
-    /// case (a number between 0 and 1), or absolute in the transition case.
-    pub duration: f64,
-}
-
 /// Represents an animation for a given property.
 #[derive(Clone, Debug)]
 pub struct PropertyAnimation {
+    /// An `AnimatedProperty` that this `PropertyAnimation` corresponds to.
     property: AnimatedProperty,
+
+    /// The timing function of this `PropertyAnimation`.
     timing_function: TimingFunction,
-    duration: Time, // TODO: isn't this just repeated?
+
+    /// The duration of this `PropertyAnimation` in seconds.
+    pub duration: f64,
 }
 
 impl PropertyAnimation {
@@ -282,7 +278,7 @@ impl PropertyAnimation {
         let property_animation = PropertyAnimation {
             property: animated_property,
             timing_function,
-            duration,
+            duration: duration.seconds() as f64,
         };
 
         if property_animation.does_animate() {
@@ -294,7 +290,7 @@ impl PropertyAnimation {
 
     /// Update the given animation at a given point of progress.
     pub fn update(&self, style: &mut ComputedValues, time: f64) {
-        let epsilon = 1. / (200. * (self.duration.seconds() as f64));
+        let epsilon = 1. / (200. * self.duration);
         let progress = match self.timing_function {
             GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
                 Bezier::new(x1, y1, x2, y2).solve(time, epsilon)
@@ -345,7 +341,7 @@ impl PropertyAnimation {
 
     #[inline]
     fn does_animate(&self) -> bool {
-        self.property.does_animate() && self.duration.seconds() != 0.0
+        self.property.does_animate() && self.duration != 0.0
     }
 
     /// Whether this animation has the same end value as another one.
@@ -416,17 +412,11 @@ pub fn start_transitions_if_applicable(
         let box_style = new_style.get_box();
         let now = timer.seconds();
         let start_time = now + (box_style.transition_delay_mod(transition.index).seconds() as f64);
-        let duration = box_style
-            .transition_duration_mod(transition.index)
-            .seconds() as f64;
         new_animations_sender
             .send(Animation::Transition(
                 opaque_node,
                 start_time,
-                AnimationFrame {
-                    duration,
-                    property_animation,
-                },
+                property_animation,
             ))
             .unwrap();
 
@@ -580,30 +570,6 @@ where
     had_animations
 }
 
-/// Updates a given computed style for a given animation frame. Returns a bool
-/// representing if the style was indeed updated.
-pub fn update_style_for_animation_frame(
-    mut new_style: &mut Arc<ComputedValues>,
-    now: f64,
-    start_time: f64,
-    frame: &AnimationFrame,
-) -> bool {
-    let mut progress = (now - start_time) / frame.duration;
-    if progress > 1.0 {
-        progress = 1.0
-    }
-
-    if progress <= 0.0 {
-        return false;
-    }
-
-    frame
-        .property_animation
-        .update(Arc::make_mut(&mut new_style), progress);
-
-    true
-}
-
 /// Returns the kind of animation update that happened.
 pub enum AnimationUpdate {
     /// The style was successfully updated, the animation is still running.
@@ -635,14 +601,14 @@ where
     debug_assert!(!animation.is_expired());
 
     match *animation {
-        Animation::Transition(_, start_time, ref frame) => {
+        Animation::Transition(_, start_time, ref property_animation) => {
             let now = context.timer.seconds();
-            let mut new_style = (*style).clone();
-            let updated_style =
-                update_style_for_animation_frame(&mut new_style, now, start_time, frame);
-            if updated_style {
-                *style = new_style
+            let progress = (now - start_time) / (property_animation.duration);
+            let progress = progress.min(1.0);
+            if progress >= 0.0 {
+                property_animation.update(Arc::make_mut(style), progress);
             }
+
             // FIXME(emilio): Should check before updating the style that the
             // transition_property still transitions this, or bail out if not.
             //

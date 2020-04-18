@@ -80,8 +80,8 @@ pub fn update_animation_state<E>(
         for mut running_animation in running_animations.drain(..) {
             let still_running = !running_animation.is_expired() &&
                 match running_animation {
-                    Animation::Transition(_, started_at, ref frame) => {
-                        now < started_at + frame.duration
+                    Animation::Transition(_, started_at, ref property_animation) => {
+                        now < started_at + (property_animation.duration)
                     },
                     Animation::Keyframes(_, _, _, ref mut state) => {
                         // This animation is still running, or we need to keep
@@ -100,12 +100,12 @@ pub fn update_animation_state<E>(
                 continue;
             }
 
-            if let Animation::Transition(node, _, ref frame) = running_animation {
+            if let Animation::Transition(node, _, ref property_animation) = running_animation {
                 script_chan
                     .send(ConstellationControlMsg::TransitionEnd(
                         node.to_untrusted_node_address(),
-                        frame.property_animation.property_name().into(),
-                        frame.duration,
+                        property_animation.property_name().into(),
+                        property_animation.duration,
                     ))
                     .unwrap();
             }
