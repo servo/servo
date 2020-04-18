@@ -402,18 +402,31 @@ impl StrongRuleNode {
             return child.upgrade();
         }
         let mut children = RwLockUpgradableReadGuard::upgrade(children);
-        let weak = children.get_or_insert_with(
-            key,
-            |node| node.p.key(),
-            move || {
-                let root = unsafe { root.downgrade() };
-                let strong =
-                    StrongRuleNode::new(Box::new(RuleNode::new(root, self.clone(), source, level)));
-                let weak = unsafe { strong.downgrade() };
-                mem::forget(strong);
-                weak
-            },
-        );
+        let mut is_new = false;
+        let weak = {
+            let is_new = &mut is_new;
+            children.get_or_insert_with(
+                key,
+                |node| node.p.key(),
+                move || {
+                    *is_new = true;
+                    let root = unsafe { root.downgrade() };
+                    let strong = StrongRuleNode::new(Box::new(RuleNode::new(
+                        root,
+                        self.clone(),
+                        source,
+                        level,
+                    )));
+                    let weak = unsafe { strong.downgrade() };
+                    mem::forget(strong);
+                    weak
+                },
+            )
+        };
+
+        if !is_new {
+            return weak.upgrade();
+        }
 
         unsafe { StrongRuleNode::from_unsafe_box(UnsafeBox::clone(&weak.p)) }
     }
