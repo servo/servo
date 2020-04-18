@@ -324,7 +324,6 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
     }
 }
 
-
 impl ToCss for NonTSPseudoClass {
     fn to_css<W>(&self, dest: &mut W) -> fmt::Result
     where
