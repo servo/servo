@@ -42,8 +42,7 @@ use selectors::attr::{CaseSensitivity, NamespaceConstraint};
 use selectors::bloom::BloomFilter;
 use selectors::matching::VisitedHandlingMode;
 use selectors::matching::{matches_selector, ElementSelectorFlags, MatchingContext, MatchingMode};
-use selectors::parser::{AncestorHashes, Combinator, Component, Selector};
-use selectors::parser::{SelectorIter, Visit};
+use selectors::parser::{AncestorHashes, Combinator, Component, Selector, SelectorIter};
 use selectors::visitor::SelectorVisitor;
 use selectors::NthIndexCache;
 use servo_arc::{Arc, ArcBorrow};
@@ -1530,11 +1529,11 @@ impl SelectorMapEntry for RevalidationSelectorAndHashes {
 /// A selector visitor implementation that collects all the state the Stylist
 /// cares about a selector.
 struct StylistSelectorVisitor<'a> {
-    /// Whether the selector needs revalidation for the style sharing cache.
-    needs_revalidation: bool,
     /// Whether we've past the rightmost compound selector, not counting
     /// pseudo-elements.
     passed_rightmost_selector: bool,
+    /// Whether the selector needs revalidation for the style sharing cache.
+    needs_revalidation: &'a mut bool,
     /// The filter with all the id's getting referenced from rightmost
     /// selectors.
     mapped_ids: &'a mut PrecomputedHashSet<Atom>,
@@ -1582,19 +1581,31 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
     type Impl = SelectorImpl;
 
     fn visit_complex_selector(&mut self, combinator: Option<Combinator>) -> bool {
-        self.needs_revalidation =
-            self.needs_revalidation || combinator.map_or(false, |c| c.is_sibling());
+        *self.needs_revalidation =
+            *self.needs_revalidation || combinator.map_or(false, |c| c.is_sibling());
 
-        // NOTE(emilio): This works properly right now because we can't store
-        // complex selectors in nested selectors, otherwise we may need to
-        // rethink this.
-        //
-        // Also, note that this call happens before we visit any of the simple
+        // NOTE(emilio): this call happens before we visit any of the simple
         // selectors in the next ComplexSelector, so we can use this to skip
         // looking at them.
         self.passed_rightmost_selector = self.passed_rightmost_selector ||
             !matches!(combinator, None | Some(Combinator::PseudoElement));
 
+        true
+    }
+
+    fn visit_selector_list(&mut self, list: &[Selector<Self::Impl>]) -> bool {
+        for selector in list {
+            let mut nested = StylistSelectorVisitor {
+                passed_rightmost_selector: false,
+                needs_revalidation: &mut *self.needs_revalidation,
+                attribute_dependencies: &mut *self.attribute_dependencies,
+                state_dependencies: &mut *self.state_dependencies,
+                document_state_dependencies: &mut *self.document_state_dependencies,
+                mapped_ids: &mut *self.mapped_ids,
+            };
+            let _ret = selector.visit(&mut nested);
+            debug_assert!(_ret, "We never return false");
+        }
         true
     }
 
@@ -1610,7 +1621,7 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
     }
 
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
-        self.needs_revalidation = self.needs_revalidation ||
+        *self.needs_revalidation = *self.needs_revalidation ||
             component_needs_revalidation(s, self.passed_rightmost_selector);
 
         match *s {
@@ -2022,8 +2033,9 @@ impl CascadeData {
 
                         if rebuild_kind.should_rebuild_invalidation() {
                             self.invalidation_map.note_selector(selector, quirks_mode)?;
+                            let mut needs_revalidation = false;
                             let mut visitor = StylistSelectorVisitor {
-                                needs_revalidation: false,
+                                needs_revalidation: &mut needs_revalidation,
                                 passed_rightmost_selector: false,
                                 attribute_dependencies: &mut self.attribute_dependencies,
                                 state_dependencies: &mut self.state_dependencies,
@@ -2033,7 +2045,7 @@ impl CascadeData {
 
                             rule.selector.visit(&mut visitor);
 
-                            if visitor.needs_revalidation {
+                            if needs_revalidation {
                                 self.selectors_for_cache_revalidation.insert(
                                     RevalidationSelectorAndHashes::new(
                                         rule.selector.clone(),
@@ -2365,14 +2377,15 @@ pub fn needs_revalidation_for_testing(s: &Selector<SelectorImpl>) -> bool {
     let mut mapped_ids = Default::default();
     let mut state_dependencies = ElementState::empty();
     let mut document_state_dependencies = DocumentState::empty();
+    let mut needs_revalidation = false;
     let mut visitor = StylistSelectorVisitor {
-        needs_revalidation: false,
         passed_rightmost_selector: false,
+        needs_revalidation: &mut needs_revalidation,
         attribute_dependencies: &mut attribute_dependencies,
         state_dependencies: &mut state_dependencies,
         document_state_dependencies: &mut document_state_dependencies,
         mapped_ids: &mut mapped_ids,
     };
     s.visit(&mut visitor);
-    visitor.needs_revalidation
+    needs_revalidation
 }

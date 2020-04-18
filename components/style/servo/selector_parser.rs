@@ -19,7 +19,7 @@ use crate::{Atom, CaseSensitivityExt, LocalName, Namespace, Prefix};
 use cssparser::{serialize_identifier, CowRcStr, Parser as CssParser, SourceLocation, ToCss};
 use fxhash::FxHashMap;
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
-use selectors::parser::{SelectorParseErrorKind, Visit};
+use selectors::parser::SelectorParseErrorKind;
 use selectors::visitor::SelectorVisitor;
 use std::fmt;
 use std::mem;
@@ -315,6 +315,13 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
     fn has_zero_specificity(&self) -> bool {
         false
     }
+
+    fn visit<V>(&self, _: &mut V) -> bool
+    where
+        V: SelectorVisitor<Impl = Self::Impl>,
+    {
+        true
+    }
 }
 
 impl ToCss for NonTSPseudoClass {
@@ -349,17 +356,6 @@ impl ToCss for NonTSPseudoClass {
             Visited => ":visited",
             Lang(_) => unreachable!(),
         })
-    }
-}
-
-impl Visit for NonTSPseudoClass {
-    type Impl = SelectorImpl;
-
-    fn visit<V>(&self, _: &mut V) -> bool
-    where
-        V: SelectorVisitor<Impl = Self::Impl>,
-    {
-        true
     }
 }
 

@@ -330,6 +330,19 @@ where
                     specificity.class_like_selectors += 1;
                 }
             },
+            Component::Is(ref list) => {
+                // https://drafts.csswg.org/selectors/#specificity-rules:
+                //
+                //     The specificity of an :is() pseudo-class is replaced by the
+                //     specificity of the most specific complex selector in its
+                //     selector list argument.
+                let mut max = 0;
+                for selector in &**list {
+                    max = std::cmp::max(selector.specificity(), max);
+                }
+                *specificity += Specificity::from(max);
+            },
+            Component::Where(..) |
             Component::ExplicitUniversalType |
             Component::ExplicitAnyNamespace |
             Component::ExplicitNoNamespace |
