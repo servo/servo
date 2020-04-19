@@ -27,10 +27,7 @@
       // This ensures that the entry is exposing timing from the second click, i.e.
       // the one from the clickAndBlockMain() call.
       assert_greater_than_equal(entry.processingStart, beforeClick);
-      // Check that the first input entry was also from the second click.
-      const firstInput = performance.getEntriesByType('first-input');
-      assert_equals(firstInput.length, 1);
-      assert_greater_than_equal(firstInput[0].processingStart, beforeClick);
+      verifyClickEvent(entry, 'div2', true);
     }));
     observer.observe({entryTypes: ['event']});
     document.getElementById('div').click();

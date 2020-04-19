@@ -24,7 +24,7 @@
   function validateEntries(entries) {
     assert_equals(entries.length, 1, "Only 1 entry should be received");
     const entry = entries[0];
-    verifyClickEvent(entry, true);
+    verifyClickEvent(entry, 'button', true);
 
     assert_less_than(entry.processingStart, clickDone,
         "The entry's processing start should be before clickDone.");
@@ -38,7 +38,8 @@
     }
     // |childFrameData| has properties with the same names as its
     // PerformanceEventTiming counterpart.
-    verifyClickEvent(childFrameData);
+    verifyClickEvent(childFrameData, null);
+    assert_equals(childFrameData.target, 'iframe_div');
 
     assert_less_than(childFrameData.processingStart, childFrameData.clickDone,
         "The entry's processing start should be before than the child frame's clickDone.");

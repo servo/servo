@@ -14,7 +14,7 @@ Visuals tests are test files which have `-visual` at the end of their
 filename, before the extension. There is nothing needed in them to
 make them work.
 
-They should follow the [general test guidelines](general guidelines),
+They should follow the [general test guidelines](general-guidelines),
 especially noting the requirement to be self-describing (i.e., they
 must give a clear pass condition in their rendering).
 

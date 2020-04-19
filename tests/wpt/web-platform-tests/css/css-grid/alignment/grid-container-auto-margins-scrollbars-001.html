@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: Ignore auto-margins in the track sizing algorithm</title>
+<link rel="author" title="Javier Fernandez Garcia-Boente" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#alignment"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid/#auto-margins"/>
+<link rel="issue" href="https://bugs.chromium.org/p/chromium/issues/detail?id=776581"/>
+<link rel="match" href="../reference/grid-container-auto-margins-scrollbars-001-ref.html">
+<meta name="assert" content="This test ensures that the grid logic ignores any 'auto' margin during the track sizing algorithm. Previously resolved auto-margins should not affect the track sizing computation."/>
+<style>
+body {
+   display: grid;
+   grid-template-columns: auto;
+   grid-template-rows: 1fr auto;
+   height: 100vh;
+}
+.item1 {
+   margin: 0px auto;
+}
+.item2 {
+   background-color: cyan;
+   height: 50px;
+}
+</style>
+<div class="item1">item1</div>
+<div class="item2">item2</div>
+<script>
+    document.body.style = "overflow: hidden;";
+    document.body.offsetLeft;
+    document.body.style = "overflow: auto;";
+</script>

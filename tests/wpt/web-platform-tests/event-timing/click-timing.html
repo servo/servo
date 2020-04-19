@@ -32,7 +32,7 @@
       assert_not_equals(timeAfterFirstClick, undefined);
       assert_not_equals(timeAfterSecondClick, undefined);
       // First click.
-      verifyClickEvent(observedEntries[0]);
+      verifyClickEvent(observedEntries[0], 'button');
       assert_between_exclusive(observedEntries[0].processingStart,
           timeBeforeFirstClick,
           timeAfterFirstClick,
@@ -41,7 +41,7 @@
           "timeAfterFirstClick should be later than first click's start time.");
 
       // Second click.
-      verifyClickEvent(observedEntries[1]);
+      verifyClickEvent(observedEntries[1], 'button');
       assert_between_exclusive(observedEntries[1].processingStart,
           timeAfterFirstClick,
           timeAfterSecondClick,

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<title>CSS Grid: min-height and max-height</title>
+<link rel="author" title="Julien Chaffraix" href="mailto:jchaffraix@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#intrinsic-sizes">
+<link rel="stylesheet" href="/css/support/grid.css">
+<meta name="assert" content="This test checks that min-height and max-height are accounted for when computing the grid container's height.">
+<style>
+.minHeightGrid {
+    min-height: 100px;
+    grid-template-columns: 40px;
+    grid-template-rows: 50px;
+}
+.maxHeightGrid {
+    max-height: 100px;
+    grid-template-columns: 40px;
+    grid-template-rows: 150px 50px;
+}
+
+.minHeightAutoGrid {
+    min-height: 100px;
+}
+
+.maxHeightAutoGrid {
+    max-height: 100px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+
+<div class="constrainedContainer">
+    <div class="grid minHeightGrid" data-expected-height="100" data-expected-width="10"></div>
+    <div class="grid maxHeightGrid" data-expected-height="100" data-expected-width="10"></div>
+    <div class="grid minHeightAutoGrid" data-expected-height="100" data-expected-width="10"></div>
+    <div class="grid maxHeightAutoGrid" data-expected-height="0" data-expected-width="10"></div>
+
+    <div class="grid minHeightAutoGrid" data-expected-height="150" data-expected-width="10">
+        <div style="height: 150px"></div>
+    </div>
+    <div class="grid maxHeightAutoGrid" data-expected-height="100" data-expected-width="10">
+        <div style="height: 300px"></div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid minHeightGrid" data-expected-height="100" data-expected-width="1000"></div>
+    <div class="grid maxHeightGrid" data-expected-height="100" data-expected-width="1000"></div>
+    <div class="grid minHeightAutoGrid" data-expected-height="100" data-expected-width="1000"></div>
+    <div class="grid maxHeightAutoGrid" data-expected-height="0" data-expected-width="1000"></div>
+
+    <div class="grid minHeightAutoGrid" data-expected-height="150" data-expected-width="1000">
+        <div style="height: 150px"></div>
+    </div>
+    <div class="grid maxHeightAutoGrid" data-expected-height="100" data-expected-width="1000">
+        <div style="height: 300px"></div>
+    </div>
+</div>
+
+</body>
+</html>

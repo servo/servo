@@ -21,7 +21,7 @@ function mainThreadBusy(duration) {
 // This method should receive an entry of type 'event'. |is_first| is true only
 // when the event also happens to correspond to the first event. In this case,
 // the timings of the 'first-input' entry should be equal to those of this entry.
-function verifyClickEvent(entry, is_first=false) {
+function verifyClickEvent(entry, targetId, is_first=false) {
   assert_true(entry.cancelable);
   assert_equals(entry.name, 'mousedown');
   assert_equals(entry.entryType, 'event');
@@ -47,6 +47,8 @@ function verifyClickEvent(entry, is_first=false) {
     assert_equals(firstInput.processingEnd, entry.processingEnd);
     assert_equals(firstInput.cancelable, entry.cancelable);
   }
+  if (targetId)
+    assert_equals(entry.target, document.getElementById(targetId));
 }
 
 function wait() {

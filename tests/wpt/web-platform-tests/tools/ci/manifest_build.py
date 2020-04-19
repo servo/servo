@@ -84,8 +84,7 @@ def request(url, desc, method=None, data=None, json_data=None, params=None, head
     try:
         return resp.json()
     except ValueError:
-        logger.error("%s failed: Returned data was not JSON Response:" %
-                     (desc, resp.status_code))
+        logger.error("%s failed: Returned data was not JSON Response:" % desc)
         logger.error(resp.text)
 
 

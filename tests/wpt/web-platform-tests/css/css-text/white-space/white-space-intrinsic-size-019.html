@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Text Test: min-content sizing and 'white-space: pre-line'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-property">
+  <link rel="help" href="https://www.w3.org/TR/css-text-3/#white-space-phase-2">
+  <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+  <meta content="" name="flags">
+  <meta content="When 'white-space' is 'pre-line', sequence of white spaces are collapsed into 1 white space, the tabs are converted into a single white space and then the white spaces at the end of the line are removed." name="assert">
+
+  <style>
+  div
+    {
+      color: transparent;
+      /*
+      so that background-color can
+      shine through the A, G, M glyphs
+      */
+      font-family: Ahem;
+      font-size: 50px;
+      line-height: 1;
+      width: 0;
+      /*
+      This will trigger
+      min-content size
+      for div#min-sized-parent
+      */
+    }
+
+  div#reference-overlapped-red
+    {
+      background-color: red;
+      position: absolute;
+      width: auto;
+      z-index: -1;
+    }
+
+  div#test-overlapping-green
+    {
+      background-color: green;
+      float: left;
+      white-space: pre-line;  /* spaces and tabs collapse */
+      width: auto;
+    }
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div id="reference-overlapped-red">12<br>3</div>
+
+  <div id="min-sized-parent">
+
+    <div id="test-overlapping-green">A &Tab; &Tab; GM   &Tab;</div>
+
+  </div>
+
+  <!--
+
+  The sequence of white spaces
+  are collapsed. The tabs are
+  converted into a single
+  white space character. Then
+  the spaces at the end-of-line
+  are removed. That
+  is by definition of
+  'white-space: pre-line'.
+
+  The end result is
+  [A
+   GM]
+
+  Since div#test-overlapping-green
+  is floated and since its parent in
+  the flow is 0-width, then the float
+  is min-content sized.
+
+  -->
