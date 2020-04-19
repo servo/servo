@@ -49,6 +49,12 @@ use std::cell::Cell;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
+use style::context::QuirksMode;
+use style::parser::ParserContext;
+use style::properties::shorthands::font;
+use style::stylesheets::origin::Origin;
+use style::stylesheets::CssRuleType;
+use style_traits::ParsingMode;
 
 #[unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -1565,8 +1571,22 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
-    pub fn set_font(&self, _value: DOMString) {
-        unimplemented!()
+    pub fn set_font(&self, value: DOMString) {
+        let mut input = ParserInput::new(&value);
+        let mut parser = Parser::new(&mut input);
+        let context = ParserContext::new(
+            Origin::Author,
+            &self.base_url,
+            Some(CssRuleType::Style),
+            ParsingMode::DEFAULT,
+            QuirksMode::NoQuirks,
+            None,
+            None,
+        );
+        match font::parse_value(&context, &mut parser) {
+            Ok(_longhands) => unimplemented!("TODO: handle parsed values"),
+            Err(_err) => unimplemented!("TODO: handle parse errors"),
+        }
     }
 }
 
