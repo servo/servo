@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "Servo.h"
+#include <EGL/egl.h>
 
 namespace winrt::servo {
 
@@ -20,10 +21,6 @@ void on_title_changed(const char *title) {
 void on_url_changed(const char *url) {
   sServo->Delegate().OnServoURLChanged(char2hstring(url));
 }
-
-void flush() { sServo->Delegate().Flush(); }
-
-void make_current() { sServo->Delegate().MakeCurrent(); }
 
 void wakeup() { sServo->Delegate().WakeUp(); }
 
@@ -128,7 +125,8 @@ const char *prompt_input(const char *message, const char *default,
 }
 
 Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
-             float dpi, ServoDelegate &aDelegate)
+             EGLNativeWindowType eglNativeWindow, float dpi,
+             ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
   SetEnvironmentVariableA("PreviewRuntimeEnabled", "1");
 
@@ -140,6 +138,7 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
   o.height = mWindowHeight;
   o.density = dpi;
   o.enable_subpixel_text_antialiasing = false;
+  o.native_widget = eglNativeWindow;
 
   // Note about logs:
   // By default: all modules are enabled. Only warn level-logs are displayed.
@@ -179,8 +178,6 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
 #endif
 
   capi::CHostCallbacks c;
-  c.flush = &flush;
-  c.make_current = &make_current;
   c.on_load_started = &on_load_started;
   c.on_load_ended = &on_load_ended;
   c.on_title_changed = &on_title_changed;

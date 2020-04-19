@@ -51,6 +51,7 @@ pub use style;
 pub use style_traits;
 pub use webgpu;
 pub use webrender_api;
+pub use webrender_surfman;
 pub use webrender_traits;
 
 #[cfg(feature = "webdriver")]
@@ -116,14 +117,9 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
-#[cfg(not(target_os = "windows"))]
-use surfman::platform::default::device::Device as HWDevice;
-#[cfg(not(target_os = "windows"))]
-use surfman::platform::generic::osmesa::device::Device as SWDevice;
-#[cfg(not(target_os = "windows"))]
-use surfman::platform::generic::universal::context::Context;
-use surfman::platform::generic::universal::device::Device;
+use surfman::GLApi;
 use webrender::{RendererKind, ShaderPrecacheFlags};
+use webrender_surfman::WebrenderSurfman;
 use webrender_traits::WebrenderImageHandlerType;
 use webrender_traits::{WebrenderExternalImageHandlers, WebrenderExternalImageRegistry};
 
@@ -353,8 +349,28 @@ where
                 .unwrap_or(default_user_agent_string_for(DEFAULT_USER_AGENT).into()),
         };
 
+        // Initialize surfman
+        let webrender_surfman = window.webrender_surfman();
+
+        // Get GL bindings
+        let webrender_gl = match webrender_surfman.connection().gl_api() {
+            GLApi::GL => unsafe { gl::GlFns::load_with(|s| webrender_surfman.get_proc_address(s)) },
+            GLApi::GLES => unsafe {
+                gl::GlesFns::load_with(|s| webrender_surfman.get_proc_address(s))
+            },
+        };
+
         // Make sure the gl context is made current.
-        window.make_gl_context_current();
+        webrender_surfman.make_gl_context_current().unwrap();
+        debug_assert_eq!(webrender_gl.get_error(), gleam::gl::NO_ERROR,);
+
+        // Bind the webrender framebuffer
+        let framebuffer_object = webrender_surfman
+            .context_surface_info()
+            .unwrap_or(None)
+            .map(|info| info.framebuffer_object)
+            .unwrap_or(0);
+        webrender_gl.bind_framebuffer(gleam::gl::FRAMEBUFFER, framebuffer_object);
 
         // Reserving a namespace to create TopLevelBrowserContextId.
         PipelineNamespace::install(PipelineNamespaceId(0));
@@ -407,7 +423,7 @@ where
             let window_size = Size2D::from_untyped(viewport_size.to_i32().to_untyped());
 
             webrender::Renderer::new(
-                window.gl(),
+                webrender_gl.clone(),
                 render_notifier,
                 webrender::RendererOptions {
                     device_pixel_ratio,
@@ -422,6 +438,7 @@ where
                     },
                     renderer_kind: renderer_kind,
                     enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
+                    allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
                     clear_color: None,
                     ..Default::default()
                 },
@@ -451,7 +468,8 @@ where
             .expect("Failed to create WebXR device registry");
 
         let (webgl_threads, webgl_extras) = create_webgl_threads(
-            &*window,
+            webrender_surfman.clone(),
+            webrender_gl.clone(),
             &mut webrender,
             webrender_api_sender.clone(),
             &mut webxr_main_thread,
@@ -542,6 +560,8 @@ where
                 webrender,
                 webrender_document,
                 webrender_api,
+                webrender_surfman,
+                webrender_gl,
                 webxr_main_thread,
                 pending_wr_frame,
             },
@@ -806,6 +826,10 @@ where
         log::set_max_level(filter);
     }
 
+    pub fn window(&self) -> &Window {
+        &self.compositor.window
+    }
+
     pub fn deinit(self) {
         self.compositor.deinit();
     }
@@ -1030,8 +1054,9 @@ fn create_sandbox() {
 }
 
 // Initializes the WebGL thread.
-fn create_webgl_threads<W>(
-    window: &W,
+fn create_webgl_threads(
+    webrender_surfman: WebrenderSurfman,
+    webrender_gl: Rc<dyn gl::Gl>,
     webrender: &mut webrender::Renderer,
     webrender_api_sender: webrender_api::RenderApiSender,
     webxr_main_thread: &mut webxr::MainThreadRegistry,
@@ -1040,45 +1065,8 @@ fn create_webgl_threads<W>(
 ) -> (
     Option<WebGLThreads>,
     Option<(SurfaceProviders, WebGlExecutor)>,
-)
-where
-    W: WindowMethods + 'static + ?Sized,
-{
-    // Create a `surfman` device and context.
-    window.make_gl_context_current();
-
-    #[cfg(not(target_os = "windows"))]
-    let (device, context) = unsafe {
-        if opts::get().headless {
-            let (device, context) = match SWDevice::from_current_context() {
-                Ok(a) => a,
-                Err(e) => {
-                    warn!("Failed to create software graphics context: {:?}", e);
-                    return (None, None);
-                },
-            };
-            (Device::Software(device), Context::Software(context))
-        } else {
-            let (device, context) = match HWDevice::from_current_context() {
-                Ok(a) => a,
-                Err(e) => {
-                    warn!("Failed to create hardware graphics context: {:?}", e);
-                    return (None, None);
-                },
-            };
-            (Device::Hardware(device), Context::Hardware(context))
-        }
-    };
-    #[cfg(target_os = "windows")]
-    let (device, context) = match unsafe { Device::from_current_context() } {
-        Ok(a) => a,
-        Err(e) => {
-            warn!("Failed to create graphics context: {:?}", e);
-            return (None, None);
-        },
-    };
-
-    let gl_type = match window.gl().get_type() {
+) {
+    let gl_type = match webrender_gl.get_type() {
         gleam::gl::GlType::Gl => sparkle::gl::GlType::Gl,
         gleam::gl::GlType::Gles => sparkle::gl::GlType::Gles,
     };
@@ -1091,9 +1079,8 @@ where
         output_handler,
         webgl_executor,
     } = WebGLComm::new(
-        device,
-        context,
-        window.gl(),
+        webrender_surfman,
+        webrender_gl,
         webrender_api_sender,
         external_images,
         gl_type,

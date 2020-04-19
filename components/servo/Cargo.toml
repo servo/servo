@@ -81,11 +81,12 @@ style_traits = {path = "../style_traits", features = ["servo"]}
 webgpu = {path = "../webgpu"}
 webrender = {git = "https://github.com/servo/webrender"}
 webrender_api = {git = "https://github.com/servo/webrender"}
+webrender_surfman = {path = "../webrender_surfman"}
 webrender_traits = {path = "../webrender_traits"}
 webdriver_server = {path = "../webdriver_server", optional = true}
 webxr-api = {git = "https://github.com/servo/webxr"}
 webxr = {git = "https://github.com/servo/webxr"}
-surfman = { version = "0.1", features = ["sm-osmesa"] }
+surfman = "0.2"
 gstreamer = { version = "0.15", optional = true }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]

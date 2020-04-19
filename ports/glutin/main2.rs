@@ -13,7 +13,6 @@ extern crate sig;
 mod app;
 mod backtrace;
 mod browser;
-mod context;
 mod embedder;
 mod events_loop;
 mod headed_window;
@@ -95,12 +94,6 @@ pub fn main() {
         "clean-shutdown",
         "Do not shutdown until all threads have finished (macos only)",
     );
-    opts.optflag(
-        "",
-        "disable-vsync",
-        "Disable vsync mode in the compositor to allow profiling at more than monitor refresh rate",
-    );
-    opts.optflag("", "msaa", "Use multisample antialiasing in WebRender.");
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optopt("", "device-pixel-ratio", "Device pixels per px", "");
     opts.optopt(
@@ -170,28 +163,19 @@ pub fn main() {
         process::exit(0);
     }
 
-    let angle = opts_matches.opt_present("angle");
     let clean_shutdown = opts_matches.opt_present("clean-shutdown");
     let do_not_use_native_titlebar =
         opts_matches.opt_present("no-native-titlebar") || !(pref!(shell.native_titlebar.enabled));
-    let enable_vsync = !opts_matches.opt_present("disable-vsync");
-    let use_msaa = opts_matches.opt_present("msaa");
     let device_pixels_per_px = opts_matches.opt_str("device-pixel-ratio").map(|dppx_str| {
         dppx_str.parse().unwrap_or_else(|err| {
             error!("Error parsing option: --device-pixel-ratio ({})", err);
             process::exit(1);
         })
     });
+
     let user_agent = opts_matches.opt_str("u");
 
-    App::run(
-        angle,
-        enable_vsync,
-        use_msaa,
-        do_not_use_native_titlebar,
-        device_pixels_per_px,
-        user_agent,
-    );
+    App::run(do_not_use_native_titlebar, device_pixels_per_px, user_agent);
 
     platform::deinit(clean_shutdown)
 }

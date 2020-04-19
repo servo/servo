@@ -201,8 +201,6 @@ where
 /// Callback used by Servo internals
 #[repr(C)]
 pub struct CHostCallbacks {
-    pub flush: extern "C" fn(),
-    pub make_current: extern "C" fn(),
     pub on_load_started: extern "C" fn(),
     pub on_load_ended: extern "C" fn(),
     pub on_title_changed: extern "C" fn(title: *const c_char),
@@ -244,6 +242,7 @@ pub struct CInitOptions {
     pub enable_subpixel_text_antialiasing: bool,
     pub vslogger_mod_list: *const *const c_char,
     pub vslogger_mod_size: u32,
+    pub native_widget: *mut c_void,
 }
 
 #[repr(C)]
@@ -442,6 +441,7 @@ unsafe fn init(
         enable_subpixel_text_antialiasing: opts.enable_subpixel_text_antialiasing,
         gl_context_pointer: gl_context,
         native_display_pointer: display,
+        native_widget: opts.native_widget,
     };
 
     let wakeup = Box::new(WakeupCallback::new(wakeup));
@@ -750,16 +750,6 @@ impl HostCallbacks {
 }
 
 impl HostTrait for HostCallbacks {
-    fn flush(&self) {
-        debug!("flush");
-        (self.0.flush)();
-    }
-
-    fn make_current(&self) {
-        debug!("make_current");
-        (self.0.make_current)();
-    }
-
     fn on_load_started(&self) {
         debug!("on_load_started");
         (self.0.on_load_started)();

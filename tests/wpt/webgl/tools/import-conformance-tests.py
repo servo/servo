@@ -16,6 +16,7 @@ PATCHES = [
     ("timeout.patch", None),
     ("set-zero-timeout.patch", "js/webgl-test-utils.js"),
     ("compressed-images.patch", "conformance/extensions/webgl-compressed-texture-s3tc.html"),
+    ("shader-varying-packing-restrictions.patch", "conformance/glsl/misc/shader-varying-packing-restrictions.html"),
 ]
 
 # Fix for 'UnicodeDecodeError: 'ascii' codec can't decode byte'

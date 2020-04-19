@@ -947,7 +947,7 @@
   <ImportGroup Label="ExtensionTargets">
     <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.190620.2\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190620.2\build\native\Microsoft.Windows.CppWinRT.targets')" />
     <Import Project="..\packages\OpenXR.Loader.1.0.3\build\native\OpenXR.Loader.targets" Condition="Exists('..\packages\OpenXR.Loader.1.0.3\build\native\OpenXR.Loader.targets')" />
-    <Import Project="..\packages\ANGLE.WindowsStore.Servo.2.1.16\build\native\ANGLE.WindowsStore.Servo.targets" Condition="Exists('..\packages\ANGLE.WindowsStore.Servo.2.1.16\build\native\ANGLE.WindowsStore.Servo.targets')" />
+    <Import Project="..\packages\ANGLE.WindowsStore.Servo.2.1.19\build\native\ANGLE.WindowsStore.Servo.targets" Condition="Exists('..\packages\ANGLE.WindowsStore.Servo.2.1.19\build\native\ANGLE.WindowsStore.Servo.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -957,6 +957,6 @@
     <Error Condition="!Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.190620.2\build\native\Microsoft.Windows.CppWinRT.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.Windows.CppWinRT.2.0.190620.2\build\native\Microsoft.Windows.CppWinRT.targets'))" />
     <Error Condition="!Exists('..\packages\OpenXR.Loader.1.0.3\build\native\OpenXR.Loader.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenXR.Loader.1.0.3\build\native\OpenXR.Loader.props'))" />
     <Error Condition="!Exists('..\packages\OpenXR.Loader.1.0.3\build\native\OpenXR.Loader.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenXR.Loader.1.0.3\build\native\OpenXR.Loader.targets'))" />
-    <Error Condition="!Exists('..\packages\ANGLE.WindowsStore.Servo.2.1.16\build\native\ANGLE.WindowsStore.Servo.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ANGLE.WindowsStore.Servo.2.1.16\build\native\ANGLE.WindowsStore.Servo.targets'))" />
+    <Error Condition="!Exists('..\packages\ANGLE.WindowsStore.Servo.2.1.19\build\native\ANGLE.WindowsStore.Servo.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ANGLE.WindowsStore.Servo.2.1.19\build\native\ANGLE.WindowsStore.Servo.targets'))" />
   </Target>
 </Project>

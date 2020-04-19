@@ -24,7 +24,7 @@ from mach.decorators import (
 from servo.command_base import (
     CommandBase,
     check_call, check_output, BIN_SUFFIX,
-    is_linux, set_osmesa_env,
+    is_linux,
 )
 
 
@@ -126,7 +126,6 @@ class PostBuildCommands(CommandBase):
         args = [bin or self.get_nightly_binary_path(nightly) or self.get_binary_path(release, dev)]
 
         if headless:
-            set_osmesa_env(args[0], env, debugger is not None)
             args.append('-z')
 
         if software:

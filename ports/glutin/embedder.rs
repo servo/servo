@@ -5,31 +5,27 @@
 //! Implements the global methods required by Servo (not window/gl/compositor related).
 
 use crate::events_loop::EventsLoop;
-use crate::window_trait::WindowPortsMethods;
-use gleam::gl;
 use servo::canvas::{SurfaceProviders, WebGlExecutor};
 use servo::compositing::windowing::EmbedderMethods;
 use servo::embedder_traits::{EmbedderProxy, EventLoopWaker};
-use servo::servo_config::{opts, pref};
+use servo::servo_config::pref;
 use std::cell::RefCell;
 use std::rc::Rc;
+use webxr::glwindow::GlWindowDiscovery;
 
 pub struct EmbedderCallbacks {
-    window: Rc<dyn WindowPortsMethods>,
     events_loop: Rc<RefCell<EventsLoop>>,
-    gl: Rc<dyn gl::Gl>,
+    xr_discovery: Option<GlWindowDiscovery>,
 }
 
 impl EmbedderCallbacks {
     pub fn new(
-        window: Rc<dyn WindowPortsMethods>,
         events_loop: Rc<RefCell<EventsLoop>>,
-        gl: Rc<dyn gl::Gl>,
+        xr_discovery: Option<GlWindowDiscovery>,
     ) -> EmbedderCallbacks {
         EmbedderCallbacks {
-            window,
             events_loop,
-            gl,
+            xr_discovery,
         }
     }
 }
@@ -48,13 +44,8 @@ impl EmbedderMethods for EmbedderCallbacks {
     ) {
         if pref!(dom.webxr.test) {
             xr.register_mock(webxr::headless::HeadlessMockDiscovery::new());
-        } else if !opts::get().headless && pref!(dom.webxr.glwindow) {
-            warn!("Creating test XR device");
-            let gl = self.gl.clone();
-            let window = self.window.clone();
-            let factory = Box::new(move || window.new_window());
-            let discovery = webxr::glwindow::GlWindowDiscovery::new(gl, factory);
-            xr.register(discovery);
+        } else if let Some(xr_discovery) = self.xr_discovery.take() {
+            xr.register(xr_discovery);
         }
     }
 }

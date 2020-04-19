@@ -53,7 +53,6 @@ clipboard = "0.5"
 euclid = "0.20"
 getopts = "0.2.11"
 gleam = "0.9"
-glutin = "0.21.0"
 keyboard-types = "0.4.3"
 lazy_static = "1"
 libservo = {path = "../../components/servo"}
@@ -61,19 +60,17 @@ libc = "0.2"
 log = "0.4"
 servo-media = {git = "https://github.com/servo/media"}
 shellwords = "1.0.0"
+surfman = { version = "0.2", features = ["sm-winit", "sm-x11"] }
 tinyfiledialogs = "3.0"
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
+winit = "0.19"
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 image = "0.23"
 
 [target.'cfg(any(target_os = "linux", target_os = "macos"))'.dependencies]
-osmesa-sys = "0.1.2"
 sig = "1.0"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 winapi = { version = "0.3", features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"] }
-
-[target.'cfg(any(target_os = "macos", all(target_arch = "x86_64", target_os = "linux")))'.dependencies]
-osmesa-src = {git = "https://github.com/servo/osmesa-src"}

@@ -667,7 +667,7 @@ pub enum WebGLFramebufferId {
     Opaque(WebGLOpaqueFramebufferId),
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum WebGLFramebufferBindingRequest {
     Explicit(WebGLFramebufferId),
     Default,
