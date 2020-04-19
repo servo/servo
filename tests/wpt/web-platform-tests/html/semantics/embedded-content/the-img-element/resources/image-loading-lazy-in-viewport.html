@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+
+<!-- This frame is used by image-loading-lazy-in-cross-origin-iframe-002.sub.html -->
+
+<img id="img" loading="lazy" src="image.png">
+
+<script>
+  const img = document.querySelector('#img');
+
+  img.addEventListener("load", () => {
+    parent.postMessage("image_loaded", "*");
+  });
+
+  window.addEventListener("load", () => {
+    parent.postMessage("window_loaded", "*");
+  });
+</script>

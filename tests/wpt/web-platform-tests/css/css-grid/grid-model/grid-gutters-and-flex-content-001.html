@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<title>CSS Grid: grid gutters and flex content.</title>
+<link rel="author" title="Sergio Villar" href="mailto:svillar@igalia.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#gutters"/>
+<meta name="assert" content="Check that gutters do not interfere with flex content resolution for columns or with content sized tracks."/>
+<link rel="stylesheet" href="/css/support/grid.css"/>
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css"/>
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/fonts/ahem.css" type="text/css"/>
+<style>
+.gridPercentAndFlexContent { grid-template: 50px / 50% minmax(30px, 2fr); }
+.gridTwoDoubleMaxFlexContent { grid-template: 50px / minmax(10px, 0.5fr) minmax(10px, 2fr); }
+.gridIgnoreSecondGridItem { grid-template: 50px / minmax(300px, 3fr) minmax(150px, 1fr); }
+
+.gridRowsPercentAndFlexContent { grid-template: minmax(30px, 2fr) 50% / 50px; }
+.gridRowsTwoMaxFlexContent { grid-template: minmax(10px, 1fr) minmax(10px, 2fr) / 50px; }
+.gridRowsTwoDoubleMaxFlexContent { grid-template: minmax(10px, 0.5fr) minmax(10px, 2fr) / 50px; }
+
+.gridMinContentAndMinMaxFixedMinContentAndFlex { grid-template-columns: min-content minmax(20px, min-content) 2fr; }
+.gridMaxContentAndMinMaxFixedMaxContentAndFlex { grid-template-columns: max-content minmax(20px, max-content) 1fr; }
+
+div.grid > div { font: 10px/1 Ahem; }
+
+.gridRowColumnGaps {
+    grid-row-gap: 33px;
+    grid-column-gap: 19px;
+}
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+    setup({ explicit_done: true });
+</script>
+
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<!-- Check that gutters do not interfere with flex content resolution for columns -->
+
+<div style="width: 120px; height: 10px;">
+    <div class="grid gridTwoDoubleMaxFlexContent gridRowColumnGaps" data-expected-width="120" data-expected-height="50">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="20" data-expected-height="50"></div>
+        <div class="sizedToGridArea firstRowSecondColumn" data-expected-width="81" data-expected-height="50"></div>
+    </div>
+</div>
+
+<div style="width: 570px; height: 10px;">
+    <div class="grid gridIgnoreSecondGridItem gridRowColumnGaps" data-expected-width="570" data-expected-height="50">
+        <div class="firstRowFirstColumn" data-expected-width="401" data-expected-height="50"></div>
+        <div class="firstRowSecondColumn" data-expected-width="150" data-expected-height="50"></div>
+    </div>
+</div>
+
+<div style="width: 120px; height: 10px;">
+    <div class="grid gridPercentAndFlexContent gridRowColumnGaps" data-expected-width="120" data-expected-height="50">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="60" data-expected-height="50"></div>
+        <div class="firstRowSecondColumn" data-expected-width="41" data-expected-height="50"></div>
+    </div>
+</div>
+
+<!-- Check that gutters do not interfere with flex content resolution for rows -->
+
+<div style="width: 10px; height: 60px">
+    <div class="grid gridRowsTwoMaxFlexContent gridRowColumnGaps" style="height: 100%" data-expected-width="10" data-expected-height="60">
+        <div class="firstRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+        <div class="secondRowFirstColumn" data-expected-width="50" data-expected-height="17"></div>
+    </div>
+</div>
+
+<div style="width: 10px; height: 60px">
+    <div class="grid gridRowsTwoDoubleMaxFlexContent gridRowColumnGaps" data-expected-width="10" data-expected-height="63">
+        <div class="firstRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+        <div class="secondRowFirstColumn" data-expected-width="50" data-expected-height="20"></div>
+    </div>
+</div>
+
+<div style="width: 10px;">
+    <div class="grid gridRowsPercentAndFlexContent gridRowColumnGaps" style="height: 150px" data-expected-width="10" data-expected-height="150">
+        <div class="firstRowFirstColumn" data-expected-width="50" data-expected-height="42"></div>
+        <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="75"></div>
+    </div>
+</div>
+
+<!-- Check that gutters do not interfere with flex content resolution with content sized tracks -->
+
+<div style="position: relative; width: 100px;">
+    <div class="grid gridMinContentAndMinMaxFixedMinContentAndFlex gridRowColumnGaps" data-expected-width="100" data-expected-height="149">
+    <div style="grid-column: 2 / span 2;" data-expected-width="80">XXXXX</div>
+    <div style="grid-column: 1 / -1; grid-row: 2;" data-expected-width="100">XXX XXX XXX</div>
+    <div style="grid-column: 1 / span 2; grid-row: 3;" data-expected-width="40">XXXX XXXX</div>
+        <div style="grid-column: 1; grid-row: 4;" data-expected-width="1" data-expected-height="0"></div>
+    </div>
+</div>
+
+<div style="position: relative; width: 100px;">
+    <div class="grid gridMaxContentAndMinMaxFixedMaxContentAndFlex gridRowColumnGaps" data-expected-width="100" data-expected-height="139">
+    <div style="grid-column: 2 / span 2;" data-expected-width="39">XX</div>
+    <div style="grid-column: 1 / -1; grid-row: 2;" data-expected-width="109">XXX XXX XXX</div>
+    <div style="grid-column: 1 / span 2; grid-row: 3;" data-expected-width="90">XXXX XXXX</div>
+        <div style="grid-column: 1; grid-row: 4;" data-expected-width="51" data-expected-height="0"></div>
+    </div>
+</div>
+
+</body>

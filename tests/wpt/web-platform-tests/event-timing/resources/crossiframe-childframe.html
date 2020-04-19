@@ -2,7 +2,7 @@
 <html>
 <body>
 <script src=event-timing-test-utils.js></script>
-<div style="width: 300px; height: 300px" onmousedown="mainThreadBusy(120)">
+<div style="width: 300px; height: 300px" id='iframe_div' onmousedown="mainThreadBusy(120)">
 <script>
 (async () => {
   const clickTimeMin = performance.now();
@@ -30,6 +30,7 @@
     // Other values
     "clickTimeMin": clickTimeMin,
     "clickDone" : clickDone,
+    "target": entry.target.id,
   }, '*');
 }) ();
 </script>

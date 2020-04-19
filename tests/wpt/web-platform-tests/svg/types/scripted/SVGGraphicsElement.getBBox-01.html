@@ -69,6 +69,9 @@ function assert_rect_approx_equals(rect, expected, epsilon) {
 }
 
 test(function() {
+  assert_rect_approx_equals(document.createElementNS("http://www.w3.org/2000/svg", "rect").getBBox(), {"x":0, "y":0, "width":0, "height":0 }, EPSILON);
+}, "getBBox on detached element");
+test(function() {
   assert_rect_approx_equals(document.getElementById("p1").getBBox(), {"x":0, "y":0, "width":0, "height":0 }, EPSILON);
 }, "getBBox on polygon with no points attribute");
 test(function() {

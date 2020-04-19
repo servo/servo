@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>CSS Grid Layout Test: content alignment and auto sized tracks.</title>
+<link rel="author" title="Javier Fernandez" href="mailto:jfernandez@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid/#alignment">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-tracks">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#distribution-values">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=376823">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=249451">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<meta name="assert" content="Test that 'stretch' value for content alignment properties is applied only on 'auto-sized' tracks, which are the ones with an 'auto' max sizing function." />
+
+<style>
+body {
+  margin: 0px;
+}
+
+.grid {
+  display: grid;
+  background-color: grey;
+  position: relative;
+}
+
+.definiteSize {
+  width: 200px;
+  height: 300px;
+}
+
+.item {
+  width: 40px;
+  height: 80px;
+}
+
+.content {
+  width: 20px;
+  height: 40px;
+}
+
+.firstRowFirstColumn {
+  background-color: blue;
+  grid-column: 1;
+  grid-row: 1;
+}
+.firstRowSecondColumn {
+  background-color: lime;
+  grid-column: 2;
+  grid-row: 1;
+}
+.secondRowFirstColumn {
+  background-color: purple;
+  grid-column: 1;
+  grid-row: 2;
+}
+.secondRowSecondColumn {
+  background-color: orange;
+  grid-column: 2;
+  grid-row: 2;
+}
+
+/* track sizes allowed to be stetched */
+.autoTracks { grid: auto auto / auto auto; }
+.autoMaxTracks { grid:  minmax(40px, auto) minmax(40px, auto) / minmax(20px, auto) minmax(20px, auto); }
+
+/* content-sized tracks disallowed to be stetched */
+.minContentTracks { grid: min-content min-content / min-content min-content; }
+.maxContentTracks { grid: max-content max-content / max-content max-content; }
+.minMaxWithMaxContentTracks { grid: minmax(20px, max-content) minmax(20px, max-content) / minmax(20px, max-content) minmax(20px, max-content); }
+.minMaxWithMinContentTracks { grid: minmax(20px, min-content) minmax(20px, min-content) / minmax(20px, min-content) minmax(20px, min-content); }
+.minMaxWithMinAutoTracks { grid: minmax(auto, max-content) minmax(auto, max-content) / minmax(auto, max-content) minmax(auto, max-content); }
+.fitContentTracks { grid: fit-content(20px) fit-content(20px) / fit-content(40px) fit-content(40px); font: 10px/1 Ahem; }
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script type="text/javascript">
+  setup({ explicit_done: true });
+</script>
+</head>
+
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<div style="position: relative">
+  <p>cols: 'auto' | rows: 'auto' | definite-sized container | definite-sized items </p>
+  <div class="grid contentStretch itemsStart definiteSize autoTracks" data-expected-width="200" data-expected-height="300">
+    <div class="item firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowFirstColumn" data-offset-x="0" data-offset-y="150" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowSecondColumn" data-offset-x="100" data-offset-y="150" data-expected-width="40" data-expected-height="80"></div>
+  </div>
+</div>
+
+<div style="position: relative">
+  <p>cols: 'minmax(20px, auto)' | rows: 'minmax(40px, auto)' | definite-sized container | definite-sized items </p>
+  <div class="grid contentStretch itemsStart definiteSize autoMaxTracks" data-expected-width="200" data-expected-height="300">
+    <div class="item firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item firstRowSecondColumn" data-offset-x="100" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowFirstColumn" data-offset-x="0" data-offset-y="150" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowSecondColumn" data-offset-x="100" data-offset-y="150" data-expected-width="40" data-expected-height="80"></div>
+  </div>
+</div>
+
+<div style="position: relative">
+  <p>cols: 'min-content' | rows: 'min-content' | definite-sized container | definite-sized items </p>
+  <div class="grid contentStretch itemsStart definiteSize minContentTracks" data-expected-width="200" data-expected-height="300">
+    <div class="item firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item firstRowSecondColumn" data-offset-x="40" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowFirstColumn" data-offset-x="0" data-offset-y="80" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowSecondColumn" data-offset-x="40" data-offset-y="80" data-expected-width="40" data-expected-height="80"></div>
+  </div>
+</div>
+
+<div style="position: relative">
+  <p>cols: 'max-content' | rows: 'max-content' | definite-sized container | definite-sized items </p>
+  <div class="grid contentStretch itemsStart definiteSize maxContentTracks" data-expected-width="200" data-expected-height="300">
+    <div class="item firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item firstRowSecondColumn" data-offset-x="40" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowFirstColumn" data-offset-x="0" data-offset-y="80" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowSecondColumn" data-offset-x="40" data-offset-y="80" data-expected-width="40" data-expected-height="80"></div>
+  </div>
+</div>
+
+<div style="position: relative">
+  <p>cols: 'minmax(20px, max-content)' | rows: 'minmax(20px, max-content)' | definite-sized container | definite-sized items </p>
+  <div class="grid contentStretch itemsStart definiteSize minMaxWithMaxContentTracks" data-expected-width="200" data-expected-height="300">
+    <div class="item firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item firstRowSecondColumn" data-offset-x="40" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowFirstColumn" data-offset-x="0" data-offset-y="80" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowSecondColumn" data-offset-x="40" data-offset-y="80" data-expected-width="40" data-expected-height="80"></div>
+  </div>
+</div>
+
+<div style="position: relative">
+  <p>cols: 'minmax(20px, min-content)' | rows: 'minmax(20px, min-content)' | definite-sized container | definite-sized items </p>
+  <div class="grid contentStretch itemsStart definiteSize minMaxWithMinContentTracks" data-expected-width="200" data-expected-height="300">
+    <div class="item firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item firstRowSecondColumn" data-offset-x="40" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowFirstColumn" data-offset-x="0" data-offset-y="80" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowSecondColumn" data-offset-x="40" data-offset-y="80" data-expected-width="40" data-expected-height="80"></div>
+  </div>
+</div>
+
+<div style="position: relative">
+  <p>cols: 'minmax(auto, max-content)' | rows: 'minmax(auto, max-content)' | definite-sized container | definite-sized items </p>
+  <div class="grid contentStretch itemsStart definiteSize minMaxWithMinAutoTracks" data-expected-width="200" data-expected-height="300">
+    <div class="item firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item firstRowSecondColumn" data-offset-x="40" data-offset-y="0" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowFirstColumn" data-offset-x="0" data-offset-y="80" data-expected-width="40" data-expected-height="80"></div>
+    <div class="item secondRowSecondColumn" data-offset-x="40" data-offset-y="80" data-expected-width="40" data-expected-height="80"></div>
+  </div>
+</div>
+
+<div style="position: relative">
+  <p>cols: 'fit-content(40px)' | rows: 'fit-content(20px)' | definite-sized container | content-sized items</p>
+  <div class="grid contentStretch itemsStart definiteSize fitContentTracks" data-expected-width="200" data-expected-height="300">
+    <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="20">X XX XX X</div>
+    <div class="firstRowSecondColumn" data-offset-x="40" data-offset-y="0" data-expected-width="40" data-expected-height="20">X XX XX X</div>
+    <div class="secondRowFirstColumn" data-offset-x="0" data-offset-y="20" data-expected-width="40" data-expected-height="20">X XX XX X</div>
+    <div class="secondRowSecondColumn" data-offset-x="40" data-offset-y="20" data-expected-width="40" data-expected-height="20">X XX XX X</div>
+  </div>
+</div>
+
+</body>
+</html>

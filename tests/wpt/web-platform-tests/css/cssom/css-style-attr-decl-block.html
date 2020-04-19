@@ -130,4 +130,19 @@ test(function() {
   assert_not_equals(getComputedStyle(elem).backgroundImage, originalComputedValue,
                     "getComputedStyle(elem).backgroundImage after setting background-image");
 }, "Changes to CSS declaration block after a base URL change");
+
+test(function() {
+  let e1 = document.createElement('div');
+  let e2 = document.createElement('div');
+  document.body.append(e1, e2);
+  this.add_cleanup(() => {
+    e1.remove();
+    e2.remove();
+  });
+  e1.style.cssText = "all:revert;border-bottom-left-radius:1px;";
+  e2.style.cssText = "all:unset;border-bottom-left-radius:1px;";
+  let processed = e1.style.cssText.split(';')
+    .map(x => x.replace(/revert$/, 'unset')).join(';');
+  assert_equals(processed, e2.style.cssText);
+}, "Expansion of all:unset and all:revert treated identically");
 </script>
