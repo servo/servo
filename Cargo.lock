@@ -1229,16 +1229,6 @@ dependencies = [
 
 [[package]]
 name = "dirs"
-version = "1.0.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37a76dd8b997af7107d0bb69d43903cf37153a18266f8b3fdb9911f28efb5444"
-dependencies = [
- "libc",
- "winapi",
-]
-
-[[package]]
-name = "dirs"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13aea89a5c93364a98e9b37b2fa237effbb694d5cfe01c5b70941f7eb087d5e3"
@@ -1555,7 +1545,7 @@ dependencies = [
  "core-foundation 0.7.0",
  "core-graphics 0.19.0",
  "core-text 15.0.0",
- "dirs 2.0.2",
+ "dirs",
  "dwrote 0.9.0",
  "euclid",
  "float-ord",
@@ -5216,7 +5206,7 @@ dependencies = [
 name = "servo_config"
 version = "0.0.1"
 dependencies = [
- "dirs 1.0.2",
+ "dirs",
  "embedder_traits",
  "euclid",
  "getopts",
