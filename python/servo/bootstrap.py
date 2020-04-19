@@ -100,7 +100,7 @@ def linux(context, force=False):
                 'rpm-build', 'openssl-devel', 'cmake',
                 'libXcursor-devel', 'libXmu-devel', 'mesa-libOSMesa-devel',
                 'dbus-devel', 'ncurses-devel', 'harfbuzz-devel', 'ccache',
-                'clang', 'clang-libs', 'autoconf213', 'python3-devel'
+                'clang', 'clang-libs', 'autoconf213', 'python3-devel',
                 'gstreamer1-devel', 'gstreamer1-plugins-base-devel',
                 'gstreamer1-plugins-bad-free-devel']
 
