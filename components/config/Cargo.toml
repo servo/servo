@@ -31,4 +31,4 @@ servo_config_plugins = { path = "../config_plugins" }
 std_test_override = { path = "../std_test_override" }
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
-dirs = "1.0"
+dirs = "2.0.2"
