@@ -791,7 +791,7 @@ def setup_uwp_signing(ms_app_store, publisher):
 
 
 def build_uwp(platforms, dev, msbuild_dir, ms_app_store):
-    if any(map(lambda p: p not in ['x64', 'x86', 'arm64'], platforms)):
+    if any(map(lambda p: p not in ['x64', 'x86', 'ARM64'], platforms)):
         raise Exception("Unsupported appx platforms: " + str(platforms))
     if dev and len(platforms) > 1:
         raise Exception("Debug package with multiple architectures is unsupported")
