@@ -6,6 +6,7 @@
 
 use fxhash::FxHashMap;
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOfOps};
+use std::collections::hash_map;
 use std::hash::Hash;
 use std::mem;
 
@@ -26,6 +27,20 @@ pub(super) struct MapIter<'a, K, V> {
 enum MapIterInner<'a, K, V> {
     One(std::option::IntoIter<&'a V>),
     Map(std::collections::hash_map::Values<'a, K, V>),
+}
+
+pub(super) enum Entry<'a, K, V> {
+    Occupied(&'a mut V),
+    Vacant(VacantEntry<'a, K, V>),
+}
+
+pub(super) struct VacantEntry<'a, K, V> {
+    inner: VacantEntryInner<'a, K, V>,
+}
+
+enum VacantEntryInner<'a, K, V> {
+    One(&'a mut MapInner<K, V>),
+    Map(hash_map::VacantEntry<'a, K, V>),
 }
 
 impl<K, V> Default for Map<K, V> {
@@ -91,20 +106,15 @@ where
         }
     }
 
-    pub(super) fn get_or_insert_with(
+    pub(super) fn entry(
         &mut self,
         key: K,
         key_from_value: impl FnOnce(&V) -> K,
-        new_value: impl FnOnce() -> V,
-    ) -> &mut V {
+    ) -> Entry<'_, K, V> {
         match self.inner {
-            MapInner::Empty => {
-                self.inner = MapInner::One(new_value());
-                match &mut self.inner {
-                    MapInner::One(one) => one,
-                    _ => unreachable!(),
-                }
-            },
+            ref mut inner @ MapInner::Empty => Entry::Vacant(VacantEntry {
+                inner: VacantEntryInner::One(inner),
+            }),
             MapInner::One(_) => {
                 let one = match mem::replace(&mut self.inner, MapInner::Empty) {
                     MapInner::One(one) => one,
@@ -115,10 +125,11 @@ where
                 // Same for the equality test.
                 if key == one_key {
                     self.inner = MapInner::One(one);
-                    match &mut self.inner {
-                        MapInner::One(one) => return one,
+                    let one = match &mut self.inner {
+                        MapInner::One(one) => one,
                         _ => unreachable!(),
-                    }
+                    };
+                    return Entry::Occupied(one);
                 }
                 self.inner = MapInner::Map(Box::new(FxHashMap::with_capacity_and_hasher(
                     2,
@@ -129,12 +140,19 @@ where
                     _ => unreachable!(),
                 };
                 map.insert(one_key, one);
-                // But it doesn't matter if f panics, by this point
-                // the map is as before but represented as a map instead
-                // of a single value.
-                map.entry(key).or_insert_with(new_value)
+                match map.entry(key) {
+                    hash_map::Entry::Vacant(entry) => Entry::Vacant(VacantEntry {
+                        inner: VacantEntryInner::Map(entry),
+                    }),
+                    _ => unreachable!(),
+                }
             },
-            MapInner::Map(ref mut map) => map.entry(key).or_insert_with(new_value),
+            MapInner::Map(ref mut map) => match map.entry(key) {
+                hash_map::Entry::Occupied(entry) => Entry::Occupied(entry.into_mut()),
+                hash_map::Entry::Vacant(entry) => Entry::Vacant(VacantEntry {
+                    inner: VacantEntryInner::Map(entry),
+                }),
+            },
         }
     }
 
@@ -148,6 +166,21 @@ where
             },
             MapInner::Map(map) => map.remove(key),
             MapInner::Empty | MapInner::One(_) => None,
+        }
+    }
+}
+
+impl<'a, K, V> VacantEntry<'a, K, V> {
+    pub(super) fn insert(self, value: V) -> &'a mut V {
+        match self.inner {
+            VacantEntryInner::One(map) => {
+                *map = MapInner::One(value);
+                match map {
+                    MapInner::One(one) => one,
+                    _ => unreachable!(),
+                }
+            },
+            VacantEntryInner::Map(entry) => entry.insert(value),
         }
     }
 }
