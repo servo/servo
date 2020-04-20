@@ -13,11 +13,10 @@ use smallvec::SmallVec;
 use std::fmt;
 use std::hash;
 use std::io::Write;
-use std::mem;
 use std::ptr;
 use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
 
-use super::map::Map;
+use super::map::{Entry, Map};
 use super::unsafe_box::UnsafeBox;
 use super::{CascadeLevel, StyleSource};
 
@@ -402,33 +401,21 @@ impl StrongRuleNode {
             return child.upgrade();
         }
         let mut children = RwLockUpgradableReadGuard::upgrade(children);
-        let mut is_new = false;
-        let weak = {
-            let is_new = &mut is_new;
-            children.get_or_insert_with(
-                key,
-                |node| node.p.key(),
-                move || {
-                    *is_new = true;
-                    let root = unsafe { root.downgrade() };
-                    let strong = StrongRuleNode::new(Box::new(RuleNode::new(
-                        root,
-                        self.clone(),
-                        source,
-                        level,
-                    )));
-                    let weak = unsafe { strong.downgrade() };
-                    mem::forget(strong);
-                    weak
-                },
-            )
-        };
-
-        if !is_new {
-            return weak.upgrade();
+        match children.entry(key, |node| node.p.key()) {
+            Entry::Occupied(child) => {
+                child.upgrade()
+            },
+            Entry::Vacant(entry) => {
+                let node = StrongRuleNode::new(Box::new(RuleNode::new(
+                    unsafe { root.downgrade() },
+                    self.clone(),
+                    source,
+                    level,
+                )));
+                entry.insert(unsafe { node.downgrade() });
+                node
+            },
         }
-
-        unsafe { StrongRuleNode::from_unsafe_box(UnsafeBox::clone(&weak.p)) }
     }
 
     /// Get the style source corresponding to this rule node. May return `None`
