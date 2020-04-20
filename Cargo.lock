@@ -1945,17 +1945,6 @@ dependencies = [
 
 [[package]]
 name = "gl_generator"
-version = "0.11.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "39a23d5e872a275135d66895d954269cf5e8661d234eb1c2480f4ce0d586acbd"
-dependencies = [
- "khronos_api",
- "log",
- "xml-rs",
-]
-
-[[package]]
-name = "gl_generator"
 version = "0.13.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca98bbde17256e02d17336a6bdb5a50f7d0ccacee502e191d3e3d0ec2f96f84a"
@@ -5261,7 +5250,7 @@ version = "0.0.1"
 dependencies = [
  "core-foundation 0.6.4",
  "getopts",
- "gl_generator 0.11.0",
+ "gl_generator 0.14.0",
  "ipc-channel",
  "libc",
  "libloading",
