@@ -319,7 +319,7 @@ def windows_arm64(rdp=False):
         .with_scopes("secrets:get:project/servo/windows-codesign-cert/latest")
         .with_script(
             "python mach build --dev --target=aarch64-uwp-windows-msvc",
-            "python mach package --dev --target aarch64-uwp-windows-msvc --uwp=arm64",
+            "python mach package --dev --target aarch64-uwp-windows-msvc --uwp=ARM64",
         )
         .with_artifacts(appx_artifact)
         .find_or_create("build.windows_uwp_arm64_dev." + CONFIG.tree_hash())
@@ -354,7 +354,7 @@ def uwp_nightly(rdp=False):
         .with_script(
             "python mach build --release --target=x86_64-uwp-windows-msvc",
             "python mach build --release --target=aarch64-uwp-windows-msvc",
-            "mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=arm64",
+            "mach package --release --target=x86_64-uwp-windows-msvc --uwp=x64 --uwp=ARM64",
             "mach upload-nightly uwp --secret-from-taskcluster",
         )
         .with_artifacts(appx_artifact)
