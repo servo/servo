@@ -118,7 +118,7 @@ use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use surfman::GLApi;
-use webrender::{RendererKind, ShaderPrecacheFlags};
+use webrender::ShaderPrecacheFlags;
 use webrender_surfman::WebrenderSurfman;
 use webrender_traits::WebrenderImageHandlerType;
 use webrender_traits::{WebrenderExternalImageHandlers, WebrenderExternalImageRegistry};
@@ -400,12 +400,6 @@ where
         let viewport_size = coordinates.viewport.size.to_f32() / device_pixel_ratio;
 
         let (mut webrender, webrender_api_sender) = {
-            let renderer_kind = if opts::get().should_use_osmesa() {
-                RendererKind::OSMesa
-            } else {
-                RendererKind::Native
-            };
-
             let recorder = if opts.webrender_record {
                 let record_path = PathBuf::from("wr-record.bin");
                 let recorder = Box::new(webrender::BinaryRecorder::new(&record_path));
@@ -436,7 +430,6 @@ where
                     } else {
                         ShaderPrecacheFlags::empty()
                     },
-                    renderer_kind: renderer_kind,
                     enable_subpixel_aa: opts.enable_subpixel_text_antialiasing,
                     allow_texture_swizzling: pref!(gfx.texture_swizzling.enabled),
                     clear_color: None,

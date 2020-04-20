@@ -1009,9 +1009,3 @@ pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {
         Err(_) => Err(()),
     }
 }
-
-impl Opts {
-    pub fn should_use_osmesa(&self) -> bool {
-        self.headless
-    }
-}
