@@ -1543,9 +1543,7 @@ impl LayoutThread {
         }
 
         // GC the rule tree if some heuristics are met.
-        unsafe {
-            layout_context.style_context.stylist.rule_tree().maybe_gc();
-        }
+        layout_context.style_context.stylist.rule_tree().maybe_gc();
 
         // Perform post-style recalculation layout passes.
         if let Some(mut root_flow) = self.root_flow.borrow().clone() {

@@ -6,15 +6,15 @@
 
 use crate::properties::Importance;
 use crate::shared_lock::StylesheetGuards;
-use crate::thread_state;
 use malloc_size_of::{MallocShallowSizeOf, MallocSizeOf, MallocSizeOfOps};
 use parking_lot::RwLock;
 use smallvec::SmallVec;
 use std::fmt;
 use std::hash;
 use std::io::Write;
+use std::mem;
 use std::ptr;
-use std::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
+use std::sync::atomic::{self, AtomicPtr, AtomicUsize, Ordering};
 
 use super::map::{Entry, Map};
 use super::unsafe_box::UnsafeBox;
@@ -31,16 +31,10 @@ use super::{CascadeLevel, StyleSource};
 /// them.
 ///
 /// When the rule node refcount drops to zero, it doesn't get freed. It gets
-/// instead put into a free list, and it is potentially GC'd after a while in a
-/// single-threaded fashion.
+/// instead put into a free list, and it is potentially GC'd after a while.
 ///
 /// That way, a rule node that represents a likely-to-match-again rule (like a
 /// :hover rule) can be reused if we haven't GC'd it yet.
-///
-/// See the discussion at https://github.com/servo/servo/pull/15562 and the IRC
-/// logs at http://logs.glob.uno/?c=mozilla%23servo&s=3+Apr+2017&e=3+Apr+2017
-/// logs from http://logs.glob.uno/?c=mozilla%23servo&s=3+Apr+2017&e=3+Apr+2017#c644094
-/// to se a discussion about the different memory orderings used here.
 #[derive(Debug)]
 pub struct RuleTree {
     root: StrongRuleNode,
@@ -48,24 +42,7 @@ pub struct RuleTree {
 
 impl Drop for RuleTree {
     fn drop(&mut self) {
-        // GC the rule tree.
-        unsafe {
-            self.gc();
-        }
-
-        // After the GC, the free list should be empty.
-        debug_assert_eq!(
-            self.root.p.next_free.load(Ordering::Relaxed),
-            FREE_LIST_SENTINEL
-        );
-
-        // Remove the sentinel. This indicates that GCs will no longer occur.
-        // Any further drops of StrongRuleNodes must occur on the main thread,
-        // and will trigger synchronous dropping of the Rule nodes.
-        self.root
-            .p
-            .next_free
-            .store(ptr::null_mut(), Ordering::Relaxed);
+        unsafe { self.swap_free_list_and_gc(ptr::null_mut()) }
     }
 }
 
@@ -80,7 +57,7 @@ impl MallocSizeOf for RuleTree {
             let children = node.p.children.read();
             children.shallow_size_of(ops);
             for c in &*children {
-                stack.push(c.upgrade());
+                stack.push(unsafe { c.upgrade() });
             }
         }
 
@@ -92,17 +69,6 @@ impl MallocSizeOf for RuleTree {
 struct ChildKey(CascadeLevel, ptr::NonNull<()>);
 unsafe impl Send for ChildKey {}
 unsafe impl Sync for ChildKey {}
-
-/// This value exists here so a node that pushes itself to the list can know
-/// that is in the free list by looking at is next pointer, and comparing it
-/// with null.
-///
-/// The root node doesn't have a null pointer in the free list, but this value.
-const FREE_LIST_SENTINEL: *mut RuleNode = 0x01 as *mut RuleNode;
-
-/// A second sentinel value for the free list, indicating that it's locked (i.e.
-/// another thread is currently adding an entry). We spin if we find this value.
-const FREE_LIST_LOCKED: *mut RuleNode = 0x02 as *mut RuleNode;
 
 impl RuleTree {
     /// Construct a new rule tree.
@@ -118,16 +84,18 @@ impl RuleTree {
     }
 
     /// This can only be called when no other threads is accessing this tree.
-    pub unsafe fn gc(&self) {
-        self.root.gc();
+    pub fn gc(&self) {
+        unsafe { self.swap_free_list_and_gc(RuleNode::DANGLING_PTR) }
     }
 
     /// This can only be called when no other threads is accessing this tree.
-    pub unsafe fn maybe_gc(&self) {
+    pub fn maybe_gc(&self) {
         #[cfg(debug_assertions)]
         self.maybe_dump_stats();
 
-        self.root.maybe_gc();
+        if self.root.p.approximate_free_count.load(Ordering::Relaxed) > RULE_TREE_GC_INTERVAL {
+            self.gc();
+        }
     }
 
     #[cfg(debug_assertions)]
@@ -167,7 +135,7 @@ impl RuleTree {
             let children = node.p.children.read();
             *children_count.entry(children.len()).or_insert(0) += 1;
             for c in &*children {
-                stack.push(c.upgrade());
+                stack.push(unsafe { c.upgrade() });
             }
         }
 
@@ -175,6 +143,56 @@ impl RuleTree {
         let counts = children_count.keys().sorted();
         for count in counts {
             trace!(" {} - {}", count, children_count[count]);
+        }
+    }
+
+    /// Steals the free list and drops its contents.
+    unsafe fn swap_free_list_and_gc(&self, ptr: *mut RuleNode) {
+        let root = &self.root.p;
+
+        debug_assert!(!root.next_free.load(Ordering::Relaxed).is_null());
+
+        // Reset the approximate free count to zero, as we are going to steal
+        // the free list.
+        root.approximate_free_count.store(0, Ordering::Relaxed);
+
+        // Steal the free list head. Memory loads on nodes while iterating it
+        // must observe any prior changes that occured so this requires
+        // acquire ordering, but there are no writes that need to be kept
+        // before this swap so there is no need for release.
+        let mut head = root.next_free.swap(ptr, Ordering::Acquire);
+
+        while head != RuleNode::DANGLING_PTR {
+            debug_assert!(!head.is_null());
+
+            let mut node = UnsafeBox::from_raw(head);
+
+            // The root node cannot go on the free list.
+            debug_assert!(node.root.is_some());
+
+            // The refcount of nodes on the free list never goes below 1.
+            debug_assert!(node.refcount.load(Ordering::Relaxed) > 0);
+
+            // No one else is currently writing to that field. Get the address
+            // of the next node in the free list and replace it with null,
+            // other threads will now consider that this node is not on the
+            // free list.
+            head = node.next_free.swap(ptr::null_mut(), Ordering::Relaxed);
+
+            // This release write synchronises with the acquire fence in
+            // `WeakRuleNode::upgrade`, making sure that if `upgrade` observes
+            // decrements the refcount to 0, it will also observe the
+            // `node.next_free` swap to null above.
+            if node.refcount.fetch_sub(1, Ordering::Release) == 1 {
+                // And given it observed the null swap above, it will need
+                // `pretend_to_be_on_free_list` to finish its job, writing
+                // `RuleNode::DANGLING_PTR` in `node.next_free`.
+                RuleNode::pretend_to_be_on_free_list(&node);
+
+                // Drop this node now that we just observed its refcount going
+                // down to zero.
+                RuleNode::drop_without_free_list(&mut node);
+            }
         }
     }
 }
@@ -201,22 +219,48 @@ struct RuleNode {
     /// The cascade level this rule is positioned at.
     level: CascadeLevel,
 
+    /// The refcount of this node.
+    ///
+    /// Starts at one. Incremented in `StrongRuleNode::clone` and
+    /// `WeakRuleNode::upgrade`. Decremented in `StrongRuleNode::drop`
+    /// and `RuleTree::swap_free_list_and_gc`.
+    ///
+    /// If a non-root node's refcount reaches zero, it is incremented back to at
+    /// least one in `RuleNode::pretend_to_be_on_free_list` until the caller who
+    /// observed it dropping to zero had a chance to try to remove it from its
+    /// parent's children list.
+    ///
+    /// The refcount should never be decremented to zero if the value in
+    /// `next_free` is not null.
     refcount: AtomicUsize,
 
     /// Only used for the root, stores the number of free rule nodes that are
     /// around.
-    free_count: AtomicUsize,
+    approximate_free_count: AtomicUsize,
 
     /// The children of a given rule node. Children remove themselves from here
     /// when they go away.
     children: RwLock<Map<ChildKey, WeakRuleNode>>,
 
-    /// The next item in the rule tree free list, that starts on the root node.
+    /// This field has two different meanings depending on whether this is the
+    /// root node or not.
     ///
-    /// When this is set to null, that means that the rule tree has been torn
-    /// down, and GCs will no longer occur. When this happens, StrongRuleNodes
-    /// may only be dropped on the main thread, and teardown happens
-    /// synchronously.
+    /// If it is the root, it represents the head of the free list. It may be
+    /// null, which means the free list is gone because the tree was dropped,
+    /// and it may be `RuleNode::DANGLING_PTR`, which means the free list is
+    /// empty.
+    ///
+    /// If it is not the root node, this field is either null if the node is
+    /// not on the free list, `RuleNode::DANGLING_PTR` if it is the last item
+    /// on the free list or the node is pretending to be on the free list, or
+    /// any valid non-null pointer representing the next item on the free list
+    /// after this one.
+    ///
+    /// See `RuleNode::push_on_free_list`, `swap_free_list_and_gc`, and
+    /// `WeakRuleNode::upgrade`.
+    ///
+    /// Two threads should never attempt to put the same node on the free list
+    /// both at the same time.
     next_free: AtomicPtr<RuleNode>,
 }
 
@@ -231,7 +275,6 @@ mod gecko_leak_checking {
         fn NS_LogCtor(aPtr: *mut c_void, aTypeName: *const c_char, aSize: u32);
         fn NS_LogDtor(aPtr: *mut c_void, aTypeName: *const c_char, aSize: u32);
     }
-
     static NAME: &'static [u8] = b"RuleNode\0";
 
     /// Logs the creation of a heap-allocated object to Gecko's leak-checking machinery.
@@ -264,13 +307,15 @@ fn log_drop(_ptr: *const RuleNode) {
 }
 
 impl RuleNode {
-    fn new(
+    const DANGLING_PTR: *mut Self = ptr::NonNull::dangling().as_ptr();
+
+    unsafe fn new(
         root: WeakRuleNode,
         parent: StrongRuleNode,
         source: StyleSource,
         level: CascadeLevel,
     ) -> Self {
-        debug_assert!(root.upgrade().parent().is_none());
+        debug_assert!(root.p.parent.is_none());
         RuleNode {
             root: Some(root),
             parent: Some(parent),
@@ -278,7 +323,7 @@ impl RuleNode {
             level: level,
             refcount: AtomicUsize::new(1),
             children: Default::default(),
-            free_count: AtomicUsize::new(0),
+            approximate_free_count: AtomicUsize::new(0),
             next_free: AtomicPtr::new(ptr::null_mut()),
         }
     }
@@ -290,9 +335,9 @@ impl RuleNode {
             source: None,
             level: CascadeLevel::UANormal,
             refcount: AtomicUsize::new(1),
-            free_count: AtomicUsize::new(0),
+            approximate_free_count: AtomicUsize::new(0),
             children: Default::default(),
-            next_free: AtomicPtr::new(FREE_LIST_SENTINEL),
+            next_free: AtomicPtr::new(RuleNode::DANGLING_PTR),
         }
     }
 
@@ -306,34 +351,159 @@ impl RuleNode {
         )
     }
 
-    fn is_root(&self) -> bool {
-        self.parent.is_none()
-    }
-
-    fn free_count(&self) -> &AtomicUsize {
-        debug_assert!(self.is_root());
-        &self.free_count
-    }
-
-    /// Remove this rule node from the child list.
+    /// Drops a node without ever putting it on the free list.
     ///
-    /// This is expected to be called before freeing the node from the free
-    /// list, on the main thread.
-    unsafe fn remove_from_child_list(&self) {
-        debug!(
-            "Remove from child list: {:?}, parent: {:?}",
-            self as *const RuleNode,
-            self.parent.as_ref().map(|p| &*p.p as *const RuleNode)
-        );
+    /// Note that the node may not be dropped if we observe that its refcount
+    /// isn't zero anymore when we write-lock its parent's children map to
+    /// remove it.
+    ///
+    /// This loops over parents of dropped nodes if their own refcount reaches
+    /// zero to avoid recursion when dropping deep hierarchies of nodes.
+    ///
+    /// For non-root nodes, this should always be preceded by a call of
+    /// `RuleNode::pretend_to_be_on_free_list`.
+    unsafe fn drop_without_free_list(this: &mut UnsafeBox<Self>) {
+        // We clone the box and shadow the original one to be able to loop
+        // over its ancestors if they also need to be dropped.
+        let mut this = UnsafeBox::clone(this);
+        loop {
+            // If the node has a parent, we need to remove it from its parent's
+            // children list.
+            if let Some(parent) = this.parent.as_ref() {
+                debug_assert!(!this.next_free.load(Ordering::Relaxed).is_null());
 
-        if let Some(parent) = self.parent.as_ref() {
-            let weak = parent
-                .p
-                .children
-                .write()
-                .remove(&self.key(), |node| node.p.key());
-            assert_eq!(&*weak.unwrap().p as *const _, self as *const _);
+                // We lock the parent's children list, which means no other
+                // thread will have any more opportunity to resurrect the node
+                // anymore.
+                let mut children = parent.p.children.write();
+
+                this.next_free.store(ptr::null_mut(), Ordering::Relaxed);
+
+                // We decrement the counter to remove the "pretend to be
+                // on the free list" reference.
+                let old_refcount = this.refcount.fetch_sub(1, Ordering::Release);
+                debug_assert!(old_refcount != 0);
+                if old_refcount != 1 {
+                    // Other threads resurrected this node and those references
+                    // are still alive, we have nothing to do anymore.
+                    return;
+                }
+
+                // We finally remove the node from its parent's children list,
+                // there are now no other references to it and it cannot
+                // be resurrected anymore even after we unlock the list.
+                debug!(
+                    "Remove from child list: {:?}, parent: {:?}",
+                    this.as_mut_ptr(),
+                    this.parent.as_ref().map(|p| p.p.as_mut_ptr())
+                );
+                let weak = children.remove(&this.key(), |node| node.p.key()).unwrap();
+                assert_eq!(weak.p.as_mut_ptr(), this.as_mut_ptr());
+            } else {
+                debug_assert_eq!(this.next_free.load(Ordering::Relaxed), ptr::null_mut());
+                debug_assert_eq!(this.refcount.load(Ordering::Relaxed), 0);
+            }
+
+            // We are going to drop this node for good this time, as per the
+            // usual refcounting protocol we need an acquire fence here before
+            // we run the destructor.
+            //
+            // See https://github.com/rust-lang/rust/pull/41714#issuecomment-298996916
+            // for why it doesn't matter whether this is a load or a fence.
+            atomic::fence(Ordering::Acquire);
+
+            // Remove the parent reference from the child to avoid
+            // recursively dropping it and putting it on the free list.
+            let parent = UnsafeBox::deref_mut(&mut this).parent.take();
+
+            // We now drop the actual box and its contents, no one should
+            // access the current value in `this` anymore.
+            log_drop(&*this);
+            UnsafeBox::drop(&mut this);
+
+            if let Some(parent) = parent {
+                // We will attempt to drop the node's parent without the free
+                // list, so we clone the inner unsafe box and forget the
+                // original parent to avoid running its `StrongRuleNode`
+                // destructor which would attempt to use the free list if it
+                // still exists.
+                this = UnsafeBox::clone(&parent.p);
+                mem::forget(parent);
+                if this.refcount.fetch_sub(1, Ordering::Release) == 1 {
+                    debug_assert_eq!(this.next_free.load(Ordering::Relaxed), ptr::null_mut());
+                    if this.root.is_some() {
+                        RuleNode::pretend_to_be_on_free_list(&this);
+                    }
+                    // Parent also reached refcount zero, we loop to drop it.
+                    continue;
+                }
+            }
+
+            return;
         }
+    }
+
+    /// Pushes this node on the tree's free list. Returns false if the free list
+    /// is gone. Should only be called after we decremented a node's refcount
+    /// to zero and pretended to be on the free list.
+    unsafe fn push_on_free_list(this: &UnsafeBox<Self>) -> bool {
+        let root = &this.root.as_ref().unwrap().p;
+
+        debug_assert!(this.refcount.load(Ordering::Relaxed) > 0);
+        debug_assert_eq!(this.next_free.load(Ordering::Relaxed), Self::DANGLING_PTR);
+
+        // Increment the approximate free count by one.
+        root.approximate_free_count.fetch_add(1, Ordering::Relaxed);
+
+        // If the compare-exchange operation fails in the loop, we will retry
+        // with the new head value, so this can be a relaxed load.
+        let mut head = root.next_free.load(Ordering::Relaxed);
+
+        while !head.is_null() {
+            // Two threads can never attempt to push the same node on the free
+            // list both at the same time, so whoever else pushed a node on the
+            // free list cannot have done so with this node.
+            debug_assert_ne!(head, this.as_mut_ptr());
+
+            // Store the current head of the free list in this node.
+            this.next_free.store(head, Ordering::Relaxed);
+
+            // Any thread acquiring the free list must observe the previous
+            // next_free changes that occured, hence the release ordering
+            // on success.
+            match root.next_free.compare_exchange_weak(
+                head,
+                this.as_mut_ptr(),
+                Ordering::Release,
+                Ordering::Relaxed,
+            ) {
+                Ok(_) => {
+                    // This node is now on the free list, caller should not use
+                    // the node anymore.
+                    return true;
+                },
+                Err(new_head) => head = new_head,
+            }
+        }
+
+        // Tree was dropped and free list has been destroyed. We did not push
+        // this node on the free list but we still pretend to be on the free
+        // list to be ready to call `drop_without_free_list`.
+        false
+    }
+
+    /// Makes the node pretend to be on the free list. This will increment the
+    /// refcount by 1 and store `Self::DANGLING_PTR` in `next_free`. This
+    /// method should only be called after caller decremented the refcount to
+    /// zero, with the null pointer stored in `next_free`.
+    unsafe fn pretend_to_be_on_free_list(this: &UnsafeBox<Self>) {
+        debug_assert_eq!(this.next_free.load(Ordering::Relaxed), ptr::null_mut());
+        this.refcount.fetch_add(1, Ordering::Relaxed);
+        this.next_free.store(Self::DANGLING_PTR, Ordering::Release);
+    }
+
+    fn as_mut_ptr(&self) -> *mut RuleNode {
+        self as *const RuleNode as *mut RuleNode
     }
 }
 
@@ -395,24 +565,28 @@ impl StrongRuleNode {
         );
 
         let key = ChildKey(level, source.key());
-
         let children = self.p.children.upgradable_read();
         if let Some(child) = children.get(&key, |node| node.p.key()) {
-            return child.upgrade();
+            // Sound to call because we read-locked the parent's children.
+            return unsafe { child.upgrade() };
         }
         let mut children = RwLockUpgradableReadGuard::upgrade(children);
         match children.entry(key, |node| node.p.key()) {
             Entry::Occupied(child) => {
-                child.upgrade()
+                // Sound to call because we write-locked the parent's children.
+                unsafe { child.upgrade() }
             },
-            Entry::Vacant(entry) => {
+            Entry::Vacant(entry) => unsafe {
                 let node = StrongRuleNode::new(Box::new(RuleNode::new(
-                    unsafe { root.downgrade() },
+                    root.downgrade(),
                     self.clone(),
                     source,
                     level,
                 )));
-                entry.insert(unsafe { node.downgrade() });
+                // Sound to call because we still own a strong reference to
+                // this node, through the `node` variable itself that we are
+                // going to return to the caller.
+                entry.insert(node.downgrade());
                 node
             },
         }
@@ -436,116 +610,9 @@ impl StrongRuleNode {
     }
 
     /// Returns whether this node has any child, only intended for testing
-    /// purposes, and called on a single-threaded fashion only.
+    /// purposes.
     pub unsafe fn has_children_for_testing(&self) -> bool {
         !self.p.children.read().is_empty()
-    }
-
-    unsafe fn pop_from_free_list(&self) -> Option<WeakRuleNode> {
-        // NB: This can run from the root node destructor, so we can't use
-        // `get()`, since it asserts the refcount is bigger than zero.
-        let me = &self.p;
-
-        debug_assert!(me.is_root());
-
-        // FIXME(#14213): Apparently the layout data can be gone from script.
-        //
-        // That's... suspicious, but it's fine if it happens for the rule tree
-        // case, so just don't crash in the case we're doing the final GC in
-        // script.
-
-        debug_assert!(
-            !thread_state::get().is_worker() &&
-                (thread_state::get().is_layout() || thread_state::get().is_script())
-        );
-
-        let current = me.next_free.load(Ordering::Relaxed);
-        if current == FREE_LIST_SENTINEL {
-            return None;
-        }
-
-        debug_assert!(
-            !current.is_null(),
-            "Multiple threads are operating on the free list at the \
-             same time?"
-        );
-        debug_assert!(
-            current != &*self.p as *const RuleNode as *mut RuleNode,
-            "How did the root end up in the free list?"
-        );
-
-        let next = (*current)
-            .next_free
-            .swap(ptr::null_mut(), Ordering::Relaxed);
-
-        debug_assert!(
-            !next.is_null(),
-            "How did a null pointer end up in the free list?"
-        );
-
-        me.next_free.store(next, Ordering::Relaxed);
-
-        debug!(
-            "Popping from free list: cur: {:?}, next: {:?}",
-            current, next
-        );
-
-        Some(WeakRuleNode {
-            p: UnsafeBox::from_raw(current),
-        })
-    }
-
-    unsafe fn assert_free_list_has_no_duplicates_or_null(&self) {
-        assert!(cfg!(debug_assertions), "This is an expensive check!");
-        use crate::hash::FxHashSet;
-
-        assert!(self.p.is_root());
-
-        let mut current = &*self.p as *const RuleNode as *mut RuleNode;
-        let mut seen = FxHashSet::default();
-        while current != FREE_LIST_SENTINEL {
-            let next = (*current).next_free.load(Ordering::Relaxed);
-            assert!(!next.is_null());
-            assert!(!seen.contains(&next));
-            seen.insert(next);
-
-            current = next;
-        }
-    }
-
-    unsafe fn gc(&self) {
-        if cfg!(debug_assertions) {
-            self.assert_free_list_has_no_duplicates_or_null();
-        }
-
-        // NB: This can run from the root node destructor, so we can't use
-        // `get()`, since it asserts the refcount is bigger than zero.
-        let me = &self.p;
-
-        debug_assert!(me.is_root(), "Can't call GC on a non-root node!");
-
-        while let Some(mut weak) = self.pop_from_free_list() {
-            if weak.p.refcount.load(Ordering::Relaxed) != 0 {
-                // Nothing to do, the node is still alive.
-                continue;
-            }
-
-            debug!("GC'ing {:?}", &*weak.p as *const RuleNode);
-            weak.p.remove_from_child_list();
-            log_drop(&*weak.p);
-            UnsafeBox::drop(&mut weak.p);
-        }
-
-        me.free_count().store(0, Ordering::Relaxed);
-
-        debug_assert_eq!(me.next_free.load(Ordering::Relaxed), FREE_LIST_SENTINEL);
-    }
-
-    unsafe fn maybe_gc(&self) {
-        debug_assert!(self.p.is_root(), "Can't call GC on a non-root node!");
-        if self.p.free_count.load(Ordering::Relaxed) > RULE_TREE_GC_INTERVAL {
-            self.gc();
-        }
     }
 
     pub(super) fn dump<W: Write>(&self, guards: &StylesheetGuards, writer: &mut W, indent: usize) {
@@ -578,9 +645,11 @@ impl StrongRuleNode {
 
         let _ = write!(writer, "\n");
         for child in &*self.p.children.read() {
-            child
-                .upgrade()
-                .dump(guards, writer, indent + INDENT_INCREMENT);
+            unsafe {
+                child
+                    .upgrade()
+                    .dump(guards, writer, indent + INDENT_INCREMENT);
+            }
         }
     }
 }
@@ -602,7 +671,6 @@ impl Drop for StrongRuleNode {
     #[cfg_attr(feature = "servo", allow(unused_mut))]
     fn drop(&mut self) {
         let node = &*self.p;
-
         debug!("{:p}: {:?}-", node, node.refcount.load(Ordering::Relaxed));
         debug!(
             "Dropping node: {:p}, root: {:?}, parent: {:?}",
@@ -610,138 +678,60 @@ impl Drop for StrongRuleNode {
             node.root.as_ref().map(|r| &*r.p as *const RuleNode),
             node.parent.as_ref().map(|p| &*p.p as *const RuleNode)
         );
+
         let should_drop = {
             debug_assert!(node.refcount.load(Ordering::Relaxed) > 0);
-            node.refcount.fetch_sub(1, Ordering::Relaxed) == 1
+            node.refcount.fetch_sub(1, Ordering::Release) == 1
         };
 
         if !should_drop {
+            // The refcount didn't even drop zero yet, there is nothing for us
+            // to do anymore.
             return;
         }
 
-        if node.parent.is_none() {
-            debug!("Dropping root node!");
-            // The free list should be null by this point
-            debug_assert!(self.p.next_free.load(Ordering::Relaxed).is_null());
-            log_drop(&*self.p);
-            unsafe { UnsafeBox::drop(&mut self.p) };
-            return;
-        }
+        unsafe {
+            if node.root.is_some() {
+                // This is a non-root node and we just observed the refcount
+                // dropping to zero, we need to pretend to be on the free list
+                // to unstuck any thread who tried to resurrect this node first
+                // through `WeakRuleNode::upgrade`.
+                RuleNode::pretend_to_be_on_free_list(&self.p);
 
-        let root = &node.root.as_ref().unwrap().p;
-        let free_list = &root.next_free;
-        let mut old_head = free_list.load(Ordering::Relaxed);
-
-        // If the free list is null, that means that the rule tree has been
-        // formally torn down, and the last standard GC has already occurred.
-        // We require that any callers using the rule tree at this point are
-        // on the main thread only, which lets us trigger a synchronous GC
-        // here to avoid leaking anything. We use the GC machinery, rather
-        // than just dropping directly, so that we benefit from the iterative
-        // destruction and don't trigger unbounded recursion during drop. See
-        // [1] and the associated crashtest.
-        //
-        // [1] https://bugzilla.mozilla.org/show_bug.cgi?id=439184
-        if old_head.is_null() {
-            debug_assert!(
-                !thread_state::get().is_worker() &&
-                    (thread_state::get().is_layout() || thread_state::get().is_script())
-            );
-            // Add the node as the sole entry in the free list.
-            debug_assert!(node.next_free.load(Ordering::Relaxed).is_null());
-            node.next_free.store(FREE_LIST_SENTINEL, Ordering::Relaxed);
-            free_list.store(node as *const _ as *mut _, Ordering::Relaxed);
-
-            // Invoke the GC.
-            //
-            // Note that we need hold a strong reference to the root so that it
-            // doesn't go away during the GC (which would happen if we're freeing
-            // the last external reference into the rule tree). This is nicely
-            // enforced by having the gc() method live on StrongRuleNode rather than
-            // RuleNode.
-            let strong_root: StrongRuleNode = node.root.as_ref().unwrap().upgrade();
-            unsafe {
-                strong_root.gc();
+                // Attempt to push the node on the free list. This may fail
+                // if the free list is gone.
+                if RuleNode::push_on_free_list(&self.p) {
+                    return;
+                }
             }
 
-            // Leave the free list null, like we found it, such that additional
-            // drops for straggling rule nodes will take this same codepath.
-            debug_assert_eq!(root.next_free.load(Ordering::Relaxed), FREE_LIST_SENTINEL);
-            root.next_free.store(ptr::null_mut(), Ordering::Relaxed);
-
-            // Return. If strong_root is the last strong reference to the root,
-            // this re-enter StrongRuleNode::drop, and take the root-dropping
-            // path earlier in this function.
-            return;
+            // Either this was the last reference of the root node, or the
+            // tree rule is gone and there is no free list anymore. Drop the
+            // node.
+            RuleNode::drop_without_free_list(&mut self.p);
         }
-
-        // We're sure we're already in the free list, don't spinloop if we're.
-        // Note that this is just a fast path, so it doesn't need to have an
-        // strong memory ordering.
-        if node.next_free.load(Ordering::Relaxed) != ptr::null_mut() {
-            return;
-        }
-
-        // Ensure we "lock" the free list head swapping it with FREE_LIST_LOCKED.
-        //
-        // Note that we use Acquire/Release semantics for the free list
-        // synchronization, in order to guarantee that the next_free
-        // reads/writes we do below are properly visible from multiple threads
-        // racing.
-        loop {
-            match free_list.compare_exchange_weak(
-                old_head,
-                FREE_LIST_LOCKED,
-                Ordering::Acquire,
-                Ordering::Relaxed,
-            ) {
-                Ok(..) => {
-                    if old_head != FREE_LIST_LOCKED {
-                        break;
-                    }
-                },
-                Err(new) => old_head = new,
-            }
-        }
-
-        // If other thread has raced with use while using the same rule node,
-        // just store the old head again, we're done.
-        //
-        // Note that we can use relaxed operations for loading since we're
-        // effectively locking the free list with Acquire/Release semantics, and
-        // the memory ordering is already guaranteed by that locking/unlocking.
-        if node.next_free.load(Ordering::Relaxed) != ptr::null_mut() {
-            free_list.store(old_head, Ordering::Release);
-            return;
-        }
-
-        // Else store the old head as the next pointer, and store ourselves as
-        // the new head of the free list.
-        //
-        // This can be relaxed since this pointer won't be read until GC.
-        node.next_free.store(old_head, Ordering::Relaxed);
-
-        // Increment the free count. This doesn't need to be an RMU atomic
-        // operation, because the free list is "locked".
-        let old_free_count = root.free_count().load(Ordering::Relaxed);
-        root.free_count()
-            .store(old_free_count + 1, Ordering::Relaxed);
-
-        // This can be release because of the locking of the free list, that
-        // ensures that all the other nodes racing with this one are using
-        // `Acquire`.
-        free_list.store(
-            &*self.p as *const RuleNode as *mut RuleNode,
-            Ordering::Release,
-        );
     }
 }
 
 impl WeakRuleNode {
-    fn upgrade(&self) -> StrongRuleNode {
+    /// Upgrades this weak node reference, returning a strong one.
+    ///
+    /// Must be called with items stored in a node's children list. The children
+    /// list must at least be read-locked when this is called.
+    unsafe fn upgrade(&self) -> StrongRuleNode {
         debug!("Upgrading weak node: {:p}", &*self.p);
-        self.p.refcount.fetch_add(1, Ordering::Relaxed);
-        unsafe { StrongRuleNode::from_unsafe_box(UnsafeBox::clone(&self.p)) }
+
+        if self.p.refcount.fetch_add(1, Ordering::Relaxed) == 0 {
+            // We observed a refcount of 0, we need to wait for this node to
+            // be put on the free list. Resetting the `next_free` pointer to
+            // null is only done in `RuleNode::drop_without_free_list`, just
+            // before a release refcount decrement, so this acquire fence here
+            // makes sure that we observed the write to null before we loop
+            // until there is a non-null value.
+            atomic::fence(Ordering::Acquire);
+            while self.p.next_free.load(Ordering::Relaxed).is_null() {}
+        }
+        StrongRuleNode::from_unsafe_box(UnsafeBox::clone(&self.p))
     }
 }
 
