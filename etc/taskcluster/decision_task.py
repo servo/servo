@@ -104,13 +104,13 @@ build_dependencies_artifacts_expire_in = "1 month"
 log_artifacts_expire_in = "1 year"
 
 build_env = {
-    "RUST_BACKTRACE": "1",
     "RUSTFLAGS": "-Dwarnings",
     "CARGO_INCREMENTAL": "0",
 }
 unix_build_env = {
 }
 linux_build_env = {
+    "RUST_BACKTRACE": "1", # https://github.com/servo/servo/issues/26192
     "SHELL": "/bin/dash",  # For SpiderMonkey’s build system
     "CCACHE": "sccache",
     "RUSTC_WRAPPER": "sccache",
