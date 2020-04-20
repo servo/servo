@@ -458,50 +458,5 @@ promise_test(async (t) => {
   checkCorpReportExistence(reports, blockedDueToCoep, iframe.src);
   checkCorpReportExistence(reports, redirect, iframe.src);
   checkReportNonExistence(reports, dest, iframe.src);
-}, 'subresource CORP in a passthrough iframe hosted by a service worker without COEP');
-
-promise_test(async (t) => {
-  const iframe_src = `resources/reporting-empty-frame.html`;
-  // Register a service worker that controls an iframe.
-  const registration = await service_worker_unregister_and_register(
-      t, 'resources/sw.js', iframe_src);
-  t.add_cleanup(() => registration.unregister());
-  await wait_for_state(t, registration.installing, 'activated');
-
-  const iframe = document.createElement('iframe');
-  t.add_cleanup(() => iframe.remove());
-
-  iframe.src = iframe_src;
-  document.body.appendChild(iframe);
-  await new Promise(resolve => {
-    iframe.addEventListener('load', resolve, {once: true});
-  });
-
-  async function fetchInIframe(url) {
-    const init = { mode: 'no-cors', cache: 'no-store' };
-    // Ignore errors.
-    return iframe.contentWindow.fetch(url, init).catch(() => {});
-  }
-
-  const suffix = 'subresource-corp-respondwith-fetch-sw';
-  const sameOriginUrl = `/common/text-plain.txt?${suffix}`;
-  const blockedByPureCorp = `${REMOTE_ORIGIN}${BASE}/nothing-same-origin-corp.txt?${suffix}`;
-  const blockedDueToCoep = `${REMOTE_ORIGIN}/common/text-plain.txt?abc&${suffix}`;
-  const dest = `${REMOTE_ORIGIN}/common/text-plain.txt?xyz&${suffix}`;
-  const redirect = `/common/redirect.py?location=${encodeURIComponent(dest)}&${suffix}`;
-
-  fetchInIframe(sameOriginUrl);
-  fetchInIframe(blockedByPureCorp);
-  fetchInIframe(blockedDueToCoep)
-  fetchInIframe(redirect);
-
-  // Wait until |reports| is ready.
-  await wait(1000);
-
-  checkReportNonExistence(reports, sameOriginUrl, iframe.src);
-  checkReportNonExistence(reports, blockedByPureCorp, iframe.src);
-  checkCorpReportExistence(reports, blockedDueToCoep, iframe.src);
-  checkCorpReportExistence(reports, redirect, iframe.src);
-  checkReportNonExistence(reports, dest, iframe.src);
-}, 'subresource CORP in a respondWith(fetch) iframe hosted by a service worker without COEP');
+}, 'subresource CORP in an iframe hosted by a service worker without COEP');
 </script>$

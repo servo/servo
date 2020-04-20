@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/resources/featurepolicy.js"></script>
+<script>
+  "use strict";
+
+  const relative_path = "/feature-policy/resources/feature-policy-screen-wakelock.html";
+  const base_src = "/feature-policy/resources/redirect-on-load.html#";
+  const same_origin_src = base_src + relative_path;
+  const cross_origin_src =
+    base_src + "https://{{domains[www]}}:{{ports[https][0]}}" + relative_path;
+
+  async_test(t => {
+    test_feature_availability(
+      'navigator.wakeLock.request("screen")',
+      t,
+      same_origin_src,
+      expect_feature_available_default,
+      "screen-wake-lock"
+    );
+  }, 'Feature-Policy allow="screen-wake-lock" allows same-origin relocation');
+
+  async_test(t => {
+    test_feature_availability(
+      'navigator.wakeLock.request("screen")',
+      t,
+      cross_origin_src,
+      expect_feature_unavailable_default,
+      "screen-wake-lock"
+    );
+  }, 'Feature-Policy allow="screen-wake-lock" disallows cross-origin relocation');
+
+</script>
+</body>

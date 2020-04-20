@@ -17,7 +17,7 @@ async function createFile(testCase, fileName) {
   const writtenBytes = new Uint8Array(writeSharedArrayBuffer);
   writtenBytes.set([64, 65, 66, 67]);
   const writeCount = await file.write(writtenBytes, 0);
-  assert_precondition(writeCount == 4);
+  assert_equals(writeCount, 4);
 
   return file;
 }
