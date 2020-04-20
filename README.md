@@ -74,7 +74,7 @@ If `./mach bootstrap` doesn't work, file a bug, and, run the commands below:
 ``` sh
 sudo apt install git curl autoconf libx11-dev libfreetype6-dev libgl1-mesa-dri \
     libglib2.0-dev xorg-dev gperf g++ build-essential cmake libssl-dev \
-    liblzma-dev libosmesa6-dev libxmu6 libxmu-dev \
+    liblzma-dev libxmu6 libxmu-dev \
     libgles2-mesa-dev libegl1-mesa-dev libdbus-1-dev libharfbuzz-dev ccache \
     clang libunwind-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
     libgstreamer-plugins-bad1.0-dev autoconf2.13 llvm-dev
@@ -100,7 +100,7 @@ sudo dnf install curl libtool gcc-c++ libXi-devel libunwind-devel \
     freetype-devel mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel \
     libXrandr-devel gperf fontconfig-devel cabextract ttmkfdir  expat-devel \
     rpm-build openssl-devel cmake libX11-devel libXcursor-devel \
-    libXmu-devel mesa-libOSMesa-devel dbus-devel ncurses-devel harfbuzz-devel \
+    libXmu-devel dbus-devel ncurses-devel harfbuzz-devel \
     ccache clang clang-libs python3-devel gstreamer1-devel \
     gstreamer1-plugins-base-devel gstreamer1-plugins-bad-free-devel autoconf213
 ```
@@ -118,7 +118,7 @@ If `./mach bootstrap` doesn't work, file a bug, and, run the commands below:
 sudo yum install curl libtool gcc-c++ libXi-devel freetype-devel \
     mesa-libGL-devel mesa-libEGL-devel glib2-devel libX11-devel libXrandr-devel \
     gperf fontconfig-devel cabextract ttmkfdir python expat-devel rpm-build \
-    openssl-devel cmake3 libXcursor-devel libXmu-devel mesa-libOSMesa-devel \
+    openssl-devel cmake3 libXcursor-devel libXmu-devel \
     dbus-devel ncurses-devel python34 harfbuzz-devel \
     ccache clang clang-libs llvm-toolset-7
 ```
@@ -141,7 +141,7 @@ export LIBCLANG_PATH=/opt/rh/llvm-toolset-7/root/usr/lib64
 ``` sh
 sudo zypper install libX11-devel libexpat-devel Mesa-libEGL-devel Mesa-libGL-devel cabextract cmake \
     dbus-1-devel fontconfig-devel freetype-devel gcc-c++ git glib2-devel gperf \
-    harfbuzz-devel libOSMesa-devel libXcursor-devel libXi-devel libXmu-devel libXrandr-devel libopenssl-devel \
+    harfbuzz-devel libXcursor-devel libXi-devel libXmu-devel libXrandr-devel libopenssl-devel \
     python-pip python-virtualenv rpm-build ccache llvm-clang libclang autoconf213 gstreamer-devel \
     gstreamer-plugins-base-devel gstreamer-plugins-bad-devel
 ```

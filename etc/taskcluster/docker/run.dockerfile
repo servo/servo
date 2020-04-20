@@ -9,7 +9,4 @@ RUN apt-get install -qy --no-install-recommends \
     gstreamer1.0-plugins-bad \
     gstreamer1.0-libav \
     gstreamer1.0-gl \
-    libunwind8 \
-    #
-    # Compiling shaders in OSMesa:
-    llvm
+    libunwind8
