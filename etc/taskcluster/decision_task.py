@@ -614,7 +614,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
         # https://github.com/servo/servo/issues/22438
         if this_chunk == 0:
             task.with_script("""
-                time python2 ./mach test-wpt --release --binary-arg=--multiprocess \
+                time python ./mach test-wpt --release --binary-arg=--multiprocess \
                     --processes $PROCESSES \
                     --log-raw test-wpt-mp.log \
                     --log-errorsummary wpt-mp-errorsummary.log \

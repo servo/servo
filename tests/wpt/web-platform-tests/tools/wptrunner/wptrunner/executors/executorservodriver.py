@@ -277,7 +277,7 @@ class ServoWebDriverRefTestExecutor(RefTestExecutor):
 
         return ServoWebDriverRun(self.logger,
                                  self._screenshot,
-                                 self.protocol.session,
+                                 self.protocol,
                                  self.test_url(test),
                                  timeout,
                                  self.extra_timeout).run()
