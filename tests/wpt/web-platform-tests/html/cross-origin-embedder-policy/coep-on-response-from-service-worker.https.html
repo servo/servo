@@ -1,0 +1,111 @@
+<!doctype html>
+<html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+const FRAME_URL = 'resources/coep-frame.html'
+const SCOPE = new URL(FRAME_URL, location).pathname;
+const SCRIPT = 'resources/sw.js?';
+
+// This is similar to
+// none-sw-from-require-corp.https.html, but there is one difference:
+// In this file, the frame controlled by the service worker comes from
+// the service worker, but on none-sw-from-require-corp.https.html
+// the main document comes from the network directly. Hence the tests
+// here test whether COEP is set correctly for documents coming from
+// service workers.
+
+function remote(path) {
+  const REMOTE_ORIGIN = get_host_info().HTTPS_REMOTE_ORIGIN;
+  return new URL(path, REMOTE_ORIGIN + '/html/cross-origin-embedder-policy/');
+}
+
+let registration;
+let frame;
+
+promise_test(async (t) => {
+  registration = await service_worker_unregister_and_register(t, SCRIPT, SCOPE);
+  await wait_for_state(t, registration.installing, 'activated')
+  frame = await with_iframe(FRAME_URL);
+}, 'setup');
+
+
+promise_test(async (t) => {
+  const w = frame.contentWindow;
+  await w.fetch('resources/nothing-same-origin-corp.txt', {mode: 'no-cors'});
+}, 'making a same-origin request for CORP: same-origin');
+
+promise_test(async (t) => {
+  const w = frame.contentWindow;
+  await w.fetch('/common/blank.html', {mode: 'no-cors'});
+}, 'making a same-origin request for no CORP');
+
+promise_test(async (t) => {
+  const w = frame.contentWindow;
+  await w.fetch('resources/nothing-cross-origin-corp.txt', {mode: 'no-cors'});
+}, 'making a same-origin request for CORP: cross-origin');
+
+promise_test(async (t) => {
+  const w = frame.contentWindow;
+  await promise_rejects_js(
+    t, w.TypeError,
+    w.fetch(remote('resources/nothing-same-origin-corp.txt'), {mode: 'no-cors'}));
+}, 'making a cross-origin request for CORP: same-origin');
+
+promise_test(async (t) => {
+  const w = frame.contentWindow;
+  await promise_rejects_js(
+    t, w.TypeError, w.fetch(remote('/common/blank.html'), {mode: 'no-cors'}));
+}, 'making a cross-origin request for no CORP');
+
+promise_test(async (t) => {
+  const w = frame.contentWindow;
+  await w.fetch(
+    remote('resources/nothing-cross-origin-corp.txt'),
+    {mode: 'no-cors'});
+}, 'making a cross-origin request for CORP: cross-origin');
+
+promise_test(async (t) => {
+  const w = frame.contentWindow;
+  await promise_rejects_js(
+    t, w.TypeError,
+    w.fetch(remote('resources/nothing-same-origin-corp.txt?passthrough'),
+      {mode: 'no-cors'}));
+}, 'making a cross-origin request for CORP: same-origin [PASS THROUGH]');
+
+promise_test(async (t) => {
+  const w = frame.contentWindow;
+  await promise_rejects_js(
+    t, w.TypeError,
+    w.fetch(remote('/common/blank.html?passthrough'), {mode: 'no-cors'}));
+}, 'making a cross-origin request for no CORP [PASS THROUGH]');
+
+promise_test(async (t) => {
+  const w = frame.contentWindow;
+  await w.fetch(
+    remote('resources/nothing-cross-origin-corp.txt?passthrough'),
+    {mode: 'no-cors'});
+}, 'making a cross-origin request for CORP: cross-origin [PASS THROUGH]');
+
+promise_test(async (t) => {
+  const w = frame.contentWindow;
+  await promise_rejects_js(
+    t, w.TypeError, w.fetch(remote('/common/blank.html'), {mode: 'cors'}));
+}, 'making a cross-origin request with CORS without ACAO');
+
+promise_test(async (t) => {
+  const w = frame.contentWindow;
+  const URL = remote(
+    '/common/blank.html?pipe=header(access-control-allow-origin,*');
+  await w.fetch(URL, {mode: 'cors'});
+}, 'making a cross-origin request with CORS');
+
+promise_test(async () => {
+  frame.remove();
+  await registration.unregister();
+}, 'teardown');
+
+</script>
+</html>

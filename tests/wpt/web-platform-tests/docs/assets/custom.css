@@ -1,0 +1,7 @@
+div.body {
+  min-width: auto;
+}
+
+#video-introduction-transcript iframe {
+  max-width: 100%;
+}

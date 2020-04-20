@@ -15,7 +15,7 @@ function createFileSync(testCase, fileName) {
 
   const writtenBytes = Uint8Array.from([64, 65, 66, 67]);
   const writeCount = file.write(writtenBytes, 0);
-  assert_precondition(writeCount == 4);
+  assert_equals(writeCount, 4);
 
   return file;
 }

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <head>
 <meta charset="utf-8">
 <title>visibility</title>
@@ -14,8 +14,18 @@
   <div style="background: green; color: red; width: 200px; height: 200px;">
     <math><msqrt style="visibility: hidden"><mn>1</mn></msqrt></math>
     <math><mroot style="visibility: hidden"><mn>2</mn><mn>3</mn></mroot></math>
+    <div id="dynamic">
+      <math><msqrt><mn>1</mn></msqrt></math>
+      <math><mroot><mn>2</mn><mn>3</mn></mroot></math>
+    </div>
   </div>
   <script src="/mathml/support/feature-detection.js"></script>
+  <script>
+    window.addEventListener("load", () => {
+        document.getElementById("dynamic").style.visibility = "hidden";
+        document.documentElement.classList.remove("reftest-wait");
+    });
+  </script>
   <script>MathMLFeatureDetection.ensure_for_match_reftest("has_msqrt");</script>
 </body>
 </html>

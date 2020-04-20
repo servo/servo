@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="help" href="https://w3c.github.io/screen-wake-lock/#the-onrelease-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+async_test(async t => {
+  await test_driver.set_permission({name: 'screen-wake-lock'}, 'granted', false);
+
+  const lock = await navigator.wakeLock.request("screen");
+  lock.onrelease = t.step_func_done((ev) => {
+    assert_class_string(ev, "Event", "release() must fire an Event object");
+    assert_equals(ev.target, lock, "The event's target must be the lock that was acquired");
+    assert_true(ev.isTrusted);
+    assert_false(ev.bubbles);
+    assert_false(ev.cancelable);
+  });
+  await lock.release();
+}, "Test onreleased event's basic properties");
+</script>

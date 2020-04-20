@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <head>
 <meta charset="utf-8">
 <title>visibility</title>
@@ -16,6 +16,19 @@
     <math><mo style="visibility: hidden">3</mo></math>
     <math><mtext style="visibility: hidden">4</mtext></math>
     <math><ms style="visibility: hidden">5</ms></math>
+    <div id="dynamic">
+      <math><mi>1</mi></math>
+      <math><mn>2</mn></math>
+      <math><mo>3</mo></math>
+      <math><mtext>4</mtext></math>
+      <math><ms>5</ms></math>
+    </div>
   </div>
+  <script>
+    window.addEventListener("load", () => {
+        document.getElementById("dynamic").style.visibility = "hidden";
+        document.documentElement.classList.remove("reftest-wait");
+    });
+  </script>
 </body>
 </html>
