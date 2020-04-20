@@ -600,16 +600,6 @@ checksum = "f6da2b592f5a2e590c3d94c44313bab369f2286cfe1e4134c830bf3317814866"
 
 [[package]]
 name = "cgl"
-version = "0.2.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "55e7ec0b74fe5897894cbc207092c577e87c52f8a59e8ca8d97ef37551f60a49"
-dependencies = [
- "gleam 0.6.18",
- "libc",
-]
-
-[[package]]
-name = "cgl"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ced0551234e87afee12411d535648dd89d2e7f34c78b753395567aff3d447ff"
@@ -1988,15 +1978,6 @@ dependencies = [
 
 [[package]]
 name = "gleam"
-version = "0.6.18"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c8a455b5a3ccd35daeb89fdb8a89ebb0a1fe23c05c7a7f9017840bc3ae176f71"
-dependencies = [
- "gl_generator 0.11.0",
-]
-
-[[package]]
-name = "gleam"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ea4f9ba7411ae3f00516401fb811b4f4f37f5c926357f2a033d27f96b74c849"
@@ -2046,77 +2027,6 @@ name = "glob"
 version = "0.2.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8be18de09a56b60ed0edf84bc9df007e30040691af7acd1c41874faac5895bfb"
-
-[[package]]
-name = "glutin"
-version = "0.21.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5371b35b309dace06be1b81b5f6adb1c9de578b7dbe1e74bf7e4ef762cf6febd"
-dependencies = [
- "android_glue",
- "cgl 0.2.3",
- "cocoa 0.18.4",
- "core-foundation 0.6.4",
- "core-graphics 0.17.3",
- "glutin_egl_sys",
- "glutin_emscripten_sys",
- "glutin_gles2_sys",
- "glutin_glx_sys",
- "glutin_wgl_sys",
- "lazy_static",
- "libloading",
- "objc",
- "osmesa-sys",
- "parking_lot",
- "wayland-client",
- "winapi",
- "winit",
-]
-
-[[package]]
-name = "glutin_egl_sys"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "23f48987ab6cb2b61ad903b59e54a2fd0c380a7baff68cffd6826b69a73dd326"
-dependencies = [
- "gl_generator 0.11.0",
- "winapi",
-]
-
-[[package]]
-name = "glutin_emscripten_sys"
-version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "245b3fdb08df6ffed7585365851f8404af9c7e2dd4b59f15262e968b6a95a0c7"
-
-[[package]]
-name = "glutin_gles2_sys"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "89996c30857ae1b4de4b5189abf1ea822a20a9fe9e1c93e5e7b862ff0bdd5cdf"
-dependencies = [
- "gl_generator 0.11.0",
- "objc",
-]
-
-[[package]]
-name = "glutin_glx_sys"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1290a5ca5e46fcfa7f66f949cc9d9194b2cb6f2ed61892c8c2b82343631dba57"
-dependencies = [
- "gl_generator 0.11.0",
- "x11-dl",
-]
-
-[[package]]
-name = "glutin_wgl_sys"
-version = "0.1.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f801bbc91efc22dd1c4818a47814fc72bf74d024510451b119381579bfa39021"
-dependencies = [
- "gl_generator 0.11.0",
-]
 
 [[package]]
 name = "gobject-sys"
@@ -2746,7 +2656,7 @@ version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2279a6faecd06034f88218f77f7a767693e0957bce0323a96d92747e2760b445"
 dependencies = [
- "cgl 0.3.2",
+ "cgl",
  "core-foundation 0.6.4",
  "gleam 0.7.0",
  "leaky-cow",
@@ -3978,15 +3888,6 @@ name = "ordermap"
 version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a86ed3f5f244b372d6b1a00b72ef7f8876d0bc6a78a4c9985c53614041512063"
-
-[[package]]
-name = "osmesa-sys"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "88cfece6e95d2e717e0872a7f53a8684712ad13822a7979bc760b9c77ec0013b"
-dependencies = [
- "shared_library",
-]
 
 [[package]]
 name = "owning_ref"
@@ -5682,7 +5583,7 @@ source = "git+https://github.com/servo/surfman#41ac1ee64bc2d1978aeed0f8bf549c57f
 dependencies = [
  "bitflags",
  "cfg_aliases",
- "cgl 0.3.2",
+ "cgl",
  "cocoa 0.19.1",
  "core-foundation 0.6.4",
  "core-graphics 0.17.3",
@@ -6570,7 +6471,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#805811544cafbc8dcebc3cd02c38dd329226088d"
+source = "git+https://github.com/servo/webxr#836a08e1168e3a2b0b0fa12d7987603d5fc79002"
 dependencies = [
  "android_injected_glue",
  "bindgen",
@@ -6578,7 +6479,6 @@ dependencies = [
  "euclid",
  "gl_generator 0.13.1",
  "gleam 0.9.2",
- "glutin",
  "gvr-sys",
  "log",
  "openxr",
@@ -6594,7 +6494,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#805811544cafbc8dcebc3cd02c38dd329226088d"
+source = "git+https://github.com/servo/webxr#836a08e1168e3a2b0b0fa12d7987603d5fc79002"
 dependencies = [
  "euclid",
  "ipc-channel",
