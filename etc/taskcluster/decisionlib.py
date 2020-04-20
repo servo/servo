@@ -685,7 +685,7 @@ class MacOsGenericWorkerTask(UnixTaskMixin, GenericWorkerTask):
         # So concatenate scripts and use a single `bash` command instead.
         return [
             [
-                "/bin/bash", "--login", "-x", "-e", "-c",
+                "/bin/bash", "--login", "-x", "-e", "-o", "pipefail", "-c",
                 deindent("\n".join(self.scripts))
             ]
         ]
@@ -749,7 +749,7 @@ class DockerWorkerTask(UnixTaskMixin, Task):
             "image": self.docker_image,
             "maxRunTime": self.max_run_time_minutes * 60,
             "command": [
-                "/bin/bash", "--login", "-x", "-e", "-c",
+                "/bin/bash", "--login", "-x", "-e", "-o", "pipefail", "-c",
                 deindent("\n".join(self.scripts))
             ],
         }
