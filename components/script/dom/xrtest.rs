@@ -9,11 +9,12 @@
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
+use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
 use crate::dom::bindings::codegen::Bindings::XRTestBinding::{FakeXRDeviceInit, XRTestMethods};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::fakexrdevice::{get_origin, get_views, FakeXRDevice};
+use crate::dom::fakexrdevice::{get_origin, get_views, get_world, FakeXRDevice};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
 use crate::script_thread::ScriptThread;
@@ -106,13 +107,40 @@ impl XRTestMethods for XRTest {
             vec![]
         };
 
+        let world = if let Some(ref w) = init.world {
+            let w = match get_world(w) {
+                Ok(w) => w,
+                Err(e) => {
+                    p.reject_error(e);
+                    return p;
+                },
+            };
+            Some(w)
+        } else {
+            None
+        };
+
+        let (mut supports_inline, mut supports_vr, mut supports_ar) = (false, false, false);
+
+        if let Some(ref modes) = init.supportedModes {
+            for mode in modes {
+                match mode {
+                    XRSessionMode::Immersive_vr => supports_vr = true,
+                    XRSessionMode::Immersive_ar => supports_ar = true,
+                    XRSessionMode::Inline => supports_inline = true,
+                }
+            }
+        }
+
         let init = MockDeviceInit {
             viewer_origin: origin,
             views,
-            supports_immersive: init.supportsImmersive,
-            supports_unbounded: init.supportsUnbounded,
+            supports_inline,
+            supports_vr,
+            supports_ar,
             floor_origin,
             supported_features,
+            world,
         };
 
         let global = self.global();

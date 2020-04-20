@@ -8,9 +8,11 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::xrhittestresult::XRHitTestResult;
+use crate::dom::xrhittestsource::XRHitTestSource;
 use crate::dom::xrpose::XRPose;
 use crate::dom::xrreferencespace::XRReferenceSpace;
-use crate::dom::xrsession::XRSession;
+use crate::dom::xrsession::{ApiPose, XRSession};
 use crate::dom::xrspace::XRSpace;
 use crate::dom::xrviewerpose::XRViewerPose;
 use dom_struct::dom_struct;
@@ -50,6 +52,10 @@ impl XRFrame {
     /// https://immersive-web.github.io/webxr/#xrframe-animationframe
     pub fn set_animation_frame(&self, animation_frame: bool) {
         self.animation_frame.set(animation_frame);
+    }
+
+    pub fn get_pose(&self, space: &XRSpace) -> Option<ApiPose> {
+        space.get_pose(&self.data)
     }
 }
 
@@ -92,17 +98,27 @@ impl XRFrameMethods for XRFrame {
         if !self.active.get() {
             return Err(Error::InvalidState);
         }
-        let space = if let Some(space) = space.get_pose(&self.data) {
+        let space = if let Some(space) = self.get_pose(space) {
             space
         } else {
             return Ok(None);
         };
-        let relative_to = if let Some(r) = relative_to.get_pose(&self.data) {
+        let relative_to = if let Some(r) = self.get_pose(relative_to) {
             r
         } else {
             return Ok(None);
         };
         let pose = relative_to.inverse().pre_transform(&space);
         Ok(Some(XRPose::new(&self.global(), pose)))
+    }
+
+    /// https://immersive-web.github.io/hit-test/#dom-xrframe-gethittestresults
+    fn GetHitTestResults(&self, source: &XRHitTestSource) -> Vec<DomRoot<XRHitTestResult>> {
+        self.data
+            .hit_test_results
+            .iter()
+            .filter(|r| r.id == source.id())
+            .map(|r| XRHitTestResult::new(&self.global(), *r, self))
+            .collect()
     }
 }

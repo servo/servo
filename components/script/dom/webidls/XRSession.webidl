@@ -36,6 +36,9 @@ interface XRSession : EventTarget {
 
   Promise<void> end();
 
+  // hit test module
+  Promise<XRHitTestSource> requestHitTestSource(XRHitTestOptionsInit options);
+
   // // Events
   attribute EventHandler onend;
   attribute EventHandler onselect;

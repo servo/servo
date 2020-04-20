@@ -10,5 +10,5 @@ interface XRFrame {
 
   [Throws] XRViewerPose? getViewerPose(XRReferenceSpace referenceSpace);
   [Throws] XRPose? getPose(XRSpace space, XRSpace relativeTo);
-  // XRInputPose? getInputPose(XRInputSource inputSource, optional XRReferenceSpace referenceSpace);
+  sequence<XRHitTestResult> getHitTestResults(XRHitTestSource hitTestSource);
 };

@@ -157,6 +157,7 @@ use webgpu::{
     WebGPUPipelineLayout, WebGPUQueue, WebGPUShaderModule,
 };
 use webrender_api::{DocumentId, ImageKey};
+use webxr_api::Ray;
 use webxr_api::SwapChainId as WebXRSwapChainId;
 
 unsafe_no_jsmanaged_fields!(Tm);
@@ -552,7 +553,9 @@ unsafe_no_jsmanaged_fields!(
     webxr_api::Session,
     webxr_api::Frame,
     webxr_api::InputSource,
-    webxr_api::InputId
+    webxr_api::InputId,
+    webxr_api::HitTestId,
+    webxr_api::HitTestResult
 );
 unsafe_no_jsmanaged_fields!(ScriptToConstellationChan);
 unsafe_no_jsmanaged_fields!(InteractiveMetrics);
@@ -744,6 +747,13 @@ unsafe impl<U> JSTraceable for euclid::Size2D<u32, U> {
 }
 
 unsafe impl<U> JSTraceable for euclid::Rect<i32, U> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<Space> JSTraceable for Ray<Space> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing
