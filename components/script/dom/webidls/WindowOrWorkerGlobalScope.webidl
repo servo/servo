@@ -24,7 +24,7 @@ interface mixin WindowOrWorkerGlobalScope {
   void queueMicrotask(VoidFunction callback);
 
   // ImageBitmap
-  // Promise<ImageBitmap> createImageBitmap(ImageBitmapSource image, optional ImageBitmapOptions options);
+  Promise<ImageBitmap> createImageBitmap(ImageBitmapSource image, optional ImageBitmapOptions options = {});
   // Promise<ImageBitmap> createImageBitmap(
   //   ImageBitmapSource image, long sx, long sy, long sw, long sh, optional ImageBitmapOptions options);
 };

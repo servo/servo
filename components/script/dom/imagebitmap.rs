@@ -12,6 +12,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use dom_struct::dom_struct;
 
+use std::cell::Cell;
 use std::vec::Vec;
 
 #[dom_struct]
@@ -20,6 +21,7 @@ pub struct ImageBitmap {
     width: u32,
     height: u32,
     bitmap_data: DomRefCell<Vec<u8>>,
+    origin_clean: Cell<bool>,
 }
 
 impl ImageBitmap {
@@ -29,6 +31,7 @@ impl ImageBitmap {
             width: width_arg,
             height: height_arg,
             bitmap_data: DomRefCell::new(vec![]),
+            origin_clean: Cell::new(true),
         }
     }
 
@@ -38,6 +41,14 @@ impl ImageBitmap {
         let imagebitmap = Box::new(ImageBitmap::new_inherited(width, height));
 
         Ok(reflect_dom_object(imagebitmap, global))
+    }
+
+    pub fn set_bitmap_data(&self, data: Vec<u8>) {
+        *self.bitmap_data.borrow_mut() = data;
+    }
+
+    pub fn set_origin_clean(&self, origin_is_clean: bool) {
+        self.origin_clean.set(origin_is_clean);
     }
 }
 

@@ -5,6 +5,9 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
+use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
+    ImageBitmapOptions, ImageBitmapSource,
+};
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -31,6 +34,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::htmlscriptelement::ScriptId;
 use crate::dom::identityhub::Identities;
+use crate::dom::imagebitmap::ImageBitmap;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -41,7 +45,7 @@ use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
-use crate::realms::{enter_realm, InRealm};
+use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_module::ModuleTree;
 use crate::script_runtime::{CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort};
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
@@ -2225,6 +2229,71 @@ impl GlobalScope {
             callback: callback,
             pipeline: self.pipeline_id(),
         }))
+    }
+
+    pub fn create_image_bitmap(
+        &self,
+        image: ImageBitmapSource,
+        options: &ImageBitmapOptions,
+    ) -> Rc<Promise> {
+        let in_realm_proof = AlreadyInRealm::assert(&self);
+        let p = Promise::new_in_current_realm(&self, InRealm::Already(&in_realm_proof));
+        if options.resizeWidth.map_or(false, |w| w == 0) {
+            p.reject_error(Error::InvalidState);
+            return p;
+        }
+
+        if options.resizeHeight.map_or(false, |w| w == 0) {
+            p.reject_error(Error::InvalidState);
+            return p;
+        }
+
+        let promise = match image {
+            ImageBitmapSource::HTMLCanvasElement(ref canvas) => {
+                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
+                if !canvas.is_valid() {
+                    p.reject_error(Error::InvalidState);
+                    return p;
+                }
+
+                if let Some((data, size)) = canvas.fetch_all_data() {
+                    let data = data
+                        .map(|data| data.to_vec())
+                        .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
+
+                    let image_bitmap = ImageBitmap::new(&self, size.width, size.height).unwrap();
+
+                    image_bitmap.set_bitmap_data(data);
+                    image_bitmap.set_origin_clean(canvas.origin_is_clean());
+                    p.resolve_native(&(image_bitmap));
+                }
+                p
+            },
+            ImageBitmapSource::OffscreenCanvas(ref canvas) => {
+                // https://html.spec.whatwg.org/multipage/#check-the-usability-of-the-image-argument
+                if !canvas.is_valid() {
+                    p.reject_error(Error::InvalidState);
+                    return p;
+                }
+
+                if let Some((data, size)) = canvas.fetch_all_data() {
+                    let data = data
+                        .map(|data| data.to_vec())
+                        .unwrap_or_else(|| vec![0; size.area() as usize * 4]);
+
+                    let image_bitmap = ImageBitmap::new(&self, size.width, size.height).unwrap();
+                    image_bitmap.set_bitmap_data(data);
+                    image_bitmap.set_origin_clean(canvas.origin_is_clean());
+                    p.resolve_native(&(image_bitmap));
+                }
+                p
+            },
+            _ => {
+                p.reject_error(Error::NotSupported);
+                return p;
+            },
+        };
+        promise
     }
 
     pub fn fire_timer(&self, handle: TimerEventId) {

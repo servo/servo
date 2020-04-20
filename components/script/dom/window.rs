@@ -7,6 +7,9 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
 use crate::dom::bindings::codegen::Bindings::HistoryBinding::HistoryBinding::HistoryMethods;
+use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
+    ImageBitmapOptions, ImageBitmapSource,
+};
 use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryListBinding::MediaQueryListMethods;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
@@ -887,6 +890,18 @@ impl WindowMethods for Window {
     fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
         self.upcast::<GlobalScope>()
             .queue_function_as_microtask(callback);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-createimagebitmap
+    fn CreateImageBitmap(
+        &self,
+        image: ImageBitmapSource,
+        options: &ImageBitmapOptions,
+    ) -> Rc<Promise> {
+        let p = self
+            .upcast::<GlobalScope>()
+            .create_image_bitmap(image, options);
+        p
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-window
