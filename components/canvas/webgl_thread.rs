@@ -2855,8 +2855,7 @@ fn image_to_tex_image_data(
             pixels.truncate(pixel_count * 2);
             pixels
         },
-        (TexFormat::RGBA, TexDataType::Float) |
-        (TexFormat::RGBA32f, TexDataType::Float) => {
+        (TexFormat::RGBA, TexDataType::Float) | (TexFormat::RGBA32f, TexDataType::Float) => {
             let mut rgbaf32 = Vec::<u8>::with_capacity(pixel_count * 16);
             for rgba8 in pixels.chunks(4) {
                 rgbaf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
@@ -2867,8 +2866,7 @@ fn image_to_tex_image_data(
             rgbaf32
         },
 
-        (TexFormat::RGB, TexDataType::Float) |
-        (TexFormat::RGB32f, TexDataType::Float) => {
+        (TexFormat::RGB, TexDataType::Float) | (TexFormat::RGB32f, TexDataType::Float) => {
             let mut rgbf32 = Vec::<u8>::with_capacity(pixel_count * 12);
             for rgba8 in pixels.chunks(4) {
                 rgbf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
@@ -2878,8 +2876,7 @@ fn image_to_tex_image_data(
             rgbf32
         },
 
-        (TexFormat::Alpha, TexDataType::Float) |
-        (TexFormat::Alpha32f, TexDataType::Float) => {
+        (TexFormat::Alpha, TexDataType::Float) | (TexFormat::Alpha32f, TexDataType::Float) => {
             for rgba8 in pixels.chunks_mut(4) {
                 let p = rgba8[3] as f32;
                 NativeEndian::write_f32(rgba8, p);
@@ -2926,8 +2923,7 @@ fn image_to_tex_image_data(
             rgbaf16
         },
 
-        (TexFormat::RGB, TexDataType::HalfFloat) |
-        (TexFormat::RGB16f, TexDataType::HalfFloat) => {
+        (TexFormat::RGB, TexDataType::HalfFloat) | (TexFormat::RGB16f, TexDataType::HalfFloat) => {
             let mut rgbf16 = Vec::<u8>::with_capacity(pixel_count * 6);
             for rgba8 in pixels.chunks(4) {
                 rgbf16
