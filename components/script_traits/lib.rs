@@ -282,6 +282,16 @@ pub enum UpdatePipelineIdReason {
     Traversal,
 }
 
+/// The type of transition event to trigger.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub enum TransitionEventType {
+    /// The transition has ended by reaching the end of its animation.
+    TransitionEnd,
+    /// The transition ended early for some reason, such as the property
+    /// no longer being transitionable or being replaced by another transition.
+    TransitionCancel,
+}
+
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
@@ -368,8 +378,19 @@ pub enum ConstellationControlMsg {
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
     TickAllAnimations(PipelineId),
-    /// Notifies the script thread of a transition end
-    TransitionEnd(UntrustedNodeAddress, String, f64),
+    /// Notifies the script thread that a transition related event should be sent.
+    TransitionEvent {
+        /// The pipeline id of the layout task that sent this message.
+        pipeline_id: PipelineId,
+        /// The type of transition event this should trigger.
+        event_type: TransitionEventType,
+        /// The address of the node which owns this transition.
+        node: UntrustedNodeAddress,
+        /// The property name of the property that is transitioning.
+        property_name: String,
+        /// The elapsed time property to send with this transition event.
+        elapsed_time: f64,
+    },
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),
@@ -429,7 +450,7 @@ impl fmt::Debug for ConstellationControlMsg {
             FocusIFrame(..) => "FocusIFrame",
             WebDriverScriptCommand(..) => "WebDriverScriptCommand",
             TickAllAnimations(..) => "TickAllAnimations",
-            TransitionEnd(..) => "TransitionEnd",
+            TransitionEvent { .. } => "TransitionEvent",
             WebFontLoaded(..) => "WebFontLoaded",
             DispatchIFrameLoadEvent { .. } => "DispatchIFrameLoadEvent",
             DispatchStorageEvent(..) => "DispatchStorageEvent",

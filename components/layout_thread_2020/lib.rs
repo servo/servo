@@ -609,6 +609,7 @@ impl LayoutThread {
                 visited_styles_enabled: false,
                 running_animations: Default::default(),
                 expired_animations: Default::default(),
+                cancelled_animations: Default::default(),
                 registered_speculative_painters: &self.registered_painters,
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),

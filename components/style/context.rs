@@ -194,6 +194,10 @@ pub struct SharedStyleContext<'a> {
     #[cfg(feature = "servo")]
     pub expired_animations: Arc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
 
+    /// The list of animations that have expired since the last style recalculation.
+    #[cfg(feature = "servo")]
+    pub cancelled_animations: Arc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
+
     /// Paint worklets
     #[cfg(feature = "servo")]
     pub registered_speculative_painters: &'a dyn RegisteredSpeculativePainters,

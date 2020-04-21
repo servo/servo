@@ -13,7 +13,9 @@ use fxhash::{FxHashMap, FxHashSet};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_traits::UntrustedNodeAddress;
-use script_traits::{AnimationState, ConstellationControlMsg, LayoutMsg as ConstellationMsg};
+use script_traits::{
+    AnimationState, ConstellationControlMsg, LayoutMsg as ConstellationMsg, TransitionEventType,
+};
 use style::animation::{update_style_for_animation, Animation};
 use style::dom::TElement;
 use style::font_metrics::ServoMetricsProvider;
@@ -28,6 +30,7 @@ pub fn update_animation_state<E>(
     script_chan: &IpcSender<ConstellationControlMsg>,
     running_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
     expired_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
+    cancelled_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
     mut keys_to_remove: FxHashSet<OpaqueNode>,
     mut newly_transitioning_nodes: Option<&mut Vec<UntrustedNodeAddress>>,
     new_animations_receiver: &Receiver<Animation>,
@@ -36,6 +39,8 @@ pub fn update_animation_state<E>(
 ) where
     E: TElement,
 {
+    send_events_for_cancelled_animations(script_chan, cancelled_animations, pipeline_id);
+
     let mut new_running_animations = vec![];
     while let Ok(animation) = new_animations_receiver.try_recv() {
         let mut should_push = true;
@@ -102,11 +107,13 @@ pub fn update_animation_state<E>(
 
             if let Animation::Transition(node, _, ref property_animation) = running_animation {
                 script_chan
-                    .send(ConstellationControlMsg::TransitionEnd(
-                        node.to_untrusted_node_address(),
-                        property_animation.property_name().into(),
-                        property_animation.duration,
-                    ))
+                    .send(ConstellationControlMsg::TransitionEvent {
+                        pipeline_id,
+                        event_type: TransitionEventType::TransitionEnd,
+                        node: node.to_untrusted_node_address(),
+                        property_name: property_animation.property_name().into(),
+                        elapsed_time: property_animation.duration,
+                    })
                     .unwrap();
             }
 
@@ -159,6 +166,37 @@ pub fn update_animation_state<E>(
             animation_state,
         ))
         .unwrap();
+}
+
+/// Send events for cancelled animations. Currently this only handles cancelled
+/// transitions, but eventually this should handle cancelled CSS animations as
+/// well.
+pub fn send_events_for_cancelled_animations(
+    script_channel: &IpcSender<ConstellationControlMsg>,
+    cancelled_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
+    pipeline_id: PipelineId,
+) {
+    for (node, animations) in cancelled_animations.drain() {
+        for animation in animations {
+            match animation {
+                Animation::Transition(transition_node, _, ref property_animation) => {
+                    debug_assert!(transition_node == node);
+                    script_channel
+                        .send(ConstellationControlMsg::TransitionEvent {
+                            pipeline_id,
+                            event_type: TransitionEventType::TransitionCancel,
+                            node: node.to_untrusted_node_address(),
+                            property_name: property_animation.property_name().into(),
+                            elapsed_time: property_animation.duration,
+                        })
+                        .unwrap();
+                },
+                Animation::Keyframes(..) => {
+                    warn!("Got unexpected animation in expired transitions list.")
+                },
+            }
+        }
+    }
 }
 
 /// Recalculates style for a set of animations. This does *not* run with the DOM

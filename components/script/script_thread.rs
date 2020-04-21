@@ -133,17 +133,15 @@ use script_traits::CompositorEvent::{
     CompositionEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent,
     WheelEvent,
 };
-use script_traits::StructuredSerializedData;
-use script_traits::{CompositorEvent, ConstellationControlMsg};
 use script_traits::{
-    DiscardBrowsingContext, DocumentActivity, EventResult, HistoryEntryReplacement,
+    CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
+    EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutMsg, LoadData,
+    LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo, Painter,
+    ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory, ScriptToConstellationChan,
+    StructuredSerializedData, TimerSchedulerMsg, TouchEventType, TouchId, TransitionEventType,
+    UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta, WindowSizeData,
+    WindowSizeType,
 };
-use script_traits::{InitialScriptState, JsEvalResult, LayoutMsg, LoadData, LoadOrigin};
-use script_traits::{MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo};
-use script_traits::{Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory};
-use script_traits::{ScriptToConstellationChan, TimerSchedulerMsg};
-use script_traits::{TouchEventType, TouchId, UntrustedNodeAddress, WheelDelta};
-use script_traits::{UpdatePipelineIdReason, WebrenderIpcSender, WindowSizeData, WindowSizeType};
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
@@ -1668,46 +1666,43 @@ impl ScriptThread {
     fn message_to_pipeline(&self, msg: &MixedMessage) -> Option<PipelineId> {
         use script_traits::ConstellationControlMsg::*;
         match *msg {
-            MixedMessage::FromConstellation(ref inner_msg) => {
-                match *inner_msg {
-                    StopDelayingLoadEventsMode(id) => Some(id),
-                    NavigationResponse(id, _) => Some(id),
-                    AttachLayout(ref new_layout_info) => Some(new_layout_info.new_pipeline_id),
-                    Resize(id, ..) => Some(id),
-                    ResizeInactive(id, ..) => Some(id),
-                    UnloadDocument(id) => Some(id),
-                    ExitPipeline(id, ..) => Some(id),
-                    ExitScriptThread => None,
-                    SendEvent(id, ..) => Some(id),
-                    Viewport(id, ..) => Some(id),
-                    SetScrollState(id, ..) => Some(id),
-                    GetTitle(id) => Some(id),
-                    SetDocumentActivity(id, ..) => Some(id),
-                    ChangeFrameVisibilityStatus(id, ..) => Some(id),
-                    NotifyVisibilityChange(id, ..) => Some(id),
-                    NavigateIframe(id, ..) => Some(id),
-                    PostMessage { target: id, .. } => Some(id),
-                    UpdatePipelineId(_, _, _, id, _) => Some(id),
-                    UpdateHistoryState(id, ..) => Some(id),
-                    RemoveHistoryStates(id, ..) => Some(id),
-                    FocusIFrame(id, ..) => Some(id),
-                    WebDriverScriptCommand(id, ..) => Some(id),
-                    TickAllAnimations(id) => Some(id),
-                    // FIXME https://github.com/servo/servo/issues/15079
-                    TransitionEnd(..) => None,
-                    WebFontLoaded(id) => Some(id),
-                    DispatchIFrameLoadEvent {
-                        target: _,
-                        parent: id,
-                        child: _,
-                    } => Some(id),
-                    DispatchStorageEvent(id, ..) => Some(id),
-                    ReportCSSError(id, ..) => Some(id),
-                    Reload(id, ..) => Some(id),
-                    PaintMetric(..) => None,
-                    ExitFullScreen(id, ..) => Some(id),
-                    MediaSessionAction(..) => None,
-                }
+            MixedMessage::FromConstellation(ref inner_msg) => match *inner_msg {
+                StopDelayingLoadEventsMode(id) => Some(id),
+                NavigationResponse(id, _) => Some(id),
+                AttachLayout(ref new_layout_info) => Some(new_layout_info.new_pipeline_id),
+                Resize(id, ..) => Some(id),
+                ResizeInactive(id, ..) => Some(id),
+                UnloadDocument(id) => Some(id),
+                ExitPipeline(id, ..) => Some(id),
+                ExitScriptThread => None,
+                SendEvent(id, ..) => Some(id),
+                Viewport(id, ..) => Some(id),
+                SetScrollState(id, ..) => Some(id),
+                GetTitle(id) => Some(id),
+                SetDocumentActivity(id, ..) => Some(id),
+                ChangeFrameVisibilityStatus(id, ..) => Some(id),
+                NotifyVisibilityChange(id, ..) => Some(id),
+                NavigateIframe(id, ..) => Some(id),
+                PostMessage { target: id, .. } => Some(id),
+                UpdatePipelineId(_, _, _, id, _) => Some(id),
+                UpdateHistoryState(id, ..) => Some(id),
+                RemoveHistoryStates(id, ..) => Some(id),
+                FocusIFrame(id, ..) => Some(id),
+                WebDriverScriptCommand(id, ..) => Some(id),
+                TickAllAnimations(id) => Some(id),
+                TransitionEvent { .. } => None,
+                WebFontLoaded(id) => Some(id),
+                DispatchIFrameLoadEvent {
+                    target: _,
+                    parent: id,
+                    child: _,
+                } => Some(id),
+                DispatchStorageEvent(id, ..) => Some(id),
+                ReportCSSError(id, ..) => Some(id),
+                Reload(id, ..) => Some(id),
+                PaintMetric(..) => None,
+                ExitFullScreen(id, ..) => Some(id),
+                MediaSessionAction(..) => None,
             },
             MixedMessage::FromDevtools(_) => None,
             MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
@@ -1896,8 +1891,20 @@ impl ScriptThread {
             ConstellationControlMsg::TickAllAnimations(pipeline_id) => {
                 self.handle_tick_all_animations(pipeline_id)
             },
-            ConstellationControlMsg::TransitionEnd(unsafe_node, name, duration) => {
-                self.handle_transition_event(unsafe_node, name, duration)
+            ConstellationControlMsg::TransitionEvent {
+                pipeline_id,
+                event_type,
+                node,
+                property_name,
+                elapsed_time,
+            } => {
+                self.handle_transition_event(
+                    pipeline_id,
+                    event_type,
+                    node,
+                    property_name,
+                    elapsed_time,
+                );
             },
             ConstellationControlMsg::WebFontLoaded(pipeline_id) => {
                 self.handle_web_font_loaded(pipeline_id)
@@ -2899,12 +2906,16 @@ impl ScriptThread {
         document.run_the_animation_frame_callbacks();
     }
 
-    /// Handles firing of transition events.
+    /// Handles firing of transition-related events.
+    ///
+    /// TODO(mrobinson): Add support for more events.
     fn handle_transition_event(
         &self,
+        pipeline_id: PipelineId,
+        event_type: TransitionEventType,
         unsafe_node: UntrustedNodeAddress,
-        name: String,
-        duration: f64,
+        property_name: String,
+        elapsed_time: f64,
     ) {
         let js_runtime = self.js_runtime.rt();
         let node = unsafe { from_untrusted_node_address(js_runtime, unsafe_node) };
@@ -2926,29 +2937,35 @@ impl ScriptThread {
             },
         }
 
-        let window = window_from_node(&*node);
-
-        // Not quite the right thing - see #13865.
-        node.dirty(NodeDamage::NodeStyleDamaged);
-
-        if let Some(el) = node.downcast::<Element>() {
-            if !el.has_css_layout_box() {
-                return;
-            }
+        if self.closed_pipelines.borrow().contains(&pipeline_id) {
+            warn!("Ignoring transition event for closed pipeline.");
+            return;
         }
 
-        let init = TransitionEventInit {
+        let event_atom = match event_type {
+            TransitionEventType::TransitionEnd => {
+                // Not quite the right thing - see #13865.
+                node.dirty(NodeDamage::NodeStyleDamaged);
+                atom!("transitionend")
+            },
+            TransitionEventType::TransitionCancel => atom!("transitioncancel"),
+        };
+
+        let event_init = TransitionEventInit {
             parent: EventInit {
                 bubbles: true,
                 cancelable: false,
             },
-            propertyName: DOMString::from(name),
-            elapsedTime: Finite::new(duration as f32).unwrap(),
-            // FIXME: Handle pseudo-elements properly
+            propertyName: DOMString::from(property_name),
+            elapsedTime: Finite::new(elapsed_time as f32).unwrap(),
+            // TODO: Handle pseudo-elements properly
             pseudoElement: DOMString::new(),
         };
-        let transition_event = TransitionEvent::new(&window, atom!("transitionend"), &init);
-        transition_event.upcast::<Event>().fire(node.upcast());
+
+        let window = window_from_node(&*node);
+        TransitionEvent::new(&window, event_atom, &event_init)
+            .upcast::<Event>()
+            .fire(node.upcast());
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.
