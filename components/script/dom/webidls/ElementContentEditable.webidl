@@ -5,7 +5,7 @@
 // https://html.spec.whatwg.org/multipage/#elementcontenteditable
 [Exposed=Window]
 interface mixin ElementContentEditable {
-  // [CEReactions]
-  // attribute DOMString contentEditable;
-  // readonly attribute boolean isContentEditable;
+  [CEReactions]
+  attribute DOMString contentEditable;
+  readonly attribute boolean isContentEditable;
 };

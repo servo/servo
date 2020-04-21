@@ -568,6 +568,27 @@ impl HTMLElementMethods for HTMLElement {
             },
         );
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-contenteditable
+    fn ContentEditable(&self) -> DOMString {
+        // TODO: https://github.com/servo/servo/issues/12776
+        self.upcast::<Element>()
+            .get_attribute(&ns!(), &local_name!("contenteditable"))
+            .map(|attr| DOMString::from(&**attr.value()))
+            .unwrap_or_else(|| DOMString::from("inherit"))
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-contenteditable
+    fn SetContentEditable(&self, _: DOMString) {
+        // TODO: https://github.com/servo/servo/issues/12776
+        warn!("The contentEditable attribute is not implemented yet");
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-contenteditable
+    fn IsContentEditable(&self) -> bool {
+        // TODO: https://github.com/servo/servo/issues/12776
+        false
+    }
 }
 
 fn append_text_node_to_fragment(document: &Document, fragment: &DocumentFragment, text: String) {
