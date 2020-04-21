@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<title>Customized built-in element constructor behavior</title>
+<meta name='author' title='Mason Freed' href='mailto:masonfreed@chromium.org'>
+<link rel='help' href='https://dom.spec.whatwg.org/#concept-create-element'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+<script>
+setup({allow_uncaught_exception : true});
+
+class MyCustomParagraph extends HTMLParagraphElement {
+  constructor() {
+    super();
+    this.textContent = 'PASS';
+  }
+}
+customElements.define('custom-p', MyCustomParagraph, { extends: 'p' });
+</script>
+<p id=targetp is='custom-p'></p>
+<script>
+test(t => {
+  let target = document.getElementById('targetp');
+  assert_true(!!target);
+  assert_equals(target.localName, 'p');
+  assert_true(target instanceof MyCustomParagraph);
+  assert_true(target instanceof HTMLParagraphElement);
+  assert_equals(target.childNodes.length, 1);
+  assert_equals(target.textContent, 'PASS');
+}, 'Appending children in customized built-in constructor should work');
+</script>
+
+
+<script>
+class MyCustomVideo extends HTMLVideoElement {
+  constructor() {
+  super();
+  throw new Error();
+  }
+}
+customElements.define('custom-video', MyCustomVideo, { extends: 'video' });
+</script>
+<video id=targetvideo is='custom-video'> <source></source> </video>
+<script>
+test(t => {
+  let target = document.getElementById('targetvideo');
+  assert_true(!!target);
+  assert_equals(target.localName, 'video');
+  assert_true(target instanceof MyCustomVideo);
+  assert_true(target instanceof HTMLVideoElement);
+  assert_equals(target.children.length, 1);
+}, 'Throwing exception in customized built-in constructor should not crash and should return correct element type (video)');
+</script>
+
+
+<script>
+class MyCustomForm extends HTMLFormElement {
+  constructor() {
+  super();
+  throw new Error();
+  }
+}
+customElements.define('custom-form', MyCustomForm, { extends: 'form' });
+</script>
+<form id=targetform is='custom-form'> <label></label><input> </form>
+<script>
+test(t => {
+  let target = document.getElementById('targetform');
+  assert_true(!!target);
+  assert_equals(target.localName, 'form');
+  assert_true(target instanceof MyCustomForm);
+  assert_true(target instanceof HTMLFormElement);
+  assert_equals(target.children.length, 2);
+}, 'Throwing exception in customized built-in constructor should not crash and should return correct element type (form)');
+</script>
+

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<style>
+body {
+  direction: rtl;
+  white-space: pre-wrap;
+}
+.bg {
+  background: orange;
+}
+.override {
+  unicode-bidi: bidi-override;
+}
+</style>
+<body>
+<div>אבג <span class="bg">אבגד</span> אבגדה</div>
+<div>אבג <span class="bg">אבגד</span> אבגדה</div>
+<div class="override">123 <span class="bg override">12345</span> 1234567</div>
+<div class="override">123 <span class="bg override">12345</span> 1234567</div>
+</body>

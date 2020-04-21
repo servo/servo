@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<style>
+.grid {
+  display: block;
+  background-color: grey;
+  overflow: scroll;
+}
+.inline-grid {
+  display: inline-block;
+  background-color: grey;
+  overflow: scroll;
+}
+.gridItem {
+  display: block;
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+.fit-content {
+  width: -moz-fit-content;
+  width: fit-content;
+}
+</style>
+<body>
+<div class='grid fit-content'>
+  <span class='gridItem'></span>
+</div>
+<div class='grid fit-content' style='overflow-y: hidden'>
+  <span class='gridItem'></span>
+</div>
+<div class='inline-grid fit-content'>
+  <span class='gridItem'></span>
+</div>
+<div class='inline-grid fit-content' style='overflow-y: hidden'>
+  <span class='gridItem'></span>
+</div>
+</body>

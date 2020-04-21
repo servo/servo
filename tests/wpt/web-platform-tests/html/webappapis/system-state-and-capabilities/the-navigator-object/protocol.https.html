@@ -23,6 +23,7 @@ test(() => {
 /* URL argument */
 const valid_urls = [
   '%s',
+  'foo/%s',
   location.href + '/%s',
   location.href + '#%s',
   location.href + '?foo=%s',
@@ -69,6 +70,9 @@ const invalid_urls2 = [
   'http://foobar.example.com/%s',
   'mailto:%s@example.com',
   'mailto:%s',
+  `ftp://${location.host}/%s`,
+  `chrome://${location.host}/%s`,
+  `foo://${location.host}/%s`,
 ];
 for (const url of invalid_urls2) {
   test(() => {
@@ -99,6 +103,7 @@ const denylist = [
   'livescript',
   'mid',
   'mocha',
+  'moz-icon',
   'opera',
   'operamail',
   'res',
@@ -122,11 +127,15 @@ const denylist = [
   'ssh:/',
   'magnet:+',
   'tel:sip',
+  'foo',
+  'fweb+oo',
   /* web+ prefixed schemes must be followed by 1+ ascii alphas */
   'web+',
+  'web+1',
   'web+dots.are.forbidden',
   'web+dashes-are-forbidden',
   'web+digits123areforbidden',
+  'web+UpperCasesAreForbidden',
 ];
 for (const scheme of denylist) {
   test(() => {

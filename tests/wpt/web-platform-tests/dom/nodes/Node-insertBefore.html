@@ -8,8 +8,11 @@
 <script>
   var insertFunc = Node.prototype.insertBefore;
 </script>
-<script src="pre-insertion-checks.js"></script>
+<script src="pre-insertion-validation-notfound.js"></script>
+<script src="pre-insertion-validation-hierarchy.js"></script>
 <script>
+preInsertionValidateHierarchy("insertBefore");
+
 function testLeafNode(nodeName, createNodeFunction) {
   test(function() {
     var node = createNodeFunction();
@@ -67,30 +70,6 @@ test(function() {
 }, "If the context node is a document, inserting a document or text node should throw a HierarchyRequestError.")
 
 // Step 4.2.1.
-test(function() {
-  var doc = document.implementation.createHTMLDocument("title");
-  doc.removeChild(doc.documentElement);
-
-  var df = doc.createDocumentFragment();
-  df.appendChild(doc.createElement("a"));
-  df.appendChild(doc.createElement("b"));
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.insertBefore(df, null);
-  });
-
-  df = doc.createDocumentFragment();
-  df.appendChild(doc.createTextNode("text"));
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.insertBefore(df, null);
-  });
-
-  df = doc.createDocumentFragment();
-  df.appendChild(doc.createComment("comment"));
-  df.appendChild(doc.createTextNode("text"));
-  assert_throws_dom("HierarchyRequestError", function() {
-    doc.insertBefore(df, null);
-  });
-}, "If the context node is a document, appending a DocumentFragment that contains a text node or too many elements should throw a HierarchyRequestError.")
 test(function() {
   var doc = document.implementation.createHTMLDocument("title");
   doc.removeChild(doc.documentElement);

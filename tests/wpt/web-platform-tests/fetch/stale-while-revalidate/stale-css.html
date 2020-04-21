@@ -8,38 +8,44 @@
 <script>
 
 var request_token = token();
-async_test(t => {
-  window.onload = t.step_func(() => {
-    t.step_timeout(() => {
-      assert_equals(window.getComputedStyle(document.body).getPropertyValue('background-color'), "rgb(0, 128, 0)");
-      var link2 = document.createElement("link");
-      link2.onload = t.step_func(() => {
-        assert_equals(window.getComputedStyle(document.body).getPropertyValue('background-color'), "rgb(0, 128, 0)");
-        var checkResult = () => {
-          // We poll because we don't know when the revalidation will occur.
-          fetch("resources/stale-css.py?query&token=" + request_token).then(t.step_func((response) => {
-            var count = response.headers.get("Count");
-            if (count == '2') {
-              t.done();
-            } else {
-              t.step_timeout(checkResult, 25);
-            }
-          }));
-        };
-        t.step_timeout(checkResult, 25);
-      });
-      link2.rel = "stylesheet";
-      link2.type = "text/css";
-      link2.href = "resources/stale-css.py?token=" + request_token;
-      document.body.appendChild(link2);
-    }, 0);
-  });
+let link_src = "./resources/stale-css.py?token=" + request_token;
+
+let loadLink = async() => {
+  let link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.type = "text/css";
+  link.href = "resources/stale-css.py?token=" + request_token;
+  let loaded = new Promise(r => link.onload = r);
+  document.body.appendChild(link);
+  await loaded;
+  return window
+    .getComputedStyle(document.body)
+    .getPropertyValue('background-color');
+};
+
+promise_test(async t => {
+  await new Promise(r => window.onload = r);
+
+  let bgColor1 = await loadLink();
+  assert_equals(bgColor1, "rgb(0, 128, 0)", "(initial version loaded)");
+
+  let bgColor2 = await loadLink();
+  assert_equals(bgColor2, "rgb(0, 128, 0)", "(stale version loaded)");
+
+  // Query the server again and again. At some point it must have received the
+  // revalidation request. We poll, because we don't know when the revalidation
+  // will occur.
+  while(true) {
+    await new Promise(r => step_timeout(r, 25));
+    let response = await fetch(link_src + "&query");
+    let count = response.headers.get("Count");
+    if (count == '2')
+      break;
+  }
+
+  let bgColor3 = await loadLink();
+  assert_equals(bgColor3, "rgb(255, 0, 0)", "(revalidated version loaded)");
 }, 'Cache returns stale resource');
 
-var link = document.createElement("link");
-link.rel = "stylesheet";
-link.type = "text/css";
-link.href = "resources/stale-css.py?token=" + request_token;
-document.body.appendChild(link);
 </script>
 </body>

@@ -37,7 +37,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/check-layout-th.js"></script>
 </head>
-<body onload="checkLayout('.grid');">
+<body>
     <div class="grid min-content" data-expected-width="100" data-expected-height="100">
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
@@ -54,7 +54,7 @@
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
 
-    <div class="grid min-content scroll" data-expected-width="115" data-expected-height="115">
+    <div class="grid min-content scroll" data-width-without-scrollbar="100" data-height-without-scrollbar="100">
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
 
@@ -66,7 +66,7 @@
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
 
-    <div class="grid min-content margin scroll" data-expected-width="115" data-expected-height="115">
+    <div class="grid min-content margin scroll" data-width-without-scrollbar="100" data-height-without-scrollbar="100">
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
 
@@ -74,11 +74,11 @@
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
 
-    <div class="grid min-content border scroll" data-expected-width="125" data-expected-height="125">
+    <div class="grid min-content border scroll" data-width-without-scrollbar="110" data-height-without-scrollbar="110">
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
 
-    <div class="grid min-content padding scroll" data-expected-width="155" data-expected-height="155">
+    <div class="grid min-content padding scroll" data-width-without-scrollbar="140" data-height-without-scrollbar="140">
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
 
@@ -86,20 +86,54 @@
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
 
-    <div class="grid min-content margin border scroll" data-expected-width="125" data-expected-height="125">
+    <div class="grid min-content margin border scroll" data-width-without-scrollbar="110" data-height-without-scrollbar="110">
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
 
-    <div class="grid min-content margin padding scroll" data-expected-width="155" data-expected-height="155">
+    <div class="grid min-content margin padding scroll" data-width-without-scrollbar="140" data-height-without-scrollbar="140">
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
 
-    <div class="grid min-content border padding scroll" data-expected-width="165" data-expected-height="165">
+    <div class="grid min-content border padding scroll" data-width-without-scrollbar="150" data-height-without-scrollbar="150">
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
 
-    <div class="grid min-content margin border padding scroll" data-expected-width="165" data-expected-height="165">
+    <div class="grid min-content margin border padding scroll" data-width-without-scrollbar="150" data-height-without-scrollbar="150">
         <div class="item" data-expected-width="100" data-expected-height="100"></div>
     </div>
+
+    <!-- This div is only for measuring scrollbar size -->
+    <div id="measure" style="overflow: scroll;">
+        <div style="min-height: 300px;"></div>
+    </div>
+
+<script>
+    var measure = document.getElementById('measure');
+    var scrollbarWidth = measure.offsetWidth - measure.clientWidth;
+    var scrollbarHeight = measure.offsetHeight - measure.clientHeight;
+
+    // Here are the data-width-without-scrollbar (and height) attributes of all
+    // elements that have the "scroll" class. Things that contribute to the expected
+    // sizes are:
+    //
+    // - width:
+    //  padding{Left,Right}, border{Left,Right}, element width and its scrollbarWidth.
+    //
+    // - height:
+    //  padding{Top,Bottom}, border{Top, Bottom}, element width and its scrollbarHeight.
+    //
+    // The data-expected-width (and height) attributes are dynamically set to the elements
+    // so that we can ensure the scrollbar sizes are calculated in an engine-agnostic way.
+    var elements = document.getElementsByClassName("scroll");
+    for (var i = 0; i < elements.length; i++) {
+      const expectedWidth = parseInt(elements[i].getAttribute("data-width-without-scrollbar"));
+      const expectedHeight = parseInt(elements[i].getAttribute("data-height-without-scrollbar"));
+      elements[i].setAttribute("data-expected-width", expectedWidth + scrollbarWidth);
+      elements[i].setAttribute("data-expected-height", expectedHeight + scrollbarHeight);
+    }
+
+    checkLayout('.grid');
+</script>
+
 </body>
 </html>

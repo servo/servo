@@ -6,48 +6,54 @@
 <script src="/common/utils.js"></script>
 <body>
 <script>
-var last_modified;
-var last_modified_count = 0;
-var request_token = token();
 
-// The script will call report via a uniquely generated ID on the subresource.
-// If it is a cache hit the ID will be the same and the test will pass.
+const request_token = token();
+const script_src = "./resources/stale-script.py?token=" + request_token;
+
+// The script above will call report() via a uniquely generated ID on the
+// subresource. If it is a cache hit, the ID will be the same and
+// |last_modified_count| won't be incremented.
+let last_modified;
+let last_modified_count = 0;
 function report(mod) {
-  if (!last_modified) {
-    last_modified = mod;
-    last_modified_count = 1;
-  } else if (last_modified == mod) {
-    last_modified_count++;
-  }
+  if (last_modified == mod)
+    return;
+  last_modified = mod;
+  last_modified_count++;
 }
 
-async_test(t => {
-  window.onload = t.step_func(() => {
-    step_timeout(() => {
-      var script = document.createElement("script");
-      script.src = "resources/stale-script.py?token=" + request_token;
-      document.body.appendChild(script);
-      script.onload = t.step_func(() => {
-          assert_equals(last_modified_count, 2, "last modified");
-          var checkResult = () => {
-            // We poll because we don't know when the revalidation will occur.
-            fetch("resources/stale-script.py?query&token=" + request_token).then(t.step_func((response) => {
-              var count = response.headers.get("Count");
-              if (count == '2') {
-                  t.done();
-              } else {
-                t.step_timeout(checkResult, 25);
-              }
-            }));
-          };
-          t.step_timeout(checkResult, 25);
-      });
-    }, 0);
-  });
+let loadScript = async () => {
+  let script = document.createElement("script");
+  let script_loaded = new Promise(r => script.onload = r);
+  script.src = script_src;
+  document.body.appendChild(script);
+  await script_loaded;
+};
+
+promise_test(async t => {
+  await new Promise(r => window.onload = r);
+
+  await loadScript();
+  assert_equals(last_modified_count, 1, '(initial version loaded)');
+
+  await loadScript();
+  assert_equals(last_modified_count, 1, '(stale version loaded)');
+
+  // Query the server again and again. At some point it must have received the
+  // revalidation request. We poll, because we don't know when the revalidation
+  // will occur.
+  while(true) {
+    await new Promise(r => step_timeout(r, 25));
+    let response = await fetch(script_src + "&query");
+    let count = response.headers.get("Count");
+    if (count == '2')
+      break;
+  }
+
+  await loadScript();
+  assert_equals(last_modified_count, 2, '(revalidated version loaded)');
+
 }, 'Cache returns stale resource');
 
-var script = document.createElement("script");
-script.src = "resources/stale-script.py?token=" + request_token;
-document.body.appendChild(script);
 </script>
 </body>
