@@ -29,7 +29,6 @@ rand = [
 packages = [
   "arrayvec",
   "base64",
-  "cgl",
   "cocoa",
   "dwrote",
   "gleam",

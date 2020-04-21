@@ -30,7 +30,7 @@ winapi = "0.3.2"
 libloading = "0.5"
 
 [build-dependencies]
-gl_generator = "0.11"
+gl_generator = "0.14"
 
 [features]
 default = ["webdriver", "max_log_level"]
