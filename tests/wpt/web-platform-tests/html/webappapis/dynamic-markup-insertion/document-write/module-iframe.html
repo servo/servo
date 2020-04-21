@@ -1,7 +1,7 @@
 <!doctype html>
-<meta charset=utf-8>
 <script type=module>
-document.write("FAIL");
+document.write("document.write body contents\n");
 document.close();
+window.parent.document.dispatchEvent(new CustomEvent("documentWriteDone"));
 </script>
-PASS
+Initial body contents

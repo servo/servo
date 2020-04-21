@@ -7,11 +7,16 @@
 <script>
 async_test(t => {
   const iframe = document.createElement("iframe");
+
+  iframe.onerror = t.unreached_func("Error loading iframe");
+  document.addEventListener("documentWriteDone", t.step_func(() => {
+    assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
+  }));
+  iframe.onload = t.step_func_done(() => {
+    assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
+  });
+
   iframe.src = "module-iframe.html";
   document.body.appendChild(iframe);
-  iframe.onerror = t.unreached_func("Error loading iframe");
-  iframe.onload = t.step_func_done(() => {
-    assert_equals(iframe.contentDocument.body.textContent, "PASS\n");
-  });
 });
 </script>

@@ -10328,3 +10328,41 @@
     var rect = canvas.getBoundingClientRect();
     @assert Math.round(rect.top) === -8;
     @assert Math.round(rect.left) === 200;
+
+- name: 2d.filter.value
+  desc: test if ctx.filter works correctly
+  testing:
+    - 2d.filter.value
+  code: |
+    @assert ctx.filter == 'none';
+    ctx.filter = 'blur(5px)';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.save();
+    ctx.filter = 'none';
+    @assert ctx.filter == 'none';
+    ctx.restore();
+    @assert ctx.filter == 'blur(5px)';
+
+    ctx.filter = 'blur(10)';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = 'blur 10px';
+    @assert ctx.filter == 'blur(5px)';
+
+    ctx.filter = 'inherit';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = 'initial';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = 'unset';
+    @assert ctx.filter == 'blur(5px)';
+
+    ctx.filter = '';
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = null;
+    @assert ctx.filter == 'blur(5px)';
+    ctx.filter = undefined;
+    @assert ctx.filter == 'blur(5px)';
+
+    ctx.filter = 'blur(  5px)';
+    assert_equals(ctx.filter, 'blur(  5px)');
+
+

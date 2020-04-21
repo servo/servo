@@ -272,6 +272,9 @@ class FirefoxInstanceManager(object):
         if self.enable_webrender:
             env["MOZ_WEBRENDER"] = "1"
             env["MOZ_ACCELERATED"] = "1"
+            # Set MOZ_X_SYNC and GDK_SYNCHRONIZE for investigation; bug 1625250.
+            env["MOZ_X_SYNC"] = "1"
+            env["GDK_SYNCHRONIZE"] = "1"
         else:
             env["MOZ_WEBRENDER"] = "0"
 

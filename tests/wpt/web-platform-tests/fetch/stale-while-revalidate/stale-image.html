@@ -14,36 +14,41 @@ See: https://html.spec.whatwg.org/#the-list-of-available-images
 <script>
 
 var request_token = token();
-async_test(t => {
-  window.onload = t.step_func(() => {
-    t.step_timeout(() => {
-      assert_equals(document.getElementById("firstimage").width, 16, "Width is 16");
-      var childDocument = document.getElementById('child').contentDocument;
-      var img2 = childDocument.createElement("img");
-      img2.onload = t.step_func(() => {
-        assert_equals(img2.width, 16, "image dimension");
-        var checkResult = () => {
-          // We poll because we don't know when the revalidation will occur.
-          fetch("resources/stale-image.py?query&token=" + request_token).then(t.step_func((response) => {
-            var count = response.headers.get("Count");
-            if (count == '2') {
-              t.done();
-            } else {
-              t.step_timeout(checkResult, 25);
-            }
-          }));
-        };
-        t.step_timeout(checkResult, 25);
-      });
-      img2.src = "resources/stale-image.py?token=" + request_token;
-      childDocument.body.appendChild(img2);
-    }, 0);
-  });
+let image_src = "resources/stale-image.py?token=" + request_token;
+
+let loadImage = async () => {
+  let img = document.createElement("img");
+  img.src = image_src;
+  let loaded = new Promise(r => img.onload = r);
+  document.body.appendChild(img);
+  await loaded;
+  return img;
+};
+
+promise_test(async t => {
+  await new Promise(r => window.onload = r);
+
+  let img1 = await loadImage();
+  assert_equals(img1.width, 16, "(initial version loaded)");
+
+  let img2 = await loadImage();
+  assert_equals(img2.width, 16, "(stale version loaded)");
+
+  // Query the server again and again. At some point it must have received the
+  // revalidation request. We poll, because we don't know when the revalidation
+  // will occur.
+  while(true) {
+    await new Promise(r => step_timeout(r, 25));
+    let response = await fetch(image_src + "&query");
+    let count = response.headers.get("Count");
+    if (count == '2')
+      break;
+  }
+
+  let img3 = await loadImage();
+  assert_equals(img3.width, 256, "(revalidated version loaded)");
+
 }, 'Cache returns stale resource');
 
-var img = document.createElement("img");
-img.src = "resources/stale-image.py?token=" + request_token;
-img.id = "firstimage";
-document.body.appendChild(img);
 </script>
 </body>

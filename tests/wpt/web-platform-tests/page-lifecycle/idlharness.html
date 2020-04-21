@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Page Lifecycle IDL tests</title>
+<link rel="help" href="https://wicg.github.io/page-lifecycle/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/WebIDLParser.js"></script>
+<script src="/resources/idlharness.js"></script>
+
+<script>
+  'use strict';
+
+  idl_test(
+    ['page-lifecycle'],
+    ['service-workers', 'html', 'dom'],
+    idl_array => {
+      idl_array.add_objects({
+        Document: ['document'],
+        // TODO: Client.
+      });
+    }
+  );
+</script>

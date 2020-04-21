@@ -359,6 +359,10 @@ class SingleTestSource(TestSource):
 
         return test_queue
 
+    @classmethod
+    def tests_by_group(cls, tests, **kwargs):
+        return {cls.group_metadata(None)['scope']: [t.id for t in tests]}
+
 
 class PathGroupedSource(GroupedSource):
     @classmethod

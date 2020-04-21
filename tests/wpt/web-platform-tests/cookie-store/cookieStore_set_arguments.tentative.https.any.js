@@ -159,6 +159,19 @@ promise_test(async testCase => {
 promise_test(async testCase => {
   const currentUrl = new URL(self.location.href);
   const currentDomain = currentUrl.hostname;
+
+  await promise_rejects_js(testCase, TypeError, cookieStore.set(
+      'cookie-name', 'cookie-value', { domain: `.${currentDomain}` }));
+}, 'cookieStore.set domain starts with "."');
+
+promise_test(async testCase => {
+  await promise_rejects_js(testCase, TypeError, cookieStore.set(
+      'cookie-name', 'cookie-value', { domain: 'example.com' }));
+}, 'cookieStore.set with domain that is not equal current host');
+
+promise_test(async testCase => {
+  const currentUrl = new URL(self.location.href);
+  const currentDomain = currentUrl.hostname;
   await cookieStore.delete({ name: 'cookie-name', domain: currentDomain });
 
   await cookieStore.set(

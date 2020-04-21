@@ -248,10 +248,38 @@ promise_test(async t => {
   t.add_cleanup(() => pc.close());
   const transceiver = pc.addTransceiver("audio");
   await new Promise(r => pc.onnegotiationneeded = r);
-  assert_false(await isOperationsChainEmpty(pc), "Empty chain");
+  assert_true(await isOperationsChainEmpty(pc), "Empty chain");
   await new Promise(r => t.step_timeout(r, 0));
   assert_true(await isOperationsChainEmpty(pc), "Empty chain");
-}, "Firing of negotiationneeded uses operations chain");
+}, "Firing of negotiationneeded does NOT use operations chain");
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  pc1.addTransceiver("audio");
+  pc1.addTransceiver("video");
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  const candidates = [];
+  for (let c; (c = (await new Promise(r => pc1.onicecandidate = r)).candidate);) {
+    candidates.push(c);
+  }
+  pc2.addTransceiver("video");
+  let fired = false;
+  const p = new Promise(r => pc2.onnegotiationneeded = () => r(fired = true));
+  await Promise.all([
+    pc2.setRemoteDescription(offer),
+    ...candidates.map(candidate => pc2.addIceCandidate(candidate)),
+    pc2.setLocalDescription()
+  ]);
+  assert_false(fired, "Negotiationneeded mustn't have fired yet.");
+  await new Promise(r => t.step_timeout(r, 0));
+  assert_true(fired, "Negotiationneeded must have fired by now.");
+  await p;
+}, "Negotiationneeded only fires once operations chain is empty");
 
 promise_test(async t => {
   const pc = new RTCPeerConnection();
