@@ -423,7 +423,7 @@ where
         contents: Contents,
     ) -> ArcRefCell<InlineLevelBox> {
         let box_ = if display_inside == DisplayInside::Flow && !contents.is_replaced() {
-            // We found un inline box.
+            // We found an inline box.
             // Whatever happened before, all we need to do before recurring
             // is to remember this ongoing inline level box.
             self.ongoing_inline_boxes_stack.push(InlineBox {

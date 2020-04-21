@@ -92,7 +92,7 @@ ${helpers.predefined_type(
     "vertical-align",
     "VerticalAlign",
     "computed::VerticalAlign::baseline()",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     animation_value_type="ComputedValue",
     spec="https://www.w3.org/TR/CSS2/visudet.html#propdef-vertical-align",
     servo_restyle_damage = "reflow",
