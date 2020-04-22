@@ -191,39 +191,6 @@ class CheckTidiness(unittest.TestCase):
         self.assertEqual("expected str @ data['mapping_key'][0]", next(errors)[2])
         self.assertNoMoreErrors(errors)
 
-    def test_lock(self):
-        errors = tidy.collect_errors_for_files(iterFile('duplicated_package.lock'), [tidy.check_lock], [], print_text=False)
-        msg = """duplicate versions for package `test`
-\t\x1b[93mThe following packages depend on version 0.4.9 from 'crates.io':\x1b[0m
-\t\ttest2
-\t\x1b[93mThe following packages depend on version 0.5.1 from 'crates.io':\x1b[0m"""
-        self.assertEqual(msg, next(errors)[2])
-        msg2 = """duplicate versions for package `test3`
-\t\x1b[93mThe following packages depend on version 0.5.1 from 'crates.io':\x1b[0m
-\t\ttest4
-\t\x1b[93mThe following packages depend on version 0.5.1 from 'https://github.com/user/test3':\x1b[0m
-\t\ttest5"""
-        self.assertEqual(msg2, next(errors)[2])
-        self.assertNoMoreErrors(errors)
-
-    def test_lock_ignore_without_duplicates(self):
-        tidy.config["ignore"]["packages"] = ["test", "test2", "test3", "test5"]
-        errors = tidy.collect_errors_for_files(iterFile('duplicated_package.lock'), [tidy.check_lock], [], print_text=False)
-
-        msg = (
-            "duplicates for `test2` are allowed, but only single version found"
-            "\n\t\x1b[93mThe following packages depend on version 0.1.0 from 'https://github.com/user/test2':\x1b[0m"
-        )
-        self.assertEqual(msg, next(errors)[2])
-
-        msg2 = (
-            "duplicates for `test5` are allowed, but only single version found"
-            "\n\t\x1b[93mThe following packages depend on version 0.1.0 from 'https://github.com/':\x1b[0m"
-        )
-        self.assertEqual(msg2, next(errors)[2])
-
-        self.assertNoMoreErrors(errors)
-
     def test_lock_exceptions(self):
         tidy.config["blocked-packages"]["rand"] = ["test_exception", "test_unneeded_exception"]
         errors = tidy.collect_errors_for_files(iterFile('blocked_package.lock'), [tidy.check_lock], [], print_text=False)
