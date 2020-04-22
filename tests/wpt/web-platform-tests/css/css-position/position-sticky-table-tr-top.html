@@ -4,6 +4,8 @@
 <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
 <meta name="assert" content="This test checks that the position:sticky top constraint behaves correctly for &lt;tr&gt; elements" />
 
+<script src="resources/ref-rectangle.js"></script>
+
 <style>
 table {
   border-collapse:collapse;
@@ -61,6 +63,7 @@ window.addEventListener('load', function() {
   document.getElementById('scroller1').scrollTop = 50;
   document.getElementById('scroller2').scrollTop = 125;
   document.getElementById('scroller3').scrollTop = 250;
+  createIndicatorForStickyElements(document.querySelectorAll('.sticky'));
 });
 </script>
 
@@ -115,5 +118,5 @@ window.addEventListener('load', function() {
   </div>
 </div>
 
-<div>You should see three green boxes above. No red should be visible.</div>
+<div>You should see three green boxes above. No red or blue should be visible.</div>
 

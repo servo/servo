@@ -2,9 +2,12 @@
 
 function assert_ArrayBuffer(actual, expected, message) {
   // https://github.com/WebAssembly/spec/issues/840
-  const bufferType = expected.shared ? self.SharedArrayBuffer : ArrayBuffer;
-  assert_equals(Object.getPrototypeOf(actual), bufferType.prototype,
-                `${message}: prototype`);
+  // See https://github.com/whatwg/html/issues/5380 for why not `self.SharedArrayBuffer`
+  const isShared = !("isView" in actual.constructor);
+  assert_equals(isShared, expected.shared, `${message}: constructor`);
+  const sharedString = expected.shared ? "Shared" : "";
+  assert_equals(actual.toString(), `[object ${sharedString}ArrayBuffer]`, `${message}: toString()`);
+  assert_equals(Object.getPrototypeOf(actual).toString(), `[object ${sharedString}ArrayBuffer]`, `${message}: prototype toString()`);
   if (expected.detached) {
     // https://github.com/tc39/ecma262/issues/678
     let byteLength;

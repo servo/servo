@@ -8,7 +8,7 @@
 <div id='log'></div>
 <script>
   test(function() {
-    assert_precondition(navigator.vibrate, 'navigator.vibrate exists');
+    assert_implements(navigator.vibrate, 'navigator.vibrate exists');
     assert_throws_js(TypeError, function() {
       navigator.vibrate();
     }, 'Argument is required, so was expecting a TypeError.');

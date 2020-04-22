@@ -1,0 +1,10 @@
+body {
+    font-family: Arial, sans-serif;
+    font-size: 16px;
+    margin: 0 auto;
+    width: 40em;
+}
+
+table.logs {
+    width: 100%;
+}

@@ -4,6 +4,8 @@
 <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
 <meta name="assert" content="This test checks that the position:sticky right constraint behaves correctly for &lt;th&gt; elements" />
 
+<script src="resources/ref-rectangle.js"></script>
+
 <style>
 table {
     border-collapse: collapse;
@@ -58,6 +60,7 @@ window.addEventListener('load', function() {
   document.getElementById('scroller1').scrollLeft = 0;
   document.getElementById('scroller2').scrollLeft = 75;
   document.getElementById('scroller3').scrollLeft = 200;
+  createIndicatorForStickyElements(document.querySelectorAll('.sticky'));
 });
 </script>
 
@@ -112,4 +115,4 @@ window.addEventListener('load', function() {
   </div>
 </div>
 
-<div>You should see three green boxes above. No red should be visible.</div>
+<div>You should see three green boxes above. No red or blue should be visible.</div>

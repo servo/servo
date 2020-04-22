@@ -4,6 +4,8 @@
 <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
 <meta name="assert" content="position:sticky elements should create a stacking context" />
 
+<script src="resources/ref-rectangle.js"></script>
+
 <style>
 .indicator {
   position: absolute;
@@ -28,6 +30,11 @@
 }
 </style>
 
+<script>
+window.addEventListener('load', function() {
+   createIndicatorForStickyElements(document.querySelectorAll('.sticky'));
+})
+</script>
 <div class="indicator box"></div>
 <div class="sticky box">
   <!-- Because sticky forms a stacking context, this child remains on bottom
@@ -35,4 +42,4 @@
   <div class="child box"></div>
 </div>
 
-<div>You should see a single green box above. No red should be visible.</div>
+<div>You should see a single green box above. No red or blue should be visible.</div>

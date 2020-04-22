@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.css-houdini.org/css-properties-values-api-1/#determining-registration">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@property --a {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 1px;
+}
+
+@property --b {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 2px;
+}
+
+@property --c {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 3px;
+}
+
+@property --d {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 4px;
+}
+
+@property --d {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: red;
+}
+</style>
+<style>
+@property --c {
+  syntax: "<integer>";
+  inherits: false;
+  initial-value: 6;
+}
+</style>
+<div id=div></div>
+<script>
+
+CSS.registerProperty({
+  name: '--b',
+  syntax: '<color>',
+  inherits: false,
+  initialValue: 'green'
+});
+
+CSS.registerProperty({
+  name: '--e',
+  syntax: '<color>',
+  inherits: false,
+  initialValue: 'blue'
+});
+
+test(() => {
+  assert_equals(getComputedStyle(div).getPropertyValue('--a'), '1px');
+}, '@property determines the registration when uncontested');
+
+test(() => {
+  assert_equals(getComputedStyle(div).getPropertyValue('--b'), 'rgb(0, 128, 0)');
+}, 'CSS.registerProperty wins over @property');
+
+test(() => {
+  assert_equals(getComputedStyle(div).getPropertyValue('--c'), '6');
+}, '@property later in document order wins');
+
+test(() => {
+  assert_equals(getComputedStyle(div).getPropertyValue('--d'), 'rgb(255, 0, 0)');
+}, '@property later in stylesheet wins');
+
+test(() => {
+  assert_equals(getComputedStyle(div).getPropertyValue('--e'), 'rgb(0, 0, 255)');
+}, 'CSS.registerProperty determines the registration when uncontested');
+
+</script>

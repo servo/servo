@@ -189,6 +189,7 @@ dictionary RTCRemoteOutboundRtpStreamStats : RTCSentRtpStreamStats {
 dictionary RTCMediaSourceStats : RTCStats {
              DOMString       trackIdentifier;
              DOMString       kind;
+             boolean         relayedSource;
 };
 
 dictionary RTCAudioSourceStats : RTCMediaSourceStats {
@@ -229,10 +230,8 @@ dictionary RTCRtpTransceiverStats : RTCStats {
 
 dictionary RTCMediaHandlerStats : RTCStats {
              DOMString           trackIdentifier;
-             boolean             remoteSource;
              boolean             ended;
              DOMString           kind;
-             RTCPriorityType     priority;
 };
 
 dictionary RTCVideoHandlerStats : RTCMediaHandlerStats {
@@ -274,7 +273,9 @@ dictionary RTCTransportStats : RTCStats {
              unsigned long long    bytesReceived;
              DOMString             rtcpTransportStatsId;
              RTCIceRole            iceRole;
+             DOMString             iceLocalUsernameFragment;
              RTCDtlsTransportState dtlsState;
+             RTCIceTransportState  iceState;
              DOMString             selectedCandidatePairId;
              DOMString             localCertificateId;
              DOMString             remoteCertificateId;

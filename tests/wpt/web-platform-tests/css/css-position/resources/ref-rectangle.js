@@ -3,6 +3,9 @@
  * using sticky position. If it's directly under the sticky element it could be
  * obscured and not show up when compared to the ref.  */
 function createIndicatorForStickyElements(sticky_divs) {
+  if (sticky_divs.length == 0)
+    throw "No sticky div was found in the test case.";
+
   sticky_divs.forEach((sticky_div) => {
     // The relative position indicator will be able to share the same containing
     // block to match the position with the same offset from in flow position

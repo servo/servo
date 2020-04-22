@@ -1,0 +1,29 @@
+#!/bin/sh
+
+set -e
+
+destdir=$1
+cachedir=$1.$PYTHON_ARCH
+
+for d in openssl $destdir; do
+    if [ -e $d ]; then
+        rm -rf $d
+    fi
+done
+
+if [ ! -e $cachedir ]; then
+    # build openssl
+    mkdir openssl
+    curl -L https://www.openssl.org/source/openssl-1.1.1f.tar.gz | tar xz -C openssl --strip-components 1
+    cd openssl
+
+    ./config no-comp no-shared no-tests
+    make
+
+    mkdir $cachedir
+    mkdir $cachedir/lib
+    cp -R include $cachedir
+    cp libcrypto.a libssl.a $cachedir/lib
+fi
+
+cp -R $cachedir $destdir
