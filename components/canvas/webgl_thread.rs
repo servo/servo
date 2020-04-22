@@ -2775,7 +2775,8 @@ fn image_to_tex_image_data(
     match (format, data_type) {
         (TexFormat::RGBA, TexDataType::UnsignedByte) |
         (TexFormat::RGBA8, TexDataType::UnsignedByte) => pixels,
-        (TexFormat::RGB, TexDataType::UnsignedByte) => {
+        (TexFormat::RGB, TexDataType::UnsignedByte) |
+        (TexFormat::RGB8, TexDataType::UnsignedByte) => {
             for i in 0..pixel_count {
                 let rgb = {
                     let rgb = &pixels[i * 4..i * 4 + 3];
