@@ -35,5 +35,5 @@ surfman-chains-api = "0.2"
 surfman-chains = { git = "https://github.com/asajeffrey/surfman-chains" }
 
 [build-dependencies]
-gst-plugin-version-helper = "0.1"
+gst-plugin-version-helper = "0.2"
 
