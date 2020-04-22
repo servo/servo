@@ -440,7 +440,7 @@ trait PrivateMatchMethods: TElement {
         use crate::animation;
 
         let this_opaque = self.as_node().opaque();
-        let mut running_and_expired_transitions = vec![];
+        let mut expired_transitions = vec![];
         let shared_context = context.shared;
         if let Some(ref mut old_values) = *old_values {
             // We apply the expired transitions and animations to the old style
@@ -454,14 +454,13 @@ trait PrivateMatchMethods: TElement {
                 shared_context,
                 this_opaque,
                 old_values,
-                &mut running_and_expired_transitions,
+                &mut expired_transitions,
             );
 
-            Self::update_style_for_animations_and_collect_running_transitions(
+            Self::update_style_for_animations(
                 shared_context,
                 this_opaque,
                 old_values,
-                &mut running_and_expired_transitions,
                 &context.thread_local.font_metrics_provider,
             );
         }
@@ -479,13 +478,13 @@ trait PrivateMatchMethods: TElement {
         // Trigger transitions if necessary. This will set `new_values` to
         // the starting value of the transition if it did trigger a transition.
         if let Some(ref values) = old_values {
-            animation::start_transitions_if_applicable(
+            animation::update_transitions(
+                &shared_context,
                 new_animations_sender,
                 this_opaque,
                 &values,
                 new_values,
-                &shared_context.timer,
-                &running_and_expired_transitions,
+                &expired_transitions,
             );
         }
     }
@@ -627,33 +626,30 @@ trait PrivateMatchMethods: TElement {
     }
 
     #[cfg(feature = "servo")]
-    fn update_style_for_animations_and_collect_running_transitions(
+    fn update_style_for_animations(
         context: &SharedStyleContext,
         node: OpaqueNode,
         style: &mut Arc<ComputedValues>,
-        running_transitions: &mut Vec<crate::animation::PropertyAnimation>,
         font_metrics: &dyn crate::font_metrics::FontMetricsProvider,
     ) {
         use crate::animation::{self, Animation, AnimationUpdate};
 
-        let had_running_animations = context.running_animations.read().get(&node).is_some();
-        if !had_running_animations {
-            return;
-        }
-
         let mut all_running_animations = context.running_animations.write();
-        for mut running_animation in all_running_animations.get_mut(&node).unwrap() {
-            if let Animation::Transition(_, _, ref property_animation) = *running_animation {
-                running_transitions.push(property_animation.clone());
-                continue;
-            }
+        let running_animations = match all_running_animations.get_mut(&node) {
+            Some(running_animations) => running_animations,
+            None => return,
+        };
 
-            let update = animation::update_style_for_animation::<Self>(
-                context,
-                &mut running_animation,
-                style,
-                font_metrics,
-            );
+        for running_animation in running_animations.iter_mut() {
+            let update = match *running_animation {
+                Animation::Transition(..) => continue,
+                Animation::Keyframes(..) => animation::update_style_for_animation::<Self>(
+                    context,
+                    running_animation,
+                    style,
+                    font_metrics,
+                ),
+            };
 
             match *running_animation {
                 Animation::Transition(..) => unreachable!(),

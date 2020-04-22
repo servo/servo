@@ -129,6 +129,7 @@ time
 timeupdate
 toggle
 track
+transitioncancel
 transitionend
 unhandledrejection
 unload

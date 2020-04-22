@@ -207,6 +207,9 @@ pub struct LayoutThread {
     /// The list of animations that have expired since the last style recalculation.
     expired_animations: ServoArc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
 
+    /// The list of animations that have been cancelled during the last style recalculation.
+    cancelled_animations: ServoArc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
+
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
 
@@ -576,6 +579,7 @@ impl LayoutThread {
             document_shared_lock: None,
             running_animations: ServoArc::new(RwLock::new(Default::default())),
             expired_animations: ServoArc::new(RwLock::new(Default::default())),
+            cancelled_animations: ServoArc::new(RwLock::new(Default::default())),
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
             viewport_size: Size2D::new(Au(0), Au(0)),
@@ -655,6 +659,7 @@ impl LayoutThread {
                 visited_styles_enabled: false,
                 running_animations: self.running_animations.clone(),
                 expired_animations: self.expired_animations.clone(),
+                cancelled_animations: self.cancelled_animations.clone(),
                 registered_speculative_painters: &self.registered_painters,
                 local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
@@ -1783,6 +1788,7 @@ impl LayoutThread {
                 &self.script_chan,
                 &mut *self.running_animations.write(),
                 &mut *self.expired_animations.write(),
+                &mut *self.cancelled_animations.write(),
                 invalid_nodes,
                 newly_transitioning_nodes,
                 &self.new_animations_receiver,

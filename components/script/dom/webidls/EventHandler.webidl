@@ -93,6 +93,7 @@ interface mixin GlobalEventHandlers {
 // https://drafts.csswg.org/css-transitions/#interface-globaleventhandlers-idl
 partial interface mixin GlobalEventHandlers {
            attribute EventHandler ontransitionend;
+           attribute EventHandler ontransitioncancel;
 };
 
 // https://w3c.github.io/selection-api/#extensions-to-globaleventhandlers-interface
