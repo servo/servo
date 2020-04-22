@@ -35,7 +35,7 @@ raqote = {git = "https://github.com/jrmuizel/raqote"}
 time = { version = "0.1.0", optional = true }
 pixels = {path = "../pixels"}
 servo_config = {path = "../config"}
-sparkle = "0.1.22"
+sparkle = "0.1.24"
 webrender = {git = "https://github.com/servo/webrender"}
 webrender_api = {git = "https://github.com/servo/webrender"}
 webrender_surfman = {path = "../webrender_surfman"}
