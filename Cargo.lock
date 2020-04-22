@@ -1009,7 +1009,7 @@ dependencies = [
  "proc-macro2 1.0.1",
  "quote 1.0.2",
  "serde",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "syn",
 ]
 
@@ -1779,7 +1779,7 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "servo_url",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "style",
  "time",
  "truetype",
@@ -1816,7 +1816,7 @@ dependencies = [
  "parking_lot",
  "range-alloc",
  "raw-window-handle",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "spirv_cross",
  "winapi",
  "wio",
@@ -1835,7 +1835,7 @@ dependencies = [
  "log",
  "range-alloc",
  "raw-window-handle",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "spirv_cross",
  "winapi",
 ]
@@ -1872,7 +1872,7 @@ dependencies = [
  "parking_lot",
  "range-alloc",
  "raw-window-handle",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "spirv_cross",
  "storage-map",
 ]
@@ -1892,7 +1892,7 @@ dependencies = [
  "log",
  "objc",
  "raw-window-handle",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "winapi",
  "x11",
 ]
@@ -1905,7 +1905,7 @@ checksum = "7c88981665c780447bb08eb099e1ded330754a7246719bab927ee4a949c0ba7f"
 dependencies = [
  "bitflags",
  "raw-window-handle",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
 ]
 
 [[package]]
@@ -2810,7 +2810,7 @@ dependencies = [
  "servo_geometry",
  "servo_url",
  "size_of_test",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "style",
  "style_traits",
  "unicode-bidi",
@@ -3050,7 +3050,7 @@ dependencies = [
  "log",
  "servo-egl",
  "simpleservo",
- "smallvec 0.6.10",
+ "smallvec 1.2.0",
  "webxr",
  "webxr-api",
 ]
@@ -3909,7 +3909,7 @@ dependencies = [
  "libc",
  "redox_syscall",
  "rustc_version",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "winapi",
 ]
 
@@ -4441,7 +4441,7 @@ dependencies = [
  "gfx-hal",
  "log",
  "relevant",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
 ]
 
 [[package]]
@@ -4456,7 +4456,7 @@ dependencies = [
  "log",
  "relevant",
  "slab",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
 ]
 
 [[package]]
@@ -4627,7 +4627,7 @@ dependencies = [
  "servo_geometry",
  "servo_rand",
  "servo_url",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "sparkle",
  "style",
  "style_traits",
@@ -4726,7 +4726,7 @@ dependencies = [
  "serde",
  "servo_atoms",
  "servo_url",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "style_traits",
  "time",
  "url",
@@ -4944,7 +4944,7 @@ dependencies = [
  "servo-media-player",
  "servo-media-traits",
  "servo_media_derive",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "speexdsp-resampler",
 ]
 
@@ -5317,10 +5317,11 @@ checksum = "1764fe2b30ee783bfe3b9b37b2649d8d590b3148bb12e0079715d4d5c673562e"
 
 [[package]]
 name = "smallvec"
-version = "0.6.10"
+version = "0.6.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab606a9c5e214920bb66c458cd7be8ef094f813f20fe77a54cc7dbfff220d4b7"
+checksum = "f7b0758c52e15a8b5e3691eae6cc559f08eee9406e548a4477ba4e67770a82b6"
 dependencies = [
+ "maybe-uninit",
  "serde",
 ]
 
@@ -6365,7 +6366,7 @@ dependencies = [
  "malloc_size_of",
  "serde",
  "servo_config",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "wgpu-core",
 ]
 
@@ -6400,7 +6401,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
- "smallvec 0.6.10",
+ "smallvec 0.6.13",
  "svg_fmt",
  "thread_profiler",
  "time",
