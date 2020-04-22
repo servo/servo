@@ -360,11 +360,9 @@ fn obtain_response(
     client: &Client<Connector, Body>,
     url: &ServoUrl,
     method: &Method,
-    request_headers: &HeaderMap,
+    headers: &HeaderMap,
     data: &Option<Vec<u8>>,
-    load_data_method: &Method,
     pipeline_id: &Option<PipelineId>,
-    iters: u32,
     request_id: Option<&str>,
     is_xhr: bool,
     context: &FetchContext,
@@ -374,28 +372,7 @@ fn obtain_response(
         Error = NetworkError,
     >,
 > {
-    let mut headers = request_headers.clone();
-
-    // Avoid automatically sending request body if a redirect has occurred.
-    //
-    // TODO - This is the wrong behaviour according to the RFC. However, I'm not
-    // sure how much "correctness" vs. real-world is important in this case.
-    //
-    // https://tools.ietf.org/html/rfc7231#section-6.4
-    let is_redirected_request = iters != 1;
-    let request_body;
-    match data {
-        &Some(ref d) if !is_redirected_request => {
-            headers.typed_insert(ContentLength(d.len() as u64));
-            request_body = d.clone();
-        },
-        _ => {
-            if *load_data_method != Method::GET && *load_data_method != Method::HEAD {
-                headers.typed_insert(ContentLength(0))
-            }
-            request_body = vec![];
-        },
-    }
+    let request_body = data.as_ref().cloned().unwrap_or(vec![]);
 
     context
         .timing
@@ -455,6 +432,7 @@ fn obtain_response(
     let method = method.clone();
     let send_start = precise_time_ms();
 
+    let headers = headers.clone();
     Box::new(
         client
             .request(request)
@@ -1413,9 +1391,7 @@ fn http_network_fetch(
         &request.method,
         &request.headers,
         &request.body,
-        &request.method,
         &request.pipeline_id,
-        request.redirect_count + 1,
         request_id.as_ref().map(Deref::deref),
         is_xhr,
         context,
