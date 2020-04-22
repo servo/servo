@@ -3966,7 +3966,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
 
         if width < 0 || height < 0 {
-            return;
+            return self.base.webgl_error(InvalidValue);
         }
 
         self.base
