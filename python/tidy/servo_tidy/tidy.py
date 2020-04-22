@@ -357,46 +357,7 @@ def check_lock(file_name, contents):
     if not file_name.endswith(".lock"):
         raise StopIteration
 
-    # Package names to be neglected (as named by cargo)
-    exceptions = config["ignore"]["packages"]
-
     content = toml.loads(contents.decode("utf-8"))
-
-    packages_by_name = {}
-    for package in content.get("package", []):
-        if "replace" in package:
-            continue
-        source = package.get("source", "")
-        if source == r"registry+https://github.com/rust-lang/crates.io-index":
-            source = "crates.io"
-        packages_by_name.setdefault(package["name"], []).append((package["version"], source))
-
-    for name in exceptions:
-        if name not in packages_by_name:
-            yield (1, "duplicates are allowed for `{}` but it is not a dependency".format(name))
-
-    for (name, packages) in iteritems(packages_by_name):
-        has_duplicates = len(packages) > 1
-        duplicates_allowed = name in exceptions
-
-        if has_duplicates == duplicates_allowed:
-            continue
-
-        if duplicates_allowed:
-            message = 'duplicates for `{}` are allowed, but only single version found'.format(name)
-        else:
-            message = "duplicate versions for package `{}`".format(name)
-
-        packages.sort()
-        packages_dependencies = list(find_reverse_dependencies(name, content))
-        for version, source in packages:
-            short_source = source.split("#")[0].replace("git+", "")
-            message += "\n\t\033[93mThe following packages depend on version {} from '{}':\033[0m" \
-                       .format(version, short_source)
-            for name, dependency in packages_dependencies:
-                if version in dependency and short_source in dependency:
-                    message += "\n\t\t" + name
-        yield (1, message)
 
     # Check to see if we are transitively using any blocked packages
     blocked_packages = config["blocked-packages"]
