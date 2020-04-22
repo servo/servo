@@ -997,9 +997,9 @@ dependencies = [
 
 [[package]]
 name = "cssparser"
-version = "0.27.1"
+version = "0.27.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dc63bba4f652956b1afadd4e21c52e76b7dd4f7aefb9e79db8611d0726a9d354"
+checksum = "754b69d351cdc2d8ee09ae203db831e005560fc6030da058f86ad60c92a9cb0a"
 dependencies = [
  "cssparser-macros",
  "dtoa-short",
@@ -1009,7 +1009,7 @@ dependencies = [
  "proc-macro2 1.0.1",
  "quote 1.0.2",
  "serde",
- "smallvec 0.6.13",
+ "smallvec 1.2.0",
  "syn",
 ]
 
