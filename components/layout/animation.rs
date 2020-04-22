@@ -8,7 +8,6 @@ use crate::context::LayoutContext;
 use crate::display_list::items::OpaqueNode;
 use crate::flow::{Flow, GetBaseFlow};
 use crate::opaque_node::OpaqueNodeMethods;
-use crossbeam_channel::Receiver;
 use fxhash::{FxHashMap, FxHashSet};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
@@ -16,95 +15,106 @@ use script_traits::UntrustedNodeAddress;
 use script_traits::{
     AnimationState, ConstellationControlMsg, LayoutMsg as ConstellationMsg, TransitionEventType,
 };
-use style::animation::{update_style_for_animation, Animation};
+use style::animation::{update_style_for_animation, Animation, ElementAnimationState};
 use style::dom::TElement;
 use style::font_metrics::ServoMetricsProvider;
 use style::selector_parser::RestyleDamage;
 use style::timer::Timer;
 
-/// Processes any new animations that were discovered after style recalculation.
-/// Also expire any old animations that have completed, inserting them into
-/// `expired_animations`.
-pub fn update_animation_state<E>(
+/// Processes any new animations that were discovered after style recalculation. Also
+/// finish any animations that have completed, inserting them into `finished_animations`.
+pub fn update_animation_states<E>(
     constellation_chan: &IpcSender<ConstellationMsg>,
     script_chan: &IpcSender<ConstellationControlMsg>,
-    running_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
-    expired_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
-    cancelled_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
-    mut keys_to_remove: FxHashSet<OpaqueNode>,
+    animation_states: &mut FxHashMap<OpaqueNode, ElementAnimationState>,
+    invalid_nodes: FxHashSet<OpaqueNode>,
     mut newly_transitioning_nodes: Option<&mut Vec<UntrustedNodeAddress>>,
-    new_animations_receiver: &Receiver<Animation>,
     pipeline_id: PipelineId,
     timer: &Timer,
 ) where
     E: TElement,
 {
-    send_events_for_cancelled_animations(script_chan, cancelled_animations, pipeline_id);
+    let had_running_animations = animation_states
+        .values()
+        .any(|state| !state.running_animations.is_empty());
 
-    let mut new_running_animations = vec![];
-    while let Ok(animation) = new_animations_receiver.try_recv() {
-        let mut should_push = true;
-        if let Animation::Keyframes(ref node, _, ref name, ref state) = animation {
-            // If the animation was already present in the list for the
-            // node, just update its state, else push the new animation to
-            // run.
-            if let Some(ref mut animations) = running_animations.get_mut(node) {
-                // TODO: This being linear is probably not optimal.
-                for anim in animations.iter_mut() {
-                    if let Animation::Keyframes(_, _, ref anim_name, ref mut anim_state) = *anim {
-                        if *name == *anim_name {
-                            debug!("update_animation_state: Found other animation {}", name);
-                            anim_state.update_from_other(&state, timer);
-                            should_push = false;
-                            break;
-                        }
-                    }
-                }
-            }
+    for node in &invalid_nodes {
+        if let Some(mut state) = animation_states.remove(node) {
+            state.cancel_all_animations();
+            send_events_for_cancelled_animations(script_chan, &mut state, pipeline_id);
         }
-
-        if should_push {
-            new_running_animations.push(animation);
-        }
-    }
-
-    if running_animations.is_empty() && new_running_animations.is_empty() {
-        // Nothing to do. Return early so we don't flood the compositor with
-        // `ChangeRunningAnimationsState` messages.
-        return;
     }
 
     let now = timer.seconds();
-    // Expire old running animations.
-    //
-    // TODO: Do not expunge Keyframes animations, since we need that state if
-    // the animation gets re-triggered. Probably worth splitting in two
-    // different maps, or at least using a linked list?
-    for (key, running_animations) in running_animations.iter_mut() {
-        let mut animations_still_running = vec![];
-        for mut running_animation in running_animations.drain(..) {
-            let still_running = !running_animation.is_expired() &&
-                match running_animation {
-                    Animation::Transition(_, started_at, ref property_animation) => {
-                        now < started_at + (property_animation.duration)
-                    },
-                    Animation::Keyframes(_, _, _, ref mut state) => {
-                        // This animation is still running, or we need to keep
-                        // iterating.
-                        now < state.started_at + state.duration || state.tick()
-                    },
-                };
-
-            debug!(
-                "update_animation_state({:?}): {:?}",
-                still_running, running_animation
-            );
-
-            if still_running {
-                animations_still_running.push(running_animation);
-                continue;
+    let mut have_running_animations = false;
+    for (node, animation_state) in animation_states.iter_mut() {
+        // TODO(mrobinson): This should really be triggering transitionrun messages
+        // on the script thread.
+        if let Some(ref mut newly_transitioning_nodes) = newly_transitioning_nodes {
+            let number_of_new_transitions = animation_state
+                .new_animations
+                .iter()
+                .filter(|animation| animation.is_transition())
+                .count();
+            for _ in 0..number_of_new_transitions {
+                newly_transitioning_nodes.push(node.to_untrusted_node_address());
             }
+        }
 
+        update_animation_state::<E>(script_chan, animation_state, pipeline_id, now);
+
+        have_running_animations =
+            have_running_animations || !animation_state.running_animations.is_empty();
+    }
+
+    // Remove empty states from our collection of states in order to free
+    // up space as soon as we are no longer tracking any animations for
+    // a node.
+    animation_states.retain(|_, state| !state.is_empty());
+
+    let present = match (had_running_animations, have_running_animations) {
+        (true, false) => AnimationState::NoAnimationsPresent,
+        (false, true) => AnimationState::AnimationsPresent,
+        _ => return,
+    };
+    constellation_chan
+        .send(ConstellationMsg::ChangeRunningAnimationsState(
+            pipeline_id,
+            present,
+        ))
+        .unwrap();
+}
+
+pub fn update_animation_state<E>(
+    script_chan: &IpcSender<ConstellationControlMsg>,
+    animation_state: &mut ElementAnimationState,
+    pipeline_id: PipelineId,
+    now: f64,
+) where
+    E: TElement,
+{
+    send_events_for_cancelled_animations(script_chan, animation_state, pipeline_id);
+
+    let mut running_animations =
+        std::mem::replace(&mut animation_state.running_animations, Vec::new());
+    for mut running_animation in running_animations.drain(..) {
+        let still_running = !running_animation.is_expired() &&
+            match running_animation {
+                Animation::Transition(_, started_at, ref property_animation) => {
+                    now < started_at + (property_animation.duration)
+                },
+                Animation::Keyframes(_, _, _, ref mut state) => {
+                    // This animation is still running, or we need to keep
+                    // iterating.
+                    now < state.started_at + state.duration || state.tick()
+                },
+            };
+
+        // If the animation is still running, add it back to the list of running animations.
+        if still_running {
+            animation_state.running_animations.push(running_animation);
+        } else {
+            debug!("Finishing transition: {:?}", running_animation);
             if let Animation::Transition(node, _, ref property_animation) = running_animation {
                 script_chan
                     .send(ConstellationControlMsg::TransitionEvent {
@@ -116,56 +126,13 @@ pub fn update_animation_state<E>(
                     })
                     .unwrap();
             }
-
-            debug!("expiring animation for {:?}", running_animation);
-            expired_animations
-                .entry(*key)
-                .or_insert_with(Vec::new)
-                .push(running_animation);
-        }
-
-        if animations_still_running.is_empty() {
-            keys_to_remove.insert(*key);
-        } else {
-            *running_animations = animations_still_running
+            animation_state.finished_animations.push(running_animation);
         }
     }
 
-    for key in keys_to_remove {
-        running_animations.remove(&key).unwrap();
-    }
-
-    // Add new running animations.
-    for new_running_animation in new_running_animations {
-        if new_running_animation.is_transition() {
-            match newly_transitioning_nodes {
-                Some(ref mut nodes) => {
-                    nodes.push(new_running_animation.node().to_untrusted_node_address());
-                },
-                None => {
-                    warn!("New transition encountered from compositor-initiated layout.");
-                },
-            }
-        }
-
-        running_animations
-            .entry(*new_running_animation.node())
-            .or_insert_with(Vec::new)
-            .push(new_running_animation)
-    }
-
-    let animation_state = if running_animations.is_empty() {
-        AnimationState::NoAnimationsPresent
-    } else {
-        AnimationState::AnimationsPresent
-    };
-
-    constellation_chan
-        .send(ConstellationMsg::ChangeRunningAnimationsState(
-            pipeline_id,
-            animation_state,
-        ))
-        .unwrap();
+    animation_state
+        .running_animations
+        .append(&mut animation_state.new_animations);
 }
 
 /// Send events for cancelled animations. Currently this only handles cancelled
@@ -173,28 +140,25 @@ pub fn update_animation_state<E>(
 /// well.
 pub fn send_events_for_cancelled_animations(
     script_channel: &IpcSender<ConstellationControlMsg>,
-    cancelled_animations: &mut FxHashMap<OpaqueNode, Vec<Animation>>,
+    animation_state: &mut ElementAnimationState,
     pipeline_id: PipelineId,
 ) {
-    for (node, animations) in cancelled_animations.drain() {
-        for animation in animations {
-            match animation {
-                Animation::Transition(transition_node, _, ref property_animation) => {
-                    debug_assert!(transition_node == node);
-                    script_channel
-                        .send(ConstellationControlMsg::TransitionEvent {
-                            pipeline_id,
-                            event_type: TransitionEventType::TransitionCancel,
-                            node: node.to_untrusted_node_address(),
-                            property_name: property_animation.property_name().into(),
-                            elapsed_time: property_animation.duration,
-                        })
-                        .unwrap();
-                },
-                Animation::Keyframes(..) => {
-                    warn!("Got unexpected animation in expired transitions list.")
-                },
-            }
+    for animation in animation_state.cancelled_animations.drain(..) {
+        match animation {
+            Animation::Transition(node, _, ref property_animation) => {
+                script_channel
+                    .send(ConstellationControlMsg::TransitionEvent {
+                        pipeline_id,
+                        event_type: TransitionEventType::TransitionCancel,
+                        node: node.to_untrusted_node_address(),
+                        property_name: property_animation.property_name().into(),
+                        elapsed_time: property_animation.duration,
+                    })
+                    .unwrap();
+            },
+            Animation::Keyframes(..) => {
+                warn!("Got unexpected animation in finished transitions list.")
+            },
         }
     }
 }
@@ -205,46 +169,48 @@ pub fn send_events_for_cancelled_animations(
 pub fn recalc_style_for_animations<E>(
     context: &LayoutContext,
     flow: &mut dyn Flow,
-    animations: &FxHashMap<OpaqueNode, Vec<Animation>>,
+    animation_states: &FxHashMap<OpaqueNode, ElementAnimationState>,
 ) -> FxHashSet<OpaqueNode>
 where
     E: TElement,
 {
-    let mut invalid_nodes = animations.keys().cloned().collect();
-    do_recalc_style_for_animations::<E>(context, flow, animations, &mut invalid_nodes);
+    let mut invalid_nodes = animation_states.keys().cloned().collect();
+    do_recalc_style_for_animations::<E>(context, flow, animation_states, &mut invalid_nodes);
     invalid_nodes
 }
 
 fn do_recalc_style_for_animations<E>(
     context: &LayoutContext,
     flow: &mut dyn Flow,
-    animations: &FxHashMap<OpaqueNode, Vec<Animation>>,
+    animation_states: &FxHashMap<OpaqueNode, ElementAnimationState>,
     invalid_nodes: &mut FxHashSet<OpaqueNode>,
 ) where
     E: TElement,
 {
     let mut damage = RestyleDamage::empty();
     flow.mutate_fragments(&mut |fragment| {
-        if let Some(ref animations) = animations.get(&fragment.node) {
-            invalid_nodes.remove(&fragment.node);
-            for animation in animations.iter() {
-                let old_style = fragment.style.clone();
-                update_style_for_animation::<E>(
-                    &context.style_context,
-                    animation,
-                    &mut fragment.style,
-                    &ServoMetricsProvider,
-                );
-                let difference =
-                    RestyleDamage::compute_style_difference(&old_style, &fragment.style);
-                damage |= difference.damage;
-            }
+        let animations = match animation_states.get(&fragment.node) {
+            Some(state) => &state.running_animations,
+            None => return,
+        };
+
+        invalid_nodes.remove(&fragment.node);
+        for animation in animations.iter() {
+            let old_style = fragment.style.clone();
+            update_style_for_animation::<E>(
+                &context.style_context,
+                animation,
+                &mut fragment.style,
+                &ServoMetricsProvider,
+            );
+            let difference = RestyleDamage::compute_style_difference(&old_style, &fragment.style);
+            damage |= difference.damage;
         }
     });
 
     let base = flow.mut_base();
     base.restyle_damage.insert(damage);
     for kid in base.children.iter_mut() {
-        do_recalc_style_for_animations::<E>(context, kid, animations, invalid_nodes)
+        do_recalc_style_for_animations::<E>(context, kid, animation_states, invalid_nodes)
     }
 }
