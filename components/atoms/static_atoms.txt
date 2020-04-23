@@ -131,6 +131,7 @@ toggle
 track
 transitioncancel
 transitionend
+transitionrun
 unhandledrejection
 unload
 url
@@ -142,5 +143,6 @@ webkitAnimationEnd
 webkitAnimationIteration
 webkitAnimationStart
 webkitTransitionEnd
+webkitTransitionRun
 week
 width

@@ -1762,13 +1762,18 @@ impl LayoutThread {
                 .map(|nodes| nodes.lock().unwrap());
             let newly_transitioning_nodes =
                 newly_transitioning_nodes.as_mut().map(|nodes| &mut **nodes);
-            // Kick off animations if any were triggered, expire completed ones.
-            animation::update_animation_states::<ServoLayoutElement>(
+            let mut animation_states = self.animation_states.write();
+
+            animation::collect_newly_transitioning_nodes(
+                &animation_states,
+                newly_transitioning_nodes,
+            );
+
+            animation::update_animation_states(
                 &self.constellation_chan,
                 &self.script_chan,
-                &mut *self.animation_states.write(),
+                &mut *animation_states,
                 invalid_nodes,
-                newly_transitioning_nodes,
                 self.id,
                 &self.timer,
             );
