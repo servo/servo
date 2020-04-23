@@ -280,53 +280,89 @@ impl SelectorMap<Rule> {
 impl<T: SelectorMapEntry> SelectorMap<T> {
     /// Inserts into the correct hash, trying id, class, localname and
     /// namespace.
-    pub fn insert(
-        &mut self,
-        entry: T,
-        quirks_mode: QuirksMode,
-    ) -> Result<(), FailedAllocationError> {
+    pub fn insert(&mut self, entry: T, quirks_mode: QuirksMode) -> Result<(), FailedAllocationError> {
         self.count += 1;
 
-        let vector = match find_bucket(entry.selector()) {
-            Bucket::Root => &mut self.root,
-            Bucket::ID(id) => self
-                .id_hash
-                .try_entry(id.clone(), quirks_mode)?
-                .or_insert_with(SmallVec::new),
-            Bucket::Class(class) => self
-                .class_hash
-                .try_entry(class.clone(), quirks_mode)?
-                .or_insert_with(SmallVec::new),
-            Bucket::LocalName { name, lower_name } => {
-                // If the local name in the selector isn't lowercase, insert it
-                // into the rule hash twice. This means that, during lookup, we
-                // can always find the rules based on the local name of the
-                // element, regardless of whether it's an html element in an
-                // html document (in which case we match against lower_name) or
-                // not (in which case we match against name).
-                //
-                // In the case of a non-html-element-in-html-document with a
-                // lowercase localname and a non-lowercase selector, the
-                // rulehash lookup may produce superfluous selectors, but the
-                // subsequent selector matching work will filter them out.
-                if name != lower_name {
-                    self.local_name_hash
-                        .try_entry(lower_name.clone())?
-                        .or_insert_with(SmallVec::new)
-                        .try_push(entry.clone())?;
+        // NOTE(emilio): It'd be nice for this to be a separate function, but
+        // then the compiler can't reason about the lifetime dependency between
+        // `entry` and `bucket`, and would force us to clone the rule in the
+        // common path.
+        macro_rules! insert_into_bucket {
+            ($entry:ident, $bucket:expr) => {{
+                match $bucket {
+                    Bucket::Root => &mut self.root,
+                    Bucket::ID(id) => self
+                        .id_hash
+                        .try_entry(id.clone(), quirks_mode)?
+                        .or_insert_with(SmallVec::new),
+                    Bucket::Class(class) => self
+                        .class_hash
+                        .try_entry(class.clone(), quirks_mode)?
+                        .or_insert_with(SmallVec::new),
+                    Bucket::LocalName { name, lower_name } => {
+                        // If the local name in the selector isn't lowercase,
+                        // insert it into the rule hash twice. This means that,
+                        // during lookup, we can always find the rules based on
+                        // the local name of the element, regardless of whether
+                        // it's an html element in an html document (in which
+                        // case we match against lower_name) or not (in which
+                        // case we match against name).
+                        //
+                        // In the case of a non-html-element-in-html-document
+                        // with a lowercase localname and a non-lowercase
+                        // selector, the rulehash lookup may produce superfluous
+                        // selectors, but the subsequent selector matching work
+                        // will filter them out.
+                        if name != lower_name {
+                            self.local_name_hash
+                                .try_entry(lower_name.clone())?
+                                .or_insert_with(SmallVec::new)
+                                .try_push($entry.clone())?;
+                        }
+                        self.local_name_hash
+                            .try_entry(name.clone())?
+                            .or_insert_with(SmallVec::new)
+                    },
+                    Bucket::Namespace(url) => self
+                        .namespace_hash
+                        .try_entry(url.clone())?
+                        .or_insert_with(SmallVec::new),
+                    Bucket::Universal => &mut self.other,
+                }.try_push($entry)?;
+            }}
+        }
+
+        let bucket = {
+            let mut disjoint_buckets = SmallVec::new();
+            let bucket = find_bucket(entry.selector(), &mut disjoint_buckets);
+
+            // See if inserting this selector in multiple entries in the
+            // selector map would be worth it. Consider a case like:
+            //
+            //   .foo:where(div, #bar)
+            //
+            // There, `bucket` would be `Class(foo)`, and disjoint_buckets would
+            // be `[LocalName { div }, ID(bar)]`.
+            //
+            // Here we choose to insert the selector in the `.foo` bucket in
+            // such a case, as it's likely more worth it than inserting it in
+            // both `div` and `#bar`.
+            //
+            // This is specially true if there's any universal selector in the
+            // `disjoint_selectors` set, at which point we'd just be doing
+            // wasted work.
+            if !disjoint_buckets.is_empty() && disjoint_buckets.iter().all(|b| b.more_specific_than(&bucket)) {
+                for bucket in &disjoint_buckets {
+                    let entry = entry.clone();
+                    insert_into_bucket!(entry, *bucket);
                 }
-                self.local_name_hash
-                    .try_entry(name.clone())?
-                    .or_insert_with(SmallVec::new)
-            },
-            Bucket::Namespace(url) => self
-                .namespace_hash
-                .try_entry(url.clone())?
-                .or_insert_with(SmallVec::new),
-            Bucket::Universal => &mut self.other,
+                return Ok(());
+            }
+            bucket
         };
 
-        vector.try_push(entry)
+        insert_into_bucket!(entry, bucket);
+        Ok(())
     }
 
     /// Looks up entries by id, class, local name, namespace, and other (in
@@ -457,18 +493,43 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
 }
 
 enum Bucket<'a> {
-    Root,
-    ID(&'a Atom),
-    Class(&'a Atom),
+    Universal,
+    Namespace(&'a Namespace),
     LocalName {
         name: &'a LocalName,
         lower_name: &'a LocalName,
     },
-    Namespace(&'a Namespace),
-    Universal,
+    Class(&'a Atom),
+    ID(&'a Atom),
+    Root,
 }
 
-fn specific_bucket_for<'a>(component: &'a Component<SelectorImpl>) -> Bucket<'a> {
+impl<'a> Bucket<'a> {
+    /// root > id > class > local name > namespace > universal.
+    #[inline]
+    fn specificity(&self) -> usize {
+        match *self {
+            Bucket::Universal => 0,
+            Bucket::Namespace(..) => 1,
+            Bucket::LocalName { .. } => 2,
+            Bucket::Class(..) => 3,
+            Bucket::ID(..) => 4,
+            Bucket::Root => 5,
+        }
+    }
+
+    #[inline]
+    fn more_specific_than(&self, other: &Self) -> bool {
+        self.specificity() > other.specificity()
+    }
+}
+
+type DisjointBuckets<'a> = SmallVec<[Bucket<'a>; 5]>;
+
+fn specific_bucket_for<'a>(
+    component: &'a Component<SelectorImpl>,
+    disjoint_buckets: &mut DisjointBuckets<'a>,
+) -> Bucket<'a> {
     match *component {
         Component::Root => Bucket::Root,
         Component::ID(ref id) => Bucket::ID(id),
@@ -498,14 +559,16 @@ fn specific_bucket_for<'a>(component: &'a Component<SelectorImpl>) -> Bucket<'a>
         //
         // So inserting `span` in the rule hash makes sense since we want to
         // match the slotted <span>.
-        Component::Slotted(ref selector) => find_bucket(selector.iter()),
-        Component::Host(Some(ref selector)) => find_bucket(selector.iter()),
+        Component::Slotted(ref selector) => find_bucket(selector.iter(), disjoint_buckets),
+        Component::Host(Some(ref selector)) => find_bucket(selector.iter(), disjoint_buckets),
         Component::Is(ref list) | Component::Where(ref list) => {
             if list.len() == 1 {
-                find_bucket(list[0].iter())
+                find_bucket(list[0].iter(), disjoint_buckets)
             } else {
-                // TODO(emilio): We should handle the multiple element case by
-                // inserting multiple entries in the map.
+                for selector in &**list {
+                    let bucket = find_bucket(selector.iter(), disjoint_buckets);
+                    disjoint_buckets.push(bucket);
+                }
                 Bucket::Universal
             }
         },
@@ -515,39 +578,21 @@ fn specific_bucket_for<'a>(component: &'a Component<SelectorImpl>) -> Bucket<'a>
 
 /// Searches a compound selector from left to right, and returns the appropriate
 /// bucket for it.
+///
+/// It also populates disjoint_buckets with dependencies from nested selectors
+/// with any semantics like :is() and :where().
 #[inline(always)]
-fn find_bucket<'a>(mut iter: SelectorIter<'a, SelectorImpl>) -> Bucket<'a> {
+fn find_bucket<'a>(
+    mut iter: SelectorIter<'a, SelectorImpl>,
+    disjoint_buckets: &mut DisjointBuckets<'a>,
+) -> Bucket<'a> {
     let mut current_bucket = Bucket::Universal;
 
     loop {
-        // We basically want to find the most specific bucket,
-        // where:
-        //
-        //   root > id > class > local name > namespace > universal.
-        //
         for ss in &mut iter {
-            let new_bucket = specific_bucket_for(ss);
-            match new_bucket {
-                Bucket::Root => return new_bucket,
-                Bucket::ID(..) => {
-                    current_bucket = new_bucket;
-                },
-                Bucket::Class(..) => {
-                    if !matches!(current_bucket, Bucket::ID(..)) {
-                        current_bucket = new_bucket;
-                    }
-                },
-                Bucket::LocalName { .. } => {
-                    if matches!(current_bucket, Bucket::Universal | Bucket::Namespace(..)) {
-                        current_bucket = new_bucket;
-                    }
-                },
-                Bucket::Namespace(..) => {
-                    if matches!(current_bucket, Bucket::Universal) {
-                        current_bucket = new_bucket;
-                    }
-                },
-                Bucket::Universal => {},
+            let new_bucket = specific_bucket_for(ss, disjoint_buckets);
+            if new_bucket.more_specific_than(&current_bucket) {
+                current_bucket = new_bucket;
             }
         }
 
@@ -558,7 +603,7 @@ fn find_bucket<'a>(mut iter: SelectorIter<'a, SelectorImpl>) -> Bucket<'a> {
         }
     }
 
-    return current_bucket;
+    current_bucket
 }
 
 /// Wrapper for PrecomputedHashMap that does ASCII-case-insensitive lookup in quirks mode.
