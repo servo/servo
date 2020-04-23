@@ -57,7 +57,7 @@ pub struct Dependency {
     ///
     ///  We'd generate:
     ///
-    ///    * One dependency for .quz (offset: 0, parent: None)
+    ///    * One dependency for .qux (offset: 0, parent: None)
     ///    * One dependency for .baz pointing to B with parent being a
     ///      dependency pointing to C.
     ///    * One dependency from .bar pointing to C (parent: None)
@@ -88,6 +88,22 @@ pub enum DependencyInvalidationKind {
 }
 
 impl Dependency {
+    /// Creates a dummy dependency to invalidate the whole selector.
+    ///
+    /// This is necessary because document state invalidation wants to
+    /// invalidate all elements in the document.
+    ///
+    /// The offset is such as that Invalidation::new(self) returns a zero
+    /// offset. That is, it points to a virtual "combinator" outside of the
+    /// selector, so calling combinator() on such a dependency will panic.
+    pub fn for_full_selector_invalidation(selector: Selector<SelectorImpl>) -> Self {
+        Self {
+            selector_offset: selector.len() + 1,
+            selector,
+            parent: None,
+        }
+    }
+
     /// Returns the combinator to the right of the partial selector this
     /// dependency represents.
     ///
@@ -147,14 +163,14 @@ impl SelectorMapEntry for StateDependency {
 /// The same, but for document state selectors.
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct DocumentStateDependency {
-    /// The selector that is affected. We don't need to track an offset, since
-    /// when it changes it changes for the whole document anyway.
+    /// We track `Dependency` even though we don't need to track an offset,
+    /// since when it changes it changes for the whole document anyway.
     #[cfg_attr(
         feature = "gecko",
         ignore_malloc_size_of = "CssRules have primary refs, we measure there"
     )]
     #[cfg_attr(feature = "servo", ignore_malloc_size_of = "Arc")]
-    pub selector: Selector<SelectorImpl>,
+    pub dependency: Dependency,
     /// The state this dependency is affected by.
     pub state: DocumentState,
 }
@@ -269,7 +285,7 @@ impl InvalidationMap {
         if !document_state.is_empty() {
             let dep = DocumentStateDependency {
                 state: document_state,
-                selector: selector.clone(),
+                dependency: Dependency::for_full_selector_invalidation(selector.clone()),
             };
             self.document_state_selectors.try_push(dep)?;
         }

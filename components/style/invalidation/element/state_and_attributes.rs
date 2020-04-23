@@ -85,8 +85,8 @@ pub fn check_dependency<E, W>(
     dependency: &Dependency,
     element: &E,
     wrapper: &W,
-    context: &mut MatchingContext<'_, SelectorImpl>,
-)
+    mut context: &mut MatchingContext<'_, E::Impl>,
+) -> bool
 where
     E: TElement,
     W: selectors::Element<Impl = E::Impl>,
@@ -164,6 +164,14 @@ where
     /// content being generated.
     fn invalidates_on_eager_pseudo_element(&self) -> bool {
         true
+    }
+
+    fn check_outer_dependency(&mut self, dependency: &Dependency, element: E) -> bool {
+        // We cannot assert about `element` having a snapshot here (in fact it
+        // most likely won't), because it may be an arbitrary descendant or
+        // later-sibling of the element we started invalidating with.
+        let wrapper = ElementWrapper::new(element, &*self.shared_context.snapshot_map);
+        check_dependency(dependency, &element, &wrapper, &mut self.matching_context)
     }
 
     fn matching_context(&mut self) -> &mut MatchingContext<'a, E::Impl> {
@@ -447,7 +455,7 @@ where
     /// Check whether a dependency should be taken into account.
     #[inline]
     fn check_dependency(&mut self, dependency: &Dependency) -> bool {
-        check_dependency(&self.element, &self.wrapper, &mut self.matching_context)
+        check_dependency(dependency, &self.element, &self.wrapper, &mut self.matching_context)
     }
 
     fn scan_dependency(&mut self, dependency: &'selectors Dependency) {
@@ -484,9 +492,8 @@ where
         debug_assert_ne!(dependency.selector_offset, dependency.selector.len());
 
         let invalidation = Invalidation::new(
-            &dependency.selector,
+            &dependency,
             self.matching_context.current_host.clone(),
-            dependency.selector.len() - dependency.selector_offset + 1,
         );
 
         match invalidation_kind {
