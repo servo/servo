@@ -5,6 +5,7 @@
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeExt};
+use crate::flow::inline::VerticalAlignMetrics;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
@@ -554,6 +555,7 @@ impl HoistedAbsolutelyPositionedBox {
                     pbm.border,
                     margin,
                     CollapsedBlockMargins::zero(),
+                    VerticalAlignMetrics::new(Length::zero(), Length::zero(), Length::zero()),
                 )
             },
         )

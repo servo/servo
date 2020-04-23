@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::cell::ArcRefCell;
+use crate::flow::inline::VerticalAlignMetrics;
 use crate::geom::flow_relative::{Rect, Sides};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 #[cfg(debug_assertions)]
@@ -60,6 +61,8 @@ pub(crate) struct BoxFragment {
 
     /// The scrollable overflow of this box fragment.
     pub scrollable_overflow_from_children: PhysicalRect<Length>,
+
+    pub inline_metrics: VerticalAlignMetrics,
 }
 
 #[derive(Serialize)]
@@ -90,6 +93,7 @@ pub(crate) struct AnonymousFragment {
 #[derive(Clone, Copy, Serialize)]
 pub(crate) struct FontMetrics {
     pub ascent: Length,
+    pub descent: Length,
     pub line_gap: Length,
     pub underline_offset: Length,
     pub underline_size: Length,
@@ -101,6 +105,7 @@ impl From<&GfxFontMetrics> for FontMetrics {
     fn from(metrics: &GfxFontMetrics) -> FontMetrics {
         FontMetrics {
             ascent: metrics.ascent.into(),
+            descent: metrics.descent.into(),
             line_gap: metrics.line_gap.into(),
             underline_offset: metrics.underline_offset.into(),
             underline_size: metrics.underline_size.into(),
@@ -286,6 +291,7 @@ impl BoxFragment {
         border: Sides<Length>,
         margin: Sides<Length>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
+        inline_metrics: VerticalAlignMetrics,
     ) -> BoxFragment {
         // FIXME(mrobinson, bug 25564): We should be using the containing block
         // here to properly convert scrollable overflow to physical geometry.
@@ -308,6 +314,7 @@ impl BoxFragment {
             margin,
             block_margins_collapsed_with_children,
             scrollable_overflow_from_children,
+            inline_metrics,
         }
     }
 

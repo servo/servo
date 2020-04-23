@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::cell::ArcRefCell;
-use crate::context::LayoutContext;
+use crate::context::{with_thread_local_font_context, LayoutContext};
 use crate::flow::float::FloatBox;
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
@@ -17,7 +17,9 @@ use crate::positioned::{
     PositioningContext,
 };
 use crate::sizing::ContentSizes;
-use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
+use crate::style_ext::{
+    ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside, PaddingBorderMargin,
+};
 use crate::ContainingBlock;
 use app_units::Au;
 use gfx::text::text_run::GlyphRun;
@@ -86,6 +88,7 @@ struct PartialInlineBoxFragment<'box_tree> {
     margin: Sides<Length>,
     last_box_tree_fragment: bool,
     parent_nesting_level: InlineNestingLevelState<'box_tree>,
+    inline_metrics: VerticalAlignMetrics,
 }
 
 struct InlineFormattingContextState<'box_tree, 'a, 'b> {
@@ -278,7 +281,7 @@ impl InlineFormattingContext {
             if let Some(child) = ifc.current_nesting_level.remaining_boxes.next() {
                 match &*child.borrow() {
                     InlineLevelBox::InlineBox(inline) => {
-                        let partial = inline.start_layout(child.clone(), &mut ifc);
+                        let partial = inline.start_layout(layout_context, child.clone(), &mut ifc);
                         ifc.partial_inline_boxes_stack.push(partial)
                     },
                     InlineLevelBox::TextRun(run) => run.layout(layout_context, &mut ifc),
@@ -421,6 +424,7 @@ impl Lines {
 impl InlineBox {
     fn start_layout<'box_tree>(
         &self,
+        layout_context: &LayoutContext,
         this_inline_level_box: ArcRefCell<InlineLevelBox>,
         ifc: &mut InlineFormattingContextState<'box_tree, '_, '_>,
     ) -> PartialInlineBoxFragment<'box_tree> {
@@ -447,6 +451,19 @@ impl InlineBox {
         let positioning_context = PositioningContext::new_for_style(&style);
         let text_decoration_line =
             ifc.current_nesting_level.text_decoration_line | style.clone_text_decoration_line();
+        let font_style = style.clone_font();
+        let font_size = font_style.font_size.size.0;
+        let font_metrics = with_thread_local_font_context(layout_context, |font_context| {
+            let font_group = font_context.font_group(font_style);
+            let font = font_group
+                .borrow_mut()
+                .first(font_context)
+                .expect("could not find font");
+            let font = font.borrow_mut();
+            (&font.metrics).into()
+        });
+        let line_height = compute_line_height(&style, &font_metrics, font_size);
+        let inline_metrics = VerticalAlignMetrics::for_text(&font_metrics, line_height);
         PartialInlineBoxFragment {
             tag: self.tag,
             style,
@@ -468,6 +485,7 @@ impl InlineBox {
                     text_decoration_line: text_decoration_line,
                 },
             ),
+            inline_metrics,
         }
     }
 }
@@ -497,6 +515,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
             self.border.clone(),
             self.margin.clone(),
             CollapsedBlockMargins::zero(),
+            self.inline_metrics,
         );
         let last_fragment = self.last_box_tree_fragment && !at_line_break;
         if last_fragment {
@@ -550,6 +569,8 @@ fn layout_atomic(
                 replaced.used_size_as_if_inline_element(ifc.containing_block, &atomic.style, &pbm);
             let fragments = replaced.make_fragments(&atomic.style, size.clone());
             let content_rect = Rect { start_corner, size };
+            let inline_metrics =
+                VerticalAlignMetrics::for_replaced_or_inline_block(content_rect.size.block, &pbm);
             BoxFragment::new(
                 atomic.tag,
                 atomic.style.clone(),
@@ -559,6 +580,7 @@ fn layout_atomic(
                 pbm.border,
                 margin,
                 CollapsedBlockMargins::zero(),
+                inline_metrics,
             )
         },
         Err(non_replaced) => {
@@ -621,6 +643,8 @@ fn layout_atomic(
                     inline: inline_size,
                 },
             };
+            let inline_metrics =
+                VerticalAlignMetrics::for_replaced_or_inline_block(content_rect.size.block, &pbm);
             BoxFragment::new(
                 atomic.tag,
                 atomic.style.clone(),
@@ -630,6 +654,7 @@ fn layout_atomic(
                 pbm.border,
                 margin,
                 CollapsedBlockMargins::zero(),
+                inline_metrics,
             )
         },
     };
@@ -676,7 +701,7 @@ impl TextRun {
             flags.insert(ShapingFlags::KEEP_ALL_FLAG);
         }
 
-        crate::context::with_thread_local_font_context(layout_context, |font_context| {
+        with_thread_local_font_context(layout_context, |font_context| {
             let font_group = font_context.font_group(font_style);
             let font = font_group
                 .borrow_mut()
@@ -720,8 +745,6 @@ impl TextRun {
     }
 
     fn layout(&self, layout_context: &LayoutContext, ifc: &mut InlineFormattingContextState) {
-        use style::values::generics::text::LineHeight;
-
         let BreakAndShapeResult {
             font_metrics,
             font_key,
@@ -759,11 +782,7 @@ impl TextRun {
                     break;
                 }
             }
-            let line_height = match self.parent_style.get_inherited_text().line_height {
-                LineHeight::Normal => font_metrics.line_gap,
-                LineHeight::Number(n) => font_size * n.0,
-                LineHeight::Length(l) => l.0,
-            };
+            let line_height = compute_line_height(&self.parent_style, &font_metrics, font_size);
             let rect = Rect {
                 start_corner: Vec2 {
                     block: Length::zero(),
@@ -865,6 +884,107 @@ impl<'box_tree> Iterator for InlineBoxChildIter<'box_tree> {
                 },
                 _ => unreachable!(),
             },
+        }
+    }
+}
+
+fn compute_line_height(
+    style: &Arc<ComputedValues>,
+    font_metrics: &FontMetrics,
+    font_size: Length,
+) -> Length {
+    use style::values::generics::text::LineHeight;
+    match style.get_inherited_text().line_height {
+        LineHeight::Normal => font_metrics.line_gap,
+        LineHeight::Number(n) => font_size * n.0,
+        LineHeight::Length(l) => l.0,
+    }
+}
+
+/// Baseline metrics. Used for vertical alignment of inline elements.
+#[derive(Clone, Copy, Debug, Serialize)]
+pub struct Baseline {
+    /// The amount of space above the baseline.
+    pub space_above: Length,
+    /// The amount of space below the baseline.
+    pub space_below: Length,
+}
+
+/// Ascent and space needed above and below the baseline for a fragment. See CSS 2.1 § 10.8.1.
+///
+/// Descent is not included in this structure because it can be computed from the fragment's
+/// border/content box and the ascent.
+#[derive(Clone, Copy, Debug, Serialize)]
+pub(crate) struct VerticalAlignMetrics {
+    /// Baseline metrics (required space above and bellow) for this fragment.
+    pub baseline: Baseline,
+    /// The distance from the baseline to the top of this fragment. This can differ from
+    /// `space_above_baseline` if the fragment needs some empty space above it due to
+    /// line-height, etc.
+    pub ascent: Length,
+}
+
+impl VerticalAlignMetrics {
+    /// Creates a new set of inline metrics.
+    pub fn new(space_above: Length, space_below: Length, ascent: Length) -> VerticalAlignMetrics {
+        VerticalAlignMetrics {
+            baseline: Baseline {
+                space_above,
+                space_below,
+            },
+            ascent,
+        }
+    }
+
+    /// Calculates inline metrics from font metrics and line block-size per CSS 2.1 § 10.8.1.
+    #[inline]
+    pub fn for_text(font_metrics: &FontMetrics, line_height: Length) -> VerticalAlignMetrics {
+        let leading = line_height - (font_metrics.ascent + font_metrics.descent);
+
+        // Calculating the half leading here and then using leading - half_leading
+        // below ensure that we don't introduce any rounding accuracy issues here.
+        // The invariant is that the resulting total line height must exactly
+        // equal the requested line_height.
+        let half_leading = leading * 0.5;
+        VerticalAlignMetrics {
+            baseline: Baseline {
+                space_above: font_metrics.ascent + half_leading,
+                space_below: font_metrics.descent + leading - half_leading,
+            },
+            ascent: font_metrics.ascent,
+        }
+    }
+
+    #[inline]
+    pub fn for_replaced_or_inline_block(
+        content_rect_block_size: Length,
+        pbm: &PaddingBorderMargin,
+    ) -> VerticalAlignMetrics {
+        // XXX(ferjm) Compute proper inline-block metrics when it has in-flowcontent.
+        //
+        // The inline-block element’s baseline depends on whether the element has
+        // in-flow content:
+        //
+        // In case of in-flow content the baseline of the inline-block element is
+        // the baseline of the last content element in normal flow.
+        // For this last element its baseline is found according to its own rules.
+        //
+        // In case of in-flow content but an overflow property evaluating to
+        // something other than visible, the baseline is the bottom edge of the
+        // margin-box. So, it is the same as the inline-block element’s
+        // bottom edge.
+        //
+        // In case of no in-flow content the baseline is, again, the bottom edge of
+        // the margin-box (example on the right).
+
+        let margin = pbm.margin.auto_is(Length::zero);
+        let ascent = content_rect_block_size + pbm.padding_border_sums.block + margin.block_end;
+        VerticalAlignMetrics {
+            baseline: Baseline {
+                space_above: ascent + margin.block_start,
+                space_below: Length::zero(),
+            },
+            ascent,
         }
     }
 }

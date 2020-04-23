@@ -7,7 +7,7 @@
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, FloatContext};
-use crate::flow::inline::InlineFormattingContext;
+use crate::flow::inline::{InlineFormattingContext, VerticalAlignMetrics};
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout, NonReplacedIFC};
 use crate::fragments::{AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment};
 use crate::fragments::{CollapsedBlockMargins, CollapsedMargin, Fragment};
@@ -483,6 +483,7 @@ fn layout_in_flow_non_replaced_block_level(
             inline: inline_size,
         },
     };
+
     BoxFragment::new(
         tag,
         style.clone(),
@@ -492,6 +493,8 @@ fn layout_in_flow_non_replaced_block_level(
         pbm.border,
         margin,
         block_margins_collapsed_with_children,
+        // XXXferjm compute inline metrics
+        VerticalAlignMetrics::new(Length::zero(), Length::zero(), Length::zero()),
     )
 }
 
@@ -524,6 +527,8 @@ fn layout_in_flow_replaced_block_level<'a>(
         size,
     };
     let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
+    let inline_metrics =
+        VerticalAlignMetrics::for_replaced_or_inline_block(content_rect.size.block, &pbm);
     BoxFragment::new(
         tag,
         style.clone(),
@@ -533,6 +538,7 @@ fn layout_in_flow_replaced_block_level<'a>(
         pbm.border,
         margin,
         block_margins_collapsed_with_children,
+        inline_metrics,
     )
 }
 
