@@ -15,7 +15,7 @@ bench = false
 
 [dependencies]
 android_injected_glue = "0.2"
-android_logger = "0.7"
+android_logger = "0.8"
 gstreamer = "0.15"
 jni = "0.10.2"
 libc = "0.2"
