@@ -18,7 +18,6 @@ use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
-use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot};
@@ -1193,7 +1192,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferData(&self, target: u32, data: Option<ArrayBufferViewOrArrayBuffer>, usage: u32) {
+    fn BufferData_(&self, target: u32, data: Option<ArrayBufferViewOrArrayBuffer>, usage: u32) {
         let usage = handle_potential_webgl_error!(self.base, self.buffer_usage(usage), return);
         let bound_buffer =
             handle_potential_webgl_error!(self.base, self.bound_buffer(target), return);
@@ -1201,7 +1200,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferData_(&self, target: u32, size: i64, usage: u32) {
+    fn BufferData(&self, target: u32, size: i64, usage: u32) {
         let usage = handle_potential_webgl_error!(self.base, self.buffer_usage(usage), return);
         let bound_buffer =
             handle_potential_webgl_error!(self.base, self.bound_buffer(target), return);
@@ -1425,7 +1424,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         }
     }
 
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
+    #[allow(unsafe_code)]
     fn CompressedTexImage2D(
         &self,
         target: u32,
@@ -1435,19 +1435,32 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         height: i32,
         border: i32,
         pixels: CustomAutoRooterGuard<ArrayBufferView>,
+        src_offset: u32,
+        src_length_override: u32,
     ) {
-        self.base.CompressedTexImage2D(
+        let mut data = unsafe { pixels.as_slice() };
+        let start = src_offset as usize;
+        let end = (src_offset + src_length_override) as usize;
+        if start > data.len() || end > data.len() {
+            self.base.webgl_error(InvalidValue);
+            return;
+        }
+        if src_length_override != 0 {
+            data = &data[start..end];
+        }
+        self.base.compressed_tex_image_2d(
             target,
             level,
             internal_format,
             width,
             height,
             border,
-            pixels,
+            data,
         )
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
+    #[allow(unsafe_code)]
     fn CompressedTexSubImage2D(
         &self,
         target: u32,
@@ -1458,9 +1471,21 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         height: i32,
         format: u32,
         pixels: CustomAutoRooterGuard<ArrayBufferView>,
+        src_offset: u32,
+        src_length_override: u32,
     ) {
-        self.base.CompressedTexSubImage2D(
-            target, level, xoffset, yoffset, width, height, format, pixels,
+        let mut data = unsafe { pixels.as_slice() };
+        let start = src_offset as usize;
+        let end = (src_offset + src_length_override) as usize;
+        if start > data.len() || end > data.len() {
+            self.base.webgl_error(InvalidValue);
+            return;
+        }
+        if src_length_override != 0 {
+            data = &data[start..end];
+        }
+        self.base.compressed_tex_sub_image_2d(
+            target, level, xoffset, yoffset, width, height, format, data,
         )
     }
 
@@ -2104,7 +2129,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.Uniform1iv(location, v, src_offset, src_length)
+        self.base.uniform1iv(location, v, src_offset, src_length)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
@@ -2166,7 +2191,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.Uniform1fv(location, v, src_offset, src_length);
+        self.base.uniform1fv(location, v, src_offset, src_length);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2182,7 +2207,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.Uniform2fv(location, v, src_offset, src_length);
+        self.base.uniform2fv(location, v, src_offset, src_length);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2198,7 +2223,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.Uniform2iv(location, v, src_offset, src_length)
+        self.base.uniform2iv(location, v, src_offset, src_length)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
@@ -2247,7 +2272,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.Uniform3fv(location, v, src_offset, src_length);
+        self.base.uniform3fv(location, v, src_offset, src_length);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2263,7 +2288,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.Uniform3iv(location, v, src_offset, src_length)
+        self.base.uniform3iv(location, v, src_offset, src_length)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
@@ -2312,7 +2337,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.Uniform4iv(location, v, src_offset, src_length)
+        self.base.uniform4iv(location, v, src_offset, src_length)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
@@ -2361,7 +2386,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         src_offset: u32,
         src_length: u32,
     ) {
-        self.base.Uniform4fv(location, v, src_offset, src_length);
+        self.base.uniform4fv(location, v, src_offset, src_length);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2374,7 +2399,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         src_length: u32,
     ) {
         self.base
-            .UniformMatrix2fv(location, transpose, v, src_offset, src_length)
+            .uniform_matrix_2fv(location, transpose, v, src_offset, src_length)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2387,7 +2412,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         src_length: u32,
     ) {
         self.base
-            .UniformMatrix3fv(location, transpose, v, src_offset, src_length)
+            .uniform_matrix_3fv(location, transpose, v, src_offset, src_length)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -2400,7 +2425,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         src_length: u32,
     ) {
         self.base
-            .UniformMatrix4fv(location, transpose, v, src_offset, src_length)
+            .uniform_matrix_4fv(location, transpose, v, src_offset, src_length)
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.8
@@ -2766,7 +2791,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         &self,
         target: u32,
         level: i32,
-        internal_format: u32,
+        internal_format: i32,
         width: i32,
         height: i32,
         border: i32,
@@ -2792,37 +2817,13 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         &self,
         target: u32,
         level: i32,
-        internal_format: u32,
+        internal_format: i32,
         format: u32,
         data_type: u32,
         source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
     ) -> ErrorResult {
         self.base
             .TexImage2D_(target, level, internal_format, format, data_type, source)
-    }
-
-    /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
-    fn TexImageDOM(
-        &self,
-        target: u32,
-        level: i32,
-        internal_format: u32,
-        width: i32,
-        height: i32,
-        format: u32,
-        data_type: u32,
-        source: &HTMLIFrameElement,
-    ) -> Fallible<()> {
-        self.base.TexImageDOM(
-            target,
-            level,
-            internal_format,
-            width,
-            height,
-            format,
-            data_type,
-            source,
-        )
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
