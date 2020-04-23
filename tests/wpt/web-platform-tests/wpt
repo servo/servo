@@ -1,12 +1,21 @@
 #!/usr/bin/env python
 
 if __name__ == "__main__":
+    import sys
     from tools.wpt import wpt
-    from sys import version_info, argv, exit
-    args, extra = wpt.parse_args(argv[1:])
+    args, extra = wpt.parse_args(sys.argv[1:])
+    commands = wpt.load_commands()
+    py3only = commands[args.command]["py3only"]
 
-    if args.py3 and version_info.major < 3:
+    if (args.py3 or py3only) and sys.version_info.major < 3:
         from subprocess import call
-        exit(call(['python3', argv[0]] + [args.command] + extra))
+        try:
+            sys.exit(call(['python3', sys.argv[0]] + [args.command] + extra))
+        except OSError as e:
+            if e.errno == 2:
+                sys.stderr.write("python3 is needed to run this command\n")
+                sys.exit(1)
+            else:
+                raise
     else:
         wpt.main()

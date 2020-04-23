@@ -16,7 +16,9 @@ class InputLengthProcessor extends AudioWorkletProcessor {
     let output = outputs[0];
 
     // Set output channel to the length of the input channel array.
-    output[0].fill(input[0].length);
+    // If the input is unconnected, set the value to zero.
+    const fillValue = input.length > 0 ? input[0].length : 0;
+    output[0].fill(fillValue);
 
     return true;
   }

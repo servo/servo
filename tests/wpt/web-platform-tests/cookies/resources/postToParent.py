@@ -12,6 +12,10 @@ def main(request, response):
   var data = %s;
   data.type = "COOKIES";
 
+  try {
+    data.domcookies = document.cookie;
+  } catch (e) {}
+
   if (window.parent != window) {
     window.parent.postMessage(data, "*");
     if (window.top != window.parent)

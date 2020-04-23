@@ -4,6 +4,8 @@
 <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
 <meta name="assert" content="This test checks that nested position:sticky table elements render correctly" />
 
+<script src="resources/ref-rectangle.js"></script>
+
 <style>
 .scroller {
   position: relative;
@@ -50,6 +52,7 @@ table * {
 window.addEventListener('load', function() {
   document.body.offsetTop;
   document.getElementById('scroller1').scrollTop = 150;
+  createIndicatorForStickyElements(document.querySelectorAll('.sticky'));
 });
 </script>
 
@@ -69,4 +72,4 @@ window.addEventListener('load', function() {
     </table>
   </div>
 </div>
-<div>There should be a green square at the top of the scroll view and no red visible.</div>
+<div>There should be a green square at the top of the scroll view and no red or blue visible.</div>

@@ -206,7 +206,7 @@ let loadChromiumResources = Promise.resolve().then(() => {
 });
 
 let setupWebKitWebXRTestAPI = Promise.resolve().then(() => {
-  if (!self.internals) {
+  if (!self.internals || !internals.xrTest) {
     // Do nothing on non-WebKit-based browsers.
     return;
   }

@@ -15,30 +15,14 @@
     <script type="text/javascript" src="../pointerevent_support.js"></script>
     <script type="text/javascript">
       var event_log = [];
-      var active_pointers = 0;
       var actions_promise;
+      var down_ids = new Set();
+      var release_ids = new Set();
 
       function resetTestState() {
         event_log = [];
-        active_pointers = 0;
-      }
-
-      function twoFingerDrag(target) {
-        return new test_driver.Actions()
-                      .addPointer("touchPointer1", "touch")
-                      .addPointer("touchPointer2", "touch")
-                      .pointerMove(0, 0, {origin: target, sourceName: "touchPointer1"})
-                      .pointerMove(10, 0, {origin: target, sourceName: "touchPointer2"})
-                      .pointerDown({sourceName: "touchPointer1"})
-                      .pointerDown({sourceName: "touchPointer2"})
-                      .pointerMove(0, 10, {origin: target, sourceName: "touchPointer1"})
-                      .pointerMove(10, 10, {origin: target, sourceName: "touchPointer2"})
-                      .pointerMove(0, 20, {origin: target, sourceName: "touchPointer1"})
-                      .pointerMove(10, 20, {origin: target, sourceName: "touchPointer2"})
-                      .pause(100)
-                      .pointerUp({sourceName: "touchPointer1"})
-                      .pointerUp({sourceName: "touchPointer2"})
-                      .send();
+        down_ids = new Set();
+        release_ids = new Set();
       }
 
       function run() {
@@ -57,10 +41,11 @@
 
         on_event(done, "click", function() {
           test_pointer_events[current_test_index].step(function () {
-            assert_equals(active_pointers, 0);
+            assert_equals(down_ids.size, 2);
+            assert_equals(release_ids.size, 2);
+            assert_true([...down_ids].every(value => release_ids.has(value)));
             assert_equals(event_log.join(", "), expected_events[current_test_index]);
           });
-          event_log = [];
 
           // Make sure the test finishes after all the input actions are completed.
           actions_promise.then( () => {
@@ -81,9 +66,9 @@
               event_log.push(event.type + "@" + event.target.id);
 
               if (event.type == "pointerdown") {
-                active_pointers++;
+                down_ids.add(event.pointerId);
               } else {
-                active_pointers--;
+                release_ids.add(event.pointerId);
               }
             });
           });

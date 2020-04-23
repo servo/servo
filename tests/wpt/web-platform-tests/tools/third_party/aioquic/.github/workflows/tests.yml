@@ -1,0 +1,128 @@
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Install packages
+        run: pip install black flake8 isort mypy
+      - name: Run linters
+        run: |
+          flake8 examples src tests
+          isort -c -df -rc examples src tests
+          black --check --diff examples src tests
+          mypy examples src
+
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python: [3.8, 3.7, 3.6]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Disable firewall and configure compiler
+        if: matrix.os == 'macos-latest'
+        run: |
+          sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off
+          echo "::set-env name=AIOQUIC_SKIP_TESTS::chacha20"
+          echo "::set-env name=CFLAGS::-I/usr/local/opt/openssl/include"
+          echo "::set-env name=LDFLAGS::-L/usr/local/opt/openssl/lib"
+      - name: Install OpenSSL
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install openssl --no-progress
+          echo "::set-env name=CL::/IC:\Progra~1\OpenSSL-Win64\include"
+          echo "::set-env name=LINK::/LIBPATH:C:\Progra~1\OpenSSL-Win64\lib"
+      - name: Run tests
+        run: |
+          pip install -U pip setuptools wheel
+          pip install coverage
+          pip install .
+          coverage run -m unittest discover -v
+          coverage xml
+        shell: bash
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v1
+        if: matrix.python != 'pypy3'
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  package-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Build source package
+        run: python setup.py sdist
+      - name: Upload source package
+        uses: actions/upload-artifact@v1
+        with:
+          name: dist
+          path: dist/
+
+  package-wheel:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v1
+        with:
+          python-version: 3.7
+      - name: Install nasm
+        if: matrix.os == 'windows-latest'
+        run: choco install -y nasm
+      - name: Install nmake
+        if: matrix.os == 'windows-latest'
+        run: |
+          & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" modify `
+           --installPath "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise" `
+           --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --passive --norestart
+        shell: powershell
+      - name: Build wheels
+        env:
+          CIBW_BEFORE_BUILD: scripts/build-openssl /tmp/vendor
+          CIBW_BEFORE_BUILD_WINDOWS: scripts\build-openssl.bat C:\cibw\vendor
+          CIBW_ENVIRONMENT: AIOQUIC_SKIP_TESTS=ipv6,loss CFLAGS=-I/tmp/vendor/include LDFLAGS=-L/tmp/vendor/lib
+          CIBW_ENVIRONMENT_WINDOWS: AIOQUIC_SKIP_TESTS=ipv6,loss CL="/IC:\cibw\vendor\include" LINK="/LIBPATH:C:\cibw\vendor\lib"
+          CIBW_SKIP: cp27-* cp33-* cp34-* cp35-* pp27-*
+          CIBW_TEST_COMMAND: python -m unittest discover -t {project} -s {project}/tests
+        run: |
+          pip install cibuildwheel
+          cibuildwheel --output-dir dist
+      - name: Upload wheels
+        uses: actions/upload-artifact@v1
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: [lint, test, package-source, package-wheel]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v1
+        with:
+          name: dist
+          path: dist/
+      - name: Publish to PyPI
+        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags/')
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_TOKEN }}

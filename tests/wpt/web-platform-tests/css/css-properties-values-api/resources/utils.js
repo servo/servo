@@ -92,3 +92,35 @@ function all_syntaxes() {
     '<url>'
   ]
 }
+
+function with_style_node(text, fn) {
+  let node = document.createElement('style');
+  node.textContent = text;
+  try {
+    document.body.append(node);
+    fn(node);
+  } finally {
+    node.remove();
+  }
+}
+
+function with_at_property(desc, fn) {
+  let name = typeof(desc.name) === 'undefined' ? generate_name() : desc.name;
+  let text = `@property ${name} {`;
+  if (typeof(desc.syntax) !== 'undefined')
+    text += `syntax:${desc.syntax};`;
+  if (typeof(desc.initialValue) !== 'undefined')
+    text += `initial-value:${desc.initialValue};`;
+  if (typeof(desc.inherits) !== 'undefined')
+    text += `inherits:${desc.inherits};`;
+  text += '}';
+  with_style_node(text, (node) => fn(name, node.sheet.rules[0]));
+}
+
+function test_with_at_property(desc, fn, description) {
+  test(() => with_at_property(desc, fn), description);
+}
+
+function test_with_style_node(text, fn, description) {
+  test(() => with_style_node(text, fn), description);
+}
