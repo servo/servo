@@ -19,7 +19,7 @@ mod map;
 mod source;
 mod unsafe_box;
 
-pub use self::core::{RuleTree, StrongRuleNode};
+pub use self::core::{RuleTree, StrongRuleNode, RULE_NODE_SIZE};
 pub use self::level::{CascadeLevel, ShadowCascadeOrder};
 pub use self::source::StyleSource;
 

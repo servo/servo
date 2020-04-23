@@ -12,10 +12,12 @@ use crate::bezier::Bezier;
 use crate::context::SharedStyleContext;
 use crate::dom::{OpaqueNode, TElement};
 use crate::font_metrics::FontMetricsProvider;
-use crate::properties::animated_properties::{AnimatedProperty, TransitionPropertyIteration};
+use crate::properties::animated_properties::AnimatedProperty;
 use crate::properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use crate::properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
-use crate::properties::{self, CascadeMode, ComputedValues, LonghandId, LonghandIdSet};
+#[cfg(feature = "servo")]
+use crate::properties::LonghandIdSet;
+use crate::properties::{self, CascadeMode, ComputedValues, LonghandId};
 use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
 use crate::stylesheets::Origin;
 use crate::timer::Timer;
@@ -432,6 +434,8 @@ pub fn start_transitions_if_applicable(
     expired_transitions: &[PropertyAnimation],
     running_animations: &[Animation],
 ) -> LonghandIdSet {
+    use crate::properties::animated_properties::TransitionPropertyIteration;
+
     // If the style of this element is display:none, then we don't start any transitions
     // and we cancel any currently running transitions by returning an empty LonghandIdSet.
     if new_style.get_box().clone_display().is_none() {
