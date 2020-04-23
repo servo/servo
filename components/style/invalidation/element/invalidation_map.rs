@@ -347,17 +347,20 @@ struct SelectorDependencyCollector<'a> {
 
 impl<'a> SelectorDependencyCollector<'a> {
     fn visit_whole_selector(&mut self) -> bool {
-        let mut iter = self.selector.iter();
-        let mut combinator;
-        let mut index = 0;
+        let iter = self.selector.iter();
+        self.visit_whole_selector_from(iter, 0)
+    }
 
+    fn visit_whole_selector_from(&mut self, mut iter: SelectorIter<SelectorImpl>, mut index: usize) -> bool {
         loop {
             // Reset the compound state.
             self.compound_state = PerCompoundState::new(index);
 
             // Visit all the simple selectors in this sequence.
             for ss in &mut iter {
-                ss.visit(self);
+                if !ss.visit(self) {
+                    return false;
+                }
                 index += 1; // Account for the simple selector.
             }
 
@@ -376,15 +379,12 @@ impl<'a> SelectorDependencyCollector<'a> {
                 }
             }
 
-            combinator = iter.next_sequence();
+            let combinator = iter.next_sequence();
             if combinator.is_none() {
-                break;
+                return true;
             }
-
-            index += 1; // Account for the combinator.
+            index += 1; // account for the combinator
         }
-
-        true
     }
 
     fn add_attr_dependency(&mut self) -> bool {
@@ -409,6 +409,11 @@ impl<'a> SelectorDependencyCollector<'a> {
         // TODO(emilio): Maybe we should refcount the parent dependencies, or
         // cache them or something.
         for &(ref selector, ref selector_offset) in self.parent_selectors.iter() {
+            debug_assert_ne!(
+                self.compound_state.offset,
+                0,
+                "Shouldn't bother creating nested dependencies for the rightmost compound",
+            );
             let new_parent = Dependency {
                 selector: selector.clone(),
                 selector_offset: *selector_offset,
@@ -429,22 +434,44 @@ impl<'a> SelectorVisitor for SelectorDependencyCollector<'a> {
     type Impl = SelectorImpl;
 
     fn visit_selector_list(&mut self, list: &[Selector<SelectorImpl>]) -> bool {
-        self.parent_selectors.push((self.selector.clone(), self.compound_state.offset));
         for selector in list {
+            // Here we cheat a bit: We can visit the rightmost compound with
+            // the "outer" visitor, and it'd be fine. This reduces the amount of
+            // state and attribute invalidations, and we need to check the outer
+            // selector to the left anyway to avoid over-invalidation, so it
+            // avoids matching it twice uselessly.
+            let mut iter = selector.iter();
+            let mut index = 0;
+
+            for ss in &mut iter {
+                if !ss.visit(self) {
+                    return false;
+                }
+                index += 1;
+            }
+
+            let combinator = iter.next_sequence();
+            if combinator.is_none() {
+                continue;
+            }
+
+            index += 1; // account for the combinator.
+
+            self.parent_selectors.push((self.selector.clone(), self.compound_state.offset));
             let mut nested = SelectorDependencyCollector {
                 map: &mut *self.map,
                 document_state: &mut *self.document_state,
                 selector,
                 parent_selectors: &mut *self.parent_selectors,
                 quirks_mode: self.quirks_mode,
-                compound_state: PerCompoundState::new(0),
+                compound_state: PerCompoundState::new(index),
                 alloc_error: &mut *self.alloc_error,
             };
-            if !nested.visit_whole_selector() {
+            if !nested.visit_whole_selector_from(iter, index) {
                 return false;
             }
+            self.parent_selectors.pop();
         }
-        self.parent_selectors.pop();
         true
     }
 
