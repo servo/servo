@@ -9,7 +9,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use canvas_traits::webgl::webgl_channel;
 use canvas_traits::webgl::{WebGLBufferId, WebGLCommand, WebGLError, WebGLResult};
 use dom_struct::dom_struct;
@@ -97,24 +97,23 @@ impl WebGLBuffer {
         self.capacity.get()
     }
 
-    pub fn mark_for_deletion(&self, fallible: bool) {
+    pub fn mark_for_deletion(&self, operation_fallibility: Operation) {
         if self.marked_for_deletion.get() {
             return;
         }
         self.marked_for_deletion.set(true);
         if self.is_deleted() {
-            self.delete(fallible);
+            self.delete(operation_fallibility);
         }
     }
 
-    fn delete(&self, fallible: bool) {
+    fn delete(&self, operation_fallibility: Operation) {
         assert!(self.is_deleted());
         let context = self.upcast::<WebGLObject>().context();
         let cmd = WebGLCommand::DeleteBuffer(self.id);
-        if fallible {
-            context.send_command_ignored(cmd);
-        } else {
-            context.send_command(cmd);
+        match operation_fallibility {
+            Operation::Fallible => context.send_command_ignored(cmd),
+            Operation::Infallible => context.send_command(cmd),
         }
     }
 
@@ -164,7 +163,7 @@ impl WebGLBuffer {
         );
     }
 
-    pub fn decrement_attached_counter(&self, fallible: bool) {
+    pub fn decrement_attached_counter(&self, operation_fallibility: Operation) {
         self.attached_counter.set(
             self.attached_counter
                 .get()
@@ -172,7 +171,7 @@ impl WebGLBuffer {
                 .expect("refcount underflowed"),
         );
         if self.is_deleted() {
-            self.delete(fallible);
+            self.delete(operation_fallibility);
         }
     }
 
@@ -183,6 +182,6 @@ impl WebGLBuffer {
 
 impl Drop for WebGLBuffer {
     fn drop(&mut self) {
-        self.mark_for_deletion(true);
+        self.mark_for_deletion(Operation::Fallible);
     }
 }

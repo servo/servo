@@ -8,7 +8,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::task_source::TaskSource;
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLSyncId};
 use dom_struct::dom_struct;
@@ -82,15 +82,14 @@ impl WebGLSync {
         self.client_wait_status.get()
     }
 
-    pub fn delete(&self, fallible: bool) {
+    pub fn delete(&self, operation_fallibility: Operation) {
         if self.is_valid() {
             self.marked_for_deletion.set(true);
             let context = self.upcast::<WebGLObject>().context();
             let cmd = WebGLCommand::DeleteSync(self.sync_id);
-            if fallible {
-                context.send_command_ignored(cmd);
-            } else {
-                context.send_command(cmd);
+            match operation_fallibility {
+                Operation::Fallible => context.send_command_ignored(cmd),
+                Operation::Infallible => context.send_command(cmd),
             }
         }
     }
@@ -131,6 +130,6 @@ impl WebGLSync {
 
 impl Drop for WebGLSync {
     fn drop(&mut self) {
-        self.delete(true);
+        self.delete(Operation::Fallible);
     }
 }

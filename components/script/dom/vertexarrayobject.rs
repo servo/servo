@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebG
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
 use crate::dom::bindings::root::{Dom, MutNullableDom};
 use crate::dom::webglbuffer::WebGLBuffer;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use canvas_traits::webgl::{
     ActiveAttribInfo, WebGLCommand, WebGLError, WebGLResult, WebGLVersion, WebGLVertexArrayId,
 };
@@ -45,26 +45,25 @@ impl VertexArrayObject {
         self.is_deleted.get()
     }
 
-    pub fn delete(&self, fallible: bool) {
+    pub fn delete(&self, operation_fallibility: Operation) {
         assert!(self.id.is_some());
         if self.is_deleted.get() {
             return;
         }
         self.is_deleted.set(true);
         let cmd = WebGLCommand::DeleteVertexArray(self.id.unwrap());
-        if fallible {
-            self.context.send_command_ignored(cmd);
-        } else {
-            self.context.send_command(cmd);
+        match operation_fallibility {
+            Operation::Fallible => self.context.send_command_ignored(cmd),
+            Operation::Infallible => self.context.send_command(cmd),
         }
 
         for attrib_data in &**self.vertex_attribs.borrow() {
             if let Some(buffer) = attrib_data.buffer() {
-                buffer.decrement_attached_counter(fallible);
+                buffer.decrement_attached_counter(operation_fallibility);
             }
         }
         if let Some(buffer) = self.element_array_buffer.get() {
-            buffer.decrement_attached_counter(fallible);
+            buffer.decrement_attached_counter(operation_fallibility);
         }
     }
 
@@ -156,7 +155,7 @@ impl VertexArrayObject {
             offset as u32,
         ));
         if let Some(old) = data.buffer() {
-            old.decrement_attached_counter(false);
+            old.decrement_attached_counter(Operation::Infallible);
         }
 
         *data = VertexAttribData {
@@ -188,7 +187,7 @@ impl VertexArrayObject {
                 if b.id() != buffer.id() {
                     continue;
                 }
-                b.decrement_attached_counter(false);
+                b.decrement_attached_counter(Operation::Infallible);
             }
             attrib.buffer = None;
         }
@@ -197,7 +196,7 @@ impl VertexArrayObject {
             .get()
             .map_or(false, |b| buffer == &*b)
         {
-            buffer.decrement_attached_counter(false);
+            buffer.decrement_attached_counter(Operation::Infallible);
             self.element_array_buffer.set(None);
         }
     }
@@ -256,7 +255,7 @@ impl VertexArrayObject {
 impl Drop for VertexArrayObject {
     fn drop(&mut self) {
         if self.id.is_some() {
-            self.delete(true);
+            self.delete(Operation::Fallible);
         }
     }
 }

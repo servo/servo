@@ -155,6 +155,12 @@ pub enum VertexAttrib {
     Uint(u32, u32, u32, u32),
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum Operation {
+    Fallible,
+    Infallible,
+}
+
 #[dom_struct]
 pub struct WebGLRenderingContext {
     reflector_: Reflector,
@@ -1142,7 +1148,7 @@ impl WebGLRenderingContext {
                 self.current_vao.set(None);
                 self.send_command(WebGLCommand::BindVertexArray(None));
             }
-            vao.delete(false);
+            vao.delete(Operation::Infallible);
         }
     }
 
@@ -1160,7 +1166,7 @@ impl WebGLRenderingContext {
                 self.current_vao_webgl2.set(None);
                 self.send_command(WebGLCommand::BindVertexArray(None));
             }
-            vao.delete(false);
+            vao.delete(Operation::Infallible);
         }
     }
 
@@ -1335,7 +1341,7 @@ impl WebGLRenderingContext {
 
         self.send_command(WebGLCommand::BindBuffer(target, buffer.map(|b| b.id())));
         if let Some(old) = slot.get() {
-            old.decrement_attached_counter(false);
+            old.decrement_attached_counter(Operation::Infallible);
         }
 
         slot.set(buffer);
@@ -2583,9 +2589,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             .map_or(false, |b| buffer == &*b)
         {
             self.bound_buffer_array.set(None);
-            buffer.decrement_attached_counter(false);
+            buffer.decrement_attached_counter(Operation::Infallible);
         }
-        buffer.mark_for_deletion(false);
+        buffer.mark_for_deletion(Operation::Infallible);
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
@@ -2605,7 +2611,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     WebGLFramebufferBindingRequest::Default
                 ))
             );
-            framebuffer.delete(false)
+            framebuffer.delete(Operation::Infallible)
         }
     }
 
@@ -2622,7 +2628,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                     None
                 ))
             );
-            renderbuffer.delete(false)
+            renderbuffer.delete(Operation::Infallible)
         }
     }
 
@@ -2657,7 +2663,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 ));
             }
 
-            texture.delete(false)
+            texture.delete(Operation::Infallible)
         }
     }
 
@@ -2665,7 +2671,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn DeleteProgram(&self, program: Option<&WebGLProgram>) {
         if let Some(program) = program {
             handle_potential_webgl_error!(self, self.validate_ownership(program), return);
-            program.mark_for_deletion(false)
+            program.mark_for_deletion(Operation::Infallible)
         }
     }
 
@@ -2673,7 +2679,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn DeleteShader(&self, shader: Option<&WebGLShader>) {
         if let Some(shader) = shader {
             handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
-            shader.mark_for_deletion(false)
+            shader.mark_for_deletion(Operation::Infallible)
         }
     }
 

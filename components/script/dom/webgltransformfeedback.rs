@@ -6,7 +6,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use canvas_traits::webgl::{webgl_channel, WebGLCommand};
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -98,15 +98,14 @@ impl WebGLTransformFeedback {
         self.is_paused.get()
     }
 
-    pub fn delete(&self, fallible: bool) {
+    pub fn delete(&self, operation_fallibility: Operation) {
         if self.is_valid() && self.id() != 0 {
             self.marked_for_deletion.set(true);
             let context = self.upcast::<WebGLObject>().context();
             let cmd = WebGLCommand::DeleteTransformFeedback(self.id);
-            if fallible {
-                context.send_command_ignored(cmd);
-            } else {
-                context.send_command(cmd);
+            match operation_fallibility {
+                Operation::Fallible => context.send_command_ignored(cmd),
+                Operation::Infallible => context.send_command(cmd),
             }
         }
     }
@@ -126,6 +125,6 @@ impl WebGLTransformFeedback {
 
 impl Drop for WebGLTransformFeedback {
     fn drop(&mut self) {
-        self.delete(true);
+        self.delete(Operation::Fallible);
     }
 }

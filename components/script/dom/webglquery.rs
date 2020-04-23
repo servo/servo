@@ -8,7 +8,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::task_source::TaskSource;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLQueryId};
@@ -96,16 +96,15 @@ impl WebGLQuery {
         Ok(())
     }
 
-    pub fn delete(&self, fallible: bool) {
+    pub fn delete(&self, operation_fallibility: Operation) {
         if !self.marked_for_deletion.get() {
             self.marked_for_deletion.set(true);
 
             let context = self.upcast::<WebGLObject>().context();
             let command = WebGLCommand::DeleteQuery(self.gl_id);
-            if fallible {
-                context.send_command_ignored(command);
-            } else {
-                context.send_command(command);
+            match operation_fallibility {
+                Operation::Fallible => context.send_command_ignored(command),
+                Operation::Infallible => context.send_command(command),
             }
         }
     }
@@ -187,6 +186,6 @@ impl WebGLQuery {
 
 impl Drop for WebGLQuery {
     fn drop(&mut self) {
-        self.delete(true);
+        self.delete(Operation::Fallible);
     }
 }

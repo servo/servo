@@ -7,7 +7,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{webgl_channel, WebGLCommand, WebGLSamplerId};
 use dom_struct::dom_struct;
@@ -90,16 +90,15 @@ impl WebGLSampler {
         )
     }
 
-    pub fn delete(&self, fallible: bool) {
+    pub fn delete(&self, operation_fallibility: Operation) {
         if !self.marked_for_deletion.get() {
             self.marked_for_deletion.set(true);
 
             let command = WebGLCommand::DeleteSampler(self.gl_id);
             let context = self.upcast::<WebGLObject>().context();
-            if fallible {
-                context.send_command_ignored(command);
-            } else {
-                context.send_command(command);
+            match operation_fallibility {
+                Operation::Fallible => context.send_command_ignored(command),
+                Operation::Infallible => context.send_command(command),
             }
         }
     }
@@ -180,6 +179,6 @@ impl WebGLSampler {
 
 impl Drop for WebGLSampler {
     fn drop(&mut self) {
-        self.delete(true);
+        self.delete(Operation::Fallible);
     }
 }

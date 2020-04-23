@@ -13,7 +13,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webgl_validations::types::TexImageTarget;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use canvas_traits::webgl::{webgl_channel, TexDataType, TexFormat, WebGLResult, WebGLTextureId};
 use canvas_traits::webgl::{DOMToTextureCommand, WebGLCommand, WebGLError};
 use dom_struct::dom_struct;
@@ -183,7 +183,7 @@ impl WebGLTexture {
         self.populate_mip_chain(self.base_mipmap_level, last_level)
     }
 
-    pub fn delete(&self, fallible: bool) {
+    pub fn delete(&self, operation_fallibility: Operation) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
             let context = self.upcast::<WebGLObject>().context();
@@ -210,10 +210,9 @@ impl WebGLTexture {
             }
 
             let cmd = WebGLCommand::DeleteTexture(self.id);
-            if fallible {
-                context.send_command_ignored(cmd);
-            } else {
-                context.send_command(cmd);
+            match operation_fallibility {
+                Operation::Fallible => context.send_command_ignored(cmd),
+                Operation::Infallible => context.send_command(cmd),
             }
         }
     }
@@ -420,7 +419,7 @@ impl WebGLTexture {
 
 impl Drop for WebGLTexture {
     fn drop(&mut self) {
-        self.delete(true);
+        self.delete(Operation::Fallible);
     }
 }
 
