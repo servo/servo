@@ -14,7 +14,7 @@ typedef DOMString CSSOMString;
 
 [Exposed=Window]
 interface MediaList {
-  stringifier attribute [TreatNullAs=EmptyString] CSSOMString mediaText;
+  stringifier attribute [LegacyNullToEmptyString] CSSOMString mediaText;
   readonly attribute unsigned long length;
   getter CSSOMString? item(unsigned long index);
   void appendMedium(CSSOMString medium);
@@ -130,10 +130,10 @@ interface CSSStyleDeclaration {
   getter CSSOMString item(unsigned long index);
   CSSOMString getPropertyValue(CSSOMString property);
   CSSOMString getPropertyPriority(CSSOMString property);
-  [CEReactions] void setProperty(CSSOMString property, [TreatNullAs=EmptyString] CSSOMString value, optional [TreatNullAs=EmptyString] CSSOMString priority = "");
+  [CEReactions] void setProperty(CSSOMString property, [LegacyNullToEmptyString] CSSOMString value, optional [LegacyNullToEmptyString] CSSOMString priority = "");
   [CEReactions] CSSOMString removeProperty(CSSOMString property);
   readonly attribute CSSRule? parentRule;
-  [CEReactions] attribute [TreatNullAs=EmptyString] CSSOMString cssFloat;
+  [CEReactions] attribute [LegacyNullToEmptyString] CSSOMString cssFloat;
 };
 
 interface mixin ElementCSSInlineStyle {

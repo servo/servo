@@ -15,7 +15,6 @@ test(function() {
 }, "window object");
 test(function() {
   var proto = Object.getPrototypeOf(window);
-  assert_class_string(proto, "WindowPrototype");
   assert_equals(proto, Window.prototype);
 }, "Window.prototype");
 test(function() {
@@ -24,12 +23,10 @@ test(function() {
 }, "Global scope polluter");
 test(function() {
   var protoproto = Object.getPrototypeOf(Object.getPrototypeOf(Object.getPrototypeOf(window)));
-  assert_class_string(protoproto, "EventTargetPrototype");
   assert_equals(protoproto, EventTarget.prototype);
 }, "EventTarget.prototype");
 test(function() {
   var protoprotoproto = Object.getPrototypeOf(Object.getPrototypeOf(Object.getPrototypeOf(Object.getPrototypeOf(window))));
-  assert_class_string(protoprotoproto, "Object");
   assert_equals(protoprotoproto, Object.prototype);
 }, "Object.prototype");
 </script>

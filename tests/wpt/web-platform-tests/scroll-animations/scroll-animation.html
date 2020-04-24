@@ -23,7 +23,10 @@
     const animation = createScrollLinkedAnimation(t);
     const scroller = animation.timeline.scrollSource;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-    const timeRange = animation.timeline.timeRange;
+
+    // Wait for new animation frame  which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
 
     // Verify initial start and current times in Idle state.
     assert_equals(animation.currentTime, null,
@@ -31,11 +34,12 @@
     assert_equals(animation.startTime, null,
       "The start time is null in Idle state.");
     animation.play();
+    assert_true(animation.pending, "Animation is in pending state.");
     // Verify initial start and current times in Pending state.
     assert_equals(animation.currentTime, 0,
-      "The current time is a hold time in Pending state.");
-    assert_equals(animation.startTime, null,
-      "The start time is null in Pending state.");
+      "The current time is zero in Pending state.");
+    assert_equals(animation.startTime, 0,
+      "The start time is zero in Pending state.");
 
     await animation.ready;
     // Verify initial start and current times in Playing state.
@@ -62,7 +66,7 @@ promise_test(async t => {
     const animation = createScrollLinkedAnimation(t);
     const scroller = animation.timeline.scrollSource;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-    const timeRange = animation.timeline.timeRange;
+
     // Advance the scroller.
     scroller.scrollTop = 0.2 * maxScroll;
     // Wait for new animation frame  which allows the timeline to compute new
@@ -78,8 +82,8 @@ promise_test(async t => {
     // Verify initial start and current times in Pending state.
     assert_equals(animation.currentTime, animation.timeline.currentTime,
       "The current time is a hold time in Pending state.");
-    assert_equals(animation.startTime, null,
-      "The start time is null in Pending state.");
+    assert_equals(animation.startTime, 0,
+      "The start time is zero in Pending state.");
 
     await animation.ready;
     // Verify initial start and current times in Playing state.
@@ -96,7 +100,7 @@ promise_test(async t => {
     const animation2 = createScrollLinkedAnimation(t, timeline);
     const scroller = timeline.scrollSource;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-    const timeRange = timeline.timeRange;
+
     // Advance the scroller.
     scroller.scrollTop = 0.2 * maxScroll;
     // Wait for new animation frame  which allows the timeline to compute new
@@ -118,13 +122,13 @@ promise_test(async t => {
     assert_equals(animation1.currentTime, timeline.currentTime,
       "The current time corresponds to the scroll position of the scroller" +
         " in Pending state.");
-    assert_equals(animation1.startTime, null,
-      "The start time is null in Pending state.");
+    assert_equals(animation1.startTime, 0,
+      "The start time is zero in Pending state.");
     assert_equals(animation2.currentTime, timeline.currentTime,
       "The current time corresponds to the scroll position of the scroller" +
         " in Pending state.");
-    assert_equals(animation2.startTime, null,
-      "The start time is null in Pending state.");
+    assert_equals(animation2.startTime, 0,
+      "The start time is zero in Pending state.");
 
     await animation1.ready;
     await animation2.ready;
@@ -139,30 +143,6 @@ promise_test(async t => {
       "The start time is zero in Playing state.");
 }, 'Animation start and current times are correct when multiple animations' +
     ' are attached to the same timeline.');
-
-promise_test(async t => {
-    const animation = createScrollLinkedAnimation(t);
-    const scroller = animation.timeline.scrollSource;
-    // Make the scroll timeline inactive.
-    scroller.style.overflow = "visible";
-    // Trigger layout;
-    scroller.scrollTop;
-    assert_equals(animation.timeline.currentTime, null,
-      "Timeline current time is null in inactive state.");
-    // Play the animation when the timeline is inactive.
-    animation.play();
-    // Make the scroll timeline active.
-    scroller.style.overflow = "auto";
-    await animation.ready;
-    // Ready promise is resolved as a result of the timeline becoming active.
-    assert_equals(animation.timeline.currentTime, 0,
-      "Timeline current time is resolved in active state.");
-    assert_equals(animation.currentTime, 0,
-      "Animation current time is resolved when the animation is ready.");
-    assert_equals(animation.startTime, 0,
-      "Animation start time is resolved when the animation is ready.");
-}, 'Animation start and current times are correct if scroll timeline is ' +
-   'activated after animation.play call.');
 
 promise_test(async t => {
     const animation = createScrollLinkedAnimation(t);

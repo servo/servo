@@ -756,3 +756,13 @@ TESTHARNESS-IN-OTHER-TYPE: svg/extensibility/foreignObject/foreign-object-circul
 TESTHARNESS-IN-OTHER-TYPE: svg/extensibility/foreignObject/foreign-object-under-clip-path-crash.html
 TESTHARNESS-IN-OTHER-TYPE: svg/extensibility/foreignObject/foreign-object-under-defs-crash.html
 TESTHARNESS-IN-OTHER-TYPE: svg/svg-in-svg/svg-in-svg-circular-filter-reference-crash.html
+
+# TODO: Temporary inclusions while we deprecate assert_precondition
+# https://github.com/web-platform-tests/wpt/issues/21971
+ASSERT-PRECONDITION: infrastructure/expected-fail/precondition.html
+ASSERT-PRECONDITION: infrastructure/expected-fail/precondition-in-setup.html
+ASSERT-PRECONDITION: infrastructure/expected-fail/precondition-in-promise.html
+ASSERT-PRECONDITION: resources/testharness.js
+ASSERT-PRECONDITION: webrtc/protocol/crypto-suite.https.html
+ASSERT-PRECONDITION: webrtc-extensions/RTCRtpSynchronizationSource-captureTimestamp.html
+ASSERT-PRECONDITION: workers/modules/dedicated-worker-parse-error-failure.html

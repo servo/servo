@@ -5,18 +5,6 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-// A specification issue was raised for this behavior.
-// https://www.w3.org/Bugs/Public/show_bug.cgi?id=28244
-test(function() {
-  // Checks toString() behavior.
-  assert_class_string(Document.prototype, "DocumentPrototype");
-
-  assert_true(Document.prototype.hasOwnProperty(Symbol.toStringTag),
-              "An interface prototype object should have toStringTag property.");
-  assert_equals(Document.prototype[Symbol.toStringTag], "DocumentPrototype");
-}, "The class string of an interface prototype object is the concatenation of " +
-   "the interface's identifier and the string 'Prototype'.");
-
 test(function() {
   // https://heycam.github.io/webidl/#create-an-interface-prototype-object
   assert_own_property(Element.prototype, Symbol.unscopables, "Element.prototype has @@unscopables.");

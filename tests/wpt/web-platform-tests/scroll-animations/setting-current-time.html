@@ -223,5 +223,71 @@
       " source has been scrolled."
     );
   }, 'Set Animation current time then scroll.');
+
+  promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    const scroller = animation.timeline.scrollSource;
+
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    animation.play();
+    await animation.ready;
+
+    // Make the timeline inactive.
+    scroller.style.overflow = 'visible';
+    scroller.scrollTop;
+    await waitForNextFrame();
+
+    assert_equals(animation.currentTime, null,
+      'Current time is unresolved when the timeline is inactive.');
+
+    animation.currentTime = 300;
+    assert_equals(animation.currentTime, 300,
+      'Animation current time should be equal to the set value.');
+    assert_equals(animation.playState, 'paused',
+      'Animation play state is \'paused\' when current time is set and ' +
+      'timeline is inactive.');
+}, 'Animation current time and play state are correct when current time is ' +
+   'set while the timeline is inactive.');
+
+promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    const scroller = animation.timeline.scrollSource;
+
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    animation.play();
+    await animation.ready;
+
+    // Make the timeline inactive.
+    scroller.style.overflow = 'visible';
+    scroller.scrollTop;
+    await waitForNextFrame();
+
+    assert_equals(animation.timeline.currentTime, null,
+      'Current time is unresolved when the timeline is inactive.');
+
+    animation.currentTime = 300;
+    assert_equals(animation.currentTime, 300,
+      'Animation current time should be equal to the set value.');
+    assert_equals(animation.playState, 'paused',
+      'Animation play state is \'paused\' when current time is set and ' +
+      'timeline is inactive.');
+
+    // Make the timeline active.
+    scroller.style.overflow = 'auto';
+    scroller.scrollTop;
+    await waitForNextFrame();
+
+    assert_equals(animation.timeline.currentTime, 0,
+      'Current time is resolved when the timeline is active.');
+    assert_equals(animation.currentTime, 300,
+      'Animation current time holds the set value.');
+    assert_equals(animation.playState, 'paused',
+      'Animation holds \'paused\' state.');
+}, 'Animation current time set while the timeline is inactive holds when the ' +
+   'timeline becomes active again.');
 </script>
 </body>
