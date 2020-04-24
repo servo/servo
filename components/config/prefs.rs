@@ -299,6 +299,10 @@ mod gen {
                     test: bool,
                     #[serde(default)]
                     glwindow: bool,
+                    hands: {
+                        #[serde(default)]
+                        enabled: bool,
+                    },
                     layers: {
                         enabled: bool,
                     }
