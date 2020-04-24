@@ -23,7 +23,7 @@ mod dom_wrapper;
 
 use crate::dom_wrapper::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use app_units::Au;
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
 use euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
@@ -81,9 +81,9 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
-use style::animation::Animation;
-use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
-use style::context::{SharedStyleContext, ThreadLocalStyleContextCreationInfo};
+use style::context::{
+    QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
+};
 use style::dom::{TDocument, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
@@ -158,13 +158,6 @@ pub struct LayoutThread {
     /// Starts at zero, and increased by one every time a layout completes.
     /// This can be used to easily check for invalid stale data.
     generation: Cell<u32>,
-
-    /// A channel on which new animations that have been triggered by style recalculation can be
-    /// sent.
-    new_animations_sender: Sender<Animation>,
-
-    /// Receives newly-discovered animations.
-    _new_animations_receiver: Receiver<Animation>,
 
     /// The number of Web fonts that have been requested but not yet loaded.
     outstanding_web_fonts: Arc<AtomicUsize>,
@@ -499,9 +492,6 @@ impl LayoutThread {
             window_size.device_pixel_ratio,
         );
 
-        // Create the channel on which new animations can be sent.
-        let (new_animations_sender, new_animations_receiver) = unbounded();
-
         // Proxy IPC messages from the pipeline to the layout thread.
         let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(pipeline_port);
 
@@ -528,8 +518,6 @@ impl LayoutThread {
             font_cache_receiver: font_cache_receiver,
             font_cache_sender: ipc_font_cache_sender,
             generation: Cell::new(0),
-            new_animations_sender: new_animations_sender,
-            _new_animations_receiver: new_animations_receiver,
             outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
             box_tree_root: Default::default(),
             fragment_tree_root: Default::default(),
@@ -596,9 +584,6 @@ impl LayoutThread {
         snapshot_map: &'a SnapshotMap,
         origin: ImmutableOrigin,
     ) -> LayoutContext<'a> {
-        let thread_local_style_context_creation_data =
-            ThreadLocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
-
         LayoutContext {
             id: self.id,
             origin,
@@ -607,11 +592,8 @@ impl LayoutThread {
                 options: GLOBAL_STYLE_DATA.options.clone(),
                 guards,
                 visited_styles_enabled: false,
-                running_animations: Default::default(),
-                expired_animations: Default::default(),
-                cancelled_animations: Default::default(),
+                animation_states: Default::default(),
                 registered_speculative_painters: &self.registered_painters,
-                local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
                 traversal_flags: TraversalFlags::empty(),
                 snapshot_map: snapshot_map,

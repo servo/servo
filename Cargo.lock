@@ -5422,7 +5422,6 @@ dependencies = [
  "bindgen",
  "bitflags",
  "byteorder",
- "crossbeam-channel",
  "cssparser",
  "derive_more",
  "encoding_rs",

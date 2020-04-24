@@ -25,7 +25,7 @@ mod dom_wrapper;
 
 use crate::dom_wrapper::{ServoLayoutDocument, ServoLayoutElement, ServoLayoutNode};
 use app_units::Au;
-use crossbeam_channel::{unbounded, Receiver, Sender};
+use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
 use euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
@@ -99,9 +99,9 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
-use style::animation::Animation;
+use style::animation::ElementAnimationState;
+use style::context::SharedStyleContext;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
-use style::context::{SharedStyleContext, ThreadLocalStyleContextCreationInfo};
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
@@ -185,13 +185,6 @@ pub struct LayoutThread {
     /// This can be used to easily check for invalid stale data.
     generation: Cell<u32>,
 
-    /// A channel on which new animations that have been triggered by style recalculation can be
-    /// sent.
-    new_animations_sender: Sender<Animation>,
-
-    /// Receives newly-discovered animations.
-    new_animations_receiver: Receiver<Animation>,
-
     /// The number of Web fonts that have been requested but not yet loaded.
     outstanding_web_fonts: Arc<AtomicUsize>,
 
@@ -201,14 +194,8 @@ pub struct LayoutThread {
     /// The document-specific shared lock used for author-origin stylesheets
     document_shared_lock: Option<SharedRwLock>,
 
-    /// The list of currently-running animations.
-    running_animations: ServoArc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
-
-    /// The list of animations that have expired since the last style recalculation.
-    expired_animations: ServoArc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
-
-    /// The list of animations that have been cancelled during the last style recalculation.
-    cancelled_animations: ServoArc<RwLock<FxHashMap<OpaqueNode, Vec<Animation>>>>,
+    /// The animation state for all of our nodes.
+    animation_states: ServoArc<RwLock<FxHashMap<OpaqueNode, ElementAnimationState>>>,
 
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
@@ -541,9 +528,6 @@ impl LayoutThread {
             window_size.device_pixel_ratio,
         );
 
-        // Create the channel on which new animations can be sent.
-        let (new_animations_sender, new_animations_receiver) = unbounded();
-
         // Proxy IPC messages from the pipeline to the layout thread.
         let pipeline_receiver = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(pipeline_port);
 
@@ -572,14 +556,10 @@ impl LayoutThread {
             font_cache_sender: ipc_font_cache_sender,
             parallel_flag: true,
             generation: Cell::new(0),
-            new_animations_sender: new_animations_sender,
-            new_animations_receiver: new_animations_receiver,
             outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
             root_flow: RefCell::new(None),
             document_shared_lock: None,
-            running_animations: ServoArc::new(RwLock::new(Default::default())),
-            expired_animations: ServoArc::new(RwLock::new(Default::default())),
-            cancelled_animations: ServoArc::new(RwLock::new(Default::default())),
+            animation_states: ServoArc::new(RwLock::new(Default::default())),
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
             viewport_size: Size2D::new(Au(0), Au(0)),
@@ -646,9 +626,6 @@ impl LayoutThread {
         snapshot_map: &'a SnapshotMap,
         origin: ImmutableOrigin,
     ) -> LayoutContext<'a> {
-        let thread_local_style_context_creation_data =
-            ThreadLocalStyleContextCreationInfo::new(self.new_animations_sender.clone());
-
         LayoutContext {
             id: self.id,
             origin,
@@ -657,11 +634,8 @@ impl LayoutThread {
                 options: GLOBAL_STYLE_DATA.options.clone(),
                 guards,
                 visited_styles_enabled: false,
-                running_animations: self.running_animations.clone(),
-                expired_animations: self.expired_animations.clone(),
-                cancelled_animations: self.cancelled_animations.clone(),
+                animation_states: self.animation_states.clone(),
                 registered_speculative_painters: &self.registered_painters,
-                local_context_creation_data: Mutex::new(thread_local_style_context_creation_data),
                 timer: self.timer.clone(),
                 traversal_flags: TraversalFlags::empty(),
                 snapshot_map: snapshot_map,
@@ -882,7 +856,13 @@ impl LayoutThread {
                 self.paint_time_metrics.set_navigation_start(time);
             },
             Msg::GetRunningAnimations(sender) => {
-                let _ = sender.send(self.running_animations.read().len());
+                let running_animation_count = self
+                    .animation_states
+                    .read()
+                    .values()
+                    .map(|state| state.running_animations.len())
+                    .sum();
+                let _ = sender.send(running_animation_count);
             },
         }
 
@@ -1737,7 +1717,7 @@ impl LayoutThread {
 
             let invalid_nodes = {
                 // Perform an abbreviated style recalc that operates without access to the DOM.
-                let animations = self.running_animations.read();
+                let animation_states = self.animation_states.read();
                 profile(
                     profile_time::ProfilerCategory::LayoutStyleRecalc,
                     self.profiler_metadata(),
@@ -1746,7 +1726,7 @@ impl LayoutThread {
                         animation::recalc_style_for_animations::<ServoLayoutElement>(
                             &layout_context,
                             FlowRef::deref_mut(&mut root_flow),
-                            &animations,
+                            &animation_states,
                         )
                     },
                 )
@@ -1783,15 +1763,12 @@ impl LayoutThread {
             let newly_transitioning_nodes =
                 newly_transitioning_nodes.as_mut().map(|nodes| &mut **nodes);
             // Kick off animations if any were triggered, expire completed ones.
-            animation::update_animation_state::<ServoLayoutElement>(
+            animation::update_animation_states::<ServoLayoutElement>(
                 &self.constellation_chan,
                 &self.script_chan,
-                &mut *self.running_animations.write(),
-                &mut *self.expired_animations.write(),
-                &mut *self.cancelled_animations.write(),
+                &mut *self.animation_states.write(),
                 invalid_nodes,
                 newly_transitioning_nodes,
-                &self.new_animations_receiver,
                 self.id,
                 &self.timer,
             );

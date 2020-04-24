@@ -5,8 +5,7 @@
 //! CSS transitions and animations.
 
 // NOTE(emilio): This code isn't really executed in Gecko, but we don't want to
-// compile it out so that people remember it exists, thus the cfg'd Sender
-// import.
+// compile it out so that people remember it exists.
 
 use crate::bezier::Bezier;
 use crate::context::SharedStyleContext;
@@ -15,7 +14,6 @@ use crate::font_metrics::FontMetricsProvider;
 use crate::properties::animated_properties::AnimatedProperty;
 use crate::properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use crate::properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
-#[cfg(feature = "servo")]
 use crate::properties::LonghandIdSet;
 use crate::properties::{self, CascadeMode, ComputedValues, LonghandId};
 use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
@@ -26,12 +24,8 @@ use crate::values::computed::TimingFunction;
 use crate::values::generics::box_::AnimationIterationCount;
 use crate::values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
 use crate::Atom;
-#[cfg(feature = "servo")]
-use crossbeam_channel::Sender;
 use servo_arc::Arc;
 use std::fmt;
-#[cfg(feature = "gecko")]
-use std::sync::mpsc::Sender;
 
 /// This structure represents a keyframes animation current iteration state.
 ///
@@ -369,70 +363,168 @@ impl PropertyAnimation {
     }
 }
 
-/// Start any new transitions for this node and ensure that any existing transitions
-/// that are cancelled are marked as cancelled in the SharedStyleContext. This is
-/// at the end of calculating style for a single node.
-#[cfg(feature = "servo")]
-pub fn update_transitions(
-    context: &SharedStyleContext,
-    new_animations_sender: &Sender<Animation>,
-    opaque_node: OpaqueNode,
-    old_style: &ComputedValues,
-    new_style: &mut Arc<ComputedValues>,
-    expired_transitions: &[PropertyAnimation],
-) {
-    let mut all_running_animations = context.running_animations.write();
-    let previously_running_animations = all_running_animations
-        .remove(&opaque_node)
-        .unwrap_or_else(Vec::new);
+/// Holds the animation state for a particular element.
+#[derive(Default)]
+pub struct ElementAnimationState {
+    /// The animations running for this element.
+    pub running_animations: Vec<Animation>,
 
-    let properties_that_transition = start_transitions_if_applicable(
-        context,
-        new_animations_sender,
-        opaque_node,
-        old_style,
-        new_style,
-        expired_transitions,
-        &previously_running_animations,
-    );
+    /// The animations that have finished for this element, but not canceled. These are cleared
+    /// upon triggering a DOM event for each finished animation.
+    pub finished_animations: Vec<Animation>,
 
-    let mut all_cancelled_animations = context.cancelled_animations.write();
-    let mut cancelled_animations = all_cancelled_animations
-        .remove(&opaque_node)
-        .unwrap_or_else(Vec::new);
-    let mut running_animations = vec![];
+    /// The animations that have been cancelled for this element. These are cleared
+    /// upon triggering a DOM event for each cancelled animation.
+    pub cancelled_animations: Vec<Animation>,
 
-    // For every animation that was running before this style change, we cancel it
-    // if the property no longer transitions.
-    for running_animation in previously_running_animations.into_iter() {
-        if let Animation::Transition(_, _, ref property_animation) = running_animation {
-            if !properties_that_transition.contains(property_animation.property_id()) {
-                cancelled_animations.push(running_animation);
-                continue;
+    /// New animations created for this element.
+    pub new_animations: Vec<Animation>,
+}
+
+impl ElementAnimationState {
+    /// Cancel all animations in this `ElementAnimationState`. This is typically called
+    /// when the element has been removed from the DOM.
+    pub fn cancel_all_animations(&mut self) {
+        self.cancelled_animations.extend(
+            self.finished_animations
+                .drain(..)
+                .chain(self.running_animations.drain(..))
+                .chain(self.new_animations.drain(..)),
+        );
+    }
+
+    pub(crate) fn cancel_transitions_with_nontransitioning_properties(
+        &mut self,
+        properties_that_transition: &LonghandIdSet,
+    ) {
+        if self.running_animations.is_empty() {
+            return;
+        }
+
+        let previously_running_transitions =
+            std::mem::replace(&mut self.running_animations, Vec::new());
+        for running_animation in previously_running_transitions {
+            if let Animation::Transition(_, _, ref property_animation) = running_animation {
+                if !properties_that_transition.contains(property_animation.property_id()) {
+                    self.cancelled_animations.push(running_animation);
+                    continue;
+                }
+            }
+            self.running_animations.push(running_animation);
+        }
+    }
+
+    fn has_transition_with_same_end_value(&self, property_animation: &PropertyAnimation) -> bool {
+        if self
+            .running_animations
+            .iter()
+            .any(|animation| animation.is_transition_with_same_end_value(&property_animation))
+        {
+            debug!(
+                "Running transition found with the same end value for {:?}",
+                property_animation,
+            );
+            return true;
+        }
+
+        if self
+            .finished_animations
+            .iter()
+            .any(|animation| animation.is_transition_with_same_end_value(&property_animation))
+        {
+            debug!(
+                "Expired transition found with the same end value for {:?}",
+                property_animation,
+            );
+            return true;
+        }
+
+        false
+    }
+
+    /// Compute before-change-style given an existing ElementAnimationState,
+    /// information from the StyleContext, and the values of the previous style
+    /// computation.
+    ///
+    /// TODO(mrobinson): This is not a correct computation of before-change-style.
+    /// For starters it's unclear why we aren't using the running transitions to
+    /// transform this style into before-change-style.
+    pub(crate) fn compute_before_change_style<E>(
+        &mut self,
+        context: &SharedStyleContext,
+        style: &mut Arc<ComputedValues>,
+        font_metrics: &dyn crate::font_metrics::FontMetricsProvider,
+    ) where
+        E: TElement,
+    {
+        for animation in self.finished_animations.iter() {
+            debug!("Updating style for finished animation {:?}", animation);
+            // TODO: support animation-fill-mode
+            if let Animation::Transition(_, _, property_animation) = animation {
+                property_animation.update(Arc::make_mut(style), 1.0);
             }
         }
-        running_animations.push(running_animation);
+
+        for running_animation in self.running_animations.iter_mut() {
+            let update = match *running_animation {
+                Animation::Transition(..) => continue,
+                Animation::Keyframes(..) => {
+                    update_style_for_animation::<E>(context, running_animation, style, font_metrics)
+                },
+            };
+
+            match *running_animation {
+                Animation::Transition(..) => unreachable!(),
+                Animation::Keyframes(_, _, _, ref mut state) => match update {
+                    AnimationUpdate::Regular => {},
+                    AnimationUpdate::AnimationCanceled => {
+                        state.expired = true;
+                    },
+                },
+            }
+        }
     }
 
-    if !cancelled_animations.is_empty() {
-        all_cancelled_animations.insert(opaque_node, cancelled_animations);
+    /// Whether this `ElementAnimationState` is empty, which means it doesn't
+    /// hold any animations in any state.
+    pub fn is_empty(&self) -> bool {
+        self.running_animations.is_empty() &&
+            self.finished_animations.is_empty() &&
+            self.cancelled_animations.is_empty() &&
+            self.new_animations.is_empty()
     }
-    if !running_animations.is_empty() {
-        all_running_animations.insert(opaque_node, running_animations);
+
+    fn add_new_animation(&mut self, animation: Animation) {
+        self.new_animations.push(animation);
+    }
+
+    fn add_or_update_new_animation(&mut self, timer: &Timer, new_animation: Animation) {
+        // If the animation was already present in the list for the node,
+        // just update its state.
+        if let Animation::Keyframes(_, _, ref new_name, ref new_state) = new_animation {
+            for existing_animation in self.running_animations.iter_mut() {
+                match existing_animation {
+                    Animation::Keyframes(_, _, ref name, ref mut state) if *name == *new_name => {
+                        state.update_from_other(&new_state, timer);
+                        return;
+                    },
+                    _ => {},
+                }
+            }
+        }
+        // Otherwise just add the new running animation.
+        self.add_new_animation(new_animation);
     }
 }
 
 /// Kick off any new transitions for this node and return all of the properties that are
 /// transitioning. This is at the end of calculating style for a single node.
-#[cfg(feature = "servo")]
 pub fn start_transitions_if_applicable(
     context: &SharedStyleContext,
-    new_animations_sender: &Sender<Animation>,
     opaque_node: OpaqueNode,
     old_style: &ComputedValues,
     new_style: &mut Arc<ComputedValues>,
-    expired_transitions: &[PropertyAnimation],
-    running_animations: &[Animation],
+    animation_state: &mut ElementAnimationState,
 ) -> LonghandIdSet {
     use crate::properties::animated_properties::TransitionPropertyIteration;
 
@@ -473,30 +565,10 @@ pub fn start_transitions_if_applicable(
         property_animation.update(Arc::get_mut(new_style).unwrap(), 0.0);
 
         // Per [1], don't trigger a new transition if the end state for that
-        // transition is the same as that of a transition that's expired.
+        // transition is the same as that of a transition that's running or
+        // completed.
         // [1]: https://drafts.csswg.org/css-transitions/#starting
-        debug!("checking {:?} for matching end value", expired_transitions);
-        if expired_transitions
-            .iter()
-            .any(|animation| animation.has_the_same_end_value_as(&property_animation))
-        {
-            debug!(
-                "Not initiating transition for {}, expired transition \
-                 found with the same end value",
-                property_animation.property_name()
-            );
-            continue;
-        }
-
-        if running_animations
-            .iter()
-            .any(|animation| animation.is_transition_with_same_end_value(&property_animation))
-        {
-            debug!(
-                "Not initiating transition for {}, running transition \
-                 found with the same end value",
-                property_animation.property_name()
-            );
+        if animation_state.has_transition_with_same_end_value(&property_animation) {
             continue;
         }
 
@@ -505,13 +577,11 @@ pub fn start_transitions_if_applicable(
         let box_style = new_style.get_box();
         let now = context.timer.seconds();
         let start_time = now + (box_style.transition_delay_mod(transition.index).seconds() as f64);
-        new_animations_sender
-            .send(Animation::Transition(
-                opaque_node,
-                start_time,
-                property_animation,
-            ))
-            .unwrap();
+        animation_state.add_new_animation(Animation::Transition(
+            opaque_node,
+            start_time,
+            property_animation,
+        ));
     }
 
     properties_that_transition
@@ -575,15 +645,12 @@ where
 pub fn maybe_start_animations<E>(
     element: E,
     context: &SharedStyleContext,
-    new_animations_sender: &Sender<Animation>,
     node: OpaqueNode,
     new_style: &Arc<ComputedValues>,
-) -> bool
-where
+    animation_state: &mut ElementAnimationState,
+) where
     E: TElement,
 {
-    let mut had_animations = false;
-
     let box_style = new_style.get_box();
     for (i, name) in box_style.animation_name_iter().enumerate() {
         let name = match name.as_atom() {
@@ -637,8 +704,9 @@ where
             AnimationPlayState::Running => KeyframesRunningState::Running,
         };
 
-        new_animations_sender
-            .send(Animation::Keyframes(
+        animation_state.add_or_update_new_animation(
+            &context.timer,
+            Animation::Keyframes(
                 node,
                 anim.clone(),
                 name.clone(),
@@ -653,12 +721,9 @@ where
                     expired: false,
                     cascade_style: new_style.clone(),
                 },
-            ))
-            .unwrap();
-        had_animations = true;
+            ),
+        );
     }
-
-    had_animations
 }
 
 /// Returns the kind of animation update that happened.
