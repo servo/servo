@@ -69,6 +69,10 @@ impl XRInputSource {
     pub fn id(&self) -> InputId {
         self.info.id
     }
+
+    pub fn session(&self) -> &XRSession {
+        &self.session
+    }
 }
 
 impl XRInputSourceMethods for XRInputSource {
