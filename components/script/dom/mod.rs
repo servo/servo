@@ -579,6 +579,7 @@ pub mod xrinputsource;
 pub mod xrinputsourcearray;
 pub mod xrinputsourceevent;
 pub mod xrinputsourceschangeevent;
+pub mod xrjointspace;
 pub mod xrlayer;
 pub mod xrmediabinding;
 pub mod xrpose;
