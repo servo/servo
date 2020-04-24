@@ -10,6 +10,8 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrhittestresult::XRHitTestResult;
 use crate::dom::xrhittestsource::XRHitTestSource;
+use crate::dom::xrjointpose::XRJointPose;
+use crate::dom::xrjointspace::XRJointSpace;
 use crate::dom::xrpose::XRPose;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrsession::{ApiPose, XRSession};
@@ -110,6 +112,38 @@ impl XRFrameMethods for XRFrame {
         };
         let pose = relative_to.inverse().pre_transform(&space);
         Ok(Some(XRPose::new(&self.global(), pose)))
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrframe-getpose
+    fn GetJointPose(
+        &self,
+        space: &XRJointSpace,
+        relative_to: &XRSpace,
+    ) -> Result<Option<DomRoot<XRJointPose>>, Error> {
+        if self.session != space.upcast::<XRSpace>().session() ||
+            self.session != relative_to.session()
+        {
+            return Err(Error::InvalidState);
+        }
+        if !self.active.get() {
+            return Err(Error::InvalidState);
+        }
+        let joint_frame = if let Some(frame) = space.frame(&self.data) {
+            frame
+        } else {
+            return Ok(None);
+        };
+        let relative_to = if let Some(r) = self.get_pose(relative_to) {
+            r
+        } else {
+            return Ok(None);
+        };
+        let pose = relative_to.inverse().pre_transform(&joint_frame.pose);
+        Ok(Some(XRJointPose::new(
+            &self.global(),
+            pose.cast_unit(),
+            Some(joint_frame.radius),
+        )))
     }
 
     /// https://immersive-web.github.io/hit-test/#dom-xrframe-gethittestresults
