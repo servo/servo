@@ -810,7 +810,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
         }
 
         struct GlThread(WebGlExecutor);
-        impl webxr::openxr::GlThread for GlThread {
+        impl openxr::GlThread for GlThread {
             fn execute(&self, runnable: Box<dyn FnOnce(&surfman::Device) + Send>) {
                 let _ = self.0.send(runnable);
             }
@@ -819,12 +819,27 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
             }
         }
 
-        let discovery = webxr::openxr::OpenXrDiscovery::new(
-            Box::new(GlThread(executor)),
-            Box::new(ProviderRegistration(surface_providers)),
-            Box::new(ContextMenuCallback(embedder_proxy)),
-        );
-        registry.register(discovery);
+        if openxr::create_instance().is_ok() {
+            let discovery = openxr::OpenXrDiscovery::new(
+                Box::new(GlThread(executor)),
+                Box::new(ProviderRegistration(surface_providers)),
+                Box::new(ContextMenuCallback(embedder_proxy)),
+            );
+            registry.register(discovery);
+        } else {
+            let msg =
+                "Cannot initialize OpenXR - please ensure runtime is installed and enabled in \
+                       the OpenXR developer portal app.\n\nImmersive mode will not function until \
+                       this error is fixed.";
+            let (sender, _receiver) = ipc::channel().unwrap();
+            embedder_proxy.send((
+                None,
+                EmbedderMsg::Prompt(
+                    PromptDefinition::Alert(msg.to_owned(), sender),
+                    PromptOrigin::Trusted,
+                ),
+            ));
+        }
     }
 
     #[cfg(not(feature = "uwp"))]
