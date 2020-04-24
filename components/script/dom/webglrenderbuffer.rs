@@ -11,7 +11,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use canvas_traits::webgl::{
     webgl_channel, GlType, InternalFormatIntVec, WebGLCommand, WebGLError, WebGLRenderbufferId,
     WebGLResult, WebGLVersion,
@@ -90,7 +90,7 @@ impl WebGLRenderbuffer {
             .send_command(WebGLCommand::BindRenderbuffer(target, Some(self.id)));
     }
 
-    pub fn delete(&self, fallible: bool) {
+    pub fn delete(&self, operation_fallibility: Operation) {
         if !self.is_deleted.get() {
             self.is_deleted.set(true);
 
@@ -113,10 +113,9 @@ impl WebGLRenderbuffer {
             }
 
             let cmd = WebGLCommand::DeleteRenderbuffer(self.id);
-            if fallible {
-                context.send_command_ignored(cmd);
-            } else {
-                context.send_command(cmd);
+            match operation_fallibility {
+                Operation::Fallible => context.send_command_ignored(cmd),
+                Operation::Infallible => context.send_command(cmd),
             }
         }
     }
@@ -277,6 +276,6 @@ impl WebGLRenderbuffer {
 
 impl Drop for WebGLRenderbuffer {
     fn drop(&mut self) {
-        self.delete(true);
+        self.delete(Operation::Fallible);
     }
 }

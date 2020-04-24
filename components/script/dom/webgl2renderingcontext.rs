@@ -25,7 +25,7 @@ use crate::dom::webglprogram::WebGLProgram;
 use crate::dom::webglquery::WebGLQuery;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{
-    uniform_get, uniform_typed, LayoutCanvasWebGLRenderingContextHelpers, VertexAttrib,
+    uniform_get, uniform_typed, LayoutCanvasWebGLRenderingContextHelpers, Operation, VertexAttrib,
     WebGLRenderingContext,
 };
 use crate::dom::webglsampler::{WebGLSampler, WebGLSamplerValue};
@@ -338,7 +338,7 @@ impl WebGL2RenderingContext {
 
     fn unbind_from(&self, slot: &MutNullableDom<WebGLBuffer>, buffer: &WebGLBuffer) {
         if slot.get().map_or(false, |b| buffer == &*b) {
-            buffer.decrement_attached_counter(false);
+            buffer.decrement_attached_counter(Operation::Infallible);
             slot.set(None);
         }
     }
@@ -1658,7 +1658,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             self.unbind_from(&binding.buffer, &buffer);
         }
 
-        buffer.mark_for_deletion(false);
+        buffer.mark_for_deletion(Operation::Infallible);
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6
@@ -3055,7 +3055,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                 }
             }
 
-            query.delete(false);
+            query.delete(Operation::Infallible);
         }
     }
 
@@ -3081,7 +3081,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                     slot.set(None);
                 }
             }
-            sampler.delete(false);
+            sampler.delete(Operation::Infallible);
         }
     }
 
@@ -3312,7 +3312,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     fn DeleteSync(&self, sync: Option<&WebGLSync>) {
         if let Some(sync) = sync {
             handle_potential_webgl_error!(self.base, self.base.validate_ownership(sync), return);
-            sync.delete(false);
+            sync.delete(Operation::Infallible);
         }
     }
 
@@ -3391,7 +3391,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                 self.base.webgl_error(InvalidOperation);
                 return;
             }
-            tf.delete(false);
+            tf.delete(Operation::Infallible);
             self.current_transform_feedback.set(None);
         }
     }
@@ -3625,7 +3625,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
         for slot in &[&generic_slot, &indexed_binding.buffer] {
             if let Some(old) = slot.get() {
-                old.decrement_attached_counter(false);
+                old.decrement_attached_counter(Operation::Infallible);
             }
             slot.set(buffer);
         }
@@ -3703,7 +3703,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
         for slot in &[&generic_slot, &indexed_binding.buffer] {
             if let Some(old) = slot.get() {
-                old.decrement_attached_counter(false);
+                old.decrement_attached_counter(Operation::Infallible);
             }
             slot.set(buffer);
         }

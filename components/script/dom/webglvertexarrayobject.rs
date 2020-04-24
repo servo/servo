@@ -8,7 +8,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::vertexarrayobject::{VertexArrayObject, VertexAttribData};
 use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArrayId};
 use dom_struct::dom_struct;
 
@@ -41,8 +41,8 @@ impl WebGLVertexArrayObject {
         self.array_object.is_deleted()
     }
 
-    pub fn delete(&self, fallible: bool) {
-        self.array_object.delete(fallible);
+    pub fn delete(&self, operation_fallibility: Operation) {
+        self.array_object.delete(operation_fallibility);
     }
 
     pub fn ever_bound(&self) -> bool {

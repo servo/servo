@@ -12,7 +12,7 @@ use crate::dom::webgl_extensions::ext::extshadertexturelod::EXTShaderTextureLod;
 use crate::dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
 use crate::dom::webgl_extensions::WebGLExtensions;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webglrenderingcontext::WebGLRenderingContext;
+use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use canvas_traits::webgl::{webgl_channel, GlType, WebGLVersion};
 use canvas_traits::webgl::{GLLimits, WebGLCommand, WebGLError};
 use canvas_traits::webgl::{WebGLResult, WebGLSLVersion, WebGLShaderId};
@@ -344,15 +344,14 @@ impl WebGLShader {
     /// Mark this shader as deleted (if it wasn't previously)
     /// and delete it as if calling glDeleteShader.
     /// Currently does not check if shader is attached
-    pub fn mark_for_deletion(&self, fallible: bool) {
+    pub fn mark_for_deletion(&self, operation_fallibility: Operation) {
         if !self.marked_for_deletion.get() {
             self.marked_for_deletion.set(true);
             let context = self.upcast::<WebGLObject>().context();
             let cmd = WebGLCommand::DeleteShader(self.id);
-            if fallible {
-                context.send_command_ignored(cmd);
-            } else {
-                context.send_command(cmd);
+            match operation_fallibility {
+                Operation::Fallible => context.send_command_ignored(cmd),
+                Operation::Infallible => context.send_command(cmd),
             }
         }
     }
@@ -400,6 +399,6 @@ impl WebGLShader {
 
 impl Drop for WebGLShader {
     fn drop(&mut self) {
-        self.mark_for_deletion(true);
+        self.mark_for_deletion(Operation::Fallible);
     }
 }
