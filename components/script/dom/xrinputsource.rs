@@ -8,6 +8,7 @@ use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::xrhand::XRHand;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrspace::XRSpace;
 use crate::realms::enter_realm;
@@ -24,10 +25,9 @@ pub struct XRInputSource {
     session: Dom<XRSession>,
     #[ignore_malloc_size_of = "Defined in rust-webxr"]
     info: InputSource,
-    #[ignore_malloc_size_of = "Defined in rust-webxr"]
     target_ray_space: MutNullableDom<XRSpace>,
-    #[ignore_malloc_size_of = "Defined in rust-webxr"]
     grip_space: MutNullableDom<XRSpace>,
+    hand: MutNullableDom<XRHand>,
     #[ignore_malloc_size_of = "mozjs"]
     profiles: Heap<JSVal>,
 }
@@ -40,6 +40,7 @@ impl XRInputSource {
             info,
             target_ray_space: Default::default(),
             grip_space: Default::default(),
+            hand: Default::default(),
             profiles: Heap::default(),
         }
     }
@@ -111,5 +112,17 @@ impl XRInputSourceMethods for XRInputSource {
     // https://immersive-web.github.io/webxr/#dom-xrinputsource-profiles
     fn Profiles(&self, _cx: JSContext) -> JSVal {
         self.profiles.get()
+    }
+
+    // https://github.com/immersive-web/webxr-hands-input/blob/master/explainer.md
+    fn GetHand(&self) -> Option<DomRoot<XRHand>> {
+        if let Some(ref hand) = self.info.hand_support {
+            Some(
+                self.hand
+                    .or_init(|| XRHand::new(&self.global(), &self, hand.clone())),
+            )
+        } else {
+            None
+        }
     }
 }

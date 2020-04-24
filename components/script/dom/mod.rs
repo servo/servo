@@ -572,6 +572,7 @@ pub mod xmlhttprequesteventtarget;
 pub mod xmlhttprequestupload;
 pub mod xmlserializer;
 pub mod xrframe;
+pub mod xrhand;
 pub mod xrhittestresult;
 pub mod xrhittestsource;
 pub mod xrinputsource;

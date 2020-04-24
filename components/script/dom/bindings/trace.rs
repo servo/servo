@@ -157,8 +157,8 @@ use webgpu::{
     WebGPUPipelineLayout, WebGPUQueue, WebGPUShaderModule,
 };
 use webrender_api::{DocumentId, ImageKey};
-use webxr_api::Ray;
 use webxr_api::SwapChainId as WebXRSwapChainId;
+use webxr_api::{Finger, Hand, Ray};
 
 unsafe_no_jsmanaged_fields!(Tm);
 
@@ -878,6 +878,58 @@ where
 {
     unsafe fn trace(&self, tracer: *mut JSTracer) {
         self.inner_sink().trace(tracer);
+    }
+}
+
+unsafe impl<J> JSTraceable for Hand<J>
+where
+    J: JSTraceable,
+{
+    #[inline]
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        // exhaustive match so we don't miss new fields
+        let Hand {
+            ref wrist,
+            ref thumb_metacarpal,
+            ref thumb_phalanx_proximal,
+            ref thumb_phalanx_distal,
+            ref thumb_phalanx_tip,
+            ref index,
+            ref middle,
+            ref ring,
+            ref little,
+        } = *self;
+        wrist.trace(trc);
+        thumb_metacarpal.trace(trc);
+        thumb_phalanx_proximal.trace(trc);
+        thumb_phalanx_distal.trace(trc);
+        thumb_phalanx_tip.trace(trc);
+        index.trace(trc);
+        middle.trace(trc);
+        ring.trace(trc);
+        little.trace(trc);
+    }
+}
+
+unsafe impl<J> JSTraceable for Finger<J>
+where
+    J: JSTraceable,
+{
+    #[inline]
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        // exhaustive match so we don't miss new fields
+        let Finger {
+            ref metacarpal,
+            ref phalanx_proximal,
+            ref phalanx_intermediate,
+            ref phalanx_distal,
+            ref phalanx_tip,
+        } = *self;
+        metacarpal.trace(trc);
+        phalanx_proximal.trace(trc);
+        phalanx_intermediate.trace(trc);
+        phalanx_distal.trace(trc);
+        phalanx_tip.trace(trc);
     }
 }
 
