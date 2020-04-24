@@ -421,8 +421,6 @@ interface mixin WebGLRenderingContextBase
     const GLenum RGB5_A1                        = 0x8057;
     const GLenum RGB565                         = 0x8D62;
     const GLenum DEPTH_COMPONENT16              = 0x81A5;
-    // https://github.com/KhronosGroup/WebGL/pull/2371
-    // const GLenum STENCIL_INDEX                  = 0x1901;
     const GLenum STENCIL_INDEX8                 = 0x8D48;
     const GLenum DEPTH_STENCIL                  = 0x84F9;
 
@@ -492,11 +490,6 @@ interface mixin WebGLRenderingContextBase
     void blendFuncSeparate(GLenum srcRGB, GLenum dstRGB,
                            GLenum srcAlpha, GLenum dstAlpha);
 
-    // BUG: https://github.com/KhronosGroup/WebGL/issues/2216
-    // void bufferData(GLenum target, object? data, GLenum usage);
-    // void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
-    // void bufferSubData(GLenum target, GLintptr offset, /*[AllowShared]*/ BufferSource data);
-
     [WebGLHandlesContextLoss] GLenum checkFramebufferStatus(GLenum target);
     void clear(GLbitfield mask);
     void clearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha);
@@ -504,14 +497,6 @@ interface mixin WebGLRenderingContextBase
     void clearStencil(GLint s);
     void colorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
     void compileShader(WebGLShader shader);
-
-    void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
-                              GLsizei width, GLsizei height, GLint border,
-                              /*[AllowShared]*/ ArrayBufferView data);
-    void compressedTexSubImage2D(GLenum target, GLint level,
-                                 GLint xoffset, GLint yoffset,
-                                 GLsizei width, GLsizei height, GLenum format,
-                                 /*[AllowShared]*/ ArrayBufferView data);
 
     void copyTexImage2D(GLenum target, GLint level, GLenum internalformat,
                         GLint x, GLint y, GLsizei width, GLsizei height,
@@ -602,10 +587,6 @@ interface mixin WebGLRenderingContextBase
     void pixelStorei(GLenum pname, GLint param);
     void polygonOffset(GLfloat factor, GLfloat units);
 
-    // BUG: https://github.com/KhronosGroup/WebGL/issues/2216
-    // void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
-    //                 GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
-
     void renderbufferStorage(GLenum target, GLenum internalformat,
                              GLsizei width, GLsizei height);
     void sampleCoverage(GLclampf value, GLboolean invert);
@@ -620,25 +601,8 @@ interface mixin WebGLRenderingContextBase
     void stencilOp(GLenum fail, GLenum zfail, GLenum zpass);
     void stencilOpSeparate(GLenum face, GLenum fail, GLenum zfail, GLenum zpass);
 
-    // BUG: https://github.com/KhronosGroup/WebGL/issues/2216
-    // void texImage2D(GLenum target, GLint level, GLenum internalformat,
-    //                 GLsizei width, GLsizei height, GLint border, GLenum format,
-    //                 GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
-    // void texImage2D(GLenum target, GLint level, GLenum internalformat,
-    //                 GLenum format, GLenum type, TexImageSource source); // May throw DOMException
-    [Throws, Pref="dom.webgl.dom_to_texture.enabled"]
-    void texImageDOM(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height,
-                     GLenum format, GLenum type, HTMLIFrameElement source); // May throw DOMException
-
     void texParameterf(GLenum target, GLenum pname, GLfloat param);
     void texParameteri(GLenum target, GLenum pname, GLint param);
-
-    // BUG: https://github.com/KhronosGroup/WebGL/issues/2216
-    // void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-    //                   GLsizei width, GLsizei height,
-    //                   GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
-    // void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-    //                    GLenum format, GLenum type, TexImageSource source); // May throw DOMException
 
     void uniform1f(WebGLUniformLocation? location, GLfloat x);
     void uniform2f(WebGLUniformLocation? location, GLfloat x, GLfloat y);
@@ -649,31 +613,6 @@ interface mixin WebGLRenderingContextBase
     void uniform2i(WebGLUniformLocation? location, GLint x, GLint y);
     void uniform3i(WebGLUniformLocation? location, GLint x, GLint y, GLint z);
     void uniform4i(WebGLUniformLocation? location, GLint x, GLint y, GLint z, GLint w);
-
-    void uniform1fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
-                    optional GLuint srcLength = 0);
-    void uniform2fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
-                    optional GLuint srcLength = 0);
-    void uniform3fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
-                    optional GLuint srcLength = 0);
-    void uniform4fv(WebGLUniformLocation? location, Float32List data, optional GLuint srcOffset = 0,
-                    optional GLuint srcLength = 0);
-
-    void uniform1iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
-                    optional GLuint srcLength = 0);
-    void uniform2iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
-                    optional GLuint srcLength = 0);
-    void uniform3iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
-                    optional GLuint srcLength = 0);
-    void uniform4iv(WebGLUniformLocation? location, Int32List data, optional GLuint srcOffset = 0,
-                    optional GLuint srcLength = 0);
-
-    void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-    void uniformMatrix3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
-    void uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List data,
-                          optional GLuint srcOffset = 0, optional GLuint srcLength = 0);
 
     void useProgram(WebGLProgram? program);
     void validateProgram(WebGLProgram program);
@@ -694,34 +633,64 @@ interface mixin WebGLRenderingContextBase
     void viewport(GLint x, GLint y, GLsizei width, GLsizei height);
 };
 
-[Exposed=Window]
-interface WebGLRenderingContext
+interface mixin WebGLRenderingContextOverloads
 {
-    // BUG: https://github.com/KhronosGroup/WebGL/issues/2216
-
-    void bufferData(GLenum target, /*[AllowShared]*/ BufferSource? data, GLenum usage);
     void bufferData(GLenum target, GLsizeiptr size, GLenum usage);
+    void bufferData(GLenum target, /*[AllowShared]*/ BufferSource? data, GLenum usage);
     void bufferSubData(GLenum target, GLintptr offset, /*[AllowShared]*/ BufferSource data);
 
-    // FIXME: https://github.com/servo/servo/issues/20516
+    void compressedTexImage2D(GLenum target, GLint level, GLenum internalformat,
+                              GLsizei width, GLsizei height, GLint border,
+                              /*[AllowShared]*/ ArrayBufferView data);
+    void compressedTexSubImage2D(GLenum target, GLint level,
+                                 GLint xoffset, GLint yoffset,
+                                 GLsizei width, GLsizei height, GLenum format,
+                                 /*[AllowShared]*/ ArrayBufferView data);
+
+    void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
+                    GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
+
     [Throws]
-    void texImage2D(GLenum target, GLint level, GLenum internalformat,
+    void texImage2D(GLenum target, GLint level, GLint internalformat,
                     GLsizei width, GLsizei height, GLint border, GLenum format,
                     GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
     [Throws]
-    void texImage2D(GLenum target, GLint level, GLenum internalformat,
+    void texImage2D(GLenum target, GLint level, GLint internalformat,
                     GLenum format, GLenum type, TexImageSource source); // May throw DOMException
 
-    // FIXME: https://github.com/servo/servo/issues/20516
     [Throws]
     void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-                      GLsizei width, GLsizei height,
-                      GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
+                       GLsizei width, GLsizei height,
+                       GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
     [Throws]
     void texSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                        GLenum format, GLenum type, TexImageSource source); // May throw DOMException
 
-    void readPixels(GLint x, GLint y, GLsizei width, GLsizei height,
-                    GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView? pixels);
+    void uniform1fv(WebGLUniformLocation? location, Float32List v);
+    void uniform2fv(WebGLUniformLocation? location, Float32List v);
+    void uniform3fv(WebGLUniformLocation? location, Float32List v);
+    void uniform4fv(WebGLUniformLocation? location, Float32List v);
+
+    void uniform1iv(WebGLUniformLocation? location, Int32List v);
+    void uniform2iv(WebGLUniformLocation? location, Int32List v);
+    void uniform3iv(WebGLUniformLocation? location, Int32List v);
+    void uniform4iv(WebGLUniformLocation? location, Int32List v);
+
+    void uniformMatrix2fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
+    void uniformMatrix3fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
+    void uniformMatrix4fv(WebGLUniformLocation? location, GLboolean transpose, Float32List value);
+};
+
+interface mixin WebGLRenderingContextExtensions {
+    [Throws, Pref="dom.webgl.dom_to_texture.enabled"]
+    void texImageDOM(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height,
+                     GLenum format, GLenum type, HTMLIFrameElement source); // May throw DOMException
+};
+
+[Exposed=(Window)]
+interface WebGLRenderingContext
+{
 };
 WebGLRenderingContext includes WebGLRenderingContextBase;
+WebGLRenderingContext includes WebGLRenderingContextOverloads;
+WebGLRenderingContext includes WebGLRenderingContextExtensions;

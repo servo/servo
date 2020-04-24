@@ -1533,6 +1533,340 @@ impl WebGLRenderingContext {
         let last_slot = constants::COLOR_ATTACHMENT0 + self.limits().max_color_attachments - 1;
         constants::COLOR_ATTACHMENT0 <= attachment && attachment <= last_slot
     }
+
+    pub fn compressed_tex_image_2d<'a>(
+        &self,
+        target: u32,
+        level: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+        border: i32,
+        data: &'a [u8],
+    ) {
+        let validator = CompressedTexImage2DValidator::new(
+            self,
+            target,
+            level,
+            width,
+            height,
+            border,
+            internal_format,
+            data.len(),
+        );
+        let CommonCompressedTexImage2DValidatorResult {
+            texture,
+            target,
+            level,
+            width,
+            height,
+            compression,
+        } = match validator.validate() {
+            Ok(result) => result,
+            Err(_) => return,
+        };
+
+        let size = Size2D::new(width, height);
+        let buff = IpcSharedMemory::from_bytes(data);
+        let pixels = TexPixels::from_array(buff, size);
+        let data = pixels.data;
+
+        handle_potential_webgl_error!(
+            self,
+            texture.initialize(
+                target,
+                size.width,
+                size.height,
+                1,
+                compression.format,
+                level,
+                Some(TexDataType::UnsignedByte)
+            )
+        );
+
+        self.send_command(WebGLCommand::CompressedTexImage2D {
+            target: target.as_gl_constant(),
+            level,
+            internal_format,
+            size: Size2D::new(width, height),
+            data: data.into(),
+        });
+
+        if let Some(fb) = self.bound_draw_framebuffer.get() {
+            fb.invalidate_texture(&*texture);
+        }
+    }
+
+    pub fn compressed_tex_sub_image_2d<'a>(
+        &self,
+        target: u32,
+        level: i32,
+        xoffset: i32,
+        yoffset: i32,
+        width: i32,
+        height: i32,
+        format: u32,
+        data: &'a [u8],
+    ) {
+        let validator = CompressedTexSubImage2DValidator::new(
+            self,
+            target,
+            level,
+            xoffset,
+            yoffset,
+            width,
+            height,
+            format,
+            data.len(),
+        );
+        let CommonCompressedTexImage2DValidatorResult {
+            texture: _,
+            target,
+            level,
+            width,
+            height,
+            ..
+        } = match validator.validate() {
+            Ok(result) => result,
+            Err(_) => return,
+        };
+
+        let buff = IpcSharedMemory::from_bytes(data);
+        let pixels = TexPixels::from_array(buff, Size2D::new(width, height));
+        let data = pixels.data;
+
+        self.send_command(WebGLCommand::CompressedTexSubImage2D {
+            target: target.as_gl_constant(),
+            level: level as i32,
+            xoffset,
+            yoffset,
+            size: Size2D::new(width, height),
+            format,
+            data: data.into(),
+        });
+    }
+
+    pub fn uniform1iv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        val: Int32ArrayOrLongSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL |
+                constants::INT |
+                constants::SAMPLER_2D |
+                constants::SAMPLER_CUBE => {},
+                _ => return Err(InvalidOperation),
+            }
+
+            let val = self.uniform_vec_section_int(val, src_offset, src_length, 1, location)?;
+
+            match location.type_() {
+                constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
+                    for &v in val
+                        .iter()
+                        .take(cmp::min(location.size().unwrap_or(1) as usize, val.len()))
+                    {
+                        if v < 0 || v as u32 >= self.limits.max_combined_texture_image_units {
+                            return Err(InvalidValue);
+                        }
+                    }
+                },
+                _ => {},
+            }
+            self.send_command(WebGLCommand::Uniform1iv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    pub fn uniform1fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL | constants::FLOAT => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.uniform_vec_section_float(val, src_offset, src_length, 1, location)?;
+            self.send_command(WebGLCommand::Uniform1fv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    pub fn uniform2fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC2 | constants::FLOAT_VEC2 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.uniform_vec_section_float(val, src_offset, src_length, 2, location)?;
+            self.send_command(WebGLCommand::Uniform2fv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    pub fn uniform2iv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        val: Int32ArrayOrLongSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC2 | constants::INT_VEC2 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.uniform_vec_section_int(val, src_offset, src_length, 2, location)?;
+            self.send_command(WebGLCommand::Uniform2iv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    pub fn uniform3fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC3 | constants::FLOAT_VEC3 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.uniform_vec_section_float(val, src_offset, src_length, 3, location)?;
+            self.send_command(WebGLCommand::Uniform3fv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    pub fn uniform3iv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        val: Int32ArrayOrLongSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC3 | constants::INT_VEC3 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.uniform_vec_section_int(val, src_offset, src_length, 3, location)?;
+            self.send_command(WebGLCommand::Uniform3iv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    pub fn uniform4iv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        val: Int32ArrayOrLongSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC4 | constants::INT_VEC4 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.uniform_vec_section_int(val, src_offset, src_length, 4, location)?;
+            self.send_command(WebGLCommand::Uniform4iv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    pub fn uniform4fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::BOOL_VEC4 | constants::FLOAT_VEC4 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val = self.uniform_vec_section_float(val, src_offset, src_length, 4, location)?;
+            self.send_command(WebGLCommand::Uniform4fv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    pub fn uniform_matrix_2fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        transpose: bool,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::FLOAT_MAT2 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val =
+                self.uniform_matrix_section(val, src_offset, src_length, transpose, 4, location)?;
+            self.send_command(WebGLCommand::UniformMatrix2fv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    pub fn uniform_matrix_3fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        transpose: bool,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::FLOAT_MAT3 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val =
+                self.uniform_matrix_section(val, src_offset, src_length, transpose, 9, location)?;
+            self.send_command(WebGLCommand::UniformMatrix3fv(location.id(), val));
+            Ok(())
+        });
+    }
+
+    pub fn uniform_matrix_4fv(
+        &self,
+        location: Option<&WebGLUniformLocation>,
+        transpose: bool,
+        val: Float32ArrayOrUnrestrictedFloatSequence,
+        src_offset: u32,
+        src_length: u32,
+    ) {
+        self.with_location(location, |location| {
+            match location.type_() {
+                constants::FLOAT_MAT4 => {},
+                _ => return Err(InvalidOperation),
+            }
+            let val =
+                self.uniform_matrix_section(val, src_offset, src_length, transpose, 16, location)?;
+            self.send_command(WebGLCommand::UniformMatrix4fv(location.id(), val));
+            Ok(())
+        });
+    }
 }
 
 #[cfg(not(feature = "webgl_backtrace"))]
@@ -2110,14 +2444,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferData(&self, target: u32, data: Option<ArrayBufferViewOrArrayBuffer>, usage: u32) {
+    fn BufferData_(&self, target: u32, data: Option<ArrayBufferViewOrArrayBuffer>, usage: u32) {
         let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         self.buffer_data(target, data, usage, bound_buffer)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn BufferData_(&self, target: u32, size: i64, usage: u32) {
+    fn BufferData(&self, target: u32, size: i64, usage: u32) {
         let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
         let bound_buffer = handle_potential_webgl_error!(self, self.bound_buffer(target), return);
         self.buffer_data_(target, size, usage, bound_buffer)
@@ -2142,55 +2476,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         border: i32,
         data: CustomAutoRooterGuard<ArrayBufferView>,
     ) {
-        let validator = CompressedTexImage2DValidator::new(
-            self,
-            target,
-            level,
-            width,
-            height,
-            border,
-            internal_format,
-            data.len(),
-        );
-        let CommonCompressedTexImage2DValidatorResult {
-            texture,
-            target,
-            level,
-            width,
-            height,
-            compression,
-        } = match validator.validate() {
-            Ok(result) => result,
-            Err(_) => return,
-        };
-
-        let buff = IpcSharedMemory::from_bytes(unsafe { data.as_slice() });
-        let pixels = TexPixels::from_array(buff, Size2D::new(width, height));
-
-        handle_potential_webgl_error!(
-            self,
-            texture.initialize(
-                target,
-                pixels.size.width,
-                pixels.size.height,
-                1,
-                compression.format,
-                level,
-                Some(TexDataType::UnsignedByte)
-            )
-        );
-
-        self.send_command(WebGLCommand::CompressedTexImage2D {
-            target: target.as_gl_constant(),
-            level,
-            internal_format,
-            size: Size2D::new(width, height),
-            data: pixels.data.into(),
-        });
-
-        if let Some(fb) = self.bound_draw_framebuffer.get() {
-            fb.invalidate_texture(&*texture);
-        }
+        let data = unsafe { data.as_slice() };
+        self.compressed_tex_image_2d(target, level, internal_format, width, height, border, data)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -2206,41 +2493,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         format: u32,
         data: CustomAutoRooterGuard<ArrayBufferView>,
     ) {
-        let validator = CompressedTexSubImage2DValidator::new(
-            self,
-            target,
-            level,
-            xoffset,
-            yoffset,
-            width,
-            height,
-            format,
-            data.len(),
-        );
-        let CommonCompressedTexImage2DValidatorResult {
-            texture: _,
-            target,
-            level,
-            width,
-            height,
-            ..
-        } = match validator.validate() {
-            Ok(result) => result,
-            Err(_) => return,
-        };
-
-        let buff = IpcSharedMemory::from_bytes(unsafe { data.as_slice() });
-        let pixels = TexPixels::from_array(buff, Size2D::new(width, height));
-
-        self.send_command(WebGLCommand::CompressedTexSubImage2D {
-            target: target.as_gl_constant(),
-            level: level as i32,
-            xoffset,
-            yoffset,
-            size: Size2D::new(width, height),
-            format,
-            data: pixels.data.into(),
-        });
+        let data = unsafe { data.as_slice() };
+        self.compressed_tex_sub_image_2d(
+            target, level, xoffset, yoffset, width, height, format, data,
+        )
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
@@ -3548,40 +3804,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform1iv(
-        &self,
-        location: Option<&WebGLUniformLocation>,
-        val: Int32ArrayOrLongSequence,
-        src_offset: u32,
-        src_length: u32,
-    ) {
-        self.with_location(location, |location| {
-            match location.type_() {
-                constants::BOOL |
-                constants::INT |
-                constants::SAMPLER_2D |
-                constants::SAMPLER_CUBE => {},
-                _ => return Err(InvalidOperation),
-            }
-
-            let val = self.uniform_vec_section_int(val, src_offset, src_length, 1, location)?;
-
-            match location.type_() {
-                constants::SAMPLER_2D | constants::SAMPLER_CUBE => {
-                    for &v in val
-                        .iter()
-                        .take(cmp::min(location.size().unwrap_or(1) as usize, val.len()))
-                    {
-                        if v < 0 || v as u32 >= self.limits.max_combined_texture_image_units {
-                            return Err(InvalidValue);
-                        }
-                    }
-                },
-                _ => {},
-            }
-            self.send_command(WebGLCommand::Uniform1iv(location.id(), val));
-            Ok(())
-        });
+    fn Uniform1iv(&self, location: Option<&WebGLUniformLocation>, val: Int32ArrayOrLongSequence) {
+        self.uniform1iv(location, val, 0, 0)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3589,18 +3813,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         &self,
         location: Option<&WebGLUniformLocation>,
         val: Float32ArrayOrUnrestrictedFloatSequence,
-        src_offset: u32,
-        src_length: u32,
     ) {
-        self.with_location(location, |location| {
-            match location.type_() {
-                constants::BOOL | constants::FLOAT => {},
-                _ => return Err(InvalidOperation),
-            }
-            let val = self.uniform_vec_section_float(val, src_offset, src_length, 1, location)?;
-            self.send_command(WebGLCommand::Uniform1fv(location.id(), val));
-            Ok(())
-        });
+        self.uniform1fv(location, val, 0, 0)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3620,18 +3834,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         &self,
         location: Option<&WebGLUniformLocation>,
         val: Float32ArrayOrUnrestrictedFloatSequence,
-        src_offset: u32,
-        src_length: u32,
     ) {
-        self.with_location(location, |location| {
-            match location.type_() {
-                constants::BOOL_VEC2 | constants::FLOAT_VEC2 => {},
-                _ => return Err(InvalidOperation),
-            }
-            let val = self.uniform_vec_section_float(val, src_offset, src_length, 2, location)?;
-            self.send_command(WebGLCommand::Uniform2fv(location.id(), val));
-            Ok(())
-        });
+        self.uniform2fv(location, val, 0, 0)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3647,22 +3851,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform2iv(
-        &self,
-        location: Option<&WebGLUniformLocation>,
-        val: Int32ArrayOrLongSequence,
-        src_offset: u32,
-        src_length: u32,
-    ) {
-        self.with_location(location, |location| {
-            match location.type_() {
-                constants::BOOL_VEC2 | constants::INT_VEC2 => {},
-                _ => return Err(InvalidOperation),
-            }
-            let val = self.uniform_vec_section_int(val, src_offset, src_length, 2, location)?;
-            self.send_command(WebGLCommand::Uniform2iv(location.id(), val));
-            Ok(())
-        });
+    fn Uniform2iv(&self, location: Option<&WebGLUniformLocation>, val: Int32ArrayOrLongSequence) {
+        self.uniform2iv(location, val, 0, 0)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3682,18 +3872,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         &self,
         location: Option<&WebGLUniformLocation>,
         val: Float32ArrayOrUnrestrictedFloatSequence,
-        src_offset: u32,
-        src_length: u32,
     ) {
-        self.with_location(location, |location| {
-            match location.type_() {
-                constants::BOOL_VEC3 | constants::FLOAT_VEC3 => {},
-                _ => return Err(InvalidOperation),
-            }
-            let val = self.uniform_vec_section_float(val, src_offset, src_length, 3, location)?;
-            self.send_command(WebGLCommand::Uniform3fv(location.id(), val));
-            Ok(())
-        });
+        self.uniform3fv(location, val, 0, 0)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3709,22 +3889,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform3iv(
-        &self,
-        location: Option<&WebGLUniformLocation>,
-        val: Int32ArrayOrLongSequence,
-        src_offset: u32,
-        src_length: u32,
-    ) {
-        self.with_location(location, |location| {
-            match location.type_() {
-                constants::BOOL_VEC3 | constants::INT_VEC3 => {},
-                _ => return Err(InvalidOperation),
-            }
-            let val = self.uniform_vec_section_int(val, src_offset, src_length, 3, location)?;
-            self.send_command(WebGLCommand::Uniform3iv(location.id(), val));
-            Ok(())
-        });
+    fn Uniform3iv(&self, location: Option<&WebGLUniformLocation>, val: Int32ArrayOrLongSequence) {
+        self.uniform3iv(location, val, 0, 0)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3740,22 +3906,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
-    fn Uniform4iv(
-        &self,
-        location: Option<&WebGLUniformLocation>,
-        val: Int32ArrayOrLongSequence,
-        src_offset: u32,
-        src_length: u32,
-    ) {
-        self.with_location(location, |location| {
-            match location.type_() {
-                constants::BOOL_VEC4 | constants::INT_VEC4 => {},
-                _ => return Err(InvalidOperation),
-            }
-            let val = self.uniform_vec_section_int(val, src_offset, src_length, 4, location)?;
-            self.send_command(WebGLCommand::Uniform4iv(location.id(), val));
-            Ok(())
-        });
+    fn Uniform4iv(&self, location: Option<&WebGLUniformLocation>, val: Int32ArrayOrLongSequence) {
+        self.uniform4iv(location, val, 0, 0)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3775,18 +3927,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         &self,
         location: Option<&WebGLUniformLocation>,
         val: Float32ArrayOrUnrestrictedFloatSequence,
-        src_offset: u32,
-        src_length: u32,
     ) {
-        self.with_location(location, |location| {
-            match location.type_() {
-                constants::BOOL_VEC4 | constants::FLOAT_VEC4 => {},
-                _ => return Err(InvalidOperation),
-            }
-            let val = self.uniform_vec_section_float(val, src_offset, src_length, 4, location)?;
-            self.send_command(WebGLCommand::Uniform4fv(location.id(), val));
-            Ok(())
-        });
+        self.uniform4fv(location, val, 0, 0)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3795,19 +3937,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         val: Float32ArrayOrUnrestrictedFloatSequence,
-        src_offset: u32,
-        src_length: u32,
     ) {
-        self.with_location(location, |location| {
-            match location.type_() {
-                constants::FLOAT_MAT2 => {},
-                _ => return Err(InvalidOperation),
-            }
-            let val =
-                self.uniform_matrix_section(val, src_offset, src_length, transpose, 4, location)?;
-            self.send_command(WebGLCommand::UniformMatrix2fv(location.id(), val));
-            Ok(())
-        });
+        self.uniform_matrix_2fv(location, transpose, val, 0, 0)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3816,19 +3947,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         val: Float32ArrayOrUnrestrictedFloatSequence,
-        src_offset: u32,
-        src_length: u32,
     ) {
-        self.with_location(location, |location| {
-            match location.type_() {
-                constants::FLOAT_MAT3 => {},
-                _ => return Err(InvalidOperation),
-            }
-            let val =
-                self.uniform_matrix_section(val, src_offset, src_length, transpose, 9, location)?;
-            self.send_command(WebGLCommand::UniformMatrix3fv(location.id(), val));
-            Ok(())
-        });
+        self.uniform_matrix_3fv(location, transpose, val, 0, 0)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -3837,19 +3957,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         location: Option<&WebGLUniformLocation>,
         transpose: bool,
         val: Float32ArrayOrUnrestrictedFloatSequence,
-        src_offset: u32,
-        src_length: u32,
     ) {
-        self.with_location(location, |location| {
-            match location.type_() {
-                constants::FLOAT_MAT4 => {},
-                _ => return Err(InvalidOperation),
-            }
-            let val =
-                self.uniform_matrix_section(val, src_offset, src_length, transpose, 16, location)?;
-            self.send_command(WebGLCommand::UniformMatrix4fv(location.id(), val));
-            Ok(())
-        });
+        self.uniform_matrix_4fv(location, transpose, val, 0, 0)
     }
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10
@@ -4055,7 +4164,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         &self,
         target: u32,
         level: i32,
-        internal_format: u32,
+        internal_format: i32,
         width: i32,
         height: i32,
         border: i32,
@@ -4071,7 +4180,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             self,
             target,
             level,
-            internal_format,
+            internal_format as u32,
             width,
             height,
             border,
@@ -4153,7 +4262,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         &self,
         target: u32,
         level: i32,
-        internal_format: u32,
+        internal_format: i32,
         format: u32,
         data_type: u32,
         source: TexImageSource,
@@ -4171,7 +4280,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             self,
             target,
             level,
-            internal_format,
+            internal_format as u32,
             pixels.size.width as i32,
             pixels.size.height as i32,
             0,
