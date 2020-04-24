@@ -3,6 +3,20 @@
 <link rel="help" href="https://drafts.csswg.org/css-cascade/#cascade-origin">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script>
+  CSS.registerProperty({
+    name: "--length-1",
+    syntax: "<length>",
+    initialValue: "0px",
+    inherits: false
+  });
+  CSS.registerProperty({
+    name: "--length-2",
+    syntax: "<length>",
+    initialValue: "0px",
+    inherits: false
+  });
+</script>
 <style>
   @keyframes bgcolor_animation {
     from { background-color: rgb(10, 10, 10); }
@@ -39,12 +53,22 @@
   #target5:visited {
     color: rgb(0, 128, 0) !important;
   }
+  #target6 {
+    background-color: white;
+    color: white !important;
+  }
+  #target7 {
+    --length-1: 10px;
+    --length-2: 10px !important;
+  }
 </style>
 <div id="target1"></div>
 <div id="target2"></div>
 <div id="target3"></div>
 <div id="target4"></div>
 <a href="" id="target5"></a>
+<span id="target6"></span>
+<span id="target7"></span>
 <script>
 test(() => {
   assert_equals(getComputedStyle(target1).backgroundColor, 'rgb(15, 15, 15)');
@@ -68,5 +92,53 @@ test(() => {
   assert_equals(getComputedStyle(target5).color, 'rgb(15, 15, 15)');
   assert_equals(getComputedStyle(target5).backgroundColor, 'rgb(15, 15, 15)');
 }, 'Important rules do not override animations on :visited as seen from JS');
+
+test(() => {
+  getComputedStyle(target6).backgroundColor;
+
+  let animation = target6.animate([
+    { backgroundColor: 'rgb(10, 10, 10)' },
+    { backgroundColor: 'rgb(20, 20, 20)' },
+  ], {
+    duration: 1000000,
+    delay: -500000,
+    easing: 'steps(2, end)'
+  });
+
+  assert_equals(getComputedStyle(target6).backgroundColor, 'rgb(15, 15, 15)');
+  assert_equals(getComputedStyle(target6).color, 'rgb(255, 255, 255)');
+
+  animation.effect.setKeyframes([
+    { color: 'rgb(10, 10, 10)' },
+    { color: 'rgb(20, 20, 20)' },
+  ]);
+
+  assert_equals(getComputedStyle(target6).backgroundColor, 'rgb(255, 255, 255)');
+  assert_equals(getComputedStyle(target6).color, 'rgb(255, 255, 255)');
+}, 'Standard property animations appearing via setKeyframes do not override important declarations');
+
+test(() => {
+  getComputedStyle(target7).getPropertyValue('--length-1');
+
+  let animation = target7.animate([
+    { '--length-1': '100px' },
+    { '--length-1': '200px' },
+  ], {
+    duration: 1000000,
+    delay: -500000,
+    easing: 'steps(2, end)'
+  });
+
+  assert_equals(getComputedStyle(target7).getPropertyValue('--length-1'), '150px');
+  assert_equals(getComputedStyle(target7).getPropertyValue('--length-2'), '10px');
+
+  animation.effect.setKeyframes([
+    { '--length-2': '100px' },
+    { '--length-2': '200px' },
+  ]);
+
+  assert_equals(getComputedStyle(target7).getPropertyValue('--length-1'), '10px');
+  assert_equals(getComputedStyle(target7).getPropertyValue('--length-2'), '10px');
+}, 'Custom property animations appearing via setKeyframes do not override important declarations');
 
 </script>

@@ -296,6 +296,24 @@ function clickInTarget(pointerType, target) {
                    .send();
 }
 
+function twoFingerDrag(target) {
+  return new test_driver.Actions()
+      .addPointer("touchPointer1", "touch")
+      .addPointer("touchPointer2", "touch")
+      .pointerMove(0, 0, {origin: target, sourceName: "touchPointer1"})
+      .pointerMove(10, 0, {origin: target, sourceName: "touchPointer2"})
+      .pointerDown({sourceName: "touchPointer1"})
+      .pointerDown({sourceName: "touchPointer2"})
+      .pointerMove(0, 10, {origin: target, sourceName: "touchPointer1"})
+      .pointerMove(10, 10, {origin: target, sourceName: "touchPointer2"})
+      .pointerMove(0, 20, {origin: target, sourceName: "touchPointer1"})
+      .pointerMove(10, 20, {origin: target, sourceName: "touchPointer2"})
+      .pause(100)
+      .pointerUp({sourceName: "touchPointer1"})
+      .pointerUp({sourceName: "touchPointer2"})
+      .send();
+}
+
 function pointerDragInTarget(pointerType, target, direction) {
     var x_delta = 0;
     var y_delta = 0;

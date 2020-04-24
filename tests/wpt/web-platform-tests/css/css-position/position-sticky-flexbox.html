@@ -4,6 +4,8 @@
 <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
 <meta name="assert" content="This test checks that position:sticky elements interoperate correctly with flexbox" />
 
+<script src="resources/ref-rectangle.js"></script>
+
 <style>
 .scroller {
   overflow: scroll;
@@ -47,6 +49,7 @@ window.addEventListener('load', function() {
   document.getElementById('scroller1').scrollLeft = 50;
   document.getElementById('scroller2').scrollLeft = 150;
   document.getElementById('scroller3').scrollLeft = 250;
+  createIndicatorForStickyElements(document.querySelectorAll('.sticky'));
 });
 </script>
 
@@ -77,4 +80,4 @@ window.addEventListener('load', function() {
   </div>
 </div>
 
-<p>You should see three green boxes of varying size above. There should be no red.</p>
+<p>You should see three green boxes of varying size above. There should be no red or blue.</p>

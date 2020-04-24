@@ -4,6 +4,8 @@
 <link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
 <meta name="assert" content="This test checks that position:sticky elements interoperate correctly with grid" />
 
+<script src="resources/ref-rectangle.js"></script>
+
 <style>
 .scroller {
   position: relative;
@@ -56,6 +58,7 @@ window.addEventListener('load', function() {
   document.getElementById('scroller1').scrollLeft = 0;
   document.getElementById('scroller2').scrollLeft = 150;
   document.getElementById('scroller3').scrollLeft = 300;
+  createIndicatorForStickyElements(document.querySelectorAll('.sticky'));
 });
 </script>
 
@@ -89,5 +92,5 @@ window.addEventListener('load', function() {
   <div class="padding"></div>
 </div>
 
-<p>You should see three green boxes of varying size above. There should be no red.</p>
+<p>You should see three green boxes of varying size above. There should be no red or blue.</p>
 

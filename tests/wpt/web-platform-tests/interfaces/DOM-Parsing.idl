@@ -10,14 +10,14 @@ interface XMLSerializer {
 };
 
 interface mixin InnerHTML {
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString innerHTML;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString innerHTML;
 };
 
 Element includes InnerHTML;
 ShadowRoot includes InnerHTML;
 
 partial interface Element {
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString outerHTML;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString outerHTML;
   [CEReactions] void insertAdjacentHTML(DOMString position, DOMString text);
 };
 

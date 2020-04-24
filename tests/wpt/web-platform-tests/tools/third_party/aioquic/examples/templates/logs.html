@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8"/>
+        <title>aioquic - logs</title>
+        <link rel="stylesheet" href="/style.css"/>
+    </head>
+    <body>
+        <h1>QLOG files</h1>
+        <table class="logs">
+        <tr>
+            <th>name</th>
+            <th>date (UTC)</th>
+            <th>size</th>
+        </tr>
+{% for log in logs %}
+        <tr>
+            <td class="name">
+                <a href="{{ log.file_url }}">{{ log.name }}</a>
+                <a href="{{ log.qvis_url }}">[qvis]</a>
+            </td>
+            <td class="date">{{ log.date }}</td>
+            <td class="size">{{ log.size }}</td>
+        </tr>
+{% endfor %}
+        </table>
+    </body>
+</html>

@@ -168,6 +168,10 @@ function verifySameSiteCookieStateLegacy(expectedStatus, expectedValue, cookies)
       assert_equals(cookies["samesite_strict"], expectedValue, "SameSite=Strict cookies are sent with strict requests.");
       assert_equals(cookies["samesite_lax"], expectedValue, "SameSite=Lax cookies are sent with strict requests.");
     }
+
+    if (cookies["domcookies"]) {
+      verifyDocumentCookie(expectedStatus, expectedValue, cookies["domcookies"]);
+    }
 }
 
 // Same as above except this expects samesite_unspecified to act the same as
@@ -188,6 +192,24 @@ function verifySameSiteCookieStateWithSameSiteByDefault(expectedStatus, expected
       assert_equals(cookies["samesite_lax"], expectedValue, "SameSite=Lax cookies are sent with strict requests.");
       assert_equals(cookies["samesite_unspecified"], expectedValue, "Unspecified-SameSite cookies are are sent with strict requests.")
     }
+
+    if (cookies["domcookies"]) {
+      verifyDocumentCookie(expectedStatus, expectedValue, cookies["domcookies"]);
+    }
+}
+
+function verifyDocumentCookie(expectedStatus, expectedValue, domcookies) {
+  const cookies = domcookies.split(";")
+                            .map(cookie => cookie.trim().split("="))
+                            .reduce((obj, cookie) => {
+                              obj[cookie[0]] = cookie[1];
+                              return obj;
+                            }, {});
+
+  assert_equals(cookies["samesite_none"], expectedValue, "SameSite=None cookies are always included in document.cookie.");
+  assert_equals(cookies["samesite_unspecified"], expectedValue, "Unspecified-SameSite cookies are always included in document.cookie.");
+  assert_equals(cookies["samesite_strict"], expectedValue, "SameSite=Strict cookies are always included in document.cookie.");
+  assert_equals(cookies["samesite_lax"], expectedValue, "SameSite=Lax cookies are always included in document.cookie.");
 }
 
 function isLegacySameSite() {

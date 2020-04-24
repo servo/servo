@@ -14,7 +14,7 @@ function assertEncoding(doc) {
 }
 
 setup(() => {
-  assert_precondition(document.characterSet === "windows-1252", "the meta charset must be in effect, making the main document windows-1252");
+  assert_equals(document.characterSet, "windows-1252", "the meta charset must be in effect, making the main document windows-1252");
 });
 
 test(() => {

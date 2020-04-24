@@ -18,21 +18,28 @@ let constructor_tests = function() {
   {
     // Check defaults - should be 0,0,0,1 for origin and 0,0,-1,0 for direction,
     // identity matrix for the transform:
-    let xrRay = new XRRay();
+    let xrRay1 = new XRRay();
+    let xrRay2 = new XRRay({});
+    let xrRay3 = new XRRay({}, {});
+
     assert_point_approx_equals(
-      xrRay.origin, {x : 0.0, y : 0.0, z : 0.0, w : 1.0},
+      xrRay1.origin, {x : 0.0, y : 0.0, z : 0.0, w : 1.0},
       FLOAT_EPSILON, "origin-default:");
     assert_point_approx_equals(
-      xrRay.direction, {x : 0.0, y : 0.0, z : -1.0, w : 0.0},
+      xrRay1.direction, {x : 0.0, y : 0.0, z : -1.0, w : 0.0},
       FLOAT_EPSILON, "direction-default:");
     assert_matrix_approx_equals(
-      xrRay.matrix, IDENTITY_MATRIX,
+      xrRay1.matrix, IDENTITY_MATRIX,
       FLOAT_EPSILON, "matrix-default:");
+
+    assert_ray_approx_equals(xrRay1, xrRay2, FLOAT_EPSILON, "ray1-ray2-default:");
+    assert_ray_approx_equals(xrRay2, xrRay3, FLOAT_EPSILON, "ray2-ray3-default:");
   }
 
   {
     // Check custom value for origin, default for direction:
     let originDict = {x : 11.0, y : 12.0, z : 13.0, w : 1.0};
+    let xrRay1 = new XRRay(originDict);
     let xrRay2 = new XRRay(DOMPoint.fromPoint(originDict));
     let xrRay3 = new XRRay(DOMPointReadOnly.fromPoint(originDict));
     let matrix1 = [ 1,  0,  0, 0,
@@ -41,15 +48,16 @@ let constructor_tests = function() {
                    11, 12, 13, 1];
 
     assert_point_approx_equals(
-      xrRay2.origin, originDict,
+      xrRay1.origin, originDict,
       FLOAT_EPSILON, "origin-custom-direction-default:");
     assert_point_approx_equals(
-      xrRay2.direction, {x : 0.0, y : 0.0, z : -1.0, w : 0.0},
+      xrRay1.direction, {x : 0.0, y : 0.0, z : -1.0, w : 0.0},
       FLOAT_EPSILON, "direction-custom-direction-default:");
     assert_matrix_approx_equals(
-      xrRay2.matrix, matrix1,
+      xrRay1.matrix, matrix1,
       FLOAT_EPSILON, "matrix-custom-direction-default:");
 
+    assert_ray_approx_equals(xrRay1, xrRay2, FLOAT_EPSILON, "ray1-ray2-direction-default:");
     assert_ray_approx_equals(xrRay2, xrRay3, FLOAT_EPSILON, "ray2-ray3-direction-default:");
   }
 
@@ -67,6 +75,10 @@ let constructor_tests = function() {
                    -1,  0,  0,  0,
                    10, 10, 10,  1];
 
+    let xrRay1 = new XRRay(
+      originDict,
+      directionDict);
+
     let xrRay2 = new XRRay(
       DOMPoint.fromPoint(originDict),
       DOMPoint.fromPoint(directionDict));
@@ -76,15 +88,16 @@ let constructor_tests = function() {
       DOMPointReadOnly.fromPoint(directionDict));
 
     assert_point_approx_equals(
-      xrRay2.origin, originDict,
+      xrRay1.origin, originDict,
       FLOAT_EPSILON, "origin-custom:");
     assert_point_approx_equals(
-      xrRay2.direction, directionNorm,
+      xrRay1.direction, directionNorm,
       FLOAT_EPSILON, "direction-custom:");
     assert_matrix_approx_equals(
-      xrRay2.matrix, matrix1,
+      xrRay1.matrix, matrix1,
       FLOAT_EPSILON, "matrix-custom:");
 
+    assert_ray_approx_equals(xrRay1, xrRay2, FLOAT_EPSILON, "ray1-ray2:");
     assert_ray_approx_equals(xrRay2, xrRay3, FLOAT_EPSILON, "ray2-ray3:");
   }
 
@@ -108,6 +121,7 @@ let constructor_tests = function() {
         DOMPoint.fromPoint(directionDict)
     ), "Constructor should throw for non-1 origin w coordinate");
   }
+
   //
   // Constructor 2 - from rigid transform.
   //
@@ -122,20 +136,20 @@ let constructor_tests = function() {
                     0.707,  0,  -0.707,   0,
                    10.,    10,  10.,      1];
 
-    let xrRay4 = new XRRay(
+    let xrRay = new XRRay(
       new XRRigidTransform(
         DOMPoint.fromPoint(originDict),
         DOMPoint.fromPoint(directionQuaternionDict)));
 
     assert_point_approx_equals(
-      xrRay4.origin, originDict,
+      xrRay.origin, originDict,
       FLOAT_EPSILON, "origin-custom-rigid:");
     assert_point_approx_equals(
-      xrRay4.direction, directionNorm2,
+      xrRay.direction, directionNorm2,
       FLOAT_EPSILON, "direction-custom-rigid:");
 
     assert_matrix_approx_equals(
-      xrRay4.matrix, matrix2,
+      xrRay.matrix, matrix2,
       FLOAT_EPSILON, "matrix-custom-rigid:");
   }
 };
