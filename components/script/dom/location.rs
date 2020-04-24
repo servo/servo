@@ -9,6 +9,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
+use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
@@ -62,17 +63,10 @@ impl Location {
         self.window.get_url()
     }
 
-    fn set_url_component(&self, value: USVString, setter: fn(&mut ServoUrl, USVString)) {
-        let mut url = self.window.get_url();
-        let referrer = Referrer::ReferrerUrl(url.clone());
-        setter(&mut url, value);
-        self.navigate(url, referrer, HistoryEntryReplacement::Disabled, false);
-    }
-
     fn check_same_origin_domain(&self) -> ErrorResult {
-        let entry_document = GlobalScope::entry().as_window().Document();
         let this_document = self.window.Document();
-        if entry_document
+        if self
+            .entry_document()
             .origin()
             .same_origin_domain(this_document.origin())
         {
@@ -80,6 +74,10 @@ impl Location {
         } else {
             Err(Error::Security)
         }
+    }
+
+    fn entry_document(&self) -> DomRoot<Document> {
+        GlobalScope::entry().as_window().Document()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-reload
@@ -98,17 +96,24 @@ impl Location {
 impl LocationMethods for Location {
     // https://html.spec.whatwg.org/multipage/#dom-location-assign
     fn Assign(&self, url: USVString) -> ErrorResult {
-        self.check_same_origin_domain()?;
-        // TODO: per spec, we should use the _API base URL_ specified by the
-        //       _entry settings object_.
-        let base_url = self.window.get_url();
-        if let Ok(url) = base_url.join(&url.0) {
-            let referrer = Referrer::ReferrerUrl(base_url.clone());
+        // Step 1: If this Location object's relevant Document is null, then return.
+        if self.window.has_document() {
+            // Step 2: If this Location object's relevant Document's origin is not same
+            // origin-domain with the entry settings object's origin, then throw a
+            // "SecurityError" DOMException.
+            self.check_same_origin_domain()?;
+            // Step 3: Parse url relative to the entry settings object. If that failed,
+            // throw a "SyntaxError" DOMException.
+            let base_url = self.entry_document().url();
+            let url = match base_url.join(&url.0) {
+                Ok(url) => url,
+                Err(_) => return Err(Error::Syntax),
+            };
+            // Step 4: Location-object navigate to the resulting URL record.
+            let referrer = Referrer::ReferrerUrl(self.get_url());
             self.navigate(url, referrer, HistoryEntryReplacement::Disabled, false);
-            Ok(())
-        } else {
-            Err(Error::Syntax)
         }
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-reload
@@ -122,17 +127,21 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-replace
     fn Replace(&self, url: USVString) -> ErrorResult {
-        // Note: no call to self.check_same_origin_domain()
-        // TODO: per spec, we should use the _API base URL_ specified by the
-        //       _entry settings object_.
-        let base_url = self.window.get_url();
-        if let Ok(url) = base_url.join(&url.0) {
-            let referrer = Referrer::ReferrerUrl(base_url.clone());
+        // Step 1: If this Location object's relevant Document is null, then return.
+        if self.window.has_document() {
+            // Step 2: Parse url relative to the entry settings object. If that failed,
+            // throw a "SyntaxError" DOMException.
+            let base_url = self.entry_document().url();
+            let url = match base_url.join(&url.0) {
+                Ok(url) => url,
+                Err(_) => return Err(Error::Syntax),
+            };
+            // Step 3: Location-object navigate to the resulting URL record with
+            // the replacement flag set.
+            let referrer = Referrer::ReferrerUrl(self.get_url());
             self.navigate(url, referrer, HistoryEntryReplacement::Enabled, false);
-            Ok(())
-        } else {
-            Err(Error::Syntax)
         }
+        Ok(())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hash
@@ -142,12 +151,28 @@ impl LocationMethods for Location {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hash
-    fn SetHash(&self, mut value: USVString) -> ErrorResult {
-        if value.0.is_empty() {
-            value = USVString("#".to_owned());
+    fn SetHash(&self, value: USVString) -> ErrorResult {
+        // Step 1: If this Location object's relevant Document is null, then return.
+        if self.window.has_document() {
+            // Step 2: If this Location object's relevant Document's origin is not
+            // same origin-domain with the entry settings object's origin, then
+            // throw a "SecurityError" DOMException.
+            self.check_same_origin_domain()?;
+            // Step 3: Let copyURL be a copy of this Location object's url.
+            let mut copy_url = self.get_url();
+            // Step 4: Let input be the given value with a single leading "#" removed, if any.
+            // Step 5: Set copyURL's fragment to the empty string.
+            // Step 6: Basic URL parse input, with copyURL as url and fragment state as
+            // state override.
+            copy_url.as_mut_url().set_fragment(match value.0.as_str() {
+                "" => Some("#"),
+                _ if value.0.starts_with('#') => Some(&value.0[1..]),
+                _ => Some(&value.0),
+            });
+            // Step 7: Location-object-setter navigate to copyURL.
+            let referrer = Referrer::ReferrerUrl(self.get_url());
+            self.navigate(copy_url, referrer, HistoryEntryReplacement::Disabled, false);
         }
-        self.check_same_origin_domain()?;
-        self.set_url_component(value, UrlHelper::SetHash);
         Ok(())
     }
 
@@ -159,8 +184,24 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-host
     fn SetHost(&self, value: USVString) -> ErrorResult {
-        self.check_same_origin_domain()?;
-        self.set_url_component(value, UrlHelper::SetHost);
+        // Step 1: If this Location object's relevant Document is null, then return.
+        if self.window.has_document() {
+            // Step 2: If this Location object's relevant Document's origin is not
+            // same origin-domain with the entry settings object's origin, then
+            // throw a "SecurityError" DOMException.
+            self.check_same_origin_domain()?;
+            // Step 3: Let copyURL be a copy of this Location object's url.
+            let mut copy_url = self.get_url();
+            // Step 4: If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
+            if !copy_url.cannot_be_a_base() {
+                // Step 5: Basic URL parse the given value, with copyURL as url and host state
+                // as state override.
+                let _ = copy_url.as_mut_url().set_host(Some(&value.0));
+                // Step 6: Location-object-setter navigate to copyURL.
+                let referrer = Referrer::ReferrerUrl(self.get_url());
+                self.navigate(copy_url, referrer, HistoryEntryReplacement::Disabled, false);
+            }
+        }
         Ok(())
     }
 
@@ -178,8 +219,24 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-hostname
     fn SetHostname(&self, value: USVString) -> ErrorResult {
-        self.check_same_origin_domain()?;
-        self.set_url_component(value, UrlHelper::SetHostname);
+        // Step 1: If this Location object's relevant Document is null, then return.
+        if self.window.has_document() {
+            // Step 2: If this Location object's relevant Document's origin is not
+            // same origin-domain with the entry settings object's origin, then
+            // throw a "SecurityError" DOMException.
+            self.check_same_origin_domain()?;
+            // Step 3: Let copyURL be a copy of this Location object's url.
+            let mut copy_url = self.get_url();
+            // Step 4: If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
+            if !copy_url.cannot_be_a_base() {
+                // Step 5: Basic URL parse the given value, with copyURL as url and hostname
+                // state as state override.
+                let _ = copy_url.as_mut_url().set_host(Some(&value.0));
+                // Step 6: Location-object-setter navigate to copyURL.
+                let referrer = Referrer::ReferrerUrl(self.get_url());
+                self.navigate(copy_url, referrer, HistoryEntryReplacement::Disabled, false);
+            }
+        }
         Ok(())
     }
 
@@ -191,14 +248,20 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-href
     fn SetHref(&self, value: USVString) -> ErrorResult {
-        // Note: no call to self.check_same_origin_domain()
-        let current_url = self.window.get_url();
-        let url = match current_url.join(&value.0) {
-            Ok(url) => url,
-            Err(e) => return Err(Error::Type(format!("Couldn't parse URL: {}", e))),
-        };
-        let referrer = Referrer::ReferrerUrl(current_url.clone());
-        self.navigate(url, referrer, HistoryEntryReplacement::Disabled, false);
+        // Step 1: If this Location object's relevant Document is null, then return.
+        if self.window.has_document() {
+            // Note: no call to self.check_same_origin_domain()
+            // Step 2: Parse the given value relative to the entry settings object.
+            // If that failed, throw a TypeError exception.
+            let base_url = self.entry_document().url();
+            let url = match base_url.join(&value.0) {
+                Ok(url) => url,
+                Err(e) => return Err(Error::Type(format!("Couldn't parse URL: {}", e))),
+            };
+            // Step 3: Location-object-setter navigate to the resulting URL record.
+            let referrer = Referrer::ReferrerUrl(self.get_url());
+            self.navigate(url, referrer, HistoryEntryReplacement::Disabled, false);
+        }
         Ok(())
     }
 
@@ -210,8 +273,25 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-pathname
     fn SetPathname(&self, value: USVString) -> ErrorResult {
-        self.check_same_origin_domain()?;
-        self.set_url_component(value, UrlHelper::SetPathname);
+        // Step 1: If this Location object's relevant Document is null, then return.
+        if self.window.has_document() {
+            // Step 2: If this Location object's relevant Document's origin is not
+            // same origin-domain with the entry settings object's origin, then
+            // throw a "SecurityError" DOMException.
+            self.check_same_origin_domain()?;
+            // Step 3: Let copyURL be a copy of this Location object's url.
+            let mut copy_url = self.get_url();
+            // Step 4: If copyURL's cannot-be-a-base-URL flag is set, terminate these steps.
+            if !copy_url.cannot_be_a_base() {
+                // Step 5: Set copyURL's path to the empty list.
+                // Step 6: Basic URL parse the given value, with copyURL as url and path
+                // start state as state override.
+                copy_url.as_mut_url().set_path(&value.0);
+                // Step 7: Location-object-setter navigate to copyURL.
+                let referrer = Referrer::ReferrerUrl(self.get_url());
+                self.navigate(copy_url, referrer, HistoryEntryReplacement::Disabled, false);
+            }
+        }
         Ok(())
     }
 
@@ -223,8 +303,30 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-port
     fn SetPort(&self, value: USVString) -> ErrorResult {
-        self.check_same_origin_domain()?;
-        self.set_url_component(value, UrlHelper::SetPort);
+        // Step 1: If this Location object's relevant Document is null, then return.
+        if self.window.has_document() {
+            // Step 2: If this Location object's relevant Document's origin is not
+            // same origin-domain with the entry settings object's origin, then
+            // throw a "SecurityError" DOMException.
+            self.check_same_origin_domain()?;
+            // Step 3: Let copyURL be a copy of this Location object's url.
+            let mut copy_url = self.get_url();
+            // Step 4: If copyURL cannot have a username/password/port, then return.
+            // https://url.spec.whatwg.org/#cannot-have-a-username-password-port
+            if copy_url.host().is_some() &&
+                !copy_url.cannot_be_a_base() &&
+                copy_url.scheme() != "file"
+            {
+                // Step 5: If the given value is the empty string, then set copyURL's
+                // port to null.
+                // Step 6: Otherwise, basic URL parse the given value, with copyURL as url
+                // and port state as state override.
+                let _ = url::quirks::set_port(copy_url.as_mut_url(), &value.0);
+                // Step 7: Location-object-setter navigate to copyURL.
+                let referrer = Referrer::ReferrerUrl(self.get_url());
+                self.navigate(copy_url, referrer, HistoryEntryReplacement::Disabled, false);
+            }
+        }
         Ok(())
     }
 
@@ -236,8 +338,34 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-protocol
     fn SetProtocol(&self, value: USVString) -> ErrorResult {
-        self.check_same_origin_domain()?;
-        self.set_url_component(value, UrlHelper::SetProtocol);
+        // Step 1: If this Location object's relevant Document is null, then return.
+        if self.window.has_document() {
+            // Step 2: If this Location object's relevant Document's origin is not
+            // same origin-domain with the entry settings object's origin, then
+            // throw a "SecurityError" DOMException.
+            self.check_same_origin_domain()?;
+            // Step 3: Let copyURL be a copy of this Location object's url.
+            let mut copy_url = self.get_url();
+            // Step 4: Let possibleFailure be the result of basic URL parsing the given
+            // value, followed by ":", with copyURL as url and scheme start state as
+            // state override.
+            let scheme = match value.0.find(':') {
+                Some(position) => &value.0[..position],
+                None => &value.0,
+            };
+            if let Err(_) = copy_url.as_mut_url().set_scheme(scheme) {
+                // Step 5: If possibleFailure is failure, then throw a "SyntaxError" DOMException.
+                return Err(Error::Syntax);
+            }
+            // Step 6: If copyURL's scheme is not an HTTP(S) scheme, then terminate these steps.
+            if copy_url.scheme().eq_ignore_ascii_case("http") ||
+                copy_url.scheme().eq_ignore_ascii_case("https")
+            {
+                // Step 7: Location-object-setter navigate to copyURL.
+                let referrer = Referrer::ReferrerUrl(self.get_url());
+                self.navigate(copy_url, referrer, HistoryEntryReplacement::Disabled, false);
+            }
+        }
         Ok(())
     }
 
@@ -249,8 +377,30 @@ impl LocationMethods for Location {
 
     // https://html.spec.whatwg.org/multipage/#dom-location-search
     fn SetSearch(&self, value: USVString) -> ErrorResult {
-        self.check_same_origin_domain()?;
-        self.set_url_component(value, UrlHelper::SetSearch);
+        // Step 1: If this Location object's relevant Document is null, then return.
+        if self.window.has_document() {
+            // Step 2: If this Location object's relevant Document's origin is not
+            // same origin-domain with the entry settings object's origin, then
+            // throw a "SecurityError" DOMException.
+            self.check_same_origin_domain()?;
+            // Step 3: Let copyURL be a copy of this Location object's url.
+            let mut copy_url = self.get_url();
+            // Step 4: If the given value is the empty string, set copyURL's query to null.
+            // Step 5: Otherwise, run these substeps:
+            //   1. Let input be the given value with a single leading "?" removed, if any.
+            //   2. Set copyURL's query to the empty string.
+            //   3. Basic URL parse input, with copyURL as url and query state as state
+            //      override, and the relevant Document's document's character encoding as
+            //      encoding override.
+            copy_url.as_mut_url().set_query(match value.0.as_str() {
+                "" => None,
+                _ if value.0.starts_with('?') => Some(&value.0[1..]),
+                _ => Some(&value.0),
+            });
+            // Step 6: Location-object-setter navigate to copyURL.
+            let referrer = Referrer::ReferrerUrl(self.get_url());
+            self.navigate(copy_url, referrer, HistoryEntryReplacement::Disabled, false);
+        }
         Ok(())
     }
 }
