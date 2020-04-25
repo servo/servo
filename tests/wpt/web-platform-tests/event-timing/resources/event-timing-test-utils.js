@@ -1,16 +1,16 @@
-// Clicks on the element with the given ID. It adds an event handler to the element
-// which ensures that the events have a long duration and reported by EventTiming
-// where appropriate. Calls |callback| during event handler.
-function clickOnElement(id, callback) {
+// Clicks on the element with the given ID. It adds an event handler to the element which
+// ensures that the events have a duration of at least |delay|. Calls |callback| during
+// event handler if |callback| is provided.
+async function clickOnElementAndDelay(id, delay, callback) {
   const element = document.getElementById(id);
   const clickHandler = () => {
-    mainThreadBusy(120);
+    mainThreadBusy(delay);
     if (callback)
       callback();
     element.removeEventListener("mousedown", clickHandler);
   };
   element.addEventListener("mousedown", clickHandler);
-  test_driver.click(element);
+  await test_driver.click(element);
 }
 
 function mainThreadBusy(duration) {
@@ -18,15 +18,16 @@ function mainThreadBusy(duration) {
   while (performance.now() < now + duration);
 }
 
-// This method should receive an entry of type 'event'. |is_first| is true only
-// when the event also happens to correspond to the first event. In this case,
-// the timings of the 'first-input' entry should be equal to those of this entry.
-function verifyClickEvent(entry, targetId, is_first=false) {
+// This method should receive an entry of type 'event'. |isFirst| is true only when we want
+// to check that the event also happens to correspond to the first event. In this case, the
+// timings of the 'first-input' entry should be equal to those of this entry. |minDuration|
+// is used to compared against entry.duration.
+function verifyClickEvent(entry, targetId, isFirst=false, minDuration=104) {
   assert_true(entry.cancelable);
   assert_equals(entry.name, 'mousedown');
   assert_equals(entry.entryType, 'event');
-  assert_greater_than_equal(entry.duration, 104,
-      "The entry's duration should be greater than or equal to 104 ms.");
+  assert_greater_than_equal(entry.duration, minDuration,
+      "The entry's duration should be greater than or equal to " + minDuration + " ms.");
   assert_greater_than(entry.processingStart, entry.startTime,
       "The entry's processingStart should be greater than startTime.");
   assert_greater_than_equal(entry.processingEnd, entry.processingStart,
@@ -35,7 +36,7 @@ function verifyClickEvent(entry, targetId, is_first=false) {
   // on the actual duration.
   assert_greater_than_equal(entry.duration + 4, entry.processingEnd - entry.startTime,
       "The entry's duration must be at least as large as processingEnd - startTime.");
-  if (is_first) {
+  if (isFirst) {
     let firstInputs = performance.getEntriesByType('first-input');
     assert_equals(firstInputs.length, 1, 'There should be a single first-input entry');
     let firstInput = firstInputs[0];
@@ -61,6 +62,58 @@ function wait() {
 
 function clickAndBlockMain(id) {
   return new Promise((resolve, reject) => {
-    clickOnElement(id, resolve);
+    clickOnElementAndDelay(id, 120, resolve);
   });
+}
+
+  // Add a PerformanceObserver and observe with a durationThreshold of |dur|. This test will
+  // attempt to check that the duration is appropriately checked by:
+  // * Asserting that entries received have a duration which is the smallest multiple of 8
+  //   that is greater than or equal to |dur|.
+  // * Issuing |numEntries| entries that are fast, of duration |slowDur|.
+  // * Issuing |numEntries| entries that are slow, of duration |fastDur|.
+  // * Asserting that at least |numEntries| entries are received (at least the slow ones).
+  // Parameters:
+  // |t|          - the test harness.
+  // |dur|        - the durationThreshold for the PerformanceObserver.
+  // |id|         - the ID of the element to be clicked.
+  // |numEntries| - the number of slow and number of fast entries.
+  // |slowDur|    - the min duration of a slow entry.
+  // |fastDur|    - the min duration of a fast entry.
+async function testDuration(t, id, numEntries, dur, fastDur, slowDur) {
+  assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
+  const observerPromise = new Promise(async resolve => {
+    let minDuration = Math.ceil(dur / 8) * 8;
+    // Exposed events must always have a minimum duration of 16.
+    minDuration = Math.max(minDuration, 16);
+    let numEntriesReceived = 0;
+    new PerformanceObserver(list => {
+      const mouseDowns = list.getEntriesByName('mousedown');
+      mouseDowns.forEach(e => {
+        t.step(() => {
+          verifyClickEvent(e, id, false /* isFirst */, minDuration);
+        });
+      });
+      numEntriesReceived += mouseDowns.length;
+      // Note that we may receive more entries if the 'fast' click events turn out slower
+      // than expected.
+      if (numEntriesReceived >= numEntries)
+        resolve();
+    }).observe({type: "event", durationThreshold: dur});
+  });
+  const clicksPromise = new Promise(async resolve => {
+    for (let index = 0; index < numEntries; index++) {
+      // Add some fast click events.
+      await clickOnElementAndDelay(id, slowDur);
+      // Add some slow click events.
+      if (fastDur > 0) {
+        await clickOnElementAndDelay(id, fastDur);
+      } else {
+        // We can just directly call test_driver when |fastDur| is 0.
+        await test_driver.click(document.getElementById(id));
+      }
+    }
+    resolve();
+  });
+  return Promise.all([observerPromise, clicksPromise]);
 }

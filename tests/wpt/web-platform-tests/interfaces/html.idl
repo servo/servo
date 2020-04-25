@@ -45,10 +45,10 @@ interface DOMStringList {
 enum DocumentReadyState { "loading", "interactive", "complete" };
 typedef (HTMLScriptElement or SVGScriptElement) HTMLOrSVGScriptElement;
 
-[OverrideBuiltins]
+[LegacyOverrideBuiltIns]
 partial interface Document {
   // resource metadata management
-  [PutForwards=href, Unforgeable] readonly attribute Location? location;
+  [PutForwards=href, LegacyUnforgeable] readonly attribute Location? location;
   attribute USVString domain;
   readonly attribute USVString referrer;
   attribute USVString cookie;
@@ -89,7 +89,7 @@ partial interface Document {
   DOMString queryCommandValue(DOMString commandId);
 
   // special event handler IDL attributes that only apply to Document objects
-  [LenientThis] attribute EventHandler onreadystatechange;
+  [LegacyLenientThis] attribute EventHandler onreadystatechange;
 
   // also has obsolete members
 };
@@ -119,7 +119,7 @@ interface HTMLElement : Element {
   [CEReactions] attribute boolean spellcheck;
   [CEReactions] attribute DOMString autocapitalize;
 
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString innerText;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString innerText;
 
   ElementInternals attachInternals();
 };
@@ -145,7 +145,7 @@ interface mixin HTMLOrSVGElement {
 };
 
 [Exposed=Window,
- OverrideBuiltins]
+ LegacyOverrideBuiltIns]
 interface DOMStringMap {
   getter DOMString (DOMString name);
   [CEReactions] setter void (DOMString name, DOMString value);
@@ -365,7 +365,7 @@ interface HTMLSourceElement : HTMLElement {
 };
 
 [Exposed=Window,
- NamedConstructor=Image(optional unsigned long width, optional unsigned long height)]
+ LegacyFactoryFunction=Image(optional unsigned long width, optional unsigned long height)]
 interface HTMLImageElement : HTMLElement {
   [HTMLConstructor] constructor();
 
@@ -463,7 +463,7 @@ interface HTMLVideoElement : HTMLMediaElement {
 };
 
 [Exposed=Window,
- NamedConstructor=Audio(optional DOMString src)]
+ LegacyFactoryFunction=Audio(optional DOMString src)]
 interface HTMLAudioElement : HTMLMediaElement {
   [HTMLConstructor] constructor();
 };
@@ -766,7 +766,7 @@ interface HTMLTableCellElement : HTMLElement {
 };
 
 [Exposed=Window,
- OverrideBuiltins,
+ LegacyOverrideBuiltIns,
  LegacyUnenumerableNamedProperties]
 interface HTMLFormElement : HTMLElement {
   [HTMLConstructor] constructor();
@@ -840,7 +840,7 @@ interface HTMLInputElement : HTMLElement {
   [CEReactions] attribute DOMString step;
   [CEReactions] attribute DOMString type;
   [CEReactions] attribute DOMString defaultValue;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString value;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString value;
   attribute object? valueAsDate;
   attribute unrestricted double valueAsNumber;
   [CEReactions] attribute unsigned long width;
@@ -944,7 +944,7 @@ interface HTMLOptGroupElement : HTMLElement {
 };
 
 [Exposed=Window,
- NamedConstructor=Option(optional DOMString text = "", optional DOMString value, optional boolean defaultSelected = false, optional boolean selected = false)]
+ LegacyFactoryFunction=Option(optional DOMString text = "", optional DOMString value, optional boolean defaultSelected = false, optional boolean selected = false)]
 interface HTMLOptionElement : HTMLElement {
   [HTMLConstructor] constructor();
 
@@ -979,7 +979,7 @@ interface HTMLTextAreaElement : HTMLElement {
 
   readonly attribute DOMString type;
   [CEReactions] attribute DOMString defaultValue;
-  attribute [TreatNullAs=EmptyString] DOMString value;
+  attribute [LegacyNullToEmptyString] DOMString value;
   readonly attribute unsigned long textLength;
 
   readonly attribute boolean willValidate;
@@ -1269,7 +1269,7 @@ interface mixin CanvasFillStrokeStyles {
   attribute (DOMString or CanvasGradient or CanvasPattern) fillStyle; // (default black)
   CanvasGradient createLinearGradient(double x0, double y0, double x1, double y1);
   CanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
-  CanvasPattern? createPattern(CanvasImageSource image, [TreatNullAs=EmptyString] DOMString repetition);
+  CanvasPattern? createPattern(CanvasImageSource image, [LegacyNullToEmptyString] DOMString repetition);
 
 };
 
@@ -1593,11 +1593,11 @@ dictionary DragEventInit : MouseEventInit {
  LegacyUnenumerableNamedProperties]
 interface Window : EventTarget {
   // the current browsing context
-  [Unforgeable] readonly attribute WindowProxy window;
+  [LegacyUnforgeable] readonly attribute WindowProxy window;
   [Replaceable] readonly attribute WindowProxy self;
-  [Unforgeable] readonly attribute Document document;
+  [LegacyUnforgeable] readonly attribute Document document;
   attribute DOMString name;
-  [PutForwards=href, Unforgeable] readonly attribute Location location;
+  [PutForwards=href, LegacyUnforgeable] readonly attribute Location location;
   readonly attribute History history;
   readonly attribute CustomElementRegistry customElements;
   [Replaceable] readonly attribute BarProp locationbar;
@@ -1616,11 +1616,11 @@ interface Window : EventTarget {
   // other browsing contexts
   [Replaceable] readonly attribute WindowProxy frames;
   [Replaceable] readonly attribute unsigned long length;
-  [Unforgeable] readonly attribute WindowProxy? top;
+  [LegacyUnforgeable] readonly attribute WindowProxy? top;
   attribute any opener;
   [Replaceable] readonly attribute WindowProxy? parent;
   readonly attribute Element? frameElement;
-  WindowProxy? open(optional USVString url = "", optional DOMString target = "_blank", optional [TreatNullAs=EmptyString] DOMString features = "");
+  WindowProxy? open(optional USVString url = "", optional DOMString target = "_blank", optional [LegacyNullToEmptyString] DOMString features = "");
   getter object (DOMString name);
   // Since this is the global object, the IDL named getter adds a NamedPropertiesObject exotic
   // object on the prototype chain. Indeed, this does not make the global object an exotic object.
@@ -1668,21 +1668,21 @@ interface History {
 
 [Exposed=Window]
 interface Location { // but see also additional creation steps and overridden internal methods
-  [Unforgeable] stringifier attribute USVString href;
-  [Unforgeable] readonly attribute USVString origin;
-  [Unforgeable] attribute USVString protocol;
-  [Unforgeable] attribute USVString host;
-  [Unforgeable] attribute USVString hostname;
-  [Unforgeable] attribute USVString port;
-  [Unforgeable] attribute USVString pathname;
-  [Unforgeable] attribute USVString search;
-  [Unforgeable] attribute USVString hash;
+  [LegacyUnforgeable] stringifier attribute USVString href;
+  [LegacyUnforgeable] readonly attribute USVString origin;
+  [LegacyUnforgeable] attribute USVString protocol;
+  [LegacyUnforgeable] attribute USVString host;
+  [LegacyUnforgeable] attribute USVString hostname;
+  [LegacyUnforgeable] attribute USVString port;
+  [LegacyUnforgeable] attribute USVString pathname;
+  [LegacyUnforgeable] attribute USVString search;
+  [LegacyUnforgeable] attribute USVString hash;
 
-  [Unforgeable] void assign(USVString url);
-  [Unforgeable] void replace(USVString url);
-  [Unforgeable] void reload();
+  [LegacyUnforgeable] void assign(USVString url);
+  [LegacyUnforgeable] void replace(USVString url);
+  [LegacyUnforgeable] void reload();
 
-  [Unforgeable, SameObject] readonly attribute DOMStringList ancestorOrigins;
+  [LegacyUnforgeable, SameObject] readonly attribute DOMStringList ancestorOrigins;
 };
 
 [Exposed=Window,
@@ -1787,15 +1787,15 @@ dictionary PromiseRejectionEventInit : EventInit {
   any reason;
 };
 
-[TreatNonObjectAsNull]
+[LegacyTreatNonObjectAsNull]
 callback EventHandlerNonNull = any (Event event);
 typedef EventHandlerNonNull? EventHandler;
 
-[TreatNonObjectAsNull]
+[LegacyTreatNonObjectAsNull]
 callback OnErrorEventHandlerNonNull = any ((Event or DOMString) event, optional DOMString source, optional unsigned long lineno, optional unsigned long colno, optional any error);
 typedef OnErrorEventHandlerNonNull? OnErrorEventHandler;
 
-[TreatNonObjectAsNull]
+[LegacyTreatNonObjectAsNull]
 callback OnBeforeUnloadEventHandlerNonNull = DOMString? (Event event);
 typedef OnBeforeUnloadEventHandlerNonNull? OnBeforeUnloadEventHandler;
 
@@ -1836,8 +1836,8 @@ interface mixin GlobalEventHandlers {
   attribute EventHandler onloadedmetadata;
   attribute EventHandler onloadstart;
   attribute EventHandler onmousedown;
-  [LenientThis] attribute EventHandler onmouseenter;
-  [LenientThis] attribute EventHandler onmouseleave;
+  [LegacyLenientThis] attribute EventHandler onmouseenter;
+  [LegacyLenientThis] attribute EventHandler onmouseleave;
   attribute EventHandler onmousemove;
   attribute EventHandler onmouseout;
   attribute EventHandler onmouseover;
@@ -1969,7 +1969,7 @@ interface mixin NavigatorLanguage {
 };
 
 interface mixin NavigatorContentUtils {
-  [SecureContext] void registerProtocolHandler(DOMString scheme, USVString url, DOMString title);
+  [SecureContext] void registerProtocolHandler(DOMString scheme, USVString url);
   [SecureContext] void unregisterProtocolHandler(DOMString scheme, USVString url);
 };
 
@@ -2361,8 +2361,8 @@ interface HTMLFrameElement : HTMLElement {
   readonly attribute Document? contentDocument;
   readonly attribute WindowProxy? contentWindow;
 
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString marginHeight;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString marginWidth;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString marginHeight;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString marginWidth;
 };
 
 partial interface HTMLAnchorElement {
@@ -2378,11 +2378,11 @@ partial interface HTMLAreaElement {
 };
 
 partial interface HTMLBodyElement {
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString text;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString link;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString vLink;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString aLink;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString bgColor;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString text;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString link;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString vLink;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString aLink;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString bgColor;
   [CEReactions] attribute DOMString background;
 };
 
@@ -2426,7 +2426,7 @@ partial interface HTMLEmbedElement {
 interface HTMLFontElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString color;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString color;
   [CEReactions] attribute DOMString face;
   [CEReactions] attribute DOMString size;
 };
@@ -2453,8 +2453,8 @@ partial interface HTMLIFrameElement {
   [CEReactions] attribute DOMString frameBorder;
   [CEReactions] attribute USVString longDesc;
 
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString marginHeight;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString marginWidth;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString marginHeight;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString marginWidth;
 };
 
 partial interface HTMLImageElement {
@@ -2465,7 +2465,7 @@ partial interface HTMLImageElement {
   [CEReactions] attribute unsigned long vspace;
   [CEReactions] attribute USVString longDesc;
 
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString border;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString border;
 };
 
 partial interface HTMLInputElement {
@@ -2506,7 +2506,7 @@ partial interface HTMLObjectElement {
   [CEReactions] attribute DOMString codeBase;
   [CEReactions] attribute DOMString codeType;
 
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString border;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString border;
 };
 
 partial interface HTMLOListElement {
@@ -2544,9 +2544,9 @@ partial interface HTMLTableElement {
   [CEReactions] attribute DOMString summary;
   [CEReactions] attribute DOMString width;
 
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString bgColor;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString cellPadding;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString cellSpacing;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString bgColor;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString cellPadding;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString cellSpacing;
 };
 
 partial interface HTMLTableSectionElement {
@@ -2567,7 +2567,7 @@ partial interface HTMLTableCellElement {
   [CEReactions] attribute boolean noWrap;
   [CEReactions] attribute DOMString vAlign;
 
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString bgColor;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString bgColor;
 };
 
 partial interface HTMLTableRowElement {
@@ -2576,7 +2576,7 @@ partial interface HTMLTableRowElement {
   [CEReactions] attribute DOMString chOff;
   [CEReactions] attribute DOMString vAlign;
 
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString bgColor;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString bgColor;
 };
 
 partial interface HTMLUListElement {
@@ -2585,11 +2585,11 @@ partial interface HTMLUListElement {
 };
 
 partial interface Document {
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString fgColor;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString linkColor;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString vlinkColor;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString alinkColor;
-  [CEReactions] attribute [TreatNullAs=EmptyString] DOMString bgColor;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString fgColor;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString linkColor;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString vlinkColor;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString alinkColor;
+  [CEReactions] attribute [LegacyNullToEmptyString] DOMString bgColor;
 
   [SameObject] readonly attribute HTMLCollection anchors;
   [SameObject] readonly attribute HTMLCollection applets;

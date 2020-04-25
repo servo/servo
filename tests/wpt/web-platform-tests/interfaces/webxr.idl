@@ -65,6 +65,7 @@ dictionary XRRenderStateInit {
   double depthFar;
   double inlineVerticalFieldOfView;
   XRWebGLLayer? baseLayer;
+  sequence<XRLayer>? layers;
 };
 
 [SecureContext, Exposed=Window] interface XRRenderState {
@@ -172,6 +173,9 @@ interface XRInputSourceArray {
   getter XRInputSource(unsigned long index);
 };
 
+[SecureContext, Exposed=Window]
+interface XRLayer {};
+
 typedef (WebGLRenderingContext or
          WebGL2RenderingContext) XRWebGLRenderingContext;
 
@@ -185,7 +189,7 @@ dictionary XRWebGLLayerInit {
 };
 
 [SecureContext, Exposed=Window]
-interface XRWebGLLayer {
+interface XRWebGLLayer: XRLayer {
   constructor(XRSession session,
              XRWebGLRenderingContext context,
              optional XRWebGLLayerInit layerInit = {});

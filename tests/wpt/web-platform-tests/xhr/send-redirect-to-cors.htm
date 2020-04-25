@@ -24,20 +24,20 @@
 
       function redirect(code, name = code, method = "GET", body = null, explicitType = null, safelistContentType = false) {
         async_test(t => {
-          var client = new XMLHttpRequest()
+          let { body: expectedBody, type: expectedType } = extractBody(body);
+          if (explicitType !== null) {
+            expectedType = explicitType;
+          }
+          let expectedMethod = method;
+          if (((code === "301" || code === "302") && method === "POST") || (code === "303" && method !== "GET" && method !== "HEAD")) {
+            expectedMethod = "GET";
+            expectedBody = "";
+            expectedType = "NO";
+          }
+          const client = new XMLHttpRequest();
           client.onreadystatechange = t.step_func(() => {
             if (client.readyState === 4) {
-              if (explicitType !== "application/x-pony" || safelistContentType) {
-                let { body: expectedBody, type: expectedType } = extractBody(body);
-                if (explicitType !== null) {
-                  expectedType = explicitType
-                }
-                let expectedMethod = method;
-                if (((code === "301" || code === "302") && method === "POST") || code === "303") {
-                  expectedMethod = "GET";
-                  expectedBody = "";
-                  expectedType = "NO";
-                }
+              if ((expectedMethod === "GET" && expectedType === "NO") || explicitType !== "application/x-pony" || safelistContentType) {
                 assert_equals(client.status, 200);
                 assert_equals(client.getResponseHeader("x-request-method"), expectedMethod);
                 assert_equals(client.getResponseHeader("x-request-content-type"), expectedType);
@@ -51,7 +51,7 @@
               }
               t.done();
             }
-          })
+          });
           let safelist = "";
           if (safelistContentType) {
             safelist = "?safelist_content_type";
@@ -67,6 +67,7 @@
       redirect("301")
       redirect("301", "301 GET with explicit Content-Type", "GET", null, "application/x-pony")
       redirect("301", "301 GET with explicit Content-Type safelisted", "GET", null, "application/x-pony", true)
+      redirect("303", "303 GET with explicit Content-Type safelisted", "GET", null, "application/x-pony", true)
       redirect("302")
       redirect("303")
       redirect("302", "302 FOO with string and explicit Content-Type safelisted", "FOO", "test", "application/x-pony", true)

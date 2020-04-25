@@ -31,5 +31,25 @@ promise_test(t => {
   });
 }, 'reports true -> false when paused');
 
+promise_test(async t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
+  animation.play();
+  assert_true(animation.pending);
+  await waitForAnimationFrames(2);
+  assert_true(animation.pending);
+}, 'reports true -> true when played without a timeline');
+
+promise_test(async t => {
+  const animation =
+    new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
+                  null);
+  animation.pause();
+  assert_true(animation.pending);
+  await waitForAnimationFrames(2);
+  assert_true(animation.pending);
+}, 'reports true -> true when paused without a timeline');
+
 </script>
 </body>

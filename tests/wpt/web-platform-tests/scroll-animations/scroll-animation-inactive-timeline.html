@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Test basic functionality of scroll linked animation.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="testcommon.js"></script>
+<style>
+  .scroller {
+    overflow: auto;
+    height: 100px;
+    width: 100px;
+  }
+  .contents {
+    height: 1000px;
+    width: 100%;
+  }
+</style>
+<div id="log"></div>
+<script>
+  'use strict';
+
+promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    const scroller = animation.timeline.scrollSource;
+    // Make the scroll timeline inactive.
+    scroller.style.overflow = 'visible';
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    // Play the animation when the timeline is inactive.
+    animation.play();
+    assert_equals(animation.currentTime, null,
+      'The current time is null when the timeline is inactive.');
+    assert_equals(animation.startTime, 0,
+      'The start time is zero in Pending state.');
+    await waitForNextFrame();
+    assert_true(animation.pending,
+      'Animation has play pending task while the timeline is inactive.');
+    assert_equals(animation.playState, 'running',
+      'State is \'running\' in Pending state.');
+}, 'Play pending task doesn\'t run when the timeline is inactive.');
+
+promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    const scroller = animation.timeline.scrollSource;
+    // Make the scroll timeline inactive.
+    scroller.style.overflow = 'visible';
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    // Play the animation when the timeline is inactive.
+    animation.play();
+
+    // Make the scroll timeline active.
+    scroller.style.overflow = 'auto';
+    await animation.ready;
+    // Ready promise is resolved as a result of the timeline becoming active.
+    assert_equals(animation.currentTime, 0,
+      'Animation current time is resolved when the animation is ready.');
+    assert_equals(animation.startTime, 0,
+      'Animation start time is resolved when the animation is ready.');
+}, 'Animation start and current times are correct if scroll timeline is ' +
+   'activated after animation.play call.');
+
+promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    const scroller = animation.timeline.scrollSource;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+    const target = animation.effect.target;
+    // Advance the scroller.
+    scroller.scrollTop = 0.2 * maxScroll;
+
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    // Play the animation when the timeline is active.
+    animation.play();
+    await animation.ready;
+
+    // Make the scroll timeline inactive.
+    scroller.style.overflow = 'visible';
+    scroller.scrollTop;
+    await waitForNextFrame();
+    assert_equals(animation.playState, 'running',
+      'State is \'running\' when the timeline is inactive.');
+    assert_equals(animation.currentTime, null,
+      'Current time is unresolved when the timeline is inactive.');
+    assert_equals(animation.startTime, 0,
+      'Start time is zero when the timeline is inactive.');
+    assert_equals(
+      animation.effect.getComputedTiming().localTime,
+      null,
+      'Effect local time is null when the timeline is inactive.');
+    assert_equals(Number(getComputedStyle(target).opacity), 1,
+      'Animation does not have an effect when the timeline is inactive.');
+
+    // Make the scroll timeline active.
+    scroller.style.overflow = 'auto';
+    await waitForNextFrame();
+
+    assert_equals(animation.playState, 'running',
+      'State is \'running\' when the timeline is active.');
+    assert_equals(animation.currentTime, 200,
+      'Current time is resolved when the timeline is active.');
+    assert_equals(animation.startTime, 0,
+      'Start time is zero when the timeline is active.');
+    assert_times_equal(
+      animation.effect.getComputedTiming().localTime,
+      200,
+      'Effect local time is resolved when the timeline is active.');
+    assert_equals(Number(getComputedStyle(target).opacity), 0.2,
+      'Animation has an effect when the timeline is active.');
+}, 'Animation current time is correct when the timeline becomes newly ' +
+   'inactive and then active again.');
+
+promise_test(async t => {
+  const animation = createScrollLinkedAnimation(t);
+  const scroller = animation.timeline.scrollSource;
+  scroller.scrollTop;
+
+  // Wait for new animation frame which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+  animation.play();
+  await animation.ready;
+
+  // Make the scroll timeline inactive.
+  scroller.style.overflow = 'visible';
+  scroller.scrollTop;
+  await waitForNextFrame();
+
+  const eventWatcher = new EventWatcher(t, animation, 'cancel');
+  animation.cancel();
+  const cancelEvent = await eventWatcher.wait_for('cancel');
+
+  assert_equals(cancelEvent.currentTime, null,
+      'event.currentTime should be unresolved when the timeline is inactive.');
+  assert_equals(cancelEvent.timelineTime, null,
+      'event.timelineTime should be unresolved when the timeline is inactive');
+}, 'oncancel event is fired when the timeline is inactive.');
+
+
+</script>

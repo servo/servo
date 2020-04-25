@@ -1,6 +1,7 @@
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js
 // META: global=window,dedicatedworker,sharedworker,serviceworker
+// META: timeout=long
 
 'use strict';
 

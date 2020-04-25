@@ -349,6 +349,9 @@ class Test(object):
             if implementation_status:
                 return implementation_status
 
+        # assuming no specific case, we are implementing it
+        return "implementing"
+
     def known_intermittent(self, subtest=None):
         metadata = self._get_metadata(subtest)
         if metadata is None:

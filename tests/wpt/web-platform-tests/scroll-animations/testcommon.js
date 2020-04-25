@@ -27,7 +27,7 @@ function createScrollLinkedAnimation(test, timeline) {
   if (timeline === undefined)
     timeline = createScrollTimeline(test);
   const DURATION = 1000; // ms
-  const KEYFRAMES = { opacity: [1, 0] };
+  const KEYFRAMES = { opacity: [0, 1] };
   return new Animation(
     new KeyframeEffect(createDiv(test), KEYFRAMES, DURATION), timeline);
 }

@@ -3,132 +3,230 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="./resources/utils.js"></script>
-<style>
-@property --a {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 1px;
-}
-
-@property --b {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 2px;
-}
-
-@property --c {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 3px;
-}
-
-@property --d {
-  syntax: "<length>";
-  inherits: false;
-  initial-value: 4px;
-}
-
-@property --d {
-  syntax: "<color>";
-  inherits: false;
-  initial-value: red;
-}
-</style>
-<style>
-@property --c {
-  syntax: "<integer>";
-  inherits: false;
-  initial-value: 6;
-}
-</style>
 <div id=outer>
   <div id=div></div>
 </div>
 <script>
 
-CSS.registerProperty({
-  name: '--b',
-  syntax: '<color>',
+test_with_at_property({
+  syntax: '"<length>"',
   inherits: false,
-  initialValue: 'green'
-});
-
-CSS.registerProperty({
-  name: '--e',
-  syntax: '<color>',
-  inherits: false,
-  initialValue: 'blue'
-});
-
-test(() => {
-  assert_equals(getComputedStyle(div).getPropertyValue('--a'), '1px');
+  initialValue: '1px'
+}, (name) => {
+  assert_equals(getComputedStyle(div).getPropertyValue(name), '1px');
 }, '@property determines the registration when uncontested');
 
-test(() => {
-  assert_equals(getComputedStyle(div).getPropertyValue('--b'), 'rgb(0, 128, 0)');
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '2px'
+}, (name) => {
+  CSS.registerProperty({
+    name: name,
+    syntax: '<color>',
+    inherits: false,
+    initialValue: 'green'
+  });
+  assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(0, 128, 0)');
 }, 'CSS.registerProperty wins over @property');
 
-test(() => {
-  assert_equals(getComputedStyle(div).getPropertyValue('--c'), '6');
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '3px'
+}, (name1) => {
+  with_at_property({
+    name: name1,
+    syntax: '"<integer>"',
+    inherits: false,
+    initialValue: '6'
+  }, (name2) => {
+    assert_equals(name1, name2);
+    assert_equals(getComputedStyle(div).getPropertyValue(name2), '6');
+  });
 }, '@property later in document order wins');
 
 test(() => {
-  assert_equals(getComputedStyle(div).getPropertyValue('--d'), 'rgb(255, 0, 0)');
+  let name = generate_name();
+
+  with_style_node(`
+    @property ${name} {
+      syntax: "<length>";
+      inherits: false;
+      initial-value: 4px;
+    }
+
+    @property ${name} {
+      syntax: "<color>";
+      inherits: false;
+      initial-value: red;
+    }
+  `, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(255, 0, 0)');
+  });
 }, '@property later in stylesheet wins');
 
 test(() => {
-  assert_equals(getComputedStyle(div).getPropertyValue('--e'), 'rgb(0, 0, 255)');
+  let name = generate_name();
+  CSS.registerProperty({
+    name: name,
+    syntax: '<color>',
+    inherits: false,
+    initialValue: 'green'
+  });
+  assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(0, 128, 0)');
 }, 'CSS.registerProperty determines the registration when uncontested');
 
 test(() => {
-  // --f is initially not registered, hence has no initial value.
-  assert_equals(getComputedStyle(div).getPropertyValue('--f'), '');
+  let name = generate_name();
+
+  // ${name} is initially not registered, hence has no initial value.
+  assert_equals(getComputedStyle(div).getPropertyValue(name), '');
 
   with_at_property({
-    name: '--f',
+    name: name,
     syntax: '"<length>"',
     inherits: false,
     initialValue: '10px'
   }, () => {
-    assert_equals(getComputedStyle(div).getPropertyValue('--f'), '10px');
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '10px');
   });
 
-  // When the style node is removed, --f should be unregistered again.
-  assert_equals(getComputedStyle(div).getPropertyValue('--f'), '');
+  // When the style node is removed, ${name} should be unregistered again.
+  assert_equals(getComputedStyle(div).getPropertyValue(name), '');
 }, '@property registrations are cleared when rule removed');
 
-test_with_style_node('div { --g: calc(1px + 1px); }', () => {
-  // --g should be a token sequence at this point.
-  assert_equals(getComputedStyle(div).getPropertyValue('--g'), ' calc(1px + 1px)');
+test(() => {
+  let name = generate_name();
 
-  with_at_property({
-    name: '--g',
-    syntax: '"<length>"',
-    inherits: false,
-    initialValue: '0px'
-  }, () => {
-    // --g is now a <length>, hence the calc() should be simplified.
-    assert_equals(getComputedStyle(div).getPropertyValue('--g'), '2px');
+  with_style_node(`div { ${name}: calc(1px + 1px); }`, () => {
+    // ${name} should be a token sequence at this point.
+    assert_equals(getComputedStyle(div).getPropertyValue(name), ' calc(1px + 1px)');
+
+    with_at_property({
+      name: name,
+      syntax: '"<length>"',
+      inherits: false,
+      initialValue: '0px'
+    }, () => {
+      // ${name} is now a <length>, hence the calc() should be simplified.
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '2px');
+    });
+
+    // ${name} should be a token sequence again.
+    assert_equals(getComputedStyle(div).getPropertyValue(name), ' calc(1px + 1px)');
   });
-
-  // --g should be a token sequence again.
-  assert_equals(getComputedStyle(div).getPropertyValue('--g'), ' calc(1px + 1px)');
 }, 'Computed value becomes token sequence when @property is removed');
 
-test_with_style_node('#outer { --h: 10px; }', () => {
-  assert_equals(getComputedStyle(div).getPropertyValue('--h'), ' 10px');
+test(() => {
+  let name = generate_name();
 
-  with_at_property({
-    name: '--h',
-    syntax: '"<length>"',
-    inherits: false,
-    initialValue: '0px'
-  }, () => {
-    // --h is no longer inherited
-    assert_equals(getComputedStyle(div).getPropertyValue('--h'), '0px');
+  with_style_node(`#outer { ${name}: 10px; }`, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), ' 10px');
+
+    with_at_property({
+      name: name,
+      syntax: '"<length>"',
+      inherits: false,
+      initialValue: '0px'
+    }, () => {
+      // ${name} is no longer inherited
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '0px');
+    });
+
+    assert_equals(getComputedStyle(div).getPropertyValue(name), ' 10px');
   });
-
-  assert_equals(getComputedStyle(div).getPropertyValue('--h'), ' 10px');
 }, 'Inherited status is reflected in computed styles when @property is removed');
+
+test(() => {
+  let name = generate_name();
+
+  with_style_node(`
+    @property ${name} {
+      syntax: "<length>";
+      inherits: false;
+      initial-value: 1px;
+    }
+
+    @property ${name} {
+      inherits: false;
+      initial-value: green;
+    }
+  `, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '1px');
+  });
+}, 'Invalid @property rule (missing syntax) does not overwrite previous valid rule');
+
+test(() => {
+  let name = generate_name();
+
+  with_style_node(`
+    @property ${name} {
+      syntax: "<length>";
+      inherits: false;
+      initial-value: 1px;
+    }
+
+    @property ${name} {
+      syntax: "<color>";
+      initial-value: green;
+    }
+  `, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '1px');
+  });
+}, 'Invalid @property rule (missing inherits descriptor) does not overwrite previous valid rule');
+
+test(() => {
+  let name = generate_name();
+
+  with_style_node(`
+    @property ${name} {
+      syntax: "<length>";
+      inherits: false;
+      initial-value: 1px;
+    }
+
+    @property ${name} {
+      syntax: "<color>";
+      inherits: false;
+    }
+  `, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '1px');
+  });
+}, 'Invalid @property rule (missing initial-value) does not overwrite previous valid rule');
+
+test(() => {
+  let name = generate_name();
+
+  with_style_node(`
+    @property ${name} {
+      syntax: "<color>";
+      inherits: false;
+    }
+
+    @property ${name} {
+      syntax: "<length>";
+      inherits: false;
+      initial-value: 1px;
+    }
+  `, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '1px');
+  });
+}, 'Previous invalid rule does not prevent valid rule from causing registration');
+
+test(() => {
+  let name = generate_name();
+
+  with_style_node(`
+    @property ${name} {
+      syntax: "<length>";
+      inherits: false;
+      initial-value: 1px;
+      quite-unknown: 200;
+    }
+  `, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), '1px');
+  });
+}, 'Unknown descriptors are ignored and do not invalidate rule');
 
 </script>

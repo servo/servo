@@ -53,6 +53,11 @@
     // We have no test cases using valid colors other than "#000000".
     return "#000000";
   }
+  function browserSupportsInputTypeOf(inputType) {
+    var inputTest = document.createElement("input");
+    inputTest.type = inputType;
+    return (inputTest.type === inputType);
+  }
 
 
   var types = [
@@ -99,6 +104,8 @@
     for (var j = 0; j < types.length; j++) {
       if (types[i] != types[j]) {
         test(function() {
+          assert_implements(browserSupportsInputTypeOf(types[i].type), "Support for input type " + types[i].type + " is required for this test.");
+          assert_implements(browserSupportsInputTypeOf(types[j].type), "Support for input type " + types[j].type + " is required for this test.");
           var input = document.createElement("input");
           var expected = INITIAL_VALUE;
           input.type = types[i].type;

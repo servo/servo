@@ -89,6 +89,10 @@
         endScrollOffset: {target: end, ...config.end }
       });
 
+      // Wait for new animation frame  which allows the timeline to compute new
+      // current time.
+      await waitForNextFrame();
+
       const animation = createScrollLinkedAnimation(t, timeline);
       const scrollRange = end.offsetTop - start.offsetTop;
       const timeRange = animation.timeline.timeRange;
@@ -100,11 +104,12 @@
         "The start time is null in Idle state.");
 
       animation.play();
+      assert_true(animation.pending, "Animation is in pending state.");
       // Verify initial start and current times in Pending state.
       assert_times_equal(animation.currentTime, 0,
-        "The current time is a hold time in Pending state.");
-      assert_equals(animation.startTime, null,
-        "The start time is null in Pending state.");
+        "The current time is zero in Pending state.");
+      assert_equals(animation.startTime, 0,
+        "The start time is zero in Pending state.");
 
       await animation.ready;
       // Verify initial start and current times in Playing state.

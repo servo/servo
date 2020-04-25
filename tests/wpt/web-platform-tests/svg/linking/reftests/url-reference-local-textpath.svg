@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml">
+  <title>Local URL reference on &#x3c;textPath&#x3e; with base URL different from document URL</title>
+  <h:link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/linking.html#linkRefAttrs"/>
+  <h:link rel="match" href="reference/green-100x100.svg"/>
+  <h:base href="http://www.example.com/"/>
+
+  <path id="path" d="M0,80h100"/>
+  <text font-size="100" font-family="Ahem" fill="green"><textPath href="#path">X</textPath></text>
+</svg>

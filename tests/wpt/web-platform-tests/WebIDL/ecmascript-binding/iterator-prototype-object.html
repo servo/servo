@@ -37,16 +37,7 @@ test(() => {
   });
 }, "next() throws TypeError when called on ineligible receiver");
 
-test(() => {
-  const iteratorProto = Object.getPrototypeOf(new URLSearchParams().entries());
-  assert_equals(Object.prototype.toString.call(iteratorProto), "[object URLSearchParams Iterator]");
-}, "Object.prototype.toString returns correct value");
-
-test(() => {
-  const iteratorProto = Object.getPrototypeOf(new URLSearchParams().entries());
-  assert_equals(Object.getOwnPropertyDescriptor(iteratorProto, Symbol.toStringTag).value, "URLSearchParams Iterator");
-  // Property attributes have not yet been fully spec'd.
-}, "@@toStringTag has correct value");
+// class string behavior tested in a dedicated file
 
 test(() => {
   const iteratorProto1 = Object.getPrototypeOf(new URLSearchParams().entries());

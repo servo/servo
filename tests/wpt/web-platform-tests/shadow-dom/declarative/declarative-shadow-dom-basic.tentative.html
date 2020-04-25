@@ -113,5 +113,24 @@ test(() => {
   assert_true(!!host.shadowRoot,"No shadow root found");
   assert_false(host.shadowRoot.delegatesFocus,"delegatesFocus should be false without the shadowrootdelegatesfocus attribute");
 }, 'Declarative Shadow DOM: delegates focus attribute');
+</script>
+
+<div id="multi-host">
+  <template shadowroot="open">
+    <span>root 1</span>
+  </template>
+  <template shadowroot="closed">
+    <span>root 2</span>
+  </template>
+</div>
+
+<script>
+test(() => {
+  const host = document.querySelector('#multi-host');
+  assert_equals(host.querySelector('template'), null, "No leftover template nodes from either root");
+  assert_true(!!host.shadowRoot,"No open shadow root found - first root should remain");
+  const innerSpan = host.shadowRoot.querySelector('span');
+  assert_equals(innerSpan.textContent, 'root 2', "Content should come from last declarative shadow root");
+}, 'Declarative Shadow DOM: Multiple roots');
 
 </script>

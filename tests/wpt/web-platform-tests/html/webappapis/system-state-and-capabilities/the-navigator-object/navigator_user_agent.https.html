@@ -10,9 +10,9 @@
 
   promise_test(async t => {
     const uaData = navigator.userAgentData;
-    for (ua of uaData.uaList) {
-      assert_equals(typeof ua.brand, "string", "brand should be a string");
-      assert_equals(typeof ua.version, "string", "version should be a string");
+    for (brandVersionPair of uaData.brands) {
+      assert_equals(typeof brandVersionPair.brand, "string", "brand should be a string");
+      assert_equals(typeof brandVersionPair.version, "string", "version should be a string");
     }
     assert_equals(typeof uaData.mobile, "boolean", "mobile should be a boolean");
     const highEntropyData = await uaData.getHighEntropyValues(["platform", "platformVersion", "architecture", "model"]);
