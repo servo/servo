@@ -21,7 +21,7 @@ extern crate serde;
 use http::method::Method;
 use http::HeaderMap;
 use ipc_channel::ipc::IpcSender;
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use servo_url::ServoUrl;
 use std::net::TcpStream;
 use time::{self, Duration, Tm};
@@ -29,7 +29,7 @@ use uuid::Uuid;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DevtoolsPageInfo {
     pub title: String,
     pub url: ServoUrl,
@@ -65,16 +65,27 @@ pub enum ChromeToDevtoolsControlMsg {
     NetworkEvent(String, NetworkEvent),
 }
 
+/// The state of a page navigation.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum NavigationState {
+    /// A browsing context is about to navigate to a given URL.
+    Start(ServoUrl),
+    /// A browsing context has completed navigating to the provided pipeline.
+    Stop(PipelineId, DevtoolsPageInfo),
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 /// Events that the devtools server must act upon.
 pub enum ScriptToDevtoolsControlMsg {
     /// A new global object was created, associated with a particular pipeline.
     /// The means of communicating directly with it are provided.
     NewGlobal(
-        (PipelineId, Option<WorkerId>),
+        (Option<BrowsingContextId>, PipelineId, Option<WorkerId>),
         IpcSender<DevtoolScriptControlMsg>,
         DevtoolsPageInfo,
     ),
+    /// The given browsing context is performing a navigation.
+    Navigate(BrowsingContextId, NavigationState),
     /// A particular page has invoked the console API.
     ConsoleAPI(PipelineId, ConsoleMessage, Option<WorkerId>),
     /// An animation frame with the given timestamp was processed in a script thread.

@@ -93,7 +93,7 @@ use canvas_traits::webgl::WebGLPipeline;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::CSSError;
 use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo};
-use devtools_traits::{ScriptToDevtoolsControlMsg, WorkerId};
+use devtools_traits::{NavigationState, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{EmbedderMsg, EventLoopWaker};
 use euclid::default::{Point2D, Rect};
 use euclid::Vector2D;
@@ -947,6 +947,7 @@ impl ScriptThread {
 
     /// Step 13 of https://html.spec.whatwg.org/multipage/#navigate
     pub fn navigate(
+        browsing_context: BrowsingContextId,
         pipeline_id: PipelineId,
         mut load_data: LoadData,
         replace: HistoryEntryReplacement,
@@ -985,6 +986,12 @@ impl ScriptThread {
                     .queue(task, global.upcast())
                     .expect("Enqueing navigate js task on the DOM manipulation task source failed");
             } else {
+                if let Some(ref sender) = script_thread.devtools_chan {
+                    let _ = sender.send(ScriptToDevtoolsControlMsg::Navigate(
+                        browsing_context, NavigationState::Start(load_data.url.clone())
+                    ));
+                }
+
                 script_thread
                     .script_sender
                     .send((pipeline_id, ScriptMsg::LoadUrl(load_data, replace)))
@@ -3338,7 +3345,7 @@ impl ScriptThread {
         self.notify_devtools(
             document.Title(),
             final_url.clone(),
-            (incomplete.pipeline_id, None),
+            (incomplete.browsing_context_id, incomplete.pipeline_id, None),
         );
 
         let parse_input = DOMString::new();
@@ -3369,7 +3376,7 @@ impl ScriptThread {
         &self,
         title: DOMString,
         url: ServoUrl,
-        ids: (PipelineId, Option<WorkerId>),
+        (bc, p, w): (BrowsingContextId, PipelineId, Option<WorkerId>),
     ) {
         if let Some(ref chan) = self.devtools_chan {
             let page_info = DevtoolsPageInfo {
@@ -3377,11 +3384,14 @@ impl ScriptThread {
                 url: url,
             };
             chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                ids,
+                (Some(bc), p, w),
                 self.devtools_sender.clone(),
-                page_info,
+                page_info.clone(),
             ))
             .unwrap();
+
+            let state = NavigationState::Stop(p, page_info);
+            let _ = chan.send(ScriptToDevtoolsControlMsg::Navigate(bc, state));
         }
     }
 

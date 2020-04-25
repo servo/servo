@@ -8,6 +8,7 @@
 //! inspection, JS evaluation, autocompletion) in Servo.
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::object::ObjectActor;
 use crate::protocol::JsonPacketStream;
 use crate::{ConsoleAPICall, ConsoleMessage, ConsoleMsg, PageErrorMsg};
@@ -17,10 +18,11 @@ use devtools_traits::EvaluateJSReply::{NullValue, NumberValue, VoidValue};
 use devtools_traits::{
     CachedConsoleMessageTypes, ConsoleAPI, DevtoolScriptControlMsg, LogLevel, PageError,
 };
-use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::ipc;
 use msg::constellation_msg::PipelineId;
 use serde_json::{self, Map, Number, Value};
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::net::TcpStream;
 use time::precise_time_ns;
 use uuid::Uuid;
@@ -106,10 +108,8 @@ struct SetPreferencesReply {
 
 pub struct ConsoleActor {
     pub name: String,
-    pub pipeline: PipelineId,
-    pub script_chan: IpcSender<DevtoolScriptControlMsg>,
-    pub streams: RefCell<Vec<TcpStream>>,
-    pub cached_events: RefCell<Vec<CachedConsoleMessage>>,
+    pub browsing_context: String,
+    pub cached_events: RefCell<HashMap<PipelineId, Vec<CachedConsoleMessage>>>,
 }
 
 impl ConsoleActor {
@@ -118,11 +118,13 @@ impl ConsoleActor {
         registry: &ActorRegistry,
         msg: &Map<String, Value>,
     ) -> Result<EvaluateJSReply, ()> {
+        let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
         let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
         let (chan, port) = ipc::channel().unwrap();
-        self.script_chan
+        browsing_context
+            .script_chan
             .send(DevtoolScriptControlMsg::EvaluateJS(
-                self.pipeline,
+                browsing_context.active_pipeline.get(),
                 input.clone(),
                 chan,
             ))
@@ -191,21 +193,35 @@ impl ConsoleActor {
         std::result::Result::Ok(reply)
     }
 
-    pub(crate) fn handle_page_error(&self, page_error: PageError) {
+    pub(crate) fn handle_page_error(
+        &self,
+        page_error: PageError,
+        pipeline: PipelineId,
+        browsing_context: &BrowsingContextActor,
+    ) {
         self.cached_events
             .borrow_mut()
+            .entry(pipeline)
+            .or_insert(vec![])
             .push(CachedConsoleMessage::PageError(page_error.clone()));
-        let msg = PageErrorMsg {
-            from: self.name(),
-            type_: "pageError".to_owned(),
-            pageError: page_error,
-        };
-        for stream in &mut *self.streams.borrow_mut() {
-            stream.write_json_packet(&msg);
+        if browsing_context.active_pipeline.get() == pipeline {
+            let msg = PageErrorMsg {
+                from: self.name(),
+                type_: "pageError".to_owned(),
+                pageError: page_error,
+            };
+            for stream in &mut *browsing_context.streams.borrow_mut() {
+                stream.write_json_packet(&msg);
+            }
         }
     }
 
-    pub(crate) fn handle_console_api(&self, console_message: ConsoleMessage) {
+    pub(crate) fn handle_console_api(
+        &self,
+        console_message: ConsoleMessage,
+        pipeline: PipelineId,
+        browsing_context: &BrowsingContextActor,
+    ) {
         let level = match console_message.logLevel {
             LogLevel::Debug => "debug",
             LogLevel::Info => "info",
@@ -216,6 +232,8 @@ impl ConsoleActor {
         .to_owned();
         self.cached_events
             .borrow_mut()
+            .entry(pipeline)
+            .or_insert(vec![])
             .push(CachedConsoleMessage::ConsoleAPI(ConsoleAPI {
                 type_: "ConsoleAPI".to_owned(),
                 level: level.clone(),
@@ -226,20 +244,22 @@ impl ConsoleActor {
                 private: false,
                 arguments: vec![console_message.message.clone()],
             }));
-        let msg = ConsoleAPICall {
-            from: self.name(),
-            type_: "consoleAPICall".to_owned(),
-            message: ConsoleMsg {
-                level: level,
-                timeStamp: precise_time_ns(),
-                arguments: vec![console_message.message],
-                filename: console_message.filename,
-                lineNumber: console_message.lineNumber,
-                columnNumber: console_message.columnNumber,
-            },
-        };
-        for stream in &mut *self.streams.borrow_mut() {
-            stream.write_json_packet(&msg);
+        if browsing_context.active_pipeline.get() == pipeline {
+            let msg = ConsoleAPICall {
+                from: self.name(),
+                type_: "consoleAPICall".to_owned(),
+                message: ConsoleMsg {
+                    level: level,
+                    timeStamp: precise_time_ns(),
+                    arguments: vec![console_message.message],
+                    filename: console_message.filename,
+                    lineNumber: console_message.lineNumber,
+                    columnNumber: console_message.columnNumber,
+                },
+            };
+            for stream in &mut *browsing_context.streams.borrow_mut() {
+                stream.write_json_packet(&msg);
+            }
         }
     }
 }
@@ -275,8 +295,16 @@ impl Actor for ConsoleActor {
                         s => debug!("unrecognized message type requested: \"{}\"", s),
                     };
                 }
+                let browsing_context =
+                    registry.find::<BrowsingContextActor>(&self.browsing_context);
                 let mut messages = vec![];
-                for event in self.cached_events.borrow().iter() {
+                for event in self
+                    .cached_events
+                    .borrow()
+                    .get(&browsing_context.active_pipeline.get())
+                    .unwrap_or(&vec![])
+                    .iter()
+                {
                     let include = match event {
                         CachedConsoleMessage::PageError(_)
                             if message_types.contains(CachedConsoleMessageTypes::PAGE_ERROR) =>

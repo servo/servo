@@ -105,7 +105,7 @@ impl Worker {
                 url: worker_url.clone(),
             };
             let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                (pipeline_id, Some(worker_id)),
+                (None, pipeline_id, Some(worker_id)),
                 devtools_sender.clone(),
                 page_info,
             ));

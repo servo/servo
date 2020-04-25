@@ -6,6 +6,7 @@
 //! (http://mxr.mozilla.org/mozilla-central/source/toolkit/devtools/server/actors/inspector.js).
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::actors::browsing_context::BrowsingContextActor;
 use crate::protocol::JsonPacketStream;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
@@ -22,7 +23,7 @@ pub struct InspectorActor {
     pub pageStyle: RefCell<Option<String>>,
     pub highlighter: RefCell<Option<String>>,
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
-    pub pipeline: PipelineId,
+    pub browsing_context: String,
 }
 
 #[derive(Serialize)]
@@ -596,13 +597,15 @@ impl Actor for InspectorActor {
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
     ) -> Result<ActorMessageStatus, ()> {
+        let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
+        let pipeline = browsing_context.active_pipeline.get();
         Ok(match msg_type {
             "getWalker" => {
                 if self.walker.borrow().is_none() {
                     let walker = WalkerActor {
                         name: registry.new_name("walker"),
                         script_chan: self.script_chan.clone(),
-                        pipeline: self.pipeline,
+                        pipeline: pipeline,
                     };
                     let mut walker_name = self.walker.borrow_mut();
                     *walker_name = Some(walker.name());
@@ -610,13 +613,10 @@ impl Actor for InspectorActor {
                 }
 
                 let (tx, rx) = ipc::channel().unwrap();
-                self.script_chan
-                    .send(GetRootNode(self.pipeline, tx))
-                    .unwrap();
+                self.script_chan.send(GetRootNode(pipeline, tx)).unwrap();
                 let root_info = rx.recv().unwrap().ok_or(())?;
 
-                let node =
-                    root_info.encode(registry, false, self.script_chan.clone(), self.pipeline);
+                let node = root_info.encode(registry, false, self.script_chan.clone(), pipeline);
 
                 let msg = GetWalkerReply {
                     from: self.name(),
@@ -634,7 +634,7 @@ impl Actor for InspectorActor {
                     let style = PageStyleActor {
                         name: registry.new_name("pageStyle"),
                         script_chan: self.script_chan.clone(),
-                        pipeline: self.pipeline,
+                        pipeline: pipeline,
                     };
                     let mut pageStyle = self.pageStyle.borrow_mut();
                     *pageStyle = Some(style.name());
