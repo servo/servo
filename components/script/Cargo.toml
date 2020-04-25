@@ -30,25 +30,25 @@ phf_shared = "0.8"
 serde_json = "1.0"
 
 [dependencies]
-accountable-refcell = {version = "0.2.0", optional = true}
+accountable-refcell = { version = "0.2.0", optional = true }
 app_units = "0.7"
-backtrace = {version = "0.3", optional = true}
+backtrace = { version = "0.3", optional = true }
 base64 = "0.10.1"
 bincode = "1"
 bitflags = "1.0"
-bluetooth_traits = {path = "../bluetooth_traits"}
-canvas_traits = {path = "../canvas_traits"}
+bluetooth_traits = { path = "../bluetooth_traits" }
+canvas_traits = { path = "../canvas_traits" }
 caseless = "0.2"
-content-security-policy = {version = "0.4.0", features = ["serde"]}
-cookie = "0.11"
 chrono = "0.4"
+content-security-policy = { version = "0.4.0", features = ["serde"] }
+cookie = "0.11"
 crossbeam-channel = "0.4"
 cssparser = "0.27"
-deny_public_fields = {path = "../deny_public_fields"}
-devtools_traits = {path = "../devtools_traits"}
-dom_struct = {path = "../dom_struct"}
-domobject_derive = {path = "../domobject_derive"}
-embedder_traits = {path = "../embedder_traits"}
+deny_public_fields = { path = "../deny_public_fields" }
+devtools_traits = { path = "../devtools_traits" }
+dom_struct = { path = "../dom_struct" }
+domobject_derive = { path = "../domobject_derive" }
+embedder_traits = { path = "../embedder_traits" }
 encoding_rs = "0.8"
 enum-iterator = "0.3"
 euclid = "0.20"
@@ -62,61 +62,61 @@ image = "0.23"
 indexmap = "1.0.2"
 ipc-channel = "0.14"
 itertools = "0.8"
-jstraceable_derive = {path = "../jstraceable_derive"}
-js = {package = "mozjs", git = "https://github.com/servo/rust-mozjs"}
+js = { package = "mozjs", git = "https://github.com/servo/rust-mozjs" }
+jstraceable_derive = { path = "../jstraceable_derive" }
 keyboard-types = "0.4.4"
 lazy_static = "1"
 libc = "0.2"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = "0.1"
-media = {path = "../media"}
-metrics = {path = "../metrics"}
-mitochondria = "1.1.2"
+media = { path = "../media" }
+metrics = { path = "../metrics" }
 mime = "0.3.13"
 mime_guess = "2.0.0-alpha.6"
-msg = {path = "../msg"}
-net_traits = {path = "../net_traits"}
+mitochondria = "1.1.2"
+msg = { path = "../msg" }
+net_traits = { path = "../net_traits" }
 num-traits = "0.2"
 parking_lot = "0.9"
 percent-encoding = "2.0"
 phf = "0.8"
-pixels = {path = "../pixels"}
-profile_traits = {path = "../profile_traits"}
+pixels = { path = "../pixels" }
+profile_traits = { path = "../profile_traits" }
 ref_filter_map = "1.0.1"
 ref_slice = "1.0"
 regex = "1.1"
-script_layout_interface = {path = "../script_layout_interface"}
-script_plugins = {path = "../script_plugins"}
-script_traits = {path = "../script_traits"}
+script_layout_interface = { path = "../script_layout_interface" }
+script_plugins = { path = "../script_plugins" }
+script_traits = { path = "../script_traits" }
 selectors = { path = "../selectors" }
-serde = {version = "1", features = ["derive"]}
+serde = { version = "1", features = ["derive"] }
 serde_bytes = "0.11"
-servo_allocator = {path = "../allocator"}
-servo_arc = {path = "../servo_arc"}
-servo_atoms = {path = "../atoms"}
-servo_config = {path = "../config"}
-servo_geometry = {path = "../geometry" }
-servo-media = {git = "https://github.com/servo/media"}
-servo_rand = {path = "../rand"}
-servo_url = {path = "../url"}
-sparkle = "0.1"
+servo_allocator = { path = "../allocator" }
+servo_arc = { path = "../servo_arc" }
+servo_atoms = { path = "../atoms" }
+servo_config = { path = "../config" }
+servo_geometry = { path = "../geometry" }
+servo_rand = { path = "../rand" }
+servo_url = { path = "../url" }
+servo-media = { git = "https://github.com/servo/media" }
 smallvec = { version = "0.6", features = ["std", "union"] }
-style = {path = "../style", features = ["servo"]}
-style_traits = {path = "../style_traits"}
+sparkle = "0.1"
+style = { path = "../style", features = ["servo"] }
+style_traits = { path = "../style_traits" }
 swapper = "0.1"
-tendril = {version = "0.4.1", features = ["encoding_rs"]}
+tendril = { version = "0.4.1", features = ["encoding_rs"] }
 time = "0.1.12"
 unicode-bidi = "0.3.4"
 unicode-segmentation = "1.1.0"
 url = "2.0"
 utf-8 = "0.7"
-uuid = {version = "0.8", features = ["v4", "serde"]}
-xml5ever = "0.16"
+uuid = { version = "0.8", features = ["v4", "serde"] }
 webdriver = "0.40"
-webgpu = {path = "../webgpu"}
-webrender_api = {git = "https://github.com/servo/webrender"}
-webxr-api = {git = "https://github.com/servo/webxr", features = ["ipc"]}
+webgpu = { path = "../webgpu" }
+webrender_api = { git = "https://github.com/servo/webrender" }
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
+xml5ever = "0.16"
 
 [target.'cfg(not(target_os = "ios"))'.dependencies]
 mozangle = "0.2"
