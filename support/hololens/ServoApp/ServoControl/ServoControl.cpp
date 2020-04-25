@@ -453,10 +453,10 @@ ServoControl::PromptSync(hstring title, hstring message, hstring primaryButton,
     dialog.PrimaryButtonText(primaryButton);
 
     if (secondaryButton.has_value()) {
-      dialog.IsPrimaryButtonEnabled(true);
+      dialog.IsSecondaryButtonEnabled(true);
       dialog.SecondaryButtonText(*secondaryButton);
     } else {
-      dialog.IsPrimaryButtonEnabled(false);
+      dialog.IsSecondaryButtonEnabled(false);
     }
 
     auto titleBlock = Controls::TextBlock();

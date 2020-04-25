@@ -267,7 +267,8 @@ impl XRSystem {
     ) {
         let session = match response {
             Ok(session) => session,
-            Err(_) => {
+            Err(e) => {
+                warn!("Error requesting XR session: {:?}", e);
                 if mode != XRSessionMode::Inline {
                     self.pending_immersive_session.set(false);
                 }
