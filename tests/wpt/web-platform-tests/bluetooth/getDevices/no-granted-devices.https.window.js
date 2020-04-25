@@ -1,6 +1,7 @@
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
-// META: script=/bluetooth/resources/bluetooth-helpers.js
+// META: script=/bluetooth/resources/bluetooth-test.js
+// META: script=/bluetooth/resources/bluetooth-fake-devices.js
 'use strict';
 const test_desc = 'getDevices() resolves with empty array if no device ' +
     'permissions have been granted.';

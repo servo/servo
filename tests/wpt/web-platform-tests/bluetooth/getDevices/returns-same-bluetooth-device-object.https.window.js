@@ -1,6 +1,7 @@
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
-// META: script=/bluetooth/resources/bluetooth-helpers.js
+// META: script=/bluetooth/resources/bluetooth-test.js
+// META: script=/bluetooth/resources/bluetooth-fake-devices.js
 'use strict';
 const test_desc = 'multiple calls to getDevices() resolves with the same' +
     'BluetoothDevice objects for each granted Bluetooth device.';

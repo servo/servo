@@ -56,7 +56,7 @@ tasks:
             owner: ${owner}
             source: ${event.repository.clone_url}
           payload:
-            image: hexcles/web-platform-tests:0.35
+            image: webplatformtests/wpt:0.36
             maxRunTime: 7200
             artifacts:
               public/results:

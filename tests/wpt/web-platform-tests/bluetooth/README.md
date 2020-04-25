@@ -10,10 +10,11 @@ Testing] test API which must be provided by browsers under test.
 TODO([#485]): Update the links to [FakeBluetooth][Web Bluetooth Testing] to
 point to the [Testing Web Bluetooth specification].
 
-In this test suite `resources/bluetooth-helpers.js` detects and triggers
-the API to be loaded as needed. This file also contains several helper methods
-that are used in the tests to set up fake Bluetooth devices and to assert that
-specific Bluetooth events happened.
+In this test suite `resources/bluetooth-test.js` detects and triggers
+the API to be loaded as needed. This file also contains test helper methods,
+such as for asserting that Bluetooth events are fired in a specific order.
+The `resources/bluetooth-fake-devices.js` contains several helper methods that set
+up fake Bluetooth devices.
 
 [Web Bluetooth specification]: https://WebBluetoothCG.github.io/web-bluetooth
 [Web Bluetooth Testing]:

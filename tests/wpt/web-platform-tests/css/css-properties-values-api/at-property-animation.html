@@ -187,4 +187,112 @@ test_with_at_property({
   }
 }, 'Ongoing animation picks up redeclared meaning of \'unset\'');
 
+test_with_at_property({
+  syntax: '"<color>"',
+  inherits: false,
+  initialValue: 'red'
+}, (name) => {
+  try {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(255, 0, 0)');
+    div.style = `transition: ${name} steps(2, start) 100s; ${name}: blue`;
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(128, 0, 128)');
+  } finally {
+    div.style = '';
+  }
+}, 'Transitioning from initial value');
+
+test_with_at_property({
+  syntax: '"<color>"',
+  inherits: false,
+  initialValue: 'red'
+}, (name) => {
+  try {
+    div.style = `${name}: blue;`;
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(0, 0, 255)');
+    div.style = `transition: ${name} steps(2, start) 100s; ${name}: green`;
+    assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(0, 64, 128)');
+  } finally {
+    div.style = '';
+  }
+}, 'Transitioning from specified value');
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '100px'
+}, (name) => {
+    with_style_node(`div { transition: ${name} steps(2, start) 100s; }`, () => {
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '100px');
+      // Re-declaring the property with a different initial value effectively
+      // means the computed value has changed. This means we should transition
+      // from the old initial value to the new initial value.
+      with_at_property({
+        name: name,
+        syntax: '"<length>"',
+        inherits: false,
+        initialValue: '200px'
+      }, () => {
+        assert_equals(getComputedStyle(div).getPropertyValue(name), '150px');
+      });
+    });
+}, 'Transition triggered by initial value change');
+
+test_with_at_property({
+  syntax: '"<length>"',
+  inherits: false,
+  initialValue: '100px'
+}, (name) => {
+    with_style_node(`div { transition: ${name} steps(2, start) 100s; }`, () => {
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '100px');
+      with_at_property({
+        name: name,
+        syntax: '"<color>"',
+        inherits: false,
+        initialValue: 'green'
+      }, () => {
+        assert_equals(getComputedStyle(div).getPropertyValue(name), 'rgb(0, 128, 0)');
+      });
+    });
+}, 'No transition when changing types');
+
+test(() => {
+  let name = generate_name();
+  with_style_node(`div { ${name}: 100px; transition: ${name} steps(2, start) 100s; }`, () => {
+    assert_equals(getComputedStyle(div).getPropertyValue(name), ' 100px');
+
+    let style1 = document.createElement('style');
+    style1.textContent = `
+      @property ${name} {
+        syntax: "<length>";
+        inherits: false;
+        initial-value: 200px;
+      }
+    `;
+
+    let style2 = document.createElement('style');
+    style2.textContent = `div { ${name}: 400px; }`;
+
+    try {
+      // Register the property:
+      document.body.append(style1);
+      // The token sequence ' 100px' is now interpreted as a length '100px'.
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '100px');
+
+      // Change the computed value:
+      document.body.append(style2);
+      // This should cause an interpolation between 100px and 400px:
+      assert_equals(getComputedStyle(div).getPropertyValue(name), '250px');
+
+      // In the middle of the transition above, remove the @property rule
+      // (making the computed value a token sequence again). We should snap
+      // to the new token sequence.
+      style1.remove();
+      assert_equals(getComputedStyle(div).getPropertyValue(name), ' 400px');
+    } finally {
+      style1.remove();
+      style2.remove();
+    }
+  });
+}, 'No transition when removing @property rule');
+
 </script>

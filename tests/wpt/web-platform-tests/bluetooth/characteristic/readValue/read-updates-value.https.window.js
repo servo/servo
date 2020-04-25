@@ -1,6 +1,7 @@
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
-// META: script=/bluetooth/resources/bluetooth-helpers.js
+// META: script=/bluetooth/resources/bluetooth-test.js
+// META: script=/bluetooth/resources/bluetooth-fake-devices.js
 const test_desc = 'Succesful read should update characteristic.value';
 const EXPECTED_VALUE = [0, 1, 2];
 

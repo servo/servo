@@ -10,7 +10,7 @@
       worker.onmessage = resolve;
     });
 
-    assert_equals(e.data.uaList, undefined);
+    assert_equals(e.data.brands, undefined);
     assert_equals(e.data.mobile, undefined);
     assert_equals(e.data.getHighEntropyValues, undefined);
   }, "Test that userAgentData is not available in workers in non-secure contexts");

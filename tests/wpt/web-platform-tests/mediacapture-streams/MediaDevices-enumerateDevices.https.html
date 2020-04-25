@@ -15,18 +15,33 @@
 <script src=/resources/testharnessreport.js></script>
 <script>
 "use strict";
+
 //NOTE ALEX: for completion, a test for ondevicechange event is missing.
+
 promise_test(async () => {
   assert_not_equals(navigator.mediaDevices.enumerateDevices, undefined, "navigator.mediaDevices.enumerateDevices exists");
   const deviceList =  await navigator.mediaDevices.enumerateDevices();
   for (const mediaInfo of deviceList) {
-    assert_not_equals(mediaInfo.deviceId, undefined, "mediaInfo's deviceId should exist.");
-    assert_not_equals(mediaInfo.kind, undefined,     "mediaInfo's kind     should exist.");
-    assert_not_equals(mediaInfo.label, undefined,    "mediaInfo's label    should exist.");
-    assert_not_equals(mediaInfo.groupId, undefined,  "mediaInfo's groupId  should exist.");
+    assert_not_equals(mediaInfo.kind, undefined, "mediaInfo's kind should exist.");
+    assert_equals(mediaInfo.deviceId, "", "mediaInfo's deviceId should exist and be empty if getUserMedia was never called successfully.");
+    assert_equals(mediaInfo.label, "", "mediaInfo's label should exist and be empty if getUserMedia was never called successfully.");
+    assert_equals(mediaInfo.groupId, "", "mediaInfo's groupId  should exist and be empty if getUserMedia was never called successfully.");
     assert_in_array(mediaInfo.kind, ["videoinput", "audioinput", "audiooutput"]);
   }
-}, "mediaDevices.enumerateDevices() is present and working");
+  assert_less_than_equal(deviceList.filter((item) => { return item.kind == "audioinput"; }).length, 1, "there should be zero or one audio input device ");
+  assert_less_than_equal(deviceList.filter((item) => { return item.kind == "videoinput"; }).length, 1, "there should be zero or one video input device ");
+
+}, "mediaDevices.enumerateDevices() is present and working - before capture");
+
+promise_test(async () => {
+  await navigator.mediaDevices.getUserMedia({ audio : true });
+  const deviceList =  await navigator.mediaDevices.enumerateDevices();
+  for (const mediaInfo of deviceList) {
+    assert_not_equals(mediaInfo.kind, undefined, "mediaInfo's kind should exist.");
+    assert_not_equals(mediaInfo.deviceId, "", "mediaInfo's deviceId should exist and not be empty.");
+    assert_in_array(mediaInfo.kind, ["videoinput", "audioinput", "audiooutput"]);
+  }
+}, "mediaDevices.enumerateDevices() is present and working - after capture");
 
 promise_test(async () => {
   const deviceList =  await navigator.mediaDevices.enumerateDevices();

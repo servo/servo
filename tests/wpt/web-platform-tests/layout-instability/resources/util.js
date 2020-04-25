@@ -59,6 +59,7 @@ ScoreWatcher = function() {
   resetPromise();
   const observer = new PerformanceObserver(list => {
     list.getEntries().forEach(entry => {
+      this.lastEntry = entry;
       this.score += entry.value;
       if (!entry.hadRecentInput)
         this.scoreWithInputExclusion += entry.value;

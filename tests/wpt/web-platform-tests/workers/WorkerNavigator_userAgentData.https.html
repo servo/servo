@@ -10,10 +10,10 @@
       worker.onmessage = resolve;
     });
 
-    assert_equals(e.data.uaList.length, navigator.userAgentData.uaList.length);
-    for (let i = 0; i < e.data.uaList.length; ++i) {
-      const workerUA = e.data.uaList[i];
-      const windowUA = navigator.userAgentData.uaList[i];
+    assert_equals(e.data.brands.length, navigator.userAgentData.brands.length);
+    for (let i = 0; i < e.data.brands.length; ++i) {
+      const workerUA = e.data.brands[i];
+      const windowUA = navigator.userAgentData.brands[i];
       assert_equals(workerUA.brand, windowUA.brand);
       assert_equals(workerUA.version, windowUA.version);
     }

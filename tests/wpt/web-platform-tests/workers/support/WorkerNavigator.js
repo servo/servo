@@ -6,8 +6,8 @@
   obj.userAgent  = navigator.userAgent;
   obj.onLine     = navigator.onLine;
   if (navigator.userAgentData) {
-    obj.uaList     = navigator.userAgentData.uaList;
-    obj.mobile     = navigator.userAgentData.mobile;
+    obj.brands = navigator.userAgentData.brands;
+    obj.mobile = navigator.userAgentData.mobile;
     const highEntropyValues = await navigator.userAgentData.getHighEntropyValues(["platform", "platformVersion", "architecture", "model", "uaFullVersion"]);
     obj.platform = highEntropyValues.platform;
     obj.platformVersion = highEntropyValues.platformVersion;

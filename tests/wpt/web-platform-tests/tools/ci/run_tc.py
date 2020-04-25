@@ -174,13 +174,13 @@ def install_webkitgtk_from_apt_repository(channel):
     run(["sudo", "apt-get", "-qqy", "-t", "bionic-wpt-webkit-updates", "install", "webkit2gtk-driver"])
 
 
-def download_url_to_descriptor(fd, url, max_retries=3):
+def download_url_to_descriptor(fd, url, max_retries=5):
     """Download an URL in chunks and saves it to a file descriptor (truncating it)
     It doesn't close the descriptor, but flushes it on success.
     It retries the download in case of ECONNRESET up to max_retries."""
     if max_retries < 1:
         max_retries = 1
-    wait = 1
+    wait = 2
     for current_retry in range(1, max_retries+1):
         try:
             print("INFO: Downloading %s Try %d/%d" % (url, current_retry, max_retries))
