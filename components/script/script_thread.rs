@@ -2920,22 +2920,20 @@ impl ScriptThread {
         let js_runtime = self.js_runtime.rt();
         let node = unsafe { from_untrusted_node_address(js_runtime, unsafe_node) };
 
-        let idx = self
+        let node_index = self
             .transitioning_nodes
             .borrow()
             .iter()
             .position(|n| &**n as *const _ == &*node as *const _);
-        match idx {
-            Some(idx) => {
-                self.transitioning_nodes.borrow_mut().remove(idx);
-            },
+        let node_index = match node_index {
+            Some(node_index) => node_index,
             None => {
                 // If no index is found, we can't know whether this node is safe to use.
                 // It's better not to fire a DOM event than crash.
                 warn!("Ignoring transition end notification for unknown node.");
                 return;
             },
-        }
+        };
 
         if self.closed_pipelines.borrow().contains(&pipeline_id) {
             warn!("Ignoring transition event for closed pipeline.");
@@ -2943,12 +2941,17 @@ impl ScriptThread {
         }
 
         let event_atom = match event_type {
+            TransitionEventType::TransitionRun => atom!("transitionrun"),
             TransitionEventType::TransitionEnd => {
                 // Not quite the right thing - see #13865.
                 node.dirty(NodeDamage::NodeStyleDamaged);
+                self.transitioning_nodes.borrow_mut().remove(node_index);
                 atom!("transitionend")
             },
-            TransitionEventType::TransitionCancel => atom!("transitioncancel"),
+            TransitionEventType::TransitionCancel => {
+                self.transitioning_nodes.borrow_mut().remove(node_index);
+                atom!("transitioncancel")
+            },
         };
 
         let event_init = TransitionEventInit {

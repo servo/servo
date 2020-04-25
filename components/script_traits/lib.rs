@@ -283,8 +283,10 @@ pub enum UpdatePipelineIdReason {
 }
 
 /// The type of transition event to trigger.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum TransitionEventType {
+    /// The transition has started running.
+    TransitionRun,
     /// The transition has ended by reaching the end of its animation.
     TransitionEnd,
     /// The transition ended early for some reason, such as the property

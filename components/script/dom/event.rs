@@ -647,6 +647,7 @@ fn invoke(
             atom!("animationiteration") => Some(atom!("webkitAnimationIteration")),
             atom!("animationstart") => Some(atom!("webkitAnimationStart")),
             atom!("transitionend") => Some(atom!("webkitTransitionEnd")),
+            atom!("transitionrun") => Some(atom!("webkitTransitionRun")),
             _ => None,
         } {
             let original_type = event.type_();
