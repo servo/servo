@@ -76,8 +76,8 @@ use webrender_api::{
 use webrender_api::{BuiltDisplayListDescriptor, HitTestFlags, HitTestResult};
 
 pub use crate::script_msg::{
-    DOMMessage, HistoryEntryReplacement, SWManagerMsg, SWManagerSenders, ScopeThings,
-    ServiceWorkerMsg,
+    DOMMessage, HistoryEntryReplacement, Job, JobError, JobResult, JobResultValue, JobType,
+    SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerMsg,
 };
 pub use crate::script_msg::{
     EventResult, IFrameSize, IFrameSizeMsg, LayoutMsg, LogEntry, ScriptMsg,

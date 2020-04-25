@@ -41,6 +41,8 @@ use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::performance::Performance;
 use crate::dom::performanceobserver::VALID_ENTRY_TYPES;
 use crate::dom::promise::Promise;
+use crate::dom::serviceworker::ServiceWorker;
+use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::window::Window;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
@@ -81,6 +83,7 @@ use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
+    ServiceWorkerId, ServiceWorkerRegistrationId,
 };
 use net_traits::blob_url_store::{get_blob_origin, BlobBuf};
 use net_traits::filemanager_thread::{
@@ -134,6 +137,13 @@ pub struct GlobalScope {
 
     /// The blobs managed by this global, if any.
     blob_state: DomRefCell<BlobState>,
+
+    /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-registration-object-map>
+    registration_map:
+        DomRefCell<HashMap<ServiceWorkerRegistrationId, Dom<ServiceWorkerRegistration>>>,
+
+    /// <https://w3c.github.io/ServiceWorker/#environment-settings-object-service-worker-object-map>
+    worker_map: DomRefCell<HashMap<ServiceWorkerId, Dom<ServiceWorker>>>,
 
     /// Pipeline id associated with this global.
     pipeline_id: PipelineId,
@@ -567,6 +577,8 @@ impl GlobalScope {
             blob_state: DomRefCell::new(BlobState::UnManaged),
             eventtarget: EventTarget::new_inherited(),
             crypto: Default::default(),
+            registration_map: DomRefCell::new(HashMap::new()),
+            worker_map: DomRefCell::new(HashMap::new()),
             pipeline_id,
             devtools_wants_updates: Default::default(),
             console_timers: DomRefCell::new(Default::default()),
@@ -643,6 +655,72 @@ impl GlobalScope {
                 timer_listener.handle(event);
             }),
         );
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-registration-object>
+    pub fn get_serviceworker_registration(
+        &self,
+        script_url: &ServoUrl,
+        scope: &ServoUrl,
+        registration_id: ServiceWorkerRegistrationId,
+        installing_worker: Option<ServiceWorkerId>,
+        _waiting_worker: Option<ServiceWorkerId>,
+        _active_worker: Option<ServiceWorkerId>,
+    ) -> DomRoot<ServiceWorkerRegistration> {
+        // Step 1
+        let mut registrations = self.registration_map.borrow_mut();
+
+        if let Some(registration) = registrations.get(&registration_id) {
+            // Step 3
+            return DomRoot::from_ref(&**registration);
+        }
+
+        // Step 2.1 -> 2.5
+        let new_registration =
+            ServiceWorkerRegistration::new(self, scope.clone(), registration_id.clone());
+
+        // Step 2.6
+        if let Some(worker_id) = installing_worker {
+            let worker = self.get_serviceworker(script_url, scope, worker_id);
+            new_registration.set_installing(&*worker);
+        }
+
+        // TODO: 2.7 (waiting worker)
+
+        // TODO: 2.8 (active worker)
+
+        // Step 2.9
+        registrations.insert(registration_id, Dom::from_ref(&*new_registration));
+
+        // Step 3
+        new_registration
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-object>
+    pub fn get_serviceworker(
+        &self,
+        script_url: &ServoUrl,
+        scope: &ServoUrl,
+        worker_id: ServiceWorkerId,
+    ) -> DomRoot<ServiceWorker> {
+        // Step 1
+        let mut workers = self.worker_map.borrow_mut();
+
+        if let Some(worker) = workers.get(&worker_id) {
+            // Step 3
+            DomRoot::from_ref(&**worker)
+        } else {
+            // Step 2.1
+            // TODO: step 2.2, worker state.
+            let new_worker =
+                ServiceWorker::new(self, script_url.clone(), scope.clone(), worker_id.clone());
+
+            // Step 2.3
+            workers.insert(worker_id, Dom::from_ref(&*new_worker));
+
+            // Step 3
+            new_worker
+        }
     }
 
     /// Complete the transfer of a message-port.

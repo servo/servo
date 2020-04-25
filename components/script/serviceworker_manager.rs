@@ -13,10 +13,12 @@ use crate::dom::serviceworkerregistration::longest_prefix_match;
 use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
+use msg::constellation_msg::PipelineNamespace;
+use msg::constellation_msg::{ServiceWorkerId, ServiceWorkerRegistrationId};
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
 use script_traits::{
-    DOMMessage, SWManagerMsg, SWManagerSenders, ScopeThings, ServiceWorkerManagerFactory,
-    ServiceWorkerMsg,
+    DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerMsg, SWManagerSenders,
+    ScopeThings, ServiceWorkerManagerFactory, ServiceWorkerMsg,
 };
 use servo_config::pref;
 use servo_url::ImmutableOrigin;
@@ -29,11 +31,112 @@ enum Message {
     FromConstellation(ServiceWorkerMsg),
 }
 
+/// <https://w3c.github.io/ServiceWorker/#dfn-service-worker>
+#[derive(Clone)]
+struct ServiceWorker {
+    /// A unique identifer.
+    pub id: ServiceWorkerId,
+    /// <https://w3c.github.io/ServiceWorker/#dfn-script-url>
+    pub script_url: ServoUrl,
+    /// A sender to the running service worker scope.
+    pub sender: Sender<ServiceWorkerScriptMsg>,
+}
+
+impl ServiceWorker {
+    fn new(
+        script_url: ServoUrl,
+        sender: Sender<ServiceWorkerScriptMsg>,
+        id: ServiceWorkerId,
+    ) -> ServiceWorker {
+        ServiceWorker {
+            id,
+            script_url,
+            sender,
+        }
+    }
+
+    /// Forward a DOM message to the running service worker scope.
+    fn forward_dom_message(&self, msg: DOMMessage) {
+        let DOMMessage { origin, data } = msg;
+        let _ = self.sender.send(ServiceWorkerScriptMsg::CommonWorker(
+            WorkerScriptMsg::DOMMessage { origin, data },
+        ));
+    }
+
+    /// Send a message to the running service worker scope.
+    fn send_message(&self, msg: ServiceWorkerScriptMsg) {
+        let _ = self.sender.send(msg);
+    }
+}
+
+/// When updating a registration, which worker are we targetting?
+#[allow(dead_code)]
+enum RegistrationUpdateTarget {
+    Installing,
+    Waiting,
+    Active,
+}
+
+/// https://w3c.github.io/ServiceWorker/#service-worker-registration-concept
+struct ServiceWorkerRegistration {
+    /// A unique identifer.
+    id: ServiceWorkerRegistrationId,
+    /// https://w3c.github.io/ServiceWorker/#dfn-active-worker
+    active_worker: Option<ServiceWorker>,
+    /// https://w3c.github.io/ServiceWorker/#dfn-waiting-worker
+    waiting_worker: Option<ServiceWorker>,
+    /// https://w3c.github.io/ServiceWorker/#dfn-installing-worker
+    installing_worker: Option<ServiceWorker>,
+}
+
+impl ServiceWorkerRegistration {
+    pub fn new() -> ServiceWorkerRegistration {
+        ServiceWorkerRegistration {
+            id: ServiceWorkerRegistrationId::new(),
+            active_worker: None,
+            waiting_worker: None,
+            installing_worker: None,
+        }
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#get-newest-worker>
+    fn get_newest_worker(&self) -> Option<ServiceWorker> {
+        if let Some(worker) = self.active_worker.as_ref() {
+            return Some(worker.clone());
+        }
+        if let Some(worker) = self.waiting_worker.as_ref() {
+            return Some(worker.clone());
+        }
+        if let Some(worker) = self.installing_worker.as_ref() {
+            return Some(worker.clone());
+        }
+        None
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#update-registration-state>
+    fn update_registration_state(
+        &mut self,
+        target: RegistrationUpdateTarget,
+        worker: ServiceWorker,
+    ) {
+        match target {
+            RegistrationUpdateTarget::Active => {
+                self.active_worker = Some(worker);
+            },
+            RegistrationUpdateTarget::Waiting => {
+                self.waiting_worker = Some(worker);
+            },
+            RegistrationUpdateTarget::Installing => {
+                self.installing_worker = Some(worker);
+            },
+        }
+    }
+}
+
+/// A structure managing all registrations and workers for a given origin.
 pub struct ServiceWorkerManager {
-    // map of registered service worker descriptors
-    registered_workers: HashMap<ServoUrl, ScopeThings>,
-    // map of active service worker descriptors
-    active_workers: HashMap<ServoUrl, Sender<ServiceWorkerScriptMsg>>,
+    /// https://w3c.github.io/ServiceWorker/#dfn-scope-to-registration-map
+    registrations: HashMap<ServoUrl, ServiceWorkerRegistration>,
     // Will be useful to implement posting a message to a client.
     // See https://github.com/servo/servo/issues/24660
     _constellation_sender: IpcSender<SWManagerMsg>,
@@ -52,9 +155,11 @@ impl ServiceWorkerManager {
         resource_port: Receiver<CustomResponseMediator>,
         constellation_sender: IpcSender<SWManagerMsg>,
     ) -> ServiceWorkerManager {
+        // Install a pipeline-namespace in the current thread.
+        PipelineNamespace::auto_install();
+
         ServiceWorkerManager {
-            registered_workers: HashMap::new(),
-            active_workers: HashMap::new(),
+            registrations: HashMap::new(),
             own_sender: own_sender,
             own_port: from_constellation_receiver,
             resource_receiver: resource_port,
@@ -63,37 +168,12 @@ impl ServiceWorkerManager {
     }
 
     pub fn get_matching_scope(&self, load_url: &ServoUrl) -> Option<ServoUrl> {
-        for scope in self.registered_workers.keys() {
+        for scope in self.registrations.keys() {
             if longest_prefix_match(&scope, load_url) {
                 return Some(scope.clone());
             }
         }
         None
-    }
-
-    pub fn wakeup_serviceworker(
-        &mut self,
-        scope_url: ServoUrl,
-    ) -> Option<Sender<ServiceWorkerScriptMsg>> {
-        let scope_things = self.registered_workers.get(&scope_url);
-        if let Some(scope_things) = scope_things {
-            let (sender, receiver) = unbounded();
-            let (_devtools_sender, devtools_receiver) = ipc::channel().unwrap();
-            ServiceWorkerGlobalScope::run_serviceworker_scope(
-                scope_things.clone(),
-                sender.clone(),
-                receiver,
-                devtools_receiver,
-                self.own_sender.clone(),
-                scope_url.clone(),
-            );
-            // We store the activated worker
-            self.active_workers.insert(scope_url, sender.clone());
-            return Some(sender);
-        } else {
-            warn!("Unable to activate service worker");
-            None
-        }
     }
 
     fn handle_message(&mut self) {
@@ -108,65 +188,18 @@ impl ServiceWorkerManager {
         }
     }
 
-    fn forward_message(&self, msg: DOMMessage, sender: &Sender<ServiceWorkerScriptMsg>) {
-        let DOMMessage { origin, data } = msg;
-        let _ = sender.send(ServiceWorkerScriptMsg::CommonWorker(
-            WorkerScriptMsg::DOMMessage { origin, data },
-        ));
-    }
-
-    fn handle_message_from_constellation(&mut self, msg: ServiceWorkerMsg) -> bool {
-        match msg {
-            ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope) => {
-                if self.registered_workers.contains_key(&scope) {
-                    warn!("ScopeThings for {:?} already stored in SW-Manager", scope);
-                } else {
-                    self.registered_workers.insert(scope, scope_things);
-                }
-                true
-            },
-            ServiceWorkerMsg::Timeout(scope) => {
-                if self.active_workers.contains_key(&scope) {
-                    let _ = self.active_workers.remove(&scope);
-                } else {
-                    warn!("ServiceWorker for {:?} is not active", scope);
-                }
-                true
-            },
-            ServiceWorkerMsg::ForwardDOMMessage(msg, scope_url) => {
-                if self.active_workers.contains_key(&scope_url) {
-                    if let Some(ref sender) = self.active_workers.get(&scope_url) {
-                        self.forward_message(msg, &sender);
-                    }
-                } else {
-                    if let Some(ref sender) = self.wakeup_serviceworker(scope_url) {
-                        self.forward_message(msg, &sender);
-                    }
-                }
-                true
-            },
-            ServiceWorkerMsg::Exit => false,
-        }
-    }
-
     fn handle_message_from_resource(&mut self, mediator: CustomResponseMediator) -> bool {
         if serviceworker_enabled() {
             if let Some(scope) = self.get_matching_scope(&mediator.load_url) {
-                if self.active_workers.contains_key(&scope) {
-                    if let Some(sender) = self.active_workers.get(&scope) {
-                        let _ = sender.send(ServiceWorkerScriptMsg::Response(mediator));
-                    }
-                } else {
-                    if let Some(sender) = self.wakeup_serviceworker(scope) {
-                        let _ = sender.send(ServiceWorkerScriptMsg::Response(mediator));
+                if let Some(registration) = self.registrations.get(&scope) {
+                    if let Some(ref worker) = registration.active_worker {
+                        worker.send_message(ServiceWorkerScriptMsg::Response(mediator));
+                        return true;
                     }
                 }
-            } else {
-                let _ = mediator.response_chan.send(None);
             }
-        } else {
-            let _ = mediator.response_chan.send(None);
         }
+        let _ = mediator.response_chan.send(None);
         true
     }
 
@@ -176,6 +209,173 @@ impl ServiceWorkerManager {
             recv(self.resource_receiver) -> msg => msg.map(Message::FromResource),
         }
     }
+
+    fn handle_message_from_constellation(&mut self, msg: ServiceWorkerMsg) -> bool {
+        match msg {
+            ServiceWorkerMsg::Timeout(scope) => {},
+            ServiceWorkerMsg::ForwardDOMMessage(msg, scope_url) => {
+                if let Some(registration) = self.registrations.get_mut(&scope_url) {
+                    if let Some(ref worker) = registration.active_worker {
+                        worker.forward_dom_message(msg);
+                    }
+                }
+            },
+            ServiceWorkerMsg::ScheduleJob(job) => match job.job_type {
+                JobType::Register => {
+                    self.handle_register_job(job);
+                },
+                JobType::Update => {
+                    self.handle_update_job(job);
+                },
+                JobType::Unregister => {
+                    // TODO: https://w3c.github.io/ServiceWorker/#unregister-algorithm
+                },
+            },
+            ServiceWorkerMsg::Exit => return false,
+        }
+        true
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#register-algorithm>
+    fn handle_register_job(&mut self, mut job: Job) {
+        if !job.script_url.is_origin_trustworthy() {
+            // Step 1.1
+            let _ = job
+                .client
+                .send(JobResult::RejectPromise(JobError::SecurityError));
+            return;
+        }
+
+        if job.script_url.origin() != job.referrer.origin() ||
+            job.scope_url.origin() != job.referrer.origin()
+        {
+            // Step 2.1
+            let _ = job
+                .client
+                .send(JobResult::RejectPromise(JobError::SecurityError));
+            return;
+        }
+
+        // Step 4: Get registration.
+        if let Some(registration) = self.registrations.get(&job.scope_url) {
+            // Step 5, we have a registation.
+
+            // Step 5.1, get newest worker
+            let newest_worker = registration.get_newest_worker();
+
+            // step 5.2
+            if newest_worker.is_some() {
+                // TODO: the various checks of job versus worker.
+
+                // Step 2.1: Run resolve job.
+                let client = job.client.clone();
+                let _ = client.send(JobResult::ResolvePromise(
+                    job,
+                    JobResultValue::Registration {
+                        id: registration.id,
+                        installing_worker: registration
+                            .installing_worker
+                            .as_ref()
+                            .map(|worker| worker.id),
+                        waiting_worker: registration
+                            .waiting_worker
+                            .as_ref()
+                            .map(|worker| worker.id),
+                        active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
+                    },
+                ));
+                return;
+            }
+        } else {
+            // Step 6: we do not have a registration.
+
+            // Step 6.1: Run Set Registration.
+            let new_registration = ServiceWorkerRegistration::new();
+            self.registrations
+                .insert(job.scope_url.clone(), new_registration);
+
+            // Step 7: Schedule update
+            job.job_type = JobType::Update;
+            let _ = self.own_sender.send(ServiceWorkerMsg::ScheduleJob(job));
+        }
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#update>
+    fn handle_update_job(&mut self, job: Job) {
+        // Step 1: Get registation
+        if let Some(registration) = self.registrations.get_mut(&job.scope_url) {
+            // Step 3.
+            let newest_worker = registration.get_newest_worker();
+
+            // Step 4.
+            if let Some(worker) = newest_worker {
+                if worker.script_url != job.script_url {
+                    let _ = job
+                        .client
+                        .send(JobResult::RejectPromise(JobError::TypeError));
+                    return;
+                }
+            }
+
+            let scope_things = job
+                .scope_things
+                .clone()
+                .expect("Update job should have scope things.");
+
+            // Very roughly steps 5 to 18.
+            // TODO: implement all steps precisely.
+            let new_worker =
+                update_serviceworker(self.own_sender.clone(), job.scope_url.clone(), scope_things);
+
+            // Step 19, run Install.
+
+            // Install: Step 4, run Update Registration State.
+            registration
+                .update_registration_state(RegistrationUpdateTarget::Installing, new_worker);
+
+            // Install: Step 7, run Resolve Job Promise.
+            let client = job.client.clone();
+            let _ = client.send(JobResult::ResolvePromise(
+                job,
+                JobResultValue::Registration {
+                    id: registration.id,
+                    installing_worker: registration
+                        .installing_worker
+                        .as_ref()
+                        .map(|worker| worker.id),
+                    waiting_worker: registration.waiting_worker.as_ref().map(|worker| worker.id),
+                    active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
+                },
+            ));
+        } else {
+            // Step 2
+            let _ = job
+                .client
+                .send(JobResult::RejectPromise(JobError::TypeError));
+        }
+    }
+}
+
+/// <https://w3c.github.io/ServiceWorker/#update-algorithm>
+fn update_serviceworker(
+    own_sender: IpcSender<ServiceWorkerMsg>,
+    scope_url: ServoUrl,
+    scope_things: ScopeThings,
+) -> ServiceWorker {
+    let (sender, receiver) = unbounded();
+    let (_devtools_sender, devtools_receiver) = ipc::channel().unwrap();
+    let worker_id = ServiceWorkerId::new();
+
+    ServiceWorkerGlobalScope::run_serviceworker_scope(
+        scope_things.clone(),
+        sender.clone(),
+        receiver,
+        devtools_receiver,
+        own_sender,
+        scope_url.clone(),
+    );
+
+    ServiceWorker::new(scope_things.script_url, sender, worker_id)
 }
 
 impl ServiceWorkerManagerFactory for ServiceWorkerManager {

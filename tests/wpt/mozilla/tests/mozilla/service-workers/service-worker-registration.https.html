@@ -21,12 +21,25 @@ promise_test(function() {
 }, "Test: Active Service Worker ScriptURL property");
 
 promise_test(function() {
+  return register_sw('resources/sw.js').then(function(sw_reg) {
+    assert_equals(sw_reg.installing.scriptURL, location.href.replace("service-worker-registration.https.html", "resources/sw.js"));
+  });
+}, "Test: Installing Service Worker ScriptURL property");
+
+promise_test(function() {
   return register_sw('sw.js').then(function(sw_reg) {
     assert_class_string(sw_reg, "ServiceWorkerRegistration");
     assert_class_string(sw_reg.active, "ServiceWorker");
     assert_class_string(navigator.serviceWorker.controller, "ServiceWorker");
   });
 }, "Test: Asserts Active Service Worker and its Registration");
+
+promise_test(function() {
+  return register_sw('sw.js').then(function(sw_reg) {
+    assert_class_string(sw_reg, "ServiceWorkerRegistration");
+    assert_class_string(sw_reg.installing, "ServiceWorker");
+  });
+}, "Test: Asserts Installing Service Worker and its Registration");
 
 promise_test(function() {
   return register_sw('resources/sw.js', './').then(function(sw_reg) {

@@ -178,6 +178,20 @@ impl PipelineNamespace {
         }
     }
 
+    fn next_service_worker_id(&mut self) -> ServiceWorkerId {
+        ServiceWorkerId {
+            namespace_id: self.id,
+            index: ServiceWorkerIndex(self.next_index()),
+        }
+    }
+
+    fn next_service_worker_registration_id(&mut self) -> ServiceWorkerRegistrationId {
+        ServiceWorkerRegistrationId {
+            namespace_id: self.id,
+            index: ServiceWorkerRegistrationIndex(self.next_index()),
+        }
+    }
+
     fn next_blob_id(&mut self) -> BlobId {
         BlobId {
             namespace_id: self.id,
@@ -417,6 +431,74 @@ impl fmt::Display for BroadcastChannelRouterId {
         write!(
             fmt,
             "(BroadcastChannelRouterId{},{})",
+            namespace_id,
+            index.get()
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct ServiceWorkerIndex(pub NonZeroU32);
+malloc_size_of_is_0!(ServiceWorkerIndex);
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+pub struct ServiceWorkerId {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: ServiceWorkerIndex,
+}
+
+impl ServiceWorkerId {
+    pub fn new() -> ServiceWorkerId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_service_worker_id = namespace.next_service_worker_id();
+            tls.set(Some(namespace));
+            next_service_worker_id
+        })
+    }
+}
+
+impl fmt::Display for ServiceWorkerId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let ServiceWorkerIndex(index) = self.index;
+        write!(fmt, "(ServiceWorkerId{},{})", namespace_id, index.get())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
+pub struct ServiceWorkerRegistrationIndex(pub NonZeroU32);
+malloc_size_of_is_0!(ServiceWorkerRegistrationIndex);
+
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
+pub struct ServiceWorkerRegistrationId {
+    pub namespace_id: PipelineNamespaceId,
+    pub index: ServiceWorkerRegistrationIndex,
+}
+
+impl ServiceWorkerRegistrationId {
+    pub fn new() -> ServiceWorkerRegistrationId {
+        PIPELINE_NAMESPACE.with(|tls| {
+            let mut namespace = tls.get().expect("No namespace set for this thread!");
+            let next_service_worker_registration_id =
+                namespace.next_service_worker_registration_id();
+            tls.set(Some(namespace));
+            next_service_worker_registration_id
+        })
+    }
+}
+
+impl fmt::Display for ServiceWorkerRegistrationId {
+    fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
+        let PipelineNamespaceId(namespace_id) = self.namespace_id;
+        let ServiceWorkerRegistrationIndex(index) = self.index;
+        write!(
+            fmt,
+            "(ServiceWorkerRegistrationId{},{})",
             namespace_id,
             index.get()
         )
