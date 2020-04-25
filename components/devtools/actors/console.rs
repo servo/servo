@@ -277,6 +277,13 @@ impl Actor for ConsoleActor {
         stream: &mut TcpStream,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
+            "clearMessagesCache" => {
+                let browsing_context =
+                    registry.find::<BrowsingContextActor>(&self.browsing_context);
+                self.cached_events.borrow_mut().remove(&browsing_context.active_pipeline.get());
+                ActorMessageStatus::Processed
+            }
+
             "getCachedMessages" => {
                 let str_types = msg
                     .get("messageTypes")
