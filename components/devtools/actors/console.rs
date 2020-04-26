@@ -10,7 +10,9 @@
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::object::ObjectActor;
+use crate::actors::worker::WorkerActor;
 use crate::protocol::JsonPacketStream;
+use crate::UniqueId;
 use crate::{ConsoleAPICall, ConsoleMessage, ConsoleMsg, PageErrorMsg};
 use devtools_traits::CachedConsoleMessage;
 use devtools_traits::EvaluateJSReply::{ActorValue, BooleanValue, StringValue};
@@ -18,10 +20,10 @@ use devtools_traits::EvaluateJSReply::{NullValue, NumberValue, VoidValue};
 use devtools_traits::{
     CachedConsoleMessageTypes, ConsoleAPI, DevtoolScriptControlMsg, LogLevel, PageError,
 };
-use ipc_channel::ipc;
-use msg::constellation_msg::PipelineId;
+use ipc_channel::ipc::{self, IpcSender};
+use msg::constellation_msg::TEST_PIPELINE_ID;
 use serde_json::{self, Map, Number, Value};
-use std::cell::RefCell;
+use std::cell::{RefCell, RefMut};
 use std::collections::HashMap;
 use std::net::TcpStream;
 use time::precise_time_ns;
@@ -106,25 +108,68 @@ struct SetPreferencesReply {
     updated: Vec<String>,
 }
 
-pub struct ConsoleActor {
+pub(crate) enum Root {
+    BrowsingContext(String),
+    DedicatedWorker(String),
+}
+
+pub(crate) struct ConsoleActor {
     pub name: String,
-    pub browsing_context: String,
-    pub cached_events: RefCell<HashMap<PipelineId, Vec<CachedConsoleMessage>>>,
+    pub root: Root,
+    pub cached_events: RefCell<HashMap<UniqueId, Vec<CachedConsoleMessage>>>,
 }
 
 impl ConsoleActor {
+    fn script_chan<'a>(
+        &self,
+        registry: &'a ActorRegistry,
+    ) -> &'a IpcSender<DevtoolScriptControlMsg> {
+        match &self.root {
+            Root::BrowsingContext(bc) => &registry.find::<BrowsingContextActor>(bc).script_chan,
+            Root::DedicatedWorker(worker) => &registry.find::<WorkerActor>(worker).script_chan,
+        }
+    }
+
+    fn streams_mut<'a>(&self, registry: &'a ActorRegistry) -> RefMut<'a, Vec<TcpStream>> {
+        match &self.root {
+            Root::BrowsingContext(bc) => registry
+                .find::<BrowsingContextActor>(bc)
+                .streams
+                .borrow_mut(),
+            Root::DedicatedWorker(worker) => {
+                registry.find::<WorkerActor>(worker).streams.borrow_mut()
+            },
+        }
+    }
+
+    fn current_unique_id(&self, registry: &ActorRegistry) -> UniqueId {
+        match &self.root {
+            Root::BrowsingContext(bc) => UniqueId::Pipeline(
+                registry
+                    .find::<BrowsingContextActor>(bc)
+                    .active_pipeline
+                    .get(),
+            ),
+            Root::DedicatedWorker(w) => UniqueId::Worker(registry.find::<WorkerActor>(w).id),
+        }
+    }
+
     fn evaluateJS(
         &self,
         registry: &ActorRegistry,
         msg: &Map<String, Value>,
     ) -> Result<EvaluateJSReply, ()> {
-        let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
         let input = msg.get("text").unwrap().as_str().unwrap().to_owned();
         let (chan, port) = ipc::channel().unwrap();
-        browsing_context
-            .script_chan
+        // FIXME: redesign messages so we don't have to fake pipeline ids when
+        //        communicating with workers.
+        let pipeline = match self.current_unique_id(registry) {
+            UniqueId::Pipeline(p) => p,
+            UniqueId::Worker(_) => TEST_PIPELINE_ID,
+        };
+        self.script_chan(registry)
             .send(DevtoolScriptControlMsg::EvaluateJS(
-                browsing_context.active_pipeline.get(),
+                pipeline,
                 input.clone(),
                 chan,
             ))
@@ -196,21 +241,21 @@ impl ConsoleActor {
     pub(crate) fn handle_page_error(
         &self,
         page_error: PageError,
-        pipeline: PipelineId,
-        browsing_context: &BrowsingContextActor,
+        id: UniqueId,
+        registry: &ActorRegistry,
     ) {
         self.cached_events
             .borrow_mut()
-            .entry(pipeline)
+            .entry(id.clone())
             .or_insert(vec![])
             .push(CachedConsoleMessage::PageError(page_error.clone()));
-        if browsing_context.active_pipeline.get() == pipeline {
+        if id == self.current_unique_id(registry) {
             let msg = PageErrorMsg {
                 from: self.name(),
                 type_: "pageError".to_owned(),
                 pageError: page_error,
             };
-            for stream in &mut *browsing_context.streams.borrow_mut() {
+            for stream in &mut *self.streams_mut(registry) {
                 stream.write_json_packet(&msg);
             }
         }
@@ -219,8 +264,8 @@ impl ConsoleActor {
     pub(crate) fn handle_console_api(
         &self,
         console_message: ConsoleMessage,
-        pipeline: PipelineId,
-        browsing_context: &BrowsingContextActor,
+        id: UniqueId,
+        registry: &ActorRegistry,
     ) {
         let level = match console_message.logLevel {
             LogLevel::Debug => "debug",
@@ -232,7 +277,7 @@ impl ConsoleActor {
         .to_owned();
         self.cached_events
             .borrow_mut()
-            .entry(pipeline)
+            .entry(id.clone())
             .or_insert(vec![])
             .push(CachedConsoleMessage::ConsoleAPI(ConsoleAPI {
                 type_: "ConsoleAPI".to_owned(),
@@ -244,7 +289,7 @@ impl ConsoleActor {
                 private: false,
                 arguments: vec![console_message.message.clone()],
             }));
-        if browsing_context.active_pipeline.get() == pipeline {
+        if id == self.current_unique_id(registry) {
             let msg = ConsoleAPICall {
                 from: self.name(),
                 type_: "consoleAPICall".to_owned(),
@@ -257,7 +302,7 @@ impl ConsoleActor {
                     columnNumber: console_message.columnNumber,
                 },
             };
-            for stream in &mut *browsing_context.streams.borrow_mut() {
+            for stream in &mut *self.streams_mut(registry) {
                 stream.write_json_packet(&msg);
             }
         }
@@ -278,11 +323,11 @@ impl Actor for ConsoleActor {
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "clearMessagesCache" => {
-                let browsing_context =
-                    registry.find::<BrowsingContextActor>(&self.browsing_context);
-                self.cached_events.borrow_mut().remove(&browsing_context.active_pipeline.get());
+                self.cached_events
+                    .borrow_mut()
+                    .remove(&self.current_unique_id(registry));
                 ActorMessageStatus::Processed
-            }
+            },
 
             "getCachedMessages" => {
                 let str_types = msg
@@ -302,13 +347,11 @@ impl Actor for ConsoleActor {
                         s => debug!("unrecognized message type requested: \"{}\"", s),
                     };
                 }
-                let browsing_context =
-                    registry.find::<BrowsingContextActor>(&self.browsing_context);
                 let mut messages = vec![];
                 for event in self
                     .cached_events
                     .borrow()
-                    .get(&browsing_context.active_pipeline.get())
+                    .get(&self.current_unique_id(registry))
                     .unwrap_or(&vec![])
                     .iter()
                 {

@@ -19,7 +19,7 @@ extern crate serde;
 
 use crate::actor::{Actor, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::console::ConsoleActor;
+use crate::actors::console::{ConsoleActor, Root};
 use crate::actors::device::DeviceActor;
 use crate::actors::framerate::FramerateActor;
 use crate::actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
@@ -27,7 +27,8 @@ use crate::actors::performance::PerformanceActor;
 use crate::actors::preference::PreferenceActor;
 use crate::actors::process::ProcessActor;
 use crate::actors::root::RootActor;
-use crate::actors::worker::WorkerActor;
+use crate::actors::thread::ThreadActor;
+use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::protocol::JsonPacketStream;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
@@ -68,6 +69,12 @@ mod actors {
     pub mod worker;
 }
 mod protocol;
+
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+enum UniqueId {
+    Pipeline(PipelineId),
+    Worker(WorkerId),
+}
 
 #[derive(Serialize)]
 struct ConsoleAPICall {
@@ -176,6 +183,7 @@ fn run_server(
 
     let root = Box::new(RootActor {
         tabs: vec![],
+        workers: vec![],
         device: device.name(),
         performance: performance.name(),
         preference: preference.name(),
@@ -197,7 +205,7 @@ fn run_server(
     let mut pipelines: HashMap<PipelineId, BrowsingContextId> = HashMap::new();
     let mut actor_requests: HashMap<String, String> = HashMap::new();
 
-    let mut actor_workers: HashMap<(PipelineId, WorkerId), String> = HashMap::new();
+    let mut actor_workers: HashMap<WorkerId, String> = HashMap::new();
 
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
@@ -258,11 +266,11 @@ fn run_server(
     // TODO: move this into the root or target modules?
     fn handle_new_global(
         actors: Arc<Mutex<ActorRegistry>>,
-        ids: (Option<BrowsingContextId>, PipelineId, Option<WorkerId>),
+        ids: (BrowsingContextId, PipelineId, Option<WorkerId>),
         script_sender: IpcSender<DevtoolScriptControlMsg>,
         browsing_contexts: &mut HashMap<BrowsingContextId, String>,
         pipelines: &mut HashMap<PipelineId, BrowsingContextId>,
-        actor_workers: &mut HashMap<(PipelineId, WorkerId), String>,
+        actor_workers: &mut HashMap<WorkerId, String>,
         page_info: DevtoolsPageInfo,
     ) {
         let mut actors = actors.lock().unwrap();
@@ -271,47 +279,59 @@ fn run_server(
 
         let console_name = actors.new_name("console");
 
-        let browsing_context_name = if let Some(browsing_context) = browsing_context {
-            pipelines.insert(pipeline, browsing_context);
-            if let Some(actor) = browsing_contexts.get(&browsing_context) {
-                actor.to_owned()
-            } else {
-                let browsing_context_actor = BrowsingContextActor::new(
-                    console_name.clone(),
-                    browsing_context,
-                    page_info,
-                    pipeline,
-                    script_sender.clone(),
-                    &mut *actors,
-                );
-                let name = browsing_context_actor.name();
-                browsing_contexts.insert(browsing_context, name.clone());
-                actors.register(Box::new(browsing_context_actor));
-                name
-            }
+        let parent_actor = if let Some(id) = worker_id {
+            assert!(pipelines.get(&pipeline).is_some());
+            assert!(browsing_contexts.get(&browsing_context).is_some());
+
+            let thread = ThreadActor::new(actors.new_name("context"));
+            let thread_name = thread.name();
+            actors.register(Box::new(thread));
+
+            let worker_name = actors.new_name("worker");
+            let worker = WorkerActor {
+                name: worker_name.clone(),
+                console: console_name.clone(),
+                thread: thread_name,
+                id: id,
+                url: page_info.url.clone(),
+                type_: WorkerType::Dedicated,
+                script_chan: script_sender,
+                streams: Default::default(),
+            };
+            let root = actors.find_mut::<RootActor>("root");
+            root.workers.push(worker.name.clone());
+
+            actor_workers.insert(id, worker_name.clone());
+            actors.register(Box::new(worker));
+
+            Root::DedicatedWorker(worker_name)
         } else {
-            "".to_owned()
+            pipelines.insert(pipeline, browsing_context);
+            Root::BrowsingContext(
+                if let Some(actor) = browsing_contexts.get(&browsing_context) {
+                    actor.to_owned()
+                } else {
+                    let browsing_context_actor = BrowsingContextActor::new(
+                        console_name.clone(),
+                        browsing_context,
+                        page_info,
+                        pipeline,
+                        script_sender,
+                        &mut *actors,
+                    );
+                    let name = browsing_context_actor.name();
+                    browsing_contexts.insert(browsing_context, name.clone());
+                    actors.register(Box::new(browsing_context_actor));
+                    name
+                },
+            )
         };
 
-        // XXXjdm this new actor is useless if it's not a new worker global
         let console = ConsoleActor {
             name: console_name,
             cached_events: Default::default(),
-            browsing_context: browsing_context_name,
+            root: parent_actor,
         };
-
-        if let Some(id) = worker_id {
-            let worker = WorkerActor {
-                name: actors.new_name("worker"),
-                console: console.name(),
-                id: id,
-            };
-            let root = actors.find_mut::<RootActor>("root");
-            root.tabs.push(worker.name.clone());
-
-            actor_workers.insert((pipeline, id), worker.name.clone());
-            actors.register(Box::new(worker));
-        }
 
         actors.register(Box::new(console));
     }
@@ -319,35 +339,10 @@ fn run_server(
     fn handle_page_error(
         actors: Arc<Mutex<ActorRegistry>>,
         id: PipelineId,
+        worker_id: Option<WorkerId>,
         page_error: PageError,
         browsing_contexts: &HashMap<BrowsingContextId, String>,
-        pipelines: &HashMap<PipelineId, BrowsingContextId>,
-    ) {
-        let console_actor_name = match find_console_actor(
-            actors.clone(),
-            id,
-            None,
-            &HashMap::new(),
-            browsing_contexts,
-            pipelines,
-        ) {
-            Some(name) => name,
-            None => return,
-        };
-        let actors = actors.lock().unwrap();
-        let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
-        let browsing_context_actor =
-            actors.find::<BrowsingContextActor>(&console_actor.browsing_context);
-        console_actor.handle_page_error(page_error, id, &browsing_context_actor);
-    }
-
-    fn handle_console_message(
-        actors: Arc<Mutex<ActorRegistry>>,
-        id: PipelineId,
-        worker_id: Option<WorkerId>,
-        console_message: ConsoleMessage,
-        browsing_contexts: &HashMap<BrowsingContextId, String>,
-        actor_workers: &HashMap<(PipelineId, WorkerId), String>,
+        actor_workers: &HashMap<WorkerId, String>,
         pipelines: &HashMap<PipelineId, BrowsingContextId>,
     ) {
         let console_actor_name = match find_console_actor(
@@ -363,22 +358,47 @@ fn run_server(
         };
         let actors = actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
-        let browsing_context_actor =
-            actors.find::<BrowsingContextActor>(&console_actor.browsing_context);
-        console_actor.handle_console_api(console_message, id, &browsing_context_actor);
+        let id = worker_id.map_or(UniqueId::Pipeline(id), UniqueId::Worker);
+        console_actor.handle_page_error(page_error, id, &*actors);
+    }
+
+    fn handle_console_message(
+        actors: Arc<Mutex<ActorRegistry>>,
+        id: PipelineId,
+        worker_id: Option<WorkerId>,
+        console_message: ConsoleMessage,
+        browsing_contexts: &HashMap<BrowsingContextId, String>,
+        actor_workers: &HashMap<WorkerId, String>,
+        pipelines: &HashMap<PipelineId, BrowsingContextId>,
+    ) {
+        let console_actor_name = match find_console_actor(
+            actors.clone(),
+            id,
+            worker_id,
+            actor_workers,
+            browsing_contexts,
+            pipelines,
+        ) {
+            Some(name) => name,
+            None => return,
+        };
+        let actors = actors.lock().unwrap();
+        let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
+        let id = worker_id.map_or(UniqueId::Pipeline(id), UniqueId::Worker);
+        console_actor.handle_console_api(console_message, id, &*actors);
     }
 
     fn find_console_actor(
         actors: Arc<Mutex<ActorRegistry>>,
         pipeline: PipelineId,
         worker_id: Option<WorkerId>,
-        actor_workers: &HashMap<(PipelineId, WorkerId), String>,
+        actor_workers: &HashMap<WorkerId, String>,
         browsing_contexts: &HashMap<BrowsingContextId, String>,
         pipelines: &HashMap<PipelineId, BrowsingContextId>,
     ) -> Option<String> {
         let actors = actors.lock().unwrap();
         if let Some(worker_id) = worker_id {
-            let actor_name = (*actor_workers).get(&(pipeline, worker_id))?;
+            let actor_name = actor_workers.get(&worker_id)?;
             Some(actors.find::<WorkerActor>(actor_name).console.clone())
         } else {
             let id = pipelines.get(&pipeline)?;
@@ -397,7 +417,7 @@ fn run_server(
         mut connections: Vec<TcpStream>,
         browsing_contexts: &HashMap<BrowsingContextId, String>,
         actor_requests: &mut HashMap<String, String>,
-        actor_workers: &HashMap<(PipelineId, WorkerId), String>,
+        actor_workers: &HashMap<WorkerId, String>,
         pipelines: &HashMap<PipelineId, BrowsingContextId>,
         pipeline_id: PipelineId,
         request_id: String,
@@ -570,6 +590,7 @@ fn run_server(
         .expect("Thread spawning failed");
 
     while let Ok(msg) = receiver.recv() {
+        debug!("{:?}", msg);
         match msg {
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();
@@ -619,8 +640,10 @@ fn run_server(
             )) => handle_page_error(
                 actors.clone(),
                 id,
+                None,
                 page_error,
                 &browsing_contexts,
+                &actor_workers,
                 &pipelines,
             ),
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportCSSError(

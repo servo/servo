@@ -1189,6 +1189,7 @@ dependencies = [
  "msg",
  "serde",
  "serde_json",
+ "servo_url",
  "time",
  "uuid",
 ]

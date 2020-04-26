@@ -3384,7 +3384,7 @@ impl ScriptThread {
                 url: url,
             };
             chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                (Some(bc), p, w),
+                (bc, p, w),
                 self.devtools_sender.clone(),
                 page_info.clone(),
             ))

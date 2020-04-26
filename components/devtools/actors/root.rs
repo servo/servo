@@ -10,6 +10,7 @@ use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::device::DeviceActor;
 use crate::actors::performance::PerformanceActor;
+use crate::actors::worker::{WorkerActor, WorkerMsg};
 use crate::protocol::{ActorDescription, JsonPacketStream};
 use serde_json::{Map, Value};
 use std::net::TcpStream;
@@ -73,11 +74,6 @@ struct ListWorkersReply {
 }
 
 #[derive(Serialize)]
-struct WorkerMsg {
-    id: u32,
-}
-
-#[derive(Serialize)]
 struct ListServiceWorkerRegistrationsReply {
     from: String,
     registrations: Vec<u32>, // TODO: follow actual JSON structure.
@@ -110,6 +106,7 @@ struct GetProcessResponse {
 
 pub struct RootActor {
     pub tabs: Vec<String>,
+    pub workers: Vec<String>,
     pub performance: String,
     pub device: String,
     pub preference: String,
@@ -203,7 +200,11 @@ impl Actor for RootActor {
             "listWorkers" => {
                 let reply = ListWorkersReply {
                     from: self.name(),
-                    workers: vec![],
+                    workers: self
+                        .workers
+                        .iter()
+                        .map(|name| registry.find::<WorkerActor>(name).encodable())
+                        .collect(),
                 };
                 stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed

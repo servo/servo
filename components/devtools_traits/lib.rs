@@ -80,7 +80,7 @@ pub enum ScriptToDevtoolsControlMsg {
     /// A new global object was created, associated with a particular pipeline.
     /// The means of communicating directly with it are provided.
     NewGlobal(
-        (Option<BrowsingContextId>, PipelineId, Option<WorkerId>),
+        (BrowsingContextId, PipelineId, Option<WorkerId>),
         IpcSender<DevtoolScriptControlMsg>,
         DevtoolsPageInfo,
     ),

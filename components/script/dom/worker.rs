@@ -20,6 +20,7 @@ use crate::dom::dedicatedworkerglobalscope::{
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
+use crate::dom::window::Window;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use crate::realms::enter_realm;
 use crate::script_runtime::JSContext;
@@ -95,23 +96,34 @@ impl Worker {
             pipeline_id: global.pipeline_id(),
         };
 
+        let browsing_context = global
+            .downcast::<Window>()
+            .map(|w| w.window_proxy().browsing_context_id())
+            .or_else(|| {
+                global
+                    .downcast::<DedicatedWorkerGlobalScope>()
+                    .and_then(|w| w.browsing_context())
+            });
+
         let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
         let worker_id = WorkerId(Uuid::new_v4());
         if let Some(ref chan) = global.devtools_chan() {
             let pipeline_id = global.pipeline_id();
             let title = format!("Worker for {}", worker_url);
-            let page_info = DevtoolsPageInfo {
-                title: title,
-                url: worker_url.clone(),
-            };
-            let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                (None, pipeline_id, Some(worker_id)),
-                devtools_sender.clone(),
-                page_info,
-            ));
+            if let Some(browsing_context) = browsing_context {
+                let page_info = DevtoolsPageInfo {
+                    title: title,
+                    url: worker_url.clone(),
+                };
+                let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
+                    (browsing_context, pipeline_id, Some(worker_id)),
+                    devtools_sender.clone(),
+                    page_info,
+                ));
+            }
         }
 
-        let init = prepare_workerscope_init(global, Some(devtools_sender));
+        let init = prepare_workerscope_init(global, Some(devtools_sender), Some(worker_id));
 
         DedicatedWorkerGlobalScope::run_worker_scope(
             init,
@@ -126,6 +138,7 @@ impl Worker {
             worker_options.type_,
             closing,
             global.image_cache(),
+            browsing_context,
         );
 
         Ok(worker)

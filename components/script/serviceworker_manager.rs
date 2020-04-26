@@ -11,7 +11,6 @@ use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::serviceworkerglobalscope::{ServiceWorkerGlobalScope, ServiceWorkerScriptMsg};
 use crate::dom::serviceworkerregistration::longest_prefix_match;
 use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};
-use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::{CoreResourceMsg, CustomResponseMediator};
@@ -79,23 +78,7 @@ impl ServiceWorkerManager {
         let scope_things = self.registered_workers.get(&scope_url);
         if let Some(scope_things) = scope_things {
             let (sender, receiver) = unbounded();
-            let (devtools_sender, devtools_receiver) = ipc::channel().unwrap();
-            if let Some(ref chan) = scope_things.devtools_chan {
-                let title = format!("ServiceWorker for {}", scope_things.script_url);
-                let page_info = DevtoolsPageInfo {
-                    title: title,
-                    url: scope_things.script_url.clone(),
-                };
-                let _ = chan.send(ScriptToDevtoolsControlMsg::NewGlobal(
-                    (
-                        None,
-                        scope_things.init.pipeline_id,
-                        Some(scope_things.worker_id),
-                    ),
-                    devtools_sender,
-                    page_info,
-                ));
-            };
+            let (_devtools_sender, devtools_receiver) = ipc::channel().unwrap();
             ServiceWorkerGlobalScope::run_serviceworker_scope(
                 scope_things.clone(),
                 sender.clone(),
