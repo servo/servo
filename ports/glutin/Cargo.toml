@@ -64,7 +64,7 @@ surfman = { version = "0.2", features = ["sm-winit", "sm-x11"] }
 tinyfiledialogs = "3.0"
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
-winit = "0.19"
+winit = "0.22"
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]
 image = "0.23"
