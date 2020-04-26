@@ -11,10 +11,13 @@ sensor_test(async (t, sensorProvider) => {
   const orientationData1 = generateOrientationData(1.1, 2.2, 3.3, false);
   const orientationData2 = generateOrientationData(11.1, 22.2, 33.3, false);
 
+  const watcher = new EventWatcher(t, window, ['deviceorientation']);
   setMockOrientationData(sensorProvider, orientationData1);
-  await waitForOrientation(orientationData1);
+  const firstEvent = await watcher.wait_for('deviceorientation');
+  assertEventEquals(firstEvent, getExpectedOrientationEvent(orientationData1));
 
   setMockOrientationData(sensorProvider, orientationData2);
-  return waitForOrientation(orientationData2);
+  const secondEvent = await watcher.wait_for('deviceorientation');
+  assertEventEquals(secondEvent, getExpectedOrientationEvent(orientationData2));
 }, 'Tests that updates to the orientation causes new events to fire.');
 </script>

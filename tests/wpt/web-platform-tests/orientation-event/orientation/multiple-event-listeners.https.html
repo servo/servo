@@ -15,18 +15,24 @@ sensor_test(async (t, sensorProvider) => {
   let firstEventPromise = new Promise(resolve => {
     firstListener = resolve;
   });
-  // We directly add the listener instead of using waitForOrientation
-  // because we want the listener to stay active after the first event fires.
+  // We directly add the listener instead of using EventWatcher
+  // because we want to remove listener after the first event fires
+  // but EventWatcher could only stop watching after test done.
   window.addEventListener('deviceorientation', firstListener);
-  let secondEventPromise = waitForOrientation(orientationData1);
-  setMockOrientationData(sensorProvider, orientationData1);
-  let firstEvent = await firstEventPromise;
-  checkOrientation(firstEvent, orientationData1);
-  await secondEventPromise;
 
-  // At this point only the first listener is still active.
-  setMockOrientationData(sensorProvider, orientationData2);
+  const watcher = new EventWatcher(t, window, ['deviceorientation']);
+  setMockOrientationData(sensorProvider, orientationData1);
+
+  let firstEvent = await firstEventPromise;
+  assertEventEquals(firstEvent, getExpectedOrientationEvent(orientationData1));
+  let secondEvent = await watcher.wait_for('deviceorientation');
+  assertEventEquals(secondEvent, getExpectedOrientationEvent(orientationData1));
+
   window.removeEventListener('deviceorientation', firstListener);
-  return waitForOrientation(orientationData2);
+  // At this point only the second event listener is still active.
+  setMockOrientationData(sensorProvider, orientationData2);
+
+  let thirdEvent = await watcher.wait_for('deviceorientation');
+  assertEventEquals(thirdEvent, getExpectedOrientationEvent(orientationData2));
 }, 'Tests using multiple event handlers for the Device Orientation API.');
 </script>

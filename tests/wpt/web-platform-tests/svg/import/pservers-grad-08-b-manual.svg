@@ -75,11 +75,11 @@
       <!-- ====================================================================== -->
       <!-- Gradient on fill of text                                      ======== -->
       <!-- ====================================================================== -->
-      <text font-family="Blocky" font-size="68" fill="url(#Gradient)" x="20" y="70">Gradient on fill</text>
+      <text font-family="Blocky, sans-serif" font-size="68" fill="url(#Gradient)" x="20" y="70">Gradient on fill</text>
       <!-- ====================================================================== -->
       <!-- Gradient on stroke of text                                    ======== -->
       <!-- ====================================================================== -->
-      <text font-family="Blocky" x="20" y="160" font-size="55" fill="none" stroke="url(#Gradient)" stroke-width="3">Gradient on stroke</text>
+      <text font-family="Blocky, sans-serif" x="20" y="160" font-size="55" fill="none" stroke="url(#Gradient)" stroke-width="3">Gradient on stroke</text>
 
     </g>
       <g font-family="SVGFreeSansASCII,sans-serif" font-size="28">

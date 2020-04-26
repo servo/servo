@@ -9,8 +9,23 @@
 
 sensor_test(async (t, sensorProvider) => {
   const orientationData = generateOrientationData(1.1, 2.2, 3.3, true);
+  const watcher = new EventWatcher(t, window, ['deviceorientationabsolute']);
 
   setMockOrientationData(sensorProvider, orientationData);
-  return waitForAbsoluteOrientation(orientationData);
+  const event = await watcher.wait_for('deviceorientationabsolute');
+  assertEventEquals(event, getExpectedAbsoluteOrientationEvent(orientationData));
 }, 'Tests basic operation of deviceorientationabsolute event using mock data.');
+
+sensor_test(async (t, sensorProvider) => {
+  const orientationData = generateOrientationData(null, null, null, true);
+  const watcher = new EventWatcher(t, window, ['deviceorientationabsolute']);
+
+  // Make the absolute orientation sensor unavailable
+  sensorProvider.setGetSensorShouldFail('AbsoluteOrientationEulerAngles', true);
+  const event = await watcher.wait_for('deviceorientationabsolute');
+  assert_equals(event.type, 'deviceorientationabsolute', 'type is set to \"deviceorientationabsolute\"');
+  assert_true(event instanceof DeviceOrientationEvent, 'event is DeviceOrientationEvent');
+
+  assertEventEquals(event, getExpectedAbsoluteOrientationEvent(orientationData));
+}, 'If UA can never provide absolute information, the event should be fired as a null event.');
 </script>

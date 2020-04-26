@@ -8,15 +8,6 @@
 <script src="resources/orientation-event-helpers.js"></script>
 <script>
 
-function waitForLackOfEvent(t, eventName) {
-  return new Promise(async (resolve, reject) => {
-    window.addEventListener(eventName, reject);
-    await new Promise(r => t.step_timeout(r, 1000));
-    window.removeEventListener(eventName, reject);
-    resolve();
-  });
-}
-
 if (window.location.origin != get_host_info().HTTP_ORIGIN) {
   window.location = get_host_info().HTTP_ORIGIN + window.location.pathname;
   promise_test(_ => new Promise(_ => {}), "Stall tests on the wrong host.");
@@ -36,25 +27,29 @@ if (window.location.origin != get_host_info().HTTP_ORIGIN) {
     const FAKE_ACCELERATION_DATA = [1, 2, 3];
     const FAKE_LINEAR_ACCELERATION_DATA = [4, 5, 6];
     const FAKE_GYROSCOPE_DATA = [7, 8, 9];
+
+    window.ondevicemotion = t.unreached_func("devicemotion event should not be fired.");
     setMockSensorDataForType(sensorProvider, 'Accelerometer', FAKE_ACCELERATION_DATA);
     setMockSensorDataForType(sensorProvider, 'LinearAccelerationSensor', FAKE_LINEAR_ACCELERATION_DATA);
     setMockSensorDataForType(sensorProvider, 'Gyroscope', FAKE_GYROSCOPE_DATA);
 
-    return waitForLackOfEvent(t, 'devicemotion');
+    await new Promise(r => t.step_timeout(r, 1000));
   }, 'addEventListener() for `devicemotion` does not crash but the handler never fires.');
 
   sensor_test(async (t, sensorProvider) => {
     const FAKE_ORIENTATION_DATA = [1.1, 2.2, 3.3];
+    window.ondeviceorientation = t.unreached_func("deviceorientation event should not be fired.");
     setMockSensorDataForType(sensorProvider, 'RelativeOrientationEulerAngles', FAKE_ORIENTATION_DATA);
 
-    return waitForLackOfEvent(t, 'deviceorientation');
+    await new Promise(r => t.step_timeout(r, 1000));
   }, 'addEventListener() for `deviceorientation` does not crash but the handler never fires.');
 
   sensor_test(async (t, sensorProvider) => {
     const FAKE_ORIENTATION_DATA = [1.1, 2.2, 3.3];
+    window.ondeviceorientationabsolute = t.unreached_func("deviceorientationabsolute event should not be fired.");
     setMockSensorDataForType(sensorProvider, 'AbsoluteOrientationEulerAngles', FAKE_ORIENTATION_DATA);
 
-    return waitForLackOfEvent(t, 'deviceorientationabsolute');
+    await new Promise(r => t.step_timeout(r, 1000));
   }, 'addEventListener() for `deviceorientationabsolute` does not crash but the handler never fires.');
 }
 </script>

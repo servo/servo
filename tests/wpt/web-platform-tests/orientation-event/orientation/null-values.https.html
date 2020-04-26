@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-<html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -16,17 +15,21 @@ sensor_test(async (t, sensorProvider) => {
   // will stop updating the sensor when it sees a null event.
   const orientationData4 = generateOrientationData(null, null, null, false);
 
+  const watcher = new EventWatcher(t, window, ['deviceorientation']);
   setMockOrientationData(sensorProvider, orientationData1);
-  await waitForOrientation(orientationData1);
+  const firstEvent = await watcher.wait_for('deviceorientation');
+  assertEventEquals(firstEvent, getExpectedOrientationEvent(orientationData1));
 
   setMockOrientationData(sensorProvider, orientationData2);
-  await waitForOrientation(orientationData2);
+  const secondEvent = await watcher.wait_for('deviceorientation');
+  assertEventEquals(secondEvent, getExpectedOrientationEvent(orientationData2));
 
   setMockOrientationData(sensorProvider, orientationData3);
-  await waitForOrientation(orientationData3);
+  const thirdEvent = await watcher.wait_for('deviceorientation');
+  assertEventEquals(thirdEvent, getExpectedOrientationEvent(orientationData3));
 
   setMockOrientationData(sensorProvider, orientationData4);
-  return waitForOrientation(orientationData4);
+  const fourthEvent = await watcher.wait_for('deviceorientation');
+  assertEventEquals(fourthEvent, getExpectedOrientationEvent(orientationData4));
 }, 'Tests using null values for some of the event properties.');
 </script>
-</html>
