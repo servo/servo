@@ -754,7 +754,7 @@ dependencies = [
  "gleam 0.9.2",
  "image",
  "ipc-channel",
- "keyboard-types",
+ "keyboard-types 0.4.4",
  "libc",
  "log",
  "msg",
@@ -800,7 +800,7 @@ dependencies = [
  "gfx_traits",
  "http",
  "ipc-channel",
- "keyboard-types",
+ "keyboard-types 0.4.4",
  "layout_traits",
  "log",
  "media",
@@ -1341,7 +1341,7 @@ version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
  "ipc-channel",
- "keyboard-types",
+ "keyboard-types 0.4.4",
  "lazy_static",
  "log",
  "msg",
@@ -2763,6 +2763,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "keyboard-types"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a989afac88279b0482f402d234b5fbd405bf1ad051308595b58de4e6de22346b"
+dependencies = [
+ "bitflags",
+ "serde",
+ "unicode-segmentation",
+]
+
+[[package]]
 name = "khronos_api"
 version = "3.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3060,7 +3071,7 @@ dependencies = [
  "gleam 0.9.2",
  "gstreamer",
  "ipc-channel",
- "keyboard-types",
+ "keyboard-types 0.4.4",
  "layout_thread_2013",
  "layout_thread_2020",
  "log",
@@ -3222,7 +3233,7 @@ dependencies = [
  "hashglobe",
  "hyper",
  "hyper_serde",
- "keyboard-types",
+ "keyboard-types 0.4.4",
  "selectors",
  "serde",
  "serde_bytes",
@@ -4548,7 +4559,7 @@ dependencies = [
  "ipc-channel",
  "itertools",
  "jstraceable_derive",
- "keyboard-types",
+ "keyboard-types 0.4.4",
  "lazy_static",
  "libc",
  "log",
@@ -4654,7 +4665,7 @@ name = "script_tests"
 version = "0.0.1"
 dependencies = [
  "euclid",
- "keyboard-types",
+ "keyboard-types 0.5.0",
  "script",
  "servo_url",
 ]
@@ -4675,7 +4686,7 @@ dependencies = [
  "hyper",
  "hyper_serde",
  "ipc-channel",
- "keyboard-types",
+ "keyboard-types 0.4.4",
  "libc",
  "log",
  "malloc_size_of",
@@ -4797,7 +4808,7 @@ dependencies = [
  "getopts",
  "gleam 0.11.0",
  "image",
- "keyboard-types",
+ "keyboard-types 0.5.0",
  "lazy_static",
  "libc",
  "libservo",
@@ -6302,7 +6313,7 @@ dependencies = [
  "hyper",
  "image",
  "ipc-channel",
- "keyboard-types",
+ "keyboard-types 0.4.4",
  "log",
  "msg",
  "pixels",
