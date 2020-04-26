@@ -19,19 +19,24 @@ sensor_test(async (t, sensorProvider) => {
   let firstEventPromise = new Promise(resolve => {
     firstListener = resolve;
   });
-  // We directly add the listener instead of using waitForMotion
-  // because we want the listener to stay active after the first event fires.
+  // We directly add the listener instead of using EventWatcher
+  // because we want to remove listener after the first event fires
+  // but EventWatcher could only stop watching after test done.
   window.addEventListener('devicemotion', firstListener);
-  let secondEventPromise = waitForMotion(motionData1);
-  setMockMotionData(sensorProvider, motionData1);
-  let firstEvent = await firstEventPromise;
-  checkMotion(firstEvent, motionData1);
-  await secondEventPromise;
 
-  // At this point only the first event listener is active.
-  setMockMotionData(sensorProvider, motionData2);
+  const watcher = new EventWatcher(t, window, ['devicemotion']);
+  setMockMotionData(sensorProvider, motionData1);
+
+  let firstEvent = await firstEventPromise;
+  assertEventEquals(firstEvent, getExpectedMotionEvent(motionData1));
+  let secondEvent = await watcher.wait_for('devicemotion');
+  assertEventEquals(secondEvent, getExpectedMotionEvent(motionData1));
+
   window.removeEventListener('devicemotion', firstListener);
 
-  return waitForMotion(motionData2);
+  // At this point only the second event listener is active.
+  setMockMotionData(sensorProvider, motionData2);
+  let thirdEvent = await watcher.wait_for('devicemotion');
+  assertEventEquals(thirdEvent, getExpectedMotionEvent(motionData2));
 }, 'Tests using multiple event handlers for the Device Motion API.');
 </script>

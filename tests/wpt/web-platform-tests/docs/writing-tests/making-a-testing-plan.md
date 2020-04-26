@@ -482,6 +482,8 @@ use [git](https://git-scm.com) to perform more powerful searches.
 The following table lists some common search criteria and examples of how they
 can be expressed using regular expressions:
 
+<div class="table-container">
+
 ```eval_rst
 ================================= ================== ==========================
 Criteria                          Example match      Example regular expression
@@ -493,6 +495,8 @@ HTML attributes                   ``<div foo=3>``    ``<[a-zA-Z][^>]*\sfoo(\s|>|
 CSS property name                 ``style="foo: 4"`` ``([{;=\"']|\s|^)foo\s+:``
 ================================= ================== ==========================
 ```
+
+</div>
 
 Bear in mind that searches like this are not necessarily exhaustive. Depending
 on the feature, it may be difficult (or even impossible) to write a query that

@@ -5,3 +5,7 @@ div.body {
 #video-introduction-transcript iframe {
   max-width: 100%;
 }
+
+.table-container {
+  overflow: auto;
+}

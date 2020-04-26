@@ -100,7 +100,7 @@
           <glyphRef xlink:href="#Y1"/>
         </altGlyphDef>
       </defs>
-      <g font-family="HappySad" font-size="60" fill="none" stroke-width="5">
+      <g font-family="HappySad, sans-serif" font-size="60" fill="none" stroke-width="5">
         <text x="140" y="190" stroke="fuchsia">
 <altGlyph xlink:href="#Hsmile">H</altGlyph>
 <altGlyph xlink:href="#Asmile">A</altGlyph>

@@ -18,7 +18,7 @@ sensor_test(async (t, sensorProvider) => {
       assert_true(event instanceof DeviceOrientationEvent, 'event is DeviceOrientationEvent');
       assert_equals(event.type, 'deviceorientation', 'event.type is devicemotion');
       assert_true(event.target instanceof Window, 'event is fired on the window object');
-      checkOrientation(event, orientationData);
+      assertEventEquals(event, getExpectedOrientationEvent(orientationData));
       window.removeEventListener('deviceorientation', firstListener);
       if (++firstEventCount == 1) {
         window.addEventListener('deviceorientation', secondListener);
@@ -30,7 +30,7 @@ sensor_test(async (t, sensorProvider) => {
   let secondEventCount = 0;
   let secondPromise = new Promise(resolve => {
     secondListener = (event) => {
-      checkOrientation(event, orientationData);
+      assertEventEquals(event, getExpectedOrientationEvent(orientationData));
       window.removeEventListener('deviceorientation', secondListener);
       ++secondEventCount;
       resolve(event);
