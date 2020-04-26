@@ -13,8 +13,8 @@ use crate::actors::object::ObjectActor;
 use crate::actors::worker::WorkerActor;
 use crate::protocol::JsonPacketStream;
 use crate::UniqueId;
-use crate::{ConsoleAPICall, ConsoleMessage, ConsoleMsg, PageErrorMsg};
 use devtools_traits::CachedConsoleMessage;
+use devtools_traits::ConsoleMessage;
 use devtools_traits::EvaluateJSReply::{ActorValue, BooleanValue, StringValue};
 use devtools_traits::EvaluateJSReply::{NullValue, NumberValue, VoidValue};
 use devtools_traits::{
@@ -472,4 +472,30 @@ impl Actor for ConsoleActor {
             _ => ActorMessageStatus::Ignored,
         })
     }
+}
+
+#[derive(Serialize)]
+struct ConsoleAPICall {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    message: ConsoleMsg,
+}
+
+#[derive(Serialize)]
+struct ConsoleMsg {
+    level: String,
+    timeStamp: u64,
+    arguments: Vec<String>,
+    filename: String,
+    lineNumber: usize,
+    columnNumber: usize,
+}
+
+#[derive(Serialize)]
+struct PageErrorMsg {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    pageError: PageError,
 }

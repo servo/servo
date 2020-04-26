@@ -77,32 +77,6 @@ enum UniqueId {
 }
 
 #[derive(Serialize)]
-struct ConsoleAPICall {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    message: ConsoleMsg,
-}
-
-#[derive(Serialize)]
-struct ConsoleMsg {
-    level: String,
-    timeStamp: u64,
-    arguments: Vec<String>,
-    filename: String,
-    lineNumber: usize,
-    columnNumber: usize,
-}
-
-#[derive(Serialize)]
-struct PageErrorMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    pageError: PageError,
-}
-
-#[derive(Serialize)]
 struct NetworkEventMsg {
     from: String,
     #[serde(rename = "type")]
