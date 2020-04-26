@@ -11,9 +11,9 @@ dependencies = [
 
 [[package]]
 name = "adler32"
-version = "1.0.3"
+version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e522997b529f05601e05166c07ed17789691f562762c7f3b987263d2dedee5c"
+checksum = "5d2e7343e7fc9de883d1b0341e0b13970f764c14101234857d2ddafa1cb1cac2"
 
 [[package]]
 name = "aho-corasick"
@@ -1124,6 +1124,16 @@ name = "deflate"
 version = "0.7.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8a6abb26e16e8d419b5c78662aa9f82857c2386a073da266840e474d5055ec86"
+dependencies = [
+ "adler32",
+ "byteorder",
+]
+
+[[package]]
+name = "deflate"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7e5d2a2273fed52a7f947ee55b092c4057025d7a3e04e5ecdbd25d6c3fb1bd7"
 dependencies = [
  "adler32",
  "byteorder",
@@ -2578,9 +2588,9 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.23.0"
+version = "0.23.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef4e336ec01a678e7ab692914c641181528e8656451e6252f8f9e33728882eaf"
+checksum = "9117f4167a8f21fa2bb3f17a652a760acd7572645281c98e3b612a26242c96ee"
 dependencies = [
  "bytemuck",
  "byteorder",
@@ -2589,7 +2599,7 @@ dependencies = [
  "num-iter",
  "num-rational",
  "num-traits",
- "png",
+ "png 0.16.3",
  "scoped_threadpool",
  "tiff",
 ]
@@ -2734,9 +2744,9 @@ dependencies = [
 
 [[package]]
 name = "jpeg-decoder"
-version = "0.1.14"
+version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0dfe27a6c0dabd772d0f9b9f8701c4ca12c4d1eebcadf2be1f6f70396f6a1434"
+checksum = "0256f0aec7352539102a9efbcb75543227b7ab1117e0f95450023af730128451"
 dependencies = [
  "byteorder",
  "rayon",
@@ -4054,7 +4064,19 @@ checksum = "ef859a23054bbfee7811284275ae522f0434a3c8e7f4b74bd4a35ae7e1c4a283"
 dependencies = [
  "bitflags",
  "crc32fast",
- "deflate",
+ "deflate 0.7.19",
+ "inflate",
+]
+
+[[package]]
+name = "png"
+version = "0.16.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2c68a431ed29933a4eb5709aca9800989758c97759345860fa5db3cfced0b65d"
+dependencies = [
+ "bitflags",
+ "crc32fast",
+ "deflate 0.8.4",
  "inflate",
 ]
 
@@ -4271,7 +4293,7 @@ dependencies = [
  "euclid",
  "font-kit",
  "lyon_geom 0.15.0",
- "png",
+ "png 0.15.3",
  "sw-composite",
  "typed-arena",
 ]
