@@ -25,14 +25,14 @@ gstreamer-gl = "0.15"
 gstreamer-gl-sys = { version = "0.8", features = ["wayland"] }
 gstreamer-sys = "0.8"
 gstreamer-video = "0.15"
-log = "0.4"
 lazy_static = "1.4"
-libservo = {path = "../../components/servo"}
-servo-media = {git = "https://github.com/servo/media"}
+libservo = { path = "../../components/servo" }
+log = "0.4"
+servo-media = { git = "https://github.com/servo/media" }
 sparkle = "0.1"
 surfman = { git = "https://github.com/servo/surfman" }
-surfman-chains-api = "0.2"
 surfman-chains = { git = "https://github.com/asajeffrey/surfman-chains" }
+surfman-chains-api = "0.2"
 
 [build-dependencies]
 gst-plugin-version-helper = "0.2"

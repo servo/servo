@@ -73,7 +73,7 @@ malloc_size_of_derive = "0.1"
 media = { path = "../media" }
 metrics = { path = "../metrics" }
 mime = "0.3.13"
-mime_guess = "2.0.0-alpha.6"
+mime_guess = "2.0.0"
 mitochondria = "1.1.2"
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }
@@ -92,6 +92,7 @@ script_traits = { path = "../script_traits" }
 selectors = { path = "../selectors" }
 serde = { version = "1", features = ["derive"] }
 serde_bytes = "0.11"
+servo-media = { git = "https://github.com/servo/media" }
 servo_allocator = { path = "../allocator" }
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms" }
@@ -99,7 +100,6 @@ servo_config = { path = "../config" }
 servo_geometry = { path = "../geometry" }
 servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
-servo-media = { git = "https://github.com/servo/media" }
 smallvec = { version = "0.6", features = ["std", "union"] }
 sparkle = "0.1"
 style = { path = "../style", features = ["servo"] }
