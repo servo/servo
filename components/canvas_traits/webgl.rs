@@ -793,6 +793,7 @@ parameters! {
             SampleCoverageInvert = gl::SAMPLE_COVERAGE_INVERT,
             TransformFeedbackActive = gl::TRANSFORM_FEEDBACK_ACTIVE,
             TransformFeedbackPaused = gl::TRANSFORM_FEEDBACK_PAUSED,
+            RasterizerDiscard = gl::RASTERIZER_DISCARD,
         }),
         Bool4(ParameterBool4 {
             ColorWritemask = gl::COLOR_WRITEMASK,
@@ -840,6 +841,14 @@ parameters! {
             MaxTransformFeedbackSeparateComponents = gl::MAX_TRANSFORM_FEEDBACK_SEPARATE_COMPONENTS,
             TransformFeedbackBufferSize = gl::TRANSFORM_FEEDBACK_BUFFER_SIZE,
             TransformFeedbackBufferStart = gl::TRANSFORM_FEEDBACK_BUFFER_START,
+            PackRowLength = gl::PACK_ROW_LENGTH,
+            PackSkipPixels = gl::PACK_SKIP_PIXELS,
+            PackSkipRows = gl::PACK_SKIP_ROWS,
+            UnpackImageHeight = gl::UNPACK_IMAGE_HEIGHT,
+            UnpackRowLength = gl::UNPACK_ROW_LENGTH,
+            UnpackSkipImages = gl::UNPACK_SKIP_IMAGES,
+            UnpackSkipPixels = gl::UNPACK_SKIP_PIXELS,
+            UnpackSkipRows = gl::UNPACK_SKIP_ROWS,
         }),
         Int2(ParameterInt2 {
             MaxViewportDims = gl::MAX_VIEWPORT_DIMS,
