@@ -12,8 +12,6 @@ extern crate crossbeam_channel;
 extern crate log;
 #[macro_use]
 extern crate serde;
-#[macro_use]
-extern crate serde_json;
 
 mod actions;
 mod capabilities;
