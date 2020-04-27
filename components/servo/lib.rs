@@ -400,14 +400,6 @@ where
         let viewport_size = coordinates.viewport.size.to_f32() / device_pixel_ratio;
 
         let (mut webrender, webrender_api_sender) = {
-            let recorder = if opts.webrender_record {
-                let record_path = PathBuf::from("wr-record.bin");
-                let recorder = Box::new(webrender::BinaryRecorder::new(&record_path));
-                Some(recorder as Box<dyn webrender::ApiRecordingReceiver>)
-            } else {
-                None
-            };
-
             let mut debug_flags = webrender::DebugFlags::empty();
             debug_flags.set(webrender::DebugFlags::PROFILER_DBG, opts.webrender_stats);
 
@@ -424,7 +416,6 @@ where
                     resource_override_path: opts.shaders_dir.clone(),
                     enable_aa: opts.enable_text_antialiasing,
                     debug_flags: debug_flags,
-                    recorder: recorder,
                     precache_flags: if opts.precache_shaders {
                         ShaderPrecacheFlags::FULL_COMPILE
                     } else {

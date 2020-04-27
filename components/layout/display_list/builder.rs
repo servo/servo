@@ -70,7 +70,7 @@ use style_traits::ToCss;
 use webrender_api::units::{LayoutRect, LayoutTransform, LayoutVector2D};
 use webrender_api::{self, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, ColorF};
 use webrender_api::{ColorU, ExternalScrollId, FilterOp, GlyphInstance, ImageRendering, LineStyle};
-use webrender_api::{NinePatchBorder, NinePatchBorderSource, NormalBorder};
+use webrender_api::{NinePatchBorder, NinePatchBorderSource, NormalBorder, PropertyBinding};
 use webrender_api::{ScrollSensitivity, StickyOffsetBounds};
 
 static THREAD_TINT_COLORS: [ColorF; 8] = [
@@ -721,8 +721,9 @@ impl Fragment {
             state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
                 base,
                 webrender_api::RectangleDisplayItem {
-                    color: background_color.to_layout(),
+                    color: PropertyBinding::Value(background_color.to_layout()),
                     common: items::empty_common_item_properties(),
+                    bounds: bounds.to_layout(),
                 },
             )));
         });
@@ -1468,7 +1469,8 @@ impl Fragment {
                 base,
                 webrender_api::RectangleDisplayItem {
                     common: items::empty_common_item_properties(),
-                    color: background_color.to_layout(),
+                    color: PropertyBinding::Value(background_color.to_layout()),
+                    bounds: stacking_relative_border_box.to_layout(),
                 },
             )));
         }
@@ -1514,7 +1516,8 @@ impl Fragment {
             base,
             webrender_api::RectangleDisplayItem {
                 common: items::empty_common_item_properties(),
-                color: self.style().get_inherited_text().color.to_layout(),
+                color: PropertyBinding::Value(self.style().get_inherited_text().color.to_layout()),
+                bounds: insertion_point_bounds.to_layout(),
             },
         )));
     }
@@ -1697,7 +1700,8 @@ impl Fragment {
                 base,
                 webrender_api::RectangleDisplayItem {
                     common: items::empty_common_item_properties(),
-                    color: ColorF::TRANSPARENT,
+                    color: PropertyBinding::Value(ColorF::TRANSPARENT),
+                    bounds: content_size.to_layout(),
                 },
             )));
         }

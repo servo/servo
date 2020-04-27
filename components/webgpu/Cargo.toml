@@ -17,5 +17,5 @@ log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 serde = "1.0"
 servo_config = {path = "../config"}
-smallvec = "0.6"
+smallvec = { version = "0.6", features = ["serde"] }
 wgpu-core = { version = "0.1.0", git = "https://github.com/gfx-rs/wgpu", features = ["serde"] }

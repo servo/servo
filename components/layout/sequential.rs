@@ -5,6 +5,7 @@
 //! Implements sequential traversals over the DOM and flow trees.
 
 use crate::context::LayoutContext;
+use crate::display_list::conversions::ToLayout;
 use crate::display_list::items::{self, CommonDisplayItem, DisplayItem, DisplayListSection};
 use crate::display_list::{DisplayListBuildState, StackingContextCollectionState};
 use crate::floats::SpeculatedFloatPlacement;
@@ -19,6 +20,7 @@ use euclid::default::{Point2D, Rect, Size2D, Vector2D};
 use servo_config::opts;
 use style::servo::restyle_damage::ServoRestyleDamage;
 use webrender_api::units::LayoutPoint;
+use webrender_api::PropertyBinding;
 
 pub fn resolve_generated_content(root: &mut dyn Flow, layout_context: &LayoutContext) {
     ResolveGeneratedContent::new(&layout_context).traverse(root, 0);
@@ -83,8 +85,9 @@ pub fn build_display_list_for_subtree<'a>(
 
     // Create a base rectangle for the page background based on the root
     // background color.
+    let bounds = Rect::new(Point2D::new(Au::new(0), Au::new(0)), client_size);
     let base = state.create_base_display_item(
-        Rect::new(Point2D::new(Au::new(0), Au::new(0)), client_size),
+        bounds,
         flow_root.as_block().fragment.node,
         None,
         DisplayListSection::BackgroundAndBorders,
@@ -92,8 +95,9 @@ pub fn build_display_list_for_subtree<'a>(
     state.add_display_item(DisplayItem::Rectangle(CommonDisplayItem::new(
         base,
         webrender_api::RectangleDisplayItem {
-            color: background_color,
+            color: PropertyBinding::Value(background_color),
             common: items::empty_common_item_properties(),
+            bounds: bounds.to_layout(),
         },
     )));
 

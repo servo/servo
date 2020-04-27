@@ -277,7 +277,6 @@ impl DisplayItem {
                             },
                             item_rect,
                             node.clip.complex.clone(),
-                            None,
                         );
 
                         state.spatial_ids[item.node_index.to_index()] = Some(parent_spatial_id);
@@ -293,7 +292,6 @@ impl DisplayItem {
                             node.content_rect,
                             node.clip.main,
                             node.clip.complex.clone(),
-                            None,
                             scroll_sensitivity,
                             webrender_api::units::LayoutVector2D::zero(),
                         );
@@ -341,6 +339,5 @@ fn build_common_item_properties(
         // TODO(gw): Make use of the WR backface visibility functionality.
         flags: PrimitiveFlags::default(),
         hit_info: tag,
-        item_key: None,
     }
 }
