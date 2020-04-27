@@ -3,8 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::cell::ArcRefCell;
-use crate::flow::inline::VerticalAlignMetrics;
-use crate::geom::flow_relative::{Rect, Sides};
+use crate::flow::inline::{Baseline, VerticalAlignMetrics};
+use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 #[cfg(debug_assertions)]
 use crate::layout_debug;
@@ -20,10 +20,21 @@ use style::computed_values::position::T as ComputedPosition;
 use style::dom::OpaqueNode;
 use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
+use style::values::computed::{Length, VerticalAlign};
+use style::values::generics::box_::VerticalAlignKeyword;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
+
+// CSS 2.1 does not define the position of the line box's baseline.
+// The baseline must be placed where ever it needs to be to fulfill
+// vertical-align while minimizing the line box's height. In order
+// to avoid back and forth and infinite loop situations where an
+// inline element moves the baseline upwards or downwards and a
+// following element moves the baseline in the opposite direction,
+// we make the line box grow based on the previous overflow corrections,
+// so all inline elements will eventually fit within the line box.
+static BASELINE_CORRECTION_GROWTH_FACTOR: f32 = 0.1;
 
 #[derive(Serialize)]
 pub(crate) enum Fragment {
@@ -62,7 +73,7 @@ pub(crate) struct BoxFragment {
     /// The scrollable overflow of this box fragment.
     pub scrollable_overflow_from_children: PhysicalRect<Length>,
 
-    pub inline_metrics: VerticalAlignMetrics,
+    pub vertical_align_metrics: VerticalAlignMetrics,
 }
 
 #[derive(Serialize)]
@@ -99,6 +110,7 @@ pub(crate) struct FontMetrics {
     pub underline_size: Length,
     pub strikeout_offset: Length,
     pub strikeout_size: Length,
+    pub x_height: Length,
 }
 
 impl From<&GfxFontMetrics> for FontMetrics {
@@ -111,6 +123,7 @@ impl From<&GfxFontMetrics> for FontMetrics {
             underline_size: metrics.underline_size.into(),
             strikeout_offset: metrics.strikeout_offset.into(),
             strikeout_size: metrics.strikeout_size.into(),
+            x_height: metrics.x_height.into(),
         }
     }
 }
@@ -128,6 +141,7 @@ pub(crate) struct TextFragment {
     pub glyphs: Vec<Arc<GlyphStore>>,
     /// A flag that represents the _used_ value of the text-decoration property.
     pub text_decoration_line: TextDecorationLine,
+    pub vertical_align_metrics: VerticalAlignMetrics,
 }
 
 #[derive(Serialize)]
@@ -141,16 +155,120 @@ pub(crate) struct ImageFragment {
 }
 
 impl Fragment {
+    fn position_mut(&mut self) -> Option<&mut Vec2<Length>> {
+        match self {
+            Fragment::Box(f) => Some(&mut f.content_rect.start_corner),
+            Fragment::AbsoluteOrFixedPositioned(_) => None,
+            Fragment::Anonymous(f) => Some(&mut f.rect.start_corner),
+            Fragment::Text(f) => Some(&mut f.rect.start_corner),
+            Fragment::Image(f) => Some(&mut f.rect.start_corner),
+        }
+    }
+
     pub fn offset_inline(&mut self, offset: &Length) {
-        let position = match self {
-            Fragment::Box(f) => &mut f.content_rect.start_corner,
-            Fragment::AbsoluteOrFixedPositioned(_) => return,
-            Fragment::Anonymous(f) => &mut f.rect.start_corner,
-            Fragment::Text(f) => &mut f.rect.start_corner,
-            Fragment::Image(f) => &mut f.rect.start_corner,
+        if let Some(position) = self.position_mut() {
+            position.inline += *offset;
+        }
+    }
+
+    pub fn vertical_align(
+        &mut self,
+        line_block_size: &mut Length,
+        baseline: &mut Baseline,
+        processed_baseline: &mut bool,
+        accumulated_overflow: &mut Length,
+    ) -> bool {
+        let (vertical_align, vertical_align_metrics, rect, x_height) = match self {
+            Fragment::Box(f) => (
+                &f.style.get_box().vertical_align,
+                &f.vertical_align_metrics,
+                &f.content_rect,
+                // XXX(ferjm) we should add this to Box fragments
+                Length::zero(),
+            ),
+            Fragment::Text(f) => (
+                &f.parent_style.get_box().vertical_align,
+                &f.vertical_align_metrics,
+                &f.rect,
+                f.font_metrics.x_height,
+            ),
+            _ => return false,
         };
 
-        position.inline += *offset;
+        // If this is the first time we process this inline element, we may need
+        // to modify the line baseline position based on the element's baseline.
+        let mut baseline_or_line_size_changed = false;
+        if !*processed_baseline {
+            let current_baseline = baseline.clone();
+            baseline.max_assign(&vertical_align_metrics.baseline);
+            baseline_or_line_size_changed |= current_baseline != *baseline;
+            *processed_baseline = true;
+        }
+
+        // Align, align, align.
+        let mut block_position = match vertical_align {
+            VerticalAlign::Keyword(keyword) => match keyword {
+                VerticalAlignKeyword::Baseline =>
+                // "Align the baseline of the box with the
+                // baseline of the parent box.
+                // If the box does not have a baseline, align
+                // the bottom margin edge with the parent's baseline."
+                {
+                    baseline.space_above - vertical_align_metrics.baseline.space_above
+                },
+                VerticalAlignKeyword::Middle =>
+                // "Align the vertical midpoint of the box with the
+                // baseline of the parent box plus half the x-height
+                // of the parent."
+                {
+                    baseline.space_above - (rect.size.block * 0.5) - (x_height * 0.5)
+                },
+                VerticalAlignKeyword::Sub => Length::zero(),
+                VerticalAlignKeyword::Super => Length::zero(),
+                VerticalAlignKeyword::TextTop => Length::zero(),
+                VerticalAlignKeyword::TextBottom => Length::zero(),
+                VerticalAlignKeyword::Top =>
+                // "Align the top of the aligned subtree with the top of the line box.""
+                {
+                    Length::zero()
+                },
+                VerticalAlignKeyword::Bottom =>
+                // "Align the bottom of the aligned subtree with the bottom of the line box."
+                {
+                    *line_block_size - rect.size.block
+                },
+            },
+            VerticalAlign::Length(_) => Length::zero(),
+        };
+
+        let overflow = if block_position + rect.size.block > *line_block_size {
+            block_position + rect.size.block - *line_block_size
+        } else if block_position < Length::zero() {
+            block_position
+        } else {
+            Length::zero()
+        };
+
+        if !overflow.is_zero() {
+            // The inline element is positioned outside of the line box.
+            // Modify the baseline position to fit the new inline element.
+            baseline.space_above = baseline.space_above - block_position;
+            // And position the element at the top of the baseline.
+            // It'll be repositioned based on the new baseline in a following
+            // iteration.
+            block_position = Length::zero();
+            baseline_or_line_size_changed = true;
+            // Make the line box grow a little bit.
+            // Refer to the BASELINE_CORRECTION_GROWTH_FACTOR declaration to
+            // understand why.
+            *line_block_size += accumulated_overflow.abs() * BASELINE_CORRECTION_GROWTH_FACTOR;
+            *accumulated_overflow += overflow;
+        }
+
+        if let Some(position) = self.position_mut() {
+            position.block = block_position;
+        }
+        baseline_or_line_size_changed
     }
 
     pub fn tag(&self) -> Option<OpaqueNode> {
@@ -291,7 +409,7 @@ impl BoxFragment {
         border: Sides<Length>,
         margin: Sides<Length>,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
-        inline_metrics: VerticalAlignMetrics,
+        vertical_align_metrics: VerticalAlignMetrics,
     ) -> BoxFragment {
         // FIXME(mrobinson, bug 25564): We should be using the containing block
         // here to properly convert scrollable overflow to physical geometry.
@@ -314,7 +432,7 @@ impl BoxFragment {
             margin,
             block_margins_collapsed_with_children,
             scrollable_overflow_from_children,
-            inline_metrics,
+            vertical_align_metrics,
         }
     }
 

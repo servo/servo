@@ -26,7 +26,7 @@ use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
-use style::values::computed::{Length, LengthPercentage, Percentage};
+use style::values::computed::{Length, LengthPercentage, LineHeight, Percentage};
 use style::values::specified::text::TextAlignKeyword;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
@@ -338,6 +338,7 @@ impl InlineFormattingContext {
                 ifc.current_nesting_level = partial.parent_nesting_level
             } else {
                 ifc.lines.finish_line(
+                    layout_context,
                     &mut ifc.current_nesting_level,
                     containing_block,
                     ifc.inline_position,
@@ -355,12 +356,13 @@ impl InlineFormattingContext {
 impl Lines {
     fn finish_line(
         &mut self,
+        layout_context: &LayoutContext,
         top_nesting_level: &mut InlineNestingLevelState,
         containing_block: &ContainingBlock,
         line_content_inline_size: Length,
     ) {
         let mut line_contents = std::mem::take(&mut top_nesting_level.fragments_so_far);
-        let line_block_size = std::mem::replace(
+        let mut line_block_size = std::mem::replace(
             &mut top_nesting_level.max_block_size_of_fragments_so_far,
             Length::zero(),
         );
@@ -373,6 +375,8 @@ impl Lines {
             .style
             .writing_mode
             .line_left_is_inline_start();
+
+        // Horizontal alignment.
         let text_align = match containing_block.style.clone_text_align() {
             TextAlignKeyword::Start => TextAlign::Start,
             TextAlignKeyword::Center => TextAlign::Center,
@@ -392,16 +396,43 @@ impl Lines {
                 }
             },
         };
-        let move_by = match text_align {
+        let inline_offset = match text_align {
             TextAlign::Start => Length::zero(),
             TextAlign::Center => (containing_block.inline_size - line_content_inline_size) / 2.,
             TextAlign::End => containing_block.inline_size - line_content_inline_size,
         };
-        if move_by > Length::zero() {
+        if inline_offset > Length::zero() {
             for fragment in &mut line_contents {
-                fragment.offset_inline(&move_by);
+                fragment.offset_inline(&inline_offset);
             }
         }
+
+        // Vertical alignment.
+        let mut baseline = Baseline::of_strut(layout_context, containing_block.style);
+        let mut index = 0;
+        let mut processed_baselines = vec![false; line_contents.len()];
+        let mut accumulated_overflow = Length::zero();
+        loop {
+            if index >= line_contents.len() {
+                break;
+            }
+            let baseline_position_or_line_box_changed = line_contents[index].vertical_align(
+                &mut line_block_size,
+                &mut baseline,
+                &mut processed_baselines[index],
+                &mut accumulated_overflow,
+            );
+            index = if baseline_position_or_line_box_changed {
+                // If the baseline position or the line box size changed,
+                // we need to start over and realign everything according to
+                // the new metrics.
+                0
+            } else {
+                // Otherwise, we can move to the next inline element.
+                index + 1
+            };
+        }
+
         let start_corner = Vec2 {
             inline: Length::zero(),
             block: self.next_line_block_position,
@@ -453,16 +484,12 @@ impl InlineBox {
             ifc.current_nesting_level.text_decoration_line | style.clone_text_decoration_line();
         let font_style = style.clone_font();
         let font_size = font_style.font_size.size.0;
-        let font_metrics = with_thread_local_font_context(layout_context, |font_context| {
-            let font_group = font_context.font_group(font_style);
-            let font = font_group
-                .borrow_mut()
-                .first(font_context)
-                .expect("could not find font");
-            let font = font.borrow_mut();
-            (&font.metrics).into()
-        });
-        let line_height = compute_line_height(&style, &font_metrics, font_size);
+        let font_metrics = font_metrics_from_style(layout_context, &style);
+        let line_height = compute_line_height(
+            style.get_inherited_text().line_height,
+            &font_metrics,
+            font_size,
+        );
         let inline_metrics = VerticalAlignMetrics::for_text(&font_metrics, line_height);
         PartialInlineBoxFragment {
             tag: self.tag,
@@ -482,7 +509,7 @@ impl InlineBox {
                     inline_start: ifc.inline_position,
                     max_block_size_of_fragments_so_far: Length::zero(),
                     positioning_context,
-                    text_decoration_line: text_decoration_line,
+                    text_decoration_line,
                 },
             ),
             inline_metrics,
@@ -782,7 +809,11 @@ impl TextRun {
                     break;
                 }
             }
-            let line_height = compute_line_height(&self.parent_style, &font_metrics, font_size);
+            let line_height = compute_line_height(
+                self.parent_style.get_inherited_text().line_height,
+                &font_metrics,
+                font_size,
+            );
             let rect = Rect {
                 start_corner: Vec2 {
                     block: Length::zero(),
@@ -797,6 +828,7 @@ impl TextRun {
             ifc.current_nesting_level
                 .max_block_size_of_fragments_so_far
                 .max_assign(line_height);
+            let vertical_align_metrics = VerticalAlignMetrics::for_text(&font_metrics, line_height);
             ifc.current_nesting_level
                 .fragments_so_far
                 .push(Fragment::Text(TextFragment {
@@ -808,6 +840,7 @@ impl TextRun {
                     font_key,
                     glyphs,
                     text_decoration_line: ifc.current_nesting_level.text_decoration_line,
+                    vertical_align_metrics,
                 }));
             if runs.as_slice().is_empty() {
                 break;
@@ -829,8 +862,12 @@ impl TextRun {
                     partial.parent_nesting_level.inline_start = Length::zero();
                     nesting_level = &mut partial.parent_nesting_level;
                 }
-                ifc.lines
-                    .finish_line(nesting_level, ifc.containing_block, ifc.inline_position);
+                ifc.lines.finish_line(
+                    layout_context,
+                    nesting_level,
+                    ifc.containing_block,
+                    ifc.inline_position,
+                );
                 ifc.inline_position = Length::zero();
             }
         }
@@ -889,25 +926,58 @@ impl<'box_tree> Iterator for InlineBoxChildIter<'box_tree> {
 }
 
 fn compute_line_height(
-    style: &Arc<ComputedValues>,
+    line_height: LineHeight,
     font_metrics: &FontMetrics,
     font_size: Length,
 ) -> Length {
-    use style::values::generics::text::LineHeight;
-    match style.get_inherited_text().line_height {
+    match line_height {
         LineHeight::Normal => font_metrics.line_gap,
         LineHeight::Number(n) => font_size * n.0,
         LineHeight::Length(l) => l.0,
     }
 }
 
+fn font_metrics_from_style(layout_context: &LayoutContext, style: &ComputedValues) -> FontMetrics {
+    let font_style = style.clone_font();
+    with_thread_local_font_context(layout_context, |font_context| {
+        let font_group = font_context.font_group(font_style);
+        let font = font_group
+            .borrow_mut()
+            .first(font_context)
+            .expect("could not find font");
+        let font = font.borrow_mut();
+        (&font.metrics).into()
+    })
+}
+
 /// Baseline metrics. Used for vertical alignment of inline elements.
-#[derive(Clone, Copy, Debug, Serialize)]
-pub struct Baseline {
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+pub(crate) struct Baseline {
     /// The amount of space above the baseline.
     pub space_above: Length,
     /// The amount of space below the baseline.
     pub space_below: Length,
+}
+
+impl Baseline {
+    /// https://www.w3.org/TR/CSS2/visudet.html#strut
+    fn of_strut(layout_context: &LayoutContext, style: &ComputedValues) -> Baseline {
+        let font_style = style.clone_font();
+        let font_size = font_style.font_size.size.0;
+        let font_metrics = font_metrics_from_style(layout_context, style);
+        let line_height = compute_line_height(
+            style.get_inherited_text().line_height,
+            &font_metrics,
+            font_size,
+        );
+        let vertical_align_metrics = VerticalAlignMetrics::for_text(&font_metrics, line_height);
+        vertical_align_metrics.baseline
+    }
+
+    pub fn max_assign(&mut self, other: &Baseline) {
+        self.space_above.max_assign(other.space_above);
+        self.space_below.max_assign(other.space_below);
+    }
 }
 
 /// Ascent and space needed above and below the baseline for a fragment. See CSS 2.1 § 10.8.1.
@@ -960,7 +1030,7 @@ impl VerticalAlignMetrics {
         content_rect_block_size: Length,
         pbm: &PaddingBorderMargin,
     ) -> VerticalAlignMetrics {
-        // XXX(ferjm) Compute proper inline-block metrics when it has in-flowcontent.
+        // XXX(ferjm) Compute proper inline-block metrics when it has in-flow content.
         //
         // The inline-block element’s baseline depends on whether the element has
         // in-flow content:
