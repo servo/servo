@@ -150,12 +150,9 @@ pub struct Node {
     /// are this node.
     ranges: WeakRangeVec,
 
-    /// Style+Layout information. Only the layout thread may touch this data.
-    ///
-    /// Must be sent back to the layout thread to be destroyed when this
-    /// node is finalized.
-    #[ignore_malloc_size_of = "Unsafe cell"]
-    style_and_layout_data: UnsafeCell<Option<Box<StyleAndOpaqueLayoutData>>>,
+    /// Style+Layout information.
+    #[ignore_malloc_size_of = "trait object"]
+    style_and_layout_data: DomRefCell<Option<Box<StyleAndOpaqueLayoutData>>>,
 }
 
 bitflags! {
@@ -1246,21 +1243,18 @@ impl Node {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn style(&self) -> Option<Arc<ComputedValues>> {
         if !window_from_node(self).layout_reflow(QueryMsg::StyleQuery) {
             return None;
         }
-        unsafe {
-            (*self.style_and_layout_data.get()).as_ref().map(|data| {
-                data.style_data
-                    .element_data
-                    .borrow()
-                    .styles
-                    .primary()
-                    .clone()
-            })
-        }
+        self.style_and_layout_data.borrow().as_ref().map(|data| {
+            data.style_data
+                .element_data
+                .borrow()
+                .styles
+                .primary()
+                .clone()
+        })
     }
 }
 
@@ -1444,13 +1438,21 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
     fn get_style_and_opaque_layout_data(self) -> Option<&'dom StyleAndOpaqueLayoutData> {
-        unsafe { (*self.unsafe_get().style_and_layout_data.get()).as_deref() }
+        unsafe {
+            self.unsafe_get()
+                .style_and_layout_data
+                .borrow_for_layout()
+                .as_deref()
+        }
     }
 
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn init_style_and_opaque_layout_data(self, val: Box<StyleAndOpaqueLayoutData>) {
-        let data = &mut *self.unsafe_get().style_and_layout_data.get();
+        let data = self
+            .unsafe_get()
+            .style_and_layout_data
+            .borrow_mut_for_layout();
         debug_assert!(data.is_none());
         *data = Some(val);
     }
@@ -1458,7 +1460,9 @@ impl<'dom> LayoutNodeHelpers<'dom> for LayoutDom<'dom, Node> {
     #[inline]
     #[allow(unsafe_code)]
     unsafe fn take_style_and_opaque_layout_data(self) -> Box<StyleAndOpaqueLayoutData> {
-        (*self.unsafe_get().style_and_layout_data.get())
+        self.unsafe_get()
+            .style_and_layout_data
+            .borrow_mut_for_layout()
             .take()
             .unwrap()
     }
@@ -1775,7 +1779,7 @@ impl Node {
             inclusive_descendants_version: Cell::new(0),
             ranges: WeakRangeVec::new(),
 
-            style_and_layout_data: UnsafeCell::new(None),
+            style_and_layout_data: Default::default(),
         }
     }
 
