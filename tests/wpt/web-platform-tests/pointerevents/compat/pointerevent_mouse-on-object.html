@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script type="text/javascript" src="../pointerevent_support.js"></script>
+
+<style>
+#obj {
+  width: 50px;
+  height: 50px;
+  padding: 50px;
+}
+</style>
+
+<h1>Verifies that mouse activities on an object fire pointerevents. It expected to get pointerup when the pointerdown happened on the object for compatibility with flash objects.</h1>
+
+<object id="obj"></object>
+
+<button id="done"></button>
+<div id="log"></div>
+
+<script>
+var target = document.getElementById("obj");
+var done = document.getElementById("done");
+var rect = target.getBoundingClientRect();
+var done_clicked = false;
+var receivedEvents = [];
+["mousedown", "mouseup", "mousemove", "pointerdown", "pointerup", "pointermove"].forEach(function(eventName) {
+  target.addEventListener(eventName, function(event) {
+    receivedEvents.push(event.type);
+  });
+});
+
+document.getElementById('done').addEventListener('click', (e) => done_clicked = true);
+
+promise_test(async() => {
+  done_clicked = false;
+  receivedEvents = [];
+
+  await new test_driver.Actions().pointerMove(rect.left+5, rect.top+5).pointerDown(0).pointerUp(0).send().then(() => {
+            return clickInTarget("mouse", done);
+  });
+  await resolveWhen(()=>{return done_clicked;});
+
+  assert_array_equals(receivedEvents, ["pointermove", "mousemove", "pointerdown", "mousedown", "pointerup", "mouseup"],
+                      "Click on object should result in the correct sequence of events");
+}, "Normal click event sequence within object");
+
+promise_test(async() => {
+  done_clicked = false;
+  receivedEvents = [];
+
+  await new test_driver.Actions().pointerMove(rect.left+5, rect.top+5).pointerDown(0).pointerMove(rect.left-5, rect.top-5).pointerUp(0).send().then(() => {
+            return clickInTarget("mouse", done);
+  });
+  await resolveWhen(()=>{return done_clicked;});
+
+  assert_array_equals(receivedEvents, ["pointermove", "mousemove", "pointerdown", "mousedown", "pointermove", "mousemove", "pointerup", "mouseup"],
+                      "Drag from object should result in the correct sequence of events");
+
+}, "Click and drag outside of object event sequence");
+</script>
