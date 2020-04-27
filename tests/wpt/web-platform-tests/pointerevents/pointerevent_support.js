@@ -379,3 +379,16 @@ function moveToDocument(pointerType) {
                    .pointerMove(0, 0)
                    .send();
 }
+
+// Returns a promise that only gets resolved when the condition is met.
+function resolveWhen(condition) {
+  return new Promise((resolve, reject) => {
+    function tick() {
+      if (condition())
+        resolve();
+      else
+        requestAnimationFrame(tick.bind(this));
+    }
+    tick();
+  });
+}
