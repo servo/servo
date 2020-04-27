@@ -296,19 +296,8 @@ impl RangeMethods for Range {
 
     // https://dom.spec.whatwg.org/#dom-range-commonancestorcontainer
     fn CommonAncestorContainer(&self) -> DomRoot<Node> {
-        let end_container = self.EndContainer();
-        // Step 1.
-        for container in self
-            .StartContainer()
-            .inclusive_ancestors(ShadowIncluding::No)
-        {
-            // Step 2.
-            if container.is_inclusive_ancestor_of(&end_container) {
-                // Step 3.
-                return container;
-            }
-        }
-        unreachable!();
+        self.EndContainer()
+            .common_ancestor(&self.StartContainer(), ShadowIncluding::No)
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setstart

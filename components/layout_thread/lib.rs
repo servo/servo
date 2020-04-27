@@ -57,7 +57,8 @@ use layout::query::{process_node_scroll_area_request, process_node_scroll_id_req
 use layout::query::{process_offset_parent_query, process_resolved_style_request};
 use layout::sequential;
 use layout::traversal::{
-    ComputeStackingRelativePositions, PreorderFlowTraversal, RecalcStyleAndConstructFlows,
+    construct_flows_at_ancestors, ComputeStackingRelativePositions, PreorderFlowTraversal,
+    RecalcStyleAndConstructFlows,
 };
 use layout::wrapper::LayoutNodeLayoutData;
 use layout_traits::LayoutThreadFactory;
@@ -1200,7 +1201,7 @@ impl LayoutThread {
                 .expect("layout: wrong layout query timestamp");
         };
 
-        let element = match document.root_element() {
+        let root_element = match document.root_element() {
             None => {
                 // Since we cannot compute anything, give spec-required placeholders.
                 debug!("layout: No root node: bailing");
@@ -1250,9 +1251,9 @@ impl LayoutThread {
 
         debug!(
             "layout: processing reflow request for: {:?} ({}) (query={:?})",
-            element, self.url, data.reflow_goal
+            root_element, self.url, data.reflow_goal
         );
-        trace!("{:?}", ShowSubtree(element.as_node()));
+        trace!("{:?}", ShowSubtree(root_element.as_node()));
 
         let initial_viewport = data.window_size.initial_viewport;
         let device_pixel_ratio = data.window_size.device_pixel_ratio;
@@ -1309,7 +1310,7 @@ impl LayoutThread {
                     .unwrap();
             }
             if had_used_viewport_units {
-                if let Some(mut data) = element.mutate_data() {
+                if let Some(mut data) = root_element.mutate_data() {
                     data.hint.insert(RestyleHint::recascade_subtree());
                 }
             }
@@ -1344,7 +1345,7 @@ impl LayoutThread {
         }
 
         if viewport_size_changed {
-            if let Some(mut flow) = self.try_get_layout_root(element.as_node()) {
+            if let Some(mut flow) = self.try_get_layout_root(root_element.as_node()) {
                 LayoutThread::reflow_all_nodes(FlowRef::deref_mut(&mut flow));
             }
         }
@@ -1395,7 +1396,7 @@ impl LayoutThread {
             debug!("Noting restyle for {:?}: {:?}", el, style_data);
         }
 
-        self.stylist.flush(&guards, Some(element), Some(&map));
+        self.stylist.flush(&guards, Some(root_element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(
@@ -1414,13 +1415,19 @@ impl LayoutThread {
             (None, 1)
         };
 
+        let dirty_root = unsafe {
+            ServoLayoutNode::new(&data.dirty_root.unwrap())
+                .as_element()
+                .unwrap()
+        };
+
         let traversal = RecalcStyleAndConstructFlows::new(layout_context);
         let token = {
             let shared =
                 <RecalcStyleAndConstructFlows as DomTraversal<ServoLayoutElement>>::shared_context(
                     &traversal,
                 );
-            RecalcStyleAndConstructFlows::pre_traverse(element, shared)
+            RecalcStyleAndConstructFlows::pre_traverse(dirty_root, shared)
         };
 
         if token.should_traverse() {
@@ -1431,11 +1438,13 @@ impl LayoutThread {
                 self.time_profiler_chan.clone(),
                 || {
                     // Perform CSS selector matching and flow construction.
-                    driver::traverse_dom::<ServoLayoutElement, RecalcStyleAndConstructFlows>(
-                        &traversal,
-                        token,
-                        thread_pool,
-                    );
+                    let root = driver::traverse_dom::<
+                        ServoLayoutElement,
+                        RecalcStyleAndConstructFlows,
+                    >(&traversal, token, thread_pool);
+                    unsafe {
+                        construct_flows_at_ancestors(traversal.context(), root.as_node());
+                    }
                 },
             );
             // TODO(pcwalton): Measure energy usage of text shaping, perhaps?
@@ -1452,7 +1461,7 @@ impl LayoutThread {
             );
 
             // Retrieve the (possibly rebuilt) root flow.
-            *self.root_flow.borrow_mut() = self.try_get_layout_root(element.as_node());
+            *self.root_flow.borrow_mut() = self.try_get_layout_root(root_element.as_node());
         }
 
         for element in elements_with_snapshot {
@@ -1462,7 +1471,10 @@ impl LayoutThread {
         layout_context = traversal.destroy();
 
         if self.dump_style_tree {
-            println!("{:?}", ShowSubtreeDataAndPrimaryValues(element.as_node()));
+            println!(
+                "{:?}",
+                ShowSubtreeDataAndPrimaryValues(root_element.as_node())
+            );
         }
 
         if self.dump_rule_tree {

@@ -193,6 +193,8 @@ pub struct ScriptReflow {
     pub reflow_info: Reflow,
     /// The document node.
     pub document: TrustedNodeAddress,
+    /// The dirty root from which to restyle.
+    pub dirty_root: Option<TrustedNodeAddress>,
     /// Whether the document's stylesheets have changed since the last script reflow.
     pub stylesheets_changed: bool,
     /// The current window size.

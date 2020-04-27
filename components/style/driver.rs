@@ -63,7 +63,8 @@ pub fn traverse_dom<E, D>(
     traversal: &D,
     token: PreTraverseToken<E>,
     pool: Option<&rayon::ThreadPool>,
-) where
+) -> E
+where
     E: TElement,
     D: DomTraversal<E>,
 {
@@ -187,4 +188,6 @@ pub fn traverse_dom<E, D>(
             }
         }
     }
+
+    root
 }

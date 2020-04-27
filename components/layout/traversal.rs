@@ -30,6 +30,10 @@ impl<'a> RecalcStyleAndConstructFlows<'a> {
         RecalcStyleAndConstructFlows { context: context }
     }
 
+    pub fn context(&self) -> &LayoutContext<'a> {
+        &self.context
+    }
+
     /// Consumes this traversal context, returning ownership of the shared layout
     /// context to the caller.
     pub fn destroy(self) -> LayoutContext<'a> {
@@ -181,6 +185,19 @@ where
 {
     /// The operation to perform. Return true to continue or false to stop.
     fn process(&mut self, node: &ConcreteThreadSafeLayoutNode);
+}
+
+#[allow(unsafe_code)]
+#[inline]
+pub unsafe fn construct_flows_at_ancestors<'dom>(
+    context: &LayoutContext,
+    mut node: impl LayoutNode<'dom>,
+) {
+    while let Some(element) = node.traversal_parent() {
+        element.set_dirty_descendants();
+        node = element.as_node();
+        construct_flows_at(context, node);
+    }
 }
 
 /// The flow construction traversal, which builds flows for styled nodes.

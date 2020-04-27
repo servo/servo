@@ -1659,6 +1659,14 @@ impl Window {
             document.flush_dirty_canvases();
         }
 
+        let pending_restyles = document.drain_pending_restyles();
+
+        let dirty_root = document
+            .take_dirty_root()
+            .filter(|_| !stylesheets_changed)
+            .or_else(|| document.GetDocumentElement())
+            .map(|root| root.upcast::<Node>().to_trusted_node_address());
+
         // Send new document and relevant styles to layout.
         let needs_display = reflow_goal.needs_display();
         let reflow = ScriptReflow {
@@ -1666,13 +1674,14 @@ impl Window {
                 page_clip_rect: self.page_clip_rect.get(),
             },
             document: document.upcast::<Node>().to_trusted_node_address(),
+            dirty_root,
             stylesheets_changed,
             window_size: self.window_size.get(),
             origin: self.origin().immutable().clone(),
             reflow_goal,
             script_join_chan: join_chan,
             dom_count: document.dom_count(),
-            pending_restyles: document.drain_pending_restyles(),
+            pending_restyles,
             animation_timeline_value: document.current_animation_timeline_value(),
             animations: document.animations().sets.clone(),
         };
@@ -1770,12 +1779,17 @@ impl Window {
 
             // We shouldn't need a reflow immediately after a
             // reflow, except if we're waiting for a deferred paint.
-            assert!({
-                let condition = self.Document().needs_reflow();
-                condition.is_none() ||
-                    (!for_display && condition == Some(ReflowTriggerCondition::PaintPostponed)) ||
-                    self.suppress_reflow.get()
-            });
+            let condition = self.Document().needs_reflow();
+            assert!(
+                {
+                    condition.is_none() ||
+                        (!for_display &&
+                            condition == Some(ReflowTriggerCondition::PaintPostponed)) ||
+                        self.suppress_reflow.get()
+                },
+                "condition was {:?}",
+                condition
+            );
         } else {
             debug!(
                 "Document doesn't need reflow - skipping it (reason {:?})",
