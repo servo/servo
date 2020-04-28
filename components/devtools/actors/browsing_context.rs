@@ -120,8 +120,8 @@ pub struct BrowsingContextActorMsg {
 
 pub struct BrowsingContextActor {
     pub name: String,
-    pub title: String,
-    pub url: String,
+    pub title: RefCell<String>,
+    pub url: RefCell<String>,
     pub console: String,
     pub emulation: String,
     pub inspector: String,
@@ -174,7 +174,7 @@ impl Actor for BrowsingContextActor {
                     javascriptEnabled: true,
                     traits: AttachedTraits {
                         reconfigure: false,
-                        frames: false,
+                        frames: true,
                         logInPage: false,
                         canRewind: false,
                         watchpoints: false,
@@ -207,10 +207,11 @@ impl Actor for BrowsingContextActor {
                 let msg = ListFramesReply {
                     from: self.name(),
                     frames: vec![FrameMsg {
-                        id: 0, //FIXME should match outerwindow id
+                        //FIXME: shouldn't ignore pipeline namespace field
+                        id: self.active_pipeline.get().index.0.get(),
                         parentID: 0,
-                        url: self.url.clone(),
-                        title: self.title.clone(),
+                        url: self.url.borrow().clone(),
+                        title: self.title.borrow().clone(),
                     }],
                 };
                 stream.write_json_packet(&msg);
@@ -268,8 +269,8 @@ impl BrowsingContextActor {
         let target = BrowsingContextActor {
             name: name,
             script_chan: script_sender,
-            title: String::from(title),
-            url: url.into_string(),
+            title: RefCell::new(String::from(title)),
+            url: RefCell::new(url.into_string()),
             console: console,
             emulation: emulation.name(),
             inspector: inspector.name(),
@@ -302,8 +303,8 @@ impl BrowsingContextActor {
             traits: BrowsingContextTraits {
                 isBrowsingContext: true,
             },
-            title: self.title.clone(),
-            url: self.url.clone(),
+            title: self.title.borrow().clone(),
+            url: self.url.borrow().clone(),
             //FIXME: shouldn't ignore pipeline namespace field
             browsingContextId: self.browsing_context_id.index.0.get(),
             //FIXME: shouldn't ignore pipeline namespace field
@@ -328,6 +329,11 @@ impl BrowsingContextActor {
         if let Some(p) = pipeline {
             self.active_pipeline.set(p);
         }
+        *self.url.borrow_mut() = url.as_str().to_owned();
+        if let Some(ref t) = title {
+            *self.title.borrow_mut() = t.clone();
+        }
+
         let msg = TabNavigated {
             from: self.name(),
             type_: "tabNavigated".to_owned(),
