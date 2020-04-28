@@ -867,8 +867,10 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
-    fn GetBufferParameter(&self, cx: JSContext, target: u32, parameter: u32) -> JSVal {
-        self.base.GetBufferParameter(cx, target, parameter)
+    fn GetBufferParameter(&self, _cx: JSContext, target: u32, parameter: u32) -> JSVal {
+        let buffer =
+            handle_potential_webgl_error!(self.base, self.bound_buffer(target), return NullValue());
+        self.base.get_buffer_param(buffer, parameter)
     }
 
     #[allow(unsafe_code)]
