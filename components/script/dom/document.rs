@@ -934,6 +934,14 @@ impl Document {
     pub fn title_changed(&self) {
         if self.browsing_context().is_some() {
             self.send_title_to_embedder();
+            let global = self.window.upcast::<GlobalScope>();
+            if let Some(ref chan) = global.devtools_chan() {
+                let title = String::from(self.Title());
+                let _ = chan.send(ScriptToDevtoolsControlMsg::TitleChanged(
+                    global.pipeline_id(),
+                    title,
+                ));
+            }
         }
     }
 

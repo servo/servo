@@ -235,6 +235,26 @@ fn run_server(
             .navigate(state);
     }
 
+    fn handle_title_changed(
+        actors: Arc<Mutex<ActorRegistry>>,
+        pipelines: &HashMap<PipelineId, BrowsingContextId>,
+        browsing_contexts: &HashMap<BrowsingContextId, String>,
+        pipeline: PipelineId,
+        title: String,
+    ) {
+        let bc = match pipelines.get(&pipeline) {
+            Some(bc) => bc,
+            None => return,
+        };
+        let name = match browsing_contexts.get(&bc) {
+            Some(name) => name,
+            None => return,
+        };
+        let actors = actors.lock().unwrap();
+        let browsing_context = actors.find::<BrowsingContextActor>(name);
+        browsing_context.title_changed(pipeline, title);
+    }
+
     // We need separate actor representations for each script global that exists;
     // clients can theoretically connect to multiple globals simultaneously.
     // TODO: move this into the root or target modules?
@@ -578,6 +598,16 @@ fn run_server(
                 actor_name,
                 tick,
             )) => handle_framerate_tick(actors.clone(), actor_name, tick),
+            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::TitleChanged(
+                pipeline,
+                title,
+            )) => handle_title_changed(
+                actors.clone(),
+                &pipelines,
+                &browsing_contexts,
+                pipeline,
+                title,
+            ),
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::NewGlobal(
                 ids,
                 script_sender,

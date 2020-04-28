@@ -97,6 +97,9 @@ pub enum ScriptToDevtoolsControlMsg {
 
     /// Report a page error for the given pipeline
     ReportPageError(PipelineId, PageError),
+
+    /// Report a page title change
+    TitleChanged(PipelineId, String),
 }
 
 /// Serialized JS return values

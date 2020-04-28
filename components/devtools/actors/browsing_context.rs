@@ -347,6 +347,13 @@ impl BrowsingContextActor {
             stream.write_json_packet(&msg);
         }
     }
+
+    pub(crate) fn title_changed(&self, pipeline: PipelineId, title: String) {
+        if pipeline != self.active_pipeline.get() {
+            return;
+        }
+        *self.title.borrow_mut() = title;
+    }
 }
 
 #[derive(Serialize)]
