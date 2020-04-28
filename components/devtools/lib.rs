@@ -19,31 +19,27 @@ extern crate serde;
 
 use crate::actor::{Actor, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
-use crate::actors::console::ConsoleActor;
+use crate::actors::console::{ConsoleActor, Root};
 use crate::actors::device::DeviceActor;
-use crate::actors::emulation::EmulationActor;
 use crate::actors::framerate::FramerateActor;
-use crate::actors::inspector::InspectorActor;
 use crate::actors::network_event::{EventActor, NetworkEventActor, ResponseStartMsg};
 use crate::actors::performance::PerformanceActor;
 use crate::actors::preference::PreferenceActor;
 use crate::actors::process::ProcessActor;
-use crate::actors::profiler::ProfilerActor;
 use crate::actors::root::RootActor;
-use crate::actors::stylesheets::StyleSheetsActor;
 use crate::actors::thread::ThreadActor;
-use crate::actors::timeline::TimelineActor;
-use crate::actors::worker::WorkerActor;
+use crate::actors::worker::{WorkerActor, WorkerType};
 use crate::protocol::JsonPacketStream;
 use crossbeam_channel::{unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, ConsoleMessage, DevtoolsControlMsg};
-use devtools_traits::{DevtoolScriptControlMsg, DevtoolsPageInfo, LogLevel, NetworkEvent};
+use devtools_traits::{
+    DevtoolScriptControlMsg, DevtoolsPageInfo, LogLevel, NavigationState, NetworkEvent,
+};
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptDefinition, PromptOrigin, PromptResult};
 use ipc_channel::ipc::{self, IpcSender};
-use msg::constellation_msg::PipelineId;
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use std::borrow::ToOwned;
-use std::cell::RefCell;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
 use std::net::{Shutdown, TcpListener, TcpStream};
@@ -74,30 +70,10 @@ mod actors {
 }
 mod protocol;
 
-#[derive(Serialize)]
-struct ConsoleAPICall {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    message: ConsoleMsg,
-}
-
-#[derive(Serialize)]
-struct ConsoleMsg {
-    level: String,
-    timeStamp: u64,
-    arguments: Vec<String>,
-    filename: String,
-    lineNumber: usize,
-    columnNumber: usize,
-}
-
-#[derive(Serialize)]
-struct PageErrorMsg {
-    from: String,
-    #[serde(rename = "type")]
-    type_: String,
-    pageError: PageError,
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+enum UniqueId {
+    Pipeline(PipelineId),
+    Worker(WorkerId),
 }
 
 #[derive(Serialize)]
@@ -181,6 +157,7 @@ fn run_server(
 
     let root = Box::new(RootActor {
         tabs: vec![],
+        workers: vec![],
         device: device.name(),
         performance: performance.name(),
         preference: preference.name(),
@@ -198,10 +175,11 @@ fn run_server(
 
     let mut accepted_connections: Vec<TcpStream> = Vec::new();
 
-    let mut actor_pipelines: HashMap<PipelineId, String> = HashMap::new();
+    let mut browsing_contexts: HashMap<BrowsingContextId, String> = HashMap::new();
+    let mut pipelines: HashMap<PipelineId, BrowsingContextId> = HashMap::new();
     let mut actor_requests: HashMap<String, String> = HashMap::new();
 
-    let mut actor_workers: HashMap<(PipelineId, WorkerId), String> = HashMap::new();
+    let mut actor_workers: HashMap<WorkerId, String> = HashMap::new();
 
     /// Process the input from a single devtools client until EOF.
     fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
@@ -243,129 +221,139 @@ fn run_server(
         framerate_actor.add_tick(tick);
     }
 
+    fn handle_navigate(
+        actors: Arc<Mutex<ActorRegistry>>,
+        browsing_contexts: &HashMap<BrowsingContextId, String>,
+        browsing_context: BrowsingContextId,
+        state: NavigationState,
+    ) {
+        let actor_name = browsing_contexts.get(&browsing_context).unwrap();
+        actors
+            .lock()
+            .unwrap()
+            .find::<BrowsingContextActor>(actor_name)
+            .navigate(state);
+    }
+
+    fn handle_title_changed(
+        actors: Arc<Mutex<ActorRegistry>>,
+        pipelines: &HashMap<PipelineId, BrowsingContextId>,
+        browsing_contexts: &HashMap<BrowsingContextId, String>,
+        pipeline: PipelineId,
+        title: String,
+    ) {
+        let bc = match pipelines.get(&pipeline) {
+            Some(bc) => bc,
+            None => return,
+        };
+        let name = match browsing_contexts.get(&bc) {
+            Some(name) => name,
+            None => return,
+        };
+        let actors = actors.lock().unwrap();
+        let browsing_context = actors.find::<BrowsingContextActor>(name);
+        browsing_context.title_changed(pipeline, title);
+    }
+
     // We need separate actor representations for each script global that exists;
     // clients can theoretically connect to multiple globals simultaneously.
     // TODO: move this into the root or target modules?
     fn handle_new_global(
         actors: Arc<Mutex<ActorRegistry>>,
-        ids: (PipelineId, Option<WorkerId>),
+        ids: (BrowsingContextId, PipelineId, Option<WorkerId>),
         script_sender: IpcSender<DevtoolScriptControlMsg>,
-        actor_pipelines: &mut HashMap<PipelineId, String>,
-        actor_workers: &mut HashMap<(PipelineId, WorkerId), String>,
+        browsing_contexts: &mut HashMap<BrowsingContextId, String>,
+        pipelines: &mut HashMap<PipelineId, BrowsingContextId>,
+        actor_workers: &mut HashMap<WorkerId, String>,
         page_info: DevtoolsPageInfo,
     ) {
         let mut actors = actors.lock().unwrap();
 
-        let (pipeline, worker_id) = ids;
+        let (browsing_context, pipeline, worker_id) = ids;
 
-        //TODO: move all this actor creation into a constructor method on BrowsingContextActor
-        let (
-            target,
-            console,
-            emulation,
-            inspector,
-            timeline,
-            profiler,
-            performance,
-            styleSheets,
-            thread,
-        ) = {
-            let console = ConsoleActor {
-                name: actors.new_name("console"),
-                script_chan: script_sender.clone(),
-                pipeline: pipeline,
-                streams: RefCell::new(Vec::new()),
-                cached_events: RefCell::new(Vec::new()),
-            };
+        let console_name = actors.new_name("console");
 
-            let emulation = EmulationActor::new(actors.new_name("emulation"));
+        let parent_actor = if let Some(id) = worker_id {
+            assert!(pipelines.get(&pipeline).is_some());
+            assert!(browsing_contexts.get(&browsing_context).is_some());
 
-            let inspector = InspectorActor {
-                name: actors.new_name("inspector"),
-                walker: RefCell::new(None),
-                pageStyle: RefCell::new(None),
-                highlighter: RefCell::new(None),
-                script_chan: script_sender.clone(),
-                pipeline: pipeline,
-            };
-
-            let timeline = TimelineActor::new(actors.new_name("timeline"), pipeline, script_sender);
-
-            let profiler = ProfilerActor::new(actors.new_name("profiler"));
-            let performance = PerformanceActor::new(actors.new_name("performance"));
-
-            // the strange switch between styleSheets and stylesheets is due
-            // to an inconsistency in devtools. See Bug #1498893 in bugzilla
-            let styleSheets = StyleSheetsActor::new(actors.new_name("stylesheets"));
             let thread = ThreadActor::new(actors.new_name("context"));
+            let thread_name = thread.name();
+            actors.register(Box::new(thread));
 
-            let DevtoolsPageInfo { title, url } = page_info;
-            let target = BrowsingContextActor {
-                name: actors.new_name("target"),
-                title: String::from(title),
-                url: url.into_string(),
-                console: console.name(),
-                emulation: emulation.name(),
-                inspector: inspector.name(),
-                timeline: timeline.name(),
-                profiler: profiler.name(),
-                performance: performance.name(),
-                styleSheets: styleSheets.name(),
-                thread: thread.name(),
+            let worker_name = actors.new_name("worker");
+            let worker = WorkerActor {
+                name: worker_name.clone(),
+                console: console_name.clone(),
+                thread: thread_name,
+                id: id,
+                url: page_info.url.clone(),
+                type_: WorkerType::Dedicated,
+                script_chan: script_sender,
+                streams: Default::default(),
             };
-
             let root = actors.find_mut::<RootActor>("root");
-            root.tabs.push(target.name.clone());
+            root.workers.push(worker.name.clone());
 
-            (
-                target,
-                console,
-                emulation,
-                inspector,
-                timeline,
-                profiler,
-                performance,
-                styleSheets,
-                thread,
+            actor_workers.insert(id, worker_name.clone());
+            actors.register(Box::new(worker));
+
+            Root::DedicatedWorker(worker_name)
+        } else {
+            pipelines.insert(pipeline, browsing_context);
+            Root::BrowsingContext(
+                if let Some(actor) = browsing_contexts.get(&browsing_context) {
+                    actor.to_owned()
+                } else {
+                    let browsing_context_actor = BrowsingContextActor::new(
+                        console_name.clone(),
+                        browsing_context,
+                        page_info,
+                        pipeline,
+                        script_sender,
+                        &mut *actors,
+                    );
+                    let name = browsing_context_actor.name();
+                    browsing_contexts.insert(browsing_context, name.clone());
+                    actors.register(Box::new(browsing_context_actor));
+                    name
+                },
             )
         };
 
-        if let Some(id) = worker_id {
-            let worker = WorkerActor {
-                name: actors.new_name("worker"),
-                console: console.name(),
-                id: id,
-            };
-            actor_workers.insert((pipeline, id), worker.name.clone());
-            actors.register(Box::new(worker));
-        }
+        let console = ConsoleActor {
+            name: console_name,
+            cached_events: Default::default(),
+            root: parent_actor,
+        };
 
-        actor_pipelines.insert(pipeline, target.name.clone());
-        actors.register(Box::new(target));
         actors.register(Box::new(console));
-        actors.register(Box::new(emulation));
-        actors.register(Box::new(inspector));
-        actors.register(Box::new(timeline));
-        actors.register(Box::new(profiler));
-        actors.register(Box::new(performance));
-        actors.register(Box::new(styleSheets));
-        actors.register(Box::new(thread));
     }
 
     fn handle_page_error(
         actors: Arc<Mutex<ActorRegistry>>,
         id: PipelineId,
+        worker_id: Option<WorkerId>,
         page_error: PageError,
-        actor_pipelines: &HashMap<PipelineId, String>,
+        browsing_contexts: &HashMap<BrowsingContextId, String>,
+        actor_workers: &HashMap<WorkerId, String>,
+        pipelines: &HashMap<PipelineId, BrowsingContextId>,
     ) {
-        let console_actor_name =
-            match find_console_actor(actors.clone(), id, None, &HashMap::new(), actor_pipelines) {
-                Some(name) => name,
-                None => return,
-            };
+        let console_actor_name = match find_console_actor(
+            actors.clone(),
+            id,
+            worker_id,
+            actor_workers,
+            browsing_contexts,
+            pipelines,
+        ) {
+            Some(name) => name,
+            None => return,
+        };
         let actors = actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
-        console_actor.handle_page_error(page_error);
+        let id = worker_id.map_or(UniqueId::Pipeline(id), UniqueId::Worker);
+        console_actor.handle_page_error(page_error, id, &*actors);
     }
 
     fn handle_console_message(
@@ -373,37 +361,42 @@ fn run_server(
         id: PipelineId,
         worker_id: Option<WorkerId>,
         console_message: ConsoleMessage,
-        actor_pipelines: &HashMap<PipelineId, String>,
-        actor_workers: &HashMap<(PipelineId, WorkerId), String>,
+        browsing_contexts: &HashMap<BrowsingContextId, String>,
+        actor_workers: &HashMap<WorkerId, String>,
+        pipelines: &HashMap<PipelineId, BrowsingContextId>,
     ) {
         let console_actor_name = match find_console_actor(
             actors.clone(),
             id,
             worker_id,
             actor_workers,
-            actor_pipelines,
+            browsing_contexts,
+            pipelines,
         ) {
             Some(name) => name,
             None => return,
         };
         let actors = actors.lock().unwrap();
         let console_actor = actors.find::<ConsoleActor>(&console_actor_name);
-        console_actor.handle_console_api(console_message);
+        let id = worker_id.map_or(UniqueId::Pipeline(id), UniqueId::Worker);
+        console_actor.handle_console_api(console_message, id, &*actors);
     }
 
     fn find_console_actor(
         actors: Arc<Mutex<ActorRegistry>>,
-        id: PipelineId,
+        pipeline: PipelineId,
         worker_id: Option<WorkerId>,
-        actor_workers: &HashMap<(PipelineId, WorkerId), String>,
-        actor_pipelines: &HashMap<PipelineId, String>,
+        actor_workers: &HashMap<WorkerId, String>,
+        browsing_contexts: &HashMap<BrowsingContextId, String>,
+        pipelines: &HashMap<PipelineId, BrowsingContextId>,
     ) -> Option<String> {
         let actors = actors.lock().unwrap();
         if let Some(worker_id) = worker_id {
-            let actor_name = (*actor_workers).get(&(id, worker_id))?;
+            let actor_name = actor_workers.get(&worker_id)?;
             Some(actors.find::<WorkerActor>(actor_name).console.clone())
         } else {
-            let actor_name = (*actor_pipelines).get(&id)?;
+            let id = pipelines.get(&pipeline)?;
+            let actor_name = browsing_contexts.get(id)?;
             Some(
                 actors
                     .find::<BrowsingContextActor>(actor_name)
@@ -416,9 +409,10 @@ fn run_server(
     fn handle_network_event(
         actors: Arc<Mutex<ActorRegistry>>,
         mut connections: Vec<TcpStream>,
-        actor_pipelines: &HashMap<PipelineId, String>,
+        browsing_contexts: &HashMap<BrowsingContextId, String>,
         actor_requests: &mut HashMap<String, String>,
-        actor_workers: &HashMap<(PipelineId, WorkerId), String>,
+        actor_workers: &HashMap<WorkerId, String>,
+        pipelines: &HashMap<PipelineId, BrowsingContextId>,
         pipeline_id: PipelineId,
         request_id: String,
         network_event: NetworkEvent,
@@ -428,7 +422,8 @@ fn run_server(
             pipeline_id,
             None,
             actor_workers,
-            actor_pipelines,
+            browsing_contexts,
+            pipelines,
         ) {
             Some(name) => name,
             None => return,
@@ -589,6 +584,7 @@ fn run_server(
         .expect("Thread spawning failed");
 
     while let Ok(msg) = receiver.recv() {
+        debug!("{:?}", msg);
         match msg {
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();
@@ -602,6 +598,16 @@ fn run_server(
                 actor_name,
                 tick,
             )) => handle_framerate_tick(actors.clone(), actor_name, tick),
+            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::TitleChanged(
+                pipeline,
+                title,
+            )) => handle_title_changed(
+                actors.clone(),
+                &pipelines,
+                &browsing_contexts,
+                pipeline,
+                title,
+            ),
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::NewGlobal(
                 ids,
                 script_sender,
@@ -610,10 +616,15 @@ fn run_server(
                 actors.clone(),
                 ids,
                 script_sender,
-                &mut actor_pipelines,
+                &mut browsing_contexts,
+                &mut pipelines,
                 &mut actor_workers,
                 pageinfo,
             ),
+            DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::Navigate(
+                browsing_context,
+                state,
+            )) => handle_navigate(actors.clone(), &browsing_contexts, browsing_context, state),
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ConsoleAPI(
                 id,
                 console_message,
@@ -623,13 +634,22 @@ fn run_server(
                 id,
                 worker_id,
                 console_message,
-                &actor_pipelines,
+                &browsing_contexts,
                 &actor_workers,
+                &pipelines,
             ),
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportPageError(
                 id,
                 page_error,
-            )) => handle_page_error(actors.clone(), id, page_error, &actor_pipelines),
+            )) => handle_page_error(
+                actors.clone(),
+                id,
+                None,
+                page_error,
+                &browsing_contexts,
+                &actor_workers,
+                &pipelines,
+            ),
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::ReportCSSError(
                 id,
                 css_error,
@@ -646,8 +666,9 @@ fn run_server(
                     id,
                     None,
                     console_message,
-                    &actor_pipelines,
+                    &browsing_contexts,
                     &actor_workers,
+                    &pipelines,
                 )
             },
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::NetworkEvent(
@@ -667,9 +688,10 @@ fn run_server(
                 handle_network_event(
                     actors.clone(),
                     connections,
-                    &actor_pipelines,
+                    &browsing_contexts,
                     &mut actor_requests,
                     &actor_workers,
+                    &pipelines,
                     pipeline_id,
                     request_id,
                     network_event,

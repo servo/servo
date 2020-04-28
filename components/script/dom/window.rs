@@ -2008,15 +2008,21 @@ impl Window {
 
         // Step 8
         if doc.prompt_to_unload(false) {
-            if self.window_proxy().parent().is_some() {
+            let window_proxy = self.window_proxy();
+            if window_proxy.parent().is_some() {
                 // Step 10
                 // If browsingContext is a nested browsing context,
                 // then put it in the delaying load events mode.
-                self.window_proxy().start_delaying_load_events_mode();
+                window_proxy.start_delaying_load_events_mode();
             }
             // TODO: step 11, navigationType.
             // Step 12, 13
-            ScriptThread::navigate(pipeline_id, load_data, replace);
+            ScriptThread::navigate(
+                window_proxy.browsing_context_id(),
+                pipeline_id,
+                load_data,
+                replace,
+            );
         };
     }
 

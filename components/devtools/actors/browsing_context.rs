@@ -8,10 +8,22 @@
 //! Supports dynamic attaching and detaching which control notifications of navigation, etc.
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::console::ConsoleActor;
+use crate::actors::emulation::EmulationActor;
+use crate::actors::inspector::InspectorActor;
+use crate::actors::performance::PerformanceActor;
+use crate::actors::profiler::ProfilerActor;
+use crate::actors::root::RootActor;
+use crate::actors::stylesheets::StyleSheetsActor;
+use crate::actors::thread::ThreadActor;
+use crate::actors::timeline::TimelineActor;
 use crate::protocol::JsonPacketStream;
 use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
+use devtools_traits::DevtoolsPageInfo;
+use devtools_traits::NavigationState;
+use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use serde_json::{Map, Value};
+use std::cell::{Cell, RefCell};
 use std::net::TcpStream;
 
 #[derive(Serialize)]
@@ -108,8 +120,8 @@ pub struct BrowsingContextActorMsg {
 
 pub struct BrowsingContextActor {
     pub name: String,
-    pub title: String,
-    pub url: String,
+    pub title: RefCell<String>,
+    pub url: RefCell<String>,
     pub console: String,
     pub emulation: String,
     pub inspector: String,
@@ -118,6 +130,10 @@ pub struct BrowsingContextActor {
     pub performance: String,
     pub styleSheets: String,
     pub thread: String,
+    pub streams: RefCell<Vec<TcpStream>>,
+    pub browsing_context_id: BrowsingContextId,
+    pub active_pipeline: Cell<PipelineId>,
+    pub script_chan: IpcSender<DevtoolScriptControlMsg>,
 }
 
 impl Actor for BrowsingContextActor {
@@ -127,7 +143,7 @@ impl Actor for BrowsingContextActor {
 
     fn handle_message(
         &self,
-        registry: &ActorRegistry,
+        _registry: &ActorRegistry,
         msg_type: &str,
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
@@ -137,10 +153,9 @@ impl Actor for BrowsingContextActor {
                 if let Some(options) = msg.get("options").and_then(|o| o.as_object()) {
                     if let Some(val) = options.get("performReload") {
                         if val.as_bool().unwrap_or(false) {
-                            let console_actor = registry.find::<ConsoleActor>(&self.console);
-                            let _ = console_actor
+                            let _ = self
                                 .script_chan
-                                .send(DevtoolScriptControlMsg::Reload(console_actor.pipeline));
+                                .send(DevtoolScriptControlMsg::Reload(self.active_pipeline.get()));
                         }
                     }
                 }
@@ -159,38 +174,31 @@ impl Actor for BrowsingContextActor {
                     javascriptEnabled: true,
                     traits: AttachedTraits {
                         reconfigure: false,
-                        frames: false,
+                        frames: true,
                         logInPage: false,
                         canRewind: false,
                         watchpoints: false,
                     },
                 };
-                let console_actor = registry.find::<ConsoleActor>(&self.console);
-                console_actor
-                    .streams
-                    .borrow_mut()
-                    .push(stream.try_clone().unwrap());
+                self.streams.borrow_mut().push(stream.try_clone().unwrap());
                 stream.write_json_packet(&msg);
-                console_actor
-                    .script_chan
-                    .send(WantsLiveNotifications(console_actor.pipeline, true))
+                self.script_chan
+                    .send(WantsLiveNotifications(self.active_pipeline.get(), true))
                     .unwrap();
                 ActorMessageStatus::Processed
             },
 
-            //FIXME: The current implementation won't work for multiple connections. Need to ensure 105
+            //FIXME: The current implementation won't work for multiple connections. Need to ensure
             //       that the correct stream is removed.
             "detach" => {
                 let msg = BrowsingContextDetachedReply {
                     from: self.name(),
                     type_: "detached".to_owned(),
                 };
-                let console_actor = registry.find::<ConsoleActor>(&self.console);
-                console_actor.streams.borrow_mut().pop();
+                self.streams.borrow_mut().pop();
                 stream.write_json_packet(&msg);
-                console_actor
-                    .script_chan
-                    .send(WantsLiveNotifications(console_actor.pipeline, false))
+                self.script_chan
+                    .send(WantsLiveNotifications(self.active_pipeline.get(), false))
                     .unwrap();
                 ActorMessageStatus::Processed
             },
@@ -199,10 +207,11 @@ impl Actor for BrowsingContextActor {
                 let msg = ListFramesReply {
                     from: self.name(),
                     frames: vec![FrameMsg {
-                        id: 0, //FIXME should match outerwindow id
+                        //FIXME: shouldn't ignore pipeline namespace field
+                        id: self.active_pipeline.get().index.0.get(),
                         parentID: 0,
-                        url: self.url.clone(),
-                        title: self.title.clone(),
+                        url: self.url.borrow().clone(),
+                        title: self.title.borrow().clone(),
                     }],
                 };
                 stream.write_json_packet(&msg);
@@ -224,16 +233,82 @@ impl Actor for BrowsingContextActor {
 }
 
 impl BrowsingContextActor {
+    pub(crate) fn new(
+        console: String,
+        id: BrowsingContextId,
+        page_info: DevtoolsPageInfo,
+        pipeline: PipelineId,
+        script_sender: IpcSender<DevtoolScriptControlMsg>,
+        actors: &mut ActorRegistry,
+    ) -> BrowsingContextActor {
+        let emulation = EmulationActor::new(actors.new_name("emulation"));
+
+        let name = actors.new_name("target");
+
+        let inspector = InspectorActor {
+            name: actors.new_name("inspector"),
+            walker: RefCell::new(None),
+            pageStyle: RefCell::new(None),
+            highlighter: RefCell::new(None),
+            script_chan: script_sender.clone(),
+            browsing_context: name.clone(),
+        };
+
+        let timeline =
+            TimelineActor::new(actors.new_name("timeline"), pipeline, script_sender.clone());
+
+        let profiler = ProfilerActor::new(actors.new_name("profiler"));
+        let performance = PerformanceActor::new(actors.new_name("performance"));
+
+        // the strange switch between styleSheets and stylesheets is due
+        // to an inconsistency in devtools. See Bug #1498893 in bugzilla
+        let styleSheets = StyleSheetsActor::new(actors.new_name("stylesheets"));
+        let thread = ThreadActor::new(actors.new_name("context"));
+
+        let DevtoolsPageInfo { title, url } = page_info;
+        let target = BrowsingContextActor {
+            name: name,
+            script_chan: script_sender,
+            title: RefCell::new(String::from(title)),
+            url: RefCell::new(url.into_string()),
+            console: console,
+            emulation: emulation.name(),
+            inspector: inspector.name(),
+            timeline: timeline.name(),
+            profiler: profiler.name(),
+            performance: performance.name(),
+            styleSheets: styleSheets.name(),
+            thread: thread.name(),
+            streams: RefCell::new(Vec::new()),
+            browsing_context_id: id,
+            active_pipeline: Cell::new(pipeline),
+        };
+
+        actors.register(Box::new(emulation));
+        actors.register(Box::new(inspector));
+        actors.register(Box::new(timeline));
+        actors.register(Box::new(profiler));
+        actors.register(Box::new(performance));
+        actors.register(Box::new(styleSheets));
+        actors.register(Box::new(thread));
+
+        let root = actors.find_mut::<RootActor>("root");
+        root.tabs.push(target.name.clone());
+        target
+    }
+
     pub fn encodable(&self) -> BrowsingContextActorMsg {
         BrowsingContextActorMsg {
             actor: self.name(),
             traits: BrowsingContextTraits {
                 isBrowsingContext: true,
             },
-            title: self.title.clone(),
-            url: self.url.clone(),
-            browsingContextId: 0, //FIXME should come from constellation
-            outerWindowID: 0,     //FIXME: this should probably be the pipeline id
+            title: self.title.borrow().clone(),
+            url: self.url.borrow().clone(),
+            //FIXME: shouldn't ignore pipeline namespace field
+            browsingContextId: self.browsing_context_id.index.0.get(),
+            //FIXME: shouldn't ignore pipeline namespace field
+            outerWindowID: self.active_pipeline.get().index.0.get(),
             consoleActor: self.console.clone(),
             emulationActor: self.emulation.clone(),
             inspectorActor: self.inspector.clone(),
@@ -243,4 +318,52 @@ impl BrowsingContextActor {
             styleSheetsActor: self.styleSheets.clone(),
         }
     }
+
+    pub(crate) fn navigate(&self, state: NavigationState) {
+        let (pipeline, title, url, state) = match state {
+            NavigationState::Start(url) => (None, None, url, "start"),
+            NavigationState::Stop(pipeline, info) => {
+                (Some(pipeline), Some(info.title), info.url, "stop")
+            },
+        };
+        if let Some(p) = pipeline {
+            self.active_pipeline.set(p);
+        }
+        *self.url.borrow_mut() = url.as_str().to_owned();
+        if let Some(ref t) = title {
+            *self.title.borrow_mut() = t.clone();
+        }
+
+        let msg = TabNavigated {
+            from: self.name(),
+            type_: "tabNavigated".to_owned(),
+            url: url.as_str().to_owned(),
+            title: title,
+            nativeConsoleAPI: true,
+            state: state.to_owned(),
+            isFrameSwitching: false,
+        };
+        for stream in &mut *self.streams.borrow_mut() {
+            stream.write_json_packet(&msg);
+        }
+    }
+
+    pub(crate) fn title_changed(&self, pipeline: PipelineId, title: String) {
+        if pipeline != self.active_pipeline.get() {
+            return;
+        }
+        *self.title.borrow_mut() = title;
+    }
+}
+
+#[derive(Serialize)]
+struct TabNavigated {
+    from: String,
+    #[serde(rename = "type")]
+    type_: String,
+    url: String,
+    title: Option<String>,
+    nativeConsoleAPI: bool,
+    state: String,
+    isFrameSwitching: bool,
 }

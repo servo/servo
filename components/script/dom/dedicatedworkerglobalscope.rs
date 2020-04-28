@@ -43,7 +43,7 @@ use js::jsapi::JS_AddInterruptCallback;
 use js::jsapi::{Heap, JSContext, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
-use msg::constellation_msg::{PipelineId, TopLevelBrowsingContextId};
+use msg::constellation_msg::{BrowsingContextId, PipelineId, TopLevelBrowsingContextId};
 use net_traits::image_cache::ImageCache;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
 use net_traits::request::{Referrer, RequestBuilder, RequestMode};
@@ -180,6 +180,7 @@ pub struct DedicatedWorkerGlobalScope {
     parent_sender: Box<dyn ScriptChan + Send>,
     #[ignore_malloc_size_of = "Arc"]
     image_cache: Arc<dyn ImageCache>,
+    browsing_context: Option<BrowsingContextId>,
 }
 
 impl WorkerEventLoopMethods for DedicatedWorkerGlobalScope {
@@ -221,6 +222,7 @@ impl DedicatedWorkerGlobalScope {
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
+        browsing_context: Option<BrowsingContextId>,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -237,6 +239,7 @@ impl DedicatedWorkerGlobalScope {
             parent_sender: parent_sender,
             worker: DomRefCell::new(None),
             image_cache: image_cache,
+            browsing_context,
         }
     }
 
@@ -253,6 +256,7 @@ impl DedicatedWorkerGlobalScope {
         receiver: Receiver<DedicatedWorkerScriptMsg>,
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
+        browsing_context: Option<BrowsingContextId>,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
@@ -267,6 +271,7 @@ impl DedicatedWorkerGlobalScope {
             receiver,
             closing,
             image_cache,
+            browsing_context,
         ));
         unsafe { DedicatedWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
     }
@@ -286,6 +291,7 @@ impl DedicatedWorkerGlobalScope {
         worker_type: WorkerType,
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
+        browsing_context: Option<BrowsingContextId>,
     ) {
         let serialized_worker_url = worker_url.to_string();
         let name = format!("WebWorker for {}", serialized_worker_url);
@@ -354,6 +360,7 @@ impl DedicatedWorkerGlobalScope {
                     receiver,
                     closing,
                     image_cache,
+                    browsing_context,
                 );
                 // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
                 // registration (#6631), so we instead use a random number and cross our fingers.
@@ -467,6 +474,7 @@ impl DedicatedWorkerGlobalScope {
     }
 
     fn handle_mixed_message(&self, msg: MixedMessage) {
+        // FIXME(#26324): `self.worker` is None in devtools messages.
         match msg {
             MixedMessage::FromDevtools(msg) => match msg {
                 DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
@@ -550,6 +558,10 @@ impl DedicatedWorkerGlobalScope {
             ))
             .expect("Sending to parent failed");
         Ok(())
+    }
+
+    pub(crate) fn browsing_context(&self) -> Option<BrowsingContextId> {
+        self.browsing_context
     }
 }
 

@@ -62,6 +62,7 @@ use uuid::Uuid;
 pub fn prepare_workerscope_init(
     global: &GlobalScope,
     devtools_sender: Option<IpcSender<DevtoolScriptControlMsg>>,
+    worker_id: Option<WorkerId>,
 ) -> WorkerGlobalScopeInit {
     let init = WorkerGlobalScopeInit {
         resource_threads: global.resource_threads().clone(),
@@ -71,7 +72,7 @@ pub fn prepare_workerscope_init(
         from_devtools_sender: devtools_sender,
         script_to_constellation_chan: global.script_to_constellation_chan().clone(),
         scheduler_chan: global.scheduler_chan().clone(),
-        worker_id: WorkerId(Uuid::new_v4()),
+        worker_id: worker_id.unwrap_or_else(|| WorkerId(Uuid::new_v4())),
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
         is_headless: global.is_headless(),
