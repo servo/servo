@@ -75,11 +75,13 @@ impl<'a> CanvasPaintThread<'a> {
                                     id_sender: creator,
                                     size,
                                     webrender_sender: webrenderer_api_sender,
+                                    webrender_doc,
                                     antialias
                                 }) => {
                                     let canvas_id = canvas_paint_thread.create_canvas(
                                         size,
                                         webrenderer_api_sender,
+                                        webrender_doc,
                                         antialias,
                                     );
                                     creator.send(canvas_id).unwrap();
@@ -103,6 +105,7 @@ impl<'a> CanvasPaintThread<'a> {
         &mut self,
         size: Size2D<u64>,
         webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_doc: webrender_api::DocumentId,
         antialias: bool,
     ) -> CanvasId {
         let antialias = if antialias {
@@ -114,7 +117,13 @@ impl<'a> CanvasPaintThread<'a> {
         let canvas_id = self.next_canvas_id.clone();
         self.next_canvas_id.0 += 1;
 
-        let canvas_data = CanvasData::new(size, webrender_api_sender, antialias, canvas_id.clone());
+        let canvas_data = CanvasData::new(
+            size,
+            webrender_api_sender,
+            webrender_doc,
+            antialias,
+            canvas_id.clone(),
+        );
         self.canvases.insert(canvas_id.clone(), canvas_data);
 
         canvas_id

@@ -738,6 +738,7 @@ enum WebrenderMsg {
 fn handle_webrender_message(
     pending_wr_frame: &AtomicBool,
     webrender_api: &webrender_api::RenderApi,
+    webrender_doc: webrender_api::DocumentId,
     msg: WebrenderMsg,
 ) {
     match msg {
@@ -810,9 +811,26 @@ fn handle_webrender_message(
             let _ = sender.send(webrender_api.generate_image_key());
         },
 
-        WebrenderMsg::Layout(script_traits::WebrenderMsg::UpdateResources(updates)) |
-        WebrenderMsg::Net(net_traits::WebrenderImageMsg::UpdateResources(updates)) => {
-            webrender_api.update_resources(updates);
+        WebrenderMsg::Layout(script_traits::WebrenderMsg::UpdateImages(updates)) => {
+            let mut txn = webrender_api::Transaction::new();
+            for update in updates {
+                match update {
+                    script_traits::ImageUpdate::AddImage(key, desc, data) => {
+                        txn.add_image(key, desc, data, None)
+                    },
+                    script_traits::ImageUpdate::DeleteImage(key) => txn.delete_image(key),
+                    script_traits::ImageUpdate::UpdateImage(key, desc, data) => {
+                        txn.update_image(key, desc, data, &webrender_api::DirtyRect::All)
+                    },
+                }
+            }
+            webrender_api.send_transaction(webrender_doc, txn);
+        },
+
+        WebrenderMsg::Net(net_traits::WebrenderImageMsg::AddImage(key, desc, data)) => {
+            let mut txn = webrender_api::Transaction::new();
+            txn.add_image(key, desc, data, None);
+            webrender_api.send_transaction(webrender_doc, txn);
         },
     }
 }
@@ -916,6 +934,7 @@ where
                     ipc::channel().expect("ipc channel failure");
 
                 let webrender_api = state.webrender_api_sender.create_api();
+                let webrender_doc = state.webrender_document;
                 let pending_wr_frame_clone = state.pending_wr_frame.clone();
                 ROUTER.add_route(
                     webrender_ipc_receiver.to_opaque(),
@@ -923,6 +942,7 @@ where
                         handle_webrender_message(
                             &pending_wr_frame_clone,
                             &webrender_api,
+                            webrender_doc,
                             WebrenderMsg::Layout(message.to().expect("conversion failure")),
                         )
                     }),
@@ -936,6 +956,7 @@ where
                         handle_webrender_message(
                             &pending_wr_frame_clone,
                             &webrender_api,
+                            webrender_doc,
                             WebrenderMsg::Net(message.to().expect("conversion failure")),
                         )
                     }),
@@ -4354,6 +4375,7 @@ where
             id_sender: canvas_id_sender,
             size,
             webrender_sender: webrender_api,
+            webrender_doc: self.webrender_document,
             antialias: self.enable_canvas_antialiasing,
         }) {
             return warn!("Create canvas paint thread failed ({})", e);

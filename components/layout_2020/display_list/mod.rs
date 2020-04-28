@@ -342,7 +342,9 @@ impl<'a> BuilderForBoxFragment<'a> {
             //  value associated with the bottom-most background image layer.”
             let layer_index = b.background_image.0.len() - 1;
             let (bounds, common) = background::painting_area(self, builder, layer_index);
-            builder.wr.push_rect(&common, bounds, rgba(background_color))
+            builder
+                .wr
+                .push_rect(&common, bounds, rgba(background_color))
         }
         // Reverse because the property is top layer first, we want to paint bottom layer first.
         for (index, image) in b.background_image.0.iter().enumerate().rev() {

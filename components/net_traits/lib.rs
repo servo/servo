@@ -32,7 +32,7 @@ use mime::Mime;
 use msg::constellation_msg::HistoryStateId;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use time::precise_time_ns;
-use webrender_api::ImageKey;
+use webrender_api::{ImageData, ImageDescriptor, ImageKey};
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
@@ -777,7 +777,7 @@ pub fn http_percent_encode(bytes: &[u8]) -> String {
 
 #[derive(Deserialize, Serialize)]
 pub enum WebrenderImageMsg {
-    UpdateResources(Vec<webrender_api::ResourceUpdate>),
+    AddImage(ImageKey, ImageDescriptor, ImageData),
     GenerateImageKey(IpcSender<ImageKey>),
 }
 
@@ -797,8 +797,11 @@ impl WebrenderIpcSender {
         receiver.recv().expect("error receiving image key result")
     }
 
-    pub fn update_resources(&self, updates: Vec<webrender_api::ResourceUpdate>) {
-        if let Err(e) = self.0.send(WebrenderImageMsg::UpdateResources(updates)) {
+    pub fn add_image(&self, key: ImageKey, descriptor: ImageDescriptor, data: ImageData) {
+        if let Err(e) = self
+            .0
+            .send(WebrenderImageMsg::AddImage(key, descriptor, data))
+        {
             warn!("Error sending image update: {}", e);
         }
     }

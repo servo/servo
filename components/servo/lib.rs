@@ -456,6 +456,7 @@ where
             webrender_gl.clone(),
             &mut webrender,
             webrender_api_sender.clone(),
+            webrender_document,
             &mut webxr_main_thread,
             &mut external_image_handlers,
             external_images.clone(),
@@ -882,6 +883,7 @@ fn create_constellation(
     let font_cache_thread = FontCacheThread::new(
         public_resource_threads.sender(),
         webrender_api_sender.create_api(),
+        webrender_document,
     );
 
     let initial_state = InitialConstellationState {
@@ -1043,6 +1045,7 @@ fn create_webgl_threads(
     webrender_gl: Rc<dyn gl::Gl>,
     webrender: &mut webrender::Renderer,
     webrender_api_sender: webrender_api::RenderApiSender,
+    webrender_doc: webrender_api::DocumentId,
     webxr_main_thread: &mut webxr::MainThreadRegistry,
     external_image_handlers: &mut WebrenderExternalImageHandlers,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -1066,6 +1069,7 @@ fn create_webgl_threads(
         webrender_surfman,
         webrender_gl,
         webrender_api_sender,
+        webrender_doc,
         external_images,
         gl_type,
     );

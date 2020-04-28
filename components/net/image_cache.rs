@@ -86,9 +86,7 @@ fn set_webrender_image_key(webrender_api: &WebrenderIpcSender, image: &mut Image
     };
     let data = webrender_api::ImageData::new(bytes);
     let image_key = webrender_api.generate_image_key();
-    let mut txn = webrender_api::Transaction::new();
-    txn.add_image(image_key, descriptor, data, None);
-    webrender_api.update_resources(txn.resource_updates);
+    webrender_api.add_image(image_key, descriptor, data);
     image.id = Some(image_key);
 }
 

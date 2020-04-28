@@ -69,8 +69,11 @@ use style_traits::SpeculativePainter;
 use webrender_api::units::{
     DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, LayoutSize, WorldPoint,
 };
-use webrender_api::{BuiltDisplayList, DocumentId, ExternalScrollId, ImageKey, ScrollClamping};
-use webrender_api::{BuiltDisplayListDescriptor, HitTestFlags, HitTestResult, ResourceUpdate};
+use webrender_api::{
+    BuiltDisplayList, DocumentId, ExternalScrollId, ImageData, ImageDescriptor, ImageKey,
+    ScrollClamping,
+};
+use webrender_api::{BuiltDisplayListDescriptor, HitTestFlags, HitTestResult};
 
 pub use crate::script_msg::{
     DOMMessage, HistoryEntryReplacement, SWManagerMsg, SWManagerSenders, ScopeThings,
@@ -1173,7 +1176,7 @@ pub enum WebrenderMsg {
     /// provided channel sender.
     GenerateImageKey(IpcSender<ImageKey>),
     /// Perform a resource update operation.
-    UpdateResources(Vec<ResourceUpdate>),
+    UpdateImages(Vec<ImageUpdate>),
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -1265,9 +1268,20 @@ impl WebrenderIpcSender {
     }
 
     /// Perform a resource update operation.
-    pub fn update_resources(&self, updates: Vec<ResourceUpdate>) {
-        if let Err(e) = self.0.send(WebrenderMsg::UpdateResources(updates)) {
-            warn!("error sending resource updates: {}", e);
+    pub fn update_images(&self, updates: Vec<ImageUpdate>) {
+        if let Err(e) = self.0.send(WebrenderMsg::UpdateImages(updates)) {
+            warn!("error sending image updates: {}", e);
         }
     }
+}
+
+#[derive(Deserialize, Serialize)]
+/// Serializable image updates that must be performed by WebRender.
+pub enum ImageUpdate {
+    /// Register a new image.
+    AddImage(ImageKey, ImageDescriptor, ImageData),
+    /// Delete a previously registered image registration.
+    DeleteImage(ImageKey),
+    /// Update an existing image registration.
+    UpdateImage(ImageKey, ImageDescriptor, ImageData),
 }
