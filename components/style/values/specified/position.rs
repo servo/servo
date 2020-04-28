@@ -383,6 +383,172 @@ bitflags! {
     }
 }
 
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+/// Masonry auto-placement algorithm packing.
+pub enum MasonryPlacement {
+    /// Place the item in the track(s) with the smallest extent so far.
+    Pack,
+    /// Place the item after the last item, from start to end.
+    Next,
+}
+
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+/// Masonry auto-placement algorithm item sorting option.
+pub enum MasonryItemOrder {
+    /// Place all items with a definite placement before auto-placed items.
+    DefiniteFirst,
+    /// Place items in `order-modified document order`.
+    Ordered,
+}
+
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+/// Controls how the Masonry layout algorithm works
+/// specifying exactly how auto-placed items get flowed in the masonry axis.
+pub struct MasonryAutoFlow {
+    /// Specify how to pick a auto-placement track.
+    #[css(contextual_skip_if = "is_pack_with_non_default_order")]
+    pub placement: MasonryPlacement,
+    /// Specify how to pick an item to place.
+    #[css(skip_if = "is_item_order_definite_first")]
+    pub order: MasonryItemOrder,
+}
+
+#[inline]
+fn is_pack_with_non_default_order(placement: &MasonryPlacement, order: &MasonryItemOrder) -> bool {
+   *placement == MasonryPlacement::Pack &&
+        *order != MasonryItemOrder::DefiniteFirst
+}
+
+#[inline]
+fn is_item_order_definite_first(order: &MasonryItemOrder) -> bool {
+   *order == MasonryItemOrder::DefiniteFirst
+}
+
+impl MasonryAutoFlow {
+    #[inline]
+    /// Get initial `masonry-auto-flow` value.
+    pub fn initial() -> MasonryAutoFlow {
+        MasonryAutoFlow {
+            placement: MasonryPlacement::Pack,
+            order: MasonryItemOrder::DefiniteFirst,
+        }
+    }
+}
+
+impl Parse for MasonryAutoFlow {
+    /// [ definite-first | ordered ] || [ pack | next ]
+    fn parse<'i, 't>(
+        _context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<MasonryAutoFlow, ParseError<'i>> {
+        let mut value = MasonryAutoFlow::initial();
+        let mut got_placement = false;
+        let mut got_order = false;
+        while !input.is_exhausted() {
+            let location = input.current_source_location();
+            let ident = input.expect_ident()?;
+            let success = match_ignore_ascii_case! { &ident,
+                "pack" if !got_placement => {
+                    got_placement = true;
+                    true
+                },
+                "next" if !got_placement => {
+                    value.placement = MasonryPlacement::Next;
+                    got_placement = true;
+                    true
+                },
+                "definite-first" if !got_order => {
+                    got_order = true;
+                    true
+                },
+                "ordered" if !got_order => {
+                    value.order = MasonryItemOrder::Ordered;
+                    got_order = true;
+                    true
+                },
+                _ => false
+            };
+            if !success {
+                return Err(location
+                    .new_custom_error(SelectorParseErrorKind::UnexpectedIdent(ident.clone())));
+            }
+        }
+
+        if got_placement || got_order {
+            Ok(value)
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
+        }
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<u8> for MasonryAutoFlow {
+    fn from(bits: u8) -> MasonryAutoFlow {
+        use crate::gecko_bindings::structs;
+        let mut value = MasonryAutoFlow::initial();
+        if bits & structs::NS_STYLE_MASONRY_PLACEMENT_PACK as u8 == 0 {
+            value.placement = MasonryPlacement::Next;
+        }
+        if bits & structs::NS_STYLE_MASONRY_ORDER_DEFINITE_FIRST as u8 == 0 {
+            value.order = MasonryItemOrder::Ordered;
+        }
+        value
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl From<MasonryAutoFlow> for u8 {
+    fn from(v: MasonryAutoFlow) -> u8 {
+        use crate::gecko_bindings::structs;
+
+        let mut result: u8 = 0;
+        if v.placement == MasonryPlacement::Pack {
+            result |= structs::NS_STYLE_MASONRY_PLACEMENT_PACK as u8;
+        }
+        if v.order == MasonryItemOrder::DefiniteFirst {
+            result |= structs::NS_STYLE_MASONRY_ORDER_DEFINITE_FIRST as u8;
+        }
+        result
+    }
+}
+
 impl Parse for GridAutoFlow {
     /// [ row | column ] || dense
     fn parse<'i, 't>(

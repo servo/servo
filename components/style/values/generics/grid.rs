@@ -786,6 +786,9 @@ pub enum GenericGridTemplateComponent<L, I> {
     /// TODO: Support animations for this after subgrid is addressed in [grid-2] spec.
     #[animation(error)]
     Subgrid(Box<LineNameList>),
+    /// `masonry` value.
+    /// https://github.com/w3c/csswg-drafts/issues/4650
+    Masonry,
 }
 
 pub use self::GenericGridTemplateComponent as GridTemplateComponent;

@@ -802,7 +802,8 @@ fn static_assert() {
 
 <% skip_position_longhands = " ".join(x.ident for x in SIDES) %>
 <%self:impl_trait style_struct_name="Position"
-                  skip_longhands="${skip_position_longhands}">
+                  skip_longhands="${skip_position_longhands}
+                                  masonry-auto-flow">
     % for side in SIDES:
     <% impl_split_style_coord(side.ident, "mOffset", side.index) %>
     % endfor
@@ -811,6 +812,7 @@ fn static_assert() {
         self.gecko.mJustifyItems.computed = v;
     }
 
+    ${impl_simple_type_with_conversion("masonry_auto_flow", "mMasonryAutoFlow")}
 </%self:impl_trait>
 
 <% skip_outline_longhands = " ".join("outline-style outline-width".split() +

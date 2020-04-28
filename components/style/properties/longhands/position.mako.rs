@@ -114,6 +114,17 @@ ${helpers.single_keyword(
         animation_value_type="discrete",
         servo_restyle_damage="reflow",
     )}
+
+    ${helpers.predefined_type(
+        "justify-tracks",
+        "JustifyTracks",
+        "specified::JustifyTracks::default()",
+        engines="gecko",
+        gecko_pref="layout.css.grid-template-masonry-value.enabled",
+        animation_value_type="discrete",
+        servo_restyle_damage="reflow",
+        spec="https://github.com/w3c/csswg-drafts/issues/4650",
+    )}
 % endif
 
 % if engine in ["servo-2013", "servo-2020"]:
@@ -149,6 +160,17 @@ ${helpers.single_keyword(
         extra_prefixes="webkit",
         animation_value_type="discrete",
         servo_restyle_damage="reflow",
+    )}
+
+    ${helpers.predefined_type(
+        "align-tracks",
+        "AlignTracks",
+        "specified::AlignTracks::default()",
+        engines="gecko",
+        gecko_pref="layout.css.grid-template-masonry-value.enabled",
+        animation_value_type="discrete",
+        servo_restyle_damage="reflow",
+        spec="https://github.com/w3c/csswg-drafts/issues/4650",
     )}
 
     ${helpers.predefined_type(
@@ -371,6 +393,16 @@ ${helpers.predefined_type(
     )}
 
 % endfor
+
+${helpers.predefined_type(
+    "masonry-auto-flow",
+    "MasonryAutoFlow",
+    "computed::MasonryAutoFlow::initial()",
+    engines="gecko",
+    gecko_pref="layout.css.grid-template-masonry-value.enabled",
+    animation_value_type="discrete",
+    spec="https://github.com/w3c/csswg-drafts/issues/4650",
+)}
 
 ${helpers.predefined_type(
     "grid-auto-flow",

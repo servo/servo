@@ -12,7 +12,7 @@ use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
 use crate::values::generics::position::ZIndex as GenericZIndex;
-pub use crate::values::specified::position::{GridAutoFlow, GridTemplateAreas};
+pub use crate::values::specified::position::{GridAutoFlow, GridTemplateAreas, MasonryAutoFlow};
 use crate::Zero;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};

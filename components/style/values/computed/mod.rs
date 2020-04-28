@@ -29,7 +29,7 @@ use std::cmp;
 use std::f32;
 
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignContent, AlignItems, JustifyContent, JustifyItems, SelfAlignment};
+pub use self::align::{AlignContent, AlignItems, AlignTracks, JustifyContent, JustifyItems, JustifyTracks, SelfAlignment};
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignSelf, JustifySelf};
 pub use self::angle::Angle;
@@ -68,7 +68,7 @@ pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::percentage::{NonNegativePercentage, Percentage};
-pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, PositionOrAuto, ZIndex};
+pub use self::position::{GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto, ZIndex};
 pub use self::rect::NonNegativeLengthOrNumberRect;
 pub use self::resolution::Resolution;
 pub use self::svg::MozContextProperties;

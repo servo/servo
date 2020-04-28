@@ -10,7 +10,7 @@ use crate::values::computed::{Context, ToComputedValue};
 use crate::values::specified;
 
 pub use super::specified::{
-    AlignContent, AlignItems, ContentDistribution, JustifyContent, SelfAlignment,
+    AlignContent, AlignItems, AlignTracks, ContentDistribution, JustifyContent, JustifyTracks, SelfAlignment,
 };
 pub use super::specified::{AlignSelf, JustifySelf};
 
