@@ -443,6 +443,13 @@ impl Actor for ConsoleActor {
                 // Emit an eager reply so that the client starts listening
                 // for an async event with the resultID
                 stream.write_json_packet(&early_reply);
+
+                if msg.get("eager").and_then(|v| v.as_bool()).unwrap_or(false) {
+                    // We don't support the side-effect free evaluation that eager evalaution
+                    // really needs.
+                    return Ok(ActorMessageStatus::Processed);
+                }
+
                 let reply = self.evaluateJS(&registry, &msg).unwrap();
                 let msg = EvaluateJSEvent {
                     from: self.name(),
