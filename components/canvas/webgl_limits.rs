@@ -95,7 +95,7 @@ impl GLLimitsDetect for GLLimits {
         if webgl_version == WebGLVersion::WebGL2 {
             max_uniform_block_size = gl.get_integer64(gl::MAX_UNIFORM_BLOCK_SIZE);
             max_uniform_buffer_bindings = gl.get_integer(gl::MAX_UNIFORM_BUFFER_BINDINGS);
-            min_program_texel_offset = gl.get_integer(gl::MIN_PROGRAM_TEXEL_OFFSET);
+            min_program_texel_offset = gl.get_signed_integer(gl::MIN_PROGRAM_TEXEL_OFFSET);
             max_program_texel_offset = gl.get_integer(gl::MAX_PROGRAM_TEXEL_OFFSET);
             max_transform_feedback_separate_attribs =
                 gl.get_integer(gl::MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS);
@@ -206,9 +206,11 @@ impl GLLimitsDetect for GLLimits {
 trait GLExt {
     fn try_get_integer(self, parameter: GLenum) -> Option<u32>;
     fn try_get_integer64(self, parameter: GLenum) -> Option<u64>;
+    fn try_get_signed_integer(self, parameter: GLenum) -> Option<i32>;
     fn try_get_float(self, parameter: GLenum) -> Option<f32>;
     fn get_integer(self, parameter: GLenum) -> u32;
     fn get_integer64(self, parameter: GLenum) -> u64;
+    fn get_signed_integer(self, parameter: GLenum) -> i32;
     fn get_float(self, parameter: GLenum) -> f32;
 }
 
@@ -236,5 +238,12 @@ macro_rules! create_fun {
 impl<'a> GLExt for &'a Gl {
     create_fun!(try_get_integer, get_integer, i32, get_integer_v, u32);
     create_fun!(try_get_integer64, get_integer64, i64, get_integer64_v, u64);
+    create_fun!(
+        try_get_signed_integer,
+        get_signed_integer,
+        i32,
+        get_integer_v,
+        i32
+    );
     create_fun!(try_get_float, get_float, f32, get_float_v, f32);
 }
