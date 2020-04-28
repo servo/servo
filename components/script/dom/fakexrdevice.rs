@@ -269,6 +269,7 @@ impl FakeXRDeviceMethods for FakeXRDevice {
             id,
             supports_grip: true,
             profiles,
+            hand_support: None,
         };
 
         let init = MockInputInit {
