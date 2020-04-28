@@ -1873,6 +1873,20 @@ impl WebGLRenderingContext {
             Ok(())
         });
     }
+
+    pub fn get_buffer_param(&self, buffer: Option<DomRoot<WebGLBuffer>>, parameter: u32) -> JSVal {
+        let buffer =
+            handle_potential_webgl_error!(self, buffer.ok_or(InvalidOperation), return NullValue());
+
+        match parameter {
+            constants::BUFFER_SIZE => Int32Value(buffer.capacity() as i32),
+            constants::BUFFER_USAGE => Int32Value(buffer.usage() as i32),
+            _ => {
+                self.webgl_error(InvalidEnum);
+                NullValue()
+            },
+        }
+    }
 }
 
 #[cfg(not(feature = "webgl_backtrace"))]
@@ -1934,21 +1948,9 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5
     fn GetBufferParameter(&self, _cx: SafeJSContext, target: u32, parameter: u32) -> JSVal {
-        let buffer = handle_potential_webgl_error!(
-            self,
-            self.bound_buffer(target)
-                .and_then(|buf| buf.ok_or(InvalidOperation)),
-            return NullValue()
-        );
-
-        match parameter {
-            constants::BUFFER_SIZE => Int32Value(buffer.capacity() as i32),
-            constants::BUFFER_USAGE => Int32Value(buffer.usage() as i32),
-            _ => {
-                self.webgl_error(InvalidEnum);
-                NullValue()
-            },
-        }
+        let buffer =
+            handle_potential_webgl_error!(self, self.bound_buffer(target), return NullValue());
+        self.get_buffer_param(buffer, parameter)
     }
 
     #[allow(unsafe_code)]
