@@ -651,6 +651,14 @@ impl webxr::glwindow::GlWindow for XRWindow {
     fn get_translation(&self) -> Vector3D<f32, UnknownUnit> {
         self.pose.xr_translation.get().clone()
     }
+
+    fn get_mode(&self) -> webxr::glwindow::GlWindowMode {
+        if pref!(dom.webxr.glwindow.red_cyan) {
+            webxr::glwindow::GlWindowMode::StereoRedCyan
+        } else {
+            webxr::glwindow::GlWindowMode::StereoLeftRight
+        }
+    }
 }
 
 impl XRWindowPose {
