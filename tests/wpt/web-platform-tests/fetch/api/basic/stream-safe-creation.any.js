@@ -1,4 +1,4 @@
-// META: global=worker
+// META: global=window,worker
 
 // These tests verify that stream creation is not affected by changes to
 // Object.prototype.

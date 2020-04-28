@@ -1,4 +1,4 @@
-// META: global=worker,jsshell
+// META: global=window,worker,jsshell
 'use strict';
 
 const error1 = new Error('a unique string');

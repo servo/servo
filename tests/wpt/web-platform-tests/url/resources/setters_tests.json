@@ -1848,12 +1848,30 @@
             }
         },
         {
-            "comment": "Simple percent-encoding; nuls, tabs, and newlines are removed",
+            "comment": "Simple percent-encoding; tabs and newlines are removed",
             "href": "a:/",
             "new_value": "\u0000\u0001\t\n\r\u001f !\"#$%&'()*+,-./09:;<=>?@AZ[\\]^_`az{|}~\u007f\u0080\u0081Éé",
             "expected": {
-                "href": "a:/#%01%1F%20!%22#$%&'()*+,-./09:;%3C=%3E?@AZ[\\]^_%60az{|}~%7F%C2%80%C2%81%C3%89%C3%A9",
-                "hash": "#%01%1F%20!%22#$%&'()*+,-./09:;%3C=%3E?@AZ[\\]^_%60az{|}~%7F%C2%80%C2%81%C3%89%C3%A9"
+                "href": "a:/#%00%01%1F%20!%22#$%&'()*+,-./09:;%3C=%3E?@AZ[\\]^_%60az{|}~%7F%C2%80%C2%81%C3%89%C3%A9",
+                "hash": "#%00%01%1F%20!%22#$%&'()*+,-./09:;%3C=%3E?@AZ[\\]^_%60az{|}~%7F%C2%80%C2%81%C3%89%C3%A9"
+            }
+        },
+        {
+            "comment": "Percent-encode NULLs in fragment",
+            "href": "http://example.net",
+            "new_value": "a\u0000b",
+            "expected": {
+                "href": "http://example.net/#a%00b",
+                "hash": "#a%00b"
+            }
+        },
+        {
+            "comment": "Percent-encode NULLs in fragment",
+            "href": "non-spec:/",
+            "new_value": "a\u0000b",
+            "expected": {
+                "href": "non-spec:/#a%00b",
+                "hash": "#a%00b"
             }
         },
         {

@@ -1,4 +1,4 @@
-// META: global=jsshell
+// META: global=window,dedicatedworker,jsshell
 
 function assert_ArrayBuffer(actual, { size=0, shared=false, detached=false }, message) {
   // https://github.com/WebAssembly/spec/issues/840

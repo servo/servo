@@ -103,16 +103,16 @@ interface PaymentAddress {
 };
 
 dictionary AddressInit {
-  DOMString country;
-  sequence<DOMString> addressLine;
-  DOMString region;
-  DOMString city;
-  DOMString dependentLocality;
-  DOMString postalCode;
-  DOMString sortingCode;
-  DOMString organization;
-  DOMString recipient;
-  DOMString phone;
+  DOMString country = "";
+  sequence<DOMString> addressLine = [];
+  DOMString region = "";
+  DOMString city = "";
+  DOMString dependentLocality = "";
+  DOMString postalCode = "";
+  DOMString sortingCode = "";
+  DOMString organization = "";
+  DOMString recipient = "";
+  DOMString phone = "";
 };
 
 dictionary AddressErrors {

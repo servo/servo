@@ -3088,6 +3088,7 @@ IdlInterface.prototype.do_interface_attribute_asserts = function(obj, member, a_
     // TypeError in most cases).
     if (member.readonly
     && !member.has_extended_attribute("LenientSetter")
+    && !member.has_extended_attribute("LegacyLenientSetter")
     && !member.has_extended_attribute("PutForwards")
     && !member.has_extended_attribute("Replaceable"))
     {

@@ -6672,7 +6672,7 @@
   {
     "input": "http://example.org/test?a#b\u0000c",
     "base": "about:blank",
-    "href": "http://example.org/test?a#bc",
+    "href": "http://example.org/test?a#b%00c",
     "protocol": "http:",
     "username": "",
     "password": "",
@@ -6681,7 +6681,35 @@
     "port": "",
     "pathname": "/test",
     "search": "?a",
-    "hash": "#bc"
+    "hash": "#b%00c"
+  },
+  {
+    "input": "non-spec://example.org/test?a#b\u0000c",
+    "base": "about:blank",
+    "href": "non-spec://example.org/test?a#b%00c",
+    "protocol": "non-spec:",
+    "username": "",
+    "password": "",
+    "host": "example.org",
+    "hostname": "example.org",
+    "port": "",
+    "pathname": "/test",
+    "search": "?a",
+    "hash": "#b%00c"
+  },
+  {
+    "input": "non-spec:/test?a#b\u0000c",
+    "base": "about:blank",
+    "href": "non-spec:/test?a#b%00c",
+    "protocol": "non-spec:",
+    "username": "",
+    "password": "",
+    "host": "",
+    "hostname": "",
+    "port": "",
+    "pathname": "/test",
+    "search": "?a",
+    "hash": "#b%00c"
   },
   "First scheme char - not allowed: https://github.com/whatwg/url/issues/464",
   {

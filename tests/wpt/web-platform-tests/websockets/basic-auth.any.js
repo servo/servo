@@ -1,5 +1,5 @@
+// META: global=window,worker
 // META: script=websocket.sub.js
-// META: global=sharedworker,serviceworker
 
 async_test(t => {
   const isSecure = new URL(location.href).scheme === 'https';

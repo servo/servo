@@ -196,23 +196,23 @@ class XRMathHelper {
     const result2 = [
       // First column (m0r):
       invDet * det3x3(m11, m12, m13, m21, m22, m23, m32, m32, m33),
-      invDet * det3x3(m10, m12, m13, m20, m22, m23, m30, m32, m33),
+      -invDet * det3x3(m10, m12, m13, m20, m22, m23, m30, m32, m33),
       invDet * det3x3(m10, m11, m13, m20, m21, m23, m30, m31, m33),
-      invDet * det3x3(m10, m11, m12, m20, m21, m22, m30, m31, m32),
+      -invDet * det3x3(m10, m11, m12, m20, m21, m22, m30, m31, m32),
       // Second column (m1r):
-      invDet * det3x3(m01, m02, m03, m21, m22, m23, m32, m32, m33),
+      -invDet * det3x3(m01, m02, m03, m21, m22, m23, m32, m32, m33),
       invDet * det3x3(m00, m02, m03, m20, m22, m23, m30, m32, m33),
-      invDet * det3x3(m00, m01, m03, m20, m21, m23, m30, m31, m33),
+      -invDet * det3x3(m00, m01, m03, m20, m21, m23, m30, m31, m33),
       invDet * det3x3(m00, m01, m02, m20, m21, m22, m30, m31, m32),
       // Third column (m2r):
       invDet * det3x3(m01, m02, m03, m11, m12, m13, m31, m32, m33),
-      invDet * det3x3(m00, m02, m03, m10, m12, m13, m30, m32, m33),
+      -invDet * det3x3(m00, m02, m03, m10, m12, m13, m30, m32, m33),
       invDet * det3x3(m00, m01, m03, m10, m11, m13, m30, m31, m33),
-      invDet * det3x3(m00, m01, m02, m10, m11, m12, m30, m31, m32),
+      -invDet * det3x3(m00, m01, m02, m10, m11, m12, m30, m31, m32),
       // Fourth column (m3r):
-      invDet * det3x3(m01, m02, m03, m11, m12, m13, m21, m22, m23),
+      -invDet * det3x3(m01, m02, m03, m11, m12, m13, m21, m22, m23),
       invDet * det3x3(m00, m02, m03, m10, m12, m13, m20, m22, m23),
-      invDet * det3x3(m00, m01, m03, m10, m11, m13, m20, m21, m23),
+      -invDet * det3x3(m00, m01, m03, m10, m11, m13, m20, m21, m23),
       invDet * det3x3(m00, m01, m02, m10, m11, m12, m20, m21, m22),
     ];
 

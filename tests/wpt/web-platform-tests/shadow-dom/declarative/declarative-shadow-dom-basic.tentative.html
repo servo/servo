@@ -113,6 +113,16 @@ test(() => {
   assert_true(!!host.shadowRoot,"No shadow root found");
   assert_false(host.shadowRoot.delegatesFocus,"delegatesFocus should be false without the shadowrootdelegatesfocus attribute");
 }, 'Declarative Shadow DOM: delegates focus attribute');
+
+test(() => {
+  const host = document.createElement('div');
+  // Root element of innerHTML is a <template shadowroot>:
+  host.innerHTML = '<template shadowroot=open></template>';
+  assert_equals(host.shadowRoot, null, "Shadow root should not be present");
+  const tmpl = host.querySelector('template');
+  assert_true(!!tmpl,"Template should still be present");
+  assert_equals(tmpl.getAttribute('shadowroot'),"open","'shadowroot' attribute should still be present");
+}, 'Declarative Shadow DOM: innerHTML root element');
 </script>
 
 <div id="multi-host">
@@ -123,7 +133,6 @@ test(() => {
     <span>root 2</span>
   </template>
 </div>
-
 <script>
 test(() => {
   const host = document.querySelector('#multi-host');
@@ -133,4 +142,20 @@ test(() => {
   assert_equals(innerSpan.textContent, 'root 2', "Content should come from last declarative shadow root");
 }, 'Declarative Shadow DOM: Multiple roots');
 
+</script>
+
+<template id="root-element-shadow">
+    <template shadowroot=open>Content</template>
+</template>
+<script>
+test(() => {
+  // Root element of this template is a <template shadowroot>:
+  const template = document.querySelector('#root-element-shadow');
+  const host = document.createElement('div');
+  host.appendChild(template.content.cloneNode(true));
+  assert_equals(host.shadowRoot, null, "Shadow root should not be present");
+  const tmpl = host.querySelector('template');
+  assert_true(!!tmpl,"Template should still be present");
+  assert_equals(tmpl.getAttribute('shadowroot'),"open","'shadowroot' attribute should still be present");
+}, 'Declarative Shadow DOM: template root element');
 </script>

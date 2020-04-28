@@ -3,7 +3,7 @@
 // This polyfill library implements the WebXR Test API as specified here:
 // https://github.com/immersive-web/webxr-test-api
 
-
+// The standingTransform is floor_from_mojo and represented as such here.
 const default_standing = new gfx.mojom.Transform();
 default_standing.matrix = [1, 0, 0, 0,
                            0, 1, 0, 0,
@@ -409,8 +409,11 @@ class MockRuntime {
     }
 
     this.stageParameters_.standingTransform = new gfx.mojom.Transform();
+
+    // floorOrigin is passed in as mojoFromFloor; however, standingTransform is
+    // floorFromMojo so we need to invert the result of |getMatrixFromTransform|
     this.stageParameters_.standingTransform.matrix =
-      getMatrixFromTransform(floorOrigin);
+      XRMathHelper.inverse(getMatrixFromTransform(floorOrigin));
 
     this.onStageParametersUpdated();
   }
