@@ -1,4 +1,4 @@
-// META: global=jsshell
+// META: global=window,dedicatedworker,jsshell
 // META: script=assertions.js
 
 function nulls(n) {

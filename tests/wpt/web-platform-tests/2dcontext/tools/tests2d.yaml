@@ -10329,7 +10329,7 @@
     @assert Math.round(rect.top) === -8;
     @assert Math.round(rect.left) === 200;
 
-- name: 2d.filter.value
+- name: 2d.shadow.filter.value
   desc: test if ctx.filter works correctly
   testing:
     - 2d.filter.value

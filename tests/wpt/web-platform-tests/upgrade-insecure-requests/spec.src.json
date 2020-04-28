@@ -144,9 +144,7 @@
         "object-tag",
         "picture-tag",
         "script-tag",
-        "sharedworker-import",
-        "video-tag",
-        "worker-import"
+        "video-tag"
       ],
       "origin": "*",
       "expectation": "*"

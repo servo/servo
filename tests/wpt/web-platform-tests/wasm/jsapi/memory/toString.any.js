@@ -1,4 +1,4 @@
-// META: global=jsshell
+// META: global=window,dedicatedworker,jsshell
 
 test(() => {
   const argument = { "initial": 0 };

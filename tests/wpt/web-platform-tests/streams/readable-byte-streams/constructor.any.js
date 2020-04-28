@@ -1,4 +1,4 @@
-// META: global=worker,jsshell
+// META: global=window,worker,jsshell
 // META: script=../resources/constructor-ordering.js
 'use strict';
 

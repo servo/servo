@@ -30,7 +30,7 @@ interface Event {
   readonly attribute boolean defaultPrevented;
   readonly attribute boolean composed;
 
-  [Unforgeable] readonly attribute boolean isTrusted;
+  [LegacyUnforgeable] readonly attribute boolean isTrusted;
   readonly attribute DOMHighResTimeStamp timeStamp;
 
   void initEvent(DOMString type, optional boolean bubbles = false, optional boolean cancelable = false); // historical
@@ -115,6 +115,7 @@ interface mixin ParentNode {
 
   [CEReactions, Unscopable] void prepend((Node or DOMString)... nodes);
   [CEReactions, Unscopable] void append((Node or DOMString)... nodes);
+  [CEReactions, Unscopable] void replaceChildren((Node or DOMString)... nodes);
 
   Element? querySelector(DOMString selectors);
   [NewObject] NodeList querySelectorAll(DOMString selectors);
@@ -140,11 +141,11 @@ DocumentType includes ChildNode;
 Element includes ChildNode;
 CharacterData includes ChildNode;
 
-interface mixin Slotable {
+interface mixin Slottable {
   readonly attribute HTMLSlotElement? assignedSlot;
 };
-Element includes Slotable;
-Text includes Slotable;
+Element includes Slottable;
+Text includes Slottable;
 
 [Exposed=Window]
 interface NodeList {
@@ -308,7 +309,7 @@ dictionary ElementCreationOptions {
 [Exposed=Window]
 interface DOMImplementation {
   [NewObject] DocumentType createDocumentType(DOMString qualifiedName, DOMString publicId, DOMString systemId);
-  [NewObject] XMLDocument createDocument(DOMString? namespace, [TreatNullAs=EmptyString] DOMString qualifiedName, optional DocumentType? doctype = null);
+  [NewObject] XMLDocument createDocument(DOMString? namespace, [LegacyNullToEmptyString] DOMString qualifiedName, optional DocumentType? doctype = null);
   [NewObject] Document createHTMLDocument(optional DOMString title);
 
   boolean hasFeature(); // useless; always returns true
@@ -413,7 +414,7 @@ interface Attr : Node {
 };
 [Exposed=Window]
 interface CharacterData : Node {
-  attribute [TreatNullAs=EmptyString] DOMString data;
+  attribute [LegacyNullToEmptyString] DOMString data;
   readonly attribute unsigned long length;
   DOMString substringData(unsigned long offset, unsigned long count);
   void appendData(DOMString data);

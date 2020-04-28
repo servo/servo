@@ -71,7 +71,7 @@ const VALID_FLOOR_ORIGIN_MATRIX = [1, 0,    0,  0,
                                      1, 1.65, -1, 1];
 
 const VALID_FLOOR_ORIGIN = {
-    position: [1.0, 1.65, -1.0],
+    position: [-1.0, -1.65, 1.0],
     orientation: [0, 0, 0, 1]
 };
 

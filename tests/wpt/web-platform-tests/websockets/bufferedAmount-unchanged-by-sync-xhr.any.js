@@ -1,5 +1,5 @@
 // META: script=websocket.sub.js
-// META: global=sharedworker
+// META: global=window,dedicatedworker,sharedworker
 
 async_test(t => {
   const url = 'wss://' + __SERVER__NAME + ':' + __SECURE__PORT + '/echo';

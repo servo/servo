@@ -21,3 +21,7 @@ interface EventCounts {
 partial interface Performance {
     [SameObject] readonly attribute EventCounts eventCounts;
 };
+
+partial dictionary PerformanceObserverInit {
+    DOMHighResTimeStamp durationThreshold;
+};

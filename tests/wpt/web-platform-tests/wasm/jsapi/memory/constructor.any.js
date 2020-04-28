@@ -1,4 +1,4 @@
-// META: global=jsshell
+// META: global=window,dedicatedworker,jsshell
 // META: script=/wasm/jsapi/assertions.js
 
 function assert_Memory(memory, expected) {

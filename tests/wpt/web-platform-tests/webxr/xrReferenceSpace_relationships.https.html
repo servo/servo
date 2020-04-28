@@ -1,0 +1,59 @@
+
+<!DOCTYPE html>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_test_asserts.js"></script>
+<canvas></canvas>
+<script>
+let testName =
+  "Bounded space, viewer space, local and local-floor space have correct poses w.r.t. each other";
+// 1m above world origin.
+const VIEWER_ORIGIN_TRANSFORM = {
+  position: [0, 1, 0],
+  orientation: [0, 0, 0, 1],
+};
+// 0.25m above world origin.
+const FLOOR_ORIGIN_TRANSFORM = {
+  position: [0, 0.25, 0],
+  orientation: [0, 0, 0, 1],
+};
+const fakeDeviceInitParams = {
+    supportsImmersive: true,
+    supportedModes: ["inline", "immersive-vr"],
+    views: VALID_VIEWS,
+    viewerOrigin: VIEWER_ORIGIN_TRANSFORM,
+    floorOrigin: FLOOR_ORIGIN_TRANSFORM,
+    supportedFeatures: ALL_FEATURES
+};
+let testFunction = function(session, fakeDeviceController, t) {
+  return new Promise((resolve, reject) => {
+    Promise.all([
+      session.requestReferenceSpace('bounded-floor'),
+      session.requestReferenceSpace('local'),
+      session.requestReferenceSpace('local-floor'),
+      session.requestReferenceSpace('viewer')
+    ]).then(([boundedSpace, localSpace, localFloorSpace, viewerSpace]) => {
+      t.step(() => {
+      });
+      const onFrame = function(time, xrFrame) {
+        const localFloorPoseInLocalSpace = xrFrame.getPose(localFloorSpace, localSpace);
+        const viewerPoseInLocalFloorSpace = xrFrame.getPose(viewerSpace, localFloorSpace);
+        const boundedFloorPoseInLocalFloorSpace = xrFrame.getPose(boundedSpace, localFloorSpace);
+        t.step(() => {
+          // Local floor space is supposed to be 0.25m above local space (aka world space).
+          assert_equals(localFloorPoseInLocalSpace.transform.position.y, 0.25);
+          // Bounded floor space should be at the same height as local floor space.
+          assert_equals(boundedFloorPoseInLocalFloorSpace.transform.position.y, 0.0);
+          // Viewer space should be additional 0.75m above local-floor space.
+          assert_equals(viewerPoseInLocalFloorSpace.transform.position.y, 0.75);
+        });
+        resolve();
+      }
+      session.requestAnimationFrame(onFrame);
+    });
+  });
+};
+xr_session_promise_test(testName, testFunction, fakeDeviceInitParams, 'immersive-vr', { 'requiredFeatures': ['local-floor', 'bounded-floor'] });
+</script>

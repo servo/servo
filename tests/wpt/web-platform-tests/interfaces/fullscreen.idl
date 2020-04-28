@@ -21,8 +21,8 @@ partial interface Element {
 };
 
 partial interface Document {
-  [LenientSetter] readonly attribute boolean fullscreenEnabled;
-  [LenientSetter, Unscopable] readonly attribute boolean fullscreen; // historical
+  [LegacyLenientSetter] readonly attribute boolean fullscreenEnabled;
+  [LegacyLenientSetter, Unscopable] readonly attribute boolean fullscreen; // historical
 
   Promise<void> exitFullscreen();
 
@@ -31,5 +31,5 @@ partial interface Document {
 };
 
 partial interface mixin DocumentOrShadowRoot {
-  [LenientSetter] readonly attribute Element? fullscreenElement;
+  [LegacyLenientSetter] readonly attribute Element? fullscreenElement;
 };

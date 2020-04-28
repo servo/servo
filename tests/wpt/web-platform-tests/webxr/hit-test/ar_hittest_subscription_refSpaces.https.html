@@ -17,14 +17,14 @@ const VIEWER_ORIGIN_TRANSFORM = {
 
 // 0.25m above world origin.
 const FLOOR_ORIGIN_TRANSFORM = {
-  position: [0, -0.25, 0],
+  position: [0, 0.25, 0],
   orientation: [0, 0, 0, 1],
 };
 
 const fakeDeviceInitParams = {
   supportedModes: ["immersive-ar"],
   views: VALID_VIEWS,
-  floorOrigin: FLOOR_ORIGIN_TRANSFORM,    // aka floor_from_mojo
+  floorOrigin: FLOOR_ORIGIN_TRANSFORM,    // aka mojo_from_floor
   viewerOrigin: VIEWER_ORIGIN_TRANSFORM,  // aka mojo_from_viewer
   supportedFeatures: ALL_FEATURES,
   world: createFakeWorld(5.0, 2.0, 5.0),  // webxr_test_constants_fake_world.js has detailed description of the fake world
