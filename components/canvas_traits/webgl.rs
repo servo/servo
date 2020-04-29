@@ -449,6 +449,7 @@ pub enum WebGLCommand {
     GetCurrentVertexAttrib(u32, WebGLSender<[f32; 4]>),
     GetTexParameterFloat(u32, TexParameterFloat, WebGLSender<f32>),
     GetTexParameterInt(u32, TexParameterInt, WebGLSender<i32>),
+    GetTexParameterBool(u32, TexParameterBool, WebGLSender<bool>),
     GetInternalFormatIntVec(u32, u32, InternalFormatIntVec, WebGLSender<Vec<i32>>),
     TexParameteri(u32, u32, i32),
     TexParameterf(u32, u32, f32),
@@ -886,8 +887,10 @@ parameters! {
             TextureMaxLevel = gl::TEXTURE_MAX_LEVEL,
             TextureCompareFunc = gl::TEXTURE_COMPARE_FUNC,
             TextureCompareMode = gl::TEXTURE_COMPARE_MODE,
-            TextureImmutableFormat = gl::TEXTURE_IMMUTABLE_FORMAT,
             TextureImmutableLevels = gl::TEXTURE_IMMUTABLE_LEVELS,
+        }),
+        Bool(TexParameterBool {
+            TextureImmutableFormat = gl::TEXTURE_IMMUTABLE_FORMAT,
         }),
     }
 }

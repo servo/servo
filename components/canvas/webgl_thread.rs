@@ -1839,6 +1839,11 @@ impl WebGLImpl {
                     .send(gl.get_tex_parameter_iv(target, param as u32))
                     .unwrap();
             },
+            WebGLCommand::GetTexParameterBool(target, param, ref sender) => {
+                sender
+                    .send(gl.get_tex_parameter_iv(target, param as u32) != 0)
+                    .unwrap();
+            },
             WebGLCommand::GetInternalFormatIntVec(target, internal_format, param, ref sender) => {
                 match param {
                     InternalFormatIntVec::Samples => {

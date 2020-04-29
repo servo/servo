@@ -2236,6 +2236,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             self.webgl_error(InvalidEnum);
             return NullValue();
         }
+
+        if let Some(value) = texture.maybe_get_tex_parameter(texparam) {
+            match value {
+                TexParameterValue::Float(v) => return DoubleValue(v as f64),
+                TexParameterValue::Int(v) => return Int32Value(v),
+                TexParameterValue::Bool(v) => return BooleanValue(v),
+            }
+        }
+
         match texparam {
             TexParameter::Float(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
@@ -2246,6 +2255,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetTexParameterInt(target, param, sender));
                 Int32Value(receiver.recv().unwrap())
+            },
+            TexParameter::Bool(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetTexParameterBool(target, param, sender));
+                BooleanValue(receiver.recv().unwrap())
             },
         }
     }

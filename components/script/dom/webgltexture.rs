@@ -14,7 +14,10 @@ use crate::dom::webgl_validations::types::TexImageTarget;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
-use canvas_traits::webgl::{webgl_channel, TexDataType, TexFormat, WebGLResult, WebGLTextureId};
+use canvas_traits::webgl::{
+    webgl_channel, TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt,
+    WebGLResult, WebGLTextureId,
+};
 use canvas_traits::webgl::{DOMToTextureCommand, WebGLCommand, WebGLError};
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -23,6 +26,7 @@ use std::cmp;
 pub enum TexParameterValue {
     Float(f32),
     Int(i32),
+    Bool(bool),
 }
 
 const MAX_LEVEL_COUNT: usize = 31;
@@ -37,7 +41,6 @@ pub struct WebGLTexture {
     /// The target to which this texture was bound the first time
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
-    is_immutable: Cell<bool>,
     /// Stores information about mipmap levels and cubemap faces.
     #[ignore_malloc_size_of = "Arrays are cumbersome"]
     image_info_array: DomRefCell<[Option<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
@@ -51,6 +54,8 @@ pub struct WebGLTexture {
     attached_to_dom: Cell<bool>,
     /// Framebuffer that this texture is attached to.
     attached_framebuffer: MutNullableDom<WebGLFramebuffer>,
+    /// Number of immutable levels.
+    immutable_levels: Cell<Option<u32>>,
 }
 
 impl WebGLTexture {
@@ -60,7 +65,7 @@ impl WebGLTexture {
             id: id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
-            is_immutable: Cell::new(false),
+            immutable_levels: Cell::new(None),
             face_count: Cell::new(0),
             base_mipmap_level: 0,
             min_filter: Cell::new(constants::NEAREST_MIPMAP_LINEAR),
@@ -224,11 +229,23 @@ impl WebGLTexture {
     }
 
     pub fn is_immutable(&self) -> bool {
-        self.is_immutable.get()
+        self.immutable_levels.get().is_some()
     }
 
     pub fn target(&self) -> Option<u32> {
         self.target.get()
+    }
+
+    pub fn maybe_get_tex_parameter(&self, param: TexParameter) -> Option<TexParameterValue> {
+        match param {
+            TexParameter::Int(TexParameterInt::TextureImmutableLevels) => Some(
+                TexParameterValue::Int(self.immutable_levels.get().unwrap_or(0) as i32),
+            ),
+            TexParameter::Bool(TexParameterBool::TextureImmutableFormat) => {
+                Some(TexParameterValue::Bool(self.is_immutable()))
+            },
+            _ => None,
+        }
     }
 
     /// We have to follow the conversion rules for GLES 2.0. See:
@@ -240,6 +257,7 @@ impl WebGLTexture {
         let (int_value, float_value) = match value {
             TexParameterValue::Int(int_value) => (int_value, int_value as f32),
             TexParameterValue::Float(float_value) => (float_value as i32, float_value),
+            TexParameterValue::Bool(_) => unreachable!("no settable tex params should be booleans"),
         };
 
         let update_filter = |filter: &Cell<u32>| {
@@ -465,7 +483,7 @@ impl WebGLTexture {
             depth = cmp::max(1, depth / 2);
         }
 
-        self.is_immutable.set(true);
+        self.immutable_levels.set(Some(levels));
 
         if let Some(fb) = self.attached_framebuffer.get() {
             fb.update_status();
