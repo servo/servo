@@ -15,6 +15,7 @@ use script_traits::UntrustedNodeAddress;
 use script_traits::{
     AnimationState, ConstellationControlMsg, LayoutMsg as ConstellationMsg, TransitionEventType,
 };
+use servo_arc::Arc;
 use style::animation::{
     update_style_for_animation, Animation, ElementAnimationState, PropertyAnimation,
 };
@@ -223,7 +224,7 @@ fn do_recalc_style_for_animations<E>(
             update_style_for_animation::<E>(
                 &context.style_context,
                 animation,
-                &mut fragment.style,
+                Arc::make_mut(&mut fragment.style),
                 &ServoMetricsProvider,
             );
             let difference = RestyleDamage::compute_style_difference(&old_style, &fragment.style);

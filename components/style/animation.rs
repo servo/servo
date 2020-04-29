@@ -442,14 +442,18 @@ impl ElementAnimationState {
         false
     }
 
-    /// Compute before-change-style given an existing ElementAnimationState,
-    /// information from the StyleContext, and the values of the previous style
-    /// computation.
-    ///
-    /// TODO(mrobinson): This is not a correct computation of before-change-style.
-    /// For starters it's unclear why we aren't using the running transitions to
-    /// transform this style into before-change-style.
-    pub(crate) fn compute_before_change_style<E>(
+    pub(crate) fn apply_completed_animations(&mut self, style: &mut Arc<ComputedValues>) {
+        for animation in self.finished_animations.iter() {
+            // TODO: Make this a bit more general and add support animation-fill-mode.
+            // Without support for that property though, animations that have ended should
+            // not affect property values. This is why we only process transitions here.
+            if let Animation::Transition(_, _, property_animation) = animation {
+                property_animation.update(Arc::make_mut(style), 1.0);
+            }
+        }
+    }
+
+    pub(crate) fn apply_running_animations<E>(
         &mut self,
         context: &SharedStyleContext,
         style: &mut Arc<ComputedValues>,
@@ -457,24 +461,17 @@ impl ElementAnimationState {
     ) where
         E: TElement,
     {
-        for animation in self.finished_animations.iter() {
-            debug!("Updating style for finished animation {:?}", animation);
-            // TODO: support animation-fill-mode
-            if let Animation::Transition(_, _, property_animation) = animation {
-                property_animation.update(Arc::make_mut(style), 1.0);
-            }
+        // Return early so that we don't unnecessarily clone the style when making it mutable.
+        if self.running_animations.is_empty() {
+            return;
         }
 
-        for running_animation in self.running_animations.iter_mut() {
-            let update = match *running_animation {
-                Animation::Transition(..) => continue,
-                Animation::Keyframes(..) => {
-                    update_style_for_animation::<E>(context, running_animation, style, font_metrics)
-                },
-            };
+        let style = Arc::make_mut(style);
+        for animation in self.running_animations.iter_mut() {
+            let update = update_style_for_animation::<E>(context, animation, style, font_metrics);
 
-            match *running_animation {
-                Animation::Transition(..) => unreachable!(),
+            match *animation {
+                Animation::Transition(..) => {},
                 Animation::Keyframes(_, _, _, ref mut state) => match update {
                     AnimationUpdate::Regular => {},
                     AnimationUpdate::AnimationCanceled => {
@@ -482,6 +479,25 @@ impl ElementAnimationState {
                     },
                 },
             }
+        }
+    }
+
+    pub(crate) fn apply_new_animations<E>(
+        &mut self,
+        context: &SharedStyleContext,
+        style: &mut Arc<ComputedValues>,
+        font_metrics: &dyn crate::font_metrics::FontMetricsProvider,
+    ) where
+        E: TElement,
+    {
+        // Return early so that we don't unnecessarily clone the style when making it mutable.
+        if self.new_animations.is_empty() {
+            return;
+        }
+
+        let style = Arc::make_mut(style);
+        for animation in self.new_animations.iter_mut() {
+            update_style_for_animation::<E>(context, animation, style, font_metrics);
         }
     }
 
@@ -526,8 +542,6 @@ pub fn start_transitions_if_applicable(
     new_style: &mut Arc<ComputedValues>,
     animation_state: &mut ElementAnimationState,
 ) -> LonghandIdSet {
-    use crate::properties::animated_properties::TransitionPropertyIteration;
-
     // If the style of this element is display:none, then we don't start any transitions
     // and we cancel any currently running transitions by returning an empty LonghandIdSet.
     if new_style.get_box().clone_display().is_none() {
@@ -535,12 +549,12 @@ pub fn start_transitions_if_applicable(
     }
 
     let mut properties_that_transition = LonghandIdSet::new();
-    let transitions: Vec<TransitionPropertyIteration> = new_style.transition_properties().collect();
-    for transition in &transitions {
-        if properties_that_transition.contains(transition.longhand_id) {
+    for transition in new_style.transition_properties() {
+        let physical_property = transition.longhand_id.to_physical(new_style.writing_mode);
+        if properties_that_transition.contains(physical_property) {
             continue;
         } else {
-            properties_that_transition.insert(transition.longhand_id);
+            properties_that_transition.insert(physical_property);
         }
 
         let property_animation = match PropertyAnimation::from_longhand(
@@ -552,17 +566,11 @@ pub fn start_transitions_if_applicable(
                 .get_box()
                 .transition_duration_mod(transition.index),
             old_style,
-            Arc::make_mut(new_style),
+            new_style,
         ) {
             Some(property_animation) => property_animation,
             None => continue,
         };
-
-        // Set the property to the initial value.
-        //
-        // NB: get_mut is guaranteed to succeed since we called make_mut()
-        // above.
-        property_animation.update(Arc::get_mut(new_style).unwrap(), 0.0);
 
         // Per [1], don't trigger a new transition if the end state for that
         // transition is the same as that of a transition that's running or
@@ -747,7 +755,7 @@ pub enum AnimationUpdate {
 pub fn update_style_for_animation<E>(
     context: &SharedStyleContext,
     animation: &Animation,
-    style: &mut Arc<ComputedValues>,
+    style: &mut ComputedValues,
     font_metrics_provider: &dyn FontMetricsProvider,
 ) -> AnimationUpdate
 where
@@ -762,7 +770,7 @@ where
             let progress = (now - start_time) / (property_animation.duration);
             let progress = progress.min(1.0);
             if progress >= 0.0 {
-                property_animation.update(Arc::make_mut(style), progress);
+                property_animation.update(style, progress);
             }
             AnimationUpdate::Regular
         },
@@ -867,7 +875,7 @@ where
             let from_style = compute_style_for_animation_step::<E>(
                 context,
                 last_keyframe,
-                &**style,
+                style,
                 &state.cascade_style,
                 font_metrics_provider,
             );
@@ -911,7 +919,7 @@ where
                             property
                         );
                         debug!("update_style_for_animation: {:?}", property_animation);
-                        property_animation.update(Arc::make_mut(&mut new_style), relative_progress);
+                        property_animation.update(&mut new_style, relative_progress);
                     },
                     None => {
                         debug!(
