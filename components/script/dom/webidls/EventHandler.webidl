@@ -90,6 +90,11 @@ interface mixin GlobalEventHandlers {
            attribute EventHandler onwaiting;
 };
 
+// https://drafts.csswg.org/css-animations/#interface-globaleventhandlers-idl
+partial interface mixin GlobalEventHandlers {
+           attribute EventHandler onanimationend;
+};
+
 // https://drafts.csswg.org/css-transitions/#interface-globaleventhandlers-idl
 partial interface mixin GlobalEventHandlers {
            attribute EventHandler ontransitionrun;

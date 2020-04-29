@@ -86,9 +86,9 @@ pub struct LayoutContext<'a> {
     /// A None value means that this layout was not initiated by the script thread.
     pub pending_images: Option<Mutex<Vec<PendingImage>>>,
 
-    /// A list of nodes that have just initiated a CSS transition.
+    /// A list of nodes that have just initiated a CSS transition or animation.
     /// A None value means that this layout was not initiated by the script thread.
-    pub newly_transitioning_nodes: Option<Mutex<Vec<UntrustedNodeAddress>>>,
+    pub newly_animating_nodes: Option<Mutex<Vec<UntrustedNodeAddress>>>,
 }
 
 impl<'a> Drop for LayoutContext<'a> {
