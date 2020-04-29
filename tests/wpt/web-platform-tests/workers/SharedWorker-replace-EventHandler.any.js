@@ -1,4 +1,4 @@
-// META: global=!default,sharedworker
+// META: global=sharedworker
 // https://crbug.com/239669
 const t = async_test("Tests that repeatedly setting 'onerror' within a shared worker doesnt crash.");
 onconnect = t.step_func_done((event) => {

@@ -32,6 +32,7 @@
 2d.text.draw.space.collapse.start:    "text-styles"
 2d.state:                             "the-canvas-state"
 2d.scrollPathIntoView:                "scroll"
+2d.video:                             "video"
 2d.canvas:                            "../html/semantics/embedded-content/the-canvas-element"
 2d.getcontext:                        "../html/semantics/embedded-content/the-canvas-element"
 2d.scaled:                            "../html/semantics/embedded-content/the-canvas-element"

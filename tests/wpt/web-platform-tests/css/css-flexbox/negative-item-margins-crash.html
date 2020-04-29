@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>min-width: auto, negative margins</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto" />
+<link rel="issue" href="https://crbug.com/1075908" />
+
+<p>Test passes if it doesn't crash.</p>
+
+<div style="display: flex">
+  <div style="flex-basis: 0; margin: -10px;">
+    <div style="width: 100px"></div>
+  </div>
+</div>

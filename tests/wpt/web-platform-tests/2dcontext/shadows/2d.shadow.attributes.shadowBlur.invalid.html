@@ -35,6 +35,18 @@ ctx.shadowBlur = 1;
 ctx.shadowBlur = NaN;
 _assertSame(ctx.shadowBlur, 1, "ctx.shadowBlur", "1");
 
+ctx.shadowBlur = 1;
+ctx.shadowBlur = 'string';
+_assertSame(ctx.shadowBlur, 1, "ctx.shadowBlur", "1");
+
+ctx.shadowBlur = 1;
+ctx.shadowBlur = true;
+_assertSame(ctx.shadowBlur, 1, "ctx.shadowBlur", "1");
+
+ctx.shadowBlur = 1;
+ctx.shadowBlur = false;
+_assertSame(ctx.shadowBlur, 0, "ctx.shadowBlur", "0");
+
 
 });
 </script>

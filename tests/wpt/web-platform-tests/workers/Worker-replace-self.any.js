@@ -1,4 +1,4 @@
-// META: global=!default,worker
+// META: global=worker
 test(() => {
   try {
     self = 'PASS';

@@ -3762,6 +3762,18 @@
     ctx.lineWidth = NaN;
     @assert ctx.lineWidth === 1.5;
 
+    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 'string';
+    @assert ctx.lineWidth === 1.5;
+
+    ctx.lineWidth = 1.5;
+    ctx.lineWidth = true;
+    @assert ctx.lineWidth === 1;
+
+    ctx.lineWidth = 1.5;
+    ctx.lineWidth = false;
+    @assert ctx.lineWidth === 1.5;
+
 - name: 2d.line.cap.butt
   desc: lineCap 'butt' is rendered correctly
   testing:
@@ -4512,6 +4524,18 @@
     ctx.miterLimit = NaN;
     @assert ctx.miterLimit === 1.5;
 
+    ctx.miterLimit = 1.5;
+    ctx.miterLimit = 'string';
+    @assert ctx.miterLimit === 1.5;
+
+    ctx.miterLimit = 1.5;
+    ctx.miterLimit = true;
+    @assert ctx.miterLimit === 1;
+
+    ctx.miterLimit = 1.5;
+    ctx.miterLimit = false;
+    @assert ctx.miterLimit === 1.5;
+
 - name: 2d.line.cross
   code: |
     ctx.fillStyle = '#0f0';
@@ -4607,6 +4631,18 @@
     ctx.shadowBlur = NaN;
     @assert ctx.shadowBlur === 1;
 
+    ctx.shadowBlur = 1;
+    ctx.shadowBlur = 'string';
+    @assert ctx.shadowBlur === 1;
+
+    ctx.shadowBlur = 1;
+    ctx.shadowBlur = true;
+    @assert ctx.shadowBlur === 1;
+
+    ctx.shadowBlur = 1;
+    ctx.shadowBlur = false;
+    @assert ctx.shadowBlur === 0;
+
 - name: 2d.shadow.attributes.shadowOffset.initial
   testing:
     - 2d.shadow.offset.initial
@@ -4668,6 +4704,27 @@
     ctx.shadowOffsetY = NaN;
     @assert ctx.shadowOffsetX === 1;
     @assert ctx.shadowOffsetY === 2;
+
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 2;
+    ctx.shadowOffsetX = 'string';
+    ctx.shadowOffsetY = 'string';
+    @assert ctx.shadowOffsetX === 1;
+    @assert ctx.shadowOffsetY === 2;
+
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 2;
+    ctx.shadowOffsetX = true;
+    ctx.shadowOffsetY = true;
+    @assert ctx.shadowOffsetX === 1;
+    @assert ctx.shadowOffsetY === 1;
+
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 2;
+    ctx.shadowOffsetX = false;
+    ctx.shadowOffsetY = false;
+    @assert ctx.shadowOffsetX === 0;
+    @assert ctx.shadowOffsetY === 0;
 
 - name: 2d.shadow.attributes.shadowColor.initial
   testing:
@@ -9732,6 +9789,38 @@
   expected: green
 
 
+- name: 2d.imageData.get.large.crash
+  desc: Test that canvas crash when image data cannot be allocated.
+  testing:
+    - 2d.getImageData
+  code: |
+    @assert throws TypeError ctx.getImageData(10, 0xffffffff, 2147483647, 10);
+
+- name: 2d.imageData.get.rounding
+  desc: Test the handling of non-integer source coordinates in getImageData().
+  testing:
+    - 2d.getImageData
+  code: |
+    function testDimensions(sx, sy, sw, sh, width, height)
+    {
+        imageData = ctx.getImageData(sx, sy, sw, sh);
+        @assert imageData.width == width;
+        @assert imageData.height == height;
+    }
+
+    testDimensions(0, 0, 20, 10, 20, 10);
+
+    testDimensions(.1, .2, 20, 10, 20, 10);
+    testDimensions(.9, .8, 20, 10, 20, 10);
+
+    testDimensions(0, 0, 20.9, 10.9, 20, 10);
+    testDimensions(0, 0, 20.1, 10.1, 20, 10);
+
+    testDimensions(-1, -1, 20, 10, 20, 10);
+
+    testDimensions(-1.1, 0, 20, 10, 20, 10);
+    testDimensions(-1.9,  0, 20, 10, 20, 10);
+
 - name: 2d.imageData.object.properties
   desc: ImageData objects have the right properties
   testing:
@@ -10365,4 +10454,30 @@
     ctx.filter = 'blur(  5px)';
     assert_equals(ctx.filter, 'blur(  5px)');
 
+- name: 2d.line.invalid.strokestyle
+  desc: Verify correct behavior of canvas on an invalid strokeStyle()
+  testing:
+    - 2d.strokestyle.invalid
+  code: |
+    ctx.strokeStyle = 'rgb(0, 255, 0)';
+    ctx.strokeStyle = 'nonsense';
+    ctx.lineWidth = 200;
+    ctx.moveTo(0,100);
+    ctx.lineTo(200,100);
+    ctx.stroke();
+    var imageData = ctx.getImageData(0, 0, 200, 200);
+    var imgdata = imageData.data;
+    @assert imgdata[4] == 0;
+    @assert imgdata[5] == 255;
+    @assert imgdata[6] == 0;
 
+- name: 2d.video.invalid
+  desc: Verify test doesn't crash with invalid video.
+  testing:
+    - 2d.video.invalid
+  code: |
+    var v = document.createElement('video');
+    v.play();
+    // Test is deliberately not waiting for the 'playing' event to fire.
+    ctx.createPattern(v, 'repeat-x');
+    ctx.drawImage(v, 0, 0);

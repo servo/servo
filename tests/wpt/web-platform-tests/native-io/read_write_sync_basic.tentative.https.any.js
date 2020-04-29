@@ -1,5 +1,5 @@
 // META: title=Synchronous NativeIO API: Written bytes are read back.
-// META: global=!default,dedicatedworker
+// META: global=dedicatedworker
 
 'use strict';
 

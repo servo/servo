@@ -1,5 +1,5 @@
 // META: title=Cookie Store API: ServiceWorker with one cookie change subscription
-// META: global=!default,serviceworker,window
+// META: global=window,serviceworker
 // META: script=/service-workers/service-worker/resources/test-helpers.sub.js
 
 'use strict';

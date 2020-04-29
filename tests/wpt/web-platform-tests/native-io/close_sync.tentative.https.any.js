@@ -1,5 +1,5 @@
 // META: title=Synchronous NativeIO API: close().
-// META: global=!default,dedicatedworker
+// META: global=dedicatedworker
 
 'use strict';
 

@@ -74,7 +74,6 @@ def read_script_metadata(f, regexp):
 
 
 _any_variants = {
-    b"default": {"longhand": {b"window", b"dedicatedworker"}},
     b"window": {"suffix": ".any.html"},
     b"serviceworker": {"force_https": True},
     b"sharedworker": {},
@@ -90,7 +89,6 @@ def get_any_variants(item):
     Returns a set of variants (bytestrings) defined by the given keyword.
     """
     assert isinstance(item, binary_type), item
-    assert not item.startswith(b"!"), item
 
     variant = _any_variants.get(item, None)
     if variant is None:
@@ -104,7 +102,7 @@ def get_default_any_variants():
     """
     Returns a set of variants (bytestrings) that will be used by default.
     """
-    return set(_any_variants[b"default"]["longhand"])
+    return set({b"window", b"dedicatedworker"})
 
 
 def parse_variants(value):
@@ -114,15 +112,13 @@ def parse_variants(value):
     """
     assert isinstance(value, binary_type), value
 
-    globals = get_default_any_variants()
+    if value == b"":
+        return get_default_any_variants()
 
+    globals = set()
     for item in value.split(b","):
         item = item.strip()
-        if item.startswith(b"!"):
-            globals -= get_any_variants(item[1:])
-        else:
-            globals |= get_any_variants(item)
-
+        globals |= get_any_variants(item)
     return globals
 
 

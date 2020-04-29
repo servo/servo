@@ -1,4 +1,4 @@
-// META: global=!default,worker
+// META: global=worker
 
 // See
 // https://web-platform-tests.org/writing-tests/testharness.html#multi-global-tests

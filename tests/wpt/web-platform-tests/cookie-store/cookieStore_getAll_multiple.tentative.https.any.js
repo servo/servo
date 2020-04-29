@@ -1,5 +1,5 @@
 // META: title=Cookie Store API: cookieStore.getAll() with multiple cookies
-// META: global=!default,serviceworker,window
+// META: global=window,serviceworker
 
 'use strict';
 

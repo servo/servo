@@ -149,6 +149,7 @@ function forEachWebxrObject(callback) {
   callback(window.XRFrameRequestCallback, 'XRFrameRequestCallback');
   callback(window.XRPresentationContext, 'XRPresentationContext');
   callback(window.XRFrame, 'XRFrame');
+  callback(window.XRLayer, 'XRLayer');
   callback(window.XRView, 'XRView');
   callback(window.XRViewport, 'XRViewport');
   callback(window.XRViewerPose, 'XRViewerPose');

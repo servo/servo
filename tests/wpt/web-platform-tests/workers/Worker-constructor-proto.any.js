@@ -1,4 +1,4 @@
-//META: global=!default, worker
+//META: global=worker
 test(() => {
   const proto = {};
   assert_equals(String(Object.getPrototypeOf(WorkerLocation)).replace(/\n/g, " ").replace(/\s\s+/g, " "), "function () { [native code] }");

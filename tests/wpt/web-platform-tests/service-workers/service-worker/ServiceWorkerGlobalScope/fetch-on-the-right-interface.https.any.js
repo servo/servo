@@ -1,5 +1,5 @@
 // META: title=fetch method on the right interface
-// META: global=!default,serviceworker
+// META: global=serviceworker
 
 test(function() {
     assert_false(self.hasOwnProperty('fetch'), 'ServiceWorkerGlobalScope ' +

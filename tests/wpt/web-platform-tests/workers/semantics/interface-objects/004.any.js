@@ -1,4 +1,4 @@
-// META: global=!default,sharedworker
+// META: global=sharedworker
 
 var unexpected = [
   // https://html.spec.whatwg.org/

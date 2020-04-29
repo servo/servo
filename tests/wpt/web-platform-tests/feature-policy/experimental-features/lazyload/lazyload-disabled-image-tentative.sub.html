@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
-<title>Verify behavior of 'lazyload' attribute state 'OFF' when the feature policy 'lazyload' is
+<title>Verify behavior of 'loading' attribute state 'eager' when the feature policy 'lazyload' is
        disabled.
 </title>
 <link rel="stylesheet" href="/feature-policy/experimental-features/resources/lazyload-image.css">
@@ -27,34 +27,30 @@ img {
 <body>
   <p>Image inserted further below.</p>
   <div id="image-container">
-    <img id="off" lazyload="off" src="http://{{hosts[alt][www1]}}:{{ports[http][0]}}/feature-policy/experimental-features/resources/lazyload.png"></img>
+    <img id="eager" loading="eager" src="http://{{hosts[alt][www1]}}:{{ports[http][0]}}/feature-policy/experimental-features/resources/lazyload.png"></img>
     <img id="auto" lazyload="auto" src="http://{{hosts[alt][www2]}}:{{ports[http][0]}}/feature-policy/experimental-features/resources/lazyload.png"></img>
   </div>
   <script>
-    var img_off = document.getElementById("off");
+    var img_eager = document.getElementById("eager");
     var img_auto = document.getElementById("auto");
-    [window, img_off, img_auto].forEach((target) => {
+    [window, img_eager, img_auto].forEach((target) => {
       target.load_complete = wait_for_load(target).then(() => target.did_load = true );
     });
 
-    function images_loaded() {
-      return img_off.did_load && img_auto.did_load;
-    }
-
     function same_load_state() {
-      return img_off.did_load === img_auto.did_load;
+      return img_eager.did_load === img_auto.did_load;
     }
 
-    // Verifies that "off" and "auto" behave the same for out-of-view images.
+    // Verifies that "eager" and "auto" behave the same for out-of-view images.
     promise_test(async(t) => {
       await window.load_complete;
       assert_true(same_load_state(), "Expected same loading state for both images.");
-    }, "When the 'lazyload' feature is disabled, lazyload=OFF and lazyload=AUTO behave the same.");
+    }, "When the 'lazyload' feature is disabled, lazyload=EAGER and lazyload=AUTO behave the same.");
 
-    // Verifies that images with attributes "off" and "auto" load after the images get into view.
+    // Verifies that images with attributes "eager" and "auto" load after the images get into view.
     promise_test(async(t) => {
       document.getElementById("image-container").scrollIntoView();
-      await img_off.load_complete;
+      await img_eager.load_complete;
       await img_auto.load_complete;
     },  "Sanity-check: Verify that all images load after they are scrolled into view.");
   </script>

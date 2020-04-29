@@ -1,4 +1,4 @@
-// META: global=!default,dedicatedworker,sharedworker
+// META: global=dedicatedworker,sharedworker
 // META: script=resources/test-incrementer.js
 "use strict";
 

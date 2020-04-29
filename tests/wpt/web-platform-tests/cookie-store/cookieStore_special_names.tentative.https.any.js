@@ -1,5 +1,5 @@
 // META: title=Cookie Store API: cookieStore.set()/get()/delete() for cookies with special names
-// META: global=!default,serviceworker,window
+// META: global=window,serviceworker
 
 'use strict';
 

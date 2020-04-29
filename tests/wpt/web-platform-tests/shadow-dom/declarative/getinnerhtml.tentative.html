@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>getInnerHTML </title>
+<link rel='author' title='Mason Freed' href='mailto:masonfreed@chromium.org'>
+<link rel='help' href='https://github.com/whatwg/dom/issues/831'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='../resources/shadow-dom-utils.js'></script>
+
+<body>
+
+<script>
+function testElementType(allowsShadowDom, elementType, mode, delegatesFocus) {
+  var t = test(t => {
+    // Create and attach element
+    const wrapper = document.createElement('div');
+    t.add_cleanup(function() { wrapper.remove(); });
+    document.body.appendChild(wrapper);
+    const element = document.createElement(elementType);
+    wrapper.appendChild(element);
+
+    const isOpen = mode === 'open';
+    if (allowsShadowDom) {
+      let correctShadowHtml = isOpen ? `<template shadowroot="${mode}"><slot></slot></template>` : '';
+      let correctHtml = `<${elementType}>${correctShadowHtml}</${elementType}>`;
+      const shadowRoot = element.attachShadow({mode: mode, delegatesFocus: delegatesFocus});
+      shadowRoot.appendChild(document.createElement('slot'));
+      assert_equals(wrapper.getInnerHTML({includeShadowRoots: true}),correctHtml);
+      assert_equals(wrapper.getInnerHTML(),correctHtml,'The default for includeShadowRoots should be true');
+    } else {
+      // For non-shadow hosts, getInnerHTML() should also match .innerHTML
+      assert_equals(wrapper.getInnerHTML({includeShadowRoots: true}),wrapper.innerHTML);
+      assert_equals(wrapper.getInnerHTML(),wrapper.innerHTML);
+    }
+
+    // Either way, make sure getInnerHTML({includeShadowRoots: false}) matches .innerHTML
+    assert_equals(wrapper.getInnerHTML({includeShadowRoots: false}),wrapper.innerHTML,'getInnerHTML() with includeShadowRoots false should return the same as .innerHTML');
+
+  }, `getInnerHTML() on <${elementType}>${allowsShadowDom ? `, with mode=${mode}, delegatesFocus=${delegatesFocus}.` : ''}`);
+}
+
+function runAllTests() {
+  const allElements = HTML5_ELEMENT_NAMES;
+  const safelisted = ATTACHSHADOW_SAFELISTED_ELEMENTS;
+  for (let elementName of allElements) {
+    const allowsShadowDom = safelisted.includes(elementName);
+    if (allowsShadowDom) {
+      for (let delegatesFocus of [false, true]) {
+        for (let mode of ['open', 'closed']) {
+          testElementType(true, elementName, mode, delegatesFocus);
+        }
+      }
+    } else {
+      testElementType(false, elementName);
+    }
+  }
+}
+
+runAllTests();
+
+</script>

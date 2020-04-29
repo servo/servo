@@ -27,6 +27,10 @@ test(() => {
 }, 'Declarative Shadow DOM: Basic test');
 
 test(() => {
+  assert_true(HTMLTemplateElement.prototype.hasOwnProperty("shadowRoot"),'Unable to feature detect');
+}, 'Declarative Shadow DOM: Feature detection');
+
+test(() => {
   const div = document.createElement('div');
   div.innerHTML = `
     <div id="host">

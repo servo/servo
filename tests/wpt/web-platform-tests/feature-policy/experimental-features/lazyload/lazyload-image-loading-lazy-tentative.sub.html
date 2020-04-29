@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Verify behavior of 'loading' attribute state 'LAZY' (sanity-check for lazyload policy tests).
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/feature-policy/experimental-features/resources/common.js"></script>
+<style>
+body {
+  width: 100%;
+  height: 100%;
+}
+
+img {
+  width: 200px;
+  height: 200px;
+  border: solid 1px black;
+}
+
+#image-container {
+  position: absolute;
+  top: 10000px;
+}
+</style>
+<body>
+  <p>Image inserted further below.</p>
+  <div id="image-container">
+    <img loading="lazy" src="http://{{hosts[alt][www1]}}:{{ports[http][0]}}/feature-policy/experimental-features/resources/lazyload.png"/>
+  </div>
+  <script>
+    var img = document.querySelector("img");
+
+    [img, window].forEach((target) => {
+      target.did_load = false;
+      target.load_complete = wait_for_load(target).then(() => target.did_load = true );
+    });
+
+    // Verify that when feature-policy 'lazyload' is enabled, the loading
+    // attribute value 'LAZY' works as expected (images load only when scrolled
+    // down).
+    promise_test( async(t) => {
+      await window.load_complete;
+      assert_false(img.did_load, "Out-of-viewport image should not have loaded.");
+      img.scrollIntoView();
+      await img.load_complete;
+    }, "Verify 'loading' attribute state 'lazy' works as expected: image loads only when in " +
+       "viewport.");
+ </script>
+</body>

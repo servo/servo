@@ -53,7 +53,7 @@ iframe {
      "when the loading attribute is 'lazy' and frame is in viewport.");
 
   // When feature is enabled, a frame can turn off lazy loading by setting the
-  // attribute to 'off'.
+  // attribute to 'eager'.
   promise_test(async(t) => {
     // Add a frame with loading="eager".
     let frame_off = createIframe(document.body, {

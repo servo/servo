@@ -51,13 +51,18 @@
   promise_test(async t => {
     assert_implements(window.PerformanceEventTiming, "Event Timing is not supported");
     clickTimeMin = performance.now();
-    let observedEntries = false;
+    let observedMouseDown = false;
     const observerPromise = new Promise(resolve => {
       new PerformanceObserver(t.step_func(entries => {
-        assert_false(observedEntries,
+        const mouseDowns = entries.getEntriesByName('mousedown');
+        // Ignore the callback if there were no mousedown entries.
+        if (mouseDowns.length === 0)
+          return;
+
+        assert_false(observedMouseDown,
             "Observer of main frames should only capture main-frame event-timing entries");
-        validateEntries(entries.getEntriesByName('mousedown'));
-        observedEntries = true;
+        validateEntries(mouseDowns);
+        observedMouseDown = true;
         resolve();
       })).observe({type: 'event'});
     });
