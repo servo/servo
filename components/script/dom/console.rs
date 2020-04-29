@@ -7,15 +7,24 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use devtools_traits::{ConsoleMessage, LogLevel, ScriptToDevtoolsControlMsg};
+use js::rust::describe_scripted_caller;
 use std::io;
 
 // https://developer.mozilla.org/en-US/docs/Web/API/Console
 pub struct Console(());
 
 impl Console {
+    #[allow(unsafe_code)]
     fn send_to_devtools(global: &GlobalScope, level: LogLevel, message: DOMString) {
         if let Some(chan) = global.devtools_chan() {
-            let console_message = prepare_message(level, message);
+            let caller = unsafe { describe_scripted_caller(*global.get_cx()) }.unwrap_or_default();
+            let console_message = ConsoleMessage {
+                message: String::from(message),
+                logLevel: level,
+                filename: caller.filename,
+                lineNumber: caller.line as usize,
+                columnNumber: caller.col as usize,
+            };
             let worker_id = global
                 .downcast::<WorkerGlobalScope>()
                 .map(|worker| worker.get_worker_id());
@@ -126,16 +135,5 @@ impl Console {
                 Self::send_to_devtools(global, LogLevel::Log, message);
             };
         })
-    }
-}
-
-fn prepare_message(log_level: LogLevel, message: DOMString) -> ConsoleMessage {
-    // TODO: Sending fake values for filename, lineNumber and columnNumber in LogMessage; adjust later
-    ConsoleMessage {
-        message: String::from(message),
-        logLevel: log_level,
-        filename: "test".to_owned(),
-        lineNumber: 1,
-        columnNumber: 1,
     }
 }

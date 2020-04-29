@@ -34,7 +34,7 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
         let cx = global.get_cx();
         let _ac = enter_realm(global);
         rooted!(in(*cx) let mut rval = UndefinedValue());
-        global.evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+        global.evaluate_script_on_global_with_result(&eval, "<eval>", rval.handle_mut(), 1);
 
         if rval.is_undefined() {
             EvaluateJSReply::VoidValue
