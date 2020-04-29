@@ -84,6 +84,129 @@
       assert_unreached(`Unhandled rejection ${err.name}: ${err.message}`)));
   }, 'iceGatheringState should eventually become complete after setLocalDescription');
 
+  const iceGatheringStateTransitions = async (pc, ...states) => {
+    for (const state of states) {
+      await new Promise((resolve, reject) => {
+        pc.addEventListener('icegatheringstatechange', () => {
+          if (pc.iceGatheringState == state) {
+            resolve();
+          } else {
+            reject(`Unexpected gathering state: ${pc.iceGatheringState}, was expecting ${state}`);
+          }
+        }, {once: true});
+      });
+    }
+  };
+
+  const initialOfferAnswer = async (pc1, pc2, offerOptions) => {
+    await pc1.setLocalDescription(
+      await pc1.createOffer(offerOptions));
+    const pc1Transitions = iceGatheringStateTransitions(pc1, 'gathering', 'complete');
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription(await pc2.createAnswer());
+    const pc2Transitions = iceGatheringStateTransitions(pc2, 'gathering', 'complete');
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    await pc1Transitions;
+    await pc2Transitions;
+  };
+
+  const expectNoMoreGatheringStateChanges = async (t, pc) => {
+    pc.onicegatheringstatechange = t.step_func(() => assert_unreached('Should not get an icegatheringstatechange right now!'));
+  };
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    await initialOfferAnswer(pc1, pc2, {offerToReceiveAudio: true});
+
+    expectNoMoreGatheringStateChanges(t, pc1);
+    expectNoMoreGatheringStateChanges(t, pc2);
+
+    await pc1.setLocalDescription(await pc1.createOffer());
+    await pc2.setLocalDescription(await pc2.createOffer());
+
+    await new Promise(r => t.step_timeout(r, 500));
+  }, 'setLocalDescription(reoffer) with no new transports should not cause iceGatheringState to change');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    await initialOfferAnswer(pc1, pc2, {offerToReceiveAudio: true});
+    await pc1.setLocalDescription(await pc1.createOffer({iceRestart: true}));
+    await iceGatheringStateTransitions(pc1, 'gathering', 'complete');
+    expectNoMoreGatheringStateChanges(t, pc1);
+    await pc1.setLocalDescription({type: 'rollback'});
+    await new Promise(r => t.step_timeout(r, 1000));
+  }, 'rolling back an ICE restart when gathering is complete should not result in iceGatheringState changes');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    await initialOfferAnswer(pc1, pc2, {offerToReceiveAudio:true});
+    await pc1.setLocalDescription(await pc1.createOffer({iceRestart: true}));
+    await iceGatheringStateTransitions(pc1, 'gathering', 'complete');
+  }, 'setLocalDescription(reoffer) with a new transport should cause iceGatheringState to go to "checking" and then "complete"');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    expectNoMoreGatheringStateChanges(t, pc2);
+    const offer = await pc1.createOffer({offerToReceiveAudio: true});
+    await pc2.setRemoteDescription(offer);
+    await pc2.setRemoteDescription(offer);
+    await pc2.setRemoteDescription({type: 'rollback'});
+    await pc2.setRemoteDescription(offer);
+  }, 'sRD does not cause ICE gathering state changes')
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    await pc.setLocalDescription(
+      await pc.createOffer({offerToReceiveAudio: true}));
+    await iceGatheringStateTransitions(pc, 'gathering', 'complete');
+    await pc.setLocalDescription({type: 'rollback'});
+    await iceGatheringStateTransitions(pc, 'new');
+  }, 'setLocalDescription(rollback) of original offer should cause iceGatheringState to reach "new" when starting in "complete"');
+
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    await pc.setLocalDescription(
+      await pc.createOffer({offerToReceiveAudio: true}));
+    await iceGatheringStateTransitions(pc, 'gathering');
+    await pc.setLocalDescription({type: 'rollback'});
+    // We might go directly to 'new', or we might go to 'complete' first,
+    // depending on timing. Allow either.
+    await Promise.any([
+      iceGatheringStateTransitions(pc, 'new'),
+      iceGatheringStateTransitions(pc, 'complete', 'new')]);
+  }, 'setLocalDescription(rollback) of original offer should cause iceGatheringState to reach "new" when starting in "gathering"');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    await initialOfferAnswer(pc1, pc2, {offerToReceiveAudio: true});
+
+    pc1.getTransceivers()[0].stop();
+    await pc1.setLocalDescription(await pc1.createOffer());
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription(await pc2.createAnswer());
+    await iceGatheringStateTransitions(pc2, 'new');
+    await pc1.setRemoteDescription(pc2.localDescription);
+    await iceGatheringStateTransitions(pc1, 'new');
+  }, 'renegotiation that closes all transports should result in ICE gathering state "new"');
+
   /*
     4.4.2.  RTCIceGatheringState Enum
       gathering

@@ -1,4 +1,4 @@
-// META: global=!default,dedicatedworker,sharedworker
+// META: global=dedicatedworker,sharedworker
 
 test(() => {
   // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`

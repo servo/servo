@@ -1,5 +1,5 @@
 // META: title=Cookie Store API: cookieStore.delete() arguments
-// META: global=!default,serviceworker,window
+// META: global=window,serviceworker
 
 'use strict';
 

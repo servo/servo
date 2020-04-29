@@ -10,56 +10,51 @@
   </head>
   <body>
     <script id="layout-test-code">
-      let audit = Audit.createTaskRunner();
+      const audit = Audit.createTaskRunner();
 
-      setup(() => {
-        const sampleRate = 48000;
-        const renderLength = sampleRate * 0.1;
-        let context = new OfflineAudioContext(1, renderLength, sampleRate);
+      const filePath = 'processors/error-processor.js';
+      const sampleRate = 48000;
+      const renderLength = sampleRate * 0.1;
+      const context = new OfflineAudioContext(1, renderLength, sampleRate);
 
-        let filePath = 'processors/error-processor.js';
+      // Test |onprocessorerror| called upon failure of processor constructor.
+      audit.define('constructor-error', (task, should) => {
+        const constructorErrorWorkletNode =
+            new AudioWorkletNode(context, 'constructor-error');
+        constructorErrorWorkletNode.onprocessorerror = (error) => {
+          should(error instanceof ErrorEvent,
+                `onprocessorerror argument should be an ErrorEvent when
+                the constructor of AudioWorkletProcessor has an error.`)
+              .beTrue();
 
-        // Test |onprocessorerror| called upon failure of processor constructor.
-        audit.define('constructor-error',
-            (task, should) => {
-              let constructorErrorWorkletNode =
-                  new AudioWorkletNode(context, 'constructor-error');
-              constructorErrorWorkletNode.onprocessorerror = (e) => {
-                should(e instanceof ErrorEvent,
-                       `onprocessorerror argument should be an ErrorEvent when
-                        the constructor of AudioWorkletProcessor has
-                        an error.`).beTrue();
-                // Without 'processorerror' event callback, this test will be
-                // timed out.
-                task.done();
-              };
-            });
-
-        // Test |onprocessorerror| called upon failure of process() method.
-        audit.define('process-error',
-            (task, should) => {
-              let processErrorWorkletNode =
-                  new AudioWorkletNode(context, 'process-error');
-              processErrorWorkletNode.connect(context.destination);
-              processErrorWorkletNode.onprocessorerror = (e) => {
-                should(e instanceof ErrorEvent,
-                       `onprocessorerror argument should be an ErrorEvent when
-                        the process method of the AudioWorkletProcessor method
-                        has an error`).beTrue();
-                // Without 'processorerror' event callback, this test will be
-                // timed out.
-                task.done();
-              };
-
-              context.startRendering();
-            });
-
-        // 'error-processor.js' contains 2 class definitions represents an error
-        // in the constructor and an error in the process method respectively.
-        context.audioWorklet.addModule(filePath).then(() => {
-          audit.run();
-        });
+          // Without 'processorerror' event callback, this test will be
+          // timed out.
+          task.done();
+        };
       });
+
+      // Test |onprocessorerror| called upon failure of process() method.
+      audit.define('process-error', (task, should) => {
+        const processErrorWorkletNode =
+            new AudioWorkletNode(context, 'process-error');
+        processErrorWorkletNode.onprocessorerror = (error) => {
+          should(error instanceof ErrorEvent,
+                `onprocessorerror argument should be an ErrorEvent when
+                the process method of the AudioWorkletProcessor method
+                has an error.`)
+              .beTrue();
+
+          // Without 'processorerror' event callback, this test will be
+          // timed out.
+          task.done();
+        };
+
+        context.startRendering();
+      });
+
+      // 'error-processor.js' contains 2 class definitions represents an error
+      // in the constructor and an error in the process method respectively.
+      context.audioWorklet.addModule(filePath).then(() => audit.run());
     </script>
   </body>
 </html>

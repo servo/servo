@@ -1,0 +1,81 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: Masonry layout with `justify-tracks` alignment</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-2">
+  <link rel="match" href="masonry-justify-tracks-001-ref.html">
+  <style>
+html,body {
+  color:black; background-color:white; font:10px/1 monospace; padding:0; margin:0;
+}
+
+.hl { writing-mode: horizontal-tb; direction:ltr; }
+.hr { writing-mode: horizontal-tb; direction:rtl; }
+.vll { writing-mode: vertical-lr; direction:ltr; }
+.vlr { writing-mode: vertical-lr; direction:rtl; }
+.vrl { writing-mode: vertical-rl; direction:ltr; }
+.vrr { writing-mode: vertical-rl; direction:rtl; }
+.swl { writing-mode: sideways-lr; direction:ltr; }
+.swr { writing-mode: sideways-lr; direction:rtl; }
+
+grid {
+  display: inline-grid;
+  gap: 1px 2px;
+  grid-template-columns: masonry;
+  grid-template-rows: repeat(2,auto);
+  background: content-box silver;
+  color: #444;
+  padding: 1px 2px;
+  inline-size: 30px;
+  vertical-align: top;
+}
+
+item {
+  background-color: #444;
+  color: #fff;
+  writing-mode: horizontal-tb;
+  direction: ltr;
+}
+
+item:nth-child(1) { background: blue; inline-size:8px; block-size:8px; }
+item:nth-child(2) { background: magenta; inline-size:8px; block-size:12px; }
+item:nth-child(3) { background: lime; inline-size:12px; block-size:8px; }
+item:nth-child(4) { background: purple; inline-size:8px; block-size:8px; }
+</style>
+</head>
+<body>
+<div style="display:none">
+<grid>
+  <item></item>
+  <item></item>
+  <item></item>
+  <item></item>
+</grid>
+</div>
+
+<script>
+let wms = [ "hl", "hr", "vll", "vrr", "vlr", "vrl", "swl", "swr", ];
+let ats = [ "start", "self-start", "center", "end", "self-end", "stretch", "space-between", "space-around", "space-evenly", ];
+let acs = [ "start", "center", "end", ];
+let grid = document.getElementsByTagName('grid')[0];
+for (const ac of acs) {
+  for (const at of ats) {
+    for (const wm of wms) {
+      let e = grid.cloneNode(true);
+      e.className = wm;
+      e.children[0].className = "vrl";
+      e.style.justifyTracks = at;
+      e.style.justifyContent = ac;
+      document.body.appendChild(e);
+    }
+  }
+}
+</script>
+
+</body>
+</html>

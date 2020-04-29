@@ -1,5 +1,5 @@
 // META: title=Synchronous NativeIO API: File creation is reflected in listing.
-// META: global=!default,dedicatedworker
+// META: global=dedicatedworker
 
 'use strict';
 

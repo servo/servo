@@ -1,4 +1,4 @@
-// META: global=!default, worker
+// META: global=worker
 test(() => {
   assert_equals(typeof navigator, "object");
   assert_true(navigator instanceof WorkerNavigator);

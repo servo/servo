@@ -1,5 +1,5 @@
 // META: title=Cookie Store API: oncookiechange event in ServiceWorker with single subscription
-// META: global=!default,serviceworker
+// META: global=serviceworker
 
 'use strict';
 

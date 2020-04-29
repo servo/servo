@@ -20,11 +20,13 @@ function myObserver(mutationsList, observer) {
             assert_in_array(shadowroot, ['open','closed'], 'Declarative template should have shadowroot attribute');
             assert_equals(n.content, null, 'Declarative template content should be null');
             assert_equals(n.innerHTML, "", 'Declarative template innerHTML should be empty');
+            assert_equals(n.getInnerHTML({includeShadowRoots: true}), "", 'Declarative template getInnerHTML() should be empty');
 
             // Make sure removing the shadowroot attribute doesn't affect things.
             n.removeAttribute('shadowroot');
             assert_equals(n.content, null, 'Declarative template content should *still* be null');
             assert_equals(n.innerHTML, "", 'Declarative template innerHTML should *still* be empty');
+            assert_equals(n.getInnerHTML({includeShadowRoots: true}), "", 'Declarative template getInnerHTML() should *still* be empty');
             break;
           case 'noroot':
             // Make sure adding 'shadowroot' attribute doesn't trigger a shadow root,
@@ -32,6 +34,7 @@ function myObserver(mutationsList, observer) {
             n.setAttribute('shadowroot','open');
             assert_not_equals(n.content, null, 'Regular template should have content, even after adding shadowroot attribute');
             assert_not_equals(n.innerHTML, "", 'Regular template should have innerHTML, even after adding shadowroot attribute');
+            assert_not_equals(n.getInnerHTML({includeShadowRoots: true}), "", 'Regular template should have getInnerHTML(), even after adding shadowroot attribute');
             break;
           default:
             assert_unreached('Unrecognized template');

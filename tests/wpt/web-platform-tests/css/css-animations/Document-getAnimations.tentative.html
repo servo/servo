@@ -18,6 +18,20 @@
 @keyframes animRight {
   to { right: 100px }
 }
+
+@keyframes anim1 {
+  to { left: 100px }
+}
+@keyframes anim2 {
+  to { top: 100px }
+}
+@keyframes anim3 {
+  to { bottom: 100px }
+}
+@keyframes anim4 {
+  to { right: 100px }
+}
+
 </style>
 <div id="log"></div>
 <script>
@@ -285,6 +299,84 @@ test(t => {
                 'returned');
 }, 'CSS Animations canceled and restarted via the API are returned');
 
+test(t => {
+  addStyle(t, {
+      '#parent::after': "content: ''; animation: anim1 100s ; ",
+      '#parent::before': "content: ''; animation: anim2 100s;",
+      '#child::after': "content: ''; animation: anim3 100s;",
+      '#child::before': "content: ''; animation: anim4 100s;",
+    });
+  const parent = addDiv(t, { id: 'parent' });
+  const child = addDiv(t, { id: 'child'});
+  parent.appendChild(child);
+  var animations = document.getAnimations();
+  var expectedAnimations = [
+      [parent, '::before', 'anim2'],
+      [parent, '::after', 'anim1'],
+      [child, '::before', 'anim4'],
+      [child, '::after', 'anim3'],
+    ];
+  pseudoAnimCompare(animations, expectedAnimations)
+
+  // Swap animation1 and aimation3's effect
+  var anim1 = animations[0];
+  var anim3 = animations[2];
+  const temp = anim1.effect;
+  anim1.effect = anim3.effect;
+  anim3.effect = temp;
+
+  animations = document.getAnimations();
+  expectedAnimations = [
+      [child, '::before', 'anim2'],
+      [parent, '::after', 'anim1'],
+      [parent, '::before', 'anim4'],
+      [child, '::after', 'anim3'],
+    ];
+  pseudoAnimCompare(animations, expectedAnimations)
+}, 'pseudo element with replaced target does not affect animation ordering');
+
+function pseudoAnimCompare(animations, expectedAnimations) {
+  assert_equals(
+      animations.length,
+      expectedAnimations.length,
+      'CSS animations on both pseudo-elements and elements are returned'
+    );
+  for (const [index, expected] of expectedAnimations.entries()) {
+      const [element, pseudo, name] = expected;
+      const actual = animations[index];
+      if (pseudo) {
+        assert_equals(
+          actual.effect.target,
+          element,
+          `Animation #${index + 1} has the expected target`
+        );
+        assert_equals(
+          actual.effect.pseudoElement,
+          pseudo,
+          `Animation #${index + 1} has the expected pseudo type`
+        );
+        if (name) {
+          assert_equals(
+            actual.animationName,
+            name,
+            `Animation #${index + 1} has the expected name`
+          );
+        }
+      } else {
+        assert_equals(
+          actual.effect.target,
+          element,
+          `Animation #${index + 1} has the expected target`
+        );
+        assert_equals(
+          actual.effect.pseudoElement,
+          null,
+          `Animation #${index + 1} has a null pseudo type`
+        );
+      }
+    }
+}
+
 function pseudoTest(description, testMarkerPseudos) {
   test(t => {
     // Create two divs with the following arrangement:
@@ -327,40 +419,7 @@ function pseudoTest(description, testMarkerPseudos) {
     }
 
     const animations = document.getAnimations();
-    assert_equals(
-      animations.length,
-      expectedAnimations.length,
-      'CSS animations on both pseudo-elements and elements are returned'
-    );
-
-    for (const [index, expected] of expectedAnimations.entries()) {
-      const [element, pseudo] = expected;
-      const actual = animations[index];
-
-      if (pseudo) {
-        assert_equals(
-          actual.effect.target,
-          element,
-          `Animation #${index + 1} has expected target`
-        );
-        assert_equals(
-          actual.effect.pseudoElement,
-          pseudo,
-          `Animation #${index + 1} has expected pseudo type`
-        );
-      } else {
-        assert_equals(
-          actual.effect.target,
-          element,
-          `Animation #${index + 1} has expected target`
-        );
-        assert_equals(
-          actual.effect.pseudoElement,
-          null,
-          `Animation #${index + 1} has null pseudo type`
-        );
-      }
-    }
+    pseudoAnimCompare(animations, expectedAnimations)
   }, description);
 }
 
@@ -368,5 +427,4 @@ pseudoTest('CSS Animations targetting (pseudo-)elements should have correct '
      + 'order after sorting', false);
 pseudoTest('CSS Animations targetting (pseudo-)elements should have correct '
      + 'order after sorting (::marker)', true);
-
 </script>

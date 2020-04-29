@@ -23,12 +23,16 @@ async_test(function(t) {
       };
     }
   });
-  const observer = new PerformanceObserver(t.step_func_done((entryList) => {
-    const entries = entryList.getEntries().filter(e => e.name === 'mousedown');
-    // There must only be one click entry.
+  const observer = new PerformanceObserver(t.step_func((entryList) => {
+    const entries = entryList.getEntriesByName('mousedown');
+    if (entries.length === 0)
+      return;
+
+    // There must only be one mousedown entry.
     assert_equals(entries.length, 1);
     verifyClickEvent(entries[0], 'custom_button', true);
     assert_true(innerButtonClicked);
+    t.done()
   }));
   observer.observe({entryTypes: ['event']});
   clickAndBlockMain('custom_button');

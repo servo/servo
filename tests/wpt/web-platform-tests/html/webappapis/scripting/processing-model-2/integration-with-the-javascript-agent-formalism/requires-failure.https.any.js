@@ -1,4 +1,4 @@
-// META: global=!default,window,serviceworker
+// META: global=window,serviceworker
 
 test(() => {
   // See https://github.com/whatwg/html/issues/5380 for why not `new SharedArrayBuffer()`

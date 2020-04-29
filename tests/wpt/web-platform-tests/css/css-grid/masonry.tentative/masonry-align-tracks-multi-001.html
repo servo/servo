@@ -1,0 +1,91 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Test: Masonry layout with multiple `align-tracks` values</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-2">
+  <link rel="match" href="masonry-align-tracks-multi-001-ref.html">
+<style>
+html,body {
+  color:black; background-color:white; font:15px/1 monospace; padding:0; margin:0;
+}
+grid {
+  display: inline-grid;
+  grid-template-rows: masonry;
+  grid-template-columns: repeat(8,50px); /*intentionally one more than align-tracks values*/
+  gap: 3px 5px;
+  padding: 10px 3px 1px 7px;
+  border: solid;
+  border-width: 1px 7px 3px 5px;
+  background: lightgrey content-box;
+  align-tracks: start,end,center,stretch,space-between,space-around,space-evenly;
+  height: 500px;
+  vertical-align: top;
+}
+.fallback { grid-template-columns:3px; padding:0; border:0; }
+item {
+  background: grey;
+  height: 2em;
+  position: relative;
+  border: 1px solid;
+}
+item:nth-child(2n) { background:purple; height:auto; border-top:3px solid; }
+z { display: block; background: yellow; height: 20%; width:80%; }
+a {
+ position: absolute;
+ inset: 0;
+ top: auto;
+ border: 2px solid lime;
+}
+</style>
+</head>
+<body>
+<grid>
+  <item style="width:50%">1</item>
+  <item style="height:10%">2</item>
+  <item style="margin-left:10%">3</item>
+  <item style="margin-top:10%">4</item>
+  <item>5</item>
+  <item>6<a></a></item>
+  <item>7</item>
+  <item style="writing-mode:vertical-lr">8 vertical-lr</item>
+  <item>9<a></a></item>
+  <item>10</item>
+  <item>11</item>
+  <item>12<z></z></item>
+  <item>13</item>
+  <item><z></z>14<a></a></item>
+  <item>15</item>
+  <item style="writing-mode:vertical-rl">16 vertical-rl</item>
+  <item>17</item>
+  <item>18</item>
+  <item>19</item>
+  <item>20</item>
+  <item>21</item>
+  <item>22</item>
+  <item>23</item>
+  <item>24</item>
+  <item>25</item>
+  <item>26</item>
+  <item>27</item>
+  <item>28</item>
+  <item>29</item>
+  <item>30</item>
+  <item>31</item>
+  <item>32</item>
+  <item>33</item>
+</grid>
+<grid class="fallback" style="align-tracks:space-between">
+  <item></item>
+</grid>
+<grid class="fallback" style="align-tracks:space-around">
+  <item></item>
+</grid>
+<grid class="fallback" style="align-tracks:space-evenly">
+  <item></item>
+</grid>
+</body></html>

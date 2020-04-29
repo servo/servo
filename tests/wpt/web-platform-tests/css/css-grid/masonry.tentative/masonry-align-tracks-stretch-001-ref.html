@@ -1,0 +1,87 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: Masonry layout with `align-tracks:stretch`</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+html,body {
+  color:black; background-color:white; font:16px/1 Ahem; padding:0; margin:0;
+}
+grid {
+  display: inline-grid;
+  grid-template-rows: 500px;
+  grid-template-columns: 150px 100px 50px;
+  gap: 3px 5px;
+  padding: 10px;
+  border: 3px solid;
+  background: lightgrey content-box;
+  height: 500px;
+}
+masonry-track {
+  display: grid;
+  gap: 3px 5px;
+  align-content: stretch;
+  height: 500px;
+}
+masonry-track:nth-child(1) {
+  grid-template-columns: 150px;
+  grid-template-rows: min-content min-content min-content auto min-content min-content min-content;
+}
+masonry-track:nth-child(2) {
+  grid-template-columns: 100px;
+  grid-template-rows: auto 50px auto auto 30px;
+}
+masonry-track:nth-child(3) {
+  grid-template-columns: 50px;
+  grid-template-rows: 30px 30px 30px auto 30px 30px auto auto;
+}
+item {
+  background: grey;
+  height: 30px;
+  position: relative;
+}
+.purple { background:purple; height:auto; }
+z { display: block; background: yellow; height: 20%; width:80%; }
+a {
+ position: absolute;
+ inset: 0;
+ top: auto;
+ border: 2px solid lime;
+}
+</style>
+</head>
+<body>
+<grid>
+ <masonry-track>
+  <item style="border:10px solid; margin: 10px 0 5px 3px;">1</item>
+  <item>9<a></a></item>
+  <item>11</item>
+  <item class="purple">12<br><br><z></z></item>
+  <item class="purple" style="height:116px; border:2px solid; margin:1px">14<z></z><a></a></item>
+  <item style="align-self:start" class="purple">16</item>
+  <item>17</item>
+ </masonry-track>
+ <masonry-track>
+  <item class="purple">2</item>
+  <item style="height:40px; margin-top:10px" class="purple">4</item>
+  <item class="purple">6<a></a></item>
+  <item style="writing-mode:vertical-lr" class="purple">8 vertical</item>
+  <item>19</item>
+ </masonry-track>
+ <masonry-track>
+  <item>3</item>
+  <item>5</item>
+  <item>7</item>
+  <item class="purple">10 A<br>B</item>
+  <item>13</item>
+  <item>15</item>
+  <item style="margin:auto 0" class="purple">18</item>
+  <item style="margin-top: auto" class="purple">20</item>
+ </masonry-track>
+</grid>
+</body></html>

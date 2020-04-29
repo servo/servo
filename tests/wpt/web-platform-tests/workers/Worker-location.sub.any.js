@@ -1,4 +1,4 @@
-// META: global=!default, dedicatedworker, sharedworker
+// META: global=dedicatedworker,sharedworker
 test(() => {
   assert_equals(String(WorkerLocation).replace(/\n/g, " ").replace(/\s\s+/g, " "), "function WorkerLocation() { [native code] }");
   assert_true(location instanceof Object);

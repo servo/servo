@@ -9,6 +9,7 @@
   }, "navigator.userAgentData is exposed.");
 
   promise_test(async t => {
+    let didMicrotaskRun = false;
     const uaData = navigator.userAgentData;
     for (brandVersionPair of uaData.brands) {
       assert_equals(typeof brandVersionPair.brand, "string", "brand should be a string");
@@ -25,5 +26,12 @@
     assert_equals(highEntropyData2["platformVersion"], "", "Platform version should be an empty string");
     assert_equals(highEntropyData2["architecture"], "", "Architecture should be an empty string");
     assert_equals(highEntropyData2["model"], "", "Model should be an empty string");
+    let  finalPromise = uaData.getHighEntropyValues([]).then(() => {
+      assert_true(didMicrotaskRun, "getHighEntropyValues queued on a task");
+    });
+    await Promise.resolve().then(function() {
+      didMicrotaskRun = true;
+    });
+    return finalPromise;
   }, "navigator.userAgentData returns a UserAgentMetadata object.");
 </script>

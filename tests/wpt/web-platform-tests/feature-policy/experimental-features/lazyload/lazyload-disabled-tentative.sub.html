@@ -30,54 +30,54 @@ iframe {
 
   window.scrollTo(0, 0);
 
-  // Sanity-check: Make sure lazyload='on' works as intended.
+  // Sanity-check: Make sure loading='lazy' works as intended.
   promise_test(async(t) => {
-    // Add a frame with lazyload="on".
-    let frame_on = createIframe(document.body, {
-        id: "ON",
-        lazyload: "on",
-        src: `${cross_origin_url}?id=ON`
+    // Add a frame with loading="lazy".
+    let frame_lazy = createIframe(document.body, {
+        id: "LAZY",
+        loading: "lazy",
+        src: `${cross_origin_url}?id=LAZY`
       });
     // Sanity-check: The frame is not visible.
     assert_greater_than(
-        frame_on.getBoundingClientRect().top,
+        frame_lazy.getBoundingClientRect().top,
         window.innerHeight * 2,
-        "Unexpected position for <iframe> with ID 'ON'.");
-    let msg_or_timeout_attr_on =
-        await waitForMessageOrTimeout(t, "ON", load_timeout);
-    assert_equals(msg_or_timeout_attr_on,
+        "Unexpected position for <iframe> with ID 'LAZY'.");
+    let msg_or_timeout_attr_lazy =
+        await waitForMessageOrTimeout(t, "LAZY", load_timeout);
+    assert_equals(msg_or_timeout_attr_lazy,
                   expected_timeout_msg,
-                  "With lazyload='on', the frame should not load.");
+                  "With loading='lazy', the frame should not load.");
   }, "Sanity-check: Contents do not load immediately (no eager-loading) " +
-     "when the lazyload attribute is 'on' and frame is in viewport.");
+     "when the loading attribute is 'lazy' and frame is in viewport.");
 
 
-  // Verify that when 'lazyload' policy is disabled,  lazyload='off' and
-  // lazyload='auto' behave the same.
+  // Verify that when 'lazyload' policy is disabled,  loading='eager' and
+  // loading='auto' behave the same.
   promise_test(async(t) => {
-    // Add a frame with lazyload="off".
-    let frame_on = createIframe(document.body, {
-        id: "OFF",
-        lazyload: "off",
-        src: `${cross_origin_url}?id=OFF`
+    // Add a frame with loading="eager".
+    let frame_lazy = createIframe(document.body, {
+        id: "EAGER",
+        loading: "eager",
+        src: `${cross_origin_url}?id=EAGER`
       });
     // Sanity-check: The frame is not visible.
     assert_greater_than(
-        frame_on.getBoundingClientRect().top,
+        frame_lazy.getBoundingClientRect().top,
         window.innerHeight * 2,
-        "Unexpected position for <iframe> with ID 'OFF'.");
-    let msg_or_timeout_attr_off =
-        await waitForMessageOrTimeout(t, "OFF", load_timeout);
+        "Unexpected position for <iframe> with ID 'EAGER'.");
+    let msg_or_timeout_attr_eager =
+        await waitForMessageOrTimeout(t, "EAGER", load_timeout);
 
-    // Now do the same for lazyload='auto'.
+    // Now do the same for loading='auto'.
     let frame_auto = createIframe(document.body, {
         id: "AUTO",
-        lazyload: "auto",
+        loading: "auto",
         src: `${cross_origin_url}?id=AUTO`
     });
     // Sanity-check: The frame is not visible.
     assert_greater_than(
-        frame_on.getBoundingClientRect().top,
+        frame_lazy.getBoundingClientRect().top,
         window.innerHeight * 2,
         "Unexpected position for <iframe> with ID 'AUTO'.");
     let msg_or_timeout_attr_auto =
@@ -85,9 +85,9 @@ iframe {
 
     // The result should be the same.
     assert_equals(
-          msg_or_timeout_attr_off,
+          msg_or_timeout_attr_eager,
           msg_or_timeout_attr_auto,
-          "lazyload='off' not treated as 'auto'.");
+          "loading='eager' not treated as 'auto'.");
   }, "When 'lazyload' feature is disabled, a frame cannot avoid lazyloading " +
-     "by setting 'lazyload' attribute to 'off'");
+     "by setting 'loading' attribute to 'eager'");
 </script>

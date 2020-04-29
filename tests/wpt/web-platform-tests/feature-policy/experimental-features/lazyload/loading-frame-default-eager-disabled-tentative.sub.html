@@ -33,7 +33,6 @@ iframe {
   // Verify that when 'loading-frame-default-eager' policy is disabled, the
   // loading attribute "auto" leads to lazy loading.
   promise_test(async(t) => {
-    // Add a frame with load="off".
     let frame_loading_auto = createIframe(document.body, {
         id: "auto",
         // Sets the "loading" attribute to "auto".

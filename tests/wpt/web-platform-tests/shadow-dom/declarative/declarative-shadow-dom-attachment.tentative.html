@@ -70,12 +70,10 @@ function testElementType(allowed, nochildren, elementType, mode, delegatesFocus)
 }
 
 function runAllTests() {
-  const noChildElements = ['iframe','noscript','script','select','style','textarea','title'];
   const noCheck = ['body'];
   const safelisted = ATTACHSHADOW_SAFELISTED_ELEMENTS.filter(el => !noCheck.includes(el));
   const disallowed = ATTACHSHADOW_DISALLOWED_ELEMENTS.filter(el => !noCheck.includes(el));
-  const minimumKnownElements = 113; // We should have at least this many elements in the lists from shadow-dom-utils.js.
-  assert_true(safelisted.length + disallowed.length + noChildElements.length >= minimumKnownElements,'All element types should be tested');
+  const noChildElements = ['iframe','noscript','script','select','style','textarea','title'];
   for (let delegatesFocus of [false, true]) {
     for (let mode of ['open', 'closed', 'invalid']) {
       for (let elementName of safelisted) {

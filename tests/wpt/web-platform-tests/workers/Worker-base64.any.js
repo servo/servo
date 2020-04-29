@@ -1,4 +1,4 @@
-// META: global=!default,worker
+// META: global=worker
 test(() => {
   assert_true(typeof atob === 'function');
   assert_true(typeof btoa === 'function');

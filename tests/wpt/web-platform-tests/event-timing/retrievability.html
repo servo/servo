@@ -31,9 +31,11 @@
   */
   async_test(function(t) {
     assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
-    new PerformanceObserver(t.step_func_done(() => {
-      validateEntries();
-      t.done();
+    new PerformanceObserver(t.step_func(entryList => {
+      if (entryList.getEntriesByName('mousedown')) {
+        validateEntries();
+        t.done();
+      }
     })).observe({entryTypes: ['event']});
     clickAndBlockMain('button');
   }, "Event Timing: make sure event-timing entries are not retrievable by performance.getEntries*.");

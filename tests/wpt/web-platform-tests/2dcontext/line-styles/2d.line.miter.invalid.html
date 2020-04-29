@@ -42,6 +42,18 @@ ctx.miterLimit = 1.5;
 ctx.miterLimit = NaN;
 _assertSame(ctx.miterLimit, 1.5, "ctx.miterLimit", "1.5");
 
+ctx.miterLimit = 1.5;
+ctx.miterLimit = 'string';
+_assertSame(ctx.miterLimit, 1.5, "ctx.miterLimit", "1.5");
+
+ctx.miterLimit = 1.5;
+ctx.miterLimit = true;
+_assertSame(ctx.miterLimit, 1, "ctx.miterLimit", "1");
+
+ctx.miterLimit = 1.5;
+ctx.miterLimit = false;
+_assertSame(ctx.miterLimit, 1.5, "ctx.miterLimit", "1.5");
+
 
 });
 </script>

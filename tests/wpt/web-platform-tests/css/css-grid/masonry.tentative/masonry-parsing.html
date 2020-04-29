@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Masonry Test: parsing properties and shortands</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#propdef-grid-template-columns">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+</head>
+<body>
+<script>
+function masonry_test_template_prop(name) {
+  test_valid_value(name, 'masonry');
+  test_invalid_value(name, 'masonry []');
+  test_invalid_value(name, 'masonry [foo] 40px');
+  test_invalid_value(name, 'masonry 40px');
+  test_invalid_value(name, '[foo] masonry');
+  test_invalid_value(name, '0px masonry');
+  test_invalid_value(name, 'masonry masonry');
+  test_invalid_value(name, 'subgrid masonry');
+  test_invalid_value(name, 'masonry subgrid');
+  test_invalid_value(name, 'masonry repeat(1, [])');
+  test_invalid_value(name, 'masonry repeat(auto-fill, [])');
+  test_invalid_value(name, 'masonry / none');
+}
+masonry_test_template_prop("grid-template-columns");
+masonry_test_template_prop("grid-template-rows");
+
+test_shorthand_value("grid-template", 'masonry / masonry', {
+  'grid-template-rows': 'masonry',
+  'grid-template-columns': 'masonry',
+  'grid-template-areas': 'none'
+});
+
+test_shorthand_value("grid-template", 'masonry / subgrid [foo]', {
+  'grid-template-rows': 'masonry',
+  'grid-template-columns': 'subgrid [foo]',
+  'grid-template-areas': 'none'
+});
+
+test_shorthand_value("grid-template", '10px / masonry', {
+  'grid-template-rows': '10px',
+  'grid-template-columns': 'masonry',
+  'grid-template-areas': 'none'
+});
+
+test_shorthand_value("grid", 'masonry / masonry', {
+  'grid-template-rows': 'masonry',
+  'grid-template-columns': 'masonry',
+  'grid-template-areas': 'none',
+  'grid-auto-rows': 'auto',
+  'grid-auto-columns': 'auto',
+  'grid-auto-flow': 'row'
+});
+
+test_shorthand_value("grid", 'masonry / subgrid [foo]', {
+  'grid-template-rows': 'masonry',
+  'grid-template-columns': 'subgrid [foo]',
+  'grid-template-areas': 'none',
+  'grid-auto-rows': 'auto',
+  'grid-auto-columns': 'auto',
+  'grid-auto-flow': 'row'
+});
+
+test_shorthand_value("grid", '10px / masonry', {
+  'grid-template-rows': '10px',
+  'grid-template-columns': 'masonry',
+  'grid-template-areas': 'none',
+  'grid-auto-rows': 'auto',
+  'grid-auto-columns': 'auto',
+  'grid-auto-flow': 'row'
+});
+
+test_valid_value("masonry-auto-flow", 'pack');
+test_valid_value("masonry-auto-flow", 'pack ordered', 'ordered');
+test_valid_value("masonry-auto-flow", 'ordered next', 'next ordered');
+test_valid_value("masonry-auto-flow", 'next definite-first', 'next');
+test_valid_value("masonry-auto-flow", 'definite-first pack', 'pack');
+test_invalid_value("masonry-auto-flow", 'auto');
+test_invalid_value("masonry-auto-flow", 'none');
+test_invalid_value("masonry-auto-flow", '10px');
+test_invalid_value("masonry-auto-flow", 'row');
+test_invalid_value("masonry-auto-flow", 'dense');
+
+</script>
+</body>
+</html>

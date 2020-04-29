@@ -22,10 +22,6 @@
       assert_equals(clickCount, expectedCount,'Incorrect click count.');
       assert_equals(performance.eventCounts.get('mousedown'), expectedCount, 'Incorrect mousedown count');
       assert_equals(performance.eventCounts.get('mouseup'), expectedCount, 'Incorrect mouseup count.');
-      assert_equals(performance.eventCounts.get('mouseover'), expectedCount, 'Incorrect mouseover count.');
-      if (expectedCount != 1) {
-        assert_equals(performance.eventCounts.get('mouseout'), expectedCount - 1, 'Incorrect mouseout count.');
-      }
       resolve();
     }
     function promiseClicks(expectedCount) {

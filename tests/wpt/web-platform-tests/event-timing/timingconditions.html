@@ -32,28 +32,38 @@
     target.focus();
   }
 
-  async_test(function(t) {
+  promise_test(function(t) {
     assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
-    new PerformanceObserver(t.step_func_done(entryList => {
-      const observerCallbackTime = performance.now();
-      const entries = entryList.getEntries().filter(
-          entry => entry.name === 'mousedown');
-      assert_equals(entries.length, 1,
-          "Should only observe one entry: " +
-          JSON.stringify(entries) + ".");
-      assert_equals(entries[0].name, 'mousedown',
-          "The observed entry should be a click");
-      assert_less_than(entries[0].startTime, observerCallbackTime,
-          "The startTime should be before observerCallbackTime");
-      assert_greater_than(entries[0].startTime, trustedClickStart,
-          "The startTime should be after trustedClickStart");
-    })).observe({ entryTypes: ['event'] });
+    let observedMouseDown = false;
+    const observerPromise = new Promise(resolve => {
+      new PerformanceObserver(t.step_func(entryList => {
+        const observerCallbackTime = performance.now();
+        const mouseDowns = entryList.getEntriesByName('mousedown');
+        // Ignore cases in which there is no mousedown.
+        if (mouseDowns.length === 0)
+          return;
+
+        assert_false(observedMouseDown, 'Got more than one callback with mousedown.');
+        assert_equals(mouseDowns.length, 1,
+            "Should only observe one mousedown entry. Instead, got these: " +
+            JSON.stringify(mouseDowns) + ".");
+        assert_equals(mouseDowns[0].name, 'mousedown',
+            "The observed entry should be a mousedown");
+        assert_less_than(mouseDowns[0].startTime, observerCallbackTime,
+            "The startTime should be before observerCallbackTime");
+        assert_greater_than(mouseDowns[0].startTime, trustedClickStart,
+            "The startTime should be after trustedClickStart");
+        observedMouseDown = true;
+        resolve();
+      })).observe({ entryTypes: ['event'] });
+    });
     // Untrusted event of a type event timing cares about.
     untrustedClickAndBlockMain('button');
     // Trusted event of a type event timing doesn't cares about.
     trustedFocusAndBlockMain('button');
     // Trusted event of a type event timing cares about.
-    trustedClickAndBlockMain('button').then(wait);
+    const clickPromise = trustedClickAndBlockMain('button').then(wait);
+    return Promise.all([observerPromise, clickPromise]);
   }, "Event Timing only times certain types of trusted event.");
 </script>
 </html>

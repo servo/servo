@@ -328,25 +328,10 @@ test()"""
 
 
 @pytest.mark.parametrize("input,expected", [
-    (b"", {"dedicatedworker", "window"}),
-    (b"default", {"dedicatedworker", "window"}),
-    (b"!default", {}),
-    (b"!default,window", {"window"}),
-    (b"window,!default", {}),
-    (b"!default,dedicatedworker", {"dedicatedworker"}),
-    (b"dedicatedworker,!default", {}),
-    (b"!default,worker", {"dedicatedworker", "serviceworker", "sharedworker"}),
-    (b"worker,!default", {"serviceworker", "sharedworker"}),
-    (b"!dedicatedworker", {"window"}),
-    (b"!worker", {"window"}),
-    (b"!window", {"dedicatedworker"}),
-    (b"!window,worker", {"dedicatedworker", "serviceworker", "sharedworker"}),
-    (b"worker,!dedicatedworker", {"serviceworker", "sharedworker", "window"}),
-    (b"!dedicatedworker,worker", {"dedicatedworker", "serviceworker", "sharedworker", "window"}),
-    (b"worker,!sharedworker", {"dedicatedworker", "serviceworker", "window"}),
-    (b"!sharedworker,worker", {"dedicatedworker", "serviceworker", "sharedworker", "window"}),
-    (b"sharedworker", {"dedicatedworker", "sharedworker", "window"}),
-    (b"sharedworker,serviceworker", {"dedicatedworker", "serviceworker", "sharedworker", "window"}),
+    (b"window", {"window"}),
+    (b"sharedworker", {"sharedworker"}),
+    (b"sharedworker,serviceworker", {"serviceworker", "sharedworker"}),
+    (b"worker", {"dedicatedworker", "serviceworker", "sharedworker"}),
 ])
 def test_multi_global_with_custom_globals(input, expected):
     contents = b"""// META: global=%s
@@ -384,7 +369,7 @@ test()""" % input
 
 
 def test_multi_global_with_jsshell_globals():
-    contents = b"""// META: global=jsshell
+    contents = b"""// META: global=window,dedicatedworker,jsshell
 test()"""
 
     s = create("html/test.any.js", contents=contents)

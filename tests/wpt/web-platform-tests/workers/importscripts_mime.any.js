@@ -1,4 +1,4 @@
-// META: global=!window,worker
+// META: global=worker
 //
 // Tentative test for https://github.com/whatwg/html/issues/3255
 

@@ -1,5 +1,5 @@
 // META: title=Synchronous NativeIO API: File deletion is reflected in listing.
-// META: global=!default,dedicatedworker
+// META: global=dedicatedworker
 
 'use strict';
 

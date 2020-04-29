@@ -1,5 +1,5 @@
 // META: title=Cookie Store API: Interaction between cookieStore.set() and cookieStore.get()
-// META: global=!default,serviceworker,window
+// META: global=window,serviceworker
 
 'use strict';
 

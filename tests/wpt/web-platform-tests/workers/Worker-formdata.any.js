@@ -1,4 +1,4 @@
-// META: global=!default,dedicatedworker
+// META: global=dedicatedworker
 test(() => {
   assert_own_property(self, 'FormData');
   assert_equals(FormData.length, 0);

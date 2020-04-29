@@ -116,8 +116,8 @@ creating a `FileAPI/FileReaderSync.worker.js` as follows:
 ```js
 importScripts("/resources/testharness.js");
 test(function () {
-    var blob = new Blob(["Hello"]);
-    var fr = new FileReaderSync();
+    const blob = new Blob(["Hello"]);
+    const fr = new FileReaderSync();
     assert_equals(fr.readAsText(blob), "Hello");
 }, "FileReaderSync#readAsText.");
 done();
@@ -138,7 +138,7 @@ creating a `FileAPI/Blob-constructor.any.js` as follows:
 
 ```js
 test(function () {
-    var blob = new Blob();
+    const blob = new Blob();
     assert_equals(blob.size, 0);
     assert_equals(blob.type, "");
     assert_false(blob.isClosed);
@@ -152,16 +152,13 @@ It is possible to customize the set of scopes with a metadata comment, such as
 
 ```
 // META: global=sharedworker
-//       ==> would run in the default window and dedicated worker scopes,
-//           as well as the shared worker scope
-// META: global=!default,serviceworker
-//       ==> would only run in the service worker scope
-// META: global=!window
-//       ==> would run in the default dedicated worker scope, but not the
-//           window scope
+//       ==> would run in the shared worker scope
+// META: global=window,serviceworker
+//       ==> would only run in the window and service worker scope
+// META: global=dedicatedworker
+//       ==> would run in the default dedicated worker scope
 // META: global=worker
-//       ==> would run in the default window scope, as well as in the
-//           dedicated, shared and service worker scopes
+//       ==> would run in the dedicated, shared, and service worker scopes
 ```
 
 For a test file <code><var>x</var>.any.js</code>, the available scope keywords
@@ -173,8 +170,7 @@ are:
 * `sharedworker`: to be run at <code><var>x</var>.any.sharedworker.html</code>
 * `jsshell`: to be run in a JavaScript shell, without access to the DOM
   (currently only supported in SpiderMonkey, and skipped in wptrunner)
-* `default`: shorthand for the default scopes
-* `worker`: shorthand for the dedicated, shared and service worker scopes
+* `worker`: shorthand for the dedicated, shared, and service worker scopes
 
 To check if your test is run from a window or worker you can use the following two methods that will
 be made available by the framework:

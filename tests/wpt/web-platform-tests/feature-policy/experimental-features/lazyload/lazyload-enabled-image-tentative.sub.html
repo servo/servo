@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
-<title>Verify behavior of 'lazyload' attribute state 'OFF' when the feature policy 'lazyload' is
+<title>Verify behavior of 'lazyload' attribute state 'eager' when the feature policy 'lazyload' is
        enabled.
 </title>
 <script src="/resources/testharness.js"></script>
@@ -26,7 +26,7 @@ img {
 <body>
   <p>Image inserted further below.</p>
   <div id="image-container">
-    <img id="off" loading="eager" src="http://{{hosts[alt][www1]}}:{{ports[http][0]}}/feature-policy/experimental-features/resources/lazyload.png"></img>
+    <img loading="eager" src="http://{{hosts[alt][www1]}}:{{ports[http][0]}}/feature-policy/experimental-features/resources/lazyload.png"></img>
   </div>
   <script>
     var img = document.querySelector("img");

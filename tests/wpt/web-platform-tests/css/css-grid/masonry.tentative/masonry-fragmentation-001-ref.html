@@ -1,0 +1,333 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <meta charset="utf-8">
+  <title>Reference: Masonry layout fragmentation</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+  <style>
+html,body {
+  color:black; background-color:white; font:10px/1 monospace; padding:0; margin:0;
+}
+wrapper {
+  display: block;
+  width: 600px;
+  height: 600px;
+  overflow: hidden;
+}
+.columns {
+  width: 330px;
+  columns: 6;
+  column-fill: auto;
+  column-gap: 1px;
+  background-color: rgba(80,80,80,.2);
+  margin-bottom: 10px;
+}
+.columns:nth-child(2n) {
+  background-color: rgba(10,100,10,.5);
+}
+.grid {
+  display: flow-root;
+  border: 1px solid;
+  gap: 2px;
+}
+.first { border-bottom-width:0; height:calc(100% - 1px); }
+.middle { border-top-width:0; border-bottom-width:0; height:100%; }
+.last { border-top-width:0; }
+x {
+  background: cyan;
+  height: 5px;
+}
+y {
+  background: blue;
+  height: 10px;
+}
+z {
+  background: pink;
+  height: 12px;
+}
+masonry-track {
+  float: left;
+  height: 100%;
+  gap: 2px;
+}
+x,y,z,masonry-track { display: block; }
+masonry-track > * { margin-bottom:2px; }
+masonry-track.last > :last-child { margin-bottom:0; }
+masonry-track:nth-child(1) { width: 10px; }
+masonry-track:nth-child(2) { width: 15px; margin-left:2px; }
+masonry-track:nth-child(3) { width: 20px; margin-left:2px; }
+</style></head>
+<body>
+<wrapper>
+<div class="columns">
+  <div class="grid first">
+    <masonry-track><x></x><y></y><y></y><y></y><x></x><x></x><x></x><x></x></masonry-track>
+    <masonry-track><x></x><z></z><x></x><x></x><x></x><z></z><z></z></masonry-track>
+    <masonry-track><x></x><x></x><x></x><z></z><x></x><y></y><x></x><x></x><y style="height:9px"></y></masonry-track>
+  </div>
+  <div class="grid last" style="height:1px">
+    <masonry-track></masonry-track>
+    <masonry-track></masonry-track>
+    <masonry-track><y style="height:1px"></y></masonry-track>
+  </div>
+</div>
+
+<div class="columns">
+  <div class="grid first">
+    <masonry-track><x></x><y></y><y></y><y></y><x></x><x></x><x></x></masonry-track>
+    <masonry-track><x></x><z></z><x></x><x></x><x></x><z></z></masonry-track>
+    <masonry-track><x></x><x></x><x></x><z></z><x></x><y></y><x></x><x></x></masonry-track>
+  </div>
+  <div class="grid last" style="height:12px">
+    <masonry-track><z></z></masonry-track>
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><y></y></masonry-track>
+  </div>
+</div>
+
+<div class="columns">
+  <div class="grid first">
+    <masonry-track><x></x><y></y><y></y><y></y><x></x><x></x></masonry-track>
+    <masonry-track><x></x><z></z><x></x><x></x><x></x><z></z></masonry-track>
+    <masonry-track><x></x><x></x><x></x><z></z><x></x><y></y></masonry-track>
+  </div>
+  <div class="grid last" style="height:24px">
+    <masonry-track><x></x><x></x><y></y></masonry-track>
+    <masonry-track><z></z></masonry-track>
+    <masonry-track><x></x><x></x></masonry-track>
+  </div>
+</div>
+
+<div class="columns">
+  <div class="grid first">
+    <masonry-track><x></x><y></y><y></y><y></y></masonry-track>
+    <masonry-track><x></x><z></z><x></x><x></x><x></x></masonry-track>
+    <masonry-track><x></x><x></x><x></x><z></z><x></x><y style="height:5px;"></y></masonry-track>
+  </div>
+  <div class="grid last" style="height:31px">
+    <masonry-track><z></z><z></z></masonry-track>
+    <masonry-track><x></x><x></x><x></x><x></x></masonry-track>
+    <masonry-track><y style="height:5px"></y><x></x><x></x><y></y></masonry-track>
+  </div>
+</div>
+
+<div class="columns">
+  <div class="grid first">
+    <masonry-track><x></x><y></y><y></y><y style="height:6px;"></y></masonry-track>
+    <masonry-track><x></x><z></z><x></x><x></x></masonry-track>
+    <masonry-track><x></x><x></x><x></x><z></z></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><y style="height:4px;"></y><z></z><z></z></masonry-track>
+    <masonry-track><x></x><y></y><x></x><x></x><y style="height:5px;"></y></masonry-track>
+    <masonry-track><x></x><x></x><x></x><x></x><x></x></masonry-track>
+  </div>
+  <div class="grid last" style="height:5px">
+    <masonry-track></masonry-track>
+    <masonry-track><y style="height:5px;"></y></masonry-track>
+    <masonry-track></masonry-track>
+  </div>
+</div>
+
+<div class="columns">
+  <div class="grid first">
+    <masonry-track><x></x><y></y><y style="height:8px;"></y></masonry-track>
+    <masonry-track><x></x><z></z><x></x></masonry-track>
+    <masonry-track><x></x><x></x><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><y style="height:2px;"></y><y></y><y></y></masonry-track>
+    <masonry-track><z></z><x></x><x></x></masonry-track>
+    <masonry-track><x></x><x></x><z></z></masonry-track>
+  </div>
+  <div class="grid last" style="height:24px">
+    <masonry-track><x></x><x></x><x></x></masonry-track>
+    <masonry-track><x></x><x></x><y></y></masonry-track>
+    <masonry-track><z></z></masonry-track>
+  </div>
+</div>
+
+<div class="columns">
+  <div class="grid first">
+    <masonry-track><x></x><y></y></masonry-track>
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><x></x><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><z></z></masonry-track>
+    <masonry-track><x></x><x></x><y style="height:4px;"></y></masonry-track>
+    <masonry-track><y></y></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><z></z></masonry-track>
+    <masonry-track><y style="height:6px;"></y><x></x></masonry-track>
+    <masonry-track><x></x><x></x><y style="height:4px;"></y></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><z></z></masonry-track>
+    <masonry-track><x></x><x></x></masonry-track>
+    <masonry-track><y style="height:6px;"></y><x></x></masonry-track>
+  </div>
+  <div class="grid last">
+    <masonry-track><z></z></masonry-track>
+    <masonry-track><x></x><x></x></masonry-track>
+    <masonry-track><x></x><y></y></masonry-track>
+  </div>
+</div>
+
+<div class="columns">
+  <div class="grid first">
+    <masonry-track><x></x><y style="height:4px;"></masonry-track>
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><y style="height:6px;"></y><y style="height:4px;"></y></masonry-track>
+    <masonry-track><z style="height:12px;"></z></masonry-track>
+    <masonry-track><x></x><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><y style="height:6px;"></y><y style="height:4px;"></y></masonry-track>
+    <masonry-track><x></x><x></x></masonry-track>
+    <masonry-track><z style="height:12px;"></z></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><y style="height:6px;"></y></masonry-track>
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><x></x><y style="height:5px;"></y></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><z style="height:12px;"></z></masonry-track>
+    <masonry-track><x></x><x></x></masonry-track>
+    <masonry-track><y style="height:5px;"></y><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><z style="height:12px;"></z></masonry-track>
+    <masonry-track><x></x><x></x></masonry-track>
+    <masonry-track><x></x><y style="height:5px;"></y></masonry-track>
+  </div>
+  <div class="grid last" style="height:5px;">
+    <masonry-track></masonry-track>
+    <masonry-track></masonry-track>
+    <masonry-track><y style="height:5px;"></y></masonry-track>
+  </div>
+</div>
+
+<div class="columns">
+  <div class="grid first">
+    <masonry-track><x></x><y style="height:3px;"></masonry-track>
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><y style="height:7px;"></y><y style="height:3px;"></y></masonry-track>
+    <masonry-track><z style="height:11px;"></z></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><y style="height:8px;"></y></masonry-track>
+    <masonry-track><z style="height:1px;"></z><x></x><y style="height:1px;"></y></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><z style="height:11px;"></z></masonry-track>
+    <masonry-track><y style="height:9px;"></y></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><z style="height:1px;"></z></masonry-track>
+    <masonry-track><x></x><y style="height:4px;"></y></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><z style="height:11px;"></z></masonry-track>
+    <masonry-track><y style="height:6px;"></y></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><z style="height:1px;"></z></masonry-track>
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><z style="height:11px;"></z></masonry-track>
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><x></x><y style="height:4px;"></y></masonry-track>
+  </div>
+  <div class="grid last" style="height:6px;">
+    <masonry-track><z style="height:1px;"></z></masonry-track>
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><y style="height:6px;"></y></masonry-track>
+  </div>
+</div>
+
+<div class="columns">
+  <div class="grid first">
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><y style="height:8px;"></y></masonry-track>
+    <masonry-track><z style="height:8px;"></z></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><y style="height:2px;"></y><y style="height:4px;"></y></masonry-track>
+    <masonry-track><z style="height:4px;"></z></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><y style="height:6px;"></y></masonry-track>
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><z style="height:8px;"></z></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><y style="height:8px;"></y></masonry-track>
+    <masonry-track><z style="height:4px;"></z></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><x></x><y style="height:1px;"></y></masonry-track>
+    <masonry-track><y style="height:2px;"></y></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><y style="height:8px;"></y></masonry-track>
+    <masonry-track><z style="height:8px;"></z></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><y style="height:1px;"></y><x></x></masonry-track>
+    <masonry-track><z style="height:4px;"></z></masonry-track>
+    <masonry-track><x></x></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><z style="height:8px;"></z></masonry-track>
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><x></x><y style="height:1px;"></y></masonry-track>
+  </div>
+  <div class="grid middle">
+    <masonry-track><z style="height:4px;"></z></masonry-track>
+    <masonry-track><x></x></masonry-track>
+    <masonry-track><y style="height:8px;"></y></masonry-track>
+  </div>
+  <div class="grid last" style="height:1px;">
+    <masonry-track></masonry-track>
+    <masonry-track></masonry-track>
+    <masonry-track><y style="height:1px;"></y></masonry-track>
+  </div>
+</div>
+<script>
+let elts = document.querySelectorAll(".columns");
+let heights = [ 78, 68, 58, 48, 38, 28, 18, 12, 11, 8 ];
+for (let i = 0; i < heights.length; ++i) {
+  elts[i].style.height = heights[i] + "px";
+}
+</script>
+</wrapper>
+</body>
+</html>

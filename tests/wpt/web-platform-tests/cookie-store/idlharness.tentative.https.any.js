@@ -1,4 +1,4 @@
-// META: global=!default,serviceworker,window
+// META: global=window,serviceworker
 // META: timeout=long
 // META: script=/resources/WebIDLParser.js
 // META: script=/resources/idlharness.js

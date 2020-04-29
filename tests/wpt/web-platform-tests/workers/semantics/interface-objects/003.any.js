@@ -1,4 +1,4 @@
-// META: global=!default,sharedworker
+// META: global=sharedworker
 
 var expected = [
   // https://html.spec.whatwg.org/

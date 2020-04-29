@@ -1,5 +1,5 @@
 // META: title=serviceWorker on service worker global
-// META: global=!default,serviceworker
+// META: global=serviceworker
 
 test(() => {
   assert_equals(registration.installing, null, 'registration.installing');

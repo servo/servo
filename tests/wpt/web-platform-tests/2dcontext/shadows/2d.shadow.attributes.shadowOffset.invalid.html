@@ -40,6 +40,27 @@ ctx.shadowOffsetY = NaN;
 _assertSame(ctx.shadowOffsetX, 1, "ctx.shadowOffsetX", "1");
 _assertSame(ctx.shadowOffsetY, 2, "ctx.shadowOffsetY", "2");
 
+ctx.shadowOffsetX = 1;
+ctx.shadowOffsetY = 2;
+ctx.shadowOffsetX = 'string';
+ctx.shadowOffsetY = 'string';
+_assertSame(ctx.shadowOffsetX, 1, "ctx.shadowOffsetX", "1");
+_assertSame(ctx.shadowOffsetY, 2, "ctx.shadowOffsetY", "2");
+
+ctx.shadowOffsetX = 1;
+ctx.shadowOffsetY = 2;
+ctx.shadowOffsetX = true;
+ctx.shadowOffsetY = true;
+_assertSame(ctx.shadowOffsetX, 1, "ctx.shadowOffsetX", "1");
+_assertSame(ctx.shadowOffsetY, 1, "ctx.shadowOffsetY", "1");
+
+ctx.shadowOffsetX = 1;
+ctx.shadowOffsetY = 2;
+ctx.shadowOffsetX = false;
+ctx.shadowOffsetY = false;
+_assertSame(ctx.shadowOffsetX, 0, "ctx.shadowOffsetX", "0");
+_assertSame(ctx.shadowOffsetY, 0, "ctx.shadowOffsetY", "0");
+
 
 });
 </script>

@@ -1,4 +1,4 @@
-// META: global=!default,worker
+// META: global=worker
 async_test(t => {
   var target = self;
   target.addEventListener('custom-event', t.step_func_done());

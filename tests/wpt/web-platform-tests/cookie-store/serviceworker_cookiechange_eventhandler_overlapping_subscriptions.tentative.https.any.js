@@ -1,5 +1,5 @@
 // META: title=Cookie Store API: cookiechange event in ServiceWorker with overlapping subscriptions
-// META: global=!default,serviceworker
+// META: global=serviceworker
 
 'use strict';
 
