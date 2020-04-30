@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
+use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
+    ImageBitmapOptions, ImageBitmapSource,
+};
 use crate::dom::bindings::codegen::Bindings::RequestBinding::RequestInit;
 use crate::dom::bindings::codegen::Bindings::VoidFunctionBinding::VoidFunction;
 use crate::dom::bindings::codegen::Bindings::WorkerBinding::WorkerType;
@@ -346,6 +349,18 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
     fn QueueMicrotask(&self, callback: Rc<VoidFunction>) {
         self.upcast::<GlobalScope>()
             .queue_function_as_microtask(callback);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-createimagebitmap
+    fn CreateImageBitmap(
+        &self,
+        image: ImageBitmapSource,
+        options: &ImageBitmapOptions,
+    ) -> Rc<Promise> {
+        let p = self
+            .upcast::<GlobalScope>()
+            .create_image_bitmap(image, options);
+        p
     }
 
     #[allow(unrooted_must_root)]
