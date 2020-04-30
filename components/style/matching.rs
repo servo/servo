@@ -7,8 +7,6 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
-#[cfg(feature = "servo")]
-use crate::animation;
 use crate::computed_value_flags::ComputedValueFlags;
 use crate::context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
 use crate::context::{SharedStyleContext, StyleContext};
@@ -455,28 +453,13 @@ trait PrivateMatchMethods: TElement {
             );
         }
 
-        // Trigger any present animations if necessary.
-        animation::maybe_start_animations(
-            *self,
+        animation_state.update_animations_for_new_style(*self, &shared_context, &new_values);
+        animation_state.update_transitions_for_new_style(
             &shared_context,
             this_opaque,
-            &new_values,
-            &mut animation_state,
+            old_values.as_ref(),
+            new_values,
         );
-
-        // Trigger transitions if necessary. This will set `new_values` to
-        // the starting value of the transition if it did trigger a transition.
-        if let Some(ref old_values) = old_values {
-            let transitioning_properties = animation::start_transitions_if_applicable(
-                shared_context,
-                this_opaque,
-                old_values,
-                new_values,
-                &mut animation_state,
-            );
-            animation_state
-                .cancel_transitions_with_nontransitioning_properties(&transitioning_properties);
-        }
 
         animation_state.apply_running_animations::<Self>(
             shared_context,

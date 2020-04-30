@@ -9,7 +9,7 @@
 
 use crate::bezier::Bezier;
 use crate::context::SharedStyleContext;
-use crate::dom::{OpaqueNode, TElement};
+use crate::dom::{OpaqueNode, TElement, TNode};
 use crate::font_metrics::FontMetricsProvider;
 use crate::properties::animated_properties::AnimatedProperty;
 use crate::properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
@@ -71,8 +71,6 @@ pub struct KeyframesAnimationState {
     pub direction: AnimationDirection,
     /// The current animation direction. This can only be `normal` or `reverse`.
     pub current_direction: AnimationDirection,
-    /// Werther this keyframe animation is outdated due to a restyle.
-    pub expired: bool,
     /// The original cascade style, needed to compute the generated keyframes of
     /// the animation.
     pub cascade_style: Arc<ComputedValues>,
@@ -86,8 +84,6 @@ impl KeyframesAnimationState {
     /// Returns true if the animation should keep running.
     pub fn tick(&mut self) -> bool {
         debug!("KeyframesAnimationState::tick");
-        debug_assert!(!self.expired);
-
         self.started_at += self.duration + self.delay;
         match self.running_state {
             // If it's paused, don't update direction or iteration count.
@@ -188,7 +184,6 @@ impl fmt::Debug for KeyframesAnimationState {
             .field("running_state", &self.running_state)
             .field("direction", &self.direction)
             .field("current_direction", &self.current_direction)
-            .field("expired", &self.expired)
             .field("cascade_style", &())
             .finish()
     }
@@ -215,15 +210,6 @@ pub enum Animation {
 }
 
 impl Animation {
-    /// Whether this animation is expired.
-    #[inline]
-    pub fn is_expired(&self) -> bool {
-        match *self {
-            Animation::Transition(..) => false,
-            Animation::Keyframes(_, _, _, ref state) => state.expired,
-        }
-    }
-
     /// The opaque node that owns the animation.
     #[inline]
     pub fn node(&self) -> &OpaqueNode {
@@ -244,13 +230,32 @@ impl Animation {
 
     /// Whether this animation has the same end value as another one.
     #[inline]
-    pub fn is_transition_with_same_end_value(&self, other_animation: &PropertyAnimation) -> bool {
+    fn is_transition_with_same_end_value(&self, other_animation: &PropertyAnimation) -> bool {
         match *self {
             Animation::Transition(_, _, ref animation) => {
                 animation.has_the_same_end_value_as(other_animation)
             },
             Animation::Keyframes(..) => false,
         }
+    }
+
+    /// Whether or not this animation is cancelled by changes from a new style.
+    fn is_animation_cancelled_in_new_style(&self, new_style: &Arc<ComputedValues>) -> bool {
+        let name = match *self {
+            Animation::Transition(..) => return false,
+            Animation::Keyframes(_, _, ref name, _) => name,
+        };
+
+        let index = new_style
+            .get_box()
+            .animation_name_iter()
+            .position(|animation_name| Some(name) == animation_name.as_atom());
+        let index = match index {
+            Some(index) => index,
+            None => return true,
+        };
+
+        new_style.get_box().animation_duration_mod(index).seconds() == 0.
     }
 }
 
@@ -401,9 +406,14 @@ impl ElementAnimationState {
             return;
         }
 
-        let previously_running_transitions =
-            std::mem::replace(&mut self.running_animations, Vec::new());
-        for running_animation in previously_running_transitions {
+        // TODO(mrobinson): We should make this more efficient perhaps by using
+        // a linked-list or by using something like `partition`.
+        let animation_count = self.running_animations.len();
+        let mut previously_running_animations = std::mem::replace(
+            &mut self.running_animations,
+            Vec::with_capacity(animation_count),
+        );
+        for running_animation in previously_running_animations.drain(..) {
             if let Animation::Transition(_, _, ref property_animation) = running_animation {
                 if !properties_that_transition.contains(property_animation.property_id()) {
                     self.cancelled_animations.push(running_animation);
@@ -468,17 +478,7 @@ impl ElementAnimationState {
 
         let style = Arc::make_mut(style);
         for animation in self.running_animations.iter_mut() {
-            let update = update_style_for_animation::<E>(context, animation, style, font_metrics);
-
-            match *animation {
-                Animation::Transition(..) => {},
-                Animation::Keyframes(_, _, _, ref mut state) => match update {
-                    AnimationUpdate::Regular => {},
-                    AnimationUpdate::AnimationCanceled => {
-                        state.expired = true;
-                    },
-                },
-            }
+            update_style_for_animation::<E>(context, animation, style, font_metrics);
         }
     }
 
@@ -531,6 +531,63 @@ impl ElementAnimationState {
         // Otherwise just add the new running animation.
         self.add_new_animation(new_animation);
     }
+
+    /// Update our animations given a new style, canceling or starting new animations
+    /// when appropriate.
+    pub fn update_animations_for_new_style<E>(
+        &mut self,
+        element: E,
+        context: &SharedStyleContext,
+        new_style: &Arc<ComputedValues>,
+    ) where
+        E: TElement,
+    {
+        // Cancel any animations that no longer exist in the style.
+        // TODO(mrobinson): We should make this more efficient perhaps by using
+        // a linked-list or by using something like `partition`.
+        if !self.running_animations.is_empty() {
+            let animation_count = self.running_animations.len();
+            let mut previously_running_animations = std::mem::replace(
+                &mut self.running_animations,
+                Vec::with_capacity(animation_count),
+            );
+            for animation in previously_running_animations.drain(..) {
+                if animation.is_animation_cancelled_in_new_style(new_style) {
+                    self.cancelled_animations.push(animation);
+                } else {
+                    self.running_animations.push(animation);
+                }
+            }
+        }
+
+        maybe_start_animations(element, &context, &new_style, self);
+    }
+
+    /// Update our transitions given a new style, canceling or starting new animations
+    /// when appropriate.
+    pub fn update_transitions_for_new_style(
+        &mut self,
+        context: &SharedStyleContext,
+        opaque_node: OpaqueNode,
+        before_change_style: Option<&Arc<ComputedValues>>,
+        new_style: &Arc<ComputedValues>,
+    ) {
+        // If this is the first style, we don't trigger any transitions and we assume
+        // there were no previously triggered transitions.
+        let before_change_style = match before_change_style {
+            Some(before_change_style) => before_change_style,
+            None => return,
+        };
+
+        let transitioning_properties = start_transitions_if_applicable(
+            context,
+            opaque_node,
+            before_change_style,
+            new_style,
+            self,
+        );
+        self.cancel_transitions_with_nontransitioning_properties(&transitioning_properties);
+    }
 }
 
 /// Kick off any new transitions for this node and return all of the properties that are
@@ -539,7 +596,7 @@ pub fn start_transitions_if_applicable(
     context: &SharedStyleContext,
     opaque_node: OpaqueNode,
     old_style: &ComputedValues,
-    new_style: &mut Arc<ComputedValues>,
+    new_style: &Arc<ComputedValues>,
     animation_state: &mut ElementAnimationState,
 ) -> LonghandIdSet {
     // If the style of this element is display:none, then we don't start any transitions
@@ -653,7 +710,6 @@ where
 pub fn maybe_start_animations<E>(
     element: E,
     context: &SharedStyleContext,
-    node: OpaqueNode,
     new_style: &Arc<ComputedValues>,
     animation_state: &mut ElementAnimationState,
 ) where
@@ -667,8 +723,8 @@ pub fn maybe_start_animations<E>(
         };
 
         debug!("maybe_start_animations: name={}", name);
-        let total_duration = box_style.animation_duration_mod(i).seconds();
-        if total_duration == 0. {
+        let duration = box_style.animation_duration_mod(i).seconds();
+        if duration == 0. {
             continue;
         }
 
@@ -690,7 +746,6 @@ pub fn maybe_start_animations<E>(
         let delay = box_style.animation_delay_mod(i).seconds();
         let now = context.timer.seconds();
         let animation_start = now + delay as f64;
-        let duration = box_style.animation_duration_mod(i).seconds();
         let iteration_state = match box_style.animation_iteration_count_mod(i) {
             AnimationIterationCount::Infinite => KeyframesIterationState::Infinite,
             AnimationIterationCount::Number(n) => KeyframesIterationState::Finite(0.0, n),
@@ -715,7 +770,7 @@ pub fn maybe_start_animations<E>(
         animation_state.add_or_update_new_animation(
             &context.timer,
             Animation::Keyframes(
-                node,
+                element.as_node().opaque(),
                 anim.clone(),
                 name.clone(),
                 KeyframesAnimationState {
@@ -726,7 +781,6 @@ pub fn maybe_start_animations<E>(
                     running_state,
                     direction: animation_direction,
                     current_direction: initial_direction,
-                    expired: false,
                     cascade_style: new_style.clone(),
                 },
             ),
@@ -734,36 +788,16 @@ pub fn maybe_start_animations<E>(
     }
 }
 
-/// Returns the kind of animation update that happened.
-pub enum AnimationUpdate {
-    /// The style was successfully updated, the animation is still running.
-    Regular,
-    /// A style change canceled this animation.
-    AnimationCanceled,
-}
-
 /// Updates a single animation and associated style based on the current time.
-///
-/// FIXME(emilio): This doesn't handle any kind of dynamic change to the
-/// animation or transition properties in any reasonable way.
-///
-/// This should probably be split in two, one from updating animations and
-/// transitions in response to a style change (that is,
-/// consider_starting_transitions + maybe_start_animations, but handling
-/// canceled animations, duration changes, etc, there instead of here), and this
-/// function should be only about the style update in response of a transition.
 pub fn update_style_for_animation<E>(
     context: &SharedStyleContext,
     animation: &Animation,
     style: &mut ComputedValues,
     font_metrics_provider: &dyn FontMetricsProvider,
-) -> AnimationUpdate
-where
+) where
     E: TElement,
 {
     debug!("update_style_for_animation: {:?}", animation);
-    debug_assert!(!animation.is_expired());
-
     match *animation {
         Animation::Transition(_, start_time, ref property_animation) => {
             let now = context.timer.seconds();
@@ -772,7 +806,6 @@ where
             if progress >= 0.0 {
                 property_animation.update(style, progress);
             }
-            AnimationUpdate::Regular
         },
         Animation::Keyframes(_, ref animation, ref name, ref state) => {
             let duration = state.duration;
@@ -784,26 +817,10 @@ where
             };
 
             debug_assert!(!animation.steps.is_empty());
-
-            let maybe_index = style
-                .get_box()
-                .animation_name_iter()
-                .position(|animation_name| Some(name) == animation_name.as_atom());
-
-            let index = match maybe_index {
-                Some(index) => index,
-                None => return AnimationUpdate::AnimationCanceled,
-            };
-
-            let total_duration = style.get_box().animation_duration_mod(index).seconds() as f64;
-            if total_duration == 0. {
-                return AnimationUpdate::AnimationCanceled;
-            }
-
-            let mut total_progress = (now - started_at) / total_duration;
+            let mut total_progress = (now - started_at) / duration;
             if total_progress < 0. {
                 warn!("Negative progress found for animation {:?}", name);
-                return AnimationUpdate::Regular;
+                return;
             }
             if total_progress > 1. {
                 total_progress = 1.;
@@ -851,7 +868,7 @@ where
 
             let target_keyframe = match target_keyframe_position {
                 Some(target) => &animation.steps[target],
-                None => return AnimationUpdate::Regular,
+                None => return,
             };
 
             let last_keyframe = &animation.steps[last_keyframe_position];
@@ -861,11 +878,10 @@ where
             let relative_duration = relative_timespan as f64 * duration;
             let last_keyframe_ended_at = match state.current_direction {
                 AnimationDirection::Normal => {
-                    state.started_at + (total_duration * last_keyframe.start_percentage.0 as f64)
+                    state.started_at + (duration * last_keyframe.start_percentage.0 as f64)
                 },
                 AnimationDirection::Reverse => {
-                    state.started_at +
-                        (total_duration * (1. - last_keyframe.start_percentage.0 as f64))
+                    state.started_at + (duration * (1. - last_keyframe.start_percentage.0 as f64))
                 },
                 _ => unreachable!(),
             };
@@ -882,12 +898,23 @@ where
 
             // NB: The spec says that the timing function can be overwritten
             // from the keyframe style.
-            let mut timing_function = style.get_box().animation_timing_function_mod(index);
-            if last_keyframe.declared_timing_function {
+            let timing_function = if last_keyframe.declared_timing_function {
                 // NB: animation_timing_function can never be empty, always has
                 // at least the default value (`ease`).
-                timing_function = from_style.get_box().animation_timing_function_at(0);
-            }
+                from_style.get_box().animation_timing_function_at(0)
+            } else {
+                // TODO(mrobinson): It isn't optimal to have to walk this list every
+                // time. Perhaps this should be stored in the animation.
+                let index = match style
+                    .get_box()
+                    .animation_name_iter()
+                    .position(|animation_name| Some(name) == animation_name.as_atom())
+                {
+                    Some(index) => index,
+                    None => return warn!("Tried to update a style with a cancelled animation."),
+                };
+                style.get_box().animation_timing_function_mod(index)
+            };
 
             let target_style = compute_style_for_animation_step::<E>(
                 context,
@@ -935,7 +962,6 @@ where
                 name
             );
             *style = new_style;
-            AnimationUpdate::Regular
         },
     }
 }
