@@ -128,17 +128,16 @@ pub fn handle_running_animations(
     let mut running_animations =
         std::mem::replace(&mut animation_state.running_animations, Vec::new());
     for mut running_animation in running_animations.drain(..) {
-        let still_running = !running_animation.is_expired() &&
-            match running_animation {
-                Animation::Transition(_, started_at, ref property_animation) => {
-                    now < started_at + (property_animation.duration)
-                },
-                Animation::Keyframes(_, _, _, ref mut state) => {
-                    // This animation is still running, or we need to keep
-                    // iterating.
-                    now < state.started_at + state.duration || state.tick()
-                },
-            };
+        let still_running = match running_animation {
+            Animation::Transition(_, started_at, ref property_animation) => {
+                now < started_at + (property_animation.duration)
+            },
+            Animation::Keyframes(_, _, _, ref mut state) => {
+                // This animation is still running, or we need to keep
+                // iterating.
+                now < state.started_at + state.duration || state.tick()
+            },
+        };
 
         // If the animation is still running, add it back to the list of running animations.
         if still_running {
@@ -165,9 +164,8 @@ pub fn handle_cancelled_animations(
             Animation::Transition(_, _, ref property_animation) => {
                 send_transition_event(property_animation, TransitionEventType::TransitionCancel)
             },
-            Animation::Keyframes(..) => {
-                warn!("Got unexpected animation in finished transitions list.")
-            },
+            // TODO(mrobinson): We should send animationcancel events.
+            Animation::Keyframes(..) => {},
         }
     }
 }
