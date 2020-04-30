@@ -888,9 +888,12 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                 return rval.get();
             },
             constants::MAX_CLIENT_WAIT_TIMEOUT_WEBGL => {
-                return Int32Value(
-                    self.base.limits().max_client_wait_timeout_webgl.as_nanos() as i32
+                return DoubleValue(
+                    self.base.limits().max_client_wait_timeout_webgl.as_nanos() as f64
                 );
+            },
+            constants::MAX_SERVER_WAIT_TIMEOUT => {
+                return DoubleValue(self.base.limits().max_server_wait_timeout.as_nanos() as f64);
             },
             constants::SAMPLER_BINDING => unsafe {
                 let idx = (self.base.textures().active_unit_enum() - constants::TEXTURE0) as usize;
@@ -973,28 +976,42 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
                 };
                 return UInt32Value(buffer);
             },
+            constants::MAX_TEXTURE_LOD_BIAS => {
+                return DoubleValue(self.base.limits().max_texture_lod_bias as f64)
+            },
+            constants::MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS => {
+                return DoubleValue(
+                    self.base.limits().max_combined_fragment_uniform_components as f64,
+                )
+            },
+            constants::MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS => {
+                return DoubleValue(
+                    self.base.limits().max_combined_vertex_uniform_components as f64,
+                )
+            },
+            constants::MAX_ELEMENT_INDEX => {
+                return DoubleValue(self.base.limits().max_element_index as f64)
+            },
+            constants::MAX_UNIFORM_BLOCK_SIZE => {
+                return DoubleValue(self.base.limits().max_uniform_block_size as f64)
+            },
             _ => {},
         }
 
         let limit = match parameter {
-            constants::MAX_UNIFORM_BUFFER_BINDINGS => {
-                Some(self.base.limits().max_uniform_buffer_bindings)
+            constants::MAX_3D_TEXTURE_SIZE => Some(self.base.limits().max_3d_texture_size),
+            constants::MAX_ARRAY_TEXTURE_LAYERS => {
+                Some(self.base.limits().max_array_texture_layers)
             },
-            constants::MAX_UNIFORM_BLOCK_SIZE => Some(self.base.limits().max_uniform_block_size),
+            constants::MAX_COLOR_ATTACHMENTS => Some(self.base.limits().max_color_attachments),
             constants::MAX_COMBINED_UNIFORM_BLOCKS => {
                 Some(self.base.limits().max_combined_uniform_blocks)
             },
-            constants::MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS => {
-                Some(self.base.limits().max_combined_vertex_uniform_components)
-            },
-            constants::MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS => {
-                Some(self.base.limits().max_combined_fragment_uniform_components)
-            },
-            constants::MAX_VERTEX_UNIFORM_BLOCKS => {
-                Some(self.base.limits().max_vertex_uniform_blocks)
-            },
-            constants::MAX_VERTEX_UNIFORM_COMPONENTS => {
-                Some(self.base.limits().max_vertex_uniform_components)
+            constants::MAX_DRAW_BUFFERS => Some(self.base.limits().max_draw_buffers),
+            constants::MAX_ELEMENTS_INDICES => Some(self.base.limits().max_elements_indices),
+            constants::MAX_ELEMENTS_VERTICES => Some(self.base.limits().max_elements_vertices),
+            constants::MAX_FRAGMENT_INPUT_COMPONENTS => {
+                Some(self.base.limits().max_fragment_input_components)
             },
             constants::MAX_FRAGMENT_UNIFORM_BLOCKS => {
                 Some(self.base.limits().max_fragment_uniform_blocks)
@@ -1002,11 +1019,26 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             constants::MAX_FRAGMENT_UNIFORM_COMPONENTS => {
                 Some(self.base.limits().max_fragment_uniform_components)
             },
+            constants::MAX_PROGRAM_TEXEL_OFFSET => {
+                Some(self.base.limits().max_program_texel_offset)
+            },
+            constants::MAX_SAMPLES => Some(self.base.limits().max_samples),
+            constants::MAX_UNIFORM_BUFFER_BINDINGS => {
+                Some(self.base.limits().max_uniform_buffer_bindings)
+            },
+            constants::MAX_VARYING_COMPONENTS => Some(self.base.limits().max_varying_components),
+            constants::MAX_VERTEX_OUTPUT_COMPONENTS => {
+                Some(self.base.limits().max_vertex_output_components)
+            },
+            constants::MAX_VERTEX_UNIFORM_BLOCKS => {
+                Some(self.base.limits().max_vertex_uniform_blocks)
+            },
+            constants::MAX_VERTEX_UNIFORM_COMPONENTS => {
+                Some(self.base.limits().max_vertex_uniform_components)
+            },
             constants::UNIFORM_BUFFER_OFFSET_ALIGNMENT => {
                 Some(self.base.limits().uniform_buffer_offset_alignment)
             },
-            constants::MAX_COLOR_ATTACHMENTS => Some(self.base.limits().max_color_attachments),
-            constants::MAX_DRAW_BUFFERS => Some(self.base.limits().max_draw_buffers),
             _ => None,
         };
         if let Some(limit) = limit {

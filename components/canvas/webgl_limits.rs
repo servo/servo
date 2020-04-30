@@ -82,9 +82,18 @@ impl GLLimitsDetect for GLLimits {
             max_3d_texture_size,
             max_array_texture_layers,
             uniform_buffer_offset_alignment,
+            max_element_index,
+            max_elements_indices,
+            max_elements_vertices,
+            max_fragment_input_components,
+            max_samples,
+            max_server_wait_timeout,
+            max_texture_lod_bias,
+            max_varying_components,
+            max_vertex_output_components,
         );
         if webgl_version == WebGLVersion::WebGL2 {
-            max_uniform_block_size = gl.get_integer(gl::MAX_UNIFORM_BLOCK_SIZE);
+            max_uniform_block_size = gl.get_integer64(gl::MAX_UNIFORM_BLOCK_SIZE);
             max_uniform_buffer_bindings = gl.get_integer(gl::MAX_UNIFORM_BUFFER_BINDINGS);
             min_program_texel_offset = gl.get_integer(gl::MIN_PROGRAM_TEXEL_OFFSET);
             max_program_texel_offset = gl.get_integer(gl::MAX_PROGRAM_TEXEL_OFFSET);
@@ -96,16 +105,31 @@ impl GLLimitsDetect for GLLimits {
                 .min(max_color_attachments);
             max_combined_uniform_blocks = gl.get_integer(gl::MAX_COMBINED_UNIFORM_BLOCKS);
             max_combined_vertex_uniform_components =
-                gl.get_integer(gl::MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS);
+                gl.get_integer64(gl::MAX_COMBINED_VERTEX_UNIFORM_COMPONENTS);
             max_combined_fragment_uniform_components =
-                gl.get_integer(gl::MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS);
+                gl.get_integer64(gl::MAX_COMBINED_FRAGMENT_UNIFORM_COMPONENTS);
             max_vertex_uniform_blocks = gl.get_integer(gl::MAX_VERTEX_UNIFORM_BLOCKS);
             max_vertex_uniform_components = gl.get_integer(gl::MAX_VERTEX_UNIFORM_COMPONENTS);
             max_fragment_uniform_blocks = gl.get_integer(gl::MAX_FRAGMENT_UNIFORM_BLOCKS);
             max_fragment_uniform_components = gl.get_integer(gl::MAX_FRAGMENT_UNIFORM_COMPONENTS);
             uniform_buffer_offset_alignment = gl.get_integer(gl::UNIFORM_BUFFER_OFFSET_ALIGNMENT);
             max_3d_texture_size = gl.get_integer(gl::MAX_3D_TEXTURE_SIZE);
-            max_array_texture_layers = gl.get_integer(gl::MAX_ARRAY_TEXTURE_LAYERS)
+            max_array_texture_layers = gl.get_integer(gl::MAX_ARRAY_TEXTURE_LAYERS);
+            max_element_index = gl
+                .try_get_integer64(gl::MAX_ELEMENT_INDEX)
+                .unwrap_or(u32::MAX as u64); // requires GL 4.3
+            max_elements_indices = gl.get_integer(gl::MAX_ELEMENTS_INDICES);
+            max_elements_vertices = gl.get_integer(gl::MAX_ELEMENTS_VERTICES);
+            max_fragment_input_components = gl.get_integer(gl::MAX_FRAGMENT_INPUT_COMPONENTS);
+            max_samples = gl.get_integer(gl::MAX_SAMPLES);
+            max_server_wait_timeout =
+                std::time::Duration::from_nanos(gl.get_integer64(gl::MAX_SERVER_WAIT_TIMEOUT));
+            max_texture_lod_bias = gl.get_float(gl::MAX_TEXTURE_LOD_BIAS);
+            max_varying_components = gl.try_get_integer(gl::MAX_VARYING_COMPONENTS).unwrap_or(
+                // macOS Core Profile is buggy. The spec says this value is 4 * MAX_VARYING_VECTORS.
+                max_varying_vectors * 4,
+            );
+            max_vertex_output_components = gl.get_integer(gl::MAX_VERTEX_OUTPUT_COMPONENTS);
         } else {
             max_uniform_block_size = 0;
             max_uniform_buffer_bindings = 0;
@@ -124,6 +148,15 @@ impl GLLimitsDetect for GLLimits {
             uniform_buffer_offset_alignment = 0;
             max_3d_texture_size = 0;
             max_array_texture_layers = 0;
+            max_element_index = 0;
+            max_elements_indices = 0;
+            max_elements_vertices = 0;
+            max_fragment_input_components = 0;
+            max_samples = 0;
+            max_server_wait_timeout = std::time::Duration::default();
+            max_texture_lod_bias = 0.0;
+            max_varying_components = 0;
+            max_vertex_output_components = 0;
         }
 
         GLLimits {
@@ -157,30 +190,51 @@ impl GLLimitsDetect for GLLimits {
             max_3d_texture_size,
             max_array_texture_layers,
             uniform_buffer_offset_alignment,
+            max_element_index,
+            max_elements_indices,
+            max_elements_vertices,
+            max_fragment_input_components,
+            max_samples,
+            max_server_wait_timeout,
+            max_texture_lod_bias,
+            max_varying_components,
+            max_vertex_output_components,
         }
     }
 }
 
 trait GLExt {
     fn try_get_integer(self, parameter: GLenum) -> Option<u32>;
+    fn try_get_integer64(self, parameter: GLenum) -> Option<u64>;
+    fn try_get_float(self, parameter: GLenum) -> Option<f32>;
     fn get_integer(self, parameter: GLenum) -> u32;
+    fn get_integer64(self, parameter: GLenum) -> u64;
+    fn get_float(self, parameter: GLenum) -> f32;
+}
+
+macro_rules! create_fun {
+    ($tryer:ident, $getter:ident, $gltype:ty, $glcall:ident, $rstype:ty) => {
+        #[allow(unsafe_code)]
+        fn $tryer(self, parameter: GLenum) -> Option<$rstype> {
+            let mut value = [<$gltype>::default()];
+            unsafe {
+                self.$glcall(parameter, &mut value);
+            }
+            if self.get_error() != gl::NO_ERROR {
+                None
+            } else {
+                Some(value[0] as $rstype)
+            }
+        }
+
+        fn $getter(self, parameter: GLenum) -> $rstype {
+            self.$tryer(parameter).unwrap()
+        }
+    };
 }
 
 impl<'a> GLExt for &'a Gl {
-    #[allow(unsafe_code)]
-    fn try_get_integer(self, parameter: GLenum) -> Option<u32> {
-        let mut value = [0];
-        unsafe {
-            self.get_integer_v(parameter, &mut value);
-        }
-        if self.get_error() != gl::NO_ERROR {
-            None
-        } else {
-            Some(value[0] as u32)
-        }
-    }
-
-    fn get_integer(self, parameter: GLenum) -> u32 {
-        self.try_get_integer(parameter).unwrap()
-    }
+    create_fun!(try_get_integer, get_integer, i32, get_integer_v, u32);
+    create_fun!(try_get_integer64, get_integer64, i64, get_integer64_v, u64);
+    create_fun!(try_get_float, get_float, f32, get_float_v, f32);
 }
