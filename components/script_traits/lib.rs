@@ -10,6 +10,8 @@
 #![deny(unsafe_code)]
 
 #[macro_use]
+extern crate bitflags;
+#[macro_use]
 extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
@@ -122,8 +124,6 @@ pub enum LayoutControlMsg {
     ExitNow,
     /// Requests the current epoch (layout counter) from this layout.
     GetCurrentEpoch(IpcSender<Epoch>),
-    /// Asks layout to run another step in its animation.
-    TickAnimations(ImmutableOrigin),
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
     SetScrollStates(Vec<ScrollState>),
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
@@ -403,7 +403,7 @@ pub enum ConstellationControlMsg {
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
-    TickAllAnimations(PipelineId),
+    TickAllAnimations(PipelineId, AnimationTickType),
     /// Notifies the script thread that a transition or animation related event should be sent.
     TransitionOrAnimationEvent {
         /// The pipeline id of the layout task that sent this message.
@@ -812,13 +812,15 @@ pub struct IFrameLoadInfoWithData {
     pub window_size: WindowSizeData,
 }
 
-/// Specifies whether the script or layout thread needs to be ticked for animation.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum AnimationTickType {
-    /// The script thread.
-    Script,
-    /// The layout thread.
-    Layout,
+bitflags! {
+    #[derive(Deserialize, Serialize)]
+    /// Specifies if rAF should be triggered and/or CSS Animations and Transitions.
+    pub struct AnimationTickType: u8 {
+        /// Trigger a call to requestAnimationFrame.
+        const REQUEST_ANIMATION_FRAME = 0b001;
+        /// Trigger restyles for CSS Animations and Transitions.
+        const CSS_ANIMATIONS_AND_TRANSITIONS = 0b010;
+    }
 }
 
 /// The scroll state of a stacking context.

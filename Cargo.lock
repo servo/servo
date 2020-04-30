@@ -4680,6 +4680,7 @@ dependencies = [
 name = "script_traits"
 version = "0.0.1"
 dependencies = [
+ "bitflags",
  "bluetooth_traits",
  "canvas_traits",
  "cookie",

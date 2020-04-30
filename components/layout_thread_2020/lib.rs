@@ -580,7 +580,6 @@ impl LayoutThread {
     fn build_layout_context<'a>(
         &'a self,
         guards: StylesheetGuards<'a>,
-        script_initiated_layout: bool,
         snapshot_map: &'a SnapshotMap,
         origin: ImmutableOrigin,
     ) -> LayoutContext<'a> {
@@ -601,11 +600,7 @@ impl LayoutThread {
             image_cache: self.image_cache.clone(),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
-            pending_images: if script_initiated_layout {
-                Some(Mutex::new(Vec::new()))
-            } else {
-                None
-            },
+            pending_images: Mutex::new(vec![]),
             use_rayon: STYLE_THREAD_POOL.pool().is_some(),
         }
     }
@@ -617,8 +612,6 @@ impl LayoutThread {
             Msg::SetQuirksMode(..) => LayoutHangAnnotation::SetQuirksMode,
             Msg::Reflow(..) => LayoutHangAnnotation::Reflow,
             Msg::GetRPC(..) => LayoutHangAnnotation::GetRPC,
-            Msg::TickAnimations(..) => LayoutHangAnnotation::TickAnimations,
-            Msg::AdvanceClockMs(..) => LayoutHangAnnotation::AdvanceClockMs,
             Msg::CollectReports(..) => LayoutHangAnnotation::CollectReports,
             Msg::PrepareToExit(..) => LayoutHangAnnotation::PrepareToExit,
             Msg::ExitNow => LayoutHangAnnotation::ExitNow,
@@ -665,9 +658,6 @@ impl LayoutThread {
                     Msg::SetScrollStates(new_scroll_states),
                     possibly_locked_rw_data,
                 ),
-            Request::FromPipeline(LayoutControlMsg::TickAnimations(origin)) => {
-                self.handle_request_helper(Msg::TickAnimations(origin), possibly_locked_rw_data)
-            },
             Request::FromPipeline(LayoutControlMsg::GetCurrentEpoch(sender)) => {
                 self.handle_request_helper(Msg::GetCurrentEpoch(sender), possibly_locked_rw_data)
             },
@@ -739,7 +729,6 @@ impl LayoutThread {
                     || self.handle_reflow(&mut data, possibly_locked_rw_data),
                 );
             },
-            Msg::TickAnimations(origin) => self.tick_all_animations(origin),
             Msg::SetScrollStates(new_scroll_states) => {
                 self.set_scroll_states(new_scroll_states, possibly_locked_rw_data);
             },
@@ -763,9 +752,6 @@ impl LayoutThread {
             Msg::GetCurrentEpoch(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
                 sender.send(self.epoch.get()).unwrap();
-            },
-            Msg::AdvanceClockMs(how_many, do_tick, origin) => {
-                self.handle_advance_clock_ms(how_many, do_tick, origin);
             },
             Msg::GetWebFontLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
@@ -900,19 +886,6 @@ impl LayoutThread {
         }
     }
 
-    /// Advances the animation clock of the document.
-    fn handle_advance_clock_ms<'a, 'b>(
-        &mut self,
-        how_many_ms: i32,
-        tick_animations: bool,
-        origin: ImmutableOrigin,
-    ) {
-        self.timer.increment(how_many_ms as f64 / 1000.0);
-        if tick_animations {
-            self.tick_all_animations(origin);
-        }
-    }
-
     /// Sets quirks mode for the document, causing the quirks mode stylesheet to be used.
     fn handle_set_quirks_mode<'a, 'b>(&mut self, quirks_mode: QuirksMode) {
         self.stylist.set_quirks_mode(quirks_mode);
@@ -1003,6 +976,12 @@ impl LayoutThread {
         let had_used_viewport_units = self.stylist.device().used_viewport_units();
         let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, &guards);
+
+        if pref!(layout.animations.test.enabled) {
+            if let Some(delta) = data.advance_clock_delta {
+                self.timer.increment(delta as f64 / 1000.0);
+            }
+        }
 
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
@@ -1103,7 +1082,7 @@ impl LayoutThread {
         self.stylist.flush(&guards, Some(element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context = self.build_layout_context(guards.clone(), true, &map, origin);
+        let mut layout_context = self.build_layout_context(guards.clone(), &map, origin);
 
         let traversal = RecalcStyle::new(layout_context);
         let token = {
@@ -1195,11 +1174,9 @@ impl LayoutThread {
         context: &mut LayoutContext,
         reflow_result: &mut ReflowComplete,
     ) {
-        let pending_images = match &context.pending_images {
-            Some(pending) => std::mem::take(&mut *pending.lock().unwrap()),
-            None => Vec::new(),
-        };
-        reflow_result.pending_images = pending_images;
+        reflow_result.pending_images =
+            std::mem::replace(&mut *context.pending_images.lock().unwrap(), vec![]);
+
         match *reflow_goal {
             ReflowGoal::LayoutQuery(ref querymsg, _) => match querymsg {
                 &QueryMsg::ContentBoxQuery(node) => {
@@ -1302,41 +1279,6 @@ impl LayoutThread {
                 script_scroll_states,
             ));
         rw_data.scroll_offsets = layout_scroll_states
-    }
-
-    fn tick_all_animations<'a, 'b>(&mut self, origin: ImmutableOrigin) {
-        self.tick_animations(origin);
-    }
-
-    fn tick_animations(&mut self, origin: ImmutableOrigin) {
-        if self.relayout_event {
-            println!(
-                "**** pipeline={}\tForDisplay\tSpecial\tAnimationTick",
-                self.id
-            );
-        }
-
-        if let Some(root) = &*self.fragment_tree_root.borrow() {
-            // Unwrap here should not panic since self.fragment_tree_root is only ever set to Some(_)
-            // in handle_reflow() where self.document_shared_lock is as well.
-            let author_shared_lock = self.document_shared_lock.clone().unwrap();
-            let author_guard = author_shared_lock.read();
-            let ua_or_user_guard = UA_STYLESHEETS.shared_lock.read();
-            let guards = StylesheetGuards {
-                author: &author_guard,
-                ua_or_user: &ua_or_user_guard,
-            };
-            let snapshots = SnapshotMap::new();
-            let mut layout_context = self.build_layout_context(guards, false, &snapshots, origin);
-
-            self.perform_post_style_recalc_layout_passes(
-                root.clone(),
-                &ReflowGoal::TickAnimations,
-                None,
-                &mut layout_context,
-            );
-            assert!(layout_context.pending_images.is_none());
-        }
     }
 
     fn perform_post_style_recalc_layout_passes(

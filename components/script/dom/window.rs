@@ -173,6 +173,8 @@ pub enum ReflowReason {
     IFrameLoadEvent,
     MissingExplicitReflow,
     ElementStateChanged,
+    TickAnimations,
+    AdvanceClock(i32),
 }
 
 #[dom_struct]
@@ -1544,16 +1546,16 @@ impl Window {
         )
     }
 
-    /// Advances the layout animation clock by `delta` milliseconds, and then
-    /// forces a reflow if `tick` is true.
-    pub fn advance_animation_clock(&self, delta: i32, tick: bool) {
-        self.layout_chan
-            .send(Msg::AdvanceClockMs(
-                delta,
-                tick,
-                self.origin().immutable().clone(),
-            ))
-            .unwrap();
+    /// Prepares to tick animations and then does a reflow which also advances the
+    /// layout animation clock.
+    pub fn advance_animation_clock(&self, delta: i32) {
+        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
+        ScriptThread::restyle_animating_nodes_for_advancing_clock(&pipeline_id);
+        self.force_reflow(
+            ReflowGoal::TickAnimations,
+            ReflowReason::AdvanceClock(delta),
+            None,
+        );
     }
 
     /// Reflows the page unconditionally if possible and not suppressed. This
@@ -1626,10 +1628,14 @@ impl Window {
 
         // If this reflow is for display, ensure webgl canvases are composited with
         // up-to-date contents.
-        match reflow_goal {
-            ReflowGoal::Full => document.flush_dirty_canvases(),
-            ReflowGoal::TickAnimations | ReflowGoal::LayoutQuery(..) => {},
+        if for_display {
+            document.flush_dirty_canvases();
         }
+
+        let advance_clock_delta = match reason {
+            ReflowReason::AdvanceClock(delta) => Some(delta),
+            _ => None,
+        };
 
         // Send new document and relevant styles to layout.
         let needs_display = reflow_goal.needs_display();
@@ -1645,6 +1651,7 @@ impl Window {
             script_join_chan: join_chan,
             dom_count: document.dom_count(),
             pending_restyles: document.drain_pending_restyles(),
+            advance_clock_delta,
         };
 
         self.layout_chan
@@ -2487,6 +2494,8 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
         ReflowReason::IFrameLoadEvent => "\tIFrameLoadEvent",
         ReflowReason::MissingExplicitReflow => "\tMissingExplicitReflow",
         ReflowReason::ElementStateChanged => "\tElementStateChanged",
+        ReflowReason::TickAnimations => "\tTickAnimations",
+        ReflowReason::AdvanceClock(..) => "\tAdvanceClock",
     });
 
     println!("{}", debug_msg);

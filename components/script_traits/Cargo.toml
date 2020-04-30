@@ -11,6 +11,7 @@ name = "script_traits"
 path = "lib.rs"
 
 [dependencies]
+bitflags = "1.0"
 bluetooth_traits = {path = "../bluetooth_traits"}
 canvas_traits = {path = "../canvas_traits"}
 cookie = "0.11"

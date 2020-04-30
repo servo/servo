@@ -29,7 +29,7 @@ use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
 use euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
-use fxhash::{FxHashMap, FxHashSet};
+use fxhash::FxHashMap;
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
@@ -88,7 +88,6 @@ use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts;
 use servo_config::pref;
-use servo_geometry::MaxRect;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -622,7 +621,6 @@ impl LayoutThread {
     fn build_layout_context<'a>(
         &'a self,
         guards: StylesheetGuards<'a>,
-        script_initiated_layout: bool,
         snapshot_map: &'a SnapshotMap,
         origin: ImmutableOrigin,
     ) -> LayoutContext<'a> {
@@ -636,23 +634,15 @@ impl LayoutThread {
                 visited_styles_enabled: false,
                 animation_states: self.animation_states.clone(),
                 registered_speculative_painters: &self.registered_painters,
-                timer: self.timer.clone(),
+                current_time_for_animations: self.timer.seconds(),
                 traversal_flags: TraversalFlags::empty(),
                 snapshot_map: snapshot_map,
             },
             image_cache: self.image_cache.clone(),
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
-            pending_images: if script_initiated_layout {
-                Some(Mutex::new(vec![]))
-            } else {
-                None
-            },
-            newly_animating_nodes: if script_initiated_layout {
-                Some(Mutex::new(vec![]))
-            } else {
-                None
-            },
+            pending_images: Mutex::new(vec![]),
+            newly_animating_nodes: Mutex::new(vec![]),
             registered_painters: &self.registered_painters,
         }
     }
@@ -664,8 +654,6 @@ impl LayoutThread {
             Msg::SetQuirksMode(..) => LayoutHangAnnotation::SetQuirksMode,
             Msg::Reflow(..) => LayoutHangAnnotation::Reflow,
             Msg::GetRPC(..) => LayoutHangAnnotation::GetRPC,
-            Msg::TickAnimations(..) => LayoutHangAnnotation::TickAnimations,
-            Msg::AdvanceClockMs(..) => LayoutHangAnnotation::AdvanceClockMs,
             Msg::CollectReports(..) => LayoutHangAnnotation::CollectReports,
             Msg::PrepareToExit(..) => LayoutHangAnnotation::PrepareToExit,
             Msg::ExitNow => LayoutHangAnnotation::ExitNow,
@@ -712,9 +700,6 @@ impl LayoutThread {
                     Msg::SetScrollStates(new_scroll_states),
                     possibly_locked_rw_data,
                 ),
-            Request::FromPipeline(LayoutControlMsg::TickAnimations(origin)) => {
-                self.handle_request_helper(Msg::TickAnimations(origin), possibly_locked_rw_data)
-            },
             Request::FromPipeline(LayoutControlMsg::GetCurrentEpoch(sender)) => {
                 self.handle_request_helper(Msg::GetCurrentEpoch(sender), possibly_locked_rw_data)
             },
@@ -786,9 +771,6 @@ impl LayoutThread {
                     || self.handle_reflow(&mut data, possibly_locked_rw_data),
                 );
             },
-            Msg::TickAnimations(origin) => {
-                self.tick_all_animations(possibly_locked_rw_data, origin)
-            },
             Msg::SetScrollStates(new_scroll_states) => {
                 self.set_scroll_states(new_scroll_states, possibly_locked_rw_data);
             },
@@ -812,9 +794,6 @@ impl LayoutThread {
             Msg::GetCurrentEpoch(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
                 sender.send(self.epoch.get()).unwrap();
-            },
-            Msg::AdvanceClockMs(how_many, do_tick, origin) => {
-                self.handle_advance_clock_ms(how_many, possibly_locked_rw_data, do_tick, origin);
             },
             Msg::GetWebFontLoadState(sender) => {
                 let _rw_data = possibly_locked_rw_data.lock();
@@ -990,20 +969,6 @@ impl LayoutThread {
                 &self.outstanding_web_fonts,
                 self.load_webfonts_synchronously,
             );
-        }
-    }
-
-    /// Advances the animation clock of the document.
-    fn handle_advance_clock_ms<'a, 'b>(
-        &mut self,
-        how_many_ms: i32,
-        possibly_locked_rw_data: &mut RwData<'a, 'b>,
-        tick_animations: bool,
-        origin: ImmutableOrigin,
-    ) {
-        self.timer.increment(how_many_ms as f64 / 1000.0);
-        if tick_animations {
-            self.tick_all_animations(possibly_locked_rw_data, origin);
         }
     }
 
@@ -1341,6 +1306,12 @@ impl LayoutThread {
         let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, &guards);
 
+        if pref!(layout.animations.test.enabled) {
+            if let Some(delta) = data.advance_clock_delta {
+                self.timer.increment(delta as f64 / 1000.0);
+            }
+        }
+
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
         self.viewport_size =
@@ -1458,7 +1429,7 @@ impl LayoutThread {
         self.stylist.flush(&guards, Some(element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context = self.build_layout_context(guards.clone(), true, &map, origin);
+        let mut layout_context = self.build_layout_context(guards.clone(), &map, origin);
 
         let pool;
         let (thread_pool, num_threads) = if self.parallel_flag {
@@ -1539,7 +1510,6 @@ impl LayoutThread {
                 Some(&document),
                 &mut rw_data,
                 &mut layout_context,
-                FxHashSet::default(),
             );
         }
 
@@ -1559,17 +1529,10 @@ impl LayoutThread {
         context: &mut LayoutContext,
         reflow_result: &mut ReflowComplete,
     ) {
-        let pending_images = match context.pending_images {
-            Some(ref pending) => std::mem::replace(&mut *pending.lock().unwrap(), vec![]),
-            None => vec![],
-        };
-        reflow_result.pending_images = pending_images;
-
-        let newly_animating_nodes = match context.newly_animating_nodes {
-            Some(ref nodes) => std::mem::replace(&mut *nodes.lock().unwrap(), vec![]),
-            None => vec![],
-        };
-        reflow_result.newly_animating_nodes = newly_animating_nodes;
+        reflow_result.pending_images =
+            std::mem::replace(&mut *context.pending_images.lock().unwrap(), vec![]);
+        reflow_result.newly_animating_nodes =
+            std::mem::replace(&mut *context.newly_animating_nodes.lock().unwrap(), vec![]);
 
         let mut root_flow = match self.root_flow.borrow().clone() {
             Some(root_flow) => root_flow,
@@ -1681,70 +1644,6 @@ impl LayoutThread {
         rw_data.scroll_offsets = layout_scroll_states
     }
 
-    fn tick_all_animations<'a, 'b>(
-        &mut self,
-        possibly_locked_rw_data: &mut RwData<'a, 'b>,
-        origin: ImmutableOrigin,
-    ) {
-        let mut rw_data = possibly_locked_rw_data.lock();
-        self.tick_animations(&mut rw_data, origin);
-    }
-
-    fn tick_animations(&mut self, rw_data: &mut LayoutThreadData, origin: ImmutableOrigin) {
-        if self.relayout_event {
-            println!(
-                "**** pipeline={}\tForDisplay\tSpecial\tAnimationTick",
-                self.id
-            );
-        }
-
-        if let Some(mut root_flow) = self.root_flow.borrow().clone() {
-            let reflow_info = Reflow {
-                page_clip_rect: Rect::max_rect(),
-            };
-
-            // Unwrap here should not panic since self.root_flow is only ever set to Some(_)
-            // in handle_reflow() where self.document_shared_lock is as well.
-            let author_shared_lock = self.document_shared_lock.clone().unwrap();
-            let author_guard = author_shared_lock.read();
-            let ua_or_user_guard = UA_STYLESHEETS.shared_lock.read();
-            let guards = StylesheetGuards {
-                author: &author_guard,
-                ua_or_user: &ua_or_user_guard,
-            };
-            let snapshots = SnapshotMap::new();
-            let mut layout_context = self.build_layout_context(guards, false, &snapshots, origin);
-
-            let invalid_nodes = {
-                // Perform an abbreviated style recalc that operates without access to the DOM.
-                let animation_states = self.animation_states.read();
-                profile(
-                    profile_time::ProfilerCategory::LayoutStyleRecalc,
-                    self.profiler_metadata(),
-                    self.time_profiler_chan.clone(),
-                    || {
-                        animation::recalc_style_for_animations::<ServoLayoutElement>(
-                            &layout_context,
-                            FlowRef::deref_mut(&mut root_flow),
-                            &animation_states,
-                        )
-                    },
-                )
-            };
-            self.perform_post_style_recalc_layout_passes(
-                &mut root_flow,
-                &reflow_info,
-                &ReflowGoal::TickAnimations,
-                None,
-                &mut *rw_data,
-                &mut layout_context,
-                invalid_nodes,
-            );
-            assert!(layout_context.pending_images.is_none());
-            assert!(layout_context.newly_animating_nodes.is_none());
-        }
-    }
-
     fn perform_post_style_recalc_layout_passes(
         &self,
         root_flow: &mut FlowRef,
@@ -1753,23 +1652,17 @@ impl LayoutThread {
         document: Option<&ServoLayoutDocument>,
         rw_data: &mut LayoutThreadData,
         context: &mut LayoutContext,
-        invalid_nodes: FxHashSet<OpaqueNode>,
     ) {
         {
-            let mut newly_animating_nodes = context
-                .newly_animating_nodes
-                .as_ref()
-                .map(|nodes| nodes.lock().unwrap());
-            let newly_animating_nodes = newly_animating_nodes.as_mut().map(|nodes| &mut **nodes);
-            let mut animation_states = self.animation_states.write();
-            animation::collect_newly_animating_nodes(&animation_states, newly_animating_nodes);
-            animation::update_animation_states(
+            let mut newly_animating_nodes = context.newly_animating_nodes.lock().unwrap();
+            animation::do_post_style_animations_update(
                 &self.constellation_chan,
                 &self.script_chan,
-                &mut *animation_states,
-                invalid_nodes,
+                &mut *(self.animation_states.write()),
                 self.id,
-                &self.timer,
+                context.style_context.current_time_for_animations,
+                &mut newly_animating_nodes,
+                FlowRef::deref_mut(root_flow),
             );
         }
 

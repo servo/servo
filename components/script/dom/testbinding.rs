@@ -1054,8 +1054,8 @@ impl TestBindingMethods for TestBinding {
         }
     }
 
-    fn AdvanceClock(&self, ms: i32, tick: bool) {
-        self.global().as_window().advance_animation_clock(ms, tick);
+    fn AdvanceClock(&self, ms: i32) {
+        self.global().as_window().advance_animation_clock(ms);
     }
 
     fn Panic(&self) {

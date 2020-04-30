@@ -530,8 +530,6 @@ pub enum LayoutHangAnnotation {
     SetQuirksMode,
     Reflow,
     GetRPC,
-    TickAnimations,
-    AdvanceClockMs,
     CollectReports,
     PrepareToExit,
     ExitNow,

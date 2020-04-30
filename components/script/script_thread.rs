@@ -136,12 +136,12 @@ use script_traits::CompositorEvent::{
     WheelEvent,
 };
 use script_traits::{
-    CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext, DocumentActivity,
-    EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutMsg, LoadData,
-    LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo, Painter,
-    ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory, ScriptToConstellationChan,
-    StructuredSerializedData, TimerSchedulerMsg, TouchEventType, TouchId,
-    TransitionOrAnimationEventType, UntrustedNodeAddress, UpdatePipelineIdReason,
+    AnimationTickType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
+    DocumentActivity, EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult,
+    LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType,
+    NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory,
+    ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg, TouchEventType,
+    TouchId, TransitionOrAnimationEventType, UntrustedNodeAddress, UpdatePipelineIdReason,
     WebrenderIpcSender, WheelDelta, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
@@ -1497,7 +1497,7 @@ impl ScriptThread {
                         self.handle_set_scroll_state(id, &scroll_state);
                     })
                 },
-                FromConstellation(ConstellationControlMsg::TickAllAnimations(pipeline_id)) => {
+                FromConstellation(ConstellationControlMsg::TickAllAnimations(pipeline_id, _)) => {
                     // step 7.8
                     if !animation_ticks.contains(&pipeline_id) {
                         animation_ticks.insert(pipeline_id);
@@ -1703,7 +1703,7 @@ impl ScriptThread {
                 RemoveHistoryStates(id, ..) => Some(id),
                 FocusIFrame(id, ..) => Some(id),
                 WebDriverScriptCommand(id, ..) => Some(id),
-                TickAllAnimations(id) => Some(id),
+                TickAllAnimations(id, ..) => Some(id),
                 TransitionOrAnimationEvent { .. } => None,
                 WebFontLoaded(id) => Some(id),
                 DispatchIFrameLoadEvent {
@@ -1902,8 +1902,8 @@ impl ScriptThread {
             ConstellationControlMsg::WebDriverScriptCommand(pipeline_id, msg) => {
                 self.handle_webdriver_msg(pipeline_id, msg)
             },
-            ConstellationControlMsg::TickAllAnimations(pipeline_id) => {
-                self.handle_tick_all_animations(pipeline_id)
+            ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type) => {
+                self.handle_tick_all_animations(pipeline_id, tick_type)
             },
             ConstellationControlMsg::TransitionOrAnimationEvent {
                 pipeline_id,
@@ -2914,13 +2914,45 @@ impl ScriptThread {
         debug!("Exited script thread.");
     }
 
+    fn restyle_animating_nodes(&self, id: &PipelineId) -> bool {
+        match self.animating_nodes.borrow().get(id) {
+            Some(nodes) => {
+                for node in nodes.iter() {
+                    node.dirty(NodeDamage::NodeStyleDamaged);
+                }
+                true
+            },
+            None => false,
+        }
+    }
+
+    pub fn restyle_animating_nodes_for_advancing_clock(id: &PipelineId) {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.restyle_animating_nodes(id);
+        });
+    }
+
     /// Handles when layout thread finishes all animation in one tick
-    fn handle_tick_all_animations(&self, id: PipelineId) {
+    fn handle_tick_all_animations(&self, id: PipelineId, tick_type: AnimationTickType) {
         let document = match self.documents.borrow().find_document(id) {
             Some(document) => document,
             None => return warn!("Message sent to closed pipeline {}.", id),
         };
-        document.run_the_animation_frame_callbacks();
+        if tick_type.contains(AnimationTickType::REQUEST_ANIMATION_FRAME) {
+            document.run_the_animation_frame_callbacks();
+        }
+        if tick_type.contains(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS) {
+            if !self.restyle_animating_nodes(&id) {
+                return;
+            }
+
+            document.window().force_reflow(
+                ReflowGoal::TickAnimations,
+                ReflowReason::TickAnimations,
+                None,
+            );
+        }
     }
 
     /// Handles firing of transition-related events.
@@ -2967,11 +2999,6 @@ impl ScriptThread {
             if event_type.finalizes_transition_or_animation() {
                 nodes.remove(node_index);
             }
-        }
-
-        // Not quite the right thing - see #13865.
-        if event_type.finalizes_transition_or_animation() {
-            node.dirty(NodeDamage::NodeStyleDamaged);
         }
 
         let event_atom = match event_type {

@@ -3458,27 +3458,13 @@ where
     }
 
     fn handle_tick_animation(&mut self, pipeline_id: PipelineId, tick_type: AnimationTickType) {
-        let result = match tick_type {
-            AnimationTickType::Script => {
-                let msg = ConstellationControlMsg::TickAllAnimations(pipeline_id);
-                match self.pipelines.get(&pipeline_id) {
-                    Some(pipeline) => pipeline.event_loop.send(msg),
-                    None => {
-                        return warn!("Pipeline {:?} got script tick after closure.", pipeline_id);
-                    },
-                }
-            },
-            AnimationTickType::Layout => match self.pipelines.get(&pipeline_id) {
-                Some(pipeline) => {
-                    let msg = LayoutControlMsg::TickAnimations(pipeline.load_data.url.origin());
-                    pipeline.layout_chan.send(msg)
-                },
-                None => {
-                    return warn!("Pipeline {:?} got layout tick after closure.", pipeline_id);
-                },
-            },
+        let pipeline = match self.pipelines.get(&pipeline_id) {
+            Some(pipeline) => pipeline,
+            None => return warn!("Pipeline {:?} got script tick after closure.", pipeline_id),
         };
-        if let Err(e) = result {
+
+        let message = ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type);
+        if let Err(e) = pipeline.event_loop.send(message) {
             self.handle_send_error(pipeline_id, e);
         }
     }

@@ -8,8 +8,9 @@ use fnv::FnvHashMap;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context::FontContext;
 use msg::constellation_msg::PipelineId;
-use net_traits::image_cache::{CanRequestImages, ImageCache, ImageCacheResult};
-use net_traits::image_cache::{ImageOrMetadataAvailable, UsePlaceholder};
+use net_traits::image_cache::{
+    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, UsePlaceholder,
+};
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -33,8 +34,7 @@ pub struct LayoutContext<'a> {
     pub image_cache: Arc<dyn ImageCache>,
 
     /// A list of in-progress image loads to be shared with the script thread.
-    /// A None value means that this layout was not initiated by the script thread.
-    pub pending_images: Option<Mutex<Vec<PendingImage>>>,
+    pub pending_images: Mutex<Vec<PendingImage>>,
 
     pub webrender_image_cache:
         Arc<RwLock<FnvHashMap<(ServoUrl, UsePlaceholder), WebRenderImageInfo>>>,
@@ -43,9 +43,7 @@ pub struct LayoutContext<'a> {
 impl<'a> Drop for LayoutContext<'a> {
     fn drop(&mut self) {
         if !std::thread::panicking() {
-            if let Some(ref pending_images) = self.pending_images {
-                assert!(pending_images.lock().unwrap().is_empty());
-            }
+            assert!(self.pending_images.lock().unwrap().is_empty());
         }
     }
 }
@@ -62,22 +60,12 @@ impl<'a> LayoutContext<'a> {
         url: ServoUrl,
         use_placeholder: UsePlaceholder,
     ) -> Option<ImageOrMetadataAvailable> {
-        //XXXjdm For cases where we do not request an image, we still need to
-        //       ensure the node gets another script-initiated reflow or it
-        //       won't be requested at all.
-        let can_request = if self.pending_images.is_some() {
-            CanRequestImages::Yes
-        } else {
-            CanRequestImages::No
-        };
-
         // Check for available image or start tracking.
         let cache_result = self.image_cache.get_cached_image_status(
             url.clone(),
             self.origin.clone(),
             None,
             use_placeholder,
-            can_request,
         );
 
         match cache_result {
@@ -85,18 +73,13 @@ impl<'a> LayoutContext<'a> {
             // Image has been requested, is still pending. Return no image for this paint loop.
             // When the image loads it will trigger a reflow and/or repaint.
             ImageCacheResult::Pending(id) => {
-                //XXXjdm if self.pending_images is not available, we should make sure that
-                //       this node gets marked dirty again so it gets a script-initiated
-                //       reflow that deals with this properly.
-                if let Some(ref pending_images) = self.pending_images {
-                    let image = PendingImage {
-                        state: PendingImageState::PendingResponse,
-                        node: node.to_untrusted_node_address(),
-                        id,
-                        origin: self.origin.clone(),
-                    };
-                    pending_images.lock().unwrap().push(image);
-                }
+                let image = PendingImage {
+                    state: PendingImageState::PendingResponse,
+                    node: node.to_untrusted_node_address(),
+                    id,
+                    origin: self.origin.clone(),
+                };
+                self.pending_images.lock().unwrap().push(image);
                 None
             },
             // Not yet requested - request image or metadata from the cache
@@ -107,12 +90,7 @@ impl<'a> LayoutContext<'a> {
                     id,
                     origin: self.origin.clone(),
                 };
-                self.pending_images
-                    .as_ref()
-                    .unwrap()
-                    .lock()
-                    .unwrap()
-                    .push(image);
+                self.pending_images.lock().unwrap().push(image);
                 None
             },
             // Image failed to load, so just return nothing
