@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<title>attempt to draw a closed ImageBitmap to a 2d canvas throws INVALID_STATE_ERR</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/canvas-tests.js"></script>
+<script>
+promise_test(function(t) {
+    return new Promise(function(resolve, reject) {
+        const image = new Image();
+        image.onload = function() { resolve(image); };
+        image.onerror = function() { reject(); };
+        image.src = "/images/green-16x16.png";
+    }).then(function(image) {
+        return createImageBitmap(image, 0, 0, 16, 16);
+    }).then(function(imageBitmap) {
+        imageBitmap.close();
+
+        const canvas = document.createElement("canvas");
+        canvas.width = 16;
+        canvas.height = 16;
+
+        const ctx = canvas.getContext("2d");
+        assert_throws_dom("InvalidStateError", function() { ctx.drawImage(imageBitmap, 0, 0); });
+    });
+});
+</script>

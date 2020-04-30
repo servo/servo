@@ -10,7 +10,7 @@
 INDENT TABS: conformance-checkers/*
 INDENT TABS: encoding/legacy*/*
 
-TRAILING WHITESPACE: 2dcontext/tools/current-work-canvas.xhtml
+TRAILING WHITESPACE: html/canvas/tools/current-work-canvas.xhtml
 TRAILING WHITESPACE: conformance-checkers/*
 TRAILING WHITESPACE: content-security-policy/*
 TRAILING WHITESPACE: WebIDL/valid/*
@@ -176,7 +176,7 @@ SET TIMEOUT: media-source/mediasource-util.js
 SET TIMEOUT: media-source/URL-createObjectURL-revoke.html
 SET TIMEOUT: mixed-content/generic/sanity-checker.js
 SET TIMEOUT: navigation-timing/*
-SET TIMEOUT: offscreen-canvas/the-offscreen-canvas/*
+SET TIMEOUT: html/canvas/offscreen/the-offscreen-canvas/*
 SET TIMEOUT: old-tests/submission/Microsoft/history/history_000.htm
 SET TIMEOUT: paint-timing/resources/subframe-painting.html
 SET TIMEOUT: payment-request/allowpaymentrequest/setting-allowpaymentrequest-timing.https.sub.html
@@ -220,7 +220,7 @@ GENERATE_TESTS: resources/test/tests/functional/generate-callback.html
 GENERATE_TESTS: resources/testharness.js
 
 # generate_tests usage (should be got rid of)
-GENERATE_TESTS: 2dcontext/drawing-images-to-the-canvas/*
+GENERATE_TESTS: html/canvas/element/drawing-images-to-the-canvas/*
 GENERATE_TESTS: css/css-shapes/shape-outside/values/*
 GENERATE_TESTS: css/css-tables/bounding-box-computation-1.html
 GENERATE_TESTS: css/css-tables/bounding-box-computation-2.html
@@ -275,7 +275,7 @@ GENERATE_TESTS: html/webappapis/atob/base64.html
 GENERATE_TESTS: mediacapture-fromelement/capture.html
 GENERATE_TESTS: mediacapture-fromelement/creation.html
 GENERATE_TESTS: mediacapture-fromelement/ended.html
-GENERATE_TESTS: offscreen-canvas/filter/offscreencanvas.filter.html
+GENERATE_TESTS: html/canvas/offscreen/filter/offscreencanvas.filter.html
 GENERATE_TESTS: pointerevents/pointerevent_constructor.html
 GENERATE_TESTS: pointerevents/extension/pointerevent_constructor.html
 GENERATE_TESTS: selection/collapse.js
@@ -718,7 +718,7 @@ AHEM SYSTEM FONT: infrastructure/assumptions/ahem-ref.html
 AHEM SYSTEM FONT: infrastructure/assumptions/ahem.html
 
 # Existing crashtests using testharness
-TESTHARNESS-IN-OTHER-TYPE: 2dcontext/wide-gamut-canvas/imagedata-no-color-settings-crash.html
+TESTHARNESS-IN-OTHER-TYPE: html/canvas/element/wide-gamut-canvas/imagedata-no-color-settings-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/CSS2/floats-clear/adjoining-float-new-fc-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/CSS2/floats/floats-saturated-position-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/CSS2/linebox/video-needs-layout-crash.html
@@ -763,5 +763,3 @@ ASSERT-PRECONDITION: infrastructure/expected-fail/precondition.html
 ASSERT-PRECONDITION: infrastructure/expected-fail/precondition-in-setup.html
 ASSERT-PRECONDITION: infrastructure/expected-fail/precondition-in-promise.html
 ASSERT-PRECONDITION: resources/testharness.js
-ASSERT-PRECONDITION: webrtc/protocol/crypto-suite.https.html
-ASSERT-PRECONDITION: webrtc-extensions/RTCRtpSynchronizationSource-captureTimestamp.html

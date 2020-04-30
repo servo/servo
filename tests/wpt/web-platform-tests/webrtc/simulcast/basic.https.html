@@ -30,7 +30,7 @@ promise_test(async t => {
     }));
   };
 
-  // use getUserMedia as getNoiseStream does not have enough entropy to ramp-up.
+  // Use getUserMedia as getNoiseStream does not have enough entropy to ramp-up.
   const stream = await navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}});
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
   pc1.addTransceiver(stream.getVideoTracks()[0], {

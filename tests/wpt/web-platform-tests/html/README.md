@@ -8,12 +8,10 @@ multipage-version specification. For example, The URL of
 
 For historical reasons, parts of HTML have their own directories:
 
-* [/2dcontext](/2dcontext)
 * [/custom-elements](/custom-elements)
 * [/eventsource](/eventsource)
 * [/imagebitmap-renderingcontext](/imagebitmap-renderingcontext)
 * [/innerText](/innerText)
-* [/offscreen-canvas](/offscreen-canvas)
 * [/shadow-dom](/shadow-dom)
 * [/webmessaging](/webmessaging)
 * [/websockets](/websockets)

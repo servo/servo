@@ -186,9 +186,11 @@
     await pc.setLocalDescription({type: 'rollback'});
     // We might go directly to 'new', or we might go to 'complete' first,
     // depending on timing. Allow either.
-    await Promise.any([
+    const results = await Promise.allSettled([
       iceGatheringStateTransitions(pc, 'new'),
       iceGatheringStateTransitions(pc, 'complete', 'new')]);
+    assert_true(results.some(result => result.status == 'fulfilled'),
+      'ICE gathering state should go back to "new", possibly through "complete"');
   }, 'setLocalDescription(rollback) of original offer should cause iceGatheringState to reach "new" when starting in "gathering"');
 
   promise_test(async t => {
