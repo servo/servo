@@ -6,7 +6,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EXTTextureFilterAnisotropicBinding::EXTTextureFilterAnisotropicConstants;
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
@@ -14,7 +14,10 @@ use crate::dom::webgl_validations::types::TexImageTarget;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
-use canvas_traits::webgl::{webgl_channel, TexDataType, TexFormat, WebGLResult, WebGLTextureId};
+use canvas_traits::webgl::{
+    webgl_channel, TexDataType, TexFormat, TexParameter, TexParameterBool, TexParameterInt,
+    WebGLResult, WebGLTextureId,
+};
 use canvas_traits::webgl::{DOMToTextureCommand, WebGLCommand, WebGLError};
 use dom_struct::dom_struct;
 use std::cell::Cell;
@@ -23,6 +26,7 @@ use std::cmp;
 pub enum TexParameterValue {
     Float(f32),
     Int(i32),
+    Bool(bool),
 }
 
 const MAX_LEVEL_COUNT: usize = 31;
@@ -50,6 +54,8 @@ pub struct WebGLTexture {
     attached_to_dom: Cell<bool>,
     /// Framebuffer that this texture is attached to.
     attached_framebuffer: MutNullableDom<WebGLFramebuffer>,
+    /// Number of immutable levels.
+    immutable_levels: Cell<Option<u32>>,
 }
 
 impl WebGLTexture {
@@ -59,6 +65,7 @@ impl WebGLTexture {
             id: id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
+            immutable_levels: Cell::new(None),
             face_count: Cell::new(0),
             base_mipmap_level: 0,
             min_filter: Cell::new(constants::NEAREST_MIPMAP_LINEAR),
@@ -221,8 +228,24 @@ impl WebGLTexture {
         self.is_deleted.get()
     }
 
+    pub fn is_immutable(&self) -> bool {
+        self.immutable_levels.get().is_some()
+    }
+
     pub fn target(&self) -> Option<u32> {
         self.target.get()
+    }
+
+    pub fn maybe_get_tex_parameter(&self, param: TexParameter) -> Option<TexParameterValue> {
+        match param {
+            TexParameter::Int(TexParameterInt::TextureImmutableLevels) => Some(
+                TexParameterValue::Int(self.immutable_levels.get().unwrap_or(0) as i32),
+            ),
+            TexParameter::Bool(TexParameterBool::TextureImmutableFormat) => {
+                Some(TexParameterValue::Bool(self.is_immutable()))
+            },
+            _ => None,
+        }
     }
 
     /// We have to follow the conversion rules for GLES 2.0. See:
@@ -234,6 +257,7 @@ impl WebGLTexture {
         let (int_value, float_value) = match value {
             TexParameterValue::Int(int_value) => (int_value, int_value as f32),
             TexParameterValue::Float(float_value) => (float_value as i32, float_value),
+            TexParameterValue::Bool(_) => unreachable!("no settable tex params should be booleans"),
         };
 
         let update_filter = |filter: &Cell<u32>| {
@@ -366,13 +390,13 @@ impl WebGLTexture {
 
     fn face_index_for_target(&self, target: &TexImageTarget) -> u8 {
         match *target {
-            TexImageTarget::Texture2D => 0,
             TexImageTarget::CubeMapPositiveX => 0,
             TexImageTarget::CubeMapNegativeX => 1,
             TexImageTarget::CubeMapPositiveY => 2,
             TexImageTarget::CubeMapNegativeY => 3,
             TexImageTarget::CubeMapPositiveZ => 4,
             TexImageTarget::CubeMapNegativeZ => 5,
+            _ => 0,
         }
     }
 
@@ -414,6 +438,58 @@ impl WebGLTexture {
 
     pub fn detach_from_framebuffer(&self) {
         self.attached_framebuffer.set(None);
+    }
+
+    pub fn storage(
+        &self,
+        target: TexImageTarget,
+        levels: u32,
+        internal_format: TexFormat,
+        width: u32,
+        height: u32,
+        depth: u32,
+    ) -> WebGLResult<()> {
+        // Handled by the caller
+        assert!(!self.is_immutable());
+        assert!(self.target().is_some());
+
+        let target_id = target.as_gl_constant();
+        let command = match target {
+            TexImageTarget::Texture2D | TexImageTarget::CubeMap => {
+                WebGLCommand::TexStorage2D(target_id, levels, internal_format, width, height)
+            },
+            TexImageTarget::Texture3D | TexImageTarget::Texture2DArray => {
+                WebGLCommand::TexStorage3D(target_id, levels, internal_format, width, height, depth)
+            },
+            _ => unreachable!(), // handled by the caller
+        };
+        self.upcast::<WebGLObject>().context().send_command(command);
+
+        let mut width = width;
+        let mut height = height;
+        let mut depth = depth;
+        for level in 0..levels {
+            let image_info = ImageInfo {
+                width,
+                height,
+                depth,
+                internal_format,
+                data_type: None,
+            };
+            self.set_image_infos_at_level(level, image_info);
+
+            width = cmp::max(1, width / 2);
+            height = cmp::max(1, height / 2);
+            depth = cmp::max(1, depth / 2);
+        }
+
+        self.immutable_levels.set(Some(levels));
+
+        if let Some(fb) = self.attached_framebuffer.get() {
+            fb.update_status();
+        }
+
+        Ok(())
     }
 }
 

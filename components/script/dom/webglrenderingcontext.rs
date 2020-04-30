@@ -6,6 +6,7 @@ use crate::dom::bindings::cell::{DomRefCell, Ref, RefMut};
 use crate::dom::bindings::codegen::Bindings::ANGLEInstancedArraysBinding::ANGLEInstancedArraysConstants;
 use crate::dom::bindings::codegen::Bindings::EXTBlendMinmaxBinding::EXTBlendMinmaxConstants;
 use crate::dom::bindings::codegen::Bindings::OESVertexArrayObjectBinding::OESVertexArrayObjectConstants;
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::TexImageSource;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants as constants;
@@ -353,7 +354,7 @@ impl WebGLRenderingContext {
         // Send a command to re-bind the TEXTURE_2D, if any.
         if let Some(texture) = self
             .textures
-            .active_texture_slot(constants::TEXTURE_2D)
+            .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
             .unwrap()
             .get()
         {
@@ -477,8 +478,12 @@ impl WebGLRenderingContext {
     }
 
     fn tex_parameter(&self, target: u32, param: u32, value: TexParameterValue) {
-        let texture_slot =
-            handle_potential_webgl_error!(self, self.textures.active_texture_slot(target), return);
+        let texture_slot = handle_potential_webgl_error!(
+            self,
+            self.textures
+                .active_texture_slot(target, self.webgl_version()),
+            return
+        );
         let texture =
             handle_potential_webgl_error!(self, texture_slot.get().ok_or(InvalidOperation), return);
 
@@ -567,7 +572,7 @@ impl WebGLRenderingContext {
         texture: &WebGLTexture,
         target: TexImageTarget,
         level: u32,
-        format: TexFormat,
+        internal_format: TexFormat,
         size: Size2D<u32>,
         data_type: TexDataType,
     ) -> bool {
@@ -595,7 +600,8 @@ impl WebGLRenderingContext {
             texture,
             target,
             data_type,
-            format,
+            internal_format,
+            internal_format.to_unsized(),
             level,
             0,
             1,
@@ -707,12 +713,16 @@ impl WebGLRenderingContext {
         // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
         // or FLOAT, a Float32Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
+        let is_webgl2 = self.webgl_version() == WebGLVersion::WebGL2;
         let received_size = match *data {
             None => element_size,
             Some(ref buffer) => match buffer.get_array_type() {
                 Type::Uint8 => 1,
                 Type::Uint16 => 2,
                 Type::Float32 => 4,
+                Type::Int8 if is_webgl2 => 1,
+                Type::Int16 if is_webgl2 => 2,
+                Type::Int32 | Type::Uint32 if is_webgl2 => 4,
                 _ => {
                     self.webgl_error(InvalidOperation);
                     return Err(());
@@ -744,6 +754,7 @@ impl WebGLRenderingContext {
         texture: &WebGLTexture,
         target: TexImageTarget,
         data_type: TexDataType,
+        internal_format: TexFormat,
         format: TexFormat,
         level: u32,
         _border: u32,
@@ -779,9 +790,10 @@ impl WebGLRenderingContext {
             YAxisTreatment::AsIs
         };
 
-        let effective_internal_format = self
+        let internal_format = self
             .extension_manager
-            .get_effective_tex_internal_format(format.as_gl_constant(), data_type.as_gl_constant());
+            .get_effective_tex_internal_format(internal_format, data_type.as_gl_constant());
+
         let effective_data_type = self
             .extension_manager
             .effective_type(data_type.as_gl_constant());
@@ -790,7 +802,7 @@ impl WebGLRenderingContext {
         self.send_command(WebGLCommand::TexImage2D {
             target: target.as_gl_constant(),
             level,
-            effective_internal_format,
+            internal_format,
             size: pixels.size,
             format,
             data_type,
@@ -837,9 +849,17 @@ impl WebGLRenderingContext {
             return self.webgl_error(InvalidValue);
         }
 
-        // NB: format and internal_format must match.
-        if format != image_info.internal_format() || data_type != image_info.data_type().unwrap() {
+        // The unsized format must be compatible with the sized internal format
+        debug_assert!(!format.is_sized());
+        if format != image_info.internal_format().to_unsized() {
             return self.webgl_error(InvalidOperation);
+        }
+
+        // See https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.1.6
+        if self.webgl_version() == WebGLVersion::WebGL1 {
+            if data_type != image_info.data_type().unwrap() {
+                return self.webgl_error(InvalidOperation);
+            }
         }
 
         let settings = self.texture_unpacking_settings.get();
@@ -1572,6 +1592,10 @@ impl WebGLRenderingContext {
             Err(_) => return,
         };
 
+        if texture.is_immutable() {
+            return self.webgl_error(InvalidOperation);
+        }
+
         let size = Size2D::new(width, height);
         let buff = IpcSharedMemory::from_bytes(data);
         let pixels = TexPixels::from_array(buff, size);
@@ -1987,7 +2011,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::TEXTURE_BINDING_2D => unsafe {
                 let texture = self
                     .textures
-                    .active_texture_slot(constants::TEXTURE_2D)
+                    .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
                     .unwrap()
                     .get();
                 return optional_root_object_to_js_or_null!(*cx, texture);
@@ -1995,7 +2019,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             constants::TEXTURE_BINDING_CUBE_MAP => unsafe {
                 let texture = self
                     .textures
-                    .active_texture_slot(constants::TEXTURE_CUBE_MAP)
+                    .active_texture_slot(constants::TEXTURE_CUBE_MAP, self.webgl_version())
                     .unwrap()
                     .get();
                 return optional_root_object_to_js_or_null!(*cx, texture);
@@ -2182,7 +2206,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     fn GetTexParameter(&self, _cx: SafeJSContext, target: u32, pname: u32) -> JSVal {
         let texture_slot = handle_potential_webgl_error!(
             self,
-            self.textures.active_texture_slot(target),
+            self.textures
+                .active_texture_slot(target, self.webgl_version()),
             return NullValue()
         );
         let texture = handle_potential_webgl_error!(
@@ -2205,8 +2230,22 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             _ => {},
         }
 
-        match handle_potential_webgl_error!(self, TexParameter::from_u32(pname), return NullValue())
-        {
+        let texparam =
+            handle_potential_webgl_error!(self, TexParameter::from_u32(pname), return NullValue());
+        if self.webgl_version() < texparam.required_webgl_version() {
+            self.webgl_error(InvalidEnum);
+            return NullValue();
+        }
+
+        if let Some(value) = texture.maybe_get_tex_parameter(texparam) {
+            match value {
+                TexParameterValue::Float(v) => return DoubleValue(v as f64),
+                TexParameterValue::Int(v) => return Int32Value(v),
+                TexParameterValue::Bool(v) => return BooleanValue(v),
+            }
+        }
+
+        match texparam {
             TexParameter::Float(param) => {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetTexParameterFloat(target, param, sender));
@@ -2216,6 +2255,11 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 let (sender, receiver) = webgl_channel().unwrap();
                 self.send_command(WebGLCommand::GetTexParameterInt(target, param, sender));
                 Int32Value(receiver.recv().unwrap())
+            },
+            TexParameter::Bool(param) => {
+                let (sender, receiver) = webgl_channel().unwrap();
+                self.send_command(WebGLCommand::GetTexParameterBool(target, param, sender));
+                BooleanValue(receiver.recv().unwrap())
             },
         }
     }
@@ -2431,8 +2475,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             handle_potential_webgl_error!(self, self.validate_ownership(texture), return);
         }
 
-        let texture_slot =
-            handle_potential_webgl_error!(self, self.textures.active_texture_slot(target), return);
+        let texture_slot = handle_potential_webgl_error!(
+            self,
+            self.textures
+                .active_texture_slot(target, self.webgl_version()),
+            return
+        );
 
         if let Some(texture) = texture {
             handle_potential_webgl_error!(self, texture.bind(target), return);
@@ -2444,8 +2492,12 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn GenerateMipmap(&self, target: u32) {
-        let texture_slot =
-            handle_potential_webgl_error!(self, self.textures.active_texture_slot(target), return);
+        let texture_slot = handle_potential_webgl_error!(
+            self,
+            self.textures
+                .active_texture_slot(target, self.webgl_version()),
+            return
+        );
         let texture =
             handle_potential_webgl_error!(self, texture_slot.get().ok_or(InvalidOperation), return);
         handle_potential_webgl_error!(self, texture.generate_mipmap());
@@ -2542,6 +2594,10 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Ok(result) => result,
             Err(_) => return,
         };
+
+        if texture.is_immutable() {
+            return self.webgl_error(InvalidOperation);
+        }
 
         let framebuffer_format = match self.bound_draw_framebuffer.get() {
             Some(fb) => match fb.attachment(constants::COLOR_ATTACHMENT0) {
@@ -4203,12 +4259,20 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             height,
             level,
             border,
+            internal_format,
             format,
             data_type,
         } = match validator.validate() {
             Ok(result) => result,
             Err(_) => return Ok(()), // NB: The validator sets the correct error for us.
         };
+
+        if !internal_format.compatible_data_types().contains(&data_type) {
+            return Ok(self.webgl_error(InvalidOperation));
+        }
+        if texture.is_immutable() {
+            return Ok(self.webgl_error(InvalidOperation));
+        }
 
         let unpacking_alignment = self.texture_unpacking_alignment.get();
 
@@ -4245,7 +4309,14 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
 
         let size = Size2D::new(width, height);
 
-        if !self.validate_filterable_texture(&texture, target, level, format, size, data_type) {
+        if !self.validate_filterable_texture(
+            &texture,
+            target,
+            level,
+            internal_format,
+            size,
+            data_type,
+        ) {
             // FIXME(nox): What is the spec for this? No error is emitted ever
             // by validate_filterable_texture.
             return Ok(());
@@ -4255,6 +4326,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             &texture,
             target,
             data_type,
+            internal_format,
             format,
             level,
             border,
@@ -4301,6 +4373,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             target,
             level,
             border,
+            internal_format,
             format,
             data_type,
             ..
@@ -4309,11 +4382,18 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             Err(_) => return Ok(()), // NB: The validator sets the correct error for us.
         };
 
+        if !internal_format.compatible_data_types().contains(&data_type) {
+            return Ok(self.webgl_error(InvalidOperation));
+        }
+        if texture.is_immutable() {
+            return Ok(self.webgl_error(InvalidOperation));
+        }
+
         if !self.validate_filterable_texture(
             &texture,
             target,
             level,
-            format,
+            internal_format,
             pixels.size,
             data_type,
         ) {
@@ -4323,7 +4403,15 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         }
 
         self.tex_image_2d(
-            &texture, target, data_type, format, level, border, 1, pixels,
+            &texture,
+            target,
+            data_type,
+            internal_format,
+            format,
+            level,
+            border,
+            1,
+            pixels,
         );
         Ok(())
     }
@@ -4354,7 +4442,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
         let texture = handle_potential_webgl_error!(
             self,
             self.textures
-                .active_texture_slot(constants::TEXTURE_2D)
+                .active_texture_slot(constants::TEXTURE_2D, self.webgl_version())
                 .unwrap()
                 .get()
                 .ok_or(InvalidOperation),
@@ -4721,11 +4809,20 @@ impl Textures {
         Ok(())
     }
 
-    fn active_texture_slot(&self, target: u32) -> WebGLResult<&MutNullableDom<WebGLTexture>> {
+    pub fn active_texture_slot(
+        &self,
+        target: u32,
+        webgl_version: WebGLVersion,
+    ) -> WebGLResult<&MutNullableDom<WebGLTexture>> {
         let active_unit = self.active_unit();
+        let is_webgl2 = webgl_version == WebGLVersion::WebGL2;
         match target {
             constants::TEXTURE_2D => Ok(&active_unit.tex_2d),
             constants::TEXTURE_CUBE_MAP => Ok(&active_unit.tex_cube_map),
+            WebGL2RenderingContextConstants::TEXTURE_2D_ARRAY if is_webgl2 => {
+                Ok(&active_unit.tex_2d_array)
+            },
+            WebGL2RenderingContextConstants::TEXTURE_3D if is_webgl2 => Ok(&active_unit.tex_3d),
             _ => Err(InvalidEnum),
         }
     }
@@ -4737,6 +4834,9 @@ impl Textures {
         let active_unit = self.active_unit();
         match target {
             TexImageTarget::Texture2D => active_unit.tex_2d.get(),
+            TexImageTarget::Texture2DArray => active_unit.tex_2d_array.get(),
+            TexImageTarget::Texture3D => active_unit.tex_3d.get(),
+            TexImageTarget::CubeMap |
             TexImageTarget::CubeMapPositiveX |
             TexImageTarget::CubeMapNegativeX |
             TexImageTarget::CubeMapPositiveY |
@@ -4763,6 +4863,8 @@ impl Textures {
 struct TextureUnit {
     tex_2d: MutNullableDom<WebGLTexture>,
     tex_cube_map: MutNullableDom<WebGLTexture>,
+    tex_2d_array: MutNullableDom<WebGLTexture>,
+    tex_3d: MutNullableDom<WebGLTexture>,
 }
 
 impl TextureUnit {
@@ -4770,6 +4872,11 @@ impl TextureUnit {
         let fields = [
             (&self.tex_2d, constants::TEXTURE_2D),
             (&self.tex_cube_map, constants::TEXTURE_CUBE_MAP),
+            (
+                &self.tex_2d_array,
+                WebGL2RenderingContextConstants::TEXTURE_2D_ARRAY,
+            ),
+            (&self.tex_3d, WebGL2RenderingContextConstants::TEXTURE_3D),
         ];
         for &(slot, target) in &fields {
             if slot.get().map_or(false, |t| texture == &*t) {

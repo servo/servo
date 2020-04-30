@@ -9,7 +9,7 @@ use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgltexture::{ImageInfo, WebGLTexture};
 use crate::dom::webgltexture::{TexCompression, TexCompressionValidation};
 use canvas_traits::webgl::{TexDataType, TexFormat, WebGLError::*};
-use std::{self, fmt};
+use std::{self, cmp, fmt};
 
 /// The errors that the texImage* family of functions can generate.
 #[derive(Debug)]
@@ -24,6 +24,10 @@ pub enum TexImageValidationError {
     NegativeLevel,
     /// A level too high to be allowed by the implementation was passed.
     LevelTooHigh,
+    /// A level less than an allowed minimal value was passed.
+    LevelTooLow,
+    /// A depth less than an allowed minimal value was passed.
+    DepthTooLow,
     /// A negative width and height was passed.
     NegativeDimension,
     /// A bigger with and height were passed than what the implementation
@@ -60,6 +64,8 @@ impl fmt::Display for TexImageValidationError {
             },
             NegativeLevel => "A negative level was passed",
             LevelTooHigh => "Level too high",
+            LevelTooLow => "Level too low",
+            DepthTooLow => "Depth too low",
             NegativeDimension => "Negative dimensions were passed",
             TextureTooBig => "Dimensions given are too big",
             InvalidDataType => "Invalid data type",
@@ -108,8 +114,8 @@ impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
         // GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
         // GL_TEXTURE_CUBE_MAP_POSITIVE_Z, or GL_TEXTURE_CUBE_MAP_NEGATIVE_Z.
         let target = match TexImageTarget::from_gl_constant(self.target) {
-            Some(target) => target,
-            None => {
+            Some(target) if target.dimensions() == 2 => target,
+            _ => {
                 self.context.webgl_error(InvalidEnum);
                 return Err(TexImageValidationError::InvalidTextureTarget(self.target));
             },
@@ -140,8 +146,13 @@ impl<'a> WebGLValidator for CommonTexImage2DValidator<'a> {
         // GL_INVALID_ENUM is generated if internal_format is not an accepted
         // format.
         let internal_format = match TexFormat::from_gl_constant(self.internal_format) {
-            Some(format) => format,
-            None => {
+            Some(format)
+                if format.required_webgl_version() <= self.context.webgl_version() &&
+                    format.usable_as_internal() =>
+            {
+                format
+            },
+            _ => {
                 self.context.webgl_error(InvalidEnum);
                 return Err(TexImageValidationError::InvalidTextureFormat);
             },
@@ -278,6 +289,7 @@ pub struct TexImage2DValidatorResult {
     pub border: u32,
     pub texture: DomRoot<WebGLTexture>,
     pub target: TexImageTarget,
+    pub internal_format: TexFormat,
     pub format: TexFormat,
     pub data_type: TexDataType,
 }
@@ -303,16 +315,18 @@ impl<'a> WebGLValidator for TexImage2DValidator<'a> {
         // GL_INVALID_ENUM is generated if format or data_type is not an
         // accepted value.
         let data_type = match TexDataType::from_gl_constant(self.data_type) {
-            Some(data_type) => data_type,
-            None => {
+            Some(data_type) if data_type.required_webgl_version() <= context.webgl_version() => {
+                data_type
+            },
+            _ => {
                 context.webgl_error(InvalidEnum);
                 return Err(TexImageValidationError::InvalidDataType);
             },
         };
 
         let format = match TexFormat::from_gl_constant(self.format) {
-            Some(format) => format,
-            None => {
+            Some(format) if format.required_webgl_version() <= context.webgl_version() => format,
+            _ => {
                 context.webgl_error(InvalidEnum);
                 return Err(TexImageValidationError::InvalidTextureFormat);
             },
@@ -320,11 +334,16 @@ impl<'a> WebGLValidator for TexImage2DValidator<'a> {
 
         // GL_INVALID_OPERATION is generated if format does not match
         // internal_format.
-        if format != internal_format {
+        if format != internal_format.to_unsized() {
             context.webgl_error(InvalidOperation);
             return Err(TexImageValidationError::TextureFormatMismatch);
         }
 
+        // NOTE: In WebGL2 data type check should be done based on the internal
+        // format, but in some functions this validator is called with the
+        // regular unsized format as parameter (eg. TexSubImage2D). For now
+        // it's left here to avoid duplication.
+        //
         // GL_INVALID_OPERATION is generated if type is
         // GL_UNSIGNED_SHORT_4_4_4_4 or GL_UNSIGNED_SHORT_5_5_5_1 and format is
         // not GL_RGBA.
@@ -352,6 +371,7 @@ impl<'a> WebGLValidator for TexImage2DValidator<'a> {
             border: border,
             texture: texture,
             target: target,
+            internal_format: internal_format,
             format: format,
             data_type: data_type,
         })
@@ -654,6 +674,116 @@ impl<'a> WebGLValidator for CompressedTexSubImage2DValidator<'a> {
             width,
             height,
             compression,
+        })
+    }
+}
+
+pub struct TexStorageValidator<'a> {
+    common_validator: CommonTexImage2DValidator<'a>,
+    dimensions: u8,
+    depth: i32,
+}
+
+pub struct TexStorageValidatorResult {
+    pub texture: DomRoot<WebGLTexture>,
+    pub target: TexImageTarget,
+    pub levels: u32,
+    pub internal_format: TexFormat,
+    pub width: u32,
+    pub height: u32,
+    pub depth: u32,
+}
+
+impl<'a> TexStorageValidator<'a> {
+    pub fn new(
+        context: &'a WebGLRenderingContext,
+        dimensions: u8,
+        target: u32,
+        levels: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+        depth: i32,
+    ) -> Self {
+        TexStorageValidator {
+            common_validator: CommonTexImage2DValidator::new(
+                context,
+                target,
+                levels,
+                internal_format,
+                width,
+                height,
+                0,
+            ),
+            dimensions,
+            depth,
+        }
+    }
+}
+
+impl<'a> WebGLValidator for TexStorageValidator<'a> {
+    type Error = TexImageValidationError;
+    type ValidatedOutput = TexStorageValidatorResult;
+
+    fn validate(self) -> Result<Self::ValidatedOutput, TexImageValidationError> {
+        let context = self.common_validator.context;
+        let CommonTexImage2DValidatorResult {
+            texture,
+            target,
+            level,
+            internal_format,
+            width,
+            height,
+            border: _,
+        } = self.common_validator.validate()?;
+
+        if self.depth < 1 {
+            context.webgl_error(InvalidValue);
+            return Err(TexImageValidationError::DepthTooLow);
+        }
+        if level < 1 {
+            context.webgl_error(InvalidValue);
+            return Err(TexImageValidationError::LevelTooLow);
+        }
+
+        let dimensions_valid = match target {
+            TexImageTarget::Texture2D | TexImageTarget::CubeMap => self.dimensions == 2,
+            TexImageTarget::Texture3D | TexImageTarget::Texture2DArray => self.dimensions == 3,
+            _ => false,
+        };
+        if !dimensions_valid {
+            context.webgl_error(InvalidEnum);
+            return Err(TexImageValidationError::InvalidTextureTarget(
+                target.as_gl_constant(),
+            ));
+        }
+
+        if !internal_format.is_sized() {
+            context.webgl_error(InvalidEnum);
+            return Err(TexImageValidationError::InvalidTextureFormat);
+        }
+
+        let max_level = log2(cmp::max(width, height) as u32) + 1;
+        if level > max_level {
+            context.webgl_error(InvalidOperation);
+            return Err(TexImageValidationError::LevelTooHigh);
+        }
+
+        if texture.target().is_none() {
+            context.webgl_error(InvalidOperation);
+            return Err(TexImageValidationError::TextureTargetNotBound(
+                target.as_gl_constant(),
+            ));
+        }
+
+        Ok(TexStorageValidatorResult {
+            texture,
+            target,
+            levels: level,
+            internal_format,
+            width,
+            height,
+            depth: self.depth as u32,
         })
     }
 }

@@ -2,18 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextConstants;
+use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use canvas_traits::gl_enums;
 
 gl_enums! {
     pub enum TexImageTarget {
-        Texture2D = WebGLRenderingContextConstants::TEXTURE_2D,
-        CubeMapPositiveX = WebGLRenderingContextConstants::TEXTURE_CUBE_MAP_POSITIVE_X,
-        CubeMapNegativeX = WebGLRenderingContextConstants::TEXTURE_CUBE_MAP_NEGATIVE_X,
-        CubeMapPositiveY = WebGLRenderingContextConstants::TEXTURE_CUBE_MAP_POSITIVE_Y,
-        CubeMapNegativeY = WebGLRenderingContextConstants::TEXTURE_CUBE_MAP_NEGATIVE_Y,
-        CubeMapPositiveZ = WebGLRenderingContextConstants::TEXTURE_CUBE_MAP_POSITIVE_Z,
-        CubeMapNegativeZ = WebGLRenderingContextConstants::TEXTURE_CUBE_MAP_NEGATIVE_Z,
+        Texture2D = constants::TEXTURE_2D,
+        Texture2DArray = constants::TEXTURE_2D_ARRAY,
+        Texture3D = constants::TEXTURE_3D,
+        CubeMap = constants::TEXTURE_CUBE_MAP,
+        CubeMapPositiveX = constants::TEXTURE_CUBE_MAP_POSITIVE_X,
+        CubeMapNegativeX = constants::TEXTURE_CUBE_MAP_NEGATIVE_X,
+        CubeMapPositiveY = constants::TEXTURE_CUBE_MAP_POSITIVE_Y,
+        CubeMapNegativeY = constants::TEXTURE_CUBE_MAP_NEGATIVE_Y,
+        CubeMapPositiveZ = constants::TEXTURE_CUBE_MAP_POSITIVE_Z,
+        CubeMapNegativeZ = constants::TEXTURE_CUBE_MAP_NEGATIVE_Z,
     }
 }
 
@@ -22,6 +25,13 @@ impl TexImageTarget {
         match *self {
             TexImageTarget::Texture2D => false,
             _ => true,
+        }
+    }
+
+    pub fn dimensions(self) -> u8 {
+        match self {
+            TexImageTarget::Texture3D | TexImageTarget::Texture2DArray => 3,
+            _ => 2,
         }
     }
 }

@@ -1555,7 +1555,7 @@ impl WebGLImpl {
             WebGLCommand::TexImage2D {
                 target,
                 level,
-                effective_internal_format,
+                internal_format,
                 size,
                 format,
                 data_type,
@@ -1567,7 +1567,7 @@ impl WebGLImpl {
                 ref data,
             } => {
                 let pixels = prepare_pixels(
-                    format,
+                    internal_format,
                     data_type,
                     size,
                     unpacking_alignment,
@@ -1581,7 +1581,7 @@ impl WebGLImpl {
                 gl.tex_image_2d(
                     target,
                     level as i32,
-                    effective_internal_format as i32,
+                    internal_format.as_gl_constant() as i32,
                     size.width as i32,
                     size.height as i32,
                     0,
@@ -1666,6 +1666,23 @@ impl WebGLImpl {
                     &*data,
                 );
             },
+            WebGLCommand::TexStorage2D(target, levels, internal_format, width, height) => gl
+                .tex_storage_2d(
+                    target,
+                    levels as i32,
+                    internal_format.as_gl_constant(),
+                    width as i32,
+                    height as i32,
+                ),
+            WebGLCommand::TexStorage3D(target, levels, internal_format, width, height, depth) => gl
+                .tex_storage_3d(
+                    target,
+                    levels as i32,
+                    internal_format.as_gl_constant(),
+                    width as i32,
+                    height as i32,
+                    depth as i32,
+                ),
             WebGLCommand::DrawingBufferWidth(ref sender) => {
                 let size = device
                     .context_surface_info(&ctx)
@@ -1820,6 +1837,11 @@ impl WebGLImpl {
             WebGLCommand::GetTexParameterInt(target, param, ref sender) => {
                 sender
                     .send(gl.get_tex_parameter_iv(target, param as u32))
+                    .unwrap();
+            },
+            WebGLCommand::GetTexParameterBool(target, param, ref sender) => {
+                sender
+                    .send(gl.get_tex_parameter_iv(target, param as u32) != 0)
                     .unwrap();
             },
             WebGLCommand::GetInternalFormatIntVec(target, internal_format, param, ref sender) => {
@@ -2756,8 +2778,10 @@ fn image_to_tex_image_data(
     }
 
     match (format, data_type) {
-        (TexFormat::RGBA, TexDataType::UnsignedByte) => pixels,
-        (TexFormat::RGB, TexDataType::UnsignedByte) => {
+        (TexFormat::RGBA, TexDataType::UnsignedByte) |
+        (TexFormat::RGBA8, TexDataType::UnsignedByte) => pixels,
+        (TexFormat::RGB, TexDataType::UnsignedByte) |
+        (TexFormat::RGB8, TexDataType::UnsignedByte) => {
             for i in 0..pixel_count {
                 let rgb = {
                     let rgb = &pixels[i * 4..i * 4 + 3];
@@ -2837,7 +2861,7 @@ fn image_to_tex_image_data(
             pixels.truncate(pixel_count * 2);
             pixels
         },
-        (TexFormat::RGBA, TexDataType::Float) => {
+        (TexFormat::RGBA, TexDataType::Float) | (TexFormat::RGBA32f, TexDataType::Float) => {
             let mut rgbaf32 = Vec::<u8>::with_capacity(pixel_count * 16);
             for rgba8 in pixels.chunks(4) {
                 rgbaf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
@@ -2848,7 +2872,7 @@ fn image_to_tex_image_data(
             rgbaf32
         },
 
-        (TexFormat::RGB, TexDataType::Float) => {
+        (TexFormat::RGB, TexDataType::Float) | (TexFormat::RGB32f, TexDataType::Float) => {
             let mut rgbf32 = Vec::<u8>::with_capacity(pixel_count * 12);
             for rgba8 in pixels.chunks(4) {
                 rgbf32.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
@@ -2858,7 +2882,7 @@ fn image_to_tex_image_data(
             rgbf32
         },
 
-        (TexFormat::Alpha, TexDataType::Float) => {
+        (TexFormat::Alpha, TexDataType::Float) | (TexFormat::Alpha32f, TexDataType::Float) => {
             for rgba8 in pixels.chunks_mut(4) {
                 let p = rgba8[3] as f32;
                 NativeEndian::write_f32(rgba8, p);
@@ -2866,7 +2890,8 @@ fn image_to_tex_image_data(
             pixels
         },
 
-        (TexFormat::Luminance, TexDataType::Float) => {
+        (TexFormat::Luminance, TexDataType::Float) |
+        (TexFormat::Luminance32f, TexDataType::Float) => {
             for rgba8 in pixels.chunks_mut(4) {
                 let p = rgba8[0] as f32;
                 NativeEndian::write_f32(rgba8, p);
@@ -2874,7 +2899,8 @@ fn image_to_tex_image_data(
             pixels
         },
 
-        (TexFormat::LuminanceAlpha, TexDataType::Float) => {
+        (TexFormat::LuminanceAlpha, TexDataType::Float) |
+        (TexFormat::LuminanceAlpha32f, TexDataType::Float) => {
             let mut data = Vec::<u8>::with_capacity(pixel_count * 8);
             for rgba8 in pixels.chunks(4) {
                 data.write_f32::<NativeEndian>(rgba8[0] as f32).unwrap();
@@ -2883,7 +2909,8 @@ fn image_to_tex_image_data(
             data
         },
 
-        (TexFormat::RGBA, TexDataType::HalfFloat) => {
+        (TexFormat::RGBA, TexDataType::HalfFloat) |
+        (TexFormat::RGBA16f, TexDataType::HalfFloat) => {
             let mut rgbaf16 = Vec::<u8>::with_capacity(pixel_count * 8);
             for rgba8 in pixels.chunks(4) {
                 rgbaf16
@@ -2902,7 +2929,7 @@ fn image_to_tex_image_data(
             rgbaf16
         },
 
-        (TexFormat::RGB, TexDataType::HalfFloat) => {
+        (TexFormat::RGB, TexDataType::HalfFloat) | (TexFormat::RGB16f, TexDataType::HalfFloat) => {
             let mut rgbf16 = Vec::<u8>::with_capacity(pixel_count * 6);
             for rgba8 in pixels.chunks(4) {
                 rgbf16
@@ -2917,7 +2944,8 @@ fn image_to_tex_image_data(
             }
             rgbf16
         },
-        (TexFormat::Alpha, TexDataType::HalfFloat) => {
+        (TexFormat::Alpha, TexDataType::HalfFloat) |
+        (TexFormat::Alpha16f, TexDataType::HalfFloat) => {
             for i in 0..pixel_count {
                 let p = f16::from_f32(pixels[i * 4 + 3] as f32).as_bits();
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
@@ -2925,7 +2953,8 @@ fn image_to_tex_image_data(
             pixels.truncate(pixel_count * 2);
             pixels
         },
-        (TexFormat::Luminance, TexDataType::HalfFloat) => {
+        (TexFormat::Luminance, TexDataType::HalfFloat) |
+        (TexFormat::Luminance16f, TexDataType::HalfFloat) => {
             for i in 0..pixel_count {
                 let p = f16::from_f32(pixels[i * 4] as f32).as_bits();
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
@@ -2933,7 +2962,8 @@ fn image_to_tex_image_data(
             pixels.truncate(pixel_count * 2);
             pixels
         },
-        (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) => {
+        (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) |
+        (TexFormat::LuminanceAlpha16f, TexDataType::HalfFloat) => {
             for rgba8 in pixels.chunks_mut(4) {
                 let lum = f16::from_f32(rgba8[0] as f32).as_bits();
                 let a = f16::from_f32(rgba8[3] as f32).as_bits();

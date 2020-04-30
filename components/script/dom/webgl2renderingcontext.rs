@@ -18,6 +18,8 @@ use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::webgl_validations::tex_image_2d::{TexStorageValidator, TexStorageValidatorResult};
+use crate::dom::webgl_validations::WebGLValidator;
 use crate::dom::webglactiveinfo::WebGLActiveInfo;
 use crate::dom::webglbuffer::WebGLBuffer;
 use crate::dom::webglframebuffer::{WebGLFramebuffer, WebGLFramebufferAttachmentRoot};
@@ -837,6 +839,55 @@ impl WebGL2RenderingContext {
             .set_vertex_attrib_type(index, constants::UNSIGNED_INT);
         self.base
             .send_command(WebGLCommand::VertexAttribU(index, x, y, z, w));
+    }
+
+    fn tex_storage(
+        &self,
+        dimensions: u8,
+        target: u32,
+        levels: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+        depth: i32,
+    ) {
+        let expected_dimensions = match target {
+            constants::TEXTURE_2D | constants::TEXTURE_CUBE_MAP => 2,
+            constants::TEXTURE_3D | constants::TEXTURE_2D_ARRAY => 3,
+            _ => return self.base.webgl_error(InvalidEnum),
+        };
+        if dimensions != expected_dimensions {
+            return self.base.webgl_error(InvalidEnum);
+        }
+
+        let validator = TexStorageValidator::new(
+            &self.base,
+            dimensions,
+            target,
+            levels,
+            internal_format,
+            width,
+            height,
+            depth,
+        );
+        let TexStorageValidatorResult {
+            texture,
+            target,
+            levels,
+            internal_format,
+            width,
+            height,
+            depth,
+        } = match validator.validate() {
+            Ok(result) => result,
+            Err(_) => return, // NB: The validator sets the correct error for us.
+        };
+
+        handle_potential_webgl_error!(
+            self.base,
+            texture.storage(target, levels, internal_format, width, height, depth),
+            return
+        );
     }
 }
 
@@ -4137,6 +4188,31 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             self.default_fb_drawbuffer.set(buffers[0]);
             self.base.send_command(WebGLCommand::DrawBuffers(buffers));
         }
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
+    fn TexStorage2D(
+        &self,
+        target: u32,
+        levels: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+    ) {
+        self.tex_storage(2, target, levels, internal_format, width, height, 1)
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
+    fn TexStorage3D(
+        &self,
+        target: u32,
+        levels: i32,
+        internal_format: u32,
+        width: i32,
+        height: i32,
+        depth: i32,
+    ) {
+        self.tex_storage(3, target, levels, internal_format, width, height, depth)
     }
 }
 
