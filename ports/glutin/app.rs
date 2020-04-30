@@ -54,7 +54,7 @@ impl App {
             ))
         };
 
-        let xr_discovery = if pref!(dom.webxr.glwindow) {
+        let xr_discovery = if pref!(dom.webxr.glwindow.enabled) {
             let window = window.clone();
             let surfman = window.webrender_surfman();
             let events_loop = events_loop.clone();

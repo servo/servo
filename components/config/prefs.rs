@@ -297,8 +297,12 @@ mod gen {
                     enabled: bool,
                     #[serde(default)]
                     test: bool,
-                    #[serde(default)]
-                    glwindow: bool,
+                    glwindow: {
+                        #[serde(default)]
+                        enabled: bool,
+                        #[serde(rename = "dom.webxr.glwindow.red-cyan")]
+                        red_cyan: bool,
+                    },
                     hands: {
                         #[serde(default)]
                         enabled: bool,
