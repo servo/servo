@@ -384,10 +384,15 @@ fn tweak_when_ignoring_colors(
             if color.0.is_transparent() {
                 return;
             }
-            let color = builder.device.default_color();
-            declarations_to_apply_unless_overriden.push(
-                PropertyDeclaration::Color(specified::ColorPropertyValue(color.into()))
-            )
+            // If the inherited color would be transparent, but we would
+            // override this with a non-transparent color, then override it with
+            // the default color. Otherwise just let it inherit through.
+            if builder.get_parent_inherited_text().clone_color().alpha == 0 {
+                let color = builder.device.default_color();
+                declarations_to_apply_unless_overriden.push(
+                    PropertyDeclaration::Color(specified::ColorPropertyValue(color.into()))
+                )
+            }
         },
         // We honor url background-images if backplating.
         #[cfg(feature = "gecko")]
