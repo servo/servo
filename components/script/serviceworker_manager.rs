@@ -212,7 +212,9 @@ impl ServiceWorkerManager {
 
     fn handle_message_from_constellation(&mut self, msg: ServiceWorkerMsg) -> bool {
         match msg {
-            ServiceWorkerMsg::Timeout(scope) => {},
+            ServiceWorkerMsg::Timeout(_scope) => {
+                // TODO: https://w3c.github.io/ServiceWorker/#terminate-service-worker
+            },
             ServiceWorkerMsg::ForwardDOMMessage(msg, scope_url) => {
                 if let Some(registration) = self.registrations.get_mut(&scope_url) {
                     if let Some(ref worker) = registration.active_worker {

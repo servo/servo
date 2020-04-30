@@ -268,15 +268,12 @@ impl ServiceWorkerGlobalScope {
         } = scope_things;
 
         let serialized_worker_url = script_url.to_string();
-        let origin = GlobalScope::current()
-            .expect("No current global object")
-            .origin()
-            .immutable()
-            .clone();
+        let origin = scope_url.origin();
         thread::Builder::new()
             .name(format!("ServiceWorker for {}", serialized_worker_url))
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
+                let runtime = new_rt_and_cx(None);
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);
 
@@ -298,34 +295,19 @@ impl ServiceWorkerGlobalScope {
                     .referrer_policy(referrer_policy)
                     .origin(origin);
 
-                let (url, source) = match load_whole_resource(
-                    request,
-                    &init.resource_threads.sender(),
-                    &GlobalScope::current().expect("No current global object"),
-                ) {
-                    Err(_) => {
-                        println!("error loading script {}", serialized_worker_url);
-                        return;
-                    },
-                    Ok((metadata, bytes)) => {
-                        (metadata.final_url, String::from_utf8(bytes).unwrap())
-                    },
-                };
-
-                let runtime = new_rt_and_cx(None);
-
-                let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
-                ROUTER
-                    .route_ipc_receiver_to_crossbeam_sender(devtools_receiver, devtools_mpsc_chan);
-
                 // Service workers are time limited
                 // https://w3c.github.io/ServiceWorker/#service-worker-lifetime
                 let sw_lifetime_timeout = pref!(dom.serviceworker.timeout_seconds) as u64;
                 let time_out_port = after(Duration::new(sw_lifetime_timeout, 0));
 
+                let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
+                ROUTER
+                    .route_ipc_receiver_to_crossbeam_sender(devtools_receiver, devtools_mpsc_chan);
+
+                let resource_threads_sender = init.resource_threads.sender();
                 let global = ServiceWorkerGlobalScope::new(
                     init,
-                    url,
+                    script_url,
                     devtools_mpsc_port,
                     runtime,
                     own_sender,
@@ -334,6 +316,19 @@ impl ServiceWorkerGlobalScope {
                     swmanager_sender,
                     scope_url,
                 );
+
+                let (_url, source) =
+                    match load_whole_resource(request, &resource_threads_sender, &*global.upcast())
+                    {
+                        Err(_) => {
+                            println!("error loading script {}", serialized_worker_url);
+                            return;
+                        },
+                        Ok((metadata, bytes)) => {
+                            (metadata.final_url, String::from_utf8(bytes).unwrap())
+                        },
+                    };
+
                 let scope = global.upcast::<WorkerGlobalScope>();
 
                 unsafe {
@@ -356,7 +351,7 @@ impl ServiceWorkerGlobalScope {
                             // until the event loop is destroyed,
                             // which happens after the closing flag is set to true,
                             // or until the worker has run beyond its allocated time.
-                            while !scope.is_closing() || !global.has_timed_out() {
+                            while !scope.is_closing() && !global.has_timed_out() {
                                 run_worker_event_loop(&*global, None);
                             }
                         },
@@ -364,6 +359,7 @@ impl ServiceWorkerGlobalScope {
                         scope.script_chan(),
                         CommonScriptMsg::CollectReports,
                     );
+                scope.clear_js_runtime();
             })
             .expect("Thread spawning failed");
     }
@@ -390,15 +386,10 @@ impl ServiceWorkerGlobalScope {
     }
 
     fn has_timed_out(&self) -> bool {
-        // Note: this should be included in the `select` inside `run_worker_event_loop`,
-        // otherwise a block on the select can prevent the timeout.
-        if self.time_out_port.try_recv().is_ok() {
-            let _ = self
-                .swmanager_sender
-                .send(ServiceWorkerMsg::Timeout(self.scope_url.clone()));
-            return true;
-        }
-        false
+        // TODO: https://w3c.github.io/ServiceWorker/#service-worker-lifetime
+        // Since we don't have a shutdown mechanism yet, see #26548
+        // immediately stop the event-loop after executing the initial script.
+        true
     }
 
     fn handle_script_event(&self, msg: ServiceWorkerScriptMsg) {
