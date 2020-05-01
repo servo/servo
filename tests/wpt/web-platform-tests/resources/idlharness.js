@@ -679,6 +679,7 @@ IdlArray.prototype.is_json_type = function(type)
        case "Uint32Array":
        case "Uint8ClampedArray":
        case "Float32Array":
+       case "Float64Array":
        case "ArrayBuffer":
        case "DataView":
        case "any":
@@ -1033,6 +1034,13 @@ IdlArray.prototype.assert_type_is = function(value, type)
         this.assert_type_is(value, this.members[type.idlType].idlType);
         return;
     }
+
+    if (type.nullable && value === null)
+    {
+        // This is fine
+        return;
+    }
+
     if (type.union) {
         for (var i = 0; i < type.idlType.length; i++) {
             try {
@@ -1063,12 +1071,6 @@ IdlArray.prototype.assert_type_is = function(value, type)
     if (type.idlType == "any")
     {
         // No assertions to make
-        return;
-    }
-
-    if (type.nullable && value === null)
-    {
-        // This is fine
         return;
     }
 
@@ -1207,8 +1209,18 @@ IdlArray.prototype.assert_type_is = function(value, type)
             assert_regexp_match(value, /^([\x00-\ud7ff\ue000-\uffff]|[\ud800-\udbff][\udc00-\udfff])*$/);
             return;
 
+        case "Int8Array":
+        case "Int16Array":
+        case "Int32Array":
+        case "Uint8Array":
+        case "Uint16Array":
+        case "Uint32Array":
+        case "Uint8ClampedArray":
+        case "Float32Array":
+        case "Float64Array":
+        case "ArrayBuffer":
         case "DataView":
-            assert_equals(typeof value, "DataView");
+            assert_true(value instanceof self[type], "wrong type: not a " + type);
             return;
 
         case "object":

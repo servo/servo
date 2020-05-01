@@ -88,7 +88,7 @@ async function checkAbsCaptureTimeAndExchangeAnswer(caller, callee,
   if (answer.sdp.match(extmap) == null) {
     // We expect that absolute capture time RTP header extension is answered.
     // But if not, there is no need to proceed with the test.
-    assert_precondition(!absCaptureTimeAnswered, 'Absolute capture time RTP ' +
+    assert_false(absCaptureTimeAnswered, 'Absolute capture time RTP ' +
         'header extension is not answered');
   } else {
     if (!absCaptureTimeAnswered) {

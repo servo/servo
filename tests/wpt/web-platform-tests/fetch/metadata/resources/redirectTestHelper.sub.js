@@ -23,7 +23,7 @@ let insecureTestURL = 'http://{{host}}:{{ports[http][0]}}/fetch/metadata/';
 // simulate us downgrading then upgrading again during the same redirect chain.
 function MultipleRedirectTo(partialPath) {
   let finalURL = insecureRedirectURL + encodeURIComponent(secureTestURL + partialPath);
-  return insecureRedirectURL + encodeURIComponent(finalURL);
+  return secureRedirectURL + encodeURIComponent(finalURL);
 }
 
 // Helper to craft an URL that will go from HTTP => HTTPS to simulate upgrading a

@@ -189,32 +189,142 @@ function simulateGATTDisconnectionAndWait(device, fake_peripheral) {
   ]);
 }
 
-/**
- * Returns an array containing two FakePeripherals corresponding
- * to the simulated devices.
- * @returns {Promise<Array<FakePeripheral>>} The fake devices are initialized as
- *     Health Thermometer and Heart Rate devices.
- */
-async function setUpHealthThermometerAndHeartRateDevices() {
-  let fake_central =
-      await navigator.bluetooth.test.simulateCentral({state: 'powered-on'});
-  return Promise.all([
-    fake_central.simulatePreconnectedPeripheral({
-      address: '09:09:09:09:09:09',
-      name: 'Health Thermometer',
-      knownServiceUUIDs: ['generic_access', 'health_thermometer'],
-    }),
-    fake_central.simulatePreconnectedPeripheral({
-      address: '08:08:08:08:08:08',
-      name: 'Heart Rate',
-      knownServiceUUIDs: ['generic_access', 'heart_rate'],
-    })
-  ]);
+/** @type {FakeCentral} The fake adapter for the current test. */
+let fake_central = null;
+
+async function initializeFakeCentral({state = 'powered-on'}) {
+  if (!fake_central) {
+    fake_central = await navigator.bluetooth.test.simulateCentral({state});
+  }
 }
 
 /**
- * Simulates a pre-connected device with |address|, |name| and
- * |knownServiceUUIDs|.
+ * A dictionary for specifying fake Bluetooth device setup options.
+ * @typedef {{address: !string, name: !string,
+ *            knownServiceUUIDs: !Array<string>, connectable: !boolean,
+ *            serviceDiscoveryComplete: !boolean}}
+ */
+let FakeDeviceOptions;
+
+/**
+ * @typedef {{fakeDeviceOptions: FakeDeviceOptions,
+ *            requestDeviceOptions: RequestDeviceOptions}}
+ */
+let SetupOptions;
+
+/**
+ * Default options for setting up a Bluetooth device.
+ * @type {FakeDeviceOptions}
+ */
+const fakeDeviceOptionsDefault = {
+  address: '00:00:00:00:00:00',
+  name: 'LE Device',
+  knownServiceUUIDs: [],
+  connectable: false,
+  serviceDiscoveryComplete: false,
+};
+
+/**
+ * A dictionary containing the fake Bluetooth device object. The dictionary can
+ * optionally contain its fake services and its BluetoothDevice counterpart.
+ * @typedef {{fake_peripheral: !FakePeripheral,
+ *            fake_services: Object<string, FakeService>,
+ *            device: BluetoothDevice}}
+ */
+let FakeDevice;
+
+/**
+ * Creates a SetupOptions object using |setupOptionsDefault| as the base options
+ * object with the options from |setupOptionsOverride| overriding these
+ * defaults.
+ * @param {SetupOptions} setupOptionsDefault The default options object to use
+ *     as the base.
+ * @param {SetupOptions} setupOptionsOverride The options to override the
+ *     defaults with.
+ * @returns {SetupOptions} The merged setup options containing the defaults with
+ *     the overrides applied.
+ */
+function createSetupOptions(setupOptionsDefault, setupOptionsOverride) {
+  // Merge the properties of |setupOptionsDefault| and |setupOptionsOverride|
+  // without modifying |setupOptionsDefault|.
+  let fakeDeviceOptions = Object.assign(
+      {...setupOptionsDefault.fakeDeviceOptions},
+      setupOptionsOverride.fakeDeviceOptions);
+  let requestDeviceOptions = Object.assign(
+      {...setupOptionsDefault.requestDeviceOptions},
+      setupOptionsOverride.requestDeviceOptions);
+
+  return {fakeDeviceOptions, requestDeviceOptions};
+}
+
+/**
+ * Adds a preconnected device with the given options. A preconnected device is a
+ * device that has been paired with the system previously. This can be done if,
+ * for example, the user pairs the device using the OS'es settings.
+ *
+ * By default, the preconnected device will be set up using the
+ * |fakeDeviceOptionsDefault| and will not use a RequestDeviceOption object.
+ * This means that the device will not be requested during the setup.
+ *
+ * If |setupOptionsOverride| is provided, these options will override the
+ * defaults. If |setupOptionsOverride| includes the requestDeviceOptions
+ * property, then the device will be requested using those options.
+ * @param {SetupOptions} setupOptionsOverride An object containing options for
+ *     setting up a fake Bluetooth device and for requesting the device.
+ * @returns {Promise<FakeDevice>} The device fake initialized with the
+ *     parameter values.
+ */
+async function setUpPreconnectedFakeDevice(setupOptionsOverride) {
+  await initializeFakeCentral({state: 'powered-on'});
+
+  let setupOptions = createSetupOptions(
+      {fakeDeviceOptions: fakeDeviceOptionsDefault}, setupOptionsOverride);
+
+  // Simulate the fake peripheral.
+  let preconnectedDevice = {};
+  preconnectedDevice.fake_peripheral =
+      await fake_central.simulatePreconnectedPeripheral({
+        address: setupOptions.fakeDeviceOptions.address,
+        name: setupOptions.fakeDeviceOptions.name,
+        knownServiceUUIDs: setupOptions.fakeDeviceOptions.knownServiceUUIDs,
+      });
+
+  if (setupOptions.fakeDeviceOptions.connectable) {
+    await preconnectedDevice.fake_peripheral.setNextGATTConnectionResponse(
+        {code: HCI_SUCCESS});
+  }
+
+  // Add known services.
+  preconnectedDevice.fake_services = new Map();
+  for (let service of setupOptions.fakeDeviceOptions.knownServiceUUIDs) {
+    let fake_service = await preconnectedDevice.fake_peripheral.addFakeService(
+        {uuid: service});
+    preconnectedDevice.fake_services.set(service, fake_service);
+  }
+
+  // Request the device if options have been provided.
+  if (setupOptions.requestDeviceOptions) {
+    preconnectedDevice.device =
+        await requestDeviceWithTrustedClick(setupOptions.requestDeviceOptions);
+  }
+
+  // Set up services discovered state.
+  if (setupOptions.fakeDeviceOptions.serviceDiscoveryComplete) {
+    await preconnectedDevice.fake_peripheral.setNextGATTDiscoveryResponse(
+        {code: HCI_SUCCESS});
+  }
+
+  return preconnectedDevice;
+}
+
+/**
+ * Deprecated: Use setUpPreconnectedFakeDevice() instead.
+ * Simulates a preconnected device with |address|, |name| and
+ * |knownServiceUUIDs|. A preconnected device is a device that has been paired
+ * with the system previously. This can be done if, for example, the user pairs
+ * the device using the OS'es settings.
+ * TODO(https://crbug.com/1070816): Remove this method when all uses have been
+ * converted to using setUpPreconnectedFakeDevice();
  * @param {string} address The device MAC address.
  * @param {string} name The device name.
  * @param {Array<string>} knownServiceUUIDs An array of GATT service UUIDs to
@@ -227,9 +337,8 @@ async function setUpPreconnectedDevice({
   name = 'LE Device',
   knownServiceUUIDs = []
 }) {
-  let fake_central =
-      await navigator.bluetooth.test.simulateCentral({state: 'powered-on'})
-  return fake_central.simulatePreconnectedPeripheral({
+  await initializeFakeCentral({state: 'powered-on'});
+  return await fake_central.simulatePreconnectedPeripheral({
     address: address,
     name: name,
     knownServiceUUIDs: knownServiceUUIDs,
@@ -237,6 +346,26 @@ async function setUpPreconnectedDevice({
 }
 
 /** Blocklisted GATT Device Helper Methods */
+
+/** @type {FakeDeviceOptions} */
+const blocklistFakeDeviceOptionsDefault = {
+  address: '11:11:11:11:11:11',
+  name: 'Blocklist Device',
+  knownServiceUUIDs: ['generic_access', blocklist_test_service_uuid],
+  connectable: true,
+  serviceDiscoveryComplete: true
+};
+
+/** @type {RequestDeviceOptions} */
+const blocklistRequestDeviceOptionsDefault = {
+  filters: [{services: [blocklist_test_service_uuid]}]
+};
+
+/** @type {SetupOptions} */
+const blocklistSetupOptionsDefault = {
+  fakeDeviceOptions: blocklistFakeDeviceOptionsDefault,
+  requestDeviceOptions: blocklistRequestDeviceOptionsDefault
+};
 
 /**
  * Returns an object containing a BluetoothDevice discovered using |options|,
@@ -268,22 +397,15 @@ async function setUpPreconnectedDevice({
  *         object containing the BluetoothDevice object and its corresponding
  *         GATT fake objects.
  */
-async function getBlocklistDevice(options = {
-  filters: [{services: [blocklist_test_service_uuid]}]
-}) {
-  let fake_peripheral = await setUpPreconnectedDevice({
-    address: '11:11:11:11:11:11',
-    name: 'Blocklist Device',
-    knownServiceUUIDs: ['generic_access', blocklist_test_service_uuid],
-  })
-  let device = await requestDeviceWithTrustedClick(options);
-  await fake_peripheral.setNextGATTConnectionResponse({
-    code: HCI_SUCCESS,
-  });
-  await device.gatt.connect();
-  let fake_blocklist_test_service = await fake_peripheral.addFakeService({
-    uuid: blocklist_test_service_uuid,
-  });
+async function getBlocklistDevice(setupOptionsOverride = {}) {
+  let setupOptions =
+      createSetupOptions(blocklistSetupOptionsDefault, setupOptionsOverride);
+  let fakeDevice = await setUpPreconnectedFakeDevice(setupOptions);
+  await fakeDevice.device.gatt.connect();
+
+  let fake_blocklist_test_service =
+      fakeDevice.fake_services.get(blocklist_test_service_uuid);
+
   let fake_blocklist_exclude_reads_characteristic =
       await fake_blocklist_test_service.addFakeCharacteristic({
         uuid: blocklist_exclude_reads_characteristic_uuid,
@@ -294,6 +416,7 @@ async function getBlocklistDevice(options = {
         uuid: 'gap.peripheral_privacy_flag',
         properties: ['read', 'write'],
       });
+
   let fake_blocklist_descriptor =
       await fake_blocklist_exclude_writes_characteristic.addFakeDescriptor(
           {uuid: blocklist_test_descriptor_uuid});
@@ -303,10 +426,9 @@ async function getBlocklistDevice(options = {
   let fake_blocklist_exclude_writes_descriptor =
       await fake_blocklist_exclude_writes_characteristic.addFakeDescriptor(
           {uuid: 'gatt.client_characteristic_configuration'});
-  await fake_peripheral.setNextGATTDiscoveryResponse({code: HCI_SUCCESS});
   return {
-    device,
-    fake_peripheral,
+    device: fakeDevice.device,
+    fake_peripheral: fakeDevice.fake_peripheral,
     fake_blocklist_test_service,
     fake_blocklist_exclude_reads_characteristic,
     fake_blocklist_exclude_writes_characteristic,
@@ -464,6 +586,31 @@ async function getBlocklistExcludeWritesDescriptor() {
 
 /** Bluetooth HID Device Helper Methods */
 
+/** @type {FakeDeviceOptions} */
+const connectedHIDFakeDeviceOptionsDefault = {
+  address: '10:10:10:10:10:10',
+  name: 'HID Device',
+  knownServiceUUIDs: [
+    'generic_access',
+    'device_information',
+    'human_interface_device',
+  ],
+  connectable: true,
+  serviceDiscoveryComplete: false
+};
+
+/** @type {RequestDeviceOptions} */
+const connectedHIDRequestDeviceOptionsDefault = {
+  filters: [{services: ['device_information']}],
+  optionalServices: ['human_interface_device']
+};
+
+/** @type {SetupOptions} */
+const connectedHIDSetupOptionsDefault = {
+  fakeDeviceOptions: connectedHIDFakeDeviceOptionsDefault,
+  requestDeviceOptions: connectedHIDRequestDeviceOptionsDefault
+};
+
 /**
  * Similar to getHealthThermometerDevice except the GATT discovery
  * response has not been set yet so more attributes can still be added.
@@ -473,37 +620,24 @@ async function getBlocklistExcludeWritesDescriptor() {
  * @returns {device: BluetoothDevice, fake_peripheral: FakePeripheral} An object
  *     containing a requested BluetoothDevice and its fake counter part.
  */
-async function getConnectedHIDDevice(options) {
-  let fake_peripheral = await setUpPreconnectedDevice({
-    address: '10:10:10:10:10:10',
-    name: 'HID Device',
-    knownServiceUUIDs: [
-      'generic_access',
-      'device_information',
-      'human_interface_device',
-    ],
+async function getConnectedHIDDevice(
+    requestDeviceOptionsOverride, fakeDeviceOptionsOverride) {
+  let setupOptions = createSetupOptions(connectedHIDSetupOptionsDefault, {
+    fakeDeviceOptions: fakeDeviceOptionsOverride,
+    requestDeviceOptions: requestDeviceOptionsOverride
   });
-  let device = await requestDeviceWithTrustedClick(options);
-  await fake_peripheral.setNextGATTConnectionResponse({
-    code: HCI_SUCCESS,
-  });
-  await device.gatt.connect();
-  await fake_peripheral.addFakeService({
-    uuid: 'generic_access',
-  });
-  let dev_info = await fake_peripheral.addFakeService({
-    uuid: 'device_information',
-  });
+
+  let fakeDevice = await setUpPreconnectedFakeDevice(setupOptions);
+  await fakeDevice.device.gatt.connect();
+
   // Blocklisted Characteristic:
   // https://github.com/WebBluetoothCG/registries/blob/master/gatt_blocklist.txt
+  let dev_info = fakeDevice.fake_services.get('device_information');
   await dev_info.addFakeCharacteristic({
     uuid: 'serial_number_string',
     properties: ['read'],
   });
-  await fake_peripheral.addFakeService({
-    uuid: 'human_interface_device',
-  });
-  return {device, fake_peripheral};
+  return fakeDevice;
 }
 
 /**
@@ -520,10 +654,8 @@ async function getConnectedHIDDevice(options) {
  *     containing a requested BluetoothDevice and its fake counter part.
  */
 async function getHIDDevice(options) {
-  let result = await getConnectedHIDDevice(options);
-  await result.fake_peripheral.setNextGATTDiscoveryResponse({
-    code: HCI_SUCCESS,
-  });
+  let result =
+      await getConnectedHIDDevice(options, {serviceDiscoveryComplete: true});
   return result;
 }
 
@@ -912,4 +1044,26 @@ async function getUserDescriptionDescriptor() {
     descriptor,
     fake_descriptor: result.fake_user_description,
   });
+}
+
+/**
+ * Returns an array containing two FakePeripherals corresponding
+ * to the simulated devices.
+ * @returns {Promise<Array<FakePeripheral>>} The device fakes initialized as
+ *     Health Thermometer and Heart Rate devices.
+ */
+async function setUpHealthThermometerAndHeartRateDevices() {
+  await initializeFakeCentral({state: 'powered-on'});
+  return Promise.all([
+    fake_central.simulatePreconnectedPeripheral({
+      address: '09:09:09:09:09:09',
+      name: 'Health Thermometer',
+      knownServiceUUIDs: ['generic_access', 'health_thermometer'],
+    }),
+    fake_central.simulatePreconnectedPeripheral({
+      address: '08:08:08:08:08:08',
+      name: 'Heart Rate',
+      knownServiceUUIDs: ['generic_access', 'heart_rate'],
+    })
+  ]);
 }

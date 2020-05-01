@@ -29,8 +29,13 @@ function entryToJson(entry) {
     intersectionRect: clientRectToJson(entry.intersectionRect),
     rootBounds: clientRectToJson(entry.rootBounds),
     isIntersecting: entry.isIntersecting,
-    target: entry.target.id
+    target: entry.target === document.documentElement ? "html" : entry.target.id
   };
+}
+
+function boundingClientRectToJson(element) {
+  let r = element.getBoundingClientRect();
+  return [r.left, r.right, r.top, r.bottom];
 }
 
 // Note that we never use RAF in this code, because this frame might get render-throttled.
@@ -43,6 +48,7 @@ var observer = new IntersectionObserver(function(changes) {
 }, { rootMargin: "7px" });
 observer.observe(target);
 observer.observe(emptyTarget);
+observer.observe(document.documentElement);
 
 function step0() {
   entries = entries.concat(observer.takeRecords());
@@ -59,6 +65,12 @@ function step0() {
     rootBounds: "null",
     isIntersecting: false,
     target: emptyTarget.id
+  }, {
+    boundingClientRect: boundingClientRectToJson(document.documentElement),
+    intersectionRect: [0, 0, 0, 0],
+    rootBounds: "null",
+    isIntersecting: false,
+    target: "html"
   }];
   port.postMessage({
     actual: entries.map(entryToJson),
@@ -71,9 +83,21 @@ function step0() {
 
 function step1() {
   entries = entries.concat(observer.takeRecords());
+  var client_rect = boundingClientRectToJson(document.documentElement);
+  // When the top document is scrolled all the way up, the iframe element is
+  // 108px below the scrolling viewport, and the iframe has a 2px border. When
+  // the top document is scrolled to y=200, the top 90px of the iframe's content
+  // is visible.
+  var expected = [{
+    boundingClientRect: client_rect,
+    intersectionRect: client_rect.slice(0, 3).concat(90),
+    rootBounds: "null",
+    isIntersecting: true,
+    target: "html"
+  }];
   port.postMessage({
     actual: entries.map(entryToJson),
-    expected: [],
+    expected: expected,
     description: "topDocument.scrollingElement.scrollTop = 200"
   }, "*");
   entries = [];
@@ -121,6 +145,12 @@ function step3() {
     rootBounds: "null",
     isIntersecting: false,
     target: emptyTarget.id
+  }, {
+    boundingClientRect: boundingClientRectToJson(document.documentElement),
+    intersectionRect: [0, 0, 0, 0],
+    rootBounds: "null",
+    isIntersecting: false,
+    target: "html"
   }];
   port.postMessage({
     actual: entries.map(entryToJson),
