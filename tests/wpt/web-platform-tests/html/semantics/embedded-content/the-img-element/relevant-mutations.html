@@ -45,6 +45,32 @@
 <img src="/images/green-2x2.png" crossorigin=use-credentials data-desc="crossorigin use-credentials to anonymous, src already set">
 <img src="/images/green-2x2.png" crossorigin=use-credentials data-desc="crossorigin use-credentials to invalid, src already set">
 
+<img data-desc="referrerpolicy absent to no-referrer-when-downgrade, src absent">
+<img data-desc="referrerpolicy absent to no-referrer, src absent">
+<img referrerpolicy data-desc="referrerpolicy empty to no-referrer-when-downgrade, src absent">
+<img referrerpolicy data-desc="referrerpolicy empty to no-referrer, src absent">
+<img referrerpolicy=no-referrer-when-downgrade data-desc="referrerpolicy no-referrer-when-downgrade to absent, src absent">
+<img referrerpolicy=no-referrer-when-downgrade data-desc="referrerpolicy no-referrer-when-downgrade to empty, src absent">
+<img referrerpolicy=no-referrer-when-downgrade data-desc="referrerpolicy no-referrer-when-downgrade to no-referrer, src absent">
+<img referrerpolicy=no-referrer-when-downgrade data-desc="referrerpolicy no-referrer-when-downgrade to invalid, src absent">
+<img referrerpolicy=no-referrer data-desc="referrerpolicy no-referrer to absent, src absent">
+<img referrerpolicy=no-referrer data-desc="referrerpolicy no-referrer to empty, src absent">
+<img referrerpolicy=no-referrer data-desc="referrerpolicy no-referrer to no-referrer-when-downgrade, src absent">
+<img referrerpolicy=no-referrer data-desc="referrerpolicy no-referrer to invalid, src absent">
+
+<img src="/images/green-2x2.png" data-desc="referrerpolicy absent to no-referrer-when-downgrade, src already set">
+<img src="/images/green-2x2.png" data-desc="referrerpolicy absent to no-referrer, src already set">
+<img src="/images/green-2x2.png" referrerpolicy data-desc="referrerpolicy empty to no-referrer-when-downgrade, src already set">
+<img src="/images/green-2x2.png" referrerpolicy data-desc="referrerpolicy empty to no-referrer, src already set">
+<img src="/images/green-2x2.png" referrerpolicy=no-referrer-when-downgrade data-desc="referrerpolicy no-referrer-when-downgrade to absent, src already set">
+<img src="/images/green-2x2.png" referrerpolicy=no-referrer-when-downgrade data-desc="referrerpolicy no-referrer-when-downgrade to empty, src already set">
+<img src="/images/green-2x2.png" referrerpolicy=no-referrer-when-downgrade data-desc="referrerpolicy no-referrer-when-downgrade to no-referrer, src already set">
+<img src="/images/green-2x2.png" referrerpolicy=no-referrer-when-downgrade data-desc="referrerpolicy no-referrer-when-downgrade to invalid, src already set">
+<img src="/images/green-2x2.png" referrerpolicy=no-referrer data-desc="referrerpolicy no-referrer to absent, src already set">
+<img src="/images/green-2x2.png" referrerpolicy=no-referrer data-desc="referrerpolicy no-referrer to empty, src already set">
+<img src="/images/green-2x2.png" referrerpolicy=no-referrer data-desc="referrerpolicy no-referrer to no-referrer-when-downgrade, src already set">
+<img src="/images/green-2x2.png" referrerpolicy=no-referrer data-desc="referrerpolicy no-referrer to invalid, src already set">
+
 <img src="/images/green-2x2.png" data-desc="inserted into picture"><picture></picture>
 
 <picture><img src="/images/green-2x2.png" data-desc="removed from picture"></picture>
@@ -78,6 +104,13 @@
 <img src="/images/green-2x2.png" crossorigin data-desc="crossorigin state not changed: empty to anonymous">
 <img src="/images/green-2x2.png" crossorigin=anonymous data-desc="crossorigin state not changed: anonymous to foobar">
 <img src="/images/green-2x2.png" crossorigin=use-credentials data-desc="crossorigin state not changed: use-credentials to USE-CREDENTIALS">
+
+<img src="/images/green-2x2.png" data-desc="referrerpolicy state not changed: absent, removeAttribute">
+<img src="/images/green-2x2.png" referrerpolicy data-desc="referrerpolicy state not changed: empty to empty">
+<img src="/images/green-2x2.png" referrerpolicy data-desc="referrerpolicy state not changed: empty to invalid">
+<img src="/images/green-2x2.png" data-desc="referrerpolicy state not changed: absent to invalid">
+<img src="/images/green-2x2.png" referrerpolicy=no-referrer data-desc="referrerpolicy state not changed: no-referrer to NO-REFERRER">
+<img src="/images/green-2x2.png" referrerpolicy=foobar data-desc="referrerpolicy state not changed: invalid to other-invalid">
 
 <img src="/images/green-2x2.png" data-desc="inserted into picture ancestor"><picture><span></span></picture>
 <picture><span><img src="/images/green-2x2.png" data-desc="removed from picture ancestor"></span></picture>
@@ -273,6 +306,109 @@ onload = function() {
     img.crossOrigin = 'foobar';
   }, 'load');
 
+  // When src is absent, changing the referrerpolicy attribute state MUST NOT
+  // generate events.
+
+  t('referrerpolicy absent to no-referrer-when-downgrade, src absent', function(img) {
+    img.referrerPolicy = 'no-referrer-when-downgrade';
+  }, 'timeout');
+
+  t('referrerpolicy absent to no-referrer, src absent', function(img) {
+    img.referrerPolicy = 'no-referrer';
+  }, 'timeout');
+
+  t('referrerpolicy empty to no-referrer-when-downgrade, src absent', function(img) {
+    img.referrerPolicy = 'no-referrer-when-downgrade';
+  }, 'timeout');
+
+  t('referrerpolicy empty to no-referrer, src absent', function(img) {
+    img.referrerPolicy = 'no-referrer';
+  }, 'timeout');
+
+  t('referrerpolicy no-referrer-when-downgrade to absent, src absent', function(img) {
+    img.removeAttribute('referrerpolicy');
+  }, 'timeout');
+
+  t('referrerpolicy no-referrer-when-downgrade to empty, src absent', function(img) {
+    img.referrerPolicy = '';
+  }, 'timeout');
+
+  t('referrerpolicy no-referrer-when-downgrade to no-referrer, src absent', function(img) {
+    img.referrerPolicy = 'no-referrer';
+  }, 'timeout');
+
+  t('referrerpolicy no-referrer-when-downgrade to invalid, src absent', function(img) {
+    img.referrerPolicy = 'foobar';
+  }, 'timeout');
+
+  t('referrerpolicy no-referrer to absent, src absent', function(img) {
+    img.removeAttribute('referrerpolicy');
+  }, 'timeout');
+
+  t('referrerpolicy no-referrer to empty, src absent', function(img) {
+    img.referrerPolicy = '';
+  }, 'timeout');
+
+  t('referrerpolicy no-referrer to no-referrer-when-downgrade, src absent', function(img) {
+    img.referrerPolicy = 'no-referrer-when-downgrade';
+  }, 'timeout');
+
+  t('referrerpolicy no-referrer to invalid, src absent', function(img) {
+    img.removeAttribute('referrerpolicy');
+  }, 'timeout');
+
+  // When src is set, changing the referrerpolicy attribute state MUST generate
+  // events.
+
+  t('referrerpolicy absent to no-referrer-when-downgrade, src already set', function(img) {
+    img.referrerPolicy = 'no-referrer-when-downgrade';
+  }, 'load');
+
+  t('referrerpolicy absent to no-referrer, src already set', function(img) {
+    img.referrerPolicy = 'no-referrer';
+  }, 'load');
+
+  t('referrerpolicy empty to no-referrer-when-downgrade, src already set', function(img) {
+    img.referrerPolicy = 'no-referrer-when-downgrade';
+  }, 'load');
+
+  t('referrerpolicy empty to no-referrer, src already set', function(img) {
+    img.referrerPolicy = 'no-referrer';
+  }, 'load');
+
+  t('referrerpolicy no-referrer-when-downgrade to absent, src already set', function(img) {
+    img.removeAttribute('referrerpolicy');
+  }, 'load');
+
+  t('referrerpolicy no-referrer-when-downgrade to empty, src already set', function(img) {
+    img.referrerPolicy = '';
+  }, 'load');
+
+  t('referrerpolicy no-referrer-when-downgrade to no-referrer, src already set', function(img) {
+    img.referrerPolicy = 'no-referrer';
+  }, 'load');
+
+  t('referrerpolicy no-referrer-when-downgrade to invalid, src already set', function(img) {
+    img.referrerPolicy = 'foobar';
+  }, 'load');
+
+  t('referrerpolicy no-referrer to absent, src already set', function(img) {
+    img.removeAttribute('referrerpolicy');
+  }, 'load');
+
+  t('referrerpolicy no-referrer to empty, src already set', function(img) {
+    img.referrerPolicy = '';
+  }, 'load');
+
+  t('referrerpolicy no-referrer to no-referrer-when-downgrade, src already set', function(img) {
+    img.referrerPolicy = 'no-referrer-when-downgrade';
+  }, 'load');
+
+  t('referrerpolicy no-referrer to invalid, src already set', function(img) {
+    img.removeAttribute('referrerpolicy');
+  }, 'load');
+
+
   t('inserted into picture', function(img) {
     img.nextSibling.appendChild(img);
   }, 'load');
@@ -359,6 +495,30 @@ onload = function() {
 
   t('crossorigin state not changed: use-credentials to USE-CREDENTIALS', function(img) {
     img.crossOrigin = 'USE-CREDENTIALS';
+  }, 'timeout');
+
+  t('referrerpolicy state not changed: absent, removeAttribute', function(img) {
+    img.removeAttribute('referrerpolicy');
+  }, 'timeout');
+
+  t('referrerpolicy state not changed: empty to empty', function(img) {
+    img.referrerPolicy = '';
+  }, 'timeout');
+
+  t('referrerpolicy state not changed: empty to invalid', function(img) {
+    img.referrerPolicy = 'foobar';
+  }, 'timeout');
+
+  t('referrerpolicy state not changed: absent to invalid', function(img) {
+    img.referrerPolicy = 'foobar';
+  }, 'timeout');
+
+  t('referrerpolicy state not changed: no-referrer to NO-REFERRER', function(img) {
+    img.referrerPolicy = 'NO-REFERRER';
+  }, 'timeout');
+
+  t('referrerpolicy state not changed: invalid to other-invalid', function(img) {
+    img.referrerPolicy = 'foobar2';
   }, 'timeout');
 
   t('inserted into picture ancestor', function(img) {

@@ -825,7 +825,7 @@ class MockRuntime {
                                                         .filter(input_source => input_source.profiles_.includes(subscription.profileName));
 
       for (const input_source of matching_input_sources) {
-        const mojo_from_native_origin = this._getMojoFromInputSource(mojo_from_viewer, input_source);
+        const mojo_from_native_origin = input_source._getMojoFromInputSource(mojo_from_viewer);
 
         const [mojo_ray_origin, mojo_ray_direction] = this._transformRayToMojoSpace(
           subscription.ray,
@@ -1014,29 +1014,6 @@ class MockRuntime {
     }
   }
 
-  _getMojoFromInputSource(mojo_from_viewer, input_source) {
-    if (input_source.target_ray_mode_ === 'gaze') {  // XRTargetRayMode::GAZING
-      // If the pointer origin is gaze, then the result is
-      // just mojo_from_viewer.
-      return mojo_from_viewer;
-    } else if (input_source.target_ray_mode_ === 'tracked-pointer') {  // XRTargetRayMode:::POINTING
-      // If the pointer origin is tracked-pointer, the result is just
-      // mojo_from_input*input_from_pointer.
-      return XRMathHelper.mul4x4(
-        input_source.mojo_from_input_.matrix,
-        input_source.input_from_pointer_.matrix);
-    } else if (input_source.target_ray_mode_ === 'screen') { // XRTargetRayMode::TAPPING
-      // If the pointer origin is screen, the input_from_pointer is
-      // equivalent to viewer_from_pointer and the result is
-      // mojo_from_viewer*viewer_from_pointer.
-      return XRMathHelper.mul4x4(
-        mojo_from_viewer,
-        input_source.input_from_pointer_.matrix);
-    } else {
-      return null;
-    }
-  }
-
   _getMojoFromViewer() {
     const transform = {
       position: [
@@ -1054,15 +1031,6 @@ class MockRuntime {
   }
 
   _getMojoFromNativeOrigin(nativeOriginInformation) {
-    const identity = function() {
-      return [
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1
-      ];
-    };
-
     const mojo_from_viewer = this._getMojoFromViewer();
 
     if (nativeOriginInformation.$tag == device.mojom.XRNativeOriginInformation.Tags.inputSourceId) {
@@ -1070,12 +1038,12 @@ class MockRuntime {
         return null;
       } else {
         const inputSource = this.input_sources_.get(nativeOriginInformation.inputSourceId);
-        return this._getMojoFromInputSource(mojo_from_viewer, inputSource);
+        return inputSource._getMojoFromInputSource(mojo_from_viewer);
       }
     } else if (nativeOriginInformation.$tag == device.mojom.XRNativeOriginInformation.Tags.referenceSpaceCategory) {
       switch (nativeOriginInformation.referenceSpaceCategory) {
         case device.mojom.XRReferenceSpaceCategory.LOCAL:
-          return identity();
+          return XRMathHelper.identity();
         case device.mojom.XRReferenceSpaceCategory.LOCAL_FLOOR:
           if (this.stageParameters_ == null || this.stageParameters_.standingTransform == null) {
             console.warn("Standing transform not available.");
@@ -1166,9 +1134,14 @@ class MockXRInputSource {
 
   setGripOrigin(transform, emulatedPosition = false) {
     // grip_origin was renamed to mojo_from_input in mojo
-    this.mojo_from_input_ = new gfx.mojom.Transform();
-    this.mojo_from_input_.matrix = getMatrixFromTransform(transform);
+    this.mojo_from_input_ = composeGFXTransform(transform);
     this.emulated_position_ = emulatedPosition;
+
+    // Technically, setting the grip shouldn't make the description dirty, but
+    // the webxr-test-api sets our pointer as mojoFromPointer; however, we only
+    // support it across mojom as inputFromPointer, so we need to recalculate it
+    // whenever the grip moves.
+    this.desc_dirty_ = true;
   }
 
   clearGripOrigin() {
@@ -1176,14 +1149,14 @@ class MockXRInputSource {
     if (this.mojo_from_input_ != null) {
       this.mojo_from_input_ = null;
       this.emulated_position_ = false;
+      this.desc_dirty_ = true;
     }
   }
 
   setPointerOrigin(transform, emulatedPosition = false) {
-    // pointer_origin was renamed to input_from_pointer in mojo
+    // pointer_origin is mojo_from_pointer.
     this.desc_dirty_ = true;
-    this.input_from_pointer_ = new gfx.mojom.Transform();
-    this.input_from_pointer_.matrix = getMatrixFromTransform(transform);
+    this.mojo_from_pointer_ = composeGFXTransform(transform);
     this.emulated_position_ = emulatedPosition;
   }
 
@@ -1362,7 +1335,39 @@ class MockXRInputSource {
           break;
       }
 
-      input_desc.inputFromPointer = this.input_from_pointer_;
+      // Mojo requires us to send the pointerOrigin as relative to the grip
+      // space. If we don't have a grip space, we'll just assume that there
+      // is a grip at identity. This allows tests to simulate controllers that
+      // are really just a pointer with no tracked grip, though we will end up
+      // exposing that grip space.
+      let mojo_from_input = XRMathHelper.identity();
+      switch (this.target_ray_mode_) {
+        case 'gaze':
+        case 'screen':
+          // For gaze and screen space, we won't have a mojo_from_input; however
+          // the "input" position is just the viewer, so use mojo_from_viewer.
+          mojo_from_input = this.pairedDevice_._getMojoFromViewer();
+          break;
+        case 'tracked-pointer':
+          // If we have a tracked grip position (e.g. mojo_from_input), then use
+          // that. If we don't, then we'll just set the pointer offset directly,
+          // using identity as set above.
+          if (this.mojo_from_input_) {
+            mojo_from_input = this.mojo_from_input_.matrix;
+          }
+          break;
+        default:
+          throw new Error('Unhandled target ray mode ' + this.target_ray_mode_);
+      }
+
+      // To convert mojo_from_pointer to input_from_pointer, we need:
+      // input_from_pointer = input_from_mojo * mojo_from_pointer
+      // Since we store mojo_from_input, we need to invert it here before
+      // multiplying.
+      let input_from_mojo = XRMathHelper.inverse(mojo_from_input);
+      input_desc.inputFromPointer = new gfx.mojom.Transform();
+      input_desc.inputFromPointer.matrix =
+        XRMathHelper.mul4x4(input_from_mojo, this.mojo_from_pointer_.matrix);
 
       input_desc.profiles = this.profiles_;
 
@@ -1466,6 +1471,10 @@ class MockXRInputSource {
       default:
         return -1;
     }
+  }
+
+  _getMojoFromInputSource(mojo_from_viewer) {
+    return this.mojo_from_pointer_.matrix;
   }
 }
 

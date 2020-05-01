@@ -21,15 +21,14 @@ const FLOOR_ORIGIN_TRANSFORM = {
   orientation: [0, 0, 0, 1],
 };
 
-const SCREEN_POINTER_TRANSFORM = {
-    position: [0, 0, 0],      // middle of the screen
-    orientation: [0, 0, 0, 1] // forward-facing
-};
+// Start the screen pointer at the same place as the viewer, so it's essentially
+// coming straight forward from the middle of the screen.
+const SCREEN_POINTER_TRANSFORM = VIEWER_ORIGIN_TRANSFORM;
 
 const screen_controller_init = {
     handedness: "none",
     targetRayMode: "screen",
-    pointerOrigin: SCREEN_POINTER_TRANSFORM,  // aka input_from_pointer
+    pointerOrigin: SCREEN_POINTER_TRANSFORM,  // aka mojo_from_pointer
     profiles: ["generic-touchscreen",]
 };
 
@@ -141,7 +140,7 @@ xr_session_promise_test("Ensures subscription to transient hit test works with a
   'immersive-ar', { 'requiredFeatures': ['hit-test'] });
 
 const moved_pointer_transform_1 = {
-  position: [0, 0, 0],      // middle of the screen
+  position: [0, 1, 0],
   orientation: [ 0.707, 0, 0, 0.707 ] // 90 degrees around X axis = facing up
 };
 
@@ -165,7 +164,7 @@ const pose_2 = {
 };
 
 const moved_pointer_transform_2 = {
-  position: [0, 0, 0],      // middle of the screen
+  position: [0, 1, 0],
   orientation: [ 0, 0.2588, 0, 0.9659 ] // 30 degrees around Y axis = to the left,
                                         // creating 30-60-90 triangle with the front wall
 };

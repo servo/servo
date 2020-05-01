@@ -3,7 +3,7 @@
 
 'use strict';
 
-// https://github.com/WICG/BackgroundSync/blob/master/spec/PeriodicBackgroundSync-index.html
+// https://wicg.github.io/periodic-background-sync/
 
 const idl = `
 partial interface ServiceWorkerGlobalScope {

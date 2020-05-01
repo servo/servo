@@ -6,13 +6,7 @@ WPT_ROOT=$SCRIPT_DIR/../..
 cd $WPT_ROOT
 
 test_infrastructure() {
-    local ARGS="";
-    if [ $PRODUCT == "firefox" ]; then
-        ARGS="--binary=~/build/firefox/firefox"
-    else
-        ARGS=$1
-    fi
-    TERM=dumb ./wpt run --log-mach - --yes --manifest ~/meta/MANIFEST.json --metadata infrastructure/metadata/ --install-fonts $ARGS $PRODUCT infrastructure/
+    TERM=dumb ./wpt run --log-mach - --yes --manifest ~/meta/MANIFEST.json --metadata infrastructure/metadata/ --install-fonts $1 $PRODUCT infrastructure/
 }
 
 main() {
@@ -22,7 +16,7 @@ main() {
         if [[ "$PRODUCT" == "chrome" ]]; then
             test_infrastructure "--binary=$(which google-chrome-unstable) --channel dev"
         else
-            test_infrastructure
+            test_infrastructure "--binary=~/build/firefox/firefox"
         fi
     done
 }
