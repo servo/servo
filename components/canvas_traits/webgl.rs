@@ -1411,7 +1411,7 @@ pub struct GLLimits {
     pub max_draw_buffers: u32,
     pub max_color_attachments: u32,
     pub max_uniform_buffer_bindings: u32,
-    pub min_program_texel_offset: u32,
+    pub min_program_texel_offset: i32,
     pub max_program_texel_offset: u32,
     pub max_uniform_block_size: u64,
     pub max_combined_uniform_blocks: u32,

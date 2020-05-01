@@ -1046,6 +1046,9 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             constants::MAX_UNIFORM_BLOCK_SIZE => {
                 return DoubleValue(self.base.limits().max_uniform_block_size as f64)
             },
+            constants::MIN_PROGRAM_TEXEL_OFFSET => {
+                return Int32Value(self.base.limits().min_program_texel_offset)
+            },
             _ => {},
         }
 
