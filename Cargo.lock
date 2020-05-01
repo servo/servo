@@ -549,11 +549,12 @@ dependencies = [
 
 [[package]]
 name = "cbindgen"
-version = "0.14.1"
+version = "0.14.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b15be43e426e5133330fffd63026e178e70ecc74df7a4a844a8ff6e6ffc2fcde"
+checksum = "104ca409bbff8293739438c71820a2606111b5f8f81835536dc673dfd807369e"
 dependencies = [
  "clap",
+ "heck",
  "log",
  "proc-macro2 1.0.1",
  "quote 1.0.2",
@@ -2421,6 +2422,15 @@ dependencies = [
  "cmake",
  "libc",
  "pkg-config",
+]
+
+[[package]]
+name = "heck"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20564e78d53d2bb135c343b3f47714a56af2061f1c928fdb541dc7b9fdd94205"
+dependencies = [
+ "unicode-segmentation",
 ]
 
 [[package]]
