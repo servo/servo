@@ -42,8 +42,8 @@ let testFunction =
     };
 
     const POINTER_TRANSFORM_WITH_ROTATION = {
-      position: [2, 0, 1],
-      orientation: [0, 0, 0.7071, 0.7071]
+      position: [0, 1, 4],
+      orientation: [-0.5, 0.5, 0.5, -0.5]
     };
 
     let input_source = fakeDeviceController.simulateInputSourceConnection({
@@ -74,7 +74,7 @@ let testFunction =
       function OnFrame(time, frame) {
         let source = session.inputSources[0];
 
-        function CheckState(referenceSpace, expected_view_matrix, expected_grip_matrix, expected_ray_matrix) {
+        function CheckState(referenceSpace, expected_view_matrix, expected_grip_matrix, expected_ray_matrix, prefix) {
           t.step(() => {
             let pose = frame.getViewerPose(referenceSpace);
             let grip_pose = frame.getPose(source.gripSpace, referenceSpace);
@@ -84,13 +84,13 @@ let testFunction =
             let grip_matrix = grip_pose.transform.matrix;
             let ray_matrix = input_pose.transform.matrix;
 
-            assert_matrix_approx_equals(view_matrix, expected_view_matrix);
-            assert_matrix_approx_equals(grip_matrix, expected_grip_matrix);
-            assert_matrix_approx_equals(ray_matrix, expected_ray_matrix);
+            assert_matrix_approx_equals(view_matrix, expected_view_matrix, prefix + " view matrix");
+            assert_matrix_approx_equals(grip_matrix, expected_grip_matrix, prefix + " grip matrix");
+            assert_matrix_approx_equals(ray_matrix, expected_ray_matrix, prefix + " ray matrix");
           });
         }
 
-        CheckState(referenceSpace, EXPECTED_VIEW_MATRIX_1, EXPECTED_GRIP_MATRIX_1, EXPECTED_RAY_MATRIX_1);
+        CheckState(referenceSpace, EXPECTED_VIEW_MATRIX_1, EXPECTED_GRIP_MATRIX_1, EXPECTED_RAY_MATRIX_1, "Initial");
 
         const new_position1 = {
           x: 10,
@@ -105,7 +105,7 @@ let testFunction =
         };
 
         referenceSpace = referenceSpace.getOffsetReferenceSpace(new XRRigidTransform(new_position1, new_orientation1));
-        CheckState(referenceSpace, EXPECTED_VIEW_MATRIX_2, EXPECTED_GRIP_MATRIX_2, EXPECTED_RAY_MATRIX_2);
+        CheckState(referenceSpace, EXPECTED_VIEW_MATRIX_2, EXPECTED_GRIP_MATRIX_2, EXPECTED_RAY_MATRIX_2, "First transform");
 
         const new_position2 = {
           x: 5,
@@ -120,7 +120,7 @@ let testFunction =
         };
 
         referenceSpace = referenceSpace.getOffsetReferenceSpace(new XRRigidTransform(new_position2, new_orientation2));
-        CheckState(referenceSpace, EXPECTED_VIEW_MATRIX_3, EXPECTED_GRIP_MATRIX_3, EXPECTED_RAY_MATRIX_3);
+        CheckState(referenceSpace, EXPECTED_VIEW_MATRIX_3, EXPECTED_GRIP_MATRIX_3, EXPECTED_RAY_MATRIX_3, "Second transform");
 
         resolve();
       }

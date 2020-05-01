@@ -598,7 +598,6 @@ const trackFactories = {
       if (signal !== null) {
         ctx.fillStyle = `rgb(${signal}, ${signal}, ${signal})`;
         ctx.fillRect(10, 10, 20, 20);
-        let pixel = ctx.getImageData(15, 15, 1, 1);
       }
     }, 100);
 

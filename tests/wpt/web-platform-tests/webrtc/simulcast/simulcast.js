@@ -75,3 +75,44 @@ function swapRidAndMidExtensionsInSimulcastAnswer(answer, localDescription, rids
   });
   return sdp;
 }
+
+async function negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2) {
+  exchangeIceCandidates(pc1, pc2);
+
+  const metadataToBeLoaded = [];
+  pc2.ontrack = (e) => {
+    const stream = e.streams[0];
+    const v = document.createElement('video');
+    v.autoplay = true;
+    v.srcObject = stream;
+    v.id = stream.id
+    metadataToBeLoaded.push(new Promise((resolve) => {
+        v.addEventListener('loadedmetadata', () => {
+            resolve();
+        });
+    }));
+  };
+
+  // Use getUserMedia as getNoiseStream does not have enough entropy to ramp-up.
+  const stream = await navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  pc1.addTransceiver(stream.getVideoTracks()[0], {
+    streams: [stream],
+    sendEncodings: rids.map(rid => {rid}),
+  });
+
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer),
+  await pc2.setRemoteDescription({
+    type: 'offer',
+    sdp: swapRidAndMidExtensionsInSimulcastOffer(offer, rids),
+  });
+  const answer = await pc2.createAnswer();
+  await pc2.setLocalDescription(answer);
+  await pc1.setRemoteDescription({
+    type: 'answer',
+    sdp: swapRidAndMidExtensionsInSimulcastAnswer(answer, pc1.localDescription, rids),
+  });
+  assert_equals(metadataToBeLoaded.length, rids.length);
+  return Promise.all(metadataToBeLoaded);
+}

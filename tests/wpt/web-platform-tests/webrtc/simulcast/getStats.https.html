@@ -14,44 +14,7 @@ promise_test(async t => {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
-  exchangeIceCandidates(pc1, pc2);
-
-  const metadataToBeLoaded = [];
-  pc2.ontrack = (e) => {
-    const stream = e.streams[0];
-    const v = document.createElement('video');
-    v.autoplay = true;
-    v.srcObject = stream;
-    v.id = stream.id
-    metadataToBeLoaded.push(new Promise((resolve) => {
-        v.addEventListener('loadedmetadata', () => {
-            resolve();
-        });
-    }));
-  };
-
-  // Use getUserMedia as getNoiseStream does not have enough entropy to ramp-up.
-  const stream = await navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}});
-  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
-  pc1.addTransceiver(stream.getVideoTracks()[0], {
-    streams: [stream],
-    sendEncodings: rids.map(rid => {rid}),
-  });
-
-  const offer = await pc1.createOffer();
-  await pc1.setLocalDescription(offer),
-  await pc2.setRemoteDescription({
-    type: 'offer',
-    sdp: swapRidAndMidExtensionsInSimulcastOffer(offer, rids),
-  });
-  const answer = await pc2.createAnswer();
-  await pc2.setLocalDescription(answer);
-  await pc1.setRemoteDescription({
-    type: 'answer',
-    sdp: swapRidAndMidExtensionsInSimulcastAnswer(answer, pc1.localDescription, rids),
-  });
-  assert_equals(metadataToBeLoaded.length, 3);
-  await Promise.all(metadataToBeLoaded);
+  await negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2);
 
   const outboundStats = [];
   const senderStats = await pc1.getSenders()[0].getStats();
@@ -62,4 +25,24 @@ promise_test(async t => {
   });
   assert_equals(outboundStats.length, 3);
 }, 'Simulcast getStats contains as many outbound-rtp reports as spatial layers');
+
+promise_test(async t => {
+  const rids = [0, 1, 2];
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+
+  await negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2);
+
+  const outboundStats = [];
+  const senderStats = await pc1.getSenders()[0].getStats();
+  senderStats.forEach(stat => {
+    if (stat.type === 'outbound-rtp') {
+      outboundStats.push(stat);
+    }
+  });
+  const statsRids = outboundStats.map(stat => parseInt(stat.rid, 10));
+  assert_array_equals(rids, statsRids.sort());
+}, 'Simulcast getStats contains rid stats matching the rids provided');
 </script>

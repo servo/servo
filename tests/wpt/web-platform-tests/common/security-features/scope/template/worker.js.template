@@ -13,11 +13,6 @@ if ('DedicatedWorkerGlobalScope' in self &&
 
 // Receive a message from the parent and start the test.
 function onMessageFromParent(event, port) {
-  // Because this worker might receive messages from child context during
-  // tests, we first remove the listener here before staring the test
-  // (needed only for dedicated workers).
-  port.onmessage = undefined;
-
   const configurationError = "%(error)s";
   if (configurationError.length > 0) {
     port.postMessage({error: configurationError});

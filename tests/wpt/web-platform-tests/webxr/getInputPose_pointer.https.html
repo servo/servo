@@ -51,14 +51,15 @@ let testFunction =
         let input_pose = xrFrame.getPose(source.targetRaySpace, referenceSpace);
 
         t.step( () => {
-          // When a grip matrix is present but no pointer offset is specified,
-          // the grip and pointer matrices should be the same.
+          // When a grip matrix is set, both the grip and pointer matrices
+          // should yield their set values (i.e. the pointerOrigin is *not*
+          // transformed by the gripOrigin).
           assert_not_equals(grip_pose, null);
           assert_matrix_approx_equals(grip_pose.transform.matrix, VALID_GRIP,
             FLOAT_EPSILON, "Grip matrix is not equal to input.");
           assert_matrix_approx_equals(input_pose.transform.matrix,
-            grip_pose.transform.matrix, FLOAT_EPSILON,
-            "Grip matrix is not equal to target ray matrix.");
+            IDENTITY_MATRIX, FLOAT_EPSILON,
+            "Pointer matrix is not equal to its set value.");
         });
 
         input_source.setPointerOrigin(VALID_POINTER_TRANSFORM);
@@ -73,15 +74,13 @@ let testFunction =
         let input_pose = xrFrame.getPose(source.targetRaySpace, referenceSpace);
 
         t.step( () => {
-          // When a grip matrix and pointer offset are specified,
-          // pointer matrix should be grip matrix multiplied with the pointer
-          // offset.
+          // Verify that changes to the pointer origin are properly reflected.
           assert_not_equals(grip_pose, null);
           assert_matrix_approx_equals(grip_pose.transform.matrix, VALID_GRIP,
             FLOAT_EPSILON, "Grip matrix is not equal to input valid grip.");
           assert_matrix_approx_equals(input_pose.transform.matrix,
-            VALID_GRIP_WITH_POINTER_OFFSET, FLOAT_EPSILON,
-            "Grip matrix not multipled properly.");
+            VALID_POINTER, FLOAT_EPSILON,
+            "Pointer matrix not set properly.");
         });
 
         resolve();
