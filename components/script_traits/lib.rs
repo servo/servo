@@ -282,16 +282,40 @@ pub enum UpdatePipelineIdReason {
     Traversal,
 }
 
-/// The type of transition event to trigger.
+/// The type of transition event to trigger. These are defined by
+/// CSS Transitions § 6.1 and CSS Animations § 4.2
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum TransitionEventType {
-    /// The transition has started running.
+pub enum TransitionOrAnimationEventType {
+    /// "The transitionrun event occurs when a transition is created (i.e., when it
+    /// is added to the set of running transitions)."
     TransitionRun,
-    /// The transition has ended by reaching the end of its animation.
+    /// "The transitionend event occurs at the completion of the transition. In the
+    /// case where a transition is removed before completion, such as if the
+    /// transition-property is removed, then the event will not fire."
     TransitionEnd,
-    /// The transition ended early for some reason, such as the property
-    /// no longer being transitionable or being replaced by another transition.
+    /// "The transitioncancel event occurs when a transition is canceled."
     TransitionCancel,
+    /// "The animationend event occurs when the animation finishes"
+    AnimationEnd,
+}
+
+impl TransitionOrAnimationEventType {
+    /// Whether or not this event finalizes the animation or transition. During finalization
+    /// the DOM object associated with this transition or animation is unrooted.
+    pub fn finalizes_transition_or_animation(&self) -> bool {
+        match *self {
+            Self::TransitionEnd | Self::TransitionCancel | Self::AnimationEnd => true,
+            Self::TransitionRun => false,
+        }
+    }
+
+    /// Whether or not this event is a transition-related event.
+    pub fn is_transition_event(&self) -> bool {
+        match *self {
+            Self::TransitionRun | Self::TransitionEnd | Self::TransitionCancel => true,
+            Self::AnimationEnd => false,
+        }
+    }
 }
 
 /// Messages sent from the constellation or layout to the script thread.
@@ -380,16 +404,17 @@ pub enum ConstellationControlMsg {
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
     TickAllAnimations(PipelineId),
-    /// Notifies the script thread that a transition related event should be sent.
-    TransitionEvent {
+    /// Notifies the script thread that a transition or animation related event should be sent.
+    TransitionOrAnimationEvent {
         /// The pipeline id of the layout task that sent this message.
         pipeline_id: PipelineId,
         /// The type of transition event this should trigger.
-        event_type: TransitionEventType,
+        event_type: TransitionOrAnimationEventType,
         /// The address of the node which owns this transition.
         node: UntrustedNodeAddress,
-        /// The property name of the property that is transitioning.
-        property_name: String,
+        /// The name of the property that is transitioning (in the case of a transition)
+        /// or the name of the animation (in the case of an animation).
+        property_or_animation_name: String,
         /// The elapsed time property to send with this transition event.
         elapsed_time: f64,
     },
@@ -452,7 +477,7 @@ impl fmt::Debug for ConstellationControlMsg {
             FocusIFrame(..) => "FocusIFrame",
             WebDriverScriptCommand(..) => "WebDriverScriptCommand",
             TickAllAnimations(..) => "TickAllAnimations",
-            TransitionEvent { .. } => "TransitionEvent",
+            TransitionOrAnimationEvent { .. } => "TransitionOrAnimationEvent",
             WebFontLoaded(..) => "WebFontLoaded",
             DispatchIFrameLoadEvent { .. } => "DispatchIFrameLoadEvent",
             DispatchStorageEvent(..) => "DispatchStorageEvent",

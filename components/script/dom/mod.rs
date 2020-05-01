@@ -213,6 +213,7 @@ pub mod abstractworker;
 pub mod abstractworkerglobalscope;
 pub mod activation;
 pub mod analysernode;
+pub mod animationevent;
 pub mod attr;
 pub mod audiobuffer;
 pub mod audiobuffersourcenode;

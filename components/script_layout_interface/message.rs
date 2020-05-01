@@ -193,7 +193,7 @@ pub struct ReflowComplete {
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
     /// The list of nodes that initiated a CSS transition.
-    pub newly_transitioning_nodes: Vec<UntrustedNodeAddress>,
+    pub newly_animating_nodes: Vec<UntrustedNodeAddress>,
 }
 
 /// Information needed for a script-initiated reflow.

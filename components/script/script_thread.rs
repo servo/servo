@@ -19,7 +19,9 @@
 
 use crate::devtools;
 use crate::document_loader::DocumentLoader;
+use crate::dom::animationevent::AnimationEvent;
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::AnimationEventBinding::AnimationEventInit;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
@@ -138,9 +140,9 @@ use script_traits::{
     EventResult, HistoryEntryReplacement, InitialScriptState, JsEvalResult, LayoutMsg, LoadData,
     LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType, NewLayoutInfo, Painter,
     ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory, ScriptToConstellationChan,
-    StructuredSerializedData, TimerSchedulerMsg, TouchEventType, TouchId, TransitionEventType,
-    UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta, WindowSizeData,
-    WindowSizeType,
+    StructuredSerializedData, TimerSchedulerMsg, TouchEventType, TouchId,
+    TransitionOrAnimationEventType, UntrustedNodeAddress, UpdatePipelineIdReason,
+    WebrenderIpcSender, WheelDelta, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -639,7 +641,7 @@ pub struct ScriptThread {
 
     /// A list of nodes with in-progress CSS transitions, which roots them for the duration
     /// of the transition.
-    transitioning_nodes: DomRefCell<Vec<Dom<Node>>>,
+    animating_nodes: DomRefCell<HashMap<PipelineId, Vec<Dom<Node>>>>,
 
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
     custom_element_reaction_stack: CustomElementReactionStack,
@@ -823,7 +825,10 @@ impl ScriptThread {
         })
     }
 
-    pub unsafe fn note_newly_transitioning_nodes(nodes: Vec<UntrustedNodeAddress>) {
+    pub unsafe fn note_newly_animating_nodes(
+        pipeline_id: PipelineId,
+        nodes: Vec<UntrustedNodeAddress>,
+    ) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = &*root.get().unwrap();
             let js_runtime = script_thread.js_runtime.rt();
@@ -831,8 +836,10 @@ impl ScriptThread {
                 .into_iter()
                 .map(|n| Dom::from_ref(&*from_untrusted_node_address(js_runtime, n)));
             script_thread
-                .transitioning_nodes
+                .animating_nodes
                 .borrow_mut()
+                .entry(pipeline_id)
+                .or_insert_with(Vec::new)
                 .extend(new_nodes);
         })
     }
@@ -1345,7 +1352,7 @@ impl ScriptThread {
 
             docs_with_no_blocking_loads: Default::default(),
 
-            transitioning_nodes: Default::default(),
+            animating_nodes: Default::default(),
 
             custom_element_reaction_stack: CustomElementReactionStack::new(),
 
@@ -1697,7 +1704,7 @@ impl ScriptThread {
                 FocusIFrame(id, ..) => Some(id),
                 WebDriverScriptCommand(id, ..) => Some(id),
                 TickAllAnimations(id) => Some(id),
-                TransitionEvent { .. } => None,
+                TransitionOrAnimationEvent { .. } => None,
                 WebFontLoaded(id) => Some(id),
                 DispatchIFrameLoadEvent {
                     target: _,
@@ -1898,18 +1905,18 @@ impl ScriptThread {
             ConstellationControlMsg::TickAllAnimations(pipeline_id) => {
                 self.handle_tick_all_animations(pipeline_id)
             },
-            ConstellationControlMsg::TransitionEvent {
+            ConstellationControlMsg::TransitionOrAnimationEvent {
                 pipeline_id,
                 event_type,
                 node,
-                property_name,
+                property_or_animation_name,
                 elapsed_time,
             } => {
-                self.handle_transition_event(
+                self.handle_transition_or_animation_event(
                     pipeline_id,
                     event_type,
                     node,
-                    property_name,
+                    property_or_animation_name,
                     elapsed_time,
                 );
             },
@@ -2846,6 +2853,9 @@ impl ScriptThread {
             .send((id, ScriptMsg::PipelineExited))
             .ok();
 
+        // Remove any rooted nodes for active animations and transitions.
+        self.animating_nodes.borrow_mut().remove(&id);
+
         // Now that layout is shut down, it's OK to remove the document.
         if let Some(document) = document {
             // We don't want to dispatch `mouseout` event pointing to non-existing element
@@ -2916,66 +2926,91 @@ impl ScriptThread {
     /// Handles firing of transition-related events.
     ///
     /// TODO(mrobinson): Add support for more events.
-    fn handle_transition_event(
+    fn handle_transition_or_animation_event(
         &self,
         pipeline_id: PipelineId,
-        event_type: TransitionEventType,
+        event_type: TransitionOrAnimationEventType,
         unsafe_node: UntrustedNodeAddress,
-        property_name: String,
+        property_or_animation_name: String,
         elapsed_time: f64,
     ) {
         let js_runtime = self.js_runtime.rt();
         let node = unsafe { from_untrusted_node_address(js_runtime, unsafe_node) };
 
-        let node_index = self
-            .transitioning_nodes
-            .borrow()
-            .iter()
-            .position(|n| &**n as *const _ == &*node as *const _);
-        let node_index = match node_index {
-            Some(node_index) => node_index,
-            None => {
-                // If no index is found, we can't know whether this node is safe to use.
-                // It's better not to fire a DOM event than crash.
-                warn!("Ignoring transition end notification for unknown node.");
-                return;
-            },
-        };
+        // We limit the scope of the borrow here, so that we don't maintain this borrow
+        // and then incidentally trigger another layout. That might result in a double
+        // mutable borrow of `animating_nodes`.
+        {
+            let mut animating_nodes = self.animating_nodes.borrow_mut();
+            let nodes = match animating_nodes.get_mut(&pipeline_id) {
+                Some(nodes) => nodes,
+                None => {
+                    return warn!(
+                        "Ignoring transition event for pipeline without animating nodes."
+                    );
+                },
+            };
 
-        if self.closed_pipelines.borrow().contains(&pipeline_id) {
-            warn!("Ignoring transition event for closed pipeline.");
-            return;
+            let node_index = nodes
+                .iter()
+                .position(|n| &**n as *const _ == &*node as *const _);
+            let node_index = match node_index {
+                Some(node_index) => node_index,
+                None => {
+                    // If no index is found, we can't know whether this node is safe to use.
+                    // It's better not to fire a DOM event than crash.
+                    warn!("Ignoring transition event for unknown node.");
+                    return;
+                },
+            };
+
+            if event_type.finalizes_transition_or_animation() {
+                nodes.remove(node_index);
+            }
+        }
+
+        // Not quite the right thing - see #13865.
+        if event_type.finalizes_transition_or_animation() {
+            node.dirty(NodeDamage::NodeStyleDamaged);
         }
 
         let event_atom = match event_type {
-            TransitionEventType::TransitionRun => atom!("transitionrun"),
-            TransitionEventType::TransitionEnd => {
-                // Not quite the right thing - see #13865.
-                node.dirty(NodeDamage::NodeStyleDamaged);
-                self.transitioning_nodes.borrow_mut().remove(node_index);
-                atom!("transitionend")
-            },
-            TransitionEventType::TransitionCancel => {
-                self.transitioning_nodes.borrow_mut().remove(node_index);
-                atom!("transitioncancel")
-            },
+            TransitionOrAnimationEventType::AnimationEnd => atom!("animationend"),
+            TransitionOrAnimationEventType::TransitionCancel => atom!("transitioncancel"),
+            TransitionOrAnimationEventType::TransitionEnd => atom!("transitionend"),
+            TransitionOrAnimationEventType::TransitionRun => atom!("transitionrun"),
+        };
+        let parent = EventInit {
+            bubbles: true,
+            cancelable: false,
         };
 
-        let event_init = TransitionEventInit {
-            parent: EventInit {
-                bubbles: true,
-                cancelable: false,
-            },
-            propertyName: DOMString::from(property_name),
-            elapsedTime: Finite::new(elapsed_time as f32).unwrap(),
-            // TODO: Handle pseudo-elements properly
-            pseudoElement: DOMString::new(),
-        };
-
+        // TODO: Handle pseudo-elements properly
+        let property_or_animation_name = DOMString::from(property_or_animation_name);
+        let elapsed_time = Finite::new(elapsed_time as f32).unwrap();
         let window = window_from_node(&*node);
-        TransitionEvent::new(&window, event_atom, &event_init)
-            .upcast::<Event>()
-            .fire(node.upcast());
+
+        if event_type.is_transition_event() {
+            let event_init = TransitionEventInit {
+                parent,
+                propertyName: property_or_animation_name,
+                elapsedTime: elapsed_time,
+                pseudoElement: DOMString::new(),
+            };
+            TransitionEvent::new(&window, event_atom, &event_init)
+                .upcast::<Event>()
+                .fire(node.upcast());
+        } else {
+            let event_init = AnimationEventInit {
+                parent,
+                animationName: property_or_animation_name,
+                elapsedTime: elapsed_time,
+                pseudoElement: DOMString::new(),
+            };
+            AnimationEvent::new(&window, event_atom, &event_init)
+                .upcast::<Event>()
+                .fire(node.upcast());
+        }
     }
 
     /// Handles a Web font being loaded. Does nothing if the page no longer exists.

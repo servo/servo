@@ -1582,11 +1582,11 @@ impl Window {
         }
 
         let for_display = reflow_goal == ReflowGoal::Full;
+        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
         if for_display && self.suppress_reflow.get() {
             debug!(
                 "Suppressing reflow pipeline {} for reason {:?} before FirstLoad or RefreshTick",
-                self.upcast::<GlobalScope>().pipeline_id(),
-                reason
+                pipeline_id, reason
             );
             return false;
         }
@@ -1617,11 +1617,7 @@ impl Window {
 
         // On debug mode, print the reflow event information.
         if self.relayout_event {
-            debug_reflow_events(
-                self.upcast::<GlobalScope>().pipeline_id(),
-                &reflow_goal,
-                &reason,
-            );
+            debug_reflow_events(pipeline_id, &reflow_goal, &reason);
         }
 
         let document = self.Document();
@@ -1699,12 +1695,11 @@ impl Window {
             {
                 let (responder, responder_listener) =
                     ProfiledIpc::channel(self.global().time_profiler_chan().clone()).unwrap();
-                let pipeline = self.upcast::<GlobalScope>().pipeline_id();
                 let image_cache_chan = self.image_cache_chan.clone();
                 ROUTER.add_route(
                     responder_listener.to_opaque(),
                     Box::new(move |message| {
-                        let _ = image_cache_chan.send((pipeline, message.to().unwrap()));
+                        let _ = image_cache_chan.send((pipeline_id, message.to().unwrap()));
                     }),
                 );
                 self.image_cache
@@ -1714,7 +1709,7 @@ impl Window {
         }
 
         unsafe {
-            ScriptThread::note_newly_transitioning_nodes(complete.newly_transitioning_nodes);
+            ScriptThread::note_newly_animating_nodes(pipeline_id, complete.newly_animating_nodes);
         }
 
         true

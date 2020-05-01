@@ -648,7 +648,7 @@ impl LayoutThread {
             } else {
                 None
             },
-            newly_transitioning_nodes: if script_initiated_layout {
+            newly_animating_nodes: if script_initiated_layout {
                 Some(Mutex::new(vec![]))
             } else {
                 None
@@ -1565,11 +1565,11 @@ impl LayoutThread {
         };
         reflow_result.pending_images = pending_images;
 
-        let newly_transitioning_nodes = match context.newly_transitioning_nodes {
+        let newly_animating_nodes = match context.newly_animating_nodes {
             Some(ref nodes) => std::mem::replace(&mut *nodes.lock().unwrap(), vec![]),
             None => vec![],
         };
-        reflow_result.newly_transitioning_nodes = newly_transitioning_nodes;
+        reflow_result.newly_animating_nodes = newly_animating_nodes;
 
         let mut root_flow = match self.root_flow.borrow().clone() {
             Some(root_flow) => root_flow,
@@ -1741,7 +1741,7 @@ impl LayoutThread {
                 invalid_nodes,
             );
             assert!(layout_context.pending_images.is_none());
-            assert!(layout_context.newly_transitioning_nodes.is_none());
+            assert!(layout_context.newly_animating_nodes.is_none());
         }
     }
 
@@ -1756,19 +1756,13 @@ impl LayoutThread {
         invalid_nodes: FxHashSet<OpaqueNode>,
     ) {
         {
-            let mut newly_transitioning_nodes = context
-                .newly_transitioning_nodes
+            let mut newly_animating_nodes = context
+                .newly_animating_nodes
                 .as_ref()
                 .map(|nodes| nodes.lock().unwrap());
-            let newly_transitioning_nodes =
-                newly_transitioning_nodes.as_mut().map(|nodes| &mut **nodes);
+            let newly_animating_nodes = newly_animating_nodes.as_mut().map(|nodes| &mut **nodes);
             let mut animation_states = self.animation_states.write();
-
-            animation::collect_newly_transitioning_nodes(
-                &animation_states,
-                newly_transitioning_nodes,
-            );
-
+            animation::collect_newly_animating_nodes(&animation_states, newly_animating_nodes);
             animation::update_animation_states(
                 &self.constellation_chan,
                 &self.script_chan,
