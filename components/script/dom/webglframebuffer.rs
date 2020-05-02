@@ -227,6 +227,25 @@ impl WebGLFramebuffer {
         self.size.get()
     }
 
+    pub fn get_attachment_formats(&self) -> WebGLResult<(Option<u32>, Option<u32>, Option<u32>)> {
+        if self.check_status() != constants::FRAMEBUFFER_COMPLETE {
+            return Err(WebGLError::InvalidFramebufferOperation);
+        }
+        let color = match self.attachment(constants::COLOR_ATTACHMENT0) {
+            Some(WebGLFramebufferAttachmentRoot::Renderbuffer(rb)) => Some(rb.internal_format()),
+            _ => None,
+        };
+        let depth = match self.attachment(constants::DEPTH_ATTACHMENT) {
+            Some(WebGLFramebufferAttachmentRoot::Renderbuffer(rb)) => Some(rb.internal_format()),
+            _ => None,
+        };
+        let stencil = match self.attachment(constants::STENCIL_ATTACHMENT) {
+            Some(WebGLFramebufferAttachmentRoot::Renderbuffer(rb)) => Some(rb.internal_format()),
+            _ => None,
+        };
+        Ok((color, depth, stencil))
+    }
+
     fn check_attachment_constraints<'a>(
         &self,
         attachment: &Option<WebGLFramebufferAttachment>,

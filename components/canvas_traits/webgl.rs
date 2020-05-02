@@ -295,6 +295,7 @@ pub enum WebGLCommand {
     BindFramebuffer(u32, WebGLFramebufferBindingRequest),
     BindRenderbuffer(u32, Option<WebGLRenderbufferId>),
     BindTexture(u32, Option<WebGLTextureId>),
+    BlitFrameBuffer(i32, i32, i32, i32, i32, i32, i32, i32, u32, u32),
     DisableVertexAttribArray(u32),
     EnableVertexAttribArray(u32),
     FramebufferRenderbuffer(u32, u32, u32, Option<WebGLRenderbufferId>),

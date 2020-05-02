@@ -295,8 +295,8 @@ interface mixin WebGL2RenderingContextBase
                         optional GLuint dstOffset = 0, optional GLuint length = 0);
 
   /* Framebuffer objects */
-  // void blitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0,
-  //                      GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
+  void blitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0,
+                       GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter);
   void framebufferTextureLayer(GLenum target, GLenum attachment, WebGLTexture? texture, GLint level,
                                GLint layer);
   void invalidateFramebuffer(GLenum target, sequence<GLenum> attachments);
