@@ -67,7 +67,7 @@ function testFunction(session, fakeDeviceController, t) {
   });
 
   return new Promise((resolve, reject) => {
-    session.requestAnimationFrame((time, frame) => {
+    requestSkipAnimationFrame(session, (time, frame) => {
       let input_source = session.inputSources[0];
 
       session.requestReferenceSpace('bounded-floor').then((referenceSpace) => {

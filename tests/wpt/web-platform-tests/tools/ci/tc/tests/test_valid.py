@@ -132,7 +132,8 @@ def test_verify_payload():
       'tools/wpt/ tests (Python 3.6)',
       'tools/wpt/ tests (Python 3.8)',
       'resources/ tests',
-      'infrastructure/ tests'}),
+      'infrastructure/ tests',
+      'infrastructure/ tests (Python 3)'}),
     # More tests are affected in the actual PR but it shouldn't affect the scheduled tasks
     ("pr_event_tests_affected.json", True, {"layout-instability/clip-negative-bottom-margin.html",
                                             "layout-instability/composited-element-movement.html"},

@@ -126,7 +126,7 @@ let testFunction =
       }
 
       // Can only request input poses in an xr frame.
-      session.requestAnimationFrame(OnFrame);
+      requestSkipAnimationFrame(session, OnFrame);
     });
   });
 

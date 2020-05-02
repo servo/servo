@@ -22,7 +22,7 @@ let testFunction = function(session, fakeDeviceController, t) {
   // Input events and state changes need one frame to propagate, which is why we
   // are requesting an animation frame before checking the profiles list.
   return new Promise((resolve) => {
-    session.requestAnimationFrame(() => {
+    requestSkipAnimationFrame(session, () => {
       let profiles = session.inputSources[0].profiles;
       t.step(() => {
         assert_equals(profiles.length, 2);

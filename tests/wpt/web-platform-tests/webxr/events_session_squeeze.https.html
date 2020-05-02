@@ -114,7 +114,7 @@ let testFunction = function(session, fakeDeviceController, t) {
       currentReferenceSpace = referenceSpace;
 
       //Simulate a grip starting then release it a short time later.
-      session.requestAnimationFrame((time, xrFrame) => {
+      requestSkipAnimationFrame(session, (time, xrFrame) => {
         input_source.updateButtonState(pressed_grip_button);
 
           session.requestAnimationFrame((time, xrFrame) => {

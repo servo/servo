@@ -69,7 +69,7 @@ let testFunction = function(session, fakeDeviceController, t) {
   //    updated values make their way to the WebXR gamepad and that it does not
   //    fire an inputsourceschange event).
   return new Promise((resolve) => {
-    session.requestAnimationFrame(() => {
+    requestSkipAnimationFrame(session, () => {
       // Make sure the exposed gamepad has the number of buttons and axes we
       // requested.
       // 3 Buttons: trigger, grip, touchpad

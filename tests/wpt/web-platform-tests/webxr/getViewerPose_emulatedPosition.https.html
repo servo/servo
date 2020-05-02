@@ -45,7 +45,7 @@
             resolve();
           }
 
-          session.requestAnimationFrame(CheckPositionNotEmulated);
+          requestSkipAnimationFrame(session, CheckPositionNotEmulated);
         }));
     };
 

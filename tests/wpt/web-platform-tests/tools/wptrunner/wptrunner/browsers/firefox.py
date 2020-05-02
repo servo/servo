@@ -272,9 +272,6 @@ class FirefoxInstanceManager(object):
         if self.enable_webrender:
             env["MOZ_WEBRENDER"] = "1"
             env["MOZ_ACCELERATED"] = "1"
-            # Set MOZ_X_SYNC and GDK_SYNCHRONIZE for investigation; bug 1625250.
-            env["MOZ_X_SYNC"] = "1"
-            env["GDK_SYNCHRONIZE"] = "1"
         else:
             env["MOZ_WEBRENDER"] = "0"
 
@@ -428,8 +425,11 @@ class OutputHandler(object):
 
         self.symbols_path = symbols_path
         if stackfix_dir:
+            # We hide errors because they cause disconcerting `CRITICAL`
+            # warnings in web platform test output.
             self.stack_fixer = get_stack_fixer_function(stackfix_dir,
-                                                        self.symbols_path)
+                                                        self.symbols_path,
+                                                        hideErrors=True)
         else:
             self.stack_fixer = None
         self.asan = asan

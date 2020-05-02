@@ -42,7 +42,7 @@ let testFunction = function(session, fakeDeviceController, t, sessionObjects) {
       profiles: [],
       selectionClicked: true
     });
-    session.requestAnimationFrame(() => {});
+    requestSkipAnimationFrame(session, () => {});
   }
 
   function sessionEndTest(endEvent, eventOrder) {
