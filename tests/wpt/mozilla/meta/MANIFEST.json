@@ -10851,7 +10851,7 @@
      []
     ]
    },
-   "lint.whitelist": [
+   "lint.ignore": [
     "314a9e5b44443be1a4e28dd3c5047a5082a7ccab",
     []
    ],

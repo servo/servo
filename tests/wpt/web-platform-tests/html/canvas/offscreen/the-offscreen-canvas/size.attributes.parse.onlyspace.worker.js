@@ -18,8 +18,8 @@ var ctx = offscreenCanvas.getContext('2d');
 
 offscreenCanvas.width = '  ';
 offscreenCanvas.height = '  ';
-_assertSame(offscreenCanvas.width, 100, "offscreenCanvas.width", "100");
-_assertSame(offscreenCanvas.height, 50, "offscreenCanvas.height", "50");
+_assertSame(offscreenCanvas.width, 0, "offscreenCanvas.width", "0");
+_assertSame(offscreenCanvas.height, 0, "offscreenCanvas.height", "0");
 t.done();
 
 });

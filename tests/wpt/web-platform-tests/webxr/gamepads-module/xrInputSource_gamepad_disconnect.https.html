@@ -132,7 +132,7 @@ let testFunction = function(session, fakeDeviceController, t) {
   // 5. Waits for all of the input events to finish propagating, then ends the
   // session, at which point the controller should be disconnected.
   return new Promise((resolve) => {
-    session.requestAnimationFrame(() => {
+    requestSkipAnimationFrame(session, () => {
       input_source.setSupportedButtons([]);
       session.requestAnimationFrame(() => {
         input_source.setSupportedButtons(gamepadButtons);

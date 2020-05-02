@@ -56,7 +56,7 @@ let testFunctionGenerator = function(ray, expectedPoses, inputFromPointer, nextF
 
       const input_source_controller = fakeDeviceController.simulateInputSourceConnection(screen_controller_init);
 
-      session.requestAnimationFrame((time, frame) => {
+      requestSkipAnimationFrame(session, (time, frame) => {
         debug('rAF 1');
         t.step(() => {
           assert_equals(session.inputSources.length, 1);

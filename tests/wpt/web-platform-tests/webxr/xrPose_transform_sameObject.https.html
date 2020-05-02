@@ -19,7 +19,7 @@ let testFunction = function(session, fakeDeviceController, t) {
     });
 
     session.requestReferenceSpace('local').then((referenceSpace) => {
-      session.requestAnimationFrame((time, xrFrame) => {
+      requestSkipAnimationFrame(session, (time, xrFrame) => {
         let source = session.inputSources[0];
         let input_pose = xrFrame.getPose(source.targetRaySpace, referenceSpace);
 

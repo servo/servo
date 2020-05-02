@@ -39,7 +39,7 @@ def main(request, response):
             resetState(token)
             response.content = "Request successfully blocked."
         else:
-            setState("Deny Ignored")
+            setState(token, "Deny Ignored")
             fail("The request was not denied.")
     elif state == "Deny Ignored":
         resetState(token)

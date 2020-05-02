@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ScrollTimeline snapshotting</title>
+<link rel="help" href="https://wicg.github.io/scroll-animations/#avoiding-cycles">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+
+<style>
+  body {
+    height: 800px;
+    width: 800px;
+  }
+</style>
+<div id="log"></div>
+
+<script>
+'use strict';
+
+promise_test(async t => {
+  const scroller = document.scrollingElement;
+  const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+  const timeline = new ScrollTimeline(
+    {scrollSource: scroller, timeRange: maxScroll});
+  scroller.scrollTo(0, 0);
+  assert_equals(scroller.scrollTop, 0, "verify test pre-condition");
+
+  scroller.scrollBy({top:100, behavior:'smooth'})
+  // Wait for the scroll to change.
+  const startScroll = scroller.scrollTop;
+  do {
+    await waitForNextFrame();
+  } while(scroller.scrollTop == startScroll);
+  assert_times_equal(timeline.currentTime, scroller.scrollTop,
+    'Scroll timeline current time corresponds to the scroll position.');
+}, 'ScrollTimeline current time is updated after programmatic animated scroll.');
+
+</script>

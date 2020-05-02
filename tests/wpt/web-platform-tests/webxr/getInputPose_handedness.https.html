@@ -75,7 +75,7 @@ let testFunction =
     }
 
     // Handedness only updates during an XR frame.
-    session.requestAnimationFrame(CheckNone);
+    requestSkipAnimationFrame(session, CheckNone);
   });
 
 xr_session_promise_test(

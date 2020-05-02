@@ -8,7 +8,7 @@ import six
 
 from ...localpaths import repo_root
 from .. import lint as lint_mod
-from ..lint import filter_whitelist_errors, parse_whitelist, lint, create_parser
+from ..lint import filter_ignorelist_errors, parse_ignorelist, lint, create_parser
 
 _dummy_repo = os.path.join(os.path.dirname(__file__), "dummy")
 
@@ -17,8 +17,8 @@ def _mock_lint(name, **kwargs):
     return mock.patch(lint_mod.__name__ + "." + name, wraps=wrapped, **kwargs)
 
 
-def test_filter_whitelist_errors():
-    whitelist = {
+def test_filter_ignorelist_errors():
+    ignorelist = {
         'CONSOLE': {
             'svg/*': {12}
         },
@@ -26,34 +26,34 @@ def test_filter_whitelist_errors():
             'svg/*': {None}
         }
     }
-    # parse_whitelist normalises the case/path of the match string so need to do the same
-    whitelist = {e: {os.path.normcase(k): v for k, v in p.items()}
-                 for e, p in whitelist.items()}
-    # paths passed into filter_whitelist_errors are always Unix style
+    # parse_ignorelist normalises the case/path of the match string so need to do the same
+    ignorelist = {e: {os.path.normcase(k): v for k, v in p.items()}
+                 for e, p in ignorelist.items()}
+    # paths passed into filter_ignorelist_errors are always Unix style
     filteredfile = 'svg/test.html'
     unfilteredfile = 'html/test.html'
     # Tests for passing no errors
-    filtered = filter_whitelist_errors(whitelist, [])
+    filtered = filter_ignorelist_errors(ignorelist, [])
     assert filtered == []
-    filtered = filter_whitelist_errors(whitelist, [])
+    filtered = filter_ignorelist_errors(ignorelist, [])
     assert filtered == []
     # Tests for filtering on file and line number
-    filtered = filter_whitelist_errors(whitelist, [['CONSOLE', '', filteredfile, 12]])
+    filtered = filter_ignorelist_errors(ignorelist, [['CONSOLE', '', filteredfile, 12]])
     assert filtered == []
-    filtered = filter_whitelist_errors(whitelist, [['CONSOLE', '', unfilteredfile, 12]])
+    filtered = filter_ignorelist_errors(ignorelist, [['CONSOLE', '', unfilteredfile, 12]])
     assert filtered == [['CONSOLE', '', unfilteredfile, 12]]
-    filtered = filter_whitelist_errors(whitelist, [['CONSOLE', '', filteredfile, 11]])
+    filtered = filter_ignorelist_errors(ignorelist, [['CONSOLE', '', filteredfile, 11]])
     assert filtered == [['CONSOLE', '', filteredfile, 11]]
     # Tests for filtering on just file
-    filtered = filter_whitelist_errors(whitelist, [['INDENT TABS', '', filteredfile, 12]])
+    filtered = filter_ignorelist_errors(ignorelist, [['INDENT TABS', '', filteredfile, 12]])
     assert filtered == []
-    filtered = filter_whitelist_errors(whitelist, [['INDENT TABS', '', filteredfile, 11]])
+    filtered = filter_ignorelist_errors(ignorelist, [['INDENT TABS', '', filteredfile, 11]])
     assert filtered == []
-    filtered = filter_whitelist_errors(whitelist, [['INDENT TABS', '', unfilteredfile, 11]])
+    filtered = filter_ignorelist_errors(ignorelist, [['INDENT TABS', '', unfilteredfile, 11]])
     assert filtered == [['INDENT TABS', '', unfilteredfile, 11]]
 
 
-def test_parse_whitelist():
+def test_parse_ignorelist():
     input_buffer = six.StringIO("""
 # Comment
 CR AT EOL: svg/import/*
@@ -100,10 +100,10 @@ CR AT EOL, INDENT TABS: html/test2.js: 42
     }
     expected_data = {e: {os.path.normcase(k): v for k, v in p.items()}
                      for e, p in expected_data.items()}
-    expected_ignored = {os.path.normcase(x) for x in {"*.pdf", "resources/*", "*.png"}}
-    data, ignored = parse_whitelist(input_buffer)
+    expected_skipped = {os.path.normcase(x) for x in {"*.pdf", "resources/*", "*.png"}}
+    data, skipped_files = parse_ignorelist(input_buffer)
     assert data == expected_data
-    assert ignored == expected_ignored
+    assert skipped_files == expected_skipped
 
 
 def test_lint_no_files(caplog):

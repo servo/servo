@@ -4,29 +4,39 @@
 <link rel="help" href="https://wicg.github.io/construct-stylesheets/">
 <script src = '/resources/testharness.js'></script>
 <script src = '/resources/testharnessreport.js'></script>
-<style id="style">:root { background-color: lime }</style>
+<style id="style">
+  @import url("support/constructable-import.css");
+  :root { background-color: lime }
+</style>
 <script>
 
-test(() => {
+promise_test(async () => {
+  await new Promise(resolve => window.addEventListener("load", resolve));
   assert_equals(getComputedStyle(document.documentElement).backgroundColor, "rgb(0, 255, 0)", "precondition")
   let sheet = document.styleSheets[0];
+  let childSheet = sheet.cssRules[0].styleSheet;
   assert_throws_dom("NotAllowedError", () => sheet.replaceSync(":root { background-color: red }"), "replaceSync on non-constructed sheet should throw");
+  assert_throws_dom("NotAllowedError", () => childSheet.replaceSync(":root { background-color: red }"), "replaceSync on non-constructed sheet should throw");
   assert_equals(getComputedStyle(document.documentElement).backgroundColor, "rgb(0, 255, 0)", "old sheet should still apply after replace");
 }, "CSSStyleSheet.replaceSync throws NotAllowedError for non-constructed sheets")
 
 promise_test(async function(t) {
   assert_equals(getComputedStyle(document.documentElement).backgroundColor, "rgb(0, 255, 0)", "precondition")
   let sheet = document.styleSheets[0];
+  let childSheet = sheet.cssRules[0].styleSheet;
   await promise_rejects_dom(t, "NotAllowedError", sheet.replace(":root { background-color: red }"), "replace on non-constructed sheet should return a rejected promise");
+  await promise_rejects_dom(t, "NotAllowedError", childSheet.replace(":root { background-color: red }"), "replace on non-constructed sheet should return a rejected promise");
   assert_equals(getComputedStyle(document.documentElement).backgroundColor, "rgb(0, 255, 0)", "old sheet should still apply after replace");
 }, "CSSStyleSheet.replace returns a rejected promise for non-constructed sheets")
 
 promise_test(async function(t) {
   assert_equals(getComputedStyle(document.documentElement).backgroundColor, "rgb(0, 255, 0)", "precondition")
   let sheet = document.styleSheets[0];
+  let childSheet = sheet.cssRules[0].styleSheet;
   style.remove() // sheet's associated document becomes null.
   await promise_rejects_dom(t, "NotAllowedError", sheet.replace(":root { background-color: red }"), "replace on non-constructed sheet should return a rejected promise");
-  assert_equals(getComputedStyle(document.documentElement).backgroundColor, "rgb(0, 255, 0)", "old sheet should still apply after replace");
+  await promise_rejects_dom(t, "NotAllowedError", childSheet.replace(":root { background-color: red }"), "replace on non-constructed sheet should return a rejected promise");
+  assert_equals(getComputedStyle(document.documentElement).backgroundColor, "rgba(0, 0, 0, 0)", "old sheet was removed, so the default color should apply");
 }, "CSSStyleSheet.replace returns a rejected promise for non-constructed sheets that have no associated document")
 
 </script>

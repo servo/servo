@@ -18,7 +18,7 @@ let testFunction = function(session, fakeDeviceController, t) {
       profiles: ["foo", "bar"]
     });
 
-    session.requestAnimationFrame((time, xrFrame) => {
+    requestSkipAnimationFrame(session, (time, xrFrame) => {
       let source = session.inputSources[0];
       let targetRaySpace = source.targetRaySpace;
       let gripSpace = source.gripSpace;

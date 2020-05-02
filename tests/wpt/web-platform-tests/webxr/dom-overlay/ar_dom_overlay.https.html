@@ -137,7 +137,7 @@ let testInput = function(overlayElement, session, fakeDeviceController, t) {
   session.requestReferenceSpace('viewer').then(function(viewerSpace) {
     // Press the primary input button and then release it a short time later.
     debug('got viewerSpace');
-    session.requestAnimationFrame((time, xrFrame) => {
+    requestSkipAnimationFrame(session, (time, xrFrame) => {
       debug('got rAF 1');
       input_source.setOverlayPointerPosition(inner_a.offsetLeft + 1,
                                              inner_a.offsetTop + 1);
@@ -202,7 +202,7 @@ let testCrossOriginContent = function(overlayElement, session, fakeDeviceControl
       fakeDeviceController.simulateInputSourceConnection(SCREEN_CONTROLLER);
   session.requestReferenceSpace('viewer').then(function(viewerSpace) {
     // Press the primary input button and then release it a short time later.
-    session.requestAnimationFrame((time, xrFrame) => {
+    requestSkipAnimationFrame(session, (time, xrFrame) => {
       debug('got rAF 1');
       input_source.setOverlayPointerPosition(iframe.offsetLeft + 1,
                                              iframe.offsetTop + 1);

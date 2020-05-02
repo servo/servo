@@ -40,7 +40,7 @@ let testFunction = function(session, fakeDeviceController, t) {
   fakeDeviceController.simulateResetPose();
 
   // The triggered resetPose event should arrive after the next Animation Frame
-  session.requestAnimationFrame(() => {});
+  requestSkipAnimationFrame(session, () => {});
 
   return resetPromise;
 };

@@ -44,6 +44,18 @@ function xr_promise_test(name, func, properties) {
   }, name, properties);
 }
 
+// A utility function for waiting one animation frame before running the callback
+//
+// This is only needed after calling FakeXRDevice methods outside of an animation frame
+//
+// This is so that we can paper over the potential race allowed by the "next animation frame"
+// concept https://immersive-web.github.io/webxr-test-api/#xrsession-next-animation-frame
+function requestSkipAnimationFrame(session, callback) {
+ session.requestAnimationFrame(() => {
+  session.requestAnimationFrame(callback);
+ });
+}
+
 // A test function which runs through the common steps of requesting a session.
 // Calls the passed in test function with the session, the controller for the
 // device, and the test object.

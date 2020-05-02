@@ -21,7 +21,7 @@ let testFunction = (session, fakeDeviceController, t) => new Promise((resolve) =
 
     let input_source_1 = fakeDeviceController.simulateInputSourceConnection(RIGHT_CONTROLLER);
 
-    session.requestAnimationFrame((time, xrFrame) => {
+    requestSkipAnimationFrame(session, (time, xrFrame) => {
       let input_sources = session.inputSources;
 
       t.step( () => {

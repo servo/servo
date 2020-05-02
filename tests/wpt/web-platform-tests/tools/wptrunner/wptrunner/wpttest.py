@@ -1,5 +1,6 @@
 import os
 import subprocess
+import sys
 from six.moves.urllib.parse import urljoin
 from collections import defaultdict
 from six import iteritems, string_types
@@ -102,6 +103,7 @@ class RunInfo(dict):
         if rev:
             self["revision"] = rev
 
+        self["python_version"] = sys.version_info.major
         self["product"] = product
         if debug is not None:
             self["debug"] = debug

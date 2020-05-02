@@ -49,7 +49,7 @@ let testFunction = function(session, fakeDeviceController, t) {
 
           // Now set the bounds explicitly and check again on the next frame.
           fakeDeviceController.setBoundsGeometry(VALID_BOUNDS);
-          session.requestAnimationFrame(onFrame);
+          requestSkipAnimationFrame(session, onFrame);
         });
     });
 };

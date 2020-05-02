@@ -307,4 +307,22 @@
     assert_equals(pc1.pendingRemoteDescription, null);
     await promise_rejects_dom(t, 'RTCError', p);
   }, 'setRemoteDescription(invalidOffer) from have-local-offer does not undo rollback');
+
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.addTransceiver('video');
+    const offer = await pc1.createOffer();
+    await pc2.setRemoteDescription(offer);
+    assert_equals(pc2.getTransceivers().length, 1);
+    await pc2.setRemoteDescription(offer);
+    assert_equals(pc2.getTransceivers().length, 1);
+    await pc1.setLocalDescription(offer);
+    const answer = await pc2.createAnswer();
+    await pc2.setLocalDescription(answer);
+    await pc1.setRemoteDescription(answer);
+  }, 'repeated sRD(offer) works');
+
 </script>

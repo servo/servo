@@ -51,7 +51,7 @@ let testFunction = function(session, fakeDeviceController, t) {
   let input_source = fakeDeviceController.simulateInputSourceConnection(VALID_CONTROLLER);
 
   // Press the primary input button and then release it a short time later.
-  session.requestAnimationFrame((time, xrFrame) => {
+  requestSkipAnimationFrame(session, (time, xrFrame) => {
     input_source.simulateSelect();
 
     session.requestAnimationFrame((time, xrFrame) => {

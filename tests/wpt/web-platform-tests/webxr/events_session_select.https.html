@@ -92,7 +92,7 @@ let testFunction = function(session, fakeDeviceController, t) {
       currentReferenceSpace = referenceSpace;
 
       // Press the primary input button and then release it a short time later.
-      session.requestAnimationFrame((time, xrFrame) => {
+      requestSkipAnimationFrame(session, (time, xrFrame) => {
         input_source.startSelection();
 
           session.requestAnimationFrame((time, xrFrame) => {

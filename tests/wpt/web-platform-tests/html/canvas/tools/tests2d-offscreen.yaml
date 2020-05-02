@@ -9778,8 +9778,8 @@
 - meta: |
     cases = [
         ("zero", "0", 0),
-        ("empty", "", None),
-        ("onlyspace", "  ", None),
+        ("empty", "", 0),
+        ("onlyspace", "  ", 0),
         ("space", "  100", 100),
         ("whitespace", "\t\f100", 100),
         ("plus", "+100", 100),
