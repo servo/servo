@@ -870,52 +870,40 @@ impl HTMLScriptElement {
         let global = window.upcast::<GlobalScope>();
         let _aes = AutoEntryScript::new(&global);
 
-        if script.external {
-            let module_map = global.get_module_map().borrow();
+        let tree = if script.external {
+            global.get_module_map().borrow().get(&script.url).cloned()
+        } else {
+            global
+                .get_inline_module_map()
+                .borrow()
+                .get(&self.id.clone())
+                .cloned()
+        };
 
-            if let Some(module_tree) = module_map.get(&script.url) {
-                // Step 6.
-                {
-                    let module_error = module_tree.get_error().borrow();
-                    if module_error.is_some() {
-                        module_tree.report_error(&global);
-                        return;
-                    }
-                }
-
-                let module_record = module_tree.get_record().borrow();
-                if let Some(record) = &*module_record {
-                    let evaluated = module_tree.execute_module(global, record.handle());
-
-                    if let Err(exception) = evaluated {
-                        module_tree.set_error(Some(exception.clone()));
-                        module_tree.report_error(&global);
-                        return;
-                    }
+        if let Some(module_tree) = tree {
+            // Step 6.
+            {
+                let module_error = module_tree.get_rethrow_error().borrow();
+                let network_error = module_tree.get_network_error().borrow();
+                if module_error.is_some() && network_error.is_none() {
+                    module_tree.report_error(&global);
+                    return;
                 }
             }
-        } else {
-            let inline_module_map = global.get_inline_module_map().borrow();
 
-            if let Some(module_tree) = inline_module_map.get(&self.id.clone()) {
-                // Step 6.
-                {
-                    let module_error = module_tree.get_error().borrow();
-                    if module_error.is_some() {
-                        module_tree.report_error(&global);
-                        return;
-                    }
-                }
+            let record = module_tree
+                .get_record()
+                .borrow()
+                .as_ref()
+                .map(|record| record.handle());
 
-                let module_record = module_tree.get_record().borrow();
-                if let Some(record) = &*module_record {
-                    let evaluated = module_tree.execute_module(global, record.handle());
+            if let Some(record) = record {
+                let evaluated = module_tree.execute_module(global, record);
 
-                    if let Err(exception) = evaluated {
-                        module_tree.set_error(Some(exception.clone()));
-                        module_tree.report_error(&global);
-                        return;
-                    }
+                if let Err(exception) = evaluated {
+                    module_tree.set_rethrow_error(exception);
+                    module_tree.report_error(&global);
+                    return;
                 }
             }
         }

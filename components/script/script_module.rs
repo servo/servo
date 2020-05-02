@@ -12,7 +12,7 @@ use crate::dom::bindings::conversions::jsstring_to_str;
 use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::settings_stack::AutoIncumbentScript;
@@ -37,19 +37,19 @@ use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 use encoding_rs::UTF_8;
 use hyper_serde::Serde;
+use indexmap::{IndexMap, IndexSet};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Handle as RawHandle;
 use js::jsapi::HandleObject;
 use js::jsapi::HandleValue as RawHandleValue;
-use js::jsapi::{
-    CompileModule, ExceptionStackBehavior, GetModuleResolveHook, JSRuntime, SetModuleResolveHook,
-};
+use js::jsapi::{CompileModule, ExceptionStackBehavior};
+use js::jsapi::{GetModuleResolveHook, JSRuntime, SetModuleResolveHook};
 use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
-use js::jsapi::{GetWaitForAllPromise, ModuleEvaluate, ModuleInstantiate};
 use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
 use js::jsapi::{JSAutoRealm, JSObject, JSString};
 use js::jsapi::{JS_DefineProperty4, JS_NewStringCopyN, JSPROP_ENUMERATE};
+use js::jsapi::{ModuleEvaluate, ModuleInstantiate};
 use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
@@ -57,9 +57,7 @@ use js::rust::jsapi_wrapped::{JS_GetArrayLength, JS_GetElement};
 use js::rust::transform_u16_to_source_text;
 use js::rust::wrappers::JS_SetPendingException;
 use js::rust::CompileOptionsWrapper;
-use js::rust::IntoHandle;
-use js::rust::RootedObjectVectorWrapper;
-use js::rust::{Handle, HandleValue};
+use js::rust::{Handle, HandleValue, IntoHandle};
 use mime::Mime;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
 use net_traits::request::{Referrer, RequestBuilder, RequestMode};
@@ -67,22 +65,19 @@ use net_traits::{FetchMetadata, Metadata};
 use net_traits::{FetchResponseListener, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
-use std::cmp::Ordering;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::ffi;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
 use url::ParseError as UrlParseError;
 
-use indexmap::IndexSet;
-
 #[allow(unsafe_code)]
-unsafe fn gen_type_error(global: &GlobalScope, string: String) -> ModuleError {
+unsafe fn gen_type_error(global: &GlobalScope, string: String) -> RethrowError {
     rooted!(in(*global.get_cx()) let mut thrown = UndefinedValue());
     Error::Type(string).to_jsval(*global.get_cx(), &global, thrown.handle_mut());
 
-    return ModuleError::RawException(RootedTraceableBox::from_box(Heap::boxed(thrown.get())));
+    return RethrowError(RootedTraceableBox::from_box(Heap::boxed(thrown.get())));
 }
 
 #[derive(JSTraceable)]
@@ -96,62 +91,53 @@ impl ModuleObject {
 }
 
 #[derive(JSTraceable)]
-pub enum ModuleError {
-    Network(NetworkError),
-    RawException(RootedTraceableBox<Heap<JSVal>>),
-}
+pub struct RethrowError(RootedTraceableBox<Heap<JSVal>>);
 
-impl Eq for ModuleError {}
-
-impl PartialEq for ModuleError {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Self::Network(_), Self::RawException(_)) |
-            (Self::RawException(_), Self::Network(_)) => false,
-            _ => true,
-        }
+impl RethrowError {
+    fn handle(&self) -> Handle<JSVal> {
+        self.0.handle()
     }
 }
 
-impl Ord for ModuleError {
-    fn cmp(&self, other: &Self) -> Ordering {
-        match (self, other) {
-            (Self::Network(_), Self::RawException(_)) => Ordering::Greater,
-            (Self::RawException(_), Self::Network(_)) => Ordering::Less,
-            _ => Ordering::Equal,
-        }
-    }
-}
-
-impl PartialOrd for ModuleError {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl ModuleError {
-    #[allow(unsafe_code)]
-    pub fn handle(&self) -> Handle<JSVal> {
-        match self {
-            Self::Network(_) => unreachable!(),
-            Self::RawException(exception) => exception.handle(),
-        }
-    }
-}
-
-impl Clone for ModuleError {
+impl Clone for RethrowError {
     fn clone(&self) -> Self {
-        match self {
-            Self::Network(network_error) => Self::Network(network_error.clone()),
-            Self::RawException(exception) => Self::RawException(RootedTraceableBox::from_box(
-                Heap::boxed(exception.get().clone()),
-            )),
-        }
+        Self(RootedTraceableBox::from_box(Heap::boxed(
+            self.0.get().clone(),
+        )))
     }
 }
 
 struct ModuleScript {
     base_url: ServoUrl,
+}
+
+/// Identity for a module which will be
+/// used to retrieve the module when we'd
+/// like to get it from module map.
+///
+/// For example, we will save module parents with
+/// module identity so that we can get module tree
+/// from a descendant no matter the parent is an
+/// inline script or a external script
+#[derive(Clone, Eq, Hash, JSTraceable, PartialEq)]
+pub enum ModuleIdentity {
+    ScriptId(ScriptId),
+    ModuleUrl(ServoUrl),
+}
+
+impl ModuleIdentity {
+    pub fn get_module_tree(&self, global: &GlobalScope) -> Rc<ModuleTree> {
+        match self {
+            ModuleIdentity::ModuleUrl(url) => {
+                let module_map = global.get_module_map().borrow();
+                module_map.get(&url.clone()).unwrap().clone()
+            },
+            ModuleIdentity::ScriptId(script_id) => {
+                let inline_module_map = global.get_inline_module_map().borrow();
+                inline_module_map.get(&script_id).unwrap().clone()
+            },
+        }
+    }
 }
 
 #[derive(JSTraceable)]
@@ -168,34 +154,35 @@ pub struct ModuleTree {
     // By default all maps in web specs are ordered maps
     // (https://infra.spec.whatwg.org/#ordered-map), however we can usually get away with using
     // stdlib maps and sets because we rarely iterate over them.
-    parent_urls: DomRefCell<IndexSet<ServoUrl>>,
+    parent_identities: DomRefCell<IndexSet<ModuleIdentity>>,
     descendant_urls: DomRefCell<IndexSet<ServoUrl>>,
+    // A set to memoize which descendants are under fetching
+    incomplete_fetch_urls: DomRefCell<IndexSet<ServoUrl>>,
     visited_urls: DomRefCell<HashSet<ServoUrl>>,
-    error: DomRefCell<Option<ModuleError>>,
+    rethrow_error: DomRefCell<Option<RethrowError>>,
+    network_error: DomRefCell<Option<NetworkError>>,
+    // A promise for owners to execute when the module tree
+    // is finished
     promise: DomRefCell<Option<Rc<Promise>>>,
+    external: bool,
 }
 
 impl ModuleTree {
-    pub fn new(url: ServoUrl) -> Self {
+    pub fn new(url: ServoUrl, external: bool, visited_urls: HashSet<ServoUrl>) -> Self {
         ModuleTree {
             url,
             text: DomRefCell::new(DOMString::new()),
             record: DomRefCell::new(None),
             status: DomRefCell::new(ModuleStatus::Initial),
-            parent_urls: DomRefCell::new(IndexSet::new()),
+            parent_identities: DomRefCell::new(IndexSet::new()),
             descendant_urls: DomRefCell::new(IndexSet::new()),
-            visited_urls: DomRefCell::new(HashSet::new()),
-            error: DomRefCell::new(None),
+            incomplete_fetch_urls: DomRefCell::new(IndexSet::new()),
+            visited_urls: DomRefCell::new(visited_urls),
+            rethrow_error: DomRefCell::new(None),
+            network_error: DomRefCell::new(None),
             promise: DomRefCell::new(None),
+            external,
         }
-    }
-
-    pub fn get_promise(&self) -> &DomRefCell<Option<Rc<Promise>>> {
-        &self.promise
-    }
-
-    pub fn set_promise(&self, promise: Rc<Promise>) {
-        *self.promise.borrow_mut() = Some(promise);
     }
 
     pub fn get_status(&self) -> ModuleStatus {
@@ -214,12 +201,20 @@ impl ModuleTree {
         *self.record.borrow_mut() = Some(record);
     }
 
-    pub fn get_error(&self) -> &DomRefCell<Option<ModuleError>> {
-        &self.error
+    pub fn get_rethrow_error(&self) -> &DomRefCell<Option<RethrowError>> {
+        &self.rethrow_error
     }
 
-    pub fn set_error(&self, error: Option<ModuleError>) {
-        *self.error.borrow_mut() = error;
+    pub fn set_rethrow_error(&self, rethrow_error: RethrowError) {
+        *self.rethrow_error.borrow_mut() = Some(rethrow_error);
+    }
+
+    pub fn get_network_error(&self) -> &DomRefCell<Option<NetworkError>> {
+        &self.network_error
+    }
+
+    pub fn set_network_error(&self, network_error: NetworkError) {
+        *self.network_error.borrow_mut() = Some(network_error);
     }
 
     pub fn get_text(&self) -> &DomRefCell<DOMString> {
@@ -230,104 +225,127 @@ impl ModuleTree {
         *self.text.borrow_mut() = module_text;
     }
 
-    pub fn get_parent_urls(&self) -> &DomRefCell<IndexSet<ServoUrl>> {
-        &self.parent_urls
-    }
-
-    pub fn insert_parent_url(&self, parent_url: ServoUrl) {
-        self.parent_urls.borrow_mut().insert(parent_url);
-    }
-
-    pub fn append_parent_urls(&self, parent_urls: IndexSet<ServoUrl>) {
-        self.parent_urls.borrow_mut().extend(parent_urls);
+    pub fn get_incomplete_fetch_urls(&self) -> &DomRefCell<IndexSet<ServoUrl>> {
+        &self.incomplete_fetch_urls
     }
 
     pub fn get_descendant_urls(&self) -> &DomRefCell<IndexSet<ServoUrl>> {
         &self.descendant_urls
     }
 
-    pub fn append_descendant_urls(&self, descendant_urls: IndexSet<ServoUrl>) {
-        self.descendant_urls.borrow_mut().extend(descendant_urls);
+    pub fn get_parent_urls(&self) -> IndexSet<ServoUrl> {
+        let parent_identities = self.parent_identities.borrow();
+
+        parent_identities
+            .iter()
+            .filter_map(|parent_identity| match parent_identity {
+                ModuleIdentity::ScriptId(_) => None,
+                ModuleIdentity::ModuleUrl(url) => Some(url.clone()),
+            })
+            .collect()
     }
 
-    /// recursively checks if all of the transitive descendants are
-    /// in the FetchingDescendants or later status
-    fn recursive_check_descendants(
-        module_tree: &ModuleTree,
-        module_map: &HashMap<ServoUrl, Rc<ModuleTree>>,
-        discovered_urls: &mut HashSet<ServoUrl>,
-    ) -> bool {
-        discovered_urls.insert(module_tree.url.clone());
+    pub fn insert_parent_identity(&self, parent_identity: ModuleIdentity) {
+        self.parent_identities.borrow_mut().insert(parent_identity);
+    }
 
-        let descendant_urls = module_tree.descendant_urls.borrow();
+    pub fn insert_incomplete_fetch_url(&self, dependency: ServoUrl) {
+        self.incomplete_fetch_urls.borrow_mut().insert(dependency);
+    }
 
-        for descendant_module in descendant_urls
+    pub fn remove_incomplete_fetch_url(&self, dependency: ServoUrl) {
+        self.incomplete_fetch_urls.borrow_mut().remove(&dependency);
+    }
+
+    /// Find circular dependencies in non-recursive way
+    ///
+    /// This function is basically referred to
+    /// [this blog post](https://breakingcode.wordpress.com/2013/03/11/an-example-dependency-resolution-algorithm-in-python/).
+    ///
+    /// The only difference is, in that blog post, its algorithm will throw errors while finding circular
+    /// dependencies; however, in our use case, we'd like to find circular dependencies so we will just
+    /// return it.
+    pub fn find_circular_dependencies(&self, global: &GlobalScope) -> IndexSet<ServoUrl> {
+        let module_map = global.get_module_map().borrow();
+
+        // A map for checking dependencies and using the module url as key
+        let mut module_deps: IndexMap<ServoUrl, IndexSet<ServoUrl>> = module_map
             .iter()
-            .filter_map(|url| module_map.get(&url.clone()))
-        {
-            if discovered_urls.contains(&descendant_module.url) {
-                continue;
+            .map(|(module_url, module)| {
+                (module_url.clone(), module.descendant_urls.borrow().clone())
+            })
+            .collect();
+
+        while module_deps.len() != 0 {
+            // Get all dependencies with no dependencies
+            let ready: IndexSet<ServoUrl> = module_deps
+                .iter()
+                .filter_map(|(module_url, descendant_urls)| {
+                    if descendant_urls.len() == 0 {
+                        Some(module_url.clone())
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            // If there's no ready module but we're still in the loop,
+            // it means we find circular modules, then we can return them.
+            if ready.len() == 0 {
+                return module_deps
+                    .iter()
+                    .map(|(url, _)| url.clone())
+                    .collect::<IndexSet<ServoUrl>>();
             }
 
-            let descendant_status = descendant_module.get_status();
-            if descendant_status < ModuleStatus::FetchingDescendants {
-                return false;
+            // Remove ready modules from the dependency map
+            for module_url in ready.iter() {
+                module_deps.remove(&module_url.clone());
             }
 
-            let all_ready_descendants = ModuleTree::recursive_check_descendants(
-                &descendant_module,
-                module_map,
-                discovered_urls,
-            );
-
-            if !all_ready_descendants {
-                return false;
+            // Also make sure to remove the ready modules from the
+            // remaining module dependencies as well
+            for (_, deps) in module_deps.iter_mut() {
+                *deps = deps
+                    .difference(&ready)
+                    .into_iter()
+                    .cloned()
+                    .collect::<IndexSet<ServoUrl>>();
             }
         }
 
-        return true;
+        IndexSet::new()
     }
 
-    fn has_all_ready_descendants(&self, module_map: &HashMap<ServoUrl, Rc<ModuleTree>>) -> bool {
-        let mut discovered_urls = HashSet::new();
-
-        return ModuleTree::recursive_check_descendants(&self, module_map, &mut discovered_urls);
-    }
-
-    pub fn get_visited_urls(&self) -> &DomRefCell<HashSet<ServoUrl>> {
-        &self.visited_urls
-    }
-
-    pub fn append_handler(&self, owner: ModuleOwner, module_url: ServoUrl, is_top_level: bool) {
-        let promise = self.promise.borrow();
-
-        let resolve_this = owner.clone();
-        let reject_this = owner.clone();
-
-        let resolved_url = module_url.clone();
-        let rejected_url = module_url.clone();
+    // We just leverage the power of Promise to run the task for `finish` the owner.
+    // Thus, we will always `resolve` it and no need to register a callback for `reject`
+    pub fn append_handler(&self, owner: ModuleOwner, module_identity: ModuleIdentity) {
+        let this = owner.clone();
+        let identity = module_identity.clone();
 
         let handler = PromiseNativeHandler::new(
             &owner.global(),
             Some(ModuleHandler::new(Box::new(
                 task!(fetched_resolve: move || {
-                    resolve_this.finish_module_load(Some(resolved_url), is_top_level);
+                    this.notify_owner_to_finish(identity);
                 }),
             ))),
-            Some(ModuleHandler::new(Box::new(
-                task!(failure_reject: move || {
-                    reject_this.finish_module_load(Some(rejected_url), is_top_level);
-                }),
-            ))),
+            None,
         );
 
-        let global = owner.global();
-        let realm = enter_realm(&*global);
+        let realm = enter_realm(&*owner.global());
         let comp = InRealm::Entered(&realm);
+        let _ais = AutoIncumbentScript::new(&*owner.global());
 
-        let promise = promise.as_ref().unwrap();
-
-        promise.append_native_handler(&handler, comp);
+        let mut promise = self.promise.borrow_mut();
+        match promise.as_ref() {
+            Some(promise) => promise.append_native_handler(&handler, comp),
+            None => {
+                let new_promise = Promise::new_in_current_realm(&owner.global(), comp);
+                new_promise.append_native_handler(&handler, comp);
+                *promise = Some(new_promise);
+            },
+        }
     }
 }
 
@@ -336,8 +354,6 @@ pub enum ModuleStatus {
     Initial,
     Fetching,
     FetchingDescendants,
-    FetchFailed,
-    Ready,
     Finished,
 }
 
@@ -350,7 +366,7 @@ impl ModuleTree {
         global: &GlobalScope,
         module_script_text: DOMString,
         url: ServoUrl,
-    ) -> Result<ModuleObject, ModuleError> {
+    ) -> Result<ModuleObject, RethrowError> {
         let module: Vec<u16> = module_script_text.encode_utf16().collect();
 
         let url_cstr = ffi::CString::new(url.as_str().as_bytes()).unwrap();
@@ -377,9 +393,9 @@ impl ModuleTree {
                 ));
                 JS_ClearPendingException(*global.get_cx());
 
-                return Err(ModuleError::RawException(RootedTraceableBox::from_box(
-                    Heap::boxed(exception.get()),
-                )));
+                return Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
+                    exception.get(),
+                ))));
             }
 
             let module_script_data = Box::new(ModuleScript {
@@ -403,11 +419,13 @@ impl ModuleTree {
     }
 
     #[allow(unsafe_code)]
+    /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
+    /// Step 5-2.
     pub fn instantiate_module_tree(
         &self,
         global: &GlobalScope,
         module_record: HandleObject,
-    ) -> Result<(), ModuleError> {
+    ) -> Result<(), RethrowError> {
         let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
         unsafe {
@@ -421,9 +439,9 @@ impl ModuleTree {
                 ));
                 JS_ClearPendingException(*global.get_cx());
 
-                Err(ModuleError::RawException(RootedTraceableBox::from_box(
-                    Heap::boxed(exception.get()),
-                )))
+                Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
+                    exception.get(),
+                ))))
             } else {
                 debug!("module instantiated successfully");
 
@@ -437,7 +455,7 @@ impl ModuleTree {
         &self,
         global: &GlobalScope,
         module_record: HandleObject,
-    ) -> Result<(), ModuleError> {
+    ) -> Result<(), RethrowError> {
         let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
         unsafe {
@@ -451,9 +469,9 @@ impl ModuleTree {
                 ));
                 JS_ClearPendingException(*global.get_cx());
 
-                Err(ModuleError::RawException(RootedTraceableBox::from_box(
-                    Heap::boxed(exception.get()),
-                )))
+                Err(RethrowError(RootedTraceableBox::from_box(Heap::boxed(
+                    exception.get(),
+                ))))
             } else {
                 debug!("module evaluated successfully");
                 Ok(())
@@ -463,7 +481,7 @@ impl ModuleTree {
 
     #[allow(unsafe_code)]
     pub fn report_error(&self, global: &GlobalScope) {
-        let module_error = self.error.borrow();
+        let module_error = self.rethrow_error.borrow();
 
         if let Some(exception) = &*module_error {
             unsafe {
@@ -478,54 +496,13 @@ impl ModuleTree {
         }
     }
 
-    /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-a-module-script
-    /// Step 5.
-    pub fn resolve_requested_modules(
-        &self,
-        global: &GlobalScope,
-    ) -> Result<IndexSet<ServoUrl>, ModuleError> {
-        let status = self.get_status();
-
-        assert_ne!(status, ModuleStatus::Initial);
-        assert_ne!(status, ModuleStatus::Fetching);
-
-        let record = self.record.borrow();
-
-        if let Some(raw_record) = &*record {
-            let valid_specifier_urls = self.resolve_requested_module_specifiers(
-                &global,
-                raw_record.handle(),
-                self.url.clone(),
-            );
-
-            return valid_specifier_urls.map(|parsed_urls| {
-                parsed_urls
-                    .iter()
-                    .filter_map(|parsed_url| {
-                        let mut visited = self.visited_urls.borrow_mut();
-
-                        if !visited.contains(&parsed_url) {
-                            visited.insert(parsed_url.clone());
-
-                            Some(parsed_url.clone())
-                        } else {
-                            None
-                        }
-                    })
-                    .collect::<IndexSet<ServoUrl>>()
-            });
-        }
-
-        unreachable!("Didn't have record while resolving its requested module")
-    }
-
     #[allow(unsafe_code)]
     fn resolve_requested_module_specifiers(
         &self,
         global: &GlobalScope,
         module_object: HandleObject,
         base_url: ServoUrl,
-    ) -> Result<IndexSet<ServoUrl>, ModuleError> {
+    ) -> Result<IndexSet<ServoUrl>, RethrowError> {
         let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
         let mut specifier_urls = IndexSet::new();
@@ -615,26 +592,27 @@ impl ModuleTree {
 
     /// https://html.spec.whatwg.org/multipage/#finding-the-first-parse-error
     fn find_first_parse_error(
+        &self,
         global: &GlobalScope,
-        module_tree: &ModuleTree,
         discovered_urls: &mut HashSet<ServoUrl>,
-    ) -> Option<ModuleError> {
+    ) -> (Option<NetworkError>, Option<RethrowError>) {
         // 3.
-        discovered_urls.insert(module_tree.url.clone());
+        discovered_urls.insert(self.url.clone());
 
         // 4.
-        let module_map = global.get_module_map().borrow();
-        let record = module_tree.get_record().borrow();
+        let record = self.get_record().borrow();
         if record.is_none() {
-            let module_error = module_tree.get_error().borrow();
-
-            return module_error.clone();
+            return (
+                self.network_error.borrow().clone(),
+                self.rethrow_error.borrow().clone(),
+            );
         }
 
-        // 5-6.
-        let mut errors: Vec<ModuleError> = Vec::new();
-        let descendant_urls = module_tree.get_descendant_urls().borrow();
+        let module_map = global.get_module_map().borrow();
+        let mut parse_error: Option<RethrowError> = None;
 
+        // 5-6.
+        let descendant_urls = self.descendant_urls.borrow();
         for descendant_module in descendant_urls
             .iter()
             // 7.
@@ -646,18 +624,241 @@ impl ModuleTree {
             }
 
             // 8-3.
-            let child_parse_error =
-                ModuleTree::find_first_parse_error(&global, &descendant_module, discovered_urls);
+            let (child_network_error, child_parse_error) =
+                descendant_module.find_first_parse_error(&global, discovered_urls);
+
+            // Due to network error's priority higher than parse error,
+            // we will return directly when we meet a network error.
+            if child_network_error.is_some() {
+                return (child_network_error, None);
+            }
 
             // 8-4.
-            if let Some(child_error) = child_parse_error {
-                errors.push(child_error);
+            //
+            // In case of having any network error in other descendants,
+            // we will store the "first" parse error and keep running this
+            // loop to ensure we don't have any network error.
+            if child_parse_error.is_some() && parse_error.is_none() {
+                parse_error = child_parse_error;
             }
         }
 
         // Step 9.
-        return errors.into_iter().max();
+        return (None, parse_error);
     }
+
+    #[allow(unsafe_code)]
+    /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-a-module-script
+    fn fetch_module_descendants(
+        &self,
+        owner: &ModuleOwner,
+        destination: Destination,
+        credentials_mode: CredentialsMode,
+        parent_identity: ModuleIdentity,
+    ) {
+        debug!("Start to load dependencies of {}", self.url.clone());
+
+        let global = owner.global();
+
+        self.set_status(ModuleStatus::FetchingDescendants);
+
+        let specifier_urls = {
+            let raw_record = self.record.borrow();
+            match raw_record.as_ref() {
+                // Step 1.
+                None => {
+                    self.set_status(ModuleStatus::Finished);
+                    debug!(
+                        "Module {} doesn't have module record but tried to load descendants.",
+                        self.url.clone()
+                    );
+                    return;
+                },
+                // Step 5.
+                Some(raw_record) => self.resolve_requested_module_specifiers(
+                    &global,
+                    raw_record.handle(),
+                    self.url.clone(),
+                ),
+            }
+        };
+
+        match specifier_urls {
+            // Step 3.
+            Ok(valid_specifier_urls) if valid_specifier_urls.len() == 0 => {
+                debug!("Module {} doesn't have any dependencies.", self.url.clone());
+                self.advance_finished_and_link(&global);
+            },
+            Ok(valid_specifier_urls) => {
+                self.descendant_urls
+                    .borrow_mut()
+                    .extend(valid_specifier_urls.clone());
+
+                let mut urls = IndexSet::new();
+                let mut visited_urls = self.visited_urls.borrow_mut();
+
+                for parsed_url in valid_specifier_urls {
+                    // Step 5-3.
+                    if !visited_urls.contains(&parsed_url) {
+                        // Step 5-3-1.
+                        urls.insert(parsed_url.clone());
+                        // Step 5-3-2.
+                        visited_urls.insert(parsed_url.clone());
+
+                        self.insert_incomplete_fetch_url(parsed_url.clone());
+                    }
+                }
+
+                // Step 3.
+                if urls.len() == 0 {
+                    debug!(
+                        "After checking with visited urls, module {} doesn't have dependencies to load.",
+                        self.url.clone()
+                    );
+                    self.advance_finished_and_link(&global);
+                    return;
+                }
+
+                // Step 8.
+                for url in urls {
+                    // https://html.spec.whatwg.org/multipage/#internal-module-script-graph-fetching-procedure
+                    // Step 1.
+                    assert!(visited_urls.get(&url).is_some());
+
+                    // Step 2.
+                    fetch_single_module_script(
+                        owner.clone(),
+                        url.clone(),
+                        visited_urls.clone(),
+                        destination.clone(),
+                        Referrer::Client,
+                        ParserMetadata::NotParserInserted,
+                        "".to_owned(), // integrity
+                        credentials_mode.clone(),
+                        Some(parent_identity.clone()),
+                        false,
+                    );
+                }
+            },
+            Err(error) => {
+                self.set_rethrow_error(error);
+                self.advance_finished_and_link(&global);
+            },
+        }
+    }
+
+    /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
+    /// step 4-7.
+    fn advance_finished_and_link(&self, global: &GlobalScope) {
+        {
+            let descendant_urls = self.descendant_urls.borrow();
+
+            // Check if there's any dependencies under fetching.
+            //
+            // We can't only check `incomplete fetches` here because...
+            //
+            // For example, module `A` has descendants `B`, `C`
+            // while `A` has added them to incomplete fetches, it's possible
+            // `B` has finished but `C` is not yet fired its fetch; in this case,
+            // `incomplete fetches` will be `zero` but the module is actually not ready
+            // to finish. Thus, we need to check dependencies directly instead of
+            // incomplete fetches here.
+            if !is_all_dependencies_ready(&descendant_urls, &global) {
+                // When we found the `incomplete fetches` is bigger than zero,
+                // we will need to check if there's any circular dependency.
+                //
+                // If there's no circular dependencies but there are incomplete fetches,
+                // it means it needs to wait for finish.
+                //
+                // Or, if there are circular dependencies, then we need to confirm
+                // no circular dependencies are fetching.
+                //
+                // if there's any circular dependencies and they all proceeds to status
+                // higher than `FetchingDescendants`, then it means we can proceed to finish.
+                let circular_deps = self.find_circular_dependencies(&global);
+
+                if circular_deps.len() == 0 || !is_all_dependencies_ready(&circular_deps, &global) {
+                    return;
+                }
+            }
+        }
+
+        self.set_status(ModuleStatus::Finished);
+
+        debug!("Going to advance and finish for: {}", self.url.clone());
+
+        {
+            // Notify parents of this module to finish
+            //
+            // Before notifying, if the parent module has already had zero incomplete
+            // fetches, then it means we don't need to notify it.
+            let parent_identities = self.parent_identities.borrow();
+            for parent_identity in parent_identities.iter() {
+                let parent_tree = parent_identity.get_module_tree(&global);
+
+                let incomplete_count_before_remove = {
+                    let incomplete_urls = parent_tree.get_incomplete_fetch_urls().borrow();
+                    incomplete_urls.len()
+                };
+
+                if incomplete_count_before_remove > 0 {
+                    parent_tree.remove_incomplete_fetch_url(self.url.clone());
+                    parent_tree.advance_finished_and_link(&global);
+                }
+            }
+        }
+
+        let mut discovered_urls: HashSet<ServoUrl> = HashSet::new();
+        let (network_error, rethrow_error) =
+            self.find_first_parse_error(&global, &mut discovered_urls);
+
+        match (network_error, rethrow_error) {
+            (Some(network_error), _) => {
+                self.set_network_error(network_error);
+            },
+            (None, None) => {
+                let module_record = self.get_record().borrow();
+                if let Some(record) = &*module_record {
+                    let instantiated = self.instantiate_module_tree(&global, record.handle());
+
+                    if let Err(exception) = instantiated {
+                        self.set_rethrow_error(exception);
+                    }
+                }
+            },
+            (None, Some(error)) => {
+                self.set_rethrow_error(error);
+            },
+        }
+
+        let promise = self.promise.borrow();
+        if let Some(promise) = promise.as_ref() {
+            promise.resolve_native(&());
+        }
+    }
+}
+
+// Iterate the given dependency urls to see if it and its descendants are fetching or not.
+// When a module status is `FetchingDescendants`, it's possible that the module is a circular
+// module so we will also check its descendants.
+fn is_all_dependencies_ready(dependencies: &IndexSet<ServoUrl>, global: &GlobalScope) -> bool {
+    dependencies.iter().all(|dep| {
+        let module_map = global.get_module_map().borrow();
+        match module_map.get(&dep) {
+            Some(module) => {
+                let module_descendants = module.get_descendant_urls().borrow();
+
+                module.get_status() >= ModuleStatus::FetchingDescendants &&
+                    module_descendants.iter().all(|descendant_url| {
+                        match module_map.get(&descendant_url) {
+                            Some(m) => m.get_status() >= ModuleStatus::FetchingDescendants,
+                            None => false,
+                        }
+                    })
+            },
+            None => false,
+        }
+    })
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -698,45 +899,7 @@ impl ModuleOwner {
         }
     }
 
-    fn gen_promise_with_final_handler(
-        &self,
-        module_url: Option<ServoUrl>,
-        is_top_level: bool,
-    ) -> Rc<Promise> {
-        let resolve_this = self.clone();
-        let reject_this = self.clone();
-
-        let resolved_url = module_url.clone();
-        let rejected_url = module_url.clone();
-
-        let handler = PromiseNativeHandler::new(
-            &self.global(),
-            Some(ModuleHandler::new(Box::new(
-                task!(fetched_resolve: move || {
-                    resolve_this.finish_module_load(resolved_url, is_top_level);
-                }),
-            ))),
-            Some(ModuleHandler::new(Box::new(
-                task!(failure_reject: move || {
-                    reject_this.finish_module_load(rejected_url, is_top_level);
-                }),
-            ))),
-        );
-
-        let global = self.global();
-        let realm = enter_realm(&*global);
-        let comp = InRealm::Entered(&realm);
-
-        let promise = Promise::new_in_current_realm(&self.global(), comp);
-
-        promise.append_native_handler(&handler, comp);
-
-        promise
-    }
-
-    /// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
-    /// step 4-7.
-    pub fn finish_module_load(&self, module_url: Option<ServoUrl>, is_top_level: bool) {
+    pub fn notify_owner_to_finish(&self, module_identity: ModuleIdentity) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
             ModuleOwner::Window(script) => {
@@ -744,112 +907,39 @@ impl ModuleOwner {
 
                 let document = document_from_node(&*script.root());
 
-                let module_map = global.get_module_map().borrow();
+                let load = {
+                    let module_tree = module_identity.get_module_tree(&global);
 
-                let (module_tree, mut load) = if let Some(script_src) = module_url.clone() {
-                    let module_tree = module_map.get(&script_src.clone()).unwrap().clone();
+                    let network_error = module_tree.get_network_error().borrow();
+                    match network_error.as_ref() {
+                        Some(network_error) => Err(network_error.clone()),
+                        None => match module_identity {
+                            ModuleIdentity::ModuleUrl(script_src) => Ok(ScriptOrigin::external(
+                                module_tree.get_text().borrow().clone(),
+                                script_src.clone(),
+                                ScriptType::Module,
+                            )),
+                            ModuleIdentity::ScriptId(_) => Ok(ScriptOrigin::internal(
+                                module_tree.get_text().borrow().clone(),
+                                document.base_url().clone(),
+                                ScriptType::Module,
+                            )),
+                        },
+                    }
+                };
 
-                    let load = Ok(ScriptOrigin::external(
-                        module_tree.get_text().borrow().clone(),
-                        script_src.clone(),
-                        ScriptType::Module,
-                    ));
+                let r#async = script
+                    .root()
+                    .upcast::<Element>()
+                    .has_attribute(&local_name!("async"));
 
-                    debug!(
-                        "Going to finish external script from {}",
-                        script_src.clone()
-                    );
-
-                    (module_tree, load)
+                if !r#async && (&*script.root()).get_parser_inserted() {
+                    document.deferred_script_loaded(&*script.root(), load);
+                } else if !r#async && !(&*script.root()).get_non_blocking() {
+                    document.asap_in_order_script_loaded(&*script.root(), load);
                 } else {
-                    let module_tree = {
-                        let inline_module_map = global.get_inline_module_map().borrow();
-                        inline_module_map
-                            .get(&script.root().get_script_id())
-                            .unwrap()
-                            .clone()
-                    };
-
-                    let base_url = document.base_url();
-
-                    let load = Ok(ScriptOrigin::internal(
-                        module_tree.get_text().borrow().clone(),
-                        base_url.clone(),
-                        ScriptType::Module,
-                    ));
-
-                    debug!("Going to finish internal script from {}", base_url.clone());
-
-                    (module_tree, load)
+                    document.asap_script_loaded(&*script.root(), load);
                 };
-
-                module_tree.set_status(ModuleStatus::Finished);
-
-                if !module_tree.has_all_ready_descendants(&module_map) {
-                    return;
-                }
-
-                let parent_urls = module_tree.get_parent_urls().borrow();
-                let parent_all_ready = parent_urls
-                    .iter()
-                    .filter_map(|parent_url| module_map.get(&parent_url.clone()))
-                    .all(|parent_tree| parent_tree.has_all_ready_descendants(&module_map));
-
-                if !parent_all_ready {
-                    return;
-                }
-
-                parent_urls
-                    .iter()
-                    .filter_map(|parent_url| module_map.get(&parent_url.clone()))
-                    .for_each(|parent_tree| {
-                        let parent_promise = parent_tree.get_promise().borrow();
-                        if let Some(promise) = parent_promise.as_ref() {
-                            promise.resolve_native(&());
-                        }
-                    });
-
-                let mut discovered_urls: HashSet<ServoUrl> = HashSet::new();
-                let module_error =
-                    ModuleTree::find_first_parse_error(&global, &module_tree, &mut discovered_urls);
-
-                match module_error {
-                    None => {
-                        let module_record = module_tree.get_record().borrow();
-                        if let Some(record) = &*module_record {
-                            let instantiated =
-                                module_tree.instantiate_module_tree(&global, record.handle());
-
-                            if let Err(exception) = instantiated {
-                                module_tree.set_error(Some(exception.clone()));
-                            }
-                        }
-                    },
-                    Some(ModuleError::RawException(exception)) => {
-                        module_tree.set_error(Some(ModuleError::RawException(exception)));
-                    },
-                    Some(ModuleError::Network(network_error)) => {
-                        module_tree.set_error(Some(ModuleError::Network(network_error.clone())));
-
-                        // Change the `result` load of the script into `network` error
-                        load = Err(network_error);
-                    },
-                };
-
-                if is_top_level {
-                    let r#async = script
-                        .root()
-                        .upcast::<Element>()
-                        .has_attribute(&local_name!("async"));
-
-                    if !r#async && (&*script.root()).get_parser_inserted() {
-                        document.deferred_script_loaded(&*script.root(), load);
-                    } else if !r#async && !(&*script.root()).get_non_blocking() {
-                        document.asap_in_order_script_loaded(&*script.root(), load);
-                    } else {
-                        document.asap_script_loaded(&*script.root(), load);
-                    };
-                }
             },
         }
     }
@@ -959,73 +1049,46 @@ impl FetchResponseListener for ModuleContext {
             ))
         });
 
-        if let Err(err) = load {
-            // Step 9.
-            error!("Failed to fetch {} with error {:?}", self.url.clone(), err);
-            let module_tree = {
-                let module_map = global.get_module_map().borrow();
-                module_map.get(&self.url.clone()).unwrap().clone()
-            };
+        let module_tree = {
+            let module_map = global.get_module_map().borrow();
+            module_map.get(&self.url.clone()).unwrap().clone()
+        };
 
-            module_tree.set_status(ModuleStatus::FetchFailed);
-
-            module_tree.set_error(Some(ModuleError::Network(err)));
-
-            let promise = module_tree.get_promise().borrow();
-            promise.as_ref().unwrap().resolve_native(&());
-
-            return;
-        }
+        module_tree.remove_incomplete_fetch_url(self.url.clone());
 
         // Step 12.
-        if let Ok(ref resp_mod_script) = load {
-            let module_tree = {
-                let module_map = global.get_module_map().borrow();
-                module_map.get(&self.url.clone()).unwrap().clone()
-            };
+        match load {
+            Err(err) => {
+                error!("Failed to fetch {} with error {:?}", self.url.clone(), err);
+                module_tree.set_network_error(err);
+                module_tree.advance_finished_and_link(&global);
+            },
+            Ok(ref resp_mod_script) => {
+                module_tree.set_text(resp_mod_script.text());
 
-            module_tree.set_text(resp_mod_script.text());
+                let compiled_module = module_tree.compile_module_script(
+                    &global,
+                    resp_mod_script.text(),
+                    self.url.clone(),
+                );
 
-            let compiled_module = module_tree.compile_module_script(
-                &global,
-                resp_mod_script.text(),
-                self.url.clone(),
-            );
+                match compiled_module {
+                    Err(exception) => {
+                        module_tree.set_rethrow_error(exception);
+                        module_tree.advance_finished_and_link(&global);
+                    },
+                    Ok(record) => {
+                        module_tree.set_record(record);
 
-            match compiled_module {
-                Err(exception) => {
-                    module_tree.set_error(Some(exception));
-
-                    let promise = module_tree.get_promise().borrow();
-                    promise.as_ref().unwrap().resolve_native(&());
-
-                    return;
-                },
-                Ok(record) => {
-                    module_tree.set_record(record);
-
-                    {
-                        let mut visited = module_tree.get_visited_urls().borrow_mut();
-                        visited.insert(self.url.clone());
-                    }
-
-                    let descendant_results = fetch_module_descendants_and_link(
-                        &self.owner,
-                        &module_tree,
-                        self.destination.clone(),
-                        self.credentials_mode.clone(),
-                    );
-
-                    // Resolve the request of this module tree promise directly
-                    // when there's no descendant
-                    if descendant_results.is_none() {
-                        module_tree.set_status(ModuleStatus::Ready);
-
-                        let promise = module_tree.get_promise().borrow();
-                        promise.as_ref().unwrap().resolve_native(&());
-                    }
-                },
-            }
+                        module_tree.fetch_module_descendants(
+                            &self.owner,
+                            self.destination.clone(),
+                            self.credentials_mode.clone(),
+                            ModuleIdentity::ModuleUrl(self.url.clone()),
+                        );
+                    },
+                }
+            },
         }
     }
 
@@ -1159,11 +1222,15 @@ pub fn fetch_external_module_script(
     destination: Destination,
     integrity_metadata: String,
     credentials_mode: CredentialsMode,
-) -> Rc<Promise> {
+) {
+    let mut visited_urls = HashSet::new();
+    visited_urls.insert(url.clone());
+
     // Step 1.
     fetch_single_module_script(
         owner,
         url,
+        visited_urls,
         destination,
         Referrer::Client,
         ParserMetadata::NotParserInserted,
@@ -1171,21 +1238,22 @@ pub fn fetch_external_module_script(
         credentials_mode,
         None,
         true,
-    )
+    );
 }
 
 /// https://html.spec.whatwg.org/multipage/#fetch-a-single-module-script
 pub fn fetch_single_module_script(
     owner: ModuleOwner,
     url: ServoUrl,
+    visited_urls: HashSet<ServoUrl>,
     destination: Destination,
     referrer: Referrer,
     parser_metadata: ParserMetadata,
     integrity_metadata: String,
     credentials_mode: CredentialsMode,
-    parent_url: Option<ServoUrl>,
+    parent_identity: Option<ModuleIdentity>,
     top_level_module_fetch: bool,
-) -> Rc<Promise> {
+) {
     {
         // Step 1.
         let global = owner.global();
@@ -1196,48 +1264,46 @@ pub fn fetch_single_module_script(
         if let Some(module_tree) = module_map.get(&url.clone()) {
             let status = module_tree.get_status();
 
-            let promise = module_tree.get_promise().borrow();
-
             debug!("Meet a fetched url {} and its status is {:?}", url, status);
 
-            assert!(promise.is_some());
+            if top_level_module_fetch {
+                module_tree.append_handler(owner.clone(), ModuleIdentity::ModuleUrl(url.clone()));
+            }
 
-            module_tree.append_handler(owner.clone(), url.clone(), top_level_module_fetch);
-
-            let promise = promise.as_ref().unwrap();
+            if let Some(parent_identity) = parent_identity {
+                module_tree.insert_parent_identity(parent_identity);
+            }
 
             match status {
                 ModuleStatus::Initial => unreachable!(
                     "We have the module in module map so its status should not be `initial`"
                 ),
                 // Step 2.
-                ModuleStatus::Fetching => return promise.clone(),
-                ModuleStatus::FetchingDescendants => {
-                    if module_tree.has_all_ready_descendants(&module_map) {
-                        promise.resolve_native(&());
-                    }
-                },
+                ModuleStatus::Fetching => {},
                 // Step 3.
-                ModuleStatus::FetchFailed | ModuleStatus::Ready | ModuleStatus::Finished => {
-                    promise.resolve_native(&());
+                ModuleStatus::FetchingDescendants | ModuleStatus::Finished => {
+                    module_tree.advance_finished_and_link(&global);
                 },
             }
 
-            return promise.clone();
+            return;
         }
     }
 
     let global = owner.global();
-
-    let module_tree = ModuleTree::new(url.clone());
+    let is_external = true;
+    let module_tree = ModuleTree::new(url.clone(), is_external, visited_urls);
     module_tree.set_status(ModuleStatus::Fetching);
 
-    let promise = owner.gen_promise_with_final_handler(Some(url.clone()), top_level_module_fetch);
-
-    module_tree.set_promise(promise.clone());
-    if let Some(parent_url) = parent_url {
-        module_tree.insert_parent_url(parent_url);
+    if top_level_module_fetch {
+        module_tree.append_handler(owner.clone(), ModuleIdentity::ModuleUrl(url.clone()));
     }
+
+    if let Some(parent_identity) = parent_identity {
+        module_tree.insert_parent_identity(parent_identity);
+    }
+
+    module_tree.insert_incomplete_fetch_url(url.clone());
 
     // Step 4.
     global.set_module_map(url.clone(), module_tree);
@@ -1277,11 +1343,13 @@ pub fn fetch_single_module_script(
     }));
 
     let (action_sender, action_receiver) = ipc::channel().unwrap();
+    let task_source = global.networking_task_source();
+    let canceller = global.task_canceller(TaskSourceName::Networking);
 
     let listener = NetworkListener {
         context,
-        task_source: global.networking_task_source(),
-        canceller: Some(global.task_canceller(TaskSourceName::Networking)),
+        task_source,
+        canceller: Some(canceller),
     };
 
     ROUTER.add_route(
@@ -1294,8 +1362,6 @@ pub fn fetch_single_module_script(
     if let Some(doc) = document {
         doc.fetch_async(LoadType::Script(url), request, action_sender);
     }
-
-    promise
 }
 
 #[allow(unsafe_code)]
@@ -1308,162 +1374,40 @@ pub fn fetch_inline_module_script(
     credentials_mode: CredentialsMode,
 ) {
     let global = owner.global();
-
-    let module_tree = ModuleTree::new(url.clone());
-
-    let promise = owner.gen_promise_with_final_handler(None, true);
-
-    module_tree.set_promise(promise.clone());
+    let is_external = false;
+    let module_tree = ModuleTree::new(url.clone(), is_external, HashSet::new());
 
     let compiled_module =
         module_tree.compile_module_script(&global, module_script_text, url.clone());
 
     match compiled_module {
         Ok(record) => {
+            module_tree.append_handler(owner.clone(), ModuleIdentity::ScriptId(script_id.clone()));
             module_tree.set_record(record);
 
-            let descendant_results = fetch_module_descendants_and_link(
+            // We need to set `module_tree` into inline module map in case
+            // of that the module descendants finished right after the
+            // fetch module descendants step.
+            global.set_inline_module_map(script_id, module_tree);
+
+            // Due to needed to set `module_tree` to inline module_map first,
+            // we will need to retrieve it again so that we can do the fetch
+            // module descendants step.
+            let inline_module_map = global.get_inline_module_map().borrow();
+            let module_tree = inline_module_map.get(&script_id).unwrap().clone();
+
+            module_tree.fetch_module_descendants(
                 &owner,
-                &module_tree,
                 Destination::Script,
                 credentials_mode,
+                ModuleIdentity::ScriptId(script_id),
             );
-
-            global.set_inline_module_map(script_id, module_tree);
-
-            if descendant_results.is_none() {
-                promise.resolve_native(&());
-            }
         },
         Err(exception) => {
-            module_tree.set_status(ModuleStatus::Ready);
-            module_tree.set_error(Some(exception));
-            global.set_inline_module_map(script_id, module_tree);
-            promise.resolve_native(&());
+            module_tree.set_rethrow_error(exception);
+            module_tree.set_status(ModuleStatus::Finished);
+            global.set_inline_module_map(script_id.clone(), module_tree);
+            owner.notify_owner_to_finish(ModuleIdentity::ScriptId(script_id));
         },
     }
-}
-
-/// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
-/// Step 1-3.
-#[allow(unsafe_code)]
-fn fetch_module_descendants_and_link(
-    owner: &ModuleOwner,
-    module_tree: &ModuleTree,
-    destination: Destination,
-    credentials_mode: CredentialsMode,
-) -> Option<Rc<Promise>> {
-    let descendant_results =
-        fetch_module_descendants(owner, module_tree, destination, credentials_mode);
-
-    match descendant_results {
-        Ok(descendants) => {
-            if descendants.len() > 0 {
-                unsafe {
-                    let global = owner.global();
-
-                    let realm = enter_realm(&*global);
-                    let _ais = AutoIncumbentScript::new(&*global);
-
-                    let abv = RootedObjectVectorWrapper::new(*global.get_cx());
-
-                    for descendant in descendants {
-                        assert!(abv.append(descendant.promise_obj().get()));
-                    }
-
-                    rooted!(
-                        in(*global.get_cx())
-                        let raw_promise_all = GetWaitForAllPromise(*global.get_cx(), abv.handle())
-                    );
-
-                    let promise_all =
-                        Promise::new_with_js_promise(raw_promise_all.handle(), global.get_cx());
-
-                    let promise = module_tree.get_promise().borrow();
-                    let promise = promise.as_ref().unwrap().clone();
-
-                    let resolve_promise = TrustedPromise::new(promise.clone());
-                    let reject_promise = TrustedPromise::new(promise.clone());
-
-                    let handler = PromiseNativeHandler::new(
-                        &global,
-                        Some(ModuleHandler::new(Box::new(
-                            task!(all_fetched_resolve: move || {
-                                let promise = resolve_promise.root();
-                                promise.resolve_native(&());
-                            }),
-                        ))),
-                        Some(ModuleHandler::new(Box::new(
-                            task!(all_failure_reject: move || {
-                                let promise = reject_promise.root();
-                                promise.reject_native(&());
-                            }),
-                        ))),
-                    );
-
-                    let comp = InRealm::Entered(&realm);
-                    promise_all.append_native_handler(&handler, comp);
-
-                    return Some(promise_all);
-                }
-            }
-        },
-        Err(err) => {
-            module_tree.set_error(Some(err));
-        },
-    }
-
-    None
-}
-
-#[allow(unsafe_code)]
-/// https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-a-module-script
-fn fetch_module_descendants(
-    owner: &ModuleOwner,
-    module_tree: &ModuleTree,
-    destination: Destination,
-    credentials_mode: CredentialsMode,
-) -> Result<Vec<Rc<Promise>>, ModuleError> {
-    debug!("Start to load dependencies of {}", module_tree.url.clone());
-
-    let global = owner.global();
-
-    module_tree.set_status(ModuleStatus::FetchingDescendants);
-
-    module_tree
-        .resolve_requested_modules(&global)
-        .map(|requested_urls| {
-            module_tree.append_descendant_urls(requested_urls.clone());
-
-            let parent_urls = module_tree.get_parent_urls().borrow();
-
-            if parent_urls.intersection(&requested_urls).count() > 0 {
-                return Vec::new();
-            }
-
-            requested_urls
-                .iter()
-                .map(|requested_url| {
-                    // https://html.spec.whatwg.org/multipage/#internal-module-script-graph-fetching-procedure
-                    // Step 1.
-                    {
-                        let visited = module_tree.get_visited_urls().borrow();
-                        assert!(visited.get(&requested_url).is_some());
-                    }
-
-                    // Step 2.
-                    fetch_single_module_script(
-                        owner.clone(),
-                        requested_url.clone(),
-                        destination.clone(),
-                        Referrer::Client,
-                        ParserMetadata::NotParserInserted,
-                        "".to_owned(),
-                        credentials_mode.clone(),
-                        Some(module_tree.url.clone()),
-                        false,
-                    )
-                })
-                .collect()
-        })
 }
