@@ -896,6 +896,19 @@
       {}
      ]
     ],
+    "border-radius-image.html": [
+     "2e30ba4bcb40b0fd50ae2c35992e06423720b26e",
+     [
+      null,
+      [
+       [
+        "/_mozilla/css/border-radius-image-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "border_black_groove.html": [
      "49e1647a6f71e320770225ad537b4fd4020bd700",
      [
@@ -8668,6 +8681,10 @@
     ],
     "border-image-linear-gradient-ref.html": [
      "0dddcf89d26d6ac1efe7b0d65e5607a3ed771b46",
+     []
+    ],
+    "border-radius-image-ref.html": [
+     "3aa9bea5a48a4d809fabf1108049a24365edb07f",
      []
     ],
     "border_black_solid.html": [
