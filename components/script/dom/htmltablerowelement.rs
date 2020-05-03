@@ -57,12 +57,15 @@ impl HTMLTableRowElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> DomRoot<HTMLTableRowElement> {
-        Node::reflect_node(
+        let n = Node::reflect_node(
             Box::new(HTMLTableRowElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
-        )
+        );
+
+        n.upcast::<Node>().set_weird_parser_insertion_mode();
+        n
     }
 
     /// Determine the index for this `HTMLTableRowElement` within the given

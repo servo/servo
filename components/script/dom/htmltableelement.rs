@@ -70,12 +70,15 @@ impl HTMLTableElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> DomRoot<HTMLTableElement> {
-        Node::reflect_node(
+        let n = Node::reflect_node(
             Box::new(HTMLTableElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
-        )
+        );
+
+        n.upcast::<Node>().set_weird_parser_insertion_mode();
+        n
     }
 
     pub fn get_border(&self) -> Option<u32> {

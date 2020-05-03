@@ -93,12 +93,15 @@ impl HTMLSelectElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> DomRoot<HTMLSelectElement> {
-        Node::reflect_node(
+        let n = Node::reflect_node(
             Box::new(HTMLSelectElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
-        )
+        );
+
+        n.upcast::<Node>().set_weird_parser_insertion_mode();
+        n
     }
 
     // https://html.spec.whatwg.org/multipage/#concept-select-option-list

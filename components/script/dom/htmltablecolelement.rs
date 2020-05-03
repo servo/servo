@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
@@ -31,11 +32,14 @@ impl HTMLTableColElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> DomRoot<HTMLTableColElement> {
-        Node::reflect_node(
+        let n = Node::reflect_node(
             Box::new(HTMLTableColElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
-        )
+        );
+
+        n.upcast::<Node>().set_weird_parser_insertion_mode();
+        n
     }
 }

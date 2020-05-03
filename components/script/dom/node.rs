@@ -196,6 +196,10 @@ bitflags! {
 
         /// Specifies whether this node's shadow-including root is a document.
         const IS_CONNECTED = 1 << 10;
+
+        /// Whether this node has a weird parser insertion mode. i.e whether setting innerHTML
+        /// needs extra work or not
+        const HAS_WEIRD_PARSER_INSERTION_MODE = 1 << 11;
     }
 }
 
@@ -552,6 +556,16 @@ impl Node {
 
     pub fn is_in_shadow_tree(&self) -> bool {
         self.flags.get().contains(NodeFlags::IS_IN_SHADOW_TREE)
+    }
+
+    pub fn has_weird_parser_insertion_mode(&self) -> bool {
+        self.flags
+            .get()
+            .contains(NodeFlags::HAS_WEIRD_PARSER_INSERTION_MODE)
+    }
+
+    pub fn set_weird_parser_insertion_mode(&self) {
+        self.set_flag(NodeFlags::HAS_WEIRD_PARSER_INSERTION_MODE, true)
     }
 
     pub fn is_connected(&self) -> bool {

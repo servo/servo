@@ -37,10 +37,13 @@ impl HTMLHeadElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> DomRoot<HTMLHeadElement> {
-        Node::reflect_node(
+        let n = Node::reflect_node(
             Box::new(HTMLHeadElement::new_inherited(local_name, prefix, document)),
             document,
-        )
+        );
+
+        n.upcast::<Node>().set_weird_parser_insertion_mode();
+        n
     }
 
     /// <https://html.spec.whatwg.org/multipage/#meta-referrer>
