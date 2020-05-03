@@ -5,7 +5,7 @@
   * bluetooth_traits
     * APIs to the bluetooth crate for crates that don't want to depend on the bluetooth crate for build speed reasons.
   * canvas
-    * Implementation of painting threads for 2d and WebGL canvases.
+    * Implementation of painting threads for 2D and WebGL canvases.
   * canvas_traits
     * APIs to the canvas crate for crates that don't want to depend on the canvas crate for build speed reasons.
   * compositing
@@ -13,7 +13,7 @@
   * constellation
     * Management of resources for a top-level browsing context (ie. tab).
   * devtools
-    * in-process server to allow manipulating browser instances via a remote Firefox developer tools client.
+    * In-process server to allow manipulating browser instances via a remote Firefox developer tools client.
   * devtools_traits
     * APIs to the devtools crate for crates that don't want to depend on the devtools crate for build speed reasons.
   * gfx
@@ -44,6 +44,8 @@
     * The API the script crate provides for the layout crate.
   * script_traits
     * APIs to the script crate for crates that don't want to depend on the script crate for build speed reasons.
+  * selectors
+    * CSS selector matching.
   * servo
     * Entry points for the servo application and libservo embedding library.
   * style
@@ -51,7 +53,7 @@
   * style_traits
     * APIs to the style crate for crates that don't want to depend on the style crate for build speed reasons.
   * util
-    * assorted utility methods and types that are commonly used throughout the project.
+    * Assorted utility methods and types that are commonly used throughout the project.
   * webdriver_server
     * In-process server to allow manipulating browser instances via a WebDriver client.
   * webgpu
@@ -62,7 +64,7 @@
   * A command-line tool to help with developer tasks.
 * ports
   * glutin
-    * Embedding implementation for the `glutin` windowing library.
+    * Embedding implementation for the `winit` windowing library.
 * python
   * servo
     * Implementations of servo-specific mach commands.
@@ -99,15 +101,14 @@
     * W3C web-platform-tests and csswg-tests along with tools to run them and expected failures.
 
 # Major dependencies
-* <https://github.com/servo/rust-mozjs/>, <https://github.com/servo/mozjs/>: bindings to SpiderMonkey
-* <https://github.com/hyperium/hyper/>: an HTTP implementation
-* <https://github.com/servo/html5ever/>: an HTML5 parser
-* <https://github.com/servo/ipc-channel/>: an IPC implementation
-* <https://github.com/PistonDevelopers/image/>: image decoders
-* <https://github.com/tomaka/glutin/>: cross-platform windowing and input
-* <https://github.com/jrmuizel/raqote>: a pure Rust 2D Graphics Library
-* <https://github.com/servo/rust-cssparser/>: a CSS parser
-* <https://github.com/servo/rust-selectors/>: a CSS selector matching library
-* <https://github.com/cyderize/rust-websocket/>: a WebSocket protocol implementation
-* <https://github.com/servo/rust-url/>: an implementation of the URL specification
-* <https://github.com/servo/webrender/>: a GPU renderer
+* <https://github.com/servo/rust-mozjs>, <https://github.com/servo/mozjs>: bindings to SpiderMonkey
+* <https://github.com/hyperium/hyper>: an HTTP implementation
+* <https://github.com/servo/html5ever>: an HTML5 parser
+* <https://github.com/servo/ipc-channel>: an IPC implementation
+* <https://github.com/image-rs/image>: image decoders
+* <https://github.com/rust-windowing/winit>: cross-platform windowing and input
+* <https://github.com/jrmuizel/raqote>: a pure Rust 2D graphics library
+* <https://github.com/servo/rust-cssparser>: a CSS parser
+* <https://github.com/housleyjk/ws-rs>: a WebSocket protocol implementation
+* <https://github.com/servo/rust-url>: an implementation of the URL specification
+* <https://github.com/servo/webrender>: a GPU renderer
