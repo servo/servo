@@ -11,7 +11,7 @@
 run_test({ name: "http-equiv cross origin navigation",
     initial_url: echo,
     accept_url: host_info.HTTPS_REMOTE_ORIGIN + httpequiv_accept,
-    expect_url: host_info.HTTPS_REMOTE_ORIGIN + expect,
+    expect_url: host_info.HTTPS_REMOTE_ORIGIN + do_not_expect,
     type: "navigation" });
 </script>
 </body>
