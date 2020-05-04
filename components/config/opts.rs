@@ -37,8 +37,6 @@ pub struct Opts {
     ///    (`i.e. -p 5`).
     ///  - a file path to write profiling info to a TSV file upon Servo's termination.
     ///    (`i.e. -p out.tsv`).
-    ///  - an InfluxDB hostname to store profiling info upon Servo's termination.
-    ///    (`i.e. -p http://localhost:8086`)
     pub time_profiling: Option<OutputOptions>,
 
     /// When the profiler is enabled, this is an optional path to dump a self-contained HTML file
@@ -452,7 +450,6 @@ fn print_debug_usage(app: &str) -> ! {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum OutputOptions {
     /// Database connection config (hostname, name, user, pass)
-    DB(ServoUrl, Option<String>, Option<String>, Option<String>),
     FileName(String),
     Stdout(f64),
 }
@@ -743,12 +740,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
             Some(argument) => match argument.parse::<f64>() {
                 Ok(interval) => Some(OutputOptions::Stdout(interval)),
                 Err(_) => match ServoUrl::parse(&argument) {
-                    Ok(url) => Some(OutputOptions::DB(
-                        url,
-                        opt_match.opt_str("profiler-db-name"),
-                        opt_match.opt_str("profiler-db-user"),
-                        opt_match.opt_str("profiler-db-pass"),
-                    )),
+                    Ok(_) => panic!("influxDB isn't supported anymore"),
                     Err(_) => Some(OutputOptions::FileName(argument)),
                 },
             },

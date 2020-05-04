@@ -2632,21 +2632,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "influent"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "87fdeaaa9b5aacb83901de1bb66b32ec574a327758657404c1edf06f5a6ac0f0"
-dependencies = [
- "base64 0.10.1",
- "futures",
- "http",
- "hyper",
- "tokio",
- "tokio-executor",
- "url",
-]
-
-[[package]]
 name = "io-surface"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4133,7 +4118,6 @@ name = "profile"
 version = "0.0.1"
 dependencies = [
  "heartbeats-simple",
- "influent",
  "ipc-channel",
  "libc",
  "log",
