@@ -2262,9 +2262,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-video"
-version = "0.15.3"
+version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4bb63938bcd2e33285a6f195db8d719f3a13f568870d5bf168e2e3df18c1ea05"
+checksum = "3b24f65e8b1cf2b5d500d60cb285c59cef42e336d61c241c88ed433f4d47ceec"
 dependencies = [
  "bitflags",
  "futures-channel",
