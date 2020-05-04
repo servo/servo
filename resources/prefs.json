@@ -34,6 +34,7 @@
   "dom.webvtt.enabled": false,
   "dom.webxr.enabled": true,
   "dom.webxr.glwindow.enabled": true,
+  "dom.webxr.glwindow.left-right": false,
   "dom.webxr.glwindow.red-cyan": false,
   "dom.webxr.hands.enabled": false,
   "dom.webxr.layers.enabled": false,

@@ -655,8 +655,10 @@ impl webxr::glwindow::GlWindow for XRWindow {
     fn get_mode(&self) -> webxr::glwindow::GlWindowMode {
         if pref!(dom.webxr.glwindow.red_cyan) {
             webxr::glwindow::GlWindowMode::StereoRedCyan
-        } else {
+        } else if pref!(dom.webxr.glwindow.left_right) {
             webxr::glwindow::GlWindowMode::StereoLeftRight
+        } else {
+            webxr::glwindow::GlWindowMode::Blit
         }
     }
 }

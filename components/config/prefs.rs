@@ -300,6 +300,8 @@ mod gen {
                     glwindow: {
                         #[serde(default)]
                         enabled: bool,
+                        #[serde(rename = "dom.webxr.glwindow.left-right")]
+                        left_right: bool,
                         #[serde(rename = "dom.webxr.glwindow.red-cyan")]
                         red_cyan: bool,
                     },

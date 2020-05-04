@@ -33,4 +33,3 @@ winapi = { git = "https://github.com/servo/winapi-rs", branch = "patch-1" }
 spirv_cross = { git = "https://github.com/servo/spirv_cross", branch = "wgpu-servo" }
 surfman-chains = { git = "https://github.com/asajeffrey/surfman-chains" }
 surfman = { git = "https://github.com/servo/surfman" }
-
