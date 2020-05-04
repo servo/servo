@@ -3439,11 +3439,17 @@ impl Into<LayoutElementType> for ElementTypeId {
     #[inline(always)]
     fn into(self) -> LayoutElementType {
         match self {
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBodyElement) => {
+                LayoutElementType::HTMLBodyElement
+            },
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLBRElement) => {
                 LayoutElementType::HTMLBRElement
             },
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLCanvasElement) => {
                 LayoutElementType::HTMLCanvasElement
+            },
+            ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLHtmlElement) => {
+                LayoutElementType::HTMLHtmlElement
             },
             ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLIFrameElement) => {
                 LayoutElementType::HTMLIFrameElement

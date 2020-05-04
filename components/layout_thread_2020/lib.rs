@@ -1294,11 +1294,8 @@ impl LayoutThread {
             document.will_paint();
         }
 
-        let mut display_list = DisplayListBuilder::new(
-            self.id.to_webrender(),
-            context,
-            fragment_tree.scrollable_overflow(),
-        );
+        let mut display_list =
+            DisplayListBuilder::new(self.id.to_webrender(), context, &fragment_tree);
 
         // `dump_serialized_display_list` doesn't actually print anything. It sets up
         // the display list for printing the serialized version when `finalize()` is called.

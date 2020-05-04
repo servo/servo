@@ -87,14 +87,12 @@ fn traverse_children_of<'dom, Node>(
 {
     traverse_pseudo_element(WhichPseudoElement::Before, parent_element, context, handler);
 
-    let mut next = parent_element.first_child();
-    while let Some(child) = next {
+    for child in iter_child_nodes(parent_element) {
         if let Some(contents) = child.as_text() {
             handler.handle_text(child, contents, &child.style(context));
         } else if child.is_element() {
             traverse_element(child, context, handler);
         }
-        next = child.next_sibling();
     }
 
     traverse_pseudo_element(WhichPseudoElement::After, parent_element, context, handler);
@@ -484,4 +482,17 @@ where
         // Stylo already takes care of removing all layout data
         // for DOM descendants of elements with `display: none`.
     }
+}
+
+pub(crate) fn iter_child_nodes<'dom, Node>(parent: Node) -> impl Iterator<Item = Node>
+where
+    Node: NodeExt<'dom>,
+{
+    let mut next = parent.first_child();
+    std::iter::from_fn(move || {
+        next.map(|child| {
+            next = child.next_sibling();
+            child
+        })
+    })
 }
