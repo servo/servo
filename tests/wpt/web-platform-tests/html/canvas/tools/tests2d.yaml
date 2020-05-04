@@ -6913,6 +6913,8 @@
     - 2d.path.arcTo.negative
   code: |
     @assert throws INDEX_SIZE_ERR ctx.arcTo(0, 0, 0, 0, -1);
+    var path = new Path2D();
+    @assert throws INDEX_SIZE_ERR path.arcTo(10, 10, 20, 20, -5);
 
 - name: 2d.path.arcTo.zero.1
   desc: arcTo() with zero radius draws a straight line from P0 to P1
@@ -7424,6 +7426,8 @@
     - 2d.path.arc.negative
   code: |
     @assert throws INDEX_SIZE_ERR ctx.arc(0, 0, -1, 0, 0, true);
+    var path = new Path2D();
+    @assert throws INDEX_SIZE_ERR path.arc(10, 10, -5, 0, 1, false);
 
 - name: 2d.path.arc.zeroradius
   desc: arc() with zero radius draws a line to the start point
@@ -9492,6 +9496,22 @@
     @assert imgdata2.width === 10;
     @assert imgdata2.height === 10;
 
+- name: 2d.imageData.create.and.resize
+  desc: Verify no crash when resizing an image bitmap to zero.
+  testing:
+    - 2d.imageData.resize
+  images:
+    - red.png
+  code: |
+    var image = new Image();
+    image.onload = t.step_func(function() {
+      var options = { resizeHeight: 0 };
+      var p1 = createImageBitmap(image, options);
+      p1.catch(function(error){});
+      t.done();
+    });
+    image.src = 'red.png';
+
 - name: 2d.imageData.get.basic
   desc: getImageData() exists and returns something
   testing:
@@ -9820,6 +9840,31 @@
 
     testDimensions(-1.1, 0, 20, 10, 20, 10);
     testDimensions(-1.9,  0, 20, 10, 20, 10);
+
+- name: 2d.imageData.get.invalid
+  desc: Verify getImageData() behavior in invalid cases.
+  testing:
+    - 2d.imageData.get.invalid
+  code: |
+    imageData = ctx.getImageData(0,0,2,2);
+    var testValues = [NaN, true, false, "\"garbage\"", "-1",
+                      "0", "1", "2", Infinity, -Infinity,
+                      -5, -0.5, 0, 0.5, 5,
+                      5.4, 255, 256, null, undefined];
+    var testResults = [0, 1, 0, 0, 0,
+                       0, 1, 2, 255, 0,
+                       0, 0, 0, 0, 5,
+                       5, 255, 255, 0, 0];
+    for (var i = 0; i < testValues.length; i++) {
+        imageData.data[0] = testValues[i];
+        @assert imageData.data[0] == testResults[i];
+    }
+    imageData.data['foo']='garbage';
+    @assert imageData.data['foo'] == 'garbage';
+    imageData.data[-1]='garbage';
+    @assert imageData.data[-1] == undefined;
+    imageData.data[17]='garbage';
+    @assert imageData.data[17] == undefined;
 
 - name: 2d.imageData.object.properties
   desc: ImageData objects have the right properties
@@ -10399,6 +10444,112 @@
     var canvasWidth = canvas.width;
     @assert Math.round(rect.top) === 100;
     @assert Math.round(rect.right) === viewportWidth + (canvasWidth - 4 - 16);
+
+- name: 2d.path.isPointInPath.basic
+  desc: Verify the winding rule in isPointInPath works for for rect path.
+  testing:
+    - 2d.isPointInPath.basic
+  code: |
+    canvas.width = 200;
+    canvas.height = 200;
+
+    // Testing default isPointInPath
+    ctx.beginPath();
+    ctx.rect(0, 0, 100, 100);
+    ctx.rect(25, 25, 50, 50);
+    @assert ctx.isPointInPath(50, 50) === true;
+    @assert ctx.isPointInPath(NaN, 50) === false;
+    @assert ctx.isPointInPath(50, NaN) === false;
+
+    // Testing nonzero isPointInPath
+    ctx.beginPath();
+    ctx.rect(0, 0, 100, 100);
+    ctx.rect(25, 25, 50, 50);
+    @assert ctx.isPointInPath(50, 50, 'nonzero') === true;
+
+    // Testing evenodd isPointInPath
+    ctx.beginPath();
+    ctx.rect(0, 0, 100, 100);
+    ctx.rect(25, 25, 50, 50);
+    @assert ctx.isPointInPath(50, 50, 'evenodd') === false;
+
+    // Testing extremely large scale
+    ctx.save();
+    ctx.scale(Number.MAX_VALUE, Number.MAX_VALUE);
+    ctx.beginPath();
+    ctx.rect(-10, -10, 20, 20);
+    @assert ctx.isPointInPath(0, 0, 'nonzero') === true;
+    @assert ctx.isPointInPath(0, 0, 'evenodd') === true;
+    ctx.restore();
+
+    // Check with non-invertible ctm.
+    ctx.save();
+    ctx.scale(0, 0);
+    ctx.beginPath();
+    ctx.rect(-10, -10, 20, 20);
+    @assert ctx.isPointInPath(0, 0, 'nonzero') === false;
+    @assert ctx.isPointInPath(0, 0, 'evenodd') === false;
+    ctx.restore();
+
+- name: 2d.path.isPointInpath.multi.path
+  desc: Verify the winding rule in isPointInPath works for path object.
+  testing:
+    - 2d.isPointInPath.basic
+  code: |
+    canvas.width = 200;
+    canvas.height = 200;
+
+    // Testing default isPointInPath with Path object');
+    path = new Path2D();
+    path.rect(0, 0, 100, 100);
+    path.rect(25, 25, 50, 50);
+    @assert ctx.isPointInPath(path, 50, 50) === true;
+    @assert ctx.isPointInPath(path, 50, 50, undefined) === true;
+    @assert ctx.isPointInPath(path, NaN, 50) === false;
+    @assert ctx.isPointInPath(path, 50, NaN) === false;
+
+    // Testing nonzero isPointInPath with Path object');
+    path = new Path2D();
+    path.rect(0, 0, 100, 100);
+    path.rect(25, 25, 50, 50);
+    @assert ctx.isPointInPath(path, 50, 50, 'nonzero') === true;
+
+    // Testing evenodd isPointInPath with Path object');
+    path = new Path2D();
+    path.rect(0, 0, 100, 100);
+    path.rect(25, 25, 50, 50);
+    assert_false(ctx.isPointInPath(path, 50, 50, 'evenodd'));
+
+- name: 2d.path.isPointInpath.invalid
+  desc: Verify isPointInPath throws exceptions with invalid inputs.
+  testing:
+    - 2d.isPointInPath.basic
+  code: |
+    canvas.width = 200;
+    canvas.height = 200;
+    path = new Path2D();
+    path.rect(0, 0, 100, 100);
+    path.rect(25, 25, 50, 50);
+    // Testing invalid enumeration isPointInPath (w/ and w/o Path object');
+    @assert throws TypeError ctx.isPointInPath(path, 50, 50, 'gazonk');
+    @assert throws TypeError ctx.isPointInPath(50, 50, 'gazonk');
+
+    // Testing invalid type isPointInPath with Path object');
+    @assert throws TypeError ctx.isPointInPath(null, 50, 50);
+    @assert throws TypeError ctx.isPointInPath(null, 50, 50, 'nonzero');
+    @assert throws TypeError ctx.isPointInPath(null, 50, 50, 'evenodd');
+    @assert throws TypeError ctx.isPointInPath(null, 50, 50, null);
+    @assert throws TypeError ctx.isPointInPath(path, 50, 50, null);
+    @assert throws TypeError ctx.isPointInPath(undefined, 50, 50);
+    @assert throws TypeError ctx.isPointInPath(undefined, 50, 50, 'nonzero');
+    @assert throws TypeError ctx.isPointInPath(undefined, 50, 50, 'evenodd');
+    @assert throws TypeError ctx.isPointInPath(undefined, 50, 50, undefined);
+    @assert throws TypeError ctx.isPointInPath([], 50, 50);
+    @assert throws TypeError ctx.isPointInPath([], 50, 50, 'nonzero');
+    @assert throws TypeError ctx.isPointInPath([], 50, 50, 'evenodd');
+    @assert throws TypeError ctx.isPointInPath({}, 50, 50);
+    @assert throws TypeError ctx.isPointInPath({}, 50, 50, 'nonzero');
+    @assert throws TypeError ctx.isPointInPath({}, 50, 50, 'evenodd');
 
 - name: 2d.scrollPathIntoView.path
   desc: scrollPathIntoView() with path argument works
