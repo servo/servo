@@ -379,14 +379,14 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
 
         // FIXME: Only handle image/png for now.
         let mut png = Vec::new();
-        // FIXME(nox): https://github.com/PistonDevelopers/image-png/issues/86
-        // FIXME(nox): https://github.com/PistonDevelopers/image-png/issues/87
+        // FIXME(nox): https://github.com/image-rs/image-png/issues/86
+        // FIXME(nox): https://github.com/image-rs/image-png/issues/87
         PNGEncoder::new(&mut png)
             .encode(&file, self.Width(), self.Height(), ColorType::Rgba8)
             .unwrap();
         let mut url = "data:image/png;base64,".to_owned();
         // FIXME(nox): Should this use base64::URL_SAFE?
-        // FIXME(nox): https://github.com/alicemaz/rust-base64/pull/56
+        // FIXME(nox): https://github.com/marshallpierce/rust-base64/pull/56
         base64::encode_config_buf(&png, base64::STANDARD, &mut url);
         Ok(USVString(url))
     }
