@@ -65,7 +65,7 @@ impl<'a> phf_shared::PhfHash for Bytes<'a> {
 }
 
 fn find_python() -> String {
-    env::var("PYTHON").ok().unwrap_or_else(|| {
+    env::var("PYTHON2").ok().unwrap_or_else(|| {
         let candidates = if cfg!(windows) {
             ["python2.7.exe", "python27.exe", "python.exe"]
         } else {
@@ -82,7 +82,7 @@ fn find_python() -> String {
             }
         }
         panic!(
-            "Can't find python (tried {})! Try fixing PATH or setting the PYTHON env var",
+            "Can't find python (tried {})! Try fixing PATH or setting the PYTHON2 env var",
             candidates.join(", ")
         )
     })
