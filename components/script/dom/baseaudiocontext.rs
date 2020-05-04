@@ -481,14 +481,17 @@ impl BaseAudioContextMethods for BaseAudioContext {
                         .unwrap()
                         .resize(channel_count as usize, Vec::new());
                 })
-                .progress(move |buffer, channel_pos| {
+                .progress(move |buffer, channel_pos_mask| {
                     let mut decoded_audio = decoded_audio_.lock().unwrap();
                     let mut channels = channels.lock().unwrap();
-                    let channel = match channels.entry(channel_pos) {
+                    let channel = match channels.entry(channel_pos_mask) {
                         Entry::Occupied(entry) => *entry.get(),
-                        Entry::Vacant(entry) => *entry.insert(decoded_audio.len()),
+                        Entry::Vacant(entry) => {
+                            let x = (channel_pos_mask as f32).log2() as usize;
+                            *entry.insert(x)
+                        },
                     };
-                    decoded_audio[(channel - 1) as usize].extend_from_slice((*buffer).as_ref());
+                    decoded_audio[channel].extend_from_slice((*buffer).as_ref());
                 })
                 .eos(move || {
                     let _ = task_source.queue_with_canceller(
