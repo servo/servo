@@ -82,7 +82,7 @@ fn find_python() -> String {
             }
         }
         panic!(
-            "Can't find python (tried {})! Try fixing PATH or setting the PYTHON env var",
+            "Can't find python (tried {})! Try fixing PATH or setting the PYTHON2 env var",
             candidates.join(", ")
         )
     })
