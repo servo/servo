@@ -2449,8 +2449,6 @@ impl ElementMethods for Element {
 
     /// <https://w3c.github.io/DOM-Parsing/#widl-Element-innerHTML>
     fn SetInnerHTML(&self, value: DOMString) -> ErrorResult {
-        // Step 1.
-        let frag = self.parse_fragment(value)?;
         // Step 2.
         // https://github.com/w3c/DOM-Parsing/issues/1
         let target = if let Some(template) = self.downcast::<HTMLTemplateElement>() {
@@ -2458,6 +2456,23 @@ impl ElementMethods for Element {
         } else {
             DomRoot::from_ref(self.upcast())
         };
+
+        // Fast path for when the value is small, doesn't contain any markup and doesn't require
+        // extra work to set innerHTML.
+        if !self.node.has_weird_parser_insertion_mode() &&
+            value.len() < 100 &&
+            !value
+                .as_bytes()
+                .iter()
+                .any(|c| matches!(*c, b'&' | b'\0' | b'<' | b'\r'))
+        {
+            Node::SetTextContent(&target, Some(value));
+            return Ok(());
+        }
+
+        // Step 1.
+        let frag = self.parse_fragment(value)?;
+
         Node::replace_all(Some(frag.upcast()), &target);
         Ok(())
     }

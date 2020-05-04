@@ -4,6 +4,7 @@
 
 use crate::dom::bindings::codegen::Bindings::HTMLFrameSetElementBinding::HTMLFrameSetElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::document::Document;
 use crate::dom::htmlelement::HTMLElement;
@@ -33,12 +34,14 @@ impl HTMLFrameSetElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> DomRoot<HTMLFrameSetElement> {
-        Node::reflect_node(
+        let n = Node::reflect_node(
             Box::new(HTMLFrameSetElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
-        )
+        );
+        n.upcast::<Node>().set_weird_parser_insertion_mode();
+        n
     }
 }
 

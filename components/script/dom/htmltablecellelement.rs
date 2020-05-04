@@ -45,12 +45,15 @@ impl HTMLTableCellElement {
         prefix: Option<Prefix>,
         document: &Document,
     ) -> DomRoot<HTMLTableCellElement> {
-        Node::reflect_node(
+        let n = Node::reflect_node(
             Box::new(HTMLTableCellElement::new_inherited(
                 local_name, prefix, document,
             )),
             document,
-        )
+        );
+
+        n.upcast::<Node>().set_weird_parser_insertion_mode();
+        n
     }
 }
 
