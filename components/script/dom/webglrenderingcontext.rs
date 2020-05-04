@@ -306,6 +306,10 @@ impl WebGLRenderingContext {
         &self.limits
     }
 
+    pub fn texture_unpacking_alignment(&self) -> u32 {
+        self.texture_unpacking_alignment.get()
+    }
+
     pub fn current_vao(&self) -> DomRoot<WebGLVertexArrayObjectOES> {
         self.current_vao.or_init(|| {
             DomRoot::from_ref(
@@ -697,14 +701,14 @@ impl WebGLRenderingContext {
     }
 
     // TODO(emilio): Move this logic to a validator.
-    fn validate_tex_image_2d_data(
+    pub fn validate_tex_image_2d_data(
         &self,
         width: u32,
         height: u32,
         format: TexFormat,
         data_type: TexDataType,
         unpacking_alignment: u32,
-        data: &Option<ArrayBufferView>,
+        data: Option<&ArrayBufferView>,
     ) -> Result<u32, ()> {
         let element_size = data_type.element_size();
         let components_per_element = data_type.components_per_element();
@@ -742,7 +746,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    fn tex_image_2d(
+    pub fn tex_image_2d(
         &self,
         texture: &WebGLTexture,
         target: TexImageTarget,
@@ -4276,7 +4280,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 format,
                 data_type,
                 unpacking_alignment,
-                &*pixels,
+                pixels.as_ref(),
             )
         } {
             Ok(byte_length) => byte_length,
@@ -4503,7 +4507,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
                 format,
                 data_type,
                 unpacking_alignment,
-                &*pixels,
+                pixels.as_ref(),
             )
         } {
             Ok(byte_length) => byte_length,
@@ -4881,7 +4885,7 @@ impl TextureUnit {
     }
 }
 
-struct TexPixels {
+pub struct TexPixels {
     data: IpcSharedMemory,
     size: Size2D<u32>,
     pixel_format: Option<PixelFormat>,
@@ -4903,7 +4907,7 @@ impl TexPixels {
         }
     }
 
-    fn from_array(data: IpcSharedMemory, size: Size2D<u32>) -> Self {
+    pub fn from_array(data: IpcSharedMemory, size: Size2D<u32>) -> Self {
         Self {
             data,
             size,
