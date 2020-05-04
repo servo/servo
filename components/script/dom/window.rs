@@ -661,7 +661,7 @@ impl WindowMethods for Window {
         url: USVString,
         target: DOMString,
         features: DOMString,
-    ) -> Option<DomRoot<WindowProxy>> {
+    ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         self.window_proxy().open(url, target, features)
     }
 

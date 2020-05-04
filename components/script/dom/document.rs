@@ -4685,14 +4685,10 @@ impl DocumentMethods for Document {
         url: USVString,
         target: DOMString,
         features: DOMString,
-    ) -> Fallible<DomRoot<WindowProxy>> {
-        // WhatWG spec states this should always return a WindowProxy, but the spec for WindowProxy.open states
-        // it optionally returns a WindowProxy. Assume an error if window.open returns none.
-        // See https://github.com/whatwg/html/issues/4091
-        let context = self.browsing_context().ok_or(Error::InvalidAccess)?;
-        context
+    ) -> Fallible<Option<DomRoot<WindowProxy>>> {
+        self.browsing_context()
+            .ok_or(Error::InvalidAccess)?
             .open(url, target, features)
-            .ok_or(Error::InvalidAccess)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-write

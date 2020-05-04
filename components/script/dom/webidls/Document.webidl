@@ -124,7 +124,7 @@ partial /*sealed*/ interface Document {
   [CEReactions, Throws]
   Document open(optional DOMString unused1, optional DOMString unused2);
   [CEReactions, Throws]
-  WindowProxy open(USVString url, DOMString name, DOMString features);
+  WindowProxy? open(USVString url, DOMString name, DOMString features);
   [CEReactions, Throws]
   void close();
   [CEReactions, Throws]
