@@ -1446,7 +1446,7 @@ impl<'le> TElement for GeckoElement<'le> {
     #[inline]
     fn may_have_animations(&self) -> bool {
         if let Some(pseudo) = self.implemented_pseudo_element() {
-            if !pseudo.is_before_or_after() {
+            if !pseudo.is_animatable() {
                 return false;
             }
             // FIXME(emilio): When would the parent of a ::before / ::after

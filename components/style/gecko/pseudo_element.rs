@@ -92,6 +92,12 @@ impl PseudoElement {
         EAGER_PSEUDOS[i].clone()
     }
 
+    /// Whether the current pseudo element is animatable.
+    #[inline]
+    pub fn is_animatable(&self) -> bool {
+        matches!(*self, Self::Before | Self::After | Self::Marker)
+    }
+
     /// Whether the current pseudo element is ::before or ::after.
     #[inline]
     pub fn is_before_or_after(&self) -> bool {
