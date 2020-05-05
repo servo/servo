@@ -89,7 +89,7 @@ If you get an undefined symbol error on `gst_player_get_config` try removing `gi
 #### On Fedora
 
 ``` sh
-sudo dnf install python3 python3-virtualenv python3-pip
+sudo dnf install python3 python3-virtualenv python3-pip python3-devel
 python3 ./mach bootstrap
 ```
 
