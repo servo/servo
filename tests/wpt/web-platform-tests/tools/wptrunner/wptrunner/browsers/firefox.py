@@ -488,7 +488,7 @@ class OutputHandler(object):
 
     def __call__(self, line):
         """Write a line of output from the firefox process to the log"""
-        if "GLib-GObject-CRITICAL" in line:
+        if b"GLib-GObject-CRITICAL" in line:
             return
         if line:
             if not self.setup_ran:

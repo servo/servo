@@ -88,4 +88,33 @@ promise_test(async t => {
   assert_equals(error.name, 'OperationError');
 }, 'Close peerconnection causes close event and error to be called');
 
+promise_test(async t => {
+  let pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  let [channel1, channel2] = await createDataChannelPair(pc1);
+  // The expected sequence of events when closing a DC is that
+  // channel1 goes to closing, channel2 fires onclose, and when
+  // the close is confirmed, channel1 fires onclose.
+  // After that, no more events should fire.
+  channel1.onerror = t.unreached_func();
+  let close2Handler = new Promise(resolve => {
+    channel2.onclose = event => {
+      resolve();
+    };
+  });
+  let close1Handler = new Promise(resolve => {
+    channel1.onclose = event => {
+      resolve();
+    };
+  });
+  channel1.close();
+  await close2Handler;
+  await close1Handler;
+  channel1.onclose = t.unreached_func();
+  channel2.onclose = t.unreached_func();
+  channel2.onerror = t.unreached_func();
+  pc1.close();
+  await new Promise(resolve => t.step_timeout(resolve, 10));
+}, 'Close peerconnection after DC close causes no events');
+
 </script>

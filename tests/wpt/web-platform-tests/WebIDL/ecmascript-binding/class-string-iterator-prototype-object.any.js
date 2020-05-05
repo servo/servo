@@ -31,6 +31,14 @@ test(t => {
 // was no @@toStringTag, it would fall back to a magic class string. This tests that the bug is
 // fixed.
 
+test(() => {
+  const iterator = (new URLSearchParams()).keys();
+  assert_equals(Object.prototype.toString.call(iterator), "[object URLSearchParams Iterator]");
+
+  Object.setPrototypeOf(iterator, null);
+  assert_equals(Object.prototype.toString.call(iterator), "[object Object]");
+}, "Object.prototype.toString applied to a null-prototype instance");
+
 test(t => {
   const proto = Object.getPrototypeOf(iteratorProto);
   t.add_cleanup(() => {
@@ -39,7 +47,7 @@ test(t => {
 
   Object.setPrototypeOf(iteratorProto, null);
 
-  assert_equals(Object.prototype.toString.call(iteratorProto), "[object Object]");
+  assert_equals(Object.prototype.toString.call(iteratorProto), "[object URLSearchParams Iterator]");
 }, "Object.prototype.toString applied after nulling the prototype");
 
 // This test must be last.

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parent is not isolated, subdomain child 1 is not isolated, same-subdomain child 2 is isolated</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import { insertIframe, sendWasmModule, setBothDocumentDomains,
+         sendWasmModuleBetween, accessDocumentBetween } from "./resources/helpers.mjs";
+
+let frameWindow1, frameWindow2;
+promise_setup(async () => {
+  // Must be sequential, not parallel: frameWindow1 must load first.
+  frameWindow1 = await insertIframe("{{hosts[][www]}}");
+  frameWindow2 = await insertIframe("{{hosts[][www]}}", "?1");
+
+  await setBothDocumentDomains(frameWindow1);
+  await setBothDocumentDomains(frameWindow2);
+});
+
+
+// Since they're different-origin, the parent's isolation non-request is
+// respected, as is frameWindow1's non-request. frameWindow2 requests isolation
+// but is ignored, since frameWindow1 is in the same browsing context group.
+//
+// So, everyone ends up in the site-keyed agent cluster.
+
+promise_test(async () => {
+  const whatHappened = await sendWasmModule(frameWindow1);
+
+  assert_equals(whatHappened, "WebAssembly.Module message received");
+}, "Parent to child1: message event must occur");
+
+promise_test(async () => {
+  // Must not throw
+  frameWindow1.document;
+}, "Parent to child1: setting document.domain must give sync access");
+
+promise_test(async () => {
+  const whatHappened = await sendWasmModule(frameWindow2);
+
+  assert_equals(whatHappened, "WebAssembly.Module message received");
+}, "Parent to child2: message event must occur");
+
+promise_test(async () => {
+  // Must not throw
+  frameWindow2.document;
+}, "Parent to child2: setting document.domain must give sync access");
+
+promise_test(async () => {
+  const whatHappened = await sendWasmModuleBetween(frameWindow1, 1);
+
+  assert_equals(whatHappened, "WebAssembly.Module message received");
+}, "child1 to child2: message event must occur");
+
+promise_test(async () => {
+  const whatHappened = await accessDocumentBetween(frameWindow1, 1);
+
+  assert_equals(whatHappened, "accessed document successfully");
+}, "child1 to child2: setting document.domain must give sync access");
+
+promise_test(async () => {
+  const whatHappened = await sendWasmModuleBetween(frameWindow2, 0);
+
+  assert_equals(whatHappened, "WebAssembly.Module message received");
+}, "child2 to child1: message event must occur");
+
+promise_test(async () => {
+  const whatHappened = await accessDocumentBetween(frameWindow2, 0);
+
+  assert_equals(whatHappened, "accessed document successfully");
+}, "child2 to child1: setting document.domain must give sync access");
+</script>

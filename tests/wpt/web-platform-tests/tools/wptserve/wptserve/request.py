@@ -248,8 +248,12 @@ class Request(object):
         self.protocol_version = request_handler.protocol_version
         self.method = request_handler.command
 
+        # Keys and values in raw headers are native strings.
+        self._headers = None
+        self.raw_headers = request_handler.headers
+
         scheme = request_handler.server.scheme
-        host = request_handler.headers.get("Host")
+        host = self.raw_headers.get("Host")
         port = request_handler.server.server_address[1]
 
         if host is None:
@@ -262,22 +266,17 @@ class Request(object):
         self.url_base = "/"
 
         if self.request_path.startswith(scheme + "://"):
-            self.url = request_handler.path
+            self.url = self.request_path
         else:
-            self.url = "%s://%s:%s%s" % (scheme,
-                                      host,
-                                      port,
-                                      self.request_path)
+            # TODO(#23362): Stop using native strings for URLs.
+            self.url = "%s://%s:%s%s" % (
+                scheme, host, port, self.request_path)
         self.url_parts = urlsplit(self.url)
-
-        self.raw_headers = request_handler.headers
 
         self.request_line = request_handler.raw_requestline
 
-        self._headers = None
-
         self.raw_input = InputFile(request_handler.rfile,
-                                   int(self.headers.get("Content-Length", 0)))
+                                   int(self.raw_headers.get("Content-Length", 0)))
 
         self._body = None
 
@@ -303,9 +302,10 @@ class Request(object):
     @property
     def POST(self):
         if self._POST is None:
-            #Work out the post parameters
+            # Work out the post parameters
             pos = self.raw_input.tell()
             self.raw_input.seek(0)
+            # FIXME: specify encoding in Python 3.
             fs = cgi.FieldStorage(fp=self.raw_input,
                                   environ={"REQUEST_METHOD": self.method},
                                   headers=self.raw_headers,
@@ -400,7 +400,6 @@ class RequestHeaders(dict):
                 headers = [_maybe_encode(items[header])]
             dict.__setitem__(self, key, headers)
 
-
     def __getitem__(self, key):
         """Get all headers of a certain (case-insensitive) name. If there is
         more than one, the values are returned comma separated"""
@@ -409,7 +408,7 @@ class RequestHeaders(dict):
         if len(values) == 1:
             return values[0]
         else:
-            return ", ".join(values)
+            return b", ".join(values)
 
     def __setitem__(self, name, value):
         raise Exception
@@ -450,6 +449,7 @@ class RequestHeaders(dict):
     def itervalues(self):
         for item in self:
             yield self[item]
+
 
 class CookieValue(object):
     """Representation of cookies.

@@ -35,6 +35,56 @@ test(t => {
                 'getAnimations returns no running CSS Transitions');
 }, 'getAnimations for CSS Transitions');
 
+test(t => {
+  const div = addDiv(t);
+
+  // Add a couple of transitions
+  div.style.top = '0px';
+  div.style.left = '0px';
+  getComputedStyle(div).transitionProperty;
+
+  div.style.transition = 'all 100s';
+  div.style.top = '100px';
+  div.style.left = '100px';
+
+  var animations = document.getAnimations();
+  assert_equals(animations.length, 2,
+                'getAnimations returns two running CSS Transitions');
+  assert_equals(animations[0].transitionProperty, 'left');
+  assert_equals(animations[1].transitionProperty, 'top');
+}, 'getAnimations for CSS Transitions sort by property name');
+
+promise_test(async t => {
+  const div = addDiv(t);
+
+  // Add a couple of transitions
+  div.style.top = '0px';
+  div.style.left = '0px';
+  getComputedStyle(div).transitionProperty;
+
+  div.style.transition = 'all 100s';
+  div.style.top = '100px';
+  div.style.left = '100px';
+
+  var animations = document.getAnimations();
+  assert_equals(animations.length, 2,
+                'getAnimations returns two running CSS Transitions');
+  assert_equals(animations[0].transitionProperty, 'left');
+  assert_equals(animations[1].transitionProperty, 'top');
+
+  await waitForAnimationFrames(2);
+
+  div.style.opacity = '1'
+  div.style.transition = 'all 100s';
+  div.style.opacity = '0'
+  animations = document.getAnimations();
+  assert_equals(animations.length, 3,
+                'getAnimations returns two running CSS Transitions');
+  assert_equals(animations[0].transitionProperty, 'left', '1');
+  assert_equals(animations[1].transitionProperty, 'top', '2');
+  assert_equals(animations[2].transitionProperty, 'opacity', '3');
+}, 'getAnimations for CSS Transitions sort by transition generation');
+
 function pseudoTest(description, testMarkerPseudos) {
   test(t => {
     // Create two divs with the following arrangement:
