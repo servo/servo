@@ -9,6 +9,7 @@ use std::marker::PhantomData;
 use std::mem::{forget, transmute};
 use std::ops::{Deref, DerefMut};
 use std::ptr;
+use gecko_bindings::structs::root::mozilla::detail::CopyablePtr;
 
 /// Indicates that a given Servo type has a corresponding Gecko FFI type.
 pub unsafe trait HasFFI: Sized + 'static {
@@ -330,5 +331,18 @@ impl<GeckoType> OwnedOrNull<GeckoType> {
     /// null.
     pub fn borrow_mut(&self) -> Option<&mut GeckoType> {
         unsafe { transmute(self) }
+    }
+}
+
+impl<T> Deref for CopyablePtr<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.mPtr
+    }
+}
+
+impl<T> DerefMut for CopyablePtr<T> {
+    fn deref_mut<'a>(&'a mut self) -> &'a mut T {
+        &mut self.mPtr
     }
 }
