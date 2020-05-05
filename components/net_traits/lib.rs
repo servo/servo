@@ -638,6 +638,8 @@ pub struct Metadata {
     pub referrer_policy: Option<ReferrerPolicy>,
     /// Performance information for navigation events
     pub timing: Option<ResourceFetchTiming>,
+    /// True if the request comes from a redirection
+    pub redirected: bool,
 }
 
 impl Metadata {
@@ -655,6 +657,7 @@ impl Metadata {
             referrer: None,
             referrer_policy: None,
             timing: None,
+            redirected: false,
         }
     }
 
