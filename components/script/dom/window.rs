@@ -173,8 +173,7 @@ pub enum ReflowReason {
     IFrameLoadEvent,
     MissingExplicitReflow,
     ElementStateChanged,
-    TickAnimations,
-    AdvanceClock(i32),
+    PendingReflow,
 }
 
 #[dom_struct]
@@ -1550,12 +1549,9 @@ impl Window {
     /// layout animation clock.
     pub fn advance_animation_clock(&self, delta: i32) {
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
-        ScriptThread::restyle_animating_nodes_for_advancing_clock(&pipeline_id);
-        self.force_reflow(
-            ReflowGoal::TickAnimations,
-            ReflowReason::AdvanceClock(delta),
-            None,
-        );
+        self.Document()
+            .advance_animation_timeline_for_testing(delta as f64 / 1000.);
+        ScriptThread::handle_tick_all_animations_for_testing(pipeline_id);
     }
 
     /// Reflows the page unconditionally if possible and not suppressed. This
@@ -1632,11 +1628,6 @@ impl Window {
             document.flush_dirty_canvases();
         }
 
-        let advance_clock_delta = match reason {
-            ReflowReason::AdvanceClock(delta) => Some(delta),
-            _ => None,
-        };
-
         // Send new document and relevant styles to layout.
         let needs_display = reflow_goal.needs_display();
         let reflow = ScriptReflow {
@@ -1651,7 +1642,7 @@ impl Window {
             script_join_chan: join_chan,
             dom_count: document.dom_count(),
             pending_restyles: document.drain_pending_restyles(),
-            advance_clock_delta,
+            animation_timeline_value: document.current_animation_timeline_value(),
         };
 
         self.layout_chan
@@ -2453,8 +2444,7 @@ fn should_move_clip_rect(clip_rect: UntypedRect<Au>, new_viewport: UntypedRect<f
 }
 
 fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &ReflowReason) {
-    let mut debug_msg = format!("**** pipeline={}", id);
-    debug_msg.push_str(match *reflow_goal {
+    let goal_string = match *reflow_goal {
         ReflowGoal::Full => "\tFull",
         ReflowGoal::TickAnimations => "\tTickAnimations",
         ReflowGoal::LayoutQuery(ref query_msg, _) => match query_msg {
@@ -2471,34 +2461,9 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
             &QueryMsg::ElementInnerTextQuery(_) => "\tElementInnerTextQuery",
             &QueryMsg::InnerWindowDimensionsQuery(_) => "\tInnerWindowDimensionsQuery",
         },
-    });
+    };
 
-    debug_msg.push_str(match *reason {
-        ReflowReason::CachedPageNeededReflow => "\tCachedPageNeededReflow",
-        ReflowReason::RefreshTick => "\tRefreshTick",
-        ReflowReason::FirstLoad => "\tFirstLoad",
-        ReflowReason::KeyEvent => "\tKeyEvent",
-        ReflowReason::MouseEvent => "\tMouseEvent",
-        ReflowReason::Query => "\tQuery",
-        ReflowReason::Timer => "\tTimer",
-        ReflowReason::Viewport => "\tViewport",
-        ReflowReason::WindowResize => "\tWindowResize",
-        ReflowReason::DOMContentLoaded => "\tDOMContentLoaded",
-        ReflowReason::DocumentLoaded => "\tDocumentLoaded",
-        ReflowReason::StylesheetLoaded => "\tStylesheetLoaded",
-        ReflowReason::ImageLoaded => "\tImageLoaded",
-        ReflowReason::RequestAnimationFrame => "\tRequestAnimationFrame",
-        ReflowReason::WebFontLoaded => "\tWebFontLoaded",
-        ReflowReason::WorkletLoaded => "\tWorkletLoaded",
-        ReflowReason::FramedContentChanged => "\tFramedContentChanged",
-        ReflowReason::IFrameLoadEvent => "\tIFrameLoadEvent",
-        ReflowReason::MissingExplicitReflow => "\tMissingExplicitReflow",
-        ReflowReason::ElementStateChanged => "\tElementStateChanged",
-        ReflowReason::TickAnimations => "\tTickAnimations",
-        ReflowReason::AdvanceClock(..) => "\tAdvanceClock",
-    });
-
-    println!("{}", debug_msg);
+    println!("**** pipeline={}\t{}\t{:?}", id, goal_string, reason);
 }
 
 impl Window {

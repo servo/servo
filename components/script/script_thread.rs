@@ -141,11 +141,12 @@ use script_traits::{
     LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType,
     NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory,
     ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg, TouchEventType,
-    TouchId, TransitionOrAnimationEventType, UntrustedNodeAddress, UpdatePipelineIdReason,
-    WebrenderIpcSender, WheelDelta, WindowSizeData, WindowSizeType,
+    TouchId, TransitionOrAnimationEvent, TransitionOrAnimationEventType, UntrustedNodeAddress,
+    UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta, WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
+use servo_config::pref;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::Cow;
 use std::cell::Cell;
@@ -1498,7 +1499,6 @@ impl ScriptThread {
                     })
                 },
                 FromConstellation(ConstellationControlMsg::TickAllAnimations(pipeline_id, _)) => {
-                    // step 7.8
                     if !animation_ticks.contains(&pipeline_id) {
                         animation_ticks.insert(pipeline_id);
                         sequential.push(event);
@@ -1543,6 +1543,9 @@ impl ScriptThread {
                 Ok(ev) => event = FromConstellation(ev),
             }
         }
+
+        // Step 11.10 from https://html.spec.whatwg.org/multipage/#event-loops.
+        self.update_animations_and_send_events();
 
         // Process the gathered events.
         debug!("Processing events.");
@@ -1603,7 +1606,7 @@ impl ScriptThread {
 
             let pending_reflows = window.get_pending_reflow_count();
             if pending_reflows > 0 {
-                window.reflow(ReflowGoal::Full, ReflowReason::ImageLoaded);
+                window.reflow(ReflowGoal::Full, ReflowReason::PendingReflow);
             } else {
                 // Reflow currently happens when explicitly invoked by code that
                 // knows the document could have been modified. This should really
@@ -1614,6 +1617,19 @@ impl ScriptThread {
         }
 
         true
+    }
+
+    // Perform step 11.10 from https://html.spec.whatwg.org/multipage/#event-loops.
+    // TODO(mrobinson): This should also update the current animations and send events
+    // to conform to the HTML specification. This might mean having events for rooting
+    // DOM nodes and ultimately all animations living in script.
+    fn update_animations_and_send_events(&self) {
+        for (_, document) in self.documents.borrow().iter() {
+            // Only update the time if it isn't being managed by a test.
+            if !pref!(layout.animations.test.enabled) {
+                document.update_animation_timeline();
+            }
+        }
     }
 
     fn categorize_msg(&self, msg: &MixedMessage) -> ScriptThreadEventCategory {
@@ -1905,20 +1921,8 @@ impl ScriptThread {
             ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type) => {
                 self.handle_tick_all_animations(pipeline_id, tick_type)
             },
-            ConstellationControlMsg::TransitionOrAnimationEvent {
-                pipeline_id,
-                event_type,
-                node,
-                property_or_animation_name,
-                elapsed_time,
-            } => {
-                self.handle_transition_or_animation_event(
-                    pipeline_id,
-                    event_type,
-                    node,
-                    property_or_animation_name,
-                    elapsed_time,
-                );
+            ConstellationControlMsg::TransitionOrAnimationEvent(ref event) => {
+                self.handle_transition_or_animation_event(event);
             },
             ConstellationControlMsg::WebFontLoaded(pipeline_id) => {
                 self.handle_web_font_loaded(pipeline_id)
@@ -2914,22 +2918,12 @@ impl ScriptThread {
         debug!("Exited script thread.");
     }
 
-    fn restyle_animating_nodes(&self, id: &PipelineId) -> bool {
-        match self.animating_nodes.borrow().get(id) {
-            Some(nodes) => {
-                for node in nodes.iter() {
-                    node.dirty(NodeDamage::NodeStyleDamaged);
-                }
-                true
-            },
-            None => false,
-        }
-    }
-
-    pub fn restyle_animating_nodes_for_advancing_clock(id: &PipelineId) {
+    /// Handles animation tick requested during testing.
+    pub fn handle_tick_all_animations_for_testing(id: PipelineId) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
-            script_thread.restyle_animating_nodes(id);
+            script_thread
+                .handle_tick_all_animations(id, AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS);
         });
     }
 
@@ -2943,38 +2937,32 @@ impl ScriptThread {
             document.run_the_animation_frame_callbacks();
         }
         if tick_type.contains(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS) {
-            if !self.restyle_animating_nodes(&id) {
-                return;
+            match self.animating_nodes.borrow().get(&id) {
+                Some(nodes) => {
+                    for node in nodes.iter() {
+                        node.dirty(NodeDamage::NodeStyleDamaged);
+                    }
+                },
+                None => return,
             }
 
-            document.window().force_reflow(
-                ReflowGoal::TickAnimations,
-                ReflowReason::TickAnimations,
-                None,
-            );
+            document.window().add_pending_reflow();
         }
     }
 
     /// Handles firing of transition-related events.
     ///
     /// TODO(mrobinson): Add support for more events.
-    fn handle_transition_or_animation_event(
-        &self,
-        pipeline_id: PipelineId,
-        event_type: TransitionOrAnimationEventType,
-        unsafe_node: UntrustedNodeAddress,
-        property_or_animation_name: String,
-        elapsed_time: f64,
-    ) {
+    fn handle_transition_or_animation_event(&self, event: &TransitionOrAnimationEvent) {
         let js_runtime = self.js_runtime.rt();
-        let node = unsafe { from_untrusted_node_address(js_runtime, unsafe_node) };
+        let node = unsafe { from_untrusted_node_address(js_runtime, event.node) };
 
         // We limit the scope of the borrow here, so that we don't maintain this borrow
         // and then incidentally trigger another layout. That might result in a double
         // mutable borrow of `animating_nodes`.
         {
             let mut animating_nodes = self.animating_nodes.borrow_mut();
-            let nodes = match animating_nodes.get_mut(&pipeline_id) {
+            let nodes = match animating_nodes.get_mut(&event.pipeline_id) {
                 Some(nodes) => nodes,
                 None => {
                     return warn!(
@@ -2996,12 +2984,12 @@ impl ScriptThread {
                 },
             };
 
-            if event_type.finalizes_transition_or_animation() {
+            if event.event_type.finalizes_transition_or_animation() {
                 nodes.remove(node_index);
             }
         }
 
-        let event_atom = match event_type {
+        let event_atom = match event.event_type {
             TransitionOrAnimationEventType::AnimationEnd => atom!("animationend"),
             TransitionOrAnimationEventType::TransitionCancel => atom!("transitioncancel"),
             TransitionOrAnimationEventType::TransitionEnd => atom!("transitionend"),
@@ -3013,11 +3001,11 @@ impl ScriptThread {
         };
 
         // TODO: Handle pseudo-elements properly
-        let property_or_animation_name = DOMString::from(property_or_animation_name);
-        let elapsed_time = Finite::new(elapsed_time as f32).unwrap();
+        let property_or_animation_name = DOMString::from(event.property_or_animation_name.clone());
+        let elapsed_time = Finite::new(event.elapsed_time as f32).unwrap();
         let window = window_from_node(&*node);
 
-        if event_type.is_transition_event() {
+        if event.event_type.is_transition_event() {
             let event_init = TransitionEventInit {
                 parent,
                 propertyName: property_or_animation_name,

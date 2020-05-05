@@ -87,7 +87,6 @@ use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_config::opts;
-use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::borrow::ToOwned;
 use std::cell::{Cell, RefCell};
@@ -117,7 +116,6 @@ use style::stylesheets::{
 };
 use style::stylist::Stylist;
 use style::thread_state::{self, ThreadState};
-use style::timer::Timer;
 use style::traversal::DomTraversal;
 use style::traversal_flags::TraversalFlags;
 use style_traits::CSSPixel;
@@ -219,10 +217,6 @@ pub struct LayoutThread {
 
     /// Webrender document.
     webrender_document: webrender_api::DocumentId,
-
-    /// The timer object to control the timing of the animations. This should
-    /// only be a test-mode timer during testing for animations.
-    timer: Timer,
 
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
@@ -583,11 +577,6 @@ impl LayoutThread {
                 inner_window_dimensions_response: None,
             })),
             webrender_image_cache: Arc::new(RwLock::new(FnvHashMap::default())),
-            timer: if pref!(layout.animations.test.enabled) {
-                Timer::test_mode()
-            } else {
-                Timer::new()
-            },
             paint_time_metrics: paint_time_metrics,
             layout_query_waiting_time: Histogram::new(),
             last_iframe_sizes: Default::default(),
@@ -623,6 +612,7 @@ impl LayoutThread {
         guards: StylesheetGuards<'a>,
         snapshot_map: &'a SnapshotMap,
         origin: ImmutableOrigin,
+        animation_timeline_value: f64,
     ) -> LayoutContext<'a> {
         LayoutContext {
             id: self.id,
@@ -634,7 +624,7 @@ impl LayoutThread {
                 visited_styles_enabled: false,
                 animation_states: self.animation_states.clone(),
                 registered_speculative_painters: &self.registered_painters,
-                current_time_for_animations: self.timer.seconds(),
+                current_time_for_animations: animation_timeline_value,
                 traversal_flags: TraversalFlags::empty(),
                 snapshot_map: snapshot_map,
             },
@@ -1306,12 +1296,6 @@ impl LayoutThread {
         let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, &guards);
 
-        if pref!(layout.animations.test.enabled) {
-            if let Some(delta) = data.advance_clock_delta {
-                self.timer.increment(delta as f64 / 1000.0);
-            }
-        }
-
         self.stylist
             .force_stylesheet_origins_dirty(sheet_origins_affected_by_device_change);
         self.viewport_size =
@@ -1429,7 +1413,8 @@ impl LayoutThread {
         self.stylist.flush(&guards, Some(element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context = self.build_layout_context(guards.clone(), &map, origin);
+        let mut layout_context =
+            self.build_layout_context(guards.clone(), &map, origin, data.animation_timeline_value);
 
         let pool;
         let (thread_pool, num_threads) = if self.parallel_flag {

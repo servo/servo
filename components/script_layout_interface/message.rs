@@ -207,8 +207,8 @@ pub struct ScriptReflow {
     pub origin: ImmutableOrigin,
     /// Restyle snapshot map.
     pub pending_restyles: Vec<(TrustedNodeAddress, PendingRestyle)>,
-    /// How much to advance the clock when testing.
-    pub advance_clock_delta: Option<i32>,
+    /// The current animation timeline value.
+    pub animation_timeline_value: f64,
 }
 
 pub struct LayoutThreadInit {

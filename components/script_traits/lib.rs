@@ -318,6 +318,22 @@ impl TransitionOrAnimationEventType {
     }
 }
 
+#[derive(Deserialize, Serialize)]
+/// A transition or animation event.
+pub struct TransitionOrAnimationEvent {
+    /// The pipeline id of the layout task that sent this message.
+    pub pipeline_id: PipelineId,
+    /// The type of transition event this should trigger.
+    pub event_type: TransitionOrAnimationEventType,
+    /// The address of the node which owns this transition.
+    pub node: UntrustedNodeAddress,
+    /// The name of the property that is transitioning (in the case of a transition)
+    /// or the name of the animation (in the case of an animation).
+    pub property_or_animation_name: String,
+    /// The elapsed time property to send with this transition event.
+    pub elapsed_time: f64,
+}
+
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
@@ -405,19 +421,7 @@ pub enum ConstellationControlMsg {
     /// Notifies script thread that all animations are done
     TickAllAnimations(PipelineId, AnimationTickType),
     /// Notifies the script thread that a transition or animation related event should be sent.
-    TransitionOrAnimationEvent {
-        /// The pipeline id of the layout task that sent this message.
-        pipeline_id: PipelineId,
-        /// The type of transition event this should trigger.
-        event_type: TransitionOrAnimationEventType,
-        /// The address of the node which owns this transition.
-        node: UntrustedNodeAddress,
-        /// The name of the property that is transitioning (in the case of a transition)
-        /// or the name of the animation (in the case of an animation).
-        property_or_animation_name: String,
-        /// The elapsed time property to send with this transition event.
-        elapsed_time: f64,
-    },
+    TransitionOrAnimationEvent(TransitionOrAnimationEvent),
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),

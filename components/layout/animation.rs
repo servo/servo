@@ -13,7 +13,7 @@ use msg::constellation_msg::PipelineId;
 use script_traits::UntrustedNodeAddress;
 use script_traits::{
     AnimationState, ConstellationControlMsg, LayoutMsg as ConstellationMsg,
-    TransitionOrAnimationEventType,
+    TransitionOrAnimationEvent, TransitionOrAnimationEventType,
 };
 use style::animation::{Animation, ElementAnimationState};
 
@@ -120,13 +120,15 @@ fn update_animation_state(
         };
 
         script_channel
-            .send(ConstellationControlMsg::TransitionOrAnimationEvent {
-                pipeline_id,
-                event_type,
-                node: node.to_untrusted_node_address(),
-                property_or_animation_name,
-                elapsed_time,
-            })
+            .send(ConstellationControlMsg::TransitionOrAnimationEvent(
+                TransitionOrAnimationEvent {
+                    pipeline_id,
+                    event_type,
+                    node: node.to_untrusted_node_address(),
+                    property_or_animation_name,
+                    elapsed_time,
+                },
+            ))
             .unwrap()
     };
 
