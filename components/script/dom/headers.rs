@@ -96,7 +96,7 @@ impl HeadersMethods for Headers {
             .get(HeaderName::from_str(&valid_name).unwrap())
         {
             combined_value = v.as_bytes().to_vec();
-            combined_value.push(b',');
+            combined_value.extend(b", ");
         }
         combined_value.extend(valid_value.iter().cloned());
         match HeaderValue::from_bytes(&combined_value) {
