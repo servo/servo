@@ -180,6 +180,10 @@ partial interface Window {
    Selection? getSelection();
 };
 
+// https://dom.spec.whatwg.org/#interface-window-extensions
+partial interface Window {
+  [Replaceable] readonly attribute any event; // historical
+};
 
 dictionary WindowPostMessageOptions : PostMessageOptions {
    USVString targetOrigin = "/";

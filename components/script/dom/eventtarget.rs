@@ -150,6 +150,23 @@ pub enum CompiledEventListener {
 }
 
 impl CompiledEventListener {
+    #[allow(unsafe_code)]
+    pub fn associated_global(&self) -> DomRoot<GlobalScope> {
+        let obj = match self {
+            CompiledEventListener::Listener(listener) => listener.callback(),
+            CompiledEventListener::Handler(CommonEventHandler::EventHandler(handler)) => {
+                handler.callback()
+            },
+            CompiledEventListener::Handler(CommonEventHandler::ErrorEventHandler(handler)) => {
+                handler.callback()
+            },
+            CompiledEventListener::Handler(CommonEventHandler::BeforeUnloadEventHandler(
+                handler,
+            )) => handler.callback(),
+        };
+        unsafe { GlobalScope::from_object(obj) }
+    }
+
     // https://html.spec.whatwg.org/multipage/#the-event-handler-processing-algorithm
     pub fn call_or_handle_event(
         &self,

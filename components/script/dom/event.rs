@@ -690,12 +690,15 @@ fn inner_invoke(
             object.remove_listener_if_once(&event.type_(), &event_listener);
         }
 
-        // Step 2.6-2.8
-        // FIXME(#25478): we need to get the global that the event
-        // listener is going to be called on, then if it's a Window
-        // set its .event to the event, remembering the previous
-        // value of its .event. This allows events to just use
-        // the word "event" instead of taking the event as an argument.
+        // Step 2.6
+        let global = listener.associated_global();
+
+        // Step 2.7-2.8
+        let current_event = if let Some(window) = global.downcast::<Window>() {
+            window.set_current_event(Some(event))
+        } else {
+            None
+        };
 
         // Step 2.9 TODO: EventListener passive option not implemented
 
@@ -712,8 +715,9 @@ fn inner_invoke(
         // Step 2.11 TODO: passive not implemented
 
         // Step 2.12
-        // TODO This is where we put back the .event we
-        // had before step 2.6.
+        if let Some(window) = global.downcast::<Window>() {
+            window.set_current_event(current_event.as_ref().map(|e| &**e));
+        }
 
         // Step 2.13: short-circuit instead of going to next listener
         if event.stop_immediate.get() {
