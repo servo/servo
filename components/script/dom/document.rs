@@ -3669,6 +3669,11 @@ impl ProfilerMetadataFactory for Document {
 }
 
 impl DocumentMethods for Document {
+    // https://w3c.github.io/editing/ActiveDocuments/execCommand.html#querycommandsupported()
+    fn QueryCommandSupported(&self, _command: DOMString) -> bool {
+        false
+    }
+
     // https://drafts.csswg.org/cssom/#dom-document-stylesheets
     fn StyleSheets(&self) -> DomRoot<StyleSheetList> {
         self.stylesheet_list.or_init(|| {
