@@ -332,8 +332,8 @@ async_test((t) => {
 
 A failing `assert_implements_optional` call is reported as a status of
 `PRECONDITION_FAILED` for the subtest. This unusual status code is a legacy
-leftover from the deprecated `assert_precondition`; see the [RFC that renamed
-it](https://github.com/web-platform-tests/rfcs/pull/48).
+leftover; see the [RFC that introduced
+`assert_implements_optional`](https://github.com/web-platform-tests/rfcs/pull/48).
 
 `assert_implements_optional` can also be used during test setup. For example:
 
@@ -903,9 +903,6 @@ asserts that one `assert_func(actual, expected_array_N, extra_arg1, ..., extra_a
   with multiple allowed pass conditions are bad practice unless the spec specifically
   allows multiple behaviours. Test authors should not use this method simply to hide
   UA bugs.
-
-### **DEPRECATED** `assert_precondition(condition, description)`
-Use `assert_implements` or `assert_implements_optional` instead.
 
 ## Utility functions ##
 
