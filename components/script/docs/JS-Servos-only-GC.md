@@ -171,21 +171,35 @@ is where we actually call the SpiderMonkey trace hooks:
 [dom]: https://doc.servo.org/script/dom/bindings/root/struct.Dom.html
 
 ```rust
+/// Trace the `JSObject` held by `reflector`.
+#[allow(unrooted_must_root)]
 pub fn trace_reflector(tracer: *mut JSTracer, description: &str, reflector: &Reflector) {
+    trace!("tracing reflector {}", description);
+    trace_object(tracer, description, reflector.rootable())
+}
+
+/// Trace a `JSObject`.
+pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JSObject>) {
     unsafe {
-        let name = CString::new(description).unwrap();
-        (*tracer).debugPrinter_ = None;
-        (*tracer).debugPrintIndex_ = !0;
-        (*tracer).debugPrintArg_ = name.as_ptr() as *const libc::c_void;
-        debug!("tracing reflector {}", description);
-        JS_CallUnbarrieredObjectTracer(tracer, reflector.rootable(),
-                                       GCTraceKindToAscii(JSGCTraceKind::JSTRACE_OBJECT));
+        trace!("tracing {}", description);
+        CallObjectTracer(
+            tracer,
+            obj.ptr.get() as *mut _,
+            GCTraceKindToAscii(TraceKind::Object),
+        );
     }
 }
 
-impl<T: DomObject> JSTraceable for Dom<T> {
+unsafe impl<T: DomObject> JSTraceable for Dom<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
-        trace_reflector(trc, "", unsafe { (**self.ptr).reflector() });
+        let trace_string;
+        let trace_info = if cfg!(debug_assertions) {
+            trace_string = format!("for {} on heap", ::std::any::type_name::<T>());
+            &trace_string[..]
+        } else {
+            "for DOM object on heap"
+        };
+        trace_reflector(trc, trace_info, (*self.ptr.as_ptr()).reflector());
     }
 }
 ```
@@ -232,10 +246,10 @@ In some cases, we need to use a DOM object longer than the reference we
 received allows us to; the [`DomRoot::from_ref` associated function][from-ref]
 allows creating a new `DomRoot<T>` struct in that case.
 
-[root]: https://doc.servo.org/script/dom/bindings/root/struct.DomRoot.html
+[root]: https://doc.servo.org/script/dom/bindings/root/type.DomRoot.html
 [raii]: https://en.wikipedia.org/wiki/Resource_Acquisition_Is_Initialization
 [new]: https://doc.servo.org/script/dom/index.html#construction
-[from-ref]: https://doc.servo.org/script/dom/bindings/root/struct.DomRoot.html#method.from_ref
+[from-ref]: https://doc.servo.org/script/dom/bindings/root/struct.Root.html#method.from_ref
 
 We can then obtain a reference from the `DomRoot<T>` through Rust's built-in
 [`Deref` trait][deref], which exposes a method `deref` with the following
@@ -320,7 +334,7 @@ the usual [warnings infrastructure][warnings], we can use the `allow` attribute
 in places where it's okay to use `Dom<T>`, like DOM struct definitions and the
 implementation of `Dom<T>` itself.
 
-[js-lint]: https://doc.servo.org/plugins/lints/unrooted_must_root/struct.UnrootedPass.html
+[js-lint]: https://doc.servo.org/script_plugins/struct.UnrootedPass.html
 [stack]: https://en.wikipedia.org/wiki/Stack-based_memory_allocation
 [warnings]: https://doc.rust-lang.org/book/compiler-plugins.html#lint-plugins
 
