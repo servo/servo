@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::conversions::{root_from_handleobject, ToJSValConvertible};
-use crate::dom::bindings::error::{throw_dom_exception, Error};
+use crate::dom::bindings::error::{throw_dom_exception, Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::proxyhandler::fill_property_descriptor;
 use crate::dom::bindings::reflector::{DomObject, Reflector};
@@ -415,7 +415,7 @@ impl WindowProxy {
         url: USVString,
         target: DOMString,
         features: DOMString,
-    ) -> Option<DomRoot<WindowProxy>> {
+    ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         // Step 4.
         let non_empty_target = match target.as_ref() {
             "" => DOMString::from("_blank"),
@@ -433,12 +433,12 @@ impl WindowProxy {
         // Step 10, 11
         let (chosen, new) = match self.choose_browsing_context(non_empty_target, noopener) {
             (Some(chosen), new) => (chosen, new),
-            (None, _) => return None,
+            (None, _) => return Ok(None),
         };
         // TODO Step 12, set up browsing context features.
         let target_document = match chosen.document() {
             Some(target_document) => target_document,
-            None => return None,
+            None => return Ok(None),
         };
         let target_window = target_document.window();
         // Step 13, and 14.4, will have happened elsewhere,
@@ -452,7 +452,7 @@ impl WindowProxy {
             // Step 14.1
             let url = match existing_document.url().join(&url) {
                 Ok(url) => url,
-                Err(_) => return None, // TODO: throw a  "SyntaxError" DOMException.
+                Err(_) => return Err(Error::Syntax),
             };
             // Step 14.3
             let referrer = if noreferrer {
@@ -479,10 +479,10 @@ impl WindowProxy {
         }
         if noopener {
             // Step 15 (Dis-owning has been done in create_auxiliary_browsing_context).
-            return None;
+            return Ok(None);
         }
         // Step 17.
-        return target_document.browsing_context();
+        return Ok(target_document.browsing_context());
     }
 
     // https://html.spec.whatwg.org/multipage/#the-rules-for-choosing-a-browsing-context-given-a-browsing-context-name
