@@ -756,13 +756,15 @@ impl TextRun {
             let mut glyphs = vec![];
             let mut advance_width = Length::zero();
             let mut last_break_opportunity = None;
+            let mut force_line_break = false;
             loop {
                 let next = runs.next();
-                if next
-                    .as_ref()
-                    .map_or(true, |run| run.glyph_store.is_whitespace())
-                {
-                    if advance_width > ifc.containing_block.inline_size - ifc.inline_position {
+                if next.as_ref().map_or(true, |run| {
+                    run.glyph_store.is_whitespace() || force_line_break
+                }) {
+                    if advance_width > ifc.containing_block.inline_size - ifc.inline_position ||
+                        force_line_break
+                    {
                         if let Some((len, width, iter)) = last_break_opportunity.take() {
                             glyphs.truncate(len);
                             advance_width = width;
@@ -774,6 +776,14 @@ impl TextRun {
                 if let Some(run) = next {
                     if run.glyph_store.is_whitespace() {
                         last_break_opportunity = Some((glyphs.len(), advance_width, runs.clone()));
+                        if self.text.as_bytes().get(run.range.end().to_usize() - 1) == Some(&b'\n')
+                        {
+                            force_line_break = self
+                                .parent_style
+                                .get_inherited_text()
+                                .white_space
+                                .preserve_newlines();
+                        }
                     }
                     glyphs.push(run.glyph_store.clone());
                     advance_width += Length::from(run.glyph_store.total_advance());
@@ -812,7 +822,7 @@ impl TextRun {
                     glyphs,
                     text_decoration_line: ifc.current_nesting_level.text_decoration_line,
                 }));
-            if runs.as_slice().is_empty() {
+            if runs.as_slice().is_empty() && !force_line_break {
                 break;
             } else {
                 // New line

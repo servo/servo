@@ -20,6 +20,7 @@ use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
 use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
+use style::computed_values::white_space::T as WhiteSpace;
 use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
@@ -293,7 +294,8 @@ where
     }
 
     fn handle_text(&mut self, info: &NodeAndStyleInfo<Node>, input: Cow<'dom, str>) {
-        let (leading_whitespace, mut input) = self.handle_leading_whitespace(&input);
+        let white_space = info.style.get_inherited_text().white_space;
+        let (leading_whitespace, mut input) = self.handle_leading_whitespace(&input, white_space);
         if leading_whitespace || !input.is_empty() {
             // This text node should be pushed either to the next ongoing
             // inline level box with the parent style of that inline level box
@@ -323,20 +325,37 @@ where
                 if leading_whitespace {
                     output.push(' ')
                 }
-                loop {
-                    if let Some(i) = input.bytes().position(|b| b.is_ascii_whitespace()) {
-                        let (non_whitespace, rest) = input.split_at(i);
-                        output.push_str(non_whitespace);
-                        output.push(' ');
-                        if let Some(i) = rest.bytes().position(|b| !b.is_ascii_whitespace()) {
-                            input = &rest[i..];
+
+                match (
+                    white_space.preserve_spaces(),
+                    white_space.preserve_newlines(),
+                ) {
+                    (true, true) => {
+                        output.push_str(input);
+                    },
+
+                    (true, false) => unreachable!(),
+
+                    (false, preserve_newlines) => loop {
+                        if let Some(i) = input.bytes().position(|b| {
+                            b.is_ascii_whitespace() && (!preserve_newlines || b != b'\n')
+                        }) {
+                            let (non_whitespace, rest) = input.split_at(i);
+                            output.push_str(non_whitespace);
+                            output.push(' ');
+
+                            if let Some(i) = rest.bytes().position(|b| {
+                                !b.is_ascii_whitespace() || (preserve_newlines && b == b'\n')
+                            }) {
+                                input = &rest[i..];
+                            } else {
+                                break;
+                            }
                         } else {
+                            output.push_str(input);
                             break;
                         }
-                    } else {
-                        output.push_str(input);
-                        break;
-                    }
+                    },
                 }
             }
 
@@ -359,10 +378,14 @@ where
     ///
     /// * Whether this text run has preserved (non-collapsible) leading whitespace
     /// * The contents starting at the first non-whitespace character (or the empty string)
-    fn handle_leading_whitespace<'text>(&mut self, text: &'text str) -> (bool, &'text str) {
+    fn handle_leading_whitespace<'text>(
+        &mut self,
+        text: &'text str,
+        white_space: WhiteSpace,
+    ) -> (bool, &'text str) {
         // FIXME: this is only an approximation of
         // https://drafts.csswg.org/css2/text.html#white-space-model
-        if !text.starts_with(|c: char| c.is_ascii_whitespace()) {
+        if !text.starts_with(|c: char| c.is_ascii_whitespace()) || white_space.preserve_spaces() {
             return (false, text);
         }
 

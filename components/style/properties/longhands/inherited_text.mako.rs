@@ -186,7 +186,6 @@ ${helpers.predefined_type(
     name="white-space"
     values="normal pre nowrap pre-wrap pre-line"
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
     extra_gecko_values="break-spaces -moz-pre-space"
     gecko_enum_prefix="StyleWhiteSpace"
     needs_conversion="True"
