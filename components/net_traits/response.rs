@@ -341,7 +341,7 @@ impl Response {
                             unsafe_: unsafe_metadata,
                         }),
                         ResponseType::OpaqueRedirect => Ok(FetchMetadata::Filtered {
-                            filtered: FilteredMetadata::OpaqueRedirect,
+                            filtered: FilteredMetadata::OpaqueRedirect(url.clone()),
                             unsafe_: unsafe_metadata,
                         }),
                     }

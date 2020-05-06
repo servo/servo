@@ -592,7 +592,7 @@ impl ImageCache for ImageCacheImpl {
                                 FilteredMetadata::Basic(_) | FilteredMetadata::Cors(_) => {
                                     CorsStatus::Safe
                                 },
-                                FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect => {
+                                FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => {
                                     CorsStatus::Unsafe
                                 },
                             },

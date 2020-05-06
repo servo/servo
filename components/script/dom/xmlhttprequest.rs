@@ -984,7 +984,7 @@ impl XMLHttpRequest {
                     FilteredMetadata::Basic(m) => m,
                     FilteredMetadata::Cors(m) => m,
                     FilteredMetadata::Opaque => return Err(Error::Network),
-                    FilteredMetadata::OpaqueRedirect => return Err(Error::Network),
+                    FilteredMetadata::OpaqueRedirect(_) => return Err(Error::Network),
                 },
             },
             Err(_) => {

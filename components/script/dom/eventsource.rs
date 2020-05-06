@@ -340,7 +340,7 @@ impl FetchResponseListener for EventSourceContext {
                 let meta = match fm {
                     FetchMetadata::Unfiltered(m) => m,
                     FetchMetadata::Filtered { unsafe_, filtered } => match filtered {
-                        FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect => {
+                        FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => {
                             return self.fail_the_connection()
                         },
                         _ => unsafe_,

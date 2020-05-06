@@ -246,10 +246,10 @@ impl FetchResponseListener for FetchContext {
                             .root()
                             .set_type(DOMResponseType::Opaque);
                     },
-                    FilteredMetadata::OpaqueRedirect => {
-                        self.response_object
-                            .root()
-                            .set_type(DOMResponseType::Opaqueredirect);
+                    FilteredMetadata::OpaqueRedirect(url) => {
+                        let r = self.response_object.root();
+                        r.set_type(DOMResponseType::Opaqueredirect);
+                        r.set_final_url(url);
                     },
                 },
             },
