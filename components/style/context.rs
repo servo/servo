@@ -5,7 +5,7 @@
 //! The context within which style is calculated.
 
 #[cfg(feature = "servo")]
-use crate::animation::ElementAnimationState;
+use crate::animation::ElementAnimationSet;
 use crate::bloom::StyleBloom;
 use crate::data::{EagerPseudoStyles, ElementData};
 #[cfg(feature = "servo")]
@@ -167,7 +167,7 @@ pub struct SharedStyleContext<'a> {
 
     /// The state of all animations for our styled elements.
     #[cfg(feature = "servo")]
-    pub animation_states: Arc<RwLock<FxHashMap<OpaqueNode, ElementAnimationState>>>,
+    pub animation_states: Arc<RwLock<FxHashMap<OpaqueNode, ElementAnimationSet>>>,
 
     /// Paint worklets
     #[cfg(feature = "servo")]

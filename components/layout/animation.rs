@@ -12,10 +12,10 @@ use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use script_traits::UntrustedNodeAddress;
 use script_traits::{
-    AnimationState, ConstellationControlMsg, LayoutMsg as ConstellationMsg,
-    TransitionOrAnimationEvent, TransitionOrAnimationEventType,
+    AnimationState as AnimationsPresentState, ConstellationControlMsg,
+    LayoutMsg as ConstellationMsg, TransitionOrAnimationEvent, TransitionOrAnimationEventType,
 };
-use style::animation::{Animation, ElementAnimationState};
+use style::animation::{AnimationState, ElementAnimationSet};
 
 /// Processes any new animations that were discovered after style recalculation and
 /// remove animations for any disconnected nodes. Send messages that trigger events
@@ -23,7 +23,7 @@ use style::animation::{Animation, ElementAnimationState};
 pub fn do_post_style_animations_update(
     constellation_chan: &IpcSender<ConstellationMsg>,
     script_chan: &IpcSender<ConstellationControlMsg>,
-    animation_states: &mut FxHashMap<OpaqueNode, ElementAnimationState>,
+    animation_states: &mut FxHashMap<OpaqueNode, ElementAnimationSet>,
     pipeline_id: PipelineId,
     now: f64,
     out: &mut Vec<UntrustedNodeAddress>,
@@ -31,16 +31,13 @@ pub fn do_post_style_animations_update(
 ) {
     let had_running_animations = animation_states
         .values()
-        .any(|state| !state.running_animations.is_empty());
+        .any(|state| state.needs_animation_ticks());
 
     cancel_animations_for_disconnected_nodes(animation_states, root_flow);
     collect_newly_animating_nodes(animation_states, out);
 
-    let mut have_running_animations = false;
     for (node, animation_state) in animation_states.iter_mut() {
         update_animation_state(script_chan, animation_state, pipeline_id, now, *node);
-        have_running_animations =
-            have_running_animations || !animation_state.running_animations.is_empty();
     }
 
     // Remove empty states from our collection of states in order to free
@@ -48,9 +45,12 @@ pub fn do_post_style_animations_update(
     // a node.
     animation_states.retain(|_, state| !state.is_empty());
 
+    let have_running_animations = animation_states
+        .values()
+        .any(|state| state.needs_animation_ticks());
     let present = match (had_running_animations, have_running_animations) {
-        (true, false) => AnimationState::NoAnimationsPresent,
-        (false, true) => AnimationState::AnimationsPresent,
+        (true, false) => AnimationsPresentState::NoAnimationsPresent,
+        (false, true) => AnimationsPresentState::AnimationsPresent,
         _ => return,
     };
     constellation_chan
@@ -65,14 +65,25 @@ pub fn do_post_style_animations_update(
 /// forced, synchronous reflows to root DOM nodes for the duration of their
 /// animations or transitions.
 pub fn collect_newly_animating_nodes(
-    animation_states: &FxHashMap<OpaqueNode, ElementAnimationState>,
+    animation_states: &FxHashMap<OpaqueNode, ElementAnimationSet>,
     out: &mut Vec<UntrustedNodeAddress>,
 ) {
     // This extends the output vector with an iterator that contains a copy of the node
-    // address for every new animation. This is a bit goofy, but the script thread
-    // currently stores a rooted node for every property that is transitioning.
+    // address for every new animation. The script thread currently stores a rooted node
+    // for every property that is transitioning. The current strategy of repeating the
+    // node address is a holdover from when the code here looked different.
     out.extend(animation_states.iter().flat_map(|(node, state)| {
-        std::iter::repeat(node.to_untrusted_node_address()).take(state.new_animations.len())
+        let mut num_new_animations = state
+            .animations
+            .iter()
+            .filter(|animation| animation.is_new)
+            .count();
+        num_new_animations += state
+            .transitions
+            .iter()
+            .filter(|transition| transition.is_new)
+            .count();
+        std::iter::repeat(node.to_untrusted_node_address()).take(num_new_animations)
     }));
 }
 
@@ -81,7 +92,7 @@ pub fn collect_newly_animating_nodes(
 /// TODO(mrobinson): We should look into a way of doing this during flow tree construction.
 /// This also doesn't yet handles nodes that have been reparented.
 pub fn cancel_animations_for_disconnected_nodes(
-    animation_states: &mut FxHashMap<OpaqueNode, ElementAnimationState>,
+    animation_states: &mut FxHashMap<OpaqueNode, ElementAnimationSet>,
     root_flow: &mut dyn Flow,
 ) {
     // Assume all nodes have been removed until proven otherwise.
@@ -106,19 +117,12 @@ pub fn cancel_animations_for_disconnected_nodes(
 
 fn update_animation_state(
     script_channel: &IpcSender<ConstellationControlMsg>,
-    animation_state: &mut ElementAnimationState,
+    animation_state: &mut ElementAnimationSet,
     pipeline_id: PipelineId,
     now: f64,
     node: OpaqueNode,
 ) {
-    let send_event = |animation: &Animation, event_type, elapsed_time| {
-        let property_or_animation_name = match *animation {
-            Animation::Transition(_, _, ref property_animation) => {
-                property_animation.property_name().into()
-            },
-            Animation::Keyframes(_, _, ref name, _) => name.to_string(),
-        };
-
+    let send_event = |property_or_animation_name, event_type, elapsed_time| {
         script_channel
             .send(ConstellationControlMsg::TransitionOrAnimationEvent(
                 TransitionOrAnimationEvent {
@@ -132,88 +136,83 @@ fn update_animation_state(
             .unwrap()
     };
 
-    handle_cancelled_animations(animation_state, now, send_event);
-    handle_running_animations(animation_state, now, send_event);
+    handle_canceled_animations(animation_state, now, send_event);
+    finish_running_animations(animation_state, now, send_event);
     handle_new_animations(animation_state, send_event);
 }
 
 /// Walk through the list of running animations and remove all of the ones that
 /// have ended.
-fn handle_running_animations(
-    animation_state: &mut ElementAnimationState,
+fn finish_running_animations(
+    animation_state: &mut ElementAnimationSet,
     now: f64,
-    mut send_event: impl FnMut(&Animation, TransitionOrAnimationEventType, f64),
+    mut send_event: impl FnMut(String, TransitionOrAnimationEventType, f64),
 ) {
-    if animation_state.running_animations.is_empty() {
-        return;
+    for animation in animation_state.animations.iter_mut() {
+        if animation.state == AnimationState::Running && animation.has_ended(now) {
+            animation.state = AnimationState::Finished;
+            send_event(
+                animation.name.to_string(),
+                TransitionOrAnimationEventType::AnimationEnd,
+                animation.active_duration(),
+            );
+        }
     }
 
-    let mut running_animations =
-        std::mem::replace(&mut animation_state.running_animations, Vec::new());
-    for running_animation in running_animations.drain(..) {
-        // If the animation is still running, add it back to the list of running animations.
-        if !running_animation.has_ended(now) {
-            animation_state.running_animations.push(running_animation);
-        } else {
-            let (event_type, elapsed_time) = match running_animation {
-                Animation::Transition(_, _, ref property_animation) => (
-                    TransitionOrAnimationEventType::TransitionEnd,
-                    property_animation.duration,
-                ),
-                Animation::Keyframes(_, _, _, ref state) => (
-                    TransitionOrAnimationEventType::AnimationEnd,
-                    state.active_duration(),
-                ),
-            };
-
-            send_event(&running_animation, event_type, elapsed_time);
-            animation_state.finished_animations.push(running_animation);
+    for transition in animation_state.transitions.iter_mut() {
+        if transition.state == AnimationState::Running && transition.has_ended(now) {
+            transition.state = AnimationState::Finished;
+            send_event(
+                transition.property_animation.property_name().into(),
+                TransitionOrAnimationEventType::TransitionEnd,
+                transition.property_animation.duration,
+            );
         }
     }
 }
 
-/// Send events for cancelled animations. Currently this only handles cancelled
-/// transitions, but eventually this should handle cancelled CSS animations as
+/// Send events for canceled animations. Currently this only handles canceled
+/// transitions, but eventually this should handle canceled CSS animations as
 /// well.
-fn handle_cancelled_animations(
-    animation_state: &mut ElementAnimationState,
+fn handle_canceled_animations(
+    animation_state: &mut ElementAnimationSet,
     now: f64,
-    mut send_event: impl FnMut(&Animation, TransitionOrAnimationEventType, f64),
+    mut send_event: impl FnMut(String, TransitionOrAnimationEventType, f64),
 ) {
-    for animation in animation_state.cancelled_animations.drain(..) {
-        match animation {
-            Animation::Transition(_, start_time, _) => {
-                // TODO(mrobinson): We need to properly compute the elapsed_time here
-                // according to https://drafts.csswg.org/css-transitions/#event-transitionevent
-                send_event(
-                    &animation,
-                    TransitionOrAnimationEventType::TransitionCancel,
-                    (now - start_time).max(0.),
-                );
-            },
-            // TODO(mrobinson): We should send animationcancel events.
-            Animation::Keyframes(..) => {},
+    for transition in &animation_state.transitions {
+        if transition.state == AnimationState::Canceled {
+            // TODO(mrobinson): We need to properly compute the elapsed_time here
+            // according to https://drafts.csswg.org/css-transitions/#event-transitionevent
+            send_event(
+                transition.property_animation.property_name().into(),
+                TransitionOrAnimationEventType::TransitionCancel,
+                (now - transition.start_time).max(0.),
+            );
         }
     }
+
+    // TODO(mrobinson): We need to send animationcancel events.
+    animation_state.clear_canceled_animations();
 }
 
 fn handle_new_animations(
-    animation_state: &mut ElementAnimationState,
-    mut send_event: impl FnMut(&Animation, TransitionOrAnimationEventType, f64),
+    animation_state: &mut ElementAnimationSet,
+    mut send_event: impl FnMut(String, TransitionOrAnimationEventType, f64),
 ) {
-    for animation in animation_state.new_animations.drain(..) {
-        match animation {
-            Animation::Transition(..) => {
-                // TODO(mrobinson): We need to properly compute the elapsed_time here
-                // according to https://drafts.csswg.org/css-transitions/#event-transitionevent
-                send_event(
-                    &animation,
-                    TransitionOrAnimationEventType::TransitionRun,
-                    0.,
-                )
-            },
-            Animation::Keyframes(..) => {},
+    for animation in animation_state.animations.iter_mut() {
+        animation.is_new = false;
+    }
+
+    for transition in animation_state.transitions.iter_mut() {
+        if transition.is_new {
+            // TODO(mrobinson): We need to properly compute the elapsed_time here
+            // according to https://drafts.csswg.org/css-transitions/#event-transitionevent
+            send_event(
+                transition.property_animation.property_name().into(),
+                TransitionOrAnimationEventType::TransitionRun,
+                0.,
+            );
+            transition.is_new = false;
         }
-        animation_state.running_animations.push(animation);
     }
 }
