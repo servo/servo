@@ -97,7 +97,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
-use style::animation::ElementAnimationState;
+use style::animation::ElementAnimationSet;
 use style::context::SharedStyleContext;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
@@ -192,7 +192,7 @@ pub struct LayoutThread {
     document_shared_lock: Option<SharedRwLock>,
 
     /// The animation state for all of our nodes.
-    animation_states: ServoArc<RwLock<FxHashMap<OpaqueNode, ElementAnimationState>>>,
+    animation_states: ServoArc<RwLock<FxHashMap<OpaqueNode, ElementAnimationSet>>>,
 
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
@@ -829,7 +829,7 @@ impl LayoutThread {
                     .animation_states
                     .read()
                     .values()
-                    .map(|state| state.running_animations.len())
+                    .map(|state| state.running_animation_and_transition_count())
                     .sum();
                 let _ = sender.send(running_animation_count);
             },
