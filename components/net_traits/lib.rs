@@ -186,7 +186,7 @@ pub enum FilteredMetadata {
     Basic(Metadata),
     Cors(Metadata),
     Opaque,
-    OpaqueRedirect,
+    OpaqueRedirect(ServoUrl),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
