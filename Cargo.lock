@@ -630,7 +630,7 @@ checksum = "4227269cec09f5f83ff160be12a1e9b0262dd1aa305302d5ba296c2ebd291055"
 dependencies = [
  "glob",
  "libc",
- "libloading",
+ "libloading 0.5.2",
 ]
 
 [[package]]
@@ -1054,7 +1054,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bc7ed48e89905e5e146bcc1951cc3facb9e44aea9adf5dc01078cda1bd24b662"
 dependencies = [
  "bitflags",
- "libloading",
+ "libloading 0.5.2",
  "winapi",
 ]
 
@@ -1263,7 +1263,7 @@ version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77e51249a9d823a4cb79e3eca6dcd756153e8ed0157b6c04775d04bf1b13b76a"
 dependencies = [
- "libloading",
+ "libloading 0.5.2",
 ]
 
 [[package]]
@@ -1816,7 +1816,7 @@ dependencies = [
  "bitflags",
  "gfx-auxil",
  "gfx-hal",
- "libloading",
+ "libloading 0.5.2",
  "log",
  "parking_lot",
  "range-alloc",
@@ -3035,6 +3035,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "libloading"
+version = "0.6.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2cadb8e769f070c45df05c78c7520eb4cd17061d4ab262e43cfc68b4d00ac71c"
+dependencies = [
+ "winapi",
+]
+
+[[package]]
 name = "libmlservo"
 version = "0.0.1"
 dependencies = [
@@ -3816,11 +3825,10 @@ dependencies = [
 [[package]]
 name = "openxr"
 version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eafe24b961abab46839a7fd469b6958a711181df3e417bf8daa29f5f590c08ce"
+source = "git+https://github.com/servo/openxrs.git?branch=xr-msft#676c1f267a607bd8d2a3b984c49625b825c873d0"
 dependencies = [
  "libc",
- "libloading",
+ "libloading 0.6.2",
  "openxr-sys",
  "winapi",
 ]
@@ -3828,8 +3836,7 @@ dependencies = [
 [[package]]
 name = "openxr-sys"
 version = "0.8.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b1a982ff6f4e59b3823325cd36864a242a015f9f980e7eda0843c5e6c7103a47"
+source = "git+https://github.com/servo/openxrs.git?branch=xr-msft#676c1f267a607bd8d2a3b984c49625b825c873d0"
 dependencies = [
  "libc",
  "winapi",
@@ -5231,7 +5238,7 @@ dependencies = [
  "gl_generator 0.14.0",
  "ipc-channel",
  "libc",
- "libloading",
+ "libloading 0.5.2",
  "libservo",
  "log",
  "servo-media",
@@ -6438,7 +6445,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#ac9a7b23e72436b09e84be980914adf8abb71c96"
+source = "git+https://github.com/servo/webxr#755a872672c80d71651a305600b97526952d5293"
 dependencies = [
  "android_injected_glue",
  "bindgen",
@@ -6461,7 +6468,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#ac9a7b23e72436b09e84be980914adf8abb71c96"
+source = "git+https://github.com/servo/webxr#755a872672c80d71651a305600b97526952d5293"
 dependencies = [
  "euclid",
  "ipc-channel",
