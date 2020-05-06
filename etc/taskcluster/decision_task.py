@@ -620,11 +620,11 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --log-errorsummary wpt-mp-errorsummary.log \
                     eventsource \
                     | cat
-                time env PYTHONIOENCODING=utf-8 python3 ./mach test-wpt --release --binary-arg=--multiprocess \
+                time env PYTHONIOENCODING=utf-8 python3 ./mach test-wpt --release \
                     --processes $PROCESSES \
-                    --log-raw test-wpt-mp.log \
-                    --log-errorsummary wpt-mp-errorsummary.log \
-                    eventsource \
+                    --log-raw test-wpt-py3.log \
+                    --log-errorsummary wpt-py3-errorsummary.log \
+                    url \
                     | cat
                 time ./mach test-wpt --release --product=servodriver --headless  \
                     tests/wpt/mozilla/tests/mozilla/DOMParser.html \
