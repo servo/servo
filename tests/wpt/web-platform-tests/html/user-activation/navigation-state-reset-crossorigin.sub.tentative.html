@@ -5,10 +5,11 @@
 -->
 <html>
 <head>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/resources/testdriver.js"></script>
-<script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="resources/utils.js"></script>
 </head>
 <body>
   <h1>Post-navigation activation state in child</h1>
@@ -30,7 +31,7 @@
               assert_false(msg.isActive);
               assert_false(msg.hasBeenActive);
 
-              test_driver.click(child);
+              delayByFrames(() => test_driver.click(child), 5);
           } else if (msg.type == 'child-one-clicked') {
               assert_true(navigator.userActivation.isActive);
               assert_true(navigator.userActivation.hasBeenActive);

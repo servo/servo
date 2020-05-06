@@ -1053,7 +1053,9 @@
     # The ones that change the output when src = (0,0,0,0):
     ops_trans = [ 'source-in', 'destination-in', 'source-out', 'destination-atop', 'copy' ];
 
-    def calc_output((RA, GA, BA, aA), (RB, GB, BB, aB), FA_code, FB_code):
+    def calc_output(A, B, FA_code, FB_code):
+        (RA, GA, BA, aA) = A
+        (RB, GB, BB, aB) = B
         rA, gA, bA = RA*aA, GA*aA, BA*aA
         rB, gB, bB = RB*aB, GB*aB, BB*aB
 
@@ -1078,9 +1080,11 @@
 
         return (RO, GO, BO, aO)
 
-    def to_test((r,g,b,a)):
+    def to_test(color):
+        r, g, b, a = color
         return '%d,%d,%d,%d' % (round(r), round(g), round(b), round(a*255))
-    def to_cairo((r,g,b,a)):
+    def to_cairo(color):
+        r, g, b, a = color
         return '%f,%f,%f,%f' % (r/255., g/255., b/255., a)
 
     for (name, src, dest) in [
@@ -5559,7 +5563,9 @@
     cr.fill()
     for x in range(1, 100):
         sigma = x/2.0
-        filter = [math.exp(-i*i / (2*sigma*sigma)) / (math.sqrt(2*math.pi)*sigma) for i in range(-24, 26)]
+        filter = []
+        for i in range(-24, 26):
+            filter.append(math.exp(-i*i / (2*sigma*sigma)) / (math.sqrt(2*math.pi)*sigma))
         accum = [0]
         for f in filter:
             accum.append(accum[-1] + f)
@@ -5584,7 +5590,9 @@
     size 100 50
     import math
     sigma = 100.0/2
-    filter = [math.exp(-i*i / (2*sigma*sigma)) / (math.sqrt(2*math.pi)*sigma) for i in range(-200, 100)]
+    filter = []
+    for i in range(-200, 100):
+        filter.append(math.exp(-i*i / (2*sigma*sigma)) / (math.sqrt(2*math.pi)*sigma))
     accum = [0]
     for f in filter:
         accum.append(accum[-1] + f)

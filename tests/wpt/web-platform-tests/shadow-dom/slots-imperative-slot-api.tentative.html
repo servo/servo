@@ -53,7 +53,7 @@ test(() => {
   assert_throws_dom('NotAllowedError', () => { tTree.s2.assign([tTree.c2]); });
 
   assert_throws_dom('NotAllowedError', () => { tTree.s2.assign([tTree.host1]); });
-}, 'Imperative slot API throws exception when slotable parentNode != slot\'s host.');
+}, 'Imperative slot API throws exception when slottable parentNode != slot\'s host.');
 </script>
 
 <div id="test_assign">
@@ -112,7 +112,7 @@ test(() => {
   assert_equals(tTree.c1.assignedSlot, tTree.s1);
   assert_equals(tTree.c2.assignedSlot, tTree.s1);
   assert_equals(tTree.c3.assignedSlot, tTree.s1);
-}, 'Order of slotables is preserved in manual slot assignment.');
+}, 'Order of slottables is preserved in manual slot assignment.');
 
 test(() => {
   let tTree = createTestTree(test_assign);
@@ -134,7 +134,7 @@ test(() => {
   assert_equals(tTree.c1.assignedSlot, tTree.s1);
   assert_equals(tTree.c2.assignedSlot, tTree.s2);
   assert_equals(tTree.c3.assignedSlot, tTree.s3);
-}, 'Previously assigned slotable is moved to new slot when it\'s reassigned.');
+}, 'Previously assigned slottable is moved to new slot when it\'s reassigned.');
 
 test(() => {
  let tTree = createTestTree(test_assign);
@@ -192,7 +192,7 @@ test(() => {
 
   tTree.host4.append(tTree.s1);
   assert_array_equals(tTree.s1.assignedNodes(), []);
-}, 'Moving a slot to a new host, the slot loses its previously assigned slotables.');
+}, 'Moving a slot to a new host, the slot loses its previously assigned slottables.');
 
 test(() => {
   let tTree = createTestTree(test_assign);
@@ -210,7 +210,7 @@ test(() => {
 
   tTree.ns1.append(tTree.s1);
   assert_array_equals(tTree.s1.assignedNodes(), []);
-}, 'Moving a slot\'s tree order position within a shadow host has no impact on its assigned slotables.');
+}, 'Moving a slot\'s tree order position within a shadow host has no impact on its assigned slottables.');
 
 test(() => {
   let tTree = createTestTree(test_assign);
@@ -225,7 +225,7 @@ test(() => {
   tTree.s4.assign([tTree.c1]);
   assert_array_equals(tTree.s4.assignedNodes(), [tTree.c1]);
   assert_equals(tTree.c1.assignedSlot, tTree.s4);
-}, 'Appending slotable to different host, it loses slot assignment. It can be re-assigned within a new host.');
+}, 'Appending slottable to different host, it loses slot assignment. It can be re-assigned within a new host.');
 
 test(() => {
   let tTree = createTestTree(test_assign);
@@ -276,7 +276,7 @@ test(() => {
   assert_equals(tTree.c1.assignedSlot, null);
   assert_equals(tTree.c2.assignedSlot, null);
   assert_equals(tTree.c3.assignedSlot, null);
-}, 'Removing a slot from DOM resets its slotable\'s slot assignment.');
+}, 'Removing a slot from DOM resets its slottable\'s slot assignment.');
 
 test(() => {
   let tTree = createTestTree(test_assign);

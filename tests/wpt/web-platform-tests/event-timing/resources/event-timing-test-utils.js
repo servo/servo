@@ -22,9 +22,9 @@ function mainThreadBusy(duration) {
 // to check that the event also happens to correspond to the first event. In this case, the
 // timings of the 'first-input' entry should be equal to those of this entry. |minDuration|
 // is used to compared against entry.duration.
-function verifyClickEvent(entry, targetId, isFirst=false, minDuration=104) {
+function verifyEvent(entry, eventType, targetId, isFirst=false, minDuration=104) {
   assert_true(entry.cancelable);
-  assert_equals(entry.name, 'mousedown');
+  assert_equals(entry.name, eventType);
   assert_equals(entry.entryType, 'event');
   assert_greater_than_equal(entry.duration, minDuration,
       "The entry's duration should be greater than or equal to " + minDuration + " ms.");
@@ -50,6 +50,10 @@ function verifyClickEvent(entry, targetId, isFirst=false, minDuration=104) {
   }
   if (targetId)
     assert_equals(entry.target, document.getElementById(targetId));
+}
+
+function verifyClickEvent(entry, targetId, isFirst=false, minDuration=104) {
+  verifyEvent(entry, 'mousedown', targetId, isFirst, minDuration);
 }
 
 function wait() {
@@ -116,4 +120,53 @@ async function testDuration(t, id, numEntries, dur, fastDur, slowDur) {
     resolve();
   });
   return Promise.all([observerPromise, clicksPromise]);
+}
+
+function applyAction(actions, eventType, target) {
+  if (eventType === 'auxclick') {
+    actions.pointerMove(0, 0, {origin: target})
+    .pointerDown({button: actions.ButtonType.MIDDLE})
+    .pointerUp({button: actions.ButtonType.MIDDLE});
+  } else {
+    assert_unreached('The event type ' + eventType + ' is not supported.');
+  }
+}
+
+// Tests the given |eventType| by creating events whose target are the element with id 'target'.
+// The test assumes that such element already exists.
+async function testEventType(t, eventType) {
+  assert_implements(window.EventCounts, "Event Counts isn't supported");
+  assert_equals(performance.eventCounts.get(eventType), 0);
+  const target = document.getElementById('target');
+  const actions = new test_driver.Actions();
+  // Trigger two 'fast' events of the type.
+  applyAction(actions, eventType, target);
+  applyAction(actions, eventType, target);
+  await actions.send();
+  assert_equals(performance.eventCounts.get('auxclick'), 2);
+  // The durationThreshold used by the observer. A slow events needs to be slower than that.
+  const durationThreshold = 16;
+  // Now add an event handler to cause a slow event.
+  target.addEventListener(eventType, () => {
+    mainThreadBusy(durationThreshold + 4);
+  });
+  return new Promise(async resolve => {
+    new PerformanceObserver(t.step_func(entryList => {
+      let eventTypeEntries = entryList.getEntriesByName(eventType);
+      if (eventTypeEntries.length === 0)
+        return;
+
+      assert_equals(eventTypeEntries.length, 1);
+      verifyEvent(eventTypeEntries[0],
+                  eventType,
+                  'target',
+                  false /* isFirst */,
+                  durationThreshold);
+      assert_equals(performance.eventCounts.get(eventType), 3);
+      resolve();
+    })).observe({type: 'event', durationThreshold: durationThreshold});
+    // Cause a slow event.
+    applyAction(actions, eventType, target);
+    actions.send();
+  });
 }

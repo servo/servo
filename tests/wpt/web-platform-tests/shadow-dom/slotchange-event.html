@@ -243,7 +243,7 @@ testSlotchangeDoesNotFireWhenOtherSlotsChange('closed', false);
 
 function testSlotchangeDoesFireAtInsertedAndDoesNotFireForMutationAfterRemoved(mode, connectedToDocument)
 {
-    var test = async_test('slotchange event must fire on a slot element when a shadow host has a slotable and the slot was inserted'
+    var test = async_test('slotchange event must fire on a slot element when a shadow host has a slottable and the slot was inserted'
                         + ' and must not fire when the shadow host was mutated after the slot was removed inside '
                         + treeName(mode, connectedToDocument));
 

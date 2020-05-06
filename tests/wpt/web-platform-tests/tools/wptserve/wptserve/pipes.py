@@ -320,6 +320,8 @@ class FirstWrapper(object):
 
     def __getitem__(self, key):
         try:
+            if isinstance(key, text_type):
+                key = key.encode('iso-8859-1')
             return self.params.first(key)
         except KeyError:
             return ""

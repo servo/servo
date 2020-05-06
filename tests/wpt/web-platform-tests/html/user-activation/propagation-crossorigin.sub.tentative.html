@@ -9,6 +9,7 @@
   <script src="/resources/testharnessreport.js"></script>
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
+  <script src="resources/utils.js"></script>
   <script>
     // Frame layout:
     // top=origin0:this-file [
@@ -17,87 +18,72 @@
     //     gchild=origin3:child-two.html
     //   ]
     // ]
-    let test_parent_initial = async_test("Parent frame initial state");
-    let test_parent_final = async_test("Parent frame final state");
-
-    let test_child1_initial = async_test("Child1 frame initial state");
-    let test_child1_final = async_test("Child1 frame final state");
-
-    let test_child_xo_initial = async_test("Child2 frame initial state");
-    let test_child_xo_final = async_test("Child2 frame final state");
-
-    let test_gchild_initial = async_test("Grandchild frame initial state");
-    let test_gchild_final = async_test("Grand child frame final state");
+    let propagation_test = async_test("Propagation test");
 
     let num_children_to_load = 3;
     let num_children_to_report = 3;
 
     function finishLoadPhase() {
-        test_parent_initial.step(() => {
-            assert_true(num_children_to_load == 0);
+        assert_true(num_children_to_load == 0);
+
+        test(() => {
             assert_false(navigator.userActivation.isActive);
             assert_false(navigator.userActivation.hasBeenActive);
-        });
-        test_parent_initial.done();
+        }, "Parent frame initial state");
 
-        test_driver.click(document.getElementById("child-xo"));
+        delayByFrames(() => test_driver.click(document.getElementById("child-xo")), 5);
     }
 
     function finishReportPhase() {
-        test_parent_final.step(() => {
-            assert_true(num_children_to_report == 0);
+        assert_true(num_children_to_report == 0);
+
+        test(() => {
             assert_true(navigator.userActivation.isActive);
             assert_true(navigator.userActivation.hasBeenActive);
-        });
-        test_parent_final.done();
-        // End of all tests.
+        }, "Parent frame final state");
+
+        propagation_test.done();
     }
 
     window.addEventListener("message", event => {
         var msg = JSON.parse(event.data);
 
         if (msg.type == 'child-one-loaded') {
-            test_child1_initial.step(() => {
+            test(() => {
                 assert_false(msg.isActive);
                 assert_false(msg.hasBeenActive);
-            });
-            test_child1_initial.done();
+            }, "Child1 frame initial state");
         } else if (msg.type == 'child-crossorigin-loaded') {
-            test_child_xo_initial.step(() => {
+            test(() => {
                 assert_false(msg.isActive);
                 assert_false(msg.hasBeenActive);
-            });
-            test_child_xo_initial.done();
+            }, "Child2 frame initial state");
         } else if (msg.type == 'child-two-loaded') {
-            test_gchild_initial.step(() => {
+            test(() => {
                 assert_false(msg.isActive);
                 assert_false(msg.hasBeenActive);
-            });
-            test_gchild_initial.done();
+            }, "Grandchild frame initial state");
         } else if (msg.type == 'child-one-report') {
-            test_child1_final.step(() => {
+            test(() => {
                 assert_false(msg.isActive);
                 assert_false(msg.hasBeenActive);
-            });
-            test_child1_final.done();
+            }, "Child1 frame final state");
         } else if (msg.type == 'child-crossorigin-report') {
             // This msg was triggered by a user click.
-            test_child_xo_final.step(() => {
+            test(() => {
                 assert_true(msg.isActive);
                 assert_true(msg.hasBeenActive);
-            });
-            test_child_xo_final.done();
+            }, "Child2 frame final state");
 
             // Ask remaining frames to report states.
             let ask_report = JSON.stringify({"type": "report"});
             frames[0].postMessage(ask_report, "*");
             frames[1].frames[0].postMessage(ask_report, "*");
         } else if (msg.type == 'child-two-report') {
-            test_gchild_final.step(() => {
+            test(() => {
                 assert_false(msg.isActive);
                 assert_false(msg.hasBeenActive);
-            });
-            test_gchild_final.done();
+            }, "Grand child frame final state");
         }
 
         // Phase switching.

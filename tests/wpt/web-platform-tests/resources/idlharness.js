@@ -1220,6 +1220,7 @@ IdlArray.prototype.assert_type_is = function(value, type)
         case "Float64Array":
         case "ArrayBuffer":
         case "DataView":
+        case "Function":
             assert_true(value instanceof self[type], "wrong type: not a " + type);
             return;
 
