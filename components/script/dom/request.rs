@@ -311,27 +311,17 @@ impl Request {
         r.headers.or_init(|| Headers::for_request(&r.global()));
 
         // Step 32 - but spec says this should only be when non-empty init?
-        // Step 32.1
-        let mut headers_copy = r.Headers();
-
-        // Step 32.2
-        if let Some(possible_header) = init.headers.as_ref() {
-            match possible_header {
-                &HeadersInit::Headers(ref init_headers) => {
-                    headers_copy = DomRoot::from_ref(&*init_headers);
+        let headers_copy = init
+            .headers
+            .as_ref()
+            .map(|possible_header| match possible_header {
+                HeadersInit::ByteStringSequenceSequence(init_sequence) => {
+                    HeadersInit::ByteStringSequenceSequence(init_sequence.clone())
                 },
-                &HeadersInit::ByteStringSequenceSequence(ref init_sequence) => {
-                    headers_copy.fill(Some(HeadersInit::ByteStringSequenceSequence(
-                        init_sequence.clone(),
-                    )))?;
+                HeadersInit::ByteStringByteStringRecord(init_map) => {
+                    HeadersInit::ByteStringByteStringRecord(init_map.clone())
                 },
-                &HeadersInit::ByteStringByteStringRecord(ref init_map) => {
-                    headers_copy.fill(Some(HeadersInit::ByteStringByteStringRecord(
-                        init_map.clone(),
-                    )))?;
-                },
-            }
-        }
+            });
 
         // Step 32.3
         // We cannot empty `r.Headers().header_list` because
@@ -357,21 +347,17 @@ impl Request {
         }
 
         // Step 32.5
-        match init.headers {
+        match headers_copy {
             None => {
                 // This is equivalent to the specification's concept of
                 // "associated headers list". If an init headers is not given,
                 // but an input with headers is given, set request's
                 // headers as the input's Headers.
                 if let RequestInfo::Request(ref input_request) = input {
-                    r.Headers()
-                        .fill(Some(HeadersInit::Headers(input_request.Headers())))?;
+                    r.Headers().copy_from_headers(input_request.Headers())?;
                 }
             },
-            Some(HeadersInit::Headers(_)) => {
-                r.Headers().fill(Some(HeadersInit::Headers(headers_copy)))?
-            },
-            _ => {},
+            Some(headers_copy) => r.Headers().fill(Some(headers_copy))?,
         }
 
         // Step 32.5-6 depending on how we got here
@@ -493,9 +479,7 @@ impl Request {
         *r_clone.request.borrow_mut() = req.clone();
         r_clone.body_used.set(body_used);
         *r_clone.mime_type.borrow_mut() = mime_type;
-        r_clone
-            .Headers()
-            .fill(Some(HeadersInit::Headers(r.Headers())))?;
+        r_clone.Headers().copy_from_headers(r.Headers())?;
         r_clone.Headers().set_guard(headers_guard);
         Ok(r_clone)
     }
@@ -895,7 +879,6 @@ impl Into<RequestRedirect> for NetTraitsRequestRedirect {
 impl Clone for HeadersInit {
     fn clone(&self) -> HeadersInit {
         match self {
-            &HeadersInit::Headers(ref h) => HeadersInit::Headers(h.clone()),
             &HeadersInit::ByteStringSequenceSequence(ref b) => {
                 HeadersInit::ByteStringSequenceSequence(b.clone())
             },

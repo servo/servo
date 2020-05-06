@@ -4,7 +4,7 @@
 
 // https://fetch.spec.whatwg.org/#headers-class
 
-typedef (Headers or sequence<sequence<ByteString>> or record<ByteString, ByteString>) HeadersInit;
+typedef (sequence<sequence<ByteString>> or record<ByteString, ByteString>) HeadersInit;
 
 [Exposed=(Window,Worker)]
 interface Headers {

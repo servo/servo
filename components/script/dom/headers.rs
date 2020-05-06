@@ -198,20 +198,19 @@ impl HeadersMethods for Headers {
 }
 
 impl Headers {
+    pub fn copy_from_headers(&self, headers: DomRoot<Headers>) -> ErrorResult {
+        for (name, value) in headers.header_list.borrow().iter() {
+            self.Append(
+                ByteString::new(Vec::from(name.as_str())),
+                ByteString::new(Vec::from(value.as_bytes())),
+            )?;
+        }
+        Ok(())
+    }
+
     // https://fetch.spec.whatwg.org/#concept-headers-fill
     pub fn fill(&self, filler: Option<HeadersInit>) -> ErrorResult {
         match filler {
-            // Step 1
-            Some(HeadersInit::Headers(h)) => {
-                for (name, value) in h.header_list.borrow().iter() {
-                    self.Append(
-                        ByteString::new(Vec::from(name.as_str())),
-                        ByteString::new(Vec::from(value.as_bytes())),
-                    )?;
-                }
-                Ok(())
-            },
-            // Step 2
             Some(HeadersInit::ByteStringSequenceSequence(v)) => {
                 for mut seq in v {
                     if seq.len() == 2 {
