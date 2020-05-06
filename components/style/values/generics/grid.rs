@@ -714,7 +714,7 @@ impl Parse for LineNameList {
             line_names.truncate(MAX_GRID_LINE as usize);
         }
 
-        let (fill_start, fill_len) = fill_data.unwrap_or((usize::MAX, 0));
+        let (fill_start, fill_len) = fill_data.unwrap_or((0, 0));
 
         Ok(LineNameList {
             names: line_names.into(),
@@ -733,7 +733,7 @@ impl ToCss for LineNameList {
         let fill_start = self.fill_start;
         let fill_len = self.fill_len;
         for (i, names) in self.names.iter().enumerate() {
-            if i == fill_start {
+            if fill_len > 0 && i == fill_start {
                 dest.write_str(" repeat(auto-fill,")?;
             }
 
@@ -748,7 +748,7 @@ impl ToCss for LineNameList {
             }
 
             dest.write_str("]")?;
-            if i == fill_start + fill_len - 1 {
+            if fill_len > 0 && i == fill_start + fill_len - 1 {
                 dest.write_str(")")?;
             }
         }
