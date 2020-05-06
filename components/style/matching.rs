@@ -442,31 +442,17 @@ trait PrivateMatchMethods: TElement {
         let mut animation_states = shared_context.animation_states.write();
         let mut animation_state = animation_states.remove(&this_opaque).unwrap_or_default();
 
-        if let Some(ref mut old_values) = *old_values {
-            // We convert old values into `before-change-style` here.
-            // https://drafts.csswg.org/css-transitions/#starting
-            animation_state.apply_completed_animations(old_values);
-            animation_state.apply_running_animations::<Self>(
-                shared_context,
-                old_values,
-                &context.thread_local.font_metrics_provider,
-            );
-        }
-
         animation_state.update_animations_for_new_style(*self, &shared_context, &new_values);
-        animation_state.update_transitions_for_new_style(
+
+        animation_state.update_transitions_for_new_style::<Self>(
             &shared_context,
             this_opaque,
             old_values.as_ref(),
             new_values,
-        );
-
-        animation_state.apply_running_animations::<Self>(
-            shared_context,
-            new_values,
             &context.thread_local.font_metrics_provider,
         );
-        animation_state.apply_new_animations::<Self>(
+
+        animation_state.apply_new_and_running_animations::<Self>(
             shared_context,
             new_values,
             &context.thread_local.font_metrics_provider,

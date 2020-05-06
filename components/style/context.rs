@@ -25,7 +25,6 @@ use crate::shared_lock::StylesheetGuards;
 use crate::sharing::StyleSharingCache;
 use crate::stylist::Stylist;
 use crate::thread_state::{self, ThreadState};
-use crate::timer::Timer;
 use crate::traversal::DomTraversal;
 use crate::traversal_flags::TraversalFlags;
 use app_units::Au;
@@ -156,9 +155,9 @@ pub struct SharedStyleContext<'a> {
     /// Guards for pre-acquired locks
     pub guards: StylesheetGuards<'a>,
 
-    /// The current timer for transitions and animations. This is needed to test
-    /// them.
-    pub timer: Timer,
+    /// The current time for transitions and animations. This is needed to ensure
+    /// a consistent sampling time and also to adjust the time for testing.
+    pub current_time_for_animations: f64,
 
     /// Flags controlling how we traverse the tree.
     pub traversal_flags: TraversalFlags,

@@ -10,6 +10,8 @@
 #![deny(unsafe_code)]
 
 #[macro_use]
+extern crate bitflags;
+#[macro_use]
 extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
@@ -122,8 +124,6 @@ pub enum LayoutControlMsg {
     ExitNow,
     /// Requests the current epoch (layout counter) from this layout.
     GetCurrentEpoch(IpcSender<Epoch>),
-    /// Asks layout to run another step in its animation.
-    TickAnimations(ImmutableOrigin),
     /// Tells layout about the new scrolling offsets of each scrollable stacking context.
     SetScrollStates(Vec<ScrollState>),
     /// Requests the current load state of Web fonts. `true` is returned if fonts are still loading
@@ -318,6 +318,22 @@ impl TransitionOrAnimationEventType {
     }
 }
 
+#[derive(Deserialize, Serialize)]
+/// A transition or animation event.
+pub struct TransitionOrAnimationEvent {
+    /// The pipeline id of the layout task that sent this message.
+    pub pipeline_id: PipelineId,
+    /// The type of transition event this should trigger.
+    pub event_type: TransitionOrAnimationEventType,
+    /// The address of the node which owns this transition.
+    pub node: UntrustedNodeAddress,
+    /// The name of the property that is transitioning (in the case of a transition)
+    /// or the name of the animation (in the case of an animation).
+    pub property_or_animation_name: String,
+    /// The elapsed time property to send with this transition event.
+    pub elapsed_time: f64,
+}
+
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
@@ -403,21 +419,9 @@ pub enum ConstellationControlMsg {
     /// Passes a webdriver command to the script thread for execution
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
-    TickAllAnimations(PipelineId),
+    TickAllAnimations(PipelineId, AnimationTickType),
     /// Notifies the script thread that a transition or animation related event should be sent.
-    TransitionOrAnimationEvent {
-        /// The pipeline id of the layout task that sent this message.
-        pipeline_id: PipelineId,
-        /// The type of transition event this should trigger.
-        event_type: TransitionOrAnimationEventType,
-        /// The address of the node which owns this transition.
-        node: UntrustedNodeAddress,
-        /// The name of the property that is transitioning (in the case of a transition)
-        /// or the name of the animation (in the case of an animation).
-        property_or_animation_name: String,
-        /// The elapsed time property to send with this transition event.
-        elapsed_time: f64,
-    },
+    TransitionOrAnimationEvent(TransitionOrAnimationEvent),
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),
@@ -812,13 +816,15 @@ pub struct IFrameLoadInfoWithData {
     pub window_size: WindowSizeData,
 }
 
-/// Specifies whether the script or layout thread needs to be ticked for animation.
-#[derive(Debug, Deserialize, Serialize)]
-pub enum AnimationTickType {
-    /// The script thread.
-    Script,
-    /// The layout thread.
-    Layout,
+bitflags! {
+    #[derive(Deserialize, Serialize)]
+    /// Specifies if rAF should be triggered and/or CSS Animations and Transitions.
+    pub struct AnimationTickType: u8 {
+        /// Trigger a call to requestAnimationFrame.
+        const REQUEST_ANIMATION_FRAME = 0b001;
+        /// Trigger restyles for CSS Animations and Transitions.
+        const CSS_ANIMATIONS_AND_TRANSITIONS = 0b010;
+    }
 }
 
 /// The scroll state of a stacking context.

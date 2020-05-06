@@ -47,6 +47,7 @@ extern crate servo_atoms;
 #[macro_use]
 extern crate style;
 
+mod animation_timeline;
 #[warn(deprecated)]
 #[macro_use]
 mod task;

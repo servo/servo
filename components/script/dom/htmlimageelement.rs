@@ -60,8 +60,8 @@ use mime::{self, Mime};
 use msg::constellation_msg::PipelineId;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{
-    CanRequestImages, CorsStatus, ImageCache, ImageCacheResult, ImageOrMetadataAvailable,
-    ImageResponse, PendingImageId, PendingImageResponse, UsePlaceholder,
+    CorsStatus, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse,
+    PendingImageId, PendingImageResponse, UsePlaceholder,
 };
 use net_traits::request::{CorsSettings, Destination, Initiator, RequestBuilder};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
@@ -326,7 +326,6 @@ impl HTMLImageElement {
             cors_setting_for_element(self.upcast()),
             sender,
             UsePlaceholder::Yes,
-            CanRequestImages::Yes,
         );
 
         match cache_result {
@@ -1107,7 +1106,6 @@ impl HTMLImageElement {
             cors_setting_for_element(self.upcast()),
             sender,
             UsePlaceholder::No,
-            CanRequestImages::Yes,
         );
 
         match cache_result {

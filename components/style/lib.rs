@@ -157,7 +157,6 @@ pub mod stylesheet_set;
 pub mod stylesheets;
 pub mod stylist;
 pub mod thread_state;
-pub mod timer;
 pub mod traversal;
 pub mod traversal_flags;
 pub mod use_counters;

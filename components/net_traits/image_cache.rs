@@ -14,15 +14,6 @@ use std::sync::Arc;
 // Aux structs and enums.
 // ======================================================================
 
-/// Whether a consumer is in a position to request images or not. This can occur
-/// when animations are being processed by the layout thread while the script
-/// thread is executing in parallel.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
-pub enum CanRequestImages {
-    No,
-    Yes,
-}
-
 /// Indicating either entire image or just metadata availability
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImageOrMetadataAvailable {
@@ -119,7 +110,6 @@ pub trait ImageCache: Sync + Send {
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
         use_placeholder: UsePlaceholder,
-        can_request: CanRequestImages,
     ) -> ImageCacheResult;
 
     /// Add a listener for the provided pending image id, eventually called by
@@ -135,7 +125,6 @@ pub trait ImageCache: Sync + Send {
         cors_setting: Option<CorsSettings>,
         sender: IpcSender<PendingImageResponse>,
         use_placeholder: UsePlaceholder,
-        can_request: CanRequestImages,
     ) -> ImageCacheResult;
 
     /// Add a new listener for the given pending image id. If the image is already present,

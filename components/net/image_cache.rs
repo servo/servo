@@ -7,8 +7,7 @@ use immeta::load_from_buf;
 use ipc_channel::ipc::IpcSender;
 use net_traits::image::base::{load_from_memory, Image, ImageMetadata};
 use net_traits::image_cache::{
-    CanRequestImages, CorsStatus, ImageCache, ImageCacheResult, ImageResponder,
-    PendingImageResponse,
+    CorsStatus, ImageCache, ImageCacheResult, ImageResponder, PendingImageResponse,
 };
 use net_traits::image_cache::{ImageOrMetadataAvailable, ImageResponse};
 use net_traits::image_cache::{PendingImageId, UsePlaceholder};
@@ -147,7 +146,6 @@ impl AllPendingLoads {
         url: ServoUrl,
         origin: ImmutableOrigin,
         cors_status: Option<CorsSettings>,
-        can_request: CanRequestImages,
     ) -> CacheResult<'a> {
         match self
             .url_to_load_key
@@ -158,10 +156,6 @@ impl AllPendingLoads {
                 CacheResult::Hit(*load_key, self.loads.get_mut(load_key).unwrap())
             },
             Vacant(url_entry) => {
-                if can_request == CanRequestImages::No {
-                    return CacheResult::Miss(None);
-                }
-
                 let load_key = self.keygen.next();
                 url_entry.insert(load_key);
 
@@ -461,7 +455,6 @@ impl ImageCache for ImageCacheImpl {
         origin: ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
         use_placeholder: UsePlaceholder,
-        can_request: CanRequestImages,
     ) -> ImageCacheResult {
         let mut store = self.store.lock().unwrap();
         if let Some(result) = store.get_completed_image_if_available(
@@ -485,12 +478,9 @@ impl ImageCache for ImageCacheImpl {
         }
 
         let decoded = {
-            let result = store.pending_loads.get_cached(
-                url.clone(),
-                origin.clone(),
-                cors_setting,
-                can_request,
-            );
+            let result = store
+                .pending_loads
+                .get_cached(url.clone(), origin.clone(), cors_setting);
             match result {
                 CacheResult::Hit(key, pl) => match (&pl.result, &pl.metadata) {
                     (&Some(Ok(_)), _) => {
@@ -539,7 +529,6 @@ impl ImageCache for ImageCacheImpl {
         cors_setting: Option<CorsSettings>,
         sender: IpcSender<PendingImageResponse>,
         use_placeholder: UsePlaceholder,
-        can_request: CanRequestImages,
     ) -> ImageCacheResult {
         debug!("Track image for {} ({:?})", url, origin);
         let cache_result = self.get_cached_image_status(
@@ -547,7 +536,6 @@ impl ImageCache for ImageCacheImpl {
             origin.clone(),
             cors_setting,
             use_placeholder,
-            can_request,
         );
 
         match cache_result {

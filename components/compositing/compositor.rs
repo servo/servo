@@ -1042,20 +1042,22 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         let animation_callbacks_running = self
             .pipeline_details(pipeline_id)
             .animation_callbacks_running;
-        if animation_callbacks_running {
-            let msg = ConstellationMsg::TickAnimation(pipeline_id, AnimationTickType::Script);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending tick to constellation failed ({:?}).", e);
-            }
+        let animations_running = self.pipeline_details(pipeline_id).animations_running;
+        if !animation_callbacks_running && !animations_running {
+            return;
         }
 
-        // We may need to tick animations in layout. (See #12749.)
-        let animations_running = self.pipeline_details(pipeline_id).animations_running;
+        let mut tick_type = AnimationTickType::empty();
         if animations_running {
-            let msg = ConstellationMsg::TickAnimation(pipeline_id, AnimationTickType::Layout);
-            if let Err(e) = self.constellation_chan.send(msg) {
-                warn!("Sending tick to constellation failed ({:?}).", e);
-            }
+            tick_type.insert(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS);
+        }
+        if animation_callbacks_running {
+            tick_type.insert(AnimationTickType::REQUEST_ANIMATION_FRAME);
+        }
+
+        let msg = ConstellationMsg::TickAnimation(pipeline_id, tick_type);
+        if let Err(e) = self.constellation_chan.send(msg) {
+            warn!("Sending tick to constellation failed ({:?}).", e);
         }
     }
 

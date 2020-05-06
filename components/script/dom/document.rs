@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::animation_timeline::AnimationTimeline;
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
@@ -380,6 +381,9 @@ pub struct Document {
     csp_list: DomRefCell<Option<CspList>>,
     /// https://w3c.github.io/slection-api/#dfn-selection
     selection: MutNullableDom<Selection>,
+    /// A timeline for animations which is used for synchronizing animations.
+    /// https://drafts.csswg.org/web-animations/#timeline
+    animation_timeline: DomRefCell<AnimationTimeline>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2904,6 +2908,11 @@ impl Document {
             dirty_webgl_contexts: DomRefCell::new(HashMap::new()),
             csp_list: DomRefCell::new(None),
             selection: MutNullableDom::new(None),
+            animation_timeline: if pref!(layout.animations.test.enabled) {
+                DomRefCell::new(AnimationTimeline::new_for_testing())
+            } else {
+                DomRefCell::new(AnimationTimeline::new())
+            },
         }
     }
 
@@ -3604,6 +3613,18 @@ impl Document {
                 Some((node.to_trusted_node_address(), restyle))
             })
             .collect()
+    }
+
+    pub fn advance_animation_timeline_for_testing(&self, delta: f64) {
+        self.animation_timeline.borrow_mut().advance_specific(delta);
+    }
+
+    pub fn update_animation_timeline(&self) {
+        self.animation_timeline.borrow_mut().update();
+    }
+
+    pub fn current_animation_timeline_value(&self) -> f64 {
+        self.animation_timeline.borrow().current_value()
     }
 }
 

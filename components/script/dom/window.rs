@@ -173,6 +173,7 @@ pub enum ReflowReason {
     IFrameLoadEvent,
     MissingExplicitReflow,
     ElementStateChanged,
+    PendingReflow,
 }
 
 #[dom_struct]
@@ -1544,16 +1545,13 @@ impl Window {
         )
     }
 
-    /// Advances the layout animation clock by `delta` milliseconds, and then
-    /// forces a reflow if `tick` is true.
-    pub fn advance_animation_clock(&self, delta: i32, tick: bool) {
-        self.layout_chan
-            .send(Msg::AdvanceClockMs(
-                delta,
-                tick,
-                self.origin().immutable().clone(),
-            ))
-            .unwrap();
+    /// Prepares to tick animations and then does a reflow which also advances the
+    /// layout animation clock.
+    pub fn advance_animation_clock(&self, delta: i32) {
+        let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
+        self.Document()
+            .advance_animation_timeline_for_testing(delta as f64 / 1000.);
+        ScriptThread::handle_tick_all_animations_for_testing(pipeline_id);
     }
 
     /// Reflows the page unconditionally if possible and not suppressed. This
@@ -1626,9 +1624,8 @@ impl Window {
 
         // If this reflow is for display, ensure webgl canvases are composited with
         // up-to-date contents.
-        match reflow_goal {
-            ReflowGoal::Full => document.flush_dirty_canvases(),
-            ReflowGoal::TickAnimations | ReflowGoal::LayoutQuery(..) => {},
+        if for_display {
+            document.flush_dirty_canvases();
         }
 
         // Send new document and relevant styles to layout.
@@ -1645,6 +1642,7 @@ impl Window {
             script_join_chan: join_chan,
             dom_count: document.dom_count(),
             pending_restyles: document.drain_pending_restyles(),
+            animation_timeline_value: document.current_animation_timeline_value(),
         };
 
         self.layout_chan
@@ -2446,8 +2444,7 @@ fn should_move_clip_rect(clip_rect: UntypedRect<Au>, new_viewport: UntypedRect<f
 }
 
 fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &ReflowReason) {
-    let mut debug_msg = format!("**** pipeline={}", id);
-    debug_msg.push_str(match *reflow_goal {
+    let goal_string = match *reflow_goal {
         ReflowGoal::Full => "\tFull",
         ReflowGoal::TickAnimations => "\tTickAnimations",
         ReflowGoal::LayoutQuery(ref query_msg, _) => match query_msg {
@@ -2464,32 +2461,9 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
             &QueryMsg::ElementInnerTextQuery(_) => "\tElementInnerTextQuery",
             &QueryMsg::InnerWindowDimensionsQuery(_) => "\tInnerWindowDimensionsQuery",
         },
-    });
+    };
 
-    debug_msg.push_str(match *reason {
-        ReflowReason::CachedPageNeededReflow => "\tCachedPageNeededReflow",
-        ReflowReason::RefreshTick => "\tRefreshTick",
-        ReflowReason::FirstLoad => "\tFirstLoad",
-        ReflowReason::KeyEvent => "\tKeyEvent",
-        ReflowReason::MouseEvent => "\tMouseEvent",
-        ReflowReason::Query => "\tQuery",
-        ReflowReason::Timer => "\tTimer",
-        ReflowReason::Viewport => "\tViewport",
-        ReflowReason::WindowResize => "\tWindowResize",
-        ReflowReason::DOMContentLoaded => "\tDOMContentLoaded",
-        ReflowReason::DocumentLoaded => "\tDocumentLoaded",
-        ReflowReason::StylesheetLoaded => "\tStylesheetLoaded",
-        ReflowReason::ImageLoaded => "\tImageLoaded",
-        ReflowReason::RequestAnimationFrame => "\tRequestAnimationFrame",
-        ReflowReason::WebFontLoaded => "\tWebFontLoaded",
-        ReflowReason::WorkletLoaded => "\tWorkletLoaded",
-        ReflowReason::FramedContentChanged => "\tFramedContentChanged",
-        ReflowReason::IFrameLoadEvent => "\tIFrameLoadEvent",
-        ReflowReason::MissingExplicitReflow => "\tMissingExplicitReflow",
-        ReflowReason::ElementStateChanged => "\tElementStateChanged",
-    });
-
-    println!("{}", debug_msg);
+    println!("**** pipeline={}\t{}\t{:?}", id, goal_string, reason);
 }
 
 impl Window {

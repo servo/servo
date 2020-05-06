@@ -47,15 +47,6 @@ pub enum Msg {
     /// Get an RPC interface.
     GetRPC(Sender<Box<dyn LayoutRPC + Send>>),
 
-    /// Requests that the layout thread render the next frame of all animations.
-    TickAnimations(ImmutableOrigin),
-
-    /// Updates layout's timer for animation testing from script.
-    ///
-    /// The inner field is the number of *milliseconds* to advance, and the bool
-    /// field is whether animations should be force-ticked.
-    AdvanceClockMs(i32, bool, ImmutableOrigin),
-
     /// Requests that the layout thread measure its memory usage. The resulting reports are sent back
     /// via the supplied channel.
     CollectReports(ReportsChan),
@@ -216,6 +207,8 @@ pub struct ScriptReflow {
     pub origin: ImmutableOrigin,
     /// Restyle snapshot map.
     pub pending_restyles: Vec<(TrustedNodeAddress, PendingRestyle)>,
+    /// The current animation timeline value.
+    pub animation_timeline_value: f64,
 }
 
 pub struct LayoutThreadInit {

@@ -27,8 +27,8 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use net_traits::image_cache::{
-    CanRequestImages, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse,
-    PendingImageId, UsePlaceholder,
+    ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
+    UsePlaceholder,
 };
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder};
 use net_traits::{
@@ -163,7 +163,6 @@ impl HTMLVideoElement {
             None,
             sender,
             UsePlaceholder::No,
-            CanRequestImages::Yes,
         );
 
         match cache_result {
