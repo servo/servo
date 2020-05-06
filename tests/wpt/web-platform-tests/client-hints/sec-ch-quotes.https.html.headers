@@ -1,1 +1,1 @@
-Accept-CH: ua,arch,platform,model
+Accept-CH: ua,ua-arch,ua-platform,ua-platform-version,ua-model

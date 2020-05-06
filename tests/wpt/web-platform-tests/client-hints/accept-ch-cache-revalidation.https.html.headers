@@ -1,1 +1,1 @@
-Accept-CH: dpr,device-memory,viewport-width,rtt,downlink,ect,lang,ua,arch,platform,model
+Accept-CH: dpr,device-memory,viewport-width,rtt,downlink,ect,lang,ua,ua-arch,ua-platform,ua-platform-version,ua-model

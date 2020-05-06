@@ -694,7 +694,9 @@
     # The ones that change the output when src = (0,0,0,0):
     ops_trans = [ 'source-in', 'destination-in', 'source-out', 'destination-atop', 'copy' ];
 
-    def calc_output((RA, GA, BA, aA), (RB, GB, BB, aB), FA_code, FB_code):
+    def calc_output(A, B, FA_code, FB_code):
+        RA, GA, BA, aA = A
+        RB, GB, BB, aB = B
         rA, gA, bA = RA*aA, GA*aA, BA*aA
         rB, gB, bB = RB*aB, GB*aB, BB*aB
 
@@ -719,9 +721,11 @@
 
         return (RO, GO, BO, aO)
 
-    def to_test((r,g,b,a)):
+    def to_test(color):
+        r, g, b, a = color
         return '%d,%d,%d,%d' % (round(r), round(g), round(b), round(a*255))
-    def to_cairo((r,g,b,a)):
+    def to_cairo(color):
+        r, g, b, a = color
         return '%f,%f,%f,%f' % (r/255., g/255., b/255., a)
 
     for (name, src, dest) in [

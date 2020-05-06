@@ -1212,7 +1212,7 @@ policies and contribution forms [3].
                  } else {
                      assert(same_value(actual[p], expected[p]), "assert_object_equals", description,
                                                        "property ${p} expected ${expected} got ${actual}",
-                                                       {p:p, expected:expected, actual:actual});
+                                                       {p:p, expected:expected[p], actual:actual[p]});
                  }
              }
              for (p in expected) {

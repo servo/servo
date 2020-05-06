@@ -18,6 +18,7 @@ def main(request, response):
       "sec-ch-ua",
       "sec-ch-ua-arch",
       "sec-ch-ua-platform",
+      "sec-ch-ua-platform-version",
       "sec-ch-ua-model",
     ]
 

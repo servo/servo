@@ -348,7 +348,7 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
             scripts += '<script src="%s"></script>\n' % (s)
 
         variants = test.get('script-variants', {})
-        script_variants = [(v, '<script src="%s"></script>\n' % (s)) for (v, s) in variants.iteritems()]
+        script_variants = [(v, '<script src="%s"></script>\n' % (s)) for (v, s) in variants.items()]
         if not script_variants:
             script_variants = [('', '')]
 
