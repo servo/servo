@@ -126,6 +126,22 @@ pub enum ReferrerPolicy {
     StrictOriginWhenCrossOrigin,
 }
 
+impl ToString for ReferrerPolicy {
+    fn to_string(&self) -> String {
+        match self {
+            ReferrerPolicy::NoReferrer => "no-referrer",
+            ReferrerPolicy::NoReferrerWhenDowngrade => "no-referrer-when-downgrade",
+            ReferrerPolicy::Origin => "origin",
+            ReferrerPolicy::SameOrigin => "same-origin",
+            ReferrerPolicy::OriginWhenCrossOrigin => "origin-when-cross-origin",
+            ReferrerPolicy::UnsafeUrl => "unsafe-url",
+            ReferrerPolicy::StrictOrigin => "strict-origin",
+            ReferrerPolicy::StrictOriginWhenCrossOrigin => "strict-origin-when-cross-origin",
+        }
+        .to_string()
+    }
+}
+
 impl From<ReferrerPolicyHeader> for ReferrerPolicy {
     fn from(policy: ReferrerPolicyHeader) -> Self {
         match policy {

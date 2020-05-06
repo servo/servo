@@ -27,6 +27,8 @@ interface HTMLImageElement : HTMLElement {
   readonly attribute unsigned long naturalHeight;
   readonly attribute boolean complete;
   readonly attribute USVString currentSrc;
+  [CEReactions]
+           attribute DOMString referrerPolicy;
   // also has obsolete members
 };
 
