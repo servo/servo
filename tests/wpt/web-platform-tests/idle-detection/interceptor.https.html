@@ -3,6 +3,8 @@
 <title>Tests the Idle Detection API</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/gen/layout_test_data/mojo/public/js/mojo_bindings.js"></script>
 <script src="/gen/mojo/public/mojom/base/string16.mojom.js"></script>
 <script src="/gen/mojo/public/mojom/base/time.mojom.js"></script>
@@ -10,6 +12,10 @@
 <script src="mock.js"></script>
 <script>
 'use strict';
+
+promise_setup(async t => {
+  await test_driver.set_permission({ name: 'notifications' }, 'granted', false);
+})
 
 promise_test(async t => {
   // Basic test that expects start() to call internally
@@ -23,20 +29,18 @@ promise_test(async t => {
       });
   });
 
-  let detector = new IdleDetector({threshold: 60});
-
+  let detector = new IdleDetector({threshold: 60000});
   let watcher = new EventWatcher(t, detector, ["change"]);
+  let initial_state = watcher.wait_for("change");
 
   await detector.start();
-
-  // Waits for the first event.
-  await watcher.wait_for("change");
+  await initial_state;
 
   assert_equals(detector.state.user, "active");
   assert_equals(detector.state.screen, "locked");
 
   detector.stop();
-}, 'query()');
+}, 'start()');
 
 promise_test(async t => {
   // Verifies that an event is thrown when a change of state from IDLE to ACTIVE
@@ -59,14 +63,12 @@ promise_test(async t => {
       return first;
     });
 
-  let detector = new IdleDetector({threshold: 60});
-
+  let detector = new IdleDetector({threshold: 60000});
   let watcher = new EventWatcher(t, detector, ["change"]);
+  let initial_state = watcher.wait_for("change");
 
   await detector.start();
-
-  // Wait for the initial state.
-  await watcher.wait_for("change");
+  await initial_state;
 
   // Wait for the first change in state.
   await watcher.wait_for("change");
@@ -106,14 +108,12 @@ promise_test(async t => {
       return first;
     });
 
-  let detector = new IdleDetector({threshold: 60});
-
+  let detector = new IdleDetector({threshold: 60000});
   let watcher = new EventWatcher(t, detector, ["change"]);
+  let initial_state = watcher.wait_for("change");
 
   await detector.start();
-
-  // Waits for the initial state.
-  await watcher.wait_for("change");
+  await initial_state;
 
   // Waits for the first event.
   await watcher.wait_for("change");
@@ -137,14 +137,12 @@ promise_test(async t => {
       });
     });
 
-  let detector = new IdleDetector({threshold: 60});
-
+  let detector = new IdleDetector({threshold: 60000});
   let watcher = new EventWatcher(t, detector, ["change"]);
+  let initial_state = watcher.wait_for("change");
 
   await detector.start();
-
-  // waits for the initial state.
-  await watcher.wait_for("change");
+  await initial_state;
 
   assert_equals(detector.state.screen, "locked");
 
@@ -161,7 +159,7 @@ promise_test(async t => {
       });
   });
 
-  let detector = new IdleDetector({threshold: 60});
+  let detector = new IdleDetector({threshold: 60000});
 
   let event = new Promise((resolve, reject) => {
     detector.onchange = resolve;
@@ -188,26 +186,30 @@ promise_test(async t => {
       });
     });
 
-  let detector = new IdleDetector({threshold: 60});
+  let detector = new IdleDetector({threshold: 60000});
 
   let watcher = new EventWatcher(t, detector, ["change"]);
+  let initial_state = watcher.wait_for("change");
 
   // Calling start() multiple times should be safe.
-  await detector.start();
-  await detector.start();
-  await detector.start();
-  await detector.start();
+  await Promise.all([
+    detector.start(),
+    detector.start(),
+    detector.start(),
+    detector.start()
+  ]);
 
-  // waits for the initial state.
-  await watcher.wait_for("change");
+  await initial_state;
   assert_equals(detector.state.user, "active");
   assert_equals(detector.state.screen, "unlocked");
 
   // Calling stop() multiple times should be safe.
-  detector.stop();
-  detector.stop();
-  detector.stop();
-  detector.stop();
+  await Promise.all([
+    detector.stop(),
+    detector.stop(),
+    detector.stop(),
+    detector.stop()
+  ]);
 }, 'Safe to call start() or stop() multiple times');
 
 promise_test(async t => {
@@ -220,17 +222,17 @@ promise_test(async t => {
       });
     });
 
-  let detector = new IdleDetector({threshold: 60});
+  let detector = new IdleDetector({threshold: 60000});
 
   // Calling stop() before start() is a no-op.
   detector.stop();
 
   let watcher = new EventWatcher(t, detector, ["change"]);
+  let initial_state = watcher.wait_for("change");
 
   await detector.start();
+  await initial_state;
 
-  // waits for the initial state.
-  await watcher.wait_for("change");
   assert_equals(detector.state.user, "active");
   assert_equals(detector.state.screen, "unlocked");
 
@@ -247,12 +249,14 @@ promise_test(async t => {
       });
     });
 
-  let detector = new IdleDetector({threshold: 60});
+  let detector = new IdleDetector({threshold: 60000});
 
   let watcher = new EventWatcher(t, detector, ["change"]);
+  let initial_state = watcher.wait_for("change");
 
   await detector.start();
-  await watcher.wait_for("change");
+  await initial_state;
+
   detector.stop();
 
   expect(addMonitor).andReturn((threshold, monitorPtr) => {
@@ -265,8 +269,9 @@ promise_test(async t => {
     });
 
   // Restarting the monitor.
+  initial_state = watcher.wait_for("change");
   await detector.start();
-  await watcher.wait_for("change");
+  await initial_state;
   assert_equals(detector.state.user, "idle");
   assert_equals(detector.state.screen, "locked");
 

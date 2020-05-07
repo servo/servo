@@ -356,7 +356,7 @@ dictionary RTCCertificateStats : RTCStats {
 dictionary RTCIceServerStats : RTCStats {
            required DOMString url;
            long port;
-           DOMString protocol;
+           DOMString relayProtocol;
            unsigned long totalRequestsSent;
            unsigned long totalResponsesReceived;
            double totalRoundTripTime;

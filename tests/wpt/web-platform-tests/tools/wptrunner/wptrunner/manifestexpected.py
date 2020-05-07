@@ -32,7 +32,7 @@ def data_cls_getter(output_node, visited_node):
 def bool_prop(name, node):
     """Boolean property"""
     try:
-        return node.get(name)
+        return bool(node.get(name))
     except KeyError:
         return None
 
@@ -293,6 +293,10 @@ class ExpectedManifest(ManifestItem):
         return prefs(self)
 
     @property
+    def lsan_disabled(self):
+        return bool_prop("lsan-disabled", self)
+
+    @property
     def lsan_allowed(self):
         return set_prop("lsan-allowed", self)
 
@@ -353,6 +357,10 @@ class DirectoryManifest(ManifestItem):
     @property
     def prefs(self):
         return prefs(self)
+
+    @property
+    def lsan_disabled(self):
+        return bool_prop("lsan-disabled", self)
 
     @property
     def lsan_allowed(self):
@@ -434,6 +442,10 @@ class TestNode(ManifestItem):
     @property
     def prefs(self):
         return prefs(self)
+
+    @property
+    def lsan_disabled(self):
+        return bool_prop("lsan-disabled", self)
 
     @property
     def lsan_allowed(self):

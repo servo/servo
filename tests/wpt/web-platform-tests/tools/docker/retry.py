@@ -21,23 +21,28 @@ def iter_range(n):
         i += 1
 
 
+def log(value):
+    print(value)
+    sys.stdout.flush()
+
+
 def main():
     args = get_args().parse_args()
 
     if not args.cmd:
-        print("No command supplied")
+        log("No command supplied")
         sys.exit(1)
 
     retcode = None
 
     for n in iter_range(args.count):
         try:
-            print("Running %s [try %d/%d]" % (" ".join(args.cmd), (n+1), args.count))
+            log("Running %s [try %d/%d]" % (" ".join(args.cmd), (n+1), args.count))
             subprocess.check_call(args.cmd)
         except subprocess.CalledProcessError as e:
             retcode = e.returncode
         else:
-            print("Command succeeded")
+            log("Command succeeded")
             retcode = 0
             break
 
@@ -46,10 +51,10 @@ def main():
         else:
             wait_time = args.factor**n * args.delay
         if n < args.count - 1:
-            print("Command failed, waiting %s seconds to retry" % wait_time)
+            log("Command failed, waiting %s seconds to retry" % wait_time)
             time.sleep(wait_time)
         else:
-            print("Command failed, out of retries")
+            log("Command failed, out of retries")
 
     sys.exit(retcode)
 

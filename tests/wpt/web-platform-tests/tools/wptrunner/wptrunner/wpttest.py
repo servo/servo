@@ -261,6 +261,13 @@ class Test(object):
         return 0
 
     @property
+    def lsan_disabled(self):
+        for meta in self.itermeta():
+            if meta.lsan_disabled is not None:
+                return meta.lsan_disabled
+        return False
+
+    @property
     def lsan_allowed(self):
         lsan_allowed = set()
         for meta in self.itermeta():
