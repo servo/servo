@@ -88,7 +88,7 @@ fn construct_for_root_element<'dom>(
 
     let display_inside = match Display::from(box_style.display) {
         Display::None => {
-            root_element.unset_boxes_in_subtree();
+            root_element.unset_all_boxes();
             return (ContainsFloats::No, Vec::new());
         },
         Display::Contents => {

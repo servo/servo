@@ -9,13 +9,8 @@ use crate::flow::BlockLevelBox;
 #[derive(Default)]
 pub struct LayoutDataForElement {
     pub(super) self_box: ArcRefCell<Option<LayoutBox>>,
-    pub(super) pseudo_elements: Option<Box<PseudoElementBoxes>>,
-}
-
-#[derive(Default)]
-pub(super) struct PseudoElementBoxes {
-    pub before: ArcRefCell<Option<LayoutBox>>,
-    pub after: ArcRefCell<Option<LayoutBox>>,
+    pub(super) pseudo_before_box: ArcRefCell<Option<LayoutBox>>,
+    pub(super) pseudo_after_box: ArcRefCell<Option<LayoutBox>>,
 }
 
 pub(super) enum LayoutBox {

@@ -110,25 +110,21 @@ fn traverse_element<'dom, Node>(
     let replaced = ReplacedContent::for_element(element);
     let style = element.style(context);
     match Display::from(style.get_box().display) {
-        Display::None => element.unset_boxes_in_subtree(),
+        Display::None => element.unset_all_boxes(),
         Display::Contents => {
             if replaced.is_some() {
                 // `display: content` on a replaced element computes to `display: none`
                 // <https://drafts.csswg.org/css-display-3/#valdef-display-contents>
-                element.unset_boxes_in_subtree()
+                element.unset_all_boxes()
             } else {
-                *element.layout_data_mut().self_box.borrow_mut() = Some(LayoutBox::DisplayContents);
+                element.element_box_slot().set(LayoutBox::DisplayContents);
                 traverse_children_of(element, context, handler)
             }
         },
         Display::GeneratingBox(display) => {
-            handler.handle_element(
-                element,
-                &style,
-                display,
-                replaced.map_or(Contents::OfElement, Contents::Replaced),
-                element.element_box_slot(),
-            );
+            let contents = replaced.map_or(Contents::OfElement, Contents::Replaced);
+            let box_slot = element.element_box_slot();
+            handler.handle_element(element, &style, display, contents, box_slot);
         },
     }
 }
@@ -145,17 +141,20 @@ fn traverse_pseudo_element<'dom, Node>(
         match Display::from(style.get_box().display) {
             Display::None => element.unset_pseudo_element_box(which),
             Display::Contents => {
-                element.unset_pseudo_element_box(which);
                 let items = generate_pseudo_element_content(&style, element, context);
+                let box_slot = element.pseudo_element_box_slot(which);
+                box_slot.set(LayoutBox::DisplayContents);
                 traverse_pseudo_element_contents(element, &style, context, handler, items);
             },
             Display::GeneratingBox(display) => {
                 let items = generate_pseudo_element_content(&style, element, context);
-                let contents = Contents::OfPseudoElement(items);
                 let box_slot = element.pseudo_element_box_slot(which);
+                let contents = Contents::OfPseudoElement(items);
                 handler.handle_element(element, &style, display, contents, box_slot);
             },
         }
+    } else {
+        element.unset_pseudo_element_box(which)
     }
 }
 
@@ -373,7 +372,9 @@ pub(crate) trait NodeExt<'dom>: 'dom + Copy + LayoutNode<'dom> + Send + Sync {
     fn element_box_slot(&self) -> BoxSlot<'dom>;
     fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom>;
     fn unset_pseudo_element_box(self, which: WhichPseudoElement);
-    fn unset_boxes_in_subtree(self);
+
+    /// Remove boxes for the element itself, and its `:before` and `:after` if any.
+    fn unset_all_boxes(self);
 }
 
 impl<'dom, T> NodeExt<'dom> for T
@@ -458,65 +459,29 @@ where
     }
 
     fn pseudo_element_box_slot(&self, which: WhichPseudoElement) -> BoxSlot<'dom> {
-        let mut data = self.layout_data_mut();
-        let pseudos = data.pseudo_elements.get_or_insert_with(Default::default);
+        let data = self.layout_data_mut();
         let cell = match which {
-            WhichPseudoElement::Before => &mut pseudos.before,
-            WhichPseudoElement::After => &mut pseudos.after,
+            WhichPseudoElement::Before => &data.pseudo_before_box,
+            WhichPseudoElement::After => &data.pseudo_after_box,
         };
         BoxSlot::new(cell.clone())
     }
 
     fn unset_pseudo_element_box(self, which: WhichPseudoElement) {
-        if let Some(pseudos) = &mut self.layout_data_mut().pseudo_elements {
-            match which {
-                WhichPseudoElement::Before => *pseudos.before.borrow_mut() = None,
-                WhichPseudoElement::After => *pseudos.after.borrow_mut() = None,
-            }
-        }
+        let data = self.layout_data_mut();
+        let cell = match which {
+            WhichPseudoElement::Before => &data.pseudo_before_box,
+            WhichPseudoElement::After => &data.pseudo_after_box,
+        };
+        *cell.borrow_mut() = None;
     }
 
-    fn unset_boxes_in_subtree(self) {
-        assert!(self.is_element());
-        assert!(self.parent_node().is_some());
-
-        let mut node = self;
-        loop {
-            if node.is_element() {
-                let traverse_children = {
-                    let mut layout_data = node.layout_data_mut();
-                    layout_data.pseudo_elements = None;
-                    let self_box = layout_data.self_box.borrow_mut().take();
-                    self_box.is_some()
-                };
-                if traverse_children {
-                    // Only descend into children if we removed a box.
-                    // If there wasn’t one, then descendants don’t have boxes either.
-                    if let Some(child) = node.first_child() {
-                        node = child;
-                        continue;
-                    }
-                } else if node == self {
-                    // If this is the root of the subtree and we aren't descending
-                    // into our children return now.
-                    return;
-                }
-            }
-
-            let mut next_is_a_sibling_of = node;
-            node = loop {
-                if let Some(sibling) = next_is_a_sibling_of.next_sibling() {
-                    break sibling;
-                } else {
-                    next_is_a_sibling_of = node
-                        .parent_node()
-                        .expect("reached the root while traversing only a subtree");
-                }
-            };
-            if next_is_a_sibling_of == self {
-                // Don’t go outside the subtree.
-                return;
-            }
-        }
+    fn unset_all_boxes(self) {
+        let mut data = self.layout_data_mut();
+        *data.self_box.borrow_mut() = None;
+        *data.pseudo_before_box.borrow_mut() = None;
+        *data.pseudo_after_box.borrow_mut() = None;
+        // Stylo already takes care of removing all layout data
+        // for DOM descendants of elements with `display: none`.
     }
 }
