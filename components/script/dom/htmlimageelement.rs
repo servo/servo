@@ -18,7 +18,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::document::Document;
+use crate::dom::document::{determine_policy_for_token, Document};
 use crate::dom::element::{cors_setting_for_element, referrer_policy_for_element};
 use crate::dom::element::{reflect_cross_origin_attribute, set_cross_origin_attribute};
 use crate::dom::element::{
@@ -1418,6 +1418,21 @@ pub fn parse_a_sizes_attribute(value: DOMString) -> SourceSizeList {
     SourceSizeList::parse(&context, &mut parser)
 }
 
+fn get_correct_referrerpolicy_from_raw_token(token: &DOMString) -> DOMString {
+    if token == "" {
+        // Empty token is treated as no-referrer inside determine_policy_for_token,
+        // while here it should be treated as the default value, so it should remain unchanged.
+        DOMString::new()
+    } else {
+        match determine_policy_for_token(token) {
+            Some(policy) => DOMString::from_string(policy.to_string()),
+            // If the policy is set to an incorrect value, then it should be
+            // treated as an invalid value default (empty string).
+            None => DOMString::new(),
+        }
+    }
+}
+
 impl HTMLImageElementMethods for HTMLImageElement {
     // https://html.spec.whatwg.org/multipage/#dom-img-alt
     make_getter!(Alt, "alt");
@@ -1540,6 +1555,28 @@ impl HTMLImageElementMethods for HTMLImageElement {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-img-referrerpolicy
+    fn ReferrerPolicy(&self) -> DOMString {
+        let element = self.upcast::<Element>();
+        let current_policy_value = element.get_string_attribute(&local_name!("referrerpolicy"));
+        get_correct_referrerpolicy_from_raw_token(&current_policy_value)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-img-referrerpolicy
+    fn SetReferrerPolicy(&self, value: DOMString) {
+        let referrerpolicy_attr_name = local_name!("referrerpolicy");
+        let element = self.upcast::<Element>();
+        let previous_correct_attribute_value = get_correct_referrerpolicy_from_raw_token(
+            &element.get_string_attribute(&referrerpolicy_attr_name),
+        );
+        let correct_value_or_empty_string = get_correct_referrerpolicy_from_raw_token(&value);
+        if previous_correct_attribute_value != correct_value_or_empty_string {
+            // Setting the attribute to the same value will update the image.
+            // We don't want to start an update if referrerpolicy is set to the same value.
+            element.set_string_attribute(&referrerpolicy_attr_name, correct_value_or_empty_string);
+        }
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-img-name
     make_getter!(Name, "name");
 
@@ -1594,7 +1631,8 @@ impl VirtualMethods for HTMLImageElement {
             &local_name!("srcset") |
             &local_name!("width") |
             &local_name!("crossorigin") |
-            &local_name!("sizes") => self.update_the_image_data(),
+            &local_name!("sizes") |
+            &local_name!("referrerpolicy") => self.update_the_image_data(),
             _ => {},
         }
     }
