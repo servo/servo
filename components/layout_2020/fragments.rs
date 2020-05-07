@@ -178,22 +178,31 @@ impl Fragment {
         processed_baseline: &mut bool,
         accumulated_overflow: &mut Length,
     ) -> bool {
-        let (vertical_align, vertical_align_metrics, rect, x_height) = match self {
-            Fragment::Box(f) => (
-                &f.style.get_box().vertical_align,
-                &f.vertical_align_metrics,
-                &f.content_rect,
-                // XXX(ferjm) we should add this to Box fragments
-                Length::zero(),
-            ),
-            Fragment::Text(f) => (
-                &f.parent_style.get_box().vertical_align,
-                &f.vertical_align_metrics,
-                &f.rect,
-                f.font_metrics.x_height,
-            ),
-            _ => return false,
-        };
+        let (vertical_align, vertical_align_metrics, block_size, pbm_block_start, x_height) =
+            match self {
+                Fragment::Box(f) => {
+                    let padding_border_block_sums = f.padding.block_sum() + f.border.block_sum();
+                    (
+                        &f.style.get_box().vertical_align,
+                        &f.vertical_align_metrics,
+                        f.content_rect.size.block +
+                            f.padding.block_sum() +
+                            f.border.block_sum() +
+                            f.margin.block_sum(),
+                        f.padding.block_start + f.border.block_start + f.margin.block_start,
+                        // XXX(ferjm) we should add this to Box fragments
+                        Length::zero(),
+                    )
+                },
+                Fragment::Text(f) => (
+                    &f.parent_style.get_box().vertical_align,
+                    &f.vertical_align_metrics,
+                    f.rect.size.block,
+                    Length::zero(),
+                    f.font_metrics.x_height,
+                ),
+                _ => return false,
+            };
 
         // If this is the first time we process this inline element, we may need
         // to modify the line baseline position based on the element's baseline.
@@ -221,7 +230,7 @@ impl Fragment {
                 // baseline of the parent box plus half the x-height
                 // of the parent."
                 {
-                    baseline.space_above - (rect.size.block * 0.5) - (x_height * 0.5)
+                    baseline.space_above - (block_size * 0.5) - (x_height * 0.5)
                 },
                 VerticalAlignKeyword::Sub => Length::zero(),
                 VerticalAlignKeyword::Super => Length::zero(),
@@ -235,14 +244,14 @@ impl Fragment {
                 VerticalAlignKeyword::Bottom =>
                 // "Align the bottom of the aligned subtree with the bottom of the line box."
                 {
-                    *line_block_size - rect.size.block
+                    *line_block_size - block_size
                 },
             },
             VerticalAlign::Length(_) => Length::zero(),
-        };
+        } + pbm_block_start;
 
-        let overflow = if block_position + rect.size.block > *line_block_size {
-            block_position + rect.size.block - *line_block_size
+        let overflow = if block_position + block_size > *line_block_size {
+            block_position + block_size - *line_block_size
         } else if block_position < Length::zero() {
             block_position
         } else {

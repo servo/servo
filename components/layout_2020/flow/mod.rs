@@ -484,6 +484,8 @@ fn layout_in_flow_non_replaced_block_level(
         },
     };
 
+    let inline_metrics =
+        VerticalAlignMetrics::for_replaced_or_inline_block(content_rect.size.block, &pbm);
     BoxFragment::new(
         tag,
         style.clone(),
@@ -493,8 +495,7 @@ fn layout_in_flow_non_replaced_block_level(
         pbm.border,
         margin,
         block_margins_collapsed_with_children,
-        // XXXferjm compute inline metrics
-        VerticalAlignMetrics::new(Length::zero(), Length::zero(), Length::zero()),
+        inline_metrics,
     )
 }
 
