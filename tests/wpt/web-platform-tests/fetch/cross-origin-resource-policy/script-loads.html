@@ -16,6 +16,7 @@ const noCors = false;
 
 function loadScript(url, shoudLoad, corsMode, title)
 {
+    const testDiv = document.getElementById("testDiv");
     promise_test(() => {
         const script = document.createElement("script");
         if (corsMode)

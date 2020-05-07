@@ -33,6 +33,7 @@ use http::{HeaderMap, Request as HyperRequest};
 use hyper::{Body, Client, Method, Response as HyperResponse, StatusCode};
 use hyper_serde::Serde;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
+use net_traits::pub_domains::reg_suffix;
 use net_traits::quality::{quality_to_value, Quality, QualityItem};
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{is_cors_safelisted_method, is_cors_safelisted_request_header};
@@ -187,6 +188,28 @@ fn strict_origin_when_cross_origin(referrer_url: ServoUrl, url: ServoUrl) -> Opt
     }
     let cross_origin = referrer_url.origin() != url.origin();
     strip_url(referrer_url, cross_origin)
+}
+
+/// https://html.spec.whatwg.org/multipage/#schemelessly-same-site
+fn is_schemelessy_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) -> bool {
+    // Step 1
+    if !site_a.is_tuple() && !site_b.is_tuple() && site_a == site_b {
+        true
+    } else if site_a.is_tuple() && site_b.is_tuple() {
+        // Step 2.1
+        let host_a = site_a.host().map(|h| h.to_string()).unwrap_or_default();
+        let host_b = site_b.host().map(|h| h.to_string()).unwrap_or_default();
+
+        let host_a_reg = reg_suffix(&host_a);
+        let host_b_reg = reg_suffix(&host_b);
+
+        // Step 2.2-2.3
+        (site_a.host() == site_b.host() && host_a_reg == "") ||
+            (host_a_reg == host_b_reg && host_a_reg != "")
+    } else {
+        // Step 3
+        false
+    }
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#strip-url>
@@ -1251,7 +1274,74 @@ fn http_network_or_cache_fetch(
     // TODO: if necessary set response's range-requested flag
 
     // Step 9
-    // TODO: handle CORS not set and cross-origin blocked
+    // https://fetch.spec.whatwg.org/#cross-origin-resource-policy-check
+    #[derive(PartialEq)]
+    enum CrossOriginResourcePolicy {
+        Allowed,
+        Blocked,
+    }
+
+    fn cross_origin_resource_policy_check(
+        request: &Request,
+        response: &Response,
+    ) -> CrossOriginResourcePolicy {
+        // Step 1
+        if request.mode != RequestMode::NoCors {
+            return CrossOriginResourcePolicy::Allowed;
+        }
+
+        // Step 2
+        let current_url_origin = request.current_url().origin();
+        let same_origin = if let Origin::Origin(ref origin) = request.origin {
+            *origin == request.current_url().origin()
+        } else {
+            false
+        };
+
+        if same_origin {
+            return CrossOriginResourcePolicy::Allowed;
+        }
+
+        // Step 3
+        let policy = response
+            .headers
+            .get(HeaderName::from_static("cross-origin-resource-policy"))
+            .map(|h| h.to_str().unwrap_or(""))
+            .unwrap_or("");
+
+        // Step 4
+        if policy == "same-origin" {
+            return CrossOriginResourcePolicy::Blocked;
+        }
+
+        // Step 5
+        if let Origin::Origin(ref request_origin) = request.origin {
+            let schemeless_same_origin =
+                is_schemelessy_same_site(&request_origin, &current_url_origin);
+            if schemeless_same_origin &&
+                (request_origin.scheme() == Some("https") ||
+                    response.https_state == HttpsState::None)
+            {
+                return CrossOriginResourcePolicy::Allowed;
+            }
+        };
+
+        // Step 6
+        if policy == "same-site" {
+            return CrossOriginResourcePolicy::Blocked;
+        }
+
+        CrossOriginResourcePolicy::Allowed
+    }
+
+    if http_request.response_tainting != ResponseTainting::CorsTainting &&
+        cross_origin_resource_policy_check(&http_request, &response) ==
+            CrossOriginResourcePolicy::Blocked
+    {
+        return Response::network_error(NetworkError::Internal(
+            "Cross-origin resource policy check failed".into(),
+        ));
+    }
 
     // Step 10
     // FIXME: Figure out what to do with request window objects
