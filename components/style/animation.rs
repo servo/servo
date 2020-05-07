@@ -27,7 +27,7 @@ use servo_arc::Arc;
 use std::fmt;
 
 /// Represents an animation for a given property.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct PropertyAnimation {
     /// An `AnimatedProperty` that this `PropertyAnimation` corresponds to.
     property: AnimatedProperty,
@@ -136,7 +136,7 @@ impl PropertyAnimation {
 }
 
 /// This structure represents the state of an animation.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub enum AnimationState {
     /// This animation is paused. The inner field is the percentage of progress
     /// when it was paused, from 0 to 1.
@@ -153,7 +153,7 @@ pub enum AnimationState {
 ///
 /// If the iteration count is infinite, there's no other state, otherwise we
 /// have to keep track the current iteration and the max iteration count.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub enum KeyframesIterationState {
     /// Infinite iterations, so no need to track a state.
     Infinite,
@@ -164,7 +164,7 @@ pub enum KeyframesIterationState {
 }
 
 /// A CSS Animation
-#[derive(Clone)]
+#[derive(Clone, MallocSizeOf)]
 pub struct Animation {
     /// The node associated with this animation.
     pub node: OpaqueNode,
@@ -198,6 +198,7 @@ pub struct Animation {
 
     /// The original cascade style, needed to compute the generated keyframes of
     /// the animation.
+    #[ignore_malloc_size_of = "ComputedValues"]
     pub cascade_style: Arc<ComputedValues>,
 
     /// Whether or not this animation is new and or has already been tracked
@@ -542,7 +543,7 @@ impl fmt::Debug for Animation {
 }
 
 /// A CSS Transition
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, MallocSizeOf)]
 pub struct Transition {
     /// The node associated with this animation.
     pub node: OpaqueNode,
@@ -597,7 +598,7 @@ impl Transition {
 }
 
 /// Holds the animation state for a particular element.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, MallocSizeOf)]
 pub struct ElementAnimationSet {
     /// The animations for this element.
     pub animations: Vec<Animation>,

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::animation_timeline::AnimationTimeline;
+use crate::animations::{Animations, AnimationsUpdate};
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
@@ -384,6 +385,8 @@ pub struct Document {
     /// A timeline for animations which is used for synchronizing animations.
     /// https://drafts.csswg.org/web-animations/#timeline
     animation_timeline: DomRefCell<AnimationTimeline>,
+    /// Animations for this Document
+    animations: DomRefCell<Animations>,
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -2913,6 +2916,7 @@ impl Document {
             } else {
                 DomRefCell::new(AnimationTimeline::new())
             },
+            animations: DomRefCell::new(Animations::new()),
         }
     }
 
@@ -3615,16 +3619,26 @@ impl Document {
             .collect()
     }
 
-    pub fn advance_animation_timeline_for_testing(&self, delta: f64) {
+    pub(crate) fn advance_animation_timeline_for_testing(&self, delta: f64) {
         self.animation_timeline.borrow_mut().advance_specific(delta);
     }
 
-    pub fn update_animation_timeline(&self) {
+    pub(crate) fn update_animation_timeline(&self) {
         self.animation_timeline.borrow_mut().update();
     }
 
-    pub fn current_animation_timeline_value(&self) -> f64 {
+    pub(crate) fn current_animation_timeline_value(&self) -> f64 {
         self.animation_timeline.borrow().current_value()
+    }
+
+    pub(crate) fn animations(&self) -> Ref<Animations> {
+        self.animations.borrow()
+    }
+
+    pub(crate) fn update_animations(&self) -> AnimationsUpdate {
+        self.animations
+            .borrow_mut()
+            .do_post_reflow_update(&self.window, self.current_animation_timeline_value())
     }
 }
 

@@ -615,7 +615,6 @@ impl LayoutThread {
             },
             Msg::RegisterPaint(..) => LayoutHangAnnotation::RegisterPaint,
             Msg::SetNavigationStart(..) => LayoutHangAnnotation::SetNavigationStart,
-            Msg::GetRunningAnimations(..) => LayoutHangAnnotation::GetRunningAnimations,
         };
         self.background_hang_monitor
             .as_ref()
@@ -765,9 +764,6 @@ impl LayoutThread {
             },
             Msg::SetNavigationStart(time) => {
                 self.paint_time_metrics.set_navigation_start(time);
-            },
-            Msg::GetRunningAnimations(sender) => {
-                let _ = sender.send(0);
             },
         }
 

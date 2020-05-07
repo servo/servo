@@ -61,8 +61,6 @@ pub struct IFrameSizeMsg {
 /// Messages from the layout to the constellation.
 #[derive(Deserialize, Serialize)]
 pub enum LayoutMsg {
-    /// Indicates whether this pipeline is currently running animations.
-    ChangeRunningAnimationsState(PipelineId, AnimationState),
     /// Inform the constellation of the size of the iframe's viewport.
     IFrameSizes(Vec<IFrameSizeMsg>),
     /// Requests that the constellation inform the compositor that it needs to record
@@ -76,7 +74,6 @@ impl fmt::Debug for LayoutMsg {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         use self::LayoutMsg::*;
         let variant = match *self {
-            ChangeRunningAnimationsState(..) => "ChangeRunningAnimationsState",
             IFrameSizes(..) => "IFrameSizes",
             PendingPaintMetric(..) => "PendingPaintMetric",
             ViewportConstrained(..) => "ViewportConstrained",

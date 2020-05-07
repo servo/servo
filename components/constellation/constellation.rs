@@ -2237,9 +2237,6 @@ where
     fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
         debug!("Constellation got {:?} message", message);
         match message {
-            FromLayoutMsg::ChangeRunningAnimationsState(pipeline_id, animation_state) => {
-                self.handle_change_running_animations_state(pipeline_id, animation_state)
-            },
             // Layout sends new sizes for all subframes. This needs to be reflected by all
             // frame trees in the navigation context containing the subframe.
             FromLayoutMsg::IFrameSizes(iframe_sizes) => {
