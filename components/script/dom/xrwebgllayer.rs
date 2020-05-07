@@ -249,8 +249,11 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
                 Rect::new(origin, self.size().cast())
             },
             (XREye::None, Views::Mono(view)) => view.viewport,
+            (XREye::None, Views::StereoCapture(_, _, view)) => view.viewport,
             (XREye::Left, Views::Stereo(view, _)) => view.viewport,
+            (XREye::Left, Views::StereoCapture(view, _, _)) => view.viewport,
             (XREye::Right, Views::Stereo(_, view)) => view.viewport,
+            (XREye::Right, Views::StereoCapture(_, view, _)) => view.viewport,
             _ => return None,
         };
 
