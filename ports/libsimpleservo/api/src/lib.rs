@@ -819,7 +819,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
             }
         }
 
-        if openxr::create_instance().is_ok() {
+        if openxr::create_instance(false).is_ok() {
             let discovery = openxr::OpenXrDiscovery::new(
                 Box::new(GlThread(executor)),
                 Box::new(ProviderRegistration(surface_providers)),
