@@ -7,7 +7,7 @@ use std::f32;
 use dom_struct::dom_struct;
 use js::rust::HandleObject;
 use servo_media::audio::gain_node::GainNodeOptions;
-use servo_media::audio::node::AudioNodeInit;
+use servo_media::audio::node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::param::ParamType;
 
 use crate::dom::audionode::AudioNode;
@@ -51,6 +51,7 @@ impl GainNode {
             window,
             context,
             node.node_id(),
+            AudioNodeType::GainNode,
             ParamType::Gain,
             AutomationRate::A_rate,
             *options.gain, // default value
