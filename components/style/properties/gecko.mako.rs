@@ -953,19 +953,19 @@ fn static_assert() {
 
         if let Some(info) = v.keyword_info {
             self.gecko.mFontSizeKeyword = match info.kw {
-                KeywordSize::XXSmall => structs::NS_STYLE_FONT_SIZE_XXSMALL,
-                KeywordSize::XSmall => structs::NS_STYLE_FONT_SIZE_XSMALL,
-                KeywordSize::Small => structs::NS_STYLE_FONT_SIZE_SMALL,
-                KeywordSize::Medium => structs::NS_STYLE_FONT_SIZE_MEDIUM,
-                KeywordSize::Large => structs::NS_STYLE_FONT_SIZE_LARGE,
-                KeywordSize::XLarge => structs::NS_STYLE_FONT_SIZE_XLARGE,
-                KeywordSize::XXLarge => structs::NS_STYLE_FONT_SIZE_XXLARGE,
-                KeywordSize::XXXLarge => structs::NS_STYLE_FONT_SIZE_XXXLARGE,
-            } as u8;
+                KeywordSize::XXSmall => structs::StyleFontSize::Xxsmall,
+                KeywordSize::XSmall => structs::StyleFontSize::Xsmall,
+                KeywordSize::Small => structs::StyleFontSize::Small,
+                KeywordSize::Medium => structs::StyleFontSize::Medium,
+                KeywordSize::Large => structs::StyleFontSize::Large,
+                KeywordSize::XLarge => structs::StyleFontSize::Xxlarge,
+                KeywordSize::XXLarge => structs::StyleFontSize::Xxlarge,
+                KeywordSize::XXXLarge => structs::StyleFontSize::Xxxlarge,
+            };
             self.gecko.mFontSizeFactor = info.factor;
             self.gecko.mFontSizeOffset = info.offset.to_i32_au();
         } else {
-            self.gecko.mFontSizeKeyword = structs::NS_STYLE_FONT_SIZE_NO_KEYWORD as u8;
+            self.gecko.mFontSizeKeyword = structs::StyleFontSize::NoKeyword;
             self.gecko.mFontSizeFactor = 1.;
             self.gecko.mFontSizeOffset = 0;
         }
@@ -974,16 +974,16 @@ fn static_assert() {
     pub fn clone_font_size(&self) -> FontSize {
         use crate::values::specified::font::{KeywordInfo, KeywordSize};
         let size = Au(self.gecko.mSize).into();
-        let kw = match self.gecko.mFontSizeKeyword as u32 {
-            structs::NS_STYLE_FONT_SIZE_XXSMALL => KeywordSize::XXSmall,
-            structs::NS_STYLE_FONT_SIZE_XSMALL => KeywordSize::XSmall,
-            structs::NS_STYLE_FONT_SIZE_SMALL => KeywordSize::Small,
-            structs::NS_STYLE_FONT_SIZE_MEDIUM => KeywordSize::Medium,
-            structs::NS_STYLE_FONT_SIZE_LARGE => KeywordSize::Large,
-            structs::NS_STYLE_FONT_SIZE_XLARGE => KeywordSize::XLarge,
-            structs::NS_STYLE_FONT_SIZE_XXLARGE => KeywordSize::XXLarge,
-            structs::NS_STYLE_FONT_SIZE_XXXLARGE => KeywordSize::XXXLarge,
-            structs::NS_STYLE_FONT_SIZE_NO_KEYWORD => {
+        let kw = match self.gecko.mFontSizeKeyword {
+            structs::StyleFontSize::Xxsmall => KeywordSize::XXSmall,
+            structs::StyleFontSize::Xsmall => KeywordSize::XSmall,
+            structs::StyleFontSize::Small => KeywordSize::Small,
+            structs::StyleFontSize::Medium => KeywordSize::Medium,
+            structs::StyleFontSize::Large => KeywordSize::Large,
+            structs::StyleFontSize::Xlarge => KeywordSize::XLarge,
+            structs::StyleFontSize::Xxlarge => KeywordSize::XXLarge,
+            structs::StyleFontSize::Xxxlarge => KeywordSize::XXXLarge,
+            structs::StyleFontSize::NoKeyword => {
                 return FontSize {
                     size,
                     keyword_info: None,
