@@ -17,7 +17,12 @@ use std::sync::Arc;
 /// Indicating either entire image or just metadata availability
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImageOrMetadataAvailable {
-    ImageAvailable(#[ignore_malloc_size_of = "Arc"] Arc<Image>, ServoUrl),
+    ImageAvailable {
+        #[ignore_malloc_size_of = "Arc"]
+        image: Arc<Image>,
+        url: ServoUrl,
+        is_placeholder: bool,
+    },
     MetadataAvailable(ImageMetadata),
 }
 

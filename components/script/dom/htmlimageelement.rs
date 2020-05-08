@@ -329,8 +329,16 @@ impl HTMLImageElement {
         );
 
         match cache_result {
-            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(image, url)) => {
-                self.process_image_response(ImageResponse::Loaded(image, url))
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
+                image,
+                url,
+                is_placeholder,
+            }) => {
+                if is_placeholder {
+                    self.process_image_response(ImageResponse::PlaceholderLoaded(image, url))
+                } else {
+                    self.process_image_response(ImageResponse::Loaded(image, url))
+                }
             },
             ImageCacheResult::Available(ImageOrMetadataAvailable::MetadataAvailable(m)) => {
                 self.process_image_response(ImageResponse::MetadataLoaded(m))
@@ -1109,7 +1117,7 @@ impl HTMLImageElement {
         );
 
         match cache_result {
-            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(_image, _url)) => {
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable { .. }) => {
                 // Step 15
                 self.finish_reacting_to_environment_change(
                     selected_source,

@@ -466,9 +466,12 @@ impl ImageCache for ImageCacheImpl {
             match result {
                 Ok((image, image_url)) => {
                     debug!("{} is available", url);
-                    return ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(
-                        image, image_url,
-                    ));
+                    let is_placeholder = image_url == store.placeholder_url;
+                    return ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
+                        image,
+                        url: image_url,
+                        is_placeholder,
+                    });
                 },
                 Err(()) => {
                     debug!("{} is not available", url);
@@ -515,9 +518,14 @@ impl ImageCache for ImageCacheImpl {
         // TODO: make this behaviour configurable according to the caller's needs.
         store.handle_decoder(decoded);
         match store.get_completed_image_if_available(url, origin, cors_setting, use_placeholder) {
-            Some(Ok((image, image_url))) => ImageCacheResult::Available(
-                ImageOrMetadataAvailable::ImageAvailable(image, image_url),
-            ),
+            Some(Ok((image, image_url))) => {
+                let is_placeholder = image_url == store.placeholder_url;
+                ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
+                    image,
+                    url: image_url,
+                    is_placeholder,
+                })
+            },
             _ => ImageCacheResult::LoadError,
         }
     }

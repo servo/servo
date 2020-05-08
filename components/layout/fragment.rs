@@ -431,8 +431,8 @@ impl ImageFragmentInfo {
                     layout_context
                         .get_or_request_image_or_meta(node.opaque(), url, UsePlaceholder::Yes)
                         .map(|result| match result {
-                            ImageOrMetadataAvailable::ImageAvailable(i, _) => {
-                                ImageOrMetadata::Image(i)
+                            ImageOrMetadataAvailable::ImageAvailable { image, .. } => {
+                                ImageOrMetadata::Image(image)
                             },
                             ImageOrMetadataAvailable::MetadataAvailable(m) => {
                                 ImageOrMetadata::Metadata(m)

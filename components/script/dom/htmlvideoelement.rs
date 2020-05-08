@@ -166,8 +166,12 @@ impl HTMLVideoElement {
         );
 
         match cache_result {
-            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable(img, url)) => {
-                self.process_image_response(ImageResponse::Loaded(img, url));
+            ImageCacheResult::Available(ImageOrMetadataAvailable::ImageAvailable {
+                image,
+                url,
+                ..
+            }) => {
+                self.process_image_response(ImageResponse::Loaded(image, url));
             },
             ImageCacheResult::ReadyForRequest(id) => {
                 self.do_fetch_poster_frame(poster_url, id, cancel_receiver)
