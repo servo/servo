@@ -7,7 +7,7 @@
 //! response is received, it is forwarded to the appropriate script thread.
 
 use crossbeam_channel::Sender;
-use http::header::LOCATION;
+use http::HeaderMap;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::PipelineId;
@@ -98,8 +98,12 @@ impl NetworkListener {
                     FetchMetadata::Unfiltered(ref m) => m,
                 };
 
-                match metadata.headers {
-                    Some(ref headers) if headers.contains_key(LOCATION) => {
+                match metadata.location_url {
+                    // https://html.spec.whatwg.org/multipage/#process-a-navigate-fetch
+                    // Step 7-4.
+                    Some(Ok(ref location_url))
+                        if matches!(location_url.scheme(), "http" | "https") =>
+                    {
                         if self.request_builder.url_list.is_empty() {
                             self.request_builder
                                 .url_list
@@ -115,10 +119,16 @@ impl NetworkListener {
                             .map(|referrer_url| Referrer::ReferrerUrl(referrer_url));
                         self.request_builder.referrer_policy = metadata.referrer_policy;
 
+                        let headers = if let Some(ref headers) = metadata.headers {
+                            headers.clone().into_inner()
+                        } else {
+                            HeaderMap::new()
+                        };
+
                         self.res_init = Some(ResponseInit {
                             url: metadata.final_url.clone(),
                             location_url: metadata.location_url.clone(),
-                            headers: headers.clone().into_inner(),
+                            headers,
                             referrer: metadata.referrer.clone(),
                             status_code: metadata
                                 .status
@@ -132,7 +142,7 @@ impl NetworkListener {
                         //
                         // Ideally the Fetch code would handle manual redirects on its own
                         self.initiate_fetch(None);
-                    },
+                    }
                     _ => {
                         // Response should be processed by script thread.
                         self.should_send = true;
