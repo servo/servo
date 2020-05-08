@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <body>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src=/feature-policy/resources/featurepolicy.js></script>
@@ -14,31 +16,35 @@ const same_origin_worker_frame_src =
 const cross_origin_src = sub + same_origin_src;
 const cross_origin_worker_frame_src = sub + same_origin_worker_frame_src;
 
-promise_test(async () => {
+promise_setup(async () => {
+  await test_driver.set_permission({ name: 'notifications' }, 'granted', false);
+});
+
+promise_test(async t => {
   await new IdleDetector().start();
 },
   'Feature-Policy {"idle-detection" : ["*"]} explicity set by top-level ' +
   'frame allows the top-level document.');
 
-async_test(t => {
+promise_test(async t => {
   test_feature_availability('new IdleDetector().start()', t, same_origin_src,
       expect_feature_available_default);
 }, 'Feature-Policy {"idle-detection" : ["*"]} explicity set by top-level ' +
    'frame allows same-origin iframes.');
 
-async_test(t => {
+promise_test(async t => {
   test_feature_availability('new IdleDetector().start()', t, same_origin_worker_frame_src,
       expect_feature_available_default);
 }, 'Feature-Policy {"idle-detection" : ["*"]} explicity set by top-level ' +
    'frame allows workers in same-origin iframes.');
 
-async_test(t => {
+promise_test(async t => {
   test_feature_availability('new IdleDetector().start()', t, cross_origin_src,
       expect_feature_available_default);
 }, 'Feature-Policy {"idle-detection" : ["*"]} explicity set by top-level ' +
    'frame allows cross-origin iframes.');
 
-async_test(t => {
+promise_test(async t => {
   test_feature_availability('new IdleDetector().start()', t, cross_origin_worker_frame_src,
       expect_feature_available_default);
 }, 'Feature-Policy {"idle-detection" : ["*"]} explicity set by top-level ' +

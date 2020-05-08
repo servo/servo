@@ -13,7 +13,12 @@
     <script id="layout-test-code">
       // Test various convolver configurations when the convolver response has
       // one channel (mono).
-      //
+
+      // This is somewhat arbitrary.  It is the minimum value for which tests
+      // pass with both FFmpeg and KISS FFT implementations for 256 points.
+      // The value was similar for each implementation.
+      const absoluteThreshold = Math.pow(2, -21);
+
       // Fairly arbitrary sample rate, except that we want the rate to be a
       // power of two so that 1/sampleRate is exactly respresentable as a
       // single-precision float.
@@ -100,7 +105,8 @@
 
                   // The expected and actual results should be identical
                   should(actual, 'Convolver output')
-                    .beCloseToArray(expected, {absoluteThreshold: 4.1724e-7});
+                    .beCloseToArray(expected,
+                                    {absoluteThreshold: absoluteThreshold});
                 })
                 .then(() => task.done());
           });
@@ -138,7 +144,12 @@
             description: '5.1->2 downmix producing 2-channel output'
           },
           (task, should) => {
-            downMixTest({numberOfInputs: 6, prefix: '5.1'}, should)
+            // Scale tolerance by maximum amplitude expected in down-mix
+            // output.
+            let threshold = (1.0 + Math.sqrt(0.5) * 2) * absoluteThreshold;
+
+            downMixTest({numberOfInputs: 6, prefix: '5.1',
+                         absoluteThreshold: threshold}, should)
                 .then(() => task.done());
           });
 
@@ -321,12 +332,15 @@
           let expected0 = audioBuffer.getChannelData(2);
           let expected1 = audioBuffer.getChannelData(3);
 
+          let threshold = options.absoluteThreshold ?
+              options.absoluteThreshold : absoluteThreshold;
+
           // Verify that each output channel of the convolver matches
           // the delayed signal from the reference
           should(actual0, options.prefix + ': Channel 0')
-              .beEqualToArray(expected0);
+              .beCloseToArray(expected0, {absoluteThreshold: threshold});
           should(actual1, options.prefix + ': Channel 1')
-              .beEqualToArray(expected1);
+              .beCloseToArray(expected1, {absoluteThreshold: threshold});
         });
       }
 

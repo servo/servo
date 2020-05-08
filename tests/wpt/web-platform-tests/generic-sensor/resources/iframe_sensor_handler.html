@@ -20,8 +20,8 @@
           sensor = new self[e.data.type]();
           e.source.postMessage({command: e.data.command,
                                 result: 'success'}, '*');
-        } catch (e) {
-          e.source.postMessage({command: e.data.command, result: ''}, '*');
+        } catch (error) {
+          e.source.postMessage({command: e.data.command, result: error}, '*');
         }
       });
     } else if (e.data.command === 'start_sensor') {
@@ -34,8 +34,8 @@
                                 result: 'success'}, '*');
         }
         sensor.addEventListener('reading', onReadingListener, {once: true});
-      } catch (e) {
-        e.source.postMessage({command: e.data.command, result: ''}, '*');
+      } catch (error) {
+        e.source.postMessage({command: e.data.command, result: error}, '*');
       }
     } else if (e.data.command === 'is_sensor_suspended') {
       let cachedTimestamp = lastTimestamp;

@@ -27,6 +27,11 @@ function myObserver(mutationsList, observer) {
             assert_equals(n.content, null, 'Declarative template content should *still* be null');
             assert_equals(n.innerHTML, "", 'Declarative template innerHTML should *still* be empty');
             assert_equals(n.getInnerHTML({includeShadowRoots: true}), "", 'Declarative template getInnerHTML() should *still* be empty');
+
+            // Try cloning the in-progress declarative template - shouldn't work.
+            const clone = n.cloneNode(true);
+            assert_equals(clone.children.length,0,'Clone should not contain anything');
+            assert_equals(clone.content.children.length,0,'Clone should not contain anything');
             break;
           case 'noroot':
             // Make sure adding 'shadowroot' attribute doesn't trigger a shadow root,

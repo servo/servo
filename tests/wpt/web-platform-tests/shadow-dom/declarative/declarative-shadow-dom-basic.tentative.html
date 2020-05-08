@@ -148,6 +148,76 @@ test(() => {
 
 </script>
 
+<template id="template-containing-shadow">
+  <div class="innerdiv">
+    <template shadowroot=open>Content</template>
+  </div>
+</template>
+<script>
+test(() => {
+  const template = document.querySelector('#template-containing-shadow');
+  const host1 = document.createElement('div');
+  document.body.appendChild(host1);
+  host1.appendChild(template.content.cloneNode(true));
+  let innerDiv = host1.querySelector('div.innerdiv');
+  const shadowRoot1 = innerDiv.shadowRoot;
+  assert_true(!!shadowRoot1,"Inner div should have a shadow root");
+  assert_equals(innerDiv.querySelector('template'), null, "No leftover template node");
+
+  const host2 = document.createElement('div');
+  document.body.appendChild(host2);
+  host2.appendChild(template.content.cloneNode(true));
+  innerDiv = host2.querySelector('div.innerdiv');
+  const shadowRoot2 = innerDiv.shadowRoot;
+  assert_true(!!shadowRoot2,"Inner div should have a shadow root");
+  assert_equals(innerDiv.querySelector('template'), null, "No leftover template node");
+
+  assert_not_equals(shadowRoot1,shadowRoot2,'Should not get back the same shadow root');
+}, 'Declarative Shadow DOM: template containing declarative shadow root');
+</script>
+
+<template id="template-containing-ua-shadow">
+  <div class="innerdiv">
+    <template shadowroot=open>
+      <video></video> <!--Assumed to have UA shadow root-->
+    </template>
+  </div>
+</template>
+<script>
+test(() => {
+  const template = document.querySelector('#template-containing-ua-shadow');
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  // Mostly make sure clone of template *does* clone the
+  // shadow root, and doesn't crash on cloning the <video>.
+  host.appendChild(template.content.cloneNode(true));
+  let innerDiv = host.querySelector('div.innerdiv');
+  const shadowRoot = innerDiv.shadowRoot;
+  assert_true(!!shadowRoot,"Inner div should have a shadow root");
+  assert_equals(innerDiv.querySelector('template'), null, "No leftover template node");
+  assert_true(!!innerDiv.shadowRoot.querySelector('video'),'Video element should be present');
+}, 'Declarative Shadow DOM: template containing declarative shadow root and UA shadow root');
+</script>
+
+<template id="template-containing-ua-shadow-closed">
+  <div class="innerdiv">
+    <template shadowroot=closed>
+      <video></video> <!--Assumed to have UA shadow root-->
+    </template>
+  </div>
+</template>
+<script>
+test(() => {
+  const template = document.querySelector('#template-containing-ua-shadow-closed');
+  const host = document.createElement('div');
+  document.body.appendChild(host);
+  host.appendChild(template.content.cloneNode(true));
+  let innerDiv = host.querySelector('div.innerdiv');
+  // TODO(masonfreed): once ElementInternals.shadowRoot exists, check for it here.
+  assert_true(!innerDiv.shadowRoot,"Inner div should have a closed shadow root");
+}, 'Declarative Shadow DOM: template containing closed declarative shadow root and UA shadow root');
+</script>
+
 <template id="root-element-shadow">
     <template shadowroot=open>Content</template>
 </template>

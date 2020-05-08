@@ -6755,5 +6755,50 @@
     "pathname": "foo/bar",
     "search": "",
     "hash": ""
+  },
+  "IDNA ignored code points in file URLs hosts",
+  {
+    "input": "file://a\u00ADb/p",
+    "base": "about:blank",
+    "href": "file://ab/p",
+    "protocol": "file:",
+    "username": "",
+    "password": "",
+    "host": "ab",
+    "hostname": "ab",
+    "port": "",
+    "pathname": "/p",
+    "search": "",
+    "hash": ""
+  },
+  {
+    "input": "file://a%C2%ADb/p",
+    "base": "about:blank",
+    "href": "file://ab/p",
+    "protocol": "file:",
+    "username": "",
+    "password": "",
+    "host": "ab",
+    "hostname": "ab",
+    "port": "",
+    "pathname": "/p",
+    "search": "",
+    "hash": ""
+  },
+  "Empty host after the domain to ASCII",
+  {
+    "input": "file://\u00ad/p",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "file://%C2%AD/p",
+    "base": "about:blank",
+    "failure": true
+  },
+  {
+    "input": "file://xn--/p",
+    "base": "about:blank",
+    "failure": true
   }
 ]

@@ -17,9 +17,6 @@ promise_test(async () => {
     except: ['CompileError', 'LinkError', 'RuntimeError']
   });
 
-  // https://github.com/web-platform-tests/wpt/issues/12850
-  idl_array.add_untested_idls('[Exposed=(Window,Worker)] interface ArrayBuffer {};');
-
   // Ignored errors are surfaced in idlharness.js's test_object below.
   try {
     self.memory = new WebAssembly.Memory({initial: 1024});

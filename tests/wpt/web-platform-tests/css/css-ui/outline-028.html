@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface: outline with floatted descendants</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-ui/#outline-props">
+<link rel="match" href="reference/outline-028-ref.html">
+<meta name="assert" content="Test checks that 'auto' outline works as expected in an element with floatted descendants with different margins and paddings.">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.outline-container {
+  width: max-content;
+  margin: 30px 0px;
+  outline: auto;
+  font: 10px/1 Ahem;
+}
+
+.float {
+  float: left;
+  color: lime;
+}
+
+span {
+  color: lime;
+}
+</style>
+<p>Test passes if the outline is wrapping all the green boxes.</p>
+<div style="display: grid; grid-template-columns: repeat(4, 100px);">
+  <div>
+    <div class="outline-container">
+      <div class="float">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin-left: 5px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin-right: 5px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin-top: 5px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin-bottom: 5px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin: 0px 5px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin: 5px 0px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin: 5px;">X</div>
+      <span>X</span>
+    </div>
+  </div>
+  <div>
+    <div class="outline-container">
+      <div class="float">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin-left: 20px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin-right: 20px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin-top: 20px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin-bottom: 20px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin: 0px 20px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin: 20px 0px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="margin: 20px;">X</div>
+      <span>X</span>
+    </div>
+  </div>
+  <div>
+    <div class="outline-container">
+      <div class="float">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding-left: 5px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding-right: 5px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding-top: 5px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding-bottom: 5px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding: 0px 5px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding: 5px 0px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding: 5px;">X</div>
+      <span>X</span>
+    </div>
+  </div>
+  <div>
+    <div class="outline-container">
+      <div class="float">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding-left: 20px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding-right: 20px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding-top: 20px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding-bottom: 20px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding: 0px 20px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding: 20px 0px;">X</div>
+      <span>X</span>
+    </div>
+    <div class="outline-container">
+      <div class="float" style="padding: 20px;">X</div>
+      <span>X</span>
+    </div>
+  </div>
+</div>

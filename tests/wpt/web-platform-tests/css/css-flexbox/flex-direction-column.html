@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Flexible Box Test: flex-direction proprety - column</title>
+    <link rel="author" title="haosdent" href="mailto:haosdent@gmail.com">
+    <link rel="help" href="http://www.w3.org/TR/css-flexbox-1/#flex-direction-property">
+    <link rel="match" href="reference/flex-direction-column-ref.html">
+    <meta name="assert" content="Statement describing what the test case is asserting">
+    <style type="text/css">
+        /* Positioned container allows for the self-describing statement to still
+           be visible in the case of failure */
+        .container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background: red;
+            margin: 1em 0;
+            border: 1px solid black;
+        }
+        span {
+            display: inline-block;
+            background: green;
+            color: white;
+            margin: 1em;
+            width: 8em;
+        }
+    </style>
+</head>
+<body>
+    <p>The test passed if you see all the cells are arraged vertically.</p>
+    <div class="container">
+      <span>first</span>
+      <span>second</span>
+      <span>third</span>
+      <span>forth</span>
+    </div>
+</body>
+</html>

@@ -1,23 +1,47 @@
 <!doctype html>
 <meta charset="utf-8">
-<title> Async Clipboard raw write -> Async Clipboard raw read tests </title>
+<title>Async Clipboard raw write -> Async Clipboard raw read test</title>
 <link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
-async function readWriteTest(rawInput) {
-  promise_test(async t => {
-    const blobInput = new Blob([rawInput], {type: 'chromium/x-test-format'});
-    const clipboardItem = new ClipboardItem(
-        {'chromium/x-test-format': blobInput}, {raw: true});
+'use strict';
 
-    await navigator.clipboard.write([clipboardItem]);
-    // TODO(https://crbug.com/897289): Implement raw clipboard read.
+// TODO(huangdarwin): Move raw clipboard tests/expectations into a separate
+// folder (in a follow-up CL, to aid in easier reviewing of diffs).
+promise_test(async t => {
+  const format1 = 'application/x-raw-clipboard-test-format-1';
+  const format2 = 'application/x-raw-clipboard-test-format-2';
+  const blobInput1 = new Blob(['input data 1'], {type: format1});
+  const blobInput2 = new Blob(['input data 2'], {type: format2});
+  const clipboardItemInput = new ClipboardItem(
+      {[format1]: blobInput1, [format2]: blobInput2}, {raw: true});
+  await navigator.clipboard.write([clipboardItemInput]);
 
-  }, 'Verify write and read clipboard given arbitrary raw input: ' + rawInput);
-}
+  // Items may not be readable on the sanitized clipboard after raw write.
+  await promise_rejects_dom(t, 'DataError',
+      navigator.clipboard.read({raw: false}));
 
-readWriteTest('Async Clipboard raw write -> Async Clipboard raw read tests');
+  // Items should be readable on a raw clipboard after raw write.
+  const clipboardItems = await navigator.clipboard.read({raw: true});
+  assert_equals(clipboardItems.length, 1);
+  const clipboardItem = clipboardItems[0];
+  assert_true(clipboardItem instanceof ClipboardItem);
+  // This test can't verify clipboardItem.types, because its size and values
+  // are both platform-dependent.
+
+  const blobOutput1 = await clipboardItem.getType(format1);
+  assert_equals(blobOutput1.type, format1);
+  const data1 = await (new Response(blobOutput1)).text();
+  assert_equals(data1, 'input data 1');
+
+  const blobOutput2 = await clipboardItem.getType(format2);
+  assert_equals(blobOutput2.type, format2);
+  const data2 = await (new Response(blobOutput2)).text();
+  assert_equals(data2, 'input data 2');
+
+}, 'Verify write and read clipboard given 2 platform-neutral raw inputs');
+
 </script>
 <p>
   Note: This is a manual test because it writes/reads to the shared system

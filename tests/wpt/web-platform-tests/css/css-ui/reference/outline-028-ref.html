@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface: Reference test for outline with floatted descendants</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+.outline-container {
+  width: max-content;
+  margin: 30px 0px;
+  outline: auto;
+  font: 10px/1 Ahem;
+  height: 10px;
+}
+
+.inline {
+  display: inline-block;
+  color: lime;
+}
+
+span {
+  color: lime;
+}
+</style>
+<p>Test passes if the outline is wrapping all the green boxes.</p>
+<div style="display: grid; grid-template-columns: repeat(4, 100px);">
+  <div>
+    <div class="outline-container">
+      <span>XX</span>
+    </div>
+    <div class="outline-container">
+      <div class="inline" style="margin-left: 5px;">XX</div>
+    </div>
+    <div class="outline-container">
+      <div class="inline" style="margin-right: 5px;">X</div><span>X</span>
+    </div>
+    <div class="outline-container" style="width: 20px; background: lime;">
+      <div class="inline" style="padding-top: 5px; background: white">X</div>
+    </div>
+    <div class="outline-container">
+      <span>XX</span>
+    </div>
+    <div class="outline-container">
+      <div class="inline" style="margin: 0px 5px;">X</div><span>X</span>
+    </div>
+    <div class="outline-container" style="width: 20px; background: lime;">
+      <div class="inline" style="padding-top: 5px; background: white">X</div>
+    </div>
+    <div class="outline-container" style="width: 30px; display: grid; grid: repeat(3, 5px) / repeat(6, 5px);">
+      <div style="grid-column: 2 / span 2; grid-row: 2 / span 2; background: lime;"></div>
+      <div style="grid-column: 5 / span 2; grid-row: 1 / span 2; background: lime;"></div>
+    </div>
+  </div>
+  <div>
+    <div class="outline-container">
+      <span>XX</span>
+    </div>
+    <div class="outline-container">
+      <div class="inline" style="margin-left: 20px;">XX</div>
+    </div>
+    <div class="outline-container">
+      <div class="inline" style="margin-right: 20px;">X</div><span>X</span>
+    </div>
+    <div class="outline-container" style="width: 20px; display: grid; grid: repeat(3, 10px) / repeat(2, 10px);">
+      <div style="grid-column: 2; grid-row: 1; background: lime;"></div>
+      <div style="grid-column: 1; grid-row: 3; background: lime;"></div>
+    </div>
+    <div class="outline-container">
+      <span>XX</span>
+    </div>
+    <div class="outline-container">
+      <div class="inline" style="margin: 0px 20px;">X</div><span>X</span>
+    </div>
+    <div class="outline-container" style="width: 20px; display: grid; grid: repeat(3, 10px) / repeat(2, 10px);">
+      <div style="grid-column: 2; grid-row: 1; background: lime;"></div>
+      <div style="grid-column: 1; grid-row: 3; background: lime;"></div>
+    </div>
+    <div class="outline-container" style="width: 60px; height: 60px; display: grid; grid: repeat(6, 10px) / repeat(6, 10px);">
+      <div style="grid-column: 1; grid-row: 6; background: lime;"></div>
+      <div style="grid-column: 4; grid-row: 3; background: lime;"></div>
+    </div>
+  </div>
+  <div>
+    <div class="outline-container">
+      <span>XX</span>
+    </div>
+    <div class="outline-container">
+      <div class="inline" style="padding-left: 5px;">XX</div>
+    </div>
+    <div class="outline-container">
+      <div class="inline" style="padding-right: 5px;">X</div><span>X</span>
+    </div>
+    <div class="outline-container" style="width: 20px; background: lime;">
+      <div class="inline" style="padding-top: 5px; background: white">X</div>
+    </div>
+    <div class="outline-container" style="width: 20px; background: lime;">
+      <div class="inline" style="padding-bottom: 5px; background: white">X</div>
+    </div>
+    <div class="outline-container">
+      <div class="inline" style="padding: 0px 5px;">X</div><span>X</span>
+    </div>
+    <div class="outline-container" style="width: 20px; background: lime;">
+      <div class="inline" style="padding: 5px 0px; background: white">X</div>
+    </div>
+    <div class="outline-container" style="width: 30px; background: lime;">
+      <div class="inline" style="padding: 5px; background: white">X</div>
+    </div>
+  </div>
+  <div>
+    <div class="outline-container">
+      <span>XX</span>
+    </div>
+    <div class="outline-container">
+      <div class="inline" style="padding-left: 20px;">XX</div>
+    </div>
+    <div class="outline-container">
+      <div class="inline" style="padding-right: 20px;">X</div><span>X</span>
+    </div>
+    <div class="outline-container" style="width: 20px; background: lime;">
+      <div class="inline" style="padding-top: 20px; background: white">X</div>
+    </div>
+    <div class="outline-container" style="width: 20px; background: lime;">
+      <div class="inline" style="padding-bottom: 20px; background: white">X</div>
+    </div>
+    <div class="outline-container">
+      <div class="inline" style="padding: 0px 20px;">X</div><span>X</span>
+    </div>
+    <div class="outline-container" style="width: 20px; background: lime;">
+      <div class="inline" style="padding: 20px 0px; background: white">X</div>
+    </div>
+    <div class="outline-container" style="width: 60px; height: 60px; display: grid; grid: repeat(6, 10px) / repeat(6, 10px);">
+      <div style="grid-column: 1; grid-row: 6; background: lime;"></div>
+      <div style="grid-column: 4; grid-row: 3; background: lime;"></div>
+    </div>
+  </div>
+</div>
