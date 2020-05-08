@@ -113,7 +113,7 @@ impl<'a> LayoutContext<'a> {
         }
 
         match self.get_or_request_image_or_meta(node, url.clone(), use_placeholder) {
-            Some(ImageOrMetadataAvailable::ImageAvailable(image, _)) => {
+            Some(ImageOrMetadataAvailable::ImageAvailable { image, .. }) => {
                 let image_info = WebRenderImageInfo {
                     width: image.width,
                     height: image.height,

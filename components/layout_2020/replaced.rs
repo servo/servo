@@ -125,7 +125,7 @@ impl ReplacedContent {
                 image_url.clone(),
                 UsePlaceholder::No,
             ) {
-                Some(ImageOrMetadataAvailable::ImageAvailable(image, _)) => {
+                Some(ImageOrMetadataAvailable::ImageAvailable { image, .. }) => {
                     (Some(image.clone()), image.width as f32, image.height as f32)
                 },
                 Some(ImageOrMetadataAvailable::MetadataAvailable(metadata)) => {
