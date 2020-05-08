@@ -40,6 +40,7 @@ use std::mem;
 use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::rc::Rc;
+use surfman::Adapter;
 use surfman::Connection;
 use surfman::SurfaceType;
 
@@ -211,9 +212,12 @@ pub fn init(
 
     // Initialize surfman
     let connection = Connection::new().or(Err("Failed to create connection"))?;
-    let adapter = connection
-        .create_adapter()
-        .or(Err("Failed to create adapter"))?;
+    let adapter = match create_adapter() {
+        Some(adapter) => adapter,
+        None => connection
+            .create_adapter()
+            .or(Err("Failed to create adapter"))?,
+    };
     let native_widget = unsafe {
         connection.create_native_widget_from_ptr(
             init_opts.native_widget,
@@ -949,4 +953,14 @@ impl ResourceReaderMethods for ResourceReaderInstance {
     fn sandbox_access_files_dirs(&self) -> Vec<PathBuf> {
         vec![]
     }
+}
+
+#[cfg(feature = "uwp")]
+fn create_adapter() -> Option<Adapter> {
+    webxr::openxr::create_surfman_adapter()
+}
+
+#[cfg(not(feature = "uwp"))]
+fn create_adapter() -> Option<Adapter> {
+    None
 }
