@@ -8,6 +8,7 @@ use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 #[cfg(debug_assertions)]
 use crate::layout_debug;
+use app_units::Au;
 use gfx::font::FontMetrics as GfxFontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
@@ -180,20 +181,17 @@ impl Fragment {
     ) -> bool {
         let (vertical_align, vertical_align_metrics, block_size, pbm_block_start, x_height) =
             match self {
-                Fragment::Box(f) => {
-                    let padding_border_block_sums = f.padding.block_sum() + f.border.block_sum();
-                    (
-                        &f.style.get_box().vertical_align,
-                        &f.vertical_align_metrics,
-                        f.content_rect.size.block +
-                            f.padding.block_sum() +
-                            f.border.block_sum() +
-                            f.margin.block_sum(),
-                        f.padding.block_start + f.border.block_start + f.margin.block_start,
-                        // XXX(ferjm) we should add this to Box fragments
-                        Length::zero(),
-                    )
-                },
+                Fragment::Box(f) => (
+                    &f.style.get_box().vertical_align,
+                    &f.vertical_align_metrics,
+                    f.content_rect.size.block +
+                        f.padding.block_sum() +
+                        f.border.block_sum() +
+                        f.margin.block_sum(),
+                    f.padding.block_start + f.border.block_start + f.margin.block_start,
+                    // XXX(ferjm) we should add this to Box fragments
+                    Length::zero(),
+                ),
                 Fragment::Text(f) => (
                     &f.parent_style.get_box().vertical_align,
                     &f.vertical_align_metrics,
@@ -247,7 +245,22 @@ impl Fragment {
                     *line_block_size - block_size
                 },
             },
-            VerticalAlign::Length(_) => Length::zero(),
+            VerticalAlign::Length(ref length) =>
+            // <percentage>
+            // Raise (positive value) or lower (negative value) the box
+            // by this distance (a percentage of the 'line-height' value).
+            // The value '0%' means the same as 'baseline'.
+            //
+            // <length>
+            // Raise (positive value) or lower (negative value) the box by
+            // this distance. The value '0cm' means the same as 'baseline'.
+            {
+                baseline.space_above -
+                    vertical_align_metrics.baseline.space_above -
+                    length
+                        .to_used_value(Au::from_f32_px(line_block_size.px()))
+                        .into()
+            },
         } + pbm_block_start;
 
         let overflow = if block_position + block_size > *line_block_size {
