@@ -67,6 +67,10 @@
           }, `mathbackground on the ${tag} element is mapped to CSS background-color`);
 
           test(function() {
+              // "none" and "mprescripts" can only be used as non-first children of mmultiscripts so font-size
+              // is incremented and the resulting fraction string is hard to test accurately, skip for now.
+              if (tag === "none" || tag === "mprescripts")
+                  return;
               assert_equals(style.getPropertyValue("font-size"), "50px", "no attribute");
               element.setAttribute("mathsize", "20px");
               assert_equals(style.getPropertyValue("font-size"), "20px", "attribute specified");

@@ -28,15 +28,7 @@ test(t => {
 }, "Object.prototype.toString applied after modifying @@toStringTag");
 
 // Chrome had a bug (https://bugs.chromium.org/p/chromium/issues/detail?id=793406) where if there
-// was no @@toStringTag, it would fall back to a magic class string. This tests that the bug is
-// fixed.
-
-// Note: we cannot null out the prototype of the named properties object per
-// https://heycam.github.io/webidl/#named-properties-object-setprototypeof so we don't have a test that does that.
-
-// This test must be last.
-test(() => {
-  delete namedPropertiesObject[Symbol.toStringTag];
-
-  assert_equals(Object.prototype.toString.call(namedPropertiesObject), "[object EventTarget]", "prototype");
-}, "Object.prototype.toString applied after deleting @@toStringTag");
+// was no @@toStringTag, it would fall back to a magic class string. Tests for this are present in
+// the sibling class-string*.any.js tests. However, the named properties object always fails calls
+// to [[DefineOwnProperty]] or [[SetPrototypeOf]] per the Web IDL spec, so there is no way to
+// trigger the buggy behavior for it.

@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Async Clipboard raw platform-specific write -> read tests</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+async function rawWriteBeforeTest() {
+  const format = 'RawClipboardDisabledFormat';
+  const blob = new Blob(['RawClipboardDisabled'], {type: format});
+  const clipboardItem = new ClipboardItem({[format]: blob}, {raw: true});
+  await navigator.clipboard.write([clipboardItem]);
+}
+
+function platformFormat() {
+  if(navigator.platform.includes('Win'))
+    return 'CF_TEXT';
+  if(navigator.platform.includes('Linux'))
+    return 'text/plain';
+  return 'PlatformNeutralFormat';
+}
+
+// Writes a payload with platform-specific content and checks to ensure the
+// correct data was written successfully.
+promise_test(async t => {
+  // This extra raw write is used to create consistency in the error message
+  // when the RawClipboard flag isn't enabled.
+  // TODO(https://crbug.com/897289): Remove this after RawClipboard is enabled
+  // by default.
+  await rawWriteBeforeTest();
+  const dataToWrite = 'Test text.';
+  const format = platformFormat();
+
+  const blobInput = new Blob([dataToWrite], {type: format});
+  // Blob types are automatically converted to lower-case.
+  assert_equals(blobInput.type, format.toLowerCase());
+  const clipboardItemInput = new ClipboardItem(
+      {[format]: blobInput}, {raw: true});
+  await navigator.clipboard.write([clipboardItemInput]);
+
+  // Items should be readable on a raw clipboard after raw write.
+  const clipboardItems = await navigator.clipboard.read({raw: true});
+  assert_equals(clipboardItems.length, 1);
+  const clipboardItem = clipboardItems[0];
+  assert_true(clipboardItem instanceof ClipboardItem);
+
+  const blobOutput = await clipboardItem.getType(format);
+  assert_equals(blobOutput.type, format);
+  const data = await (new Response(blobOutput)).text();
+  assert_equals(data, dataToWrite);
+
+  if(format === 'PlatformNeutralFormat')
+    return;
+  // These examples use native text formats, so these formats should be
+  // accessible as text.
+  const textOutput = await navigator.clipboard.readText();
+  assert_equals(textOutput, dataToWrite);
+
+}, 'Verify write and read clipboard given platform-specific raw input');
+</script>
+<p>
+  Note: This is a manual test because it writes/reads to the shared system
+  clipboard and thus cannot be run async with other tests that might interact
+  with the clipboard.
+</p>
