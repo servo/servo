@@ -1527,21 +1527,4 @@ class MockXRPresentationProvider {
   }
 }
 
-// This is a temporary workaround for the fact that spinning up webxr before
-// the mojo interceptors are created will cause the interceptors to not get
-// registered, so we have to create this before we query xr;
-const XRTest = new ChromeXRTest();
-
-// This test API is also used to run Chrome's internal legacy VR tests; however,
-// those fail if navigator.xr has been used. Those tests will set a bool telling
-// us not to try to check navigator.xr
-if ((typeof legacy_vr_test === 'undefined') || !legacy_vr_test) {
-  // Some tests may run in the http context where navigator.xr isn't exposed
-  // This should just be to test that it isn't exposed, but don't try to set up
-  // the test framework in this case.
-  if (navigator.xr) {
-    navigator.xr.test = XRTest;
-  }
-} else {
-  navigator.vr = { test: XRTest };
-}
+navigator.xr.test = new ChromeXRTest();

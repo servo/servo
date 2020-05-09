@@ -9,11 +9,8 @@
 
 sensor_test(async (t, sensorProvider) => {
   const orientationData = generateOrientationData(1.1, 2.2, 3.3, true);
-  const watcher = new EventWatcher(t, window, ['deviceorientationabsolute']);
-
   setMockOrientationData(sensorProvider, orientationData);
-  const event = await watcher.wait_for('deviceorientationabsolute');
-  assertEventEquals(event, getExpectedAbsoluteOrientationEvent(orientationData));
+  return waitForEvent(getExpectedAbsoluteOrientationEvent(orientationData));
 }, 'Tests basic operation of deviceorientationabsolute event using mock data.');
 
 sensor_test(async (t, sensorProvider) => {

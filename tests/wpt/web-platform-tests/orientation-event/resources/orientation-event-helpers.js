@@ -179,3 +179,12 @@ function getExpectedMotionEvent(expectedMotionData) {
     interval: expectedMotionData.interval,
   });
 }
+
+function waitForEvent(expected_event) {
+  return new Promise(resolve => {
+    window.addEventListener(expected_event.type, (event) => {
+      assertEventEquals(event, expected_event);
+      resolve();
+    }, { once: true });
+  });
+}

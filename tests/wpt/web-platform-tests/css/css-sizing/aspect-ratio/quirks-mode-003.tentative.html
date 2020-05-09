@@ -1,0 +1,15 @@
+<!-- quirks mode -->
+<title>Aspect ratio and quirks mode</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<meta name="flags" content="dom" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+onload = function() {
+  test(function() {
+    assert_equals(document.body.clientHeight, document.documentElement.clientHeight);
+  }, "body height should match documentElement due to min-height: auto");
+};
+</script>
+<body style="width: 100px; aspect-ratio: 1/1;">
