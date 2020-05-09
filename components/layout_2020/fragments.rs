@@ -148,6 +148,16 @@ impl Fragment {
         position.inline += *offset;
     }
 
+    pub fn tag(&self) -> Option<OpaqueNode> {
+        match self {
+            Fragment::Box(fragment) => Some(fragment.tag),
+            Fragment::Text(fragment) => Some(fragment.tag),
+            Fragment::AbsoluteOrFixedPositioned(_) |
+            Fragment::Anonymous(_) |
+            Fragment::Image(_) => None,
+        }
+    }
+
     pub fn print(&self, tree: &mut PrintTree) {
         match self {
             Fragment::Box(fragment) => fragment.print(tree),

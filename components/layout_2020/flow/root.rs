@@ -237,7 +237,7 @@ impl FragmentTreeRoot {
         ))
     }
 
-    fn find<T>(
+    pub(crate) fn find<T>(
         &self,
         mut process_func: impl FnMut(&Fragment, &PhysicalRect<Length>) -> Option<T>,
     ) -> Option<T> {
@@ -251,16 +251,18 @@ impl FragmentTreeRoot {
     pub fn get_content_box_for_node(&self, requested_node: OpaqueNode) -> Rect<Au> {
         let mut bounding_box = PhysicalRect::zero();
         self.find(|fragment, containing_block| {
+            if fragment.tag() != Some(requested_node) {
+                return None::<()>;
+            }
+
             let fragment_relative_rect = match fragment {
-                Fragment::Box(fragment) if fragment.tag == requested_node => fragment
+                Fragment::Box(fragment) => fragment
                     .border_rect()
                     .to_physical(fragment.style.writing_mode, &containing_block),
-                Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
-                Fragment::Text(fragment) if fragment.tag == requested_node => fragment
+                Fragment::Text(fragment) => fragment
                     .rect
                     .to_physical(fragment.parent_style.writing_mode, &containing_block),
-                Fragment::Box(_) |
-                Fragment::Text(_) |
+                Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::Anonymous(_) => return None,
             };

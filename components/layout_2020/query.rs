@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 //! Utilities for querying the layout, as needed by the layout thread.
-
 use crate::context::LayoutContext;
 use crate::flow::FragmentTreeRoot;
+use crate::fragments::Fragment;
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
@@ -16,15 +16,24 @@ use script_layout_interface::rpc::TextIndexResponse;
 use script_layout_interface::rpc::{ContentBoxResponse, ContentBoxesResponse, LayoutRPC};
 use script_layout_interface::rpc::{NodeGeometryResponse, NodeScrollIdResponse};
 use script_layout_interface::rpc::{OffsetParentResponse, ResolvedStyleResponse};
-use script_layout_interface::wrapper_traits::{LayoutNode, ThreadSafeLayoutNode};
+use script_layout_interface::wrapper_traits::{
+    LayoutNode, ThreadSafeLayoutElement, ThreadSafeLayoutNode,
+};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use style::computed_values::position::T as Position;
+use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::OpaqueNode;
-use style::properties::PropertyId;
+use style::dom::TElement;
+use style::properties::{LonghandId, PropertyDeclarationId, PropertyId};
 use style::selector_parser::PseudoElement;
+use style::stylist::RuleInclusion;
+use style::traversal::resolve_style;
+use style::values::generics::text::LineHeight;
 use style_traits::CSSPixel;
+use style_traits::ToCss;
 use webrender_api::units::LayoutPixel;
 use webrender_api::ExternalScrollId;
 
@@ -199,12 +208,165 @@ pub fn process_node_scroll_area_request(_requested_node: OpaqueNode) -> Rect<i32
 /// Return the resolved value of property for a given (pseudo)element.
 /// <https://drafts.csswg.org/cssom/#resolved-value>
 pub fn process_resolved_style_request<'dom>(
-    _context: &LayoutContext,
-    _node: impl LayoutNode<'dom>,
-    _pseudo: &Option<PseudoElement>,
-    _property: &PropertyId,
+    context: &LayoutContext,
+    node: impl LayoutNode<'dom>,
+    pseudo: &Option<PseudoElement>,
+    property: &PropertyId,
+    fragment_tree_root: Option<Arc<FragmentTreeRoot>>,
 ) -> String {
-    "".to_owned()
+    if !node.as_element().unwrap().has_data() {
+        return process_resolved_style_request_for_unstyled_node(context, node, pseudo, property);
+    }
+
+    // We call process_resolved_style_request after performing a whole-document
+    // traversal, so in the common case, the element is styled.
+    let layout_element = node.to_threadsafe().as_element().unwrap();
+    let layout_element = match *pseudo {
+        None => Some(layout_element),
+        Some(PseudoElement::Before) => layout_element.get_before_pseudo(),
+        Some(PseudoElement::After) => layout_element.get_after_pseudo(),
+        Some(_) => {
+            warn!("Got unexpected pseudo element type!");
+            None
+        },
+    };
+
+    let layout_element = match layout_element {
+        None => {
+            // The pseudo doesn't exist, return nothing.  Chrome seems to query
+            // the element itself in this case, Firefox uses the resolved value.
+            // https://www.w3.org/Bugs/Public/show_bug.cgi?id=29006
+            return String::new();
+        },
+        Some(layout_element) => layout_element,
+    };
+
+    let style = &*layout_element.resolved_style();
+    let longhand_id = match *property {
+        PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
+        // Firefox returns blank strings for the computed value of shorthands,
+        // so this should be web-compatible.
+        PropertyId::ShorthandAlias(..) | PropertyId::Shorthand(_) => return String::new(),
+        PropertyId::Custom(ref name) => {
+            return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
+        },
+    }
+    .to_physical(style.writing_mode);
+
+    let computed_style =
+        || style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id));
+
+    // We do not yet support pseudo content.
+    if pseudo.is_some() {
+        return computed_style();
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
+    // Here we are trying to conform to the specification that says that getComputedStyle
+    // should return the used values in certain circumstances. For size and positional
+    // properties we might need to walk the Fragment tree to figure those out. We always
+    // fall back to returning the computed value.
+
+    // For line height, the resolved value is the computed value if it
+    // is "normal" and the used value otherwise.
+    if longhand_id == LonghandId::LineHeight {
+        let font_size = style.get_font().font_size.size.0;
+        return match style.get_inherited_text().line_height {
+            LineHeight::Normal => computed_style(),
+            LineHeight::Number(value) => (font_size * value.0).to_css_string(),
+            LineHeight::Length(value) => value.0.to_css_string(),
+        };
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
+    // The properties that we calculate below all resolve to the computed value
+    // when the element is display:none or display:contents.
+    let display = style.get_box().display;
+    if display.is_none() || display.is_contents() {
+        return computed_style();
+    }
+
+    let fragment_tree_root = match fragment_tree_root {
+        Some(fragment_tree_root) => fragment_tree_root,
+        None => return computed_style(),
+    };
+    fragment_tree_root
+        .find(|fragment, containing_block| {
+            let box_fragment = match fragment {
+                Fragment::Box(ref box_fragment) if box_fragment.tag == node.opaque() => {
+                    box_fragment
+                },
+                _ => return None,
+            };
+
+            let positioned = style.get_box().position != Position::Static;
+            let content_rect = box_fragment
+                .content_rect
+                .to_physical(box_fragment.style.writing_mode, &containing_block);
+            let margins = box_fragment
+                .margin
+                .to_physical(box_fragment.style.writing_mode);
+            let padding = box_fragment
+                .padding
+                .to_physical(box_fragment.style.writing_mode);
+            match longhand_id {
+                LonghandId::Width => Some(content_rect.size.width),
+                LonghandId::Height => Some(content_rect.size.height),
+                LonghandId::MarginBottom => Some(margins.bottom),
+                LonghandId::MarginTop => Some(margins.top),
+                LonghandId::MarginLeft => Some(margins.left),
+                LonghandId::MarginRight => Some(margins.right),
+                LonghandId::PaddingBottom => Some(padding.bottom),
+                LonghandId::PaddingTop => Some(padding.top),
+                LonghandId::PaddingLeft => Some(padding.left),
+                LonghandId::PaddingRight => Some(padding.right),
+                // TODO(mrobinson): These following values are often wrong, because these are not
+                // exactly the "used value" for the positional properties. The real used values are
+                // lost by the time the Fragment tree is constructed, so we may need to record them in
+                // the tree to properly answer this query. That said, we can return an okayish value
+                // sometimes simply by using the calculated position in the containing block.
+                LonghandId::Top if positioned => Some(content_rect.origin.y),
+                LonghandId::Left if positioned => Some(content_rect.origin.x),
+                _ => None,
+            }
+            .map(|value| value.to_css_string())
+        })
+        .unwrap_or_else(computed_style)
+}
+
+pub fn process_resolved_style_request_for_unstyled_node<'dom>(
+    context: &LayoutContext,
+    node: impl LayoutNode<'dom>,
+    pseudo: &Option<PseudoElement>,
+    property: &PropertyId,
+) -> String {
+    // In a display: none subtree. No pseudo-element exists.
+    if pseudo.is_some() {
+        return String::new();
+    }
+
+    let mut tlc = ThreadLocalStyleContext::new(&context.style_context);
+    let mut context = StyleContext {
+        shared: &context.style_context,
+        thread_local: &mut tlc,
+    };
+
+    let element = node.as_element().unwrap();
+    let styles = resolve_style(&mut context, element, RuleInclusion::All, pseudo.as_ref());
+    let style = styles.primary();
+    let longhand_id = match *property {
+        PropertyId::LonghandAlias(id, _) | PropertyId::Longhand(id) => id,
+        // Firefox returns blank strings for the computed value of shorthands,
+        // so this should be web-compatible.
+        PropertyId::ShorthandAlias(..) | PropertyId::Shorthand(_) => return String::new(),
+        PropertyId::Custom(ref name) => {
+            return style.computed_value_to_string(PropertyDeclarationId::Custom(name));
+        },
+    };
+
+    // No need to care about used values here, since we're on a display: none
+    // subtree, use the resolved value.
+    style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id))
 }
 
 pub fn process_offset_parent_query(_requested_node: OpaqueNode) -> OffsetParentResponse {
