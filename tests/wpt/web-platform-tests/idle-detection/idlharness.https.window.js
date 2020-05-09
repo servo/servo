@@ -23,7 +23,7 @@ promise_test(async (t) => {
   idl_array.add_dependency_idls(dom);
   idl_array.add_dependency_idls(html);
 
-  self.idle = new IdleDetector({threshold: 60000});
+  self.idle = new IdleDetector();
   let watcher = new EventWatcher(t, self.idle, ["change"]);
   let initial_state = watcher.wait_for("change");
   await self.idle.start();
@@ -31,7 +31,6 @@ promise_test(async (t) => {
 
   idl_array.add_objects({
     IdleDetector: ['idle'],
-    IdleState: ['idle.state']
   });
 
   idl_array.test();

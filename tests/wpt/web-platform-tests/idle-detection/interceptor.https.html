@@ -29,17 +29,18 @@ promise_test(async t => {
       });
   });
 
-  let detector = new IdleDetector({threshold: 60000});
-  let watcher = new EventWatcher(t, detector, ["change"]);
-  let initial_state = watcher.wait_for("change");
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
+  const initial_state = watcher.wait_for("change");
 
-  await detector.start();
+  await detector.start({ signal: controller.signal });
   await initial_state;
 
-  assert_equals(detector.state.user, "active");
-  assert_equals(detector.state.screen, "locked");
+  assert_equals(detector.userState, "active");
+  assert_equals(detector.screenState, "locked");
 
-  detector.stop();
+  controller.abort();
 }, 'start()');
 
 promise_test(async t => {
@@ -63,20 +64,21 @@ promise_test(async t => {
       return first;
     });
 
-  let detector = new IdleDetector({threshold: 60000});
-  let watcher = new EventWatcher(t, detector, ["change"]);
-  let initial_state = watcher.wait_for("change");
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
+  const initial_state = watcher.wait_for("change");
 
-  await detector.start();
+  await detector.start({ signal: controller.signal });
   await initial_state;
 
   // Wait for the first change in state.
   await watcher.wait_for("change");
 
-  assert_equals(detector.state.user, "idle");
-  assert_equals(detector.state.screen, "unlocked");
+  assert_equals(detector.userState, "idle");
+  assert_equals(detector.screenState, "unlocked");
 
-  detector.stop();
+  controller.abort();
 }, 'updates once');
 
 
@@ -108,22 +110,23 @@ promise_test(async t => {
       return first;
     });
 
-  let detector = new IdleDetector({threshold: 60000});
-  let watcher = new EventWatcher(t, detector, ["change"]);
-  let initial_state = watcher.wait_for("change");
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
+  const initial_state = watcher.wait_for("change");
 
-  await detector.start();
+  await detector.start({ signal: controller.signal });
   await initial_state;
 
   // Waits for the first event.
   await watcher.wait_for("change");
-  assert_equals(detector.state.user, "idle");
+  assert_equals(detector.userState, "idle");
 
   // Waits for the second event.
   await watcher.wait_for("change");
-  assert_equals(detector.state.user, "active");
+  assert_equals(detector.userState, "active");
 
-  detector.stop();
+  controller.abort();
 }, 'updates twice');
 
 promise_test(async t => {
@@ -137,16 +140,17 @@ promise_test(async t => {
       });
     });
 
-  let detector = new IdleDetector({threshold: 60000});
-  let watcher = new EventWatcher(t, detector, ["change"]);
-  let initial_state = watcher.wait_for("change");
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
+  const initial_state = watcher.wait_for("change");
 
-  await detector.start();
+  await detector.start({ signal: controller.signal });
   await initial_state;
 
-  assert_equals(detector.state.screen, "locked");
+  assert_equals(detector.screenState, "locked");
 
-  detector.stop();
+  controller.abort();
 }, 'locked screen');
 
 promise_test(async t => {
@@ -159,21 +163,22 @@ promise_test(async t => {
       });
   });
 
-  let detector = new IdleDetector({threshold: 60000});
+  const controller = new AbortController();
+  const detector = new IdleDetector();
 
   let event = new Promise((resolve, reject) => {
     detector.onchange = resolve;
   });
 
-  await detector.start();
+  await detector.start({ signal: controller.signal });
 
   // Waits for the first event.
   await event;
 
-  assert_equals(detector.state.user, "active");
-  assert_equals(detector.state.screen, "locked");
+  assert_equals(detector.userState, "active");
+  assert_equals(detector.screenState, "locked");
 
-  detector.stop();
+  controller.abort();
 }, 'IdleDetector.onchange');
 
 promise_test(async t => {
@@ -186,30 +191,26 @@ promise_test(async t => {
       });
     });
 
-  let detector = new IdleDetector({threshold: 60000});
+  const controller = new AbortController();
+  const detector = new IdleDetector();
 
-  let watcher = new EventWatcher(t, detector, ["change"]);
-  let initial_state = watcher.wait_for("change");
+  const watcher = new EventWatcher(t, detector, ["change"]);
+  const initial_state = watcher.wait_for("change");
 
-  // Calling start() multiple times should be safe.
-  await Promise.all([
-    detector.start(),
-    detector.start(),
-    detector.start(),
-    detector.start()
-  ]);
+  // Only the first call to start() is allowed.
+  const start_promise = detector.start();
+  await promise_rejects_dom(t, 'InvalidStateError', detector.start());
+  await start_promise;
 
   await initial_state;
-  assert_equals(detector.state.user, "active");
-  assert_equals(detector.state.screen, "unlocked");
+  assert_equals(detector.userState, "active");
+  assert_equals(detector.screenState, "unlocked");
 
-  // Calling stop() multiple times should be safe.
-  await Promise.all([
-    detector.stop(),
-    detector.stop(),
-    detector.stop(),
-    detector.stop()
-  ]);
+  // Calling abort() multiple times is safe.
+  controller.abort();
+  controller.abort();
+  controller.abort();
+  controller.abort();
 }, 'Safe to call start() or stop() multiple times');
 
 promise_test(async t => {
@@ -222,21 +223,14 @@ promise_test(async t => {
       });
     });
 
-  let detector = new IdleDetector({threshold: 60000});
+  const controller = new AbortController();
+  const detector = new IdleDetector();
 
-  // Calling stop() before start() is a no-op.
-  detector.stop();
+  // Calling abort() before start() causes start() to fail.
+  controller.abort();
 
-  let watcher = new EventWatcher(t, detector, ["change"]);
-  let initial_state = watcher.wait_for("change");
-
-  await detector.start();
-  await initial_state;
-
-  assert_equals(detector.state.user, "active");
-  assert_equals(detector.state.screen, "unlocked");
-
-  detector.stop();
+  await promise_rejects_dom(
+      t, 'AbortError', detector.start({ signal: controller.signal }));
 }, 'Calling stop() after start() is a no-op');
 
 promise_test(async t => {
@@ -249,15 +243,15 @@ promise_test(async t => {
       });
     });
 
-  let detector = new IdleDetector({threshold: 60000});
-
-  let watcher = new EventWatcher(t, detector, ["change"]);
+  let controller = new AbortController();
+  const detector = new IdleDetector();
+  const watcher = new EventWatcher(t, detector, ["change"]);
   let initial_state = watcher.wait_for("change");
 
-  await detector.start();
+  await detector.start({ signal: controller.signal });
   await initial_state;
 
-  detector.stop();
+  controller.abort();
 
   expect(addMonitor).andReturn((threshold, monitorPtr) => {
       return Promise.resolve({
@@ -269,13 +263,15 @@ promise_test(async t => {
     });
 
   // Restarting the monitor.
-  initial_state = watcher.wait_for("change");
-  await detector.start();
-  await initial_state;
-  assert_equals(detector.state.user, "idle");
-  assert_equals(detector.state.screen, "locked");
+  controller = new AbortController();
 
-  detector.stop();
+  initial_state = watcher.wait_for("change");
+  await detector.start({ signal: controller.signal });
+  await initial_state;
+  assert_equals(detector.userState, "idle");
+  assert_equals(detector.screenState, "locked");
+
+  controller.abort();
 }, 'Calling start() after stop(): re-starting monitor.');
 
 </script>

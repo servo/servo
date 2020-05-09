@@ -66,6 +66,38 @@ promise_test(async t => {
 promise_test(async t => {
     const animation = createScrollLinkedAnimation(t);
     const scroller = animation.timeline.scrollSource;
+    const target = animation.effect.target;
+    // Make the scroll timeline inactive.
+    scroller.style.overflow = 'visible';
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    // Set start time when the timeline is inactive.
+    animation.startTime = 0;
+    assert_equals(animation.currentTime, null,
+      'Sanity check current time is unresolved when the timeline is inactive.');
+
+    // Make the scroll timeline active.
+    scroller.style.overflow = 'auto';
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+
+    assert_equals(animation.currentTime, 0,
+      'Animation current time is resolved when the timeline is active.');
+    assert_equals(animation.startTime, 0,
+      'Animation start time is resolved.');
+    assert_times_equal(
+      animation.effect.getComputedTiming().localTime, 0,
+      'Effect local time is resolved when the timeline is active.');
+    assert_equals(Number(getComputedStyle(target).opacity), 0,
+      'Animation has an effect when the timeline is active.');
+}, 'Animation start and current times are correct if scroll timeline is ' +
+   'activated after setting start time.');
+
+promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    const scroller = animation.timeline.scrollSource;
     const maxScroll = scroller.scrollHeight - scroller.clientHeight;
     const target = animation.effect.target;
     // Advance the scroller.

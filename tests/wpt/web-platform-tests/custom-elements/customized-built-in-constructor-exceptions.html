@@ -73,3 +73,35 @@ test(t => {
 }, 'Throwing exception in customized built-in constructor should not crash and should return correct element type (form)');
 </script>
 
+<script>
+class MyInput extends HTMLInputElement { };
+customElements.define('my-input', MyInput, { extends: 'input' });
+</script>
+<input id=customized-input is='my-input'>
+<script>
+test(t => {
+  const input = document.getElementById('customized-input');
+  assert_true(input instanceof MyInput);
+  assert_true(input instanceof HTMLInputElement);
+}, 'Make sure customized <input> element doesnt crash');
+</script>
+
+
+<script>
+class MyInputAttrs extends HTMLInputElement {
+  constructor() {
+    super();
+    this.setAttribute('foo', 'bar');
+  }
+}
+customElements.define('my-input-attr', MyInputAttrs, { extends: 'input' });
+</script>
+<input id=customized-input-attr is='my-input-attr'>
+<script>
+test(t => {
+  const input = document.getElementById('customized-input-attr');
+  assert_true(input instanceof MyInputAttrs);
+  assert_true(input instanceof HTMLInputElement);
+  assert_equals(input.getAttribute('foo'),'bar');
+}, 'Make sure customized <input> element that sets attributes doesnt crash');
+</script>

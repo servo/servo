@@ -9,64 +9,90 @@ promise_setup(async t => {
 })
 
 promise_test(async t => {
-  let status = new IdleDetector();
-  let watcher = new EventWatcher(t, status, ["change"]);
+  let detector = new IdleDetector();
+  let watcher = new EventWatcher(t, detector, ["change"]);
   let initial_state = watcher.wait_for("change");
 
-  await status.start();
+  await detector.start();
   await initial_state;
 
-  assert_true(['active', 'idle'].includes(status.state.user),
-                'status has a valid user state');
-  assert_true(['locked', 'unlocked'].includes(status.state.screen),
-                'status has a valid screen state');
+  assert_true(['active', 'idle'].includes(detector.userState),
+                'has a valid user state');
+  assert_true(['locked', 'unlocked'].includes(detector.screenState),
+                'has a valid screen state');
 }, 'start() basics');
 
 promise_test(async t => {
   let used = false;
 
-  new IdleDetector({
+  const detector = new IdleDetector();
+  detector.start({
     get threshold() {
       used = true;
       return 60000;
     }
   });
 
-  assert_true(used, 'constructor options "threshold" member was used');
-}, 'constructor uses threshold property');
+  assert_true(used, 'start() options "threshold" member was used');
+}, 'start() uses threshold property');
 
 promise_test(async t => {
-  assert_throws_js(TypeError, () => new IdleDetector({threshold: 0}));
-}, 'constructor throws with invalid threshold (0)');
+  let used = false;
+
+  const controller = new AbortController();
+  const detector = new IdleDetector();
+  detector.start({
+    get signal() {
+      used = true;
+      return controller.signal;
+    }
+  });
+
+  assert_true(used, 'start() options "signal" member was used');
+}, 'start() uses signal property');
+
 
 promise_test(async t => {
-  assert_throws_js(TypeError, () => new IdleDetector({threshold: 59000}));
-}, 'constructor throws with threshold below minimum (59000)');
+  const detector = new IdleDetector();
+  await promise_rejects_js(t, TypeError, detector.start({threshold: 0}));
+}, 'start() rejects with invalid threshold (0)');
 
 promise_test(async t => {
-  new IdleDetector({threshold: 60000});
-}, 'constructor allows threshold (60000)');
+  const detector = new IdleDetector();
+  await promise_rejects_js(t, TypeError, detector.start({threshold: 59000}));
+}, 'start() rejects with threshold below minimum (59000)');
 
 promise_test(async t => {
-  new IdleDetector({threshold: 61000});
-}, 'constructor allows threshold (61000)');
+  const detector = new IdleDetector();
+  await detector.start({threshold: 60000});
+}, 'start() rejects threshold (60000)');
 
 promise_test(async t => {
-  assert_throws_js(TypeError, () => new IdleDetector({threshold: null}));
-}, 'constructor throws with invalid threshold (null)');
+  const detector = new IdleDetector();
+  await detector.start({threshold: 61000});
+}, 'start() allows threshold (61000)');
 
 promise_test(async t => {
-  assert_throws_js(TypeError, () => new IdleDetector({threshold: -1}));
-}, 'constructor throws with invalid threshold (-1)');
+  const detector = new IdleDetector();
+  await promise_rejects_js(t, TypeError, detector.start({threshold: null}));
+}, 'start() rejects with invalid threshold (null)');
 
 promise_test(async t => {
-  assert_throws_js(TypeError, () => new IdleDetector({threshold: NaN}));
-}, 'constructor throws with invalid threshold (NaN)');
+  const detector = new IdleDetector();
+  await promise_rejects_js(t, TypeError, detector.start({threshold: -1}));
+}, 'start() rejects with invalid threshold (-1)');
 
 promise_test(async t => {
-  new IdleDetector();
-}, 'constructor uses a default value for the threshold when none is passed');
+  const detector = new IdleDetector();
+  await promise_rejects_js(t, TypeError, detector.start({threshold: NaN}));
+}, 'start() rejects with invalid threshold (NaN)');
 
 promise_test(async t => {
-  new IdleDetector({threshold: undefined});
-}, 'constructor uses a default value for the threshold');
+  const detector = new IdleDetector();
+  await detector.start();
+}, 'start() uses a default value for the threshold when none is passed');
+
+promise_test(async t => {
+  const detector = new IdleDetector();
+  await detector.start({threshold: undefined});
+}, 'start() uses a default value for the threshold');
