@@ -72,6 +72,7 @@ use servo_rand::random;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use style::attr::AttrValue;
+use style::element_state::ElementState;
 use style::str::split_html_space_chars;
 
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
@@ -104,7 +105,12 @@ impl HTMLFormElement {
         document: &Document,
     ) -> HTMLFormElement {
         HTMLFormElement {
-            htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
+            htmlelement: HTMLElement::new_inherited_with_state(
+                ElementState::IN_VALID_STATE,
+                local_name,
+                prefix,
+                document,
+            ),
             marked_for_reset: Cell::new(false),
             constructing_entry_list: Cell::new(false),
             elements: Default::default(),
@@ -674,6 +680,23 @@ impl HTMLFormElement {
         result
     }
 
+    pub fn update_validity(&self) {
+        let controls = self.controls.borrow();
+
+        let is_any_invalid = controls
+            .iter()
+            .filter_map(|control| control.as_maybe_validatable())
+            .any(|validatable| {
+                validatable.is_instance_validatable() &&
+                    !validatable.validity_state().invalid_flags().is_empty()
+            });
+
+        self.upcast::<Element>()
+            .set_state(ElementState::IN_VALID_STATE, !is_any_invalid);
+        self.upcast::<Element>()
+            .set_state(ElementState::IN_INVALID_STATE, is_any_invalid);
+    }
+
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)
     pub fn submit(&self, submit_method_flag: SubmittedFrom, submitter: FormSubmitter) {
         // Step 1
@@ -1034,9 +1057,12 @@ impl HTMLFormElement {
                         Some(v) => v,
                         None => return None,
                     };
+                    validatable
+                        .validity_state()
+                        .perform_validation_and_update(ValidationFlags::all());
                     if !validatable.is_instance_validatable() {
                         None
-                    } else if validatable.validate(ValidationFlags::all()).is_empty() {
+                    } else if validatable.validity_state().invalid_flags().is_empty() {
                         None
                     } else {
                         Some(DomRoot::from_ref(el))
@@ -1287,27 +1313,32 @@ impl HTMLFormElement {
     }
 
     fn add_control<T: ?Sized + FormControl>(&self, control: &T) {
-        let root = self.upcast::<Element>().root_element();
-        let root = root.upcast::<Node>();
-
-        let mut controls = self.controls.borrow_mut();
-        controls.insert_pre_order(control.to_element(), root);
+        {
+            let root = self.upcast::<Element>().root_element();
+            let root = root.upcast::<Node>();
+            let mut controls = self.controls.borrow_mut();
+            controls.insert_pre_order(control.to_element(), root);
+        }
+        self.update_validity();
     }
 
     fn remove_control<T: ?Sized + FormControl>(&self, control: &T) {
-        let control = control.to_element();
-        let mut controls = self.controls.borrow_mut();
-        controls
-            .iter()
-            .position(|c| &**c == control)
-            .map(|idx| controls.remove(idx));
+        {
+            let control = control.to_element();
+            let mut controls = self.controls.borrow_mut();
+            controls
+                .iter()
+                .position(|c| &**c == control)
+                .map(|idx| controls.remove(idx));
 
-        // https://html.spec.whatwg.org/multipage#forms.html#the-form-element:past-names-map-5
-        // "If an element listed in a form element's past names map
-        // changes form owner, then its entries must be removed
-        // from that map."
-        let mut past_names_map = self.past_names_map.borrow_mut();
-        past_names_map.retain(|_k, v| v.0 != control);
+            // https://html.spec.whatwg.org/multipage#forms.html#the-form-element:past-names-map-5
+            // "If an element listed in a form element's past names map
+            // changes form owner, then its entries must be removed
+            // from that map."
+            let mut past_names_map = self.past_names_map.borrow_mut();
+            past_names_map.retain(|_k, v| v.0 != control);
+        }
+        self.update_validity();
     }
 }
 
