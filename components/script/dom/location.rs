@@ -9,7 +9,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
-use crate::dom::document::Document;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::window::Window;
@@ -66,7 +65,7 @@ impl Location {
     fn check_same_origin_domain(&self) -> ErrorResult {
         let this_document = self.window.Document();
         if self
-            .entry_document()
+            .entry_settings_object()
             .origin()
             .same_origin_domain(this_document.origin())
         {
@@ -76,8 +75,8 @@ impl Location {
         }
     }
 
-    fn entry_document(&self) -> DomRoot<Document> {
-        GlobalScope::entry().as_window().Document()
+    fn entry_settings_object(&self) -> DomRoot<GlobalScope> {
+        GlobalScope::entry()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-location-reload
@@ -104,7 +103,7 @@ impl LocationMethods for Location {
             self.check_same_origin_domain()?;
             // Step 3: Parse url relative to the entry settings object. If that failed,
             // throw a "SyntaxError" DOMException.
-            let base_url = self.entry_document().url();
+            let base_url = self.entry_settings_object().api_base_url();
             let url = match base_url.join(&url.0) {
                 Ok(url) => url,
                 Err(_) => return Err(Error::Syntax),
@@ -131,7 +130,7 @@ impl LocationMethods for Location {
         if self.window.has_document() {
             // Step 2: Parse url relative to the entry settings object. If that failed,
             // throw a "SyntaxError" DOMException.
-            let base_url = self.entry_document().url();
+            let base_url = self.entry_settings_object().api_base_url();
             let url = match base_url.join(&url.0) {
                 Ok(url) => url,
                 Err(_) => return Err(Error::Syntax),
@@ -253,7 +252,7 @@ impl LocationMethods for Location {
             // Note: no call to self.check_same_origin_domain()
             // Step 2: Parse the given value relative to the entry settings object.
             // If that failed, throw a TypeError exception.
-            let base_url = self.entry_document().url();
+            let base_url = self.entry_settings_object().api_base_url();
             let url = match base_url.join(&value.0) {
                 Ok(url) => url,
                 Err(e) => return Err(Error::Type(format!("Couldn't parse URL: {}", e))),
