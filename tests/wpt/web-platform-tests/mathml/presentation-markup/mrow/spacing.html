@@ -9,7 +9,7 @@
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#error-message-merror">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#making-sub-expressions-invisible-mphantom">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-top-level-math-element">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#enclose-expression-inside-notation-menclose">
+<link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.menclose">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#adjust-space-around-content-mpadded">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
 <meta name="assert" content="Spacing is added around operators inside mrow-like elements.">
@@ -43,6 +43,7 @@
     <math><merror id="Error"><mn>1</mn><mo lspace="50px"></mo><mn>2</mn></merror></math>
     <math><mphantom id="Phantom"><mn>1</mn><mo lspace="50px">|</mo><mn>2</mn></mphantom></math>
     <math id="Math"><mn>1</mn><mo lspace="50px">|</mo><mn>2</mn></math>
+    <!-- menclose is treated as <unknown> in MathML Core -->
     <math><menclose id="Menclose" notation="box"><mn>1</mn><mo lspace="50px">|</mo><mn>2</mn></menclose></math>
     <math><mpadded id="Mpadded" lspace="10px"><mn>1</mn><mo lspace="50px">|</mo><mn>2</mn></mpadded></math>
     <math><unknown id="Unknown"><mn>1</mn><mo lspace="50px">|</mo><mn>2</mn></unknown></math>
