@@ -9,7 +9,7 @@
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#error-message-merror">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#making-sub-expressions-invisible-mphantom">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-top-level-math-element">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#enclose-expression-inside-notation-menclose">
+<link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.menclose">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#adjust-space-around-content-mpadded">
 <meta name="assert" content="Baseline for mrow-like elements is correct.">
 <script src="/mathml/support/feature-detection.js"></script>
@@ -41,6 +41,7 @@
     <math><merror><mspace id="aboveError" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowError" width="10px" depth="30px" style="background: blue"></mspace></merror></math>
     <math><mphantom><mspace style="visibility: visible;" id="abovePhantom" width="10px" height="30px" style="background: purple"></mspace><mspace style="visibility: visible;" id="belowPhantom" width="10px" depth="30px" style="background: blue"></mspace></mphantom></math>
     <math><mspace id="aboveMath" width="10px" height="30px" style="background: purple"></mspace><mspace id="belowMath" width="10px" depth="30px" style="background: blue"></mspace></math>
+    <!-- menclose is treated as <unknown> in MathML Core -->
     <math><menclose notation="box"><mspace id="aboveMenclose" width="10px" height="30px" style="background: purple"
 ></mspace><mspace id="belowMenclose" width="10px" depth="30px" style="background: blue"></mspace></menclose></math>
     <math><mpadded lspace="10px"><mspace id="aboveMpadded" width="10px" height="30px" style="background: purple"

@@ -9,7 +9,7 @@
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#error-message-merror">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#making-sub-expressions-invisible-mphantom">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-top-level-math-element">
-<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#enclose-expression-inside-notation-menclose">
+<link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.menclose">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#adjust-space-around-content-mpadded">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
 <meta name="assert" content="Operators can stretch inside mrow-like elements.">
@@ -51,6 +51,7 @@
     <math><merror><mo id="moError">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></merror></math>
     <math><mphantom><mo style="visibilty: visible;" id="moPhantom">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mphantom></math>
     <math><mo id="moMath">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></math>
+    <!-- menclose is treated as <unknown> in MathML Core -->
     <math><menclose notation="box"><mo id="moMenclose">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></menclose></math>
     <math><mpadded lspace="10px"><mo id="moMpadded">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></mpadded></math>
     <math><unknown><mo id="moUnknown">&#x21A8;</mo><mspace width="1px" height="100px" style="background: magenta"></mspace></unknown></math>
