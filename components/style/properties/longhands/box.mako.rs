@@ -312,7 +312,7 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "animation-fill-mode",
     "none forwards backwards both",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     need_index=True,
     animation_value_type="none",
     vector=True,
