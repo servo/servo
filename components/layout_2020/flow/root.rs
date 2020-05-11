@@ -26,6 +26,7 @@ use crate::style_ext::{Display, DisplayGeneratingBox};
 use crate::DefiniteContainingBlock;
 use app_units::Au;
 use euclid::default::{Point2D, Rect, Size2D};
+use fxhash::FxHashSet;
 use gfx_traits::print_tree::PrintTree;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
@@ -301,6 +302,15 @@ impl FragmentTree {
                 .borrow()
                 .find(&self.initial_containing_block, &mut process_func)
         })
+    }
+
+    pub fn remove_nodes_in_fragment_tree_from_set(&self, set: &mut FxHashSet<OpaqueNode>) {
+        self.find(|fragment, _| {
+            if let Some(tag) = fragment.tag().as_ref() {
+                set.remove(tag);
+            }
+            None::<()>
+        });
     }
 
     pub fn get_content_box_for_node(&self, requested_node: OpaqueNode) -> Rect<Au> {

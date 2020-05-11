@@ -20,6 +20,7 @@ cssparser = "0.27"
 embedder_traits = { path = "../embedder_traits" }
 euclid = "0.20"
 fnv = "1.0"
+fxhash = "0.2"
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }
 html5ever = "0.25"

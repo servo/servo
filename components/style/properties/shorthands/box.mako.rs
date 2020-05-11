@@ -28,7 +28,6 @@ ${helpers.two_properties_shorthand(
          "(https://developer.mozilla.org/en-US/docs/Web/CSS/overflow-clip-box)",
 )}
 
-#[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
 macro_rules! try_parse_one {
     ($context: expr, $input: expr, $var: ident, $prop_module: ident) => {
         if $var.is_none() {
@@ -43,7 +42,7 @@ macro_rules! try_parse_one {
 }
 
 <%helpers:shorthand name="transition"
-                    engines="gecko servo-2013"
+                    engines="gecko servo-2013 servo-2020"
                     extra_prefixes="moz:layout.css.prefixes.transitions webkit"
                     sub_properties="transition-property transition-duration
                                     transition-timing-function
@@ -189,7 +188,7 @@ macro_rules! try_parse_one {
 </%helpers:shorthand>
 
 <%helpers:shorthand name="animation"
-                    engines="gecko servo-2013"
+                    engines="gecko servo-2013 servo-2020"
                     extra_prefixes="moz:layout.css.prefixes.animations webkit"
                     sub_properties="animation-name animation-duration
                                     animation-timing-function animation-delay
