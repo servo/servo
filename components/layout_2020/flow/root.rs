@@ -196,7 +196,7 @@ impl BoxTreeRoot {
 
 impl FragmentTreeRoot {
     pub fn build_display_list(&self, builder: &mut crate::display_list::DisplayListBuilder) {
-        let mut stacking_context = StackingContext::create_root();
+        let mut stacking_context = StackingContext::create_root(&builder.wr);
         {
             let mut stacking_context_builder = StackingContextBuilder::new(&mut builder.wr);
             let containing_block_info = ContainingBlockInfo {
