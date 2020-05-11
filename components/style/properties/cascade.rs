@@ -10,8 +10,8 @@ use crate::dom::TElement;
 use crate::font_metrics::FontMetricsProvider;
 use crate::logical_geometry::WritingMode;
 use crate::media_queries::Device;
-use crate::properties::{ComputedValues, StyleBuilder};
-use crate::properties::{LonghandId, LonghandIdSet, CSSWideKeyword};
+use crate::properties::{ComputedValues, StyleBuilder, Importance};
+use crate::properties::{LonghandId, LonghandIdSet, CSSWideKeyword, PropertyFlags};
 use crate::properties::{PropertyDeclaration, PropertyDeclarationId, DeclarationImportanceIterator};
 use crate::properties::{CASCADE_PROPERTY, ComputedValueFlags};
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
@@ -20,7 +20,6 @@ use crate::selector_parser::PseudoElement;
 use crate::stylesheets::{Origin, PerOrigin};
 use servo_arc::Arc;
 use crate::shared_lock::StylesheetGuards;
-use smallbitvec::SmallBitVec;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::RefCell;
@@ -108,6 +107,84 @@ where
     )
 }
 
+struct DeclarationIterator<'a> {
+    // Global to the iteration.
+    guards: &'a StylesheetGuards<'a>,
+    restriction: Option<PropertyFlags>,
+    // The rule we're iterating over.
+    current_rule_node: Option<&'a StrongRuleNode>,
+    // Per rule state.
+    declarations: DeclarationImportanceIterator<'a>,
+    origin: Origin,
+    importance: Importance,
+}
+
+impl<'a> DeclarationIterator<'a> {
+    #[inline]
+    fn new(rule_node: &'a StrongRuleNode, guards: &'a StylesheetGuards, pseudo: Option<&PseudoElement>) -> Self {
+        let restriction = pseudo.and_then(|p| p.property_restriction());
+        let mut iter = Self {
+            guards,
+            current_rule_node: Some(rule_node),
+            origin: Origin::Author,
+            importance: Importance::Normal,
+            declarations: DeclarationImportanceIterator::default(),
+            restriction,
+        };
+        iter.update_for_node(rule_node);
+        iter
+    }
+
+    fn update_for_node(&mut self, node: &'a StrongRuleNode) {
+        let origin = node.cascade_level().origin();
+        self.origin = origin;
+        self.importance = node.importance();
+        let guard = match origin {
+            Origin::Author => self.guards.author,
+            Origin::User | Origin::UserAgent => self.guards.ua_or_user,
+        };
+        self.declarations = match node.style_source() {
+            Some(source) => source.read(guard).declaration_importance_iter(),
+            None => DeclarationImportanceIterator::default(),
+        };
+    }
+
+}
+
+impl<'a> Iterator for DeclarationIterator<'a> {
+    type Item = (&'a PropertyDeclaration, Origin);
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        loop {
+            if let Some((decl, importance)) = self.declarations.next_back() {
+                if self.importance != importance {
+                    continue;
+                }
+
+                let origin = self.origin;
+                if let Some(restriction) = self.restriction {
+                    // decl.id() is either a longhand or a custom
+                    // property.  Custom properties are always allowed, but
+                    // longhands are only allowed if they have our
+                    // restriction flag set.
+                    if let PropertyDeclarationId::Longhand(id) = decl.id() {
+                        if !id.flags().contains(restriction) && origin != Origin::UserAgent {
+                            continue;
+                        }
+                    }
+                }
+
+                return Some((decl, origin));
+            }
+
+            let next_node = self.current_rule_node.take()?.parent()?;
+            self.current_rule_node = Some(next_node);
+            self.update_for_node(next_node);
+        }
+    }
+}
+
 fn cascade_rules<E>(
     device: &Device,
     pseudo: Option<&PseudoElement>,
@@ -130,54 +207,12 @@ where
         parent_style.is_some(),
         parent_style_ignoring_first_line.is_some()
     );
-    let empty = SmallBitVec::new();
-    let restriction = pseudo.and_then(|p| p.property_restriction());
-    let iter_declarations = || {
-        rule_node.self_and_ancestors().flat_map(|node| {
-            let origin = node.cascade_level().origin();
-            let node_importance = node.importance();
-            let guard = match origin {
-                Origin::Author => guards.author,
-                Origin::User | Origin::UserAgent => guards.ua_or_user,
-            };
-            let declarations = match node.style_source() {
-                Some(source) => source
-                    .read(guard)
-                    .declaration_importance_iter(),
-                None => DeclarationImportanceIterator::new(&[], &empty),
-            };
-
-            declarations
-                // Yield declarations later in source order (with more precedence) first.
-                .rev()
-                .filter_map(move |(declaration, declaration_importance)| {
-                    if let Some(restriction) = restriction {
-                        // declaration.id() is either a longhand or a custom
-                        // property.  Custom properties are always allowed, but
-                        // longhands are only allowed if they have our
-                        // restriction flag set.
-                        if let PropertyDeclarationId::Longhand(id) = declaration.id() {
-                            if !id.flags().contains(restriction) && origin != Origin::UserAgent {
-                                return None;
-                            }
-                        }
-                    }
-
-                    if declaration_importance == node_importance {
-                        Some((declaration, origin))
-                    } else {
-                        None
-                    }
-                })
-        })
-    };
-
     apply_declarations(
         device,
         pseudo,
         rule_node,
         guards,
-        iter_declarations,
+        DeclarationIterator::new(rule_node, guards, pseudo),
         parent_style,
         parent_style_ignoring_first_line,
         layout_parent_style,
@@ -208,12 +243,12 @@ pub enum CascadeMode<'a> {
 
 /// NOTE: This function expects the declaration with more priority to appear
 /// first.
-pub fn apply_declarations<'a, E, F, I>(
+pub fn apply_declarations<'a, E, I>(
     device: &Device,
     pseudo: Option<&PseudoElement>,
     rules: &StrongRuleNode,
     guards: &StylesheetGuards,
-    iter_declarations: F,
+    iter: I,
     parent_style: Option<&ComputedValues>,
     parent_style_ignoring_first_line: Option<&ComputedValues>,
     layout_parent_style: Option<&ComputedValues>,
@@ -226,7 +261,6 @@ pub fn apply_declarations<'a, E, F, I>(
 ) -> Arc<ComputedValues>
 where
     E: TElement,
-    F: Fn() -> I,
     I: Iterator<Item = (&'a PropertyDeclaration, Origin)>,
 {
     debug_assert!(layout_parent_style.is_none() || parent_style.is_some());
@@ -253,7 +287,7 @@ where
             device,
         );
 
-        for (declaration, origin) in iter_declarations() {
+        for (declaration, origin) in iter {
             declarations.push((declaration, origin));
             if let PropertyDeclaration::Custom(ref declaration) = *declaration {
                 builder.cascade(declaration, origin);

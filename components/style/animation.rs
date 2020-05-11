@@ -978,7 +978,13 @@ where
         } => {
             let guard = declarations.read_with(context.guards.author);
 
-            let iter = || {
+            // This currently ignores visited styles, which seems acceptable,
+            // as existing browsers don't appear to animate visited styles.
+            let computed = properties::apply_declarations::<E, _>(
+                context.stylist.device(),
+                /* pseudo = */ None,
+                previous_style.rules(),
+                &context.guards,
                 // It's possible to have !important properties in keyframes
                 // so we have to filter them out.
                 // See the spec issue https://github.com/w3c/csswg-drafts/issues/1824
@@ -986,17 +992,7 @@ where
                 guard
                     .normal_declaration_iter()
                     .filter(|declaration| declaration.is_animatable())
-                    .map(|decl| (decl, Origin::Author))
-            };
-
-            // This currently ignores visited styles, which seems acceptable,
-            // as existing browsers don't appear to animate visited styles.
-            let computed = properties::apply_declarations::<E, _, _>(
-                context.stylist.device(),
-                /* pseudo = */ None,
-                previous_style.rules(),
-                &context.guards,
-                iter,
+                    .map(|decl| (decl, Origin::Author)),
                 Some(previous_style),
                 Some(previous_style),
                 Some(previous_style),

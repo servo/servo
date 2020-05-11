@@ -1318,12 +1318,6 @@ impl Stylist {
         use crate::font_metrics::get_metrics_provider_for_product;
 
         let block = declarations.read_with(guards.author);
-        let iter_declarations = || {
-            block
-                .declaration_importance_iter()
-                .map(|(declaration, _)| (declaration, Origin::Author))
-        };
-
         let metrics = get_metrics_provider_for_product();
 
         // We don't bother inserting these declarations in the rule tree, since
@@ -1332,12 +1326,14 @@ impl Stylist {
         // TODO(emilio): Now that we fixed bug 1493420, we should consider
         // reversing this as it shouldn't be slow anymore, and should avoid
         // generating two instantiations of apply_declarations.
-        properties::apply_declarations::<E, _, _>(
+        properties::apply_declarations::<E, _>(
             &self.device,
             /* pseudo = */ None,
             self.rule_tree.root(),
             guards,
-            iter_declarations,
+            block
+                .declaration_importance_iter()
+                .map(|(declaration, _)| (declaration, Origin::Author)),
             Some(parent_style),
             Some(parent_style),
             Some(parent_style),
