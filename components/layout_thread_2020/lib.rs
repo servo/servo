@@ -1194,8 +1194,14 @@ impl LayoutThread {
                 },
                 &QueryMsg::ResolvedStyleQuery(node, ref pseudo, ref property) => {
                     let node = unsafe { ServoLayoutNode::new(&node) };
-                    rw_data.resolved_style_response =
-                        process_resolved_style_request(context, node, pseudo, property);
+                    let fragment_tree = self.fragment_tree_root.borrow().clone();
+                    rw_data.resolved_style_response = process_resolved_style_request(
+                        context,
+                        node,
+                        pseudo,
+                        property,
+                        fragment_tree,
+                    );
                 },
                 &QueryMsg::OffsetParentQuery(node) => {
                     rw_data.offset_parent_response = process_offset_parent_query(node);
