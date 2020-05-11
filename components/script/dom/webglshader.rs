@@ -8,6 +8,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::webgl_extensions::ext::extfragdepth::EXTFragDepth;
 use crate::dom::webgl_extensions::ext::extshadertexturelod::EXTShaderTextureLod;
 use crate::dom::webgl_extensions::ext::oesstandardderivatives::OESStandardDerivatives;
 use crate::dom::webgl_extensions::WebGLExtensions;
@@ -235,6 +236,7 @@ impl WebGLShader {
 
             OES_standard_derivatives: ext.is_enabled::<OESStandardDerivatives>() as c_int,
             EXT_shader_texture_lod: ext.is_enabled::<EXTShaderTextureLod>() as c_int,
+            EXT_frag_depth: ext.is_enabled::<EXTFragDepth>() as c_int,
 
             FragmentPrecisionHigh: 1,
             ..default_validator()

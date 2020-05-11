@@ -257,7 +257,11 @@ impl WebGLRenderingContext {
                 // what was requested
                 size: Cell::new(size),
                 current_clear_color: Cell::new((0.0, 0.0, 0.0, 0.0)),
-                extension_manager: WebGLExtensions::new(webgl_version, ctx_data.api_type),
+                extension_manager: WebGLExtensions::new(
+                    webgl_version,
+                    ctx_data.api_type,
+                    ctx_data.glsl_version,
+                ),
                 capabilities: Default::default(),
                 default_vao: Default::default(),
                 current_vao: Default::default(),

@@ -122,7 +122,9 @@ pub enum WebGLVersion {
 }
 
 /// Defines the GLSL version supported by the WebGL backend contexts.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
+)]
 pub struct WebGLSLVersion {
     /// Major GLSL version
     pub major: u32,
