@@ -1255,6 +1255,9 @@ impl LayoutThread {
                         &QueryMsg::InnerWindowDimensionsQuery(_) => {
                             rw_data.inner_window_dimensions_response = None;
                         },
+                        &QueryMsg::CanvasFontQuery(..) => {
+                            unimplemented!();
+                        },
                     },
                     ReflowGoal::Full | ReflowGoal::TickAnimations => {},
                 }
@@ -1596,6 +1599,9 @@ impl LayoutThread {
                         .borrow()
                         .get(&browsing_context_id)
                         .cloned();
+                },
+                &QueryMsg::CanvasFontQuery(_node, ref _font) => {
+                    unimplemented!();
                 },
             },
             ReflowGoal::Full | ReflowGoal::TickAnimations => {},

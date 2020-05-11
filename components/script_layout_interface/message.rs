@@ -107,6 +107,7 @@ pub enum QueryMsg {
     OffsetParentQuery(OpaqueNode),
     TextIndexQuery(OpaqueNode, Point2D<f32>),
     NodesFromPointQuery(Point2D<f32>, NodesFromPointQueryType),
+    CanvasFontQuery(OpaqueNode, String),
 
     // FIXME(nox): The following queries use the TrustedNodeAddress to
     // access actual DOM nodes, but those values can be constructed from
@@ -144,6 +145,7 @@ impl ReflowGoal {
                 QueryMsg::NodeScrollIdQuery(_) |
                 QueryMsg::ResolvedStyleQuery(..) |
                 QueryMsg::OffsetParentQuery(_) |
+                QueryMsg::CanvasFontQuery(..) |
                 QueryMsg::StyleQuery => false,
             },
         }
@@ -166,6 +168,7 @@ impl ReflowGoal {
                 QueryMsg::ResolvedStyleQuery(..) |
                 QueryMsg::OffsetParentQuery(_) |
                 QueryMsg::InnerWindowDimensionsQuery(_) |
+                QueryMsg::CanvasFontQuery(..) |
                 QueryMsg::StyleQuery => false,
             },
         }
