@@ -27,13 +27,23 @@ pub fn derive(mut input: syn::DeriveInput) -> TokenStream {
 
     input.generics.where_clause = where_clause;
 
-    let match_body = cg::fmap_match(&input, BindStyle::Ref, |binding| {
-        quote! {
-            ::std::mem::ManuallyDrop::into_inner(
-                ::to_shmem::ToShmem::to_shmem(#binding, builder)
-            )
-        }
-    });
+    // Do all of the `to_shmem()?` calls before the `ManuallyDrop::into_inner()`
+    // calls, so that we don't drop a value in the shared memory buffer if one
+    // of the `to_shmem`s fails.
+    let match_body = cg::fmap2_match(
+        &input,
+        BindStyle::Ref,
+        |binding| {
+            quote! {
+                ::to_shmem::ToShmem::to_shmem(#binding, builder)?
+            }
+        },
+        |binding| {
+            Some(quote! {
+                ::std::mem::ManuallyDrop::into_inner(#binding)
+            })
+        },
+    );
 
     let name = &input.ident;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
@@ -44,12 +54,12 @@ pub fn derive(mut input: syn::DeriveInput) -> TokenStream {
             fn to_shmem(
                 &self,
                 builder: &mut ::to_shmem::SharedMemoryBuilder,
-            ) -> ::std::mem::ManuallyDrop<Self> {
-                ::std::mem::ManuallyDrop::new(
+            ) -> ::to_shmem::Result<Self> {
+                Ok(::std::mem::ManuallyDrop::new(
                     match *self {
                         #match_body
                     }
-                )
+                ))
             }
         }
     }

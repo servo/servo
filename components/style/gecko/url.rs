@@ -18,7 +18,7 @@ use std::fmt::{self, Write};
 use std::mem::ManuallyDrop;
 use std::sync::RwLock;
 use style_traits::{CssWriter, ParseError, ToCss};
-use to_shmem::{SharedMemoryBuilder, ToShmem};
+use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 
 /// A CSS url() value for gecko.
 #[css(function = "url")]
@@ -241,11 +241,11 @@ impl LoadDataSource {
 }
 
 impl ToShmem for LoadDataSource {
-    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
-        ManuallyDrop::new(match self {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> to_shmem::Result<Self> {
+        Ok(ManuallyDrop::new(match self {
             LoadDataSource::Owned(..) => LoadDataSource::Lazy,
             LoadDataSource::Lazy => LoadDataSource::Lazy,
-        })
+        }))
     }
 }
 

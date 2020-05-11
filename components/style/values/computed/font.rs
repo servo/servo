@@ -32,7 +32,7 @@ use std::mem::{self, ManuallyDrop};
 use std::slice;
 use style_traits::{CssWriter, ParseError, ToCss};
 #[cfg(feature = "gecko")]
-use to_shmem::{SharedMemoryBuilder, ToShmem};
+use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 
 pub use crate::values::computed::Length as MozScriptMinSize;
 pub use crate::values::specified::font::{FontSynthesis, MozScriptSizeMultiplier};
@@ -466,19 +466,20 @@ pub enum FontFamilyList {
 
 #[cfg(feature = "gecko")]
 impl ToShmem for FontFamilyList {
-    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> to_shmem::Result<Self> {
         // In practice, the only SharedFontList objects we create from shared
         // style sheets are ones with a single generic entry.
-        ManuallyDrop::new(match *self {
+        Ok(ManuallyDrop::new(match *self {
             FontFamilyList::SharedFontList(ref r) => {
-                assert!(
-                    r.mNames.len() == 1 && r.mNames[0].mName.mRawPtr.is_null(),
-                    "ToShmem failed for FontFamilyList: cannot handle non-generic families",
-                );
+                if !(r.mNames.len() == 1 && r.mNames[0].mName.mRawPtr.is_null()) {
+                    return Err(String::from(
+                        "ToShmem failed for FontFamilyList: cannot handle non-generic families",
+                    ));
+                }
                 FontFamilyList::Generic(r.mNames[0].mGeneric)
             },
             FontFamilyList::Generic(t) => FontFamilyList::Generic(t),
-        })
+        }))
     }
 }
 

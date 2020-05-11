@@ -13,7 +13,7 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
 use std::{fmt, iter, mem, slice};
-use to_shmem::{SharedMemoryBuilder, ToShmem};
+use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 
 /// A struct that basically replaces a `Box<[T]>`, but which cbindgen can
 /// understand.
@@ -159,10 +159,10 @@ impl<T: MallocSizeOf + Sized> MallocSizeOf for OwnedSlice<T> {
 }
 
 impl<T: ToShmem + Sized> ToShmem for OwnedSlice<T> {
-    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> mem::ManuallyDrop<Self> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> to_shmem::Result<Self> {
         unsafe {
-            let dest = to_shmem::to_shmem_slice(self.iter(), builder);
-            mem::ManuallyDrop::new(Self::from(Box::from_raw(dest)))
+            let dest = to_shmem::to_shmem_slice(self.iter(), builder)?;
+            Ok(mem::ManuallyDrop::new(Self::from(Box::from_raw(dest))))
         }
     }
 }

@@ -258,20 +258,20 @@ impl<T> Locked<T> {
 
 #[cfg(feature = "gecko")]
 impl<T: ToShmem> ToShmem for Locked<T> {
-    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> to_shmem::Result<Self> {
         let guard = self.shared_lock.read();
-        ManuallyDrop::new(Locked {
+        Ok(ManuallyDrop::new(Locked {
             shared_lock: SharedRwLock::read_only(),
             data: UnsafeCell::new(ManuallyDrop::into_inner(
-                self.read_with(&guard).to_shmem(builder),
+                self.read_with(&guard).to_shmem(builder)?,
             )),
-        })
+        }))
     }
 }
 
 #[cfg(feature = "servo")]
 impl<T: ToShmem> ToShmem for Locked<T> {
-    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> to_shmem::Result<Self> {
         panic!("ToShmem not supported in Servo currently")
     }
 }
