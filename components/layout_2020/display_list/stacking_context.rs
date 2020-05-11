@@ -126,6 +126,10 @@ pub(crate) enum StackingContextType {
 }
 
 pub(crate) struct StackingContext {
+    /// The spatial id of this fragment. This is used to properly handle
+    /// things like preserve-3d.
+    spatial_id: wr::SpatialId,
+
     /// The fragment that established this stacking context.
     initializing_fragment_style: Option<ServoArc<ComputedValues>>,
 
@@ -145,10 +149,12 @@ pub(crate) struct StackingContext {
 
 impl StackingContext {
     pub(crate) fn new(
+        spatial_id: wr::SpatialId,
         initializing_fragment_style: ServoArc<ComputedValues>,
         context_type: StackingContextType,
     ) -> Self {
         Self {
+            spatial_id,
             initializing_fragment_style: Some(initializing_fragment_style),
             context_type,
             fragments: vec![],
@@ -157,8 +163,9 @@ impl StackingContext {
         }
     }
 
-    pub(crate) fn create_root() -> Self {
+    pub(crate) fn create_root(wr: &wr::DisplayListBuilder) -> Self {
         Self {
+            spatial_id: wr::SpaceAndClipInfo::root_scroll(wr.pipeline_id).spatial_id,
             initializing_fragment_style: None,
             context_type: StackingContextType::Real,
             fragments: vec![],
@@ -198,16 +205,18 @@ impl StackingContext {
         &self,
         builder: &'a mut DisplayListBuilder,
     ) -> bool {
-        let effects = match self.initializing_fragment_style.as_ref() {
-            Some(style) => style.get_effects(),
+        let style = match self.initializing_fragment_style.as_ref() {
+            Some(style) => style,
             None => return false,
         };
 
         // WebRender only uses the stacking context to apply certain effects. If we don't
         // actually need to create a stacking context, just avoid creating one.
+        let effects = style.get_effects();
         if effects.filter.0.is_empty() &&
             effects.opacity == 1.0 &&
-            effects.mix_blend_mode == ComputedMixBlendMode::Normal
+            effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
+            !style.has_transform_or_perspective()
         {
             return false;
         }
@@ -227,11 +236,11 @@ impl StackingContext {
         }
 
         builder.wr.push_stacking_context(
-            LayoutPoint::zero(),                       // origin
-            builder.current_space_and_clip.spatial_id, // spatial_id
+            LayoutPoint::zero(), // origin
+            self.spatial_id,
             wr::PrimitiveFlags::default(),
             None, // clip_id
-            wr::TransformStyle::Flat,
+            style.get_used_transform_style().to_webrender(),
             effects.mix_blend_mode.to_webrender(),
             &filters,
             &vec![], // filter_datas
@@ -423,8 +432,16 @@ impl BoxFragment {
         builder.clipping_and_scrolling_scope(|builder| {
             self.adjust_spatial_id_for_positioning(builder);
 
-            let context_type = match self.get_stacking_context_type() {
-                Some(context_type) => context_type,
+            match self.get_stacking_context_type() {
+                Some(context_type) => {
+                    self.build_stacking_context_tree_creating_stacking_context(
+                        fragment,
+                        builder,
+                        containing_block_info,
+                        stacking_context,
+                        context_type,
+                    );
+                },
                 None => {
                     self.build_stacking_context_tree_for_children(
                         fragment,
@@ -432,34 +449,70 @@ impl BoxFragment {
                         containing_block_info,
                         stacking_context,
                     );
-                    return;
                 },
-            };
-
-            let mut child_stacking_context = StackingContext::new(self.style.clone(), context_type);
-            self.build_stacking_context_tree_for_children(
-                fragment,
-                builder,
-                containing_block_info,
-                &mut child_stacking_context,
-            );
-
-            let mut stolen_children = vec![];
-            if context_type != StackingContextType::Real {
-                stolen_children = mem::replace(
-                    &mut child_stacking_context.stacking_contexts,
-                    stolen_children,
-                );
             }
-
-            child_stacking_context.sort();
-            stacking_context
-                .stacking_contexts
-                .push(child_stacking_context);
-            stacking_context
-                .stacking_contexts
-                .append(&mut stolen_children);
         });
+    }
+
+    fn build_stacking_context_tree_creating_stacking_context(
+        &self,
+        fragment: &ArcRefCell<Fragment>,
+        builder: &mut StackingContextBuilder,
+        containing_block_info: &ContainingBlockInfo,
+        parent_stacking_context: &mut StackingContext,
+        context_type: StackingContextType,
+    ) {
+        // If we are creating a stacking context, we may also need to create a reference
+        // frame first.
+        let relative_border_rect = self
+            .border_rect()
+            .to_physical(self.style.writing_mode, &containing_block_info.rect);
+        let border_rect =
+            relative_border_rect.translate(containing_block_info.rect.origin.to_vector());
+        let established_reference_frame =
+            self.build_reference_frame_if_necessary(builder, &border_rect);
+
+        // WebRender reference frames establish a new coordinate system at their origin
+        // (the border box of the fragment). We need to ensure that any coordinates we
+        // give to WebRender in this reference frame are relative to the fragment border
+        // box. We do this by adjusting the containing block origin.
+        let mut new_containing_block_info = containing_block_info.clone();
+        if established_reference_frame {
+            new_containing_block_info.rect.origin =
+                (-relative_border_rect.origin.to_vector()).to_point();
+        }
+
+        let mut child_stacking_context = StackingContext::new(
+            builder.current_space_and_clip.spatial_id,
+            self.style.clone(),
+            context_type,
+        );
+        self.build_stacking_context_tree_for_children(
+            fragment,
+            builder,
+            &new_containing_block_info,
+            &mut child_stacking_context,
+        );
+
+        let mut stolen_children = vec![];
+        if context_type != StackingContextType::Real {
+            stolen_children = mem::replace(
+                &mut child_stacking_context.stacking_contexts,
+                stolen_children,
+            );
+        }
+
+        child_stacking_context.sort();
+        parent_stacking_context
+            .stacking_contexts
+            .push(child_stacking_context);
+        parent_stacking_context
+            .stacking_contexts
+            .append(&mut stolen_children);
+
+        if established_reference_frame {
+            builder.wr.pop_reference_frame();
+        }
     }
 
     fn build_stacking_context_tree_for_children<'a>(
@@ -469,40 +522,22 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
     ) {
-        let relative_border_rect = self
-            .border_rect()
-            .to_physical(self.style.writing_mode, &containing_block_info.rect);
-        let border_rect =
-            relative_border_rect.translate(containing_block_info.rect.origin.to_vector());
-        let established_reference_frame =
-            self.build_reference_frame_if_necessary(builder, &border_rect);
-
-        let mut new_containing_block_info = containing_block_info.clone();
-
-        // WebRender reference frames establish a new coordinate system at their origin
-        // (the border box of the fragment). We need to ensure that any coordinates we
-        // give to WebRender in this reference frame are relative to the fragment border
-        // box. We do this by adjusting the containing block origin.
-        if established_reference_frame {
-            new_containing_block_info.rect.origin =
-                (-relative_border_rect.origin.to_vector()).to_point();
-        }
-
         stacking_context.fragments.push(StackingContextFragment {
             space_and_clip: builder.current_space_and_clip,
             section: self.get_stacking_context_section(),
-            containing_block: new_containing_block_info.rect,
+            containing_block: containing_block_info.rect,
             fragment: fragment.clone(),
         });
 
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
-        self.build_scroll_frame_if_necessary(builder, &new_containing_block_info);
+        self.build_scroll_frame_if_necessary(builder, containing_block_info);
 
         let padding_rect = self
             .padding_rect()
-            .to_physical(self.style.writing_mode, &new_containing_block_info.rect)
-            .translate(new_containing_block_info.rect.origin.to_vector());
+            .to_physical(self.style.writing_mode, &containing_block_info.rect)
+            .translate(containing_block_info.rect.origin.to_vector());
+        let mut new_containing_block_info = containing_block_info.clone();
         new_containing_block_info.rect = self
             .content_rect
             .to_physical(self.style.writing_mode, &new_containing_block_info.rect)
@@ -521,10 +556,6 @@ impl BoxFragment {
                 stacking_context,
                 StackingContextBuildMode::SkipHoisted,
             );
-        }
-
-        if established_reference_frame {
-            builder.wr.pop_reference_frame();
         }
     }
 
