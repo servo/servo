@@ -100,6 +100,10 @@ pub(crate) struct AnonymousFragment {
 
     /// The scrollable overflow of this anonymous fragment's children.
     pub scrollable_overflow: PhysicalRect<Length>,
+
+    #[serde(skip_serializing)]
+    pub vertical_align: VerticalAlign,
+    pub vertical_align_metrics: VerticalAlignMetrics,
 }
 
 #[derive(Clone, Copy, Serialize)]
@@ -198,6 +202,13 @@ impl Fragment {
                     f.rect.size.block,
                     Length::zero(),
                     f.font_metrics.x_height,
+                ),
+                Fragment::Anonymous(f) => (
+                    &f.vertical_align,
+                    &f.vertical_align_metrics,
+                    f.rect.size.block,
+                    Length::zero(),
+                    Length::zero(),
                 ),
                 _ => return false,
             };
@@ -379,10 +390,18 @@ impl AnonymousFragment {
             rect: Rect::zero(),
             mode,
             scrollable_overflow: PhysicalRect::zero(),
+            vertical_align: VerticalAlign::Keyword(VerticalAlignKeyword::Baseline),
+            vertical_align_metrics: VerticalAlignMetrics::from_baseline(Baseline::zero()),
         }
     }
 
-    pub fn new(rect: Rect<Length>, children: Vec<Fragment>, mode: WritingMode) -> Self {
+    pub fn new(
+        rect: Rect<Length>,
+        children: Vec<Fragment>,
+        mode: WritingMode,
+        vertical_align: VerticalAlign,
+        baseline: Baseline,
+    ) -> Self {
         // FIXME(mrobinson, bug 25564): We should be using the containing block
         // here to properly convert scrollable overflow to physical geometry.
         let containing_block = PhysicalRect::zero();
@@ -403,6 +422,8 @@ impl AnonymousFragment {
                 .collect(),
             mode,
             scrollable_overflow,
+            vertical_align,
+            vertical_align_metrics: VerticalAlignMetrics::from_baseline(baseline),
         }
     }
 

@@ -448,6 +448,8 @@ impl Lines {
                 Rect { start_corner, size },
                 line_contents,
                 containing_block.style.writing_mode,
+                containing_block.style.get_box().vertical_align.clone(),
+                baseline,
             )))
     }
 }
@@ -974,6 +976,13 @@ impl Baseline {
         vertical_align_metrics.baseline
     }
 
+    pub fn zero() -> Baseline {
+        Self {
+            space_above: Length::zero(),
+            space_below: Length::zero(),
+        }
+    }
+
     pub fn max_assign(&mut self, other: &Baseline) {
         self.space_above.max_assign(other.space_above);
         self.space_below.max_assign(other.space_below);
@@ -1006,9 +1015,17 @@ impl VerticalAlignMetrics {
         }
     }
 
+    #[inline]
+    pub fn from_baseline(baseline: Baseline) -> Self {
+        Self {
+            baseline,
+            ascent: baseline.space_above,
+        }
+    }
+
     /// Calculates inline metrics from font metrics and line block-size per CSS 2.1 § 10.8.1.
     #[inline]
-    pub fn for_text(font_metrics: &FontMetrics, line_height: Length) -> VerticalAlignMetrics {
+    pub fn for_text(font_metrics: &FontMetrics, line_height: Length) -> Self {
         let leading = line_height - (font_metrics.ascent + font_metrics.descent);
 
         // Calculating the half leading here and then using leading - half_leading
@@ -1016,7 +1033,7 @@ impl VerticalAlignMetrics {
         // The invariant is that the resulting total line height must exactly
         // equal the requested line_height.
         let half_leading = leading * 0.5;
-        VerticalAlignMetrics {
+        Self {
             baseline: Baseline {
                 space_above: font_metrics.ascent + half_leading,
                 space_below: font_metrics.descent + leading - half_leading,
@@ -1029,7 +1046,7 @@ impl VerticalAlignMetrics {
     pub fn for_replaced_or_inline_block(
         content_rect_block_size: Length,
         pbm: &PaddingBorderMargin,
-    ) -> VerticalAlignMetrics {
+    ) -> Self {
         // XXX(ferjm) Compute proper inline-block metrics when it has in-flow content.
         //
         // The inline-block element’s baseline depends on whether the element has
@@ -1049,7 +1066,7 @@ impl VerticalAlignMetrics {
 
         let margin = pbm.margin.auto_is(Length::zero);
         let ascent = content_rect_block_size + pbm.padding_border_sums.block + margin.block_end;
-        VerticalAlignMetrics {
+        Self {
             baseline: Baseline {
                 space_above: ascent + margin.block_start,
                 space_below: Length::zero(),
