@@ -8,6 +8,7 @@ use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGL
 pub mod angleinstancedarrays;
 pub mod extblendminmax;
 pub mod extcolorbufferhalffloat;
+pub mod extfragdepth;
 pub mod extshadertexturelod;
 pub mod exttexturefilteranisotropic;
 pub mod oeselementindexuint;

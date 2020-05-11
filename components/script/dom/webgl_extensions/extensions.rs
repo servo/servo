@@ -18,7 +18,7 @@ use crate::dom::oestexturehalffloat::OESTextureHalfFloat;
 use crate::dom::webglcolorbufferfloat::WEBGLColorBufferFloat;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::webgltexture::TexCompression;
-use canvas_traits::webgl::{GlType, TexFormat, WebGLVersion};
+use canvas_traits::webgl::{GlType, TexFormat, WebGLSLVersion, WebGLVersion};
 use fnv::{FnvHashMap, FnvHashSet};
 use js::jsapi::JSObject;
 use malloc_size_of::MallocSizeOf;
@@ -165,15 +165,21 @@ pub struct WebGLExtensions {
     features: DomRefCell<WebGLExtensionFeatures>,
     webgl_version: WebGLVersion,
     api_type: GlType,
+    glsl_version: WebGLSLVersion,
 }
 
 impl WebGLExtensions {
-    pub fn new(webgl_version: WebGLVersion, api_type: GlType) -> WebGLExtensions {
+    pub fn new(
+        webgl_version: WebGLVersion,
+        api_type: GlType,
+        glsl_version: WebGLSLVersion,
+    ) -> WebGLExtensions {
         Self {
             extensions: DomRefCell::new(HashMap::new()),
             features: DomRefCell::new(WebGLExtensionFeatures::new(webgl_version)),
             webgl_version,
             api_type,
+            glsl_version,
         }
     }
 
@@ -399,6 +405,7 @@ impl WebGLExtensions {
         self.register::<ext::angleinstancedarrays::ANGLEInstancedArrays>();
         self.register::<ext::extblendminmax::EXTBlendMinmax>();
         self.register::<ext::extcolorbufferhalffloat::EXTColorBufferHalfFloat>();
+        self.register::<ext::extfragdepth::EXTFragDepth>();
         self.register::<ext::extshadertexturelod::EXTShaderTextureLod>();
         self.register::<ext::exttexturefilteranisotropic::EXTTextureFilterAnisotropic>();
         self.register::<ext::oeselementindexuint::OESElementIndexUint>();
@@ -431,6 +438,10 @@ impl WebGLExtensions {
 
     pub fn is_float_buffer_renderable(&self) -> bool {
         self.is_enabled::<WEBGLColorBufferFloat>() || self.is_enabled::<OESTextureFloat>()
+    }
+
+    pub fn is_min_glsl_version_satisfied(&self, min_glsl_version: WebGLSLVersion) -> bool {
+        self.glsl_version >= min_glsl_version
     }
 
     pub fn is_half_float_buffer_renderable(&self) -> bool {
