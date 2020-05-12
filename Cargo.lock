@@ -5576,7 +5576,7 @@ dependencies = [
 [[package]]
 name = "surfman"
 version = "0.2.0"
-source = "git+https://github.com/servo/surfman#41ac1ee64bc2d1978aeed0f8bf549c57f20ec7c8"
+source = "git+https://github.com/servo/surfman#bc084411664b04dba777659e5ce16b5f95b7371a"
 dependencies = [
  "bitflags",
  "cfg_aliases",
@@ -5592,6 +5592,7 @@ dependencies = [
  "libc",
  "log",
  "mach",
+ "metal",
  "objc",
  "parking_lot",
  "wayland-sys 0.24.0",
@@ -6470,7 +6471,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#755a872672c80d71651a305600b97526952d5293"
+source = "git+https://github.com/servo/webxr#e30ebd848c4deb95833c2fea91d7d8d34f6d8ed8"
 dependencies = [
  "android_injected_glue",
  "bindgen",
@@ -6493,7 +6494,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#755a872672c80d71651a305600b97526952d5293"
+source = "git+https://github.com/servo/webxr#e30ebd848c4deb95833c2fea91d7d8d34f6d8ed8"
 dependencies = [
  "euclid",
  "ipc-channel",
@@ -6501,7 +6502,6 @@ dependencies = [
  "serde",
  "surfman-chains-api",
  "time",
- "winit",
 ]
 
 [[package]]
