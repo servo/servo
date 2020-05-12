@@ -57,132 +57,6 @@ impl From<nsCSSPropertyID> for TransitionProperty {
     }
 }
 
-/// An animated property interpolation between two computed values for that
-/// property.
-#[derive(Clone, Debug, PartialEq)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-pub enum AnimatedProperty {
-    % for prop in data.longhands:
-        % if prop.animatable and not prop.logical:
-            <%
-                value_type = "longhands::{}::computed_value::T".format(prop.ident)
-                if not prop.is_animatable_with_computed_value:
-                    value_type = "<{} as ToAnimatedValue>::AnimatedValue".format(value_type)
-            %>
-            /// ${prop.name}
-            ${prop.camel_case}(${value_type}, ${value_type}),
-        % endif
-    % endfor
-}
-
-impl AnimatedProperty {
-    /// Get the id of the property we're animating.
-    pub fn id(&self) -> LonghandId {
-        match *self {
-            % for prop in data.longhands:
-            % if prop.animatable and not prop.logical:
-            AnimatedProperty::${prop.camel_case}(..) => LonghandId::${prop.camel_case},
-            % endif
-            % endfor
-        }
-    }
-
-    /// Get the name of this property.
-    pub fn name(&self) -> &'static str {
-        self.id().name()
-    }
-
-    /// Whether this interpolation does animate, that is, whether the start and
-    /// end values are different.
-    pub fn does_animate(&self) -> bool {
-        match *self {
-            % for prop in data.longhands:
-                % if prop.animatable and not prop.logical:
-                    AnimatedProperty::${prop.camel_case}(ref from, ref to) => from != to,
-                % endif
-            % endfor
-        }
-    }
-
-    /// Whether an animated property has the same end value as another.
-    pub fn has_the_same_end_value_as(&self, other: &Self) -> bool {
-        match (self, other) {
-            % for prop in data.longhands:
-                % if prop.animatable and not prop.logical:
-                    (&AnimatedProperty::${prop.camel_case}(_, ref this_end_value),
-                     &AnimatedProperty::${prop.camel_case}(_, ref other_end_value)) => {
-                        this_end_value == other_end_value
-                    }
-                % endif
-            % endfor
-            _ => false,
-        }
-    }
-
-    /// Update `style` with the proper computed style corresponding to this
-    /// animation at `progress`.
-    #[cfg_attr(feature = "gecko", allow(unused))]
-    pub fn update(&self, style: &mut ComputedValues, progress: f64) {
-        #[cfg(feature = "servo")]
-        {
-            match *self {
-                % for prop in data.longhands:
-                % if prop.animatable and not prop.logical:
-                    AnimatedProperty::${prop.camel_case}(ref from, ref to) => {
-                        // https://drafts.csswg.org/web-animations/#discrete-animation-type
-                        % if prop.animation_value_type == "discrete":
-                            let value = if progress < 0.5 { from.clone() } else { to.clone() };
-                        % else:
-                            let value = match from.animate(to, Procedure::Interpolate { progress }) {
-                                Ok(value) => value,
-                                Err(()) => return,
-                            };
-                        % endif
-                        % if not prop.is_animatable_with_computed_value:
-                            let value: longhands::${prop.ident}::computed_value::T =
-                                ToAnimatedValue::from_animated_value(value);
-                        % endif
-                        style.mutate_${prop.style_struct.name_lower}().set_${prop.ident}(value);
-                    }
-                % endif
-                % endfor
-            }
-        }
-    }
-
-    /// Get an animatable value from a transition-property, an old style, and a
-    /// new style.
-    pub fn from_longhand(
-        property: LonghandId,
-        old_style: &ComputedValues,
-        new_style: &ComputedValues,
-    ) -> Option<AnimatedProperty> {
-        // FIXME(emilio): Handle the case where old_style and new_style's
-        // writing mode differ.
-        let property = property.to_physical(new_style.writing_mode);
-        Some(match property {
-            % for prop in data.longhands:
-            % if prop.animatable and not prop.logical:
-                LonghandId::${prop.camel_case} => {
-                    let old_computed = old_style.clone_${prop.ident}();
-                    let new_computed = new_style.clone_${prop.ident}();
-                    AnimatedProperty::${prop.camel_case}(
-                    % if prop.is_animatable_with_computed_value:
-                        old_computed,
-                        new_computed,
-                    % else:
-                        old_computed.to_animated_value(),
-                        new_computed.to_animated_value(),
-                    % endif
-                    )
-                }
-            % endif
-            % endfor
-            _ => return None,
-        })
-    }
-}
-
 /// A collection of AnimationValue that were composed on an element.
 /// This HashMap stores the values that are the last AnimationValue to be
 /// composed for each TransitionProperty.
@@ -191,11 +65,6 @@ pub type AnimationValueMap = FxHashMap<LonghandId, AnimationValue>;
 /// An enum to represent a single computed value belonging to an animated
 /// property in order to be interpolated with another one. When interpolating,
 /// both values need to belong to the same property.
-///
-/// This is different to AnimatedProperty in the sense that AnimatedProperty
-/// also knows the final value to be used during the animation.
-///
-/// This is to be used in Gecko integration code.
 ///
 /// FIXME: We need to add a path for custom properties, but that's trivial after
 /// this (is a similar path to that of PropertyDeclaration).
@@ -545,6 +414,30 @@ impl AnimationValue {
             % endfor
             _ => return None,
         })
+    }
+
+    /// Update `style` with the value of this `AnimationValue`.
+    ///
+    /// SERVO ONLY: This doesn't properly handle things like updating 'em' units
+    /// when animated font-size.
+    pub fn set_in_style_for_servo(&self, style: &mut ComputedValues) {
+        match self {
+            % for prop in data.longhands:
+            % if prop.animatable and not prop.logical:
+            AnimationValue::${prop.camel_case}(ref value) => {
+                % if not prop.is_animatable_with_computed_value:
+                let value: longhands::${prop.ident}::computed_value::T =
+                    ToAnimatedValue::from_animated_value(value.clone());
+                    style.mutate_${prop.style_struct.name_lower}().set_${prop.ident}(value);
+                % else:
+                    style.mutate_${prop.style_struct.name_lower}().set_${prop.ident}(value.clone());
+                % endif
+            }
+            % else:
+            AnimationValue::${prop.camel_case}(..) => unreachable!(),
+            % endif
+            % endfor
+        }
     }
 }
 

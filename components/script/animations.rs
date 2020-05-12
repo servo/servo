@@ -113,7 +113,7 @@ impl Animations {
                 transition.state = AnimationState::Finished;
                 update.add_event(
                     transition.node,
-                    transition.property_animation.property_name().into(),
+                    transition.property_animation.property_id().name().into(),
                     TransitionOrAnimationEventType::TransitionEnd,
                     transition.property_animation.duration,
                 );
@@ -135,7 +135,7 @@ impl Animations {
                 // according to https://drafts.csswg.org/css-transitions/#event-transitionevent
                 update.add_event(
                     transition.node,
-                    transition.property_animation.property_name().into(),
+                    transition.property_animation.property_id().name().into(),
                     TransitionOrAnimationEventType::TransitionCancel,
                     (now - transition.start_time).max(0.),
                 );
@@ -157,7 +157,7 @@ impl Animations {
                 // according to https://drafts.csswg.org/css-transitions/#event-transitionevent
                 update.add_event(
                     transition.node,
-                    transition.property_animation.property_name().into(),
+                    transition.property_animation.property_id().name().into(),
                     TransitionOrAnimationEventType::TransitionRun,
                     0.,
                 );
