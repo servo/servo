@@ -575,10 +575,19 @@ impl Document {
 
     // https://html.spec.whatwg.org/multipage/#fallback-base-url
     pub fn fallback_base_url(&self) -> ServoUrl {
-        // Step 1: iframe srcdoc (#4767).
-        // Step 2: about:blank with a creator browsing context.
-        // Step 3.
-        self.url()
+        let document_url = self.url();
+        if let Some(browsing_context) = self.browsing_context() {
+            // Step 1: If document is an iframe srcdoc document, then return the
+            // document base URL of document's browsing context's container document.
+
+            // Step 2: If document's URL is about:blank, and document's browsing
+            // context's creator base URL is non-null, then return that creator base URL.
+            if document_url.as_str() == "about:blank" && browsing_context.has_creator_base_url() {
+                return browsing_context.creator_base_url().unwrap();
+            }
+        }
+        // Step 3: Return document's URL.
+        document_url
     }
 
     // https://html.spec.whatwg.org/multipage/#document-base-url

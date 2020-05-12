@@ -68,7 +68,7 @@ use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::transitionevent::TransitionEvent;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::{ReflowReason, Window};
-use crate::dom::windowproxy::WindowProxy;
+use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::worklet::WorkletThreadPool;
 use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
@@ -3162,7 +3162,7 @@ impl ScriptThread {
             return Some(DomRoot::from_ref(window_proxy));
         }
 
-        let parent = parent_pipeline_id.and_then(|parent_id| {
+        let parent_browsing_context = parent_pipeline_id.and_then(|parent_id| {
             self.remote_window_proxy(
                 global_to_clone,
                 top_level_browsing_context_id,
@@ -3170,12 +3170,21 @@ impl ScriptThread {
                 opener,
             )
         });
+
+        let opener_browsing_context = opener.and_then(|id| ScriptThread::find_window_proxy(id));
+
+        let creator = CreatorBrowsingContextInfo::from(
+            parent_browsing_context.as_deref(),
+            opener_browsing_context.as_deref(),
+        );
+
         let window_proxy = WindowProxy::new_dissimilar_origin(
             global_to_clone,
             browsing_context_id,
             top_level_browsing_context_id,
-            parent.as_deref(),
+            parent_browsing_context.as_deref(),
             opener,
+            creator,
         );
         self.window_proxies
             .borrow_mut()
@@ -3207,7 +3216,7 @@ impl ScriptThread {
                 .borrow()
                 .find_iframe(parent_id, browsing_context_id)
         });
-        let parent = match (parent_info, iframe.as_ref()) {
+        let parent_browsing_context = match (parent_info, iframe.as_ref()) {
             (_, Some(iframe)) => Some(window_from_node(&**iframe).window_proxy()),
             (Some(parent_id), _) => self.remote_window_proxy(
                 window.upcast(),
@@ -3217,13 +3226,22 @@ impl ScriptThread {
             ),
             _ => None,
         };
+
+        let opener_browsing_context = opener.and_then(|id| ScriptThread::find_window_proxy(id));
+
+        let creator = CreatorBrowsingContextInfo::from(
+            parent_browsing_context.as_deref(),
+            opener_browsing_context.as_deref(),
+        );
+
         let window_proxy = WindowProxy::new(
             &window,
             browsing_context_id,
             top_level_browsing_context_id,
             iframe.as_deref().map(Castable::upcast),
-            parent.as_deref(),
+            parent_browsing_context.as_deref(),
             opener,
+            creator,
         );
         self.window_proxies
             .borrow_mut()
