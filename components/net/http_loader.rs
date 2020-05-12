@@ -833,7 +833,13 @@ pub fn http_redirect_fetch(
     request.url_list.push(location_url);
 
     // Step 14
-    // TODO implement referrer policy
+    if let Some(referrer_policy) = response
+        .actual_response()
+        .headers
+        .typed_get::<headers::ReferrerPolicy>()
+    {
+        request.referrer_policy = Some(referrer_policy.into());
+    }
 
     // Step 15
     let recursive_flag = request.redirect_mode != RedirectMode::Manual;
