@@ -12,6 +12,7 @@ from __future__ import absolute_import, print_function, unicode_literals
 from datetime import datetime
 import base64
 import hashlib
+import io
 import json
 import os
 import os.path as path
@@ -630,12 +631,33 @@ class PackageCommands(CommandBase):
             extension = path.splitext(path.basename(package))[1]
             latest_upload_key = '{}/servo-latest{}'.format(nightly_dir, extension)
 
+            # Compute the hash
+            SHA_BUF_SIZE = 1048576  # read in 1 MiB chunks
+            sha256_digest = hashlib.sha256()
+            with open(package, 'rb') as package_file:
+                while True:
+                    data = package_file.read(SHA_BUF_SIZE)
+                    if not data:
+                        break
+                    sha256_digest.update(data)
+            package_hash = sha256_digest.hexdigest()
+            package_hash_fileobj = io.BytesIO(package_hash)
+            package_hash_upload_key = '{}/{}.sha256'.format(nightly_dir, filename)
+            latest_hash_upload_key = '{}/servo-latest{}.sha256'.format(nightly_dir, extension)
+
             s3.upload_file(package, BUCKET, package_upload_key)
+            s3.upload_fileobj(package_hash_fileobj, BUCKET, package_hash_upload_key)
+
             copy_source = {
                 'Bucket': BUCKET,
                 'Key': package_upload_key,
             }
+            copy_source_hash = {
+                'Bucket': BUCKET,
+                'Key': package_hash_upload_key,
+            }
             s3.copy(copy_source, BUCKET, latest_upload_key)
+            s3.copy(copy_source_hash, BUCKET, latest_hash_upload_key)
 
         def update_maven(directory):
             (aws_access_key, aws_secret_access_key) = get_s3_secret()
