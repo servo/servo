@@ -81,7 +81,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{EmbedderMsg, EventLoopWaker, PromptDefinition, PromptOrigin, PromptResult};
 use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
-use ipc_channel::ipc::{channel, IpcSender};
+use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
 use js::jsapi::JSAutoRealm;
@@ -1305,9 +1305,9 @@ impl WindowMethods for Window {
     }
 
     fn RunningAnimationCount(&self) -> u32 {
-        let (sender, receiver) = channel().unwrap();
-        let _ = self.layout_chan.send(Msg::GetRunningAnimations(sender));
-        receiver.recv().unwrap_or(0) as u32
+        self.document
+            .get()
+            .map_or(0, |d| d.animations().running_animation_count() as u32)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-name
@@ -1643,6 +1643,7 @@ impl Window {
             dom_count: document.dom_count(),
             pending_restyles: document.drain_pending_restyles(),
             animation_timeline_value: document.current_animation_timeline_value(),
+            animations: document.animations().sets.clone(),
         };
 
         self.layout_chan
@@ -1706,8 +1707,9 @@ impl Window {
             }
         }
 
+        let update = document.update_animations();
         unsafe {
-            ScriptThread::note_newly_animating_nodes(pipeline_id, complete.newly_animating_nodes);
+            ScriptThread::process_animations_update(update);
         }
 
         true

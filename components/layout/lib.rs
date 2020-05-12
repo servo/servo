@@ -20,7 +20,6 @@ extern crate serde;
 #[macro_use]
 pub mod layout_debug;
 
-pub mod animation;
 mod block;
 pub mod construct;
 pub mod context;

@@ -7,20 +7,25 @@ use crate::{PendingImage, TrustedNodeAddress};
 use app_units::Au;
 use crossbeam_channel::{Receiver, Sender};
 use euclid::default::{Point2D, Rect};
+use fxhash::FxHashMap;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::{BackgroundHangMonitorRegister, BrowsingContextId, PipelineId};
 use net_traits::image_cache::ImageCache;
+use parking_lot::RwLock;
 use profile_traits::mem::ReportsChan;
 use script_traits::Painter;
-use script_traits::{ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg};
-use script_traits::{ScrollState, UntrustedNodeAddress, WindowSizeData};
+use script_traits::{
+    ConstellationControlMsg, LayoutControlMsg, LayoutMsg as ConstellationMsg, ScrollState,
+    WindowSizeData,
+};
 use servo_arc::Arc as ServoArc;
 use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
+use style::animation::ElementAnimationSet;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
@@ -87,9 +92,6 @@ pub enum Msg {
 
     /// Send to layout the precise time when the navigation started.
     SetNavigationStart(u64),
-
-    /// Request the current number of animations that are running.
-    GetRunningAnimations(IpcSender<usize>),
 }
 
 #[derive(Debug, PartialEq)]
@@ -183,8 +185,6 @@ pub struct Reflow {
 pub struct ReflowComplete {
     /// The list of images that were encountered that are in progress.
     pub pending_images: Vec<PendingImage>,
-    /// The list of nodes that initiated a CSS transition.
-    pub newly_animating_nodes: Vec<UntrustedNodeAddress>,
 }
 
 /// Information needed for a script-initiated reflow.
@@ -209,6 +209,8 @@ pub struct ScriptReflow {
     pub pending_restyles: Vec<(TrustedNodeAddress, PendingRestyle)>,
     /// The current animation timeline value.
     pub animation_timeline_value: f64,
+    /// The set of animations for this document.
+    pub animations: ServoArc<RwLock<FxHashMap<OpaqueNode, ElementAnimationSet>>>,
 }
 
 pub struct LayoutThreadInit {

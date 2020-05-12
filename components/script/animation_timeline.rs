@@ -12,7 +12,7 @@ use time;
 /// A `AnimationTimeline` which is used to synchronize animations during the script
 /// event loop.
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
-pub struct AnimationTimeline {
+pub(crate) struct AnimationTimeline {
     current_value: f64,
 }
 

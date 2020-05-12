@@ -17,6 +17,9 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
+use crate::animations::{
+    AnimationsUpdate, TransitionOrAnimationEvent, TransitionOrAnimationEventType,
+};
 use crate::devtools;
 use crate::document_loader::DocumentLoader;
 use crate::dom::animationevent::AnimationEvent;
@@ -141,8 +144,8 @@ use script_traits::{
     LayoutMsg, LoadData, LoadOrigin, MediaSessionActionType, MouseButton, MouseEventType,
     NewLayoutInfo, Painter, ProgressiveWebMetricType, ScriptMsg, ScriptThreadFactory,
     ScriptToConstellationChan, StructuredSerializedData, TimerSchedulerMsg, TouchEventType,
-    TouchId, TransitionOrAnimationEvent, TransitionOrAnimationEventType, UntrustedNodeAddress,
-    UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta, WindowSizeData, WindowSizeType,
+    TouchId, UntrustedNodeAddress, UpdatePipelineIdReason, WebrenderIpcSender, WheelDelta,
+    WindowSizeData, WindowSizeType,
 };
 use servo_atoms::Atom;
 use servo_config::opts;
@@ -510,10 +513,8 @@ impl<'a> Iterator for DocumentsIter<'a> {
 // thread during parsing. For this reason, we don't trace the
 // incomplete parser contexts during GC.
 type IncompleteParserContexts = Vec<(PipelineId, ParserContext)>;
-unsafe_no_jsmanaged_fields!(RefCell<IncompleteParserContexts>);
 
 unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
-
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitorRegister);
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitor);
 
@@ -643,6 +644,9 @@ pub struct ScriptThread {
     /// A list of nodes with in-progress CSS transitions, which roots them for the duration
     /// of the transition.
     animating_nodes: DomRefCell<HashMap<PipelineId, Vec<Dom<Node>>>>,
+
+    /// Animations events that are pending to be sent.
+    animation_events: RefCell<Vec<TransitionOrAnimationEvent>>,
 
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
     custom_element_reaction_stack: CustomElementReactionStack,
@@ -826,20 +830,35 @@ impl ScriptThread {
         })
     }
 
-    pub unsafe fn note_newly_animating_nodes(
-        pipeline_id: PipelineId,
-        nodes: Vec<UntrustedNodeAddress>,
-    ) {
+    /// Consume the list of pointer addresses corresponding to DOM nodes that are animating
+    /// and root them in a per-pipeline list of nodes.
+    ///
+    /// Unsafety: any pointer to invalid memory (ie. a GCed node) will trigger a crash.
+    /// TODO: ensure caller uses rooted nodes instead of unsafe node addresses.
+    pub(crate) unsafe fn process_animations_update(mut update: AnimationsUpdate) {
+        if update.is_empty() {
+            return;
+        }
+
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = &*root.get().unwrap();
+
+            if !update.events.is_empty() {
+                script_thread
+                    .animation_events
+                    .borrow_mut()
+                    .append(&mut update.events);
+            }
+
             let js_runtime = script_thread.js_runtime.rt();
-            let new_nodes = nodes
+            let new_nodes = update
+                .newly_animating_nodes
                 .into_iter()
                 .map(|n| Dom::from_ref(&*from_untrusted_node_address(js_runtime, n)));
             script_thread
                 .animating_nodes
                 .borrow_mut()
-                .entry(pipeline_id)
+                .entry(update.pipeline_id)
                 .or_insert_with(Vec::new)
                 .extend(new_nodes);
         })
@@ -1354,6 +1373,7 @@ impl ScriptThread {
             docs_with_no_blocking_loads: Default::default(),
 
             animating_nodes: Default::default(),
+            animation_events: Default::default(),
 
             custom_element_reaction_stack: CustomElementReactionStack::new(),
 
@@ -1620,15 +1640,21 @@ impl ScriptThread {
     }
 
     // Perform step 11.10 from https://html.spec.whatwg.org/multipage/#event-loops.
-    // TODO(mrobinson): This should also update the current animations and send events
-    // to conform to the HTML specification. This might mean having events for rooting
-    // DOM nodes and ultimately all animations living in script.
+    // TODO(mrobinson): This should also update the current animations to conform to
+    // the HTML specification.
     fn update_animations_and_send_events(&self) {
         for (_, document) in self.documents.borrow().iter() {
             // Only update the time if it isn't being managed by a test.
             if !pref!(layout.animations.test.enabled) {
                 document.update_animation_timeline();
             }
+        }
+
+        // We remove the events because handling these events might trigger
+        // a reflow which might want to add more events to the queue.
+        let events = self.animation_events.replace(Vec::new());
+        for event in events.into_iter() {
+            self.handle_transition_or_animation_event(&event);
         }
     }
 
@@ -1720,7 +1746,6 @@ impl ScriptThread {
                 FocusIFrame(id, ..) => Some(id),
                 WebDriverScriptCommand(id, ..) => Some(id),
                 TickAllAnimations(id, ..) => Some(id),
-                TransitionOrAnimationEvent { .. } => None,
                 WebFontLoaded(id) => Some(id),
                 DispatchIFrameLoadEvent {
                     target: _,
@@ -1920,9 +1945,6 @@ impl ScriptThread {
             },
             ConstellationControlMsg::TickAllAnimations(pipeline_id, tick_type) => {
                 self.handle_tick_all_animations(pipeline_id, tick_type)
-            },
-            ConstellationControlMsg::TransitionOrAnimationEvent(ref event) => {
-                self.handle_transition_or_animation_event(event);
             },
             ConstellationControlMsg::WebFontLoaded(pipeline_id) => {
                 self.handle_web_font_loaded(pipeline_id)

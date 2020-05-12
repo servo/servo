@@ -541,7 +541,6 @@ pub enum LayoutHangAnnotation {
     UpdateScrollStateFromScript,
     RegisterPaint,
     SetNavigationStart,
-    GetRunningAnimations,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]

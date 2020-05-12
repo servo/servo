@@ -29,7 +29,7 @@ use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
 use euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
-use fxhash::FxHashMap;
+use fxhash::{FxHashMap, FxHashSet};
 use gfx::font;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
@@ -37,7 +37,6 @@ use gfx_traits::{node_id_from_scroll_id, Epoch};
 use histogram::Histogram;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
-use layout::animation;
 use layout::construct::ConstructionResult;
 use layout::context::malloc_size_of_persistent_local_context;
 use layout::context::LayoutContext;
@@ -190,9 +189,6 @@ pub struct LayoutThread {
 
     /// The document-specific shared lock used for author-origin stylesheets
     document_shared_lock: Option<SharedRwLock>,
-
-    /// The animation state for all of our nodes.
-    animation_states: ServoArc<RwLock<FxHashMap<OpaqueNode, ElementAnimationSet>>>,
 
     /// A counter for epoch messages
     epoch: Cell<Epoch>,
@@ -552,7 +548,6 @@ impl LayoutThread {
             outstanding_web_fonts: Arc::new(AtomicUsize::new(0)),
             root_flow: RefCell::new(None),
             document_shared_lock: None,
-            animation_states: ServoArc::new(RwLock::new(Default::default())),
             // Epoch starts at 1 because of the initial display list for epoch 0 that we send to WR
             epoch: Cell::new(Epoch(1)),
             viewport_size: Size2D::new(Au(0), Au(0)),
@@ -613,6 +608,7 @@ impl LayoutThread {
         snapshot_map: &'a SnapshotMap,
         origin: ImmutableOrigin,
         animation_timeline_value: f64,
+        animation_states: ServoArc<RwLock<FxHashMap<OpaqueNode, ElementAnimationSet>>>,
     ) -> LayoutContext<'a> {
         LayoutContext {
             id: self.id,
@@ -622,7 +618,7 @@ impl LayoutThread {
                 options: GLOBAL_STYLE_DATA.options.clone(),
                 guards,
                 visited_styles_enabled: false,
-                animation_states: self.animation_states.clone(),
+                animation_states,
                 registered_speculative_painters: &self.registered_painters,
                 current_time_for_animations: animation_timeline_value,
                 traversal_flags: TraversalFlags::empty(),
@@ -632,7 +628,6 @@ impl LayoutThread {
             font_cache_thread: Mutex::new(self.font_cache_thread.clone()),
             webrender_image_cache: self.webrender_image_cache.clone(),
             pending_images: Mutex::new(vec![]),
-            newly_animating_nodes: Mutex::new(vec![]),
             registered_painters: &self.registered_painters,
         }
     }
@@ -657,7 +652,6 @@ impl LayoutThread {
             },
             Msg::RegisterPaint(..) => LayoutHangAnnotation::RegisterPaint,
             Msg::SetNavigationStart(..) => LayoutHangAnnotation::SetNavigationStart,
-            Msg::GetRunningAnimations(..) => LayoutHangAnnotation::GetRunningAnimations,
         };
         self.background_hang_monitor
             .as_ref()
@@ -823,15 +817,6 @@ impl LayoutThread {
             },
             Msg::SetNavigationStart(time) => {
                 self.paint_time_metrics.set_navigation_start(time);
-            },
-            Msg::GetRunningAnimations(sender) => {
-                let running_animation_count = self
-                    .animation_states
-                    .read()
-                    .values()
-                    .map(|state| state.running_animation_and_transition_count())
-                    .sum();
-                let _ = sender.send(running_animation_count);
             },
         }
 
@@ -1413,8 +1398,13 @@ impl LayoutThread {
         self.stylist.flush(&guards, Some(element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
-        let mut layout_context =
-            self.build_layout_context(guards.clone(), &map, origin, data.animation_timeline_value);
+        let mut layout_context = self.build_layout_context(
+            guards.clone(),
+            &map,
+            origin,
+            data.animation_timeline_value,
+            data.animations.clone(),
+        );
 
         let pool;
         let (thread_pool, num_threads) = if self.parallel_flag {
@@ -1516,8 +1506,6 @@ impl LayoutThread {
     ) {
         reflow_result.pending_images =
             std::mem::replace(&mut *context.pending_images.lock().unwrap(), vec![]);
-        reflow_result.newly_animating_nodes =
-            std::mem::replace(&mut *context.newly_animating_nodes.lock().unwrap(), vec![]);
 
         let mut root_flow = match self.root_flow.borrow().clone() {
             Some(root_flow) => root_flow,
@@ -1629,6 +1617,33 @@ impl LayoutThread {
         rw_data.scroll_offsets = layout_scroll_states
     }
 
+    /// Cancel animations for any nodes which have been removed from flow tree.
+    /// TODO(mrobinson): We should look into a way of doing this during flow tree construction.
+    /// This also doesn't yet handles nodes that have been reparented.
+    fn cancel_animations_for_nodes_not_in_flow_tree(
+        animation_states: &mut FxHashMap<OpaqueNode, ElementAnimationSet>,
+        root_flow: &mut dyn Flow,
+    ) {
+        // Assume all nodes have been removed until proven otherwise.
+        let mut invalid_nodes: FxHashSet<OpaqueNode> = animation_states.keys().cloned().collect();
+        fn traverse_flow(flow: &mut dyn Flow, invalid_nodes: &mut FxHashSet<OpaqueNode>) {
+            flow.mutate_fragments(&mut |fragment| {
+                invalid_nodes.remove(&fragment.node);
+            });
+            for kid in flow.mut_base().children.iter_mut() {
+                traverse_flow(kid, invalid_nodes)
+            }
+        }
+        traverse_flow(root_flow, &mut invalid_nodes);
+
+        // Cancel animations for any nodes that are no longer in the flow tree.
+        for node in &invalid_nodes {
+            if let Some(state) = animation_states.get_mut(node) {
+                state.cancel_all_animations();
+            }
+        }
+    }
+
     fn perform_post_style_recalc_layout_passes(
         &self,
         root_flow: &mut FlowRef,
@@ -1638,18 +1653,10 @@ impl LayoutThread {
         rw_data: &mut LayoutThreadData,
         context: &mut LayoutContext,
     ) {
-        {
-            let mut newly_animating_nodes = context.newly_animating_nodes.lock().unwrap();
-            animation::do_post_style_animations_update(
-                &self.constellation_chan,
-                &self.script_chan,
-                &mut *(self.animation_states.write()),
-                self.id,
-                context.style_context.current_time_for_animations,
-                &mut newly_animating_nodes,
-                FlowRef::deref_mut(root_flow),
-            );
-        }
+        Self::cancel_animations_for_nodes_not_in_flow_tree(
+            &mut *(context.style_context.animation_states.write()),
+            FlowRef::deref_mut(root_flow),
+        );
 
         profile(
             profile_time::ProfilerCategory::LayoutRestyleDamagePropagation,

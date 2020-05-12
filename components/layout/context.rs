@@ -17,7 +17,6 @@ use net_traits::image_cache::{
 use parking_lot::RwLock;
 use script_layout_interface::{PendingImage, PendingImageState};
 use script_traits::Painter;
-use script_traits::UntrustedNodeAddress;
 use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::cell::{RefCell, RefMut};
@@ -85,9 +84,6 @@ pub struct LayoutContext<'a> {
 
     /// A list of in-progress image loads to be shared with the script thread.
     pub pending_images: Mutex<Vec<PendingImage>>,
-
-    /// A list of nodes that have just initiated a CSS transition or animation.
-    pub newly_animating_nodes: Mutex<Vec<UntrustedNodeAddress>>,
 }
 
 impl<'a> Drop for LayoutContext<'a> {

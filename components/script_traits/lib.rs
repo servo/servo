@@ -282,58 +282,6 @@ pub enum UpdatePipelineIdReason {
     Traversal,
 }
 
-/// The type of transition event to trigger. These are defined by
-/// CSS Transitions § 6.1 and CSS Animations § 4.2
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub enum TransitionOrAnimationEventType {
-    /// "The transitionrun event occurs when a transition is created (i.e., when it
-    /// is added to the set of running transitions)."
-    TransitionRun,
-    /// "The transitionend event occurs at the completion of the transition. In the
-    /// case where a transition is removed before completion, such as if the
-    /// transition-property is removed, then the event will not fire."
-    TransitionEnd,
-    /// "The transitioncancel event occurs when a transition is canceled."
-    TransitionCancel,
-    /// "The animationend event occurs when the animation finishes"
-    AnimationEnd,
-}
-
-impl TransitionOrAnimationEventType {
-    /// Whether or not this event finalizes the animation or transition. During finalization
-    /// the DOM object associated with this transition or animation is unrooted.
-    pub fn finalizes_transition_or_animation(&self) -> bool {
-        match *self {
-            Self::TransitionEnd | Self::TransitionCancel | Self::AnimationEnd => true,
-            Self::TransitionRun => false,
-        }
-    }
-
-    /// Whether or not this event is a transition-related event.
-    pub fn is_transition_event(&self) -> bool {
-        match *self {
-            Self::TransitionRun | Self::TransitionEnd | Self::TransitionCancel => true,
-            Self::AnimationEnd => false,
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize)]
-/// A transition or animation event.
-pub struct TransitionOrAnimationEvent {
-    /// The pipeline id of the layout task that sent this message.
-    pub pipeline_id: PipelineId,
-    /// The type of transition event this should trigger.
-    pub event_type: TransitionOrAnimationEventType,
-    /// The address of the node which owns this transition.
-    pub node: UntrustedNodeAddress,
-    /// The name of the property that is transitioning (in the case of a transition)
-    /// or the name of the animation (in the case of an animation).
-    pub property_or_animation_name: String,
-    /// The elapsed time property to send with this transition event.
-    pub elapsed_time: f64,
-}
-
 /// Messages sent from the constellation or layout to the script thread.
 #[derive(Deserialize, Serialize)]
 pub enum ConstellationControlMsg {
@@ -420,8 +368,6 @@ pub enum ConstellationControlMsg {
     WebDriverScriptCommand(PipelineId, WebDriverScriptCommand),
     /// Notifies script thread that all animations are done
     TickAllAnimations(PipelineId, AnimationTickType),
-    /// Notifies the script thread that a transition or animation related event should be sent.
-    TransitionOrAnimationEvent(TransitionOrAnimationEvent),
     /// Notifies the script thread that a new Web font has been loaded, and thus the page should be
     /// reflowed.
     WebFontLoaded(PipelineId),
@@ -481,7 +427,6 @@ impl fmt::Debug for ConstellationControlMsg {
             FocusIFrame(..) => "FocusIFrame",
             WebDriverScriptCommand(..) => "WebDriverScriptCommand",
             TickAllAnimations(..) => "TickAllAnimations",
-            TransitionOrAnimationEvent { .. } => "TransitionOrAnimationEvent",
             WebFontLoaded(..) => "WebFontLoaded",
             DispatchIFrameLoadEvent { .. } => "DispatchIFrameLoadEvent",
             DispatchStorageEvent(..) => "DispatchStorageEvent",
