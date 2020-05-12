@@ -230,6 +230,7 @@ tasks:
               --
               --channel=${vars.channel}
               --verify
+              --verify-no-chaos-mode
 
         - wpt-${vars.browser}-${vars.channel}-results:
             use:

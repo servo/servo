@@ -1,6 +1,5 @@
 marionette_driver==3.0.0
 mozcrash==2.0.0
-mozdownload==1.26.0
 mozinstall==2.0.0
 mozleak==0.2
 moznetwork==1.1.0

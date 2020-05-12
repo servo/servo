@@ -59,7 +59,7 @@ test(() => {
 
   test(() => {
     assert_throws_dom('SYNTAX_ERR', () => { navigator.unregisterProtocolHandler('mailto', url); });
-    assert_throws_dom('SECURITY_ERR', () => { navigator.registerProtocolHandler('x', url, 'foo'); });
+    assert_throws_dom('SECURITY_ERR', () => { navigator.unregisterProtocolHandler('x', url, 'foo'); });
   }, `unregisterProtocolHandler: Invalid URL "${url}" should throw (but after scheme)`);
 });
 
@@ -74,14 +74,16 @@ test(() => {
   `ftp://${location.host}/%s`,
   `chrome://${location.host}/%s`,
   `foo://${location.host}/%s`,
+  URL.createObjectURL(new Blob()) + "#%s",
 ].forEach(url => {
+  const title = url.startsWith("blob:") ? "blob: URL" : url;
   test(() => {
     assert_throws_dom('SECURITY_ERR', () => { navigator.registerProtocolHandler('mailto', url, 'foo'); });
-  }, 'registerProtocolHandler: Invalid URL "' + url + '" should throw SECURITY_ERR.');
+  }, `registerProtocolHandler: Invalid URL "${title}" should throw SECURITY_ERR.`);
 
   test(() => {
     assert_throws_dom('SECURITY_ERR', () => { navigator.unregisterProtocolHandler('mailto', url); });
-  }, 'unregisterProtocolHandler: Invalid URL "' + url + '" should throw SECURITY_ERR.');
+  }, `unregisterProtocolHandler: Invalid URL "${title}" should throw SECURITY_ERR.`);
 });
 
 /* Protocol argument */
