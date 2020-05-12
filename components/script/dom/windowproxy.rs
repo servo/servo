@@ -385,7 +385,7 @@ impl WindowProxy {
         self.is_closing.get()
     }
 
-    /// https://html.spec.whatwg.org/multipage/browsers.html#creator-base-url
+    /// https://html.spec.whatwg.org/multipage/#creator-base-url
     pub fn creator_base_url(&self) -> Option<ServoUrl> {
         self.creator_base_url.clone()
     }
@@ -394,7 +394,7 @@ impl WindowProxy {
         self.creator_base_url.is_some()
     }
 
-    /// https://html.spec.whatwg.org/multipage/browsers.html#creator-url
+    /// https://html.spec.whatwg.org/multipage/#creator-url
     pub fn creator_url(&self) -> Option<ServoUrl> {
         self.creator_url.clone()
     }
@@ -403,7 +403,7 @@ impl WindowProxy {
         self.creator_base_url.is_some()
     }
 
-    /// https://html.spec.whatwg.org/multipage/browsers.html#creator-origin
+    /// https://html.spec.whatwg.org/multipage/#creator-origin
     pub fn creator_origin(&self) -> Option<ImmutableOrigin> {
         self.creator_origin.clone()
     }
@@ -713,7 +713,7 @@ impl WindowProxy {
 /// active document of that creator browsing context at the time A was created is the creator
 /// Document.
 ///
-/// See: https://html.spec.whatwg.org/multipage/browsers.html#creating-browsing-contexts
+/// See: https://html.spec.whatwg.org/multipage/#creating-browsing-contexts
 #[derive(Debug, Deserialize, Serialize)]
 pub struct CreatorBrowsingContextInfo {
     /// Creator document URL.
