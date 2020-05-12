@@ -605,8 +605,6 @@ impl BoxFragment {
                 self.scrollable_overflow(&containing_block_info.rect)
                     .to_webrender(),
                 padding_rect,
-                vec![], // complex_clips
-                None,   // image_mask
                 sensitivity,
                 LayoutVector2D::zero(),
             );

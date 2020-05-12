@@ -14,7 +14,9 @@ use crate::display_list::background::{self, get_cyclic};
 use crate::display_list::border;
 use crate::display_list::gradient;
 use crate::display_list::items::{self, BaseDisplayItem, ClipScrollNode};
-use crate::display_list::items::{ClipScrollNodeIndex, ClipScrollNodeType, ClippingAndScrolling};
+use crate::display_list::items::{
+    ClipScrollNodeIndex, ClipScrollNodeType, ClipType, ClippingAndScrolling,
+};
 use crate::display_list::items::{ClippingRegion, DisplayItem, DisplayItemMetadata, DisplayList};
 use crate::display_list::items::{CommonDisplayItem, DisplayListSection};
 use crate::display_list::items::{IframeDisplayItem, OpaqueNode};
@@ -424,15 +426,8 @@ impl<'a> DisplayListBuildState<'a> {
     }
 
     fn add_late_clip_node(&mut self, rect: LayoutRect, radii: BorderRadius) -> ClipScrollNodeIndex {
-        let mut clip = ClippingRegion::from_rect(rect);
-        clip.intersect_with_rounded_rect(rect, radii);
-
-        let node = ClipScrollNode {
-            parent_index: self.current_clipping_and_scrolling.scrolling,
-            clip,
-            content_rect: LayoutRect::zero(), // content_rect isn't important for clips.
-            node_type: ClipScrollNodeType::Clip,
-        };
+        let node =
+            ClipScrollNode::rounded(rect, radii, self.current_clipping_and_scrolling.scrolling);
 
         // We want the scroll root to be defined before any possible item that could use it,
         // so we make sure that it is added to the beginning of the parent "real" (non-pseudo)
@@ -2643,10 +2638,18 @@ impl BlockFlow {
             .to_physical(self.fragment.style.writing_mode);
         let clip_rect = border_box.inner_rect(border_widths);
 
-        let mut clip = ClippingRegion::from_rect(clip_rect.to_layout());
+        let clip = ClippingRegion::from_rect(clip_rect.to_layout());
         let radii = build_border_radius_for_inner_rect(border_box, &self.fragment.style);
         if !radii.is_zero() {
-            clip.intersect_with_rounded_rect(clip_rect.to_layout(), radii)
+            let node = ClipScrollNode::rounded(
+                clip_rect.to_layout(),
+                radii,
+                state.current_clipping_and_scrolling.scrolling,
+            );
+            let clip_id = state.add_clip_scroll_node(node);
+            let new_clipping_and_scrolling = ClippingAndScrolling::simple(clip_id);
+            self.base.clipping_and_scrolling = Some(new_clipping_and_scrolling);
+            state.current_clipping_and_scrolling = new_clipping_and_scrolling;
         }
 
         let content_size = self.base.overflow.scroll.origin + self.base.overflow.scroll.size;
@@ -2713,7 +2716,7 @@ impl BlockFlow {
             parent_index: self.clipping_and_scrolling().scrolling,
             clip: ClippingRegion::from_rect(clip_rect.to_layout()),
             content_rect: LayoutRect::zero(), // content_rect isn't important for clips.
-            node_type: ClipScrollNodeType::Clip,
+            node_type: ClipScrollNodeType::Clip(ClipType::Rect),
         });
 
         let new_indices = ClippingAndScrolling::new(new_index, new_index);

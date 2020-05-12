@@ -7,7 +7,7 @@
 //           This might be achieved by sharing types between WR and Servo display lists, or
 //           completely converting layout to directly generate WebRender display lists, for example.
 
-use crate::display_list::items::{BaseDisplayItem, ClipScrollNode, ClipScrollNodeType};
+use crate::display_list::items::{BaseDisplayItem, ClipScrollNode, ClipScrollNodeType, ClipType};
 use crate::display_list::items::{DisplayItem, DisplayList, StackingContextType};
 use msg::constellation_msg::PipelineId;
 use webrender_api::units::LayoutPoint;
@@ -269,15 +269,19 @@ impl DisplayItem {
                     .expect("Tried to use WebRender parent ClipId before it was defined.");
 
                 match node.node_type {
-                    ClipScrollNodeType::Clip => {
-                        let id = builder.define_clip(
-                            &SpaceAndClipInfo {
-                                clip_id: parent_clip_id,
-                                spatial_id: parent_spatial_id,
+                    ClipScrollNodeType::Clip(clip_type) => {
+                        let space_and_clip_info = SpaceAndClipInfo {
+                            clip_id: parent_clip_id,
+                            spatial_id: parent_spatial_id,
+                        };
+                        let id = match clip_type {
+                            ClipType::Rect => {
+                                builder.define_clip_rect(&space_and_clip_info, item_rect)
                             },
-                            item_rect,
-                            node.clip.complex.clone(),
-                        );
+                            ClipType::Rounded(complex) => {
+                                builder.define_clip_rounded_rect(&space_and_clip_info, complex)
+                            },
+                        };
 
                         state.spatial_ids[item.node_index.to_index()] = Some(parent_spatial_id);
                         state.clip_ids[item.node_index.to_index()] = Some(id);
@@ -291,7 +295,6 @@ impl DisplayItem {
                             Some(external_id),
                             node.content_rect,
                             node.clip.main,
-                            node.clip.complex.clone(),
                             scroll_sensitivity,
                             webrender_api::units::LayoutVector2D::zero(),
                         );
