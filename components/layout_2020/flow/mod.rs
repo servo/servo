@@ -485,7 +485,7 @@ fn layout_in_flow_non_replaced_block_level(
     };
 
     let inline_metrics =
-        VerticalAlignMetrics::for_replaced_or_inline_block(content_rect.size.block, &pbm);
+        VerticalAlignMetrics::for_replaced_or_inline_block(content_rect.size.block, &pbm, None);
     BoxFragment::new(
         tag,
         style.clone(),
@@ -529,7 +529,7 @@ fn layout_in_flow_replaced_block_level<'a>(
     };
     let block_margins_collapsed_with_children = CollapsedBlockMargins::from_margin(&margin);
     let inline_metrics =
-        VerticalAlignMetrics::for_replaced_or_inline_block(content_rect.size.block, &pbm);
+        VerticalAlignMetrics::for_replaced_or_inline_block(content_rect.size.block, &pbm, None);
     BoxFragment::new(
         tag,
         style.clone(),

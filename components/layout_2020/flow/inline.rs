@@ -24,6 +24,7 @@ use crate::ContainingBlock;
 use app_units::Au;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
+use style::computed_values::overflow_x::T as StyleOverflow;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, LineHeight, Percentage};
@@ -598,8 +599,11 @@ fn layout_atomic(
                 replaced.used_size_as_if_inline_element(ifc.containing_block, &atomic.style, &pbm);
             let fragments = replaced.make_fragments(&atomic.style, size.clone());
             let content_rect = Rect { start_corner, size };
-            let inline_metrics =
-                VerticalAlignMetrics::for_replaced_or_inline_block(content_rect.size.block, &pbm);
+            let inline_metrics = VerticalAlignMetrics::for_replaced_or_inline_block(
+                content_rect.size.block,
+                &pbm,
+                None,
+            );
             BoxFragment::new(
                 atomic.tag,
                 atomic.style.clone(),
@@ -672,8 +676,19 @@ fn layout_atomic(
                     inline: inline_size,
                 },
             };
-            let inline_metrics =
-                VerticalAlignMetrics::for_replaced_or_inline_block(content_rect.size.block, &pbm);
+            let last_in_flow_element = if atomic.style.get_box().overflow_x ==
+                StyleOverflow::Visible &&
+                atomic.style.get_box().overflow_y == StyleOverflow::Visible
+            {
+                independent_layout.fragments.last()
+            } else {
+                None
+            };
+            let inline_metrics = VerticalAlignMetrics::for_replaced_or_inline_block(
+                content_rect.size.block,
+                &pbm,
+                last_in_flow_element,
+            );
             BoxFragment::new(
                 atomic.tag,
                 atomic.style.clone(),
@@ -1046,9 +1061,8 @@ impl VerticalAlignMetrics {
     pub fn for_replaced_or_inline_block(
         content_rect_block_size: Length,
         pbm: &PaddingBorderMargin,
+        last_in_flow_content_element: Option<&Fragment>,
     ) -> Self {
-        // XXX(ferjm) Compute proper inline-block metrics when it has in-flow content.
-        //
         // The inline-block element’s baseline depends on whether the element has
         // in-flow content:
         //
@@ -1063,6 +1077,15 @@ impl VerticalAlignMetrics {
         //
         // In case of no in-flow content the baseline is, again, the bottom edge of
         // the margin-box (example on the right).
+
+        if let Some(last_in_flow_content_element) = last_in_flow_content_element {
+            match last_in_flow_content_element {
+                Fragment::Box(f) => return f.vertical_align_metrics,
+                Fragment::Text(f) => return f.vertical_align_metrics,
+                Fragment::Anonymous(f) => return f.vertical_align_metrics,
+                _ => (),
+            };
+        }
 
         let margin = pbm.margin.auto_is(Length::zero);
         let ascent = content_rect_block_size + pbm.padding_border_sums.block + margin.block_end;
