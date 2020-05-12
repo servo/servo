@@ -13,6 +13,7 @@ from six.moves.http_client import HTTPConnection
 from six.moves.urllib.parse import urljoin, urlsplit, urlunsplit
 
 from ..testrunner import Stop
+from .actions import actions
 from .protocol import Protocol, BaseProtocolPart
 
 here = os.path.split(__file__)[0]
@@ -681,20 +682,7 @@ class CallbackHandler(object):
             "complete": self.process_complete
         }
 
-        self.actions = {
-            "click": ClickAction(self.logger, self.protocol),
-            "send_keys": SendKeysAction(self.logger, self.protocol),
-            "action_sequence": ActionSequenceAction(self.logger, self.protocol),
-            "generate_test_report": GenerateTestReportAction(self.logger, self.protocol),
-            "set_permission": SetPermissionAction(self.logger, self.protocol),
-            "add_virtual_authenticator": AddVirtualAuthenticatorAction(self.logger, self.protocol),
-            "remove_virtual_authenticator": RemoveVirtualAuthenticatorAction(self.logger, self.protocol),
-            "add_credential": AddCredentialAction(self.logger, self.protocol),
-            "get_credentials": GetCredentialsAction(self.logger, self.protocol),
-            "remove_credential": RemoveCredentialAction(self.logger, self.protocol),
-            "remove_all_credentials": RemoveAllCredentialsAction(self.logger, self.protocol),
-            "set_user_verified": SetUserVerifiedAction(self.logger, self.protocol),
-        }
+        self.actions = {cls.name: cls(self.logger, self.protocol) for cls in actions}
 
     def __call__(self, result):
         url, command, payload = result
@@ -735,150 +723,3 @@ class CallbackHandler(object):
 
     def _send_message(self, message_type, status, message=None):
         self.protocol.testdriver.send_message(message_type, status, message=message)
-
-
-class ClickAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        selector = payload["selector"]
-        element = self.protocol.select.element_by_selector(selector)
-        self.logger.debug("Clicking element: %s" % selector)
-        self.protocol.click.element(element)
-
-
-class SendKeysAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        selector = payload["selector"]
-        keys = payload["keys"]
-        element = self.protocol.select.element_by_selector(selector)
-        self.logger.debug("Sending keys to element: %s" % selector)
-        self.protocol.send_keys.send_keys(element, keys)
-
-
-class ActionSequenceAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        # TODO: some sort of shallow error checking
-        actions = payload["actions"]
-        for actionSequence in actions:
-            if actionSequence["type"] == "pointer":
-                for action in actionSequence["actions"]:
-                    if (action["type"] == "pointerMove" and
-                        isinstance(action["origin"], dict)):
-                        action["origin"] = self.get_element(action["origin"]["selector"], action["frame"]["frame"])
-        self.protocol.action_sequence.send_actions({"actions": actions})
-
-    def get_element(self, element_selector, frame):
-        element = self.protocol.select.element_by_selector(element_selector, frame)
-        return element
-
-class GenerateTestReportAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        message = payload["message"]
-        self.logger.debug("Generating test report: %s" % message)
-        self.protocol.generate_test_report.generate_test_report(message)
-
-class SetPermissionAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        permission_params = payload["permission_params"]
-        descriptor = permission_params["descriptor"]
-        name = descriptor["name"]
-        state = permission_params["state"]
-        one_realm = permission_params.get("oneRealm", False)
-        self.logger.debug("Setting permission %s to %s, oneRealm=%s" % (name, state, one_realm))
-        self.protocol.set_permission.set_permission(descriptor, state, one_realm)
-
-class AddVirtualAuthenticatorAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        self.logger.debug("Adding virtual authenticator")
-        config = payload["config"]
-        authenticator_id = self.protocol.virtual_authenticator.add_virtual_authenticator(config)
-        self.logger.debug("Authenticator created with ID %s" % authenticator_id)
-        return authenticator_id
-
-class RemoveVirtualAuthenticatorAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        authenticator_id = payload["authenticator_id"]
-        self.logger.debug("Removing virtual authenticator %s" % authenticator_id)
-        return self.protocol.virtual_authenticator.remove_virtual_authenticator(authenticator_id)
-
-
-class AddCredentialAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        authenticator_id = payload["authenticator_id"]
-        credential = payload["credential"]
-        self.logger.debug("Adding credential to virtual authenticator %s " % authenticator_id)
-        return self.protocol.virtual_authenticator.add_credential(authenticator_id, credential)
-
-class GetCredentialsAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        authenticator_id = payload["authenticator_id"]
-        self.logger.debug("Getting credentials from virtual authenticator %s " % authenticator_id)
-        return self.protocol.virtual_authenticator.get_credentials(authenticator_id)
-
-class RemoveCredentialAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        authenticator_id = payload["authenticator_id"]
-        credential_id = payload["credential_id"]
-        self.logger.debug("Removing credential %s from authenticator %s" % (credential_id, authenticator_id))
-        return self.protocol.virtual_authenticator.remove_credential(authenticator_id, credential_id)
-
-class RemoveAllCredentialsAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        authenticator_id = payload["authenticator_id"]
-        self.logger.debug("Removing all credentials from authenticator %s" % authenticator_id)
-        return self.protocol.virtual_authenticator.remove_all_credentials(authenticator_id)
-
-class SetUserVerifiedAction(object):
-    def __init__(self, logger, protocol):
-        self.logger = logger
-        self.protocol = protocol
-
-    def __call__(self, payload):
-        authenticator_id = payload["authenticator_id"]
-        uv = payload["uv"]
-        self.logger.debug(
-            "Setting user verified flag on authenticator %s to %s" % (authenticator_id, uv["isUserVerified"]))
-        return self.protocol.virtual_authenticator.set_user_verified(authenticator_id, uv)

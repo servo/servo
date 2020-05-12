@@ -52,7 +52,6 @@
     "parser": "get_parser",
     "help": "Install browser components",
     "install": [
-      "mozdownload",
       "mozinstall"
     ]
   },

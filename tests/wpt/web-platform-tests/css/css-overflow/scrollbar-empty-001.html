@@ -1,0 +1,12 @@
+<!doctype html>
+<title>overflow-y: scroll on an empty element doesn't cause it to gain height</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#propdef-overflow-y">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1365806">
+<link rel="match" href="/css/reference/blank.html">
+<style>
+  div {
+    background: red;
+    overflow-y: scroll;
+  }
+</style>
+<div></div>

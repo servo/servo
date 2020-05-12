@@ -92,4 +92,58 @@ promise_test(async t => {
 }, 'addIceCandidate and setLocalDescription are resolved in the correct ' +
    'order, as defined by the operations chain specification');
 
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  caller.addTransceiver('audio');
+  let events = [];
+  let pendingPromises = [];
+
+  const onCandidatePromise = new Promise(resolve => {
+    caller.onicecandidate = () => {
+      events.push('candidate generated');
+      resolve();
+    }
+  });
+  pendingPromises.push(onCandidatePromise);
+  pendingPromises.push(caller.setLocalDescription().then(() => {
+    events.push('setLocalDescription');
+  }));
+  await Promise.all(pendingPromises);
+  assert_array_equals(events, ['setLocalDescription', 'candidate generated']);
+}, 'onicecandidate fires after resolving setLocalDescription in offerer');
+
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection();
+  t.add_cleanup(() => callee.close());
+  caller.addTransceiver('audio');
+  let events = [];
+  let pendingPromises = [];
+
+  caller.onicecandidate = (ev) => {
+    if (ev.candidate) {
+      callee.addIceCandidate(ev.candidate);
+    }
+  }
+  const offer = await caller.createOffer();
+  const onCandidatePromise = new Promise(resolve => {
+    callee.onicecandidate = () => {
+      events.push('candidate generated');
+      resolve();
+    }
+  });
+  await callee.setRemoteDescription(offer);
+  const answer = await callee.createAnswer();
+  pendingPromises.push(onCandidatePromise);
+  pendingPromises.push(callee.setLocalDescription(answer).then(() => {
+    events.push('setLocalDescription');
+  }));
+  await Promise.all(pendingPromises);
+  assert_array_equals(events, ['setLocalDescription', 'candidate generated']);
+}, 'onicecandidate fires after resolving setLocalDescription in answerer');
+
 </script>

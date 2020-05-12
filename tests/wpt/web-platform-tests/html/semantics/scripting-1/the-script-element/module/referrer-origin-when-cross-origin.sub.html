@@ -24,7 +24,7 @@ import { referrer as referrerRemoteRemote } from "http://{{domains[www1]}}:{{por
 import { referrer as referrerRemoteSame } from "http://{{domains[www1]}}:{{ports[http][0]}}/html/semantics/scripting-1/the-script-element/module/resources/import-same-origin-referrer-checker-from-remote-origin.sub.js?name=remote_same";
 
 const origin = (new URL(location.href)).origin + "/";
-const remoteOrigin = "http://{{domains[www1]}}:{{ports[http][0]}}/";
+const remoteOrigin = new URL("http://{{domains[www1]}}:{{ports[http][0]}}/").origin + "/";
 
 test(t => {
   assert_equals(

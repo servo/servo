@@ -55,14 +55,14 @@ test_interpolation({
 test_interpolation({
   property: 'outline-width',
   from: 'initial',
-  to: '20px',
+  to: '23px',
 }, [
   {at: -0.3, expect: '0px'},
   {at: 0, expect: '3px'},
-  {at: 0.3, expect: '8px'},
-  {at: 0.6, expect: '13px'},
-  {at: 1, expect: '20px'},
-  {at: 1.5, expect: '28px'},
+  {at: 0.3, expect: '9px'},
+  {at: 0.6, expect: '15px'},
+  {at: 1, expect: '23px'},
+  {at: 1.5, expect: '33px'},
 ]);
 
 test_interpolation({
@@ -81,14 +81,14 @@ test_interpolation({
 test_interpolation({
   property: 'outline-width',
   from: 'unset',
-  to: '20px',
+  to: '23px',
 }, [
   {at: -0.3, expect: '0px'},
   {at: 0, expect: '3px'},
-  {at: 0.3, expect: '8px'},
-  {at: 0.6, expect: '13px'},
-  {at: 1, expect: '20px'},
-  {at: 1.5, expect: '28px'},
+  {at: 0.3, expect: '9px'},
+  {at: 0.6, expect: '15px'},
+  {at: 1, expect: '23px'},
+  {at: 1.5, expect: '33px'},
 ]);
 
 test_interpolation({
