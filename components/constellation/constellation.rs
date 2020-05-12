@@ -246,9 +246,6 @@ struct BrowsingContextGroup {
     /// share an event loop, since they can use `document.domain`
     /// to become same-origin, at which point they can share DOM objects.
     event_loops: HashMap<Host, Weak<EventLoop>>,
-
-    /// The set of all WebGPU channels in this BrowsingContextGroup.
-    webgpus: HashMap<Host, WebGPU>,
 }
 
 /// The `Constellation` itself. In the servo browser, there is one
@@ -502,6 +499,9 @@ pub struct Constellation<Message, LTF, STF, SWF> {
 
     /// User agent string to report in network requests.
     user_agent: Cow<'static, str>,
+
+    /// IPC channel for the constellation to send messages to WebGPU thread
+    webgpu: Option<WebGPU>,
 }
 
 /// State needed to construct a constellation.
@@ -1020,6 +1020,7 @@ where
                     event_loop_waker: state.event_loop_waker,
                     active_media_session: None,
                     user_agent: state.user_agent,
+                    webgpu: None,
                 };
 
                 constellation.run();
@@ -2008,11 +2009,7 @@ where
                 ));
             },
             FromScriptMsg::RequestAdapter(sender, options, ids) => self
-                .handle_request_wgpu_adapter(
-                    source_pipeline_id,
-                    BrowsingContextId::from(source_top_ctx_id),
-                    FromScriptMsg::RequestAdapter(sender, options, ids),
-                ),
+                .handle_request_wgpu_adapter(FromScriptMsg::RequestAdapter(sender, options, ids)),
         }
     }
 
@@ -2180,58 +2177,32 @@ where
         }
     }
 
-    fn handle_request_wgpu_adapter(
-        &mut self,
-        source_pipeline_id: PipelineId,
-        browsing_context_id: BrowsingContextId,
-        request: FromScriptMsg,
-    ) {
-        let browsing_context_group_id = match self.browsing_contexts.get(&browsing_context_id) {
-            Some(bc) => &bc.bc_group_id,
-            None => return warn!("Browsing context not found"),
+    fn handle_request_wgpu_adapter(&mut self, request: FromScriptMsg) {
+        let adapter_request = if let FromScriptMsg::RequestAdapter(sender, options, ids) = request {
+            WebGPURequest::RequestAdapter {
+                sender,
+                options,
+                ids,
+            }
+        } else {
+            return warn!("Wrong message type in handle_request_wgpu_adapter");
         };
-        let host = match self
-            .pipelines
-            .get(&source_pipeline_id)
-            .map(|pipeline| &pipeline.url)
-        {
-            Some(ref url) => match reg_host(&url) {
-                Some(host) => host,
-                None => return warn!("Invalid host url"),
-            },
-            None => return warn!("ScriptMsg from closed pipeline {:?}.", source_pipeline_id),
-        };
-        match self
-            .browsing_context_group_set
-            .get_mut(&browsing_context_group_id)
-        {
-            Some(browsing_context_group) => {
-                let adapter_request =
-                    if let FromScriptMsg::RequestAdapter(sender, options, ids) = request {
-                        WebGPURequest::RequestAdapter {
-                            sender,
-                            options,
-                            ids,
-                        }
-                    } else {
-                        return warn!("Wrong message type in handle_request_wgpu_adapter");
-                    };
-                let send = match browsing_context_group.webgpus.entry(host) {
-                    Entry::Vacant(v) => v
-                        .insert(match WebGPU::new() {
-                            Some(webgpu) => webgpu,
-                            None => return warn!("Failed to create new WebGPU thread"),
-                        })
-                        .0
-                        .send(adapter_request),
-                    Entry::Occupied(o) => o.get().0.send(adapter_request),
+        let send = match self.webgpu {
+            Some(ref wgpu) => wgpu.0.send(adapter_request),
+            _ => {
+                let wgpu = match WebGPU::new() {
+                    Some(webgpu) => webgpu,
+                    None => return warn!("Failed to create new WebGPU thread"),
                 };
-                if send.is_err() {
-                    return warn!("Failed to send request adapter message on WebGPU channel");
-                }
+                let send = wgpu.0.send(adapter_request);
+                self.webgpu = Some(wgpu);
+                send
             },
-            None => return warn!("Browsing context group not found"),
         };
+
+        if send.is_err() {
+            return warn!("Failed to send request adapter message on WebGPU channel");
+        }
     }
 
     fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {
@@ -2803,27 +2774,18 @@ where
         }
 
         debug!("Exiting WebGPU threads.");
-        let receivers = self
-            .browsing_context_group_set
-            .values()
-            .map(|browsing_context_group| {
-                browsing_context_group.webgpus.values().map(|webgpu| {
-                    let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
-                    if let Err(e) = webgpu.exit(sender) {
-                        warn!("Exit WebGPU Thread failed ({})", e);
-                        None
-                    } else {
-                        Some(receiver)
+        match self.webgpu {
+            Some(ref wgpu) => {
+                let (sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+                if let Err(e) = wgpu.exit(sender) {
+                    warn!("Exit WebGPU Thread failed ({})", e);
+                } else {
+                    if let Err(e) = receiver.recv() {
+                        warn!("Failed to receive exit response from WebGPU ({:?})", e);
                     }
-                })
-            })
-            .flatten()
-            .filter_map(|r| r);
-
-        for receiver in receivers {
-            if let Err(e) = receiver.recv() {
-                warn!("Failed to receive exit response from WebGPU ({:?})", e);
-            }
+                }
+            },
+            _ => {},
         }
 
         debug!("Exiting GLPlayer thread.");

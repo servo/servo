@@ -472,31 +472,22 @@ impl WGPU {
                     options,
                     ids,
                 } => {
-                    let adapter_id = if let Some(pos) = self
-                        .adapters
-                        .iter()
-                        .position(|adapter| ids.contains(&adapter.0))
-                    {
-                        self.adapters[pos].0
-                    } else {
-                        let adapter_id = match self.global.pick_adapter(
-                            &options,
-                            wgpu::instance::AdapterInputs::IdSet(&ids, |id| id.backend()),
-                        ) {
-                            Some(id) => id,
-                            None => {
-                                if let Err(e) =
-                                    sender.send(Err("Failed to get webgpu adapter".to_string()))
-                                {
-                                    warn!(
-                                        "Failed to send response to WebGPURequest::RequestAdapter ({})",
-                                        e
-                                    )
-                                }
-                                return;
-                            },
-                        };
-                        adapter_id
+                    let adapter_id = match self.global.pick_adapter(
+                        &options,
+                        wgpu::instance::AdapterInputs::IdSet(&ids, |id| id.backend()),
+                    ) {
+                        Some(id) => id,
+                        None => {
+                            if let Err(e) =
+                                sender.send(Err("Failed to get webgpu adapter".to_string()))
+                            {
+                                warn!(
+                                    "Failed to send response to WebGPURequest::RequestAdapter ({})",
+                                    e
+                                )
+                            }
+                            return;
+                        },
                     };
                     let adapter = WebGPUAdapter(adapter_id);
                     self.adapters.push(adapter);
