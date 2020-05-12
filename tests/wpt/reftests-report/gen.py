@@ -62,7 +62,7 @@ def main(source, commit_sha=None):
 
     if commit_sha:
         title = "<h1>Layout 2020 regressions in commit <code>%s</code></h1>" % commit_sha
-        failures_2013 = {url for url, _ in failing_reftests("linux_x64", source)}
+        failures_2013 = {url for url, _, _ in failing_reftests("linux_x64", source)}
         for url, _expected_pass, screenshots in failing_reftests("linux_x64_2020", source):
             if url not in failures_2013:
                 failures.add(url, screenshots)
