@@ -12,7 +12,7 @@ pub use self::conversions::ToLayout;
 mod background;
 mod border;
 mod builder;
-mod conversions;
+pub(crate) mod conversions;
 mod gradient;
 pub mod items;
 mod webrender_helpers;

@@ -400,14 +400,6 @@ where
         let viewport_size = coordinates.viewport.size.to_f32() / device_pixel_ratio;
 
         let (mut webrender, webrender_api_sender) = {
-            let recorder = if opts.webrender_record {
-                let record_path = PathBuf::from("wr-record.bin");
-                let recorder = Box::new(webrender::BinaryRecorder::new(&record_path));
-                Some(recorder as Box<dyn webrender::ApiRecordingReceiver>)
-            } else {
-                None
-            };
-
             let mut debug_flags = webrender::DebugFlags::empty();
             debug_flags.set(webrender::DebugFlags::PROFILER_DBG, opts.webrender_stats);
 
@@ -424,7 +416,6 @@ where
                     resource_override_path: opts.shaders_dir.clone(),
                     enable_aa: opts.enable_text_antialiasing,
                     debug_flags: debug_flags,
-                    recorder: recorder,
                     precache_flags: if opts.precache_shaders {
                         ShaderPrecacheFlags::FULL_COMPILE
                     } else {
@@ -465,6 +456,7 @@ where
             webrender_gl.clone(),
             &mut webrender,
             webrender_api_sender.clone(),
+            webrender_document,
             &mut webxr_main_thread,
             &mut external_image_handlers,
             external_images.clone(),
@@ -891,6 +883,7 @@ fn create_constellation(
     let font_cache_thread = FontCacheThread::new(
         public_resource_threads.sender(),
         webrender_api_sender.create_api(),
+        webrender_document,
     );
 
     let initial_state = InitialConstellationState {
@@ -1052,6 +1045,7 @@ fn create_webgl_threads(
     webrender_gl: Rc<dyn gl::Gl>,
     webrender: &mut webrender::Renderer,
     webrender_api_sender: webrender_api::RenderApiSender,
+    webrender_doc: webrender_api::DocumentId,
     webxr_main_thread: &mut webxr::MainThreadRegistry,
     external_image_handlers: &mut WebrenderExternalImageHandlers,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -1075,6 +1069,7 @@ fn create_webgl_threads(
         webrender_surfman,
         webrender_gl,
         webrender_api_sender,
+        webrender_doc,
         external_images,
         gl_type,
     );

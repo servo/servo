@@ -341,8 +341,10 @@ impl<'a> BuilderForBoxFragment<'a> {
             // “The background color is clipped according to the background-clip
             //  value associated with the bottom-most background image layer.”
             let layer_index = b.background_image.0.len() - 1;
-            let (_, common) = background::painting_area(self, builder, layer_index);
-            builder.wr.push_rect(&common, rgba(background_color))
+            let (bounds, common) = background::painting_area(self, builder, layer_index);
+            builder
+                .wr
+                .push_rect(&common, *bounds, rgba(background_color))
         }
         // Reverse because the property is top layer first, we want to paint bottom layer first.
         for (index, image) in b.background_image.0.iter().enumerate().rev() {
@@ -587,15 +589,13 @@ fn clip_for_radii(
     if radii.is_zero() {
         None
     } else {
-        Some(builder.wr.define_clip(
+        Some(builder.wr.define_clip_rounded_rect(
             &builder.current_space_and_clip,
-            rect,
-            Some(wr::ComplexClipRegion {
+            wr::ComplexClipRegion {
                 rect,
                 radii,
                 mode: wr::ClipMode::Clip,
-            }),
-            None,
+            },
         ))
     }
 }

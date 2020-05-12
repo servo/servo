@@ -24,7 +24,7 @@ use std::f32;
 use std::fmt;
 use style::computed_values::_servo_top_layer::T as InTopLayer;
 use webrender_api as wr;
-use webrender_api::units::{LayoutPixel, LayoutPoint, LayoutRect, LayoutSize, LayoutTransform};
+use webrender_api::units::{LayoutPixel, LayoutRect, LayoutTransform};
 use webrender_api::{
     BorderRadius, ClipId, ClipMode, CommonItemProperties, ComplexClipRegion, ExternalScrollId,
     FilterOp, GlyphInstance, GradientStop, ImageKey, MixBlendMode, PrimitiveFlags,
@@ -334,12 +334,18 @@ pub struct StickyFrameData {
     pub horizontal_offset_bounds: StickyOffsetBounds,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+pub enum ClipType {
+    Rounded(ComplexClipRegion),
+    Rect,
+}
+
 #[derive(Clone, Debug, PartialEq, Serialize)]
 pub enum ClipScrollNodeType {
     Placeholder,
     ScrollFrame(ScrollSensitivity, ExternalScrollId),
     StickyFrame(StickyFrameData),
-    Clip,
+    Clip(ClipType),
 }
 
 /// Defines a clip scroll node.
@@ -370,6 +376,24 @@ impl ClipScrollNode {
 
     pub fn is_placeholder(&self) -> bool {
         self.node_type == ClipScrollNodeType::Placeholder
+    }
+
+    pub fn rounded(
+        clip_rect: LayoutRect,
+        radii: BorderRadius,
+        parent_index: ClipScrollNodeIndex,
+    ) -> ClipScrollNode {
+        let complex_region = ComplexClipRegion {
+            rect: clip_rect,
+            radii,
+            mode: ClipMode::Clip,
+        };
+        ClipScrollNode {
+            parent_index,
+            clip: ClippingRegion::from_rect(clip_rect),
+            content_rect: LayoutRect::zero(), // content_rect isn't important for clips.
+            node_type: ClipScrollNodeType::Clip(ClipType::Rounded(complex_region)),
+        }
     }
 }
 
@@ -455,7 +479,6 @@ pub fn empty_common_item_properties() -> CommonItemProperties {
         spatial_id: SpatialId::root_scroll_node(wr::PipelineId::dummy()),
         hit_info: None,
         flags: PrimitiveFlags::empty(),
-        item_key: None,
     }
 }
 
@@ -466,11 +489,6 @@ pub fn empty_common_item_properties() -> CommonItemProperties {
 pub struct ClippingRegion {
     /// The main rectangular region. This does not include any corners.
     pub main: LayoutRect,
-    /// Any complex regions.
-    ///
-    /// TODO(pcwalton): Atomically reference count these? Not sure if it's worth the trouble.
-    /// Measure and follow up.
-    pub complex: Vec<ComplexClipRegion>,
 }
 
 impl ClippingRegion {
@@ -479,7 +497,6 @@ impl ClippingRegion {
     pub fn empty() -> ClippingRegion {
         ClippingRegion {
             main: LayoutRect::zero(),
-            complex: Vec::new(),
         }
     }
 
@@ -488,45 +505,13 @@ impl ClippingRegion {
     pub fn max() -> ClippingRegion {
         ClippingRegion {
             main: LayoutRect::max_rect(),
-            complex: Vec::new(),
         }
     }
 
     /// Returns a clipping region that represents the given rectangle.
     #[inline]
     pub fn from_rect(rect: LayoutRect) -> ClippingRegion {
-        ClippingRegion {
-            main: rect,
-            complex: Vec::new(),
-        }
-    }
-
-    /// Intersects this clipping region with the given rounded rectangle.
-    #[inline]
-    pub fn intersect_with_rounded_rect(&mut self, rect: LayoutRect, radii: BorderRadius) {
-        let new_complex_region = ComplexClipRegion {
-            rect,
-            radii,
-            mode: ClipMode::Clip,
-        };
-
-        // FIXME(pcwalton): This is O(n²) worst case for disjoint clipping regions. Is that OK?
-        // They're slow anyway…
-        //
-        // Possibly relevant if we want to do better:
-        //
-        //     http://www.inrg.csie.ntu.edu.tw/algorithm2014/presentation/D&C%20Lee-84.pdf
-        for existing_complex_region in &mut self.complex {
-            if completely_encloses(&existing_complex_region, &new_complex_region) {
-                *existing_complex_region = new_complex_region;
-                return;
-            }
-            if completely_encloses(&new_complex_region, &existing_complex_region) {
-                return;
-            }
-        }
-
-        self.complex.push(new_complex_region);
+        ClippingRegion { main: rect }
     }
 }
 
@@ -536,44 +521,10 @@ impl fmt::Debug for ClippingRegion {
             write!(f, "ClippingRegion::Max")
         } else if *self == ClippingRegion::empty() {
             write!(f, "ClippingRegion::Empty")
-        } else if self.main == LayoutRect::max_rect() {
-            write!(f, "ClippingRegion(Complex={:?})", self.complex)
         } else {
-            write!(
-                f,
-                "ClippingRegion(Rect={:?}, Complex={:?})",
-                self.main, self.complex
-            )
+            write!(f, "ClippingRegion(Rect={:?})", self.main,)
         }
     }
-}
-
-// TODO(pcwalton): This could be more aggressive by considering points that touch the inside of
-// the border radius ellipse.
-fn completely_encloses(this: &ComplexClipRegion, other: &ComplexClipRegion) -> bool {
-    let left = this.radii.top_left.width.max(this.radii.bottom_left.width);
-    let top = this.radii.top_left.height.max(this.radii.top_right.height);
-    let right = this
-        .radii
-        .top_right
-        .width
-        .max(this.radii.bottom_right.width);
-    let bottom = this
-        .radii
-        .bottom_left
-        .height
-        .max(this.radii.bottom_right.height);
-    let interior = LayoutRect::new(
-        LayoutPoint::new(this.rect.origin.x + left, this.rect.origin.y + top),
-        LayoutSize::new(
-            this.rect.size.width - left - right,
-            this.rect.size.height - top - bottom,
-        ),
-    );
-    interior.origin.x <= other.rect.origin.x &&
-        interior.origin.y <= other.rect.origin.y &&
-        interior.max_x() >= other.rect.max_x() &&
-        interior.max_y() >= other.rect.max_y()
 }
 
 /// Metadata attached to each display item. This is useful for performing auxiliary threads with

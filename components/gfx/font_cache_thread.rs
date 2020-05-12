@@ -137,6 +137,7 @@ struct FontCache {
     core_resource_thread: CoreResourceThread,
     webrender_api: webrender_api::RenderApi,
     webrender_fonts: HashMap<Atom, webrender_api::FontKey>,
+    webrender_doc: webrender_api::DocumentId,
     font_instances: HashMap<(webrender_api::FontKey, Au), webrender_api::FontInstanceKey>,
 }
 
@@ -180,6 +181,7 @@ impl FontCache {
                 },
                 Command::GetFontInstance(font_key, size, result) => {
                     let webrender_api = &self.webrender_api;
+                    let doc = self.webrender_doc;
 
                     let instance_key =
                         *self
@@ -189,7 +191,7 @@ impl FontCache {
                                 let key = webrender_api.generate_font_instance_key();
                                 let mut txn = webrender_api::Transaction::new();
                                 txn.add_font_instance(key, font_key, size, None, None, Vec::new());
-                                webrender_api.update_resources(txn.resource_updates);
+                                webrender_api.send_transaction(doc, txn);
                                 key
                             });
 
@@ -389,6 +391,7 @@ impl FontCache {
 
     fn get_font_template_info(&mut self, template: Arc<FontTemplateData>) -> FontTemplateInfo {
         let webrender_api = &self.webrender_api;
+        let doc = self.webrender_doc;
         let webrender_fonts = &mut self.webrender_fonts;
 
         let font_key = *webrender_fonts
@@ -401,7 +404,7 @@ impl FontCache {
                     (None, Some(native_font)) => txn.add_native_font(font_key, native_font),
                     (None, None) => txn.add_raw_font(font_key, template.bytes(), 0),
                 }
-                webrender_api.update_resources(txn.resource_updates);
+                webrender_api.send_transaction(doc, txn);
                 font_key
             });
 
@@ -442,6 +445,7 @@ impl FontCacheThread {
     pub fn new(
         core_resource_thread: CoreResourceThread,
         webrender_api: webrender_api::RenderApi,
+        webrender_doc: webrender_api::DocumentId,
     ) -> FontCacheThread {
         let (chan, port) = ipc::channel().unwrap();
 
@@ -461,6 +465,7 @@ impl FontCacheThread {
                     font_context: FontContextHandle::new(),
                     core_resource_thread,
                     webrender_api,
+                    webrender_doc,
                     webrender_fonts: HashMap::new(),
                     font_instances: HashMap::new(),
                 };

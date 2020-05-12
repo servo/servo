@@ -40,6 +40,7 @@ impl WebGLComm {
         surfman: WebrenderSurfman,
         webrender_gl: Rc<dyn gleam::gl::Gl>,
         webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_doc: webrender_api::DocumentId,
         external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
         api_type: GlType,
     ) -> WebGLComm {
@@ -53,6 +54,7 @@ impl WebGLComm {
         // This implementation creates a single `WebGLThread` for all the pipelines.
         let init = WebGLThreadInit {
             webrender_api_sender,
+            webrender_doc,
             external_images,
             sender: sender.clone(),
             receiver,

@@ -368,6 +368,7 @@ pub struct CanvasData<'a> {
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
     webrender_api: webrender_api::RenderApi,
+    webrender_doc: webrender_api::DocumentId,
     image_key: Option<webrender_api::ImageKey>,
     /// An old webrender image key that can be deleted when the next epoch ends.
     old_image_key: Option<webrender_api::ImageKey>,
@@ -384,6 +385,7 @@ impl<'a> CanvasData<'a> {
     pub fn new(
         size: Size2D<u64>,
         webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_doc: webrender_api::DocumentId,
         antialias: AntialiasMode,
         canvas_id: CanvasId,
     ) -> CanvasData<'a> {
@@ -397,6 +399,7 @@ impl<'a> CanvasData<'a> {
             state: CanvasPaintState::new(antialias),
             saved_states: vec![],
             webrender_api: webrender_api,
+            webrender_doc,
             image_key: None,
             old_image_key: None,
             very_old_image_key: None,
@@ -996,7 +999,7 @@ impl<'a> CanvasData<'a> {
             txn.delete_image(image_key);
         }
 
-        self.webrender_api.update_resources(txn.resource_updates);
+        self.webrender_api.send_transaction(self.webrender_doc, txn);
 
         let data = CanvasImageData {
             image_key: self.image_key.unwrap(),
@@ -1116,7 +1119,7 @@ impl<'a> Drop for CanvasData<'a> {
             txn.delete_image(image_key);
         }
 
-        self.webrender_api.update_resources(txn.resource_updates);
+        self.webrender_api.send_transaction(self.webrender_doc, txn);
     }
 }
 
