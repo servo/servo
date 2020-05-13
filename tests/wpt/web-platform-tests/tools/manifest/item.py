@@ -191,6 +191,11 @@ class TestharnessTest(URLManifestItem):
         return self._extras.get("jsshell")
 
     @property
+    def quic(self):
+        # type: () -> Optional[bool]
+        return self._extras.get("quic")
+
+    @property
     def script_metadata(self):
         # type: () -> Optional[Text]
         return self._extras.get("script_metadata")
@@ -204,6 +209,8 @@ class TestharnessTest(URLManifestItem):
             rv[-1]["testdriver"] = self.testdriver
         if self.jsshell:
             rv[-1]["jsshell"] = True
+        if self.quic is not None:
+            rv[-1]["quic"] = self.quic
         if self.script_metadata:
             rv[-1]["script_metadata"] = [(k.decode('utf8'), v.decode('utf8')) for (k,v) in self.script_metadata]
         return rv

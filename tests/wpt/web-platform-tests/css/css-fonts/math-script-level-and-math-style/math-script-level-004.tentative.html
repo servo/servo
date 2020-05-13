@@ -37,13 +37,13 @@
       }
       .big { font-size: 3000px; }
       .small { font-size: 150px; }
-      .level-3 { math-script-level: -3; }
-      .level-1 { math-script-level: -1; }
-      .level0 { math-script-level: 0; }
-      .level1 { math-script-level: 1; }
-      .level2 { math-script-level: 2; }
-      .level3 { math-script-level: 3; }
-      .level5 { math-script-level: 5; }
+      .level-3 { font-size: scriptlevel(-3); }
+      .level-1 { font-size: scriptlevel(-1); }
+      .level0 { font-size: scriptlevel(0); }
+      .level1 { font-size: scriptlevel(1); }
+      .level2 { font-size: scriptlevel(2); }
+      .level3 { font-size: scriptlevel(3); }
+      .level5 { font-size: scriptlevel(5); }
     </style>
     <script>
       const big = 3000;
@@ -53,10 +53,6 @@
         // Delay the check to workaround WebKit's bug https://webkit.org/b/174030.
         requestAnimationFrame(() => { document.fonts.ready.then(runTests); });
       });
-      function mathScriptLevel(element) {
-          return window.getComputedStyle(element).
-              getPropertyValue("math-script-level");
-      }
       function fontSize(element) {
           return parseFloat((/(.+)px/).exec(getComputedStyle(element).
                                             getPropertyValue("font-size"))[1]);
@@ -66,7 +62,6 @@
           for (var level in sizes) {
               var divs = container.getElementsByClassName(`level${level}`);
               for (var i = 0; i < divs.length; i++) {
-                  assert_equals(mathScriptLevel(divs[i]), level);
                   assert_approx_equals(fontSize(divs[i]), sizes[level], 1, `Wrong font-size (id=${id} ; level=${level} ; i=${i})`);
               }
           }
@@ -166,28 +161,30 @@
   <body>
     <div id="log"></div>
 
-    <div class="level-3 big" id="scale80-40-scaledown">
-      <div class="level5"><!-- -3 to 5 --></div>
-      <div class="level3"><!-- -3 to 3 --></div>
-      <div class="level2"><!-- -3 to 2 --></div>
-      <div class="level1"><!-- -3 to 1 --></div>
-      <div class="level0"><!-- -3 to 0 --></div>
-      <div class="level-1"><!-- -3 to -1 -->
-        <div class="level5"><!-- -1 to 5 --></div>
-        <div class="level3"><!-- -1 to 3 --></div>
-        <div class="level2"><!-- -1 to 2 --></div>
-        <div class="level1"><!-- -1 to 1 --></div>
-        <div class="level0"><!-- -1 to 0 -->
-          <div class="level5"><!-- 0 to 5 --></div>
-          <div class="level3"><!-- 0 to 3 --></div>
-          <div class="level2"><!-- 0 to 2 --></div>
-          <div class="level1"><!-- 0 to 1 -->
-            <div class="level5"><!-- 1 to 5 --></div>
-            <div class="level3"><!-- 1 to 3 --></div>
-            <div class="level2"><!-- 1 to 2 -->
-              <div class="level5"><!-- 2 to 5 --></div>
-              <div class="level3"><!-- 2 to 3 -->
-                <div class="level5"><!-- 3 to 5 --></div>
+    <div class="level-3" id="scale80-40-scaledown">
+      <div class="big">
+        <div class="level5"><!-- -3 to 5 --></div>
+        <div class="level3"><!-- -3 to 3 --></div>
+        <div class="level2"><!-- -3 to 2 --></div>
+        <div class="level1"><!-- -3 to 1 --></div>
+        <div class="level0"><!-- -3 to 0 --></div>
+        <div class="level-1"><!-- -3 to -1 -->
+          <div class="level5"><!-- -1 to 5 --></div>
+          <div class="level3"><!-- -1 to 3 --></div>
+          <div class="level2"><!-- -1 to 2 --></div>
+          <div class="level1"><!-- -1 to 1 --></div>
+          <div class="level0"><!-- -1 to 0 -->
+            <div class="level5"><!-- 0 to 5 --></div>
+            <div class="level3"><!-- 0 to 3 --></div>
+            <div class="level2"><!-- 0 to 2 --></div>
+            <div class="level1"><!-- 0 to 1 -->
+              <div class="level5"><!-- 1 to 5 --></div>
+              <div class="level3"><!-- 1 to 3 --></div>
+              <div class="level2"><!-- 1 to 2 -->
+                <div class="level5"><!-- 2 to 5 --></div>
+                <div class="level3"><!-- 2 to 3 -->
+                  <div class="level5"><!-- 3 to 5 --></div>
+                </div>
               </div>
             </div>
           </div>
@@ -195,28 +192,30 @@
       </div>
     </div>
 
-    <div class="level5 small" id="scale80-40-scaleup">
-      <div class="level-3"><!-- 5 to -3 --></div>
-      <div class="level-1"><!-- 5 to -1 --></div>
-      <div class="level0"><!-- 5 to 0 --></div>
-      <div class="level1"><!-- 5 to 1 --></div>
-      <div class="level2"><!-- 5 to 2 --></div>
-      <div class="level3"><!-- 5 to 3 -->
-        <div class="level-3"><!-- 3 to -3 --></div>
-        <div class="level-1"><!-- 3 to -1 --></div>
-        <div class="level0"><!-- 3 to 0 --></div>
-        <div class="level1"><!-- 3 to 1 --></div>
-        <div class="level2"><!-- 3 to 2 -->
-          <div class="level-3"><!-- 2 to -3 --></div>
-          <div class="level-1"><!-- 2 to -1 --></div>
-          <div class="level0"><!-- 2 to 0 --></div>
-          <div class="level1"><!-- 2 to 1 -->
-            <div class="level-3"><!-- 1 to -3 --></div>
-            <div class="level-1"><!-- 1 to -1 --></div>
-            <div class="level0"><!-- 1 to 0 -->
-              <div class="level-3"><!-- 0 to -3 --></div>
-              <div class="level-1"><!-- 0 to -1 -->
-                <div class="level-3"><!-- -1 to -3 --></div>
+    <div class="level5" id="scale80-40-scaleup">
+      <div class="small">
+        <div class="level-3"><!-- 5 to -3 --></div>
+        <div class="level-1"><!-- 5 to -1 --></div>
+        <div class="level0"><!-- 5 to 0 --></div>
+        <div class="level1"><!-- 5 to 1 --></div>
+        <div class="level2"><!-- 5 to 2 --></div>
+        <div class="level3"><!-- 5 to 3 -->
+          <div class="level-3"><!-- 3 to -3 --></div>
+          <div class="level-1"><!-- 3 to -1 --></div>
+          <div class="level0"><!-- 3 to 0 --></div>
+          <div class="level1"><!-- 3 to 1 --></div>
+          <div class="level2"><!-- 3 to 2 -->
+            <div class="level-3"><!-- 2 to -3 --></div>
+            <div class="level-1"><!-- 2 to -1 --></div>
+            <div class="level0"><!-- 2 to 0 --></div>
+            <div class="level1"><!-- 2 to 1 -->
+              <div class="level-3"><!-- 1 to -3 --></div>
+              <div class="level-1"><!-- 1 to -1 --></div>
+              <div class="level0"><!-- 1 to 0 -->
+                <div class="level-3"><!-- 0 to -3 --></div>
+                <div class="level-1"><!-- 0 to -1 -->
+                  <div class="level-3"><!-- -1 to -3 --></div>
+                </div>
               </div>
             </div>
           </div>
@@ -224,28 +223,30 @@
       </div>
     </div>
 
-    <div class="level-3 big" id="scale0-40-scaledown">
-      <div class="level5"><!-- -3 to 5 --></div>
-      <div class="level3"><!-- -3 to 3 --></div>
-      <div class="level2"><!-- -3 to 2 --></div>
-      <div class="level1"><!-- -3 to 1 --></div>
-      <div class="level0"><!-- -3 to 0 --></div>
-      <div class="level-1"><!-- -3 to -1 -->
-        <div class="level5"><!-- -1 to 5 --></div>
-        <div class="level3"><!-- -1 to 3 --></div>
-        <div class="level2"><!-- -1 to 2 --></div>
-        <div class="level1"><!-- -1 to 1 --></div>
-        <div class="level0"><!-- -1 to 0 -->
-          <div class="level5"><!-- 0 to 5 --></div>
-          <div class="level3"><!-- 0 to 3 --></div>
-          <div class="level2"><!-- 0 to 2 --></div>
-          <div class="level1"><!-- 0 to 1 -->
-            <div class="level5"><!-- 1 to 5 --></div>
-            <div class="level3"><!-- 1 to 3 --></div>
-            <div class="level2"><!-- 1 to 2 -->
-              <div class="level5"><!-- 2 to 5 --></div>
-              <div class="level3"><!-- 2 to 3 -->
-                <div class="level5"><!-- 3 to 5 --></div>
+    <div class="level-3" id="scale0-40-scaledown">
+      <div class="big">
+        <div class="level5"><!-- -3 to 5 --></div>
+        <div class="level3"><!-- -3 to 3 --></div>
+        <div class="level2"><!-- -3 to 2 --></div>
+        <div class="level1"><!-- -3 to 1 --></div>
+        <div class="level0"><!-- -3 to 0 --></div>
+        <div class="level-1"><!-- -3 to -1 -->
+          <div class="level5"><!-- -1 to 5 --></div>
+          <div class="level3"><!-- -1 to 3 --></div>
+          <div class="level2"><!-- -1 to 2 --></div>
+          <div class="level1"><!-- -1 to 1 --></div>
+          <div class="level0"><!-- -1 to 0 -->
+            <div class="level5"><!-- 0 to 5 --></div>
+            <div class="level3"><!-- 0 to 3 --></div>
+            <div class="level2"><!-- 0 to 2 --></div>
+            <div class="level1"><!-- 0 to 1 -->
+              <div class="level5"><!-- 1 to 5 --></div>
+              <div class="level3"><!-- 1 to 3 --></div>
+              <div class="level2"><!-- 1 to 2 -->
+                <div class="level5"><!-- 2 to 5 --></div>
+                <div class="level3"><!-- 2 to 3 -->
+                  <div class="level5"><!-- 3 to 5 --></div>
+                </div>
               </div>
             </div>
           </div>
@@ -253,28 +254,30 @@
       </div>
     </div>
 
-    <div class="level5 small" id="scale0-40-scaleup">
-      <div class="level-3"><!-- 5 to -3 --></div>
-      <div class="level-1"><!-- 5 to -1 --></div>
-      <div class="level0"><!-- 5 to 0 --></div>
-      <div class="level1"><!-- 5 to 1 --></div>
-      <div class="level2"><!-- 5 to 2 --></div>
-      <div class="level3"><!-- 5 to 3 -->
-        <div class="level-3"><!-- 3 to -3 --></div>
-        <div class="level-1"><!-- 3 to -1 --></div>
-        <div class="level0"><!-- 3 to 0 --></div>
-        <div class="level1"><!-- 3 to 1 --></div>
-        <div class="level2"><!-- 3 to 2 -->
-          <div class="level-3"><!-- 2 to -3 --></div>
-          <div class="level-1"><!-- 2 to -1 --></div>
-          <div class="level0"><!-- 2 to 0 --></div>
-          <div class="level1"><!-- 2 to 1 -->
-            <div class="level-3"><!-- 1 to -3 --></div>
-            <div class="level-1"><!-- 1 to -1 --></div>
-            <div class="level0"><!-- 1 to 0 -->
-              <div class="level-3"><!-- 0 to -3 --></div>
-              <div class="level-1"><!-- 0 to -1 -->
-                <div class="level-3"><!-- -1 to -3 --></div>
+    <div class="level5" id="scale0-40-scaleup">
+      <div class="small">
+        <div class="level-3"><!-- 5 to -3 --></div>
+        <div class="level-1"><!-- 5 to -1 --></div>
+        <div class="level0"><!-- 5 to 0 --></div>
+        <div class="level1"><!-- 5 to 1 --></div>
+        <div class="level2"><!-- 5 to 2 --></div>
+        <div class="level3"><!-- 5 to 3 -->
+          <div class="level-3"><!-- 3 to -3 --></div>
+          <div class="level-1"><!-- 3 to -1 --></div>
+          <div class="level0"><!-- 3 to 0 --></div>
+          <div class="level1"><!-- 3 to 1 --></div>
+          <div class="level2"><!-- 3 to 2 -->
+            <div class="level-3"><!-- 2 to -3 --></div>
+            <div class="level-1"><!-- 2 to -1 --></div>
+            <div class="level0"><!-- 2 to 0 --></div>
+            <div class="level1"><!-- 2 to 1 -->
+              <div class="level-3"><!-- 1 to -3 --></div>
+              <div class="level-1"><!-- 1 to -1 --></div>
+              <div class="level0"><!-- 1 to 0 -->
+                <div class="level-3"><!-- 0 to -3 --></div>
+                <div class="level-1"><!-- 0 to -1 -->
+                  <div class="level-3"><!-- -1 to -3 --></div>
+                </div>
               </div>
             </div>
           </div>
@@ -282,28 +285,30 @@
       </div>
     </div>
 
-    <div class="level-3 big" id="scale80-0-scaledown">
-      <div class="level5"><!-- -3 to 5 --></div>
-      <div class="level3"><!-- -3 to 3 --></div>
-      <div class="level2"><!-- -3 to 2 --></div>
-      <div class="level1"><!-- -3 to 1 --></div>
-      <div class="level0"><!-- -3 to 0 --></div>
-      <div class="level-1"><!-- -3 to -1 -->
-        <div class="level5"><!-- -1 to 5 --></div>
-        <div class="level3"><!-- -1 to 3 --></div>
-        <div class="level2"><!-- -1 to 2 --></div>
-        <div class="level1"><!-- -1 to 1 --></div>
-        <div class="level0"><!-- -1 to 0 -->
-          <div class="level5"><!-- 0 to 5 --></div>
-          <div class="level3"><!-- 0 to 3 --></div>
-          <div class="level2"><!-- 0 to 2 --></div>
-          <div class="level1"><!-- 0 to 1 -->
-            <div class="level5"><!-- 1 to 5 --></div>
-            <div class="level3"><!-- 1 to 3 --></div>
-            <div class="level2"><!-- 1 to 2 -->
-              <div class="level5"><!-- 2 to 5 --></div>
-              <div class="level3"><!-- 2 to 3 -->
-                <div class="level5"><!-- 3 to 5 --></div>
+    <div class="level-3" id="scale80-0-scaledown">
+      <div class="big">
+        <div class="level5"><!-- -3 to 5 --></div>
+        <div class="level3"><!-- -3 to 3 --></div>
+        <div class="level2"><!-- -3 to 2 --></div>
+        <div class="level1"><!-- -3 to 1 --></div>
+        <div class="level0"><!-- -3 to 0 --></div>
+        <div class="level-1"><!-- -3 to -1 -->
+          <div class="level5"><!-- -1 to 5 --></div>
+          <div class="level3"><!-- -1 to 3 --></div>
+          <div class="level2"><!-- -1 to 2 --></div>
+          <div class="level1"><!-- -1 to 1 --></div>
+          <div class="level0"><!-- -1 to 0 -->
+            <div class="level5"><!-- 0 to 5 --></div>
+            <div class="level3"><!-- 0 to 3 --></div>
+            <div class="level2"><!-- 0 to 2 --></div>
+            <div class="level1"><!-- 0 to 1 -->
+              <div class="level5"><!-- 1 to 5 --></div>
+              <div class="level3"><!-- 1 to 3 --></div>
+              <div class="level2"><!-- 1 to 2 -->
+                <div class="level5"><!-- 2 to 5 --></div>
+                <div class="level3"><!-- 2 to 3 -->
+                  <div class="level5"><!-- 3 to 5 --></div>
+                </div>
               </div>
             </div>
           </div>
@@ -311,28 +316,30 @@
       </div>
     </div>
 
-    <div class="level5 small" id="scale80-0-scaleup">
-      <div class="level-3"><!-- 5 to -3 --></div>
-      <div class="level-1"><!-- 5 to -1 --></div>
-      <div class="level0"><!-- 5 to 0 --></div>
-      <div class="level1"><!-- 5 to 1 --></div>
-      <div class="level2"><!-- 5 to 2 --></div>
-      <div class="level3"><!-- 5 to 3 -->
-        <div class="level-3"><!-- 3 to -3 --></div>
-        <div class="level-1"><!-- 3 to -1 --></div>
-        <div class="level0"><!-- 3 to 0 --></div>
-        <div class="level1"><!-- 3 to 1 --></div>
-        <div class="level2"><!-- 3 to 2 -->
-          <div class="level-3"><!-- 2 to -3 --></div>
-          <div class="level-1"><!-- 2 to -1 --></div>
-          <div class="level0"><!-- 2 to 0 --></div>
-          <div class="level1"><!-- 2 to 1 -->
-            <div class="level-3"><!-- 1 to -3 --></div>
-            <div class="level-1"><!-- 1 to -1 --></div>
-            <div class="level0"><!-- 1 to 0 -->
-              <div class="level-3"><!-- 0 to -3 --></div>
-              <div class="level-1"><!-- 0 to -1 -->
-                <div class="level-3"><!-- -1 to -3 --></div>
+    <div class="level5" id="scale80-0-scaleup">
+      <div class="small">
+        <div class="level-3"><!-- 5 to -3 --></div>
+        <div class="level-1"><!-- 5 to -1 --></div>
+        <div class="level0"><!-- 5 to 0 --></div>
+        <div class="level1"><!-- 5 to 1 --></div>
+        <div class="level2"><!-- 5 to 2 --></div>
+        <div class="level3"><!-- 5 to 3 -->
+          <div class="level-3"><!-- 3 to -3 --></div>
+          <div class="level-1"><!-- 3 to -1 --></div>
+          <div class="level0"><!-- 3 to 0 --></div>
+          <div class="level1"><!-- 3 to 1 --></div>
+          <div class="level2"><!-- 3 to 2 -->
+            <div class="level-3"><!-- 2 to -3 --></div>
+            <div class="level-1"><!-- 2 to -1 --></div>
+            <div class="level0"><!-- 2 to 0 --></div>
+            <div class="level1"><!-- 2 to 1 -->
+              <div class="level-3"><!-- 1 to -3 --></div>
+              <div class="level-1"><!-- 1 to -1 --></div>
+              <div class="level0"><!-- 1 to 0 -->
+                <div class="level-3"><!-- 0 to -3 --></div>
+                <div class="level-1"><!-- 0 to -1 -->
+                  <div class="level-3"><!-- -1 to -3 --></div>
+                </div>
               </div>
             </div>
           </div>
@@ -340,28 +347,30 @@
       </div>
     </div>
 
-    <div class="level-3 big" id="default-scaledown">
-      <div class="level5"><!-- -3 to 5 --></div>
-      <div class="level3"><!-- -3 to 3 --></div>
-      <div class="level2"><!-- -3 to 2 --></div>
-      <div class="level1"><!-- -3 to 1 --></div>
-      <div class="level0"><!-- -3 to 0 --></div>
-      <div class="level-1"><!-- -3 to -1 -->
-        <div class="level5"><!-- -1 to 5 --></div>
-        <div class="level3"><!-- -1 to 3 --></div>
-        <div class="level2"><!-- -1 to 2 --></div>
-        <div class="level1"><!-- -1 to 1 --></div>
-        <div class="level0"><!-- -1 to 0 -->
-          <div class="level5"><!-- 0 to 5 --></div>
-          <div class="level3"><!-- 0 to 3 --></div>
-          <div class="level2"><!-- 0 to 2 --></div>
-          <div class="level1"><!-- 0 to 1 -->
-            <div class="level5"><!-- 1 to 5 --></div>
-            <div class="level3"><!-- 1 to 3 --></div>
-            <div class="level2"><!-- 1 to 2 -->
-              <div class="level5"><!-- 2 to 5 --></div>
-              <div class="level3"><!-- 2 to 3 -->
-                <div class="level5"><!-- 3 to 5 --></div>
+    <div class="level-3" id="default-scaledown">
+      <div class="big">
+        <div class="level5"><!-- -3 to 5 --></div>
+        <div class="level3"><!-- -3 to 3 --></div>
+        <div class="level2"><!-- -3 to 2 --></div>
+        <div class="level1"><!-- -3 to 1 --></div>
+        <div class="level0"><!-- -3 to 0 --></div>
+        <div class="level-1"><!-- -3 to -1 -->
+          <div class="level5"><!-- -1 to 5 --></div>
+          <div class="level3"><!-- -1 to 3 --></div>
+          <div class="level2"><!-- -1 to 2 --></div>
+          <div class="level1"><!-- -1 to 1 --></div>
+          <div class="level0"><!-- -1 to 0 -->
+            <div class="level5"><!-- 0 to 5 --></div>
+            <div class="level3"><!-- 0 to 3 --></div>
+            <div class="level2"><!-- 0 to 2 --></div>
+            <div class="level1"><!-- 0 to 1 -->
+              <div class="level5"><!-- 1 to 5 --></div>
+              <div class="level3"><!-- 1 to 3 --></div>
+              <div class="level2"><!-- 1 to 2 -->
+                <div class="level5"><!-- 2 to 5 --></div>
+                <div class="level3"><!-- 2 to 3 -->
+                  <div class="level5"><!-- 3 to 5 --></div>
+                </div>
               </div>
             </div>
           </div>
@@ -369,28 +378,30 @@
       </div>
     </div>
 
-    <div class="level5 small" id="default-scaleup">
-      <div class="level-3"><!-- 5 to -3 --></div>
-      <div class="level-1"><!-- 5 to -1 --></div>
-      <div class="level0"><!-- 5 to 0 --></div>
-      <div class="level1"><!-- 5 to 1 --></div>
-      <div class="level2"><!-- 5 to 2 --></div>
-      <div class="level3"><!-- 5 to 3 -->
-        <div class="level-3"><!-- 3 to -3 --></div>
-        <div class="level-1"><!-- 3 to -1 --></div>
-        <div class="level0"><!-- 3 to 0 --></div>
-        <div class="level1"><!-- 3 to 1 --></div>
-        <div class="level2"><!-- 3 to 2 -->
-          <div class="level-3"><!-- 2 to -3 --></div>
-          <div class="level-1"><!-- 2 to -1 --></div>
-          <div class="level0"><!-- 2 to 0 --></div>
-          <div class="level1"><!-- 2 to 1 -->
-            <div class="level-3"><!-- 1 to -3 --></div>
-            <div class="level-1"><!-- 1 to -1 --></div>
-            <div class="level0"><!-- 1 to 0 -->
-              <div class="level-3"><!-- 0 to -3 --></div>
-              <div class="level-1"><!-- 0 to -1 -->
-                <div class="level-3"><!-- -1 to -3 --></div>
+    <div class="level5" id="default-scaleup">
+      <div class="small">
+        <div class="level-3"><!-- 5 to -3 --></div>
+        <div class="level-1"><!-- 5 to -1 --></div>
+        <div class="level0"><!-- 5 to 0 --></div>
+        <div class="level1"><!-- 5 to 1 --></div>
+        <div class="level2"><!-- 5 to 2 --></div>
+        <div class="level3"><!-- 5 to 3 -->
+          <div class="level-3"><!-- 3 to -3 --></div>
+          <div class="level-1"><!-- 3 to -1 --></div>
+          <div class="level0"><!-- 3 to 0 --></div>
+          <div class="level1"><!-- 3 to 1 --></div>
+          <div class="level2"><!-- 3 to 2 -->
+            <div class="level-3"><!-- 2 to -3 --></div>
+            <div class="level-1"><!-- 2 to -1 --></div>
+            <div class="level0"><!-- 2 to 0 --></div>
+            <div class="level1"><!-- 2 to 1 -->
+              <div class="level-3"><!-- 1 to -3 --></div>
+              <div class="level-1"><!-- 1 to -1 --></div>
+              <div class="level0"><!-- 1 to 0 -->
+                <div class="level-3"><!-- 0 to -3 --></div>
+                <div class="level-1"><!-- 0 to -1 -->
+                  <div class="level-3"><!-- -1 to -3 --></div>
+                </div>
               </div>
             </div>
           </div>

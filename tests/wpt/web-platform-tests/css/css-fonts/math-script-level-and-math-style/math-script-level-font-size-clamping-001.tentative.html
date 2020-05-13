@@ -19,8 +19,8 @@
   <body>
     <p>Test passes if you see a square of side 12px.</p>
     <div class="container"><!-- Initial size is 12px. -->
-      <div style="math-script-level: add(8);"><!-- Size is 12*.71^8 = 0.7749042374949131 < 1px. -->
-        <div style="math-script-level: add(-8);">X</div><!-- back to 12px. -->
+      <div style="font-size: scriptlevel(add(8));"><!-- Size is 12*.71^8 = 0.7749042374949131 < 1px. -->
+        <div style="font-size: scriptlevel(add(-8));">X</div><!-- back to 12px. -->
       </div>
     </div>
   </body>

@@ -81,7 +81,7 @@ jobs:
     name: test_jobs
     displayName: 'Run ./wpt test-jobs'
 
-- job: infrastructure_macOS
+- job: infrastructure_mac
   displayName: 'infrastructure/ tests: macOS'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_infrastructure']
@@ -114,7 +114,7 @@ jobs:
       artifactName: 'infrastructure'
     condition: always()
 
-- job: tools_unittest_macOS
+- job: tools_unittest_mac
   displayName: 'tools/ unittests: macOS'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
@@ -132,8 +132,8 @@ jobs:
       directory: tools/
       toxenv: py27
 
-- job: tools_unittest_macOS_py3
-  displayName: 'tools/ unittests: macOS (Python 3.6)'
+- job: tools_unittest_mac_py36
+  displayName: 'tools/ unittests: macOS + Python 3.6'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
@@ -148,8 +148,8 @@ jobs:
       directory: tools/
       toxenv: py36
 
-- job: tools_unittest_macOS_py38
-  displayName: 'tools/ unittests: macOS (Python 3.8)'
+- job: tools_unittest_mac_py38
+  displayName: 'tools/ unittests: macOS + Python 3.8'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
@@ -164,7 +164,7 @@ jobs:
       directory: tools/
       toxenv: py38
 
-- job: wptrunner_unittest_macOS
+- job: wptrunner_unittest_mac
   displayName: 'tools/wptrunner/ unittests: macOS'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
@@ -182,8 +182,8 @@ jobs:
       directory: tools/wptrunner/
       toxenv: py27
 
-- job: wptrunner_unittest_macOS_py3
-  displayName: 'tools/wptrunner/ unittests: macOS (Python 3.6)'
+- job: wptrunner_unittest_mac_py36
+  displayName: 'tools/wptrunner/ unittests: macOS + Python 3.6'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
@@ -198,8 +198,8 @@ jobs:
       directory: tools/wptrunner/
       toxenv: py36
 
-- job: wptrunner_unittest_macOS_py38
-  displayName: 'tools/wptrunner/ unittests: macOS (Python 3.8)'
+- job: wptrunner_unittest_mac_py38
+  displayName: 'tools/wptrunner/ unittests: macOS + Python 3.8'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
@@ -214,7 +214,7 @@ jobs:
       directory: tools/wptrunner/
       toxenv: py38
 
-- job: wpt_integration_macOS
+- job: wpt_integration_mac
   displayName: 'tools/wpt/ tests: macOS'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
@@ -236,8 +236,8 @@ jobs:
       directory: tools/wpt/
       toxenv: py27
 
-- job: wpt_integration_macOS_py3
-  displayName: 'tools/wpt/ tests: macOS (Python 3.6)'
+- job: wpt_integration_mac_py36
+  displayName: 'tools/wpt/ tests: macOS + Python 3.6'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
@@ -247,10 +247,6 @@ jobs:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.6.x'
-  # Python 2.7 still needed to update manifest.
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '2.7.x'
   - template: tools/ci/azure/install_chrome.yml
   - template: tools/ci/azure/install_firefox.yml
   - template: tools/ci/azure/update_hosts.yml
@@ -260,8 +256,8 @@ jobs:
       directory: tools/wpt/
       toxenv: py36
 
-- job: wpt_integration_macOS_py38
-  displayName: 'tools/wpt/ tests: macOS (Python 3.8)'
+- job: wpt_integratio_mac_py38
+  displayName: 'tools/wpt/ tests: macOS + Python 3.8'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
@@ -271,10 +267,6 @@ jobs:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.8.x'
-  # Python 2.7 still needed to update manifest.
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '2.7.x'
   - template: tools/ci/azure/install_chrome.yml
   - template: tools/ci/azure/install_firefox.yml
   - template: tools/ci/azure/update_hosts.yml
@@ -302,8 +294,8 @@ jobs:
       directory: tools/
       toxenv: py27
 
-- job: tools_unittest_win_py3
-  displayName: 'tools/ unittests: Windows (Python 3.6)'
+- job: tools_unittest_win_py36
+  displayName: 'tools/ unittests: Windows + Python 3.6'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
@@ -322,7 +314,7 @@ jobs:
       toxenv: py36
 
 - job: tools_unittest_win_py38
-  displayName: 'tools/ unittests: Windows (Python 3.8)'
+  displayName: 'tools/ unittests: Windows + Python 3.8'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
@@ -356,8 +348,8 @@ jobs:
       directory: tools/wptrunner/
       toxenv: py27
 
-- job: wptrunner_unittest_win_py3
-  displayName: 'tools/wptrunner/ unittests: Windows (Python 3.6)'
+- job: wptrunner_unittest_win_py36
+  displayName: 'tools/wptrunner/ unittests: Windows + Python 3.6'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
@@ -374,7 +366,7 @@ jobs:
       toxenv: py36
 
 - job: wptrunner_unittest_win_py38
-  displayName: 'tools/wptrunner/ unittests: Windows (Python 3.8)'
+  displayName: 'tools/wptrunner/ unittests: Windows + Python 3.8'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
@@ -414,8 +406,8 @@ jobs:
       directory: tools/wpt/
       toxenv: py27
 
-- job: wpt_integration_win_py3
-  displayName: 'tools/wpt/ tests: Windows (Python 3.6)'
+- job: wpt_integration_win_py36
+  displayName: 'tools/wpt/ tests: Windows + Python 3.6'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
@@ -425,12 +417,6 @@ jobs:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.6.x'
-      addToPath: false
-  # Python 2.7 still needed to update manifest.
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '2.7.x'
-      addToPath: true
   # currently just using the outdated Chrome/Firefox on the VM rather than
   # figuring out how to install Chrome Dev channel on Windows
   # - template: tools/ci/azure/install_chrome.yml
@@ -443,7 +429,7 @@ jobs:
       toxenv: py36
 
 - job: wpt_integration_win_py38
-  displayName: 'tools/wpt/ tests: Windows (Python 3.8)'
+  displayName: 'tools/wpt/ tests: Windows + Python 3.8'
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
@@ -453,12 +439,6 @@ jobs:
   - task: UsePythonVersion@0
     inputs:
       versionSpec: '3.8.x'
-      addToPath: false
-  # Python 2.7 still needed to update manifest.
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '2.7.x'
-      addToPath: true
   # currently just using the outdated Chrome/Firefox on the VM rather than
   # figuring out how to install Chrome Dev channel on Windows
   # - template: tools/ci/azure/install_chrome.yml

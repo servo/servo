@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Images Module Level 4: units in filters are not affected by image-resolution</title>
+<link rel="author" title="Mike Bremford" href="http://bfo.com/">
+<link rel="help" href="https://drafts.csswg.org/css-images-4/#propdef-image-resolution">
+<link rel="match" href="reference/100x100-blue-blur4px.html">
+<style>
+img {
+    image-resolution: from-image;
+    filter: blur(4px);
+}
+</style>
+</head>
+<body>
+  <img src="support/swatch-blue-48dpi.png" />
+</body>
+</html>

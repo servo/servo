@@ -216,8 +216,9 @@ class TestExecutor(object):
     extra_timeout = 5  # seconds
 
 
-    def __init__(self, browser, server_config, timeout_multiplier=1,
+    def __init__(self, logger, browser, server_config, timeout_multiplier=1,
                  debug_info=None, **kwargs):
+        self.logger = logger
         self.runner = None
         self.browser = browser
         self.server_config = server_config
@@ -226,12 +227,6 @@ class TestExecutor(object):
         self.last_environment = {"protocol": "http",
                                  "prefs": {}}
         self.protocol = None  # This must be set in subclasses
-
-    @property
-    def logger(self):
-        """StructuredLogger for this executor"""
-        if self.runner is not None:
-            return self.runner.logger
 
     def setup(self, runner):
         """Run steps needed before tests can be started e.g. connecting to
@@ -318,9 +313,9 @@ class TestharnessExecutor(TestExecutor):
 class RefTestExecutor(TestExecutor):
     convert_result = reftest_result_converter
 
-    def __init__(self, browser, server_config, timeout_multiplier=1, screenshot_cache=None,
+    def __init__(self, logger, browser, server_config, timeout_multiplier=1, screenshot_cache=None,
                  debug_info=None, **kwargs):
-        TestExecutor.__init__(self, browser, server_config,
+        TestExecutor.__init__(self, logger, browser, server_config,
                               timeout_multiplier=timeout_multiplier,
                               debug_info=debug_info)
 
@@ -504,11 +499,11 @@ class WdspecExecutor(TestExecutor):
     convert_result = pytest_result_converter
     protocol_cls = None
 
-    def __init__(self, browser, server_config, webdriver_binary,
+    def __init__(self, logger, browser, server_config, webdriver_binary,
                  webdriver_args, timeout_multiplier=1, capabilities=None,
                  debug_info=None, **kwargs):
         self.do_delayed_imports()
-        TestExecutor.__init__(self, browser, server_config,
+        TestExecutor.__init__(self, logger, browser, server_config,
                               timeout_multiplier=timeout_multiplier,
                               debug_info=debug_info)
         self.webdriver_binary = webdriver_binary

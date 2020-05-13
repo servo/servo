@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset=urf-8>
+<title>Test dialog form submission</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<dialog id="favDialog">
+  <form method="dialog">
+    <button id="confirmBtn" value="default">Confirm</button>
+    <input id="confirmImgBtn" src="./resources/submit.jpg" width="41"
+    height="41" type="image" alt="Hello">
+  </form>
+  <form method="post">
+    <input id="confirmImgBtn2" src="./resources/submit.jpg" width="41"
+    formmethod="dialog" height="41" type="image" alt="Hello">
+  </form>
+</dialog>
+<script>
+promise_test(async () => {
+  const dialog = document.querySelector('dialog');
+  dialog.showModal();
+
+  const button = document.querySelector('button');
+  button.click();
+
+  assert_false(dialog.open, "dialog should be closed now");
+  assert_equals(dialog.returnValue, "default", "Return the default value");
+}, 'click the form submission button should close the dialog');
+
+promise_test(async () => {
+  const dialog = document.querySelector('dialog');
+  dialog.showModal();
+
+  const button = document.querySelector('button');
+  button.value = "sushi";
+  button.click();
+
+  assert_false(dialog.open, "dialog should be closed now");
+  assert_equals(dialog.returnValue, "sushi", "Return the updated value");
+}, 'form submission should return correct value');
+
+promise_test(async () => {
+  const dialog = document.querySelector('dialog');
+  dialog.showModal();
+
+  const button = document.querySelector('button');
+  button.removeAttribute("value");
+  button.click();
+  assert_false(dialog.open, "dialog should be closed now");
+  assert_false(dialog.returnValue === undefined, "returnValue should not be set");
+}, "no returnValue when there's no result.");
+
+promise_test(async () => {
+  const dialog = document.querySelector('dialog');
+  dialog.showModal();
+
+  const button = document.querySelector('input');
+  let expectedReturnValue = "";
+  button.addEventListener('click', function(event) {
+    expectedReturnValue = event.offsetX + "," + event.offsetY;
+  });
+  await test_driver.click(button);
+
+  assert_false(dialog.open, "dialog should be closed now");
+  assert_not_equals(dialog.returnValue, "", "returnValue shouldn't be empty string");
+  assert_equals(dialog.returnValue, expectedReturnValue, "returnValue should be the offsets of the click");
+}, "input image button should return the coordianates");
+
+promise_test(async () => {
+  const dialog = document.querySelector('dialog');
+  dialog.showModal();
+  const button = document.getElementById('confirmImgBtn2');
+  await test_driver.click(button);
+  assert_false(dialog.open, "dialog should be closed now");
+}, "formmethod attribute should use dialog form submission");
+
+</script>
+</body>

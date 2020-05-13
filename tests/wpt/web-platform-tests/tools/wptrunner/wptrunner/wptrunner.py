@@ -78,6 +78,7 @@ def get_loader(test_paths, product, debug=None, run_info_extras=None, chunker_kw
                                         total_chunks=kwargs["total_chunks"],
                                         chunk_number=kwargs["this_chunk"],
                                         include_https=ssl_enabled,
+                                        include_quic=kwargs["enable_quic"],
                                         skip_timeout=kwargs["skip_timeout"],
                                         skip_implementation_status=kwargs["skip_implementation_status"],
                                         chunker_kwargs=chunker_kwargs)
@@ -211,7 +212,8 @@ def run_tests(config, test_paths, product, **kwargs):
                                  kwargs["debug_info"],
                                  product.env_options,
                                  ssl_config,
-                                 env_extras) as test_environment:
+                                 env_extras,
+                                 kwargs["enable_quic"]) as test_environment:
             recording.set(["startup", "ensure_environment"])
             try:
                 test_environment.ensure_started()

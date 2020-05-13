@@ -1,0 +1,50 @@
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body {
+    margin: 0px;
+    height: 2000px;
+    width: 2000px;
+  }
+
+  #first {
+    height: 1000px;
+    background-color: #FFA5D2;
+  }
+
+  #anchor {
+    position: absolute;
+    background-color: #84BE6A;
+    height: 600px;
+    width: 100%;
+  }
+</style>
+
+<div id="first"></div>
+<div id="changer"></div>
+<div id="anchor"></div>
+
+<script>
+  // Navigation steps:
+  // 1- page gets loaded and anchor element gets scrolled into view.
+  // 2- loaded page refreshed.
+  async_test(function(t) {
+    if (window.name == 'second/load') {
+      assert_equals(window.scrollY, 1000);
+      // Change height of content above anchor.
+      var ch = document.getElementById('changer');
+      ch.style.height = 100;
+      // Height of first + height changer.
+      assert_equals(window.scrollY, 1100)
+      t.done();
+    } else {
+      var anchor = document.getElementById('anchor');
+      anchor.scrollIntoView();
+      assert_equals(window.scrollY, 1000);
+      window.name = "second/load";
+      window.location.reload();
+    }
+  }, 'Verify scroll anchoring interaction with history restoration');
+</script>

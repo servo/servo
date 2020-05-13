@@ -18,9 +18,11 @@ To make writing such tests possible, we are using a number of
 server-side components designed to make it easy to manipulate the
 precise details of the response:
 
-* *wptserve*, a custom Python HTTP server.
+* *wptserve*, a custom Python HTTP server
 
 * *pywebsocket*, an existing websockets server
+
+* *tools/quic*, a custom Python 3 QUIC server using `aioquic`
 
 wptserve is a Python-based web server. By default it serves static
 files in the test suite. For more sophisticated requirements, several
@@ -116,7 +118,8 @@ The server also provides the ability to write [Python
 data and can manipulate the content and timing of the response. Responses are
 also influenced by [the `pipe` query string parameter](server-pipes).
 
-### Writing tests for HTTP/2.0
+
+### Tests Requiring HTTP/2.0
 
 The server now has a prototype HTTP/2.0 server which gives you access to
 some of the HTTP/2.0 specific functionality. Currently, the server is off
@@ -126,4 +129,27 @@ API are documented in [Writing H2 Tests](h2tests).
 
 > <b>Important:</b> The HTTP/2.0 server requires you to have Python 2.7.10+
 and OpenSSL 1.0.2+. This is because HTTP/2.0 is negotiated using the
-[TLS ALPN](https://tools.ietf.org/html/rfc7301) extension, which is only supported in [OpenSSL 1.0.2](https://www.openssl.org/news/openssl-1.0.2-notes.html) and up.
+[TLS ALPN](https://tools.ietf.org/html/rfc7301) extension, which is only
+supported in
+[OpenSSL 1.0.2](https://www.openssl.org/news/openssl-1.0.2-notes.html) and up.
+
+
+### Tests Requiring QUIC
+
+We do not support loading a test over QUIC yet, but a test can establish a QUIC
+connection to the test server (e.g. for WebTransport, similar to WebSocket).
+Since the QUIC server is not yet enabled by default, tests must explicitly
+declare that they need access to the QUIC server:
+
+* For HTML tests (including testharness.js and reference tests), add the
+  following element:
+```html
+<meta name="quic" content="true">
+```
+* For JavaScript tests (auto-generated tests), add the following comment:
+```js
+// META: quic=true
+```
+
+The QUIC server is not yet enabled by default, so QUIC tests will be skipped
+unless `--enable-quic` is specified to `./wpt run`.

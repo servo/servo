@@ -181,10 +181,14 @@ function getExpectedMotionEvent(expectedMotionData) {
 }
 
 function waitForEvent(expected_event) {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     window.addEventListener(expected_event.type, (event) => {
-      assertEventEquals(event, expected_event);
-      resolve();
+      try {
+        assertEventEquals(event, expected_event);
+        resolve();
+      } catch (e) {
+        reject(e);
+      }
     }, { once: true });
   });
 }
