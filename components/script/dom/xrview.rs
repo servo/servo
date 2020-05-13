@@ -14,7 +14,7 @@ use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use std::ptr::NonNull;
-use webxr_api::View;
+use webxr_api::{ApiSpace, View};
 
 #[dom_struct]
 pub struct XRView {
@@ -23,8 +23,8 @@ pub struct XRView {
     eye: XREye,
     #[ignore_malloc_size_of = "mozjs"]
     proj: Heap<*mut JSObject>,
-    #[ignore_malloc_size_of = "mozjs"]
-    view: Heap<*mut JSObject>,
+    #[ignore_malloc_size_of = "defined in rust-webxr"]
+    view: View<ApiSpace>,
     proj_array: Vec<f32>,
     transform: Dom<XRRigidTransform>,
 }
@@ -35,16 +35,21 @@ impl XRView {
         transform: &XRRigidTransform,
         eye: XREye,
         proj_array: Vec<f32>,
+        view: View<ApiSpace>,
     ) -> XRView {
         XRView {
             reflector_: Reflector::new(),
             session: Dom::from_ref(session),
             eye,
             proj: Heap::default(),
-            view: Heap::default(),
             proj_array,
+            view,
             transform: Dom::from_ref(transform),
         }
+    }
+
+    pub fn view(&self) -> &View<ApiSpace> {
+        &self.view
     }
 
     pub fn new<V: Copy>(
@@ -71,6 +76,7 @@ impl XRView {
                 &transform,
                 eye,
                 (&proj).to_vec(),
+                view.cast_unit(),
             )),
             global,
         );

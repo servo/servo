@@ -162,7 +162,7 @@ use webgpu::{
 };
 use webrender_api::{DocumentId, ImageKey};
 use webxr_api::SwapChainId as WebXRSwapChainId;
-use webxr_api::{Finger, Hand, Ray};
+use webxr_api::{Finger, Hand, Ray, View};
 
 unsafe_no_jsmanaged_fields!(Tm);
 
@@ -769,6 +769,13 @@ unsafe impl<U> JSTraceable for euclid::Rect<i32, U> {
 }
 
 unsafe impl<Space> JSTraceable for Ray<Space> {
+    #[inline]
+    unsafe fn trace(&self, _trc: *mut JSTracer) {
+        // Do nothing
+    }
+}
+
+unsafe impl<Eye> JSTraceable for View<Eye> {
     #[inline]
     unsafe fn trace(&self, _trc: *mut JSTracer) {
         // Do nothing

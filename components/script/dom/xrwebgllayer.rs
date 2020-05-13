@@ -4,7 +4,6 @@
 
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
-use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerInit;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLRenderingContext;
@@ -22,10 +21,10 @@ use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
 use canvas_traits::webgl::WebGLFramebufferId;
 use dom_struct::dom_struct;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::Size2D;
 use std::convert::TryInto;
 use webxr_api::SwapChainId as WebXRSwapChainId;
-use webxr_api::{Viewport, Views};
+use webxr_api::Viewport;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]
@@ -241,22 +240,6 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
             return None;
         }
 
-        let views = self.session.with_session(|s| s.views().clone());
-
-        let viewport = match (view.Eye(), views) {
-            (XREye::None, Views::Inline) => {
-                let origin = Point2D::new(0, 0);
-                Rect::new(origin, self.size().cast())
-            },
-            (XREye::None, Views::Mono(view)) => view.viewport,
-            (XREye::None, Views::StereoCapture(_, _, view)) => view.viewport,
-            (XREye::Left, Views::Stereo(view, _)) => view.viewport,
-            (XREye::Left, Views::StereoCapture(view, _, _)) => view.viewport,
-            (XREye::Right, Views::Stereo(_, view)) => view.viewport,
-            (XREye::Right, Views::StereoCapture(_, view, _)) => view.viewport,
-            _ => return None,
-        };
-
-        Some(XRViewport::new(&self.global(), viewport))
+        Some(XRViewport::new(&self.global(), view.view().viewport))
     }
 }

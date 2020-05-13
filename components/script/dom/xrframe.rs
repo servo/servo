@@ -85,7 +85,12 @@ impl XRFrameMethods for XRFrame {
         } else {
             return Ok(None);
         };
-        Ok(Some(XRViewerPose::new(&self.global(), &self.session, pose)))
+        Ok(Some(XRViewerPose::new(
+            &self.global(),
+            &self.session,
+            pose,
+            &self.data.views,
+        )))
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrframe-getpose

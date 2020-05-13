@@ -39,10 +39,11 @@ impl XRViewerPose {
         global: &GlobalScope,
         session: &XRSession,
         pose: ApiViewerPose,
+        frame_views: &Views,
     ) -> DomRoot<XRViewerPose> {
         let _ac = enter_realm(&*global);
         rooted_vec!(let mut views);
-        session.with_session(|s| match s.views() {
+        match frame_views {
             Views::Inline => views.push(XRView::new(
                 global,
                 session,
@@ -62,7 +63,7 @@ impl XRViewerPose {
                 views.push(XRView::new(global, session, &right, XREye::Right, &pose));
                 views.push(XRView::new(global, session, &third_eye, XREye::None, &pose));
             },
-        });
+        };
         let transform = XRRigidTransform::new(global, cast_transform(pose));
         let pose = reflect_dom_object(Box::new(XRViewerPose::new_inherited(&transform)), global);
 
