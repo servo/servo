@@ -1317,17 +1317,6 @@ dependencies = [
 
 [[package]]
 name = "dwrote"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bd1369e02db5e9b842a9b67bce8a2fcc043beafb2ae8a799dd482d46ea1ff0d"
-dependencies = [
- "lazy_static",
- "libc",
- "winapi",
-]
-
-[[package]]
-name = "dwrote"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "439a1c2ba5611ad3ed731280541d36d2e9c4ac5e7fb818a27b604bdc5a6aa65b"
@@ -1542,23 +1531,24 @@ checksum = "2fad85553e09a6f881f739c29f0b00b0f01357c743266d478b68951ce23285f3"
 
 [[package]]
 name = "font-kit"
-version = "0.5.0"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09b6e2b877097ffd0abac6597fea26fccb5ed7eb9da0a4094f11ccc8aba64efb"
+checksum = "0350420e88ba5f7d732247260d10e45a5cd13514c2fee8621a3f9a4bcba0ad81"
 dependencies = [
+ "bitflags",
  "byteorder",
  "core-foundation 0.7.0",
  "core-graphics 0.19.0",
  "core-text 15.0.0",
  "dirs",
- "dwrote 0.9.0",
- "euclid",
+ "dwrote",
  "float-ord",
  "freetype",
  "lazy_static",
  "libc",
  "log",
- "lyon_path",
+ "pathfinder_geometry",
+ "pathfinder_simd",
  "servo-fontconfig",
  "walkdir",
  "winapi",
@@ -1773,7 +1763,7 @@ dependencies = [
  "core-foundation 0.7.0",
  "core-graphics 0.19.0",
  "core-text 15.0.0",
- "dwrote 0.11.0",
+ "dwrote",
  "euclid",
  "fnv",
  "fontsan",
@@ -3213,15 +3203,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lyon_path"
-version = "0.14.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bcb57ac24a5428539e2c7c0592766d5933c937d703f430990c669c00de96862"
-dependencies = [
- "lyon_geom 0.14.0",
-]
-
-[[package]]
 name = "lzw"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3944,6 +3925,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "pathfinder_geometry"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0b7b7e7b4ea703700ce73ebf128e1450eb69c3a8329199ffbfb9b2a0418e5ad3"
+dependencies = [
+ "log",
+ "pathfinder_simd",
+]
+
+[[package]]
+name = "pathfinder_simd"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b451513912d6b3440e443aa75a73ab22203afedc4a90df8526d008c0f86f7cb3"
+dependencies = [
+ "rustc_version",
+]
+
+[[package]]
 name = "peek-poke"
 version = "0.2.0"
 source = "git+https://github.com/servo/webrender#01082a9091ab98c392af8934d04271eb1dd546df"
@@ -4312,11 +4312,12 @@ checksum = "dd5927936723a9e8b715d37d7e4b390455087c4bdf25b9f702309460577b14f9"
 [[package]]
 name = "raqote"
 version = "0.7.15-alpha.0"
-source = "git+https://github.com/jrmuizel/raqote#357934688fd31056cb243a9304d74f022ed3069f"
+source = "git+https://github.com/jrmuizel/raqote#517cce640eb392fb9a40efd2bb10b09b06e29756"
 dependencies = [
  "euclid",
  "font-kit",
  "lyon_geom 0.15.0",
+ "pathfinder_geometry",
  "png",
  "sw-composite",
  "typed-arena",
@@ -6405,7 +6406,7 @@ dependencies = [
  "core-graphics 0.19.0",
  "core-text 15.0.0",
  "cstr",
- "dwrote 0.11.0",
+ "dwrote",
  "euclid",
  "freetype",
  "fxhash",
