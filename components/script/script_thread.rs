@@ -2976,13 +2976,10 @@ impl ScriptThread {
     ///
     /// TODO(mrobinson): Add support for more events.
     fn handle_transition_or_animation_event(&self, event: &TransitionOrAnimationEvent) {
-        let js_runtime = self.js_runtime.rt();
-        let node = unsafe { from_untrusted_node_address(js_runtime, event.node) };
-
-        // We limit the scope of the borrow here, so that we don't maintain this borrow
-        // and then incidentally trigger another layout. That might result in a double
-        // mutable borrow of `animating_nodes`.
-        {
+        // We limit the scope of the borrow here so that we aren't holding it when
+        // sending events. Event handlers may trigger another layout, resulting in
+        // a double mutable borrow of `animating_nodes`.
+        let node = {
             let mut animating_nodes = self.animating_nodes.borrow_mut();
             let nodes = match animating_nodes.get_mut(&event.pipeline_id) {
                 Some(nodes) => nodes,
@@ -2995,7 +2992,7 @@ impl ScriptThread {
 
             let node_index = nodes
                 .iter()
-                .position(|n| &**n as *const _ == &*node as *const _);
+                .position(|n| n.to_untrusted_node_address() == event.node);
             let node_index = match node_index {
                 Some(node_index) => node_index,
                 None => {
@@ -3006,10 +3003,14 @@ impl ScriptThread {
                 },
             };
 
+            // We need to root the node now, because if we remove it from the map
+            // a garbage collection might clean it up while we are sending events.
+            let node = DomRoot::from_ref(&*nodes[node_index]);
             if event.event_type.finalizes_transition_or_animation() {
                 nodes.remove(node_index);
             }
-        }
+            node
+        };
 
         let event_atom = match event.event_type {
             TransitionOrAnimationEventType::AnimationEnd => atom!("animationend"),
