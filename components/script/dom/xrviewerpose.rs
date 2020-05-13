@@ -57,6 +57,11 @@ impl XRViewerPose {
                 views.push(XRView::new(global, session, &left, XREye::Left, &pose));
                 views.push(XRView::new(global, session, &right, XREye::Right, &pose));
             },
+            Views::StereoCapture(left, right, third_eye) => {
+                views.push(XRView::new(global, session, &left, XREye::Left, &pose));
+                views.push(XRView::new(global, session, &right, XREye::Right, &pose));
+                views.push(XRView::new(global, session, &third_eye, XREye::None, &pose));
+            },
         });
         let transform = XRRigidTransform::new(global, cast_transform(pose));
         let pose = reflect_dom_object(Box::new(XRViewerPose::new_inherited(&transform)), global);
