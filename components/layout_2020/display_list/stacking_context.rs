@@ -364,6 +364,12 @@ impl Fragment {
     }
 }
 
+struct ReferenceFrameData {
+    origin: crate::geom::PhysicalPoint<Length>,
+    transform: LayoutTransform,
+    kind: wr::ReferenceFrameKind,
+}
+
 impl BoxFragment {
     fn get_stacking_context_type(&self) -> Option<StackingContextType> {
         if self.style.establishes_stacking_context() {
@@ -464,22 +470,24 @@ impl BoxFragment {
     ) {
         // If we are creating a stacking context, we may also need to create a reference
         // frame first.
-        let relative_border_rect = self
-            .border_rect()
-            .to_physical(self.style.writing_mode, &containing_block_info.rect);
-        let border_rect =
-            relative_border_rect.translate(containing_block_info.rect.origin.to_vector());
-        let established_reference_frame =
-            self.build_reference_frame_if_necessary(builder, &border_rect);
+        let reference_frame_data = self.reference_frame_data_if_necessary(containing_block_info);
 
         // WebRender reference frames establish a new coordinate system at their origin
         // (the border box of the fragment). We need to ensure that any coordinates we
         // give to WebRender in this reference frame are relative to the fragment border
         // box. We do this by adjusting the containing block origin.
         let mut new_containing_block_info = containing_block_info.clone();
-        if established_reference_frame {
-            new_containing_block_info.rect.origin =
-                (-relative_border_rect.origin.to_vector()).to_point();
+
+        if let Some(reference_frame_data) = &reference_frame_data {
+            new_containing_block_info.rect.origin -= reference_frame_data.origin.to_vector();
+            builder.current_space_and_clip.spatial_id = builder.wr.push_reference_frame(
+                reference_frame_data.origin.to_webrender(),
+                builder.current_space_and_clip.spatial_id,
+                self.style.get_box().transform_style.to_webrender(),
+                wr::PropertyBinding::Value(reference_frame_data.transform),
+                reference_frame_data.kind,
+            );
+            builder.nearest_reference_frame = builder.current_space_and_clip.spatial_id;
         }
 
         let mut child_stacking_context = StackingContext::new(
@@ -510,7 +518,7 @@ impl BoxFragment {
             .stacking_contexts
             .append(&mut stolen_children);
 
-        if established_reference_frame {
+        if reference_frame_data.is_some() {
             builder.wr.pop_reference_frame();
         }
     }
@@ -611,17 +619,22 @@ impl BoxFragment {
         }
     }
 
-    /// Build a reference frame for this fragment if it is necessary. Returns `true` if
-    /// a reference was built and `false` otherwise.
-    fn build_reference_frame_if_necessary(
+    /// Optionally returns the data for building a reference frame, without yet building it.
+    fn reference_frame_data_if_necessary(
         &self,
-        builder: &mut StackingContextBuilder,
-        border_rect: &PhysicalRect<Length>,
-    ) -> bool {
+        containing_block_info: &ContainingBlockInfo,
+    ) -> Option<ReferenceFrameData> {
         if !self.style.has_transform_or_perspective() {
-            return false;
+            return None;
         }
+
+        let relative_border_rect = self
+            .border_rect()
+            .to_physical(self.style.writing_mode, &containing_block_info.rect);
+        let border_rect = relative_border_rect
+            .translate(containing_block_info.rect.origin.to_vector());
         let untyped_border_rect = border_rect.to_untyped();
+
         let transform = self.calculate_transform_matrix(&untyped_border_rect);
         let perspective = self.calculate_perspective_matrix(&untyped_border_rect);
         let (reference_frame_transform, reference_frame_kind) = match (transform, perspective) {
@@ -641,15 +654,11 @@ impl BoxFragment {
             (None, None) => unreachable!(),
         };
 
-        builder.current_space_and_clip.spatial_id = builder.wr.push_reference_frame(
-            border_rect.origin.to_webrender(),
-            builder.current_space_and_clip.spatial_id,
-            self.style.get_box().transform_style.to_webrender(),
-            wr::PropertyBinding::Value(reference_frame_transform),
-            reference_frame_kind,
-        );
-        builder.nearest_reference_frame = builder.current_space_and_clip.spatial_id;
-        true
+        Some(ReferenceFrameData {
+            origin: border_rect.origin,
+            transform: reference_frame_transform,
+            kind: reference_frame_kind,
+        })
     }
 
     /// Returns the 4D matrix representing this fragment's transform.
