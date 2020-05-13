@@ -106,6 +106,7 @@ impl WebGLExtensionFeatures {
             disabled_get_parameter_names,
             disabled_get_tex_parameter_names,
             disabled_get_vertex_attrib_names,
+            not_filterable_tex_types,
             element_index_uint_enabled,
             blend_minmax_enabled,
         ) = match webgl_version {
@@ -123,6 +124,7 @@ impl WebGLExtensionFeatures {
                     .iter()
                     .cloned()
                     .collect(),
+                DEFAULT_NOT_FILTERABLE_TEX_TYPES.iter().cloned().collect(),
                 false,
                 false,
             ),
@@ -137,6 +139,7 @@ impl WebGLExtensionFeatures {
                     .cloned()
                     .collect(),
                 Default::default(),
+                Default::default(),
                 true,
                 true,
             ),
@@ -144,7 +147,7 @@ impl WebGLExtensionFeatures {
         Self {
             gl_extensions: Default::default(),
             disabled_tex_types,
-            not_filterable_tex_types: DEFAULT_NOT_FILTERABLE_TEX_TYPES.iter().cloned().collect(),
+            not_filterable_tex_types,
             effective_tex_internal_formats: Default::default(),
             hint_targets: Default::default(),
             disabled_get_parameter_names,
