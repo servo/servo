@@ -30,11 +30,10 @@ packages = [
   "arrayvec",
   "base64",
   "cocoa",
-  "dwrote",
   "gleam",
+  "libloading",
   "peek-poke",
   "peek-poke-derive",
-  "libloading",
   "wayland-sys",
 
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746
