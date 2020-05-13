@@ -920,8 +920,8 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         let builder = &mut self.context.builder;
 
-        let parent_zoom = builder.get_parent_font().gecko().mAllowZoom;
-        let zoom = builder.get_font().gecko().mAllowZoom;
+        let parent_zoom = builder.get_parent_font().gecko().mAllowZoomAndMinSize;
+        let zoom = builder.get_font().gecko().mAllowZoomAndMinSize;
         if zoom == parent_zoom {
             return;
         }
@@ -968,7 +968,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             }
 
             let mut min = Au(parent_font.mScriptMinSize);
-            if font.mAllowZoom {
+            if font.mAllowZoomAndMinSize {
                 min = builder.device.zoom_text(min);
             }
 

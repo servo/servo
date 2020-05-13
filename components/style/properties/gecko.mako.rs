@@ -1108,12 +1108,12 @@ fn static_assert() {
 
     #[allow(non_snake_case)]
     pub fn set__x_text_zoom(&mut self, v: longhands::_x_text_zoom::computed_value::T) {
-        self.gecko.mAllowZoom = v.0;
+        self.gecko.mAllowZoomAndMinSize = v.0;
     }
 
     #[allow(non_snake_case)]
     pub fn copy__x_text_zoom_from(&mut self, other: &Self) {
-        self.gecko.mAllowZoom = other.gecko.mAllowZoom;
+        self.gecko.mAllowZoomAndMinSize = other.gecko.mAllowZoomAndMinSize;
     }
 
     #[allow(non_snake_case)]
@@ -1123,7 +1123,7 @@ fn static_assert() {
 
     #[allow(non_snake_case)]
     pub fn clone__x_text_zoom(&self) -> longhands::_x_text_zoom::computed_value::T {
-        longhands::_x_text_zoom::computed_value::T(self.gecko.mAllowZoom)
+        longhands::_x_text_zoom::computed_value::T(self.gecko.mAllowZoomAndMinSize)
     }
 
     <% impl_simple_type_with_conversion("font_language_override", "mFont.languageOverride") %>

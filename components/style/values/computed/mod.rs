@@ -223,8 +223,8 @@ impl<'a> Context<'a> {
     pub fn maybe_zoom_text(&self, size: CSSPixelLength) -> CSSPixelLength {
         // We disable zoom for <svg:text> by unsetting the
         // -x-text-zoom property, which leads to a false value
-        // in mAllowZoom
-        if self.style().get_font().gecko.mAllowZoom {
+        // in mAllowZoomAndMinSize
+        if self.style().get_font().gecko.mAllowZoomAndMinSize {
             self.device().zoom_text(Au::from(size)).into()
         } else {
             size
