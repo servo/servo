@@ -642,22 +642,16 @@ class PackageCommands(CommandBase):
                     sha256_digest.update(data)
             package_hash = sha256_digest.hexdigest()
             package_hash_fileobj = io.BytesIO(package_hash)
-            package_hash_upload_key = '{}/{}.sha256'.format(nightly_dir, filename)
             latest_hash_upload_key = '{}/servo-latest{}.sha256'.format(nightly_dir, extension)
 
             s3.upload_file(package, BUCKET, package_upload_key)
-            s3.upload_fileobj(package_hash_fileobj, BUCKET, package_hash_upload_key)
 
             copy_source = {
                 'Bucket': BUCKET,
                 'Key': package_upload_key,
             }
-            copy_source_hash = {
-                'Bucket': BUCKET,
-                'Key': package_hash_upload_key,
-            }
             s3.copy(copy_source, BUCKET, latest_upload_key)
-            s3.copy(copy_source_hash, BUCKET, latest_hash_upload_key)
+            s3.upload_fileobj(package_hash_fileobj, BUCKET, latest_hash_upload_key)
 
         def update_maven(directory):
             (aws_access_key, aws_secret_access_key) = get_s3_secret()
