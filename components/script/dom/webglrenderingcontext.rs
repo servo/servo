@@ -58,7 +58,7 @@ use backtrace::Backtrace;
 use canvas_traits::webgl::WebGLError::*;
 use canvas_traits::webgl::{
     webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLLimits, GlType,
-    Parameter, TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand,
+    Parameter, SizedDataType, TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand,
     WebGLCommandBacktrace, WebGLContextId, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg,
     WebGLMsgSender, WebGLOpaqueFramebufferId, WebGLProgramId, WebGLResult, WebGLSLVersion,
     WebGLSendResult, WebGLSender, WebGLVersion, YAxisTreatment,
@@ -717,24 +717,13 @@ impl WebGLRenderingContext {
         // or UNSIGNED_SHORT_5_5_5_1, a Uint16Array must be supplied.
         // or FLOAT, a Float32Array must be supplied.
         // If the types do not match, an INVALID_OPERATION error is generated.
-        let is_webgl2 = self.webgl_version() == WebGLVersion::WebGL2;
-        let received_size = match *data {
-            None => element_size,
-            Some(ref buffer) => match buffer.get_array_type() {
-                Type::Uint8 => 1,
-                Type::Uint16 => 2,
-                Type::Float32 => 4,
-                Type::Int8 if is_webgl2 => 1,
-                Type::Int16 if is_webgl2 => 2,
-                Type::Int32 | Type::Uint32 if is_webgl2 => 4,
-                _ => {
-                    self.webgl_error(InvalidOperation);
-                    return Err(());
-                },
-            },
-        };
+        let data_type_matches = data.as_ref().map_or(true, |buffer| {
+            Some(data_type.sized_data_type()) ==
+                array_buffer_type_to_sized_type(buffer.get_array_type()) &&
+                data_type.required_webgl_version() <= self.webgl_version()
+        });
 
-        if received_size != element_size {
+        if !data_type_matches {
             self.webgl_error(InvalidOperation);
             return Err(());
         }
@@ -5021,5 +5010,22 @@ pub trait Size2DExt {
 impl Size2DExt for Size2D<u32> {
     fn to_u64(&self) -> Size2D<u64> {
         return Size2D::new(self.width as u64, self.height as u64);
+    }
+}
+
+fn array_buffer_type_to_sized_type(type_: Type) -> Option<SizedDataType> {
+    match type_ {
+        Type::Uint8 | Type::Uint8Clamped => Some(SizedDataType::Uint8),
+        Type::Uint16 => Some(SizedDataType::Uint16),
+        Type::Uint32 => Some(SizedDataType::Uint32),
+        Type::Int8 => Some(SizedDataType::Int8),
+        Type::Int16 => Some(SizedDataType::Int16),
+        Type::Int32 => Some(SizedDataType::Int32),
+        Type::Float32 => Some(SizedDataType::Float32),
+        Type::Float64 |
+        Type::BigInt64 |
+        Type::BigUint64 |
+        Type::MaxTypedArrayViewType |
+        Type::Int64 => None,
     }
 }
