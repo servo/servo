@@ -74,6 +74,8 @@ pub struct XRSession {
     next_raf_id: Cell<i32>,
     #[ignore_malloc_size_of = "closures are hard"]
     raf_callback_list: DomRefCell<Vec<(i32, Option<Rc<XRFrameRequestCallback>>)>>,
+    #[ignore_malloc_size_of = "closures are hard"]
+    current_raf_callback_list: DomRefCell<Vec<(i32, Option<Rc<XRFrameRequestCallback>>)>>,
     input_sources: Dom<XRInputSourceArray>,
     // Any promises from calling end()
     #[ignore_malloc_size_of = "promises are hard"]
@@ -110,6 +112,7 @@ impl XRSession {
 
             next_raf_id: Cell::new(0),
             raf_callback_list: DomRefCell::new(vec![]),
+            current_raf_callback_list: DomRefCell::new(vec![]),
             input_sources: Dom::from_ref(input_sources),
             end_promises: DomRefCell::new(vec![]),
             ended: Cell::new(false),
@@ -395,7 +398,11 @@ impl XRSession {
         // Step 3: XXXManishearth handle inline session
 
         // Step 4-5
-        let mut callbacks = mem::replace(&mut *self.raf_callback_list.borrow_mut(), vec![]);
+        {
+            let mut current = self.current_raf_callback_list.borrow_mut();
+            assert!(current.is_empty());
+            mem::swap(&mut *self.raf_callback_list.borrow_mut(), &mut current);
+        }
         let start = self.global().as_window().get_navigation_start();
         let time = reduce_timing_resolution((frame.time_ns - start).to_ms());
 
@@ -406,12 +413,18 @@ impl XRSession {
 
         // Step 8
         self.outside_raf.set(false);
-        for (_, callback) in callbacks.drain(..) {
+        let len = self.current_raf_callback_list.borrow().len();
+        for i in 0..len {
+            let callback = self.current_raf_callback_list.borrow()[i]
+                .1
+                .as_ref()
+                .map(|callback| Rc::clone(callback));
             if let Some(callback) = callback {
                 let _ = callback.Call__(time, &frame, ExceptionHandling::Report);
             }
         }
         self.outside_raf.set(true);
+        *self.current_raf_callback_list.borrow_mut() = vec![];
 
         frame.set_active(false);
         if self.is_immersive() {
@@ -653,6 +666,11 @@ impl XRSessionMethods for XRSession {
     /// https://immersive-web.github.io/webxr/#dom-xrsession-cancelanimationframe
     fn CancelAnimationFrame(&self, frame: i32) {
         let mut list = self.raf_callback_list.borrow_mut();
+        if let Some(pair) = list.iter_mut().find(|pair| pair.0 == frame) {
+            pair.1 = None;
+        }
+
+        let mut list = self.current_raf_callback_list.borrow_mut();
         if let Some(pair) = list.iter_mut().find(|pair| pair.0 == frame) {
             pair.1 = None;
         }
