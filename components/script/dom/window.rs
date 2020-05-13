@@ -83,6 +83,7 @@ use euclid::default::{Point2D as UntypedPoint2D, Rect as UntypedRect};
 use euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use ipc_channel::ipc::IpcSender;
 use ipc_channel::router::ROUTER;
+use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsapi::JSAutoRealm;
 use js::jsapi::JSObject;
@@ -340,6 +341,9 @@ pub struct Window {
     /// those values will cause the marker to be set to false.
     #[ignore_malloc_size_of = "Rc is hard"]
     layout_marker: DomRefCell<Rc<Cell<bool>>>,
+
+    /// https://dom.spec.whatwg.org/#window-current-event
+    current_event: DomRefCell<Option<Dom<Event>>>,
 }
 
 impl Window {
@@ -1334,9 +1338,34 @@ impl WindowMethods for Window {
     fn GetSelection(&self) -> Option<DomRoot<Selection>> {
         self.document.get().and_then(|d| d.GetSelection())
     }
+
+    // https://dom.spec.whatwg.org/#dom-window-event
+    #[allow(unsafe_code)]
+    fn Event(&self, cx: JSContext) -> JSVal {
+        rooted!(in(*cx) let mut rval = UndefinedValue());
+        if let Some(ref event) = *self.current_event.borrow() {
+            unsafe {
+                event
+                    .reflector()
+                    .get_jsobject()
+                    .to_jsval(*cx, rval.handle_mut());
+            }
+        }
+        rval.get()
+    }
 }
 
 impl Window {
+    pub(crate) fn set_current_event(&self, event: Option<&Event>) -> Option<DomRoot<Event>> {
+        let current = self
+            .current_event
+            .borrow()
+            .as_ref()
+            .map(|e| DomRoot::from_ref(&**e));
+        *self.current_event.borrow_mut() = event.map(|e| Dom::from_ref(e));
+        current
+    }
+
     /// https://html.spec.whatwg.org/multipage/#window-post-message-steps
     fn post_message_impl(
         &self,
@@ -2375,6 +2404,7 @@ impl Window {
             event_loop_waker,
             visible: Cell::new(true),
             layout_marker: DomRefCell::new(Rc::new(Cell::new(true))),
+            current_event: DomRefCell::new(None),
         });
 
         unsafe { WindowBinding::Wrap(JSContext::from_ptr(runtime.cx()), win) }
