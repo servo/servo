@@ -25,7 +25,6 @@ pub struct XRView {
     proj: Heap<*mut JSObject>,
     #[ignore_malloc_size_of = "defined in rust-webxr"]
     view: View<ApiSpace>,
-    proj_array: Vec<f32>,
     transform: Dom<XRRigidTransform>,
 }
 
@@ -34,7 +33,6 @@ impl XRView {
         session: &XRSession,
         transform: &XRRigidTransform,
         eye: XREye,
-        proj_array: Vec<f32>,
         view: View<ApiSpace>,
     ) -> XRView {
         XRView {
@@ -42,7 +40,6 @@ impl XRView {
             session: Dom::from_ref(session),
             eye,
             proj: Heap::default(),
-            proj_array,
             view,
             transform: Dom::from_ref(transform),
         }
@@ -68,22 +65,15 @@ impl XRView {
         let transform = pose.pre_transform(&offset);
         let transform = XRRigidTransform::new(global, cast_transform(transform));
 
-        // row_major since euclid uses row vectors
-        let proj = view.projection.to_row_major_array();
-        let ret = reflect_dom_object(
+        reflect_dom_object(
             Box::new(XRView::new_inherited(
                 session,
                 &transform,
                 eye,
-                (&proj).to_vec(),
                 view.cast_unit(),
             )),
             global,
-        );
-
-        let cx = global.get_cx();
-        create_typed_array(cx, &proj, &ret.proj);
-        ret
+        )
     }
 
     pub fn session(&self) -> &XRSession {
@@ -101,7 +91,9 @@ impl XRViewMethods for XRView {
     fn ProjectionMatrix(&self, _cx: JSContext) -> NonNull<JSObject> {
         if self.proj.get().is_null() {
             let cx = self.global().get_cx();
-            create_typed_array(cx, &self.proj_array, &self.proj);
+            // row_major since euclid uses row vectors
+            let proj = self.view.projection.to_row_major_array();
+            create_typed_array(cx, &proj, &self.proj);
         }
         NonNull::new(self.proj.get()).unwrap()
     }
