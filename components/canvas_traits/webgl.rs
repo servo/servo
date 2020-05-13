@@ -1313,7 +1313,39 @@ impl TexFormat {
     }
 }
 
+#[derive(PartialEq)]
+pub enum SizedDataType {
+    Int8,
+    Int16,
+    Int32,
+    Uint8,
+    Uint16,
+    Uint32,
+    Float32,
+}
+
 impl TexDataType {
+    /// Returns the compatible sized data type for this texture data type.
+    pub fn sized_data_type(&self) -> SizedDataType {
+        match self {
+            TexDataType::Byte => SizedDataType::Int8,
+            TexDataType::UnsignedByte => SizedDataType::Uint8,
+            TexDataType::Short => SizedDataType::Int16,
+            TexDataType::UnsignedShort |
+            TexDataType::UnsignedShort4444 |
+            TexDataType::UnsignedShort5551 |
+            TexDataType::UnsignedShort565 => SizedDataType::Uint16,
+            TexDataType::Int => SizedDataType::Int32,
+            TexDataType::UnsignedInt |
+            TexDataType::UnsignedInt10f11f11fRev |
+            TexDataType::UnsignedInt2101010Rev |
+            TexDataType::UnsignedInt5999Rev |
+            TexDataType::UnsignedInt248 => SizedDataType::Uint32,
+            TexDataType::HalfFloat => SizedDataType::Uint16,
+            TexDataType::Float | TexDataType::Float32UnsignedInt248Rev => SizedDataType::Float32,
+        }
+    }
+
     /// Returns the size in bytes of each element of data.
     pub fn element_size(&self) -> u32 {
         use self::*;
