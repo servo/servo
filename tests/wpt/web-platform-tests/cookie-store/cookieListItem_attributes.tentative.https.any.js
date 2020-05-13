@@ -191,24 +191,6 @@ promise_test(async testCase => {
   assert_array_equals(Object.keys(cookie).sort(), kCookieListItemKeys);
 }, 'CookieListItem - cookieStore.set adds / to path if it does not end with /');
 
-promise_test(async testCase => {
-  await cookieStore.delete('cookie-name');
-
-  await cookieStore.set('cookie-name', 'cookie-value', { secure: false });
-  testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
-  });
-  const cookie = await cookieStore.get('cookie-name');
-  assert_equals(cookie.name, 'cookie-name');
-  assert_equals(cookie.value, 'cookie-value');
-  assert_equals(cookie.domain, null);
-  assert_equals(cookie.path, '/');
-  assert_equals(cookie.expires, null);
-  assert_equals(cookie.secure, false);
-  assert_equals(cookie.sameSite, 'strict');
-  assert_array_equals(Object.keys(cookie).sort(), kCookieListItemKeys);
-}, 'CookieListItem - cookieStore.set with secure set to false');
-
 ['strict', 'lax', 'none'].forEach(sameSiteValue => {
   promise_test(async testCase => {
     await cookieStore.delete('cookie-name');

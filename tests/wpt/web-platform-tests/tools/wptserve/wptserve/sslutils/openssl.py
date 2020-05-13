@@ -402,6 +402,8 @@ class OpenSSLEnvironment(object):
 
     def _generate_host_cert(self, hosts):
         host = hosts[0]
+        if not self.force_regenerate:
+            self._load_ca_cert()
         if self._ca_key_path is None:
             self._generate_ca(hosts)
         ca_key_path = self._ca_key_path

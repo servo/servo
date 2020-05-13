@@ -350,11 +350,11 @@ class WebDriverRun(TimedRunner):
 class WebDriverTestharnessExecutor(TestharnessExecutor):
     supports_testdriver = True
 
-    def __init__(self, browser, server_config, timeout_multiplier=1,
+    def __init__(self, logger, browser, server_config, timeout_multiplier=1,
                  close_after_done=True, capabilities=None, debug_info=None,
                  supports_eager_pageload=True, **kwargs):
         """WebDriver-based executor for testharness.js tests"""
-        TestharnessExecutor.__init__(self, browser, server_config,
+        TestharnessExecutor.__init__(self, logger, browser, server_config,
                                      timeout_multiplier=timeout_multiplier,
                                      debug_info=debug_info)
         self.protocol = WebDriverProtocol(self, browser, capabilities)
@@ -449,11 +449,12 @@ if (location.href === "about:blank") {
 
 
 class WebDriverRefTestExecutor(RefTestExecutor):
-    def __init__(self, browser, server_config, timeout_multiplier=1,
+    def __init__(self, logger, browser, server_config, timeout_multiplier=1,
                  screenshot_cache=None, close_after_done=True,
                  debug_info=None, capabilities=None, **kwargs):
         """WebDriver-based executor for reftests"""
         RefTestExecutor.__init__(self,
+                                 logger,
                                  browser,
                                  server_config,
                                  screenshot_cache=screenshot_cache,
@@ -517,11 +518,12 @@ class WebDriverRefTestExecutor(RefTestExecutor):
 
 
 class WebDriverCrashtestExecutor(CrashtestExecutor):
-    def __init__(self, browser, server_config, timeout_multiplier=1,
+    def __init__(self, logger, browser, server_config, timeout_multiplier=1,
                  screenshot_cache=None, close_after_done=True,
                  debug_info=None, capabilities=None, **kwargs):
         """WebDriver-based executor for reftests"""
         CrashtestExecutor.__init__(self,
+                                   logger,
                                    browser,
                                    server_config,
                                    screenshot_cache=screenshot_cache,

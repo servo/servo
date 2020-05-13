@@ -675,6 +675,36 @@ class SourceFile(object):
         return bool(self.testdriver_nodes)
 
     @cached_property
+    def quic_nodes(self):
+        # type: () -> List[ElementTree.Element]
+        """List of ElementTree Elements corresponding to nodes in a test that
+        specify whether it needs QUIC server."""
+        assert self.root is not None
+        return self.root.findall(".//{http://www.w3.org/1999/xhtml}meta[@name='quic']")
+
+    @cached_property
+    def quic(self):
+        # type: () -> Optional[bool]
+        """Boolean indicating whether a test requires QUIC server
+
+        Determined by <meta> elements (`quic_nodes()`) and "// META" comments
+        (`script_metadata()`).
+        """
+        if self.script_metadata:
+            if any(m == (b"quic", b"true") for m in self.script_metadata):
+                return True
+
+        if self.root is None:
+            return None
+
+        if self.quic_nodes:
+            quic_str = self.quic_nodes[0].attrib.get("content", "false")  # type: Text
+            if quic_str.lower() == "true":
+                return True
+
+        return None
+
+    @cached_property
     def reftest_nodes(self):
         # type: () -> List[ElementTree.Element]
         """List of ElementTree Elements corresponding to nodes representing a
@@ -850,6 +880,7 @@ class SourceFile(object):
                     global_variant_url(self.rel_url, suffix) + variant,
                     timeout=self.timeout,
                     jsshell=jsshell,
+                    quic=self.quic,
                     script_metadata=self.script_metadata
                 )
                 for (suffix, jsshell) in sorted(global_suffixes(globals))
@@ -866,6 +897,7 @@ class SourceFile(object):
                     self.url_base,
                     test_url + variant,
                     timeout=self.timeout,
+                    quic=self.quic,
                     script_metadata=self.script_metadata
                 )
                 for variant in self.test_variants
@@ -881,6 +913,7 @@ class SourceFile(object):
                     self.url_base,
                     test_url + variant,
                     timeout=self.timeout,
+                    quic=self.quic,
                     script_metadata=self.script_metadata
                 )
                 for variant in self.test_variants
@@ -917,6 +950,7 @@ class SourceFile(object):
                     self.url_base,
                     url,
                     timeout=self.timeout,
+                    quic=self.quic,
                     testdriver=testdriver,
                     script_metadata=self.script_metadata
                 ))
@@ -930,6 +964,7 @@ class SourceFile(object):
                     self.rel_url,
                     references=self.references,
                     timeout=self.timeout,
+                    quic=self.quic,
                     viewport_size=self.viewport_size,
                     dpi=self.dpi,
                     fuzzy=self.fuzzy

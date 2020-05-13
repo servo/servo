@@ -168,6 +168,7 @@ class TestLoader(object):
                  total_chunks=1,
                  chunk_number=1,
                  include_https=True,
+                 include_quic=False,
                  skip_timeout=False,
                  skip_implementation_status=None,
                  chunker_kwargs=None):
@@ -181,6 +182,7 @@ class TestLoader(object):
         self.tests = None
         self.disabled_tests = None
         self.include_https = include_https
+        self.include_quic = include_quic
         self.skip_timeout = skip_timeout
         self.skip_implementation_status = skip_implementation_status
 
@@ -266,6 +268,8 @@ class TestLoader(object):
         for test_path, test_type, test in self.iter_tests():
             enabled = not test.disabled()
             if not self.include_https and test.environment["protocol"] == "https":
+                enabled = False
+            if not self.include_quic and test.environment["quic"]:
                 enabled = False
             if self.skip_timeout and test.expected() == "TIMEOUT":
                 enabled = False

@@ -6,7 +6,7 @@
     <link rel="help" href="https://github.com/w3c/csswg-drafts/issues/3746">
     <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-math-script-level-property">
     <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-math-style-property">
-    <meta name="assert" content="If math-script-level is 'auto' and the inherited value of math-style is 'inline' then the computed value of math-script-level is the inherited value plus one.">
+    <meta name="assert" content="If font-size is scriptlevel('auto') and the inherited value of math-style is 'inline' then the internal scriptlevel is the one of its parent.">
     <link rel="match" href="math-script-level-auto-and-math-style-002.tentative-ref.html">
     <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
     <style>
@@ -20,7 +20,7 @@
   <body>
     <p>Test passes if you see a square of side 500 × 0.71^(1 − 0) = 355px.</p>
     <div class="container" style="math-style: inline;">
-      <div style="math-script-level: auto">X</div>
+      <div style="font-size: scriptlevel(auto)">X</div>
     </div>
   </body>
 </html>

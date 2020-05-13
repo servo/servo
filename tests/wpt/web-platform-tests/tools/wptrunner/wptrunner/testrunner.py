@@ -158,7 +158,7 @@ def start_runner(runner_command_queue, runner_result_queue,
     with capture.CaptureIO(logger, capture_stdio):
         try:
             browser = executor_browser_cls(**executor_browser_kwargs)
-            executor = executor_cls(browser, **executor_kwargs)
+            executor = executor_cls(logger, browser, **executor_kwargs)
             with TestRunner(logger, runner_command_queue, runner_result_queue, executor) as runner:
                 try:
                     runner.run()
