@@ -11,13 +11,14 @@ use crate::bezier::Bezier;
 use crate::context::SharedStyleContext;
 use crate::dom::{OpaqueNode, TElement, TNode};
 use crate::font_metrics::FontMetricsProvider;
-use crate::properties::animated_properties::AnimatedProperty;
+use crate::properties::animated_properties::AnimationValue;
 use crate::properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use crate::properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
 use crate::properties::LonghandIdSet;
 use crate::properties::{self, CascadeMode, ComputedValues, LonghandId};
 use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
 use crate::stylesheets::Origin;
+use crate::values::animated::{Animate, Procedure};
 use crate::values::computed::Time;
 use crate::values::computed::TimingFunction;
 use crate::values::generics::box_::AnimationIterationCount;
@@ -29,8 +30,11 @@ use std::fmt;
 /// Represents an animation for a given property.
 #[derive(Clone, Debug, MallocSizeOf)]
 pub struct PropertyAnimation {
-    /// An `AnimatedProperty` that this `PropertyAnimation` corresponds to.
-    property: AnimatedProperty,
+    /// The value we are animating from.
+    from: AnimationValue,
+
+    /// The value we are animating to.
+    to: AnimationValue,
 
     /// The timing function of this `PropertyAnimation`.
     timing_function: TimingFunction,
@@ -42,12 +46,8 @@ pub struct PropertyAnimation {
 impl PropertyAnimation {
     /// Returns the given property longhand id.
     pub fn property_id(&self) -> LonghandId {
-        self.property.id()
-    }
-
-    /// Returns the given property name.
-    pub fn property_name(&self) -> &'static str {
-        self.property.name()
+        debug_assert_eq!(self.from.id(), self.to.id());
+        self.from.id()
     }
 
     fn from_longhand(
@@ -57,30 +57,33 @@ impl PropertyAnimation {
         old_style: &ComputedValues,
         new_style: &ComputedValues,
     ) -> Option<PropertyAnimation> {
-        let animated_property = AnimatedProperty::from_longhand(longhand, old_style, new_style)?;
+        // FIXME(emilio): Handle the case where old_style and new_style's writing mode differ.
+        let longhand = longhand.to_physical(new_style.writing_mode);
+        let from = AnimationValue::from_computed_values(longhand, old_style)?;
+        let to = AnimationValue::from_computed_values(longhand, new_style)?;
+        let duration = duration.seconds() as f64;
 
-        let property_animation = PropertyAnimation {
-            property: animated_property,
-            timing_function,
-            duration: duration.seconds() as f64,
-        };
-
-        if property_animation.does_animate() {
-            Some(property_animation)
-        } else {
-            None
+        if from == to || duration == 0.0 {
+            return None;
         }
+
+        Some(PropertyAnimation {
+            from,
+            to,
+            timing_function,
+            duration,
+        })
     }
 
-    /// Update the given animation at a given point of progress.
-    pub fn update(&self, style: &mut ComputedValues, time: f64) {
+    /// The output of the timing function given the progress ration of this animation.
+    fn timing_function_output(&self, progress: f64) -> f64 {
         let epsilon = 1. / (200. * self.duration);
-        let progress = match self.timing_function {
+        match self.timing_function {
             GenericTimingFunction::CubicBezier { x1, y1, x2, y2 } => {
-                Bezier::new(x1, y1, x2, y2).solve(time, epsilon)
+                Bezier::new(x1, y1, x2, y2).solve(progress, epsilon)
             },
             GenericTimingFunction::Steps(steps, pos) => {
-                let mut current_step = (time * (steps as f64)).floor() as i32;
+                let mut current_step = (progress * (steps as f64)).floor() as i32;
 
                 if pos == StepPosition::Start ||
                     pos == StepPosition::JumpStart ||
@@ -95,7 +98,7 @@ impl PropertyAnimation {
                 // (i.e. Treat before_flag is unset,)
                 // https://drafts.csswg.org/css-easing/#step-timing-function-algo
 
-                if time >= 0.0 && current_step < 0 {
+                if progress >= 0.0 && current_step < 0 {
                     current_step = 0;
                 }
 
@@ -108,7 +111,7 @@ impl PropertyAnimation {
                     StepPosition::End => steps,
                 };
 
-                if time <= 1.0 && current_step > jumps {
+                if progress <= 1.0 && current_step > jumps {
                     current_step = jumps;
                 }
 
@@ -116,22 +119,19 @@ impl PropertyAnimation {
             },
             GenericTimingFunction::Keyword(keyword) => {
                 let (x1, x2, y1, y2) = keyword.to_bezier();
-                Bezier::new(x1, x2, y1, y2).solve(time, epsilon)
+                Bezier::new(x1, x2, y1, y2).solve(progress, epsilon)
             },
+        }
+    }
+
+    /// Update the given animation at a given point of progress.
+    fn update(&self, style: &mut ComputedValues, progress: f64) {
+        let procedure = Procedure::Interpolate {
+            progress: self.timing_function_output(progress),
         };
-
-        self.property.update(style, progress);
-    }
-
-    #[inline]
-    fn does_animate(&self) -> bool {
-        self.property.does_animate() && self.duration != 0.0
-    }
-
-    /// Whether this animation has the same end value as another one.
-    #[inline]
-    pub fn has_the_same_end_value_as(&self, other: &Self) -> bool {
-        self.property.has_the_same_end_value_as(&other.property)
+        if let Ok(new_value) = self.from.animate(&self.to, procedure) {
+            new_value.set_in_style_for_servo(style);
+        }
     }
 }
 
@@ -486,42 +486,23 @@ impl Animation {
         );
 
         let mut new_style = (*style).clone();
+        let mut update_style_for_longhand = |longhand| {
+            let from = AnimationValue::from_computed_values(longhand, &from_style)?;
+            let to = AnimationValue::from_computed_values(longhand, &target_style)?;
+            PropertyAnimation {
+                from,
+                to,
+                timing_function,
+                duration: relative_duration as f64,
+            }
+            .update(&mut new_style, relative_progress);
+            None::<()>
+        };
 
         for property in self.keyframes_animation.properties_changed.iter() {
-            debug!(
-                "Animation::update_style: scanning prop {:?} for animation \"{}\"",
-                property, self.name
-            );
-            let animation = PropertyAnimation::from_longhand(
-                property,
-                timing_function,
-                Time::from_seconds(relative_duration as f32),
-                &from_style,
-                &target_style,
-            );
-
-            match animation {
-                Some(property_animation) => {
-                    debug!(
-                        "Animation::update_style: got property animation for prop {:?}",
-                        property
-                    );
-                    debug!("Animation::update_style: {:?}", property_animation);
-                    property_animation.update(&mut new_style, relative_progress);
-                },
-                None => {
-                    debug!(
-                        "Animation::update_style: property animation {:?} not animating",
-                        property
-                    );
-                },
-            }
+            update_style_for_longhand(property);
         }
 
-        debug!(
-            "Animation::update_style: got style change in animation \"{}\"",
-            self.name
-        );
         *style = new_style;
     }
 }
@@ -573,12 +554,9 @@ impl Transition {
 
     /// Whether this animation has the same end value as another one.
     #[inline]
-    fn has_same_end_value(&self, other_animation: &PropertyAnimation) -> bool {
-        if self.state == AnimationState::Canceled {
-            return false;
-        }
-        self.property_animation
-            .has_the_same_end_value_as(other_animation)
+    fn progress(&self, now: f64) -> f64 {
+        let progress = (now - self.start_time) / (self.property_animation.duration);
+        progress.min(1.0)
     }
 
     /// Update a style to the value specified by this `Transition` given a `SharedStyleContext`.
@@ -588,9 +566,7 @@ impl Transition {
             return;
         }
 
-        let now = context.current_time_for_animations;
-        let progress = (now - self.start_time) / (self.property_animation.duration);
-        let progress = progress.min(1.0);
+        let progress = self.progress(context.current_time_for_animations);
         if progress >= 0.0 {
             self.property_animation.update(style, progress);
         }
@@ -782,7 +758,8 @@ pub fn start_transitions_if_applicable(
 ) -> LonghandIdSet {
     // If the style of this element is display:none, then we don't start any transitions
     // and we cancel any currently running transitions by returning an empty LonghandIdSet.
-    if new_style.get_box().clone_display().is_none() {
+    let box_style = new_style.get_box();
+    if box_style.clone_display().is_none() {
         return LonghandIdSet::new();
     }
 
@@ -797,12 +774,8 @@ pub fn start_transitions_if_applicable(
 
         let property_animation = match PropertyAnimation::from_longhand(
             transition.longhand_id,
-            new_style
-                .get_box()
-                .transition_timing_function_mod(transition.index),
-            new_style
-                .get_box()
-                .transition_duration_mod(transition.index),
+            box_style.transition_timing_function_mod(transition.index),
+            box_style.transition_duration_mod(transition.index),
             old_style,
             new_style,
         ) {
@@ -812,12 +785,13 @@ pub fn start_transitions_if_applicable(
 
         // Per [1], don't trigger a new transition if the end state for that
         // transition is the same as that of a transition that's running or
-        // completed.
+        // completed. We don't take into account any canceled animations.
         // [1]: https://drafts.csswg.org/css-transitions/#starting
         if animation_state
             .transitions
             .iter()
-            .any(|transition| transition.has_same_end_value(&property_animation))
+            .filter(|transition| transition.state != AnimationState::Canceled)
+            .any(|transition| transition.property_animation.to == property_animation.to)
         {
             continue;
         }
