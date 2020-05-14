@@ -21,7 +21,7 @@ use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
 use canvas_traits::webgl::WebGLFramebufferId;
 use dom_struct::dom_struct;
-use euclid::Size2D;
+use euclid::{Rect, Size2D};
 use std::convert::TryInto;
 use webxr_api::SwapChainId as WebXRSwapChainId;
 use webxr_api::Viewport;
@@ -114,7 +114,11 @@ impl XRWebGLLayer {
 
         // Step 9.2. "Initialize layer’s framebuffer to a new opaque framebuffer created with context."
         let (swap_chain_id, framebuffer) = if session.is_immersive() {
-            let size = session.with_session(|session| session.recommended_framebuffer_resolution());
+            let size = session.with_session(|session| {
+                session
+                    .recommended_framebuffer_resolution()
+                    .expect("immersive session must have viewports")
+            });
             let (swap_chain_id, fb) = WebGLFramebuffer::maybe_new_webxr(session, &context, size)
                 .ok_or(Error::Operation)?;
             framebuffer = fb;
@@ -240,6 +244,17 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
             return None;
         }
 
-        Some(XRViewport::new(&self.global(), view.view().viewport))
+        let index = view.viewport_index();
+
+        let viewport = self.session.with_session(|s| {
+            // Inline sssions
+            if s.viewports().is_empty() {
+                Rect::from_size(self.size().to_i32())
+            } else {
+                s.viewports()[index]
+            }
+        });
+
+        Some(XRViewport::new(&self.global(), viewport))
     }
 }

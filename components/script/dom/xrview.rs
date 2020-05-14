@@ -21,6 +21,7 @@ pub struct XRView {
     reflector_: Reflector,
     session: Dom<XRSession>,
     eye: XREye,
+    viewport_index: usize,
     #[ignore_malloc_size_of = "mozjs"]
     proj: Heap<*mut JSObject>,
     #[ignore_malloc_size_of = "defined in rust-webxr"]
@@ -33,20 +34,18 @@ impl XRView {
         session: &XRSession,
         transform: &XRRigidTransform,
         eye: XREye,
+        viewport_index: usize,
         view: View<ApiSpace>,
     ) -> XRView {
         XRView {
             reflector_: Reflector::new(),
             session: Dom::from_ref(session),
             eye,
+            viewport_index,
             proj: Heap::default(),
             view,
             transform: Dom::from_ref(transform),
         }
-    }
-
-    pub fn view(&self) -> &View<ApiSpace> {
-        &self.view
     }
 
     pub fn new<V: Copy>(
@@ -54,6 +53,7 @@ impl XRView {
         session: &XRSession,
         view: &View<V>,
         eye: XREye,
+        viewport_index: usize,
         pose: &ApiViewerPose,
     ) -> DomRoot<XRView> {
         // XXXManishearth compute and cache projection matrices on the Display
@@ -70,6 +70,7 @@ impl XRView {
                 session,
                 &transform,
                 eye,
+                viewport_index,
                 view.cast_unit(),
             )),
             global,
@@ -78,6 +79,10 @@ impl XRView {
 
     pub fn session(&self) -> &XRSession {
         &self.session
+    }
+
+    pub fn viewport_index(&self) -> usize {
+        self.viewport_index
     }
 }
 

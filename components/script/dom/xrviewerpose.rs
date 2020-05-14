@@ -49,19 +49,27 @@ impl XRViewerPose {
                 session,
                 &session.inline_view(),
                 XREye::None,
+                0,
                 &pose,
             )),
             Views::Mono(view) => {
-                views.push(XRView::new(global, session, &view, XREye::None, &pose))
+                views.push(XRView::new(global, session, &view, XREye::None, 0, &pose))
             },
             Views::Stereo(left, right) => {
-                views.push(XRView::new(global, session, &left, XREye::Left, &pose));
-                views.push(XRView::new(global, session, &right, XREye::Right, &pose));
+                views.push(XRView::new(global, session, &left, XREye::Left, 0, &pose));
+                views.push(XRView::new(global, session, &right, XREye::Right, 1, &pose));
             },
             Views::StereoCapture(left, right, third_eye) => {
-                views.push(XRView::new(global, session, &left, XREye::Left, &pose));
-                views.push(XRView::new(global, session, &right, XREye::Right, &pose));
-                views.push(XRView::new(global, session, &third_eye, XREye::None, &pose));
+                views.push(XRView::new(global, session, &left, XREye::Left, 0, &pose));
+                views.push(XRView::new(global, session, &right, XREye::Right, 1, &pose));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    &third_eye,
+                    XREye::None,
+                    2,
+                    &pose,
+                ));
             },
         };
         let transform = XRRigidTransform::new(global, cast_transform(pose));
