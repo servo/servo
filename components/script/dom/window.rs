@@ -40,6 +40,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::history::History;
+use crate::dom::identityhub::Identities;
 use crate::dom::location::Location;
 use crate::dom::mediaquerylist::{MediaQueryList, MediaQueryListMatchState};
 use crate::dom::mediaquerylistevent::MediaQueryListEvent;
@@ -100,6 +101,7 @@ use net_traits::image_cache::{PendingImageId, PendingImageResponse};
 use net_traits::storage_thread::StorageType;
 use net_traits::ResourceThreads;
 use num_traits::ToPrimitive;
+use parking_lot::Mutex as ParkMutex;
 use profile_traits::ipc as ProfiledIpc;
 use profile_traits::mem::ProfilerChan as MemProfilerChan;
 use profile_traits::time::{ProfilerChan as TimeProfilerChan, ProfilerMsg};
@@ -2322,6 +2324,7 @@ impl Window {
         user_agent: Cow<'static, str>,
         player_context: WindowGLContext,
         event_loop_waker: Option<Box<dyn EventLoopWaker>>,
+        gpu_id_hub: Arc<ParkMutex<Identities>>,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<dyn LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = unbounded();
@@ -2345,6 +2348,7 @@ impl Window {
                 microtask_queue,
                 is_headless,
                 user_agent,
+                gpu_id_hub,
             ),
             script_chan,
             task_manager,

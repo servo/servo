@@ -91,6 +91,7 @@ impl GPUAdapterMethods for GPUAdapter {
         let id = self
             .global()
             .wgpu_id_hub()
+            .lock()
             .create_device_id(self.adapter.0.backend());
         if self
             .channel

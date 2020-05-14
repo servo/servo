@@ -5,6 +5,7 @@
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::identityhub::Identities;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::paintworkletglobalscope::PaintWorkletTask;
 use crate::dom::testworkletglobalscope::TestWorkletGlobalScope;
@@ -21,6 +22,7 @@ use js::rust::Runtime;
 use msg::constellation_msg::PipelineId;
 use net_traits::image_cache::ImageCache;
 use net_traits::ResourceThreads;
+use parking_lot::Mutex;
 use profile_traits::mem;
 use profile_traits::time;
 use script_traits::{Painter, ScriptMsg};
@@ -71,6 +73,7 @@ impl WorkletGlobalScope {
                 Default::default(),
                 init.is_headless,
                 init.user_agent.clone(),
+                init.gpu_id_hub.clone(),
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
@@ -156,6 +159,8 @@ pub struct WorkletGlobalScopeInit {
     pub is_headless: bool,
     /// An optional string allowing the user agent to be set for testing
     pub user_agent: Cow<'static, str>,
+    /// Channel to WebGPU
+    pub gpu_id_hub: Arc<Mutex<Identities>>,
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>

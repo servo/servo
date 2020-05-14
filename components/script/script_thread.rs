@@ -55,6 +55,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
+use crate::dom::identityhub::Identities;
 use crate::dom::mutationobserver::MutationObserver;
 use crate::dom::node::{
     from_untrusted_node_address, window_from_node, Node, NodeDamage, ShadowIncluding,
@@ -129,6 +130,7 @@ use net_traits::{
     Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming, ResourceThreads,
     ResourceTimingType,
 };
+use parking_lot::Mutex;
 use percent_encoding::percent_decode;
 use profile_traits::mem::{self as profile_mem, OpaqueSender, ReportsChan};
 use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
@@ -698,6 +700,9 @@ pub struct ScriptThread {
 
     /// Code is running as a consequence of a user interaction
     is_user_interacting: Cell<bool>,
+
+    /// Channel to WebGPU
+    gpu_id_hub: Arc<Mutex<Identities>>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -1151,6 +1156,7 @@ impl ScriptThread {
                         image_cache: script_thread.image_cache.clone(),
                         is_headless: script_thread.headless,
                         user_agent: script_thread.user_agent.clone(),
+                        gpu_id_hub: script_thread.gpu_id_hub.clone(),
                     };
                     Rc::new(WorkletThreadPool::spawn(init))
                 })
@@ -1396,6 +1402,7 @@ impl ScriptThread {
 
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
+            gpu_id_hub: Arc::new(Mutex::new(Identities::new())),
         }
     }
 
@@ -3313,6 +3320,7 @@ impl ScriptThread {
             self.user_agent.clone(),
             self.player_context.clone(),
             self.event_loop_waker.as_ref().map(|w| (*w).clone_box()),
+            self.gpu_id_hub.clone(),
         );
 
         // Initialize the browsing context for the window.
