@@ -171,6 +171,7 @@ impl GPUDeviceMethods for GPUDevice {
         let id = self
             .global()
             .wgpu_id_hub()
+            .lock()
             .create_buffer_id(self.device.0.backend());
         self.channel
             .0
@@ -208,6 +209,7 @@ impl GPUDeviceMethods for GPUDevice {
         let buffer_id = self
             .global()
             .wgpu_id_hub()
+            .lock()
             .create_buffer_id(self.device.0.backend());
         self.channel
             .0
@@ -393,6 +395,7 @@ impl GPUDeviceMethods for GPUDevice {
         let bind_group_layout_id = self
             .global()
             .wgpu_id_hub()
+            .lock()
             .create_bind_group_layout_id(self.device.0.backend());
         self.channel
             .0
@@ -472,6 +475,7 @@ impl GPUDeviceMethods for GPUDevice {
         let pipeline_layout_id = self
             .global()
             .wgpu_id_hub()
+            .lock()
             .create_pipeline_layout_id(self.device.0.backend());
         self.channel
             .0
@@ -532,6 +536,7 @@ impl GPUDeviceMethods for GPUDevice {
         let bind_group_id = self
             .global()
             .wgpu_id_hub()
+            .lock()
             .create_bind_group_id(self.device.0.backend());
         self.channel
             .0
@@ -561,6 +566,7 @@ impl GPUDeviceMethods for GPUDevice {
         let program_id = self
             .global()
             .wgpu_id_hub()
+            .lock()
             .create_shader_module_id(self.device.0.backend());
         self.channel
             .0
@@ -587,6 +593,7 @@ impl GPUDeviceMethods for GPUDevice {
         let compute_pipeline_id = self
             .global()
             .wgpu_id_hub()
+            .lock()
             .create_compute_pipeline_id(self.device.0.backend());
         let (sender, receiver) = ipc::channel().unwrap();
         self.channel
@@ -613,6 +620,7 @@ impl GPUDeviceMethods for GPUDevice {
         let command_encoder_id = self
             .global()
             .wgpu_id_hub()
+            .lock()
             .create_command_encoder_id(self.device.0.backend());
         self.channel
             .0

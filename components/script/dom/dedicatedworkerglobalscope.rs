@@ -22,6 +22,7 @@ use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::identityhub::Identities;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::worker::{TrustedWorkerAddress, Worker};
 use crate::dom::workerglobalscope::WorkerGlobalScope;
@@ -48,6 +49,7 @@ use net_traits::image_cache::ImageCache;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
 use net_traits::request::{Referrer, RequestBuilder, RequestMode};
 use net_traits::IpcSend;
+use parking_lot::Mutex;
 use script_traits::{WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
 use servo_rand::random;
 use servo_url::ServoUrl;
@@ -223,6 +225,7 @@ impl DedicatedWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
+        gpu_id_hub: Arc<Mutex<Identities>>,
     ) -> DedicatedWorkerGlobalScope {
         DedicatedWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -233,6 +236,7 @@ impl DedicatedWorkerGlobalScope {
                 runtime,
                 from_devtools_receiver,
                 Some(closing),
+                gpu_id_hub,
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
             own_sender: own_sender,
@@ -257,6 +261,7 @@ impl DedicatedWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
+        gpu_id_hub: Arc<Mutex<Identities>>,
     ) -> DomRoot<DedicatedWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = Box::new(DedicatedWorkerGlobalScope::new_inherited(
@@ -272,6 +277,7 @@ impl DedicatedWorkerGlobalScope {
             closing,
             image_cache,
             browsing_context,
+            gpu_id_hub,
         ));
         unsafe { DedicatedWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
     }
@@ -292,6 +298,7 @@ impl DedicatedWorkerGlobalScope {
         closing: Arc<AtomicBool>,
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
+        gpu_id_hub: Arc<Mutex<Identities>>,
     ) {
         let serialized_worker_url = worker_url.to_string();
         let name = format!("WebWorker for {}", serialized_worker_url);
@@ -361,6 +368,7 @@ impl DedicatedWorkerGlobalScope {
                     closing,
                     image_cache,
                     browsing_context,
+                    gpu_id_hub,
                 );
                 // FIXME(njn): workers currently don't have a unique ID suitable for using in reporter
                 // registration (#6631), so we instead use a random number and cross our fingers.

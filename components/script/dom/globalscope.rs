@@ -88,6 +88,7 @@ use net_traits::filemanager_thread::{
 };
 use net_traits::image_cache::ImageCache;
 use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
+use parking_lot::Mutex;
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
 use script_traits::serializable::{BlobData, BlobImpl, FileBlob};
 use script_traits::transferable::MessagePortImpl;
@@ -98,7 +99,7 @@ use script_traits::{
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
 use servo_url::{MutableOrigin, ServoUrl};
 use std::borrow::Cow;
-use std::cell::{Cell, RefCell, RefMut};
+use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
 use std::ffi::CString;
@@ -232,7 +233,7 @@ pub struct GlobalScope {
     user_agent: Cow<'static, str>,
 
     #[ignore_malloc_size_of = "defined in wgpu"]
-    gpu_id_hub: RefCell<Identities>,
+    gpu_id_hub: Arc<Mutex<Identities>>,
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
     #[ignore_malloc_size_of = "mozjs"]
@@ -554,6 +555,7 @@ impl GlobalScope {
         microtask_queue: Rc<MicrotaskQueue>,
         is_headless: bool,
         user_agent: Cow<'static, str>,
+        gpu_id_hub: Arc<Mutex<Identities>>,
     ) -> Self {
         Self {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
@@ -584,7 +586,7 @@ impl GlobalScope {
             consumed_rejections: Default::default(),
             is_headless,
             user_agent,
-            gpu_id_hub: RefCell::new(Identities::new()),
+            gpu_id_hub,
             frozen_supported_performance_entry_types: DomRefCell::new(Default::default()),
         }
     }
@@ -2510,8 +2512,8 @@ impl GlobalScope {
         None
     }
 
-    pub fn wgpu_id_hub(&self) -> RefMut<Identities> {
-        self.gpu_id_hub.borrow_mut()
+    pub fn wgpu_id_hub(&self) -> Arc<Mutex<Identities>> {
+        self.gpu_id_hub.clone()
     }
 }
 

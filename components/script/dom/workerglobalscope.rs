@@ -21,6 +21,7 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::crypto::Crypto;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::identityhub::Identities;
 use crate::dom::performance::Performance;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
@@ -53,6 +54,7 @@ use net_traits::request::{
     CredentialsMode, Destination, ParserMetadata, RequestBuilder as NetRequestInit,
 };
 use net_traits::IpcSend;
+use parking_lot::Mutex;
 use script_traits::WorkerGlobalScopeInit;
 use servo_url::{MutableOrigin, ServoUrl};
 use std::default::Default;
@@ -125,6 +127,7 @@ impl WorkerGlobalScope {
         runtime: Runtime,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
         closing: Option<Arc<AtomicBool>>,
+        gpu_id_hub: Arc<Mutex<Identities>>,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
         PipelineNamespace::auto_install();
@@ -141,6 +144,7 @@ impl WorkerGlobalScope {
                 runtime.microtask_queue.clone(),
                 init.is_headless,
                 init.user_agent,
+                gpu_id_hub,
             ),
             worker_id: init.worker_id,
             worker_name,

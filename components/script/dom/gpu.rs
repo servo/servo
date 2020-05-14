@@ -115,7 +115,7 @@ impl GPUMethods for GPU {
             },
             None => wgpu::instance::PowerPreference::Default,
         };
-        let ids = global.wgpu_id_hub().create_adapter_ids();
+        let ids = global.wgpu_id_hub().lock().create_adapter_ids();
 
         let script_to_constellation_chan = global.script_to_constellation_chan();
         if script_to_constellation_chan

@@ -62,6 +62,7 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.microtask_queue().clone(),
                 global_to_clone_from.is_headless(),
                 global_to_clone_from.get_user_agent(),
+                global_to_clone_from.wgpu_id_hub(),
             ),
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),

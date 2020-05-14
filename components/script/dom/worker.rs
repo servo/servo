@@ -139,6 +139,7 @@ impl Worker {
             closing,
             global.image_cache(),
             browsing_context,
+            global.wgpu_id_hub(),
         );
 
         Ok(worker)
