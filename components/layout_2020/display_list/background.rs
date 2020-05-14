@@ -21,6 +21,7 @@ pub(super) struct BackgroundLayer {
     pub repeat: bool,
 }
 
+#[derive(Debug)]
 struct Layout1DResult {
     repeat: bool,
     bounds_origin: f32,
@@ -250,7 +251,8 @@ fn layout_1d(
             let tile_stride = *tile_size + tile_spacing;
             let offset = position - painting_area_origin;
             let bounds_origin = position - tile_stride * (offset / tile_stride).ceil();
-            let bounds_size = painting_area_size - bounds_origin - painting_area_origin;
+            let bounds_end = painting_area_origin + painting_area_size;
+            let bounds_size = bounds_end - bounds_origin;
             Layout1DResult {
                 repeat: true,
                 bounds_origin,
