@@ -17,7 +17,7 @@ use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
-use webxr_api::Views;
+use webxr_api::{ViewerPose, Views};
 
 #[dom_struct]
 pub struct XRViewerPose {
@@ -39,11 +39,11 @@ impl XRViewerPose {
         global: &GlobalScope,
         session: &XRSession,
         pose: ApiViewerPose,
-        frame_views: &Views,
+        viewer_pose: &ViewerPose,
     ) -> DomRoot<XRViewerPose> {
         let _ac = enter_realm(&*global);
         rooted_vec!(let mut views);
-        match frame_views {
+        match &viewer_pose.views {
             Views::Inline => views.push(XRView::new(
                 global,
                 session,

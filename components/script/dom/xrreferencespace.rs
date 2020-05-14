@@ -113,7 +113,7 @@ impl XRReferenceSpace {
                 // get_viewer_pose(eye_level) = get_pose(eye_level).inverse() * get_pose(viewer_space)
                 //                            = I * viewer_pose
                 //                            = viewer_pose
-                let viewer_pose: ApiViewerPose = cast_transform(base_pose.transform?);
+                let viewer_pose: ApiViewerPose = cast_transform(base_pose.pose.as_ref()?.transform);
 
                 // we get viewer poses in eye-level space by default
                 Some(viewer_pose)
@@ -122,7 +122,7 @@ impl XRReferenceSpace {
                 // get_viewer_pose(floor_level) = get_pose(floor_level).inverse() * get_pose(viewer_space)
                 //                            = floor_to_native.inverse() * viewer_pose
                 //                            = native_to_floor * viewer_pose
-                let viewer_pose = base_pose.transform?;
+                let viewer_pose = base_pose.pose.as_ref()?.transform;
                 let native_to_floor = self
                     .upcast::<XRSpace>()
                     .session()
@@ -171,7 +171,9 @@ impl XRReferenceSpace {
                     .with_session(|s| s.floor_transform())?;
                 Some(cast_transform(native_to_floor.inverse()))
             },
-            XRReferenceSpaceType::Viewer => base_pose.transform.map(cast_transform),
+            XRReferenceSpaceType::Viewer => {
+                Some(cast_transform(base_pose.pose.as_ref()?.transform))
+            },
             _ => unimplemented!(),
         }
     }

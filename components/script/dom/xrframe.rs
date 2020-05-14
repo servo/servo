@@ -85,11 +85,16 @@ impl XRFrameMethods for XRFrame {
         } else {
             return Ok(None);
         };
+        let viewer_pose = if let Some(pose) = self.data.pose.as_ref() {
+            pose
+        } else {
+            return Ok(None);
+        };
         Ok(Some(XRViewerPose::new(
             &self.global(),
             &self.session,
             pose,
-            &self.data.views,
+            viewer_pose,
         )))
     }
 
