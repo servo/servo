@@ -1,0 +1,20 @@
+<!doctype html>
+<title>CSS Overflow Test: text-overflow:ellipsis not rendered while editing</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#ellipsis-interaction">
+<link rel="match" href="text-overflow-ellipsis-editing-input-ref.html">
+<!-- The specification says it "may" render ellipsis as clip while editing, but
+     all current engines do for input elements. -->
+<style>
+  input {
+    all: initial;
+    width: 100px;
+    text-overflow: ellipsis;
+    caret-color: transparent;
+  }
+</style>
+<p>You should not see an ellipsis for the text below.</p>
+<input id="input_element" value="xxxxxxxxxxxxxxxxxxxx">
+<script>
+  input_element.offsetTop;
+  input_element.focus();
+</script>

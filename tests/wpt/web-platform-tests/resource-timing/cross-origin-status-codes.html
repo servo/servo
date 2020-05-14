@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src=/common/get-host-info.sub.js></script>
+</head>
+<body>
+<img id="img_200">
+<img id="img_307">
+<img id="img_404">
+<img id="img_502">
+<script id="script_200"></script>
+<script id="script_307"></script>
+<script id="script_404"></script>
+<script id="script_502"></script>
+<script>
+async_test(t => {
+  let destUrl = get_host_info().HTTP_REMOTE_ORIGIN + '/resource-timing/resources/';
+  let statusCodes = ['200', '307', '404', '502'];
+  statusCodes.forEach(status => {
+    document.getElementById('img_' + status).src = destUrl + 'status-code.py?status=' + status;
+    document.getElementById('script_' + status).src = destUrl + 'status-code.py?status=' + status + '&script=1';
+  });
+  let nameMap = {};
+  let firstEntry = null;
+  // We will check that the non-timestamp values of the entry match for all entries.
+  const keys = ['entryType', 'nextHopProtocol', 'transferSize', 'encodedBodySize', 'decodedBodySize'];
+  new PerformanceObserver(t.step_func(entryList => {
+    entryList.getEntries().forEach(entry => {
+      if (!entry.name.includes("status-code"))
+        return;
+
+      nameMap[entry.name] = true;
+      if (!firstEntry) {
+        firstEntry = entry;
+      } else {
+        keys.forEach(key => {
+          assert_equals(entry[key], firstEntry[key], `Discernible difference in ${key} for ${entry.name}`);
+        });
+      }
+    });
+    if (Object.keys(nameMap).length === 8) {
+      t.done();
+    }
+  })).observe({entryTypes: ['resource']});
+}, "Make sure cross origin resource fetch failures with different status codes are indistinguishable");
+</script>

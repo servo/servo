@@ -52,29 +52,30 @@ function wait_for_raf_count(c) {
 }
 
 // Returns a promise which is resolved with the next/already received message
-// with feature update for |feature|. The resolved value is the state of the
-// feature |feature|. If |optional_timeout| is provided, after the given delay
+// with features update for |features|. The resolved value is the state of the
+// features |features|. If |optional_timeout| is provided, after the given delay
 // (in terms of rafs) the promise is resolved with false.
-function feature_update(feature, optional_timeout_rafs) {
+function feature_update(optional_timeout_rafs) {
   function reset_for_next_update() {
     return new Promise((r) => {
-      const state = last_feature_message.state;
+      const states = last_feature_message.states;
       last_feature_message = null;
-      r(state);
+      r(states);
     });
   }
-  if (last_feature_message && last_feature_message.feature === feature)
+
+  if (last_feature_message)
     return reset_for_next_update();
 
   if (optional_timeout_rafs) {
     wait_for_raf_count(optional_timeout_rafs).then (() => {
-      last_feature_message = {state: false};
+      last_feature_message = {states: []};
       on_new_feature_callback();
     });
   }
 
   return new Promise((r) => on_new_feature_callback = r)
-            .then(() => reset_for_next_update());
+            .then(reset_for_next_update);
 }
 
 function close_aux_window(iframe) {
@@ -88,7 +89,7 @@ function on_message(e) {
   var msg = e.data;
   assert_true("type" in msg);
   switch (msg.type) {
-    case "feature":
+    case "features":
       on_feature_msg(msg);
       break;
     case "close_window":
@@ -98,9 +99,8 @@ function on_message(e) {
 }
 
 function on_feature_msg(msg) {
-  assert_true("feature" in msg);
-  assert_true("state" in msg);
-  last_feature_message = msg
+  assert_true("states" in msg);
+  last_feature_message = msg;
   if (on_new_feature_callback) {
     on_new_feature_callback();
     on_new_feature_callback = null;

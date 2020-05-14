@@ -5,7 +5,7 @@ import time
 import traceback
 import uuid
 
-from six import iteritems
+from six import iteritems, iterkeys
 from six.moves.urllib.parse import urljoin
 
 errors = None
@@ -602,7 +602,7 @@ class MarionetteProtocol(Protocol):
 
     def on_environment_change(self, old_environment, new_environment):
         #Unset all the old prefs
-        for name in old_environment.get("prefs", {}).iterkeys():
+        for name in iterkeys(old_environment.get("prefs", {})):
             value = self.executor.original_pref_values[name]
             if value is None:
                 self.prefs.clear(name)
@@ -799,7 +799,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
             self.wait_script = f.read() % {"classname": "reftest-wait"}
 
     def setup(self, runner):
-        super(self.__class__, self).setup(runner)
+        super(MarionetteRefTestExecutor, self).setup(runner)
         self.implementation.setup(**self.implementation_kwargs)
 
     def teardown(self):
@@ -809,7 +809,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
                 handles = self.protocol.marionette.window_handles
                 if handles:
                     self.protocol.marionette.switch_to_window(handles[0])
-            super(self.__class__, self).teardown()
+            super(MarionetteRefTestExecutor, self).teardown()
         except Exception:
             # Ignore errors during teardown
             self.logger.warning("Exception during reftest teardown:\n%s" %

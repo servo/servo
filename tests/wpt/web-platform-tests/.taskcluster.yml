@@ -12,7 +12,7 @@ tasks:
       else:
         $if: 'tasks_for == "github-pull-request"'
         then:
-          $if: 'event.action in ["opened", "reopened", "synchronize", "ready_for_review"]  && !(event.pull_request.draft)'
+          $if: 'event.action in ["opened", "reopened", "synchronize"]'
           then: true
           else: false
         else: false
