@@ -1019,17 +1019,6 @@ pub(crate) struct VerticalAlignMetrics {
 }
 
 impl VerticalAlignMetrics {
-    /// Creates a new set of inline metrics.
-    pub fn new(space_above: Length, space_below: Length, ascent: Length) -> VerticalAlignMetrics {
-        VerticalAlignMetrics {
-            baseline: Baseline {
-                space_above,
-                space_below,
-            },
-            ascent,
-        }
-    }
-
     #[inline]
     pub fn from_baseline(baseline: Baseline) -> Self {
         Self {

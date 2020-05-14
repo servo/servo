@@ -546,6 +546,11 @@ impl HoistedAbsolutelyPositionedBox {
                     size,
                 };
 
+                let vertical_align_metrics = VerticalAlignMetrics::for_replaced_or_inline_block(
+                    content_rect.size.block,
+                    &pbm,
+                    None,
+                );
                 BoxFragment::new(
                     self.absolutely_positioned_box.contents.tag,
                     style.clone(),
@@ -555,7 +560,7 @@ impl HoistedAbsolutelyPositionedBox {
                     pbm.border,
                     margin,
                     CollapsedBlockMargins::zero(),
-                    VerticalAlignMetrics::new(Length::zero(), Length::zero(), Length::zero()),
+                    vertical_align_metrics,
                 )
             },
         )
