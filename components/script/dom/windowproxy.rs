@@ -731,12 +731,10 @@ impl CreatorBrowsingContextInfo {
         parent: Option<&WindowProxy>,
         opener: Option<&WindowProxy>,
     ) -> CreatorBrowsingContextInfo {
-        let creator = if parent.is_some() {
-            parent.unwrap().document()
-        } else if opener.is_some() {
-            opener.unwrap().document()
-        } else {
-            None
+        let creator = match (parent, opener) {
+            (Some(parent), _) => parent.document(),
+            (None, Some(opener)) => opener.document(),
+            (None, None) => None,
         };
 
         let base_url = creator.as_deref().map(|document| document.base_url());

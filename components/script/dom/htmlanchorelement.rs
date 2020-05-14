@@ -637,7 +637,7 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
         if let Some(suffix) = hyperlink_suffix {
             href.push_str(&suffix);
         }
-        let url = match document.url().join(&href) {
+        let url = match document.base_url().join(&href) {
             Ok(url) => url,
             Err(_) => return,
         };

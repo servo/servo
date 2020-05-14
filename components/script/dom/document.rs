@@ -579,6 +579,13 @@ impl Document {
         if let Some(browsing_context) = self.browsing_context() {
             // Step 1: If document is an iframe srcdoc document, then return the
             // document base URL of document's browsing context's container document.
+            let container_base_url = browsing_context
+                .parent()
+                .and_then(|parent| parent.document())
+                .map(|document| document.base_url());
+            if document_url.as_str() == "about:srcdoc" && container_base_url.is_some() {
+                return container_base_url.unwrap();
+            }
 
             // Step 2: If document's URL is about:blank, and document's browsing
             // context's creator base URL is non-null, then return that creator base URL.
