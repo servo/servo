@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <head>
-<meta name="timeout" content="long">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 </head>
@@ -16,48 +15,57 @@ const iframe_src = "/feature-policy/feature-policy-for-sandbox/resources/window_
 const window_url_main = "/feature-policy/feature-policy-for-sandbox/resources/opened_window.html";
 
 promise_test( async () => {
-    for (const feature of features_that_propagate) {
-     const iframe = await add_iframe(
-        {src: iframe_src, allow: `${feature} 'none'`});
-    iframe.contentWindow.postMessage({type: "feature", feature: feature}, "*");
-    const iframe_state = await feature_update(feature);
-    assert_false(iframe_state, `'${feature}' is not disabled in <iframe>.'`);
-    iframe.contentWindow.postMessage({
-        type: "open_window",
-        url: `${window_url_main}?${feature}`
-    }, "*");
-    const window_state = await feature_update(feature);
-    assert_false(window_state,
-                 `'${feature}' is not disabled in new window.`);
-    const did_close = await close_aux_window(iframe);
-    assert_true(did_close);
-    iframe.parentElement.removeChild(iframe);
-  }
+  const iframe = await add_iframe({
+    src: iframe_src,
+    allow: features_that_propagate.map(feature => `${feature} 'none'`).join(", ")
+  });
+
+  iframe.contentWindow.postMessage(
+    {type: "features", features: features_that_propagate}, "*");
+  const iframe_states = await feature_update();
+  for (const [feature, state] of iframe_states)
+    assert_false(state, `'${feature}' is not disabled in <iframe>.'`);
+
+  iframe.contentWindow.postMessage({
+      type: "open_window",
+      url: `${window_url_main}?${features_that_propagate.join("&")}`
+  }, "*");
+  const window_states = await feature_update();
+  for (const [feature, state] of iframe_states)
+    assert_false(state, `'${feature}' is not disabled in new window.`);
+
+  const did_close = await close_aux_window(iframe);
+  assert_true(did_close);
+  iframe.parentElement.removeChild(iframe);
 }, "Verify feature policies are inherited by the auxiliary browsing context " +
    "if opened from a non-sandboxed same-origin <iframe>.");
 
-promise_test( async() => {
-  for (const feature of features_that_propagate) {
-    const iframe = await add_iframe({
-        src: iframe_src,
-        allow: `${feature} 'none'`,
-        sandbox: "allow-scripts allow-popups allow-popups-to-escape-sandbox"});
-    iframe.contentWindow.postMessage({type: "feature", feature: feature}, "*");
-    const iframe_state = await feature_update(feature);
-    assert_false(iframe_state,
-                 `'${feature}' is not disabled in <iframe>.'`);
-    iframe.contentWindow.postMessage({
-        type: "open_window",
-        url: `${window_url_main}?${feature}`
-    }, "*");
-    const window_state = await feature_update(feature);
-    assert_true(window_state, `'${feature}' is disabled.`);
-    const did_close = await close_aux_window(iframe);
-    assert_true(did_close);
-    iframe.parentElement.removeChild(iframe);
-  }
+promise_test( async () => {
+  const iframe = await add_iframe({
+    src: iframe_src,
+    allow: features_that_propagate.map(feature => `${feature} 'none'`).join(", "),
+    sandbox: "allow-scripts allow-popups allow-popups-to-escape-sandbox"
+  });
+
+  iframe.contentWindow.postMessage(
+    {type: "features", features: features_that_propagate}, "*");
+  const iframe_states = await feature_update();
+  for (const [feature, state] of iframe_states)
+    assert_false(state, `'${feature}' is not disabled in <iframe>.'`);
+
+  iframe.contentWindow.postMessage({
+      type: "open_window",
+      url: `${window_url_main}?${features_that_propagate.join("&")}`
+  }, "*");
+  const window_states = await feature_update();
+  for (const [feature, state] of window_states)
+    assert_true(state, `'${feature}' is disabled in new window.`);
+
+  const did_close = await close_aux_window(iframe);
+  assert_true(did_close);
+  iframe.parentElement.removeChild(iframe);
 }, "Verify feature policies are NOT inherited by the auxiliary browsing " +
-   "context if opened from a sandboxed same-origin <iframe> which allows " +
-   "popups to escape sandbox.");
+  "context if opened from a sandboxed same-origin <iframe> which allows " +
+  "popups to escape sandbox.");
 </script>
 </body>

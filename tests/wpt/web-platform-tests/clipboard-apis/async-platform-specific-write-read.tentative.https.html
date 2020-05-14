@@ -2,8 +2,12 @@
 <meta charset="utf-8">
 <title>Async Clipboard raw platform-specific write -> read tests</title>
 <link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<body>Body needed for test_driver.click()</body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
 <script>
 'use strict';
 
@@ -11,6 +15,7 @@ async function rawWriteBeforeTest() {
   const format = 'RawClipboardDisabledFormat';
   const blob = new Blob(['RawClipboardDisabled'], {type: format});
   const clipboardItem = new ClipboardItem({[format]: blob}, {raw: true});
+  await waitForUserActivation();
   await navigator.clipboard.write([clipboardItem]);
 }
 
@@ -38,9 +43,11 @@ promise_test(async t => {
   assert_equals(blobInput.type, format.toLowerCase());
   const clipboardItemInput = new ClipboardItem(
       {[format]: blobInput}, {raw: true});
+  await waitForUserActivation();
   await navigator.clipboard.write([clipboardItemInput]);
 
   // Items should be readable on a raw clipboard after raw write.
+  await waitForUserActivation();
   const clipboardItems = await navigator.clipboard.read({raw: true});
   assert_equals(clipboardItems.length, 1);
   const clipboardItem = clipboardItems[0];
@@ -57,7 +64,6 @@ promise_test(async t => {
   // accessible as text.
   const textOutput = await navigator.clipboard.readText();
   assert_equals(textOutput, dataToWrite);
-
 }, 'Verify write and read clipboard given platform-specific raw input');
 </script>
 <p>

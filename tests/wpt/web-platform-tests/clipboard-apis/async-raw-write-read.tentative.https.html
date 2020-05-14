@@ -2,8 +2,12 @@
 <meta charset="utf-8">
 <title>Async Clipboard raw write -> Async Clipboard raw read test</title>
 <link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<body>Body needed for test_driver.click()</body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/user-activation.js"></script>
 <script>
 'use strict';
 
@@ -16,6 +20,7 @@ promise_test(async t => {
   const blobInput2 = new Blob(['input data 2'], {type: format2});
   const clipboardItemInput = new ClipboardItem(
       {[format1]: blobInput1, [format2]: blobInput2}, {raw: true});
+  await waitForUserActivation();
   await navigator.clipboard.write([clipboardItemInput]);
 
   // Items may not be readable on the sanitized clipboard after raw write.
@@ -23,6 +28,7 @@ promise_test(async t => {
       navigator.clipboard.read({raw: false}));
 
   // Items should be readable on a raw clipboard after raw write.
+  await waitForUserActivation();
   const clipboardItems = await navigator.clipboard.read({raw: true});
   assert_equals(clipboardItems.length, 1);
   const clipboardItem = clipboardItems[0];
@@ -41,7 +47,6 @@ promise_test(async t => {
   assert_equals(data2, 'input data 2');
 
 }, 'Verify write and read clipboard given 2 platform-neutral raw inputs');
-
 </script>
 <p>
   Note: This is a manual test because it writes/reads to the shared system

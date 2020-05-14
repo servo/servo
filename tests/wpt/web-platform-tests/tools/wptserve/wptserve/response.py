@@ -234,9 +234,12 @@ class Response(object):
         self.write_status_headers()
         self.write_content()
 
-    def set_error(self, code, message=""):
-        """Set the response status headers and body to indicate an
-        error"""
+    def set_error(self, code, message=u""):
+        """Set the response status headers and return a JSON error object:
+
+        {"error": {"code": code, "message": message}}
+        code is an int (HTTP status code), and message is a text string.
+        """
         err = {"code": code,
                "message": message}
         data = json.dumps({"error": err})

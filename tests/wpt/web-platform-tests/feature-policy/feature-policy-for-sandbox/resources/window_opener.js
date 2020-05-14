@@ -2,12 +2,13 @@ var auxiliary_context = null;
 window.addEventListener("message", (e) => {
   var msg = e.data;
   switch (msg.type) {
-    case "feature":
-      var state = document.featurePolicy.allowsFeature(msg.feature);
+    case "features":
       e.source.postMessage({
-          type: "feature",
-          feature: msg.feature,
-          state: state}, "*");
+        type: "features",
+        states:
+          msg.features
+          .map(feature => [feature, document.featurePolicy.allowsFeature(feature)])
+      }, "*");
       break;
     case "open_window":
       auxiliary_context = window.open(msg.url);

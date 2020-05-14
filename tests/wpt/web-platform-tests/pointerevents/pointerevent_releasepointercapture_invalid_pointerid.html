@@ -26,6 +26,7 @@
             add_completion_callback(showPointerTypes);
 
             var INVALID_POINTERID = 314159265358973923;
+            var actions_promise;
 
             function run() {
                 var target0 = document.getElementById("target0");
@@ -41,7 +42,10 @@
                                         "It should not be possible to release capture an invalid pointer id");
                     });
 
-                    test_pointerEvent.done(); // complete test
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerEvent.done();
+                    });
                 });
 
                 // set pointer capture
@@ -51,7 +55,7 @@
                 });
 
                 // Inject mouse inputs.
-                new test_driver.Actions()
+                actions_promise = new test_driver.Actions()
                     .pointerMove(0, 0, {origin: target0})
                     .pointerDown()
                     .pointerMove(10, 0, {origin: target0})

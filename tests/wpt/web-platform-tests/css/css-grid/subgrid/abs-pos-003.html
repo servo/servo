@@ -45,6 +45,12 @@ a {
   background: purple;
 }
 
+.o { overflow: hidden; }
+.abs {
+  grid-auto-rows: 3em;
+  grid-auto-columns: 3em;
+}
+.abs x { width:auto; height:auto; }
 </style>
 </head>
 <body>
@@ -52,6 +58,7 @@ a {
 <div class="grid"><div class="subgrid t1"></div></div>
 <div class="grid"><div class="subgrid t1"><x></x></div></div>
 <div class="grid"><div class="subgrid t1"><x></x><x></x></div></div>
+<div class="grid abs"><div class="subgrid t1 o"><x></x></div></div>
 <div class="grid a"><div class="subgrid t1"></div></div>
 <div class="grid a"><div class="subgrid t1"><x></x></div></div>
 <div class="grid a"><div class="subgrid t1"><x></x><x></x></div></div>
@@ -64,6 +71,7 @@ a {
 
 <div class="grid"><div class="subgrid t2"></div></div>
 <div class="grid"><div class="subgrid t2"><x></x></div></div>
+<div class="grid abs"><div class="subgrid t2 o"><x></x></div></div>
 <div class="grid"><div class="subgrid t2"><x></x><x></x></div></div>
 <div class="grid a"><div class="subgrid t2"></div></div>
 <div class="grid a"><div class="subgrid t2"><x></x></div></div>
@@ -77,6 +85,7 @@ a {
 
 <div class="grid"><div class="subgrid t3"></div></div>
 <div class="grid"><div class="subgrid t3"><x></x></div></div>
+<div class="grid abs"><div class="subgrid t3 o"><x></x></div></div>
 <div class="grid"><div class="subgrid t3"><x></x><x></x></div></div>
 <div class="grid a"><div class="subgrid t3"></div></div>
 <div class="grid a"><div class="subgrid t3"><x></x></div></div>
@@ -92,6 +101,7 @@ a {
 
 <div class="grid"><div class="subgrid t1"><a></a></div></div>
 <div class="grid"><div class="subgrid t1"><a></a><a></a></div></div>
+<div class="grid abs"><div class="subgrid t1 o"><a></a></div></div>
 <div class="grid a"><div class="subgrid t1"><a></a></div></div>
 <div class="grid a"><div class="subgrid t1"><a></a><a></a></div></div>
 <div class="grid c"><div class="subgrid t1"><a></a></div></div>
@@ -101,6 +111,7 @@ a {
 
 <div class="grid"><div class="subgrid t2"><a></a></div></div>
 <div class="grid"><div class="subgrid t2"><a></a><a></a></div></div>
+<div class="grid abs"><div class="subgrid t2 o"><a></a></div></div>
 <div class="grid a"><div class="subgrid t2"><a></a></div></div>
 <div class="grid a"><div class="subgrid t2"><a></a><a></a></div></div>
 <div class="grid c"><div class="subgrid t2"><a></a></div></div>
@@ -110,6 +121,7 @@ a {
 
 <div class="grid"><div class="subgrid t3"><a></a></div></div>
 <div class="grid"><div class="subgrid t3"><a></a><a></a></div></div>
+<div class="grid abs"><div class="subgrid t3 o"><a></a></div></div>
 <div class="grid a"><div class="subgrid t3"><a></a></div></div>
 <div class="grid a"><div class="subgrid t3"><a></a><a></a></div></div>
 <div class="grid c"><div class="subgrid t3"><a></a></div></div>

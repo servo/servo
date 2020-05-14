@@ -20,7 +20,7 @@
   window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
   async function runTests() {
       let json = await fetchOperatorDictionary();
-      OperatorDictionaryTests.run(json, "stretchy");
+      OperatorDictionaryTests.run(json, "movablelimits", 0);
       done();
   }
 </script>

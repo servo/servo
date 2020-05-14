@@ -20,7 +20,7 @@
   window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
   async function runTests() {
       let json = await fetchOperatorDictionary();
-      OperatorDictionaryTests.run(json, "lspace/rspace");
+      OperatorDictionaryTests.run(json, "symmetric", 0);
       done();
   }
 </script>
