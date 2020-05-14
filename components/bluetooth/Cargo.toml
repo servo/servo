@@ -12,14 +12,14 @@ path = "lib.rs"
 
 [dependencies]
 bitflags = "1.0"
-bluetooth_traits = {path = "../bluetooth_traits"}
-device = {git = "https://github.com/servo/devices", features = ["bluetooth-test"]}
-embedder_traits = {path = "../embedder_traits"}
+bluetooth_traits = { path = "../bluetooth_traits" }
+device = { git = "https://github.com/servo/devices", features = ["bluetooth-test"] }
+embedder_traits = { path = "../embedder_traits" }
 ipc-channel = "0.14"
 log = "0.4"
-servo_config = {path = "../config"}
-servo_rand = {path = "../rand"}
-uuid = {version = "0.8", features = ["v4"]}
+servo_config = { path = "../config" }
+servo_rand = { path = "../rand" }
+uuid = { version = "0.8", features = ["v4"] }
 
 [features]
 native-bluetooth = ["device/bluetooth"]

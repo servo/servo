@@ -22,7 +22,7 @@ surfman = "0.2"
 
 [target.'cfg(target_os = "windows")'.dependencies]
 libc = "0.2"
-winapi = {version = "0.3", features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"]}
+winapi = { version = "0.3", features = ["wingdi", "winuser", "winnt", "winbase", "processenv", "namedpipeapi", "ntdef", "minwindef", "handleapi", "debugapi"] }
 
 [build-dependencies]
 cbindgen = "0.14"
@@ -30,8 +30,6 @@ cbindgen = "0.14"
 [features]
 debugmozjs = ["simpleservo/debugmozjs"]
 default = ["webdriver", "max_log_level"]
-media-dummy = ["simpleservo/media-dummy"]
-media-gstreamer = ["simpleservo/media-gstreamer"]
 egl = ["simpleservo/egl"]
 energy-profiling = ["simpleservo/energy-profiling"]
 googlevr = ["simpleservo/googlevr"]
@@ -40,6 +38,8 @@ js_backtrace = ["simpleservo/js_backtrace"]
 layout-2013 = ["simpleservo/layout-2013"]
 layout-2020 = ["simpleservo/layout-2020"]
 max_log_level = ["simpleservo/max_log_level"]
+media-dummy = ["simpleservo/media-dummy"]
+media-gstreamer = ["simpleservo/media-gstreamer"]
 native-bluetooth = ["simpleservo/native-bluetooth"]
 no-wgl = ["simpleservo/no-wgl"]
 profilemozjs = ["simpleservo/profilemozjs"]

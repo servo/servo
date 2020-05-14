@@ -11,7 +11,7 @@ name = "bluetooth_traits"
 path = "lib.rs"
 
 [dependencies]
+embedder_traits = { path = "../embedder_traits" }
 ipc-channel = "0.14"
 regex = "1.1"
 serde = "1.0"
-embedder_traits = { path = "../embedder_traits" }

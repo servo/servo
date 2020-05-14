@@ -13,9 +13,8 @@ libservo = { path = "../../../components/servo" }
 log = "0.4"
 servo-media = { git = "https://github.com/servo/media" }
 surfman = { version = "0.2", features = ["sm-angle-default"] }
-
-webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 webxr = { git = "https://github.com/servo/webxr"}
+webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 
 [target.'cfg(not(target_os = "macos"))'.dependencies]
 libc = "0.2"
@@ -33,10 +32,8 @@ libloading = "0.5"
 gl_generator = "0.14"
 
 [features]
-default = ["webdriver", "max_log_level"]
 debugmozjs = ["libservo/debugmozjs"]
-media-dummy = ["libservo/media-dummy"]
-media-gstreamer = ["libservo/media-gstreamer"]
+default = ["webdriver", "max_log_level"]
 egl = ["libservo/egl"]
 energy-profiling = ["libservo/energy-profiling"]
 googlevr = ["libservo/googlevr"]
@@ -45,12 +42,14 @@ js_backtrace = ["libservo/js_backtrace"]
 layout-2013 = ["libservo/layout-2013"]
 layout-2020 = ["libservo/layout-2020"]
 max_log_level = ["log/release_max_level_info"]
+media-dummy = ["libservo/media-dummy"]
+media-gstreamer = ["libservo/media-gstreamer"]
 native-bluetooth = ["libservo/native-bluetooth"]
 no_static_freetype = ["libservo/no_static_freetype"]
 no-wgl = ["libservo/no-wgl"]
 profilemozjs = ["libservo/profilemozjs"]
 refcell_backtrace = ["libservo/refcell_backtrace"]
-webdriver = ["libservo/webdriver"]
 uwp = ["libservo/uwp", "webxr/openxr-api"]
+webdriver = ["libservo/webdriver"]
 webgl_backtrace = ["libservo/webgl_backtrace"]
 xr-profile = ["libservo/xr-profile"]
