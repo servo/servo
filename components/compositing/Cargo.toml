@@ -18,30 +18,30 @@ gl = ["gleam", "pixels"]
 [dependencies]
 canvas = { path = "../canvas" }
 crossbeam-channel = "0.4"
-embedder_traits = {path = "../embedder_traits"}
+embedder_traits = { path = "../embedder_traits" }
 euclid = "0.20"
-gfx_traits = {path = "../gfx_traits"}
-gleam = {version = "0.11", optional = true}
+gfx_traits = { path = "../gfx_traits" }
+gleam = { version = "0.11", optional = true }
 image = "0.23"
 ipc-channel = "0.14"
-libc = "0.2"
 keyboard-types = "0.4.3"
+libc = "0.2"
 log = "0.4"
-msg = {path = "../msg"}
-net_traits = {path = "../net_traits"}
+msg = { path = "../msg" }
+net_traits = { path = "../net_traits" }
 num-traits = "0.2"
-pixels = {path = "../pixels", optional = true}
-profile_traits = {path = "../profile_traits"}
-script_traits = {path = "../script_traits"}
-servo_geometry = {path = "../geometry"}
-servo-media = {git = "https://github.com/servo/media"}
-servo_url = {path = "../url"}
-style_traits = {path = "../style_traits"}
+pixels = { path = "../pixels", optional = true }
+profile_traits = { path = "../profile_traits" }
+script_traits = { path = "../script_traits" }
+servo-media = { git = "https://github.com/servo/media" }
+servo_geometry = { path = "../geometry" }
+servo_url = { path = "../url" }
+style_traits = { path = "../style_traits" }
 time = "0.1.17"
-webrender = {git = "https://github.com/servo/webrender", features = ["capture"]}
-webrender_api = {git = "https://github.com/servo/webrender"}
-webrender_surfman = {path = "../webrender_surfman"}
-webxr = {git = "https://github.com/servo/webxr"}
+webrender = { git = "https://github.com/servo/webrender", features = ["capture"] }
+webrender_api = { git = "https://github.com/servo/webrender" }
+webrender_surfman = { path = "../webrender_surfman" }
+webxr = { git = "https://github.com/servo/webxr" }
 
 [build-dependencies]
 toml = "0.5"
