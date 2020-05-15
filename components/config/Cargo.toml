@@ -14,18 +14,18 @@ name = "servo_config"
 path = "lib.rs"
 
 [dependencies]
-euclid = "0.20"
 embedder_traits = { path = "../embedder_traits" }
+euclid = "0.20"
 getopts = "0.2.11"
 lazy_static = "1"
 log = "0.4"
 num_cpus = "1.1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-servo_geometry = {path = "../geometry"}
-servo_url = {path = "../url"}
-url = "2.0"
 servo_config_plugins = { path = "../config_plugins" }
+servo_geometry = { path = "../geometry" }
+servo_url = { path = "../url" }
+url = "2.0"
 
 [dev-dependencies]
 std_test_override = { path = "../std_test_override" }

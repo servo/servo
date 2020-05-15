@@ -6,7 +6,6 @@ license = "MIT/Apache-2.0"
 description = "Fork of std::HashMap with stable fallible allocation."
 documentation = "https://docs.rs/hashglobe"
 repository = "https://github.com/Manishearth/hashglobe"
-
 readme = "README.md"
 
 [dependencies]
