@@ -346,8 +346,10 @@ impl BoxSlot<'_> {
 
 impl Drop for BoxSlot<'_> {
     fn drop(&mut self) {
-        if let Some(slot) = &mut self.slot {
-            assert!(slot.borrow().is_some(), "failed to set a layout box");
+        if !std::thread::panicking() {
+            if let Some(slot) = &mut self.slot {
+                assert!(slot.borrow().is_some(), "failed to set a layout box");
+            }
         }
     }
 }
