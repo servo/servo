@@ -5988,9 +5988,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-udp"
-version = "0.1.2"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da941144b816d0dcda4db3a1ba87596e4df5e860a72b70783fe435891f80601c"
+checksum = "e2a0b10e610b39c38b031a2fcab08e4b82f16ece36504988dcbd81dbba650d82"
 dependencies = [
  "bytes",
  "futures",
