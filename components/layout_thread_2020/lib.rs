@@ -1302,15 +1302,19 @@ impl LayoutThread {
             fragment_tree.scrollable_overflow(),
         );
 
+        // `dump_serialized_display_list` doesn't actually print anything. It sets up
+        // the display list for printing the serialized version when `finalize()` is called.
+        // We need to call this before adding any display items so that they are printed
+        // during `finalize()`.
+        if self.dump_display_list {
+            display_list.wr.dump_serialized_display_list();
+        }
+
         fragment_tree.build_display_list(&mut display_list);
 
         if self.dump_flow_tree {
             fragment_tree.print();
         }
-        if self.dump_display_list {
-            display_list.wr.dump_serialized_display_list();
-        }
-
         debug!("Layout done!");
 
         let mut epoch = self.epoch.get();
