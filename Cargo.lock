@@ -635,9 +635,9 @@ dependencies = [
 
 [[package]]
 name = "clang-sys"
-version = "0.28.0"
+version = "0.28.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4227269cec09f5f83ff160be12a1e9b0262dd1aa305302d5ba296c2ebd291055"
+checksum = "81de550971c976f176130da4b2978d3b524eaa0fd9ac31f3ceb5ae1231fb4853"
 dependencies = [
  "glob",
  "libc",
@@ -2017,9 +2017,9 @@ dependencies = [
 
 [[package]]
 name = "glob"
-version = "0.2.11"
+version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8be18de09a56b60ed0edf84bc9df007e30040691af7acd1c41874faac5895bfb"
+checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
 name = "glslopt"
