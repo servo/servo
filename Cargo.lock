@@ -6661,9 +6661,9 @@ dependencies = [
 
 [[package]]
 name = "x11"
-version = "2.17.3"
+version = "2.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e5c4ac579b5d324dc4add02312b5d0e3e0218521e2d5779d526ac39ee4bb171"
+checksum = "77ecd092546cb16f25783a5451538e73afc8d32e242648d54f4ae5459ba1e773"
 dependencies = [
  "libc",
  "pkg-config",
