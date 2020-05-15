@@ -18,28 +18,28 @@ app_units = "0.7"
 bitflags = "1.0"
 euclid = "0.20"
 fnv = "1.0"
-fontsan = {git = "https://github.com/servo/fontsan"}
-gfx_traits = {path = "../gfx_traits"}
+fontsan = { git = "https://github.com/servo/fontsan" }
+gfx_traits = { path = "../gfx_traits" }
 harfbuzz-sys = "0.3"
 ipc-channel = "0.14"
 lazy_static = "1"
 libc = "0.2"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
-net_traits = {path = "../net_traits"}
-range = {path = "../range"}
+net_traits = { path = "../net_traits" }
+range = { path = "../range" }
 serde = "1.0"
-servo_arc = {path = "../servo_arc"}
-servo_atoms = {path = "../atoms"}
-servo_url = {path = "../url"}
+servo_arc = { path = "../servo_arc" }
+servo_atoms = { path = "../atoms" }
+servo_url = { path = "../url" }
 smallvec = { version = "0.6", features = ["std", "union"] }
-style = {path = "../style", features = ["servo"]}
+style = { path = "../style", features = ["servo"] }
 time = "0.1.12"
-unicode-bidi = {version = "0.3", features = ["with_serde"]}
-unicode-script = {version = "0.3", features = ["harfbuzz"]}
-webrender_api = {git = "https://github.com/servo/webrender"}
-xi-unicode = "0.1.0"
 ucd = "0.1.1"
+unicode-bidi = { version = "0.3", features = ["with_serde"] }
+unicode-script = { version = "0.3", features = ["harfbuzz"] }
+webrender_api = { git = "https://github.com/servo/webrender" }
+xi-unicode = "0.1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "1.0"
@@ -49,7 +49,7 @@ core-text = "15.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 freetype = "0.4"
-servo_allocator = {path = "../allocator"}
+servo_allocator = { path = "../allocator" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 servo-fontconfig = "0.4"
