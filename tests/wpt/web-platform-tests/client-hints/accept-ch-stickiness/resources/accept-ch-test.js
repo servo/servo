@@ -1,5 +1,7 @@
 const echo = "/client-hints/accept-ch-stickiness/resources/echo-client-hints-received.py";
 const accept = "/client-hints/accept-ch-stickiness/resources/accept-ch.html";
+const accept_blank = "/client-hints/accept-ch-stickiness/resources/accept-ch-blank.html";
+const no_accept = "/client-hints/accept-ch-stickiness/resources/no-accept-ch.html";
 const httpequiv_accept = "/client-hints/accept-ch-stickiness/resources/http-equiv-accept-ch.html";
 const expect = "/client-hints/accept-ch-stickiness/resources/expect-client-hints-headers.html"
 const do_not_expect = "/client-hints/accept-ch-stickiness/resources/do-not-expect-client-hints-headers.html"
@@ -49,30 +51,26 @@ function verify_subresource_state(expect_url, test_name) {
     });
   }, test_name + " got client hints according to expectations.");
 }
-const run_test = test => {
-  // First, verify the initial state to make sure that the browser does not have
-  // client hints preferences cached from a previous run of the test.
-  verify_initial_state(test.initial_url, test.name);
 
-  // Then, attempt to set Accept-CH
+function attempt_set(test_type, accept_url, test_name, test_name_suffix) {
   promise_test(t => {
     return new Promise(resolve => {
-      if (test.type == "navigation") {
-        const win = window.open(test.accept_url);
+      if (test_type == "navigation") {
+        const win = window.open(accept_url);
         assert_not_equals(win, null, "Popup windows not allowed?");
         addEventListener('message', t.step_func(() => {
           win.close();
           resolve();
         }), false);
-      } else if (test.type == "iframe") {
+      } else if (test_type == "iframe") {
         const iframe = document.createElement("iframe");
         iframe.addEventListener('load', t.step_func(() => {
           resolve();
         }), false);
-        iframe.src = test.accept_url;
+        iframe.src = accept_url;
         document.body.appendChild(iframe);
-      } else if (test.type == "subresource") {
-        fetch(test.accept_url).then(r => {
+      } else if (test_type == "subresource") {
+        fetch(accept_url).then(r => {
           assert_equals(r.status, 200, "subresource response status")
           // Verify that the browser did not include client hints in the request
           // headers, just because we can..
@@ -85,7 +83,16 @@ const run_test = test => {
         assert_unreached("unknown test type");
       }
     });
-  }, test.name + " set Accept-CH");
+  }, test_name +  " set Accept-CH" + test_name_suffix);
+}
+
+const run_test = test => {
+  // First, verify the initial state to make sure that the browser does not have
+  // client hints preferences cached from a previous run of the test.
+  verify_initial_state(test.initial_url, test.name);
+
+  // Then, attempt to set Accept-CH
+  attempt_set(test.type, test.accept_url, test.name, "");
 
   // Finally, verify that CH are actually sent (or not) on requests
   verify_navigation_state(test.expect_url, test.name);

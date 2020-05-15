@@ -8,10 +8,10 @@
 <script src="resources/accept-ch-test.js"></script>
 
 <script>
-run_test({ name: "same origin iframe",
+run_test({ name: "same origin iframe can't set accept-ch",
     initial_url: echo,
     accept_url: accept,
-    expect_url: expect,
+    expect_url: do_not_expect,
     type: "iframe" });
 </script>
 </body>

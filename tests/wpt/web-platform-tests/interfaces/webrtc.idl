@@ -85,11 +85,11 @@ interface RTCPeerConnection : EventTarget  {
   constructor(optional RTCConfiguration configuration = {});
   Promise<RTCSessionDescriptionInit> createOffer(optional RTCOfferOptions options = {});
   Promise<RTCSessionDescriptionInit> createAnswer(optional RTCAnswerOptions options = {});
-  Promise<void> setLocalDescription(optional RTCSessionDescriptionInit description = {});
+  Promise<void> setLocalDescription(optional RTCLocalSessionDescriptionInit description = {});
   readonly attribute RTCSessionDescription? localDescription;
   readonly attribute RTCSessionDescription? currentLocalDescription;
   readonly attribute RTCSessionDescription? pendingLocalDescription;
-  Promise<void> setRemoteDescription(optional RTCSessionDescriptionInit description = {});
+  Promise<void> setRemoteDescription(RTCSessionDescriptionInit description);
   readonly attribute RTCSessionDescription? remoteDescription;
   readonly attribute RTCSessionDescription? currentRemoteDescription;
   readonly attribute RTCSessionDescription? pendingRemoteDescription;
@@ -119,12 +119,12 @@ interface RTCPeerConnection : EventTarget  {
   Promise<void> createOffer(RTCSessionDescriptionCallback successCallback,
                             RTCPeerConnectionErrorCallback failureCallback,
                             optional RTCOfferOptions options = {});
-  Promise<void> setLocalDescription(optional RTCSessionDescriptionInit description = {},
+  Promise<void> setLocalDescription(optional RTCLocalSessionDescriptionInit description = {},
                                     VoidFunction successCallback,
                                     RTCPeerConnectionErrorCallback failureCallback);
   Promise<void> createAnswer(RTCSessionDescriptionCallback successCallback,
                              RTCPeerConnectionErrorCallback failureCallback);
-  Promise<void> setRemoteDescription(optional RTCSessionDescriptionInit description = {},
+  Promise<void> setRemoteDescription(RTCSessionDescriptionInit description,
                                      VoidFunction successCallback,
                                      RTCPeerConnectionErrorCallback failureCallback);
   Promise<void> addIceCandidate(RTCIceCandidateInit candidate,
@@ -150,13 +150,18 @@ enum RTCSdpType {
 
 [Exposed=Window]
 interface RTCSessionDescription {
-  constructor(optional RTCSessionDescriptionInit descriptionInitDict = {});
+  constructor(RTCSessionDescriptionInit descriptionInitDict);
   readonly attribute RTCSdpType type;
   readonly attribute DOMString sdp;
   [Default] object toJSON();
 };
 
 dictionary RTCSessionDescriptionInit {
+  required RTCSdpType type;
+  DOMString sdp = "";
+};
+
+dictionary RTCLocalSessionDescriptionInit {
   RTCSdpType type;
   DOMString sdp = "";
 };

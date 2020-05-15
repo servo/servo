@@ -1,5 +1,5 @@
 // META: global=window,worker
-// META: script=pako/pako_inflate.min.js
+// META: script=third_party/pako/pako_inflate.min.js
 // META: timeout=long
 
 'use strict';

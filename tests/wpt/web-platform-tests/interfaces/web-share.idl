@@ -8,6 +8,7 @@ partial interface Navigator {
 };
 
 dictionary ShareData {
+  FrozenArray<File> files;
   USVString title;
   USVString text;
   USVString url;

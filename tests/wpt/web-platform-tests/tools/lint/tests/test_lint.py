@@ -398,6 +398,65 @@ def test_check_css_globally_unique_ignored_dir(caplog):
     assert caplog.text == ""
 
 
+def test_check_unique_testharness_basename_same_basename(caplog):
+    # Precondition: There are testharness files with conflicting basename paths.
+    assert os.path.exists(os.path.join(_dummy_repo, 'tests', 'dir1', 'a.html'))
+    assert os.path.exists(os.path.join(_dummy_repo, 'tests', 'dir1', 'a.xhtml'))
+
+    with _mock_lint("check_path") as mocked_check_path:
+        with _mock_lint("check_file_contents") as mocked_check_file_contents:
+            rv = lint(_dummy_repo, ["tests/dir1/a.html", "tests/dir1/a.xhtml"], "normal")
+            # There will be one failure for each file.
+            assert rv == 2
+            assert mocked_check_path.call_count == 2
+            assert mocked_check_file_contents.call_count == 2
+    assert "DUPLICATE-BASENAME-PATH" in caplog.text
+
+
+def test_check_unique_testharness_basename_different_name(caplog):
+    # Precondition: There are two testharness files in the same directory with
+    # different names.
+    assert os.path.exists(os.path.join(_dummy_repo, 'tests', 'dir1', 'a.html'))
+    assert os.path.exists(os.path.join(_dummy_repo, 'tests', 'dir1', 'b.html'))
+
+    with _mock_lint("check_path") as mocked_check_path:
+        with _mock_lint("check_file_contents") as mocked_check_file_contents:
+            rv = lint(_dummy_repo, ["tests/dir1/a.html", "tests/dir1/b.html"], "normal")
+            assert rv == 0
+            assert mocked_check_path.call_count == 2
+            assert mocked_check_file_contents.call_count == 2
+    assert caplog.text == ""
+
+
+def test_check_unique_testharness_basename_different_dir(caplog):
+    # Precondition: There are two testharness files in different directories
+    # with the same basename.
+    assert os.path.exists(os.path.join(_dummy_repo, 'tests', 'dir1', 'a.html'))
+    assert os.path.exists(os.path.join(_dummy_repo, 'tests', 'dir2', 'a.xhtml'))
+
+    with _mock_lint("check_path") as mocked_check_path:
+        with _mock_lint("check_file_contents") as mocked_check_file_contents:
+            rv = lint(_dummy_repo, ["tests/dir1/a.html", "tests/dir2/a.xhtml"], "normal")
+            assert rv == 0
+            assert mocked_check_path.call_count == 2
+            assert mocked_check_file_contents.call_count == 2
+    assert caplog.text == ""
+
+
+def test_check_unique_testharness_basename_not_testharness(caplog):
+    # Precondition: There are non-testharness files with conflicting basename paths.
+    assert os.path.exists(os.path.join(_dummy_repo, 'tests', 'dir1', 'a.html'))
+    assert os.path.exists(os.path.join(_dummy_repo, 'tests', 'dir1', 'a.js'))
+
+    with _mock_lint("check_path") as mocked_check_path:
+        with _mock_lint("check_file_contents") as mocked_check_file_contents:
+            rv = lint(_dummy_repo, ["tests/dir1/a.html", "tests/dir1/a.js"], "normal")
+            assert rv == 0
+            assert mocked_check_path.call_count == 2
+            assert mocked_check_file_contents.call_count == 2
+    assert caplog.text == ""
+
+
 def test_ignore_glob(caplog):
     # Lint two files in the ref/ directory, and pass in ignore_glob to omit one
     # of them.
