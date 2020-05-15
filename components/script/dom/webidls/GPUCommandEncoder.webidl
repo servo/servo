@@ -10,10 +10,10 @@ interface GPUCommandEncoder {
 
     void copyBufferToBuffer(
         GPUBuffer source,
-        GPUBufferSize sourceOffset,
+        GPUSize64 sourceOffset,
         GPUBuffer destination,
-        GPUBufferSize destinationOffset,
-        GPUBufferSize size);
+        GPUSize64 destinationOffset,
+        GPUSize64 size);
 
     // void copyBufferToTexture(
     //     GPUBufferCopyView source,

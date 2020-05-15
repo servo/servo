@@ -9,12 +9,10 @@ interface GPUBindGroupLayout {
 GPUBindGroupLayout includes GPUObjectBase;
 
 dictionary GPUBindGroupLayoutDescriptor : GPUObjectDescriptorBase {
-    required sequence<GPUBindGroupLayoutBindings> bindings;
+    required sequence<GPUBindGroupLayoutEntry> entries;
 };
 
-// Note: Servo codegen doesn't like the name `GPUBindGroupLayoutBinding` because it's already occupied
-// dictionary GPUBindGroupLayoutBinding {
-dictionary GPUBindGroupLayoutBindings {
+dictionary GPUBindGroupLayoutEntry {
     required unsigned long binding;
     required GPUShaderStageFlags visibility;
     required GPUBindingType type;

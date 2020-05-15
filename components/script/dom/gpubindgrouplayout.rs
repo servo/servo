@@ -4,7 +4,7 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
-    GPUBindGroupLayoutBindings, GPUBindGroupLayoutMethods,
+    GPUBindGroupLayoutEntry, GPUBindGroupLayoutMethods,
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -20,7 +20,7 @@ pub struct GPUBindGroupLayout {
     label: DomRefCell<Option<DOMString>>,
     bind_group_layout: WebGPUBindGroupLayout,
     #[ignore_malloc_size_of = "defined in webgpu"]
-    bindings: Vec<GPUBindGroupLayoutBindings>,
+    bindings: Vec<GPUBindGroupLayoutEntry>,
     #[ignore_malloc_size_of = "defined in webgpu"]
     channel: WebGPU,
     valid: Cell<bool>,
@@ -30,7 +30,7 @@ impl GPUBindGroupLayout {
     fn new_inherited(
         channel: WebGPU,
         bind_group_layout: WebGPUBindGroupLayout,
-        bindings: Vec<GPUBindGroupLayoutBindings>,
+        bindings: Vec<GPUBindGroupLayoutEntry>,
         valid: bool,
     ) -> GPUBindGroupLayout {
         Self {
@@ -47,7 +47,7 @@ impl GPUBindGroupLayout {
         global: &GlobalScope,
         channel: WebGPU,
         bind_group_layout: WebGPUBindGroupLayout,
-        bindings: Vec<GPUBindGroupLayoutBindings>,
+        bindings: Vec<GPUBindGroupLayoutEntry>,
         valid: bool,
     ) -> DomRoot<GPUBindGroupLayout> {
         reflect_dom_object(
@@ -71,7 +71,7 @@ impl GPUBindGroupLayout {
         self.bind_group_layout
     }
 
-    pub fn bindings(&self) -> &[GPUBindGroupLayoutBindings] {
+    pub fn bindings(&self) -> &[GPUBindGroupLayoutEntry] {
         &self.bindings
     }
 }

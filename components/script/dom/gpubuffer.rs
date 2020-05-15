@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::{DomRefCell, Ref};
-use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::{GPUBufferMethods, GPUBufferSize};
+use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::{GPUBufferMethods, GPUSize64};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -44,7 +44,7 @@ pub struct GPUBuffer {
     #[ignore_malloc_size_of = "defined in webgpu"]
     channel: WebGPU,
     label: DomRefCell<Option<DOMString>>,
-    size: GPUBufferSize,
+    size: GPUSize64,
     usage: u32,
     state: DomRefCell<GPUBufferState>,
     buffer: WebGPUBuffer,
@@ -60,7 +60,7 @@ impl GPUBuffer {
         buffer: WebGPUBuffer,
         device: WebGPUDevice,
         state: GPUBufferState,
-        size: GPUBufferSize,
+        size: GPUSize64,
         usage: u32,
         valid: bool,
         mapping: RootedTraceableBox<Heap<*mut JSObject>>,
@@ -86,7 +86,7 @@ impl GPUBuffer {
         buffer: WebGPUBuffer,
         device: WebGPUDevice,
         state: GPUBufferState,
-        size: GPUBufferSize,
+        size: GPUSize64,
         usage: u32,
         valid: bool,
         mapping: RootedTraceableBox<Heap<*mut JSObject>>,
@@ -105,7 +105,7 @@ impl GPUBuffer {
         self.buffer
     }
 
-    pub fn size(&self) -> GPUBufferSize {
+    pub fn size(&self) -> GPUSize64 {
         self.size
     }
 
@@ -115,6 +115,10 @@ impl GPUBuffer {
 
     pub fn state(&self) -> Ref<GPUBufferState> {
         self.state.borrow()
+    }
+
+    pub fn valid(&self) -> bool {
+        self.valid.get()
     }
 }
 

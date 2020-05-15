@@ -8,7 +8,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::GPULimits;
 use crate::dom::bindings::codegen::Bindings::GPUBindGroupBinding::GPUBindGroupDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
-    GPUBindGroupLayoutBindings, GPUBindGroupLayoutDescriptor, GPUBindingType,
+    GPUBindGroupLayoutDescriptor, GPUBindGroupLayoutEntry, GPUBindingType,
 };
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUBufferDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUComputePipelineBinding::GPUComputePipelineDescriptor;
@@ -295,7 +295,7 @@ impl GPUDeviceMethods for GPUDevice {
         let mut valid = true;
 
         let bindings = descriptor
-            .bindings
+            .entries
             .iter()
             .map(|bind| {
                 // TODO: binding must be >= 0
@@ -410,9 +410,9 @@ impl GPUDeviceMethods for GPUDevice {
         let bgl = receiver.recv().unwrap();
 
         let binds = descriptor
-            .bindings
+            .entries
             .iter()
-            .map(|bind| GPUBindGroupLayoutBindings {
+            .map(|bind| GPUBindGroupLayoutEntry {
                 binding: bind.binding,
                 hasDynamicOffset: bind.hasDynamicOffset,
                 multisampled: bind.multisampled,
@@ -494,9 +494,9 @@ impl GPUDeviceMethods for GPUDevice {
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup
     fn CreateBindGroup(&self, descriptor: &GPUBindGroupDescriptor) -> DomRoot<GPUBindGroup> {
         let alignment: u64 = 256;
-        let mut valid = descriptor.layout.bindings().len() == descriptor.bindings.len();
+        let mut valid = descriptor.layout.bindings().len() == descriptor.entries.len();
 
-        valid &= descriptor.bindings.iter().all(|bind| {
+        valid &= descriptor.entries.iter().all(|bind| {
             let buffer_size = bind.resource.buffer.size();
             let resource_size = bind.resource.size.unwrap_or(buffer_size);
             let length = bind.resource.offset.checked_add(resource_size);
@@ -521,7 +521,7 @@ impl GPUDeviceMethods for GPUDevice {
         });
 
         let bindings = descriptor
-            .bindings
+            .entries
             .iter()
             .map(|bind| BindGroupBinding {
                 binding: bind.binding,
@@ -632,6 +632,6 @@ impl GPUDeviceMethods for GPUDevice {
             .expect("Failed to create WebGPU command encoder");
         let encoder = receiver.recv().unwrap();
 
-        GPUCommandEncoder::new(&self.global(), self.channel.clone(), encoder)
+        GPUCommandEncoder::new(&self.global(), self.channel.clone(), encoder, true)
     }
 }
