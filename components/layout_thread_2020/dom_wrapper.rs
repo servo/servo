@@ -1307,7 +1307,10 @@ impl<'le> ThreadSafeLayoutElement<'le> for ServoThreadSafeLayoutElement<'le> {
     }
 
     fn style_data(&self) -> AtomicRef<ElementData> {
-        self.element.borrow_data().expect("Unstyled layout node?")
+        match self.element.borrow_data() {
+            Some(data) => data,
+            None => panic!("could not find styles for <{}>", self.element.local_name()),
+        }
     }
 
     fn is_shadow_host(&self) -> bool {
