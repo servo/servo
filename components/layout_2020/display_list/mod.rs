@@ -41,6 +41,7 @@ pub struct DisplayListBuilder<'a> {
     /// The current SpatialId and ClipId information for this `DisplayListBuilder`.
     current_space_and_clip: wr::SpaceAndClipInfo,
 
+    element_for_canvas_background: OpaqueNode,
     pub context: &'a LayoutContext<'a>,
     pub wr: wr::DisplayListBuilder,
 
@@ -55,13 +56,14 @@ impl<'a> DisplayListBuilder<'a> {
     pub fn new(
         pipeline_id: wr::PipelineId,
         context: &'a LayoutContext,
-        viewport_size: wr::units::LayoutSize,
+        fragment_tree: &crate::FragmentTree,
     ) -> Self {
         Self {
             current_space_and_clip: wr::SpaceAndClipInfo::root_scroll(pipeline_id),
+            element_for_canvas_background: fragment_tree.canvas_background.from_element,
             is_contentful: false,
             context,
-            wr: wr::DisplayListBuilder::new(pipeline_id, viewport_size),
+            wr: wr::DisplayListBuilder::new(pipeline_id, fragment_tree.scrollable_overflow()),
         }
     }
 
@@ -333,19 +335,40 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_background(&mut self, builder: &mut DisplayListBuilder) {
-        use style::values::computed::image::Image;
-        let b = self.fragment.style.get_background();
-        let background_color = self.fragment.style.resolve_color(b.background_color);
+        if self.fragment.tag == builder.element_for_canvas_background {
+            // This background is already painted for the canvas, don’t paint it again here.
+            return;
+        }
+
+        let source = background::Source::Fragment;
+        let style = &self.fragment.style;
+        let b = style.get_background();
+        let background_color = style.resolve_color(b.background_color);
         if background_color.alpha > 0 {
             // https://drafts.csswg.org/css-backgrounds/#background-color
             // “The background color is clipped according to the background-clip
             //  value associated with the bottom-most background image layer.”
             let layer_index = b.background_image.0.len() - 1;
-            let (bounds, common) = background::painting_area(self, builder, layer_index);
+            let (bounds, common) = background::painting_area(self, &source, builder, layer_index);
             builder
                 .wr
                 .push_rect(&common, *bounds, rgba(background_color))
         }
+
+        self.build_background_image(builder, source);
+    }
+
+    fn build_background_image(
+        &mut self,
+        builder: &mut DisplayListBuilder,
+        source: background::Source<'a>,
+    ) {
+        use style::values::computed::image::Image;
+        let style = match source {
+            background::Source::Canvas { style, .. } => style,
+            background::Source::Fragment => &self.fragment.style,
+        };
+        let b = style.get_background();
         // Reverse because the property is top layer first, we want to paint bottom layer first.
         for (index, image) in b.background_image.0.iter().enumerate().rev() {
             match image {
@@ -356,9 +379,10 @@ impl<'a> BuilderForBoxFragment<'a> {
                         height: None,
                         ratio: None,
                     };
-                    if let Some(layer) = &background::layout_layer(self, builder, index, intrinsic)
+                    if let Some(layer) =
+                        &background::layout_layer(self, &source, builder, index, intrinsic)
                     {
-                        gradient::build(&self.fragment.style, &gradient, layer, builder)
+                        gradient::build(&style, &gradient, layer, builder)
                     }
                 },
                 Image::Url(ref image_url) => {
@@ -393,9 +417,10 @@ impl<'a> BuilderForBoxFragment<'a> {
                         ratio: Some(width as f32 / height as f32),
                     };
 
-                    if let Some(layer) = background::layout_layer(self, builder, index, intrinsic) {
-                        let image_rendering =
-                            image_rendering(self.fragment.style.clone_image_rendering());
+                    if let Some(layer) =
+                        background::layout_layer(self, &source, builder, index, intrinsic)
+                    {
+                        let image_rendering = image_rendering(style.clone_image_rendering());
                         if layer.repeat {
                             builder.wr.push_repeating_image(
                                 &layer.common,
