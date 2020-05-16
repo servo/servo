@@ -31,7 +31,7 @@ use net::http_loader::determine_request_referrer;
 use net::resource_thread::AuthCacheEntry;
 use net::test::replace_host_table;
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestMode};
-use net_traits::response::ResponseBody;
+use net_traits::response::{HttpsState, ResponseBody};
 use net_traits::{CookieSource, NetworkError, ReferrerPolicy};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::HashMap;
@@ -1433,6 +1433,7 @@ fn test_determine_request_referrer_shorter_than_4k() {
         ReferrerPolicy::UnsafeUrl,
         referrer_source,
         current_url,
+        HttpsState::None,
     );
 
     assert_eq!(
@@ -1457,6 +1458,7 @@ fn test_determine_request_referrer_longer_than_4k() {
         ReferrerPolicy::UnsafeUrl,
         referrer_source,
         current_url,
+        HttpsState::None,
     );
 
     assert_eq!(referer.unwrap().as_str(), "http://example.com/");

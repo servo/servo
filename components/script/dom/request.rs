@@ -507,8 +507,9 @@ impl Request {
 
 fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequest {
     let origin = Origin::Origin(global.get_url().origin());
+    let https_state = global.get_https_state();
     let pipeline_id = global.pipeline_id();
-    NetTraitsRequest::new(url, Some(origin), Some(pipeline_id))
+    NetTraitsRequest::new(url, Some(origin), Some(pipeline_id), https_state)
 }
 
 // https://fetch.spec.whatwg.org/#concept-method-normalize

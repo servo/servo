@@ -306,6 +306,7 @@ impl DedicatedWorkerGlobalScope {
         let current_global = GlobalScope::current().expect("No current global object");
         let origin = current_global.origin().immutable().clone();
         let parent = current_global.runtime_handle();
+        let current_global_https_state = current_global.get_https_state();
 
         thread::Builder::new()
             .name(name)
@@ -375,6 +376,8 @@ impl DedicatedWorkerGlobalScope {
                 let scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
 
+                global_scope.set_https_state(current_global_https_state);
+
                 let (metadata, bytes) = match load_whole_resource(
                     request,
                     &global_scope.resource_threads().sender(),
@@ -395,6 +398,7 @@ impl DedicatedWorkerGlobalScope {
                     Ok((metadata, bytes)) => (metadata, bytes),
                 };
                 scope.set_url(metadata.final_url);
+                global_scope.set_https_state(metadata.https_state);
                 let source = String::from_utf8_lossy(&bytes);
 
                 unsafe {
