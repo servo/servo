@@ -50,10 +50,10 @@ pub(super) fn painting_area<'a>(
     builder: &mut super::DisplayListBuilder,
     layer_index: usize,
 ) -> (&'a units::LayoutRect, wr::CommonItemProperties) {
+    let fb = fragment_builder;
     let (painting_area, clip) = match source {
         Source::Canvas { painting_area, .. } => (painting_area, None),
         Source::Fragment => {
-            let fb = fragment_builder;
             let b = fb.fragment.style.get_background();
             match get_cyclic(&b.background_clip.0, layer_index) {
                 Clip::ContentBox => (fb.content_rect(), fb.content_edge_clip(builder)),
@@ -63,7 +63,7 @@ pub(super) fn painting_area<'a>(
         },
     };
     // The 'backgound-clip' property maps directly to `clip_rect` in `CommonItemProperties`:
-    let mut common = builder.common_properties(*painting_area);
+    let mut common = builder.common_properties(*painting_area, &fb.fragment.style);
     if let Some(clip_id) = clip {
         common.clip_id = clip_id
     }

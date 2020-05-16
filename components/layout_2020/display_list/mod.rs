@@ -7,6 +7,7 @@ use crate::display_list::conversions::ToWebRender;
 use crate::fragments::{BoxFragment, Fragment, TextFragment};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 use crate::replaced::IntrinsicSizes;
+use crate::style_ext::ComputedValuesExt;
 use embedder_traits::Cursor;
 use euclid::{Point2D, SideOffsets2D, Size2D};
 use gfx::text::glyph::GlyphStore;
@@ -67,9 +68,21 @@ impl<'a> DisplayListBuilder<'a> {
         }
     }
 
-    fn common_properties(&self, clip_rect: units::LayoutRect) -> wr::CommonItemProperties {
-        // TODO(gw): Make use of the WR backface visibility functionality.
-        wr::CommonItemProperties::new(clip_rect, self.current_space_and_clip)
+    fn common_properties(
+        &self,
+        clip_rect: units::LayoutRect,
+        style: &ComputedValues,
+    ) -> wr::CommonItemProperties {
+        // TODO(mrobinson): We should take advantage of this field to pass hit testing
+        // information. This will allow us to avoid creating hit testing display items
+        // for fragments that paint their entire border rectangle.
+        wr::CommonItemProperties {
+            clip_rect,
+            spatial_id: self.current_space_and_clip.spatial_id,
+            clip_id: self.current_space_and_clip.clip_id,
+            hit_info: None,
+            flags: style.get_webrender_primitive_flags(),
+        }
     }
 }
 
@@ -90,7 +103,7 @@ impl Fragment {
                     .to_physical(i.style.writing_mode, containing_block)
                     .translate(containing_block.origin.to_vector());
 
-                let common = builder.common_properties(rect.clone().to_webrender());
+                let common = builder.common_properties(rect.to_webrender(), &i.style);
                 builder.wr.push_image(
                     &common,
                     rect.to_webrender(),
@@ -128,7 +141,7 @@ impl Fragment {
             return;
         }
 
-        let mut common = builder.common_properties(rect.to_webrender());
+        let mut common = builder.common_properties(rect.to_webrender(), &fragment.parent_style);
         common.hit_info = hit_info(&fragment.parent_style, fragment.tag, Cursor::Text);
 
         let color = fragment.parent_style.clone_color();
@@ -196,7 +209,7 @@ impl Fragment {
             return;
         }
         builder.wr.push_line(
-            &builder.common_properties(rect),
+            &builder.common_properties(rect, &fragment.parent_style),
             &rect,
             wavy_line_thickness,
             wr::LineOrientation::Horizontal,
@@ -325,7 +338,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     fn build_hit_test(&self, builder: &mut DisplayListBuilder) {
         let hit_info = hit_info(&self.fragment.style, self.fragment.tag, Cursor::Default);
         if hit_info.is_some() {
-            let mut common = builder.common_properties(self.border_rect);
+            let mut common = builder.common_properties(self.border_rect, &self.fragment.style);
             common.hit_info = hit_info;
             if let Some(clip_id) = self.border_edge_clip(builder) {
                 common.clip_id = clip_id
@@ -476,7 +489,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                 BorderStyle::Outset => wr::BorderStyle::Outset,
             },
         };
-        let common = builder.common_properties(self.border_rect);
+        let common = builder.common_properties(self.border_rect, &self.fragment.style);
         let details = wr::BorderDetails::Normal(wr::NormalBorder {
             top: side(b.border_top_style, b.border_top_color),
             right: side(b.border_right_style, b.border_right_color),

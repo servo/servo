@@ -238,7 +238,7 @@ impl StackingContext {
         builder.wr.push_stacking_context(
             LayoutPoint::zero(), // origin
             self.spatial_id,
-            wr::PrimitiveFlags::default(),
+            style.get_webrender_primitive_flags(),
             None, // clip_id
             style.get_used_transform_style().to_webrender(),
             effects.mix_blend_mode.to_webrender(),
@@ -283,7 +283,7 @@ impl StackingContext {
 
         let background_color = style.resolve_color(style.get_background().background_color);
         if background_color.alpha > 0 {
-            let common = builder.common_properties(painting_area);
+            let common = builder.common_properties(painting_area, &style);
             let color = super::rgba(background_color);
             builder.wr.push_rect(&common, painting_area, color)
         }
