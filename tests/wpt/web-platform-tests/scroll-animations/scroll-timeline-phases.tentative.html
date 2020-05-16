@@ -63,7 +63,7 @@
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
 
       scroller.scrollTop = test_case.scroll_percent * maxScroll;
-      // Wait for new animation frame  which allows the timeline to compute new
+      // Wait for new animation frame which allows the timeline to compute new
       // current time.
       await waitForNextFrame();
 
@@ -116,7 +116,7 @@
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
 
       scroller.scrollTop = test_case.scroll_percent * maxScroll;
-      // Wait for new animation frame  which allows the timeline to compute new
+      // Wait for new animation frame which allows the timeline to compute new
       // current time.
       await waitForNextFrame();
 
@@ -159,7 +159,7 @@
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
 
       scroller.scrollTop = test_case.scroll_percent * maxScroll;
-      // Wait for new animation frame  which allows the timeline to compute new
+      // Wait for new animation frame which allows the timeline to compute new
       // current time.
       await waitForNextFrame();
 
@@ -175,12 +175,30 @@
   promise_test(async t => {
     const timeline = createScrollTimeline(t);
     const scroller = timeline.scrollSource;
+    const maxScroll = scroller.scrollHeight - scroller.clientHeight;
+
+    scroller.scrollTop = maxScroll;
+
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+
+    // When the endScrollOffset is equal to the maximum scroll offset, the
+    // endScrollOffset is treated as inclusive so the phase should remain
+    // active.
+    assert_equals(timeline.phase, "active");
+  }, 'Scroll timeline phase should be active when at scroll maximum and ' +
+    'endScrollOffset is equal to maximum scroll offset.');
+
+  promise_test(async t => {
+    const timeline = createScrollTimeline(t);
+    const scroller = timeline.scrollSource;
     // Timeline should be inactive since layout hasn't updated yet
     assert_equals(timeline.phase, "inactive");
 
     // Accessing scroller.scrollHeight forces the scroller to update
     scroller.scrollHeight;
-    // Wait for new animation frame  which allows the timeline to compute new
+    // Wait for new animation frame which allows the timeline to compute new
     // current time.
     await waitForNextFrame();
     assert_equals(timeline.phase, "active");

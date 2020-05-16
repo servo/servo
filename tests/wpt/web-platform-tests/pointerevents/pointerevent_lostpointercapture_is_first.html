@@ -44,6 +44,7 @@
             var eventRcvd = false;
             var isAsync = false;
             var event_log = [];
+            var actions_promise;
 
             add_completion_callback(end_of_test);
             function end_of_test() {
@@ -105,7 +106,10 @@
                                 assert_false(eventRcvd, "no other events should be received before lostpointercapture." + eventsRcvd_str);
                                 assert_equals(event.pointerId, pointerdown_event.pointerId, "pointerID is same for pointerdown and lostpointercapture");
                             });
-                            test_pointerEvent.done(); // complete test
+                            // Make sure the test finishes after all the input actions are completed.
+                            actions_promise.then( () => {
+                                test_pointerEvent.done();
+                            });
                         }
                         else {
                             if (testStarted && pointerdown_event != null && pointerdown_event.pointerId === event.pointerId) {
@@ -128,7 +132,7 @@
                 }
 
                 // Inject mouse inputs.
-                new test_driver.Actions()
+                actions_promise = new test_driver.Actions()
                     .pointerMove(0, 0, {origin: captureButton})
                     .pointerDown()
                     .pointerMove(2, 0, {origin: captureButton})

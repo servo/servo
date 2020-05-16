@@ -221,7 +221,7 @@ promise_test(async t => {
     t.add_cleanup(() => track.stop());
   }
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
   const stats = await getAllStats(t, pc1);
 
   // The focus of this test is not API correctness, but rather to provide an

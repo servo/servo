@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
 <body>
 <canvas id='canvas' width=10 height=10/>
@@ -16,6 +18,9 @@ context.fillRect(0, 0, 10, 10);
 // passed constraint is unsupported or outside its allowed range.
 var makePromiseTest = function(getConstraint) {
   image_capture_test(async (t, imageCaptureTest) => {
+    await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+        'granted', false);
+
     imageCaptureTest.mockImageCapture().state().supportsTorch = false;
 
     let stream = canvas.captureStream();

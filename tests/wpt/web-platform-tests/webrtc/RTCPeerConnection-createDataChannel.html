@@ -723,7 +723,7 @@ promise_test(async t => {
 
   pc2.getTransceivers()[0].stop();
   const dc1Closed = new Promise(r => dc1.onclose = r);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
   await dc1Closed;
 }, 'Stopping the bundle-tag when there is a DataChannel in the bundle should kill the DataChannel');
 

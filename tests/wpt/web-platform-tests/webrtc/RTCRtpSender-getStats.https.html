@@ -14,7 +14,7 @@
   // webrtc-stats 20171122
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  //   doSignalingHandshake
+  //   exchangeOfferAnswer
 
   // The following helper function is called from RTCStats-helper.js
   //   validateStatsReport
@@ -50,7 +50,7 @@
     const [track] = stream.getTracks();
     const { sender } = caller.addTransceiver(track);
 
-    await doSignalingHandshake(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
     const statsReport = await sender.getStats();
     validateStatsReport(statsReport);
     assert_stats_report_has_stats(statsReport, ['outbound-rtp']);
@@ -66,7 +66,7 @@
     const [track] = stream.getTracks();
     const sender = caller.addTrack(track, stream);
 
-    await doSignalingHandshake(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
     const statsReport = await sender.getStats();
     validateStatsReport(statsReport);
     assert_stats_report_has_stats(statsReport, ['outbound-rtp']);

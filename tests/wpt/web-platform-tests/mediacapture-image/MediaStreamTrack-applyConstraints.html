@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
 <body>
 <canvas id='canvas' width=10 height=10/>
@@ -13,6 +15,9 @@ const meteringModeNames = ['none', 'manual', 'single-shot', 'continuous'];
 // a mock Mojo service implementation.
 
 image_capture_test(async (t, imageCaptureTest) => {
+  await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+        'granted', false);
+
   let canvas = document.getElementById('canvas');
   let context = canvas.getContext('2d');
   context.fillStyle = 'red';
@@ -113,6 +118,7 @@ image_capture_test(async (t, imageCaptureTest) => {
 
     assert_equals(constraintsDict.pan, theMock.options().pan, 'pan');
     assert_equals(constraintsDict.tilt, theMock.options().tilt, 'tilt');
+    assert_equals(constraintsDict.zoom, theMock.options().zoom, 'zoom');
 
     assert_equals(constraintsDict.torch, theMock.options().torch, 'torch');
 

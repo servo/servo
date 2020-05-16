@@ -8,11 +8,10 @@
 <script src="resources/accept-ch-test.js"></script>
 
 <script>
-// This is similar to accept-ch-test.js tests, except setting and checking
-// header here are a single step, connected via redirect.
-const test_name = "redirect on navigation";
+// Make sure a same origin subresource without an opt-in that gets redirected doesn't contain Client Hints.
+const test_name = "same-origin subresource redirect with no opt-in";
 verify_initial_state(echo, test_name);
-verify_subresource_state("resources/accept-ch-and-redir-to-do-not-expect.py", test_name);
+verify_subresource_state("resources/accept-ch-and-redir.py?url=do-not-expect-received.py", test_name);
 </script>
 </body>
 </html>

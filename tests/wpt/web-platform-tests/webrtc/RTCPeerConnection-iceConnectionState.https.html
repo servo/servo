@@ -11,10 +11,6 @@
   // Test is based on the following editor draft:
   // https://w3c.github.io/webrtc-pc/archives/20170605/webrtc.html
 
-  // The following helper functions are called from RTCPeerConnection-helper.js:
-  // coupleIceCandidates
-  // doSignalingHandshake
-
   /*
     4.3.2.  Interface Definition
       interface RTCPeerConnection : EventTarget {
@@ -133,8 +129,8 @@
 
     pc1.addEventListener('iceconnectionstatechange', onIceConnectionStateChange);
 
-    coupleIceCandidates(pc1, pc2);
-    doSignalingHandshake(pc1, pc2);
+    exchangeIceCandidates(pc1, pc2);
+    exchangeOfferAnswer(pc1, pc2);
   }, 'connection with one data channel should eventually have connected or ' +
      'completed connection state');
 
@@ -179,8 +175,8 @@ async_test(t => {
 
     pc1.addEventListener('iceconnectionstatechange', onIceConnectionStateChange);
 
-    coupleIceCandidates(pc1, pc2);
-    doSignalingHandshake(pc1, pc2);
+    exchangeIceCandidates(pc1, pc2);
+    exchangeOfferAnswer(pc1, pc2);
   }, 'connection with one data channel should eventually ' +
      'have connected connection state');
 
@@ -194,8 +190,8 @@ async_test(t => {
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     stream.getTracks().forEach(track => pc1.addTrack(track, stream));
 
-    coupleIceCandidates(pc1, pc2);
-    doSignalingHandshake(pc1, pc2);
+    exchangeIceCandidates(pc1, pc2);
+    exchangeOfferAnswer(pc1, pc2);
     await listenToIceConnected(pc1);
   }, 'connection with audio track should eventually ' +
      'have connected connection state');
@@ -210,8 +206,8 @@ async_test(t => {
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     stream.getTracks().forEach(track => pc1.addTrack(track, stream));
 
-    coupleIceCandidates(pc1, pc2);
-    doSignalingHandshake(pc1, pc2);
+    exchangeIceCandidates(pc1, pc2);
+    exchangeOfferAnswer(pc1, pc2);
     await listenToIceConnected(pc1);
   }, 'connection with audio and video tracks should eventually ' +
      'have connected connection state');
@@ -227,8 +223,8 @@ async_test(t => {
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     callee.addTrack(track, stream);
-    coupleIceCandidates(caller, callee);
-    await doSignalingHandshake(caller, callee);
+    exchangeIceCandidates(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
 
     assert_equals(caller.getTransceivers().length, 1);
     const [transceiver] = caller.getTransceivers();
@@ -294,7 +290,7 @@ for (let bundle_policy of ['balanced', 'max-bundle', 'max-compat']) {
       caller.createDataChannel('datachannel');
       const callee = new RTCPeerConnection();
       t.add_cleanup(() => callee.close());
-      coupleIceCandidates(caller, callee);
+      exchangeIceCandidates(caller, callee);
       const offer = await caller.createOffer();
       await caller.setLocalDescription(offer);
       const [caller_transceiver1, caller_transceiver2] = caller.getTransceivers();
@@ -388,7 +384,7 @@ promise_test(async t => {
 
   stream.getTracks().forEach(track => pc1.addTrack(track, stream));
   exchangeIceCandidates(pc1, pc2);
-  doSignalingHandshake(pc1, pc2);
+  exchangeOfferAnswer(pc1, pc2);
   await listenToIceConnected(pc2);
 
   pc2.oniceconnectionstatechange = t.unreached_func();

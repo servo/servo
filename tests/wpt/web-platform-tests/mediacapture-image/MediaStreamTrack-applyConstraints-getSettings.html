@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
 <body>
 <canvas id='canvas' width=10 height=10/>
@@ -11,6 +13,9 @@
 // service implementation, are returned by MediaStreamTrack.getSettings().
 
 image_capture_test(async t => {
+  await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+        'granted', false);
+
   let canvas = document.getElementById('canvas');
   let context = canvas.getContext('2d');
   context.fillStyle = 'red';
@@ -98,6 +103,40 @@ image_capture_test(async t => {
 
   assert_equals(constraints.advanced[0].torch, settings.torch, 'torch');
 
-}, 'exercises an applyConstraints() - getSettings() cycle');
+}, 'exercises an applyConstraints() - getSettings() cycle with PTZ permission granted');
+
+
+// This test verifies that the PTZ |constraints| configured in the mock Mojo
+// service implementation can't be applied if PTZ permission is denied.
+
+image_capture_test(async t => {
+  await test_driver.set_permission({name: 'camera', panTiltZoom: true},
+      'denied', false);
+
+  let canvas = document.getElementById('canvas');
+  let context = canvas.getContext('2d');
+  context.fillStyle = 'red';
+  context.fillRect(0, 0, 10, 10);
+
+  let stream = canvas.captureStream();
+  let videoTrack = stream.getVideoTracks()[0];
+
+  // |videoTrack|'s capabilities gathering, just like the actual capture, is
+  // a process kicked off right after creation, we introduce a small delay
+  // to allow for those to be collected, since they are needed to understand
+  // which constraints are supported in applyConstraints().
+  // TODO(mcasas): this shouldn't be needed, https://crbug.com/711524.
+  await new Promise(resolve => step_timeout(resolve, 100));
+
+  const constraints = [{ pan: 8 }, { tilt: 9 }];
+  await Promise.all(constraints.map(async constraint =>
+    promise_rejects_dom(
+        t, 'NotAllowedError',
+        videoTrack.applyConstraints({ advanced: [constraint] }),
+        "applyConstraints should throw a NotAllowedError for " +
+        JSON.stringify(constraint))
+  ));
+
+}, 'exercises an applyConstraints() with PTZ permission denied');
 
 </script>

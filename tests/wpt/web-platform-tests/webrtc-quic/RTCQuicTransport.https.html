@@ -56,7 +56,7 @@ promise_test(async t => {
   t.add_cleanup(() => pc2.close());
 
   pc1.createDataChannel('test');
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
   const iceTransport = pc1.sctp.transport.iceTransport;
 
   assert_throws_dom('InvalidStateError',

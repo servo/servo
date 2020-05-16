@@ -9,7 +9,7 @@
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
   //   exchangeIceCandidates
-  //   doSignalingHandshake
+  //   exchangeOfferAnswer
 
   /*
     5.5.  RTCDtlsTransport Interface
@@ -45,7 +45,7 @@
     pc1.createDataChannel('test');
     exchangeIceCandidates(pc1, pc2);
 
-    doSignalingHandshake(pc1, pc2)
+    exchangeOfferAnswer(pc1, pc2)
     .then(t.step_func(() => {
       // pc.sctp is set when set*Description(answer) is called
       const sctpTransport1 = pc1.sctp;

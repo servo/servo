@@ -14,6 +14,7 @@
             var detected_pointertypes = {};
             add_completion_callback(showPointerTypes);
             var test_setPointerCapture = async_test("setPointerCapture: DOMException InvalidStateError");
+            var actions_promise;
 
             function run() {
                 var target0 = document.getElementById("target0");
@@ -35,11 +36,14 @@
                             assert_equals(e.name, "InvalidStateError", "DOMException should be InvalidStateError");
                         });
                     }
-                    test_setPointerCapture.done();
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_setPointerCapture.done();
+                    });
                 });
 
                 // Inject mouse inputs.
-                new test_driver.Actions()
+                actions_promise = new test_driver.Actions()
                     .pointerMove(0, 0, {origin: target0})
                     .pointerDown()
                     .pointerUp()

@@ -50,7 +50,7 @@ async function negotiateParameters() {
   const pc2 = new RTCPeerConnection();
   let [track, streams] = await getTrackFromUserMedia('video');
   const sender = pc1.addTrack(track);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
   return sender.getParameters();
 }
 

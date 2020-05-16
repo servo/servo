@@ -31,3 +31,14 @@ To run Safari Technology Preview instead, use the `--channel=preview` argument:
 ```
 ./wpt run --channel=preview safari [test_list]
 ```
+
+## Debugging
+
+To debug problems with `safaridriver`, add the `--webdriver-arg=--diagnose`
+argument:
+```
+./wpt run --channel=preview --webdriver-arg=--diagnose safari [test_list]
+```
+
+The logs will be in `~/Library/Logs/com.apple.WebDriver/`.
+See `man safaridriver` for more information.

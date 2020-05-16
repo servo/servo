@@ -221,16 +221,18 @@ function runGenericSensorTests(sensorName,
   sensor_test(async (t, sensorProvider) => {
     assert_true(sensorName in self);
     const sensor1 = new sensorType();
-    const sensorWatcher = new EventWatcher(t, sensor1, ["reading", "error"]);
+    const sensorWatcher1 = new EventWatcher(t, sensor1, ["reading", "error"]);
     sensor1.start();
 
     const sensor2 = new sensorType();
+    const sensorWatcher2 = new EventWatcher(t, sensor2, ["reading", "error"]);
     sensor2.start();
 
     const mockSensor = await sensorProvider.getCreatedSensor(sensorName);
     await mockSensor.setSensorReading(readings);
 
-    await sensorWatcher.wait_for("reading");
+    await Promise.all([sensorWatcher1.wait_for("reading"),
+                       sensorWatcher2.wait_for("reading")]);
     const expected = new RingBuffer(expectedReadings).next().value;
     // Reading values are correct for both sensors.
     assert_true(verificationFunction(expected, sensor1));
@@ -428,41 +430,6 @@ function runGenericSensorTests(sensorName,
     assert_greater_than(fastCounter, 2, "Fast sensor overtakes the slow one");
   }, `${sensorName}: frequency hint works.`);
 
-  sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
-    // Create a focused editbox inside a cross-origin iframe,
-    // sensor notification must suspend.
-    const iframeSrc = 'data:text/html;charset=utf-8,<html><body>'
-                    + '<input type="text" autofocus></body></html>';
-    const iframe = document.createElement('iframe');
-    iframe.src = encodeURI(iframeSrc);
-
-    const sensor = new sensorType();
-    const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
-    sensor.start();
-
-    const mockSensor = await sensorProvider.getCreatedSensor(sensorName);
-    await mockSensor.setSensorReading(readings);
-
-    await sensorWatcher.wait_for("reading");
-    const expected = new RingBuffer(expectedReadings).next().value;
-    assert_true(verificationFunction(expected, sensor));
-    const cachedTimestamp1 = sensor.timestamp;
-
-    const iframeWatcher = new EventWatcher(t, iframe, "load");
-    document.body.appendChild(iframe);
-    await iframeWatcher.wait_for("load");
-    const cachedTimestamp2 = sensor.timestamp;
-    assert_equals(cachedTimestamp1, cachedTimestamp2);
-
-    iframe.remove();
-    await sensorWatcher.wait_for("reading");
-    assert_greater_than(sensor.timestamp, cachedTimestamp1);
-
-    sensor.stop();
-  }, `${sensorName}: sensor receives suspend / resume notifications when\
- cross-origin subframe is focused.`);
-
 //  Re-enable after https://github.com/w3c/sensors/issues/361 is fixed.
 //  test(() => {
 //     assert_throws_dom("NotSupportedError",
@@ -501,7 +468,8 @@ function runGenericSensorTests(sensorName,
     assert_true(sensorName in self);
     const sensor1 = new sensorType({frequency: 60});
     const sensor2 = new sensorType({frequency: 60, referenceFrame: "screen"});
-    const sensorWatcher = new EventWatcher(t, sensor1, ["reading", "error"]);
+    const sensorWatcher1 = new EventWatcher(t, sensor1, ["reading", "error"]);
+    const sensorWatcher2 = new EventWatcher(t, sensor1, ["reading", "error"]);
 
     sensor1.start();
     sensor2.start();
@@ -509,7 +477,8 @@ function runGenericSensorTests(sensorName,
     const mockSensor = await sensorProvider.getCreatedSensor(sensorName);
     await mockSensor.setSensorReading(readings);
 
-    await sensorWatcher.wait_for("reading");
+    await Promise.all([sensorWatcher1.wait_for("reading"),
+                       sensorWatcher2.wait_for("reading")]);
 
     const expected = new RingBuffer(expectedReadings).next().value;
     const expectedRemapped =

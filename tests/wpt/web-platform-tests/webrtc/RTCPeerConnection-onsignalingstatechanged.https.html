@@ -44,7 +44,7 @@ promise_test(async t => {
 
   stream.getTracks().forEach(track => pc1.addTrack(track, stream));
   exchangeIceCandidates(pc1, pc2);
-  doSignalingHandshake(pc1, pc2);
+  exchangeOfferAnswer(pc1, pc2);
   await listenToIceConnected(pc2);
 
   pc2.onsignalingstatechange = t.unreached_func();

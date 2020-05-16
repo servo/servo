@@ -16,14 +16,14 @@ function getLines(sdp, startsWith) {
 const getUfrags = ({sdp}) => getLines(sdp, "a=ice-ufrag:");
 const getPwds = ({sdp}) => getLines(sdp, "a=ice-pwd:");
 
-async function doSignalingHandshakeEndOnFirst(pc1, pc2) {
+async function exchangeOfferAnswerEndOnFirst(pc1, pc2) {
   await pc1.setLocalDescription(await pc1.createOffer());
   await pc2.setRemoteDescription(pc1.localDescription);
   await pc2.setLocalDescription(await pc2.createAnswer());
   await pc1.setRemoteDescription(pc2.localDescription); // End on pc1. No race
 }
 
-async function doSignalingHandshakeEndOnSecond(pc1, pc2) {
+async function exchangeOfferAnswerEndOnSecond(pc1, pc2) {
   await pc1.setLocalDescription(await pc1.createOffer());
   await pc2.setRemoteDescription(pc1.localDescription);
   await pc1.setRemoteDescription(await pc2.createAnswer());
@@ -74,7 +74,7 @@ promise_test(async t => {
   pc1.addTransceiver("audio");
   await new Promise(r => pc1.onnegotiationneeded = r);
   pc1.restartIce();
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
   await assertNoNegotiationNeeded(t, pc1);
 }, "restartIce() has no effect on initial negotiation");
 
@@ -86,7 +86,7 @@ promise_test(async t => {
 
   pc1.addTransceiver("audio");
   await new Promise(r => pc1.onnegotiationneeded = r);
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
   pc1.restartIce();
   await new Promise(r => pc1.onnegotiationneeded = r);
 }, "restartIce() fires negotiationneeded after initial negotiation");
@@ -98,24 +98,24 @@ promise_test(async t => {
   t.add_cleanup(() => pc2.close());
 
   pc1.addTransceiver("audio");
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
 
   const [oldUfrag1] = getUfrags(pc1.localDescription);
   const [oldUfrag2] = getUfrags(pc2.localDescription);
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
   assert_ufrags_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "control 1");
   assert_ufrags_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "control 2");
 
   pc1.restartIce();
   await new Promise(r => pc1.onnegotiationneeded = r);
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
   assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
   assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
   await assertNoNegotiationNeeded(t, pc1);
 
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
   assert_ufrags_equals(getUfrags(pc1.localDescription)[0], newUfrag1, "Unchanged 1");
   assert_ufrags_equals(getUfrags(pc2.localDescription)[0], newUfrag2, "Unchanged 2");
 }, "restartIce() causes fresh ufrags");
@@ -128,7 +128,7 @@ promise_test(async t => {
 
   pc1.addTransceiver("audio");
   await new Promise(r => pc1.onnegotiationneeded = r);
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
 
   const [oldUfrag1] = getUfrags(pc1.localDescription);
   const [oldUfrag2] = getUfrags(pc2.localDescription);
@@ -151,7 +151,7 @@ promise_test(async t => {
   assert_ufrags_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "Unchanged 1");
   assert_ufrags_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "Unchanged 2");
   await negotiationNeededPromise;
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
   assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
@@ -177,7 +177,7 @@ promise_test(async t => {
   const [oldUfrag1] = getUfrags(pc1.localDescription);
   const [oldUfrag2] = getUfrags(pc2.localDescription);
   await negotiationNeededPromise;
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
   assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
@@ -193,7 +193,7 @@ promise_test(async t => {
 
   pc1.addTransceiver("audio");
   await new Promise(r => pc1.onnegotiationneeded = r);
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
 
   const [oldUfrag1] = getUfrags(pc1.localDescription);
   const [oldUfrag2] = getUfrags(pc2.localDescription);
@@ -208,7 +208,7 @@ promise_test(async t => {
   assert_ufrags_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "Unchanged 1");
   assert_ufrags_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "Unchanged 2");
   await negotiationNeededPromise;
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
   assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
@@ -239,7 +239,7 @@ promise_test(async t => {
 
   pc1.addTransceiver("audio");
   await new Promise(r => pc1.onnegotiationneeded = r);
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
 
   const [oldUfrag1] = getUfrags(pc1.localDescription);
   const [oldUfrag2] = getUfrags(pc2.localDescription);
@@ -248,11 +248,11 @@ promise_test(async t => {
   await new Promise(r => pc1.onnegotiationneeded = r);
   const negotiationNeededPromise =
       new Promise(r => pc1.onnegotiationneeded = r);
-  await doSignalingHandshakeEndOnSecond(pc2, pc1);
+  await exchangeOfferAnswerEndOnSecond(pc2, pc1);
   assert_ufrags_equals(getUfrags(pc1.localDescription)[0], oldUfrag1, "nothing yet 1");
   assert_ufrags_equals(getUfrags(pc2.localDescription)[0], oldUfrag2, "nothing yet 2");
   await negotiationNeededPromise;
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
   assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
@@ -268,7 +268,7 @@ promise_test(async t => {
 
   pc1.addTransceiver("audio");
   await new Promise(r => pc1.onnegotiationneeded = r);
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
 
   const [oldUfrag1] = getUfrags(pc1.localDescription);
   const [oldUfrag2] = getUfrags(pc2.localDescription);
@@ -276,14 +276,14 @@ promise_test(async t => {
   pc1.restartIce();
   pc2.restartIce();
   await new Promise(r => pc1.onnegotiationneeded = r);
-  await doSignalingHandshakeEndOnSecond(pc2, pc1);
+  await exchangeOfferAnswerEndOnSecond(pc2, pc1);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
   assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
   assert_ufrags_not_equals(newUfrag1, oldUfrag2, "ufrag 2 changed");
   await assertNoNegotiationNeeded(t, pc1);
 
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
   assert_ufrags_equals(getUfrags(pc1.localDescription)[0], newUfrag1, "Unchanged 1");
   assert_ufrags_equals(getUfrags(pc2.localDescription)[0], newUfrag2, "Unchanged 2");
   await assertNoNegotiationNeeded(t, pc1);
@@ -297,7 +297,7 @@ promise_test(async t => {
 
   pc1.addTransceiver("audio");
   await new Promise(r => pc1.onnegotiationneeded = r);
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
 
   const [oldUfrag1] = getUfrags(pc1.localDescription);
   const [oldUfrag2] = getUfrags(pc2.localDescription);
@@ -323,7 +323,7 @@ promise_test(async t => {
 
   pc1.addTransceiver("audio");
   await new Promise(r => pc1.onnegotiationneeded = r);
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
 
   const [oldUfrag1] = getUfrags(pc1.localDescription);
   const [oldUfrag2] = getUfrags(pc2.localDescription);
@@ -335,7 +335,7 @@ promise_test(async t => {
       new Promise(r => pc1.onnegotiationneeded = r);
   await pc1.setLocalDescription({type: "rollback"});
   await negotiationNeededPromise;
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
   const [newUfrag1] = getUfrags(pc1.localDescription);
   const [newUfrag2] = getUfrags(pc2.localDescription);
   assert_ufrags_not_equals(newUfrag1, oldUfrag1, "ufrag 1 changed");
@@ -352,7 +352,7 @@ promise_test(async t => {
   pc1.addTransceiver("audio");
   pc1.addTransceiver("video");
   await new Promise(r => pc1.onnegotiationneeded = r);
-  await doSignalingHandshakeEndOnFirst(pc1, pc2);
+  await exchangeOfferAnswerEndOnFirst(pc1, pc2);
 
   const oldUfrags1 = getUfrags(pc1.localDescription);
   const oldUfrags2 = getUfrags(pc2.localDescription);

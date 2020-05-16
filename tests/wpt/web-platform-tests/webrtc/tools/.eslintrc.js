@@ -99,7 +99,7 @@ module.exports = {
     test_state_change_event: true,
     test_never_resolve: true,
     exchangeIceCandidates: true,
-    doSignalingHandshake: true,
+    exchangeOfferAnswer: true,
     createDataChannelPair: true,
     awaitMessage: true,
     blobToArrayBuffer: true,

@@ -49,10 +49,6 @@
       const big = 3000;
       const small = 150;
       setup({ explicit_done: true });
-      window.addEventListener("load", function() {
-        // Delay the check to workaround WebKit's bug https://webkit.org/b/174030.
-        requestAnimationFrame(() => { document.fonts.ready.then(runTests); });
-      });
       function fontSize(element) {
           return parseFloat((/(.+)px/).exec(getComputedStyle(element).
                                             getPropertyValue("font-size"))[1]);
@@ -66,96 +62,97 @@
               }
           }
       }
-      function runTests() {
+      window.addEventListener("load", function() {
+          document.fonts.ready.then(function() {
+              test(function() {
+                  CheckFontSizes("scale80-40-scaledown", {
+                      "-3": big,
+                      "-1": big * .71 * .71,
+                      "0": big * .71 * .71 * .71,
+                      "1": big * .71 * .71 * .71 * .8,
+                      "2": big * .71 * .71 * .71 * .4,
+                      "3": big * .71 * .71 * .71 * .4 * .71,
+                      "5": big * .71 * .71 * .71 * .4 * .71 * .71 * .71
+                  });
+                  CheckFontSizes("scale80-40-scaleup", {
+                      "5": small,
+                      "3": small / (.71 * .71),
+                      "2": small / (.71 * .71 * .71),
+                      "1": small / (.71 * .71 * .71 * (.4 / .8)),
+                      "0": small  / (.71 * .71 * .71 * .4),
+                      "-1": small / (.71 * .71 * .71 * .4 * .71),
+                      "-3": small / (.71 * .71 * .71 * .4 * .71 * .71 * .71)
+                  });
+              }, "scriptPercentScaleDown=80, scriptScriptPercentScaleDown=40");
 
-          test(function() {
-              CheckFontSizes("scale80-40-scaledown", {
-                  "-3": big,
-                  "-1": big * .71 * .71,
-                  "0": big * .71 * .71 * .71,
-                  "1": big * .71 * .71 * .71 * .8,
-                  "2": big * .71 * .71 * .71 * .4,
-                  "3": big * .71 * .71 * .71 * .4 * .71,
-                  "5": big * .71 * .71 * .71 * .4 * .71 * .71 * .71
-              });
-              CheckFontSizes("scale80-40-scaleup", {
-                  "5": small,
-                  "3": small / (.71 * .71),
-                  "2": small / (.71 * .71 * .71),
-                  "1": small / (.71 * .71 * .71 * (.4 / .8)),
-                  "0": small  / (.71 * .71 * .71 * .4),
-                  "-1": small / (.71 * .71 * .71 * .4 * .71),
-                  "-3": small / (.71 * .71 * .71 * .4 * .71 * .71 * .71)
-              });
-          }, "scriptPercentScaleDown=80, scriptScriptPercentScaleDown=40");
+              test(function() {
+                  var scriptPercentScaleDown = .71;
+                  CheckFontSizes("scale0-40-scaledown", {
+                      "-3": big,
+                      "-1": big * .71 * .71,
+                      "0": big * .71 * .71 * .71,
+                      "1": big * .71 * .71 * .71 * scriptPercentScaleDown,
+                      "2": big * .71 * .71 * .71 * .4,
+                      "3": big * .71 * .71 * .71 * .4 * .71,
+                      "5": big * .71 * .71 * .71 * .4 * .71 * .71 * .71
+                  });
+                  CheckFontSizes("scale0-40-scaleup", {
+                      "5": small,
+                      "3": small / (.71 * .71),
+                      "2": small / (.71 * .71 * .71),
+                      "1": small / (.71 * .71 * .71 * (.4 / scriptPercentScaleDown)),
+                      "0": small  / (.71 * .71 * .71 * .4),
+                      "-1": small / (.71 * .71 * .71 * .4 * .71),
+                      "-3": small / (.71 * .71 * .71 * .4 * .71 * .71 * .71)
+                  });
+              }, "scriptPercentScaleDown=0, scriptScriptPercentScaleDown=40");
 
-          test(function() {
-              var scriptPercentScaleDown = .71;
-              CheckFontSizes("scale0-40-scaledown", {
-                  "-3": big,
-                  "-1": big * .71 * .71,
-                  "0": big * .71 * .71 * .71,
-                  "1": big * .71 * .71 * .71 * scriptPercentScaleDown,
-                  "2": big * .71 * .71 * .71 * .4,
-                  "3": big * .71 * .71 * .71 * .4 * .71,
-                  "5": big * .71 * .71 * .71 * .4 * .71 * .71 * .71
-              });
-              CheckFontSizes("scale0-40-scaleup", {
-                  "5": small,
-                  "3": small / (.71 * .71),
-                  "2": small / (.71 * .71 * .71),
-                  "1": small / (.71 * .71 * .71 * (.4 / scriptPercentScaleDown)),
-                  "0": small  / (.71 * .71 * .71 * .4),
-                  "-1": small / (.71 * .71 * .71 * .4 * .71),
-                  "-3": small / (.71 * .71 * .71 * .4 * .71 * .71 * .71)
-              });
-          }, "scriptPercentScaleDown=0, scriptScriptPercentScaleDown=40");
+              test(function() {
+                  var scriptScriptPercentScaleDown = 0.5041;
+                  CheckFontSizes("scale80-0-scaledown", {
+                      "-3": big,
+                      "-1": big * .71 * .71,
+                      "0": big * .71 * .71 * .71,
+                      "1": big * .71 * .71 * .71 * .8,
+                      "2": big * .71 * .71 * .71 * scriptScriptPercentScaleDown,
+                      "3": big * .71 * .71 * .71 * scriptScriptPercentScaleDown * .71,
+                      "5": big * .71 * .71 * .71 * scriptScriptPercentScaleDown * .71 * .71 * .71
+                  });
+                  CheckFontSizes("scale80-0-scaleup", {
+                      "5": small,
+                      "3": small / (.71 * .71),
+                      "2": small / (.71 * .71 * .71),
+                      "1": small / (.71 * .71 * .71 * (scriptScriptPercentScaleDown / .8)),
+                      "0": small  / (.71 * .71 * .71 * scriptScriptPercentScaleDown),
+                      "-1": small / (.71 * .71 * .71 * scriptScriptPercentScaleDown * .71),
+                      "-3": small / (.71 * .71 * .71 * scriptScriptPercentScaleDown * .71 * .71 * .71)
+                  });
+              }, "scriptPercentScaleDown=80, scriptScriptPercentScaleDown=0");
 
-          test(function() {
-              var scriptScriptPercentScaleDown = 0.5041;
-              CheckFontSizes("scale80-0-scaledown", {
-                  "-3": big,
-                  "-1": big * .71 * .71,
-                  "0": big * .71 * .71 * .71,
-                  "1": big * .71 * .71 * .71 * .8,
-                  "2": big * .71 * .71 * .71 * scriptScriptPercentScaleDown,
-                  "3": big * .71 * .71 * .71 * scriptScriptPercentScaleDown * .71,
-                  "5": big * .71 * .71 * .71 * scriptScriptPercentScaleDown * .71 * .71 * .71
-              });
-              CheckFontSizes("scale80-0-scaleup", {
-                  "5": small,
-                  "3": small / (.71 * .71),
-                  "2": small / (.71 * .71 * .71),
-                  "1": small / (.71 * .71 * .71 * (scriptScriptPercentScaleDown / .8)),
-                  "0": small  / (.71 * .71 * .71 * scriptScriptPercentScaleDown),
-                  "-1": small / (.71 * .71 * .71 * scriptScriptPercentScaleDown * .71),
-                  "-3": small / (.71 * .71 * .71 * scriptScriptPercentScaleDown * .71 * .71 * .71)
-              });
-          }, "scriptPercentScaleDown=80, scriptScriptPercentScaleDown=0");
+              test(function() {
+                  CheckFontSizes("default-scaledown", {
+                      "-3": big,
+                      "-1": big * .71 * .71,
+                      "0": big * .71 * .71 * .71,
+                      "1": big * .71 * .71 * .71 * .71,
+                      "2": big * .71 * .71 * .71 * .71 * .71,
+                      "3": big * .71 * .71 * .71 * .71 * .71 * .71,
+                      "5": big * .71 * .71 * .71 * .71 * .71 * .71 * .71 * .71
+                  });
+                  CheckFontSizes("default-scaleup", {
+                      "5": small,
+                      "3": small / (.71 * .71),
+                      "2": small / (.71 * .71 * .71),
+                      "1": small / (.71 * .71 * .71 * .71),
+                      "0": small  / (.71 * .71 * .71 * .71 * .71),
+                      "-1": small / (.71 * .71 * .71 * .71 * .71 * .71),
+                      "-3": small / (.71 * .71 * .71 * .71 * .71 * .71 * .71 * .71)
+                  });
+              }, "No MATH table");
 
-          test(function() {
-              CheckFontSizes("default-scaledown", {
-                  "-3": big,
-                  "-1": big * .71 * .71,
-                  "0": big * .71 * .71 * .71,
-                  "1": big * .71 * .71 * .71 * .71,
-                  "2": big * .71 * .71 * .71 * .71 * .71,
-                  "3": big * .71 * .71 * .71 * .71 * .71 * .71,
-                  "5": big * .71 * .71 * .71 * .71 * .71 * .71 * .71 * .71
-              });
-              CheckFontSizes("default-scaleup", {
-                  "5": small,
-                  "3": small / (.71 * .71),
-                  "2": small / (.71 * .71 * .71),
-                  "1": small / (.71 * .71 * .71 * .71),
-                  "0": small  / (.71 * .71 * .71 * .71 * .71),
-                  "-1": small / (.71 * .71 * .71 * .71 * .71 * .71),
-                  "-3": small / (.71 * .71 * .71 * .71 * .71 * .71 * .71 * .71)
-              });
-          }, "No MATH table");
-
-          done();
-      }
+              done();
+          });
+      });
     </script>
   </head>
   <body>

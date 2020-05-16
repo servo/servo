@@ -1,19 +1,36 @@
 export function insertIframe(hostname, header) {
+  const iframe = document.createElement("iframe");
+  const navigatePromise = navigateIframe(iframe, hostname, header);
+  document.body.append(iframe);
+  return navigatePromise;
+}
+
+export function navigateIframe(iframeEl, hostname, header) {
+  const url = getURL(hostname, header);
+
+  const waitPromise = waitForIframe(iframeEl, url);
+  iframeEl.src = url;
+  return waitPromise;
+}
+
+export function waitForIframe(iframeEl, destinationForErrorMessage) {
+  return new Promise((resolve, reject) => {
+    iframeEl.addEventListener("load", () => resolve(iframeEl.contentWindow));
+    iframeEl.addEventListener(
+      "error",
+      () => reject(new Error(`Could not navigate to ${destinationForErrorMessage}`))
+    );
+  });
+}
+
+function getURL(hostname, header) {
   const url = new URL("send-origin-isolation-header.py", import.meta.url);
   url.hostname = hostname;
-
   if (header !== undefined) {
     url.searchParams.set("header", header);
   }
 
-  const iframe = document.createElement("iframe");
-  iframe.src = url.href;
-
-  return new Promise((resolve, reject) => {
-    iframe.onload = () => resolve(iframe.contentWindow);
-    iframe.onerror = () => reject(new Error(`Could not load ${iframe.src}`));
-    document.body.append(iframe);
-  });
+  return url.href;
 }
 
 // This function is coupled to ./send-origin-isolation-header.py, which ensures

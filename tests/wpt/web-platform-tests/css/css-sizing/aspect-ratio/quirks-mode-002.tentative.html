@@ -8,8 +8,8 @@
 <script>
 onload = function() {
   test(function() {
-    assert_not_equals(document.body.offsetHeight, document.body.offsetWidth);
-  }, "body height is different from width");
+    assert_equals(document.body.offsetHeight, document.body.offsetWidth);
+  }, "body height equals width");
 };
 </script>
 <body style="aspect-ratio: 1/1;">

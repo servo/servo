@@ -16,7 +16,7 @@ promise_test(async t => {
   t.add_cleanup(() => pc1.close());
   t.add_cleanup(() => pc2.close());
   pc1.createDataChannel('datachannel');
-  coupleIceCandidates(pc1, pc2);
+  exchangeIceCandidates(pc1, pc2);
   const offer = await pc1.createOffer();
   await pc2.setRemoteDescription(offer);
   await pc1.setLocalDescription(offer);
