@@ -5,10 +5,11 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUComputePassEncoderBinding::GPUComputePassEncoderMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgroup::GPUBindGroup;
+use crate::dom::gpucommandencoder::{GPUCommandEncoder, GPUCommandEncoderState};
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
 use dom_struct::dom_struct;
 use std::cell::RefCell;
@@ -20,7 +21,7 @@ use webgpu::{
         },
         RawPass,
     },
-    WebGPU, WebGPUCommandEncoder, WebGPURequest,
+    WebGPU, WebGPURequest,
 };
 
 #[dom_struct]
@@ -31,22 +32,24 @@ pub struct GPUComputePassEncoder {
     label: DomRefCell<Option<DOMString>>,
     #[ignore_malloc_size_of = "defined in wgpu-core"]
     raw_pass: RefCell<Option<RawPass>>,
+    command_encoder: Dom<GPUCommandEncoder>,
 }
 
 impl GPUComputePassEncoder {
-    fn new_inherited(channel: WebGPU, parent: WebGPUCommandEncoder) -> GPUComputePassEncoder {
+    fn new_inherited(channel: WebGPU, parent: &GPUCommandEncoder) -> GPUComputePassEncoder {
         GPUComputePassEncoder {
             channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
-            raw_pass: RefCell::new(Some(RawPass::new_compute(parent.0))),
+            raw_pass: RefCell::new(Some(RawPass::new_compute(parent.id().0))),
+            command_encoder: Dom::from_ref(parent),
         }
     }
 
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,
-        parent: WebGPUCommandEncoder,
+        parent: &GPUCommandEncoder,
     ) -> DomRoot<GPUComputePassEncoder> {
         reflect_dom_object(
             Box::new(GPUComputePassEncoder::new_inherited(channel, parent)),
@@ -87,6 +90,11 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
                     pass_data,
                 })
                 .unwrap();
+
+            self.command_encoder.set_state(
+                GPUCommandEncoderState::Open,
+                GPUCommandEncoderState::EncodingComputePass,
+            );
         }
     }
 

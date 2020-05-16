@@ -14,11 +14,11 @@ interface GPUBuffer {
 GPUBuffer includes GPUObjectBase;
 
 dictionary GPUBufferDescriptor : GPUObjectDescriptorBase {
-    required GPUBufferSize size;
+    required GPUSize64 size;
     required GPUBufferUsageFlags usage;
 };
 
-typedef unsigned long long GPUBufferSize;
+typedef unsigned long long GPUSize64;
 
 typedef unsigned long GPUBufferUsageFlags;
 

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUSize64;
 use crate::dom::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
     GPUCommandBufferDescriptor, GPUCommandEncoderMethods, GPUComputePassDescriptor,
 };
@@ -16,8 +17,22 @@ use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
 use dom_struct::dom_struct;
 use ipc_channel::ipc;
+use std::cell::Cell;
 use std::collections::HashSet;
+use webgpu::wgpu::resource::BufferUsage;
 use webgpu::{WebGPU, WebGPUCommandEncoder, WebGPURequest};
+
+const BUFFER_COPY_ALIGN_MASK: u64 = 3;
+
+// https://gpuweb.github.io/gpuweb/#enumdef-encoder-state
+#[derive(MallocSizeOf, PartialEq)]
+#[allow(dead_code)]
+pub enum GPUCommandEncoderState {
+    Open,
+    EncodingRenderPass,
+    EncodingComputePass,
+    Closed,
+}
 
 #[dom_struct]
 pub struct GPUCommandEncoder {
@@ -27,16 +42,24 @@ pub struct GPUCommandEncoder {
     label: DomRefCell<Option<DOMString>>,
     encoder: WebGPUCommandEncoder,
     buffers: DomRefCell<HashSet<DomRoot<GPUBuffer>>>,
+    state: DomRefCell<GPUCommandEncoderState>,
+    valid: Cell<bool>,
 }
 
 impl GPUCommandEncoder {
-    pub fn new_inherited(channel: WebGPU, encoder: WebGPUCommandEncoder) -> GPUCommandEncoder {
+    pub fn new_inherited(
+        channel: WebGPU,
+        encoder: WebGPUCommandEncoder,
+        valid: bool,
+    ) -> GPUCommandEncoder {
         GPUCommandEncoder {
             channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
             encoder,
             buffers: DomRefCell::new(HashSet::new()),
+            state: DomRefCell::new(GPUCommandEncoderState::Open),
+            valid: Cell::new(valid),
         }
     }
 
@@ -44,11 +67,27 @@ impl GPUCommandEncoder {
         global: &GlobalScope,
         channel: WebGPU,
         encoder: WebGPUCommandEncoder,
+        valid: bool,
     ) -> DomRoot<GPUCommandEncoder> {
         reflect_dom_object(
-            Box::new(GPUCommandEncoder::new_inherited(channel, encoder)),
+            Box::new(GPUCommandEncoder::new_inherited(channel, encoder, valid)),
             global,
         )
+    }
+}
+
+impl GPUCommandEncoder {
+    pub fn id(&self) -> WebGPUCommandEncoder {
+        self.encoder
+    }
+
+    pub fn set_state(&self, set: GPUCommandEncoderState, expect: GPUCommandEncoderState) {
+        if *self.state.borrow() == expect {
+            *self.state.borrow_mut() = set;
+        } else {
+            self.valid.set(false);
+            *self.state.borrow_mut() = GPUCommandEncoderState::Closed;
+        }
     }
 }
 
@@ -68,18 +107,59 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         &self,
         _descriptor: &GPUComputePassDescriptor,
     ) -> DomRoot<GPUComputePassEncoder> {
-        GPUComputePassEncoder::new(&self.global(), self.channel.clone(), self.encoder)
+        self.set_state(
+            GPUCommandEncoderState::EncodingComputePass,
+            GPUCommandEncoderState::Open,
+        );
+        GPUComputePassEncoder::new(&self.global(), self.channel.clone(), &self)
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-copybuffertobuffer
     fn CopyBufferToBuffer(
         &self,
         source: &GPUBuffer,
-        source_offset: u64,
+        source_offset: GPUSize64,
         destination: &GPUBuffer,
-        destination_offset: u64,
-        size: u64,
+        destination_offset: GPUSize64,
+        size: GPUSize64,
     ) {
+        let mut valid = match source_offset.checked_add(size) {
+            Some(_) => true,
+            None => false,
+        };
+        valid &= match destination_offset.checked_add(size) {
+            Some(_) => true,
+            None => false,
+        };
+        valid &= match BufferUsage::from_bits(source.usage()) {
+            Some(usage) => usage.contains(BufferUsage::COPY_SRC),
+            None => false,
+        };
+        valid &= match BufferUsage::from_bits(destination.usage()) {
+            Some(usage) => usage.contains(BufferUsage::COPY_DST),
+            None => false,
+        };
+        valid &= (*self.state.borrow() == GPUCommandEncoderState::Open) &&
+            source.valid() &&
+            destination.valid() &
+                !(size & BUFFER_COPY_ALIGN_MASK == 0) &
+                !(source_offset & BUFFER_COPY_ALIGN_MASK == 0) &
+                !(destination_offset & BUFFER_COPY_ALIGN_MASK == 0) &
+                (source.size() >= source_offset + size) &
+                (destination.size() >= destination_offset + size);
+
+        if source.id().0 == destination.id().0 {
+            //TODO: maybe forbid this case based on https://github.com/gpuweb/gpuweb/issues/783
+            valid &= source_offset > destination_offset + size ||
+                source_offset + size < destination_offset;
+        }
+
+        if !valid {
+            // TODO: Record an error in the current scope.
+            self.valid.set(false);
+            return;
+        }
+
         self.buffers.borrow_mut().insert(DomRoot::from_ref(source));
         self.buffers
             .borrow_mut()
@@ -110,6 +190,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             })
             .expect("Failed to send Finish");
 
+        *self.state.borrow_mut() = GPUCommandEncoderState::Closed;
         let buffer = receiver.recv().unwrap();
         GPUCommandBuffer::new(
             &self.global(),

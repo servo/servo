@@ -10,14 +10,12 @@ GPUBindGroup includes GPUObjectBase;
 
 dictionary GPUBindGroupDescriptor : GPUObjectDescriptorBase {
     required GPUBindGroupLayout layout;
-    required sequence<GPUBindGroupBindings> bindings;
+    required sequence<GPUBindGroupEntry> entries;
 };
 
 typedef /*(GPUSampler or GPUTextureView or*/ GPUBufferBindings/*)*/ GPUBindingResource;
 
-// Note: Servo codegen doesn't like the name `GPUBindGroupBinding` because it's already occupied
-// dictionary GPUBindGroupBinding {
-dictionary GPUBindGroupBindings {
+dictionary GPUBindGroupEntry {
     required unsigned long binding;
     required GPUBindingResource resource;
 };
@@ -26,6 +24,6 @@ dictionary GPUBindGroupBindings {
 // dictionary GPUBufferBinding {
 dictionary GPUBufferBindings {
     required GPUBuffer buffer;
-    GPUBufferSize offset = 0;
-    GPUBufferSize size;
+    GPUSize64 offset = 0;
+    GPUSize64 size;
 };
