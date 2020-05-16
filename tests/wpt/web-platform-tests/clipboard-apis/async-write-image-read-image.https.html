@@ -1,0 +1,79 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>
+  Async Clipboard write [image/png ClipboardItem] ->
+        read [image/png ClipboardItem] tests
+</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<p>
+  <p>The bottom image should display the same image as the top image.</p>
+  <p>Original Image:</p>
+  <image id="image-to-copy" width="20" height="20"
+        src="resources/greenbox.png"></image>
+  <p>Image after copy/paste:</p>
+  <image id="image-on-clipboard"></image>
+  <canvas id="canvas" width="20" height="20"></canvas>
+</p>
+
+<script>
+// Must compare a bitmap as opposed to simply blob data, because an encoded
+// image may have different contents depending on encoder.
+async function getBitmapString(blob) {
+  const imageBitmap = await createImageBitmap(blob);
+  const canvas = document.getElementById('canvas');
+  const ctx = canvas.getContext('2d');
+
+  ctx.drawImage(imageBitmap, 0,0);
+
+  let imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  return imageData.data.toString();
+};
+
+async function loadBlob(fileName) {
+  const fetched = await fetch(fileName);
+  return await fetched.blob();
+}
+
+promise_test(async t => {
+  test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+
+  const blobInput = await loadBlob('resources/greenbox.png');
+
+  assert_equals(blobInput.type, 'image/png');
+  const clipboardItemInput = new ClipboardItem({'image/png' : blobInput});
+  await navigator.clipboard.write([clipboardItemInput]);
+  const clipboardItems = await navigator.clipboard.read();
+
+  assert_equals(clipboardItems.length, 1);
+  const clipboardItem = clipboardItems[0];
+  assert_true(clipboardItem instanceof ClipboardItem);
+  assert_equals(clipboardItem.types.length, 1);
+  const blobOutput = await clipboardItem.getType('image/png');
+  assert_equals(blobOutput.type, 'image/png');
+
+  document.getElementById('image-on-clipboard').src =
+      window.URL.createObjectURL(blobOutput);
+
+  const comparableInput = await getBitmapString(blobInput);
+  const comparableOutput = await getBitmapString(blobOutput);
+
+  assert_equals(comparableOutput, comparableInput);
+}, 'Verify write and read clipboard [image/png Blob]');
+
+promise_test(async t => {
+  test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+
+  const invalidPngBlob = new Blob(['this text is not a valid png image'],
+      {type: 'image/png'});
+  const clipboardItemInput = new ClipboardItem({'image/png' : invalidPngBlob});
+  await promise_rejects_dom(t, 'DataError',
+      navigator.clipboard.write([clipboardItemInput]));
+}, 'Verify write error on malformed data [image/png ClipboardItem]');
+</script>

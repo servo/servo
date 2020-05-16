@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>navigator.clipboard readText and writeText on detached iframe</title>
+<link rel='help' href='https://w3c.github.io/clipboard-apis/#async-clipboard-api'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<iframe id="iframe"></iframe>
+<script>
+'use strict';
+
+promise_test(async t => {
+  test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+
+  const iframe = document.getElementById('iframe');
+  // Clipboard API must only be available in focused documents.
+  // reference: https://www.w3.org/TR/clipboard-apis/#privacy-async
+  iframe.focus();
+  const iframeClipboard = iframe.contentWindow.navigator.clipboard;
+
+  // Writing and reading should succeed on same-origin iframes.
+  const attachedWriteText = 'attached write text'
+  await iframeClipboard.writeText(attachedWriteText);
+  const attachedWriteResult = await iframeClipboard.readText();
+  assert_equals(attachedWriteResult, attachedWriteText,
+      'attached iframes should be able to readText and writeText normally');
+
+  iframe.parentNode.removeChild(iframe);
+  // Writing onto a detached iframe's clipboard should fail, but not crash.
+  const detachedWriteText = 'detached write text';
+  await iframeClipboard.writeText(detachedWriteText);
+  const readResultDetached = await iframeClipboard.readText();
+  assert_equals(readResultDetached, undefined,
+      'reading from detached iframes should output undefined');
+}, 'Verify readText and writeText fails on detached iframe');
+</script>

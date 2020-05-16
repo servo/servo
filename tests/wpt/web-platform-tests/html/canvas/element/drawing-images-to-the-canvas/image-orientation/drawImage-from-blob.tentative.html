@@ -10,7 +10,7 @@
   function makeBlob() {
     return new Promise(function(resolve, reject) {
         var xhr = new XMLHttpRequest();
-        xhr.open("GET", '/css/css-images/image-orientation/support/exif-orientation-3-lr.jpg');
+        xhr.open("GET", '/css/css-images/image-orientation/support/exif-orientation-8-llo.jpg');
         xhr.responseType = 'blob';
         xhr.send();
         xhr.onload = function() {
@@ -22,7 +22,7 @@
   window.onload = function() {
     var cfb = document.getElementById("canvasWithFileBitmap");
     makeBlob().then(function(blob){createImageBitmap(blob).then(bitmap => {
-        cfb.getContext("2d").drawImage(bitmap, 0, 0);
+        cfb.getContext("2d").drawImage(bitmap, 0, 0, 150, 150 * bitmap.height / bitmap.width);
         window.requestAnimationFrame(() => {
           document.documentElement.removeAttribute("class");
         });
@@ -32,6 +32,6 @@
 </script>
 </head>
 <body>
-  <canvas id="canvasWithFileBitmap" width="300" height="300"></canvas>
+  <canvas id="canvasWithFileBitmap" width="150" height="300"></canvas>
 </body>
 </html>

@@ -322,6 +322,15 @@ class TestharnessInOtherType(Rule):
     description = "testharness.js included in a %s test"
 
 
+class DuplicateBasenamePath(Rule):
+    name = "DUPLICATE-BASENAME-PATH"
+    description = collapse("""
+            File has identical basename path (path excluding extension) as
+            other file(s) (found extensions: %s)
+    """)
+    to_fix = "rename files so they have unique basename paths"
+
+
 class Regexp(six.with_metaclass(abc.ABCMeta)):
     @abc.abstractproperty
     def pattern(self):

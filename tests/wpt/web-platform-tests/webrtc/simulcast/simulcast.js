@@ -76,7 +76,7 @@ function swapRidAndMidExtensionsInSimulcastAnswer(answer, localDescription, rids
   return sdp;
 }
 
-async function negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2) {
+async function negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2, codec) {
   exchangeIceCandidates(pc1, pc2);
 
   const metadataToBeLoaded = [];
@@ -96,10 +96,13 @@ async function negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2) {
   // Use getUserMedia as getNoiseStream does not have enough entropy to ramp-up.
   const stream = await navigator.mediaDevices.getUserMedia({video: {width: 1280, height: 720}});
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
-  pc1.addTransceiver(stream.getVideoTracks()[0], {
+  const transceiver = pc1.addTransceiver(stream.getVideoTracks()[0], {
     streams: [stream],
     sendEncodings: rids.map(rid => {rid}),
   });
+  if (codec) {
+    preferCodec(transceiver, codec.mimeType, codec.sdpFmtpLine);
+  }
 
   const offer = await pc1.createOffer();
   await pc1.setLocalDescription(offer),

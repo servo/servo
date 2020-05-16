@@ -18,7 +18,7 @@ async_test(t => {
   frame.src = "resources/coep-frame.html";
   frame.onload = t.step_func(() => {
     frame.onload = null;
-    frame.src = `javascript:'${createScript(window.origin, get_host_info().HTTPS_NOTSAMESITE_ORIGIN)}'`;
+    frame.src = `javascript:${encodeURIComponent(createScript(window.origin, get_host_info().HTTPS_NOTSAMESITE_ORIGIN))}`;
   });
   document.body.append(frame);
 }, "Cross-Origin-Embedder-Policy frame and javascript: URLs");

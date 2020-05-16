@@ -8,12 +8,12 @@
 (async () => {
   await test_frame(
     "HTTPS_REMOTE_ORIGIN",
-    "device-memory=true&dpr=false&viewport-width=false",
+    "device-memory=true&dpr=false&viewport-width=false&sec-ch-ua=false&sec-ch-ua-mobile=false",
     "",
     "Client hints loaded on cross-origin iframe request with feature policy.");
   await test_frame(
     "HTTPS_ORIGIN",
-    "device-memory=true&dpr=false&viewport-width=true",
+    "device-memory=true&dpr=false&viewport-width=true&sec-ch-ua=true&sec-ch-ua-mobile=false",
     "",
     "Client hints loaded on same-origin iframe request with feature policy.");
   await test_frame(
@@ -23,7 +23,7 @@
     "Iframe trying to set Accept-CH-Lifetime.", "/client-hints/resources/iframe-accept-ch-lifetime.html");
   await test_frame(
     "HTTPS_REMOTE_ORIGIN",
-    "device-memory=true&dpr=false&viewport-width=false",
+    "device-memory=true&dpr=false&viewport-width=false&sec-ch-ua=false&sec-ch-ua-mobile=false",
     "",
     "Client hints loaded on cross-origin iframe request with feature policy after attempting to set independently.");
 })();

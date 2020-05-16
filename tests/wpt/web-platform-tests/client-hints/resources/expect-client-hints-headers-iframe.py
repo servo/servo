@@ -3,7 +3,7 @@ def main(request, response):
     Simple handler that returns an HTML response that passes when the required
     Client Hints are received as request headers.
     """
-    values = [ "Device-Memory", "DPR", "Viewport-Width" ]
+    values = [ "Device-Memory", "DPR", "Viewport-Width", "Sec-CH-UA", "Sec-CH-UA-Mobile" ]
 
     result = "PASS"
     log = ""

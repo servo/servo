@@ -302,7 +302,12 @@ promise_test(async t => {
   const animA = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
   const animB = div.animate({ opacity: 1 }, { duration: 1, fill: 'forwards' });
   await animA.finished;
-
+  // It is not guaranteed that the mircrotask PerformCheckpoint() happens before
+  // the animation finish promised got resolved, because the microtask
+  // checkpoint could also be triggered from other source such as the event_loop
+  // Thus we wait for one animation frame to make sure the finished animation is
+  // properly removed.
+  await waitForNextFrame(1);
   assert_array_equals(div.getAnimations(), [animB]);
 }, 'Does not return an animation that has been removed');
 

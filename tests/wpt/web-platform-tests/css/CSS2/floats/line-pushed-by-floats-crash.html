@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1064987">
+<body style="width: 100px;">
+  <div style="float: right; width: 10px;"></div>
+  <span>
+    <div style="display: inline-block; width: 1000px; height: 10px;"></div>
+  </span>
+  <span style="position: absolute;"></span>
+  <span style="float: left; height: 10px; column-gap: 65536px; column-count: 65536;"></span>
+</body>

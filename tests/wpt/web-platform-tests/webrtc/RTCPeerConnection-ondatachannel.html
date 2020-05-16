@@ -224,7 +224,6 @@ promise_test(async (t) => {
       readonly attribute USVString           protocol;
       readonly attribute boolean             negotiated;
       readonly attribute unsigned short?     id;
-      readonly attribute RTCPriorityType     priority;
       readonly attribute RTCDataChannelState readyState;
       ...
     };
@@ -240,8 +239,6 @@ promise_test(async (t) => {
          [[MaxRetransmits]], [[DataChannelProtocol]], and [[DataChannelId]] internal slots to the
          corresponding values in configuration.
       5. Initialize channel's [[Negotiated]] internal slot to false.
-      6. Initialize channel's [[DataChannelPriority]] internal slot based on the integer priority
-         value in configuration, [...]
       7. Set channel's [[ReadyState]] slot to connecting.
       8. Fire a datachannel event named datachannel with channel at the RTCPeerConnection object.
 
@@ -259,7 +256,6 @@ promise_test(async (t) => {
     ordered: false,
     maxRetransmits: 1,
     protocol: 'custom',
-    priority: 'high'
   });
 
   assert_equals(dc1.label, 'test');
@@ -268,7 +264,6 @@ promise_test(async (t) => {
   assert_equals(dc1.maxRetransmits, 1);
   assert_equals(dc1.protocol, 'custom');
   assert_equals(dc1.negotiated, false);
-  assert_equals(dc1.priority, 'high');
 
   pc2.ondatachannel = t.step_func((event) => {
     const dc2 = event.channel;
@@ -282,7 +277,6 @@ promise_test(async (t) => {
     assert_equals(dc2.protocol, 'custom');
     assert_equals(dc2.negotiated, false);
     assert_equals(dc2.id, dc1.id);
-    assert_equals(dc2.priority, 'high');
 
     resolver.resolve();
   });
@@ -309,7 +303,6 @@ promise_test(async (t) => {
   assert_equals(dc1.maxRetransmits, null);
   assert_equals(dc1.protocol, '');
   assert_equals(dc1.negotiated, false);
-  assert_equals(dc1.priority, 'low');
 
   pc2.ondatachannel = t.step_func((event) => {
     const dc2 = event.channel;
@@ -323,7 +316,6 @@ promise_test(async (t) => {
     assert_equals(dc2.protocol, '');
     assert_equals(dc2.negotiated, false);
     assert_equals(dc2.id, dc1.id);
-    assert_equals(dc2.priority, 'low');
 
     resolver.resolve();
   });

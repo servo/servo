@@ -15,7 +15,7 @@ async_test(t => {
   }));
   const frame = document.createElement("iframe");
   t.add_cleanup(() => frame.remove());
-  frame.srcdoc = createScript(window.origin, get_host_info().HTTPS_NOTSAMESITE_ORIGIN);
+  frame.srcdoc = `<script>${createScript(window.origin, get_host_info().HTTPS_NOTSAMESITE_ORIGIN)}<\/script>`;
   document.body.append(frame);
 }, "Cross-Origin-Embedder-Policy and srcdoc");
 </script>
