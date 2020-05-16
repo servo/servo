@@ -49,6 +49,7 @@ use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
 use js::jsapi::{GetWaitForAllPromise, ModuleEvaluate, ModuleInstantiate};
 use js::jsapi::{Heap, JSContext, JS_ClearPendingException, SetModulePrivate};
 use js::jsapi::{JSAutoRealm, JSObject, JSString};
+use js::jsapi::{JS_DefineProperty4, JS_NewStringCopyN, JSPROP_ENUMERATE};
 use js::jsapi::{SetModuleDynamicImportHook, SetScriptPrivateReferenceHooks};
 use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::rust::jsapi_wrapped::{GetRequestedModuleSpecifier, JS_GetPendingException};
@@ -1063,7 +1064,7 @@ pub unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
     }
 
     SetModuleResolveHook(rt, Some(HostResolveImportedModule));
-    SetModuleMetadataHook(rt, None);
+    SetModuleMetadataHook(rt, Some(HostPopulateImportMeta));
     SetScriptPrivateReferenceHooks(rt, None, None);
 
     SetModuleDynamicImportHook(rt, None);
@@ -1116,6 +1117,39 @@ unsafe extern "C" fn HostResolveImportedModule(
     }
 
     unreachable!()
+}
+
+#[allow(unsafe_code, non_snake_case)]
+/// https://tc39.es/ecma262/#sec-hostgetimportmetaproperties
+/// https://html.spec.whatwg.org/multipage/#hostgetimportmetaproperties
+unsafe extern "C" fn HostPopulateImportMeta(
+    cx: *mut JSContext,
+    reference_private: RawHandleValue,
+    meta_object: RawHandle<*mut JSObject>,
+) -> bool {
+    let in_realm_proof = AlreadyInRealm::assert_for_cx(SafeJSContext::from_ptr(cx));
+    let global_scope = GlobalScope::from_context(cx, InRealm::Already(&in_realm_proof));
+
+    // Step 2.
+    let base_url = match (reference_private.to_private() as *const ModuleScript).as_ref() {
+        Some(module_data) => module_data.base_url.clone(),
+        None => global_scope.api_base_url(),
+    };
+
+    rooted!(in(cx) let url_string = JS_NewStringCopyN(
+        cx,
+        base_url.as_str().as_ptr() as *const i8,
+        base_url.as_str().len()
+    ));
+
+    // Step 3.
+    JS_DefineProperty4(
+        cx,
+        meta_object,
+        "url\0".as_ptr() as *const i8,
+        url_string.handle().into_handle(),
+        JSPROP_ENUMERATE.into(),
+    )
 }
 
 /// https://html.spec.whatwg.org/multipage/#fetch-a-module-script-tree
