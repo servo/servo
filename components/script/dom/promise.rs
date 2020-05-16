@@ -14,6 +14,7 @@
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{DomObject, MutDomObject, Reflector};
+use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::utils::AsCCharPtrPtr;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promisenativehandler::PromiseNativeHandler;
@@ -242,7 +243,8 @@ impl Promise {
     }
 
     #[allow(unsafe_code)]
-    pub fn append_native_handler(&self, handler: &PromiseNativeHandler) {
+    pub fn append_native_handler(&self, handler: &PromiseNativeHandler, _comp: InRealm) {
+        let _ais = AutoEntryScript::new(&*handler.global());
         let cx = self.global().get_cx();
         rooted!(in(*cx) let resolve_func =
                 create_native_handler_function(*cx,

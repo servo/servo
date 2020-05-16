@@ -10,7 +10,6 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::settings_stack::AutoIncumbentScript;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::blob::{normalize_type_string, Blob};
@@ -137,11 +136,9 @@ impl TransmitBodyConnectHandler {
 
                 let handler = PromiseNativeHandler::new(&global, Some(promise_handler), Some(rejection_handler));
 
-                // Enter a realm, and a script,
-                // before appending the native handler.
-                let _realm = enter_realm(&*global);
-                let _ais = AutoIncumbentScript::new(&*global);
-                promise.append_native_handler(&handler);
+                let realm = enter_realm(&*global);
+                let comp = InRealm::Entered(&realm);
+                promise.append_native_handler(&handler, comp);
             }),
             &self.canceller,
         );
@@ -556,11 +553,9 @@ impl Callback for ConsumeBodyPromiseHandler {
             let handler =
                 PromiseNativeHandler::new(&global, Some(promise_handler), Some(rejection_handler));
 
-            // Enter a realm, and a script,
-            // before appending the native handler.
-            let _realm = enter_realm(&*global);
-            let _ais = AutoIncumbentScript::new(&*global);
-            read_promise.append_native_handler(&handler);
+            let realm = enter_realm(&*global);
+            let comp = InRealm::Entered(&realm);
+            read_promise.append_native_handler(&handler, comp);
         }
     }
 }
@@ -581,7 +576,12 @@ pub fn consume_body<T: BodyMixin + DomObject>(object: &T, body_type: BodyType) -
         return promise;
     }
 
-    consume_body_with_promise(object, body_type, promise.clone());
+    consume_body_with_promise(
+        object,
+        body_type,
+        promise.clone(),
+        InRealm::Already(&in_realm_proof),
+    );
 
     promise
 }
@@ -592,6 +592,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
     object: &T,
     body_type: BodyType,
     promise: Rc<Promise>,
+    comp: InRealm,
 ) {
     let global = object.global();
 
@@ -637,7 +638,7 @@ fn consume_body_with_promise<T: BodyMixin + DomObject>(
         Some(rejection_handler),
     );
     // We are already in a realm and a script.
-    read_promise.append_native_handler(&handler);
+    read_promise.append_native_handler(&handler, comp);
 }
 
 // https://fetch.spec.whatwg.org/#concept-body-package-data

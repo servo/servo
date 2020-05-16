@@ -1003,8 +1003,8 @@ impl TestBindingMethods for TestBinding {
             resolve.map(SimpleHandler::new),
             reject.map(SimpleHandler::new),
         );
-        let p = Promise::new_in_current_realm(&global, comp);
-        p.append_native_handler(&handler);
+        let p = Promise::new_in_current_realm(&global, comp.clone());
+        p.append_native_handler(&handler, comp);
         return p;
 
         #[derive(JSTraceable, MallocSizeOf)]
