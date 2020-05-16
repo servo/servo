@@ -53,12 +53,13 @@ async function initialize_generic_sensor_tests() {
 
 function sensor_test(func, name, properties) {
   promise_test(async (t) => {
+    t.add_cleanup(() => {
+      if (sensorTest)
+        return sensorTest.reset();
+    });
+
     let sensorTest = await initialize_generic_sensor_tests();
-    try {
-      await func(t, sensorTest.getSensorProvider());
-    } finally {
-      await sensorTest.reset();
-    };
+    return func(t, sensorTest.getSensorProvider());
   }, name, properties);
 }
 

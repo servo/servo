@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parent is isolated, child1 is not isolated, child1 navigates to a different site, child2 gets inserted and is isolated, child1 navigates back</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import { insertIframe, navigateIframe, waitForIframe, sendWasmModule,
+         setBothDocumentDomains, sendWasmModuleBetween, accessDocumentBetween }
+       from "./resources/helpers.mjs";
+
+let frame1, frameWindow1, frameWindow2, frameWindow3;
+promise_setup(async () => {
+  frameWindow1 = await insertIframe("{{hosts[][www]}}");
+  frame1 = document.querySelector("iframe");
+});
+
+// Since they're different-origin, the parent's isolation request is respected,
+// as is the child's non-request. So the parent ends up in the origin-keyed
+// agent cluster and the child ends up in the site-keyed one.
+
+promise_test(async () => {
+  const whatHappened = await sendWasmModule(frameWindow1);
+
+  assert_equals(whatHappened, "messageerror");
+}, "Before: messageerror event must occur");
+
+promise_test(async () => {
+  await setBothDocumentDomains(frameWindow1);
+
+  assert_throws_dom("SecurityError", DOMException, () => {
+    frameWindow1.document;
+  });
+}, "Before: setting document.domain must not give sync access");
+
+promise_test(async () => {
+  frame1.remove();
+
+  frameWindow2 = await insertIframe("{{hosts[][www]}}", "?1");
+  frameWindow3 = await insertIframe("{{hosts[][www1]}}");
+
+  await setBothDocumentDomains(frameWindow2);
+  await setBothDocumentDomains(frameWindow3);
+}, "Remove the iframe and insert new ones");
+
+// Because of the historical presence of a non-isolated {{hosts[][www]}} iframe,
+// the origin isolation request for frameWindow2 will be ignored. So,
+// frameWindow2 and frameWindow3 both end up in the site-keyed agent cluster.
+
+promise_test(async () => {
+  const whatHappened = await sendWasmModule(frameWindow2);
+
+  assert_equals(whatHappened, "messageerror");
+}, "Parent to child2: messageerror event must occur");
+
+promise_test(async () => {
+  assert_throws_dom("SecurityError", DOMException, () => {
+    frameWindow2.document;
+  });
+}, "Parent to child2: setting document.domain must not give sync access");
+
+promise_test(async () => {
+  const whatHappened = await sendWasmModule(frameWindow3);
+
+  assert_equals(whatHappened, "messageerror");
+}, "Parent to child3: messageerror event must occur");
+
+promise_test(async () => {
+  assert_throws_dom("SecurityError", DOMException, () => {
+    frameWindow3.document;
+  });
+}, "Parent to child3: setting document.domain must not give sync access");
+
+promise_test(async () => {
+  const whatHappened = await sendWasmModuleBetween(frameWindow2, 1);
+
+  assert_equals(whatHappened, "WebAssembly.Module message received");
+}, "child2 to child3: message event must occur");
+
+promise_test(async () => {
+  const whatHappened = await accessDocumentBetween(frameWindow2, 1);
+
+  assert_equals(whatHappened, "accessed document successfully");
+}, "child2 to child3: setting document.domain must give sync access");
+
+promise_test(async () => {
+  const whatHappened = await sendWasmModuleBetween(frameWindow3, 0);
+
+  assert_equals(whatHappened, "WebAssembly.Module message received");
+}, "child3 to child2: message event must occur");
+
+promise_test(async () => {
+  const whatHappened = await accessDocumentBetween(frameWindow3, 0);
+
+  assert_equals(whatHappened, "accessed document successfully");
+}, "child3 to child2: setting document.domain must give sync access");
+</script>

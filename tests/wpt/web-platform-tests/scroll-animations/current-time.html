@@ -230,6 +230,62 @@ promise_test(async t => {
   // one edge and use it for all the timelines.
   const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
 
+  // When the endScrollOffset is equal to the maximum scroll offset (and there
+  // are no fill modes), the endScrollOffset is treated as inclusive.
+  const inclusiveAutoScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    endScrollOffset: 'auto'
+  });
+  const inclusiveLengthScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    endScrollOffset: scrollerSize + 'px'
+  });
+  const inclusivePercentageScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    endScrollOffset: '100%'
+  });
+  const inclusiveCalcScrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    endScrollOffset: 'calc(80% + ' + (0.2 * scrollerSize) + 'px)'
+  });
+
+  scroller.scrollTop = scrollerSize;
+  let expectedCurrentTime = calculateCurrentTime(
+      scroller.scrollTop, 0, scrollerSize, scrollerSize);
+
+  // Wait for new animation frame  which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+
+  assert_times_equal(
+    inclusiveAutoScrollTimeline.currentTime, expectedCurrentTime,
+    'Inclusive auto timeline at the endScrollOffset point');
+  assert_times_equal(
+    inclusiveLengthScrollTimeline.currentTime, expectedCurrentTime,
+    'Inclusive length-based timeline at the endScrollOffset point');
+  assert_times_equal(
+    inclusivePercentageScrollTimeline.currentTime, expectedCurrentTime,
+    'Inclusive percentage-based timeline at the endScrollOffset point');
+  assert_times_equal(
+    inclusiveCalcScrollTimeline.currentTime, expectedCurrentTime,
+    'Inclusive calc-based timeline at the endScrollOffset point');
+}, 'currentTime handles endScrollOffset correctly (inclusive cases)');
+
+promise_test(async t => {
+  const scroller = setupScrollTimelineTest();
+  // Set the timeRange such that currentTime maps directly to the value
+  // scrolled. The contents and scroller are square, so it suffices to compute
+  // one edge and use it for all the timelines.
+  const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
+
   const lengthScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,

@@ -15,5 +15,5 @@ def main(request, response):
   window.opener.postMessage("%s" , "*");
 </script>
 ''' % (result)
-    headers = [("Content-Type", "text/html")]
+    headers = [("Content-Type", "text/html"), ("Access-Control-Allow-Origin", "*")]
     return 200, headers, content

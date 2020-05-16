@@ -30,6 +30,8 @@
             var eventTested = false;
             var pointerleaveReceived = false;
             var detected_pointertypes = {};
+            var test_pointerleave = async_test("pointerleave shouldn't be received on descendant's pointerover");
+            var actions_promise;
 
             add_completion_callback(showPointerTypes);
 
@@ -41,9 +43,12 @@
                 on_event(target1, "pointerdown", function(event) {
                     detected_pointertypes[event.pointerType] = true;
 
-                    test(function() {
-                        assert_true(!pointerleaveReceived, "pointerleave shouldn't be received on descendant's pointerover")
+                    test_pointerleave.step(function() {
+                        assert_true(!pointerleaveReceived, "pointerleave shouldn't be received on descendant's pointerover");
                     }, "pointerleave shouldn't be received on descendant's pointerover");
+                    actions_promise.then( () => {
+                        test_pointerleave.done();
+                    });
                 });
 
                 on_event(target0, "pointerleave", function (event) {
@@ -54,7 +59,7 @@
                 });
 
                 // Inject mouse inputs.
-                new test_driver.Actions()
+                actions_promise = new test_driver.Actions()
                     .pointerMove(0, 0, {origin: target0})
                     .pointerMove(0, 0, {origin: target1})
                     .pointerDown()

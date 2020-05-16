@@ -11,7 +11,7 @@
   'use strict';
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  //   doSignalingHandshake
+  //   exchangeOfferAnswer
   //   getUserMediaTracksAndStreams
   //   waitForRtpAndRtcpStats
 
@@ -208,7 +208,7 @@
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       sendingTrack = tracks[0];
       caller.addTrack(sendingTrack, streams[0]);
-      return doSignalingHandshake(caller, callee);
+      return exchangeOfferAnswer(caller, callee);
     }))
     .then(t.step_func(() => {
       return caller.getStats();
@@ -242,7 +242,7 @@
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       caller.addTrack(tracks[0], streams[0]);
-      return doSignalingHandshake(caller, callee);
+      return exchangeOfferAnswer(caller, callee);
     }))
     .then(t.step_func(() => {
       return callee.getStats();
@@ -345,7 +345,7 @@
       sendingTrack1 = tracks[0];
       sendingTrack2 = tracks[1];
       sender = caller.addTrack(sendingTrack1, streams[0]);
-      return doSignalingHandshake(caller, callee);
+      return exchangeOfferAnswer(caller, callee);
     }))
     .then(t.step_func(() => {
       return sender.replaceTrack(sendingTrack2);
@@ -382,7 +382,7 @@
       sendingTrack1 = tracks[0];
       sendingTrack2 = tracks[1];
       sender = caller.addTrack(sendingTrack1, streams[0]);
-      return doSignalingHandshake(caller, callee);
+      return exchangeOfferAnswer(caller, callee);
     }))
     .then(t.step_func(() => {
       return sender.replaceTrack(sendingTrack2);
@@ -416,7 +416,7 @@
     let sender = caller.addTrack(tracks[0], streams[0]);
     callee.addTrack(tracks[1], streams[1]);
     exchangeIceCandidates(caller, callee);
-    await doSignalingHandshake(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
     await listenToConnected(caller);
     let receiver = caller.getReceivers()[0];
 
@@ -465,7 +465,7 @@
     let sender = caller.addTrack(tracks[0], streams[0]);
     callee.addTrack(tracks[1], streams[1]);
     exchangeIceCandidates(caller, callee);
-    await doSignalingHandshake(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
     await listenToConnected(caller);
     let receiver = caller.getReceivers()[0];
 
@@ -514,7 +514,7 @@
     let sender = caller.addTrack(tracks[0], streams[0]);
     callee.addTrack(tracks[1], streams[1]);
     exchangeIceCandidates(caller, callee);
-    await doSignalingHandshake(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
     await listenToIceConnected(caller);
 
     // Wait until RTCP has arrived so that it can not arrive between
@@ -546,7 +546,7 @@
     let sender = caller.addTrack(tracks[0], streams[0]);
     callee.addTrack(tracks[1], streams[1]);
     exchangeIceCandidates(caller, callee);
-    await doSignalingHandshake(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
     await listenToIceConnected(caller);
     let receiver = caller.getReceivers()[0];
 

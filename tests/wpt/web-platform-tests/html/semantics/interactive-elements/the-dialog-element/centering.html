@@ -42,7 +42,19 @@ function testDialogCentering(writingMode, containerWritingMode, dialogWritingMod
     iframe.height = iframeHeight;
     iframe.onload = t.step_func_done(() => {
       const dialog = iframe.contentDocument.querySelector("dialog");
-      assert_equals(iframe.contentWindow.getComputedStyle(dialog)[property], numericValue + "px");
+      const dialogStyle = iframe.contentWindow.getComputedStyle(dialog);
+      assert_equals(dialogStyle[property], numericValue + "px");
+      assert_equals(dialogStyle['inset-inline-start'], "0px");
+      assert_equals(dialogStyle['inset-inline-end'], "0px");
+
+      const dialogWM = dialogWritingMode || containerWritingMode || writingMode || "horizontal-tb";
+      if (dialogWM.startsWith("vertical")) {
+        assert_equals(dialogStyle['top'], "0px");
+        assert_equals(dialogStyle['bottom'], "0px");
+      } else {
+        assert_equals(dialogStyle['left'], "0px");
+        assert_equals(dialogStyle['right'], "0px");
+      }
     });
     document.body.appendChild(iframe);
   }, writingMode + (containerWritingMode ? ` (container ${containerWritingMode})` : "") +

@@ -40,6 +40,9 @@
             var expectedPointerId = NaN;
             var lastScreenX = null;
             var lastScreenY = null;
+            var actionsPromiseMouse;
+            var actionsPromiseTouch;
+            var actionsPromisePen;
 
             function resetTestState() {
                 lastScreenX = null;
@@ -111,15 +114,26 @@
                   lastScreenY = event.screenY;
                 });
                 on_event(document.querySelector('#box2'), 'pointerup', function(event) {
-                  test_pointerEvent.done();
+                  // Make sure the test finishes after all the input actions are completed.
+                  if (expectedPointerType == "mouse") {
+                    actionsPromiseTouch = actionsPromiseMouse.then(function(){
+                      test_pointerEvent.done();
+                      return injectInput("touch");
+                    });
+                  } else if (expectedPointerType == "touch") {
+                    actionsPromisePen = actionsPromiseTouch.then(function(){
+                      test_pointerEvent.done();
+                      return injectInput("pen");
+                    });
+                  } else {
+                    actionsPromisePen.then( () => {
+                      test_pointerEvent.done();
+                    });
+                  }
                 });
 
-                // Inject input
-                injectInput("mouse").then(function(){
-                  return injectInput("touch")
-                }).then(function() {
-                  return injectInput("pen")
-                })
+                // Inject mouse input
+                actionsPromiseMouse = injectInput("mouse");
             }
 
         </script>

@@ -28,7 +28,7 @@ promise_test(async (t) => {
   t.add_cleanup(() => pc1.close());
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
-  coupleIceCandidates(pc1, pc2);
+  exchangeIceCandidates(pc1, pc2);
   pc1.createDataChannel('');
   const offer = await pc1.createOffer();
   await pc1.setLocalDescription(offer);

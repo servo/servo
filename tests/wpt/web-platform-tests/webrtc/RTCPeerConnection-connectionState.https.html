@@ -11,7 +11,7 @@
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
   // exchangeIceCandidates
-  // doSignalingHandshake
+  // exchangeOfferAnswer
 
   /*
     4.3.2.  Interface Definition
@@ -134,7 +134,7 @@
     pc1.addEventListener('connectionstatechange', onConnectionStateChange);
 
     exchangeIceCandidates(pc1, pc2);
-    doSignalingHandshake(pc1, pc2);
+    exchangeOfferAnswer(pc1, pc2);
   }, 'connection with one data channel should eventually have connected connection state');
 
   async_test(t => {
@@ -166,7 +166,7 @@
     pc1.addEventListener('connectionstatechange', onConnectionStateChange);
 
     exchangeIceCandidates(pc1, pc2);
-    doSignalingHandshake(pc1, pc2);
+    exchangeOfferAnswer(pc1, pc2);
   }, 'connection with one data channel should eventually have transports in connected state');
 
   /*
@@ -244,7 +244,7 @@
     const [track] = stream.getTracks();
     caller.addTrack(track, stream);
 
-    await doSignalingHandshake(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
 
     assert_equals(caller.iceConnectionState, 'new');
     assert_equals(callee.iceConnectionState, 'new');
@@ -264,7 +264,7 @@
     const states = [];
     caller.addEventListener('connectionstatechange', () => states.push(caller.connectionState));
     exchangeIceCandidates(caller, callee);
-    await doSignalingHandshake(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
 
     await listenToConnected(caller);
 
@@ -280,7 +280,7 @@
 
     stream.getTracks().forEach(track => pc1.addTrack(track, stream));
     exchangeIceCandidates(pc1, pc2);
-    doSignalingHandshake(pc1, pc2);
+    exchangeOfferAnswer(pc1, pc2);
     await listenToIceConnected(pc2);
 
     pc2.onconnectionstatechange = t.unreached_func();

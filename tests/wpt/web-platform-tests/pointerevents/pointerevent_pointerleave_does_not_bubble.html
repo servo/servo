@@ -17,6 +17,7 @@
         <script type="text/javascript">
             var detected_pointertypes = {};
             var test_pointerEvent = async_test("pointerLeave event does not bubble"); // set up test harness
+            var actions_promise;
             // showPointerTypes is defined in pointerevent_support.js
             // Requirements: the callback function will reference the test_pointerEvent object and
             // will fail unless the async_test is created with the var name "test_pointerEvent".
@@ -39,11 +40,14 @@
                     test_pointerEvent.step(function () {
                         assert_equals(event.target.id, "parent0", "Recieved " + event.type + " in parent for " + event.target.id);
                     });
-                    test_pointerEvent.done(); // complete test
+                    // Make sure the test finishes after all the input actions are completed.
+                    actions_promise.then( () => {
+                        test_pointerEvent.done();
+                    });
                 });
 
                 // Inject mouse inputs.
-                new test_driver.Actions()
+                actions_promise = new test_driver.Actions()
                     .pointerMove(0, 0, {origin: target0})
                     .pointerMove(0, 0)
                     .send();

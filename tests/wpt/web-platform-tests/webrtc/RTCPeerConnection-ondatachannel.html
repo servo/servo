@@ -12,7 +12,7 @@
 
 // The following helper functions are called from RTCPeerConnection-helper.js:
 // exchangeIceCandidates
-// doSignalingHandshake
+// exchangeOfferAnswer
 // createDataChannelPair
 
 /*
@@ -69,7 +69,7 @@ promise_test(async (t) => {
   pc1.createDataChannel('fire-me!');
 
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
 
   await resolver;
 }, 'Data channel event should fire when new data channel is announced to the remote peer');
@@ -101,7 +101,7 @@ promise_test(async (t) => {
   });
 
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
 
   await resolver;
 }, 'Should be able to send data in a datachannel event handler');
@@ -137,7 +137,7 @@ promise_test(async (t) => {
   pc1.createDataChannel('fire-me!');
 
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
 
   await resolver;
 }, 'Open event should not be raised when closing the channel in the datachannel event');
@@ -168,7 +168,7 @@ promise_test(async (t) => {
   pc1.createDataChannel('fire-me!');
 
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
 
   await resolver;
 }, 'Open event should be raised when closing the channel in the datachannel event after ' +
@@ -207,7 +207,7 @@ promise_test(async (t) => {
   });
 
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
 
   await resolver;
 }, 'Open event should not be raised when sending and immediately closing the channel in the ' +
@@ -282,7 +282,7 @@ promise_test(async (t) => {
   });
 
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
 
   await resolver;
 }, 'In-band negotiated channel created on remote peer should match the same configuration as local ' +
@@ -321,7 +321,7 @@ promise_test(async (t) => {
   });
 
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
 
   await resolver;
 }, 'In-band negotiated channel created on remote peer should match the same (default) ' +
@@ -352,7 +352,7 @@ promise_test(async (t) => {
   });
 
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
 
   // Wait a bit to ensure the 'datachannel' event does NOT fire
   t.step_timeout(() => resolver.resolve(), 500);

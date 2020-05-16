@@ -50,8 +50,8 @@ promise_test(async t => {
   pc1.createDataChannel('datachannel');
   pc1IceStates = new IceStateLogger(pc1);
   pc2IceStates = new IceStateLogger(pc1);
-  coupleIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  exchangeIceCandidates(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
   // Note - it's been claimed that this state sometimes jumps straight
   // to "completed". If so, this test should be flaky.
   await waitForIceStateChange(pc1, ['connected']);
@@ -73,7 +73,7 @@ promise_test(async t => {
   }
   // Candidates from PC2 are not delivered to pc1, so pc1 will use
   // peer-reflexive candidates.
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
   const waiter = iceGatheringCompleteWaiter(pc1);
   await waiter;
   for (const candidate of candidates) {
@@ -104,7 +104,7 @@ promise_test(async t => {
   }
   // Candidates from pc1 are not delivered to pc2.  so pc2 will use
   // peer-reflexive candidates.
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
   const waiter = iceGatheringCompleteWaiter(pc2);
   await waiter;
   for (const candidate of candidates) {
@@ -144,7 +144,7 @@ promise_test(async t => {
   }
   // Candidates from |pc1| are not delivered to |pc2|. |pc2| will use
   // peer-reflexive candidates.
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
   await Promise.all([waitForIceStateChange(pc1, ['connected', 'completed']),
                      waitForIceStateChange(pc2, ['connected', 'completed'])]);
   const candidate_pair = pc2.sctp.transport.iceTransport.getSelectedCandidatePair();

@@ -16,6 +16,8 @@ def main(request, response):
     <meta charset="utf-8">
     <title>Helper page for origin isolation tests</title>
 
+    <body>
+
     <script type="module">
     import { sendWasmModule } from "./helpers.mjs";
 
@@ -50,5 +52,7 @@ def main(request, response):
     window.onmessageerror = e => {
       e.source.postMessage("messageerror", "*");
     };
+
+    document.body.textContent = location.href;
     </script>
     """

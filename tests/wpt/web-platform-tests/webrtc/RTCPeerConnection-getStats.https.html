@@ -22,7 +22,7 @@
 
   // The following helper function is called from RTCPeerConnection-helper.js
   //   exchangeIceCandidates
-  //   doSignalingHandshake
+  //   exchangeOfferAnswer
 
   /*
     8.2.  getStats
@@ -179,8 +179,8 @@
 
     let [track, mediaStream] = await getTrackFromUserMedia('audio');
     pc.addTrack(track, mediaStream);
-    coupleIceCandidates(pc, pc2);
-    await doSignalingHandshake(pc, pc2);
+    exchangeIceCandidates(pc, pc2);
+    await exchangeOfferAnswer(pc, pc2);
     await listenToIceConnected(pc);
     const stats = await pc.getStats(track);
     validateStatsReport(stats);
@@ -202,8 +202,8 @@
 
     let [track, mediaStream] = await getTrackFromUserMedia('audio');
     pc.addTrack(track, mediaStream);
-    coupleIceCandidates(pc, pc2);
-    await doSignalingHandshake(pc, pc2);
+    exchangeIceCandidates(pc, pc2);
+    await exchangeOfferAnswer(pc, pc2);
     // Wait for unmute if the track is not already unmuted.
     // According to spec, it should be muted when being created, but this
     // is not what this test is testing, so allow it to be unmuted.
@@ -341,8 +341,8 @@
       }));
 
 
-      coupleIceCandidates(pc1, pc2);
-      doSignalingHandshake(pc1, pc2);
+      exchangeIceCandidates(pc1, pc2);
+      exchangeOfferAnswer(pc1, pc2);
     }))
     .catch(t.step_func(err => {
       assert_unreached(`test failed with error: ${err}`);

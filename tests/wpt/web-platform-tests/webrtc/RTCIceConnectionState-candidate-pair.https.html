@@ -18,7 +18,7 @@ promise_test(async t => {
   const [track] = stream.getTracks();
   caller.addTrack(track, stream);
   exchangeIceCandidates(caller, callee);
-  await doSignalingHandshake(caller, callee);
+  await exchangeOfferAnswer(caller, callee);
   await listenToIceConnected(caller);
 
   const report = await caller.getStats();

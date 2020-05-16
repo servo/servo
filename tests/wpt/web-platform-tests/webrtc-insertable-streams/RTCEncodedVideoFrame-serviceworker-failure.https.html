@@ -25,7 +25,7 @@ promise_test(async t => {
   const senderWriter = senderStreams.writableStream.getWriter();
 
   exchangeIceCandidates(caller, callee);
-  await doSignalingHandshake(caller, callee);
+  await exchangeOfferAnswer(caller, callee);
 
   const result = await senderReader.read();
   const scope = "resources/blank.html";

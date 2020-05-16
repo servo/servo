@@ -93,7 +93,7 @@ promise_test(async t => {
   let [track, streams] = await getTrackFromUserMedia('video');
   const sender = pc1.addTrack(track);
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
   await waitForIceStateChange(pc1, ['connected', 'completed']);
 }, 'PC should enter connected (or completed) state when candidates are sent');
 

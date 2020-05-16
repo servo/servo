@@ -108,7 +108,7 @@ promise_test(async (t) => {
   assert_equals(dc2.id, null);
 
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
   // We should now have 2 datachannels with different IDs.
   // At least one of the datachannels should not be 42.
   // If one has the value 42, it's an accident; if both have,
@@ -154,7 +154,7 @@ promise_test(async (t) => {
     ids.add(dc.id, `Channel ID ${dc.id} should be unique`);
   }
 
-  await doSignalingHandshake(pc1, pc2, {
+  await exchangeOfferAnswer(pc1, pc2, {
     offer: (offer) => {
       // Ensure pc1 takes the server role
       assert_true(offer.sdp.includes('actpass') || offer.sdp.includes('passive'),
@@ -300,7 +300,7 @@ promise_test(async (t) => {
     dcs.push([dc, i % 2 === 1]);
   }
 
-  await doSignalingHandshake(pc1, pc2, {
+  await exchangeOfferAnswer(pc1, pc2, {
     offer: (offer) => {
       // Ensure pc1 takes the server role
       assert_true(offer.sdp.includes('actpass') || offer.sdp.includes('passive'),

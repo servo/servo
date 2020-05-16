@@ -26,7 +26,7 @@ promise_test(async (test) => {
         if (event.candidate)
             remotePc.addIceCandidate(event.candidate);
     });
-    doSignalingHandshake(localPc, remotePc);
+    exchangeOfferAnswer(localPc, remotePc);
 
     const remoteDataChannel = await promiseDataChannel;
 
@@ -63,7 +63,7 @@ promise_test(async (test) => {
         if (event.candidate)
             localPc.addIceCandidate(event.candidate);
     });
-    doSignalingHandshake(localPc, remotePc);
+    exchangeOfferAnswer(localPc, remotePc);
 
     const remoteDataChannel = await promiseDataChannel;
 

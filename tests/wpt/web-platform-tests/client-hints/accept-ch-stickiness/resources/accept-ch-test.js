@@ -21,6 +21,20 @@ function verify_initial_state(initial_url, test_name) {
     "hints preferences cached");
 }
 
+function verify_iframe_state(expect_url, test_name) {
+  promise_test(t => {
+    return new Promise(resolve => {
+      window.addEventListener('message', t.step_func(function(e) {
+        assert_equals(e.data, "PASS", "message from opened frame");
+        fetch("/client-hints/accept-ch-stickiness/resources/clear-site-data.html").then(resolve);
+      }));
+      const iframe = document.createElement("iframe");
+      iframe.src = expect_url;
+      document.body.appendChild(iframe);
+    });
+  }, test_name + " got client hints according to expectations.");
+}
+
 function verify_navigation_state(expect_url, test_name) {
   promise_test(t => {
     return new Promise(resolve => {
@@ -40,14 +54,27 @@ function verify_navigation_state(expect_url, test_name) {
 function verify_subresource_state(expect_url, test_name) {
   promise_test(t => {
     return new Promise(resolve => {
-      let win;
-      window.addEventListener('message', t.step_func(function(e) {
-        win.close();
-        assert_equals(e.data, "PASS", "message from opened page");
+      fetch(expect_url).then(response => response.text()).then(t.step_func(text => {
+        assert_true(text.includes("PASS"));
         fetch("/client-hints/accept-ch-stickiness/resources/clear-site-data.html").then(resolve);
       }));
-      // Open expect_url as a subresource.
-      fetch(expect_url).then(resolve);
+    });
+  }, test_name + " got client hints according to expectations.");
+}
+
+function verify_syncxhr_state(expect_url, test_name) {
+  promise_test(t => {
+    return new Promise(resolve => {
+      const xhr = new XMLHttpRequest();
+      xhr.onreadystatechange = t.step_func(() => {
+        if (xhr.readyState != XMLHttpRequest.DONE) {
+          return;
+        }
+        assert_true(xhr.responseText.includes("PASS"));
+        fetch("/client-hints/accept-ch-stickiness/resources/clear-site-data.html").then(resolve);
+      });
+      xhr.open("GET", expect_url, false /* async */);
+      xhr.send();
     });
   }, test_name + " got client hints according to expectations.");
 }

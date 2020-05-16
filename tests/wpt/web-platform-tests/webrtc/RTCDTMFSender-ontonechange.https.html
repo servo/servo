@@ -264,7 +264,7 @@
     // tonechange event, to make sure that tonechange is triggered
     // then stopped
     transceiver.direction = 'recvonly';
-    await doSignalingHandshake(pc, pc2);
+    await exchangeOfferAnswer(pc, pc2);
     assert_equals(transceiver.currentDirection, 'inactive');
     remoteDescriptionIsSet = true;
 

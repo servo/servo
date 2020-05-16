@@ -21,6 +21,10 @@ class RingBuffer {
     return { done: false, value: value };
   }
 
+  value() {
+    return this.data_[this.bufferPosition_];
+  }
+
   [Symbol.iterator]() {
     return this;
   }
@@ -110,6 +114,17 @@ var GenericSensorTest = (() => {
     async setSensorReading(readingData) {
       this.readingData_ = new RingBuffer(readingData);
       return this;
+    }
+
+    // This is a workaround to accommodate Blink's Device Orientation
+    // implementation. In general, all tests should use setSensorReading()
+    // instead.
+    setSensorReadingImmediately(readingData) {
+      this.setSensorReading(readingData);
+
+      const reading = this.readingData_.value();
+      this.buffer_.set(reading, 2);
+      this.buffer_[1] = window.performance.now() * 0.001;
     }
 
     // Sets flag that forces sensor to fail when addConfiguration is invoked.

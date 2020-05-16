@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<head>
+  <title>Relevant mutations on deferred loading=lazy images should not trigger
+         a request</title>
+  <link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#updating-the-image-data">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<script>
+  let below_viewport_1_loaded = false,
+      below_viewport_2_loaded = false,
+      below_viewport_3_loaded = false
+
+  // For general lazy loading behavior.
+  promise_test(() => {
+    // When the page loads, start the rest of the tests.
+    return new Promise(resolve => {
+      window.addEventListener("load", e => {
+        const kAssertion = 'image should never load';
+        assert_false(below_viewport_1_loaded, `below-viewport-1 ${kAssertion}`);
+        assert_false(below_viewport_2_loaded, `below-viewport-2 ${kAssertion}`);
+        assert_false(below_viewport_3_loaded, `below-viewport-3 ${kAssertion}`);
+        resolve();
+      });
+    });
+  }, "Images are lazyloaded");
+
+  // For `referrerPolicy` attribute mutations.
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      const below_viewport_1 = document.querySelector('img#below-viewport-1');
+      below_viewport_1.onload = reject;
+      below_viewport_1.onerror = reject;
+      t.step_timeout(resolve, 1000);
+
+      below_viewport_1.referrerPolicy = 'no-referrer';
+    });
+  }, "Image referrerPolicy mutation does not cause deferred loading=lazy " +
+     "images to be fetched");
+
+  // For `crossOrigin` attribute mutations.
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      const below_viewport_2 = document.querySelector('img#below-viewport-2');
+      below_viewport_2.onload = reject;
+      below_viewport_2.onerror = reject;
+      t.step_timeout(resolve, 1000);
+
+      below_viewport_2.crossOrigin = 'anonymous';
+    });
+  }, "Image crossOrigin mutation does not cause deferred loading=lazy " +
+     "images to be fetched");
+
+  // For `src` attribute mutations.
+  promise_test(t => {
+    return new Promise((resolve, reject) => {
+      const below_viewport_3 = document.querySelector('img#below-viewport-3');
+      below_viewport_3.onload = reject;
+      below_viewport_3.onerror = reject;
+      t.step_timeout(resolve, 1000);
+
+      below_viewport_3.src = "resources/image.png?change";
+    });
+  }, "Image src mutation does not cause deferred loading=lazy " +
+     "images to be fetched");
+</script>
+
+<body>
+  <div style="height:1000vh;"></div>
+  <img id="below-viewport-1" src="resources/image.png?1" loading="lazy"
+       onload="below_viewport_1_loaded = true"
+       onerror="below_viewport_1_loaded = true">
+
+  <img id="below-viewport-2" src="resources/image.png?2" loading="lazy"
+       onload="below_viewport_2_loaded = true"
+       onerror="below_viewport_2_loaded = true">
+
+  <img id="below-viewport-3" src="resources/image.png?3" loading="lazy"
+       onload="below_viewport_3_loaded = true"
+       onerror="below_viewport_3_loaded = true">
+</body>

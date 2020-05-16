@@ -28,8 +28,8 @@ function verifyEvent(entry, eventType, targetId, isFirst=false, minDuration=104,
   assert_equals(entry.entryType, 'event');
   assert_greater_than_equal(entry.duration, minDuration,
       "The entry's duration should be greater than or equal to " + minDuration + " ms.");
-  assert_greater_than(entry.processingStart, entry.startTime,
-      "The entry's processingStart should be greater than startTime.");
+  assert_greater_than_equal(entry.processingStart, entry.startTime,
+      "The entry's processingStart should be greater than or equal to startTime.");
   assert_greater_than_equal(entry.processingEnd, entry.processingStart,
       "The entry's processingEnd must be at least as large as processingStart.");
   // |duration| is a number rounded to the nearest 8 ms, so add 4 to get a lower bound
@@ -122,9 +122,9 @@ async function testDuration(t, id, numEntries, dur, fastDur, slowDur) {
   return Promise.all([observerPromise, clicksPromise]);
 }
 
-// Apply events that trigger an event of the given |eventType| to be dispatched to the |target|. Some
-//  of these assume that the target is not on the top left corner of the screen, which means that
-// (0, 0) of the viewport is outside of the |target|.
+// Apply events that trigger an event of the given |eventType| to be dispatched to the
+// |target|. Some of these assume that the target is not on the top left corner of the
+// screen, which means that (0, 0) of the viewport is outside of the |target|.
 function applyAction(eventType, target) {
   const actions = new test_driver.Actions();
   if (eventType === 'auxclick') {
@@ -167,16 +167,25 @@ function applyAction(eventType, target) {
 }
 
 function requiresListener(eventType) {
-  return ['mouseenter', 'mouseleave', 'pointerdown', 'pointerenter', 'pointerleave', 'pointerout', 'pointerover', 'pointerup'].includes(eventType);
+  return ['mouseenter',
+          'mouseleave',
+          'pointerdown',
+          'pointerenter',
+          'pointerleave',
+          'pointerout',
+          'pointerover',
+          'pointerup'
+        ].includes(eventType);
 }
 
 function notCancelable(eventType) {
   return ['mouseenter', 'mouseleave', 'pointerenter', 'pointerleave'].includes(eventType);
 }
 
-// Tests the given |eventType| by creating events whose target are the element with id 'target'.
-// The test assumes that such element already exists. |looseCount| is set for events for which
-// events would occur for other elements besides the target, so the counts will be larger.
+// Tests the given |eventType| by creating events whose target are the element with id
+// 'target'. The test assumes that such element already exists. |looseCount| is set for
+// eventTypes for which events would occur for other elements besides the target, so the
+// counts will be larger.
 async function testEventType(t, eventType, looseCount=false) {
   assert_implements(window.EventCounts, "Event Counts isn't supported");
   assert_equals(performance.eventCounts.get(eventType), 0);
@@ -192,7 +201,8 @@ async function testEventType(t, eventType, looseCount=false) {
     assert_greater_than_equal(performance.eventCounts.get(eventType), 2,
         `Should have at least 2 ${eventType} events`)
   } else {
-    assert_equals(performance.eventCounts.get(eventType), 2, `Should have 2 ${eventType} events`);
+    assert_equals(performance.eventCounts.get(eventType), 2,
+        `Should have 2 ${eventType} events`);
   }
   // The durationThreshold used by the observer. A slow events needs to be slower than that.
   const durationThreshold = 16;
@@ -211,7 +221,8 @@ async function testEventType(t, eventType, looseCount=false) {
         entry = eventTypeEntries[0];
         assert_equals(eventTypeEntries.length, 1);
       } else {
-        // The other events could also be considered slow. Find the one with the correct target.
+        // The other events could also be considered slow. Find the one with the correct
+        // target.
         eventTypeEntries.forEach(e => {
           if (e.target === document.getElementById('target'))
             entry = e;
@@ -229,7 +240,8 @@ async function testEventType(t, eventType, looseCount=false) {
         assert_greater_than_equal(performance.eventCounts.get(eventType), 3,
             `Should have at least 3 ${eventType} events`)
       } else {
-        assert_equals(performance.eventCounts.get(eventType), 3, `Should have 3 ${eventType} events`);
+        assert_equals(performance.eventCounts.get(eventType), 3,
+            `Should have 3 ${eventType} events`);
       }
       resolve();
     })).observe({type: 'event', durationThreshold: durationThreshold});

@@ -14,7 +14,7 @@
   // https://w3c.github.io/webrtc-stats/archives/20170614/webrtc-stats.html
 
   // The following helper functions are called from RTCPeerConnection-helper.js:
-  //   doSignalingHandshake
+  //   exchangeOfferAnswer
 
   // The following helper function is called from RTCStats-helper.js
   //   validateStatsReport
@@ -57,7 +57,7 @@
 
     const { receiver } = caller.addTransceiver('audio');
 
-    await doSignalingHandshake(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
     const statsReport = await receiver.getStats();
     validateStatsReport(statsReport);
     assert_stats_report_has_stats(statsReport, ['inbound-rtp']);
@@ -73,7 +73,7 @@
     const [track] = stream.getTracks();
     caller.addTrack(track, stream);
 
-    await doSignalingHandshake(caller, callee);
+    await exchangeOfferAnswer(caller, callee);
     const receiver = callee.getReceivers()[0];
     const statsReport = await receiver.getStats();
     validateStatsReport(statsReport);
