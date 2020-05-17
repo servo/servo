@@ -50,12 +50,14 @@ use layout::flow_ref::FlowRef;
 use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
 use layout::layout_debug;
 use layout::parallel;
+use layout::query::{
+    process_canvas_font_request, process_offset_parent_query, process_resolved_style_request,
+};
 use layout::query::{process_client_rect_query, process_element_inner_text_query};
 use layout::query::{
     process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
 };
 use layout::query::{process_node_scroll_area_request, process_node_scroll_id_request};
-use layout::query::{process_offset_parent_query, process_resolved_style_request};
 use layout::sequential;
 use layout::traversal::{
     ComputeStackingRelativePositions, PreorderFlowTraversal, RecalcStyleAndConstructFlows,
@@ -575,6 +577,7 @@ impl LayoutThread {
                 nodes_from_point_response: vec![],
                 element_inner_text_response: String::new(),
                 inner_window_dimensions_response: None,
+                canvas_font_response: String::new(),
             })),
             webrender_image_cache: Arc::new(RwLock::new(FnvHashMap::default())),
             paint_time_metrics: paint_time_metrics,
@@ -1600,8 +1603,10 @@ impl LayoutThread {
                         .get(&browsing_context_id)
                         .cloned();
                 },
-                &QueryMsg::CanvasFontQuery(_node, ref _font) => {
-                    unimplemented!();
+                &QueryMsg::CanvasFontQuery(node, ref font) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.canvas_font_response =
+                        process_canvas_font_request(node, font, root_flow);
                 },
             },
             ReflowGoal::Full | ReflowGoal::TickAnimations => {},

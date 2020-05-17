@@ -107,7 +107,6 @@ pub enum QueryMsg {
     OffsetParentQuery(OpaqueNode),
     TextIndexQuery(OpaqueNode, Point2D<f32>),
     NodesFromPointQuery(Point2D<f32>, NodesFromPointQueryType),
-    CanvasFontQuery(OpaqueNode, String),
 
     // FIXME(nox): The following queries use the TrustedNodeAddress to
     // access actual DOM nodes, but those values can be constructed from
@@ -117,6 +116,7 @@ pub enum QueryMsg {
     StyleQuery,
     ElementInnerTextQuery(TrustedNodeAddress),
     InnerWindowDimensionsQuery(BrowsingContextId),
+    CanvasFontQuery(TrustedNodeAddress, String),
 }
 
 /// Any query to perform with this reflow.

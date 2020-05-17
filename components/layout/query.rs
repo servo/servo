@@ -90,6 +90,9 @@ pub struct LayoutThreadData {
 
     /// A queued response for the viewport dimensions for a given browsing context.
     pub inner_window_dimensions_response: Option<TypedSize2D<f32, CSSPixel>>,
+
+    /// A queued response for the resolved font property of a canvas element.
+    pub canvas_font_response: String,
 }
 
 pub struct LayoutRPCImpl(pub Arc<Mutex<LayoutThreadData>>);
@@ -1094,4 +1097,12 @@ fn is_last_table_cell() -> bool {
 fn is_last_table_row() -> bool {
     // FIXME(ferjm) Implement this.
     false
+}
+
+pub fn process_canvas_font_request<'dom>(
+    _node: impl LayoutNode<'dom>,
+    _font: &str,
+    _layout_root: &mut dyn Flow,
+) -> String {
+    unimplemented!()
 }
