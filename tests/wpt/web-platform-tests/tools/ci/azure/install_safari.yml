@@ -12,9 +12,6 @@ steps:
     displayName: 'Install Safari Technology Preview'
 - ${{ if eq(parameters.channel, 'stable') }}:
   - script: |
-      # Workaround for `sudo safardriver --enable` not working:
-      # https://github.com/web-platform-tests/wpt/issues/19845
-      mkdir -p ~/Library/WebDriver/
-      cp tools/ci/azure/com.apple.Safari.plist ~/Library/WebDriver/
+      sudo safaridriver --enable
       defaults write com.apple.Safari WebKitJavaScriptCanOpenWindowsAutomatically 1
     displayName: 'Configure Safari'
