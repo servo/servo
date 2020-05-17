@@ -171,7 +171,7 @@ fn no_referrer_when_downgrade_header(
     url: ServoUrl,
     https_state: HttpsState,
 ) -> Option<ServoUrl> {
-    if https_state == HttpsState::Modern && !is_origin_trustworthy(url) {
+    if https_state == HttpsState::Modern && !url.is_origin_trustworthy() {
         return None;
     }
     return strip_url(referrer_url, false);
@@ -183,7 +183,7 @@ fn strict_origin(
     url: ServoUrl,
     https_state: HttpsState,
 ) -> Option<ServoUrl> {
-    if https_state == HttpsState::Modern && !is_origin_trustworthy(url) {
+    if https_state == HttpsState::Modern && !url.is_origin_trustworthy() {
         return None;
     }
     strip_url(referrer_url, true)
@@ -199,32 +199,10 @@ fn strict_origin_when_cross_origin(
     if same_origin {
         return strip_url(referrer_url, false);
     }
-    if https_state == HttpsState::Modern && !is_origin_trustworthy(url) {
+    if https_state == HttpsState::Modern && !url.is_origin_trustworthy() {
         return None;
     }
     strip_url(referrer_url, true)
-}
-
-/// <https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy>
-fn is_origin_trustworthy(url: ServoUrl) -> bool {
-    match url.origin() {
-        // Step 1
-        ImmutableOrigin::Opaque(_) => false,
-        ImmutableOrigin::Tuple(_, _, _) => {
-            // Step 3
-            if url.scheme() == "https" || url.scheme() == "wss" {
-                return true;
-            }
-            // Step 4-5 TODO
-            // Step 6
-            if url.scheme() == "file" {
-                return true;
-            }
-            // Step 7-8 TODO
-            // Step 9
-            false
-        },
-    }
 }
 
 /// https://html.spec.whatwg.org/multipage/#schemelessly-same-site
