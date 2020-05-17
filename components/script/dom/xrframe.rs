@@ -80,8 +80,8 @@ impl XRFrameMethods for XRFrame {
             return Err(Error::InvalidState);
         }
 
-        let pose = if let Some(pose) = reference.get_viewer_pose(&self.data) {
-            pose
+        let to_base = if let Some(to_base) = reference.get_base_transform(&self.data) {
+            to_base
         } else {
             return Ok(None);
         };
@@ -93,7 +93,7 @@ impl XRFrameMethods for XRFrame {
         Ok(Some(XRViewerPose::new(
             &self.global(),
             &self.session,
-            pose,
+            to_base,
             viewer_pose,
         )))
     }

@@ -9,15 +9,16 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrpose::XRPose;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::{cast_transform, ApiViewerPose, XRSession};
+use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};
 use crate::dom::xrview::XRView;
 use crate::realms::enter_realm;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
+use euclid::RigidTransform3D;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
-use webxr_api::{ViewerPose, Views};
+use webxr_api::{Viewer, ViewerPose, Views};
 
 #[dom_struct]
 pub struct XRViewerPose {
@@ -38,7 +39,7 @@ impl XRViewerPose {
     pub fn new(
         global: &GlobalScope,
         session: &XRSession,
-        pose: ApiViewerPose,
+        to_base: BaseTransform,
         viewer_pose: &ViewerPose,
     ) -> DomRoot<XRViewerPose> {
         let _ac = enter_realm(&*global);
@@ -50,29 +51,64 @@ impl XRViewerPose {
                 &session.inline_view(),
                 XREye::None,
                 0,
-                &pose,
+                &to_base,
             )),
-            Views::Mono(view) => {
-                views.push(XRView::new(global, session, &view, XREye::None, 0, &pose))
-            },
+            Views::Mono(view) => views.push(XRView::new(
+                global,
+                session,
+                &view,
+                XREye::None,
+                0,
+                &to_base,
+            )),
             Views::Stereo(left, right) => {
-                views.push(XRView::new(global, session, &left, XREye::Left, 0, &pose));
-                views.push(XRView::new(global, session, &right, XREye::Right, 1, &pose));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    &left,
+                    XREye::Left,
+                    0,
+                    &to_base,
+                ));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    &right,
+                    XREye::Right,
+                    1,
+                    &to_base,
+                ));
             },
             Views::StereoCapture(left, right, third_eye) => {
-                views.push(XRView::new(global, session, &left, XREye::Left, 0, &pose));
-                views.push(XRView::new(global, session, &right, XREye::Right, 1, &pose));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    &left,
+                    XREye::Left,
+                    0,
+                    &to_base,
+                ));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    &right,
+                    XREye::Right,
+                    1,
+                    &to_base,
+                ));
                 views.push(XRView::new(
                     global,
                     session,
                     &third_eye,
                     XREye::None,
                     2,
-                    &pose,
+                    &to_base,
                 ));
             },
         };
-        let transform = XRRigidTransform::new(global, cast_transform(pose));
+        let transform: RigidTransform3D<f32, Viewer, BaseSpace> =
+            to_base.pre_transform(&viewer_pose.transform);
+        let transform = XRRigidTransform::new(global, cast_transform(transform));
         let pose = reflect_dom_object(Box::new(XRViewerPose::new_inherited(&transform)), global);
 
         let cx = global.get_cx();

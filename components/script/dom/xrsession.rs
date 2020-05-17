@@ -791,10 +791,13 @@ impl XRSessionMethods for XRSession {
 
 // The pose of an object in native-space. Should never be exposed.
 pub type ApiPose = RigidTransform3D<f32, ApiSpace, webxr_api::Native>;
-// The pose of the viewer in some api-space.
-pub type ApiViewerPose = RigidTransform3D<f32, webxr_api::Viewer, ApiSpace>;
 // A transform between objects in some API-space
 pub type ApiRigidTransform = RigidTransform3D<f32, ApiSpace, ApiSpace>;
+
+#[derive(Clone, Copy)]
+pub struct BaseSpace;
+
+pub type BaseTransform = RigidTransform3D<f32, webxr_api::Native, BaseSpace>;
 
 #[allow(unsafe_code)]
 pub fn cast_transform<T, U, V, W>(

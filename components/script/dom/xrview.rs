@@ -9,9 +9,10 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::utils::create_typed_array;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::{cast_transform, ApiViewerPose, XRSession};
+use crate::dom::xrsession::{cast_transform, BaseSpace, BaseTransform, XRSession};
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
+use euclid::RigidTransform3D;
 use js::jsapi::{Heap, JSObject};
 use std::ptr::NonNull;
 use webxr_api::{ApiSpace, View};
@@ -54,15 +55,9 @@ impl XRView {
         view: &View<V>,
         eye: XREye,
         viewport_index: usize,
-        pose: &ApiViewerPose,
+        to_base: &BaseTransform,
     ) -> DomRoot<XRView> {
-        // XXXManishearth compute and cache projection matrices on the Display
-
-        // this transform is the pose of the viewer in the eye space, i.e. it is the transform
-        // from the viewer space to the eye space. We invert it to get the pose of the eye in the viewer space.
-        let offset = view.transform.inverse();
-
-        let transform = pose.pre_transform(&offset);
+        let transform: RigidTransform3D<f32, V, BaseSpace> = to_base.pre_transform(&view.transform);
         let transform = XRRigidTransform::new(global, cast_transform(transform));
 
         reflect_dom_object(
