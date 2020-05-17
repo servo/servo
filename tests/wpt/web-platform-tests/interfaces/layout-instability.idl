@@ -5,8 +5,16 @@
 
 [Exposed=Window]
 interface LayoutShift : PerformanceEntry {
-  readonly attribute long value;
+  readonly attribute double value;
   readonly attribute boolean hadRecentInput;
   readonly attribute DOMHighResTimeStamp lastInputTime;
+  readonly attribute FrozenArray<LayoutShiftAttribution> sources;
   [Default] object toJSON();
+};
+
+[Exposed=Window]
+interface LayoutShiftAttribution {
+  readonly attribute Node? node;
+  readonly attribute DOMRectReadOnly previousRect;
+  readonly attribute DOMRectReadOnly currentRect;
 };
