@@ -7,6 +7,7 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
+use crate::animation::AnimationState;
 use crate::computed_value_flags::ComputedValueFlags;
 use crate::context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
 use crate::context::{SharedStyleContext, StyleContext};
@@ -458,9 +459,14 @@ trait PrivateMatchMethods: TElement {
             &context.thread_local.font_metrics_provider,
         );
 
+        // We clear away any finished transitions, but retain animations, because they
+        // might still be used for proper calculation of `animation-fill-mode`.
+        animation_state
+            .transitions
+            .retain(|transition| transition.state != AnimationState::Finished);
+
         // If the ElementAnimationSet is empty, and don't store it in order to
         // save memory and to avoid extra processing later.
-        animation_state.clear_finished_animations();
         if !animation_state.is_empty() {
             animation_states.insert(this_opaque, animation_state);
         }
