@@ -10,7 +10,7 @@
 'use strict';
 
 promise_test(async t => {
-  test_driver.set_permission({name: 'clipboard-write'}, 'denied');
+  await test_driver.set_permission({name: 'clipboard-write'}, 'denied');
   await promise_rejects_dom(t, 'NotAllowedError',
       navigator.clipboard.writeText('xyz'));
 }, 'navigator.clipboard.writeText() fails when permission denied');

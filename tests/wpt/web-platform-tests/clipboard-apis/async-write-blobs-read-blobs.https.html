@@ -16,8 +16,8 @@ async function loadBlob(fileName) {
 }
 
 promise_test(async t => {
-  test_driver.set_permission({name: 'clipboard-read'}, 'granted');
-  test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
 
   const blobText = new Blob(['test text'], {type: 'text/plain'});
   const blobImage = await loadBlob('resources/greenbox.png');

@@ -11,11 +11,11 @@
 'use strict';
 
 promise_test(async t => {
-  // Note: This tests proper behavior on a detaching iframe. text/plain is
-  // chosen for simplicity, and the test should fail the same way no matter what
-  // the input type is.
-  test_driver.set_permission({name: 'clipboard-read'}, 'granted');
-  test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  // This tests proper behavior on a detaching iframe. text/plain is chosen for
+  // simplicity, and the test should fail the same way no matter what the input
+  // type is.
+  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
 
   const iframe = document.getElementById('iframe');
   const iframeClipboard = iframe.contentWindow.navigator.clipboard;
@@ -26,8 +26,8 @@ promise_test(async t => {
   iframe.focus();
 
   // An iframe detaching while writing to the clipboard should fail, but not
-  // crash. Note the lack of await here, meaning that the iframe will detach
-  // while the read operation is running.
+  // crash. The lack of await here means that the iframe will detach while the
+  // write operation is running.
   iframeClipboard.read([clipboardItemInput]);
   iframe.parentNode.removeChild(iframe);
 }, 'Verify read fails on detaching iframe');

@@ -10,7 +10,7 @@
 'use strict';
 
 promise_test(async () => {
-  test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
   await navigator.clipboard.writeText('xyz');
 }, 'navigator.clipboard.writeText() succeeds when permission granted');
 </script>
