@@ -10,7 +10,7 @@
 'use strict';
 
 promise_test(async t => {
-  test_driver.set_permission({name: 'clipboard-read'}, 'denied');
+  await test_driver.set_permission({name: 'clipboard-read'}, 'denied');
   await promise_rejects_dom(t,
       'NotAllowedError', navigator.clipboard.readText());
 }, 'navigator.clipboard.readText() fails when permission denied');

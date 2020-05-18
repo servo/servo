@@ -11,8 +11,8 @@
 <script>
 async function readWriteTest(textInput) {
   promise_test(async t => {
-    test_driver.set_permission({name: 'clipboard-read'}, 'granted');
-    test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+    await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+    await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
 
     const blobInput = new Blob([textInput], {type: 'text/plain'});
     const clipboardItem = new ClipboardItem({'text/plain': blobInput});

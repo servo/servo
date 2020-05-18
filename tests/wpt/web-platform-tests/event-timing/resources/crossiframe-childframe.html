@@ -8,7 +8,10 @@
   const clickTimeMin = performance.now();
   const observerPromise = new Promise(resolve => {
     new PerformanceObserver(entryList => {
-      resolve(entryList.getEntries().filter(entry => entry.name === 'mousedown'));
+      const mouseDowns = entryList.getEntriesByName('mousedown');
+      if (mouseDowns.length === 0)
+        return;
+      resolve(mouseDowns);
     }).observe({ type:'event' });
   });
   const entries = await observerPromise;

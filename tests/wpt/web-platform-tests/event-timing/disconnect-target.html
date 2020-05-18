@@ -15,6 +15,8 @@ async_test(function(t) {
   assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
   const observer = new PerformanceObserver(t.step_func_done((entryList) => {
     const entries = entryList.getEntries().filter(e => e.name === 'mousedown');
+    if (entries.length === 0)
+      return;
     // There must only be one click entry.
     assert_equals(entries.length, 1);
     const entry = entries[0];

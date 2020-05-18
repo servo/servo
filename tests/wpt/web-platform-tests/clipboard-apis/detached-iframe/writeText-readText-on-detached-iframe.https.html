@@ -11,8 +11,8 @@
 'use strict';
 
 promise_test(async t => {
-  test_driver.set_permission({name: 'clipboard-read'}, 'granted');
-  test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
 
   const iframe = document.getElementById('iframe');
   // Clipboard API must only be available in focused documents.

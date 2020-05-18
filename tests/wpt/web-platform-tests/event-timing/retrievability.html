@@ -32,7 +32,7 @@
   async_test(function(t) {
     assert_implements(window.PerformanceEventTiming, 'Event Timing is not supported.');
     new PerformanceObserver(t.step_func(entryList => {
-      if (entryList.getEntriesByName('mousedown')) {
+      if (entryList.getEntriesByName('mousedown').length > 0) {
         validateEntries();
         t.done();
       }
