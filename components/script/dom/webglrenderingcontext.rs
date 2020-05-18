@@ -638,7 +638,7 @@ impl WebGLRenderingContext {
         }
     }
 
-    fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
+    pub fn get_image_pixels(&self, source: TexImageSource) -> Fallible<Option<TexPixels>> {
         Ok(Some(match source {
             TexImageSource::ImageData(image_data) => TexPixels::new(
                 image_data.to_shared_memory(),
