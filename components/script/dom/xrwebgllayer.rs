@@ -4,7 +4,6 @@
 
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
-use crate::dom::bindings::codegen::Bindings::XRViewBinding::{XREye, XRViewMethods};
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerInit;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLRenderingContext;
@@ -22,10 +21,10 @@ use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
 use canvas_traits::webgl::WebGLFramebufferId;
 use dom_struct::dom_struct;
-use euclid::{Point2D, Rect, Size2D};
+use euclid::{Rect, Size2D};
 use std::convert::TryInto;
 use webxr_api::SwapChainId as WebXRSwapChainId;
-use webxr_api::{Viewport, Views};
+use webxr_api::Viewport;
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[unrooted_must_root_lint::must_root]
@@ -115,7 +114,11 @@ impl XRWebGLLayer {
 
         // Step 9.2. "Initialize layer’s framebuffer to a new opaque framebuffer created with context."
         let (swap_chain_id, framebuffer) = if session.is_immersive() {
-            let size = session.with_session(|session| session.recommended_framebuffer_resolution());
+            let size = session.with_session(|session| {
+                session
+                    .recommended_framebuffer_resolution()
+                    .expect("immersive session must have viewports")
+            });
             let (swap_chain_id, fb) = WebGLFramebuffer::maybe_new_webxr(session, &context, size)
                 .ok_or(Error::Operation)?;
             framebuffer = fb;
@@ -241,21 +244,16 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
             return None;
         }
 
-        let views = self.session.with_session(|s| s.views().clone());
+        let index = view.viewport_index();
 
-        let viewport = match (view.Eye(), views) {
-            (XREye::None, Views::Inline) => {
-                let origin = Point2D::new(0, 0);
-                Rect::new(origin, self.size().cast())
-            },
-            (XREye::None, Views::Mono(view)) => view.viewport,
-            (XREye::None, Views::StereoCapture(_, _, view)) => view.viewport,
-            (XREye::Left, Views::Stereo(view, _)) => view.viewport,
-            (XREye::Left, Views::StereoCapture(view, _, _)) => view.viewport,
-            (XREye::Right, Views::Stereo(_, view)) => view.viewport,
-            (XREye::Right, Views::StereoCapture(_, view, _)) => view.viewport,
-            _ => return None,
-        };
+        let viewport = self.session.with_session(|s| {
+            // Inline sssions
+            if s.viewports().is_empty() {
+                Rect::from_size(self.size().to_i32())
+            } else {
+                s.viewports()[index]
+            }
+        });
 
         Some(XRViewport::new(&self.global(), viewport))
     }

@@ -9,11 +9,11 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::xrrigidtransform::XRRigidTransform;
-use crate::dom::xrsession::{cast_transform, ApiPose, ApiViewerPose, XRSession};
+use crate::dom::xrsession::{cast_transform, ApiPose, BaseTransform, XRSession};
 use crate::dom::xrspace::XRSpace;
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
-use webxr_api::{BaseSpace, Frame, Space};
+use webxr_api::{self, Frame, Space};
 
 #[dom_struct]
 pub struct XRReferenceSpace {
@@ -60,9 +60,9 @@ impl XRReferenceSpace {
 
     pub fn space(&self) -> Space {
         let base = match self.ty {
-            XRReferenceSpaceType::Local => BaseSpace::Local,
-            XRReferenceSpaceType::Viewer => BaseSpace::Viewer,
-            XRReferenceSpaceType::Local_floor => BaseSpace::Floor,
+            XRReferenceSpaceType::Local => webxr_api::BaseSpace::Local,
+            XRReferenceSpaceType::Viewer => webxr_api::BaseSpace::Viewer,
+            XRReferenceSpaceType::Local_floor => webxr_api::BaseSpace::Floor,
             _ => panic!("unsupported reference space found"),
         };
         let offset = self.offset.transform();
@@ -85,58 +85,13 @@ impl XRReferenceSpaceMethods for XRReferenceSpace {
 }
 
 impl XRReferenceSpace {
-    /// Gets pose of the viewer with respect to this space
+    /// Get a transform that can be used to locate the base space
     ///
-    /// This is equivalent to `get_pose(self).inverse() * get_pose(viewerSpace)` (in column vector notation),
-    /// however we specialize it to be efficient
-    pub fn get_viewer_pose(&self, base_pose: &Frame) -> Option<ApiViewerPose> {
-        let pose = self.get_unoffset_viewer_pose(base_pose)?;
-        // in column-vector notation,
-        // get_viewer_pose(space) = get_pose(space).inverse() * get_pose(viewer_space)
-        //                        = (get_unoffset_pose(space) * offset).inverse() * get_pose(viewer_space)
-        //                        = offset.inverse() * get_unoffset_pose(space).inverse() * get_pose(viewer_space)
-        //                        = offset.inverse() * get_unoffset_viewer_pose(space)
-        let offset = self.offset.transform();
-        let inverse = offset.inverse();
-        Some(inverse.pre_transform(&pose))
-    }
-
-    /// Gets pose of the viewer with respect to this space
-    ///
-    /// Does not apply originOffset, use get_viewer_pose instead if you need it
-    pub fn get_unoffset_viewer_pose(&self, base_pose: &Frame) -> Option<ApiViewerPose> {
-        // all math is in column-vector notation
-        // we use the following equation to verify correctness here:
-        // get_viewer_pose(space) = get_pose(space).inverse() * get_pose(viewer_space)
-        match self.ty {
-            XRReferenceSpaceType::Local => {
-                // get_viewer_pose(eye_level) = get_pose(eye_level).inverse() * get_pose(viewer_space)
-                //                            = I * viewer_pose
-                //                            = viewer_pose
-                let viewer_pose: ApiViewerPose = cast_transform(base_pose.transform?);
-
-                // we get viewer poses in eye-level space by default
-                Some(viewer_pose)
-            },
-            XRReferenceSpaceType::Local_floor => {
-                // get_viewer_pose(floor_level) = get_pose(floor_level).inverse() * get_pose(viewer_space)
-                //                            = floor_to_native.inverse() * viewer_pose
-                //                            = native_to_floor * viewer_pose
-                let viewer_pose = base_pose.transform?;
-                let native_to_floor = self
-                    .upcast::<XRSpace>()
-                    .session()
-                    .with_session(|s| s.floor_transform())?;
-
-                Some(cast_transform(native_to_floor.pre_transform(&viewer_pose)))
-            },
-            XRReferenceSpaceType::Viewer => {
-                // This reference space follows the viewer around, so the viewer is
-                // always at an identity transform with respect to it
-                Some(RigidTransform3D::identity())
-            },
-            _ => unimplemented!(),
-        }
+    /// This is equivalent to `get_pose(self).inverse()` (in column vector notation),
+    /// but with better types
+    pub fn get_base_transform(&self, base_pose: &Frame) -> Option<BaseTransform> {
+        let pose = self.get_pose(base_pose)?;
+        Some(pose.inverse().cast_unit())
     }
 
     /// Gets pose represented by this space
@@ -171,7 +126,9 @@ impl XRReferenceSpace {
                     .with_session(|s| s.floor_transform())?;
                 Some(cast_transform(native_to_floor.inverse()))
             },
-            XRReferenceSpaceType::Viewer => base_pose.transform.map(cast_transform),
+            XRReferenceSpaceType::Viewer => {
+                Some(cast_transform(base_pose.pose.as_ref()?.transform))
+            },
             _ => unimplemented!(),
         }
     }

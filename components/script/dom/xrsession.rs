@@ -40,7 +40,7 @@ use crate::dom::xrspace::XRSpace;
 use crate::realms::InRealm;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
-use euclid::{Rect, RigidTransform3D, Transform3D, Vector3D};
+use euclid::{RigidTransform3D, Transform3D, Vector3D};
 use ipc_channel::ipc::IpcReceiver;
 use ipc_channel::router::ROUTER;
 use metrics::ToMs;
@@ -476,17 +476,10 @@ impl XRSession {
     /// Constructs a View suitable for inline sessions using the inlineVerticalFieldOfView and canvas size
     pub fn inline_view(&self) -> View<Viewer> {
         debug_assert!(!self.is_immersive());
-        let size = self
-            .active_render_state
-            .get()
-            .GetBaseLayer()
-            .expect("Must never construct views when base layer is not set")
-            .size();
         View {
             // Inline views have no offset
             transform: RigidTransform3D::identity(),
             projection: *self.inline_projection_matrix.borrow(),
-            viewport: Rect::from_size(size.to_i32()),
         }
     }
 
@@ -816,10 +809,13 @@ impl XRSessionMethods for XRSession {
 
 // The pose of an object in native-space. Should never be exposed.
 pub type ApiPose = RigidTransform3D<f32, ApiSpace, webxr_api::Native>;
-// The pose of the viewer in some api-space.
-pub type ApiViewerPose = RigidTransform3D<f32, webxr_api::Viewer, ApiSpace>;
 // A transform between objects in some API-space
 pub type ApiRigidTransform = RigidTransform3D<f32, ApiSpace, ApiSpace>;
+
+#[derive(Clone, Copy)]
+pub struct BaseSpace;
+
+pub type BaseTransform = RigidTransform3D<f32, webxr_api::Native, BaseSpace>;
 
 #[allow(unsafe_code)]
 pub fn cast_transform<T, U, V, W>(

@@ -80,12 +80,22 @@ impl XRFrameMethods for XRFrame {
             return Err(Error::InvalidState);
         }
 
-        let pose = if let Some(pose) = reference.get_viewer_pose(&self.data) {
+        let to_base = if let Some(to_base) = reference.get_base_transform(&self.data) {
+            to_base
+        } else {
+            return Ok(None);
+        };
+        let viewer_pose = if let Some(pose) = self.data.pose.as_ref() {
             pose
         } else {
             return Ok(None);
         };
-        Ok(Some(XRViewerPose::new(&self.global(), &self.session, pose)))
+        Ok(Some(XRViewerPose::new(
+            &self.global(),
+            &self.session,
+            to_base,
+            viewer_pose,
+        )))
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrframe-getpose
