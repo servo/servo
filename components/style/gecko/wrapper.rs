@@ -1516,7 +1516,7 @@ impl<'le> TElement for GeckoElement<'le> {
         self.may_have_animations() && unsafe { Gecko_ElementHasAnimations(self.0) }
     }
 
-    fn has_css_animations(&self) -> bool {
+    fn has_css_animations(&self, _: &SharedStyleContext) -> bool {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSAnimations(self.0) }
     }
 

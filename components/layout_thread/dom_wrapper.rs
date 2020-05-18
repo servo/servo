@@ -584,8 +584,13 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         false
     }
 
-    fn has_css_animations(&self) -> bool {
-        unreachable!("this should be only called on gecko");
+    fn has_css_animations(&self, context: &SharedStyleContext) -> bool {
+        context
+            .animation_states
+            .read()
+            .get(&self.as_node().opaque())
+            .map(|set| set.has_active_animation())
+            .unwrap_or(false)
     }
 
     fn has_css_transitions(&self) -> bool {

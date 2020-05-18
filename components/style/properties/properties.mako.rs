@@ -2828,10 +2828,27 @@ pub mod style_structs {
             /// Returns whether there are any transitions specified.
             #[cfg(feature = "servo")]
             pub fn specifies_transitions(&self) -> bool {
+                // TODO(mrobinson): This should check the combined duration and not just
+                // the duration.
                 self.transition_duration_iter()
                     .take(self.transition_property_count())
                     .any(|t| t.seconds() > 0.)
             }
+
+            /// Returns true if animation properties are equal between styles, but without
+            /// considering keyframe data.
+            #[cfg(feature = "servo")]
+            pub fn animations_equals(&self, other: &Self) -> bool {
+                self.animation_name_iter().eq(other.animation_name_iter()) &&
+                self.animation_delay_iter().eq(other.animation_delay_iter()) &&
+                self.animation_direction_iter().eq(other.animation_direction_iter()) &&
+                self.animation_duration_iter().eq(other.animation_duration_iter()) &&
+                self.animation_fill_mode_iter().eq(other.animation_fill_mode_iter()) &&
+                self.animation_iteration_count_iter().eq(other.animation_iteration_count_iter()) &&
+                self.animation_play_state_iter().eq(other.animation_play_state_iter()) &&
+                self.animation_timing_function_iter().eq(other.animation_timing_function_iter())
+            }
+
         % elif style_struct.name == "Column":
             /// Whether this is a multicol style.
             #[cfg(feature = "servo")]
@@ -2922,6 +2939,12 @@ impl ComputedValues {
     #[cfg(feature = "servo")]
     pub fn pseudo(&self) -> Option<<&PseudoElement> {
         self.pseudo.as_ref()
+    }
+
+    /// Returns true if this is the style for a pseudo-element.
+    #[cfg(feature = "servo")]
+    pub fn is_pseudo_style(&self) -> bool {
+        self.pseudo().is_some()
     }
 
     /// Returns whether this style's display value is equal to contents.

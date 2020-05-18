@@ -574,7 +574,13 @@ impl LayoutThread {
         origin: ImmutableOrigin,
         animation_timeline_value: f64,
         animation_states: ServoArc<RwLock<FxHashMap<OpaqueNode, ElementAnimationSet>>>,
+        stylesheets_changed: bool,
     ) -> LayoutContext<'a> {
+        let traversal_flags = match stylesheets_changed {
+            true => TraversalFlags::ForCSSRuleChanges,
+            false => TraversalFlags::empty(),
+        };
+
         LayoutContext {
             id: self.id,
             origin,
@@ -586,7 +592,7 @@ impl LayoutThread {
                 animation_states,
                 registered_speculative_painters: &self.registered_painters,
                 current_time_for_animations: animation_timeline_value,
-                traversal_flags: TraversalFlags::empty(),
+                traversal_flags,
                 snapshot_map: snapshot_map,
             },
             image_cache: self.image_cache.clone(),
@@ -1064,6 +1070,7 @@ impl LayoutThread {
             origin,
             data.animation_timeline_value,
             data.animations.clone(),
+            data.stylesheets_changed,
         );
 
         let dirty_root = unsafe {

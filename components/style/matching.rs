@@ -233,7 +233,6 @@ trait PrivateMatchMethods: TElement {
         Some(style.0)
     }
 
-    #[cfg(feature = "gecko")]
     fn needs_animations_update(
         &self,
         context: &mut StyleContext<Self>,
@@ -243,7 +242,7 @@ trait PrivateMatchMethods: TElement {
         let new_box_style = new_style.get_box();
         let new_style_specifies_animations = new_box_style.specifies_animations();
 
-        let has_animations = self.has_css_animations();
+        let has_animations = self.has_css_animations(&context.shared);
         if !new_style_specifies_animations && !has_animations {
             return false;
         }
@@ -439,37 +438,53 @@ trait PrivateMatchMethods: TElement {
     ) {
         use crate::animation::AnimationState;
 
+        // We need to call this before accessing the `ElementAnimationSet` from the
+        // map because this call will do a RwLock::read().
+        let needs_animations_update =
+            self.needs_animations_update(context, old_values.as_ref().map(|s| &**s), new_values);
+
         let this_opaque = self.as_node().opaque();
         let shared_context = context.shared;
-        let mut animation_states = shared_context.animation_states.write();
-        let mut animation_state = animation_states.remove(&this_opaque).unwrap_or_default();
+        let mut animation_set = shared_context
+            .animation_states
+            .write()
+            .remove(&this_opaque)
+            .unwrap_or_default();
 
-        animation_state.update_animations_for_new_style(*self, &shared_context, &new_values);
+        // Starting animations is expensive, because we have to recalculate the style
+        // for all the keyframes. We only want to do this if we think that there's a
+        // chance that the animations really changed.
+        if needs_animations_update {
+            animation_set.update_animations_for_new_style::<Self>(
+                *self,
+                &shared_context,
+                &new_values,
+                &context.thread_local.font_metrics_provider,
+            );
+        }
 
-        animation_state.update_transitions_for_new_style::<Self>(
+        animation_set.update_transitions_for_new_style(
             &shared_context,
             this_opaque,
             old_values.as_ref(),
             new_values,
-            &context.thread_local.font_metrics_provider,
         );
 
-        animation_state.apply_active_animations::<Self>(
-            shared_context,
-            new_values,
-            &context.thread_local.font_metrics_provider,
-        );
+        animation_set.apply_active_animations(shared_context, new_values);
 
         // We clear away any finished transitions, but retain animations, because they
         // might still be used for proper calculation of `animation-fill-mode`.
-        animation_state
+        animation_set
             .transitions
             .retain(|transition| transition.state != AnimationState::Finished);
 
         // If the ElementAnimationSet is empty, and don't store it in order to
         // save memory and to avoid extra processing later.
-        if !animation_state.is_empty() {
-            animation_states.insert(this_opaque, animation_state);
+        if !animation_set.is_empty() {
+            shared_context
+                .animation_states
+                .write()
+                .insert(this_opaque, animation_set);
         }
     }
 

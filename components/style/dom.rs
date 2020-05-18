@@ -8,10 +8,9 @@
 #![deny(missing_docs)]
 
 use crate::applicable_declarations::ApplicableDeclarationBlock;
+use crate::context::SharedStyleContext;
 #[cfg(feature = "gecko")]
-use crate::context::PostAnimationTasks;
-#[cfg(feature = "gecko")]
-use crate::context::UpdateAnimationsTasks;
+use crate::context::{PostAnimationTasks, UpdateAnimationsTasks};
 use crate::data::ElementData;
 use crate::element_state::ElementState;
 use crate::font_metrics::FontMetricsProvider;
@@ -749,7 +748,7 @@ pub trait TElement:
     fn has_animations(&self) -> bool;
 
     /// Returns true if the element has a CSS animation.
-    fn has_css_animations(&self) -> bool;
+    fn has_css_animations(&self, context: &SharedStyleContext) -> bool;
 
     /// Returns true if the element has a CSS transition (including running transitions and
     /// completed transitions).
