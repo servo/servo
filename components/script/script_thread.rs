@@ -151,7 +151,6 @@ use script_traits::{
 };
 use servo_atoms::Atom;
 use servo_config::opts;
-use servo_config::pref;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::Cow;
 use std::cell::Cell;
@@ -1650,18 +1649,16 @@ impl ScriptThread {
     // TODO(mrobinson): This should also update the current animations to conform to
     // the HTML specification.
     fn update_animations_and_send_events(&self) {
-        for (_, document) in self.documents.borrow().iter() {
-            // Only update the time if it isn't being managed by a test.
-            if !pref!(layout.animations.test.enabled) {
-                document.update_animation_timeline();
-            }
-        }
-
         // We remove the events because handling these events might trigger
         // a reflow which might want to add more events to the queue.
         let events = self.animation_events.replace(Vec::new());
         for event in events.into_iter() {
             self.handle_transition_or_animation_event(&event);
+        }
+
+        for (_, document) in self.documents.borrow().iter() {
+            let update = document.update_animation_timeline();
+            unsafe { ScriptThread::process_animations_update(update) };
         }
     }
 
@@ -3021,6 +3018,7 @@ impl ScriptThread {
 
         let event_atom = match event.event_type {
             TransitionOrAnimationEventType::AnimationEnd => atom!("animationend"),
+            TransitionOrAnimationEventType::AnimationIteration => atom!("animationiteration"),
             TransitionOrAnimationEventType::TransitionCancel => atom!("transitioncancel"),
             TransitionOrAnimationEventType::TransitionEnd => atom!("transitionend"),
             TransitionOrAnimationEventType::TransitionRun => atom!("transitionrun"),

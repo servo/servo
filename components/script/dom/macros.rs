@@ -443,6 +443,7 @@ macro_rules! global_event_handlers(
     (NoOnload) => (
         event_handler!(abort, GetOnabort, SetOnabort);
         event_handler!(animationend, GetOnanimationend, SetOnanimationend);
+        event_handler!(animationiteration, GetOnanimationiteration, SetOnanimationiteration);
         event_handler!(cancel, GetOncancel, SetOncancel);
         event_handler!(canplay, GetOncanplay, SetOncanplay);
         event_handler!(canplaythrough, GetOncanplaythrough, SetOncanplaythrough);
