@@ -159,7 +159,13 @@ impl PseudoElement {
 
     /// Whether this pseudo-element is enabled for all content.
     pub fn enabled_in_content(&self) -> bool {
-        (self.flags() & structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME) == 0
+        if (self.flags() & structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME) != 0 {
+            return false;
+        }
+        match *self {
+            PseudoElement::MozFocusOuter => static_prefs::pref!("layout.css.moz-focus-outer.enabled"),
+            _ => true,
+        }
     }
 
     /// Whether this pseudo is enabled explicitly in UA sheets.
