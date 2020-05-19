@@ -60,7 +60,6 @@ impl Blob {
         blobParts: Option<Vec<ArrayBufferOrArrayBufferViewOrBlobOrString>>,
         blobPropertyBag: &BlobBinding::BlobPropertyBag,
     ) -> Fallible<DomRoot<Blob>> {
-        // TODO: accept other blobParts types - ArrayBuffer or ArrayBufferView
         let bytes: Vec<u8> = match blobParts {
             None => Vec::new(),
             Some(blobparts) => match blob_parts_to_bytes(blobparts) {

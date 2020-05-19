@@ -586,7 +586,6 @@ impl Document {
             if document_url.as_str() == "about:srcdoc" && container_base_url.is_some() {
                 return container_base_url.unwrap();
             }
-
             // Step 2: If document's URL is about:blank, and document's browsing
             // context's creator base URL is non-null, then return that creator base URL.
             if document_url.as_str() == "about:blank" && browsing_context.has_creator_base_url() {

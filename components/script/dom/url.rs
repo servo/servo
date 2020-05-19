@@ -155,7 +155,7 @@ impl URL {
         result.push('/');
 
         // Step 5
-        result.push_str(&id.to_simple().to_string());
+        result.push_str(&id.to_string());
 
         result
     }
