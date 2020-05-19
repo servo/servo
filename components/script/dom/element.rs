@@ -309,6 +309,7 @@ impl Element {
         restyle.hint.insert(RestyleHint::RESTYLE_SELF);
 
         if damage == NodeDamage::OtherNodeDamage {
+            doc.note_node_with_dirty_descendants(self.upcast());
             restyle.damage = RestyleDamage::rebuild_and_reflow();
         }
     }
@@ -515,6 +516,7 @@ impl Element {
 
     pub fn detach_shadow(&self) {
         if let Some(ref shadow_root) = self.shadow_root() {
+            self.upcast::<Node>().note_dirty_descendants();
             shadow_root.detach();
             self.ensure_rare_data().shadow_root = None;
         } else {

@@ -45,11 +45,12 @@ impl<T> DomRefCell<T> {
         &mut *self.value.as_ptr()
     }
 
-    /// Version of the above that we use during restyle while the script thread
-    /// is blocked.
-    pub fn borrow_mut_for_layout(&self) -> RefMut<T> {
+    /// Mutably borrow a cell for layout. Ideally this would use
+    /// `RefCell::try_borrow_mut_unguarded` but that doesn't exist yet.
+    #[allow(unsafe_code)]
+    pub unsafe fn borrow_mut_for_layout(&self) -> &mut T {
         debug_assert!(thread_state::get().is_layout());
-        self.value.borrow_mut()
+        &mut *self.value.as_ptr()
     }
 }
 

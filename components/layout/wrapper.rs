@@ -34,7 +34,7 @@ use crate::data::{LayoutData, LayoutDataFlags, StyleAndLayoutData};
 use atomic_refcell::{AtomicRef, AtomicRefMut};
 use script_layout_interface::wrapper_traits::GetStyleAndOpaqueLayoutData;
 use script_layout_interface::wrapper_traits::{ThreadSafeLayoutElement, ThreadSafeLayoutNode};
-use style::dom::{NodeInfo, TNode};
+use style::dom::{NodeInfo, TElement, TNode};
 use style::selector_parser::RestyleDamage;
 use style::values::computed::counters::ContentItem;
 use style::values::generics::counters::Content;
@@ -148,7 +148,13 @@ where
         }
 
         let damage = {
-            let data = node.get_style_and_layout_data().unwrap();
+            let data = match node.get_style_and_layout_data() {
+                Some(data) => data,
+                None => panic!(
+                    "could not get style and layout data for <{}>",
+                    node.as_element().unwrap().local_name()
+                ),
+            };
 
             if !data
                 .layout_data

@@ -281,7 +281,7 @@ impl<'dom> LayoutShadowRootHelpers<'dom> for LayoutDom<'dom, ShadowRoot> {
         quirks_mode: QuirksMode,
         guard: &SharedRwLockReadGuard,
     ) {
-        let mut author_styles = (*self.unsafe_get()).author_styles.borrow_mut_for_layout();
+        let author_styles = self.unsafe_get().author_styles.borrow_mut_for_layout();
         if author_styles.stylesheets.dirty() {
             author_styles.flush::<E>(device, quirks_mode, guard);
         }

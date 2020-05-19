@@ -89,7 +89,6 @@ use style::dom::{TDocument, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
 use style::global_style_data::{GLOBAL_STYLE_DATA, STYLE_THREAD_POOL};
-use style::invalidation::element::restyle_hints::RestyleHint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::PropertyId;
 use style::selector_parser::SnapshotMap;
@@ -891,7 +890,7 @@ impl LayoutThread {
 
         let mut rw_data = possibly_locked_rw_data.lock();
 
-        let element = match document.root_element() {
+        let root_element = match document.root_element() {
             None => {
                 // Since we cannot compute anything, give spec-required placeholders.
                 debug!("layout: No root node: bailing");
@@ -962,7 +961,6 @@ impl LayoutThread {
             ua_or_user: &ua_or_user_guard,
         };
 
-        let had_used_viewport_units = self.stylist.device().used_viewport_units();
         let device = Device::new(MediaType::screen(), initial_viewport, device_pixel_ratio);
         let sheet_origins_affected_by_device_change = self.stylist.set_device(device, &guards);
 
@@ -989,11 +987,6 @@ impl LayoutThread {
                         constraints.clone(),
                     ))
                     .unwrap();
-            }
-            if had_used_viewport_units {
-                if let Some(mut data) = element.mutate_data() {
-                    data.hint.insert(RestyleHint::recascade_subtree());
-                }
             }
         }
 
@@ -1062,7 +1055,7 @@ impl LayoutThread {
             debug!("Noting restyle for {:?}: {:?}", el, style_data);
         }
 
-        self.stylist.flush(&guards, Some(element), Some(&map));
+        self.stylist.flush(&guards, Some(root_element), Some(&map));
 
         // Create a layout context for use throughout the following passes.
         let mut layout_context = self.build_layout_context(
@@ -1073,10 +1066,16 @@ impl LayoutThread {
             data.animations.clone(),
         );
 
+        let dirty_root = unsafe {
+            ServoLayoutNode::new(&data.dirty_root.unwrap())
+                .as_element()
+                .unwrap()
+        };
+
         let traversal = RecalcStyle::new(layout_context);
         let token = {
             let shared = DomTraversal::<ServoLayoutElement>::shared_context(&traversal);
-            RecalcStyle::pre_traverse(element, shared)
+            RecalcStyle::pre_traverse(dirty_root, shared)
         };
 
         let rayon_pool = STYLE_THREAD_POOL.pool();
@@ -1085,7 +1084,7 @@ impl LayoutThread {
         let box_tree = if token.should_traverse() {
             driver::traverse_dom(&traversal, token, rayon_pool);
 
-            let root_node = document.root_element().unwrap().as_node();
+            let root_node = root_element.as_node();
             let build_box_tree = || BoxTree::construct(traversal.context(), root_node);
             let box_tree = if let Some(pool) = rayon_pool {
                 pool.install(build_box_tree)
@@ -1122,7 +1121,7 @@ impl LayoutThread {
         if self.dump_style_tree {
             println!(
                 "{:?}",
-                style::dom::ShowSubtreeDataAndPrimaryValues(element.as_node())
+                style::dom::ShowSubtreeDataAndPrimaryValues(root_element.as_node())
             );
         }
 
