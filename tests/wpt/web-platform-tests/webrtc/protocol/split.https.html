@@ -1,0 +1,80 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection BUNDLE</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../RTCPeerConnection-helper.js"></script>
+<script src="/webrtc/third_party/sdp/sdp.js"></script>
+<script>
+'use strict';
+promise_test(async t => {
+  const caller = new RTCPeerConnection();
+  t.add_cleanup(() => caller.close());
+  const calleeAudio = new RTCPeerConnection();
+  t.add_cleanup(() => calleeAudio.close());
+  const calleeVideo  = new RTCPeerConnection();
+  t.add_cleanup(() => calleeVideo.close());
+
+  const stream = await getNoiseStream({audio: true, video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  stream.getTracks().forEach(track => caller.addTrack(track, stream));
+
+  let metadataToBeLoaded;
+  calleeVideo.ontrack = (e) => {
+    const stream = e.streams[0];
+    const v = document.createElement('video');
+    v.autoplay = true;
+    v.srcObject = stream;
+    v.id = stream.id
+    metadataToBeLoaded = new Promise((resolve) => {
+      v.addEventListener('loadedmetadata', () => {
+        resolve();
+      });
+    });
+  };
+
+  caller.addEventListener('icecandidate', (e) => {
+    // route depending on sdpMlineIndex
+    if (e.candidate) {
+      const target = e.candidate.sdpMLineIndex === 0 ? calleeAudio : calleeVideo;
+      target.addIceCandidate({sdpMid: e.candidate.sdpMid, candidate: e.candidate.candidate});
+    }
+  });
+  calleeAudio.addEventListener('icecandidate', (e) => {
+    if (e.candidate) {
+      caller.addIceCandidate({sdpMid: e.candidate.sdpMid, candidate: e.candidate.candidate});
+    }
+  });
+  calleeVideo.addEventListener('icecandidate', (e) => {
+    if (e.candidate) {
+      caller.addIceCandidate({sdpMid: e.candidate.sdpMid, candidate: e.candidate.candidate});
+    }
+  });
+
+  const offer = await caller.createOffer();
+  const sections = SDPUtils.splitSections(offer.sdp);
+  // remove the a=group:BUNDLE from the SDP when signaling.
+  const bundle = SDPUtils.matchPrefix(sections[0], 'a=group:BUNDLE')[0];
+  sections[0] = sections[0].replace(bundle + '\r\n', '');
+
+  const audioSdp = sections[0] + sections[1];
+  const videoSdp = sections[0] + sections[2];
+
+  await calleeAudio.setRemoteDescription({type: 'offer', sdp: audioSdp});
+  await calleeVideo.setRemoteDescription({type: 'offer', sdp: videoSdp});
+  await caller.setLocalDescription(offer);
+
+  const answerAudio = await calleeAudio.createAnswer();
+  const answerVideo = await calleeVideo.createAnswer();
+  const audioSections = SDPUtils.splitSections(answerAudio.sdp);
+  const videoSections = SDPUtils.splitSections(answerVideo.sdp);
+  const sdp = audioSections[0] + audioSections[1] + videoSections[1];
+  await caller.setRemoteDescription({type: 'answer', sdp});
+  await calleeAudio.setLocalDescription(answerAudio);
+  await calleeVideo.setLocalDescription(answerVideo);
+
+  await metadataToBeLoaded;
+  assert_equals(calleeAudio.connectionState, 'connected');
+  assert_equals(calleeVideo.connectionState, 'connected');
+}, 'Connect audio and video to two independent PeerConnections');
+</script>

@@ -8886,6 +8886,13 @@
     @assert pixel 99,0 ==~ 0,255,0,255;
     @assert pixel 0,49 ==~ 0,255,0,255;
     @assert pixel 99,49 ==~ 0,255,0,255;
+
+    ctx.drawImage(document.createElement('canvas'), 0, 0);
+
+    @assert pixel 0,0 ==~ 0,255,0,255;
+    @assert pixel 99,0 ==~ 0,255,0,255;
+    @assert pixel 0,49 ==~ 0,255,0,255;
+    @assert pixel 99,49 ==~ 0,255,0,255;
   expected: green
 
 - name: 2d.drawImage.self.1

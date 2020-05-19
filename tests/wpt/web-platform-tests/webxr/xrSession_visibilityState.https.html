@@ -16,7 +16,7 @@ let fakeDeviceInitParams = TRACKED_IMMERSIVE_DEVICE;
 
 let testFunction = function(session, fakeDeviceController, t) {
   let eventWatcher = new EventWatcher(
-    t, session, ["visibilitychange", "visibilitychange", "framefired", "watcherdone"]);
+    t, session, ["visibilitychange", "framefired", "watcherdone"]);
   let eventPromise = eventWatcher.wait_for(
     ["visibilitychange", "visibilitychange", "framefired", "watcherdone"]);
 

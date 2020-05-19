@@ -652,7 +652,7 @@ broken_python_metadata = re.compile(br"#\s*META:")
 
 def check_global_metadata(value):
     # type: (str) -> Iterable[Tuple[Type[rules.Rule], Tuple[Any, ...]]]
-    global_values = {item.strip() for item in value.split(b",") if item.strip()}
+    global_values = {item.strip().decode("utf8") for item in value.split(b",") if item.strip()}
 
     # TODO: this could check for duplicates and such
     for global_value in global_values:

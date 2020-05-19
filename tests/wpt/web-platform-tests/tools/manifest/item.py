@@ -212,7 +212,7 @@ class TestharnessTest(URLManifestItem):
         if self.quic is not None:
             rv[-1]["quic"] = self.quic
         if self.script_metadata:
-            rv[-1]["script_metadata"] = [(k.decode('utf8'), v.decode('utf8')) for (k,v) in self.script_metadata]
+            rv[-1]["script_metadata"] = [(k, v) for (k,v) in self.script_metadata]
         return rv
 
 
