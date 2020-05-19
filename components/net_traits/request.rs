@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::response::HttpsState;
 use crate::ReferrerPolicy;
 use crate::ResourceTimingType;
 use content_security_policy::{self as csp, CspList};
@@ -156,6 +157,7 @@ pub struct RequestBuilder {
     pub url_list: Vec<ServoUrl>,
     pub parser_metadata: ParserMetadata,
     pub initiator: Initiator,
+    pub https_state: HttpsState,
 }
 
 impl RequestBuilder {
@@ -184,6 +186,7 @@ impl RequestBuilder {
             parser_metadata: ParserMetadata::Default,
             initiator: Initiator::None,
             csp_list: None,
+            https_state: HttpsState::None,
         }
     }
 
@@ -277,11 +280,17 @@ impl RequestBuilder {
         self
     }
 
+    pub fn https_state(mut self, https_state: HttpsState) -> RequestBuilder {
+        self.https_state = https_state;
+        self
+    }
+
     pub fn build(self) -> Request {
         let mut request = Request::new(
             self.url.clone(),
             Some(Origin::Origin(self.origin)),
             self.pipeline_id,
+            self.https_state,
         );
         request.initiator = self.initiator;
         request.method = self.method;
@@ -380,10 +389,16 @@ pub struct Request {
     // boundary every time a redirect occurs.
     #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
     pub csp_list: Option<CspList>,
+    pub https_state: HttpsState,
 }
 
 impl Request {
-    pub fn new(url: ServoUrl, origin: Option<Origin>, pipeline_id: Option<PipelineId>) -> Request {
+    pub fn new(
+        url: ServoUrl,
+        origin: Option<Origin>,
+        pipeline_id: Option<PipelineId>,
+        https_state: HttpsState,
+    ) -> Request {
         Request {
             method: Method::GET,
             local_urls_only: false,
@@ -413,6 +428,7 @@ impl Request {
             redirect_count: 0,
             response_tainting: ResponseTainting::Basic,
             csp_list: None,
+            https_state: https_state,
         }
     }
 

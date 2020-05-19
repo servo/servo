@@ -16,7 +16,6 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::client::Client;
 use crate::dom::promise::Promise;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
-use crate::dom::urlhelper::UrlHelper;
 use crate::script_thread::ScriptThread;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
 use crate::task_source::TaskSource;
@@ -162,7 +161,7 @@ impl JobQueue {
         let global = &*job.client.global();
         let pipeline_id = global.pipeline_id();
         // Step 1-3
-        if !UrlHelper::is_origin_trustworthy(&job.script_url) {
+        if !job.script_url.is_origin_trustworthy() {
             // Step 1.1
             reject_job_promise(
                 job,

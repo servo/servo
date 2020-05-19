@@ -87,6 +87,7 @@ use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
 };
 use net_traits::image_cache::ImageCache;
+use net_traits::response::HttpsState;
 use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
 use parking_lot::Mutex;
 use profile_traits::{ipc as profile_ipc, mem as profile_mem, time as profile_time};
@@ -238,6 +239,9 @@ pub struct GlobalScope {
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
     #[ignore_malloc_size_of = "mozjs"]
     frozen_supported_performance_entry_types: DomRefCell<Option<Heap<JSVal>>>,
+
+    /// currect https state (from previous request)
+    https_state: Cell<HttpsState>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -588,6 +592,7 @@ impl GlobalScope {
             user_agent,
             gpu_id_hub,
             frozen_supported_performance_entry_types: DomRefCell::new(Default::default()),
+            https_state: Cell::new(HttpsState::None),
         }
     }
 
@@ -2501,6 +2506,14 @@ impl GlobalScope {
 
     pub fn get_user_agent(&self) -> Cow<'static, str> {
         self.user_agent.clone()
+    }
+
+    pub fn get_https_state(&self) -> HttpsState {
+        self.https_state.get()
+    }
+
+    pub fn set_https_state(&self, https_state: HttpsState) {
+        self.https_state.set(https_state);
     }
 
     /// https://www.w3.org/TR/CSP/#get-csp-of-object

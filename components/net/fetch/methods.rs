@@ -250,6 +250,7 @@ pub fn main_fetch(
                     request.referrer_policy.unwrap(),
                     url,
                     current_url,
+                    request.https_state,
                 )
             },
         };

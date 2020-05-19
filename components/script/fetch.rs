@@ -128,6 +128,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
         parser_metadata: request.parser_metadata,
         initiator: request.initiator,
         csp_list: None,
+        https_state: request.https_state,
     }
 }
 
@@ -315,6 +316,7 @@ pub fn load_whole_resource(
     core_resource_thread: &CoreResourceThread,
     global: &GlobalScope,
 ) -> Result<(Metadata, Vec<u8>), NetworkError> {
+    let request = request.https_state(global.get_https_state());
     let (action_sender, action_receiver) = ipc::channel().unwrap();
     let url = request.url.clone();
     core_resource_thread

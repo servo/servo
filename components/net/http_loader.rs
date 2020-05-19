@@ -166,28 +166,43 @@ pub fn set_default_accept_language(headers: &mut HeaderMap) {
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade>
-fn no_referrer_when_downgrade_header(referrer_url: ServoUrl, url: ServoUrl) -> Option<ServoUrl> {
-    if referrer_url.scheme() == "https" && url.scheme() != "https" {
+fn no_referrer_when_downgrade_header(
+    referrer_url: ServoUrl,
+    url: ServoUrl,
+    https_state: HttpsState,
+) -> Option<ServoUrl> {
+    if https_state == HttpsState::Modern && !url.is_origin_trustworthy() {
         return None;
     }
     return strip_url(referrer_url, false);
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin>
-fn strict_origin(referrer_url: ServoUrl, url: ServoUrl) -> Option<ServoUrl> {
-    if referrer_url.scheme() == "https" && url.scheme() != "https" {
+fn strict_origin(
+    referrer_url: ServoUrl,
+    url: ServoUrl,
+    https_state: HttpsState,
+) -> Option<ServoUrl> {
+    if https_state == HttpsState::Modern && !url.is_origin_trustworthy() {
         return None;
     }
     strip_url(referrer_url, true)
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin-when-cross-origin>
-fn strict_origin_when_cross_origin(referrer_url: ServoUrl, url: ServoUrl) -> Option<ServoUrl> {
-    if referrer_url.scheme() == "https" && url.scheme() != "https" {
+fn strict_origin_when_cross_origin(
+    referrer_url: ServoUrl,
+    url: ServoUrl,
+    https_state: HttpsState,
+) -> Option<ServoUrl> {
+    let same_origin = referrer_url.origin() == url.origin();
+    if same_origin {
+        return strip_url(referrer_url, false);
+    }
+    if https_state == HttpsState::Modern && !url.is_origin_trustworthy() {
         return None;
     }
-    let cross_origin = referrer_url.origin() != url.origin();
-    strip_url(referrer_url, cross_origin)
+    strip_url(referrer_url, true)
 }
 
 /// https://html.spec.whatwg.org/multipage/#schemelessly-same-site
@@ -239,13 +254,12 @@ pub fn determine_request_referrer(
     referrer_policy: ReferrerPolicy,
     referrer_source: ServoUrl,
     current_url: ServoUrl,
+    https_state: HttpsState,
 ) -> Option<ServoUrl> {
     assert!(!headers.contains_key(header::REFERER));
     // FIXME(#14505): this does not seem to be the correct way of checking for
     //                same-origin requests.
     let cross_origin = referrer_source.origin() != current_url.origin();
-    // FIXME(#14506): some of these cases are expected to consider whether the
-    //                request's client is "TLS-protected", whatever that means.
     match referrer_policy {
         ReferrerPolicy::NoReferrer => None,
         ReferrerPolicy::Origin => strip_url(referrer_source, true),
@@ -258,12 +272,12 @@ pub fn determine_request_referrer(
         },
         ReferrerPolicy::UnsafeUrl => strip_url(referrer_source, false),
         ReferrerPolicy::OriginWhenCrossOrigin => strip_url(referrer_source, cross_origin),
-        ReferrerPolicy::StrictOrigin => strict_origin(referrer_source, current_url),
+        ReferrerPolicy::StrictOrigin => strict_origin(referrer_source, current_url, https_state),
         ReferrerPolicy::StrictOriginWhenCrossOrigin => {
-            strict_origin_when_cross_origin(referrer_source, current_url)
+            strict_origin_when_cross_origin(referrer_source, current_url, https_state)
         },
         ReferrerPolicy::NoReferrerWhenDowngrade => {
-            no_referrer_when_downgrade_header(referrer_source, current_url)
+            no_referrer_when_downgrade_header(referrer_source, current_url, https_state)
         },
     }
 }
