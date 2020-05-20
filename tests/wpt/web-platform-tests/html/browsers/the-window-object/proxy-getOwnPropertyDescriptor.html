@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>getOwnPropertyDescriptor() is correct for Proxy with host object target</title>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/#window">
+  <link rel="help" href="https://heycam.github.io/webidl/#Unforgeable">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+'use strict';
+
+const assert_accessor_descriptor_equals = (actual, expected) => {
+  assert_equals(actual.get, expected.get, 'get');
+  assert_equals(actual.set, expected.set, 'set');
+  assert_equals(actual.enumerable, expected.enumerable, 'enumerable');
+  assert_equals(actual.configurable, expected.configurable, 'configurable');
+};
+
+const assert_data_descriptor_equals = (actual, expected) => {
+  assert_equals(actual.value, expected.value, 'value');
+  assert_equals(actual.writable, expected.writable, 'writable');
+  assert_equals(actual.enumerable, expected.enumerable, 'enumerable');
+  assert_equals(actual.configurable, expected.configurable, 'configurable');
+};
+
+test(() => {
+  const windowProxy = new Proxy(window, {});
+  name = 'old_name';
+  const descriptor = Object.getOwnPropertyDescriptor(windowProxy, 'name');
+
+  assert_equals(descriptor.get.call(window), 'old_name');
+  descriptor.set.call(window, 'new_name');
+  assert_equals(name, 'new_name');
+  assert_true(descriptor.enumerable);
+  assert_true(descriptor.configurable);
+}, 'Window target, no trap, "name" attribute');
+
+test(() => {
+  let trapCalls = 0;
+  const windowProxy = new Proxy(window, {
+    getOwnPropertyDescriptor(...args) {
+      trapCalls++;
+      return Reflect.getOwnPropertyDescriptor(...args);
+    },
+  });
+
+  assert_accessor_descriptor_equals(
+    Object.getOwnPropertyDescriptor(windowProxy, 'document'),
+    Object.getOwnPropertyDescriptor(window, 'document')
+  );
+  assert_equals(trapCalls, 1);
+}, 'Window target, forwarding trap, [Unforgeable] "document" attribute');
+
+test(() => {
+  const trapResult = {get() {}, set(_val) {}, enumerable: false, configurable: true};
+  const windowProxy = new Proxy(new Proxy(window, {}), {
+    getOwnPropertyDescriptor: () => trapResult,
+  });
+
+  assert_accessor_descriptor_equals(
+    Object.getOwnPropertyDescriptor(windowProxy, 'onclick'),
+    trapResult
+  );
+}, 'Window proxy target, custom trap, "onclick" event handler attribute');
+
+test(() => {
+  let trapCalls = 0;
+  const documentProxy = new Proxy(document, {
+    getOwnPropertyDescriptor(...args) {
+      trapCalls++;
+      return Reflect.getOwnPropertyDescriptor(...args);
+    },
+  });
+
+  assert_accessor_descriptor_equals(
+    Object.getOwnPropertyDescriptor(documentProxy, 'location'),
+    Object.getOwnPropertyDescriptor(document, 'location')
+  );
+  assert_equals(trapCalls, 1);
+}, 'Document target, forwarding trap, [Unforgeable] "location" attribute');
+
+test(() => {
+  const trapResult = {value: 4, writable: false, enumerable: true, configurable: true};
+  const documentProxy = new Proxy(new Proxy(document, {}), {
+    getOwnPropertyDescriptor: () => trapResult,
+  });
+
+  assert_data_descriptor_equals(
+    Object.getOwnPropertyDescriptor(documentProxy, 'foo'),
+    trapResult
+  );
+}, 'Document proxy target, custom trap, non-existent value attribute');
+
+test(() => {
+  const locationProxy = new Proxy(location, {});
+  location.hash = '#old';
+  const descriptor = Object.getOwnPropertyDescriptor(locationProxy, 'hash');
+
+  assert_equals(descriptor.get.call(location), '#old');
+  descriptor.set.call(location, '#new');
+  assert_equals(location.hash, '#new');
+  assert_true(descriptor.enumerable);
+  assert_false(descriptor.configurable);
+}, 'Location target, no trap, [Unforgeable] "hash" attribute');
+
+test(() => {
+  let trapCalls = 0;
+  const locationProxy = new Proxy(new Proxy(location, {}), {
+    getOwnPropertyDescriptor(...args) {
+      trapCalls++;
+      return Reflect.getOwnPropertyDescriptor(...args);
+    },
+  });
+
+  assert_data_descriptor_equals(
+    Object.getOwnPropertyDescriptor(locationProxy, 'reload'),
+    Object.getOwnPropertyDescriptor(location, 'reload')
+  );
+  assert_equals(trapCalls, 1);
+}, 'Location proxy target, forwarding trap, [Unforgeable] "reload" method');
+</script>
+</body>
+</html>

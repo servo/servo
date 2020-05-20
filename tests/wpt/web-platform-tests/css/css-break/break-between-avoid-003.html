@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#unforced-breaks">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="The best breakpoint may be inside content we're already past when running out of space">
+<style>
+  .square {
+      height: 50px;
+      break-inside: avoid;
+      background:green;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div style="columns:2; column-fill:auto; column-gap:0; width:100px; height:160px;">
+  <div>
+    <div class="square"></div>
+    <div>
+      <div>
+        <div class="square"></div>
+        <div class="square"></div>
+      </div>
+    </div>
+  </div>
+  <div class="square" style="break-before:avoid;"></div>
+</div>

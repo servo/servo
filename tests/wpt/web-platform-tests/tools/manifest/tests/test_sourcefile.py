@@ -180,7 +180,7 @@ importScripts('/resources/testharness.js')
 test()"""
 
     metadata = list(read_script_metadata(BytesIO(contents), js_meta_re))
-    assert metadata == [(b"timeout", b"long")]
+    assert metadata == [("timeout", "long")]
 
     s = create("html/test.worker.js", contents=contents)
     assert s.name_is_worker
@@ -197,7 +197,7 @@ def test_window_long_timeout():
 test()"""
 
     metadata = list(read_script_metadata(BytesIO(contents), js_meta_re))
-    assert metadata == [(b"timeout", b"long")]
+    assert metadata == [("timeout", "long")]
 
     s = create("html/test.window.js", contents=contents)
     assert s.name_is_window
@@ -278,7 +278,7 @@ def test_python_long_timeout():
 
     metadata = list(read_script_metadata(BytesIO(contents),
                                          python_meta_re))
-    assert metadata == [(b"timeout", b"long")]
+    assert metadata == [("timeout", "long")]
 
     s = create("webdriver/test.py", contents=contents)
     assert s.name_is_webdriver
@@ -322,7 +322,7 @@ importScripts('/resources/testharness.js')
 test()"""
 
     metadata = list(read_script_metadata(BytesIO(contents), js_meta_re))
-    assert metadata == [(b"timeout", b"long")]
+    assert metadata == [("timeout", "long")]
 
     s = create("html/test.any.js", contents=contents)
     assert s.name_is_multi_global
@@ -447,14 +447,14 @@ test()"""
 
 
 @pytest.mark.parametrize("input,expected", [
-    (b"""//META: foo=bar\n""", [(b"foo", b"bar")]),
-    (b"""// META: foo=bar\n""", [(b"foo", b"bar")]),
-    (b"""//  META: foo=bar\n""", [(b"foo", b"bar")]),
+    (b"""//META: foo=bar\n""", [("foo", "bar")]),
+    (b"""// META: foo=bar\n""", [("foo", "bar")]),
+    (b"""//  META: foo=bar\n""", [("foo", "bar")]),
     (b"""\n// META: foo=bar\n""", []),
     (b""" // META: foo=bar\n""", []),
-    (b"""// META: foo=bar\n// META: baz=quux\n""", [(b"foo", b"bar"), (b"baz", b"quux")]),
-    (b"""// META: foo=bar\n\n// META: baz=quux\n""", [(b"foo", b"bar")]),
-    (b"""// META: foo=bar\n// Start of the test\n// META: baz=quux\n""", [(b"foo", b"bar")]),
+    (b"""// META: foo=bar\n// META: baz=quux\n""", [("foo", "bar"), ("baz", "quux")]),
+    (b"""// META: foo=bar\n\n// META: baz=quux\n""", [("foo", "bar")]),
+    (b"""// META: foo=bar\n// Start of the test\n// META: baz=quux\n""", [("foo", "bar")]),
     (b"""// META:\n""", []),
     (b"""// META: foobar\n""", []),
 ])
