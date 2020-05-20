@@ -899,8 +899,11 @@ impl Parse for AspectRatio {
     }
 }
 
+/// A specified value for the `aspect-ratio` property.
+pub type Ratio = GenericRatio<NonNegativeNumber>;
+
 // https://drafts.csswg.org/css-values-4/#ratios
-impl Parse for GenericRatio<NonNegativeNumber> {
+impl Parse for Ratio {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,

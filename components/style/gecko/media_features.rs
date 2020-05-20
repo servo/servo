@@ -8,8 +8,9 @@ use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
 use crate::media_queries::media_feature::{AllowsRanges, ParsingRequirements};
 use crate::media_queries::media_feature::{Evaluator, MediaFeatureDescription};
-use crate::media_queries::media_feature_expression::{AspectRatio, RangeOrOperator};
+use crate::media_queries::media_feature_expression::RangeOrOperator;
 use crate::media_queries::{Device, MediaType};
+use crate::values::computed::position::Ratio;
 use crate::values::computed::CSSPixelLength;
 use crate::values::computed::Resolution;
 use crate::Atom;
@@ -91,7 +92,7 @@ fn eval_device_height(
 
 fn eval_aspect_ratio_for<F>(
     device: &Device,
-    query_value: Option<AspectRatio>,
+    query_value: Option<Ratio>,
     range_or_operator: Option<RangeOrOperator>,
     get_size: F,
 ) -> bool
@@ -104,14 +105,14 @@ where
     };
 
     let size = get_size(device);
-    let value = AspectRatio(size.width.0 as f32, size.height.0 as f32);
+    let value = Ratio::new(size.width.0 as f32, size.height.0 as f32);
     RangeOrOperator::evaluate_with_query_value(range_or_operator, query_value, value)
 }
 
 /// https://drafts.csswg.org/mediaqueries-4/#aspect-ratio
 fn eval_aspect_ratio(
     device: &Device,
-    query_value: Option<AspectRatio>,
+    query_value: Option<Ratio>,
     range_or_operator: Option<RangeOrOperator>,
 ) -> bool {
     eval_aspect_ratio_for(device, query_value, range_or_operator, viewport_size)
@@ -120,7 +121,7 @@ fn eval_aspect_ratio(
 /// https://drafts.csswg.org/mediaqueries-4/#device-aspect-ratio
 fn eval_device_aspect_ratio(
     device: &Device,
-    query_value: Option<AspectRatio>,
+    query_value: Option<Ratio>,
     range_or_operator: Option<RangeOrOperator>,
 ) -> bool {
     eval_aspect_ratio_for(device, query_value, range_or_operator, device_size)

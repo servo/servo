@@ -156,7 +156,6 @@ impl<Integer> ZIndex<Integer> {
 }
 
 /// A generic value for the `<ratio>` value.
-// FIXME: Use this for aspect-ratio in both css-sizing-4 and media-queries in the following patch.
 #[derive(
     Animate,
     Clone,

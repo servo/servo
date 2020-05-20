@@ -4,9 +4,10 @@
 
 //! Media features.
 
-use super::media_feature_expression::{AspectRatio, RangeOrOperator};
+use super::media_feature_expression::RangeOrOperator;
 use super::Device;
 use crate::parser::ParserContext;
+use crate::values::computed::position::Ratio;
 use crate::values::computed::{CSSPixelLength, Resolution};
 use crate::Atom;
 use cssparser::Parser;
@@ -45,7 +46,7 @@ pub enum Evaluator {
     Float(MediaFeatureEvaluator<f32>),
     BoolInteger(MediaFeatureEvaluator<bool>),
     /// A non-negative number ratio, such as the one from device-pixel-ratio.
-    NumberRatio(MediaFeatureEvaluator<AspectRatio>),
+    NumberRatio(MediaFeatureEvaluator<Ratio>),
     /// A resolution.
     Resolution(MediaFeatureEvaluator<Resolution>),
     /// A keyword value.

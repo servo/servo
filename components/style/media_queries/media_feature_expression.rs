@@ -15,9 +15,8 @@ use crate::parser::{Parse, ParserContext};
 #[cfg(feature = "servo")]
 use crate::servo::media_queries::MEDIA_FEATURES;
 use crate::str::{starts_with_ignore_ascii_case, string_as_ascii_lowercase};
+use crate::values::computed::position::Ratio;
 use crate::values::computed::{self, ToComputedValue};
-#[cfg(feature = "gecko")]
-use crate::values::specified::NonNegativeNumber;
 use crate::values::specified::{Integer, Length, Number, Resolution};
 use crate::values::{serialize_atom_identifier, CSSFloat};
 use crate::{Atom, Zero};
@@ -25,30 +24,6 @@ use cssparser::{Parser, Token};
 use std::cmp::{Ordering, PartialOrd};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
-
-/// An aspect ratio, with a numerator and denominator.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
-pub struct AspectRatio(pub CSSFloat, pub CSSFloat);
-
-impl ToCss for AspectRatio {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: fmt::Write,
-    {
-        self.0.to_css(dest)?;
-        dest.write_str(" / ")?;
-        self.1.to_css(dest)
-    }
-}
-
-impl PartialOrd for AspectRatio {
-    fn partial_cmp(&self, other: &AspectRatio) -> Option<Ordering> {
-        f64::partial_cmp(
-            &(self.0 as f64 * other.1 as f64),
-            &(self.1 as f64 * other.0 as f64),
-        )
-    }
-}
 
 /// The kind of matching that should be performed on a media feature value.
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
@@ -460,7 +435,7 @@ pub enum MediaExpressionValue {
     BoolInteger(bool),
     /// A single non-negative number or two non-negative numbers separated by '/',
     /// with optional whitespace on either side of the '/'.
-    NumberRatio(AspectRatio),
+    NumberRatio(Ratio),
     /// A resolution.
     Resolution(Resolution),
     /// An enumerated value, defined by the variant keyword table in the
@@ -517,24 +492,14 @@ impl MediaExpressionValue {
                 MediaExpressionValue::Float(number.get())
             },
             Evaluator::NumberRatio(..) => {
-                #[cfg(feature = "gecko")]
-                {
-                    if static_prefs::pref!("layout.css.aspect-ratio-number.enabled") {
-                        let a = NonNegativeNumber::parse(context, input)?.0.get();
-                        let b = match input.try_parse(|input| input.expect_delim('/')) {
-                            Ok(()) => NonNegativeNumber::parse(context, input)?.0.get(),
-                            _ => 1.0,
-                        };
-                        return Ok(MediaExpressionValue::NumberRatio(AspectRatio(a, b)));
-                    }
-                }
+                use crate::values::generics::position::Ratio as GenericRatio;
+                use crate::values::generics::NonNegative;
+                use crate::values::specified::position::Ratio;
 
-                let a = Integer::parse_positive(context, input)?;
-                input.expect_delim('/')?;
-                let b = Integer::parse_positive(context, input)?;
-                MediaExpressionValue::NumberRatio(AspectRatio(
-                    a.value() as CSSFloat,
-                    b.value() as CSSFloat,
+                let ratio = Ratio::parse(context, input)?;
+                MediaExpressionValue::NumberRatio(GenericRatio(
+                    NonNegative(ratio.0.get()),
+                    NonNegative(ratio.1.get()),
                 ))
             },
             Evaluator::Resolution(..) => {
