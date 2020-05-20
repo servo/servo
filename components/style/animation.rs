@@ -574,9 +574,84 @@ pub struct Transition {
     /// Whether or not this transition is new and or has already been tracked
     /// by the script thread.
     pub is_new: bool,
+
+    /// If this `Transition` has been replaced by a new one this field is
+    /// used to help produce better reversed transitions.
+    pub reversing_adjusted_start_value: AnimationValue,
+
+    /// If this `Transition` has been replaced by a new one this field is
+    /// used to help produce better reversed transitions.
+    pub reversing_shortening_factor: f64,
 }
 
 impl Transition {
+    fn update_for_possibly_reversed_transition(
+        &mut self,
+        replaced_transition: &Transition,
+        delay: f64,
+        now: f64,
+    ) {
+        // If we reach here, we need to calculate a reversed transition according to
+        // https://drafts.csswg.org/css-transitions/#starting
+        //
+        //  "...if the reversing-adjusted start value of the running transition
+        //  is the same as the value of the property in the after-change style (see
+        //  the section on reversing of transitions for why these case exists),
+        //  implementations must cancel the running transition and start
+        //  a new transition..."
+        if replaced_transition.reversing_adjusted_start_value != self.property_animation.to {
+            return;
+        }
+
+        // "* reversing-adjusted start value is the end value of the running transition"
+        let replaced_animation = &replaced_transition.property_animation;
+        self.reversing_adjusted_start_value = replaced_animation.to.clone();
+
+        // "* reversing shortening factor is the absolute value, clamped to the
+        //    range [0, 1], of the sum of:
+        //    1. the output of the timing function of the old transition at the
+        //      time of the style change event, times the reversing shortening
+        //      factor of the old transition
+        //    2.  1 minus the reversing shortening factor of the old transition."
+        let transition_progress = replaced_transition.progress(now);
+        let timing_function_output = replaced_animation.timing_function_output(transition_progress);
+        let old_reversing_shortening_factor = replaced_transition.reversing_shortening_factor;
+        self.reversing_shortening_factor = ((timing_function_output *
+            old_reversing_shortening_factor) +
+            (1.0 - old_reversing_shortening_factor))
+            .abs()
+            .min(1.0)
+            .max(0.0);
+
+        // "* start time is the time of the style change event plus:
+        //    1. if the matching transition delay is nonnegative, the matching
+        //       transition delay, or.
+        //    2. if the matching transition delay is negative, the product of the new
+        //       transition’s reversing shortening factor and the matching transition delay,"
+        self.start_time = if delay >= 0. {
+            now + delay
+        } else {
+            now + (self.reversing_shortening_factor * delay)
+        };
+
+        // "* end time is the start time plus the product of the matching transition
+        //    duration and the new transition’s reversing shortening factor,"
+        self.property_animation.duration *= self.reversing_shortening_factor;
+
+        // "* start value is the current value of the property in the running transition,
+        //  * end value is the value of the property in the after-change style,"
+        let procedure = Procedure::Interpolate {
+            progress: timing_function_output,
+        };
+        match replaced_animation
+            .from
+            .animate(&replaced_animation.to, procedure)
+        {
+            Ok(new_start) => self.property_animation.from = new_start,
+            Err(..) => {},
+        }
+    }
+
     /// Whether or not this animation has ended at the provided time. This does
     /// not take into account canceling i.e. when an animation or transition is
     /// canceled due to changes in the style.
@@ -763,6 +838,74 @@ impl ElementAnimationSet {
             transition.state = AnimationState::Canceled;
         }
     }
+
+    fn start_transition_if_applicable(
+        &mut self,
+        context: &SharedStyleContext,
+        opaque_node: OpaqueNode,
+        longhand_id: LonghandId,
+        index: usize,
+        old_style: &ComputedValues,
+        new_style: &Arc<ComputedValues>,
+    ) {
+        let box_style = new_style.get_box();
+        let timing_function = box_style.transition_timing_function_mod(index);
+        let duration = box_style.transition_duration_mod(index);
+        let delay = box_style.transition_delay_mod(index).seconds() as f64;
+        let now = context.current_time_for_animations;
+
+        // Only start a new transition if the style actually changes between
+        // the old style and the new style.
+        let property_animation = match PropertyAnimation::from_longhand(
+            longhand_id,
+            timing_function,
+            duration,
+            old_style,
+            new_style,
+        ) {
+            Some(property_animation) => property_animation,
+            None => return,
+        };
+
+        // Per [1], don't trigger a new transition if the end state for that
+        // transition is the same as that of a transition that's running or
+        // completed. We don't take into account any canceled animations.
+        // [1]: https://drafts.csswg.org/css-transitions/#starting
+        if self
+            .transitions
+            .iter()
+            .filter(|transition| transition.state != AnimationState::Canceled)
+            .any(|transition| transition.property_animation.to == property_animation.to)
+        {
+            return;
+        }
+
+        // We are going to start a new transition, but we might have to update
+        // it if we are replacing a reversed transition.
+        let reversing_adjusted_start_value = property_animation.from.clone();
+        let mut new_transition = Transition {
+            node: opaque_node,
+            start_time: now + delay,
+            property_animation,
+            state: AnimationState::Running,
+            is_new: true,
+            reversing_adjusted_start_value,
+            reversing_shortening_factor: 1.0,
+        };
+
+        if let Some(old_transition) = self
+            .transitions
+            .iter_mut()
+            .filter(|transition| transition.state != AnimationState::Canceled)
+            .find(|transition| transition.property_animation.property_id() == longhand_id)
+        {
+            // We always cancel any running transitions for the same property.
+            old_transition.state = AnimationState::Canceled;
+            new_transition.update_for_possibly_reversed_transition(old_transition, delay, now);
+        }
+
+        self.transitions.push(new_transition);
+    }
 }
 
 /// Kick off any new transitions for this node and return all of the properties that are
@@ -786,46 +929,17 @@ pub fn start_transitions_if_applicable(
         let physical_property = transition.longhand_id.to_physical(new_style.writing_mode);
         if properties_that_transition.contains(physical_property) {
             continue;
-        } else {
-            properties_that_transition.insert(physical_property);
         }
 
-        let property_animation = match PropertyAnimation::from_longhand(
-            transition.longhand_id,
-            box_style.transition_timing_function_mod(transition.index),
-            box_style.transition_duration_mod(transition.index),
+        properties_that_transition.insert(physical_property);
+        animation_state.start_transition_if_applicable(
+            context,
+            opaque_node,
+            physical_property,
+            transition.index,
             old_style,
             new_style,
-        ) {
-            Some(property_animation) => property_animation,
-            None => continue,
-        };
-
-        // Per [1], don't trigger a new transition if the end state for that
-        // transition is the same as that of a transition that's running or
-        // completed. We don't take into account any canceled animations.
-        // [1]: https://drafts.csswg.org/css-transitions/#starting
-        if animation_state
-            .transitions
-            .iter()
-            .filter(|transition| transition.state != AnimationState::Canceled)
-            .any(|transition| transition.property_animation.to == property_animation.to)
-        {
-            continue;
-        }
-
-        // Kick off the animation.
-        debug!("Kicking off transition of {:?}", property_animation);
-        let box_style = new_style.get_box();
-        let start_time = context.current_time_for_animations +
-            (box_style.transition_delay_mod(transition.index).seconds() as f64);
-        animation_state.transitions.push(Transition {
-            node: opaque_node,
-            start_time,
-            property_animation,
-            state: AnimationState::Running,
-            is_new: true,
-        });
+        );
     }
 
     properties_that_transition
