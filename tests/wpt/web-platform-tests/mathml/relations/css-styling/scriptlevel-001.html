@@ -89,8 +89,8 @@
           element.removeAttribute("accent");
           element.setAttribute("accentunder", "TrUe");
           assert_approx_equals(fontSize(element.children[0]), fontSizeAtScriptLevelZero, epsilon, "base");
-          assert_approx_equals(fontSize(element.children[1]), fontSizeAtScriptLevelZero, epsilon, "under");
-          assert_approx_equals(fontSize(element.children[2]), fontSizeAtScriptLevelZero * .71, epsilon, "over");
+          assert_approx_equals(fontSize(element.children[1]), fontSizeAtScriptLevelZero * .71, epsilon, "over");
+          assert_approx_equals(fontSize(element.children[2]), fontSizeAtScriptLevelZero, epsilon, "under");
        }, "checking dynamic/case-insensitive accent/accentunder");
 
       done();

@@ -20,6 +20,7 @@
 
 .marginLeft5 { margin-left: 5px; }
 .marginRight10 { margin-right: 10px; }
+.marginTopAuto { margin-top: auto }
 
 .paddingLeft6 { padding-left: 6px; }
 .paddingRight3 { padding-right: 3px; }
@@ -63,6 +64,13 @@
 
 <div class="grid">
   <div class="minWidth60 marginLeft5" data-expected-width="60"></div>
+  <div data-expected-width="65"></div>
+</div>
+
+<pre>Item min-width: 60px; &amp; margin-left: 5px; &amp; margin-top: auto</pre>
+
+<div class="grid">
+  <div class="minWidth60 marginLeft5 marginTopAuto" data-expected-width="60"></div>
   <div data-expected-width="65"></div>
 </div>
 
@@ -219,6 +227,13 @@
 
 <div class="grid directionRTL">
   <div class="minWidth60 marginLeft5" data-expected-width="60"></div>
+  <div data-expected-width="65"></div>
+</div>
+
+<pre>Item min-width: 60px; &amp; margin-left: 5px; &amp; margin-top: auto</pre>
+
+<div class="grid directionRTL">
+  <div class="minWidth60 marginLeft5 marginTopAuto" data-expected-width="60"></div>
   <div data-expected-width="65"></div>
 </div>
 

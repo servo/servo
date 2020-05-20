@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Mininum height of grid items orthogonal</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-items">
+<meta name="assert" content="Checks that orthogonal grid items minimum height take into account borders, padding and margins for grid containers with definite height.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.grid {
+  display: inline-grid;
+  height: 100px;
+  border: solid thick;
+  grid: minmax(auto, 0px) / 10px 10px;
+}
+
+.grid > div:nth-child(1) { background: cyan; writing-mode: vertical-lr; }
+.grid > div:nth-child(2) { background: magenta; }
+
+.height60 { height: 60px; }
+.minHeight60 { min-height: 60px; }
+
+.marginTop5 { margin-top: 5px; }
+.marginBottom10 { margin-bottom: 10px; }
+.marginLeftAuto { margin-left: auto }
+
+.paddingTop6 { padding-top: 6px; }
+.paddingBottom3 { padding-bottom: 3px; }
+
+.borderTop2, .borderBottom4 { border: solid yellow 0px; }
+.borderTop2 { border-top-width: 2px; }
+.borderBottom4 { border-bottom-width: 4px; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid')">
+
+<div id="log"></div>
+
+<h3>Direction LTR</h3>
+
+<pre>Item height: 60px;</pre>
+
+<div class="grid">
+  <div class="height60" data-expected-height="60"></div>
+  <div data-expected-height="60"></div>
+</div>
+
+<pre>Item min-height: 60px;</pre>
+
+<div class="grid">
+  <div class="minHeight60" data-expected-height="60"></div>
+  <div data-expected-height="60"></div>
+</div>
+
+<pre>Item height: 60px; &amp; margin-left: 5px;</pre>
+
+<div class="grid">
+  <div class="height60 marginTop5" data-expected-height="60"></div>
+  <div data-expected-height="65"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; margin-left: 5px;</pre>
+
+<div class="grid">
+  <div class="minHeight60 marginTop5" data-expected-height="60"></div>
+  <div data-expected-height="65"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; margin-top: 5px; &amp; margin-left: auto</pre>
+
+<div class="grid">
+  <div class="minHeight60 marginTop5 marginLeftAuto" data-expected-height="60"></div>
+  <div data-expected-height="65"></div>
+</div>
+
+<pre>Item height: 60px; &amp; margin-right: 10px;</pre>
+
+<div class="grid">
+  <div class="height60 marginBottom10" data-expected-height="60"></div>
+  <div data-expected-height="70"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; margin-right: 10px;</pre>
+
+<div class="grid">
+  <div class="minHeight60 marginBottom10" data-expected-height="60"></div>
+  <div data-expected-height="70"></div>
+</div>
+
+<pre>Item height: 60px; &amp; margin-left: 5px; &amp; margin-right: 10px;</pre>
+
+<div class="grid">
+  <div class="height60 marginTop5 marginBottom10" data-expected-height="60"></div>
+  <div data-expected-height="75"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; margin-left: 5px; &amp; margin-right: 10px;</pre>
+
+<div class="grid">
+  <div class="minHeight60 marginTop5 marginBottom10" data-expected-height="60"></div>
+  <div data-expected-height="75"></div>
+</div>
+
+<pre>Item height: 60px; &amp; padding-left: 6px;</pre>
+
+<div class="grid">
+  <div class="height60 paddingTop6" data-expected-height="66"></div>
+  <div data-expected-height="66"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; padding-left: 6px;</pre>
+
+<div class="grid">
+  <div class="minHeight60 paddingTop6" data-expected-height="66"></div>
+  <div data-expected-height="66"></div>
+</div>
+
+<pre>Item height: 60px; &amp; padding-right: 3px;</pre>
+
+<div class="grid">
+  <div class="height60 paddingBottom3" data-expected-height="63"></div>
+  <div data-expected-height="63"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; padding-right: 3px;</pre>
+
+<div class="grid">
+  <div class="minHeight60 paddingBottom3" data-expected-height="63"></div>
+  <div data-expected-height="63"></div>
+</div>
+
+<pre>Item height: 60px; &amp; padding-left: 6px; &amp; padding-right: 3px;</pre>
+
+<div class="grid">
+  <div class="height60 paddingTop6 paddingBottom3" data-expected-height="69"></div>
+  <div data-expected-height="69"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; padding-left: 6px; &amp; padding-right: 3px;</pre>
+
+<div class="grid">
+  <div class="minHeight60 paddingTop6 paddingBottom3" data-expected-height="69"></div>
+  <div data-expected-height="69"></div>
+</div>
+
+<pre>Item height: 60px; &amp; border-left-width: 2px;</pre>
+
+<div class="grid">
+  <div class="height60 borderTop2" data-expected-height="62"></div>
+  <div data-expected-height="62"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; border-left-width: 2px;</pre>
+
+<div class="grid">
+  <div class="minHeight60 borderTop2" data-expected-height="62"></div>
+  <div data-expected-height="62"></div>
+</div>
+
+<pre>Item height: 60px; &amp; border-right-width: 4px;</pre>
+
+<div class="grid">
+  <div class="height60 borderBottom4" data-expected-height="64"></div>
+  <div data-expected-height="64"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; border-right-width: 4px;</pre>
+
+<div class="grid">
+  <div class="minHeight60 borderBottom4" data-expected-height="64"></div>
+  <div data-expected-height="64"></div>
+</div>
+
+<pre>Item height: 60px; &amp; border-left-width: 2px; &amp; border-right-width: 4px;</pre>
+
+<div class="grid">
+  <div class="height60 borderTop2 borderBottom4" data-expected-height="66"></div>
+  <div data-expected-height="66"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; border-left-width: 2px; &amp; border-right-width: 4px;</pre>
+
+<div class="grid">
+  <div class="minHeight60 borderTop2 borderBottom4" data-expected-height="66"></div>
+  <div data-expected-height="66"></div>
+</div>
+
+<pre>Item height: 60px; &amp; margin-left: 5px; &amp; margin-right: 10px; &amp; padding-left: 6px; &amp; padding-right: 3px; &amp; border-left-width: 2px; &amp; border-right-width: 4px;</pre>
+
+<div class="grid">
+  <div class="height60 marginTop5 marginBottom10 paddingTop6 paddingBottom3 borderTop2 borderBottom4" data-expected-height="75"></div>
+  <div data-expected-height="90"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; margin-left: 5px; &amp; margin-right: 10px; &amp; padding-left: 6px; &amp; padding-right: 3px; &amp; border-left-width: 2px; &amp; border-right-width: 4px;</pre>
+
+<div class="grid">
+  <div class="minHeight60 marginTop5 marginBottom10 paddingTop6 paddingBottom3 borderTop2 borderBottom4" data-expected-height="75"></div>
+  <div data-expected-height="90"></div>
+</div>
+
+<h3>Direction RTL</h3>
+
+<pre>Item height: 60px;</pre>
+
+<div class="grid directionRTL">
+  <div class="height60" data-expected-height="60"></div>
+  <div data-expected-height="60"></div>
+</div>
+
+<pre>Item min-height: 60px;</pre>
+
+<div class="grid directionRTL">
+  <div class="minHeight60" data-expected-height="60"></div>
+  <div data-expected-height="60"></div>
+</div>
+
+<pre>Item height: 60px; &amp; margin-left: 5px;</pre>
+
+<div class="grid directionRTL">
+  <div class="height60 marginTop5" data-expected-height="60"></div>
+  <div data-expected-height="65"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; margin-left: 5px;</pre>
+
+<div class="grid directionRTL">
+  <div class="minHeight60 marginTop5" data-expected-height="60"></div>
+  <div data-expected-height="65"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; margin-top: 5px; &amp; margin-left: auto</pre>
+
+<div class="grid directionRTL">
+  <div class="minHeight60 marginTop5 marginLeftAuto" data-expected-height="60"></div>
+  <div data-expected-height="65"></div>
+</div>
+
+<pre>Item height: 60px; &amp; margin-right: 10px;</pre>
+
+<div class="grid directionRTL">
+  <div class="height60 marginBottom10" data-expected-height="60"></div>
+  <div data-expected-height="70"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; margin-right: 10px;</pre>
+
+<div class="grid directionRTL">
+  <div class="minHeight60 marginBottom10" data-expected-height="60"></div>
+  <div data-expected-height="70"></div>
+</div>
+
+<pre>Item height: 60px; &amp; margin-left: 5px; &amp; margin-right: 10px;</pre>
+
+<div class="grid directionRTL">
+  <div class="height60 marginTop5 marginBottom10" data-expected-height="60"></div>
+  <div data-expected-height="75"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; margin-left: 5px; &amp; margin-right: 10px;</pre>
+
+<div class="grid directionRTL">
+  <div class="minHeight60 marginTop5 marginBottom10" data-expected-height="60"></div>
+  <div data-expected-height="75"></div>
+</div>
+
+<pre>Item height: 60px; &amp; padding-left: 6px;</pre>
+
+<div class="grid directionRTL">
+  <div class="height60 paddingTop6" data-expected-height="66"></div>
+  <div data-expected-height="66"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; padding-left: 6px;</pre>
+
+<div class="grid directionRTL">
+  <div class="minHeight60 paddingTop6" data-expected-height="66"></div>
+  <div data-expected-height="66"></div>
+</div>
+
+<pre>Item height: 60px; &amp; padding-right: 3px;</pre>
+
+<div class="grid directionRTL">
+  <div class="height60 paddingBottom3" data-expected-height="63"></div>
+  <div data-expected-height="63"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; padding-right: 3px;</pre>
+
+<div class="grid directionRTL">
+  <div class="minHeight60 paddingBottom3" data-expected-height="63"></div>
+  <div data-expected-height="63"></div>
+</div>
+
+<pre>Item height: 60px; &amp; padding-left: 6px; &amp; padding-right: 3px;</pre>
+
+<div class="grid directionRTL">
+  <div class="height60 paddingTop6 paddingBottom3" data-expected-height="69"></div>
+  <div data-expected-height="69"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; padding-left: 6px; &amp; padding-right: 3px;</pre>
+
+<div class="grid directionRTL">
+  <div class="minHeight60 paddingTop6 paddingBottom3" data-expected-height="69"></div>
+  <div data-expected-height="69"></div>
+</div>
+
+<pre>Item height: 60px; &amp; border-left-width: 2px;</pre>
+
+<div class="grid directionRTL">
+  <div class="height60 borderTop2" data-expected-height="62"></div>
+  <div data-expected-height="62"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; border-left-width: 2px;</pre>
+
+<div class="grid directionRTL">
+  <div class="minHeight60 borderTop2" data-expected-height="62"></div>
+  <div data-expected-height="62"></div>
+</div>
+
+<pre>Item height: 60px; &amp; border-right-width: 4px;</pre>
+
+<div class="grid directionRTL">
+  <div class="height60 borderBottom4" data-expected-height="64"></div>
+  <div data-expected-height="64"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; border-right-width: 4px;</pre>
+
+<div class="grid directionRTL">
+  <div class="minHeight60 borderBottom4" data-expected-height="64"></div>
+  <div data-expected-height="64"></div>
+</div>
+
+<pre>Item height: 60px; &amp; border-left-width: 2px; &amp; border-right-width: 4px;</pre>
+
+<div class="grid directionRTL">
+  <div class="height60 borderTop2 borderBottom4" data-expected-height="66"></div>
+  <div data-expected-height="66"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; border-left-width: 2px; &amp; border-right-width: 4px;</pre>
+
+<div class="grid directionRTL">
+  <div class="minHeight60 borderTop2 borderBottom4" data-expected-height="66"></div>
+  <div data-expected-height="66"></div>
+</div>
+
+<pre>Item height: 60px; &amp; margin-left: 5px; &amp; margin-right: 10px; &amp; padding-left: 6px; &amp; padding-right: 3px; &amp; border-left-width: 2px; &amp; border-right-width: 4px;</pre>
+
+<div class="grid directionRTL">
+  <div class="height60 marginTop5 marginBottom10 paddingTop6 paddingBottom3 borderTop2 borderBottom4" data-expected-height="75"></div>
+  <div data-expected-height="90"></div>
+</div>
+
+<pre>Item min-height: 60px; &amp; margin-left: 5px; &amp; margin-right: 10px; &amp; padding-left: 6px; &amp; padding-right: 3px; &amp; border-left-width: 2px; &amp; border-right-width: 4px;</pre>
+
+<div class="grid directionRTL">
+  <div class="minHeight60 marginTop5 marginBottom10 paddingTop6 paddingBottom3 borderTop2 borderBottom4" data-expected-height="75"></div>
+  <div data-expected-height="90"></div>
+</div>

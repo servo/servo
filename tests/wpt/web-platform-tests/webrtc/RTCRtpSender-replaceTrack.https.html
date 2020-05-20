@@ -297,7 +297,7 @@ promise_test(async t => {
     });
   });
   exchangeIceCandidates(pc1, pc2);
-  doSignalingHandshake(pc1, pc2);
+  exchangeOfferAnswer(pc1, pc2);
   await metadataToBeLoaded;
   await detectSignal(t, v, 20);
   await sender.replaceTrack(track2);

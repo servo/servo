@@ -85,21 +85,21 @@ document.fonts.ready.then(()=> {
 
   // Wrong values.
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "fr", "fr", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "fr", "fr", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "fr", "fr", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "1 fr", "1 fr", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "1 fr", "1 fr", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "1 fr", "1 fr", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "1free-space", "1free-space", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "1free-space", "1free-space", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "1free-space", "1free-space", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "-2fr", "-2fr", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "-2fr", "-2fr", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "-2fr", "-2fr", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "0,5fr", "0,5fr", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "0,5fr", "0,5fr", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "0,5fr", "0,5fr", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "calc(1fr + 100px)", "calc(1fr + 100px)", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "calc(1fr + 100px)", "calc(1fr + 100px)", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "calc(1fr + 100px)", "calc(1fr + 100px)", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "(1fr) auto", "(1fr) auto", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "(1fr) auto", "(1fr) auto", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "(1fr) auto", "(1fr) auto", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "minmax(1fr, 1000px)", "minmax(1fr, 700px)", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "minmax(1fr, 1000px)", "minmax(1fr, 700px)", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "minmax(1fr, 1000px)", "minmax(1fr, 700px)", "90px", "10px");
   done();
 });
 </script>

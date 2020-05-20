@@ -922,17 +922,22 @@ def run(**kwargs):
             signal.signal(signal.SIGTERM, handle_signal)
             signal.signal(signal.SIGINT, handle_signal)
 
-            while (all(item.is_alive() for item in iter_procs(servers)) and
+            while (all(subproc.is_alive() for subproc in iter_procs(servers)) and
                    not received_signal.is_set()):
-                for item in iter_procs(servers):
-                    item.join(1)
-            exited = [item for item in iter_procs(servers) if not item.is_alive()]
-            subject = "subprocess" if len(exited) == 1 else "subprocesses"
+                for subproc in iter_procs(servers):
+                    subproc.join(1)
 
-            logger.info("%s %s exited:" % (len(exited), subject))
-
-            for item in iter_procs(servers):
-                logger.info("Status of %s:\t%s" % (item.name, "running" if item.is_alive() else "not running"))
+            failed_subproc = 0
+            for subproc in iter_procs(servers):
+                if subproc.is_alive():
+                    logger.info('Status of subprocess "%s": running' % subproc.name)
+                else:
+                    if subproc.exitcode == 0:
+                        logger.info('Status of subprocess "%s": exited correctly' % subproc.name)
+                    else:
+                        logger.warning('Status of subprocess "%s": failed. Exit with non-zero status: %d' % (subproc.name, subproc.exitcode))
+                        failed_subproc += 1
+            return failed_subproc
 
 
 def main():

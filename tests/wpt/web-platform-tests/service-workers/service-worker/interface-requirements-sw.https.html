@@ -7,9 +7,10 @@
 <script>
 'use strict';
 
-// NOTE: affected when 'resources/idlharness-worker.sub.js' srcs change:
-// const srcs = ['dom', 'html', 'service-workers'];
+// interface-requirements-worker.sub.js checks additional interface
+// requirements, on top of the basic IDL that is validated in
+// service-workers/idlharness.any.js
 service_worker_test(
-  'resources/idlharness-worker.sub.js',
+  'resources/interface-requirements-worker.sub.js',
   'Interfaces and attributes in ServiceWorkerGlobalScope');
 </script>

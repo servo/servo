@@ -1,14 +1,17 @@
 <!doctype html>
 <html>
+<meta name="timeout" content="long">
 <body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script>
 const {ORIGIN, REMOTE_ORIGIN} = get_host_info();
-const COEP =
-  '|header(cross-origin-embedder-policy,require-corp)' +
+const COEP = '|header(cross-origin-embedder-policy,require-corp)';
+const COEP_RO =
   '|header(cross-origin-embedder-policy-report-only,require-corp)';
+const CORP_CROSS_ORIGIN =
+  '|header(cross-origin-resource-policy,cross-origin)';
 const FRAME_URL = `${ORIGIN}/common/blank.html?pipe=`;
 const REMOTE_FRAME_URL = `${REMOTE_ORIGIN}/common/blank.html?pipe=`;
 
@@ -16,6 +19,13 @@ function checkCorpReport(report, contextUrl, blockedUrl) {
   assert_equals(report.type, 'coep');
   assert_equals(report.url, contextUrl);
   assert_equals(report.body.type, 'corp');
+  assert_equals(report.body['blocked-url'], blockedUrl);
+}
+
+function checkCoepMismatchReport(report, contextUrl, blockedUrl) {
+  assert_equals(report.type, 'coep');
+  assert_equals(report.url, contextUrl);
+  assert_equals(report.body.type, 'navigation');
   assert_equals(report.body['blocked-url'], blockedUrl);
 }
 
@@ -29,49 +39,111 @@ function loadFrame(document, url) {
   });
 }
 
-function observeReportsUpTo(global, upto) {
-  const reports = [];
-  return new Promise(resolve => {
-    const observer = new global.ReportingObserver((rs) => {
-      for (const r of rs) {
-        reports.push(r.toJSON());
-        if (reports.length == upto) {
-          observer.disconnect();
-          resolve(reports);
-        }
-      }
-    });
-    observer.observe();
-  });
+// |parentSuffix| is a suffix for the parent frame URL.
+// When |withEmptyFrame| is true, this function creates an empty frame
+// between the parent and target frames.
+// |targetUrl| is a URL for the target frame.
+async function loadFrames(test, parentSuffix, withEmptyFrame, targetUrl) {
+  const frame = await loadFrame(document, FRAME_URL + parentSuffix);
+  test.add_cleanup(() => frame.remove());
+  let parent;
+  if (withEmptyFrame) {
+    parent = frame.contentDocument.createElement('iframe');
+    frame.contentDocument.body.appendChild(parent);
+  } else {
+    parent = frame;
+  }
+  // Here we don't need "await". This loading may or may not succeed, and
+  // we're not interested in the result.
+  loadFrame(parent.contentDocument, targetUrl);
+
+  return parent;
 }
 
-promise_test(async (t) => {
-  const parent = await loadFrame(document, FRAME_URL + COEP);
-  t.add_cleanup(() => parent.remove());
-  loadFrame(parent.contentDocument, REMOTE_FRAME_URL + COEP);
+async function observeReports(global) {
+  const reports = [];
+  const observer = new global.ReportingObserver((rs) => {
+    for (const r of rs) {
+      reports.push(r.toJSON());
+    }
+  });
+  observer.observe();
 
-  // One for COEP, one for COEP-RO.
-  const reports = await observeReportsUpTo(parent.contentWindow, 2);
+  // Wait 3000ms for reports to settle.
+  await new Promise(r => step_timeout(r, 3000));
+  return reports;
+}
 
-  assert_equals(reports.length, 2);
-  checkCorpReport(reports[0], parent.src, REMOTE_FRAME_URL + COEP);
-  checkCorpReport(reports[1], parent.src, REMOTE_FRAME_URL + COEP);
-}, 'Navigation CORP');
+// CASES is a list of test case. Each test case consists of:
+//   parent: the suffix of the URL of the parent frame.
+//   target: the suffix of the URL of the target frame.
+//   reports: the expectation of reports to be made. Each report is one of:
+//     'CORP': CORP violation
+//     'CORP-RO' CORP violation (report only)
+//     'NAV': COEP mismatch between the frames.
+//     'NAV-RO': COEP mismatch between the frames (report only).
+//   Currently '-RO' is no-op, e.g., 'CORP' and 'CORP-RO' have the same
+//   expectation. We are planning to introduce "disposition" member in
+//   reports, which will differentiate them each other.
+const CASES = [
+  { parent: '', target: '', reports: [] },
+  { parent: '', target: COEP, reports: [] },
+  { parent: COEP, target: COEP, reports: ['CORP'] },
+  { parent: COEP, target: '', reports: ['CORP'] },
 
-promise_test(async (t) => {
-  const grandParent = await loadFrame(document, FRAME_URL + COEP);
-  t.add_cleanup(() => grandParent.remove());
-  const parent = grandParent.contentDocument.createElement('iframe');
-  grandParent.contentDocument.body.appendChild(parent);
-  loadFrame(parent.contentDocument, REMOTE_FRAME_URL + COEP);
+  { parent: '', target: CORP_CROSS_ORIGIN, reports: [] },
+  { parent: COEP, target: CORP_CROSS_ORIGIN, reports: ['NAV'] },
 
-  // One for COEP, one for COEP-RO.
-  const reports = await observeReportsUpTo(parent.contentWindow, 2);
+  { parent: '', target: COEP + CORP_CROSS_ORIGIN, reports: [] },
+  { parent: COEP, target: COEP + CORP_CROSS_ORIGIN, reports: [] },
 
-  assert_equals(reports.length, 2);
-  checkCorpReport(reports[0], 'about:blank', REMOTE_FRAME_URL + COEP);
-  checkCorpReport(reports[1], 'about:blank', REMOTE_FRAME_URL + COEP);
-}, 'Navigation CORP and about:blank');
+  { parent: COEP_RO, target: COEP, reports: ['CORP-RO'] },
+  { parent: COEP_RO, target: '', reports: ['CORP-RO', 'NAV-RO'] },
+  { parent: COEP_RO, target: CORP_CROSS_ORIGIN, reports: ['NAV-RO'] },
+  { parent: COEP_RO, target: COEP + CORP_CROSS_ORIGIN, reports: [] },
+
+  { parent: COEP, target: COEP_RO + CORP_CROSS_ORIGIN, reports: ['NAV'] },
+];
+
+for (const testcase of CASES) {
+  for (const withEmptyFrame of [false, true]) {
+    function desc(s) {
+      return s === '' ? '(none)' : s;
+    }
+    async_test(async (t) => {
+      try {
+        const targetUrl = REMOTE_FRAME_URL + testcase.target;
+        const parent =
+          await loadFrames(t, testcase.parent, withEmptyFrame, targetUrl);
+
+        const contextUrl = parent.src ? parent.src : 'about:blank';
+        const reports = await observeReports(parent.contentWindow);
+        assert_equals(reports.length, testcase.reports.length);
+
+        for (let i = 0; i < reports.length; i += 1) {
+          const report = reports[i];
+          switch (testcase.reports[i]) {
+            case 'CORP':
+            case 'CORP-RO':
+              checkCorpReport(report, contextUrl, targetUrl);
+              break;
+            case 'NAV':
+            case 'NAV-RO':
+              checkCoepMismatchReport(report, contextUrl, targetUrl);
+              break;
+            default:
+              assert_unreached(
+                'Unexpected report expeaction: ' + testcase.reports[i]);
+          }
+        }
+        t.done();
+      } catch (e) {
+        t.step(() => { throw e; });
+      }
+    }, `parent: ${desc(testcase.parent)}, target: ${desc(testcase.target)}, ` +
+       `with empty frame: ${withEmptyFrame}`);
+  }
+}
 
 </script>
 </body></html>

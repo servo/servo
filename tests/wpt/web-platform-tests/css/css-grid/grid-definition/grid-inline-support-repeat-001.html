@@ -65,19 +65,19 @@ document.fonts.ready.then(()=> {
 
   // Wrong values.
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "repeat(-1, auto)", "repeat(-1, auto)", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "repeat(-1, auto)", "repeat(-1, auto)", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "repeat(-1, auto)", "repeat(-1, auto)", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "repeat(auto, 2)", "repeat(auto, 2)", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "repeat(auto, 2)", "repeat(auto, 2)", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "repeat(auto, 2)", "repeat(auto, 2)", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "repeat 2, auto", "repeat 2, auto", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "repeat 2, auto", "repeat 2, auto", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "repeat 2, auto", "repeat 2, auto", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "repeat(2 auto)", "repeat(2 auto)", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "repeat(2 auto)", "repeat(2 auto)", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "repeat(2 auto)", "repeat(2 auto)", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "100px (repeat 2, auto)", "(repeat 2, auto)", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "100px (repeat 2, auto)", "(repeat 2, auto)", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "100px (repeat 2, auto)", "(repeat 2, auto)", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "repeat(2, 50px repeat(2, 100px))", "repeat(2, 50px repeat(2, 100px))", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "repeat(2, 50px repeat(2, 100px))", "repeat(2, 50px repeat(2, 100px))", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "repeat(2, 50px repeat(2, 100px))", "repeat(2, 50px repeat(2, 100px))", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "100px repeat(2, [a])", "100px repeat(2, [a])", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "100px repeat(2, [a])", "100px repeat(2, [a])", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "100px repeat(2, [a])", "100px repeat(2, [a])", "90px", "10px");
   done();
 });
 </script>
