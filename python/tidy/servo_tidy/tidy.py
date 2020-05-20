@@ -352,8 +352,10 @@ def check_lock(file_name, contents):
     def find_reverse_dependencies(name, content):
         for package in itertools.chain([content.get("root", {})], content["package"]):
             for dependency in package.get("dependencies", []):
-                if dependency.startswith("{} ".format(name)):
-                    yield package["name"], dependency
+                parts = dependency.split()
+                dependency = (parts[0], parts[1] if len(parts) > 1 else None, parts[2] if len(parts) > 2 else None)
+                if dependency[0] == name:
+                    yield package["name"], package["version"], dependency
 
     if not file_name.endswith(".lock"):
         raise StopIteration
@@ -394,9 +396,9 @@ def check_lock(file_name, contents):
             short_source = source.split("#")[0].replace("git+", "")
             message += "\n\t\033[93mThe following packages depend on version {} from '{}':\033[0m" \
                        .format(version, short_source)
-            for name, dependency in packages_dependencies:
-                if version in dependency and short_source in dependency:
-                    message += "\n\t\t" + name
+            for pname, package_version, dependency in packages_dependencies:
+                if version in dependency[1] and (not dependency[2] or short_source in dependency[2]):
+                    message += "\n\t\t" + pname + " " + package_version
         yield (1, message)
 
     # Check to see if we are transitively using any blocked packages

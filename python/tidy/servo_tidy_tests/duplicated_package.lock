@@ -17,13 +17,16 @@ name = "test2"
 version = "0.1.0"
 source = "git+https://github.com/user/test2#c54edsf"
 dependencies = [
- "test 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "test 0.4.9",
 ]
 
 [[package]]
 name = "test3"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "test 0.5.1",
+]
 
 [[package]]
 name = "test3"
