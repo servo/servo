@@ -2207,7 +2207,12 @@ where
         "nth-last-of-type" => return parse_nth_pseudo_class(parser, input, state, Component::NthLastOfType),
         "is" if parser.parse_is_and_where() => return parse_is_or_where(parser, input, state, Component::Is),
         "where" if parser.parse_is_and_where() => return parse_is_or_where(parser, input, state, Component::Where),
-        "host" => return Ok(Component::Host(Some(parse_inner_compound_selector(parser, input, state)?))),
+        "host" => {
+            if !state.allows_tree_structural_pseudo_classes() {
+                return Err(input.new_custom_error(SelectorParseErrorKind::InvalidState));
+            }
+            return Ok(Component::Host(Some(parse_inner_compound_selector(parser, input, state)?)));
+        },
         "not" => {
             if state.intersects(SelectorParsingState::INSIDE_NEGATION) {
                 return Err(input.new_custom_error(
