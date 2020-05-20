@@ -34,14 +34,14 @@ async_test(t => {
 async_test(t => {
     var i = document.createElement('img');
     var url = "{{location[scheme]}}://{{domains[www1]}}:{{ports[http][0]}}/common/redirect.py?location=" + encodeURIComponent("{{location[scheme]}}://{{location[host]}}/content-security-policy/support/fail.png?t=3");
-    createListener("{{location[scheme]}}://{{location[host]}}/content-security-policy/support/fail.png?t=3", t);
+    createListener(url, t);
     i.src = url;
 }, "Block after redirect, same-origin = original URL in report");
 
 async_test(t => {
     var i = document.createElement('img');
     var url = "{{location[scheme]}}://{{domains[www1]}}:{{ports[http][0]}}/common/redirect.py?location=" + encodeURIComponent("{{location[scheme]}}://{{domains[www2]}}:{{ports[http][0]}}/content-security-policy/support/fail.png?t=4");
-    createListener("{{location[scheme]}}://{{domains[www2]}}:{{ports[http][0]}}", t);
+    createListener(url, t);
     i.src = url;
 }, "Block after redirect, cross-origin = original URL in report");
 </script>

@@ -32,7 +32,7 @@ promise_test(async (t) => {
   });
 
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
 
   await resolver;
 }, 'In-band negotiated channel created on remote peer should match the same configuration as local ' +
@@ -57,7 +57,7 @@ promise_test(async (t) => {
   });
 
   exchangeIceCandidates(pc1, pc2);
-  await doSignalingHandshake(pc1, pc2);
+  await exchangeOfferAnswer(pc1, pc2);
 
   await resolver;
 }, 'In-band negotiated channel created on remote peer should match the same (default) ' +

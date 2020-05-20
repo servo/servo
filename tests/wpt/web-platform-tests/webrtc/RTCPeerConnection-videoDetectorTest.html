@@ -52,7 +52,7 @@ promise_test(async t => {
     v.addEventListener('loadedmetadata', resolve);
   });
   exchangeIceCandidates(pc1, pc2);
-  doSignalingHandshake(pc1, pc2);
+  exchangeOfferAnswer(pc1, pc2);
   await metadataToBeLoaded;
   // The basic signal is a track with signal 100. We replace this
   // with tracks with signal from 0 to 255 and see if they are all

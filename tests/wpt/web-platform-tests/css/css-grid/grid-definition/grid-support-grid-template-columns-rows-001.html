@@ -31,7 +31,7 @@ setup({explicit_done: true});
 document.fonts.ready.then(()=> {
   // Single values.
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "none", "none", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "none", "none", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "none", "none", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "auto", "auto", "0px", "0px");
   TestingUtils.testGridTemplateColumnsRows("grid", "auto", "auto", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "500px", "300px", "500px", "300px");
@@ -77,13 +77,13 @@ document.fonts.ready.then(()=> {
 
   // Wrong values.
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "foo", "bar", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "foo", "bar", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "foo", "bar", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "auto none", "none auto", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "auto none", "none auto", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "auto none", "none auto", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "100px, 200px", "300px, 400px", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "100px, 200px", "300px, 400px", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "100px, 200px", "300px, 400px", "90px", "10px");
   TestingUtils.testGridTemplateColumnsRows("emptyGrid", "minmax(100px, 200px, 300px)", "minmax(100px, 200px, 300px)", "none", "none");
-  TestingUtils.testGridTemplateColumnsRows("grid", "minmax(100px, 200px, 300px)", "minmax(100px, 200px, 300px)", "none", "none");
+  TestingUtils.testGridTemplateColumnsRows("grid", "minmax(100px, 200px, 300px)", "minmax(100px, 200px, 300px)", "90px", "10px");
   done();
 });
 </script>

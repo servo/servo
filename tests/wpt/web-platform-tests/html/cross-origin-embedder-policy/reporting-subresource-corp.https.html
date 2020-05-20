@@ -28,9 +28,9 @@ function checkReport(report, contextUrl, blockedUrl) {
   assert_equals(report.body['blocked-url'], blockedUrl);
 }
 
-async function fetchInFrame(t, url) {
+async function fetchInFrame(t, frameUrl, url) {
   const reports = [];
-  const frame = await with_iframe(FRAME_URL);
+  const frame = await with_iframe(frameUrl);
   t.add_cleanup(() => frame.remove());
 
   const observer = new frame.contentWindow.ReportingObserver((rs) => {
@@ -80,7 +80,7 @@ const ENVIRONMENTS = [{
   tag: 'document',
   contextUrl: FRAME_URL,
   run: async (test, url) => {
-    return await fetchInFrame(test, url);
+    return await fetchInFrame(test, FRAME_URL, url);
   },
 }, {
   tag: 'dedicated worker',
@@ -112,6 +112,21 @@ const ENVIRONMENTS = [{
     const worker = reg.installing || reg.waiting || reg.active;
     worker.addEventListener('error', test.unreached_func('Worker.onerror'));
     return await fetchInWorker(worker, url);
+  },
+}, {
+  tag: 'between service worker and page',
+  contextUrl: `${ORIGIN}${BASE}/reporting-empty-frame.html`,
+  run: async (test, url) => {
+    const SCOPE = `${BASE}/reporting-empty-frame.html`;
+    // Here we use a Service Worker without COEP.
+    const WORKER_URL = `${ORIGIN}${BASE}/sw.js`;
+    const reg =
+      await service_worker_unregister_and_register(test, WORKER_URL, SCOPE);
+    test.add_cleanup(() => reg.unregister());
+    const worker = reg.installing || reg.waiting || reg.active;
+    worker.addEventListener('error', test.unreached_func('Worker.onerror'));
+    return await fetchInFrame(
+      test, `${ORIGIN}${BASE}/reporting-empty-frame.html`, url);
   },
 }];
 

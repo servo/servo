@@ -1,48 +1,9 @@
 'use strict';
 
-importScripts('worker-testharness.js');
-importScripts('/resources/WebIDLParser.js');
-importScripts('/resources/idlharness.js');
+// This file checks additional interface requirements, on top of the basic IDL
+// that is validated in service-workers/idlharness.any.js
 
-promise_test(async (t) => {
-  const srcs = ['dom', 'html', 'service-workers'];
-  const [dom, html, serviceWorkerIdl] = await Promise.all(
-    srcs.map(i => fetch(`/interfaces/${i}.idl`).then(r => r.text())));
-
-  var idlArray = new IdlArray();
-  idlArray.add_idls(serviceWorkerIdl, { only: [
-    'ServiceWorkerGlobalScope',
-    'Client',
-    'WindowClient',
-    'Clients',
-    'ServiceWorker',
-    'ServiceWorkerState',
-    'ServiceWorkerUpdateViaCache',
-    'ServiceWorkerRegistration',
-    'EventTarget',
-    'NavigationPreloadManager',
-    'Cache',
-    'CacheStorage',
-  ]});
-  idlArray.add_dependency_idls(dom);
-  idlArray.add_dependency_idls(html);
-  idlArray.add_objects({
-    ServiceWorkerGlobalScope: ['self'],
-    Clients: ['self.clients'],
-    ServiceWorkerRegistration: ['self.registration'],
-    CacheStorage: ['self.caches']
-    // TODO: Test instances of Client and WindowClient, e.g.
-    // Client: ['self.clientInstance'],
-    // WindowClient: ['self.windowClientInstance']
-  });
-  return create_temporary_cache(t)
-    .then(function(cache) {
-        self.cacheInstance = cache;
-
-        idlArray.add_objects({ Cache: ['self.cacheInstance'] });
-        idlArray.test();
-      });
-}, 'test setup (cache creation)');
+importScripts('/resources/testharness.js');
 
 test(function() {
     var req = new Request('http://{{host}}/',

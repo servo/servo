@@ -4,7 +4,7 @@
 <link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
 <link rel="help" href="http://www.w3.org/TR/css-grid-1/#resolved-track-list" title="5.1.5. Resolved Values">
 <meta name="flags" content="ahem dom">
-<meta name="assert" content="This test checks that resolved values for 'grid-template-columns' and 'grid-template-rows' don't include implicitly created tracks in an inline grid.">
+<meta name="assert" content="This test checks that resolved values for 'grid-template-columns' and 'grid-template-rows' list tracks implicitly created in an inline grid.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="support/testing-utils.js"></script>
@@ -17,7 +17,6 @@
     font: 10px/1 Ahem;
     justify-content: start;
     align-content: start;
-    position: relative;
   }
 
   .fifthColumn {
@@ -59,218 +58,50 @@
 </div>
 
 <script>
-function testSizeAndPositionOfItems(gridId, expectedItemData) {
-  let grid = document.getElementById(gridId);
-  assert_equals(grid.childElementCount, expectedItemData.length, "childElementCount");
-  let props = ["offsetWidth", "offsetTop", "offsetHeight"];
-  for (let i = 0; i < expectedItemData.length; ++i)
-    for (let prop of props)
-      assert_equals(grid.children[i][prop], expectedItemData[i][prop], "children[" + i + "]." + prop);
-}
-
-function testGrid(gridId, columnsStyle, rowsStyle, columnsComputedValue, rowsComputedValue, expectedItemData) {
-  TestingUtils.testGridTemplateColumnsRows(gridId, columnsStyle, rowsStyle, columnsComputedValue, rowsComputedValue);
-  test(function() {
-    testSizeAndPositionOfItems(gridId, expectedItemData);
-  }, "Children of '" + gridId + "' with: grid-template-columns: " + columnsStyle  + "; and grid-template-rows: " + rowsStyle + ";");
-}
-
 setup({explicit_done: true});
 document.fonts.ready.then(()=> {
   // Valid values.
-  testGrid("grid", "", "", "none", "none", [
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 0, offsetHeight: 10},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 10, offsetHeight: 10},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 20, offsetHeight: 20},
-  ]);
-  testGrid("grid", "auto auto", "", "100px 110px", "none", [
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 0, offsetHeight: 10},
-    {offsetLeft: 100, offsetWidth: 110, offsetTop: 0, offsetHeight: 10},
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 10, offsetHeight: 20},
-  ]);
-  testGrid("grid", "60px", "", "60px", "none", [
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 20, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 40, offsetHeight: 20},
-  ]);
-  testGrid("grid", "100px 60px", "", "100px 60px", "none", [
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 100, offsetWidth: 60, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 20, offsetHeight: 20},
-  ]);
-  testGrid("grid", "", "50px", "none", "50px", [
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 50, offsetHeight: 10},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 60, offsetHeight: 20},
-  ]);
-  testGrid("grid", "", "50px 30px", "none", "50px 30px", [
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 50, offsetHeight: 30},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 80, offsetHeight: 20},
-  ]);
-  testGrid("grid", "60px", "50px", "60px", "50px", [
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 50, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 70, offsetHeight: 20},
-  ]);
-  testGrid("grid", "60px", "50px 30px", "60px", "50px 30px", [
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 50, offsetHeight: 30},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 80, offsetHeight: 20},
-  ]);
-  testGrid("grid", "100px 60px", "50px", "100px 60px", "50px", [
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 100, offsetWidth: 60, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 50, offsetHeight: 20},
-  ]);
-  testGrid("grid", "100px 60px", "50px 30px", "100px 60px", "50px 30px", [
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 100, offsetWidth: 60, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 50, offsetHeight: 30},
-  ]);
+  TestingUtils.testGridTemplateColumnsRows("grid", "", "", "110px", ["10px 10px 20px", "repeat(2, 10px) 20px"]);
+  TestingUtils.testGridTemplateColumnsRows("grid", "auto auto", "", "100px 110px", "10px 20px");
+  TestingUtils.testGridTemplateColumnsRows("grid", "60px", "", "60px", ["20px 20px 20px", "repeat(3, 20px)"]);
+  TestingUtils.testGridTemplateColumnsRows("grid", "100px 60px", "", "100px 60px", ["20px 20px", "repeat(2, 20px)"]);
+  TestingUtils.testGridTemplateColumnsRows("grid", "", "50px", "110px", "50px 10px 20px");
+  TestingUtils.testGridTemplateColumnsRows("grid", "", "50px 30px", "110px", "50px 30px 20px");
+  TestingUtils.testGridTemplateColumnsRows("grid", "60px", "50px", "60px", ["50px 20px 20px", "50px repeat(2, 20px)"]);
+  TestingUtils.testGridTemplateColumnsRows("grid", "60px", "50px 30px", "60px", "50px 30px 20px");
+  TestingUtils.testGridTemplateColumnsRows("grid", "100px 60px", "50px", "100px 60px", "50px 20px");
+  TestingUtils.testGridTemplateColumnsRows("grid", "100px 60px", "50px 30px", "100px 60px", "50px 30px");
 
-  testGrid("gridItemsPositions", "", "", "none", "none", [
-    {offsetLeft: 110, offsetWidth: 100, offsetTop: 0, offsetHeight: 10},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 30, offsetHeight: 10},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 10, offsetHeight: 20},
-  ]);
-  testGrid("gridItemsPositions", "60px", "", "60px", "none", [
-    {offsetLeft: 60, offsetWidth: 100, offsetTop: 0, offsetHeight: 10},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 30, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 10, offsetHeight: 20},
-  ]);
-  testGrid("gridItemsPositions", "60px 50px", "", "60px 50px", "none", [
-    {offsetLeft: 110, offsetWidth: 100, offsetTop: 0, offsetHeight: 10},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 30, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 10, offsetHeight: 20},
-  ]);
-  testGrid("gridItemsPositions", "", "60px", "none", "60px", [
-    {offsetLeft: 110, offsetWidth: 100, offsetTop: 0, offsetHeight: 60},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 80, offsetHeight: 10},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 60, offsetHeight: 20},
-  ]);
-  testGrid("gridItemsPositions", "", "60px 50px", "none", "60px 50px", [
-    {offsetLeft: 110, offsetWidth: 100, offsetTop: 0, offsetHeight: 60},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 110, offsetHeight: 10},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 60, offsetHeight: 50},
-  ]);
-  testGrid("gridItemsPositions", "60px", "60px", "60px", "60px", [
-    {offsetLeft: 60, offsetWidth: 100, offsetTop: 0, offsetHeight: 60},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 80, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 60, offsetHeight: 20},
-  ]);
-  testGrid("gridItemsPositions", "60px", "60px 50px", "60px", "60px 50px", [
-    {offsetLeft: 60, offsetWidth: 100, offsetTop: 0, offsetHeight: 60},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 110, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 60, offsetHeight: 50},
-  ]);
-  testGrid("gridItemsPositions", "60px 50px", "60px", "60px 50px", "60px", [
-    {offsetLeft: 110, offsetWidth: 100, offsetTop: 0, offsetHeight: 60},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 80, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 60, offsetHeight: 20},
-  ]);
-  testGrid("gridItemsPositions", "60px 50px", "60px 50px", "60px 50px", "60px 50px", [
-    {offsetLeft: 110, offsetWidth: 100, offsetTop: 0, offsetHeight: 60},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 110, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 60, offsetHeight: 50},
-  ]);
+  TestingUtils.testGridTemplateColumnsRows("gridItemsPositions", "", "", ["110px 0px 0px 0px 100px", "110px repeat(3, 0px) 100px"], "10px 20px 0px 10px");
+  TestingUtils.testGridTemplateColumnsRows("gridItemsPositions", "60px", "", ["60px 0px 0px 0px 100px", "60px repeat(3, 0px) 100px"], "10px 20px 0px 20px");
+  TestingUtils.testGridTemplateColumnsRows("gridItemsPositions", "60px 50px", "", ["60px 50px 0px 0px 100px", "60px 50px repeat(2, 0px) 100px"], "10px 20px 0px 20px");
+  TestingUtils.testGridTemplateColumnsRows("gridItemsPositions", "", "60px", ["110px 0px 0px 0px 100px", "110px repeat(3, 0px) 100px"], "60px 20px 0px 10px");
+  TestingUtils.testGridTemplateColumnsRows("gridItemsPositions", "", "60px 50px", ["110px 0px 0px 0px 100px", "110px repeat(3, 0px) 100px"], "60px 50px 0px 10px");
+  TestingUtils.testGridTemplateColumnsRows("gridItemsPositions", "60px", "60px", ["60px 0px 0px 0px 100px", "60px repeat(3, 0px) 100px"], "60px 20px 0px 20px");
+  TestingUtils.testGridTemplateColumnsRows("gridItemsPositions", "60px", "60px 50px", ["60px 0px 0px 0px 100px", "60px repeat(3, 0px) 100px"], "60px 50px 0px 20px");
+  TestingUtils.testGridTemplateColumnsRows("gridItemsPositions", "60px 50px", "60px", ["60px 50px 0px 0px 100px", "60px 50px repeat(2, 0px) 100px"], "60px 20px 0px 20px");
+  TestingUtils.testGridTemplateColumnsRows("gridItemsPositions", "60px 50px", "60px 50px", ["60px 50px 0px 0px 100px", "60px 50px repeat(2, 0px) 100px"], "60px 50px 0px 20px");
 
-  testGrid("gridAutoFlowColumn", "", "", "none", "none", [
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 100, offsetWidth: 110, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 210, offsetWidth: 50, offsetTop: 0, offsetHeight: 20},
-  ]);
-  testGrid("gridAutoFlowColumn", "", "auto auto", "none", "20px 10px", [
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 20, offsetHeight: 10},
-    {offsetLeft: 110, offsetWidth: 50, offsetTop: 0, offsetHeight: 20},
-  ]);
-  testGrid("gridAutoFlowColumn", "60px", "", "60px", "none", [
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 60, offsetWidth: 110, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 170, offsetWidth: 50, offsetTop: 0, offsetHeight: 20},
-  ]);
-  testGrid("gridAutoFlowColumn", "100px 60px", "", "100px 60px", "none", [
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 100, offsetWidth: 60, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 160, offsetWidth: 50, offsetTop: 0, offsetHeight: 20},
-  ]);
-  testGrid("gridAutoFlowColumn", "", "50px", "none", "50px", [
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 100, offsetWidth: 110, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 210, offsetWidth: 50, offsetTop: 0, offsetHeight: 50},
-  ]);
-  testGrid("gridAutoFlowColumn", "", "50px 30px", "none", "50px 30px", [
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 50, offsetHeight: 30},
-    {offsetLeft: 110, offsetWidth: 50, offsetTop: 0, offsetHeight: 50},
-  ]);
-  testGrid("gridAutoFlowColumn", "60px", "50px", "60px", "50px", [
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 60, offsetWidth: 110, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 170, offsetWidth: 50, offsetTop: 0, offsetHeight: 50},
-  ]);
-  testGrid("gridAutoFlowColumn", "60px", "50px 30px", "60px", "50px 30px", [
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 50, offsetHeight: 30},
-    {offsetLeft: 60, offsetWidth: 50, offsetTop: 0, offsetHeight: 50},
-  ]);
-  testGrid("gridAutoFlowColumn", "100px 60px", "50px", "100px 60px", "50px", [
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 100, offsetWidth: 60, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 160, offsetWidth: 50, offsetTop: 0, offsetHeight: 50},
-  ]);
-  testGrid("gridAutoFlowColumn", "100px 60px", "50px 30px", "100px 60px", "50px 30px", [
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 0, offsetHeight: 50},
-    {offsetLeft: 0, offsetWidth: 100, offsetTop: 50, offsetHeight: 30},
-    {offsetLeft: 100, offsetWidth: 60, offsetTop: 0, offsetHeight: 50},
-  ]);
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumn", "", "", "100px 110px 50px", "20px");
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumn", "", "auto auto", "110px 50px", "20px 10px");
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumn", "60px", "", "60px 110px 50px", "20px");
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumn", "100px 60px", "", "100px 60px 50px", "20px");
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumn", "", "50px", "100px 110px 50px", "50px");
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumn", "", "50px 30px", "110px 50px", "50px 30px");
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumn", "60px", "50px", "60px 110px 50px", "50px");
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumn", "60px", "50px 30px", "60px 50px", "50px 30px");
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumn", "100px 60px", "50px", "100px 60px 50px", "50px");
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumn", "100px 60px", "50px 30px", "100px 60px", "50px 30px");
 
-  testGrid("gridAutoFlowColumnItemsPositions", "", "", "none", "none", [
-    {offsetLeft: 160, offsetWidth: 100, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 20, offsetHeight: 10},
-    {offsetLeft: 110, offsetWidth: 50, offsetTop: 0, offsetHeight: 20},
-  ]);
-  testGrid("gridAutoFlowColumnItemsPositions", "60px", "", "60px", "none", [
-    {offsetLeft: 110, offsetWidth: 100, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 20, offsetHeight: 20},
-    {offsetLeft: 60, offsetWidth: 50, offsetTop: 0, offsetHeight: 20},
-  ]);
-  testGrid("gridAutoFlowColumnItemsPositions", "60px 70px", "", "60px 70px", "none", [
-    {offsetLeft: 130, offsetWidth: 100, offsetTop: 0, offsetHeight: 20},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 20, offsetHeight: 20},
-    {offsetLeft: 60, offsetWidth: 70, offsetTop: 0, offsetHeight: 20},
-  ]);
-  testGrid("gridAutoFlowColumnItemsPositions", "", "60px", "none", "60px", [
-    {offsetLeft: 160, offsetWidth: 100, offsetTop: 0, offsetHeight: 60},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 60, offsetHeight: 10},
-    {offsetLeft: 110, offsetWidth: 50, offsetTop: 0, offsetHeight: 60},
-  ]);
-  testGrid("gridAutoFlowColumnItemsPositions", "", "60px 70px", "none", "60px 70px", [
-    {offsetLeft: 160, offsetWidth: 100, offsetTop: 0, offsetHeight: 60},
-    {offsetLeft: 0, offsetWidth: 110, offsetTop: 130, offsetHeight: 10},
-    {offsetLeft: 110, offsetWidth: 50, offsetTop: 0, offsetHeight: 60},
-  ]);
-  testGrid("gridAutoFlowColumnItemsPositions", "60px", "60px", "60px", "60px", [
-    {offsetLeft: 110, offsetWidth: 100, offsetTop: 0, offsetHeight: 60},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 60, offsetHeight: 20},
-    {offsetLeft: 60, offsetWidth: 50, offsetTop: 0, offsetHeight: 60},
-  ]);
-  testGrid("gridAutoFlowColumnItemsPositions", "60px", "60px 70px", "60px", "60px 70px", [
-    {offsetLeft: 110, offsetWidth: 100, offsetTop: 0, offsetHeight: 60},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 130, offsetHeight: 20},
-    {offsetLeft: 60, offsetWidth: 50, offsetTop: 0, offsetHeight: 60},
-  ]);
-  testGrid("gridAutoFlowColumnItemsPositions", "60px 70px", "60px", "60px 70px", "60px", [
-    {offsetLeft: 130, offsetWidth: 100, offsetTop: 0, offsetHeight: 60},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 60, offsetHeight: 20},
-    {offsetLeft: 60, offsetWidth: 70, offsetTop: 0, offsetHeight: 60},
-  ]);
-  testGrid("gridAutoFlowColumnItemsPositions", "60px 70px", "60px 70px", "60px 70px", "60px 70px", [
-    {offsetLeft: 130, offsetWidth: 100, offsetTop: 0, offsetHeight: 60},
-    {offsetLeft: 0, offsetWidth: 60, offsetTop: 130, offsetHeight: 20},
-    {offsetLeft: 60, offsetWidth: 70, offsetTop: 0, offsetHeight: 60},
-  ]);
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumnItemsPositions", "", "", ["110px 50px 0px 0px 100px", "110px 50px repeat(2, 0px) 100px"], ["20px 0px 0px 10px", "20px repeat(2, 0px) 10px"]);
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumnItemsPositions", "60px", "", ["60px 50px 0px 0px 100px", "60px 50px repeat(2, 0px) 100px"], ["20px 0px 0px 20px", "20px repeat(2, 0px) 20px"]);
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumnItemsPositions", "60px 70px", "", ["60px 70px 0px 0px 100px", "60px 70px repeat(2, 0px) 100px"], ["20px 0px 0px 20px", "20px repeat(2, 0px) 20px"]);
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumnItemsPositions", "", "60px", ["110px 50px 0px 0px 100px", "110px 50px repeat(2, 0px) 100px"], ["60px 0px 0px 10px", "60px repeat(2, 0px) 10px"]);
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumnItemsPositions", "", "60px 70px", ["110px 50px 0px 0px 100px", "110px 50px repeat(2, 0px) 100px"], "60px 70px 0px 10px");
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumnItemsPositions", "60px", "60px", ["60px 50px 0px 0px 100px", "60px 50px repeat(2, 0px) 100px"], ["60px 0px 0px 20px", "60px repeat(2, 0px) 20px"]);
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumnItemsPositions", "60px", "60px 70px", ["60px 50px 0px 0px 100px", "60px 50px repeat(2, 0px) 100px"], "60px 70px 0px 20px");
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumnItemsPositions", "60px 70px", "60px", ["60px 70px 0px 0px 100px", "60px 70px repeat(2, 0px) 100px"], ["60px 0px 0px 20px", "60px repeat(2, 0px) 20px"]);
+  TestingUtils.testGridTemplateColumnsRows("gridAutoFlowColumnItemsPositions", "60px 70px", "60px 70px", ["60px 70px 0px 0px 100px", "60px 70px repeat(2, 0px) 100px"], "60px 70px 0px 20px");
   done();
 });
 </script>

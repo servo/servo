@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>shaping: Arabic diacritics on NBSP</title>
+<meta name="assert" content="Shaping must work for diacritics rendered on NBSP as base">
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com">
+<link rel="help" href="https://www.unicode.org/versions/Unicode13.0.0/ch02.pdf">
+<link rel="help" href="https://www.unicode.org/reports/tr53/">
+<link rel="match" href="reference/shaping-arabic-diacritics-001-ref.html">
+<style type="text/css">
+@font-face {
+    font-family: ArabicTest;
+    src: url('/fonts/noto/NotoNaskhArabic-regular.woff2') format('woff2');
+}
+.test {
+    font: 120px/2 ArabicTest, sans-serif;
+}
+</style>
+</head>
+<body>
+    <p class="instructions">Test passes if the two lines are rendered identically,
+        with the superscript alef (&#x627;) directly above the raised hamza (&#x621;).</p>
+    <!-- The Arabic characters here are ARABIC HAMZA ABOVE and ARABIC LETTER
+         SUPERSCRIPT ALEF, and according to UTR53 should always be sorted
+         as <hamza,alef> for rendering regardless of underlying order. -->
+    <div class=test>a<span dir=rtl>&nbsp;&#x654;&#x670;</span>z</div>
+    <div class=test>a<span dir=rtl>&nbsp;&#x670;&#x654;</span>z</div>
+</body>
+</html>
