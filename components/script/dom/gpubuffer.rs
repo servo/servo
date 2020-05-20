@@ -11,21 +11,14 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpu::{response_async, AsyncWGPUListener};
-use crate::dom::promise::Promise;
-use crate::realms::InRealm;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::jsapi_wrapped::{DetachArrayBuffer, IsPromiseObject, RejectPromise};
-use js::rust::MutableHandle;
-use js::typedarray::{ArrayBuffer, CreateWith};
+use js::typedarray::ArrayBuffer;
 use std::cell::Cell;
 use std::ptr;
-use std::rc::Rc;
-use webgpu::{
-    wgpu::resource::BufferUsage, WebGPU, WebGPUBuffer, WebGPUDevice, WebGPURequest, WebGPUResponse,
-};
+use webgpu::{WebGPU, WebGPUBuffer, WebGPUDevice, WebGPURequest};
 
 // https://gpuweb.github.io/gpuweb/#buffer-state
 #[derive(Clone, MallocSizeOf)]
@@ -193,72 +186,6 @@ impl GPUBufferMethods for GPUBuffer {
         *self.state.borrow_mut() = GPUBufferState::Destroyed;
     }
 
-    #[allow(unsafe_code)]
-    /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-mapreadasync
-    fn MapReadAsync(&self, comp: InRealm) -> Rc<Promise> {
-        // Step 1 & 2
-        let promise = Promise::new_in_current_realm(&self.global(), comp);
-        match *self.state.borrow() {
-            GPUBufferState::Unmapped => {
-                match BufferUsage::from_bits(self.usage) {
-                    Some(usage) => {
-                        if !usage.contains(BufferUsage::MAP_READ) {
-                            // TODO: Record validation error on the current scope
-                            promise.reject_error(Error::Abort);
-                            return promise;
-                        };
-                    },
-                    None => {
-                        promise.reject_error(Error::Abort);
-                        return promise;
-                    },
-                }
-            },
-            _ => {
-                promise.reject_error(Error::Abort);
-                return promise;
-            },
-        }
-        // Step 3
-        self.mapping.set(*promise.promise_obj());
-        // Step 4
-        *self.state.borrow_mut() = GPUBufferState::MappedPendingForReading;
-
-        // Step 5.1
-        if unsafe {
-            ArrayBuffer::create(
-                *self.global().get_cx(),
-                CreateWith::Length(self.size as u32),
-                MutableHandle::from_raw(self.mapping.handle_mut()),
-            )
-        }
-        .is_err()
-        {
-            promise.reject_error(Error::Operation);
-            return promise;
-        }
-
-        let sender = response_async(&promise, self);
-        if self
-            .channel
-            .0
-            .send(WebGPURequest::MapReadAsync {
-                sender,
-                buffer_id: self.buffer.0,
-                device_id: self.device.0,
-                usage: self.usage,
-                size: self.size,
-            })
-            .is_err()
-        {
-            promise.reject_error(Error::Operation);
-            return promise;
-        }
-
-        // Step 6
-        promise
-    }
-
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn GetLabel(&self) -> Option<DOMString> {
         self.label.borrow().clone()
@@ -267,27 +194,5 @@ impl GPUBufferMethods for GPUBuffer {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn SetLabel(&self, value: Option<DOMString>) {
         *self.label.borrow_mut() = value;
-    }
-}
-
-impl AsyncWGPUListener for GPUBuffer {
-    #[allow(unsafe_code)]
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
-        match response {
-            WebGPUResponse::MapReadAsync(bytes) => unsafe {
-                match ArrayBuffer::from(self.mapping.get()) {
-                    Ok(mut array_buffer) => {
-                        // Step 5.2
-                        array_buffer.update(&bytes);
-                        // Step 5.3
-                        *self.state.borrow_mut() = GPUBufferState::MappedForReading;
-                        // Step 5.4
-                        promise.resolve_native(&array_buffer);
-                    },
-                    _ => promise.reject_error(Error::Operation),
-                };
-            },
-            _ => promise.reject_error(Error::Operation),
-        }
     }
 }

@@ -42,10 +42,12 @@ use js::typedarray::{ArrayBuffer, CreateWith};
 use std::collections::{HashMap, HashSet};
 use std::ptr::{self, NonNull};
 use webgpu::wgpu::binding_model::{
-    BindGroupBinding, BindGroupLayoutBinding, BindingResource, BindingType, BufferBinding,
-    ShaderStage,
+    BindGroupEntry, BindGroupLayoutEntry, BindingResource, BindingType, BufferBinding,
 };
-use webgpu::wgpu::resource::{BufferDescriptor, BufferUsage};
+use webgpu::wgt::{
+    BufferDescriptor, BufferUsage, ShaderStage, TextureComponentType, TextureFormat,
+    TextureViewDimension,
+};
 use webgpu::{WebGPU, WebGPUDevice, WebGPUQueue, WebGPURequest};
 
 #[dom_struct]
@@ -108,7 +110,7 @@ impl GPUDevice {
     fn validate_buffer_descriptor(
         &self,
         descriptor: &GPUBufferDescriptor,
-    ) -> (bool, BufferDescriptor) {
+    ) -> (bool, BufferDescriptor<std::string::String>) {
         // TODO: Record a validation error in the current scope if the descriptor is invalid.
         let wgpu_usage = BufferUsage::from_bits(descriptor.usage);
         let valid = wgpu_usage.is_some() && descriptor.size > 0;
@@ -119,6 +121,7 @@ impl GPUDevice {
                 BufferDescriptor {
                     size: descriptor.size,
                     usage: wgpu_usage.unwrap(),
+                    label: Default::default(),
                 },
             )
         } else {
@@ -127,6 +130,7 @@ impl GPUDevice {
                 BufferDescriptor {
                     size: 0,
                     usage: BufferUsage::STORAGE,
+                    label: Default::default(),
                 },
             )
         }
@@ -276,18 +280,9 @@ impl GPUDeviceMethods for GPUDevice {
             max_storage_textures_per_shader_stage: limits.maxStorageTexturesPerShaderStage as i32,
             max_samplers_per_shader_stage: limits.maxSamplersPerShaderStage as i32,
         };
-        validation_map.insert(
-            webgpu::wgpu::binding_model::ShaderStage::VERTEX,
-            maxLimits.clone(),
-        );
-        validation_map.insert(
-            webgpu::wgpu::binding_model::ShaderStage::FRAGMENT,
-            maxLimits.clone(),
-        );
-        validation_map.insert(
-            webgpu::wgpu::binding_model::ShaderStage::COMPUTE,
-            maxLimits.clone(),
-        );
+        validation_map.insert(ShaderStage::VERTEX, maxLimits.clone());
+        validation_map.insert(ShaderStage::FRAGMENT, maxLimits.clone());
+        validation_map.insert(ShaderStage::COMPUTE, maxLimits.clone());
         let mut max_dynamic_uniform_buffers_per_pipeline_layout =
             limits.maxDynamicUniformBuffersPerPipelineLayout as i32;
         let mut max_dynamic_storage_buffers_per_pipeline_layout =
@@ -344,14 +339,23 @@ impl GPUDeviceMethods for GPUDevice {
                         };
                         BindingType::SampledTexture
                     },
-                    GPUBindingType::Storage_texture => {
+                    GPUBindingType::Readonly_storage_texture => {
                         if let Some(limit) = validation_map.get_mut(&visibility) {
                             limit.max_storage_textures_per_shader_stage -= 1;
                         }
                         if bind.hasDynamicOffset {
                             valid = false
                         };
-                        BindingType::StorageTexture
+                        BindingType::ReadonlyStorageTexture
+                    },
+                    GPUBindingType::Writeonly_storage_texture => {
+                        if let Some(limit) = validation_map.get_mut(&visibility) {
+                            limit.max_storage_textures_per_shader_stage -= 1;
+                        }
+                        if bind.hasDynamicOffset {
+                            valid = false
+                        };
+                        BindingType::WriteonlyStorageTexture
                     },
                     GPUBindingType::Sampler => {
                         if let Some(limit) = validation_map.get_mut(&visibility) {
@@ -364,16 +368,19 @@ impl GPUDeviceMethods for GPUDevice {
                     },
                 };
 
-                BindGroupLayoutBinding {
+                BindGroupLayoutEntry {
                     binding: bind.binding,
                     visibility,
                     ty,
-                    dynamic: bind.hasDynamicOffset,
+                    has_dynamic_offset: bind.hasDynamicOffset,
                     multisampled: bind.multisampled,
-                    texture_dimension: webgpu::wgpu::resource::TextureViewDimension::D2, // Use as default for now
+                    // Use as default for now
+                    texture_component_type: TextureComponentType::Float,
+                    storage_texture_format: TextureFormat::Rgba8UnormSrgb,
+                    view_dimension: TextureViewDimension::D2,
                 }
             })
-            .collect::<Vec<BindGroupLayoutBinding>>();
+            .collect::<Vec<BindGroupLayoutEntry>>();
 
         // bindings are unique
         valid &= storeBindings.len() == bindings.len();
@@ -523,7 +530,7 @@ impl GPUDeviceMethods for GPUDevice {
         let bindings = descriptor
             .entries
             .iter()
-            .map(|bind| BindGroupBinding {
+            .map(|bind| BindGroupEntry {
                 binding: bind.binding,
                 resource: BindingResource::Buffer(BufferBinding {
                     buffer: bind.resource.buffer.id().0,

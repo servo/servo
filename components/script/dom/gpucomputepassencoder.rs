@@ -36,12 +36,13 @@ pub struct GPUComputePassEncoder {
 }
 
 impl GPUComputePassEncoder {
+    #[allow(unsafe_code)]
     fn new_inherited(channel: WebGPU, parent: &GPUCommandEncoder) -> GPUComputePassEncoder {
         GPUComputePassEncoder {
             channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
-            raw_pass: RefCell::new(Some(RawPass::new_compute(parent.id().0))),
+            raw_pass: RefCell::new(Some(unsafe { RawPass::new_compute(parent.id().0) })),
             command_encoder: Dom::from_ref(parent),
         }
     }
