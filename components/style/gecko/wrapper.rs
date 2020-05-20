@@ -1524,30 +1524,8 @@ impl<'le> TElement for GeckoElement<'le> {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSAnimations(self.0) }
     }
 
-    fn has_css_transitions(&self) -> bool {
+    fn has_css_transitions(&self, _: &SharedStyleContext) -> bool {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
-    }
-
-    fn might_need_transitions_update(
-        &self,
-        old_style: Option<&ComputedValues>,
-        new_style: &ComputedValues,
-    ) -> bool {
-        let old_style = match old_style {
-            Some(v) => v,
-            None => return false,
-        };
-
-        let new_box_style = new_style.get_box();
-        if !self.has_css_transitions() && !new_box_style.specifies_transitions() {
-            return false;
-        }
-
-        if new_box_style.clone_display().is_none() || old_style.clone_display().is_none() {
-            return false;
-        }
-
-        return true;
     }
 
     // Detect if there are any changes that require us to update transitions.

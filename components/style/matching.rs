@@ -8,7 +8,7 @@
 #![deny(missing_docs)]
 
 use crate::computed_value_flags::ComputedValueFlags;
-use crate::context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
+use crate::context::{CascadeInputs, ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
 use crate::context::{SharedStyleContext, StyleContext};
 use crate::data::ElementData;
 use crate::dom::TElement;
@@ -176,7 +176,9 @@ trait PrivateMatchMethods: TElement {
             if replacements.contains(RestyleHint::RESTYLE_CSS_TRANSITIONS) {
                 replace_rule_node(
                     CascadeLevel::Transitions,
-                    self.transition_rule().as_ref().map(|a| a.borrow_arc()),
+                    self.transition_rule(&context.shared)
+                        .as_ref()
+                        .map(|a| a.borrow_arc()),
                     primary_rules,
                 );
             }
@@ -184,7 +186,9 @@ trait PrivateMatchMethods: TElement {
             if replacements.contains(RestyleHint::RESTYLE_CSS_ANIMATIONS) {
                 replace_rule_node(
                     CascadeLevel::Animations,
-                    self.animation_rule().as_ref().map(|a| a.borrow_arc()),
+                    self.animation_rule(&context.shared)
+                        .as_ref()
+                        .map(|a| a.borrow_arc()),
                     primary_rules,
                 );
             }
@@ -194,14 +198,11 @@ trait PrivateMatchMethods: TElement {
     }
 
     /// If there is no transition rule in the ComputedValues, it returns None.
-    #[cfg(feature = "gecko")]
     fn after_change_style(
         &self,
         context: &mut StyleContext<Self>,
         primary_style: &Arc<ComputedValues>,
     ) -> Option<Arc<ComputedValues>> {
-        use crate::context::CascadeInputs;
-
         let rule_node = primary_style.rules();
         let without_transition_rules = context
             .shared
@@ -314,6 +315,29 @@ trait PrivateMatchMethods: TElement {
         false
     }
 
+    fn might_need_transitions_update(
+        &self,
+        context: &StyleContext<Self>,
+        old_style: Option<&ComputedValues>,
+        new_style: &ComputedValues,
+    ) -> bool {
+        let old_style = match old_style {
+            Some(v) => v,
+            None => return false,
+        };
+
+        let new_box_style = new_style.get_box();
+        if !self.has_css_transitions(context.shared) && !new_box_style.specifies_transitions() {
+            return false;
+        }
+
+        if new_box_style.clone_display().is_none() || old_style.clone_display().is_none() {
+            return false;
+        }
+
+        return true;
+    }
+
     /// Create a SequentialTask for resolving descendants in a SMIL display
     /// property animation if the display property changed from none.
     #[cfg(feature = "gecko")]
@@ -374,10 +398,12 @@ trait PrivateMatchMethods: TElement {
             tasks.insert(UpdateAnimationsTasks::CSS_ANIMATIONS);
         }
 
-        let before_change_style = if self
-            .might_need_transitions_update(old_values.as_ref().map(|s| &**s), new_values)
-        {
-            let after_change_style = if self.has_css_transitions() {
+        let before_change_style = if self.might_need_transitions_update(
+            context,
+            old_values.as_ref().map(|s| &**s),
+            new_values,
+        ) {
+            let after_change_style = if self.has_css_transitions(context.shared) {
                 self.after_change_style(context, new_values)
             } else {
                 None
@@ -442,6 +468,16 @@ trait PrivateMatchMethods: TElement {
         // map because this call will do a RwLock::read().
         let needs_animations_update =
             self.needs_animations_update(context, old_values.as_ref().map(|s| &**s), new_values);
+        let might_need_transitions_update = self.might_need_transitions_update(
+            context,
+            old_values.as_ref().map(|s| &**s),
+            new_values,
+        );
+
+        let mut after_change_style = None;
+        if might_need_transitions_update {
+            after_change_style = self.after_change_style(context, new_values);
+        }
 
         let this_opaque = self.as_node().opaque();
         let shared_context = context.shared;
@@ -471,27 +507,42 @@ trait PrivateMatchMethods: TElement {
         }
 
         animation_set.update_transitions_for_new_style(
+            might_need_transitions_update,
             &shared_context,
             this_opaque,
             old_values.as_ref(),
-            new_values,
+            after_change_style.as_ref().unwrap_or(new_values),
         );
 
-        animation_set.apply_active_animations(shared_context, new_values);
-
         // We clear away any finished transitions, but retain animations, because they
-        // might still be used for proper calculation of `animation-fill-mode`.
+        // might still be used for proper calculation of `animation-fill-mode`. This
+        // should change the computed values in the style, so we don't need to mark
+        // this set as dirty.
         animation_set
             .transitions
             .retain(|transition| transition.state != AnimationState::Finished);
 
         // If the ElementAnimationSet is empty, and don't store it in order to
         // save memory and to avoid extra processing later.
+        let changed_animations = animation_set.dirty;
         if !animation_set.is_empty() {
+            animation_set.dirty = false;
             shared_context
                 .animation_states
                 .write()
                 .insert(this_opaque, animation_set);
+        }
+
+        // If we have modified animation or transitions, we recascade style for this node.
+        if changed_animations {
+            let mut resolver = StyleResolverForElement::new(
+                *self,
+                context,
+                RuleInclusion::All,
+                PseudoElementResolution::IfApplicable,
+            );
+            let new_primary = resolver.resolve_style_with_default_parents();
+            *new_values = new_primary.primary.style.0;
         }
     }
 

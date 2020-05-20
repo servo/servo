@@ -472,6 +472,54 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         }
     }
 
+    fn may_have_animations(&self) -> bool {
+        true
+    }
+
+    fn animation_rule(
+        &self,
+        context: &SharedStyleContext,
+    ) -> Option<Arc<StyleLocked<PropertyDeclarationBlock>>> {
+        let node = self.as_node();
+        let document = node.owner_doc();
+        context
+            .animation_states
+            .read()
+            .get(&node.opaque())
+            .and_then(|set| {
+                set.get_value_map_for_active_animations(context.current_time_for_animations)
+            })
+            .map(|map| {
+                Arc::new(
+                    document
+                        .style_shared_lock()
+                        .wrap(PropertyDeclarationBlock::from_animation_value_map(&map)),
+                )
+            })
+    }
+
+    fn transition_rule(
+        &self,
+        context: &SharedStyleContext,
+    ) -> Option<Arc<StyleLocked<PropertyDeclarationBlock>>> {
+        let node = self.as_node();
+        let document = node.owner_doc();
+        context
+            .animation_states
+            .read()
+            .get(&node.opaque())
+            .and_then(|set| {
+                set.get_value_map_for_active_transitions(context.current_time_for_animations)
+            })
+            .map(|map| {
+                Arc::new(
+                    document
+                        .style_shared_lock()
+                        .wrap(PropertyDeclarationBlock::from_animation_value_map(&map)),
+                )
+            })
+    }
+
     fn state(&self) -> ElementState {
         self.element.get_state_for_layout()
     }
@@ -589,11 +637,8 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         self.element.has_selector_flags(flags)
     }
 
-    fn has_animations(&self) -> bool {
-        // We use this function not only for Gecko but also for Servo to know if this element has
-        // animations, so we maybe try to get the important rules of this element. This is used for
-        // off-main thread animations, but we don't support it on Servo, so return false directly.
-        false
+    fn has_animations(&self, context: &SharedStyleContext) -> bool {
+        return self.has_css_animations(context) || self.has_css_transitions(context);
     }
 
     fn has_css_animations(&self, context: &SharedStyleContext) -> bool {
@@ -605,8 +650,13 @@ impl<'le> TElement for ServoLayoutElement<'le> {
             .unwrap_or(false)
     }
 
-    fn has_css_transitions(&self) -> bool {
-        unreachable!("this should be only called on gecko");
+    fn has_css_transitions(&self, context: &SharedStyleContext) -> bool {
+        context
+            .animation_states
+            .read()
+            .get(&self.as_node().opaque())
+            .map(|set| set.has_active_transition())
+            .unwrap_or(false)
     }
 
     #[inline]

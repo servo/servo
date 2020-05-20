@@ -433,7 +433,7 @@ where
                 implemented_pseudo.as_ref(),
                 self.element.style_attribute(),
                 self.element.smil_override(),
-                self.element.animation_rules(),
+                self.element.animation_rules(self.context.shared),
                 self.rule_inclusion,
                 &mut applicable_declarations,
                 &mut matching_context,

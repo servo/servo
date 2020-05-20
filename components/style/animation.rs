@@ -10,7 +10,7 @@
 use crate::bezier::Bezier;
 use crate::context::{CascadeInputs, SharedStyleContext};
 use crate::dom::{OpaqueNode, TDocument, TElement, TNode};
-use crate::properties::animated_properties::AnimationValue;
+use crate::properties::animated_properties::{AnimationValue, AnimationValueMap};
 use crate::properties::longhands::animation_direction::computed_value::single_value::T as AnimationDirection;
 use crate::properties::longhands::animation_fill_mode::computed_value::single_value::T as AnimationFillMode;
 use crate::properties::longhands::animation_play_state::computed_value::single_value::T as AnimationPlayState;
@@ -127,13 +127,11 @@ impl PropertyAnimation {
     }
 
     /// Update the given animation at a given point of progress.
-    fn update(&self, style: &mut ComputedValues, progress: f64) {
+    fn calculate_value(&self, progress: f64) -> Result<AnimationValue, ()> {
         let procedure = Procedure::Interpolate {
             progress: self.timing_function_output(progress),
         };
-        if let Ok(new_value) = self.from.animate(&self.to, procedure) {
-            new_value.set_in_style_for_servo(style);
-        }
+        self.from.animate(&self.to, procedure)
     }
 }
 
@@ -598,16 +596,14 @@ impl Animation {
         }
     }
 
-    /// Update the given style to reflect the values specified by this `Animation`
-    /// at the time provided by the given `SharedStyleContext`.
-    fn update_style(&self, context: &SharedStyleContext, style: &mut Arc<ComputedValues>) {
+    /// Fill in an `AnimationValueMap` with values calculated from this animation at
+    /// the given time value.
+    fn get_property_declaration_at_time(&self, now: f64, map: &mut AnimationValueMap) {
         let duration = self.duration;
         let started_at = self.started_at;
 
         let now = match self.state {
-            AnimationState::Running | AnimationState::Pending | AnimationState::Finished => {
-                context.current_time_for_animations
-            },
+            AnimationState::Running | AnimationState::Pending | AnimationState::Finished => now,
             AnimationState::Paused(progress) => started_at + duration * progress,
             AnimationState::Canceled => return,
         };
@@ -666,7 +662,7 @@ impl Animation {
         }
 
         debug!(
-            "Animation::update_style: keyframe from {:?} to {:?}",
+            "Animation::get_property_declaration_at_time: keyframe from {:?} to {:?}",
             prev_keyframe_index, next_keyframe_index
         );
 
@@ -676,20 +672,19 @@ impl Animation {
             None => return,
         };
 
-        let update_with_single_keyframe_style = |style, keyframe: &ComputedKeyframe| {
-            let mutable_style = Arc::make_mut(style);
+        let mut add_declarations_to_map = |keyframe: &ComputedKeyframe| {
             for value in keyframe.values.iter() {
-                value.set_in_style_for_servo(mutable_style);
+                map.insert(value.id(), value.clone());
             }
         };
 
         if total_progress <= 0.0 {
-            update_with_single_keyframe_style(style, &prev_keyframe);
+            add_declarations_to_map(&prev_keyframe);
             return;
         }
 
         if total_progress >= 1.0 {
-            update_with_single_keyframe_style(style, &next_keyframe);
+            add_declarations_to_map(&next_keyframe);
             return;
         }
 
@@ -707,18 +702,18 @@ impl Animation {
         };
 
         let relative_progress = (now - last_keyframe_ended_at) / relative_duration;
-        let mut new_style = (**style).clone();
         for (from, to) in prev_keyframe.values.iter().zip(next_keyframe.values.iter()) {
-            PropertyAnimation {
+            let animation = PropertyAnimation {
                 from: from.clone(),
                 to: to.clone(),
                 timing_function: prev_keyframe.timing_function,
                 duration: relative_duration as f64,
-            }
-            .update(&mut new_style, relative_progress);
-        }
+            };
 
-        *Arc::make_mut(style) = new_style;
+            if let Ok(value) = animation.calculate_value(relative_progress) {
+                map.insert(value.id(), value);
+            }
+        }
     }
 }
 
@@ -799,7 +794,10 @@ impl Transition {
         //      time of the style change event, times the reversing shortening
         //      factor of the old transition
         //    2.  1 minus the reversing shortening factor of the old transition."
-        let transition_progress = replaced_transition.progress(now);
+        let transition_progress = ((now - replaced_transition.start_time) /
+            (replaced_transition.property_animation.duration))
+            .min(1.0)
+            .max(0.0);
         let timing_function_output = replaced_animation.timing_function_output(transition_progress);
         let old_reversing_shortening_factor = replaced_transition.reversing_shortening_factor;
         self.reversing_shortening_factor = ((timing_function_output *
@@ -845,25 +843,16 @@ impl Transition {
         time >= self.start_time + (self.property_animation.duration)
     }
 
-    /// Whether this animation has the same end value as another one.
-    #[inline]
-    fn progress(&self, now: f64) -> f64 {
-        let progress = (now - self.start_time) / (self.property_animation.duration);
-        progress.min(1.0)
-    }
-
-    /// Update a style to the value specified by this `Transition` given a `SharedStyleContext`.
-    fn update_style(&self, context: &SharedStyleContext, style: &mut Arc<ComputedValues>) {
-        // Never apply canceled transitions to a style.
-        if self.state == AnimationState::Canceled {
-            return;
+    /// Update the given animation at a given point of progress.
+    pub fn calculate_value(&self, time: f64) -> Option<AnimationValue> {
+        let progress = (time - self.start_time) / (self.property_animation.duration);
+        if progress < 0.0 {
+            return None;
         }
 
-        let progress = self.progress(context.current_time_for_animations);
-        if progress >= 0.0 {
-            self.property_animation
-                .update(Arc::make_mut(style), progress);
-        }
+        self.property_animation
+            .calculate_value(progress.min(1.0))
+            .ok()
     }
 }
 
@@ -875,17 +864,30 @@ pub struct ElementAnimationSet {
 
     /// The transitions for this element.
     pub transitions: Vec<Transition>,
+
+    /// Whether or not this ElementAnimationSet has had animations or transitions
+    /// which have been added, removed, or had their state changed.
+    pub dirty: bool,
 }
 
 impl ElementAnimationSet {
     /// Cancel all animations in this `ElementAnimationSet`. This is typically called
     /// when the element has been removed from the DOM.
     pub fn cancel_all_animations(&mut self) {
+        self.dirty = !self.animations.is_empty();
         for animation in self.animations.iter_mut() {
             animation.state = AnimationState::Canceled;
         }
+        self.cancel_active_transitions();
+    }
+
+    fn cancel_active_transitions(&mut self) {
+        self.dirty = !self.transitions.is_empty();
+
         for transition in self.transitions.iter_mut() {
-            transition.state = AnimationState::Canceled;
+            if transition.state != AnimationState::Finished {
+                transition.state = AnimationState::Canceled;
+            }
         }
     }
 
@@ -894,12 +896,18 @@ impl ElementAnimationSet {
         context: &SharedStyleContext,
         style: &mut Arc<ComputedValues>,
     ) {
-        for animation in &self.animations {
-            animation.update_style(context, style);
+        let now = context.current_time_for_animations;
+        let mutable_style = Arc::make_mut(style);
+        if let Some(map) = self.get_value_map_for_active_animations(now) {
+            for value in map.values() {
+                value.set_in_style_for_servo(mutable_style);
+            }
         }
 
-        for transition in &self.transitions {
-            transition.update_style(context, style);
+        if let Some(map) = self.get_value_map_for_active_transitions(now) {
+            for value in map.values() {
+                value.set_in_style_for_servo(mutable_style);
+            }
         }
     }
 
@@ -978,6 +986,7 @@ impl ElementAnimationSet {
     /// when appropriate.
     pub fn update_transitions_for_new_style(
         &mut self,
+        might_need_transitions_update: bool,
         context: &SharedStyleContext,
         opaque_node: OpaqueNode,
         old_style: Option<&Arc<ComputedValues>>,
@@ -990,12 +999,18 @@ impl ElementAnimationSet {
             None => return,
         };
 
+        // If the style of this element is display:none, then cancel all active transitions.
+        if after_change_style.get_box().clone_display().is_none() {
+            self.cancel_active_transitions();
+            return;
+        }
+
+        if !might_need_transitions_update {
+            return;
+        }
+
         // We convert old values into `before-change-style` here.
-        // See https://drafts.csswg.org/css-transitions/#starting. We need to clone the
-        // style because this might still be a reference to the original `old_style` and
-        // we want to preserve that so that we can later properly calculate restyle damage.
         if self.has_active_transition() || self.has_active_animation() {
-            before_change_style = before_change_style.clone();
             self.apply_active_animations(context, &mut before_change_style);
         }
 
@@ -1016,6 +1031,7 @@ impl ElementAnimationSet {
                 continue;
             }
             transition.state = AnimationState::Canceled;
+            self.dirty = true;
         }
     }
 
@@ -1086,6 +1102,45 @@ impl ElementAnimationSet {
         }
 
         self.transitions.push(new_transition);
+        self.dirty = true;
+    }
+
+    /// Generate a `AnimationValueMap` for this `ElementAnimationSet`'s
+    /// active transitions at the given time value.
+    pub fn get_value_map_for_active_transitions(&self, now: f64) -> Option<AnimationValueMap> {
+        if !self.has_active_transition() {
+            return None;
+        }
+
+        let mut map =
+            AnimationValueMap::with_capacity_and_hasher(self.transitions.len(), Default::default());
+        for transition in &self.transitions {
+            if transition.state == AnimationState::Canceled {
+                continue;
+            }
+            let value = match transition.calculate_value(now) {
+                Some(value) => value,
+                None => continue,
+            };
+            map.insert(value.id(), value);
+        }
+
+        Some(map)
+    }
+
+    /// Generate a `AnimationValueMap` for this `ElementAnimationSet`'s
+    /// active animations at the given time value.
+    pub fn get_value_map_for_active_animations(&self, now: f64) -> Option<AnimationValueMap> {
+        if !self.has_active_animation() {
+            return None;
+        }
+
+        let mut map = Default::default();
+        for animation in &self.animations {
+            animation.get_property_declaration_at_time(now, &mut map);
+        }
+
+        Some(map)
     }
 }
 
@@ -1098,13 +1153,6 @@ pub fn start_transitions_if_applicable(
     new_style: &Arc<ComputedValues>,
     animation_state: &mut ElementAnimationSet,
 ) -> LonghandIdSet {
-    // If the style of this element is display:none, then we don't start any transitions
-    // and we cancel any currently running transitions by returning an empty LonghandIdSet.
-    let box_style = new_style.get_box();
-    if box_style.clone_display().is_none() {
-        return LonghandIdSet::new();
-    }
-
     let mut properties_that_transition = LonghandIdSet::new();
     for transition in new_style.transition_properties() {
         let physical_property = transition.longhand_id.to_physical(new_style.writing_mode);
@@ -1213,6 +1261,8 @@ pub fn maybe_start_animations<E>(
             cascade_style: new_style.clone(),
             is_new: true,
         };
+
+        animation_state.dirty = true;
 
         // If the animation was already present in the list for the node, just update its state.
         for existing_animation in animation_state.animations.iter_mut() {
