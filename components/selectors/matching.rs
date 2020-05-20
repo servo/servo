@@ -322,14 +322,13 @@ where
             },
         }
 
-        // The only other parser-allowed Component in this sequence is a state
-        // class. We just don't match in that case.
-        if let Some(s) = iter.next() {
-            debug_assert!(
-                matches!(*s, Component::NonTSPseudoClass(..)),
-                "Someone messed up pseudo-element parsing"
-            );
-            return false;
+        for component in &mut iter {
+            // The only other parser-allowed Components in this sequence are
+            // state pseudo-classes, or one of the other things that can contain
+            // them.
+            if !component.matches_for_stateless_pseudo_element() {
+                return false;
+            }
         }
 
         // Advance to the non-pseudo-element part of the selector.

@@ -1054,6 +1054,47 @@ impl<Impl: SelectorImpl> Component<Impl> {
         }
     }
 
+    /// Whether this component is valid after a pseudo-element. Only intended
+    /// for sanity-checking.
+    pub fn maybe_allowed_after_pseudo_element(&self) -> bool {
+        match *self {
+            Component::NonTSPseudoClass(..) => true,
+            Component::Negation(ref components) => components.iter().all(|c| c.maybe_allowed_after_pseudo_element()),
+            Component::Is(ref selectors) |
+            Component::Where(ref selectors) => {
+                selectors.iter().all(|selector| {
+                    selector.iter_raw_match_order().all(|c| c.maybe_allowed_after_pseudo_element())
+                })
+            },
+            _ => false,
+        }
+    }
+
+    /// Whether a given selector should match for stateless pseudo-elements.
+    ///
+    /// This is a bit subtle: Only selectors that return true in
+    /// `maybe_allowed_after_pseudo_element` should end up here, and
+    /// `NonTSPseudoClass` never matches (as it is a stateless pseudo after
+    /// all).
+    pub(crate) fn matches_for_stateless_pseudo_element(&self) -> bool {
+        debug_assert!(
+            self.maybe_allowed_after_pseudo_element(),
+            "Someone messed up pseudo-element parsing: {:?}",
+            *self
+        );
+        match *self {
+            Component::Negation(ref components) => {
+                !components.iter().all(|c| c.matches_for_stateless_pseudo_element())
+            },
+            Component::Is(ref selectors) | Component::Where(ref selectors) => {
+                selectors.iter().any(|selector| {
+                    selector.iter_raw_match_order().all(|c| c.matches_for_stateless_pseudo_element())
+                })
+            },
+            _ => false,
+        }
+    }
+
     pub fn visit<V>(&self, visitor: &mut V) -> bool
     where
         V: SelectorVisitor<Impl = Impl>,
