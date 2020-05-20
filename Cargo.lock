@@ -4528,7 +4528,7 @@ dependencies = [
  "approx",
  "arrayvec 0.4.12",
  "ordered-float",
- "stb_truetype",
+ "stb_truetype 0.2.8",
 ]
 
 [[package]]
@@ -5411,9 +5411,18 @@ checksum = "15132e0e364248108c5e2c02e3ab539be8d6f5d52a01ca9bbf27ed657316f02b"
 
 [[package]]
 name = "stb_truetype"
-version = "0.2.4"
+version = "0.2.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "48fa7d3136d8645909de1f7c7eb5416cc43057a75ace08fc39ae736bc9da8af1"
+checksum = "9d1bec4382294c5a680fcebd29f8451e8d8c04479a026f6909004e2ab1cb425d"
+dependencies = [
+ "stb_truetype 0.3.1",
+]
+
+[[package]]
+name = "stb_truetype"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f77b6b07e862c66a9f3e62a07588fee67cd90a9135a2b942409f195507b4fb51"
 dependencies = [
  "byteorder",
 ]
