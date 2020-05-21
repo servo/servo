@@ -6000,16 +6000,21 @@ dependencies = [
 
 [[package]]
 name = "tokio-reactor"
-version = "0.1.3"
+version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8703a5762ff6913510dc64272c714c4389ffd8c4b3cf602879b8bd14ff06b604"
+checksum = "09bc590ec4ba8ba87652da2068d150dcada2cfa2e07faae270a5e0409aa51351"
 dependencies = [
+ "crossbeam-utils",
  "futures",
+ "lazy_static",
  "log",
  "mio",
+ "num_cpus",
+ "parking_lot 0.9.0",
  "slab",
  "tokio-executor",
  "tokio-io",
+ "tokio-sync",
 ]
 
 [[package]]
