@@ -270,6 +270,7 @@ pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
     Copy,
     Debug,
     MallocSizeOf,
+    Parse,
     PartialEq,
     SpecifiedValueInfo,
     ToAnimatedValue,

@@ -263,22 +263,6 @@ impl Ellipse {
     }
 }
 
-impl Parse for ShapeRadius {
-    fn parse<'i, 't>(
-        context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        if let Ok(lp) = input.try(|i| NonNegativeLengthPercentage::parse(context, i)) {
-            return Ok(generic::ShapeRadius::Length(lp));
-        }
-
-        try_match_ident_ignore_ascii_case! { input,
-            "closest-side" => Ok(generic::ShapeRadius::ClosestSide),
-            "farthest-side" => Ok(generic::ShapeRadius::FarthestSide),
-        }
-    }
-}
-
 impl Parse for Polygon {
     fn parse<'i, 't>(
         context: &ParserContext,
