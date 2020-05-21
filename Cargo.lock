@@ -3020,9 +3020,9 @@ checksum = "3baa92041a6fec78c687fa0cc2b3fae8884f743d672cf551bed1d6dac6988d0f"
 
 [[package]]
 name = "libdbus-sys"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99c78106156a964aadc1c59f7798276967be6705243b60f3ab7e131e3841db88"
+checksum = "18cb88963258d00f4962205dbb5933d82780d9962c8c8a064b651d2ad7189210"
 dependencies = [
  "pkg-config",
 ]
