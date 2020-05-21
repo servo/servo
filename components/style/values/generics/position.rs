@@ -5,6 +5,10 @@
 //! Generic types for CSS handling of specified and computed values of
 //! [`position`](https://drafts.csswg.org/css-backgrounds-3/#position)
 
+use crate::One;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
+
 /// A generic type for representing a CSS [position](https://drafts.csswg.org/css-values/#position).
 #[derive(
     Animate,
@@ -148,5 +152,76 @@ impl<Integer> ZIndex<Integer> {
             ZIndex::Integer(n) => n,
             ZIndex::Auto => auto,
         }
+    }
+}
+
+/// A generic value for the `<ratio>` value.
+// FIXME: Use this for aspect-ratio in both css-sizing-4 and media-queries in the following patch.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub struct Ratio<N>(pub N, pub N);
+
+impl<N> ToCss for Ratio<N>
+where
+    N: ToCss + One + std::cmp::PartialEq,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        self.0.to_css(dest)?;
+        // The second defaults to 1. So if it is one, we omit it in serialization.
+        if !self.1.is_one() {
+            dest.write_str(" / ")?;
+            self.1.to_css(dest)?;
+        }
+        Ok(())
+    }
+}
+
+/// A generic value for the `aspect-ratio` property.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum GenericAspectRatio<N> {
+    /// The <ratio> value.
+    Ratio(#[css(field_bound)] Ratio<N>),
+    /// The keyword `auto`.
+    Auto,
+}
+
+pub use self::GenericAspectRatio as AspectRatio;
+
+impl<R> AspectRatio<R> {
+    /// Returns `auto`
+    #[inline]
+    pub fn auto() -> Self {
+        AspectRatio::Auto
     }
 }

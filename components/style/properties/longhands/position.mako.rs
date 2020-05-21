@@ -447,17 +447,13 @@ ${helpers.predefined_type(
     servo_restyle_damage="reflow",
 )}
 
-// NOTE(emilio): Before exposing this property to content, we probably need to
-// change syntax and such, and make it apply to more elements.
-//
-// For now, it's used only for mapped attributes.
 ${helpers.predefined_type(
     "aspect-ratio",
-    "Number",
-    "computed::Number::zero()",
+    "AspectRatio",
+    "computed::AspectRatio::auto()",
     engines="gecko servo-2013",
-    animation_value_type="ComputedValue",
-    spec="Internal, for now",
-    enabled_in="",
+    animation_value_type="discrete",
+    spec="https://drafts.csswg.org/css-sizing-4/#aspect-ratio",
+    gecko_pref="layout.css.aspect-ratio.enabled",
     servo_restyle_damage="reflow",
 )}

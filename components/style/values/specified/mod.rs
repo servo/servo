@@ -18,9 +18,8 @@ use crate::context::QuirksMode;
 use crate::parser::{Parse, ParserContext};
 use crate::values::serialize_atom_identifier;
 use crate::values::specified::calc::CalcNode;
-use crate::{Atom, Namespace, Prefix, Zero};
+use crate::{Atom, Namespace, One, Prefix, Zero};
 use cssparser::{Parser, Token};
-use num_traits::One;
 use std::f32;
 use std::fmt::{self, Write};
 use std::ops::Add;
@@ -72,6 +71,7 @@ pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
+pub use self::position::AspectRatio;
 pub use self::position::{GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto};
 pub use self::position::{PositionComponent, ZIndex};
 pub use self::rect::NonNegativeLengthOrNumberRect;
@@ -375,6 +375,18 @@ impl Parse for NonNegativeNumber {
     }
 }
 
+impl One for NonNegativeNumber {
+    #[inline]
+    fn one() -> Self {
+        NonNegativeNumber::new(1.0)
+    }
+
+    #[inline]
+    fn is_one(&self) -> bool {
+        self.0.get() == 1.0
+    }
+}
+
 impl NonNegativeNumber {
     /// Returns a new non-negative number with the value `val`.
     pub fn new(val: CSSFloat) -> Self {
@@ -537,7 +549,7 @@ impl Zero for Integer {
     }
 }
 
-impl One for Integer {
+impl num_traits::One for Integer {
     #[inline]
     fn one() -> Self {
         Self::new(1)
