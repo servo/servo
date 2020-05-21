@@ -239,7 +239,7 @@ impl BodyOperations for Response {
         match body {
             NetTraitsResponseBody::Done(bytes) => Some(bytes),
             body => {
-                mem::replace(&mut *self.body.borrow_mut(), body);
+                let _ = mem::replace(&mut *self.body.borrow_mut(), body);
                 None
             },
         }

@@ -455,7 +455,7 @@ impl<'a> CanvasData<'a> {
 
     pub fn restore_context_state(&mut self) {
         if let Some(state) = self.saved_states.pop() {
-            mem::replace(&mut self.state, state);
+            let _ = mem::replace(&mut self.state, state);
             self.drawtarget.set_transform(&self.state.transform);
             self.drawtarget.pop_clip();
         }
