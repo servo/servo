@@ -5,7 +5,14 @@
 import { timeout } from './timeout.js';
 export function assert(condition, msg) {
   if (!condition) {
-    throw new Error(msg);
+    throw new Error(msg && (typeof msg === 'string' ? msg : msg()));
+  }
+}
+export async function assertReject(p, msg) {
+  try {
+    await p;
+    unreachable(msg);
+  } catch (ex) {// Assertion OK
   }
 }
 export function unreachable(msg) {
@@ -16,10 +23,18 @@ const perf = typeof performance !== 'undefined' ? performance : require('perf_ho
 export function now() {
   return perf.now();
 }
-export function rejectOnTimeout(ms, msg) {
-  return new Promise((resolve, reject) => {
+export function resolveOnTimeout(ms) {
+  return new Promise(resolve => {
     timeout(() => {
-      reject(new Error(msg));
+      resolve();
+    }, ms);
+  });
+}
+export class PromiseTimeoutError extends Error {}
+export function rejectOnTimeout(ms, msg) {
+  return new Promise((_resolve, reject) => {
+    timeout(() => {
+      reject(new PromiseTimeoutError(msg));
     }, ms);
   });
 }

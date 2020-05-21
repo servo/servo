@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-break-3/#parallel-flows">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="A float that doesn't fit in the current fragmentainer will be pushed to next fragmentainer, while subsequent content may still fit in the former fragmentainer, but it still needs to apply clearance as needed.">
+<p>Test passes if there is a filled green square.</p>
+<div style="columns:3; column-fill:auto; column-gap:0; width:150px; height:120px;">
+  <div style="height:100px; background:green;"></div>
+  <div style="float:right; width:10px; line-height:100px; background:green;"><br></div>
+  <div style="float:left; width:40px; line-height:60px; background:green;"><br></div>
+  <div style="clear:left; height:40px;background:green;"></div>
+</div>

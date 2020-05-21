@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <title>Test having multiple video.rVFC callbacks in flight for a single element.</title>
+<body></body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/media.js"></script>
@@ -8,6 +9,7 @@
 
 async_test(function(t) {
     let video = document.createElement('video');
+    document.body.appendChild(video);
 
     let firstTime;
     let firstMetadata;
@@ -29,6 +31,7 @@ async_test(function(t) {
 
 async_test(function(t) {
     let video = document.createElement('video');
+    document.body.appendChild(video);
 
     let secondCallbackId;
 

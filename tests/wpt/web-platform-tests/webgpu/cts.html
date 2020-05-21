@@ -26,49 +26,30 @@
 
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
-<style>
-#results {
-    font-family: monospace;
-    width: 100%;
-    height: 15em;
-}
-
-/* Test Name column */
-#results > tbody > tr > td:nth-child(2) {
-    word-break: break-word;
-}
-
-/* Message column */
-#results > tbody > tr > td:nth-child(3) {
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-</style>
-
-<textarea id=results></textarea>
 <script type=module src=/webgpu/common/runtime/wpt.js></script>
-<meta name=variant content='?q=webgpu:api/operation/buffers/create_mapped'>
-<meta name=variant content='?q=webgpu:api/operation/buffers/map'>
-<meta name=variant content='?q=webgpu:api/operation/buffers/map_detach'>
-<meta name=variant content='?q=webgpu:api/operation/buffers/map_oom'>
-<meta name=variant content='?q=webgpu:api/operation/command_buffer/basic'>
-<meta name=variant content='?q=webgpu:api/operation/command_buffer/copies'>
-<meta name=variant content='?q=webgpu:api/operation/command_buffer/render/basic'>
-<meta name=variant content='?q=webgpu:api/operation/fences'>
-<meta name=variant content='?q=webgpu:api/validation/createBindGroup'>
-<meta name=variant content='?q=webgpu:api/validation/createBindGroupLayout'>
-<meta name=variant content='?q=webgpu:api/validation/createPipelineLayout'>
-<meta name=variant content='?q=webgpu:api/validation/createTexture'>
-<meta name=variant content='?q=webgpu:api/validation/createView'>
-<meta name=variant content='?q=webgpu:api/validation/error_scope'>
-<meta name=variant content='?q=webgpu:api/validation/fences'>
-<meta name=variant content='?q=webgpu:api/validation/queue_submit'>
-<meta name=variant content='?q=webgpu:api/validation/render_pass_descriptor'>
-<meta name=variant content='?q=webgpu:api/validation/setBindGroup'>
-<meta name=variant content='?q=webgpu:api/validation/setBlendColor'>
-<meta name=variant content='?q=webgpu:api/validation/setScissorRect'>
-<meta name=variant content='?q=webgpu:api/validation/setStencilReference'>
-<meta name=variant content='?q=webgpu:api/validation/setViewport'>
-<meta name=variant content='?q=webgpu:examples'>
-<meta name=variant content='?q=webgpu:web-platform/canvas/context_creation'>
-<meta name=variant content='?q=webgpu:web-platform/copyImageBitmapToTexture'>
+<meta name=variant content='?q=webgpu:api,operation,buffers,create_mapped:*'>
+<meta name=variant content='?q=webgpu:api,operation,buffers,map:*'>
+<meta name=variant content='?q=webgpu:api,operation,buffers,map_detach:*'>
+<meta name=variant content='?q=webgpu:api,operation,buffers,map_oom:*'>
+<meta name=variant content='?q=webgpu:api,operation,command_buffer,basic:*'>
+<meta name=variant content='?q=webgpu:api,operation,command_buffer,copies:*'>
+<meta name=variant content='?q=webgpu:api,operation,command_buffer,render,basic:*'>
+<meta name=variant content='?q=webgpu:api,operation,fences:*'>
+<meta name=variant content='?q=webgpu:api,operation,resource_init,copied_texture_clear:*'>
+<meta name=variant content='?q=webgpu:api,validation,createBindGroup:*'>
+<meta name=variant content='?q=webgpu:api,validation,createBindGroupLayout:*'>
+<meta name=variant content='?q=webgpu:api,validation,createPipelineLayout:*'>
+<meta name=variant content='?q=webgpu:api,validation,createTexture:*'>
+<meta name=variant content='?q=webgpu:api,validation,createView:*'>
+<meta name=variant content='?q=webgpu:api,validation,error_scope:*'>
+<meta name=variant content='?q=webgpu:api,validation,fences:*'>
+<meta name=variant content='?q=webgpu:api,validation,queue_submit:*'>
+<meta name=variant content='?q=webgpu:api,validation,render_pass_descriptor:*'>
+<meta name=variant content='?q=webgpu:api,validation,setBindGroup:*'>
+<meta name=variant content='?q=webgpu:api,validation,setBlendColor:*'>
+<meta name=variant content='?q=webgpu:api,validation,setScissorRect:*'>
+<meta name=variant content='?q=webgpu:api,validation,setStencilReference:*'>
+<meta name=variant content='?q=webgpu:api,validation,setViewport:*'>
+<meta name=variant content='?q=webgpu:examples:*'>
+<meta name=variant content='?q=webgpu:web-platform,canvas,context_creation:*'>
+<meta name=variant content='?q=webgpu:web-platform,copyImageBitmapToTexture:*'>

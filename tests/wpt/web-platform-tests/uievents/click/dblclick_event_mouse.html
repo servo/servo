@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>dblclick event for the mouse pointer type</title>
+    <link rel="author" title="Google" href="http://www.google.com/" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <style>
+    #target
+    {
+        background-color: green;
+        width: 200px;
+        height: 200px;
+    }
+    </style>
+  </head>
+  <body>
+    <p>Double-click on the green box with the left mouse button.</p>
+    <div id="target"></div>
+    <script>
+        promise_test(async (t) => {
+            const target = document.getElementById("target");
+            const event_watcher = new EventWatcher(t, target, ["click", "dblclick"]);
+            const actions_promise = new test_driver.Actions()
+              .pointerMove(0, 0, {origin: target})
+              .pointerDown()
+              .pointerUp()
+              .pointerDown()
+              .pointerUp()
+              .send();
+            // Make sure the test finishes after all the input actions are completed.
+            t.add_cleanup(() => actions_promise);
+            const event = await event_watcher.wait_for(["click", "click", "dblclick"]);
+            assert_equals(event.type, "dblclick");
+            assert_equals(event.target, target);
+            assert_equals(event.detail, 2);
+        });
+    </script>
+  </body>
+</html>

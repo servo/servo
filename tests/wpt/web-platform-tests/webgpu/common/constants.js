@@ -3,6 +3,7 @@
 **/
 
 // https://github.com/gpuweb/gpuweb/blob/0a48816412b5d08a5fb8b89005e019165a1a2c63/spec/index.bs
+// tslint:disable:variable-name
 // String enums
 export let ExtensionName;
 
@@ -180,7 +181,7 @@ export let TextureFormat;
   TextureFormat["BGRA8Unorm"] = "bgra8unorm";
   TextureFormat["BGRA8UnormSRGB"] = "bgra8unorm-srgb";
   TextureFormat["RGB10A2Unorm"] = "rgb10a2unorm";
-  TextureFormat["RGB11B10Float"] = "rg11b10float";
+  TextureFormat["RG11B10Float"] = "rg11b10float";
   TextureFormat["RG32Uint"] = "rg32uint";
   TextureFormat["RG32Sint"] = "rg32sint";
   TextureFormat["RG32Float"] = "rg32float";

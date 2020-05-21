@@ -2,8 +2,8 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/
 
-export const description = ``;
-import { TestGroup } from '../../../../common/framework/test_group.js';
+export const description = '';
+import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../gpu_test.js';
 
 class F extends GPUTest {
@@ -19,15 +19,26 @@ class F extends GPUTest {
 
 }
 
-export const g = new TestGroup(F);
-g.test('mapWriteAsync', async t => {
+export const g = makeTestGroup(F);
+g.test('mapWriteAsync').params([{
+  unmap: true,
+  destroy: false
+}, //
+{
+  unmap: false,
+  destroy: true
+}, {
+  unmap: true,
+  destroy: true
+}]).fn(async t => {
   const buffer = t.device.createBuffer({
     size: 4,
     usage: GPUBufferUsage.MAP_WRITE
   });
   const arrayBuffer = await buffer.mapWriteAsync();
   t.checkDetach(buffer, arrayBuffer, t.params.unmap, t.params.destroy);
-}).params([{
+});
+g.test('mapReadAsync').params([{
   unmap: true,
   destroy: false
 }, //
@@ -37,26 +48,24 @@ g.test('mapWriteAsync', async t => {
 }, {
   unmap: true,
   destroy: true
-}]);
-g.test('mapReadAsync', async t => {
+}]).fn(async t => {
   const buffer = t.device.createBuffer({
     size: 4,
     usage: GPUBufferUsage.MAP_READ
   });
   const arrayBuffer = await buffer.mapReadAsync();
   t.checkDetach(buffer, arrayBuffer, t.params.unmap, t.params.destroy);
-}).params([{
+});
+g.test('create_mapped').params([{
   unmap: true,
   destroy: false
-}, //
-{
+}, {
   unmap: false,
   destroy: true
 }, {
   unmap: true,
   destroy: true
-}]);
-g.test('create mapped', async t => {
+}]).fn(async t => {
   const desc = {
     size: 4,
     usage: GPUBufferUsage.MAP_WRITE
@@ -69,14 +78,5 @@ g.test('create mapped', async t => {
   if (t.params.destroy) buffer.destroy();
   t.expect(arrayBuffer.byteLength === 0, 'ArrayBuffer should be detached');
   t.expect(view.byteLength === 0, 'ArrayBufferView should be detached');
-}).params([{
-  unmap: true,
-  destroy: false
-}, {
-  unmap: false,
-  destroy: true
-}, {
-  unmap: true,
-  destroy: true
-}]);
+});
 //# sourceMappingURL=map_detach.spec.js.map

@@ -9,7 +9,7 @@ error scope validation tests.
 `;
 import { Fixture } from '../../../common/framework/fixture.js';
 import { getGPU } from '../../../common/framework/gpu/implementation.js';
-import { TestGroup } from '../../../common/framework/test_group.js';
+import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { assert, raceWithRejectOnTimeout } from '../../../common/framework/util/util.js';
 
 class F extends Fixture {
@@ -64,14 +64,14 @@ class F extends Fixture {
 
 }
 
-export const g = new TestGroup(F);
-g.test('simple case where the error scope catches an error', async t => {
+export const g = makeTestGroup(F);
+g.test('simple_case_where_the_error_scope_catches_an_error').fn(async t => {
   t.device.pushErrorScope('validation');
   t.createErrorBuffer();
   const error = await t.device.popErrorScope();
   t.expect(error instanceof GPUValidationError);
 });
-g.test('errors bubble to the parent scope if not handled by the current scope', async t => {
+g.test('errors_bubble_to_the_parent_scope_if_not_handled_by_the_current_scope').fn(async t => {
   t.device.pushErrorScope('validation');
   t.device.pushErrorScope('out-of-memory');
   t.createErrorBuffer();
@@ -84,7 +84,7 @@ g.test('errors bubble to the parent scope if not handled by the current scope', 
     t.expect(error instanceof GPUValidationError);
   }
 });
-g.test('if an error scope matches an error it does not bubble to the parent scope', async t => {
+g.test('if_an_error_scope_matches_an_error_it_does_not_bubble_to_the_parent_scope').fn(async t => {
   t.device.pushErrorScope('validation');
   t.device.pushErrorScope('validation');
   t.createErrorBuffer();
@@ -97,7 +97,7 @@ g.test('if an error scope matches an error it does not bubble to the parent scop
     t.expect(error === null);
   }
 });
-g.test('if no error scope handles an error it fires an uncapturederror event', async t => {
+g.test('if_no_error_scope_handles_an_error_it_fires_an_uncapturederror_event').fn(async t => {
   t.device.pushErrorScope('out-of-memory');
   const uncapturedErrorEvent = await t.expectUncapturedError(() => {
     t.createErrorBuffer();
@@ -106,7 +106,7 @@ g.test('if no error scope handles an error it fires an uncapturederror event', a
   const error = await t.device.popErrorScope();
   t.expect(error === null);
 });
-g.test('push/popping sibling error scopes must be balanced', async t => {
+g.test('push,popping_sibling_error_scopes_must_be_balanced').fn(async t => {
   {
     const promise = t.device.popErrorScope();
     t.shouldReject('OperationError', promise);
@@ -125,7 +125,7 @@ g.test('push/popping sibling error scopes must be balanced', async t => {
     t.shouldReject('OperationError', promise);
   }
 });
-g.test('push/popping nested error scopes must be balanced', async t => {
+g.test('push,popping_nested_error_scopes_must_be_balanced').fn(async t => {
   {
     const promise = t.device.popErrorScope();
     t.shouldReject('OperationError', promise);

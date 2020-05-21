@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Embedded Enforcement: blocked iframe are cross-origin.</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="support/testharness-helper.sub.js"></script>
+</head>
+<body>
+<script>
+
+let SecurityError = 18;
+
+let tests = [
+  {name: "Same-origin" , origin: getOrigin()},
+  {name: "Cross-origin", origin: getCrossOrigin()},
+];
+
+for(test of tests) {
+  promise_test(async () => {
+    let iframe = document.createElement("iframe");
+    let loaded = new Promise(r => iframe.onload = r);
+    iframe.csp = "script-src 'none'";
+    iframe.src = test.origin +  "common/blank.html";
+    document.body.appendChild(iframe);
+    await loaded;
+    assert_throws_dom(SecurityError, () => iframe.contentWindow.document);
+  }, `${test.name} document blocked by embedded enforcement must appear cross-origin`);
+}
+
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <script>
 
 function load_image(url, cross_origin) {
-  var img = document.createElement('img');
+  const img = document.createElement('img');
   if (cross_origin != '') {
     img.crossOrigin = cross_origin;
   }
@@ -11,7 +11,7 @@ function load_image(url, cross_origin) {
 }
 
 function load_script(url, cross_origin) {
-  var script = document.createElement('script');
+  const script = document.createElement('script');
   script.src = url;
   if (cross_origin != '') {
     script.crossOrigin = cross_origin;
@@ -20,7 +20,7 @@ function load_script(url, cross_origin) {
 }
 
 function load_css(url, cross_origin) {
-  var link = document.createElement('link');
+  const link = document.createElement('link');
   link.rel = 'stylesheet'
   link.href = url;
   link.type = 'text/css';
@@ -31,31 +31,31 @@ function load_css(url, cross_origin) {
 }
 
 function load_font(url) {
-  var fontFace = new FontFace('test', 'url(' + url + ')');
+  const fontFace = new FontFace('test', 'url(' + url + ')');
   fontFace.load();
 }
 
 function load_css_image(url, type) {
-  var div = document.createElement('div');
+  const div = document.createElement('div');
   document.body.appendChild(div);
   div.style[type] = 'url(' + url + ')';
 }
 
 function load_css_image_set(url, type) {
-  var div = document.createElement('div');
+  const div = document.createElement('div');
   document.body.appendChild(div);
   div.style[type] = '-webkit-image-set(url(' + url + ') 1x)';
 }
 
 function load_script_with_integrity(url, integrity) {
-  var script = document.createElement('script');
+  const script = document.createElement('script');
   script.src = url;
   script.integrity = integrity;
   document.body.appendChild(script);
 }
 
 function load_css_with_integrity(url, integrity) {
-  var link = document.createElement('link');
+  const link = document.createElement('link');
   link.rel = 'stylesheet'
   link.href = url;
   link.type = 'text/css';
@@ -64,7 +64,7 @@ function load_css_with_integrity(url, integrity) {
 }
 
 function load_audio(url, cross_origin) {
-  var audio = document.createElement('audio');
+  const audio = document.createElement('audio');
   if (cross_origin != '') {
     audio.crossOrigin = cross_origin;
   }
@@ -73,7 +73,7 @@ function load_audio(url, cross_origin) {
 }
 
 function load_video(url, cross_origin) {
-  var video = document.createElement('video');
+  const video = document.createElement('video');
   if (cross_origin != '') {
     video.crossOrigin = cross_origin;
   }

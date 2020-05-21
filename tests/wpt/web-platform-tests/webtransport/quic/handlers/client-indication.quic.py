@@ -12,6 +12,9 @@ async def notify_pass(connection: QuicConnectionProtocol):
     writer.write_eof()
 
 
+# Verifies that the client indication sent by the client is correct. Creates
+# a unidirectional stream containing "PASS" when the check finishes
+# sucessfully.
 def handle_client_indication(connection: QuicConnectionProtocol,
                              origin: str, query: Dict[str, str]):
     logging.log(logging.INFO, 'origin = %s, query = %s' % (origin, query))

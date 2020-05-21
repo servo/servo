@@ -190,34 +190,32 @@
   // TODO(lyf): https://crbug.com/1066791 Following tests which related to svg
   // script element cause a flaky timeout in `linux-blink-rel`, following tests
   // should be added back after the bug fix.
-  //
-  // TODO(lyf): https://crbug.com/1064598
-  // promise_test(t => {
-  //   let p = Promise.resolve()
-  //       .then(promise_violation("require-trusted-types-for 'script'"))
-  //       .then(expect_blocked_uri("trusted-types-sink"))
-  //       .then(expect_sample("SVGScriptElement href"));
-  //     expect_throws(_ => { document.getElementById("svgscript").href.baseVal = "" });
-  //   return p;
-  // }, "Trusted Type violation report: sample for SVGScriptElement href assignment");
-  //
-  // promise_test(t => {
-  //   let p = Promise.resolve()
-  //       .then(promise_violation("require-trusted-types-for 'script'"))
-  //       .then(expect_blocked_uri("trusted-types-sink"))
-  //       .then(expect_sample("Element setAttribute"));
-  //     expect_throws(_ => { document.getElementById("svgscript").setAttribute('href', "test"); });
-  //   return p;
-  // }, "Trusted Type violation report: sample for SVGScriptElement href assignment by setAttribute");
-  //
-  // promise_test(t => {
-  //   let p = Promise.resolve()
-  //       .then(promise_violation("require-trusted-types-for 'script'"))
-  //       .then(expect_blocked_uri("trusted-types-sink"))
-  //       .then(expect_sample("SVGScriptElement text"));
-  //     expect_throws(_ => { document.getElementById("svgscript").insertBefore(document.createTextNode("Hello"), null) });
-  //   return p;
-  // }, "Trusted Type violation report: sample for SVGScriptElement text assignment");
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("require-trusted-types-for 'script'"))
+        .then(expect_blocked_uri("trusted-types-sink"))
+        .then(expect_sample("SVGAnimatedString baseVal"));
+      expect_throws(_ => { document.getElementById("svgscript").href.baseVal = "" });
+    return p;
+  }, "Trusted Type violation report: sample for SVGScriptElement href assignment");
+
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("require-trusted-types-for 'script'"))
+        .then(expect_blocked_uri("trusted-types-sink"))
+        .then(expect_sample("Element setAttribute"));
+      expect_throws(_ => { document.getElementById("svgscript").setAttribute('href', "test"); });
+    return p;
+  }, "Trusted Type violation report: sample for SVGScriptElement href assignment by setAttribute");
+
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("require-trusted-types-for 'script'"))
+        .then(expect_blocked_uri("trusted-types-sink"))
+        .then(expect_sample("SVGScriptElement text"));
+      expect_throws(_ => { document.getElementById("svgscript").insertBefore(document.createTextNode("Hello"), null) });
+    return p;
+  }, "Trusted Type violation report: sample for SVGScriptElement text assignment");
 
   promise_test(t => {
     let p = Promise.resolve()

@@ -2,40 +2,24 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/
 
-// Takes a stack trace, and extracts only the first continuous range of lines
-// containing '/(webgpu|unittests)/', which should provide only the useful part
-// of the stack to the caller (for logging).
-export function getStackTrace(e) {
+// Returns the stack trace of an Error, but without the extra boilerplate at the bottom
+// (e.g. RunCaseSpecific, processTicksAndRejections, etc.), for logging.
+export function extractImportantStackTrace(e) {
   if (!e.stack) {
     return '';
   }
 
-  const parts = e.stack.split('\n');
-  const stack = [];
-  const moreStack = [];
-  let found = false;
-  const commonRegex = /[\/\\](webgpu|unittests)[\/\\]/;
+  const lines = e.stack.split('\n');
 
-  for (let i = 0; i < parts.length; ++i) {
-    const part = parts[i].trim();
-    const isSuites = commonRegex.test(part); // approximate
+  for (let i = lines.length - 1; i >= 0; --i) {
+    const line = lines[i];
 
-    if (found && !isSuites) {
-      moreStack.push(part);
-    }
-
-    if (isSuites) {
-      if (moreStack.length) {
-        stack.push(...moreStack);
-        moreStack.length = 0;
-      }
-
-      stack.push(part);
-      found = true;
+    if (line.indexOf('.spec.') !== -1) {
+      return lines.slice(0, i + 1).join('\n');
     }
   }
 
-  return stack.join('\n');
+  return e.stack;
 } // *** Examples ***
 //
 // Node fail()
