@@ -1363,9 +1363,9 @@ dependencies = [
 
 [[package]]
 name = "encoding_c_mem"
-version = "0.2.5"
+version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2d32d28c32ff61236b8ea2678c6e43e63bf9690122cb53e9eca7dcefcc4ccb0c"
+checksum = "3a80a16821fe8c7cab96e0c67b57cd7090e021e9615e6ce6ab0cf866c44ed1f0"
 dependencies = [
  "encoding_rs",
 ]
