@@ -15,7 +15,14 @@ pub struct ParseVariantAttrs {
     pub condition: Option<Path>,
 }
 
+#[darling(attributes(parse), default)]
+#[derive(Default, FromField)]
+pub struct ParseFieldAttrs {
+    field_bound: bool,
+}
+
 fn parse_non_keyword_variant(
+    where_clause: &mut Option<syn::WhereClause>,
     name: &syn::Ident,
     variant: &VariantInfo,
     variant_attrs: &CssVariantAttrs,
@@ -32,7 +39,14 @@ fn parse_non_keyword_variant(
         "We only support deriving parse for simple variants"
     );
     let variant_name = &variant.ast().ident;
-    let ty = &bindings[0].ast().ty;
+    let binding_ast = &bindings[0].ast();
+    let ty = &binding_ast.ty;
+
+    let field_attrs = cg::parse_field_attrs::<ParseFieldAttrs>(binding_ast);
+    if field_attrs.field_bound {
+        cg::add_predicate(where_clause, parse_quote!(#ty: crate::parser::Parse));
+    }
+
     let mut parse = if skip_try {
         quote! {
             let v = <#ty as crate::parser::Parse>::parse(context, input)?;
@@ -67,15 +81,12 @@ fn parse_non_keyword_variant(
 }
 
 pub fn derive(mut input: DeriveInput) -> TokenStream {
-    {
-        let mut where_clause = input.generics.where_clause.take();
-        for param in input.generics.type_params() {
-            cg::add_predicate(
-                &mut where_clause,
-                parse_quote!(#param: crate::parser::Parse),
-            );
-        }
-        input.generics.where_clause = where_clause;
+    let mut where_clause = input.generics.where_clause.take();
+    for param in input.generics.type_params() {
+        cg::add_predicate(
+            &mut where_clause,
+            parse_quote!(#param: crate::parser::Parse),
+        );
     }
 
     let name = &input.ident;
@@ -88,11 +99,12 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
     let mut effective_variants = 0;
     for variant in s.variants().iter() {
         let css_variant_attrs = cg::parse_variant_attrs_from_ast::<CssVariantAttrs>(&variant.ast());
-        let parse_attrs = cg::parse_variant_attrs_from_ast::<ParseVariantAttrs>(&variant.ast());
         if css_variant_attrs.skip {
             continue;
         }
         effective_variants += 1;
+
+        let parse_attrs = cg::parse_variant_attrs_from_ast::<ParseVariantAttrs>(&variant.ast());
 
         saw_condition |= parse_attrs.condition.is_some();
 
@@ -143,7 +155,7 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
     for (i, (variant, css_attrs, parse_attrs)) in non_keywords.iter().enumerate() {
         let skip_try = !has_keywords && i == non_keywords.len() - 1;
         let parse_variant =
-            parse_non_keyword_variant(name, variant, css_attrs, parse_attrs, skip_try);
+            parse_non_keyword_variant(&mut where_clause, name, variant, css_attrs, parse_attrs, skip_try);
         parse_non_keywords.extend(parse_variant);
     }
 
@@ -171,6 +183,9 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
         quote! { Self::parse(input) }
     };
 
+    let has_non_keywords = !non_keywords.is_empty();
+
+    input.generics.where_clause = where_clause;
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
 
     let parse_trait_impl = quote! {
@@ -189,7 +204,7 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
         return parse_trait_impl;
     }
 
-    assert!(non_keywords.is_empty());
+    assert!(!has_non_keywords);
 
     // TODO(emilio): It'd be nice to get rid of these, but that makes the
     // conversion harder...
