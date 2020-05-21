@@ -35,6 +35,30 @@ impl Animations {
         }
     }
 
+    pub(crate) fn update_for_new_timeline_value(
+        &mut self,
+        window: &Window,
+        now: f64,
+    ) -> AnimationsUpdate {
+        let mut update = AnimationsUpdate::new(window.pipeline_id());
+        let mut sets = self.sets.write();
+
+        for set in sets.values_mut() {
+            // When necessary, iterate our running animations to the next iteration.
+            for animation in set.animations.iter_mut() {
+                if animation.iterate_if_necessary(now) {
+                    update.add_event(
+                        animation.node,
+                        animation.name.to_string(),
+                        TransitionOrAnimationEventType::AnimationIteration,
+                        animation.active_duration(),
+                    );
+                }
+            }
+        }
+        update
+    }
+
     /// Processes any new animations that were discovered after reflow. Collect messages
     /// that trigger events for any animations that changed state.
     /// TODO(mrobinson): The specification dictates that this should happen before reflow.
@@ -255,6 +279,9 @@ pub enum TransitionOrAnimationEventType {
     TransitionCancel,
     /// "The animationend event occurs when the animation finishes"
     AnimationEnd,
+    /// "The animationiteration event occurs at the end of each iteration of an
+    /// animation, except when an animationend event would fire at the same time."
+    AnimationIteration,
 }
 
 impl TransitionOrAnimationEventType {
@@ -263,7 +290,7 @@ impl TransitionOrAnimationEventType {
     pub fn finalizes_transition_or_animation(&self) -> bool {
         match *self {
             Self::TransitionEnd | Self::TransitionCancel | Self::AnimationEnd => true,
-            Self::TransitionRun => false,
+            Self::TransitionRun | Self::AnimationIteration => false,
         }
     }
 
@@ -271,7 +298,7 @@ impl TransitionOrAnimationEventType {
     pub fn is_transition_event(&self) -> bool {
         match *self {
             Self::TransitionRun | Self::TransitionEnd | Self::TransitionCancel => true,
-            Self::AnimationEnd => false,
+            Self::AnimationEnd | Self::AnimationIteration => false,
         }
     }
 }

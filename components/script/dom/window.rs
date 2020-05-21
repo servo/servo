@@ -1578,10 +1578,15 @@ impl Window {
 
     /// Prepares to tick animations and then does a reflow which also advances the
     /// layout animation clock.
-    pub fn advance_animation_clock(&self, delta: i32) {
+    #[allow(unsafe_code)]
+    pub fn advance_animation_clock(&self, delta_ms: i32) {
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
-        self.Document()
-            .advance_animation_timeline_for_testing(delta as f64 / 1000.);
+        let update = self
+            .Document()
+            .advance_animation_timeline_for_testing(delta_ms as f64 / 1000.);
+        unsafe {
+            ScriptThread::process_animations_update(update);
+        }
         ScriptThread::handle_tick_all_animations_for_testing(pipeline_id);
     }
 
@@ -1747,7 +1752,7 @@ impl Window {
             }
         }
 
-        let update = document.update_animations();
+        let update = document.update_animations_post_reflow();
         unsafe {
             ScriptThread::process_animations_update(update);
         }

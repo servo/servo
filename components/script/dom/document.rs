@@ -3750,12 +3750,26 @@ impl Document {
             .collect()
     }
 
-    pub(crate) fn advance_animation_timeline_for_testing(&self, delta: f64) {
+    pub(crate) fn advance_animation_timeline_for_testing(&self, delta: f64) -> AnimationsUpdate {
         self.animation_timeline.borrow_mut().advance_specific(delta);
+        let current_timeline_value = self.current_animation_timeline_value();
+        self.animations
+            .borrow_mut()
+            .update_for_new_timeline_value(&self.window, current_timeline_value)
     }
 
-    pub(crate) fn update_animation_timeline(&self) {
-        self.animation_timeline.borrow_mut().update();
+    pub(crate) fn update_animation_timeline(&self) -> AnimationsUpdate {
+        // Only update the time if it isn't being managed by a test.
+        if !pref!(layout.animations.test.enabled) {
+            self.animation_timeline.borrow_mut().update();
+        }
+
+        // We still want to update the animations, because our timeline
+        // value might have been advanced previously via the TestBinding.
+        let current_timeline_value = self.current_animation_timeline_value();
+        self.animations
+            .borrow_mut()
+            .update_for_new_timeline_value(&self.window, current_timeline_value)
     }
 
     pub(crate) fn current_animation_timeline_value(&self) -> f64 {
@@ -3766,7 +3780,7 @@ impl Document {
         self.animations.borrow()
     }
 
-    pub(crate) fn update_animations(&self) -> AnimationsUpdate {
+    pub(crate) fn update_animations_post_reflow(&self) -> AnimationsUpdate {
         self.animations
             .borrow_mut()
             .do_post_reflow_update(&self.window, self.current_animation_timeline_value())
