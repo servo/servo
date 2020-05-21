@@ -208,10 +208,7 @@ where
 }
 
 impl Parse for UnicodeRange {
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<Self, ParseError<'i>> {
-        UnicodeRange::parse(input).map_err(|e| e.into())
+    fn parse<'i, 't>(_: &ParserContext, input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
+        Ok(UnicodeRange::parse(input)?)
     }
 }
