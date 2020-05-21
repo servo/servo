@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::ServiceWorkerBinding::ServiceWorkerState;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::ServiceWorkerRegistrationMethods;
 use crate::dom::bindings::codegen::Bindings::ServiceWorkerRegistrationBinding::ServiceWorkerUpdateViaCache;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -16,6 +15,7 @@ use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::workerglobalscope::prepare_workerscope_init;
 use devtools_traits::WorkerId;
 use dom_struct::dom_struct;
+use msg::constellation_msg::ServiceWorkerRegistrationId;
 use script_traits::{ScopeThings, WorkerScriptLoadOrigin};
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -24,58 +24,60 @@ use uuid::Uuid;
 #[dom_struct]
 pub struct ServiceWorkerRegistration {
     eventtarget: EventTarget,
-    active: Option<Dom<ServiceWorker>>,
-    installing: Option<Dom<ServiceWorker>>,
-    waiting: Option<Dom<ServiceWorker>>,
+    active: DomRefCell<Option<Dom<ServiceWorker>>>,
+    installing: DomRefCell<Option<Dom<ServiceWorker>>>,
+    waiting: DomRefCell<Option<Dom<ServiceWorker>>>,
     navigation_preload: MutNullableDom<NavigationPreloadManager>,
     scope: ServoUrl,
     navigation_preload_enabled: Cell<bool>,
     navigation_preload_header_value: DomRefCell<Option<ByteString>>,
     update_via_cache: ServiceWorkerUpdateViaCache,
     uninstalling: Cell<bool>,
+    registration_id: ServiceWorkerRegistrationId,
 }
 
 impl ServiceWorkerRegistration {
-    fn new_inherited(active_sw: &ServiceWorker, scope: ServoUrl) -> ServiceWorkerRegistration {
+    fn new_inherited(
+        scope: ServoUrl,
+        registration_id: ServiceWorkerRegistrationId,
+    ) -> ServiceWorkerRegistration {
         ServiceWorkerRegistration {
             eventtarget: EventTarget::new_inherited(),
-            active: Some(Dom::from_ref(active_sw)),
-            installing: None,
-            waiting: None,
+            active: DomRefCell::new(None),
+            installing: DomRefCell::new(None),
+            waiting: DomRefCell::new(None),
             navigation_preload: MutNullableDom::new(None),
             scope: scope,
             navigation_preload_enabled: Cell::new(false),
             navigation_preload_header_value: DomRefCell::new(None),
             update_via_cache: ServiceWorkerUpdateViaCache::Imports,
             uninstalling: Cell::new(false),
+            registration_id,
         }
     }
 
     #[allow(unrooted_must_root)]
     pub fn new(
         global: &GlobalScope,
-        script_url: &ServoUrl,
         scope: ServoUrl,
+        registration_id: ServiceWorkerRegistrationId,
     ) -> DomRoot<ServiceWorkerRegistration> {
-        let active_worker =
-            ServiceWorker::install_serviceworker(global, script_url.clone(), scope.clone(), true);
-        active_worker.set_transition_state(ServiceWorkerState::Installed);
-
         reflect_dom_object(
             Box::new(ServiceWorkerRegistration::new_inherited(
-                &*active_worker,
                 scope,
+                registration_id,
             )),
             global,
         )
     }
 
-    pub fn active(&self) -> Option<&ServiceWorker> {
-        self.active.as_ref().map(|sw| &**sw)
+    /// Does this registration have an active worker?
+    pub fn is_active(&self) -> bool {
+        self.active.borrow().is_some()
     }
 
-    pub fn get_installed(&self) -> &ServiceWorker {
-        self.active.as_ref().unwrap()
+    pub fn set_installing(&self, worker: &ServiceWorker) {
+        *self.installing.borrow_mut() = Some(Dom::from_ref(worker));
     }
 
     pub fn get_navigation_preload_header_value(&self) -> Option<ByteString> {
@@ -124,13 +126,14 @@ impl ServiceWorkerRegistration {
 
     // https://w3c.github.io/ServiceWorker/#get-newest-worker-algorithm
     pub fn get_newest_worker(&self) -> Option<DomRoot<ServiceWorker>> {
-        if self.installing.as_ref().is_some() {
-            self.installing.as_ref().map(|sw| DomRoot::from_ref(&**sw))
-        } else if self.waiting.as_ref().is_some() {
-            self.waiting.as_ref().map(|sw| DomRoot::from_ref(&**sw))
-        } else {
-            self.active.as_ref().map(|sw| DomRoot::from_ref(&**sw))
-        }
+        let installing = self.installing.borrow();
+        let waiting = self.waiting.borrow();
+        let active = self.active.borrow();
+        installing
+            .as_ref()
+            .map(|sw| DomRoot::from_ref(&**sw))
+            .or_else(|| waiting.as_ref().map(|sw| DomRoot::from_ref(&**sw)))
+            .or_else(|| active.as_ref().map(|sw| DomRoot::from_ref(&**sw)))
     }
 }
 
@@ -154,17 +157,26 @@ pub fn longest_prefix_match(stored_scope: &ServoUrl, potential_match: &ServoUrl)
 impl ServiceWorkerRegistrationMethods for ServiceWorkerRegistration {
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-installing-attribute
     fn GetInstalling(&self) -> Option<DomRoot<ServiceWorker>> {
-        self.installing.as_ref().map(|sw| DomRoot::from_ref(&**sw))
+        self.installing
+            .borrow()
+            .as_ref()
+            .map(|sw| DomRoot::from_ref(&**sw))
     }
 
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-active-attribute
     fn GetActive(&self) -> Option<DomRoot<ServiceWorker>> {
-        self.active.as_ref().map(|sw| DomRoot::from_ref(&**sw))
+        self.active
+            .borrow()
+            .as_ref()
+            .map(|sw| DomRoot::from_ref(&**sw))
     }
 
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-waiting-attribute
     fn GetWaiting(&self) -> Option<DomRoot<ServiceWorker>> {
-        self.waiting.as_ref().map(|sw| DomRoot::from_ref(&**sw))
+        self.waiting
+            .borrow()
+            .as_ref()
+            .map(|sw| DomRoot::from_ref(&**sw))
     }
 
     // https://w3c.github.io/ServiceWorker/#service-worker-registration-scope-attribute

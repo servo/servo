@@ -47,6 +47,7 @@ impl Client {
         self.active_worker.get()
     }
 
+    #[allow(dead_code)]
     pub fn set_controller(&self, worker: &ServiceWorker) {
         self.active_worker.set(Some(worker));
     }

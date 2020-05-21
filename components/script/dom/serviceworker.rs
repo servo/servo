@@ -23,6 +23,7 @@ use crate::task::TaskOnce;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue};
+use msg::constellation_msg::ServiceWorkerId;
 use script_traits::{DOMMessage, ScriptMsg};
 use servo_url::ServoUrl;
 use std::cell::Cell;
@@ -35,31 +36,35 @@ pub struct ServiceWorker {
     script_url: DomRefCell<String>,
     scope_url: ServoUrl,
     state: Cell<ServiceWorkerState>,
-    skip_waiting: Cell<bool>,
+    worker_id: ServiceWorkerId,
 }
 
 impl ServiceWorker {
-    fn new_inherited(script_url: &str, skip_waiting: bool, scope_url: ServoUrl) -> ServiceWorker {
+    fn new_inherited(
+        script_url: &str,
+        scope_url: ServoUrl,
+        worker_id: ServiceWorkerId,
+    ) -> ServiceWorker {
         ServiceWorker {
             eventtarget: EventTarget::new_inherited(),
             script_url: DomRefCell::new(String::from(script_url)),
             state: Cell::new(ServiceWorkerState::Installing),
             scope_url: scope_url,
-            skip_waiting: Cell::new(skip_waiting),
+            worker_id,
         }
     }
 
-    pub fn install_serviceworker(
+    pub fn new(
         global: &GlobalScope,
         script_url: ServoUrl,
         scope_url: ServoUrl,
-        skip_waiting: bool,
+        worker_id: ServiceWorkerId,
     ) -> DomRoot<ServiceWorker> {
         reflect_dom_object(
             Box::new(ServiceWorker::new_inherited(
                 script_url.as_str(),
-                skip_waiting,
                 scope_url,
+                worker_id,
             )),
             global,
         )

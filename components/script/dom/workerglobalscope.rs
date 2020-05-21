@@ -100,7 +100,7 @@ pub struct WorkerGlobalScope {
     #[ignore_malloc_size_of = "Arc"]
     closing: Option<Arc<AtomicBool>>,
     #[ignore_malloc_size_of = "Defined in js"]
-    runtime: Runtime,
+    runtime: DomRefCell<Option<Runtime>>,
     location: MutNullableDom<WorkerLocation>,
     navigator: MutNullableDom<WorkerNavigator>,
 
@@ -151,7 +151,7 @@ impl WorkerGlobalScope {
             worker_type,
             worker_url: DomRefCell::new(worker_url),
             closing,
-            runtime,
+            runtime: DomRefCell::new(Some(runtime)),
             location: Default::default(),
             navigator: Default::default(),
             from_devtools_sender: init.from_devtools_sender,
@@ -161,8 +161,17 @@ impl WorkerGlobalScope {
         }
     }
 
+    pub fn clear_js_runtime(&self) {
+        let runtime = self.runtime.borrow_mut().take();
+        drop(runtime);
+    }
+
     pub fn runtime_handle(&self) -> ParentRuntime {
-        self.runtime.prepare_for_new_child()
+        self.runtime
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .prepare_for_new_child()
     }
 
     pub fn from_devtools_sender(&self) -> Option<IpcSender<DevtoolScriptControlMsg>> {
@@ -175,7 +184,7 @@ impl WorkerGlobalScope {
 
     #[allow(unsafe_code)]
     pub fn get_cx(&self) -> JSContext {
-        unsafe { JSContext::from_ptr(self.runtime.cx()) }
+        unsafe { JSContext::from_ptr(self.runtime.borrow().as_ref().unwrap().cx()) }
     }
 
     pub fn is_closing(&self) -> bool {
@@ -235,7 +244,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
             };
         }
 
-        rooted!(in(self.runtime.cx()) let mut rval = UndefinedValue());
+        rooted!(in(self.runtime.borrow().as_ref().unwrap().cx()) let mut rval = UndefinedValue());
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
             let request = NetRequestInit::new(url.clone())
@@ -256,7 +265,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 Ok((metadata, bytes)) => (metadata.final_url, String::from_utf8(bytes).unwrap()),
             };
 
-            let result = self.runtime.evaluate_script(
+            let result = self.runtime.borrow().as_ref().unwrap().evaluate_script(
                 self.reflector().get_jsobject(),
                 &source,
                 url.as_str(),
@@ -401,8 +410,9 @@ impl WorkerGlobalScope {
     #[allow(unsafe_code)]
     pub fn execute_script(&self, source: DOMString) {
         let _aes = AutoEntryScript::new(self.upcast());
-        rooted!(in(self.runtime.cx()) let mut rval = UndefinedValue());
-        match self.runtime.evaluate_script(
+        let cx = self.runtime.borrow().as_ref().unwrap().cx();
+        rooted!(in(cx) let mut rval = UndefinedValue());
+        match self.runtime.borrow().as_ref().unwrap().evaluate_script(
             self.reflector().get_jsobject(),
             &source,
             self.worker_url.borrow().as_str(),
@@ -419,7 +429,7 @@ impl WorkerGlobalScope {
                     println!("evaluate_script failed");
                     unsafe {
                         let ar = enter_realm(&*self);
-                        report_pending_exception(self.runtime.cx(), true, InRealm::Entered(&ar));
+                        report_pending_exception(cx, true, InRealm::Entered(&ar));
                     }
                 }
             },

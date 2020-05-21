@@ -63,7 +63,6 @@ use crate::dom::node::{
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::serviceworker::TrustedServiceWorkerAddress;
-use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
 use crate::dom::servoparser::{ParserContext, ServoParser};
 use crate::dom::transitionevent::TransitionEvent;
 use crate::dom::uievent::UIEvent;
@@ -77,7 +76,6 @@ use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::realms::enter_realm;
 use crate::script_runtime::{get_reports, new_rt_and_cx, JSContext, Runtime, ScriptPort};
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
-use crate::serviceworkerjob::{Job, JobQueue};
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -287,8 +285,6 @@ pub enum MainThreadScriptMsg {
         properties: Vec<Atom>,
         painter: Box<dyn Painter>,
     },
-    /// Dispatches a job queue.
-    DispatchJobQueue { scope_url: ServoUrl },
     /// A task related to a not fully-active document has been throttled.
     Inactive,
     /// Wake-up call from the task queue.
@@ -533,10 +529,6 @@ pub struct ScriptThread {
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
     incomplete_parser_contexts: RefCell<IncompleteParserContexts>,
-    /// A map to store service worker registrations for a given origin
-    registration_map: DomRefCell<HashMap<ServoUrl, Dom<ServiceWorkerRegistration>>>,
-    /// A job queue for Service Workers keyed by their scope url
-    job_queue_map: Rc<JobQueue>,
     /// Image cache for this script thread.
     image_cache: Arc<dyn ImageCache>,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
@@ -927,15 +919,6 @@ impl ScriptThread {
         })
     }
 
-    #[allow(unrooted_must_root)]
-    pub fn schedule_job(job: Job) {
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = unsafe { &*root.get().unwrap() };
-            let job_queue = &*script_thread.job_queue_map;
-            job_queue.schedule_job(job, &script_thread);
-        });
-    }
-
     pub fn process_event(msg: CommonScriptMsg) {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
@@ -1317,8 +1300,6 @@ impl ScriptThread {
             window_proxies: DomRefCell::new(HashMap::new()),
             incomplete_loads: DomRefCell::new(vec![]),
             incomplete_parser_contexts: RefCell::new(vec![]),
-            registration_map: DomRefCell::new(HashMap::new()),
-            job_queue_map: Rc::new(JobQueue::new()),
 
             image_cache: state.image_cache.clone(),
             image_cache_channel: image_cache_channel,
@@ -1774,7 +1755,6 @@ impl ScriptThread {
                 MainThreadScriptMsg::Common(CommonScriptMsg::CollectReports(_)) => None,
                 MainThreadScriptMsg::WorkletLoaded(pipeline_id) => Some(pipeline_id),
                 MainThreadScriptMsg::RegisterPaintWorklet { pipeline_id, .. } => Some(pipeline_id),
-                MainThreadScriptMsg::DispatchJobQueue { .. } => None,
                 MainThreadScriptMsg::Inactive => None,
                 MainThreadScriptMsg::WakeUp => None,
             },
@@ -2008,9 +1988,6 @@ impl ScriptThread {
                 properties,
                 painter,
             } => self.handle_register_paint_worklet(pipeline_id, name, properties, painter),
-            MainThreadScriptMsg::DispatchJobQueue { scope_url } => {
-                self.job_queue_map.run_job(scope_url, self)
-            },
             MainThreadScriptMsg::Inactive => {},
             MainThreadScriptMsg::WakeUp => {},
         }
@@ -2718,57 +2695,6 @@ impl ScriptThread {
                 None
             },
         }
-    }
-
-    pub fn handle_get_registration(
-        &self,
-        scope_url: &ServoUrl,
-    ) -> Option<DomRoot<ServiceWorkerRegistration>> {
-        let maybe_registration_ref = self.registration_map.borrow();
-        maybe_registration_ref
-            .get(scope_url)
-            .map(|x| DomRoot::from_ref(&**x))
-    }
-
-    pub fn handle_serviceworker_registration(
-        &self,
-        scope: &ServoUrl,
-        registration: &ServiceWorkerRegistration,
-        pipeline_id: PipelineId,
-    ) {
-        {
-            let ref mut reg_ref = *self.registration_map.borrow_mut();
-            // according to spec we should replace if an older registration exists for
-            // same scope otherwise just insert the new one
-            let _ = reg_ref.remove(scope);
-            reg_ref.insert(scope.clone(), Dom::from_ref(registration));
-        }
-
-        // send ScopeThings to sw-manager
-        let ref maybe_registration_ref = *self.registration_map.borrow();
-        let maybe_registration = match maybe_registration_ref.get(scope) {
-            Some(r) => r,
-            None => return,
-        };
-        let window = match self.documents.borrow().find_window(pipeline_id) {
-            Some(window) => window,
-            None => return warn!("Registration failed for {}", scope),
-        };
-
-        let script_url = maybe_registration.get_installed().get_script_url();
-        let scope_things =
-            ServiceWorkerRegistration::create_scope_things(window.upcast(), script_url);
-        let _ = self.script_sender.send((
-            pipeline_id,
-            ScriptMsg::RegisterServiceWorker(scope_things, scope.clone()),
-        ));
-    }
-
-    pub fn schedule_job_queue(&self, scope_url: ServoUrl) {
-        let _ = self
-            .chan
-            .0
-            .send(MainThreadScriptMsg::DispatchJobQueue { scope_url });
     }
 
     pub fn dom_manipulation_task_source(

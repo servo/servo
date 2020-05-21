@@ -46,7 +46,7 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
         let promise = Promise::new_in_current_realm(&*self.global(), comp);
 
         // 2.
-        if self.serviceworker_registration.active().is_none() {
+        if self.serviceworker_registration.is_active() {
             promise.reject_native(&DOMException::new(
                 &self.global(),
                 DOMErrorName::InvalidStateError,
@@ -68,7 +68,7 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
         let promise = Promise::new_in_current_realm(&*self.global(), comp);
 
         // 2.
-        if self.serviceworker_registration.active().is_none() {
+        if self.serviceworker_registration.is_active() {
             promise.reject_native(&DOMException::new(
                 &self.global(),
                 DOMErrorName::InvalidStateError,
@@ -90,7 +90,7 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
         let promise = Promise::new_in_current_realm(&*self.global(), comp);
 
         // 2.
-        if self.serviceworker_registration.active().is_none() {
+        if self.serviceworker_registration.is_active() {
             promise.reject_native(&DOMException::new(
                 &self.global(),
                 DOMErrorName::InvalidStateError,
@@ -114,7 +114,7 @@ impl NavigationPreloadManagerMethods for NavigationPreloadManager {
         let mut state = NavigationPreloadState::empty();
 
         // 3.
-        if let Some(_) = self.serviceworker_registration.active() {
+        if self.serviceworker_registration.is_active() {
             if self
                 .serviceworker_registration
                 .get_navigation_preload_enabled()

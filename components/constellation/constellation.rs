@@ -153,14 +153,12 @@ use script_traits::{
     IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSandboxState, TimerSchedulerMsg,
 };
 use script_traits::{
-    LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory,
+    Job, LayoutMsg as FromLayoutMsg, ScriptMsg as FromScriptMsg, ScriptThreadFactory,
     ServiceWorkerManagerFactory,
 };
 use script_traits::{MediaSessionActionType, MouseEventType};
 use script_traits::{MessagePortMsg, PortMessageTask, StructuredSerializedData};
-use script_traits::{
-    SWManagerMsg, SWManagerSenders, ScopeThings, UpdatePipelineIdReason, WebDriverCommandMsg,
-};
+use script_traits::{SWManagerMsg, SWManagerSenders, UpdatePipelineIdReason, WebDriverCommandMsg};
 use serde::{Deserialize, Serialize};
 use servo_config::{opts, pref};
 use servo_rand::{random, Rng, ServoRng, SliceRandom};
@@ -1983,8 +1981,8 @@ where
                     );
                 }
             },
-            FromScriptMsg::RegisterServiceWorker(scope_things, scope) => {
-                self.handle_register_serviceworker(scope_things, scope);
+            FromScriptMsg::ScheduleJob(job) => {
+                self.handle_schedule_serviceworker_job(source_pipeline_id, job);
             },
             FromScriptMsg::ForwardDOMMessage(msg_vec, scope_url) => {
                 if let Some(mgr) = self.sw_managers.get(&scope_url.origin()) {
@@ -2640,9 +2638,26 @@ where
         }
     }
 
-    fn handle_register_serviceworker(&mut self, scope_things: ScopeThings, scope: ServoUrl) {
+    /// <https://w3c.github.io/ServiceWorker/#schedule-job-algorithm>
+    /// and
+    /// <https://w3c.github.io/ServiceWorker/#dfn-job-queue>
+    ///
+    /// The Job Queue is essentially the channel to a SW manager,
+    /// which are scoped per origin.
+    fn handle_schedule_serviceworker_job(&mut self, pipeline_id: PipelineId, job: Job) {
+        let origin = job.scope_url.origin();
+
+        if self
+            .check_origin_against_pipeline(&pipeline_id, &origin)
+            .is_err()
+        {
+            return warn!(
+                "Attempt to schedule a serviceworker job from an origin not matching the origin of the job."
+            );
+        }
+
         // This match is equivalent to Entry.or_insert_with but allows for early return.
-        let sw_manager = match self.sw_managers.entry(scope.origin()) {
+        let sw_manager = match self.sw_managers.entry(origin.clone()) {
             Entry::Occupied(entry) => entry.into_mut(),
             Entry::Vacant(entry) => {
                 let (own_sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
@@ -2653,7 +2668,7 @@ where
                     own_sender: own_sender.clone(),
                     receiver,
                 };
-                let content = ServiceWorkerUnprivilegedContent::new(sw_senders, scope.origin());
+                let content = ServiceWorkerUnprivilegedContent::new(sw_senders, origin);
 
                 if opts::multiprocess() {
                     if content.spawn_multiprocess().is_err() {
@@ -2665,7 +2680,7 @@ where
                 entry.insert(own_sender)
             },
         };
-        let _ = sw_manager.send(ServiceWorkerMsg::RegisterServiceWorker(scope_things, scope));
+        let _ = sw_manager.send(ServiceWorkerMsg::ScheduleJob(job));
     }
 
     fn handle_broadcast_storage_event(

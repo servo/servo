@@ -86,6 +86,7 @@ use msg::constellation_msg::{
     BlobId, BroadcastChannelRouterId, BrowsingContextId, HistoryStateId, MessagePortId,
     MessagePortRouterId, PipelineId, TopLevelBrowsingContextId,
 };
+use msg::constellation_msg::{ServiceWorkerId, ServiceWorkerRegistrationId};
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::image::base::{Image, ImageMetadata};
 use net_traits::image_cache::{ImageCache, PendingImageId};
@@ -178,6 +179,9 @@ unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>, Box<dyn EventLoopWaker>);
 unsafe_no_jsmanaged_fields!(MessagePortImpl);
 unsafe_no_jsmanaged_fields!(MessagePortId);
 unsafe_no_jsmanaged_fields!(MessagePortRouterId);
+
+unsafe_no_jsmanaged_fields!(ServiceWorkerId);
+unsafe_no_jsmanaged_fields!(ServiceWorkerRegistrationId);
 
 unsafe_no_jsmanaged_fields!(BroadcastChannelRouterId);
 

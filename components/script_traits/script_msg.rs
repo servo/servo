@@ -27,6 +27,7 @@ use msg::constellation_msg::{
     TopLevelBrowsingContextId,
 };
 use msg::constellation_msg::{HistoryStateId, TraversalDirection};
+use msg::constellation_msg::{ServiceWorkerId, ServiceWorkerRegistrationId};
 use net_traits::request::RequestBuilder;
 use net_traits::storage_thread::StorageType;
 use net_traits::CoreResourceMsg;
@@ -262,8 +263,8 @@ pub enum ScriptMsg {
     /// Send messages from postMessage calls from serviceworker
     /// to constellation for storing in service worker manager
     ForwardDOMMessage(DOMMessage, ServoUrl),
-    /// Store the data required to activate a service worker for the given scope
-    RegisterServiceWorker(ScopeThings, ServoUrl),
+    /// https://w3c.github.io/ServiceWorker/#schedule-job-algorithm.
+    ScheduleJob(Job),
     /// Get Window Informations size and position
     GetClientWindow(IpcSender<(DeviceIntSize, DeviceIntPoint)>),
     /// Get the screen size (pixel)
@@ -331,7 +332,7 @@ impl fmt::Debug for ScriptMsg {
             DiscardTopLevelBrowsingContext => "DiscardTopLevelBrowsingContext",
             PipelineExited => "PipelineExited",
             ForwardDOMMessage(..) => "ForwardDOMMessage",
-            RegisterServiceWorker(..) => "RegisterServiceWorker",
+            ScheduleJob(..) => "ScheduleJob",
             GetClientWindow(..) => "GetClientWindow",
             GetScreenSize(..) => "GetScreenSize",
             GetScreenAvailSize(..) => "GetScreenAvailSize",
@@ -382,14 +383,116 @@ pub struct SWManagerSenders {
 /// Messages sent to Service Worker Manager thread
 #[derive(Debug, Deserialize, Serialize)]
 pub enum ServiceWorkerMsg {
-    /// Message to register the service worker
-    RegisterServiceWorker(ScopeThings, ServoUrl),
     /// Timeout message sent by active service workers
     Timeout(ServoUrl),
     /// Message sent by constellation to forward to a running service worker
     ForwardDOMMessage(DOMMessage, ServoUrl),
+    /// https://w3c.github.io/ServiceWorker/#schedule-job-algorithm
+    ScheduleJob(Job),
     /// Exit the service worker manager
     Exit,
+}
+
+#[derive(Debug, Deserialize, PartialEq, Serialize)]
+/// https://w3c.github.io/ServiceWorker/#dfn-job-type
+pub enum JobType {
+    /// <https://w3c.github.io/ServiceWorker/#register>
+    Register,
+    /// <https://w3c.github.io/ServiceWorker/#unregister-algorithm>
+    Unregister,
+    /// <https://w3c.github.io/ServiceWorker/#update-algorithm
+    Update,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+/// The kind of error the job promise should be rejected with.
+pub enum JobError {
+    /// https://w3c.github.io/ServiceWorker/#reject-job-promise
+    TypeError,
+    /// https://w3c.github.io/ServiceWorker/#reject-job-promise
+    SecurityError,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+/// Messages sent from Job algorithms steps running in the SW manager,
+/// in order to resolve or reject the job promise.
+pub enum JobResult {
+    /// https://w3c.github.io/ServiceWorker/#reject-job-promise
+    RejectPromise(JobError),
+    /// https://w3c.github.io/ServiceWorker/#resolve-job-promise
+    ResolvePromise(Job, JobResultValue),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+/// Jobs are resolved with the help of various values.
+pub enum JobResultValue {
+    /// Data representing a serviceworker registration.
+    Registration {
+        /// The Id of the registration.
+        id: ServiceWorkerRegistrationId,
+        /// The installing worker, if any.
+        installing_worker: Option<ServiceWorkerId>,
+        /// The waiting worker, if any.
+        waiting_worker: Option<ServiceWorkerId>,
+        /// The active worker, if any.
+        active_worker: Option<ServiceWorkerId>,
+    },
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+/// https://w3c.github.io/ServiceWorker/#dfn-job
+pub struct Job {
+    /// <https://w3c.github.io/ServiceWorker/#dfn-job-type>
+    pub job_type: JobType,
+    /// <https://w3c.github.io/ServiceWorker/#dfn-job-scope-url>
+    pub scope_url: ServoUrl,
+    /// <https://w3c.github.io/ServiceWorker/#dfn-job-script-url>
+    pub script_url: ServoUrl,
+    /// <https://w3c.github.io/ServiceWorker/#dfn-job-client>
+    pub client: IpcSender<JobResult>,
+    /// <https://w3c.github.io/ServiceWorker/#job-referrer>
+    pub referrer: ServoUrl,
+    /// Various data needed to process job.
+    pub scope_things: Option<ScopeThings>,
+}
+
+impl Job {
+    /// https://w3c.github.io/ServiceWorker/#create-job-algorithm
+    pub fn create_job(
+        job_type: JobType,
+        scope_url: ServoUrl,
+        script_url: ServoUrl,
+        client: IpcSender<JobResult>,
+        referrer: ServoUrl,
+        scope_things: Option<ScopeThings>,
+    ) -> Job {
+        Job {
+            job_type,
+            scope_url,
+            script_url,
+            client,
+            referrer,
+            scope_things,
+        }
+    }
+}
+
+impl PartialEq for Job {
+    /// Equality criteria as described in https://w3c.github.io/ServiceWorker/#dfn-job-equivalent
+    fn eq(&self, other: &Self) -> bool {
+        // TODO: match on job type, take worker type and `update_via_cache_mode` into account.
+        let same_job = self.job_type == other.job_type;
+        if same_job {
+            match self.job_type {
+                JobType::Register | JobType::Update => {
+                    self.scope_url == other.scope_url && self.script_url == other.script_url
+                },
+                JobType::Unregister => self.scope_url == other.scope_url,
+            }
+        } else {
+            false
+        }
+    }
 }
 
 /// Messages outgoing from the Service Worker Manager thread to constellation
