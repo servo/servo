@@ -3403,9 +3403,9 @@ dependencies = [
 
 [[package]]
 name = "metal"
-version = "0.17.0"
+version = "0.17.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddf8052f20601c7af6293d3f7bf7b9159aee5974804fe65d871d437f933ec1eb"
+checksum = "f83c7dcc2038e12f68493fa3de44235df27b2497178e257185b4b5b5d028a1e4"
 dependencies = [
  "bitflags",
  "block",
@@ -5684,7 +5684,7 @@ dependencies = [
  "libc",
  "log",
  "mach",
- "metal 0.17.0",
+ "metal 0.17.1",
  "objc",
  "parking_lot 0.9.0",
  "wayland-sys 0.24.0",
