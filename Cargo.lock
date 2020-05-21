@@ -161,11 +161,11 @@ checksum = "3ae7d751998c189c1d4468cf0a39bb2eae052a9c58d50ebb3b9591ee3813ad50"
 
 [[package]]
 name = "ash"
-version = "0.29.0"
+version = "0.30.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "003d1fb2eb12eb06d4a03dbe02eea67a9fac910fa97932ab9e3a75b96a1ea5e5"
+checksum = "69daec0742947f33a85931fa3cb0ce5f07929159dcbd1f0cbb5b2912e2978509"
 dependencies = [
- "shared_library",
+ "libloading 0.5.2",
 ]
 
 [[package]]
@@ -428,6 +428,12 @@ dependencies = [
  "jobserver",
  "num_cpus",
 ]
+
+[[package]]
+name = "bumpalo"
+version = "3.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5356f1d23ee24a1f785a56d1d1a5f0fd5b0f6a0c0fb2412ce11da71649ab78f6"
 
 [[package]]
 name = "byte-slice-cast"
@@ -729,16 +735,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "cocoa"
+version = "0.20.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f7b6f3f7f4f0b3ec5c5039aaa9e8c3cef97a7a480a400fd62944841314f293d"
+dependencies = [
+ "bitflags",
+ "block",
+ "core-foundation 0.7.0",
+ "core-graphics 0.19.0",
+ "foreign-types",
+ "libc",
+ "objc",
+]
+
+[[package]]
 name = "color_quant"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a475fc4af42d83d28adf72968d9bcfaf035a1a9381642d8e85d8a04957767b0d"
-
-[[package]]
-name = "colorful"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0bca1619ff57dd7a56b58a8e25ef4199f123e78e503fe1653410350a1b98ae65"
 
 [[package]]
 name = "combine"
@@ -1796,9 +1811,9 @@ dependencies = [
 
 [[package]]
 name = "gfx-auxil"
-version = "0.1.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "572eee952a9a23c99cfe3e4fd95d277784058a89ac3c77ff6fa3d80a4e321919"
+checksum = "67bdbf8e8d6883c70e5a0d7379ad8ab3ac95127a3761306b36122d8f1c177a8e"
 dependencies = [
  "fxhash",
  "gfx-hal",
@@ -1807,19 +1822,19 @@ dependencies = [
 
 [[package]]
 name = "gfx-backend-dx11"
-version = "0.4.2"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c66c77836ff26cf9916e5c8745715a22eae1fc61d994ffa0bea8a7dbd708ece2"
+checksum = "92de0ddc0fde1a89b2a0e92dcc6bbb554bd34af0135e53a28d5ef064611094a4"
 dependencies = [
  "bitflags",
  "gfx-auxil",
  "gfx-hal",
  "libloading 0.5.2",
  "log",
- "parking_lot",
+ "parking_lot 0.10.2",
  "range-alloc",
  "raw-window-handle",
- "smallvec 0.6.13",
+ "smallvec 1.3.0",
  "spirv_cross",
  "winapi",
  "wio",
@@ -1827,9 +1842,9 @@ dependencies = [
 
 [[package]]
 name = "gfx-backend-dx12"
-version = "0.4.1"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b6e913cc800fb12eaba2c420091a02aca9aafbefd672600dfc5b52654343d341"
+checksum = "37365e2927d55cefac0d3f78dfd1d3119fbb13a8bd7afe2409d729961fee22fc"
 dependencies = [
  "bitflags",
  "d3d12",
@@ -1838,16 +1853,16 @@ dependencies = [
  "log",
  "range-alloc",
  "raw-window-handle",
- "smallvec 0.6.13",
+ "smallvec 1.3.0",
  "spirv_cross",
  "winapi",
 ]
 
 [[package]]
 name = "gfx-backend-empty"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d383e6bc48867cb37d298a20139fd1eec298f8f6d594690cd1c50ef25470cc7"
+checksum = "b67bd2d7bc022b257ddbdabc5fa3b10c29c292372c3409f2b6a6e3f4e11cdb85"
 dependencies = [
  "gfx-hal",
  "raw-window-handle",
@@ -1855,60 +1870,83 @@ dependencies = [
 
 [[package]]
 name = "gfx-backend-metal"
-version = "0.4.0"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8de5c71f18ba805c95b84d6c78c472ef44485a6fc46e3b49fe1e6739c8d7b0c0"
+checksum = "205f3ca8e74ed814ea2c0206d47d8925077673cab2e21f9b12d48ff781cf87ee"
 dependencies = [
  "arrayvec 0.5.1",
  "bitflags",
  "block",
- "cocoa 0.19.1",
+ "cocoa 0.20.1",
  "copyless",
- "core-graphics 0.17.3",
+ "core-graphics 0.19.0",
  "foreign-types",
  "gfx-auxil",
  "gfx-hal",
  "lazy_static",
  "log",
- "metal",
+ "metal 0.18.0",
  "objc",
- "parking_lot",
+ "parking_lot 0.10.2",
  "range-alloc",
  "raw-window-handle",
- "smallvec 0.6.13",
+ "smallvec 1.3.0",
  "spirv_cross",
  "storage-map",
 ]
 
 [[package]]
 name = "gfx-backend-vulkan"
-version = "0.4.0"
+version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62538fedd66a78968a162e8e1a29d085ffbc97f8782634684b2f7da7aea59207"
+checksum = "45ff36feae801fa23d29acd74082603a0145a697a23595757dd4e78828ab33da"
 dependencies = [
  "arrayvec 0.5.1",
  "ash",
  "byteorder",
- "core-graphics 0.17.3",
+ "core-graphics 0.19.0",
  "gfx-hal",
  "lazy_static",
  "log",
  "objc",
  "raw-window-handle",
- "smallvec 0.6.13",
+ "smallvec 1.3.0",
  "winapi",
  "x11",
 ]
 
 [[package]]
-name = "gfx-hal"
-version = "0.4.1"
+name = "gfx-descriptor"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7c88981665c780447bb08eb099e1ded330754a7246719bab927ee4a949c0ba7f"
+checksum = "1bf35f5d66d1bc56e63e68d7528441453f25992bd954b84309d23c659df2c5da"
+dependencies = [
+ "fxhash",
+ "gfx-hal",
+ "log",
+]
+
+[[package]]
+name = "gfx-hal"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc96180204064c9493e0fe4a9efeb721e0ac59fe8e1906d0c659142a93114fb1"
 dependencies = [
  "bitflags",
  "raw-window-handle",
- "smallvec 0.6.13",
+]
+
+[[package]]
+name = "gfx-memory"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c2eed6cda674d9cd4d92229102dbd544292124533d236904f987e9afab456137"
+dependencies = [
+ "fxhash",
+ "gfx-hal",
+ "hibitset",
+ "log",
+ "slab",
 ]
 
 [[package]]
@@ -2768,6 +2806,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "js-sys"
+version = "0.3.39"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fa5a448de267e7358beaf4a5d849518fe9a0c13fce7afd44b06e68550e5562a7"
+dependencies = [
+ "wasm-bindgen",
+]
+
+[[package]]
 name = "jstraceable_derive"
 version = "0.0.1"
 dependencies = [
@@ -2817,7 +2864,7 @@ dependencies = [
  "msg",
  "net_traits",
  "num-traits",
- "parking_lot",
+ "parking_lot 0.9.0",
  "profile_traits",
  "range",
  "rayon",
@@ -2861,7 +2908,7 @@ dependencies = [
  "mitochondria",
  "msg",
  "net_traits",
- "parking_lot",
+ "parking_lot 0.9.0",
  "range",
  "rayon",
  "rayon_croissant",
@@ -2903,7 +2950,7 @@ dependencies = [
  "metrics",
  "msg",
  "net_traits",
- "parking_lot",
+ "parking_lot 0.9.0",
  "profile_traits",
  "range",
  "rayon",
@@ -2948,7 +2995,7 @@ dependencies = [
  "metrics",
  "msg",
  "net_traits",
- "parking_lot",
+ "parking_lot 0.9.0",
  "profile_traits",
  "range",
  "script",
@@ -3167,9 +3214,9 @@ dependencies = [
 
 [[package]]
 name = "lock_api"
-version = "0.3.1"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f8912e782533a93a167888781b836336a6ca5da6175c05944c86cf28c31104dc"
+checksum = "c4da24a77a3d8a6d4862d95f72e6fdb9c09a643ecdb402d754004a557f2bec75"
 dependencies = [
  "scopeguard",
 ]
@@ -3370,6 +3417,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "metal"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e198a0ee42bdbe9ef2c09d0b9426f3b2b47d90d93a4a9b0395c4cea605e92dc0"
+dependencies = [
+ "bitflags",
+ "block",
+ "cocoa 0.20.1",
+ "core-graphics 0.19.0",
+ "foreign-types",
+ "log",
+ "objc",
+]
+
+[[package]]
 name = "metrics"
 version = "0.0.1"
 dependencies = [
@@ -3552,7 +3614,7 @@ dependencies = [
  "lazy_static",
  "malloc_size_of",
  "malloc_size_of_derive",
- "parking_lot",
+ "parking_lot 0.9.0",
  "serde",
  "servo_url",
  "size_of_test",
@@ -3564,6 +3626,18 @@ name = "muldiv"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "451a9a05d2a32c566c897835e0ea95cf79ed2fdfe957924045a1721a36c9980f"
+
+[[package]]
+name = "naga"
+version = "0.1.0"
+source = "git+https://github.com/gfx-rs/naga?rev=bce6358eb1026c13d2f1c6d365af37afe8869a86#bce6358eb1026c13d2f1c6d365af37afe8869a86"
+dependencies = [
+ "bitflags",
+ "fxhash",
+ "log",
+ "num-traits",
+ "spirv_headers",
+]
 
 [[package]]
 name = "net"
@@ -3886,8 +3960,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f842b1982eb6c2fe34036a4fbfb06dd185a3f5c8edfaacdf7d1ea10b07de6252"
 dependencies = [
  "lock_api",
- "parking_lot_core",
+ "parking_lot_core 0.6.2",
  "rustc_version",
+]
+
+[[package]]
+name = "parking_lot"
+version = "0.10.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d3a704eb390aafdc107b0e392f56a82b668e3a71366993b5340f5833fd62505e"
+dependencies = [
+ "lock_api",
+ "parking_lot_core 0.7.2",
 ]
 
 [[package]]
@@ -3902,6 +3986,20 @@ dependencies = [
  "redox_syscall",
  "rustc_version",
  "smallvec 0.6.13",
+ "winapi",
+]
+
+[[package]]
+name = "parking_lot_core"
+version = "0.7.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d58c7c768d4ba344e3e8d72518ac13e259d7c7ade24167003b8488e10b6740a3"
+dependencies = [
+ "cfg-if",
+ "cloudabi",
+ "libc",
+ "redox_syscall",
+ "smallvec 1.3.0",
  "winapi",
 ]
 
@@ -3952,31 +4050,35 @@ version = "0.2.0"
 source = "git+https://github.com/servo/webrender#01082a9091ab98c392af8934d04271eb1dd546df"
 dependencies = [
  "euclid",
- "peek-poke-derive 0.2.1",
+ "peek-poke-derive 0.2.1 (git+https://github.com/servo/webrender)",
 ]
 
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/kvark/peek-poke?rev=969bd7fe2be1a83f87916dc8b388c63cfd457075#969bd7fe2be1a83f87916dc8b388c63cfd457075"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d93fd6a575ebf1ac2668d08443c97a22872cfb463fd8b7ddd141e9f6be59af2f"
 dependencies = [
- "peek-poke-derive 0.2.0",
-]
-
-[[package]]
-name = "peek-poke-derive"
-version = "0.2.0"
-source = "git+https://github.com/kvark/peek-poke?rev=969bd7fe2be1a83f87916dc8b388c63cfd457075#969bd7fe2be1a83f87916dc8b388c63cfd457075"
-dependencies = [
- "proc-macro2 1.0.1",
- "quote 1.0.2",
- "syn",
+ "peek-poke-derive 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
 source = "git+https://github.com/servo/webrender#01082a9091ab98c392af8934d04271eb1dd546df"
+dependencies = [
+ "proc-macro2 1.0.1",
+ "quote 1.0.2",
+ "syn",
+ "synstructure",
+ "unicode-xid 0.2.0",
+]
+
+[[package]]
+name = "peek-poke-derive"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6fb44a25c5bba983be0fc8592dfaf3e6d0935ce8be0c6b15b2a39507af34a926"
 dependencies = [
  "proc-macro2 1.0.1",
  "quote 1.0.2",
@@ -4426,49 +4528,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1132f845907680735a84409c3bebc64d1364a5683ffbce899550cd09d5eaefc1"
 
 [[package]]
-name = "relevant"
-version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbc232e13d37f4547f5b9b42a5efc380cabe5dbc1807f8b893580640b2ab0308"
-dependencies = [
- "cfg-if",
- "log",
-]
-
-[[package]]
 name = "remove_dir_all"
 version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4a83fa3702a688b9359eccba92d153ac33fd2e8462f9e0e3fdf155239ea7792e"
 dependencies = [
  "winapi",
-]
-
-[[package]]
-name = "rendy-descriptor"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f475bcc0505946e998590f1f0545c52ef4b559174a1b353a7ce6638def8b621e"
-dependencies = [
- "gfx-hal",
- "log",
- "relevant",
- "smallvec 0.6.13",
-]
-
-[[package]]
-name = "rendy-memory"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ed492161a819feae7f27f418bb16035276ac20649c60d756699152cb5c1960ec"
-dependencies = [
- "colorful",
- "gfx-hal",
- "hibitset",
- "log",
- "relevant",
- "slab",
- "smallvec 0.6.13",
 ]
 
 [[package]]
@@ -4483,6 +4548,17 @@ version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "da06feaa07f69125ab9ddc769b11de29090122170b402547f64b86fe16ebc399"
 dependencies = [
+ "serde",
+]
+
+[[package]]
+name = "ron"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ece421e0c4129b90e4a35b6f625e472e96c552136f5093a2f4fa2bbb75a62d5"
+dependencies = [
+ "base64 0.10.1",
+ "bitflags",
  "serde",
 ]
 
@@ -4618,7 +4694,7 @@ dependencies = [
  "msg",
  "net_traits",
  "num-traits",
- "parking_lot",
+ "parking_lot 0.9.0",
  "percent-encoding",
  "phf",
  "phf_codegen",
@@ -4681,7 +4757,7 @@ dependencies = [
  "metrics",
  "msg",
  "net_traits",
- "parking_lot",
+ "parking_lot 0.9.0",
  "profile_traits",
  "range",
  "script_traits",
@@ -5223,16 +5299,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "shared_library"
-version = "0.1.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5a9e7e0f2bfae24d8a5b5a66c5b257a83c7412304311512a0c054cd5e619da11"
-dependencies = [
- "lazy_static",
- "libc",
-]
-
-[[package]]
 name = "shellwords"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5397,10 +5463,23 @@ checksum = "b72d540d5c565dbe1f891d7e21ceb21d2649508306782f1066989fccb0b363d3"
 
 [[package]]
 name = "spirv_cross"
-version = "0.16.0"
-source = "git+https://github.com/servo/spirv_cross?branch=wgpu-servo#636677bad724797789239c16e6d332e9b4d97b86"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a33a9478e9c78782dd694d05dee074703a9c4c74b511de742b88a7e8149f1b37"
 dependencies = [
  "cc",
+ "js-sys",
+ "wasm-bindgen",
+]
+
+[[package]]
+name = "spirv_headers"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f1418983d16481227ffa3ab3cf44ef92eebc9a76c092fbcd4c51a64ff032622"
+dependencies = [
+ "bitflags",
+ "num-traits",
 ]
 
 [[package]]
@@ -5505,7 +5584,7 @@ dependencies = [
  "num-traits",
  "num_cpus",
  "owning_ref",
- "parking_lot",
+ "parking_lot 0.9.0",
  "precomputed-hash",
  "rayon",
  "regex",
@@ -5605,9 +5684,9 @@ dependencies = [
  "libc",
  "log",
  "mach",
- "metal",
+ "metal 0.17.0",
  "objc",
- "parking_lot",
+ "parking_lot 0.9.0",
  "wayland-sys 0.24.0",
  "winapi",
  "winit",
@@ -6192,9 +6271,9 @@ checksum = "3fc439f2794e98976c88a2a2dafce96b930fe8010b0a256b3c2199a773933168"
 
 [[package]]
 name = "vec_map"
-version = "0.8.0"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "887b5b631c2ad01628bbbaa7dd4c869f80d3186688f8d0b6f58774fbe324988c"
+checksum = "f1bddf1187be692e79c5ffeab891132dfb0f236ed36a43c7ed39f1165ee20191"
 
 [[package]]
 name = "version_check"
@@ -6259,6 +6338,60 @@ name = "wasi"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b89c3ce4ce14bdc6fb6beaf9ec7928ca331de5df7e5ea278375642a2f478570d"
+
+[[package]]
+name = "wasm-bindgen"
+version = "0.2.62"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e3c7d40d09cdbf0f4895ae58cf57d92e1e57a9dd8ed2e8390514b54a47cc5551"
+dependencies = [
+ "cfg-if",
+ "wasm-bindgen-macro",
+]
+
+[[package]]
+name = "wasm-bindgen-backend"
+version = "0.2.62"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3972e137ebf830900db522d6c8fd74d1900dcfc733462e9a12e942b00b4ac94"
+dependencies = [
+ "bumpalo",
+ "lazy_static",
+ "log",
+ "proc-macro2 1.0.1",
+ "quote 1.0.2",
+ "syn",
+ "wasm-bindgen-shared",
+]
+
+[[package]]
+name = "wasm-bindgen-macro"
+version = "0.2.62"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2cd85aa2c579e8892442954685f0d801f9129de24fa2136b2c6a539c76b65776"
+dependencies = [
+ "quote 1.0.2",
+ "wasm-bindgen-macro-support",
+]
+
+[[package]]
+name = "wasm-bindgen-macro-support"
+version = "0.2.62"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8eb197bd3a47553334907ffd2f16507b4f4f01bbec3ac921a7719e0decdfe72a"
+dependencies = [
+ "proc-macro2 1.0.1",
+ "quote 1.0.2",
+ "syn",
+ "wasm-bindgen-backend",
+ "wasm-bindgen-shared",
+]
+
+[[package]]
+name = "wasm-bindgen-shared"
+version = "0.2.62"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a91c2916119c17a8e316507afaaa2dd94b47646048014bbdf6bef098c1bb58ad"
 
 [[package]]
 name = "wayland-client"
@@ -6389,6 +6522,7 @@ dependencies = [
  "servo_config",
  "smallvec 0.6.13",
  "wgpu-core",
+ "wgpu-types",
 ]
 
 [[package]]
@@ -6420,7 +6554,7 @@ dependencies = [
  "num-traits",
  "plane-split",
  "rayon",
- "ron",
+ "ron 0.1.7",
  "serde",
  "serde_json",
  "smallvec 1.3.0",
@@ -6519,8 +6653,8 @@ dependencies = [
 
 [[package]]
 name = "wgpu-core"
-version = "0.1.0"
-source = "git+https://github.com/gfx-rs/wgpu#4f937c04e12572a56d96a160c30888ceecc930a9"
+version = "0.5.0"
+source = "git+https://github.com/gfx-rs/wgpu#a203333c3e144cfd431c812213966ee32ae59d98"
 dependencies = [
  "arrayvec 0.5.1",
  "bitflags",
@@ -6531,15 +6665,29 @@ dependencies = [
  "gfx-backend-empty",
  "gfx-backend-metal",
  "gfx-backend-vulkan",
+ "gfx-descriptor",
  "gfx-hal",
+ "gfx-memory",
  "log",
- "parking_lot",
- "peek-poke 0.2.0 (git+https://github.com/kvark/peek-poke?rev=969bd7fe2be1a83f87916dc8b388c63cfd457075)",
- "rendy-descriptor",
- "rendy-memory",
+ "naga",
+ "parking_lot 0.10.2",
+ "peek-poke 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "ron 0.5.1",
  "serde",
  "smallvec 1.3.0",
+ "spirv_headers",
  "vec_map",
+ "wgpu-types",
+]
+
+[[package]]
+name = "wgpu-types"
+version = "0.5.0"
+source = "git+https://github.com/gfx-rs/wgpu#a203333c3e144cfd431c812213966ee32ae59d98"
+dependencies = [
+ "bitflags",
+ "peek-poke 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde",
 ]
 
 [[package]]
@@ -6595,7 +6743,7 @@ dependencies = [
  "libc",
  "log",
  "objc",
- "parking_lot",
+ "parking_lot 0.9.0",
  "percent-encoding",
  "smithay-client-toolkit",
  "wayland-client",

@@ -19,7 +19,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc;
 use std::cell::Cell;
 use std::collections::HashSet;
-use webgpu::wgpu::resource::BufferUsage;
+use webgpu::wgt::BufferUsage;
 use webgpu::{WebGPU, WebGPUCommandEncoder, WebGPURequest};
 
 const BUFFER_COPY_ALIGN_MASK: u64 = 3;

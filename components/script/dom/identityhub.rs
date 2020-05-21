@@ -9,8 +9,8 @@ use webgpu::wgpu::{
         AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
         DeviceId, PipelineLayoutId, ShaderModuleId,
     },
-    Backend,
 };
+use webgpu::wgt::Backend;
 
 #[derive(Debug)]
 pub struct IdentityHub {

@@ -20,8 +20,8 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::Heap;
 use script_traits::ScriptMsg;
 use std::rc::Rc;
-use webgpu::wgpu;
-use webgpu::{WebGPUResponse, WebGPUResponseResult};
+use webgpu::wgt::PowerPreference;
+use webgpu::{wgpu, WebGPUResponse, WebGPUResponseResult};
 
 #[dom_struct]
 pub struct GPU {
@@ -109,11 +109,9 @@ impl GPUMethods for GPU {
         let promise = Promise::new_in_current_realm(global, comp);
         let sender = response_async(&promise, self);
         let power_preference = match options.powerPreference {
-            Some(GPUPowerPreference::Low_power) => wgpu::instance::PowerPreference::LowPower,
-            Some(GPUPowerPreference::High_performance) => {
-                wgpu::instance::PowerPreference::HighPerformance
-            },
-            None => wgpu::instance::PowerPreference::Default,
+            Some(GPUPowerPreference::Low_power) => PowerPreference::LowPower,
+            Some(GPUPowerPreference::High_performance) => PowerPreference::HighPerformance,
+            None => PowerPreference::Default,
         };
         let ids = global.wgpu_id_hub().lock().create_adapter_ids();
 
@@ -121,7 +119,10 @@ impl GPUMethods for GPU {
         if script_to_constellation_chan
             .send(ScriptMsg::RequestAdapter(
                 sender,
-                wgpu::instance::RequestAdapterOptions { power_preference },
+                wgpu::instance::RequestAdapterOptions {
+                    power_preference,
+                    compatible_surface: None,
+                },
                 ids,
             ))
             .is_err()
