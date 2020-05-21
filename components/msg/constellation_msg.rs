@@ -14,6 +14,45 @@ use std::num::NonZeroU32;
 use std::sync::Arc;
 use std::time::Duration;
 
+macro_rules! namespace_id_method {
+    ($func_name:ident, $func_return_data_type:ident, $self:ident, $index_name:ident) => {
+        fn $func_name(&mut $self) -> $func_return_data_type {
+            $func_return_data_type {
+                namespace_id: $self.id,
+                index: $index_name($self.next_index()),
+            }
+        }
+    };
+}
+
+macro_rules! namespace_id {
+    ($id_name:ident, $index_name:ident) => {
+        #[derive(
+            Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize,
+        )]
+        pub struct $index_name(pub NonZeroU32);
+        malloc_size_of_is_0!($index_name);
+
+        #[derive(
+            Clone,
+            Copy,
+            Debug,
+            Deserialize,
+            Eq,
+            Hash,
+            MallocSizeOf,
+            Ord,
+            PartialEq,
+            PartialOrd,
+            Serialize,
+        )]
+        pub struct $id_name {
+            pub namespace_id: PipelineNamespaceId,
+            pub index: $index_name,
+        }
+    };
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum TraversalDirection {
     Forward(usize),
@@ -136,68 +175,16 @@ impl PipelineNamespace {
         NonZeroU32::new(self.index).expect("pipeline id index wrapped!")
     }
 
-    fn next_pipeline_id(&mut self) -> PipelineId {
-        PipelineId {
-            namespace_id: self.id,
-            index: PipelineIndex(self.next_index()),
-        }
-    }
-
-    fn next_browsing_context_id(&mut self) -> BrowsingContextId {
-        BrowsingContextId {
-            namespace_id: self.id,
-            index: BrowsingContextIndex(self.next_index()),
-        }
-    }
-
-    fn next_history_state_id(&mut self) -> HistoryStateId {
-        HistoryStateId {
-            namespace_id: self.id,
-            index: HistoryStateIndex(self.next_index()),
-        }
-    }
-
-    fn next_message_port_id(&mut self) -> MessagePortId {
-        MessagePortId {
-            namespace_id: self.id,
-            index: MessagePortIndex(self.next_index()),
-        }
-    }
-
-    fn next_message_port_router_id(&mut self) -> MessagePortRouterId {
-        MessagePortRouterId {
-            namespace_id: self.id,
-            index: MessagePortRouterIndex(self.next_index()),
-        }
-    }
-
-    fn next_broadcast_channel_router_id(&mut self) -> BroadcastChannelRouterId {
-        BroadcastChannelRouterId {
-            namespace_id: self.id,
-            index: BroadcastChannelRouterIndex(self.next_index()),
-        }
-    }
-
-    fn next_service_worker_id(&mut self) -> ServiceWorkerId {
-        ServiceWorkerId {
-            namespace_id: self.id,
-            index: ServiceWorkerIndex(self.next_index()),
-        }
-    }
-
-    fn next_service_worker_registration_id(&mut self) -> ServiceWorkerRegistrationId {
-        ServiceWorkerRegistrationId {
-            namespace_id: self.id,
-            index: ServiceWorkerRegistrationIndex(self.next_index()),
-        }
-    }
-
-    fn next_blob_id(&mut self) -> BlobId {
-        BlobId {
-            namespace_id: self.id,
-            index: BlobIndex(self.next_index()),
-        }
-    }
+    namespace_id_method! {next_pipeline_id, PipelineId, self, PipelineIndex}
+    namespace_id_method! {next_browsing_context_id, BrowsingContextId, self, BrowsingContextIndex}
+    namespace_id_method! {next_history_state_id, HistoryStateId, self, HistoryStateIndex}
+    namespace_id_method! {next_message_port_id, MessagePortId, self, MessagePortIndex}
+    namespace_id_method! {next_message_port_router_id, MessagePortRouterId, self, MessagePortRouterIndex}
+    namespace_id_method! {next_broadcast_channel_router_id, BroadcastChannelRouterId, self, BroadcastChannelRouterIndex}
+    namespace_id_method! {next_service_worker_id, ServiceWorkerId, self, ServiceWorkerIndex}
+    namespace_id_method! {next_service_worker_registration_id, ServiceWorkerRegistrationId,
+    self, ServiceWorkerRegistrationIndex}
+    namespace_id_method! {next_blob_id, BlobId, self, BlobIndex}
 }
 
 thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = Cell::new(None));
@@ -207,17 +194,7 @@ thread_local!(pub static PIPELINE_NAMESPACE: Cell<Option<PipelineNamespace>> = C
 )]
 pub struct PipelineNamespaceId(pub u32);
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct PipelineIndex(pub NonZeroU32);
-malloc_size_of_is_0!(PipelineIndex);
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
-pub struct PipelineId {
-    pub namespace_id: PipelineNamespaceId,
-    pub index: PipelineIndex,
-}
+namespace_id! {PipelineId, PipelineIndex}
 
 impl PipelineId {
     pub fn new() -> PipelineId {
@@ -259,17 +236,7 @@ impl fmt::Display for PipelineId {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct BrowsingContextIndex(pub NonZeroU32);
-malloc_size_of_is_0!(BrowsingContextIndex);
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
-pub struct BrowsingContextId {
-    pub namespace_id: PipelineNamespaceId,
-    pub index: BrowsingContextIndex,
-}
+namespace_id! {BrowsingContextId, BrowsingContextIndex}
 
 impl BrowsingContextId {
     pub fn new() -> BrowsingContextId {
@@ -339,17 +306,7 @@ impl PartialEq<BrowsingContextId> for TopLevelBrowsingContextId {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct MessagePortIndex(pub NonZeroU32);
-malloc_size_of_is_0!(MessagePortIndex);
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
-pub struct MessagePortId {
-    pub namespace_id: PipelineNamespaceId,
-    pub index: MessagePortIndex,
-}
+namespace_id! {MessagePortId, MessagePortIndex}
 
 impl MessagePortId {
     pub fn new() -> MessagePortId {
@@ -370,17 +327,7 @@ impl fmt::Display for MessagePortId {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct MessagePortRouterIndex(pub NonZeroU32);
-malloc_size_of_is_0!(MessagePortRouterIndex);
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
-pub struct MessagePortRouterId {
-    pub namespace_id: PipelineNamespaceId,
-    pub index: MessagePortRouterIndex,
-}
+namespace_id! {MessagePortRouterId, MessagePortRouterIndex}
 
 impl MessagePortRouterId {
     pub fn new() -> MessagePortRouterId {
@@ -401,17 +348,7 @@ impl fmt::Display for MessagePortRouterId {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct BroadcastChannelRouterIndex(pub NonZeroU32);
-malloc_size_of_is_0!(BroadcastChannelRouterIndex);
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
-pub struct BroadcastChannelRouterId {
-    pub namespace_id: PipelineNamespaceId,
-    pub index: BroadcastChannelRouterIndex,
-}
+namespace_id! {BroadcastChannelRouterId, BroadcastChannelRouterIndex}
 
 impl BroadcastChannelRouterId {
     pub fn new() -> BroadcastChannelRouterId {
@@ -437,17 +374,7 @@ impl fmt::Display for BroadcastChannelRouterId {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct ServiceWorkerIndex(pub NonZeroU32);
-malloc_size_of_is_0!(ServiceWorkerIndex);
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
-pub struct ServiceWorkerId {
-    pub namespace_id: PipelineNamespaceId,
-    pub index: ServiceWorkerIndex,
-}
+namespace_id! {ServiceWorkerId, ServiceWorkerIndex}
 
 impl ServiceWorkerId {
     pub fn new() -> ServiceWorkerId {
@@ -468,17 +395,7 @@ impl fmt::Display for ServiceWorkerId {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct ServiceWorkerRegistrationIndex(pub NonZeroU32);
-malloc_size_of_is_0!(ServiceWorkerRegistrationIndex);
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
-pub struct ServiceWorkerRegistrationId {
-    pub namespace_id: PipelineNamespaceId,
-    pub index: ServiceWorkerRegistrationIndex,
-}
+namespace_id! {ServiceWorkerRegistrationId, ServiceWorkerRegistrationIndex}
 
 impl ServiceWorkerRegistrationId {
     pub fn new() -> ServiceWorkerRegistrationId {
@@ -505,17 +422,7 @@ impl fmt::Display for ServiceWorkerRegistrationId {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct BlobIndex(pub NonZeroU32);
-malloc_size_of_is_0!(BlobIndex);
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
-pub struct BlobId {
-    pub namespace_id: PipelineNamespaceId,
-    pub index: BlobIndex,
-}
+namespace_id! {BlobId, BlobIndex}
 
 impl BlobId {
     pub fn new() -> BlobId {
@@ -536,17 +443,7 @@ impl fmt::Display for BlobId {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, Ord, PartialEq, PartialOrd, Serialize)]
-pub struct HistoryStateIndex(pub NonZeroU32);
-malloc_size_of_is_0!(HistoryStateIndex);
-
-#[derive(
-    Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
-)]
-pub struct HistoryStateId {
-    pub namespace_id: PipelineNamespaceId,
-    pub index: HistoryStateIndex,
-}
+namespace_id! {HistoryStateId, HistoryStateIndex}
 
 impl HistoryStateId {
     pub fn new() -> HistoryStateId {
