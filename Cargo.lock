@@ -393,9 +393,9 @@ dependencies = [
 
 [[package]]
 name = "boxfnonce"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cbec60c560f322d8e3cd403f91d8908cfd965fff53ba97154bd1b9d90149d98e"
+checksum = "5988cb1d626264ac94100be357308f29ff7cbdd3b36bda27f450a4ee3f713426"
 
 [[package]]
 name = "brotli"
