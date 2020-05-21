@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <title>Test repeatedly chaining video.rVFC() callbacks.</title>
+<body></body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/media.js"></script>
@@ -8,6 +9,7 @@
 
 async_test(function(t) {
     let video = document.createElement('video');
+    document.body.appendChild(video);
 
     let firstTime;
     video.requestVideoFrameCallback(t.step_func((time) => {
@@ -35,6 +37,7 @@ async_test(function(t) {
 
 async_test(function(t) {
     let video = document.createElement('video');
+    document.body.appendChild(video);
 
     let maxNumberOfCalls = 10;
     let currentCallNumber = 0;

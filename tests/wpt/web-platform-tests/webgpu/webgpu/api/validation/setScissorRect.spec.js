@@ -5,7 +5,7 @@
 export const description = `
 setScissorRect validation tests.
 `;
-import { TestGroup } from '../../../common/framework/test_group.js';
+import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { ValidationTest } from './validation_test.js';
 const TEXTURE_WIDTH = 16;
 const TEXTURE_HEIGHT = 16; // TODO: Move this fixture class to a common file.
@@ -36,23 +36,8 @@ class F extends ValidationTest {
 
 }
 
-export const g = new TestGroup(F);
-g.test('use of setScissorRect', async t => {
-  const {
-    x,
-    y,
-    width,
-    height,
-    _success
-  } = t.params;
-  const commandEncoder = t.device.createCommandEncoder();
-  const renderPass = t.beginRenderPass(commandEncoder);
-  renderPass.setScissorRect(x, y, width, height);
-  renderPass.endPass();
-  t.expectValidationError(() => {
-    commandEncoder.finish();
-  }, !_success);
-}).params([{
+export const g = makeTestGroup(F);
+g.test('use_of_setScissorRect').params([{
   x: 0,
   y: 0,
   width: 1,
@@ -87,5 +72,20 @@ g.test('use of setScissorRect', async t => {
   height: TEXTURE_HEIGHT + 1,
   _success: true
 } // Scissor larger than the framebuffer is allowed
-]);
+]).fn(async t => {
+  const {
+    x,
+    y,
+    width,
+    height,
+    _success
+  } = t.params;
+  const commandEncoder = t.device.createCommandEncoder();
+  const renderPass = t.beginRenderPass(commandEncoder);
+  renderPass.setScissorRect(x, y, width, height);
+  renderPass.endPass();
+  t.expectValidationError(() => {
+    commandEncoder.finish();
+  }, !_success);
+});
 //# sourceMappingURL=setScissorRect.spec.js.map

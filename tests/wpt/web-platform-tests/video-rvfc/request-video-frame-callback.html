@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <title>Test the basics of the video.requestVideoFrameCallback() API.</title>
+<body></body>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/media.js"></script>
@@ -13,6 +14,7 @@ var testVideo = {
 
 async_test(function(t) {
     let video = document.createElement('video');
+    document.body.appendChild(video);
 
     let id = video.requestVideoFrameCallback(
       t.step_func_done((time, metadata) => {
@@ -31,6 +33,7 @@ async_test(function(t) {
 
 async_test(function(t) {
     let video = document.createElement('video');
+    document.body.appendChild(video);
 
     video.requestVideoFrameCallback(
       t.step_func(video_now => {
@@ -50,6 +53,7 @@ async_test(function(t) {
 
 async_test(function(t) {
     let video = document.createElement('video');
+    document.body.appendChild(video);
 
     let id = video.requestVideoFrameCallback(
       t.step_func(_ => {
@@ -74,6 +78,7 @@ async_test(function(t) {
 
 test(function(t) {
     let video = document.createElement('video');
+    document.body.appendChild(video);
 
     // requestVideoFrameCallback() expects 1 function as a parameter.
     assert_throws_js(TypeError, _ => { video.requestVideoFrameCallback() } );

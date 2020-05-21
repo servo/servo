@@ -4,13 +4,16 @@
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-import { LogMessageWithStack } from '../../framework/logger.js';
+import { LogMessageWithStack } from '../../framework/logging/log_message.js';
 export class TestWorker {
-  constructor() {
+  constructor(debug) {
+    _defineProperty(this, "debug", void 0);
+
     _defineProperty(this, "worker", void 0);
 
     _defineProperty(this, "resolvers", new Map());
 
+    this.debug = debug;
     const selfPath = import.meta.url;
     const selfPathDir = selfPath.substring(0, selfPath.lastIndexOf('/'));
     const workerPath = selfPathDir + '/test_worker-worker.js';
@@ -33,14 +36,15 @@ export class TestWorker {
     };
   }
 
-  run(query, debug = false) {
+  async run(rec, query) {
     this.worker.postMessage({
       query,
-      debug
+      debug: this.debug
     });
-    return new Promise(resolve => {
+    const workerResult = await new Promise(resolve => {
       this.resolvers.set(query, resolve);
     });
+    rec.injectResult(workerResult);
   }
 
 }

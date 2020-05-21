@@ -42,3 +42,6 @@ argument:
 
 The logs will be in `~/Library/Logs/com.apple.WebDriver/`.
 See `man safaridriver` for more information.
+
+To enable safaridriver diagnostics in Azure Pipelines, set
+`safaridriver_diagnose` to `true` in `.azure-pipelines.yml`.

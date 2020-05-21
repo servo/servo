@@ -5,10 +5,10 @@
 export const description = `
 copy{Buffer,Texture}To{Buffer,Texture} tests.
 `;
-import { TestGroup } from '../../../../common/framework/test_group.js';
+import { makeTestGroup } from '../../../../common/framework/test_group.js';
 import { GPUTest } from '../../../gpu_test.js';
-export const g = new TestGroup(GPUTest);
-g.test('b2b', async t => {
+export const g = makeTestGroup(GPUTest);
+g.test('b2b').fn(async t => {
   const data = new Uint32Array([0x01020304]);
   const [src, map] = t.device.createBufferMapped({
     size: 4,
@@ -25,7 +25,7 @@ g.test('b2b', async t => {
   t.device.defaultQueue.submit([encoder.finish()]);
   t.expectContents(dst, data);
 });
-g.test('b2t2b', async t => {
+g.test('b2t2b').fn(async t => {
   const data = new Uint32Array([0x01020304]);
   const [src, map] = t.device.createBufferMapped({
     size: 4,
@@ -82,7 +82,7 @@ g.test('b2t2b', async t => {
   t.device.defaultQueue.submit([encoder.finish()]);
   t.expectContents(dst, data);
 });
-g.test('b2t2t2b', async t => {
+g.test('b2t2t2b').fn(async t => {
   const data = new Uint32Array([0x01020304]);
   const [src, map] = t.device.createBufferMapped({
     size: 4,

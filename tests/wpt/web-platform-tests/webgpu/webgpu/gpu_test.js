@@ -5,49 +5,11 @@
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 import { Fixture } from '../common/framework/fixture.js';
-import { getGPU } from '../common/framework/gpu/implementation.js';
-import { assert, unreachable } from '../common/framework/util/util.js';
-
-class DevicePool {
-  constructor() {
-    _defineProperty(this, "device", undefined);
-
-    _defineProperty(this, "state", 'uninitialized');
-  }
-
-  async initialize() {
-    try {
-      const gpu = getGPU();
-      const adapter = await gpu.requestAdapter();
-      this.device = await adapter.requestDevice();
-    } catch (ex) {
-      this.state = 'failed';
-      throw ex;
-    }
-  }
-
-  async acquire() {
-    assert(this.state !== 'acquired', 'Device was in use');
-    assert(this.state !== 'failed', 'Failed to initialize WebGPU device');
-    const state = this.state;
-    this.state = 'acquired';
-
-    if (state === 'uninitialized') {
-      await this.initialize();
-    }
-
-    assert(!!this.device);
-    return this.device;
-  }
-
-  release(device) {
-    assert(this.state === 'acquired');
-    assert(device === this.device, 'Released device was the wrong device');
-    this.state = 'free';
-  }
-
-}
-
+import { DevicePool, TestOOMedShouldAttemptGC } from '../common/framework/gpu/device_pool.js';
+import { attemptGarbageCollection } from '../common/framework/util/collect_garbage.js';
+import { assert } from '../common/framework/util/util.js';
+import { fillTextureDataWithTexelValue, getTextureCopyLayout } from './util/texture/layout.js';
+import { getTexelDataRepresentation } from './util/texture/texelData.js';
 const devicePool = new DevicePool();
 export class GPUTest extends Fixture {
   constructor(...args) {
@@ -76,39 +38,33 @@ export class GPUTest extends Fixture {
       device,
       queue
     };
+  } // Note: finalize is called even if init was unsuccessful.
 
-    try {
-      await device.popErrorScope();
-      unreachable('There was an error scope on the stack at the beginning of the test');
-    } catch (ex) {}
-
-    device.pushErrorScope('out-of-memory');
-    device.pushErrorScope('validation');
-    this.initialized = true;
-  }
 
   async finalize() {
-    // Note: finalize is called even if init was unsuccessful.
     await super.finalize();
 
-    if (this.initialized) {
-      const gpuValidationError = await this.device.popErrorScope();
-
-      if (gpuValidationError !== null) {
-        assert(gpuValidationError instanceof GPUValidationError);
-        this.fail(`Unexpected validation error occurred: ${gpuValidationError.message}`);
-      }
-
-      const gpuOutOfMemoryError = await this.device.popErrorScope();
-
-      if (gpuOutOfMemoryError !== null) {
-        assert(gpuOutOfMemoryError instanceof GPUOutOfMemoryError);
-        this.fail('Unexpected out-of-memory error occurred');
-      }
-    }
-
     if (this.objects) {
-      devicePool.release(this.objects.device);
+      let threw;
+      {
+        const objects = this.objects;
+        this.objects = undefined;
+
+        try {
+          await devicePool.release(objects.device);
+        } catch (ex) {
+          threw = ex;
+        }
+      } // The GPUDevice and GPUQueue should now have no outstanding references.
+
+      if (threw) {
+        if (threw instanceof TestOOMedShouldAttemptGC) {
+          // Try to clean up, in case there are stray GPU resources in need of collection.
+          await attemptGarbageCollection();
+        }
+
+        throw threw;
+      }
     }
   }
 
@@ -125,15 +81,15 @@ export class GPUTest extends Fixture {
 
 
   expectContents(src, expected) {
-    const exp = new Uint8Array(expected.buffer, expected.byteOffset, expected.byteLength);
     const dst = this.createCopyForMapRead(src, expected.buffer.byteLength);
     this.eventualAsyncExpectation(async niceStack => {
-      const actual = new Uint8Array((await dst.mapReadAsync()));
-      const check = this.checkBuffer(actual, exp);
+      const constructor = expected.constructor;
+      const actual = new constructor((await dst.mapReadAsync()));
+      const check = this.checkBuffer(actual, expected);
 
       if (check !== undefined) {
         niceStack.message = check;
-        this.rec.fail(niceStack);
+        this.rec.expectationFailed(niceStack);
       }
 
       dst.destroy();
@@ -144,31 +100,43 @@ export class GPUTest extends Fixture {
     const check = this.checkBuffer(actual, exp);
 
     if (check !== undefined) {
-      this.rec.fail(new Error(check));
+      this.rec.expectationFailed(new Error(check));
     }
   }
 
-  checkBuffer(actual, exp) {
+  checkBuffer(actual, exp, tolerance = 0) {
+    assert(actual.constructor === exp.constructor);
     const size = exp.byteLength;
 
     if (actual.byteLength !== size) {
       return 'size mismatch';
     }
 
-    const lines = [];
-    let failedPixels = 0;
+    const failedByteIndices = [];
+    const failedByteExpectedValues = [];
+    const failedByteActualValues = [];
 
     for (let i = 0; i < size; ++i) {
-      if (actual[i] !== exp[i]) {
-        if (failedPixels > 4) {
-          lines.push('... and more');
+      const tol = typeof tolerance === 'function' ? tolerance(i) : tolerance;
+
+      if (Math.abs(actual[i] - exp[i]) > tol) {
+        if (failedByteIndices.length >= 4) {
+          failedByteIndices.push('...');
+          failedByteExpectedValues.push('...');
+          failedByteActualValues.push('...');
           break;
         }
 
-        failedPixels++;
-        lines.push(`at [${i}], expected ${exp[i]}, got ${actual[i]}`);
+        failedByteIndices.push(i.toString());
+        failedByteExpectedValues.push(exp[i].toString());
+        failedByteActualValues.push(actual[i].toString());
       }
-    } // TODO: Could make a more convenient message, which could look like e.g.:
+    }
+
+    const summary = `at [${failedByteIndices.join(', ')}], \
+expected [${failedByteExpectedValues.join(', ')}], \
+got [${failedByteActualValues.join(', ')}]`;
+    const lines = [summary]; // TODO: Could make a more convenient message, which could look like e.g.:
     //
     //   Starting at offset 48,
     //              got 22222222 ABCDABCD 99999999
@@ -183,19 +151,54 @@ export class GPUTest extends Fixture {
     // Or, maybe these diffs aren't actually very useful (given we have the prints just above here),
     // and we should remove them. More important will be logging of texture data in a visual format.
 
-
-    if (size <= 256 && failedPixels > 0) {
-      const expHex = Array.from(exp).map(x => x.toString(16).padStart(2, '0')).join('');
-      const actHex = Array.from(actual).map(x => x.toString(16).padStart(2, '0')).join('');
-      lines.push('EXPECT: ' + expHex);
-      lines.push('ACTUAL: ' + actHex);
+    if (size <= 256 && failedByteIndices.length > 0) {
+      const expHex = Array.from(new Uint8Array(exp.buffer, exp.byteOffset, exp.byteLength)).map(x => x.toString(16).padStart(2, '0')).join('');
+      const actHex = Array.from(new Uint8Array(actual.buffer, actual.byteOffset, actual.byteLength)).map(x => x.toString(16).padStart(2, '0')).join('');
+      lines.push('EXPECT:\t  ' + exp.join(' '));
+      lines.push('\t0x' + expHex);
+      lines.push('ACTUAL:\t  ' + actual.join(' '));
+      lines.push('\t0x' + actHex);
     }
 
-    if (failedPixels) {
+    if (failedByteIndices.length) {
       return lines.join('\n');
     }
 
     return undefined;
+  }
+
+  expectSingleColor(src, format, {
+    size,
+    exp,
+    dimension = '2d',
+    slice = 0,
+    layout
+  }) {
+    const {
+      byteLength,
+      bytesPerRow,
+      rowsPerImage,
+      mipSize
+    } = getTextureCopyLayout(format, dimension, size, layout);
+    const expectedTexelData = getTexelDataRepresentation(format).getBytes(exp);
+    const buffer = this.device.createBuffer({
+      size: byteLength,
+      usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST
+    });
+    const commandEncoder = this.device.createCommandEncoder();
+    commandEncoder.copyTextureToBuffer({
+      texture: src,
+      mipLevel: layout?.mipLevel,
+      arrayLayer: slice
+    }, {
+      buffer,
+      bytesPerRow,
+      rowsPerImage
+    }, mipSize);
+    this.queue.submit([commandEncoder.finish()]);
+    const arrayBuffer = new ArrayBuffer(byteLength);
+    fillTextureDataWithTexelValue(expectedTexelData, format, dimension, arrayBuffer, size, layout);
+    this.expectContents(buffer, new Uint8Array(arrayBuffer));
   }
 
 }

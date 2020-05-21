@@ -1,26 +1,26 @@
-var requests = [];
-var port = undefined;
+const requests = [];
+let port = undefined;
 
-self.onmessage = function(e) {
-  var message = e.data;
+self.onmessage = e => {
+  const message = e.data;
   if ('port' in message) {
     port = message.port;
     port.postMessage({ready: true});
   }
 };
 
-self.addEventListener('fetch', function(event) {
-    var url = event.request.url;
-    if (url.indexOf('dummy?test') == -1) {
-      return;
-    }
-    port.postMessage({
-        url: url,
-        mode: event.request.mode,
-        redirect: event.request.redirect,
-        credentials: event.request.credentials,
-        integrity: event.request.integrity,
-        destination: event.request.destination
-      });
-    event.respondWith(Promise.reject());
+self.addEventListener('fetch', e => {
+  const url = e.request.url;
+  if (!url.includes('dummy?test')) {
+    return;
+  }
+  port.postMessage({
+    url: url,
+    mode: e.request.mode,
+    redirect: e.request.redirect,
+    credentials: e.request.credentials,
+    integrity: e.request.integrity,
+    destination: e.request.destination
   });
+  e.respondWith(Promise.reject());
+});

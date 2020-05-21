@@ -27,14 +27,14 @@
           assert_equals(reports[0].type, "csp-violation");
           assert_equals(reports[0].url, document_url);
           assert_equals(reports[0].body.documentURL, document_url);
-          assert_equals(reports[0].body.referrer, null);
+          assert_equals(reports[0].body.referrer, "");
           assert_equals(reports[0].body.blockedURL,
                         base_url + "support/fail.png");
           assert_equals(reports[0].body.effectiveDirective, "img-src");
           assert_equals(reports[0].body.originalPolicy,
                         "script-src 'self' 'unsafe-inline'; img-src 'none'; report-to csp-group");
           assert_equals(reports[0].body.sourceFile, document_url);
-          assert_equals(reports[0].body.sample, null);
+          assert_equals(reports[0].body.sample, "");
           assert_equals(reports[0].body.disposition, "enforce");
           assert_equals(reports[0].body.statusCode, 0);
           assert_equals(reports[0].body.lineNumber, 53);

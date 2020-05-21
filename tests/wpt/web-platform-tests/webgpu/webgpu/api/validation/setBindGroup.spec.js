@@ -5,8 +5,8 @@
 export const description = `
 setBindGroup validation tests.
 `;
-import { pcombine, poptions } from '../../../common/framework/params.js';
-import { TestGroup } from '../../../common/framework/test_group.js';
+import { poptions, params } from '../../../common/framework/params_builder.js';
+import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { ValidationTest } from './validation_test.js';
 
 class F extends ValidationTest {
@@ -58,8 +58,8 @@ class F extends ValidationTest {
 
 }
 
-export const g = new TestGroup(F);
-g.test('dynamic offsets passed but not expected/compute pass', async t => {
+export const g = makeTestGroup(F);
+g.test('dynamic_offsets_passed_but_not_expected,compute_pass').params(poptions('type', ['compute', 'renderpass', 'renderbundle'])).fn(async t => {
   const bindGroupLayout = t.device.createBindGroupLayout({
     entries: []
   });
@@ -104,8 +104,46 @@ g.test('dynamic offsets passed but not expected/compute pass', async t => {
       t.fail();
     }
   });
-}).params(poptions('type', ['compute', 'renderpass', 'renderbundle']));
-g.test('dynamic offsets match expectations in pass encoder', async t => {
+});
+g.test('dynamic_offsets_match_expectations_in_pass_encoder').params(params().combine(poptions('type', ['compute', 'renderpass', 'renderbundle'])).combine([{
+  dynamicOffsets: [256, 0],
+  _success: true
+}, // Dynamic offsets aligned
+{
+  dynamicOffsets: [1, 2],
+  _success: false
+}, // Dynamic offsets not aligned
+// Wrong number of dynamic offsets
+{
+  dynamicOffsets: [256, 0, 0],
+  _success: false
+}, {
+  dynamicOffsets: [256],
+  _success: false
+}, {
+  dynamicOffsets: [],
+  _success: false
+}, // Dynamic uniform buffer out of bounds because of binding size
+{
+  dynamicOffsets: [512, 0],
+  _success: false
+}, {
+  dynamicOffsets: [1024, 0],
+  _success: false
+}, {
+  dynamicOffsets: [0xffffffff, 0],
+  _success: false
+}, // Dynamic storage buffer out of bounds because of binding size
+{
+  dynamicOffsets: [0, 512],
+  _success: false
+}, {
+  dynamicOffsets: [0, 1024],
+  _success: false
+}, {
+  dynamicOffsets: [0, 0xffffffff],
+  _success: false
+}])).fn(async t => {
   // Dynamic buffer offsets require offset to be divisible by 256
   const MIN_DYNAMIC_BUFFER_OFFSET_ALIGNMENT = 256;
   const BINDING_SIZE = 9;
@@ -164,43 +202,5 @@ g.test('dynamic offsets match expectations in pass encoder', async t => {
 
     t.testComputePass(bindGroup, dynamicOffsets);
   }, !_success);
-}).params(pcombine(poptions('type', ['compute', 'renderpass', 'renderbundle']), [{
-  dynamicOffsets: [256, 0],
-  _success: true
-}, // Dynamic offsets aligned
-{
-  dynamicOffsets: [1, 2],
-  _success: false
-}, // Dynamic offsets not aligned
-// Wrong number of dynamic offsets
-{
-  dynamicOffsets: [256, 0, 0],
-  _success: false
-}, {
-  dynamicOffsets: [256],
-  _success: false
-}, {
-  dynamicOffsets: [],
-  _success: false
-}, // Dynamic uniform buffer out of bounds because of binding size
-{
-  dynamicOffsets: [512, 0],
-  _success: false
-}, {
-  dynamicOffsets: [1024, 0],
-  _success: false
-}, {
-  dynamicOffsets: [Number.MAX_SAFE_INTEGER, 0],
-  _success: false
-}, // Dynamic storage buffer out of bounds because of binding size
-{
-  dynamicOffsets: [0, 512],
-  _success: false
-}, {
-  dynamicOffsets: [0, 1024],
-  _success: false
-}, {
-  dynamicOffsets: [0, Number.MAX_SAFE_INTEGER],
-  _success: false
-}])); // TODO: test error bind group
+}); // TODO: test error bind group
 //# sourceMappingURL=setBindGroup.spec.js.map

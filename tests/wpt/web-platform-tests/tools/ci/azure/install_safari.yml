@@ -3,6 +3,9 @@ parameters:
 
 # Should match https://web-platform-tests.org/running-tests/safari.html
 steps:
+- script: defaults write com.apple.WebDriver DiagnosticsEnabled 1
+  displayName: 'Enable safaridriver diagnostics'
+  condition: eq(variables['safaridriver_diagnose'], true)
 - ${{ if eq(parameters.channel, 'preview') }}:
   - script: |
       HOMEBREW_NO_AUTO_UPDATE=1 brew cask install tools/ci/azure/safari-technology-preview.rb

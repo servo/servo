@@ -53,13 +53,11 @@
     promise_test(t => {
       const elem = document.createElementNS(
           "http://www.w3.org/2000/svg", "script");
-      elem.href.baseVal = "about:blank";
+      assert_throws_js(TypeError, _ => {
+        elem.href.baseVal = "about:blank";
+      });
       document.getElementById("svg").appendChild(elem);
-
-      // TODO(1066791): This should be rejected and throw an SPV event, but
-      //     doesn't until the issue is fixed.
-      // return promise_spv();
-      return Promise.resolve();
+      return promise_spv();
     }, "Assign string to SVGScriptElement.href.baseVal.");
 
     promise_test(t => {

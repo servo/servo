@@ -4,42 +4,6 @@
 
 import { unreachable } from '../../../common/framework/util/util.js';
 import { GPUTest } from '../../gpu_test.js';
-export let BindingResourceType;
-
-(function (BindingResourceType) {
-  BindingResourceType["error-buffer"] = "error-buffer";
-  BindingResourceType["error-sampler"] = "error-sampler";
-  BindingResourceType["error-textureview"] = "error-textureview";
-  BindingResourceType["uniform-buffer"] = "uniform-buffer";
-  BindingResourceType["storage-buffer"] = "storage-buffer";
-  BindingResourceType["sampler"] = "sampler";
-  BindingResourceType["sampled-textureview"] = "sampled-textureview";
-  BindingResourceType["storage-textureview"] = "storage-textureview";
-})(BindingResourceType || (BindingResourceType = {}));
-
-export function resourceBindingMatches(b, r) {
-  switch (b) {
-    case 'storage-buffer':
-    case 'readonly-storage-buffer':
-      return r === 'storage-buffer';
-
-    case 'sampled-texture':
-      return r === 'sampled-textureview';
-
-    case 'sampler':
-      return r === 'sampler';
-
-    case 'readonly-storage-texture':
-    case 'writeonly-storage-texture':
-      return r === 'storage-textureview';
-
-    case 'uniform-buffer':
-      return r === 'uniform-buffer';
-
-    default:
-      unreachable('unknown GPUBindingType');
-  }
-}
 export class ValidationTest extends GPUTest {
   getStorageBuffer() {
     return this.device.createBuffer({
@@ -68,6 +32,12 @@ export class ValidationTest extends GPUTest {
 
   getSampler() {
     return this.device.createSampler();
+  }
+
+  getComparisonSampler() {
+    return this.device.createSampler({
+      compare: 'never'
+    });
   }
 
   getErrorSampler() {
@@ -120,34 +90,37 @@ export class ValidationTest extends GPUTest {
 
   getBindingResource(bindingType) {
     switch (bindingType) {
-      case 'error-buffer':
+      case 'errorBuf':
         return {
           buffer: this.getErrorBuffer()
         };
 
-      case 'error-sampler':
+      case 'errorSamp':
         return this.getErrorSampler();
 
-      case 'error-textureview':
+      case 'errorTex':
         return this.getErrorTextureView();
 
-      case 'uniform-buffer':
+      case 'uniformBuf':
         return {
           buffer: this.getUniformBuffer()
         };
 
-      case 'storage-buffer':
+      case 'storageBuf':
         return {
           buffer: this.getStorageBuffer()
         };
 
-      case 'sampler':
+      case 'plainSamp':
         return this.getSampler();
 
-      case 'sampled-textureview':
+      case 'compareSamp':
+        return this.getComparisonSampler();
+
+      case 'sampledTex':
         return this.getSampledTexture().createView();
 
-      case 'storage-textureview':
+      case 'storageTex':
         return this.getStorageTexture().createView();
 
       default:
@@ -170,7 +143,7 @@ export class ValidationTest extends GPUTest {
 
       if (!gpuValidationError) {
         niceStack.message = 'Validation error was expected.';
-        this.rec.fail(niceStack);
+        this.rec.validationFailed(niceStack);
       } else if (gpuValidationError instanceof GPUValidationError) {
         niceStack.message = `Captured validation error - ${gpuValidationError.message}`;
         this.rec.debug(niceStack);

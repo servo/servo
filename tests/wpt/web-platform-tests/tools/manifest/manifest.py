@@ -7,6 +7,7 @@ from multiprocessing import Pool, cpu_count
 from six import (
     PY3,
     binary_type,
+    ensure_text,
     iteritems,
     itervalues,
     string_types,
@@ -175,12 +176,14 @@ class Manifest(object):
 
         to_update = []
 
-        for source_file, update in tree:
+        for source_file_or_path, update in tree:
             if not update:
-                assert isinstance(source_file, (binary_type, text_type))
-                deleted.remove(tuple(source_file.split(os.path.sep)))
+                assert isinstance(source_file_or_path, (binary_type, text_type))
+                path = ensure_text(source_file_or_path)
+                deleted.remove(tuple(path.split(os.path.sep)))
             else:
-                assert not isinstance(source_file, bytes)
+                assert not isinstance(source_file_or_path, (binary_type, text_type))
+                source_file = source_file_or_path
                 rel_path_parts = source_file.rel_path_parts
                 assert isinstance(rel_path_parts, tuple)
 
