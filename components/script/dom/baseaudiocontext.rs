@@ -487,7 +487,11 @@ impl BaseAudioContextMethods for BaseAudioContext {
                     let channel = match channels.entry(channel_pos_mask) {
                         Entry::Occupied(entry) => *entry.get(),
                         Entry::Vacant(entry) => {
-                            let x = (channel_pos_mask as f32).log2() as usize;
+                            let x = if channel_pos_mask != 0 {
+                                (channel_pos_mask as f32).log2() as usize
+                            } else {
+                                0
+                            };
                             *entry.insert(x)
                         },
                     };
