@@ -988,9 +988,13 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     pub fn fill_text(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
-        let parsed_text: String = text.into();
+        let is_max_width_finite = max_width.map_or(true, |max_width| max_width.is_finite());
+        if !(x.is_finite() && y.is_finite() && is_max_width_finite) {
+            return;
+        }
+
         let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
-        self.send_canvas_2d_msg(Canvas2dMsg::FillText(parsed_text, x, y, max_width, style));
+        self.send_canvas_2d_msg(Canvas2dMsg::FillText(text.into(), x, y, max_width, style));
     }
 
     // https://html.spec.whatwg.org/multipage/#textmetrics

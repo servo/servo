@@ -362,7 +362,7 @@ pub enum Filter {
 
 pub struct CanvasData<'a> {
     backend: Box<dyn Backend>,
-    drawtarget: Box<dyn GenericDrawTarget>,
+    draw_target: Box<dyn GenericDrawTarget>,
     path_state: Option<PathState>,
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
@@ -372,7 +372,7 @@ pub struct CanvasData<'a> {
     old_image_key: Option<webrender_api::ImageKey>,
     /// An old webrender image key that can be deleted when the current epoch ends.
     very_old_image_key: Option<webrender_api::ImageKey>,
-    pub canvas_id: CanvasId,
+    _canvas_id: CanvasId,
 }
 
 fn create_backend() -> Box<dyn Backend> {
@@ -390,7 +390,7 @@ impl<'a> CanvasData<'a> {
         let draw_target = backend.create_drawtarget(size);
         CanvasData {
             backend,
-            drawtarget: draw_target,
+            draw_target,
             path_state: None,
             state: CanvasPaintState::new(antialias),
             saved_states: vec![],
@@ -398,7 +398,7 @@ impl<'a> CanvasData<'a> {
             image_key: None,
             old_image_key: None,
             very_old_image_key: None,
-            canvas_id: canvas_id,
+            _canvas_id: canvas_id,
         }
     }
 
@@ -440,7 +440,7 @@ impl<'a> CanvasData<'a> {
             // TODO(pylbrecht) pass another closure for raqote
             self.draw_with_shadow(&rect, writer);
         } else {
-            writer(&mut *self.drawtarget);
+            writer(&mut *self.draw_target);
         }
     }
 
@@ -451,8 +451,8 @@ impl<'a> CanvasData<'a> {
     pub fn restore_context_state(&mut self) {
         if let Some(state) = self.saved_states.pop() {
             let _ = mem::replace(&mut self.state, state);
-            self.drawtarget.set_transform(&self.state.transform);
-            self.drawtarget.pop_clip();
+            self.draw_target.set_transform(&self.state.transform);
+            self.draw_target.pop_clip();
         }
     }
 
@@ -513,7 +513,7 @@ impl<'a> CanvasData<'a> {
                 );
             });
         } else {
-            self.drawtarget.fill_rect(
+            self.draw_target.fill_rect(
                 &draw_rect,
                 self.state.fill_style.clone(),
                 Some(&self.state.draw_options),
@@ -522,7 +522,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn clear_rect(&mut self, rect: &Rect<f32>) {
-        self.drawtarget.clear_rect(rect);
+        self.draw_target.clear_rect(rect);
     }
 
     pub fn stroke_rect(&mut self, rect: &Rect<f32>) {
@@ -542,7 +542,7 @@ impl<'a> CanvasData<'a> {
         } else if rect.size.width == 0. || rect.size.height == 0. {
             let mut stroke_opts = self.state.stroke_opts.clone();
             stroke_opts.set_line_cap(LineCapStyle::Butt);
-            self.drawtarget.stroke_line(
+            self.draw_target.stroke_line(
                 rect.origin,
                 rect.bottom_right(),
                 self.state.stroke_style.clone(),
@@ -550,7 +550,7 @@ impl<'a> CanvasData<'a> {
                 &self.state.draw_options,
             );
         } else {
-            self.drawtarget.stroke_rect(
+            self.draw_target.stroke_rect(
                 rect,
                 self.state.stroke_style.clone(),
                 &self.state.stroke_opts,
@@ -572,7 +572,7 @@ impl<'a> CanvasData<'a> {
         // If there's no record of any path yet, create a new builder in user-space.
         if self.path_state.is_none() {
             self.path_state = Some(PathState::UserSpacePathBuilder(
-                self.drawtarget.create_path_builder(),
+                self.draw_target.create_path_builder(),
                 None,
             ));
         }
@@ -607,7 +607,7 @@ impl<'a> CanvasData<'a> {
         let new_state = match *self.path_state.as_mut().unwrap() {
             PathState::DeviceSpacePathBuilder(ref mut builder) => {
                 let path = builder.finish();
-                let inverse = match self.drawtarget.get_transform().inverse() {
+                let inverse = match self.draw_target.get_transform().inverse() {
                     Some(m) => m,
                     None => {
                         warn!("Couldn't invert canvas transformation.");
@@ -639,7 +639,7 @@ impl<'a> CanvasData<'a> {
         }
 
         self.ensure_path();
-        self.drawtarget.fill(
+        self.draw_target.fill(
             &self.path().clone(),
             self.state.fill_style.clone(),
             &self.state.draw_options,
@@ -652,7 +652,7 @@ impl<'a> CanvasData<'a> {
         }
 
         self.ensure_path();
-        self.drawtarget.stroke(
+        self.draw_target.stroke(
             &self.path().clone(),
             self.state.stroke_style.clone(),
             &self.state.stroke_opts,
@@ -663,7 +663,7 @@ impl<'a> CanvasData<'a> {
     pub fn clip(&mut self) {
         self.ensure_path();
         let path = self.path().clone();
-        self.drawtarget.push_clip(&path);
+        self.draw_target.push_clip(&path);
     }
 
     pub fn is_point_in_path(
@@ -676,7 +676,7 @@ impl<'a> CanvasData<'a> {
         self.ensure_path();
         let result = match self.path_state.as_ref() {
             Some(PathState::UserSpacePath(ref path, ref transform)) => {
-                let target_transform = self.drawtarget.get_transform();
+                let target_transform = self.draw_target.get_transform();
                 let path_transform = transform.as_ref().unwrap_or(&target_transform);
                 path.contains_point(x, y, path_transform)
             },
@@ -696,7 +696,7 @@ impl<'a> CanvasData<'a> {
     fn path_builder(&mut self) -> PathBuilderRef {
         if self.path_state.is_none() {
             self.path_state = Some(PathState::UserSpacePathBuilder(
-                self.drawtarget.create_path_builder(),
+                self.draw_target.create_path_builder(),
                 None,
             ));
         }
@@ -738,7 +738,7 @@ impl<'a> CanvasData<'a> {
                 PathState::DeviceSpacePathBuilder(ref mut builder) => {
                     return PathBuilderRef {
                         builder,
-                        transform: self.drawtarget.get_transform(),
+                        transform: self.draw_target.get_transform(),
                     };
                 },
                 _ => unreachable!(),
@@ -752,7 +752,7 @@ impl<'a> CanvasData<'a> {
             },
             PathState::DeviceSpacePathBuilder(ref mut builder) => PathBuilderRef {
                 builder,
-                transform: self.drawtarget.get_transform(),
+                transform: self.draw_target.get_transform(),
             },
             PathState::UserSpacePathBuilder(..) | PathState::UserSpacePath(..) => unreachable!(),
         }
@@ -882,12 +882,12 @@ impl<'a> CanvasData<'a> {
 
     pub fn set_fill_style(&mut self, style: FillOrStrokeStyle) {
         self.backend
-            .set_fill_style(style, &mut self.state, &*self.drawtarget);
+            .set_fill_style(style, &mut self.state, &*self.draw_target);
     }
 
     pub fn set_stroke_style(&mut self, style: FillOrStrokeStyle) {
         self.backend
-            .set_stroke_style(style, &mut self.state, &*self.drawtarget);
+            .set_stroke_style(style, &mut self.state, &*self.draw_target);
     }
 
     pub fn set_line_width(&mut self, width: f32) {
@@ -907,7 +907,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn get_transform(&self) -> Transform2D<f32> {
-        self.drawtarget.get_transform()
+        self.draw_target.get_transform()
     }
 
     pub fn set_transform(&mut self, transform: &Transform2D<f32>) {
@@ -918,12 +918,12 @@ impl<'a> CanvasData<'a> {
             Some(PathState::UserSpacePathBuilder(_, ref mut transform)) |
             Some(PathState::UserSpacePath(_, ref mut transform)) => {
                 if transform.is_none() {
-                    *transform = Some(self.drawtarget.get_transform());
+                    *transform = Some(self.draw_target.get_transform());
                 }
             },
         }
         self.state.transform = transform.clone();
-        self.drawtarget.set_transform(transform)
+        self.draw_target.set_transform(transform)
     }
 
     pub fn set_global_alpha(&mut self, alpha: f32) {
@@ -935,7 +935,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn recreate(&mut self, size: Size2D<u64>) {
-        self.drawtarget = self
+        self.draw_target = self
             .backend
             .create_drawtarget(Size2D::new(size.width, size.height));
         self.state = self.backend.recreate_paint_state(&self.state);
@@ -954,7 +954,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn send_pixels(&mut self, chan: IpcSender<IpcSharedMemory>) {
-        self.drawtarget.snapshot_data(&|bytes| {
+        self.draw_target.snapshot_data(&|bytes| {
             let data = IpcSharedMemory::from_bytes(bytes);
             chan.send(data).unwrap();
             vec![]
@@ -962,7 +962,7 @@ impl<'a> CanvasData<'a> {
     }
 
     pub fn send_data(&mut self, chan: IpcSender<CanvasImageData>) {
-        let size = self.drawtarget.get_size();
+        let size = self.draw_target.get_size();
 
         let descriptor = webrender_api::ImageDescriptor {
             size: webrender_api::units::DeviceIntSize::new(size.width, size.height),
@@ -971,7 +971,7 @@ impl<'a> CanvasData<'a> {
             offset: 0,
             flags: webrender_api::ImageDescriptorFlags::empty(),
         };
-        let data = self.drawtarget.snapshot_data_owned();
+        let data = self.draw_target.snapshot_data_owned();
         let data = webrender_api::ImageData::Raw(Arc::new(data));
 
         let mut updates = vec![];
@@ -1009,14 +1009,14 @@ impl<'a> CanvasData<'a> {
         assert_eq!(rect.size.area() as usize, imagedata.len() / 4);
         pixels::rgba8_byte_swap_and_premultiply_inplace(&mut imagedata);
         let source_surface = self
-            .drawtarget
+            .draw_target
             .create_source_surface_from_data(
                 &imagedata,
                 rect.size.to_i32(),
                 rect.size.width as i32 * 4,
             )
             .unwrap();
-        self.drawtarget.copy_surface(
+        self.draw_target.copy_surface(
             source_surface,
             Rect::from_size(rect.size.to_i32()),
             rect.origin.to_i32(),
@@ -1048,12 +1048,12 @@ impl<'a> CanvasData<'a> {
     }
 
     fn create_draw_target_for_shadow(&self, source_rect: &Rect<f32>) -> Box<dyn GenericDrawTarget> {
-        let mut draw_target = self.drawtarget.create_similar_draw_target(
+        let mut draw_target = self.draw_target.create_similar_draw_target(
             &Size2D::new(
                 source_rect.size.width as i32,
                 source_rect.size.height as i32,
             ),
-            self.drawtarget.get_format(),
+            self.draw_target.get_format(),
         );
         let matrix = Transform2D::identity()
             .pre_translate(-source_rect.origin.to_vector().cast::<f32>())
@@ -1069,7 +1069,7 @@ impl<'a> CanvasData<'a> {
         let shadow_src_rect = self.state.transform.transform_rect(rect);
         let mut new_draw_target = self.create_draw_target_for_shadow(&shadow_src_rect);
         draw_shadow_source(&mut *new_draw_target);
-        self.drawtarget.draw_surface_with_shadow(
+        self.draw_target.draw_surface_with_shadow(
             new_draw_target.snapshot(),
             &Point2D::new(
                 shadow_src_rect.origin.x as f32,
@@ -1098,7 +1098,7 @@ impl<'a> CanvasData<'a> {
             return vec![];
         }
 
-        self.drawtarget.snapshot_data(&|bytes| {
+        self.draw_target.snapshot_data(&|bytes| {
             pixels::rgba8_get_rect(bytes, canvas_size, read_rect).into_owned()
         })
     }

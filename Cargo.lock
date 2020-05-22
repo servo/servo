@@ -504,6 +504,7 @@ dependencies = [
  "cssparser",
  "euclid",
  "fnv",
+ "font-kit",
  "gleam 0.11.0",
  "half",
  "ipc-channel",
