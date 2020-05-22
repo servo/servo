@@ -9,8 +9,16 @@
 
 <script>
 test_valid_value("aspect-ratio", "auto");
+test_valid_value("aspect-ratio", "16");
+test_valid_value("aspect-ratio", "1/1", "1");
+test_valid_value("aspect-ratio", "16.3");
 test_valid_value("aspect-ratio", "16 / 9");
+test_valid_value("aspect-ratio", "16.3 / 9.4");
 test_valid_value("aspect-ratio", "16/9", "16 / 9");
 test_valid_value("aspect-ratio", "16 /9", "16 / 9");
 test_valid_value("aspect-ratio", "16/ 9", "16 / 9");
+test_valid_value("aspect-ratio", "0 / 9");
+test_valid_value("aspect-ratio", "16 / 0");
+// https://github.com/w3c/csswg-drafts/issues/5084
+test_valid_value("aspect-ratio", "0 / 0", "1 / 0");
 </script>

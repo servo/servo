@@ -6,7 +6,7 @@
 <link rel="help" title="4.7. device-aspect-ratio" href="http://www.w3.org/TR/css3-mediaqueries/#device-aspect-ratio">
 <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
 <meta name="flags" content="">
-<meta name="assert" content="The 'device-aspect-ratio' property with prefix 'min' set '0/0' is invalid that means the style sheet specified by 'min-device-aspect-ratio' will not be applied.">
+<meta name="assert" content="The 'device-aspect-ratio' property with prefix 'min' set '0/0' (which is converted into '1/0') is infinite that means the style sheet specified by 'min-device-aspect-ratio' will not be applied.">
 <style>
   div {
     background-color: green;
