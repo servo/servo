@@ -8,9 +8,7 @@ use crate::fetch::methods::should_be_blocked_due_to_bad_port;
 use crate::hosts::replace_host;
 use crate::http_loader::HttpState;
 use embedder_traits::resources::{self, Resource};
-use headers::Host;
 use http::header::{self, HeaderMap, HeaderName, HeaderValue};
-use http::uri::Authority;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::request::{RequestBuilder, RequestMode};
@@ -34,7 +32,6 @@ use ws::{Error as WebSocketError, ErrorKind as WebSocketErrorKind, Result as Web
 #[derive(Clone)]
 struct Client<'a> {
     origin: &'a str,
-    host: &'a Host,
     protocols: &'a [String],
     http_state: &'a Arc<HttpState>,
     resource_url: &'a ServoUrl,
@@ -60,10 +57,6 @@ impl<'a> Handler for Client<'a> {
         let mut req = Request::from_url(url)?;
         req.headers_mut()
             .push(("Origin".to_string(), self.origin.as_bytes().to_owned()));
-        req.headers_mut().push((
-            "Host".to_string(),
-            format!("{}", self.host).as_bytes().to_owned(),
-        ));
 
         for protocol in self.protocols {
             req.add_protocol(protocol);
@@ -228,23 +221,8 @@ pub fn init(
             let mut net_url = req_builder.url.clone().into_url();
             net_url.set_host(Some(&host)).unwrap();
 
-            let host = Host::from(
-                format!(
-                    "{}{}",
-                    req_builder.url.host_str().unwrap(),
-                    req_builder
-                        .url
-                        .port_or_known_default()
-                        .map(|v| format!(":{}", v))
-                        .unwrap_or("".into())
-                )
-                .parse::<Authority>()
-                .unwrap(),
-            );
-
             let client = Client {
                 origin: &req_builder.origin.ascii_serialization(),
-                host: &host,
                 protocols: &protocols,
                 http_state: &http_state,
                 resource_url: &req_builder.url,
