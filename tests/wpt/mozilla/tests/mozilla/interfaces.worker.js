@@ -35,7 +35,6 @@ test_interfaces([
   "Headers",
   "History",
   "ImageData",
-  "ImageBitmap",
   "MessageChannel",
   "MessageEvent",
   "MessagePort",

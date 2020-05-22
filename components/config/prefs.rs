@@ -193,6 +193,9 @@ mod gen {
                 gamepad: {
                     enabled: bool,
                 },
+                imagebitmap: {
+                    enabled: bool,
+                },
                 microdata: {
                     testing: {
                         enabled: bool,

@@ -9,6 +9,7 @@
   "dom.forcetouch.enabled": false,
   "dom.fullscreen.test": false,
   "dom.gamepad.enabled": false,
+  "dom.imagebitmap.enabled": false,
   "dom.microdata.enabled": false,
   "dom.microdata.testing.enabled": false,
   "dom.mouseevent.which.enabled": false,
