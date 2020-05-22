@@ -66,6 +66,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use style_traits::CSSPixel;
 use style_traits::SpeculativePainter;
+use webgpu::identity::WebGPUMsg;
 use webrender_api::units::{
     DeviceIntSize, DevicePixel, LayoutPixel, LayoutPoint, LayoutSize, WorldPoint,
 };
@@ -401,6 +402,8 @@ pub enum ConstellationControlMsg {
     PaintMetric(PipelineId, ProgressiveWebMetricType, u64),
     /// Notifies the media session about a user requested media session action.
     MediaSessionAction(PipelineId, MediaSessionActionType),
+    /// Notifies script thread that WebGPU server has started
+    SetWebGPUPort(IpcReceiver<WebGPUMsg>),
 }
 
 impl fmt::Debug for ConstellationControlMsg {
@@ -438,6 +441,7 @@ impl fmt::Debug for ConstellationControlMsg {
             PaintMetric(..) => "PaintMetric",
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
+            SetWebGPUPort(..) => "SetWebGPUPort",
         };
         write!(formatter, "ConstellationControlMsg::{}", variant)
     }
