@@ -6,6 +6,7 @@
 [Exposed=Window]
 interface AnimationTimeline {
     readonly attribute double? currentTime;
+    readonly attribute TimelinePhase phase;
 };
 
 dictionary DocumentTimelineOptions {
@@ -48,6 +49,8 @@ interface Animation : EventTarget {
 enum AnimationPlayState { "idle", "running", "paused", "finished" };
 
 enum AnimationReplaceState { "active", "removed", "persisted" };
+
+enum TimelinePhase { "inactive", "before", "active", "after" };
 
 [Exposed=Window]
 interface AnimationEffect {

@@ -113,6 +113,19 @@ test(() => {
 
 test(() => {
   smokeTest();
+  const duplicateMethods = [
+    {
+      supportedMethods: "https://{{domains[nonexistent]}}/payment-request",
+    },
+    {
+      supportedMethods: "https://{{domains[nonexistent]}}/payment-request",
+    },
+  ];
+  assert_throws_js(RangeError, () => new PaymentRequest(duplicateMethods, defaultDetails));
+}, "If payment method is duplicate, then throw a RangeError");
+
+test(() => {
+  smokeTest();
   const JSONSerializables = [[], { object: {} }];
   for (const data of JSONSerializables) {
     try {
