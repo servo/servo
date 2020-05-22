@@ -46,9 +46,9 @@ use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Read, Seek, Write};
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::sync::{Arc, Mutex};
 use style::str::{StaticStringVec, HTML_SPACE_CHARACTERS};
 use uuid::Uuid;
@@ -663,22 +663,31 @@ impl HTMLScriptElement {
             return;
         }
 
-        match Command::new("js-beautify")
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .spawn()
-        {
-            Err(_) => {
-                warn!("Failed to execute js-beautify. Will store unmodified script");
-            },
-            Ok(process) => {
-                let mut script_content = String::from(script.text.clone());
-                let _ = process.stdin.unwrap().write_all(script_content.as_bytes());
-                script_content.clear();
-                let _ = process.stdout.unwrap().read_to_string(&mut script_content);
-
-                script.text = DOMString::from(script_content);
-            },
+        // Write the minified code to a temporary file and pass its path as an argument
+        // to js-beautify to read from. Meanwhile, redirect the process' stdout into
+        // another temporary file and read that into a string. This avoids some hangs
+        // observed on macOS when using direct input/output pipes with very large
+        // unminified content.
+        let (input, output) = (tempfile::NamedTempFile::new(), tempfile::tempfile());
+        if let (Ok(mut input), Ok(mut output)) = (input, output) {
+            input.write_all(script.text.as_bytes()).unwrap();
+            match Command::new("js-beautify")
+                .arg(input.path())
+                .stdout(output.try_clone().unwrap())
+                .status()
+            {
+                Ok(status) if status.success() => {
+                    let mut script_content = String::new();
+                    output.seek(std::io::SeekFrom::Start(0)).unwrap();
+                    output.read_to_string(&mut script_content).unwrap();
+                    script.text = DOMString::from(script_content);
+                },
+                _ => {
+                    warn!("Failed to execute js-beautify. Will store unmodified script");
+                },
+            }
+        } else {
+            warn!("Error creating input and output files for unminify");
         }
 
         let path;

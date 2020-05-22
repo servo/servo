@@ -4726,6 +4726,7 @@ dependencies = [
  "style",
  "style_traits",
  "swapper",
+ "tempfile",
  "tendril",
  "time",
  "unicode-bidi",
