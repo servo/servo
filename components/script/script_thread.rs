@@ -168,6 +168,7 @@ use style::dom::OpaqueNode;
 use style::thread_state::{self, ThreadState};
 use time::{at_utc, get_time, precise_time_ns, Timespec};
 use url::Position;
+use webgpu::identity::WebGPUMsg;
 use webrender_api::units::LayoutPixel;
 use webrender_api::DocumentId;
 
@@ -267,6 +268,7 @@ enum MixedMessage {
     FromScript(MainThreadScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
     FromImageCache((PipelineId, PendingImageResponse)),
+    FromWebGPUServer(WebGPUMsg),
 }
 
 /// Messages used to control the script event loop.
@@ -692,8 +694,11 @@ pub struct ScriptThread {
     /// Code is running as a consequence of a user interaction
     is_user_interacting: Cell<bool>,
 
-    /// Channel to WebGPU
+    /// Identity manager for WebGPU resources
     gpu_id_hub: Arc<Mutex<Identities>>,
+
+    /// Receiver to receive commands from optional WebGPU server.
+    webgpu_port: RefCell<Option<Receiver<WebGPUMsg>>>,
 }
 
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
@@ -1383,6 +1388,7 @@ impl ScriptThread {
             node_ids: Default::default(),
             is_user_interacting: Cell::new(false),
             gpu_id_hub: Arc::new(Mutex::new(Identities::new())),
+            webgpu_port: RefCell::new(None),
         }
     }
 
@@ -1405,7 +1411,9 @@ impl ScriptThread {
     /// Handle incoming control messages.
     fn handle_msgs(&self) -> bool {
         use self::MixedMessage::FromScript;
-        use self::MixedMessage::{FromConstellation, FromDevtools, FromImageCache};
+        use self::MixedMessage::{
+            FromConstellation, FromDevtools, FromImageCache, FromWebGPUServer,
+        };
 
         // Handle pending resize events.
         // Gather them first to avoid a double mut borrow on self.
@@ -1445,6 +1453,8 @@ impl ScriptThread {
             recv(self.devtools_chan.as_ref().map(|_| &self.devtools_port).unwrap_or(&crossbeam_channel::never())) -> msg
                 => FromDevtools(msg.unwrap()),
             recv(self.image_cache_port) -> msg => FromImageCache(msg.unwrap()),
+            recv(self.webgpu_port.borrow().as_ref().unwrap_or(&crossbeam_channel::never())) -> msg
+                => FromWebGPUServer(msg.unwrap()),
         };
         debug!("Got event.");
 
@@ -1540,7 +1550,13 @@ impl ScriptThread {
                 Err(_) => match self.task_queue.try_recv() {
                     Err(_) => match self.devtools_port.try_recv() {
                         Err(_) => match self.image_cache_port.try_recv() {
-                            Err(_) => break,
+                            Err(_) => match &*self.webgpu_port.borrow() {
+                                Some(p) => match p.try_recv() {
+                                    Err(_) => break,
+                                    Ok(ev) => event = FromWebGPUServer(ev),
+                                },
+                                None => break,
+                            },
                             Ok(ev) => event = FromImageCache(ev),
                         },
                         Ok(ev) => event = FromDevtools(ev),
@@ -1572,6 +1588,7 @@ impl ScriptThread {
                     FromScript(inner_msg) => self.handle_msg_from_script(inner_msg),
                     FromDevtools(inner_msg) => self.handle_msg_from_devtools(inner_msg),
                     FromImageCache(inner_msg) => self.handle_msg_from_image_cache(inner_msg),
+                    FromWebGPUServer(inner_msg) => self.handle_msg_from_webgpu_server(inner_msg),
                 }
 
                 None
@@ -1659,6 +1676,7 @@ impl ScriptThread {
                 },
                 _ => ScriptThreadEventCategory::ScriptEvent,
             },
+            MixedMessage::FromWebGPUServer(_) => ScriptThreadEventCategory::WebGPUMsg,
         }
     }
 
@@ -1698,6 +1716,7 @@ impl ScriptThread {
                 ScriptHangAnnotation::PerformanceTimelineTask
             },
             ScriptThreadEventCategory::PortMessage => ScriptHangAnnotation::PortMessage,
+            ScriptThreadEventCategory::WebGPUMsg => ScriptHangAnnotation::WebGPUMsg,
         };
         self.background_hang_monitor
             .as_ref()
@@ -1743,6 +1762,7 @@ impl ScriptThread {
                 PaintMetric(..) => None,
                 ExitFullScreen(id, ..) => Some(id),
                 MediaSessionAction(..) => None,
+                SetWebGPUPort(..) => None,
             },
             MixedMessage::FromDevtools(_) => None,
             MixedMessage::FromScript(ref inner_msg) => match *inner_msg {
@@ -1756,6 +1776,7 @@ impl ScriptThread {
                 MainThreadScriptMsg::WakeUp => None,
             },
             MixedMessage::FromImageCache((pipeline_id, _)) => Some(pipeline_id),
+            MixedMessage::FromWebGPUServer(..) => None,
         }
     }
 
@@ -1810,6 +1831,7 @@ impl ScriptThread {
                 ScriptThreadEventCategory::PerformanceTimelineTask => {
                     ProfilerCategory::ScriptPerformanceEvent
                 },
+                ScriptThreadEventCategory::WebGPUMsg => ProfilerCategory::ScriptWebGPUMsg,
             };
             profile(profiler_cat, None, self.time_profiler_chan.clone(), f)
         } else {
@@ -1959,6 +1981,14 @@ impl ScriptThread {
             ConstellationControlMsg::MediaSessionAction(pipeline_id, action) => {
                 self.handle_media_session_action(pipeline_id, action)
             },
+            ConstellationControlMsg::SetWebGPUPort(port) => {
+                if self.webgpu_port.borrow().is_some() {
+                    warn!("WebGPU port already exists for this content process");
+                } else {
+                    let p = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(port);
+                    *self.webgpu_port.borrow_mut() = Some(p);
+                }
+            },
             msg @ ConstellationControlMsg::AttachLayout(..) |
             msg @ ConstellationControlMsg::Viewport(..) |
             msg @ ConstellationControlMsg::SetScrollState(..) |
@@ -1967,6 +1997,25 @@ impl ScriptThread {
             msg @ ConstellationControlMsg::ExitScriptThread => {
                 panic!("should have handled {:?} already", msg)
             },
+        }
+    }
+
+    fn handle_msg_from_webgpu_server(&self, msg: WebGPUMsg) {
+        match msg {
+            WebGPUMsg::FreeAdapter(id) => self.gpu_id_hub.lock().kill_adapter_id(id),
+            WebGPUMsg::FreeDevice(id) => self.gpu_id_hub.lock().kill_device_id(id),
+            WebGPUMsg::FreeBuffer(id) => self.gpu_id_hub.lock().kill_buffer_id(id),
+            WebGPUMsg::FreePipelineLayout(id) => self.gpu_id_hub.lock().kill_pipeline_layout_id(id),
+            WebGPUMsg::FreeComputePipeline(id) => {
+                self.gpu_id_hub.lock().kill_compute_pipeline_id(id)
+            },
+            WebGPUMsg::FreeBindGroup(id) => self.gpu_id_hub.lock().kill_bind_group_id(id),
+            WebGPUMsg::FreeBindGroupLayout(id) => {
+                self.gpu_id_hub.lock().kill_bind_group_layout_id(id)
+            },
+            WebGPUMsg::FreeCommandBuffer(id) => self.gpu_id_hub.lock().kill_command_buffer_id(id),
+            WebGPUMsg::FreeShaderModule(id) => self.gpu_id_hub.lock().kill_shader_module_id(id),
+            _ => {},
         }
     }
 

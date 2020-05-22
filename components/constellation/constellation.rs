@@ -2209,16 +2209,13 @@ where
             Some(bc) => &bc.bc_group_id,
             None => return warn!("Browsing context not found"),
         };
-        let host = match self
-            .pipelines
-            .get(&source_pipeline_id)
-            .map(|pipeline| &pipeline.url)
-        {
-            Some(ref url) => match reg_host(&url) {
-                Some(host) => host,
-                None => return warn!("Invalid host url"),
-            },
+        let source_pipeline = match self.pipelines.get(&source_pipeline_id) {
+            Some(pipeline) => pipeline,
             None => return warn!("ScriptMsg from closed pipeline {:?}.", source_pipeline_id),
+        };
+        let host = match reg_host(&source_pipeline.url) {
+            Some(host) => host,
+            None => return warn!("Invalid host url"),
         };
         match self
             .browsing_context_group_set
@@ -2238,7 +2235,16 @@ where
                 let send = match browsing_context_group.webgpus.entry(host) {
                     Entry::Vacant(v) => v
                         .insert(match WebGPU::new() {
-                            Some(webgpu) => webgpu,
+                            Some(webgpu) => {
+                                let msg = ConstellationControlMsg::SetWebGPUPort(webgpu.1);
+                                if let Err(e) = source_pipeline.event_loop.send(msg) {
+                                    warn!(
+                                        "Failed to send SetWebGPUPort to pipeline {} ({:?})",
+                                        source_pipeline_id, e
+                                    );
+                                }
+                                webgpu.0
+                            },
                             None => return warn!("Failed to create new WebGPU thread"),
                         })
                         .0

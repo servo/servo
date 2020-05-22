@@ -159,7 +159,7 @@ pub struct WorkletGlobalScopeInit {
     pub is_headless: bool,
     /// An optional string allowing the user agent to be set for testing
     pub user_agent: Cow<'static, str>,
-    /// Channel to WebGPU
+    /// Identity manager for WebGPU resources
     pub gpu_id_hub: Arc<Mutex<Identities>>,
 }
 

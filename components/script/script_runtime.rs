@@ -157,6 +157,7 @@ pub enum ScriptThreadEventCategory {
     EnterFullscreen,
     ExitFullscreen,
     PerformanceTimelineTask,
+    WebGPUMsg,
 }
 
 /// An interface for receiving ScriptMsg values in an event loop. Used for synchronous DOM

@@ -655,6 +655,7 @@ pub enum ScriptHangAnnotation {
     WebVREvent,
     PerformanceTimelineTask,
     PortMessage,
+    WebGPUMsg,
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]

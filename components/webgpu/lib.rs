@@ -8,7 +8,7 @@ extern crate log;
 pub extern crate wgpu_core as wgpu;
 pub extern crate wgpu_types as wgt;
 
-mod identity;
+pub mod identity;
 
 use identity::{IdentityRecyclerFactory, WebGPUMsg};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -145,7 +145,7 @@ pub enum WebGPURequest {
 pub struct WebGPU(pub IpcSender<WebGPURequest>);
 
 impl WebGPU {
-    pub fn new() -> Option<Self> {
+    pub fn new() -> Option<(Self, IpcReceiver<WebGPUMsg>)> {
         if !pref!(dom.webgpu.enabled) {
             return None;
         }
@@ -161,7 +161,7 @@ impl WebGPU {
         };
         let sender_clone = sender.clone();
 
-        let (script_sender, _script_recv) = match ipc::channel() {
+        let (script_sender, script_recv) = match ipc::channel() {
             Ok(sender_and_receiver) => sender_and_receiver,
             Err(e) => {
                 warn!(
@@ -181,7 +181,7 @@ impl WebGPU {
             warn!("Failed to spwan WGPU thread ({})", e);
             return None;
         }
-        Some(WebGPU(sender))
+        Some((WebGPU(sender), script_recv))
     }
 
     pub fn exit(&self, sender: IpcSender<()>) -> Result<(), &'static str> {

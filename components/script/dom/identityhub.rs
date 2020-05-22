@@ -74,7 +74,7 @@ impl IdentityHub {
         self.shader_modules.alloc(self.backend)
     }
 
-    pub fn create_command_encoder_id(&mut self) -> CommandEncoderId {
+    fn create_command_encoder_id(&mut self) -> CommandEncoderId {
         self.command_encoders.alloc(self.backend)
     }
 }
@@ -141,6 +141,10 @@ impl Identities {
         self.select(backend).create_device_id()
     }
 
+    pub fn kill_device_id(&mut self, id: DeviceId) {
+        self.select(id.backend()).devices.free(id);
+    }
+
     pub fn create_adapter_ids(&mut self) -> SmallVec<[AdapterId; 4]> {
         let mut ids = SmallVec::new();
         for hub in self.hubs() {
@@ -149,31 +153,63 @@ impl Identities {
         ids
     }
 
+    pub fn kill_adapter_id(&mut self, id: AdapterId) {
+        self.select(id.backend()).adapters.free(id);
+    }
+
     pub fn create_buffer_id(&mut self, backend: Backend) -> BufferId {
         self.select(backend).create_buffer_id()
+    }
+
+    pub fn kill_buffer_id(&mut self, id: BufferId) {
+        self.select(id.backend()).buffers.free(id);
     }
 
     pub fn create_bind_group_id(&mut self, backend: Backend) -> BindGroupId {
         self.select(backend).create_bind_group_id()
     }
 
+    pub fn kill_bind_group_id(&mut self, id: BindGroupId) {
+        self.select(id.backend()).bind_groups.free(id);
+    }
+
     pub fn create_bind_group_layout_id(&mut self, backend: Backend) -> BindGroupLayoutId {
         self.select(backend).create_bind_group_layout_id()
+    }
+
+    pub fn kill_bind_group_layout_id(&mut self, id: BindGroupLayoutId) {
+        self.select(id.backend()).bind_group_layouts.free(id);
     }
 
     pub fn create_compute_pipeline_id(&mut self, backend: Backend) -> ComputePipelineId {
         self.select(backend).create_compute_pipeline_id()
     }
 
+    pub fn kill_compute_pipeline_id(&mut self, id: ComputePipelineId) {
+        self.select(id.backend()).compute_pipelines.free(id);
+    }
+
     pub fn create_pipeline_layout_id(&mut self, backend: Backend) -> PipelineLayoutId {
         self.select(backend).create_pipeline_layout_id()
+    }
+
+    pub fn kill_pipeline_layout_id(&mut self, id: PipelineLayoutId) {
+        self.select(id.backend()).pipeline_layouts.free(id);
     }
 
     pub fn create_shader_module_id(&mut self, backend: Backend) -> ShaderModuleId {
         self.select(backend).create_shader_module_id()
     }
 
+    pub fn kill_shader_module_id(&mut self, id: ShaderModuleId) {
+        self.select(id.backend()).shader_modules.free(id);
+    }
+
     pub fn create_command_encoder_id(&mut self, backend: Backend) -> CommandEncoderId {
         self.select(backend).create_command_encoder_id()
+    }
+
+    pub fn kill_command_buffer_id(&mut self, id: CommandEncoderId) {
+        self.select(id.backend()).command_encoders.free(id);
     }
 }
