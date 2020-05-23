@@ -141,6 +141,10 @@ bitflags! {
         ///
         /// https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo
         const IN_FOCUS_VISIBLE_STATE = 1 << 52;
+        /// State that dialog element is modal, for centered alignment
+        ///
+        /// https://html.spec.whatwg.org/#centered-alignment
+        const IN_MODAL_DIALOG_STATE = 1 << 53;
     }
 }
 

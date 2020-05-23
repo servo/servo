@@ -50,6 +50,7 @@ macro_rules! apply_non_ts_list {
                 ("-moz-devtools-highlighted", MozDevtoolsHighlighted, IN_DEVTOOLS_HIGHLIGHTED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-styleeditor-transitioning", MozStyleeditorTransitioning, IN_STYLEEDITOR_TRANSITIONING_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("fullscreen", Fullscreen, IN_FULLSCREEN_STATE, _),
+                ("-moz-modal-dialog", MozModalDialog, IN_MODAL_DIALOG_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 // TODO(emilio): This is inconsistently named (the capital R).
                 ("-moz-focusring", MozFocusRing, IN_FOCUSRING_STATE, _),
                 ("-moz-broken", MozBroken, IN_BROKEN_STATE, _),
