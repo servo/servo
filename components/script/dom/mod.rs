@@ -332,6 +332,7 @@ pub mod gpucomputepipeline;
 pub mod gpudevice;
 pub mod gpupipelinelayout;
 pub mod gpuqueue;
+pub mod gpusampler;
 pub mod gpushadermodule;
 pub mod gpushaderstage;
 pub mod hashchangeevent;
