@@ -13,6 +13,9 @@ use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::Angle;
+use font_kit::family_name::FamilyName;
+use font_kit::properties::Properties;
+use font_kit::source::SystemSource;
 use lyon_geom::Arc;
 use raqote::PathOp;
 use std::marker::PhantomData;
@@ -513,6 +516,32 @@ impl GenericDrawTarget for raqote::DrawTarget {
             ),
         }
     }
+
+    fn fill_text(
+        &mut self,
+        text: String,
+        x: f64,
+        y: f64,
+        max_width: Option<f64>,
+        pattern: canvas_data::Pattern,
+        draw_options: &DrawOptions,
+    ) {
+        let font = SystemSource::new()
+            .select_best_match(&[FamilyName::SansSerif], &Properties::new())
+            .unwrap()
+            .load()
+            .unwrap();
+
+        self.draw_text(
+            &font,
+            24.,
+            &text,
+            Point2D::new(x as f32, y as f32),
+            &pattern.source(),
+            draw_options.as_raqote(),
+        );
+    }
+
     fn fill_rect(
         &mut self,
         rect: &Rect<f32>,

@@ -264,6 +264,15 @@ pub trait GenericDrawTarget {
         operator: CompositionOp,
     );
     fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions);
+    fn fill_text(
+        &mut self,
+        text: String,
+        x: f64,
+        y: f64,
+        max_width: Option<f64>,
+        pattern: Pattern,
+        draw_options: &DrawOptions,
+    );
     fn fill_rect(&mut self, rect: &Rect<f32>, pattern: Pattern, draw_options: Option<&DrawOptions>);
     fn get_format(&self) -> SurfaceFormat;
     fn get_size(&self) -> Size2D<i32>;
@@ -456,10 +465,29 @@ impl<'a> CanvasData<'a> {
         }
     }
 
-    pub fn fill_text(&self, text: String, x: f64, y: f64, max_width: Option<f64>) {
-        error!(
-            "Unimplemented canvas2d.fillText. Values received: {}, {}, {}, {:?}.",
-            text, x, y, max_width
+    pub fn fill_text(&mut self, text: String, x: f64, y: f64, max_width: Option<f64>) {
+        // 1. If maxWidth was provided but is less than or equal to zero or equal to NaN,
+        //    then return an empty array.
+        if max_width.map_or(false, |max_width| max_width <= 0.) {
+            return;
+        }
+
+        // 2. Replace all ASCII whitespace in text with U+0020 SPACE characters.
+        let text = text
+            .chars()
+            .map(|c| match c {
+                ' ' | '\t' | '\n' | '\r' | '\x0C' => '\x20',
+                _ => c,
+            })
+            .collect();
+
+        self.draw_target.fill_text(
+            text,
+            x,
+            y,
+            max_width,
+            self.state.fill_style.clone(),
+            &self.state.draw_options,
         );
     }
 
