@@ -796,6 +796,20 @@ def test_css_missing_file_manual():
     ]
 
 
+def test_css_missing_file_tentative():
+    code = b"""\
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</html>
+"""
+
+    # The tentative flag covers tests that make assertions 'not yet required by
+    # any specification', so they need not have a specification link.
+    errors = check_file_contents("", "css/foo/bar.tentative.html", six.BytesIO(code))
+    assert not errors
+
+
 @pytest.mark.parametrize("filename", [
     "foo.worker.js",
     "foo.any.js",

@@ -408,6 +408,15 @@ class SourceFile(object):
         return self.type_flag == "crash" or "crashtests" in self.dir_path.split(os.path.sep)
 
     @property
+    def name_is_tentative(self):
+        # type: () -> bool
+        """Check if the file name matches the conditions for the file to be a
+        tentative file.
+
+        See https://web-platform-tests.org/writing-tests/file-names.html#test-features"""
+        return "tentative" in self.meta_flags
+
+    @property
     def markup_type(self):
         # type: () -> Optional[Text]
         """Return the type of markup contained in a file, based on its extension,
