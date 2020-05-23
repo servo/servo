@@ -467,6 +467,7 @@ def check_parsed(repo_root, path, f):
 
         if (source_file.type != "support" and
             not source_file.name_is_reference and
+            not source_file.name_is_tentative and
             not source_file.spec_links):
             return [rules.MissingLink.error(path)]
 

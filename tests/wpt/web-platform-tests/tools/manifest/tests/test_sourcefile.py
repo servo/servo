@@ -122,6 +122,14 @@ def test_name_is_reference(rel_path):
     assert items(s) == []
 
 
+def test_name_is_tentative():
+    s = create("css/css-ui/appearance-revert-001.tentative.html")
+    assert s.name_is_tentative
+
+    s = create("css/css-ui/appearance-revert-001.html")
+    assert not s.name_is_tentative
+
+
 def test_worker():
     s = create("html/test.worker.js")
     assert not s.name_is_non_test

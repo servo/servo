@@ -226,12 +226,12 @@ class GitIgnoreCache(CacheFile, MutableMapping):  # type: ignore
 
     def check_valid(self, data):
         # type: (Dict[Any, Any]) -> Dict[Any, Any]
-        ignore_path = os.path.join(self.tests_root, b".gitignore")
+        ignore_path = os.path.join(self.tests_root, ".gitignore")
         mtime = os.path.getmtime(ignore_path)
-        if data.get(b"/gitignore_file") != [ignore_path, mtime]:
+        if data.get("/gitignore_file") != [ignore_path, mtime]:
             self.modified = True
             data = {}
-            data[b"/gitignore_file"] = [ignore_path, mtime]
+            data["/gitignore_file"] = [ignore_path, mtime]
         return data
 
     def __contains__(self, key):

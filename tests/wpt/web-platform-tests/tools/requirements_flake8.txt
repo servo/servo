@@ -1,4 +1,4 @@
-flake8==3.8.1
+flake8==3.8.2
 pycodestyle==2.6.0
 pyflakes==2.2.0
 pep8-naming==0.10.0

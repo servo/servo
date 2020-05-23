@@ -1,0 +1,41 @@
+<!doctype html>
+<title>CSS Selectors: :is() and :where() parsing</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#zero-matches">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  function assert_valid(expected_valid, pattern, description) {
+    test(function() {
+      for (let pseudo of ["is", "where"]) {
+        let valid = false;
+        let selector = pattern.replace("{}", ":" + pseudo)
+        try {
+          document.querySelector(selector);
+          valid = true;
+        } catch (ex) {}
+
+        assert_equals(valid, expected_valid, `${description}: ${selector}`);
+      }
+    }, description);
+  }
+
+  assert_valid(true, "{}(div + bar, div ~ .baz)", "Multiple selectors with combinators");
+
+  assert_valid(true, "{}(:is(div))", "Nested :is");
+  assert_valid(true, "{}(:where(div))", "Nested :where");
+
+  assert_valid(true, ":host({}(div))", "Nested inside :host, without combinators");
+  // See https://github.com/w3c/csswg-drafts/issues/5093
+  assert_valid(false, ":host({}(div .foo))", "Nested inside :host, with combinators");
+
+  assert_valid(true, "{}(:hover, :active)", "Pseudo-classes inside");
+  assert_valid(true, "{}(div):hover", "Pseudo-classes after");
+  assert_valid(true, "{}(div)::before", "Pseudo-elements after");
+  assert_valid(false, "{}(::before)", "Pseudo-elements inside");
+
+  assert_valid(true, "{}(div) + bar", "Combinators after");
+  assert_valid(true, "::part(foo):is(:hover)", "After part with simple pseudo-class");
+  assert_valid(false, "::part(foo):is([attr='value'])", "After part with invalid selector after");
+</script>
