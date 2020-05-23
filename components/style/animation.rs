@@ -346,15 +346,6 @@ impl Animation {
         self.started_at = new_started_at;
     }
 
-    /// Calculate the active-duration of this animation according to
-    /// https://drafts.csswg.org/css-animations/#active-duration.
-    pub fn active_duration(&self) -> f64 {
-        match self.iteration_state {
-            KeyframesIterationState::Finite(current, _) |
-            KeyframesIterationState::Infinite(current) => self.duration * current,
-        }
-    }
-
     /// Update the given style to reflect the values specified by this `Animation`
     /// at the time provided by the given `SharedStyleContext`.
     fn update_style<E>(

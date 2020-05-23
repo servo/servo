@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
@@ -408,6 +408,10 @@ impl Window {
     #[allow(unsafe_code)]
     pub fn get_cx(&self) -> JSContext {
         unsafe { JSContext::from_ptr(self.js_runtime.borrow().as_ref().unwrap().cx()) }
+    }
+
+    pub fn get_js_runtime(&self) -> Ref<Option<Rc<Runtime>>> {
+        self.js_runtime.borrow()
     }
 
     pub fn main_thread_script_chan(&self) -> &Sender<MainThreadScriptMsg> {
@@ -1581,12 +1585,8 @@ impl Window {
     #[allow(unsafe_code)]
     pub fn advance_animation_clock(&self, delta_ms: i32) {
         let pipeline_id = self.upcast::<GlobalScope>().pipeline_id();
-        let update = self
-            .Document()
+        self.Document()
             .advance_animation_timeline_for_testing(delta_ms as f64 / 1000.);
-        unsafe {
-            ScriptThread::process_animations_update(update);
-        }
         ScriptThread::handle_tick_all_animations_for_testing(pipeline_id);
     }
 
@@ -1752,10 +1752,7 @@ impl Window {
             }
         }
 
-        let update = document.update_animations_post_reflow();
-        unsafe {
-            ScriptThread::process_animations_update(update);
-        }
+        document.update_animations_post_reflow();
 
         true
     }
