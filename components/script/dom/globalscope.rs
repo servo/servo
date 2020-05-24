@@ -26,7 +26,9 @@ use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::broadcastchannel::BroadcastChannel;
 use crate::dom::crypto::Crypto;
-use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use crate::dom::dedicatedworkerglobalscope::{
+    DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
+};
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
@@ -65,6 +67,7 @@ use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use crate::timers::{OneshotTimers, TimerCallback};
 use content_security_policy::CspList;
+use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
@@ -118,8 +121,13 @@ use uuid::Uuid;
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker {
+    /// https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-closing
     closing: Arc<AtomicBool>,
+    /// A handle to join on the worker thread.
     join_handle: Option<JoinHandle<()>>,
+    /// A sender of control messages,
+    /// currently only used to signal shutdown.
+    control_sender: Sender<DedicatedWorkerControlMsg>,
 }
 
 impl Drop for AutoCloseWorker {
@@ -128,13 +136,25 @@ impl Drop for AutoCloseWorker {
         // Step 1.
         self.closing.store(true, Ordering::SeqCst);
 
+        if self
+            .control_sender
+            .send(DedicatedWorkerControlMsg::Exit)
+            .is_err()
+        {
+            warn!("Couldn't send an exit message to a dedicated worker.");
+        }
+
         // TODO: step 2 and 3.
         // Step 4 is unnecessary since we don't use actual ports for dedicated workers.
-        self.join_handle
+        if self
+            .join_handle
             .take()
             .expect("No handle to join on worker.")
             .join()
-            .expect("Couldn't join on worker thread.");
+            .is_err()
+        {
+            warn!("Failed to join on dedicated worker thread.");
+        }
     }
 }
 
@@ -1808,12 +1828,18 @@ impl GlobalScope {
         &self.permission_state_invocation_results
     }
 
-    pub fn track_worker(&self, closing: Arc<AtomicBool>, join_handle: JoinHandle<()>) {
+    pub fn track_worker(
+        &self,
+        closing: Arc<AtomicBool>,
+        join_handle: JoinHandle<()>,
+        control_sender: Sender<DedicatedWorkerControlMsg>,
+    ) {
         self.list_auto_close_worker
             .borrow_mut()
             .push(AutoCloseWorker {
                 closing,
                 join_handle: Some(join_handle),
+                control_sender: control_sender,
             });
     }
 

@@ -124,6 +124,8 @@ impl Worker {
 
         let init = prepare_workerscope_init(global, Some(devtools_sender), Some(worker_id));
 
+        let (control_sender, control_receiver) = unbounded();
+
         let join_handle = DedicatedWorkerGlobalScope::run_worker_scope(
             init,
             worker_url,
@@ -139,9 +141,10 @@ impl Worker {
             global.image_cache(),
             browsing_context,
             global.wgpu_id_hub(),
+            control_receiver,
         );
 
-        global.track_worker(closing, join_handle);
+        global.track_worker(closing, join_handle, control_sender);
 
         Ok(worker)
     }

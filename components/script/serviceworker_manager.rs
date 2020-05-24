@@ -8,7 +8,9 @@
 //! active_workers map
 
 use crate::dom::abstractworker::WorkerScriptMsg;
-use crate::dom::serviceworkerglobalscope::{ServiceWorkerGlobalScope, ServiceWorkerScriptMsg};
+use crate::dom::serviceworkerglobalscope::{
+    ServiceWorkerControlMsg, ServiceWorkerGlobalScope, ServiceWorkerScriptMsg,
+};
 use crate::dom::serviceworkerregistration::longest_prefix_match;
 use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};
 use ipc_channel::ipc::{self, IpcSender};
@@ -80,12 +82,27 @@ enum RegistrationUpdateTarget {
 impl Drop for ServiceWorkerRegistration {
     /// <https://html.spec.whatwg.org/multipage/#terminate-a-worker>
     fn drop(&mut self) {
+        // Drop the channel to signal shutdown.
+        if self
+            .control_sender
+            .take()
+            .expect("No control sender to worker thread.")
+            .send(ServiceWorkerControlMsg::Exit)
+            .is_err()
+        {
+            warn!("Failed to send exit message to service worker scope.");
+        }
+
         // TODO: Step 1, 2 and 3.
-        self.join_handle
+        if self
+            .join_handle
             .take()
             .expect("No handle to join on worker.")
             .join()
-            .expect("Couldn't join on worker thread.");
+            .is_err()
+        {
+            warn!("Failed to join on service worker thread.");
+        }
     }
 }
 
@@ -99,6 +116,9 @@ struct ServiceWorkerRegistration {
     waiting_worker: Option<ServiceWorker>,
     /// https://w3c.github.io/ServiceWorker/#dfn-installing-worker
     installing_worker: Option<ServiceWorker>,
+    /// A channel to send control message to the worker,
+    /// currently only used to signal shutdown.
+    control_sender: Option<Sender<ServiceWorkerControlMsg>>,
     /// A handle to join on the worker thread.
     join_handle: Option<JoinHandle<()>>,
 }
@@ -111,12 +131,20 @@ impl ServiceWorkerRegistration {
             waiting_worker: None,
             installing_worker: None,
             join_handle: None,
+            control_sender: None,
         }
     }
 
-    fn note_worker_thread(&mut self, join_handle: JoinHandle<()>) {
+    fn note_worker_thread(
+        &mut self,
+        join_handle: JoinHandle<()>,
+        control_sender: Sender<ServiceWorkerControlMsg>,
+    ) {
         assert!(self.join_handle.is_none());
         self.join_handle = Some(join_handle);
+
+        assert!(self.control_sender.is_none());
+        self.control_sender = Some(control_sender);
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-newest-worker>
@@ -203,6 +231,10 @@ impl ServiceWorkerManager {
                 Message::FromResource(msg) => self.handle_message_from_resource(msg),
             };
             if !should_continue {
+                for registration in self.registrations.drain() {
+                    // Signal shut-down, and join on the thread.
+                    drop(registration);
+                }
                 break;
             }
         }
@@ -346,10 +378,11 @@ impl ServiceWorkerManager {
 
             // Very roughly steps 5 to 18.
             // TODO: implement all steps precisely.
-            let (new_worker, join_handle) =
+            let (new_worker, join_handle, control_sender) =
                 update_serviceworker(self.own_sender.clone(), job.scope_url.clone(), scope_things);
 
-            registration.note_worker_thread(join_handle);
+            // Since we've just started the worker thread, ensure we can shut it down later.
+            registration.note_worker_thread(join_handle, control_sender);
 
             // Step 19, run Install.
 
@@ -385,10 +418,16 @@ fn update_serviceworker(
     own_sender: IpcSender<ServiceWorkerMsg>,
     scope_url: ServoUrl,
     scope_things: ScopeThings,
-) -> (ServiceWorker, JoinHandle<()>) {
+) -> (
+    ServiceWorker,
+    JoinHandle<()>,
+    Sender<ServiceWorkerControlMsg>,
+) {
     let (sender, receiver) = unbounded();
     let (_devtools_sender, devtools_receiver) = ipc::channel().unwrap();
     let worker_id = ServiceWorkerId::new();
+
+    let (control_sender, control_receiver) = unbounded();
 
     let join_handle = ServiceWorkerGlobalScope::run_serviceworker_scope(
         scope_things.clone(),
@@ -397,11 +436,13 @@ fn update_serviceworker(
         devtools_receiver,
         own_sender,
         scope_url.clone(),
+        control_receiver,
     );
 
     (
         ServiceWorker::new(scope_things.script_url, sender, worker_id),
         join_handle,
+        control_sender,
     )
 }
 

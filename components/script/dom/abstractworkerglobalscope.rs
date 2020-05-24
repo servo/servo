@@ -82,12 +82,15 @@ impl ScriptPort for Receiver<DedicatedWorkerScriptMsg> {
 
 pub trait WorkerEventLoopMethods {
     type WorkerMsg: QueuedTaskConversion + Send;
+    type ControlMsg;
     type Event;
     fn task_queue(&self) -> &TaskQueue<Self::WorkerMsg>;
-    fn handle_event(&self, event: Self::Event);
+    fn handle_event(&self, event: Self::Event) -> bool;
     fn handle_worker_post_event(&self, worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset>;
+    fn from_control_msg(&self, msg: Self::ControlMsg) -> Self::Event;
     fn from_worker_msg(&self, msg: Self::WorkerMsg) -> Self::Event;
     fn from_devtools_msg(&self, msg: DevtoolScriptControlMsg) -> Self::Event;
+    fn control_receiver(&self) -> &Receiver<Self::ControlMsg>;
 }
 
 // https://html.spec.whatwg.org/multipage/#worker-event-loop
@@ -108,6 +111,7 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
     };
     let task_queue = worker_scope.task_queue();
     let event = select! {
+        recv(worker_scope.control_receiver()) -> msg => worker_scope.from_control_msg(msg.unwrap()),
         recv(task_queue.select()) -> msg => {
             task_queue.take_tasks(msg.unwrap());
             worker_scope.from_worker_msg(task_queue.recv().unwrap())
@@ -136,7 +140,10 @@ pub fn run_worker_event_loop<T, WorkerMsg, Event>(
     }
     // Step 3
     for event in sequential {
-        worker_scope.handle_event(event);
+        if !worker_scope.handle_event(event) {
+            // Shutdown
+            return;
+        }
         // Step 6
         let _ar = match worker {
             Some(worker) => worker_scope.handle_worker_post_event(worker),
