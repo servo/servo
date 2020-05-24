@@ -24,7 +24,7 @@ use servo_config::pref;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
-use std::thread;
+use std::thread::{self, JoinHandle};
 
 enum Message {
     FromResource(CustomResponseMediator),
@@ -77,6 +77,18 @@ enum RegistrationUpdateTarget {
     Active,
 }
 
+impl Drop for ServiceWorkerRegistration {
+    /// <https://html.spec.whatwg.org/multipage/#terminate-a-worker>
+    fn drop(&mut self) {
+        // TODO: Step 1, 2 and 3.
+        self.join_handle
+            .take()
+            .expect("No handle to join on worker.")
+            .join()
+            .expect("Couldn't join on worker thread.");
+    }
+}
+
 /// https://w3c.github.io/ServiceWorker/#service-worker-registration-concept
 struct ServiceWorkerRegistration {
     /// A unique identifer.
@@ -87,6 +99,8 @@ struct ServiceWorkerRegistration {
     waiting_worker: Option<ServiceWorker>,
     /// https://w3c.github.io/ServiceWorker/#dfn-installing-worker
     installing_worker: Option<ServiceWorker>,
+    /// A handle to join on the worker thread.
+    join_handle: Option<JoinHandle<()>>,
 }
 
 impl ServiceWorkerRegistration {
@@ -96,7 +110,13 @@ impl ServiceWorkerRegistration {
             active_worker: None,
             waiting_worker: None,
             installing_worker: None,
+            join_handle: None,
         }
+    }
+
+    fn note_worker_thread(&mut self, join_handle: JoinHandle<()>) {
+        assert!(self.join_handle.is_none());
+        self.join_handle = Some(join_handle);
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-newest-worker>
@@ -326,8 +346,10 @@ impl ServiceWorkerManager {
 
             // Very roughly steps 5 to 18.
             // TODO: implement all steps precisely.
-            let new_worker =
+            let (new_worker, join_handle) =
                 update_serviceworker(self.own_sender.clone(), job.scope_url.clone(), scope_things);
+
+            registration.note_worker_thread(join_handle);
 
             // Step 19, run Install.
 
@@ -363,12 +385,12 @@ fn update_serviceworker(
     own_sender: IpcSender<ServiceWorkerMsg>,
     scope_url: ServoUrl,
     scope_things: ScopeThings,
-) -> ServiceWorker {
+) -> (ServiceWorker, JoinHandle<()>) {
     let (sender, receiver) = unbounded();
     let (_devtools_sender, devtools_receiver) = ipc::channel().unwrap();
     let worker_id = ServiceWorkerId::new();
 
-    ServiceWorkerGlobalScope::run_serviceworker_scope(
+    let join_handle = ServiceWorkerGlobalScope::run_serviceworker_scope(
         scope_things.clone(),
         sender.clone(),
         receiver,
@@ -377,7 +399,10 @@ fn update_serviceworker(
         scope_url.clone(),
     );
 
-    ServiceWorker::new(scope_things.script_url, sender, worker_id)
+    (
+        ServiceWorker::new(scope_things.script_url, sender, worker_id),
+        join_handle,
+    )
 }
 
 impl ServiceWorkerManagerFactory for ServiceWorkerManager {

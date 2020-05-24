@@ -45,7 +45,7 @@ use servo_config::pref;
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::sync::Arc;
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use style::thread_state::{self, ThreadState};
 
@@ -259,7 +259,7 @@ impl ServiceWorkerGlobalScope {
         devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
         swmanager_sender: IpcSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
-    ) {
+    ) -> JoinHandle<()> {
         let ScopeThings {
             script_url,
             init,
@@ -361,7 +361,7 @@ impl ServiceWorkerGlobalScope {
                     );
                 scope.clear_js_runtime();
             })
-            .expect("Thread spawning failed");
+            .expect("Thread spawning failed")
     }
 
     fn handle_mixed_message(&self, msg: MixedMessage) -> bool {

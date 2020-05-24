@@ -112,15 +112,29 @@ use std::ops::Index;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::thread::JoinHandle;
 use time::{get_time, Timespec};
 use uuid::Uuid;
 
 #[derive(JSTraceable)]
-pub struct AutoCloseWorker(Arc<AtomicBool>);
+pub struct AutoCloseWorker {
+    closing: Arc<AtomicBool>,
+    join_handle: Option<JoinHandle<()>>,
+}
 
 impl Drop for AutoCloseWorker {
+    /// <https://html.spec.whatwg.org/multipage/#terminate-a-worker>
     fn drop(&mut self) {
-        self.0.store(true, Ordering::SeqCst);
+        // Step 1.
+        self.closing.store(true, Ordering::SeqCst);
+
+        // TODO: step 2 and 3.
+        // Step 4 is unnecessary since we don't use actual ports for dedicated workers.
+        self.join_handle
+            .take()
+            .expect("No handle to join on worker.")
+            .join()
+            .expect("Couldn't join on worker thread.");
     }
 }
 
@@ -1794,10 +1808,13 @@ impl GlobalScope {
         &self.permission_state_invocation_results
     }
 
-    pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {
+    pub fn track_worker(&self, closing: Arc<AtomicBool>, join_handle: JoinHandle<()>) {
         self.list_auto_close_worker
             .borrow_mut()
-            .push(AutoCloseWorker(closing_worker));
+            .push(AutoCloseWorker {
+                closing,
+                join_handle: Some(join_handle),
+            });
     }
 
     pub fn track_event_source(&self, event_source: &EventSource) {

@@ -135,6 +135,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
+use std::thread::JoinHandle;
 use std::time::{Instant, SystemTime};
 use style::animation::ElementAnimationSet;
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
@@ -167,6 +168,7 @@ use webxr_api::SwapChainId as WebXRSwapChainId;
 use webxr_api::{Finger, Hand, Ray, View};
 
 unsafe_no_jsmanaged_fields!(Tm);
+unsafe_no_jsmanaged_fields!(JoinHandle<()>);
 
 /// A trait to allow tracing (only) DOM objects.
 pub unsafe trait JSTraceable {

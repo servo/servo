@@ -56,7 +56,7 @@ use servo_url::ServoUrl;
 use std::mem::replace;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use std::thread;
+use std::thread::{self, JoinHandle};
 use style::thread_state::{self, ThreadState};
 
 /// Set the `worker` field of a related DedicatedWorkerGlobalScope object to a particular
@@ -299,7 +299,7 @@ impl DedicatedWorkerGlobalScope {
         image_cache: Arc<dyn ImageCache>,
         browsing_context: Option<BrowsingContextId>,
         gpu_id_hub: Arc<Mutex<Identities>>,
-    ) {
+    ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
         let name = format!("WebWorker for {}", serialized_worker_url);
         let top_level_browsing_context_id = TopLevelBrowsingContextId::installed();
@@ -435,7 +435,7 @@ impl DedicatedWorkerGlobalScope {
                         CommonScriptMsg::CollectReports,
                     );
             })
-            .expect("Thread spawning failed");
+            .expect("Thread spawning failed")
     }
 
     pub fn image_cache(&self) -> Arc<dyn ImageCache> {

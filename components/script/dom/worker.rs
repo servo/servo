@@ -87,7 +87,6 @@ impl Worker {
         let (sender, receiver) = unbounded();
         let closing = Arc::new(AtomicBool::new(false));
         let worker = Worker::new(global, sender.clone(), closing.clone());
-        global.track_worker(closing.clone());
         let worker_ref = Trusted::new(&*worker);
 
         let worker_load_origin = WorkerScriptLoadOrigin {
@@ -125,7 +124,7 @@ impl Worker {
 
         let init = prepare_workerscope_init(global, Some(devtools_sender), Some(worker_id));
 
-        DedicatedWorkerGlobalScope::run_worker_scope(
+        let join_handle = DedicatedWorkerGlobalScope::run_worker_scope(
             init,
             worker_url,
             devtools_receiver,
@@ -136,11 +135,13 @@ impl Worker {
             worker_load_origin,
             String::from(&*worker_options.name),
             worker_options.type_,
-            closing,
+            closing.clone(),
             global.image_cache(),
             browsing_context,
             global.wgpu_id_hub(),
         );
+
+        global.track_worker(closing, join_handle);
 
         Ok(worker)
     }
