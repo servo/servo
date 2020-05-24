@@ -414,9 +414,7 @@ impl ServiceWorkerGlobalScope {
 
     fn has_timed_out(&self) -> bool {
         // TODO: https://w3c.github.io/ServiceWorker/#service-worker-lifetime
-        // Since we don't have a shutdown mechanism yet, see #26548
-        // immediately stop the event-loop after executing the initial script.
-        true
+        false
     }
 
     fn handle_script_event(&self, msg: ServiceWorkerScriptMsg) {
