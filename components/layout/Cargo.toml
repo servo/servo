@@ -33,7 +33,7 @@ malloc_size_of = { path = "../malloc_size_of" }
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }
 num-traits = "0.2"
-parking_lot = "0.9"
+parking_lot = "0.10"
 profile_traits = { path = "../profile_traits" }
 range = { path = "../range" }
 rayon = "1"

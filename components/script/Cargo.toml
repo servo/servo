@@ -79,7 +79,7 @@ mitochondria = "1.1.2"
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }
 num-traits = "0.2"
-parking_lot = "0.9"
+parking_lot = "0.10"
 percent-encoding = "2.0"
 phf = "0.8"
 pixels = { path = "../pixels" }

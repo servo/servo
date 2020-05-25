@@ -35,7 +35,6 @@ packages = [
   "peek-poke",
   "peek-poke-derive",
   "wayland-sys",
-  "metal",
   "parking_lot",
   "parking_lot_core",
   "ron",
