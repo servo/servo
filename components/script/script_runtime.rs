@@ -81,7 +81,6 @@ use std::io::{stdout, Write};
 use std::ops::Deref;
 use std::os;
 use std::os::raw::c_void;
-use std::panic::AssertUnwindSafe;
 use std::ptr;
 use std::rc::Rc;
 use std::sync::Mutex;
@@ -169,29 +168,27 @@ pub trait ScriptPort {
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn get_incumbent_global(_: *const c_void, _: *mut RawJSContext) -> *mut JSObject {
-    wrap_panic(
-        AssertUnwindSafe(|| {
-            let incumbent_global = GlobalScope::incumbent();
+    let mut result = ptr::null_mut();
+    wrap_panic(&mut || {
+        let incumbent_global = GlobalScope::incumbent();
 
-            assert!(incumbent_global.is_some());
+        assert!(incumbent_global.is_some());
 
-            incumbent_global
-                .map(|g| g.reflector().get_jsobject().get())
-                .unwrap_or(ptr::null_mut())
-        }),
-        ptr::null_mut(),
-    )
+        result = incumbent_global
+            .map(|g| g.reflector().get_jsobject().get())
+            .unwrap_or(ptr::null_mut())
+    });
+    result
 }
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn empty(extra: *const c_void) -> bool {
-    wrap_panic(
-        AssertUnwindSafe(|| {
-            let microtask_queue = &*(extra as *const MicrotaskQueue);
-            microtask_queue.empty()
-        }),
-        false,
-    )
+    let mut result = false;
+    wrap_panic(&mut || {
+        let microtask_queue = &*(extra as *const MicrotaskQueue);
+        result = microtask_queue.empty()
+    });
+    result
 }
 
 /// SM callback for promise job resolution. Adds a promise callback to the current
@@ -206,30 +203,29 @@ unsafe extern "C" fn enqueue_promise_job(
     incumbent_global: HandleObject,
 ) -> bool {
     let cx = JSContext::from_ptr(cx);
-    wrap_panic(
-        AssertUnwindSafe(|| {
-            let microtask_queue = &*(extra as *const MicrotaskQueue);
-            let global = GlobalScope::from_object(incumbent_global.get());
-            let pipeline = global.pipeline_id();
-            let interaction = if promise.get().is_null() {
-                PromiseUserInputEventHandlingState::DontCare
-            } else {
-                GetPromiseUserInputEventHandlingState(promise)
-            };
-            let is_user_interacting =
-                interaction == PromiseUserInputEventHandlingState::HadUserInteractionAtCreation;
-            microtask_queue.enqueue(
-                Microtask::Promise(EnqueuedPromiseCallback {
-                    callback: PromiseJobCallback::new(cx, job.get()),
-                    pipeline,
-                    is_user_interacting,
-                }),
-                cx,
-            );
-            true
-        }),
-        false,
-    )
+    let mut result = false;
+    wrap_panic(&mut || {
+        let microtask_queue = &*(extra as *const MicrotaskQueue);
+        let global = GlobalScope::from_object(incumbent_global.get());
+        let pipeline = global.pipeline_id();
+        let interaction = if promise.get().is_null() {
+            PromiseUserInputEventHandlingState::DontCare
+        } else {
+            GetPromiseUserInputEventHandlingState(promise)
+        };
+        let is_user_interacting =
+            interaction == PromiseUserInputEventHandlingState::HadUserInteractionAtCreation;
+        microtask_queue.enqueue(
+            Microtask::Promise(EnqueuedPromiseCallback {
+                callback: PromiseJobCallback::new(cx, job.get()),
+                pipeline,
+                is_user_interacting,
+            }),
+            cx,
+        );
+        result = true
+    });
+    result
 }
 
 #[allow(unsafe_code, unrooted_must_root)]
@@ -248,69 +244,66 @@ unsafe extern "C" fn promise_rejection_tracker(
     let in_realm_proof = AlreadyInRealm::assert_for_cx(cx);
     let global = GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof));
 
-    wrap_panic(
-        AssertUnwindSafe(|| {
-            match state {
-                // Step 4.
-                PromiseRejectionHandlingState::Unhandled => {
-                    global.add_uncaught_rejection(promise);
-                },
-                // Step 5.
-                PromiseRejectionHandlingState::Handled => {
-                    // Step 5-1.
-                    if global
-                        .get_uncaught_rejections()
-                        .borrow()
-                        .contains(&Heap::boxed(promise.get()))
-                    {
-                        global.remove_uncaught_rejection(promise);
-                        return;
-                    }
+    wrap_panic(&mut || {
+        match state {
+            // Step 4.
+            PromiseRejectionHandlingState::Unhandled => {
+                global.add_uncaught_rejection(promise);
+            },
+            // Step 5.
+            PromiseRejectionHandlingState::Handled => {
+                // Step 5-1.
+                if global
+                    .get_uncaught_rejections()
+                    .borrow()
+                    .contains(&Heap::boxed(promise.get()))
+                {
+                    global.remove_uncaught_rejection(promise);
+                    return;
+                }
 
-                    // Step 5-2.
-                    if !global
-                        .get_consumed_rejections()
-                        .borrow()
-                        .contains(&Heap::boxed(promise.get()))
-                    {
-                        return;
-                    }
+                // Step 5-2.
+                if !global
+                    .get_consumed_rejections()
+                    .borrow()
+                    .contains(&Heap::boxed(promise.get()))
+                {
+                    return;
+                }
 
-                    // Step 5-3.
-                    global.remove_consumed_rejection(promise);
+                // Step 5-3.
+                global.remove_consumed_rejection(promise);
 
-                    let target = Trusted::new(global.upcast::<EventTarget>());
-                    let promise = Promise::new_with_js_promise(Handle::from_raw(promise), cx);
-                    let trusted_promise = TrustedPromise::new(promise.clone());
+                let target = Trusted::new(global.upcast::<EventTarget>());
+                let promise = Promise::new_with_js_promise(Handle::from_raw(promise), cx);
+                let trusted_promise = TrustedPromise::new(promise.clone());
 
-                    // Step 5-4.
-                    global.dom_manipulation_task_source().queue(
-                    task!(rejection_handled_event: move || {
-                        let target = target.root();
-                        let cx = target.global().get_cx();
-                        let root_promise = trusted_promise.root();
+                // Step 5-4.
+                global.dom_manipulation_task_source().queue(
+                task!(rejection_handled_event: move || {
+                    let target = target.root();
+                    let cx = target.global().get_cx();
+                    let root_promise = trusted_promise.root();
 
-                        rooted!(in(*cx) let mut reason = UndefinedValue());
-                        JS_GetPromiseResult(root_promise.reflector().get_jsobject(), reason.handle_mut());
+                    rooted!(in(*cx) let mut reason = UndefinedValue());
+                    JS_GetPromiseResult(root_promise.reflector().get_jsobject(), reason.handle_mut());
 
-                        let event = PromiseRejectionEvent::new(
-                            &target.global(),
-                            atom!("rejectionhandled"),
-                            EventBubbles::DoesNotBubble,
-                            EventCancelable::Cancelable,
-                            root_promise,
-                            reason.handle()
-                        );
+                    let event = PromiseRejectionEvent::new(
+                        &target.global(),
+                        atom!("rejectionhandled"),
+                        EventBubbles::DoesNotBubble,
+                        EventCancelable::Cancelable,
+                        root_promise,
+                        reason.handle()
+                    );
 
-                        event.upcast::<Event>().fire(&target);
-                    }),
-                    global.upcast(),
-                ).unwrap();
-                },
-            };
-        }),
-        (),
-    );
+                    event.upcast::<Event>().fire(&target);
+                }),
+                global.upcast(),
+            ).unwrap();
+            },
+        };
+    })
 }
 
 #[allow(unsafe_code, unrooted_must_root)]

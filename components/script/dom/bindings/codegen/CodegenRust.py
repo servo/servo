@@ -2573,9 +2573,19 @@ class CGAbstractMethod(CGThing):
         body = self.definition_body()
 
         if self.catchPanic:
-            body = CGWrapper(CGIndenter(body),
-                             pre="return wrap_panic(panic::AssertUnwindSafe(|| {\n",
-                             post=("""\n}), %s);""" % ("()" if self.returnType == "void" else "false")))
+            if self.returnType == "void":
+                pre = "wrap_panic(&mut || {\n"
+                post = "\n})"
+            else:
+                pre = (
+                    "let mut result = false;\n"
+                    "wrap_panic(&mut || result = (|| {\n"
+                )
+                post = (
+                    "\n})());\n"
+                    "return result"
+                )
+            body = CGWrapper(CGIndenter(body), pre=pre, post=post)
 
         return CGWrapper(CGIndenter(body),
                          pre=self.definition_prologue(),
