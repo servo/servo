@@ -4324,9 +4324,9 @@ checksum = "eda5fe9b71976e62bc81b781206aaa076401769b2143379d3eb2118388babac4"
 
 [[package]]
 name = "quote"
-version = "0.6.12"
+version = "0.6.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "faf4799c5d274f3868a4aae320a0a182cbd2baee377b378f080e16a23e9d80db"
+checksum = "6ce23b6b870e8f94f81fb0a363d65d86675884b34a09043c81e5562f11c1f8e1"
 dependencies = [
  "proc-macro2 0.4.26",
 ]
@@ -6447,7 +6447,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bf3828c568714507315ee425a9529edc4a4aa9901409e373e9e0027e7622b79e"
 dependencies = [
  "proc-macro2 0.4.26",
- "quote 0.6.12",
+ "quote 0.6.13",
  "xml-rs",
 ]
 
