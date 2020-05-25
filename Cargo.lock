@@ -6429,9 +6429,9 @@ dependencies = [
 
 [[package]]
 name = "wayland-protocols"
-version = "0.21.4"
+version = "0.21.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3f6cebb98963f028d397e9bad2acf9d3b2f6b76fae65aea191edd9e7c0df88c"
+checksum = "4afde2ea2a428eee6d7d2c8584fdbe8b82eee8b6c353e129a434cd6e07f42145"
 dependencies = [
  "bitflags",
  "wayland-client",
