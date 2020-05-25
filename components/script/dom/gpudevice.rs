@@ -16,6 +16,9 @@ use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::{
     GPUCommandEncoderDescriptor, GPUDeviceMethods,
 };
 use crate::dom::bindings::codegen::Bindings::GPUPipelineLayoutBinding::GPUPipelineLayoutDescriptor;
+use crate::dom::bindings::codegen::Bindings::GPUSamplerBinding::{
+    GPUAddressMode, GPUCompareFunction, GPUFilterMode, GPUSamplerDescriptor,
+};
 use crate::dom::bindings::codegen::Bindings::GPUShaderModuleBinding::GPUShaderModuleDescriptor;
 use crate::dom::bindings::codegen::UnionTypes::Uint32ArrayOrString::{String, Uint32Array};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -32,6 +35,7 @@ use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::gpuqueue::GPUQueue;
+use crate::dom::gpusampler::GPUSampler;
 use crate::dom::gpushadermodule::GPUShaderModule;
 use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
@@ -44,11 +48,7 @@ use std::ptr::{self, NonNull};
 use webgpu::wgpu::binding_model::{
     BindGroupEntry, BindGroupLayoutEntry, BindingResource, BindingType, BufferBinding,
 };
-use webgpu::wgt::{
-    BufferDescriptor, BufferUsage, ShaderStage, TextureComponentType, TextureFormat,
-    TextureViewDimension,
-};
-use webgpu::{WebGPU, WebGPUDevice, WebGPUQueue, WebGPURequest};
+use webgpu::{wgt, WebGPU, WebGPUDevice, WebGPUQueue, WebGPURequest, WebGPUSampler};
 
 #[dom_struct]
 pub struct GPUDevice {
@@ -110,15 +110,15 @@ impl GPUDevice {
     fn validate_buffer_descriptor(
         &self,
         descriptor: &GPUBufferDescriptor,
-    ) -> (bool, BufferDescriptor<std::string::String>) {
+    ) -> (bool, wgt::BufferDescriptor<std::string::String>) {
         // TODO: Record a validation error in the current scope if the descriptor is invalid.
-        let wgpu_usage = BufferUsage::from_bits(descriptor.usage);
+        let wgpu_usage = wgt::BufferUsage::from_bits(descriptor.usage);
         let valid = wgpu_usage.is_some() && descriptor.size > 0;
 
         if valid {
             (
                 true,
-                BufferDescriptor {
+                wgt::BufferDescriptor {
                     size: descriptor.size,
                     usage: wgpu_usage.unwrap(),
                     label: Default::default(),
@@ -127,9 +127,9 @@ impl GPUDevice {
         } else {
             (
                 false,
-                BufferDescriptor {
+                wgt::BufferDescriptor {
                     size: 0,
-                    usage: BufferUsage::STORAGE,
+                    usage: wgt::BufferUsage::empty(),
                     label: Default::default(),
                 },
             )
@@ -280,9 +280,9 @@ impl GPUDeviceMethods for GPUDevice {
             max_storage_textures_per_shader_stage: limits.maxStorageTexturesPerShaderStage as i32,
             max_samplers_per_shader_stage: limits.maxSamplersPerShaderStage as i32,
         };
-        validation_map.insert(ShaderStage::VERTEX, maxLimits.clone());
-        validation_map.insert(ShaderStage::FRAGMENT, maxLimits.clone());
-        validation_map.insert(ShaderStage::COMPUTE, maxLimits.clone());
+        validation_map.insert(wgt::ShaderStage::VERTEX, maxLimits.clone());
+        validation_map.insert(wgt::ShaderStage::FRAGMENT, maxLimits.clone());
+        validation_map.insert(wgt::ShaderStage::COMPUTE, maxLimits.clone());
         let mut max_dynamic_uniform_buffers_per_pipeline_layout =
             limits.maxDynamicUniformBuffersPerPipelineLayout as i32;
         let mut max_dynamic_storage_buffers_per_pipeline_layout =
@@ -295,11 +295,11 @@ impl GPUDeviceMethods for GPUDevice {
             .map(|bind| {
                 // TODO: binding must be >= 0
                 storeBindings.insert(bind.binding);
-                let visibility = match ShaderStage::from_bits(bind.visibility) {
+                let visibility = match wgt::ShaderStage::from_bits(bind.visibility) {
                     Some(visibility) => visibility,
                     None => {
                         valid = false;
-                        ShaderStage::from_bits(0).unwrap()
+                        wgt::ShaderStage::from_bits(0).unwrap()
                     },
                 };
                 let ty = match bind.type_ {
@@ -375,9 +375,9 @@ impl GPUDeviceMethods for GPUDevice {
                     has_dynamic_offset: bind.hasDynamicOffset,
                     multisampled: bind.multisampled,
                     // Use as default for now
-                    texture_component_type: TextureComponentType::Float,
-                    storage_texture_format: TextureFormat::Rgba8UnormSrgb,
-                    view_dimension: TextureViewDimension::D2,
+                    texture_component_type: wgt::TextureComponentType::Float,
+                    storage_texture_format: wgt::TextureFormat::Rgba8UnormSrgb,
+                    view_dimension: wgt::TextureViewDimension::D2,
                 }
             })
             .collect::<Vec<BindGroupLayoutEntry>>();
@@ -507,7 +507,7 @@ impl GPUDeviceMethods for GPUDevice {
             let buffer_size = bind.resource.buffer.size();
             let resource_size = bind.resource.size.unwrap_or(buffer_size);
             let length = bind.resource.offset.checked_add(resource_size);
-            let usage = BufferUsage::from_bits(bind.resource.buffer.usage()).unwrap();
+            let usage = wgt::BufferUsage::from_bits(bind.resource.buffer.usage()).unwrap();
 
             length.is_some() &&
             buffer_size >= length.unwrap() && // check buffer OOB
@@ -515,9 +515,9 @@ impl GPUDeviceMethods for GPUDevice {
             bind.resource.offset < buffer_size && // on Vulkan offset must be less than size of buffer
             descriptor.layout.bindings().iter().any(|layout_bind| {
                 let ty = match layout_bind.type_ {
-                    GPUBindingType::Storage_buffer  => BufferUsage::STORAGE,
+                    GPUBindingType::Storage_buffer  => wgt::BufferUsage::STORAGE,
                     // GPUBindingType::Readonly_storage_buffer  => BufferUsage::STORAGE_READ,
-                    GPUBindingType::Uniform_buffer => BufferUsage::UNIFORM,
+                    GPUBindingType::Uniform_buffer => wgt::BufferUsage::UNIFORM,
                     _ => unimplemented!(),
                 };
                 // binding must be present in layout
@@ -640,5 +640,73 @@ impl GPUDeviceMethods for GPUDevice {
         let encoder = receiver.recv().unwrap();
 
         GPUCommandEncoder::new(&self.global(), self.channel.clone(), encoder, true)
+    }
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
+    fn CreateSampler(&self, descriptor: &GPUSamplerDescriptor) -> DomRoot<GPUSampler> {
+        let sampler_id = self
+            .global()
+            .wgpu_id_hub()
+            .lock()
+            .create_sampler_id(self.device.0.backend());
+        let compare_enable = descriptor.compare.is_some();
+        let desc = wgt::SamplerDescriptor {
+            label: Default::default(),
+            address_mode_u: assign_address_mode(descriptor.addressModeU),
+            address_mode_v: assign_address_mode(descriptor.addressModeV),
+            address_mode_w: assign_address_mode(descriptor.addressModeW),
+            mag_filter: assign_filter_mode(descriptor.magFilter),
+            min_filter: assign_filter_mode(descriptor.minFilter),
+            mipmap_filter: assign_filter_mode(descriptor.mipmapFilter),
+            lod_min_clamp: *descriptor.lodMinClamp,
+            lod_max_clamp: *descriptor.lodMaxClamp,
+            compare: if let Some(c) = descriptor.compare {
+                match c {
+                    GPUCompareFunction::Never => wgt::CompareFunction::Never,
+                    GPUCompareFunction::Less => wgt::CompareFunction::Less,
+                    GPUCompareFunction::Equal => wgt::CompareFunction::Equal,
+                    GPUCompareFunction::Less_equal => wgt::CompareFunction::LessEqual,
+                    GPUCompareFunction::Greater => wgt::CompareFunction::Greater,
+                    GPUCompareFunction::Not_equal => wgt::CompareFunction::NotEqual,
+                    GPUCompareFunction::Greater_equal => wgt::CompareFunction::GreaterEqual,
+                    GPUCompareFunction::Always => wgt::CompareFunction::Always,
+                }
+            } else {
+                wgt::CompareFunction::Undefined
+            },
+        };
+        self.channel
+            .0
+            .send(WebGPURequest::CreateSampler {
+                device_id: self.device.0,
+                sampler_id,
+                descriptor: desc,
+            })
+            .expect("Failed to create WebGPU sampler");
+
+        let sampler = WebGPUSampler(sampler_id);
+
+        GPUSampler::new(
+            &self.global(),
+            self.channel.clone(),
+            self.device,
+            compare_enable,
+            sampler,
+            true,
+        )
+    }
+}
+
+fn assign_address_mode(address_mode: GPUAddressMode) -> wgt::AddressMode {
+    match address_mode {
+        GPUAddressMode::Clamp_to_edge => wgt::AddressMode::ClampToEdge,
+        GPUAddressMode::Repeat => wgt::AddressMode::Repeat,
+        GPUAddressMode::Mirror_repeat => wgt::AddressMode::MirrorRepeat,
+    }
+}
+
+fn assign_filter_mode(filter_mode: GPUFilterMode) -> wgt::FilterMode {
+    match filter_mode {
+        GPUFilterMode::Nearest => wgt::FilterMode::Nearest,
+        GPUFilterMode::Linear => wgt::FilterMode::Linear,
     }
 }

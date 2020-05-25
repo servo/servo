@@ -7,7 +7,7 @@ use webgpu::wgpu::{
     hub::IdentityManager,
     id::{
         AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
-        DeviceId, PipelineLayoutId, ShaderModuleId,
+        DeviceId, PipelineLayoutId, SamplerId, ShaderModuleId,
     },
 };
 use webgpu::wgt::Backend;
@@ -23,11 +23,11 @@ pub struct IdentityHub {
     pipeline_layouts: IdentityManager,
     shader_modules: IdentityManager,
     command_encoders: IdentityManager,
-    backend: Backend,
+    samplers: IdentityManager,
 }
 
 impl IdentityHub {
-    fn new(backend: Backend) -> Self {
+    fn new() -> Self {
         IdentityHub {
             adapters: IdentityManager::default(),
             devices: IdentityManager::default(),
@@ -38,44 +38,8 @@ impl IdentityHub {
             pipeline_layouts: IdentityManager::default(),
             shader_modules: IdentityManager::default(),
             command_encoders: IdentityManager::default(),
-            backend,
+            samplers: IdentityManager::default(),
         }
-    }
-
-    fn create_adapter_id(&mut self) -> AdapterId {
-        self.adapters.alloc(self.backend)
-    }
-
-    fn create_device_id(&mut self) -> DeviceId {
-        self.devices.alloc(self.backend)
-    }
-
-    fn create_buffer_id(&mut self) -> BufferId {
-        self.buffers.alloc(self.backend)
-    }
-
-    fn create_bind_group_id(&mut self) -> BindGroupId {
-        self.bind_groups.alloc(self.backend)
-    }
-
-    fn create_bind_group_layout_id(&mut self) -> BindGroupLayoutId {
-        self.bind_group_layouts.alloc(self.backend)
-    }
-
-    fn create_compute_pipeline_id(&mut self) -> ComputePipelineId {
-        self.compute_pipelines.alloc(self.backend)
-    }
-
-    fn create_pipeline_layout_id(&mut self) -> PipelineLayoutId {
-        self.pipeline_layouts.alloc(self.backend)
-    }
-
-    fn create_shader_module_id(&mut self) -> ShaderModuleId {
-        self.shader_modules.alloc(self.backend)
-    }
-
-    fn create_command_encoder_id(&mut self) -> CommandEncoderId {
-        self.command_encoders.alloc(self.backend)
     }
 }
 
@@ -98,14 +62,14 @@ impl Identities {
         Identities {
             surface: IdentityManager::default(),
             #[cfg(any(target_os = "linux", target_os = "windows"))]
-            vk_hub: IdentityHub::new(Backend::Vulkan),
+            vk_hub: IdentityHub::new(),
             #[cfg(target_os = "windows")]
-            dx12_hub: IdentityHub::new(Backend::Dx12),
+            dx12_hub: IdentityHub::new(),
             #[cfg(target_os = "windows")]
-            dx11_hub: IdentityHub::new(Backend::Dx11),
+            dx11_hub: IdentityHub::new(),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
-            metal_hub: IdentityHub::new(Backend::Metal),
-            dummy_hub: IdentityHub::new(Backend::Empty),
+            metal_hub: IdentityHub::new(),
+            dummy_hub: IdentityHub::new(),
         }
     }
 
@@ -123,22 +87,22 @@ impl Identities {
         }
     }
 
-    fn hubs(&mut self) -> Vec<&mut IdentityHub> {
+    fn hubs(&mut self) -> Vec<(&mut IdentityHub, Backend)> {
         vec![
             #[cfg(any(target_os = "linux", target_os = "windows"))]
-            &mut self.vk_hub,
+            (&mut self.vk_hub, Backend::Vulkan),
             #[cfg(target_os = "windows")]
-            &mut self.dx12_hub,
+            (&mut self.dx12_hub, Backend::Dx12),
             #[cfg(target_os = "windows")]
-            &mut self.dx11_hub,
+            (&mut self.dx11_hub, Backend::Dx11),
             #[cfg(any(target_os = "ios", target_os = "macos"))]
-            &mut self.metal_hub,
-            &mut self.dummy_hub,
+            (&mut self.metal_hub, Backend::Metal),
+            (&mut self.dummy_hub, Backend::Empty),
         ]
     }
 
     pub fn create_device_id(&mut self, backend: Backend) -> DeviceId {
-        self.select(backend).create_device_id()
+        self.select(backend).devices.alloc(backend)
     }
 
     pub fn kill_device_id(&mut self, id: DeviceId) {
@@ -147,8 +111,8 @@ impl Identities {
 
     pub fn create_adapter_ids(&mut self) -> SmallVec<[AdapterId; 4]> {
         let mut ids = SmallVec::new();
-        for hub in self.hubs() {
-            ids.push(hub.create_adapter_id())
+        for hubs in self.hubs() {
+            ids.push(hubs.0.adapters.alloc(hubs.1));
         }
         ids
     }
@@ -158,7 +122,7 @@ impl Identities {
     }
 
     pub fn create_buffer_id(&mut self, backend: Backend) -> BufferId {
-        self.select(backend).create_buffer_id()
+        self.select(backend).buffers.alloc(backend)
     }
 
     pub fn kill_buffer_id(&mut self, id: BufferId) {
@@ -166,7 +130,7 @@ impl Identities {
     }
 
     pub fn create_bind_group_id(&mut self, backend: Backend) -> BindGroupId {
-        self.select(backend).create_bind_group_id()
+        self.select(backend).bind_groups.alloc(backend)
     }
 
     pub fn kill_bind_group_id(&mut self, id: BindGroupId) {
@@ -174,7 +138,7 @@ impl Identities {
     }
 
     pub fn create_bind_group_layout_id(&mut self, backend: Backend) -> BindGroupLayoutId {
-        self.select(backend).create_bind_group_layout_id()
+        self.select(backend).bind_group_layouts.alloc(backend)
     }
 
     pub fn kill_bind_group_layout_id(&mut self, id: BindGroupLayoutId) {
@@ -182,7 +146,7 @@ impl Identities {
     }
 
     pub fn create_compute_pipeline_id(&mut self, backend: Backend) -> ComputePipelineId {
-        self.select(backend).create_compute_pipeline_id()
+        self.select(backend).compute_pipelines.alloc(backend)
     }
 
     pub fn kill_compute_pipeline_id(&mut self, id: ComputePipelineId) {
@@ -190,7 +154,7 @@ impl Identities {
     }
 
     pub fn create_pipeline_layout_id(&mut self, backend: Backend) -> PipelineLayoutId {
-        self.select(backend).create_pipeline_layout_id()
+        self.select(backend).pipeline_layouts.alloc(backend)
     }
 
     pub fn kill_pipeline_layout_id(&mut self, id: PipelineLayoutId) {
@@ -198,7 +162,7 @@ impl Identities {
     }
 
     pub fn create_shader_module_id(&mut self, backend: Backend) -> ShaderModuleId {
-        self.select(backend).create_shader_module_id()
+        self.select(backend).shader_modules.alloc(backend)
     }
 
     pub fn kill_shader_module_id(&mut self, id: ShaderModuleId) {
@@ -206,10 +170,18 @@ impl Identities {
     }
 
     pub fn create_command_encoder_id(&mut self, backend: Backend) -> CommandEncoderId {
-        self.select(backend).create_command_encoder_id()
+        self.select(backend).command_encoders.alloc(backend)
     }
 
     pub fn kill_command_buffer_id(&mut self, id: CommandEncoderId) {
         self.select(id.backend()).command_encoders.free(id);
+    }
+
+    pub fn create_sampler_id(&mut self, backend: Backend) -> SamplerId {
+        self.select(backend).samplers.alloc(backend)
+    }
+
+    pub fn kill_sampler_id(&mut self, id: SamplerId) {
+        self.select(id.backend()).samplers.free(id);
     }
 }

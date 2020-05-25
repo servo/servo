@@ -16,18 +16,15 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use smallvec::SmallVec;
+use std::ffi::CString;
 use std::ptr;
 use wgpu::{
     binding_model::{
         BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
     },
-    id::{
-        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
-        ComputePipelineId, DeviceId, PipelineLayoutId, QueueId, ShaderModuleId,
-    },
+    id,
     instance::RequestAdapterOptions,
 };
-use wgt::{BufferAddress, BufferDescriptor, CommandBufferDescriptor, DeviceDescriptor};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPUResponse {
@@ -39,7 +36,7 @@ pub enum WebGPUResponse {
     RequestDevice {
         device_id: WebGPUDevice,
         queue_id: WebGPUQueue,
-        _descriptor: DeviceDescriptor,
+        _descriptor: wgt::DeviceDescriptor,
     },
 }
 
@@ -49,94 +46,99 @@ pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
 pub enum WebGPURequest {
     CommandEncoderFinish {
         sender: IpcSender<WebGPUCommandBuffer>,
-        command_encoder_id: CommandEncoderId,
+        command_encoder_id: id::CommandEncoderId,
         // TODO(zakorgy): Serialize CommandBufferDescriptor in wgpu-core
         // wgpu::command::CommandBufferDescriptor,
     },
     CopyBufferToBuffer {
-        command_encoder_id: CommandEncoderId,
-        source_id: BufferId,
-        source_offset: BufferAddress,
-        destination_id: BufferId,
-        destination_offset: BufferAddress,
-        size: BufferAddress,
+        command_encoder_id: id::CommandEncoderId,
+        source_id: id::BufferId,
+        source_offset: wgt::BufferAddress,
+        destination_id: id::BufferId,
+        destination_offset: wgt::BufferAddress,
+        size: wgt::BufferAddress,
     },
     CreateBindGroup {
         sender: IpcSender<WebGPUBindGroup>,
-        device_id: DeviceId,
-        bind_group_id: BindGroupId,
-        bind_group_layout_id: BindGroupLayoutId,
+        device_id: id::DeviceId,
+        bind_group_id: id::BindGroupId,
+        bind_group_layout_id: id::BindGroupLayoutId,
         bindings: Vec<BindGroupEntry>,
     },
     CreateBindGroupLayout {
         sender: IpcSender<WebGPUBindGroupLayout>,
-        device_id: DeviceId,
-        bind_group_layout_id: BindGroupLayoutId,
+        device_id: id::DeviceId,
+        bind_group_layout_id: id::BindGroupLayoutId,
         bindings: Vec<BindGroupLayoutEntry>,
     },
     CreateBuffer {
         sender: IpcSender<WebGPUBuffer>,
-        device_id: DeviceId,
-        buffer_id: BufferId,
-        descriptor: BufferDescriptor<String>,
+        device_id: id::DeviceId,
+        buffer_id: id::BufferId,
+        descriptor: wgt::BufferDescriptor<String>,
     },
     CreateBufferMapped {
         sender: IpcSender<WebGPUBuffer>,
-        device_id: DeviceId,
-        buffer_id: BufferId,
-        descriptor: BufferDescriptor<String>,
+        device_id: id::DeviceId,
+        buffer_id: id::BufferId,
+        descriptor: wgt::BufferDescriptor<String>,
     },
     CreateCommandEncoder {
         sender: IpcSender<WebGPUCommandEncoder>,
-        device_id: DeviceId,
+        device_id: id::DeviceId,
         // TODO(zakorgy): Serialize CommandEncoderDescriptor in wgpu-core
         // wgpu::command::CommandEncoderDescriptor,
-        command_encoder_id: CommandEncoderId,
+        command_encoder_id: id::CommandEncoderId,
     },
     CreateComputePipeline {
         sender: IpcSender<WebGPUComputePipeline>,
-        device_id: DeviceId,
-        compute_pipeline_id: ComputePipelineId,
-        pipeline_layout_id: PipelineLayoutId,
-        program_id: ShaderModuleId,
+        device_id: id::DeviceId,
+        compute_pipeline_id: id::ComputePipelineId,
+        pipeline_layout_id: id::PipelineLayoutId,
+        program_id: id::ShaderModuleId,
         entry_point: String,
     },
     CreatePipelineLayout {
         sender: IpcSender<WebGPUPipelineLayout>,
-        device_id: DeviceId,
-        pipeline_layout_id: PipelineLayoutId,
-        bind_group_layouts: Vec<BindGroupLayoutId>,
+        device_id: id::DeviceId,
+        pipeline_layout_id: id::PipelineLayoutId,
+        bind_group_layouts: Vec<id::BindGroupLayoutId>,
+    },
+    CreateSampler {
+        device_id: id::DeviceId,
+        sampler_id: id::SamplerId,
+        descriptor: wgt::SamplerDescriptor<String>,
     },
     CreateShaderModule {
         sender: IpcSender<WebGPUShaderModule>,
-        device_id: DeviceId,
-        program_id: ShaderModuleId,
+        device_id: id::DeviceId,
+        program_id: id::ShaderModuleId,
         program: Vec<u32>,
     },
-    DestroyBuffer(BufferId),
+    DestroyBuffer(id::BufferId),
     Exit(IpcSender<()>),
     RequestAdapter {
         sender: IpcSender<WebGPUResponseResult>,
         options: RequestAdapterOptions,
-        ids: SmallVec<[AdapterId; 4]>,
+        ids: SmallVec<[id::AdapterId; 4]>,
     },
     RequestDevice {
         sender: IpcSender<WebGPUResponseResult>,
         adapter_id: WebGPUAdapter,
-        descriptor: DeviceDescriptor,
-        device_id: DeviceId,
+        descriptor: wgt::DeviceDescriptor,
+        device_id: id::DeviceId,
     },
     RunComputePass {
-        command_encoder_id: CommandEncoderId,
+        command_encoder_id: id::CommandEncoderId,
         pass_data: Vec<u8>,
     },
     Submit {
-        queue_id: QueueId,
-        command_buffers: Vec<CommandBufferId>,
+        queue_id: id::QueueId,
+        command_buffers: Vec<id::CommandBufferId>,
     },
     UnmapBuffer {
-        device_id: DeviceId,
-        buffer_id: BufferId,
+        device_id: id::DeviceId,
+        buffer_id: id::BufferId,
         array_buffer: Vec<u8>,
     },
 }
@@ -230,7 +232,7 @@ impl WGPU {
                     let global = &self.global;
                     let command_buffer_id = gfx_select!(command_encoder_id => global.command_encoder_finish(
                         command_encoder_id,
-                        &CommandBufferDescriptor::default()
+                        &wgt::CommandBufferDescriptor::default()
                     ));
                     if let Err(e) = sender.send(WebGPUCommandBuffer(command_buffer_id)) {
                         warn!(
@@ -312,7 +314,7 @@ impl WGPU {
                     descriptor,
                 } => {
                     let global = &self.global;
-                    let desc = BufferDescriptor {
+                    let desc = wgt::BufferDescriptor {
                         size: descriptor.size,
                         usage: descriptor.usage,
                         label: ptr::null(),
@@ -333,7 +335,7 @@ impl WGPU {
                     descriptor,
                 } => {
                     let global = &self.global;
-                    let desc = BufferDescriptor {
+                    let desc = wgt::BufferDescriptor {
                         size: descriptor.size,
                         usage: descriptor.usage,
                         label: ptr::null(),
@@ -413,6 +415,16 @@ impl WGPU {
                             e
                         )
                     }
+                },
+                WebGPURequest::CreateSampler {
+                    device_id,
+                    sampler_id,
+                    descriptor,
+                } => {
+                    let global = &self.global;
+                    let st = CString::new(descriptor.label.as_bytes()).unwrap();
+                    let _ = gfx_select!(sampler_id =>
+                        global.device_create_sampler(device_id, &descriptor.map_label(|_| st.as_ptr()), sampler_id));
                 },
                 WebGPURequest::CreateShaderModule {
                     sender,
@@ -579,14 +591,15 @@ macro_rules! webgpu_resource {
     };
 }
 
-webgpu_resource!(WebGPUAdapter, AdapterId);
-webgpu_resource!(WebGPUBindGroup, BindGroupId);
-webgpu_resource!(WebGPUBindGroupLayout, BindGroupLayoutId);
-webgpu_resource!(WebGPUBuffer, BufferId);
-webgpu_resource!(WebGPUCommandBuffer, CommandBufferId);
-webgpu_resource!(WebGPUCommandEncoder, CommandEncoderId);
-webgpu_resource!(WebGPUComputePipeline, ComputePipelineId);
-webgpu_resource!(WebGPUDevice, DeviceId);
-webgpu_resource!(WebGPUPipelineLayout, PipelineLayoutId);
-webgpu_resource!(WebGPUQueue, QueueId);
-webgpu_resource!(WebGPUShaderModule, ShaderModuleId);
+webgpu_resource!(WebGPUAdapter, id::AdapterId);
+webgpu_resource!(WebGPUBindGroup, id::BindGroupId);
+webgpu_resource!(WebGPUBindGroupLayout, id::BindGroupLayoutId);
+webgpu_resource!(WebGPUBuffer, id::BufferId);
+webgpu_resource!(WebGPUCommandBuffer, id::CommandBufferId);
+webgpu_resource!(WebGPUCommandEncoder, id::CommandEncoderId);
+webgpu_resource!(WebGPUComputePipeline, id::ComputePipelineId);
+webgpu_resource!(WebGPUDevice, id::DeviceId);
+webgpu_resource!(WebGPUPipelineLayout, id::PipelineLayoutId);
+webgpu_resource!(WebGPUQueue, id::QueueId);
+webgpu_resource!(WebGPUSampler, id::SamplerId);
+webgpu_resource!(WebGPUShaderModule, id::ShaderModuleId);
