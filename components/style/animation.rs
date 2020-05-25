@@ -889,7 +889,7 @@ impl ElementAnimationSet {
         if let Some(old_transition) = self
             .transitions
             .iter_mut()
-            .filter(|transition| transition.state != AnimationState::Canceled)
+            .filter(|transition| transition.state == AnimationState::Running)
             .find(|transition| transition.property_animation.property_id() == longhand_id)
         {
             // We always cancel any running transitions for the same property.

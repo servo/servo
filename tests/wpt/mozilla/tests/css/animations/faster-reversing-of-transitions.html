@@ -28,6 +28,12 @@ function createTransitionElement() {
   return element;
 }
 
+function waitForFrame() {
+  return new Promise(resolve => {
+    window.requestAnimationFrame(resolve);
+  });
+}
+
 test(function() {
   let testBinding = new window.TestBinding();
   let div = createTransitionElement();
@@ -121,4 +127,41 @@ test(function() {
 
   document.body.removeChild(div);
 }, "Non-reversed transition changes use the full transition-duration");
+
+promise_test(async t => {
+  let testBinding = new window.TestBinding();
+  let div = createTransitionElement();
+
+  let handledTransitionEnd = false;
+  div.addEventListener("transitionend", () => {
+      handledTransitionEnd = true;
+  });
+
+  let handledTransitionCancel = false;
+  div.addEventListener("transitioncancel", () => {
+      handledTransitionCancel = true;
+  });
+
+  // Start a transition and allow 30% of it to complete.
+  div.style.width = "110px";
+  getComputedStyle(div).width;
+
+  testBinding.advanceClock(10000);
+  getComputedStyle(div).width;
+
+  div.style.transitionDuration = "1000s";
+  div.style.width = "10px";
+
+  testBinding.advanceClock(1);
+  getComputedStyle(div).width;
+
+  await waitForFrame();
+
+  // We should either have canceled the animation or it should have terminated.
+  assert_true(handledTransitionCancel || handledTransitionEnd);
+  assert_false(handledTransitionCancel && handledTransitionEnd);
+
+  document.body.removeChild(div);
+}, "Finished transitions are not reversed");
+
 </script>

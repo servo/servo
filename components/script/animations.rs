@@ -55,6 +55,8 @@ impl Animations {
                     );
                 }
             }
+
+            Self::finish_running_animations(set, now, &mut update);
         }
         update
     }
@@ -71,7 +73,6 @@ impl Animations {
 
             for set in sets.values_mut() {
                 Self::handle_canceled_animations(set, now, &mut update);
-                Self::finish_running_animations(set, now, &mut update);
                 Self::handle_new_animations(set, &mut update);
             }
 
