@@ -29,7 +29,6 @@ mod energymon {
 
     use self::energy_monitor::EnergyMonitor;
     use self::energymon::EnergyMon;
-    use std::mem;
     use std::sync::{Once, ONCE_INIT};
 
     static mut EM: Option<*mut EnergyMon> = None;
@@ -41,7 +40,7 @@ mod energymon {
             if let Ok(em) = EnergyMon::new() {
                 println!("Started energy monitoring from: {}", em.source());
                 unsafe {
-                    EM = Some(mem::transmute(Box::new(em)));
+                    EM = Some(Box::into_raw(Box::new(em)));
                 }
             }
         });
