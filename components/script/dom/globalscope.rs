@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
@@ -51,7 +51,7 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
-use crate::script_module::ModuleTree;
+use crate::script_module::{DynamicModuleList, ModuleTree};
 use crate::script_runtime::{
     CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext, ScriptChan, ScriptPort,
 };
@@ -298,6 +298,9 @@ pub struct GlobalScope {
 
     /// The stack of active group labels for the Console APIs.
     console_group_stack: DomRefCell<Vec<DOMString>>,
+
+    /// List of ongoing dynamic module imports.
+    dynamic_modules: DomRefCell<DynamicModuleList>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -748,6 +751,7 @@ impl GlobalScope {
             frozen_supported_performance_entry_types: DomRefCell::new(Default::default()),
             https_state: Cell::new(HttpsState::None),
             console_group_stack: DomRefCell::new(Vec::new()),
+            dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
         }
     }
 
@@ -2952,6 +2956,10 @@ impl GlobalScope {
 
     pub(crate) fn pop_console_group(&self) {
         let _ = self.console_group_stack.borrow_mut().pop();
+    }
+
+    pub(crate) fn dynamic_module_list(&self) -> RefMut<DynamicModuleList> {
+        self.dynamic_modules.borrow_mut()
     }
 }
 

@@ -77,12 +77,13 @@ use hyper::Method;
 use hyper::StatusCode;
 use indexmap::IndexMap;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use js::glue::{CallObjectTracer, CallValueTracer};
-use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSTracer, JobQueue, TraceKind};
+use js::glue::{CallObjectTracer, CallStringTracer, CallValueTracer};
+use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSString, JSTracer, JobQueue, TraceKind};
 use js::jsval::JSVal;
 use js::rust::{GCMethods, Handle, Runtime};
 use js::typedarray::TypedArray;
 use js::typedarray::TypedArrayElement;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use media::WindowGLContext;
 use metrics::{InteractiveMetrics, InteractiveWindow};
 use mime::Mime;
@@ -134,6 +135,7 @@ use std::borrow::Cow;
 use std::cell::{Cell, RefCell, UnsafeCell};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::hash::{BuildHasher, Hash};
+use std::mem;
 use std::ops::{Deref, DerefMut, Range};
 use std::path::PathBuf;
 use std::rc::Rc;
@@ -251,6 +253,18 @@ pub fn trace_object(tracer: *mut JSTracer, description: &str, obj: &Heap<*mut JS
     }
 }
 
+/// Trace a `JSString`.
+pub fn trace_string(tracer: *mut JSTracer, description: &str, s: &Heap<*mut JSString>) {
+    unsafe {
+        trace!("tracing {}", description);
+        CallStringTracer(
+            tracer,
+            s.ptr.get() as *mut _,
+            GCTraceKindToAscii(TraceKind::String),
+        );
+    }
+}
+
 unsafe impl<T: JSTraceable> JSTraceable for Rc<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         (**self).trace(trc)
@@ -319,6 +333,15 @@ unsafe impl JSTraceable for Heap<*mut JSObject> {
             return;
         }
         trace_object(trc, "heap object", self);
+    }
+}
+
+unsafe impl JSTraceable for Heap<*mut JSString> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        if self.get().is_null() {
+            return;
+        }
+        trace_string(trc, "heap string", self);
     }
 }
 
@@ -1063,6 +1086,17 @@ where
 {
     pub fn handle(&self) -> Handle<T> {
         unsafe { Handle::from_raw((*self.ptr).handle()) }
+    }
+}
+
+impl<T: JSTraceable + MallocSizeOf> MallocSizeOf for RootedTraceableBox<T> {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // Briefly resurrect the real Box value so we can rely on the existing calculations.
+        // Then immediately forget about it again to avoid dropping the box.
+        let inner = unsafe { Box::from_raw(self.ptr) };
+        let size = inner.size_of(ops);
+        mem::forget(inner);
+        size
     }
 }
 

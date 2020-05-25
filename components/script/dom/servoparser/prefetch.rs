@@ -7,6 +7,7 @@ use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::document::{determine_policy_for_token, Document};
 use crate::dom::htmlimageelement::{image_fetch_request, FromPictureOrSrcSet};
 use crate::dom::htmlscriptelement::script_fetch_request;
+use crate::script_module::ScriptFetchOptions;
 use crate::stylesheet_loader::stylesheet_fetch_request;
 use html5ever::buffer_queue::BufferQueue;
 use html5ever::tokenizer::states::RawKind;
@@ -22,6 +23,8 @@ use html5ever::LocalName;
 use js::jsapi::JSTracer;
 use msg::constellation_msg::PipelineId;
 use net_traits::request::CorsSettings;
+use net_traits::request::CredentialsMode;
+use net_traits::request::ParserMetadata;
 use net_traits::request::Referrer;
 use net_traits::CoreResourceMsg;
 use net_traits::FetchChannels;
@@ -110,9 +113,14 @@ impl TokenSink for PrefetchSink {
                         cors_setting,
                         self.origin.clone(),
                         self.pipeline_id,
-                        self.referrer.clone(),
-                        self.referrer_policy,
-                        integrity_metadata,
+                        ScriptFetchOptions {
+                            referrer: self.referrer.clone(),
+                            referrer_policy: self.referrer_policy,
+                            integrity_metadata,
+                            cryptographic_nonce: String::new(),
+                            credentials_mode: CredentialsMode::CredentialsSameOrigin,
+                            parser_metadata: ParserMetadata::ParserInserted,
+                        },
                     );
                     let _ = self
                         .resource_threads
