@@ -1885,7 +1885,7 @@ dependencies = [
  "gfx-hal",
  "lazy_static",
  "log",
- "metal 0.18.0",
+ "metal",
  "objc",
  "parking_lot 0.10.2",
  "range-alloc",
@@ -2849,7 +2849,7 @@ dependencies = [
  "msg",
  "net_traits",
  "num-traits",
- "parking_lot 0.9.0",
+ "parking_lot 0.10.2",
  "profile_traits",
  "range",
  "rayon",
@@ -2893,7 +2893,7 @@ dependencies = [
  "mitochondria",
  "msg",
  "net_traits",
- "parking_lot 0.9.0",
+ "parking_lot 0.10.2",
  "range",
  "rayon",
  "rayon_croissant",
@@ -2935,7 +2935,7 @@ dependencies = [
  "metrics",
  "msg",
  "net_traits",
- "parking_lot 0.9.0",
+ "parking_lot 0.10.2",
  "profile_traits",
  "range",
  "rayon",
@@ -2980,7 +2980,7 @@ dependencies = [
  "metrics",
  "msg",
  "net_traits",
- "parking_lot 0.9.0",
+ "parking_lot 0.10.2",
  "profile_traits",
  "range",
  "script",
@@ -3388,21 +3388,6 @@ dependencies = [
 
 [[package]]
 name = "metal"
-version = "0.17.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f83c7dcc2038e12f68493fa3de44235df27b2497178e257185b4b5b5d028a1e4"
-dependencies = [
- "bitflags",
- "block",
- "cocoa 0.19.1",
- "core-graphics 0.17.3",
- "foreign-types",
- "log",
- "objc",
-]
-
-[[package]]
-name = "metal"
 version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e198a0ee42bdbe9ef2c09d0b9426f3b2b47d90d93a4a9b0395c4cea605e92dc0"
@@ -3599,7 +3584,7 @@ dependencies = [
  "lazy_static",
  "malloc_size_of",
  "malloc_size_of_derive",
- "parking_lot 0.9.0",
+ "parking_lot 0.10.2",
  "serde",
  "servo_url",
  "size_of_test",
@@ -4675,7 +4660,7 @@ dependencies = [
  "msg",
  "net_traits",
  "num-traits",
- "parking_lot 0.9.0",
+ "parking_lot 0.10.2",
  "percent-encoding",
  "phf",
  "phf_codegen",
@@ -4739,7 +4724,7 @@ dependencies = [
  "metrics",
  "msg",
  "net_traits",
- "parking_lot 0.9.0",
+ "parking_lot 0.10.2",
  "profile_traits",
  "range",
  "script_traits",
@@ -5567,7 +5552,7 @@ dependencies = [
  "num-traits",
  "num_cpus",
  "owning_ref",
- "parking_lot 0.9.0",
+ "parking_lot 0.10.2",
  "precomputed-hash",
  "rayon",
  "regex",
@@ -5651,7 +5636,7 @@ dependencies = [
 [[package]]
 name = "surfman"
 version = "0.2.0"
-source = "git+https://github.com/servo/surfman#bc084411664b04dba777659e5ce16b5f95b7371a"
+source = "git+https://github.com/servo/surfman#2283acaa3a856c2f76028cb23b5dde7dc0030cdf"
 dependencies = [
  "bitflags",
  "cfg_aliases",
@@ -5667,9 +5652,9 @@ dependencies = [
  "libc",
  "log",
  "mach",
- "metal 0.17.1",
+ "metal",
  "objc",
- "parking_lot 0.9.0",
+ "parking_lot 0.10.2",
  "wayland-sys 0.24.0",
  "winapi",
  "winit",
