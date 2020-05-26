@@ -17,7 +17,7 @@ ipc-channel = "0.14"
 lazy_static = "1"
 log = "0.4"
 serde = "1.0"
-servo_config = {path = "../config"}
-servo-media = {git = "https://github.com/servo/media"}
-webrender_api = {git = "https://github.com/servo/webrender"}
-webrender_traits = {path = "../webrender_traits"}
+servo-media = { git = "https://github.com/servo/media" }
+servo_config = { path = "../config" }
+webrender_api = { git = "https://github.com/servo/webrender" }
+webrender_traits = { path = "../webrender_traits" }
