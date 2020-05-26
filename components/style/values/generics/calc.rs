@@ -337,7 +337,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
             ($slot:expr) => {{
                 let dummy = Self::MinMax(Default::default(), MinMaxOp::Max);
                 let result = mem::replace($slot, dummy);
-                let _ = mem::replace(self, result);
+                *self = result;
             }};
         }
         match *self {
@@ -464,7 +464,7 @@ impl<L: CalcNodeLeaf> CalcNode<L> {
                     replace_self_with!(&mut children[0]);
                 } else {
                     // Else put our simplified children back.
-                    let _ = mem::replace(children_slot, children.into_boxed_slice().into());
+                    *children_slot = children.into_boxed_slice().into();
                 }
             },
             Self::Leaf(ref mut l) => {
