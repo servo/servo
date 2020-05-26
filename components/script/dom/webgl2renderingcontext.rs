@@ -2917,8 +2917,74 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
-    #[allow(unsafe_code)]
     fn TexImage2D__(
+        &self,
+        target: u32,
+        level: i32,
+        internalformat: i32,
+        width: i32,
+        height: i32,
+        border: i32,
+        format: u32,
+        type_: u32,
+        source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
+    ) -> Fallible<()> {
+        if self.bound_pixel_unpack_buffer.get().is_some() {
+            return Ok(self.base.webgl_error(InvalidOperation));
+        }
+
+        let validator = TexImage2DValidator::new(
+            &self.base,
+            target,
+            level,
+            internalformat as u32,
+            width,
+            height,
+            border,
+            format,
+            type_,
+        );
+
+        let TexImage2DValidatorResult {
+            texture,
+            target,
+            width: _,
+            height: _,
+            level,
+            border,
+            internal_format,
+            format,
+            data_type,
+        } = match validator.validate() {
+            Ok(result) => result,
+            Err(_) => return Ok(()),
+        };
+
+        let unpacking_alignment = self.base.texture_unpacking_alignment();
+
+        let pixels = match self.base.get_image_pixels(source)? {
+            Some(pixels) => pixels,
+            None => return Ok(()),
+        };
+
+        self.base.tex_image_2d(
+            &texture,
+            target,
+            data_type,
+            internal_format,
+            format,
+            level,
+            border,
+            unpacking_alignment,
+            pixels,
+        );
+
+        Ok(())
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
+    #[allow(unsafe_code)]
+    fn TexImage2D___(
         &self,
         target: u32,
         level: i32,

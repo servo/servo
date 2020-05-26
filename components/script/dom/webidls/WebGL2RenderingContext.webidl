@@ -508,10 +508,10 @@ interface mixin WebGL2RenderingContextOverloads
   //[Throws]
   //void texImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height,
   //                GLint border, GLenum format, GLenum type, GLintptr pboOffset);
-  //[Throws]
-  //void texImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height,
-  //                GLint border, GLenum format, GLenum type,
-  //                TexImageSource source); // May throw DOMException
+  [Throws]
+  void texImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height,
+                  GLint border, GLenum format, GLenum type,
+                  TexImageSource source); // May throw DOMException
   [Throws]
   void texImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height,
                   GLint border, GLenum format, GLenum type, /*[AllowShared]*/ ArrayBufferView srcData,
