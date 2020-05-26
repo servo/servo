@@ -321,6 +321,13 @@ impl PropertyDeclarationBlock {
         self.longhands.contains_any_reset()
     }
 
+    /// Returns a `LonghandIdSet` representing the properties that are changed in
+    /// this block.
+    #[inline]
+    pub fn longhands(&self) -> &LonghandIdSet {
+        &self.longhands
+    }
+
     /// Get a declaration for a given property.
     ///
     /// NOTE: This is linear time in the case of custom properties or in the

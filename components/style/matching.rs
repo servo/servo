@@ -20,6 +20,8 @@ use crate::properties::ComputedValues;
 use crate::rule_tree::{CascadeLevel, StrongRuleNode};
 use crate::selector_parser::{PseudoElement, RestyleDamage};
 use crate::style_resolver::ResolvedElementStyles;
+use crate::style_resolver::{PseudoElementResolution, StyleResolverForElement};
+use crate::stylist::RuleInclusion;
 use crate::traversal_flags::TraversalFlags;
 use selectors::matching::ElementSelectorFlags;
 use servo_arc::{Arc, ArcBorrow};
@@ -199,8 +201,6 @@ trait PrivateMatchMethods: TElement {
         primary_style: &Arc<ComputedValues>,
     ) -> Option<Arc<ComputedValues>> {
         use crate::context::CascadeInputs;
-        use crate::style_resolver::{PseudoElementResolution, StyleResolverForElement};
-        use crate::stylist::RuleInclusion;
 
         let rule_node = primary_style.rules();
         let without_transition_rules = context
@@ -455,11 +455,18 @@ trait PrivateMatchMethods: TElement {
         // for all the keyframes. We only want to do this if we think that there's a
         // chance that the animations really changed.
         if needs_animations_update {
+            let mut resolver = StyleResolverForElement::new(
+                *self,
+                context,
+                RuleInclusion::All,
+                PseudoElementResolution::IfApplicable,
+            );
+
             animation_set.update_animations_for_new_style::<Self>(
                 *self,
                 &shared_context,
                 &new_values,
-                &context.thread_local.font_metrics_provider,
+                &mut resolver,
             );
         }
 

@@ -64,7 +64,7 @@ use crate::properties::{ComputedValues, LonghandId};
 use crate::properties::{Importance, PropertyDeclaration, PropertyDeclarationBlock};
 use crate::rule_tree::CascadeLevel as ServoCascadeLevel;
 use crate::selector_parser::{AttrValue, HorizontalDirection, Lang};
-use crate::shared_lock::Locked;
+use crate::shared_lock::{Locked, SharedRwLock};
 use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::stylist::CascadeData;
 use crate::values::computed::font::GenericFontFamily;
@@ -138,6 +138,10 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
         Ok(elements_with_id(unsafe {
             bindings::Gecko_Document_GetElementsWithId(self.0, id.as_ptr())
         }))
+    }
+
+    fn shared_lock(&self) -> &SharedRwLock {
+        &GLOBAL_STYLE_DATA.shared_lock
     }
 }
 

@@ -349,6 +349,10 @@ impl<'ld> TDocument for ServoLayoutDocument<'ld> {
     fn is_html_document(&self) -> bool {
         self.document.is_html_document_for_layout()
     }
+
+    fn shared_lock(&self) -> &StyleSharedRwLock {
+        self.document.style_shared_lock()
+    }
 }
 
 impl<'ld> ServoLayoutDocument<'ld> {
