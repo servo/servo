@@ -78,12 +78,15 @@ impl Animations {
         let mut sets = self.sets.write();
 
         for set in sets.values_mut() {
+            self.start_pending_animations(set, now, pipeline_id);
+
             // When necessary, iterate our running animations to the next iteration.
             for animation in set.animations.iter_mut() {
                 if animation.iterate_if_necessary(now) {
                     self.add_animation_event(
                         animation,
                         TransitionOrAnimationEventType::AnimationIteration,
+                        now,
                         pipeline_id,
                     );
                 }
@@ -97,7 +100,6 @@ impl Animations {
 
     /// Processes any new animations that were discovered after reflow. Collect messages
     /// that trigger events for any animations that changed state.
-    /// TODO(mrobinson): The specification dictates that this should happen before reflow.
     pub(crate) fn do_post_reflow_update(&self, window: &Window, now: f64) {
         let pipeline_id = window.pipeline_id();
         let mut sets = self.sets.write();
@@ -140,6 +142,39 @@ impl Animations {
             .sum()
     }
 
+    /// Walk through the list of pending animations and start all of the ones that
+    /// have left the delay phase.
+    fn start_pending_animations(
+        &self,
+        set: &mut ElementAnimationSet,
+        now: f64,
+        pipeline_id: PipelineId,
+    ) {
+        for animation in set.animations.iter_mut() {
+            if animation.state == AnimationState::Pending && animation.started_at <= now {
+                animation.state = AnimationState::Running;
+                self.add_animation_event(
+                    animation,
+                    TransitionOrAnimationEventType::AnimationStart,
+                    now,
+                    pipeline_id,
+                );
+            }
+        }
+
+        for transition in set.transitions.iter_mut() {
+            if transition.state == AnimationState::Pending && transition.start_time <= now {
+                transition.state = AnimationState::Running;
+                self.add_transition_event(
+                    transition,
+                    TransitionOrAnimationEventType::TransitionStart,
+                    now,
+                    pipeline_id,
+                );
+            }
+        }
+    }
+
     /// Walk through the list of running animations and remove all of the ones that
     /// have ended.
     fn finish_running_animations(
@@ -154,6 +189,7 @@ impl Animations {
                 self.add_animation_event(
                     animation,
                     TransitionOrAnimationEventType::AnimationEnd,
+                    now,
                     pipeline_id,
                 );
             }
@@ -192,7 +228,17 @@ impl Animations {
             }
         }
 
-        // TODO(mrobinson): We need to send animationcancel events.
+        for animation in &set.animations {
+            if animation.state == AnimationState::Canceled {
+                self.add_animation_event(
+                    animation,
+                    TransitionOrAnimationEventType::AnimationCancel,
+                    now,
+                    pipeline_id,
+                );
+            }
+        }
+
         set.clear_canceled_animations();
     }
 
@@ -263,14 +309,21 @@ impl Animations {
         now: f64,
         pipeline_id: PipelineId,
     ) {
+        // Calculate the `elapsed-time` property of the event and take the absolute
+        // value to prevent -0 values.
         let elapsed_time = match event_type {
             TransitionOrAnimationEventType::TransitionRun |
+            TransitionOrAnimationEventType::TransitionStart => transition
+                .property_animation
+                .duration
+                .min((-transition.delay).max(0.)),
             TransitionOrAnimationEventType::TransitionEnd => transition.property_animation.duration,
             TransitionOrAnimationEventType::TransitionCancel => {
                 (now - transition.start_time).max(0.)
             },
             _ => unreachable!(),
-        };
+        }
+        .abs();
 
         self.pending_events
             .borrow_mut()
@@ -291,6 +344,7 @@ impl Animations {
         &self,
         animation: &Animation,
         event_type: TransitionOrAnimationEventType,
+        now: f64,
         pipeline_id: PipelineId,
     ) {
         let num_iterations = match animation.iteration_state {
@@ -298,11 +352,25 @@ impl Animations {
             KeyframesIterationState::Infinite(current) => current,
         };
 
+        let active_duration = match animation.iteration_state {
+            KeyframesIterationState::Finite(_, max) => max * animation.duration,
+            KeyframesIterationState::Infinite(_) => std::f64::MAX,
+        };
+
+        // Calculate the `elapsed-time` property of the event and take the absolute
+        // value to prevent -0 values.
         let elapsed_time = match event_type {
+            TransitionOrAnimationEventType::AnimationStart => {
+                (-animation.delay).max(0.).min(active_duration)
+            },
             TransitionOrAnimationEventType::AnimationIteration |
             TransitionOrAnimationEventType::AnimationEnd => num_iterations * animation.duration,
+            TransitionOrAnimationEventType::AnimationCancel => {
+                (num_iterations * animation.duration) + (now - animation.started_at).max(0.)
+            },
             _ => unreachable!(),
-        };
+        }
+        .abs();
 
         self.pending_events
             .borrow_mut()
@@ -333,10 +401,13 @@ impl Animations {
 
             let event_atom = match event.event_type {
                 TransitionOrAnimationEventType::AnimationEnd => atom!("animationend"),
+                TransitionOrAnimationEventType::AnimationStart => atom!("animationstart"),
+                TransitionOrAnimationEventType::AnimationCancel => atom!("animationcancel"),
                 TransitionOrAnimationEventType::AnimationIteration => atom!("animationiteration"),
                 TransitionOrAnimationEventType::TransitionCancel => atom!("transitioncancel"),
                 TransitionOrAnimationEventType::TransitionEnd => atom!("transitionend"),
                 TransitionOrAnimationEventType::TransitionRun => atom!("transitionrun"),
+                TransitionOrAnimationEventType::TransitionStart => atom!("transitionstart"),
             };
             let parent = EventInit {
                 bubbles: true,
@@ -381,25 +452,39 @@ pub enum TransitionOrAnimationEventType {
     /// "The transitionrun event occurs when a transition is created (i.e., when it
     /// is added to the set of running transitions)."
     TransitionRun,
+    /// "The transitionstart event occurs when a transition’s delay phase ends."
+    TransitionStart,
     /// "The transitionend event occurs at the completion of the transition. In the
     /// case where a transition is removed before completion, such as if the
     /// transition-property is removed, then the event will not fire."
     TransitionEnd,
     /// "The transitioncancel event occurs when a transition is canceled."
     TransitionCancel,
+    /// "The animationstart event occurs at the start of the animation. If there is
+    /// an animation-delay then this event will fire once the delay period has expired."
+    AnimationStart,
     /// "The animationiteration event occurs at the end of each iteration of an
     /// animation, except when an animationend event would fire at the same time."
     AnimationIteration,
     /// "The animationend event occurs when the animation finishes"
     AnimationEnd,
+    /// "The animationcancel event occurs when the animation stops running in a way
+    /// that does not fire an animationend event..."
+    AnimationCancel,
 }
 
 impl TransitionOrAnimationEventType {
     /// Whether or not this event is a transition-related event.
     pub fn is_transition_event(&self) -> bool {
         match *self {
-            Self::TransitionRun | Self::TransitionEnd | Self::TransitionCancel => true,
-            Self::AnimationEnd | Self::AnimationIteration => false,
+            Self::TransitionRun |
+            Self::TransitionEnd |
+            Self::TransitionCancel |
+            Self::TransitionStart => true,
+            Self::AnimationEnd |
+            Self::AnimationIteration |
+            Self::AnimationStart |
+            Self::AnimationCancel => false,
         }
     }
 }
