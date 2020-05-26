@@ -398,6 +398,16 @@ pub enum WebGLCommand {
         pixel_format: Option<PixelFormat>,
         data: TruncatedDebug<IpcSharedMemory>,
     },
+    TexImage2DPBO {
+        target: u32,
+        level: u32,
+        internal_format: TexFormat,
+        size: Size2D<u32>,
+        format: TexFormat,
+        effective_data_type: u32,
+        unpacking_alignment: u32,
+        offset: i64,
+    },
     TexSubImage2D {
         target: u32,
         level: u32,
