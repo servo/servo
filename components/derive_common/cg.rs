@@ -7,7 +7,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::TokenStreamExt;
 use syn::{self, AngleBracketedGenericArguments, Binding, DeriveInput, Field};
 use syn::{GenericArgument, GenericParam, Ident, Path};
-use syn::{PathArguments, PathSegment, QSelf, Type, TypeArray};
+use syn::{PathArguments, PathSegment, QSelf, Type, TypeArray, TypeGroup};
 use syn::{TypeParam, TypeParen, TypePath, TypeSlice, TypeTuple};
 use syn::{Variant, WherePredicate};
 use synstructure::{self, BindStyle, BindingInfo, VariantAst, VariantInfo};
@@ -184,6 +184,10 @@ where
             path: map_type_params_in_path(path, params, f),
         }),
         Type::Paren(ref inner) => Type::from(TypeParen {
+            elem: Box::new(map_type_params(&inner.elem, params, f)),
+            ..inner.clone()
+        }),
+        Type::Group(ref inner) => Type::from(TypeGroup {
             elem: Box::new(map_type_params(&inner.elem, params, f)),
             ..inner.clone()
         }),
