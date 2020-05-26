@@ -31,6 +31,7 @@ pub enum WebGPUMsg {
     FreeSampler(SamplerId),
     FreeSurface(SurfaceId),
     FreeShaderModule(ShaderModuleId),
+    Exit,
 }
 
 #[derive(Debug)]
