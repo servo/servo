@@ -49,12 +49,12 @@ use layout::flow_ref::FlowRef;
 use layout::incremental::{RelayoutMode, SpecialRestyleDamage};
 use layout::layout_debug;
 use layout::parallel;
-use layout::query::{process_client_rect_query, process_element_inner_text_query};
 use layout::query::{
-    process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
+    process_client_rect_query, process_content_box_request, process_content_boxes_request,
+    process_element_inner_text_query, process_node_scroll_area_request,
+    process_node_scroll_id_request, process_offset_parent_query, process_parse_font_request,
+    process_resolved_style_request, LayoutRPCImpl, LayoutThreadData,
 };
-use layout::query::{process_node_scroll_area_request, process_node_scroll_id_request};
-use layout::query::{process_offset_parent_query, process_resolved_style_request};
 use layout::sequential;
 use layout::traversal::{
     construct_flows_at_ancestors, ComputeStackingRelativePositions, PreorderFlowTraversal,
@@ -558,6 +558,7 @@ impl LayoutThread {
                 scroll_id_response: None,
                 scroll_area_response: Rect::zero(),
                 resolved_style_response: String::new(),
+                parse_font_response: None,
                 offset_parent_response: OffsetParentResponse::empty(),
                 scroll_offsets: HashMap::new(),
                 text_index_response: TextIndexResponse(None),
@@ -1231,6 +1232,9 @@ impl LayoutThread {
                         &QueryMsg::ElementInnerTextQuery(_) => {
                             rw_data.element_inner_text_response = String::new();
                         },
+                        &QueryMsg::ParseFontQuery(..) => {
+                            rw_data.parse_font_response = None;
+                        },
                         &QueryMsg::InnerWindowDimensionsQuery(_) => {
                             rw_data.inner_window_dimensions_response = None;
                         },
@@ -1498,6 +1502,7 @@ impl LayoutThread {
             &mut *rw_data,
             &mut layout_context,
             data.result.borrow_mut().as_mut().unwrap(),
+            document_shared_lock,
         );
     }
 
@@ -1507,6 +1512,7 @@ impl LayoutThread {
         rw_data: &mut LayoutThreadData,
         context: &mut LayoutContext,
         reflow_result: &mut ReflowComplete,
+        shared_lock: &SharedRwLock,
     ) {
         reflow_result.pending_images =
             std::mem::replace(&mut *context.pending_images.lock().unwrap(), vec![]);
@@ -1548,6 +1554,18 @@ impl LayoutThread {
                     let node = unsafe { ServoLayoutNode::new(&node) };
                     rw_data.resolved_style_response =
                         process_resolved_style_request(context, node, pseudo, property, root_flow);
+                },
+                &QueryMsg::ParseFontQuery(node, ref property, ref value) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    let url = self.url.clone();
+                    rw_data.parse_font_response = process_parse_font_request(
+                        context,
+                        node,
+                        value,
+                        property,
+                        url,
+                        shared_lock,
+                    );
                 },
                 &QueryMsg::OffsetParentQuery(node) => {
                     rw_data.offset_parent_response = process_offset_parent_query(node, root_flow);

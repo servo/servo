@@ -257,6 +257,17 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
         self.canvas_state.measure_text(&self.global(), text)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    fn Font(&self) -> DOMString {
+        self.canvas_state.font()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    fn SetFont(&self, value: DOMString) {
+        self.canvas_state
+            .set_font(self.htmlcanvas.as_ref().map(|c| &**c), value)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
     fn LineWidth(&self) -> f64 {
         self.canvas_state.line_width()

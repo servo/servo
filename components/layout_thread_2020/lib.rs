@@ -1242,6 +1242,7 @@ impl LayoutThread {
                     //            builder in order to support query iframe sizing.
                     rw_data.inner_window_dimensions_response = None;
                 },
+                &QueryMsg::ParseFontQuery(_, _) => unimplemented!(),
             },
             ReflowGoal::Full | ReflowGoal::TickAnimations => {},
         }

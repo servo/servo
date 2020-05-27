@@ -6,6 +6,8 @@ use app_units::Au;
 use euclid::default::Rect;
 use euclid::Size2D;
 use script_traits::UntrustedNodeAddress;
+use servo_arc::Arc;
+use style::properties::ComputedValues;
 use style_traits::CSSPixel;
 use webrender_api::ExternalScrollId;
 
@@ -30,6 +32,8 @@ pub trait LayoutRPC {
     fn node_scroll_id(&self) -> NodeScrollIdResponse;
     /// Query layout for the resolved value of a given CSS property
     fn resolved_style(&self) -> ResolvedStyleResponse;
+    /// Query layout to get the parsed font property for canvas.
+    fn parsed_font(&self) -> Option<Arc<ComputedValues>>;
     fn offset_parent(&self) -> OffsetParentResponse;
     fn text_index(&self) -> TextIndexResponse;
     /// Requests the list of nodes from the given point.

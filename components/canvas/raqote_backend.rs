@@ -522,7 +522,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         text: String,
         x: f64,
         y: f64,
-        max_width: Option<f64>,
+        _max_width: Option<f64>,
         pattern: canvas_data::Pattern,
         draw_options: &DrawOptions,
     ) {

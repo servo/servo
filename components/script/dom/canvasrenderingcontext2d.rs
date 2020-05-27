@@ -297,6 +297,17 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
         self.canvas_state.measure_text(&self.global(), text)
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    fn Font(&self) -> DOMString {
+        self.canvas_state.font()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    fn SetFont(&self, value: DOMString) {
+        self.canvas_state
+            .set_font(self.canvas.as_ref().map(|c| &**c), value)
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage
     fn DrawImage(&self, image: CanvasImageSource, dx: f64, dy: f64) -> ErrorResult {
         self.canvas_state

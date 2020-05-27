@@ -1006,6 +1006,16 @@ impl CanvasState {
         )
     }
 
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    pub fn set_font(&self, _canvas: Option<&HTMLCanvasElement>, _value: DOMString) {
+        unimplemented!()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    pub fn font(&self) -> DOMString {
+        unimplemented!()
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
     pub fn line_width(&self) -> f64 {
         self.state.borrow().line_width
