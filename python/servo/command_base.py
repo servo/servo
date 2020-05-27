@@ -986,7 +986,13 @@ install them, let us know by filing a bug!")
             installed = check_output(
                 ["rustup", "component", "list", "--installed", "--toolchain", toolchain]
             )
-            for component in set(rustup_components or []) | {"rustc-dev"}:
+            required_components = {
+                # For components/script_plugins, https://github.com/rust-lang/rust/pull/67469
+                "rustc-dev",
+                # https://github.com/rust-lang/rust/issues/72594#issuecomment-633779564
+                "llvm-tools-preview",
+            }
+            for component in set(rustup_components or []) | required_components:
                 if component.encode("utf-8") not in installed:
                     check_call(["rustup", "component", "add", "--toolchain", toolchain, component])
 
