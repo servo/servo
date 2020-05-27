@@ -139,15 +139,25 @@ impl PropertyAnimation {
 /// This structure represents the state of an animation.
 #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
 pub enum AnimationState {
+    /// The animation has been created, but is not running yet. This state
+    /// is also used when an animation is still in the first delay phase.
+    Pending,
+    /// This animation is currently running.
+    Running,
     /// This animation is paused. The inner field is the percentage of progress
     /// when it was paused, from 0 to 1.
     Paused(f64),
-    /// This animation is currently running.
-    Running,
     /// This animation has finished.
     Finished,
     /// This animation has been canceled.
     Canceled,
+}
+
+impl AnimationState {
+    /// Whether or not this state requires its owning animation to be ticked.
+    fn needs_to_be_ticked(&self) -> bool {
+        *self == AnimationState::Running || *self == AnimationState::Pending
+    }
 }
 
 /// This structure represents a keyframes animation current iteration state.
@@ -174,7 +184,8 @@ pub struct Animation {
     /// The internal animation from the style system.
     pub keyframes_animation: KeyframesAnimation,
 
-    /// The time this animation started at.
+    /// The time this animation started at, which is the current value of the animation
+    /// timeline when this animation was created plus any animation delay.
     pub started_at: f64,
 
     /// The duration of this animation.
@@ -273,9 +284,11 @@ impl Animation {
     /// canceled due to changes in the style.
     pub fn has_ended(&self, time: f64) -> bool {
         match self.state {
-            AnimationState::Canceled | AnimationState::Paused(_) => return false,
-            AnimationState::Finished => return true,
             AnimationState::Running => {},
+            AnimationState::Finished => return true,
+            AnimationState::Pending | AnimationState::Canceled | AnimationState::Paused(_) => {
+                return false
+            },
         }
 
         if !self.iteration_over(time) {
@@ -312,24 +325,11 @@ impl Animation {
         let old_direction = self.current_direction;
         let old_state = self.state.clone();
         let old_iteration_state = self.iteration_state.clone();
+
         *self = other.clone();
 
-        let mut new_started_at = old_started_at;
-
-        // If we're unpausing the animation, fake the start time so we seem to
-        // restore it.
-        //
-        // If the animation keeps paused, keep the old value.
-        //
-        // If we're pausing the animation, compute the progress value.
-        match (&mut self.state, old_state) {
-            (&mut Running, Paused(progress)) => new_started_at = now - (self.duration * progress),
-            (&mut Paused(ref mut new), Paused(old)) => *new = old,
-            (&mut Paused(ref mut progress), Running) => {
-                *progress = (now - old_started_at) / old_duration
-            },
-            _ => {},
-        }
+        self.started_at = old_started_at;
+        self.current_direction = old_direction;
 
         // Don't update the iteration count, just the iteration limit.
         // TODO: see how changing the limit affects rendering in other browsers.
@@ -342,16 +342,36 @@ impl Animation {
             _ => {},
         }
 
-        self.current_direction = old_direction;
-        self.started_at = new_started_at;
-    }
+        // Don't pause or restart animations that should remain finished.
+        // We call mem::replace because `has_ended(...)` looks at `Animation::state`.
+        let new_state = std::mem::replace(&mut self.state, Running);
+        if old_state == Finished && self.has_ended(now) {
+            self.state = Finished;
+        } else {
+            self.state = new_state;
+        }
 
-    /// Calculate the active-duration of this animation according to
-    /// https://drafts.csswg.org/css-animations/#active-duration.
-    pub fn active_duration(&self) -> f64 {
-        match self.iteration_state {
-            KeyframesIterationState::Finite(current, _) |
-            KeyframesIterationState::Infinite(current) => self.duration * current,
+        // If we're unpausing the animation, fake the start time so we seem to
+        // restore it.
+        //
+        // If the animation keeps paused, keep the old value.
+        //
+        // If we're pausing the animation, compute the progress value.
+        match (&mut self.state, &old_state) {
+            (&mut Pending, &Paused(progress)) => {
+                self.started_at = now - (self.duration * progress);
+            },
+            (&mut Paused(ref mut new), &Paused(old)) => *new = old,
+            (&mut Paused(ref mut progress), &Running) => {
+                *progress = (now - old_started_at) / old_duration
+            },
+            _ => {},
+        }
+
+        // Try to detect when we should skip straight to the running phase to
+        // avoid sending multiple animationstart events.
+        if self.state == Pending && self.started_at <= now && old_state != Pending {
+            self.state = Running;
         }
     }
 
@@ -369,7 +389,7 @@ impl Animation {
         let started_at = self.started_at;
 
         let now = match self.state {
-            AnimationState::Running | AnimationState::Finished => {
+            AnimationState::Running | AnimationState::Pending | AnimationState::Finished => {
                 context.current_time_for_animations
             },
             AnimationState::Paused(progress) => started_at + duration * progress,
@@ -560,8 +580,11 @@ pub struct Transition {
     pub node: OpaqueNode,
 
     /// The start time of this transition, which is the current value of the animation
-    /// timeline when this transition created.
+    /// timeline when this transition was created plus any animation delay.
     pub start_time: f64,
+
+    /// The delay used for this transition.
+    pub delay: f64,
 
     /// The internal style `PropertyAnimation` for this transition.
     pub property_animation: PropertyAnimation,
@@ -733,26 +756,25 @@ impl ElementAnimationSet {
     }
 
     /// Whether or not this state needs animation ticks for its transitions
-    /// or animations. New animations don't need ticks until they are no
-    /// longer marked as new.
+    /// or animations.
     pub fn needs_animation_ticks(&self) -> bool {
         self.animations
             .iter()
-            .any(|animation| animation.state == AnimationState::Running && !animation.is_new) ||
-            self.transitions.iter().any(|transition| {
-                transition.state == AnimationState::Running && !transition.is_new
-            })
+            .any(|animation| animation.state.needs_to_be_ticked()) ||
+            self.transitions
+                .iter()
+                .any(|transition| transition.state.needs_to_be_ticked())
     }
 
     /// The number of running animations and transitions for this `ElementAnimationSet`.
     pub fn running_animation_and_transition_count(&self) -> usize {
         self.animations
             .iter()
-            .filter(|animation| animation.state == AnimationState::Running)
+            .filter(|animation| animation.state.needs_to_be_ticked())
             .count() +
             self.transitions
                 .iter()
-                .filter(|transition| transition.state == AnimationState::Running)
+                .filter(|transition| transition.state.needs_to_be_ticked())
                 .count()
     }
 
@@ -879,8 +901,9 @@ impl ElementAnimationSet {
         let mut new_transition = Transition {
             node: opaque_node,
             start_time: now + delay,
+            delay,
             property_animation,
-            state: AnimationState::Running,
+            state: AnimationState::Pending,
             is_new: true,
             reversing_adjusted_start_value,
             reversing_shortening_factor: 1.0,
@@ -1049,7 +1072,7 @@ pub fn maybe_start_animations<E>(
 
         let state = match box_style.animation_play_state_mod(i) {
             AnimationPlayState::Paused => AnimationState::Paused(0.),
-            AnimationPlayState::Running => AnimationState::Running,
+            AnimationPlayState::Running => AnimationState::Pending,
         };
 
         let new_animation = Animation {

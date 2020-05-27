@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::animation_timeline::AnimationTimeline;
-use crate::animations::{Animations, AnimationsUpdate};
+use crate::animations::Animations;
 use crate::document_loader::{DocumentLoader, LoadType};
 use crate::dom::attr::Attr;
 use crate::dom::beforeunloadevent::BeforeUnloadEvent;
@@ -3750,15 +3750,15 @@ impl Document {
             .collect()
     }
 
-    pub(crate) fn advance_animation_timeline_for_testing(&self, delta: f64) -> AnimationsUpdate {
+    pub(crate) fn advance_animation_timeline_for_testing(&self, delta: f64) {
         self.animation_timeline.borrow_mut().advance_specific(delta);
         let current_timeline_value = self.current_animation_timeline_value();
         self.animations
-            .borrow_mut()
-            .update_for_new_timeline_value(&self.window, current_timeline_value)
+            .borrow()
+            .update_for_new_timeline_value(&self.window, current_timeline_value);
     }
 
-    pub(crate) fn update_animation_timeline(&self) -> AnimationsUpdate {
+    pub(crate) fn update_animation_timeline(&self) {
         // Only update the time if it isn't being managed by a test.
         if !pref!(layout.animations.test.enabled) {
             self.animation_timeline.borrow_mut().update();
@@ -3768,8 +3768,8 @@ impl Document {
         // value might have been advanced previously via the TestBinding.
         let current_timeline_value = self.current_animation_timeline_value();
         self.animations
-            .borrow_mut()
-            .update_for_new_timeline_value(&self.window, current_timeline_value)
+            .borrow()
+            .update_for_new_timeline_value(&self.window, current_timeline_value);
     }
 
     pub(crate) fn current_animation_timeline_value(&self) -> f64 {
@@ -3780,10 +3780,10 @@ impl Document {
         self.animations.borrow()
     }
 
-    pub(crate) fn update_animations_post_reflow(&self) -> AnimationsUpdate {
+    pub(crate) fn update_animations_post_reflow(&self) {
         self.animations
-            .borrow_mut()
-            .do_post_reflow_update(&self.window, self.current_animation_timeline_value())
+            .borrow()
+            .do_post_reflow_update(&self.window, self.current_animation_timeline_value());
     }
 }
 

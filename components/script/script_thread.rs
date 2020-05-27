@@ -17,26 +17,18 @@
 //! a page runs its course and the script thread returns to processing events in the main event
 //! loop.
 
-use crate::animations::{
-    AnimationsUpdate, TransitionOrAnimationEvent, TransitionOrAnimationEventType,
-};
 use crate::devtools;
 use crate::document_loader::DocumentLoader;
-use crate::dom::animationevent::AnimationEvent;
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::AnimationEventBinding::AnimationEventInit;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
     DocumentMethods, DocumentReadyState,
 };
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
-use crate::dom::bindings::codegen::Bindings::TransitionEventBinding::TransitionEventInit;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::{
     ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::ThreadLocalStackRoots;
@@ -57,14 +49,11 @@ use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmliframeelement::{HTMLIFrameElement, NavigationType};
 use crate::dom::identityhub::Identities;
 use crate::dom::mutationobserver::MutationObserver;
-use crate::dom::node::{
-    from_untrusted_node_address, window_from_node, Node, NodeDamage, ShadowIncluding,
-};
+use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::dom::performanceentry::PerformanceEntry;
 use crate::dom::performancepainttiming::PerformancePaintTiming;
 use crate::dom::serviceworker::TrustedServiceWorkerAddress;
 use crate::dom::servoparser::{ParserContext, ServoParser};
-use crate::dom::transitionevent::TransitionEvent;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::{ReflowReason, Window};
 use crate::dom::windowproxy::{CreatorBrowsingContextInfo, WindowProxy};
@@ -636,13 +625,6 @@ pub struct ScriptThread {
     /// resources during a turn of the event loop.
     docs_with_no_blocking_loads: DomRefCell<HashSet<Dom<Document>>>,
 
-    /// A list of nodes with in-progress CSS transitions, which roots them for the duration
-    /// of the transition.
-    animating_nodes: DomRefCell<HashMap<PipelineId, Vec<Dom<Node>>>>,
-
-    /// Animations events that are pending to be sent.
-    animation_events: RefCell<Vec<TransitionOrAnimationEvent>>,
-
     /// <https://html.spec.whatwg.org/multipage/#custom-element-reactions-stack>
     custom_element_reaction_stack: CustomElementReactionStack,
 
@@ -828,40 +810,6 @@ impl ScriptThread {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
             script_thread.js_runtime.prepare_for_new_child()
-        })
-    }
-
-    /// Consume the list of pointer addresses corresponding to DOM nodes that are animating
-    /// and root them in a per-pipeline list of nodes.
-    ///
-    /// Unsafety: any pointer to invalid memory (ie. a GCed node) will trigger a crash.
-    /// TODO: ensure caller uses rooted nodes instead of unsafe node addresses.
-    pub(crate) unsafe fn process_animations_update(mut update: AnimationsUpdate) {
-        if update.is_empty() {
-            return;
-        }
-
-        SCRIPT_THREAD_ROOT.with(|root| {
-            let script_thread = &*root.get().unwrap();
-
-            if !update.events.is_empty() {
-                script_thread
-                    .animation_events
-                    .borrow_mut()
-                    .append(&mut update.events);
-            }
-
-            let js_runtime = script_thread.js_runtime.rt();
-            let new_nodes = update
-                .newly_animating_nodes
-                .into_iter()
-                .map(|n| Dom::from_ref(&*from_untrusted_node_address(js_runtime, n)));
-            script_thread
-                .animating_nodes
-                .borrow_mut()
-                .entry(update.pipeline_id)
-                .or_insert_with(Vec::new)
-                .extend(new_nodes);
         })
     }
 
@@ -1363,9 +1311,6 @@ impl ScriptThread {
 
             docs_with_no_blocking_loads: Default::default(),
 
-            animating_nodes: Default::default(),
-            animation_events: Default::default(),
-
             custom_element_reaction_stack: CustomElementReactionStack::new(),
 
             webrender_document: state.webrender_document,
@@ -1644,19 +1589,13 @@ impl ScriptThread {
     }
 
     // Perform step 11.10 from https://html.spec.whatwg.org/multipage/#event-loops.
-    // TODO(mrobinson): This should also update the current animations to conform to
-    // the HTML specification.
     fn update_animations_and_send_events(&self) {
-        // We remove the events because handling these events might trigger
-        // a reflow which might want to add more events to the queue.
-        let events = self.animation_events.replace(Vec::new());
-        for event in events.into_iter() {
-            self.handle_transition_or_animation_event(&event);
+        for (_, document) in self.documents.borrow().iter() {
+            document.animations().send_pending_events();
         }
 
         for (_, document) in self.documents.borrow().iter() {
-            let update = document.update_animation_timeline();
-            unsafe { ScriptThread::process_animations_update(update) };
+            document.update_animation_timeline();
         }
     }
 
@@ -2860,11 +2799,11 @@ impl ScriptThread {
             .send((id, ScriptMsg::PipelineExited))
             .ok();
 
-        // Remove any rooted nodes for active animations and transitions.
-        self.animating_nodes.borrow_mut().remove(&id);
-
         // Now that layout is shut down, it's OK to remove the document.
         if let Some(document) = document {
+            // Clear any active animations and unroot all of the associated DOM objects.
+            document.animations().clear();
+
             // We don't want to dispatch `mouseout` event pointing to non-existing element
             if let Some(target) = self.topmost_mouse_over_target.get() {
                 if target.upcast::<Node>().owner_doc() == document {
@@ -2940,96 +2879,8 @@ impl ScriptThread {
             document.run_the_animation_frame_callbacks();
         }
         if tick_type.contains(AnimationTickType::CSS_ANIMATIONS_AND_TRANSITIONS) {
-            match self.animating_nodes.borrow().get(&id) {
-                Some(nodes) => {
-                    for node in nodes.iter() {
-                        node.dirty(NodeDamage::NodeStyleDamaged);
-                    }
-                },
-                None => return,
-            }
-
+            document.animations().mark_animating_nodes_as_dirty();
             document.window().add_pending_reflow();
-        }
-    }
-
-    /// Handles firing of transition-related events.
-    ///
-    /// TODO(mrobinson): Add support for more events.
-    fn handle_transition_or_animation_event(&self, event: &TransitionOrAnimationEvent) {
-        // We limit the scope of the borrow here so that we aren't holding it when
-        // sending events. Event handlers may trigger another layout, resulting in
-        // a double mutable borrow of `animating_nodes`.
-        let node = {
-            let mut animating_nodes = self.animating_nodes.borrow_mut();
-            let nodes = match animating_nodes.get_mut(&event.pipeline_id) {
-                Some(nodes) => nodes,
-                None => {
-                    return warn!(
-                        "Ignoring transition event for pipeline without animating nodes."
-                    );
-                },
-            };
-
-            let node_index = nodes
-                .iter()
-                .position(|n| n.to_untrusted_node_address() == event.node);
-            let node_index = match node_index {
-                Some(node_index) => node_index,
-                None => {
-                    // If no index is found, we can't know whether this node is safe to use.
-                    // It's better not to fire a DOM event than crash.
-                    warn!("Ignoring transition event for unknown node.");
-                    return;
-                },
-            };
-
-            // We need to root the node now, because if we remove it from the map
-            // a garbage collection might clean it up while we are sending events.
-            let node = DomRoot::from_ref(&*nodes[node_index]);
-            if event.event_type.finalizes_transition_or_animation() {
-                nodes.remove(node_index);
-            }
-            node
-        };
-
-        let event_atom = match event.event_type {
-            TransitionOrAnimationEventType::AnimationEnd => atom!("animationend"),
-            TransitionOrAnimationEventType::AnimationIteration => atom!("animationiteration"),
-            TransitionOrAnimationEventType::TransitionCancel => atom!("transitioncancel"),
-            TransitionOrAnimationEventType::TransitionEnd => atom!("transitionend"),
-            TransitionOrAnimationEventType::TransitionRun => atom!("transitionrun"),
-        };
-        let parent = EventInit {
-            bubbles: true,
-            cancelable: false,
-        };
-
-        // TODO: Handle pseudo-elements properly
-        let property_or_animation_name = DOMString::from(event.property_or_animation_name.clone());
-        let elapsed_time = Finite::new(event.elapsed_time as f32).unwrap();
-        let window = window_from_node(&*node);
-
-        if event.event_type.is_transition_event() {
-            let event_init = TransitionEventInit {
-                parent,
-                propertyName: property_or_animation_name,
-                elapsedTime: elapsed_time,
-                pseudoElement: DOMString::new(),
-            };
-            TransitionEvent::new(&window, event_atom, &event_init)
-                .upcast::<Event>()
-                .fire(node.upcast());
-        } else {
-            let event_init = AnimationEventInit {
-                parent,
-                animationName: property_or_animation_name,
-                elapsedTime: elapsed_time,
-                pseudoElement: DOMString::new(),
-            };
-            AnimationEvent::new(&window, event_atom, &event_init)
-                .upcast::<Event>()
-                .fire(node.upcast());
         }
     }
 

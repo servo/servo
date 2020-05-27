@@ -2,6 +2,7 @@ DOMContentLoaded
 abort
 activate
 addtrack
+animationcancel
 animationend
 animationiteration
 animationstart
@@ -132,6 +133,7 @@ track
 transitioncancel
 transitionend
 transitionrun
+transitionstart
 unhandledrejection
 unload
 url
