@@ -407,8 +407,6 @@ fn obtain_response(
     method: &Method,
     request_headers: &HeaderMap,
     body: Option<IpcSender<BodyChunkRequest>>,
-    request_len: Option<usize>,
-    load_data_method: &Method,
     pipeline_id: &Option<PipelineId>,
     request_id: Option<&str>,
     is_xhr: bool,
@@ -419,7 +417,7 @@ fn obtain_response(
         Error = NetworkError,
     >,
 > {
-    let mut headers = request_headers.clone();
+    let headers = request_headers.clone();
 
     let devtools_bytes = StdArc::new(Mutex::new(vec![]));
 
@@ -428,12 +426,6 @@ fn obtain_response(
             // TODO: If body is a stream, append `Transfer-Encoding`/`chunked`,
             // see step 4.2 of https://fetch.spec.whatwg.org/#concept-http-network-fetch
 
-            // Step 5.6 of https://fetch.spec.whatwg.org/#concept-http-network-or-cache-fetch
-            // If source is non-null,
-            // set contentLengthValue to httpRequest’s body’s total bytes
-            if let Some(request_len) = request_len {
-                headers.typed_insert(ContentLength(request_len as u64));
-            }
             let (body_chan, body_port) = ipc::channel().unwrap();
 
             let (sender, receiver) = channel(1);
@@ -474,9 +466,6 @@ fn obtain_response(
             receiver
         },
         _ => {
-            if *load_data_method != Method::GET && *load_data_method != Method::HEAD {
-                headers.typed_insert(ContentLength(0))
-            }
             let (_sender, mut receiver) = channel(1);
 
             receiver.close();
@@ -1575,8 +1564,6 @@ fn http_network_fetch(
         &request.method,
         &request.headers,
         request.body.as_mut().and_then(|body| body.take_stream()),
-        request.body.as_ref().and_then(|body| body.len()),
-        &request.method,
         &request.pipeline_id,
         request_id.as_ref().map(Deref::deref),
         is_xhr,
