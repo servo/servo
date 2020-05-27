@@ -712,12 +712,17 @@ pub enum NetworkError {
     Internal(String),
     LoadCancelled,
     /// SSL validation error that has to be handled in the HTML parser
-    SslValidation(ServoUrl, String),
+    SslValidation(String),
 }
 
 impl NetworkError {
     pub fn from_hyper_error(error: &HyperError) -> Self {
-        NetworkError::Internal(error.to_string())
+        let s = error.to_string();
+        if s.contains("the handshake failed") {
+            NetworkError::SslValidation(s)
+        } else {
+            NetworkError::Internal(s)
+        }
     }
 
     pub fn from_http_error(error: &HttpError) -> Self {

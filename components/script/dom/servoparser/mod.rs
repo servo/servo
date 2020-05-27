@@ -731,9 +731,9 @@ impl FetchResponseListener for ParserContext {
                 FetchMetadata::Unfiltered(m) => m,
                 FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
             }),
-            Err(NetworkError::SslValidation(url, reason)) => {
+            Err(NetworkError::SslValidation(reason)) => {
                 ssl_error = Some(reason);
-                let mut meta = Metadata::default(url);
+                let mut meta = Metadata::default(self.url.clone());
                 let mime: Option<Mime> = "text/html".parse().ok();
                 meta.set_content_type(mime.as_ref());
                 Some(meta)
