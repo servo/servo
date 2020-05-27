@@ -4396,9 +4396,9 @@ dependencies = [
 
 [[package]]
 name = "raw-window-handle"
-version = "0.3.1"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9db80d08d3ed847ce4fb3def46de0af4bfb6155bd09bd6eaf28b5ac72541c1f1"
+checksum = "0a441a7a6c80ad6473bd4b74ec1c9a4c951794285bf941c2126f607c72e48211"
 dependencies = [
  "libc",
 ]
