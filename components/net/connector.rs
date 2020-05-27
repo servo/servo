@@ -8,8 +8,12 @@ use hyper::client::HttpConnector as HyperHttpConnector;
 use hyper::rt::Future;
 use hyper::{Body, Client};
 use hyper_openssl::HttpsConnector;
-use openssl::ssl::{SslConnector, SslConnectorBuilder, SslMethod, SslOptions};
-use openssl::x509;
+use openssl::ex_data::Index;
+use openssl::ssl::{
+    SslConnector, SslConnectorBuilder, SslContext, SslMethod, SslOptions, SslVerifyMode,
+};
+use openssl::x509::{self, X509StoreContext};
+use std::sync::{Arc, Mutex};
 use tokio::prelude::future::Executor;
 
 pub const BUF_SIZE: usize = 32768;
@@ -60,7 +64,20 @@ impl Connect for HttpConnector {
 pub type Connector = HttpsConnector<HttpConnector>;
 pub type TlsConfig = SslConnectorBuilder;
 
-pub fn create_tls_config(certs: &str, alpn: &[u8]) -> TlsConfig {
+#[derive(Clone)]
+pub(crate) struct ExtraCerts(pub Arc<Mutex<Vec<Vec<u8>>>>);
+
+impl ExtraCerts {
+    pub(crate) fn new() -> Self {
+        Self(Arc::new(Mutex::new(vec![])))
+    }
+}
+
+lazy_static! {
+    static ref INDEX: Index<SslContext, ExtraCerts> = SslContext::new_ex_index().unwrap();
+}
+
+pub(crate) fn create_tls_config(certs: &str, alpn: &[u8], extra_certs: ExtraCerts) -> TlsConfig {
     // certs include multiple certificates. We could add all of them at once,
     // but if any of them were already added, openssl would fail to insert all
     // of them.
@@ -103,6 +120,32 @@ pub fn create_tls_config(certs: &str, alpn: &[u8]) -> TlsConfig {
             SslOptions::NO_TLSV1_1 |
             SslOptions::NO_COMPRESSION,
     );
+
+    cfg.set_ex_data(*INDEX, extra_certs);
+    cfg.set_verify_callback(SslVerifyMode::PEER, |verified, x509_store_context| {
+        if verified {
+            return true;
+        }
+        if let Some(cert) = x509_store_context.current_cert() {
+            match cert.to_pem() {
+                Ok(pem) => {
+                    let ssl_idx = X509StoreContext::ssl_idx().unwrap();
+                    let ssl = x509_store_context.ex_data(ssl_idx).unwrap();
+                    let ssl_context = ssl.ssl_context();
+                    let extra_certs = ssl_context.ex_data(*INDEX).unwrap();
+                    for cert in &*extra_certs.0.lock().unwrap() {
+                        if pem == *cert {
+                            return true;
+                        }
+                    }
+                    false
+                },
+                Err(_) => false,
+            }
+        } else {
+            false
+        }
+    });
 
     cfg
 }

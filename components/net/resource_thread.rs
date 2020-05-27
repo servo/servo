@@ -4,7 +4,7 @@
 
 //! A thread that takes a URL and streams back the binary data.
 
-use crate::connector::{create_http_client, create_tls_config, ALPN_H2_H1};
+use crate::connector::{create_http_client, create_tls_config, ExtraCerts, ALPN_H2_H1};
 use crate::cookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
@@ -127,7 +127,7 @@ struct ResourceChannelManager {
 fn create_http_states(
     config_dir: Option<&Path>,
     certificate_path: Option<String>,
-) -> (Arc<HttpState>, Arc<HttpState>) {
+) -> (Arc<HttpState>, Arc<HttpState>, ExtraCerts) {
     let mut hsts_list = HstsList::from_servo_preload();
     let mut auth_cache = AuthCache::new();
     let http_cache = HttpCache::new();
@@ -143,6 +143,8 @@ fn create_http_states(
         None => resources::read_string(Resource::SSLCertificates),
     };
 
+    let extra_certs = ExtraCerts::new();
+
     let http_state = HttpState {
         hsts_list: RwLock::new(hsts_list),
         cookie_jar: RwLock::new(cookie_jar),
@@ -151,7 +153,7 @@ fn create_http_states(
         http_cache: RwLock::new(http_cache),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(
-            create_tls_config(&certs, ALPN_H2_H1),
+            create_tls_config(&certs, ALPN_H2_H1, extra_certs.clone()),
             HANDLE.lock().unwrap().as_ref().unwrap().executor(),
         ),
     };
@@ -164,12 +166,16 @@ fn create_http_states(
         http_cache: RwLock::new(HttpCache::new()),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(
-            create_tls_config(&certs, ALPN_H2_H1),
+            create_tls_config(&certs, ALPN_H2_H1, extra_certs.clone()),
             HANDLE.lock().unwrap().as_ref().unwrap().executor(),
         ),
     };
 
-    (Arc::new(http_state), Arc::new(private_http_state))
+    (
+        Arc::new(http_state),
+        Arc::new(private_http_state),
+        extra_certs,
+    )
 }
 
 impl ResourceChannelManager {
@@ -180,7 +186,7 @@ impl ResourceChannelManager {
         private_receiver: IpcReceiver<CoreResourceMsg>,
         memory_reporter: IpcReceiver<ReportsChan>,
     ) {
-        let (public_http_state, private_http_state) = create_http_states(
+        let (public_http_state, private_http_state, extra_certs) = create_http_states(
             self.config_dir.as_ref().map(Deref::deref),
             self.certificate_path.clone(),
         );
