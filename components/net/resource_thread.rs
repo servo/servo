@@ -152,7 +152,7 @@ fn create_http_states(
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(
             create_tls_config(&certs, ALPN_H2_H1),
-            HANDLE.lock().unwrap().executor(),
+            HANDLE.lock().unwrap().as_ref().unwrap().executor(),
         ),
     };
 
@@ -165,7 +165,7 @@ fn create_http_states(
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(
             create_tls_config(&certs, ALPN_H2_H1),
-            HANDLE.lock().unwrap().executor(),
+            HANDLE.lock().unwrap().as_ref().unwrap().executor(),
         ),
     };
 
@@ -590,6 +590,9 @@ impl CoreResourceManager {
         // blocks until all workers in the pool are done,
         // or a short timeout has been reached.
         self.thread_pool.exit();
+
+        // Shut-down the async runtime used by fetch workers.
+        drop(HANDLE.lock().unwrap().take());
 
         debug!("Exited CoreResourceManager");
     }
