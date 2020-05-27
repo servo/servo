@@ -6665,9 +6665,9 @@ dependencies = [
 
 [[package]]
 name = "which"
-version = "3.0.0"
+version = "3.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "240a31163872f7e8e49f35b42b58485e35355b07eb009d9f3686733541339a69"
+checksum = "d011071ae14a2f6671d0b74080ae0cd8ebf3a6f8c9589a2cd45f23126fe29724"
 dependencies = [
  "libc",
 ]
