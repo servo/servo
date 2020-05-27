@@ -757,13 +757,17 @@ impl HTMLScriptElement {
         let old_script = document.GetCurrentScript();
 
         match script.type_ {
+            ScriptType::Classic => document.set_current_script(Some(self)),
+            ScriptType::Module => document.set_current_script(None),
+        }
+
+        match script.type_ {
             ScriptType::Classic => {
-                document.set_current_script(Some(self));
                 self.run_a_classic_script(&script);
                 document.set_current_script(old_script.as_deref());
             },
             ScriptType::Module => {
-                assert!(old_script.is_none());
+                assert!(document.GetCurrentScript().is_none());
                 self.run_a_module_script(&script, false);
             },
         }
