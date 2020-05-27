@@ -179,10 +179,16 @@ impl GPUBufferMethods for GPUBuffer {
             },
             _ => {},
         };
-        self.channel
+        if let Err(e) = self
+            .channel
             .0
             .send(WebGPURequest::DestroyBuffer(self.buffer.0))
-            .unwrap();
+        {
+            warn!(
+                "Failed to send WebGPURequest::DestroyBuffer({:?}) ({})",
+                self.buffer.0, e
+            );
+        };
         *self.state.borrow_mut() = GPUBufferState::Destroyed;
     }
 

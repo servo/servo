@@ -16,11 +16,10 @@ use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
 use dom_struct::dom_struct;
-use ipc_channel::ipc;
 use std::cell::Cell;
 use std::collections::HashSet;
 use webgpu::wgt::BufferUsage;
-use webgpu::{WebGPU, WebGPUCommandEncoder, WebGPURequest};
+use webgpu::{self, WebGPU, WebGPURequest};
 
 const BUFFER_COPY_ALIGN_MASK: u64 = 3;
 
@@ -40,7 +39,7 @@ pub struct GPUCommandEncoder {
     #[ignore_malloc_size_of = "defined in webgpu"]
     channel: WebGPU,
     label: DomRefCell<Option<DOMString>>,
-    encoder: WebGPUCommandEncoder,
+    encoder: webgpu::WebGPUCommandEncoder,
     buffers: DomRefCell<HashSet<DomRoot<GPUBuffer>>>,
     state: DomRefCell<GPUCommandEncoderState>,
     valid: Cell<bool>,
@@ -49,7 +48,7 @@ pub struct GPUCommandEncoder {
 impl GPUCommandEncoder {
     pub fn new_inherited(
         channel: WebGPU,
-        encoder: WebGPUCommandEncoder,
+        encoder: webgpu::WebGPUCommandEncoder,
         valid: bool,
     ) -> GPUCommandEncoder {
         GPUCommandEncoder {
@@ -66,7 +65,7 @@ impl GPUCommandEncoder {
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,
-        encoder: WebGPUCommandEncoder,
+        encoder: webgpu::WebGPUCommandEncoder,
         valid: bool,
     ) -> DomRoot<GPUCommandEncoder> {
         reflect_dom_object(
@@ -77,7 +76,7 @@ impl GPUCommandEncoder {
 }
 
 impl GPUCommandEncoder {
-    pub fn id(&self) -> WebGPUCommandEncoder {
+    pub fn id(&self) -> webgpu::WebGPUCommandEncoder {
         self.encoder
     }
 
@@ -179,11 +178,9 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish
     fn Finish(&self, _descriptor: &GPUCommandBufferDescriptor) -> DomRoot<GPUCommandBuffer> {
-        let (sender, receiver) = ipc::channel().unwrap();
         self.channel
             .0
             .send(WebGPURequest::CommandEncoderFinish {
-                sender,
                 command_encoder_id: self.encoder.0,
                 // TODO(zakorgy): We should use `_descriptor` here after it's not empty
                 // and the underlying wgpu-core struct is serializable
@@ -191,7 +188,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .expect("Failed to send Finish");
 
         *self.state.borrow_mut() = GPUCommandEncoderState::Closed;
-        let buffer = receiver.recv().unwrap();
+        let buffer = webgpu::WebGPUCommandBuffer(self.encoder.0);
         GPUCommandBuffer::new(
             &self.global(),
             self.channel.clone(),
