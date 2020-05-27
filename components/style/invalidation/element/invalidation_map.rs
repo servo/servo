@@ -6,7 +6,7 @@
 
 use crate::context::QuirksMode;
 use crate::element_state::{DocumentState, ElementState};
-use crate::selector_map::{MaybeCaseInsensitiveHashMap, SelectorMap, SelectorMapEntry};
+use crate::selector_map::{MaybeCaseInsensitiveHashMap, PrecomputedHashMap, SelectorMap, SelectorMapEntry};
 use crate::selector_parser::SelectorImpl;
 use crate::{Atom, LocalName, Namespace};
 use fallible::FallibleVec;
@@ -175,19 +175,6 @@ pub struct DocumentStateDependency {
     pub state: DocumentState,
 }
 
-bitflags! {
-    /// A set of flags that denote whether any invalidations have occurred
-    /// for a particular attribute selector.
-    #[derive(MallocSizeOf)]
-    #[repr(C)]
-    pub struct InvalidationMapFlags : u8 {
-        /// Whether [class] or such is used.
-        const HAS_CLASS_ATTR_SELECTOR = 1 << 0;
-        /// Whether [id] or such is used.
-        const HAS_ID_ATTR_SELECTOR = 1 << 1;
-    }
-}
-
 /// A map where we store invalidations.
 ///
 /// This is slightly different to a SelectorMap, in the sense of that the same
@@ -209,10 +196,7 @@ pub struct InvalidationMap {
     /// A list of document state dependencies in the rules we represent.
     pub document_state_selectors: Vec<DocumentStateDependency>,
     /// A map of other attribute affecting selectors.
-    pub other_attribute_affecting_selectors: SelectorMap<Dependency>,
-    /// A set of flags that contain whether various special attributes are used
-    /// in this invalidation map.
-    pub flags: InvalidationMapFlags,
+    pub other_attribute_affecting_selectors: PrecomputedHashMap<Atom, SmallVec<[Dependency; 1]>>,
 }
 
 impl InvalidationMap {
@@ -223,8 +207,7 @@ impl InvalidationMap {
             id_to_selector: MaybeCaseInsensitiveHashMap::new(),
             state_affecting_selectors: SelectorMap::new(),
             document_state_selectors: Vec::new(),
-            other_attribute_affecting_selectors: SelectorMap::new(),
-            flags: InvalidationMapFlags::empty(),
+            other_attribute_affecting_selectors: PrecomputedHashMap::default(),
         }
     }
 
@@ -232,7 +215,9 @@ impl InvalidationMap {
     pub fn len(&self) -> usize {
         self.state_affecting_selectors.len() +
             self.document_state_selectors.len() +
-            self.other_attribute_affecting_selectors.len() +
+            self.other_attribute_affecting_selectors
+                .iter()
+                .fold(0, |accum, (_, ref v)| accum + v.len()) +
             self.id_to_selector
                 .iter()
                 .fold(0, |accum, (_, ref v)| accum + v.len()) +
@@ -248,7 +233,6 @@ impl InvalidationMap {
         self.state_affecting_selectors.clear();
         self.document_state_selectors.clear();
         self.other_attribute_affecting_selectors.clear();
-        self.flags = InvalidationMapFlags::empty();
     }
 
     /// Adds a selector to this `InvalidationMap`.  Returns Err(..) to
@@ -300,9 +284,6 @@ struct PerCompoundState {
 
     /// The state this compound selector is affected by.
     element_state: ElementState,
-
-    /// Whether we've added a generic attribute dependency for this selector.
-    added_attr_dependency: bool,
 }
 
 impl PerCompoundState {
@@ -310,7 +291,6 @@ impl PerCompoundState {
         Self {
             offset,
             element_state: ElementState::empty(),
-            added_attr_dependency: false,
         }
     }
 }
@@ -342,7 +322,7 @@ struct SelectorDependencyCollector<'a> {
     compound_state: PerCompoundState,
 
     /// The allocation error, if we OOM.
-    alloc_error: &'a mut Option<CollectionAllocErr>,
+    alloc_error: &'a mut Option<FailedAllocationError>,
 }
 
 impl<'a> SelectorDependencyCollector<'a> {
@@ -387,20 +367,25 @@ impl<'a> SelectorDependencyCollector<'a> {
         }
     }
 
-    fn add_attr_dependency(&mut self) -> bool {
-        debug_assert!(!self.compound_state.added_attr_dependency);
-        self.compound_state.added_attr_dependency = true;
-
+    fn add_attr_dependency(&mut self, name: LocalName) -> bool {
         let dependency = self.dependency();
-        let result = self.map.other_attribute_affecting_selectors.insert(
-            dependency,
-            self.quirks_mode,
-        );
-        if let Err(alloc_error) = result {
-            *self.alloc_error = Some(alloc_error);
-            return false;
+
+        let map = &mut self.map.other_attribute_affecting_selectors;
+        let entry = match map.try_entry(name) {
+            Ok(entry) => entry,
+            Err(err) => {
+                *self.alloc_error = Some(err);
+                return false;
+            },
+        };
+
+        match entry.or_insert_with(SmallVec::new).try_push(dependency) {
+            Ok(..) => true,
+            Err(err) => {
+                *self.alloc_error = Some(err);
+                return false;
+            }
         }
-        true
     }
 
     fn dependency(&self) -> Dependency {
@@ -494,7 +479,13 @@ impl<'a> SelectorVisitor for SelectorDependencyCollector<'a> {
                         return false;
                     },
                 };
-                entry.or_insert_with(SmallVec::new).try_push(dependency).is_ok()
+                match entry.or_insert_with(SmallVec::new).try_push(dependency) {
+                    Ok(..) => true,
+                    Err(err) => {
+                        *self.alloc_error = Some(err);
+                        return false;
+                    }
+                }
             },
             Component::NonTSPseudoClass(ref pc) => {
                 self.compound_state.element_state |= match *pc {
@@ -504,11 +495,16 @@ impl<'a> SelectorVisitor for SelectorDependencyCollector<'a> {
                 };
                 *self.document_state |= pc.document_state_flag();
 
-                if !self.compound_state.added_attr_dependency && pc.is_attr_based() {
-                    self.add_attr_dependency()
-                } else {
-                    true
-                }
+                let attr_name = match *pc {
+                    #[cfg(feature = "gecko")]
+                    NonTSPseudoClass::MozTableBorderNonzero => local_name!("border"),
+                    #[cfg(feature = "gecko")]
+                    NonTSPseudoClass::MozBrowserFrame => local_name!("mozbrowser"),
+                    NonTSPseudoClass::Lang(..) => local_name!("lang"),
+                    _ => return true,
+                };
+
+                self.add_attr_dependency(attr_name)
             },
             _ => true,
         }
@@ -516,27 +512,18 @@ impl<'a> SelectorVisitor for SelectorDependencyCollector<'a> {
 
     fn visit_attribute_selector(
         &mut self,
-        constraint: &NamespaceConstraint<&Namespace>,
-        _local_name: &LocalName,
+        _: &NamespaceConstraint<&Namespace>,
+        local_name: &LocalName,
         local_name_lower: &LocalName,
     ) -> bool {
-        let may_match_in_no_namespace = match *constraint {
-            NamespaceConstraint::Any => true,
-            NamespaceConstraint::Specific(ref ns) => ns.is_empty(),
-        };
-
-        if may_match_in_no_namespace {
-            if *local_name_lower == local_name!("id") {
-                self.map.flags.insert(InvalidationMapFlags::HAS_ID_ATTR_SELECTOR)
-            } else if *local_name_lower == local_name!("class") {
-                self.map.flags.insert(InvalidationMapFlags::HAS_CLASS_ATTR_SELECTOR)
-            }
+        if !self.add_attr_dependency(local_name.clone()) {
+            return false;
         }
 
-        if !self.compound_state.added_attr_dependency {
-            self.add_attr_dependency()
-        } else {
-            true
+        if local_name != local_name_lower && !self.add_attr_dependency(local_name_lower.clone()) {
+            return false;
         }
+
+        true
     }
 }

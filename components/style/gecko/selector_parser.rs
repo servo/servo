@@ -229,17 +229,6 @@ impl NonTSPseudoClass {
                       NonTSPseudoClass::MozLWThemeDarkText
             )
     }
-
-    /// Returns true if the evaluation of the pseudo-class depends on the
-    /// element's attributes.
-    pub fn is_attr_based(&self) -> bool {
-        matches!(
-            *self,
-            NonTSPseudoClass::MozTableBorderNonzero |
-                NonTSPseudoClass::MozBrowserFrame |
-                NonTSPseudoClass::Lang(..)
-        )
-    }
 }
 
 impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {

@@ -42,7 +42,6 @@ where
     descendant_invalidations: &'a mut DescendantInvalidationLists<'selectors>,
     sibling_invalidations: &'a mut InvalidationVector<'selectors>,
     invalidates_self: bool,
-    attr_selector_flags: InvalidationMapFlags,
 }
 
 /// An invalidation processor for style changes due to state and attribute
@@ -197,8 +196,6 @@ where
             return false;
         }
 
-        let mut attr_selector_flags = InvalidationMapFlags::empty();
-
         // If we the visited state changed, we force a restyle here. Matching
         // doesn't depend on the actual visited state at all, so we can't look
         // at matching results to decide what to do for this case.
@@ -216,7 +213,6 @@ where
         let mut classes_removed = SmallVec::<[Atom; 8]>::new();
         let mut classes_added = SmallVec::<[Atom; 8]>::new();
         if snapshot.class_changed() {
-            attr_selector_flags.insert(InvalidationMapFlags::HAS_CLASS_ATTR_SELECTOR);
             // TODO(emilio): Do this more efficiently!
             snapshot.each_class(|c| {
                 if !element.has_class(c, CaseSensitivity::CaseSensitive) {
@@ -234,7 +230,6 @@ where
         let mut id_removed = None;
         let mut id_added = None;
         if snapshot.id_changed() {
-            attr_selector_flags.insert(InvalidationMapFlags::HAS_ID_ATTR_SELECTOR);
             let old_id = snapshot.id_attr();
             let current_id = element.id();
 
@@ -245,10 +240,7 @@ where
         }
 
         if log_enabled!(::log::Level::Debug) {
-            debug!(
-                "Collecting changes for: {:?}, flags {:?}",
-                element, attr_selector_flags
-            );
+            debug!("Collecting changes for: {:?}", element);
             if !state_changes.is_empty() {
                 debug!(" > state: {:?}", state_changes);
             }
@@ -261,7 +253,9 @@ where
                     classes_added, classes_removed
                 );
             }
-            if snapshot.other_attr_changed() {
+            let mut attributes_changed = false;
+            snapshot.each_attr_changed(|_| { attributes_changed = true; });
+            if attributes_changed {
                 debug!(
                     " > attributes changed, old: {}",
                     snapshot.debug_list_attributes()
@@ -296,7 +290,6 @@ where
                 descendant_invalidations,
                 sibling_invalidations,
                 invalidates_self: false,
-                attr_selector_flags,
             };
 
             let document_origins = if !matches_document_author_rules {
@@ -406,30 +399,18 @@ where
             }
         }
 
-        let should_examine_attribute_selector_map =
-            self.snapshot.other_attr_changed() || map.flags.intersects(self.attr_selector_flags);
-
-        if should_examine_attribute_selector_map {
-            self.collect_dependencies_in_map(&map.other_attribute_affecting_selectors)
-        }
+        self.snapshot.each_attr_changed(|attribute| {
+            if let Some(deps) = map.other_attribute_affecting_selectors.get(attribute) {
+                for dep in deps {
+                    self.scan_dependency(dep);
+                }
+            }
+        });
 
         let state_changes = self.state_changes;
         if !state_changes.is_empty() {
             self.collect_state_dependencies(&map.state_affecting_selectors, state_changes)
         }
-    }
-
-    fn collect_dependencies_in_map(&mut self, map: &'selectors SelectorMap<Dependency>) {
-        map.lookup_with_additional(
-            self.lookup_element,
-            self.matching_context.quirks_mode(),
-            self.removed_id,
-            self.classes_removed,
-            |dependency| {
-                self.scan_dependency(dependency);
-                true
-            },
-        );
     }
 
     fn collect_state_dependencies(

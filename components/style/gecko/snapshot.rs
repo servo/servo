@@ -70,11 +70,15 @@ impl GeckoElementSnapshot {
         self.mClassAttributeChanged()
     }
 
-    /// Returns true if the snapshot recorded an attribute change which isn't a
-    /// class / id
+    /// Executes the callback once for each attribute that changed.
     #[inline]
-    pub fn other_attr_changed(&self) -> bool {
-        self.mOtherAttributeChanged()
+    pub fn each_attr_changed<F>(&self, mut callback: F)
+    where
+        F: FnMut(&Atom),
+    {
+        for attr in self.mChangedAttrNames.iter() {
+            unsafe { Atom::with(attr.mRawPtr, &mut callback) }
+        }
     }
 
     /// selectors::Element::attr_matches
