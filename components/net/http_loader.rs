@@ -421,57 +421,65 @@ fn obtain_response(
 
     let devtools_bytes = StdArc::new(Mutex::new(vec![]));
 
-    let request_body = match body {
-        Some(chunk_requester) => {
-            // TODO: If body is a stream, append `Transfer-Encoding`/`chunked`,
-            // see step 4.2 of https://fetch.spec.whatwg.org/#concept-http-network-fetch
+    // https://url.spec.whatwg.org/#percent-encoded-bytes
+    let encoded_url = url
+        .clone()
+        .into_url()
+        .as_ref()
+        .replace("|", "%7C")
+        .replace("{", "%7B")
+        .replace("}", "%7D");
 
-            let (body_chan, body_port) = ipc::channel().unwrap();
+    let request = if let Some(chunk_requester) = body {
+        // TODO: If body is a stream, append `Transfer-Encoding`/`chunked`,
+        // see step 4.2 of https://fetch.spec.whatwg.org/#concept-http-network-fetch
 
-            let (sender, receiver) = channel(1);
+        let (body_chan, body_port) = ipc::channel().unwrap();
 
-            let _ = chunk_requester.send(BodyChunkRequest::Connect(body_chan));
+        let (sender, receiver) = channel(1);
 
-            // https://fetch.spec.whatwg.org/#concept-request-transmit-body
-            // Request the first chunk, corresponding to Step 3 and 4.
-            let _ = chunk_requester.send(BodyChunkRequest::Chunk);
+        let _ = chunk_requester.send(BodyChunkRequest::Connect(body_chan));
 
-            let devtools_bytes = devtools_bytes.clone();
+        // https://fetch.spec.whatwg.org/#concept-request-transmit-body
+        // Request the first chunk, corresponding to Step 3 and 4.
+        let _ = chunk_requester.send(BodyChunkRequest::Chunk);
 
-            ROUTER.add_route(
-                body_port.to_opaque(),
-                Box::new(move |message| {
-                    let bytes: Vec<u8> = message.to().unwrap();
-                    let chunk_requester = chunk_requester.clone();
-                    let sender = sender.clone();
+        let devtools_bytes = devtools_bytes.clone();
 
-                    devtools_bytes.lock().unwrap().append(&mut bytes.clone());
+        ROUTER.add_route(
+            body_port.to_opaque(),
+            Box::new(move |message| {
+                let bytes: Vec<u8> = message.to().unwrap();
+                let chunk_requester = chunk_requester.clone();
+                let sender = sender.clone();
 
-                    HANDLE.lock().unwrap().as_mut().unwrap().spawn(
-                        // Step 5.1.2.2
-                        // Transmit a chunk over the network(and blocking until this is done).
-                        sender
-                            .send(bytes)
-                            .map(move |_| {
-                                // Step 5.1.2.3
-                                // Request the next chunk.
-                                let _ = chunk_requester.send(BodyChunkRequest::Chunk);
-                                ()
-                            })
-                            .map_err(|_| ()),
-                    );
-                }),
-            );
+                devtools_bytes.lock().unwrap().append(&mut bytes.clone());
 
-            receiver
-        },
-        _ => {
-            let (_sender, mut receiver) = channel(1);
+                HANDLE.lock().unwrap().as_mut().unwrap().spawn(
+                    // Step 5.1.2.2
+                    // Transmit a chunk over the network(and blocking until this is done).
+                    sender
+                        .send(bytes)
+                        .map(move |_| {
+                            // Step 5.1.2.3
+                            // Request the next chunk.
+                            let _ = chunk_requester.send(BodyChunkRequest::Chunk);
+                            ()
+                        })
+                        .map_err(|_| ()),
+                );
+            }),
+        );
 
-            receiver.close();
-
-            receiver
-        },
+        HyperRequest::builder()
+            .method(method)
+            .uri(encoded_url)
+            .body(Body::wrap_stream(receiver))
+    } else {
+        HyperRequest::builder()
+            .method(method)
+            .uri(encoded_url)
+            .body(Body::empty())
     };
 
     context
@@ -488,19 +496,6 @@ fn obtain_response(
         .lock()
         .unwrap()
         .set_attribute(ResourceAttribute::ConnectStart(connect_start));
-
-    // https://url.spec.whatwg.org/#percent-encoded-bytes
-    let request = HyperRequest::builder()
-        .method(method)
-        .uri(
-            url.clone()
-                .into_url()
-                .as_ref()
-                .replace("|", "%7C")
-                .replace("{", "%7B")
-                .replace("}", "%7D"),
-        )
-        .body(Body::wrap_stream(request_body));
 
     // TODO: We currently don't know when the handhhake before the connection is done
     // so our best bet would be to set `secure_connection_start` here when we are currently
