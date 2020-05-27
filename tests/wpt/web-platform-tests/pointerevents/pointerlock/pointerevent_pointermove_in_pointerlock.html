@@ -27,7 +27,11 @@
         <script>
             window.name="outerframe";
             var test_pointermove = async_test("pointermove event received");
-           PhaseEnum = {
+            var actions_promise1;
+            var actions_promise2;
+            var actions_promise3;
+            var actions_promise4;
+            PhaseEnum = {
               Start:     0,
               Lock1:     1,
               Lock2:     2,
@@ -56,8 +60,10 @@
                       assert_equals(event.view.name, "outerframe", "View attribute of pointermove should be the target frame.");
                     }, "View attribute of pointermove should be the target frame.");
                     document.exitPointerLock();
-                    // Click the inner frame target to lock.
-                    clickInTarget("mouse", target1);
+                    actions_promise3 = actions_promise2.then( () => {
+                      // Click the inner frame target to lock.
+                      return clickInTarget("mouse", target1);
+                    });
                   }
                 });
 
@@ -68,7 +74,9 @@
                       assert_equals(event.view.name, "innerframe", "View attribute of pointermove should be the target frame.");
                     }, "View attribute of pointermove should be the target frame.");
                     innerframe.contentDocument.exitPointerLock();
-                    test_pointermove.done();
+                    actions_promise4.then( () => {
+                      test_pointermove.done();
+                    });
                   }
                 });
 
@@ -76,10 +84,12 @@
                   if (phase == PhaseEnum.Start) {
                     assert_equals(document.pointerLockElement, target0);
                     phase++;
-                    // Send moves in main frame target
-                    new test_driver.Actions()
-                                   .pointerMove(10, 30, {origin: target0})
-                                   .send();
+                    actions_promise2 = actions_promise1.then( () => {
+                      // Send moves in main frame target
+                      return new test_driver.Actions()
+                                            .pointerMove(10, 30, {origin: target0})
+                                            .send();
+                    });
                   }
                 });
 
@@ -87,15 +97,17 @@
                   if (phase == PhaseEnum.Lock1) {
                     assert_equals(innerframe.contentDocument.pointerLockElement, target1);
                     phase++;
-                    // Send moves in inner frame target
-                    new test_driver.Actions()
-                                   .pointerMove(10, 30, {origin: target0})
-                                   .send();
+                    actions_promise4 = actions_promise3.then( () => {
+                      // Send moves in inner frame target
+                      return new test_driver.Actions()
+                                            .pointerMove(10, 30, {origin: target0})
+                                            .send();
+                    });
                   }
                 });
 
                 // Click the outer frame target to lock.
-                clickInTarget("mouse", target0);
+                actions_promise1 = clickInTarget("mouse", target0);
             }
         </script>
         <div id="complete-notice">

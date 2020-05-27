@@ -25,7 +25,11 @@ def test_no_browsing_context(session, closed_window):
 def test_html_document(session):
     session.url = inline("Test")
 
-    response = do_print(session, {})
+    response = do_print(session, {
+        "page": {"width": 10,
+                 "height": 20},
+        "shrinkToFit": False
+    })
     value = assert_success(response)
     pdf = base64.decodestring(value)
     # TODO: Test that the output is reasonable
