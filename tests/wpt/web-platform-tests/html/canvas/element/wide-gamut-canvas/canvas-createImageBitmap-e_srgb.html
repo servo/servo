@@ -185,25 +185,17 @@ function compareBitmaps(bitmap1, bitmap2)
 function testImageBitmap(source, colorInfo, sourceType)
 {
     return Promise.all([
-        createImageBitmap(source, {colorSpaceConversion: "srgb",
-            resizeWidth: 40, resizeHeight: 40, resizeQuality: "high"}),
-        createImageBitmap(source, {colorSpaceConversion: "srgb",
-            resizeWidth: 40, resizeHeight: 40, resizeQuality: "medium"}),
-        createImageBitmap(source, {colorSpaceConversion: "srgb",
-            resizeWidth: 40, resizeHeight: 40, resizeQuality: "low"}),
-        createImageBitmap(source, {colorSpaceConversion: "srgb",
-            resizeWidth: 40, resizeHeight: 40, resizeQuality: "pixelated"}),
+        createImageBitmap(source, {resizeWidth: 40, resizeHeight: 40, resizeQuality: "high"}),
+        createImageBitmap(source, {resizeWidth: 40, resizeHeight: 40, resizeQuality: "medium"}),
+        createImageBitmap(source, {resizeWidth: 40, resizeHeight: 40, resizeQuality: "low"}),
+        createImageBitmap(source, {resizeWidth: 40, resizeHeight: 40, resizeQuality: "pixelated"}),
         createImageBitmap(source, 5, 5, 10, 10, {
-            colorSpaceConversion: "srgb",
             resizeWidth: 20, resizeHeight: 20, resizeQuality: "high"}),
         createImageBitmap(source, 5, 5, 10, 10, {
-            colorSpaceConversion: "srgb",
             resizeWidth: 20, resizeHeight: 20, resizeQuality: "medium"}),
         createImageBitmap(source, 5, 5, 10, 10, {
-            colorSpaceConversion: "srgb",
             resizeWidth: 20, resizeHeight: 20, resizeQuality: "low"}),
         createImageBitmap(source, 5, 5, 10, 10, {
-            colorSpaceConversion: "srgb",
             resizeWidth: 20, resizeHeight: 20, resizeQuality: "pixelated"}),
     ]).then(([noCropHigh, noCropMedium, noCropLow, noCropPixelated, cropHigh,
               cropMedium, cropLow, cropPixelated]) => {
@@ -490,8 +482,7 @@ promise_test(function() {
 // ImageBitmap - Opaque e-sRGB
 promise_test(function() {
     var testCanvas = initializeTestCanvas('srgb', 'float16');
-    return createImageBitmap(testCanvas, {colorSpaceConversion: "srgb"}
-        ).then(testImageBitmapOpaque);
+    return createImageBitmap(testCanvas).then(testImageBitmapOpaque);
 }, 'createImageBitmap in e-sRGB from an opaque e-sRGB ImageBitmap with resize.');
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -505,8 +496,7 @@ promise_test(function() {
 // ImageBitmap - Transparent e-sRGB
 promise_test(function() {
     var testCanvas = initializeTestCanvasTransparent('srgb', 'float16');
-    return createImageBitmap(testCanvas, {colorSpaceConversion: "srgb"}
-        ).then(testImageBitmapTransparent);
+    return createImageBitmap(testCanvas).then(testImageBitmapTransparent);
 }, 'createImageBitmap in e-sRGB from a transparent e-sRGB ImageBitmap with resize.');
 
 ////////////////////////////////////////////////////////////////////////////////

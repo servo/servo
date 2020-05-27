@@ -15,7 +15,7 @@ steps:
 - template: install_safari.yml
 - template: update_hosts.yml
 - template: update_manifest.yml
-- script: no_proxy='*' ./wpt run --yes --no-pause --no-fail-on-unexpected --no-restart-on-unexpected --affected ${{ parameters.affectedRange }} --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report.json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot.txt --channel preview safari
+- script: ./wpt run --yes --no-pause --no-fail-on-unexpected --no-restart-on-unexpected --affected ${{ parameters.affectedRange }} --log-wptreport $(Build.ArtifactStagingDirectory)/wpt_report.json --log-wptscreenshot $(Build.ArtifactStagingDirectory)/wpt_screenshot.txt --channel preview safari
   displayName: 'Run tests'
 - task: PublishBuildArtifacts@1
   displayName: 'Publish results'

@@ -1,4 +1,5 @@
 <!doctype html>
+<meta charset=utf-8>
 <title>Selectors: semantics of case-sensitivity attribute selector</title>
 <link rel="help" href="https://drafts.csswg.org/selectors/#attribute-case">
 <script src="/resources/testharness.js"></script>
@@ -122,6 +123,14 @@ var nomatch = [
   ["@namespace x 'A'; [x|foo='' i]", ["a", "foo", ""]],
   ["[foo='bar' i][foo='bar']", ["", "foo", "BAR"]],
   ["[foo='bar' i]", ["", "baz", "BAR"]],
+  ["[foo^='é' i]", ["", "foo", "É"]],
+  ["[foo$='é' i]", ["", "foo", "É"]],
+  ["[foo*='é' i]", ["", "foo", "É"]],
+  ["[foo|='é' i]", ["", "foo", "É"]],
+  ["[foo^='É' i]", ["", "foo", "é"]],
+  ["[foo$='É' i]", ["", "foo", "é"]],
+  ["[foo*='É' i]", ["", "foo", "é"]],
+  ["[foo|='É' i]", ["", "foo", "é"]],
   // Case-sensitive matching
   ["[foo='' s]", ["", "foo", "BAR"]],
   ["[foo='\u0000' s] /* \\0 in selector */", ["", "foo", ""]],

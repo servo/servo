@@ -114,7 +114,7 @@
     d6.showModal();
     this.add_cleanup(function() { d6.close(); });
     assert_true(d6.open);
-    assert_equals(document.activeElement, d6);
+    assert_equals(document.activeElement, document.body);
   }, "opening dialog without focusable children");
 
   test(function(){
