@@ -322,13 +322,8 @@ where
             },
         }
 
-        for component in &mut iter {
-            // The only other parser-allowed Components in this sequence are
-            // state pseudo-classes, or one of the other things that can contain
-            // them.
-            if !component.matches_for_stateless_pseudo_element() {
-                return false;
-            }
+        if !iter.matches_for_stateless_pseudo_element() {
+            return false;
         }
 
         // Advance to the non-pseudo-element part of the selector.

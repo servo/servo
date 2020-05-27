@@ -802,6 +802,33 @@ impl<'a, Impl: 'a + SelectorImpl> SelectorIter<'a, Impl> {
             self.next_sequence().is_none()
     }
 
+    #[inline]
+    pub(crate) fn matches_for_stateless_pseudo_element(&mut self) -> bool {
+        let first = match self.next() {
+            Some(c) => c,
+            // Note that this is the common path that we keep inline: the
+            // pseudo-element not having anything to its right.
+            None => return true,
+        };
+        self.matches_for_stateless_pseudo_element_internal(first)
+    }
+
+    #[inline(never)]
+    fn matches_for_stateless_pseudo_element_internal(&mut self, first: &Component<Impl>) -> bool {
+        if !first.matches_for_stateless_pseudo_element() {
+            return false;
+        }
+        for component in self {
+            // The only other parser-allowed Components in this sequence are
+            // state pseudo-classes, or one of the other things that can contain
+            // them.
+            if !component.matches_for_stateless_pseudo_element() {
+                return false;
+            }
+        }
+        true
+    }
+
     /// Returns remaining count of the simple selectors and combinators in the Selector.
     #[inline]
     pub fn selector_length(&self) -> usize {
@@ -1076,7 +1103,7 @@ impl<Impl: SelectorImpl> Component<Impl> {
     /// `maybe_allowed_after_pseudo_element` should end up here, and
     /// `NonTSPseudoClass` never matches (as it is a stateless pseudo after
     /// all).
-    pub(crate) fn matches_for_stateless_pseudo_element(&self) -> bool {
+    fn matches_for_stateless_pseudo_element(&self) -> bool {
         debug_assert!(
             self.maybe_allowed_after_pseudo_element(),
             "Someone messed up pseudo-element parsing: {:?}",
