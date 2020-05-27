@@ -191,7 +191,7 @@ where
     }
 }
 
-/// A generic value for the `aspect-ratio` property.
+/// Ratio or None.
 #[derive(
     Animate,
     Clone,
@@ -208,19 +208,50 @@ where
     ToShmem,
 )]
 #[repr(C, u8)]
-pub enum GenericAspectRatio<N> {
-    /// The <ratio> value.
+pub enum PreferredRatio<N> {
+    /// Without specified ratio
+    #[css(skip)]
+    None,
+    /// With specified ratio
     Ratio(#[css(field_bound)] Ratio<N>),
-    /// The keyword `auto`.
-    Auto,
+}
+
+/// A generic value for the `aspect-ratio` property, the value is `auto || <ratio>`.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub struct GenericAspectRatio<N> {
+    /// Specifiy auto or not.
+    #[animation(constant)]
+    #[css(represents_keyword)]
+    pub auto: bool,
+    /// The preferred aspect-ratio value.
+    #[css(field_bound)]
+    pub ratio: PreferredRatio<N>,
 }
 
 pub use self::GenericAspectRatio as AspectRatio;
 
-impl<R> AspectRatio<R> {
+impl<N> AspectRatio<N> {
     /// Returns `auto`
     #[inline]
     pub fn auto() -> Self {
-        AspectRatio::Auto
+        AspectRatio {
+            auto: true,
+            ratio: PreferredRatio::None,
+        }
     }
 }

@@ -882,24 +882,49 @@ pub type ZIndex = GenericZIndex<Integer>;
 /// A specified value for the `aspect-ratio` property.
 pub type AspectRatio = GenericAspectRatio<NonNegativeNumber>;
 
-// FIXME: Add field_bound for parse custom derive, so we can drop this.
 impl Parse for AspectRatio {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input
-            .try(|input| input.expect_ident_matching("auto"))
-            .is_ok()
-        {
-            return Ok(AspectRatio::Auto);
+        use crate::values::generics::position::PreferredRatio;
+
+        let location = input.current_source_location();
+        let mut auto = input.try(|i| i.expect_ident_matching("auto"));
+        let ratio = input.try(|i| Ratio::parse(context, i));
+        if auto.is_err() {
+            auto = input.try(|i| i.expect_ident_matching("auto"));
         }
 
-        GenericRatio::parse(context, input).map(AspectRatio::Ratio)
+        if auto.is_err() && ratio.is_err() {
+            return Err(location.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+
+        Ok(AspectRatio {
+            auto: auto.is_ok(),
+            ratio: match ratio {
+                Ok(ratio) => PreferredRatio::Ratio(ratio),
+                Err(..) => PreferredRatio::None,
+            },
+        })
     }
 }
 
-/// A specified value for the `aspect-ratio` property.
+impl AspectRatio {
+    /// Returns Self by a valid ratio.
+    pub fn from_mapped_ratio(w: f32, h: f32) -> Self {
+        use crate::values::generics::position::PreferredRatio;
+        AspectRatio {
+            auto: true,
+            ratio: PreferredRatio::Ratio(GenericRatio(
+                NonNegativeNumber::new(w),
+                NonNegativeNumber::new(h),
+            )),
+        }
+    }
+}
+
+/// A specified <ratio> value.
 pub type Ratio = GenericRatio<NonNegativeNumber>;
 
 // https://drafts.csswg.org/css-values-4/#ratios
