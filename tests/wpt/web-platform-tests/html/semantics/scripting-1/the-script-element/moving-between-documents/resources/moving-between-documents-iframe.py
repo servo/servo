@@ -33,7 +33,7 @@ def main(request, response):
     <body>
   """
 
-  if inlineOrExternal == "inline" or inlineOrExternal == "external":
+  if inlineOrExternal == "inline" or inlineOrExternal == "external" or inlineOrExternal == "empty-src":
     body += """
       <streaming-element>
     """
@@ -52,7 +52,7 @@ def main(request, response):
     time.sleep(1)
     body += """
         <script id="s1" type="%s"
-                onload="tScriptLoadEvent.unreached_func('onload')"
+                onload="scriptOnLoad()"
                 onerror="scriptOnError(event)">
         if (!window.readyToEvaluate) {
           window.didExecute = "executed too early";
@@ -72,10 +72,19 @@ def main(request, response):
     body += """
         <script id="s1" type="%s"
                 src="slow-flag-setter.py?result=%s&cache=%s"
-                onload="tScriptLoadEvent.unreached_func('onload')"
+                onload="scriptOnLoad()"
                 onerror="scriptOnError(event)"></script>
       </streaming-element>
     """ % (type, result, random.random())
+  elif inlineOrExternal == "empty-src":
+    time.sleep(1)
+    body += """
+        <script id="s1" type="%s"
+                src=""
+                onload="scriptOnLoad()"
+                onerror="scriptOnError(event)"></script>
+      </streaming-element>
+    """ % (type,)
 
   #        // if readyToEvaluate is false, the script is probably
   #       // wasn't blocked by stylesheets as expected.

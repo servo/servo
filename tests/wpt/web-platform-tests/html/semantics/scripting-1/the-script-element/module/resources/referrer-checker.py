@@ -1,6 +1,6 @@
 def main(request, response):
-    referrer = request.headers.get("referer", "")
-    response_headers = [("Content-Type", "text/javascript"),
-                        ("Access-Control-Allow-Origin", "*")];
+    referrer = request.headers.get(b"referer", b"")
+    response_headers = [(b"Content-Type", b"text/javascript"),
+                        (b"Access-Control-Allow-Origin", b"*")]
     return (200, response_headers,
-            "export const referrer = '" + referrer + "';")
+            b"export const referrer = '" + referrer + b"';")

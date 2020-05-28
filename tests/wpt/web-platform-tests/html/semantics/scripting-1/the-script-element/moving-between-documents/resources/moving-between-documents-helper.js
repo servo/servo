@@ -30,10 +30,9 @@ function createDocument(documentType, result, inlineOrExternal, type, hasBlockin
   });
 }
 
-window.scriptErrorEventFired = false;
 window.didExecute = undefined;
 
-// For a script, there are four associated Documents that can
+// For a script, there are three associated Documents that can
 // potentially different:
 //
 // [1] script's parser document
@@ -48,7 +47,7 @@ window.didExecute = undefined;
 //
 // This helper is for tests where [1]/[2]/[3] are different.
 
-// In the spec, scripts are not executed only if [1]/[2]/[3] are all the same
+// In the spec, scripts are executed only if [1]/[2]/[3] are all the same
 // (or [1] is null and [2]==[3]).
 //
 // A check for [1]==[2] is in #prepare-a-script and
@@ -75,6 +74,11 @@ window.didExecute = undefined;
 //     https://github.com/whatwg/html/issues/1349
 //     https://github.com/chrishtr/rendering/blob/master/stylesheet-loading-proposal.md
 //
+//   TODO(domfarolino): Remove the "parsing but moved back" tests, because if a
+//   <script> is moved before #prepare-a-script, per spec it should never make
+//   it to #execute-the-script-block. If an implementation does not implement
+//   the check in #prepare-a-script, then it will fail the "before-prepare"
+//   tests, so these are not necessary.
 //   "parsing but moved back"
 //     A <script> is moved before #prepare-a-script, but moved back again
 //     to the original Document after #prepare-a-script.
@@ -82,13 +86,9 @@ window.didExecute = undefined;
 //
 // destType: "iframe" or "createHTMLDocument".
 // result: "fetch-error", "parse-error", or "success".
-// inlineOrExternal: "inline" or "external".
+// inlineOrExternal: "inline" or "external" or "empty-src".
 // type: "classic" or "module".
 async function runTest(timing, destType, result, inlineOrExternal, type) {
-  if (result === "fetch-error" && inlineOrExternal === "inline") {
-    return;
-  }
-
   const description =
       `Move ${result} ${inlineOrExternal} ${type} script ` +
       `to ${destType} ${timing}`;
@@ -112,19 +112,19 @@ async function runTest(timing, destType, result, inlineOrExternal, type) {
   const [destWindow, destDocument] = await createDocument(
       destType, null, null, null, hasBlockingStylesheet);
 
-  let scriptErrorEventFired = false;
+  const scriptOnLoad =
+    tScriptLoadEvent.unreached_func("Script load event fired unexpectedly");
   const scriptOnError = (event) => {
     // For Firefox: Prevent window.onerror is fired due to propagation
     // from <script>'s error event.
     event.stopPropagation();
 
-    tScriptErrorEvent.unreached_func("Event fired unexpectedly")();
+    tScriptErrorEvent.unreached_func("Script error evennt fired unexpectedly")();
   };
 
   sourceWindow.didExecute = false;
   sourceWindow.t = t;
-  sourceWindow.tScriptLoadEvent = tScriptLoadEvent;
-  sourceWindow.tScriptErrorEvent = tScriptErrorEvent;
+  sourceWindow.scriptOnLoad = scriptOnLoad;
   sourceWindow.scriptOnError = scriptOnError;
   sourceWindow.onerror = tWindowErrorEvent.unreached_func(
       "Window error event shouldn't fired on source window");
@@ -132,8 +132,7 @@ async function runTest(timing, destType, result, inlineOrExternal, type) {
 
   destWindow.didExecute = false;
   destWindow.t = t;
-  destWindow.tScriptLoadEvent = tScriptLoadEvent;
-  destWindow.tScriptErrorEvent = tScriptErrorEvent;
+  destWindow.scriptOnLoad = scriptOnLoad;
   destWindow.scriptOnError = scriptOnError;
   destWindow.onerror = tWindowErrorEvent.unreached_func(
       "Window error event shouldn't fired on destination window");
@@ -158,10 +157,14 @@ async function runTest(timing, destType, result, inlineOrExternal, type) {
 
   // t=2 sec: Move between documents after #prepare-a-script.
   if (timing === "after-prepare") {
-   destDocument.body.appendChild(
+    // At this point, the script hasn't been moved yet, so we'll move it for the
+    // first time, after #prepare-a-script, but before #execute-the-script-block.
+    destDocument.body.appendChild(
       sourceDocument.querySelector("streaming-element"));
-  }
-  else if (timing === "move-back") {
+  } else if (timing === "move-back") {
+    // At this point the script has already been moved to the destination block
+    // before #prepare-a-script, so we'll move it back to the source document
+    // before #execute-the-script-block.
     sourceDocument.body.appendChild(
       destDocument.querySelector("streaming-element"));
   }
@@ -205,8 +208,6 @@ async_test(t => {
   t.step_timeout(() => {
       assert_equals(window.didExecute, undefined,
         "The script must not have executed in the top-level window");
-      assert_false(window.scriptErrorEventFired,
-        "Top-level window's scriptErrorEventFired should be untouched");
       t.done();
     },
     4000);

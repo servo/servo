@@ -13,6 +13,7 @@
   width: 100px;
   will-change: transform;
 }
+
 .contents {
   height: 1000px;
   width: 100%;
@@ -28,7 +29,7 @@ promise_test(async t => {
   const scroller = animation.timeline.scrollSource;
   const maxScroll = scroller.scrollHeight - scroller.clientHeight;
   scroller.scrollTop = 0.2 * maxScroll;
-  // Wait for new animation frame  which allows the timeline to compute new
+  // Wait for new animation frame which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
 
@@ -60,7 +61,7 @@ promise_test(async t => {
   const scroller = animation.timeline.scrollSource;
   // Make the scroll timeline inactive.
   scroller.style.overflow = 'visible';
-  // Wait for new animation frame  which allows the timeline to compute new
+  // Wait for new animation frame which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
   assert_equals(animation.timeline.currentTime, null,
@@ -95,7 +96,7 @@ promise_test(async t => {
   const maxScroll = scroller.scrollHeight - scroller.clientHeight;
   scroller.scrollTop = 0.2 * maxScroll;
 
-  // Wait for new animation frame  which allows the timeline to compute new
+  // Wait for new animation frame which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
 
@@ -124,7 +125,7 @@ promise_test(async t => {
   const scroller = animation.timeline.scrollSource;
   // Make the scroll timeline inactive.
   scroller.style.overflow = 'visible';
-  // Wait for new animation frame  which allows the timeline to compute new
+  // Wait for new animation frame which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
   assert_equals(animation.timeline.currentTime, null,
@@ -156,7 +157,7 @@ promise_test(async t => {
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
 
-  // Wait for new animation frame  which allows the timeline to compute new
+  // Wait for new animation frame which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
 
@@ -190,7 +191,7 @@ promise_test(async t => {
   const scroller = animation.timeline.scrollSource;
   // Make the scroll timeline inactive.
   scroller.style.overflow = 'visible';
-  // Wait for new animation frame  which allows the timeline to compute new
+  // Wait for new animation frame which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
   assert_equals(animation.timeline.currentTime, null,
@@ -225,7 +226,7 @@ promise_test(async t => {
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
 
-  // Wait for new animation frame  which allows the timeline to compute new
+  // Wait for new animation frame which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
 
@@ -249,7 +250,7 @@ promise_test(async t => {
   const scroller = animation.timeline.scrollSource;
   // Make the scroll timeline inactive.
   scroller.style.overflow = 'visible';
-  // Wait for new animation frame  which allows the timeline to compute new
+  // Wait for new animation frame which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
   assert_equals(animation.timeline.currentTime, null,
@@ -272,7 +273,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame  which allows the timeline to compute new
+  // Wait for new animation frame which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
 
@@ -301,7 +302,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame  which allows the timeline to compute new
+  // Wait for new animation frame which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
   animation.play();
@@ -319,7 +320,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   const animation = createScrollLinkedAnimation(t);
-  // Wait for new animation frame  which allows the timeline to compute new
+  // Wait for new animation frame which allows the timeline to compute new
   // current time.
   await waitForNextFrame();
   animation.play();
@@ -336,5 +337,85 @@ promise_test(async t => {
   assert_times_equal(animation.currentTime, -2000);
 }, 'Setting the start time on a reverse running animation updates the play '
    + 'state');
+   promise_test(async t => {
+  const animation = createScrollLinkedAnimation(t);
+  // Wait for new animation frame which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+  let readyPromiseCallbackCalled = false;
+  animation.ready.then(() => { readyPromiseCallbackCalled = true; } );
+  animation.pause();
+
+  // Sanity check
+  assert_true(animation.pending && animation.playState === 'paused',
+              'Animation is in pause-pending state');
+
+  // Setting the start time should resolve the 'ready' promise although
+  // the resolution callbacks when be run in a separate microtask.
+  animation.startTime = null;
+  assert_false(readyPromiseCallbackCalled,
+               'Ready promise callback is not called synchronously');
+
+  await Promise.resolve();
+  assert_true(readyPromiseCallbackCalled,
+              'Ready promise callback called after setting startTime');
+}, 'Setting the start time resolves a pending pause task');
+
+promise_test(async t => {
+  const anim = createScrollLinkedAnimation(t);
+  // Wait for new animation frame which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+  anim.play();
+
+  // We should be play-pending now
+  assert_true(anim.pending);
+  assert_equals(anim.playState, 'running');
+
+  // Apply a pending playback rate
+  anim.updatePlaybackRate(2);
+  assert_equals(anim.playbackRate, 1);
+  assert_true(anim.pending);
+
+  // Setting the start time should apply the pending playback rate
+  anim.startTime = anim.timeline.currentTime - 25 * MS_PER_SEC;
+  assert_equals(anim.playbackRate, 2);
+  assert_false(anim.pending);
+
+  // Sanity check that the start time is preserved and current time is
+  // calculated using the new playback rate
+  assert_times_equal(anim.startTime,
+                     anim.timeline.currentTime - 25 * MS_PER_SEC);
+  assert_time_equals_literal(anim.currentTime, 50 * MS_PER_SEC);
+}, 'Setting the start time of a play-pending animation applies a pending playback rate');
+
+promise_test(async t => {
+  const anim = createScrollLinkedAnimation(t);
+  // Wait for new animation frame which allows the timeline to compute new
+  // current time.
+  await waitForNextFrame();
+  anim.play();
+  await anim.ready;
+
+  // We should be running now
+  assert_false(anim.pending);
+  assert_equals(anim.playState, 'running');
+
+  // Apply a pending playback rate
+  anim.updatePlaybackRate(2);
+  assert_equals(anim.playbackRate, 1);
+  assert_true(anim.pending);
+
+  // Setting the start time should apply the pending playback rate
+  anim.startTime = anim.timeline.currentTime - 250;
+  assert_equals(anim.playbackRate, 2);
+  assert_false(anim.pending);
+
+  // Sanity check that the start time is preserved and current time is
+  // calculated using the new playback rate
+  assert_times_equal(anim.startTime,
+                     anim.timeline.currentTime - 250);
+  assert_time_equals_literal(parseInt(anim.currentTime.toPrecision(5), 10), 500);
+}, 'Setting the start time of a playing animation applies a pending playback rate');
 </script>
 </body>

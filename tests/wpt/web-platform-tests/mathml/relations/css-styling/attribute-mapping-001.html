@@ -42,8 +42,7 @@
 
           test(function() {
               assert_equals(style.getPropertyValue("color"),
-                            tag === "merror" ?
-                            "rgb(255, 0, 0)" : "rgb(0, 0, 255)",
+                            "rgb(0, 0, 255)",
                             "no attribute");
               element.setAttribute("mathcolor", "black");
               assert_equals(style.getPropertyValue("color"), "rgb(0, 0, 0)", "attribute specified");

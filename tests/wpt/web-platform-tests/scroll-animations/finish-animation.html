@@ -339,5 +339,155 @@
   }, 'Finishing running animation attached to inactive timeline pauses the ' +
      'animation.');
 
+  promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    animation.pause();
+    await animation.ready;
+
+    animation.finish();
+
+    assert_equals(animation.playState, 'finished',
+                  'The play state of a paused animation should become ' +
+                  '"finished"');
+    assert_times_equal(animation.startTime,
+                      animation.timeline.currentTime - 1000,
+                      'The start time of a paused animation should be set');
+  }, 'Finishing a paused animation resolves the start time');
+
+  promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    animation.play();
+    // Update playbackRate so we can test that the calculated startTime
+    // respects it
+    animation.playbackRate = 2;
+    animation.pause();
+    // While animation is still pause-pending call finish()
+    animation.finish();
+
+    assert_false(animation.pending);
+    assert_equals(animation.playState, 'finished',
+                  'The play state of a pause-pending animation should become ' +
+                  '"finished"');
+    assert_times_equal(animation.startTime,
+                      animation.timeline.currentTime - 1000 / 2,
+                      'The start time of a pause-pending animation should ' +
+                      'be set');
+  }, 'Finishing a pause-pending animation resolves the pending task'
+    + ' immediately and update the start time');
+
+  promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    animation.play();
+    animation.playbackRate = -2;
+    animation.pause();
+    animation.finish();
+
+    assert_false(animation.pending);
+    assert_equals(animation.playState, 'finished',
+                  'The play state of a pause-pending animation should become ' +
+                  '"finished"');
+    assert_times_equal(animation.startTime, animation.timeline.currentTime,
+                      'The start time of a pause-pending animation should be ' +
+                      'set');
+  }, 'Finishing a pause-pending animation with negative playback rate'
+    + ' resolves the pending task immediately');
+
+  promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    animation.play();
+    await animation.ready;
+
+    animation.pause();
+    animation.play();
+    // We are now in the unusual situation of being play-pending whilst having
+    // a resolved start time. Check that finish() still triggers a transition
+    // to the finished state immediately.
+    animation.finish();
+
+    assert_equals(animation.playState, 'finished',
+                  'After aborting a pause then finishing an animation its play ' +
+                  'state should become "finished" immediately');
+  }, 'Finishing an animation during an aborted pause makes it finished'
+    + ' immediately');
+
+  promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    animation.play();
+    await animation.ready;
+
+    animation.updatePlaybackRate(2);
+    assert_true(animation.pending);
+
+    animation.finish();
+    assert_false(animation.pending);
+    assert_equals(animation.playbackRate, 2);
+    assert_times_equal(animation.currentTime, 1000);
+  }, 'A pending playback rate should be applied immediately when an animation'
+    + ' is finished');
+
+  promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    animation.play();
+    await animation.ready;
+
+    animation.updatePlaybackRate(0);
+
+    assert_throws_dom('InvalidStateError', () => {
+      animation.finish();
+    });
+  }, 'An exception should be thrown if the effective playback rate is zero');
+
+  promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    animation.effect.updateTiming({ iterations: Infinity });
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    animation.play();
+    animation.currentTime = 500;
+    animation.playbackRate = -1;
+    await animation.ready;
+
+    animation.updatePlaybackRate(1);
+
+    assert_throws_dom('InvalidStateError', () => {
+      animation.finish();
+    });
+  }, 'An exception should be thrown when finishing if the effective playback rate'
+    + ' is positive and the target effect end is infinity');
+
+  promise_test(async t => {
+    const animation = createScrollLinkedAnimation(t);
+    animation.effect.updateTiming({ iterations: Infinity });
+    // Wait for new animation frame which allows the timeline to compute new
+    // current time.
+    await waitForNextFrame();
+    animation.play();
+    await animation.ready;
+
+    animation.updatePlaybackRate(-1);
+
+    animation.finish();
+    // Should not have thrown
+  }, 'An exception is NOT thrown when finishing if the effective playback rate'
+    + ' is negative and the target effect end is infinity');
 </script>
 </body>

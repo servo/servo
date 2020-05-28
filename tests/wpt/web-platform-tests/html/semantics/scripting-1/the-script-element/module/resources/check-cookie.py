@@ -1,20 +1,20 @@
 def main(request, response):
     headers = [
-        ("Content-Type", "text/javascript"),
-        ("Access-Control-Allow-Origin", request.headers.get("Origin")),
-        ("Access-Control-Allow-Credentials", "true")
+        (b"Content-Type", b"text/javascript"),
+        (b"Access-Control-Allow-Origin", request.headers.get(b"Origin")),
+        (b"Access-Control-Allow-Credentials", b"true")
     ]
-    identifier = request.GET.first("id")
-    cookie_name = request.GET.first("cookieName")
+    identifier = request.GET.first(b"id")
+    cookie_name = request.GET.first(b"cookieName")
     cookie = request.cookies.first(cookie_name, None)
     if identifier is None or cookie_name is None:
-        return headers, ""
+        return headers, b""
 
     if cookie is None:
-        result = "not found"
-    elif cookie.value == "1":
-        result = "found"
+        result = b"not found"
+    elif cookie.value == b"1":
+        result = b"found"
     else:
-        result = "different value: " + cookie.value
+        result = b"different value: " + cookie.value
 
-    return headers, "window." + identifier + " = '" + result + "';"
+    return headers, b"window." + identifier + b" = '" + result + b"';"

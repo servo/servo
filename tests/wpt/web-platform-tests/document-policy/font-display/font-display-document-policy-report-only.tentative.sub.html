@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <style></style>
+</head>
+
+<body>
+  <p>This is a subframe with 'no-font-display-late-swap'</p>
+  <p id="text"></p>
+</body>
+<script>
+  window.onmessage = (e) => {
+    const rule = e.data.rule;
+    const family = e.data.family;
+
+    function send_report(reports) {
+      // stringify reports because report is not clonable.
+      e.source.postMessage(JSON.stringify(reports), '*');
+    }
+
+    new ReportingObserver(send_report, {
+        types: ['document-policy-violation'],
+        buffered: true
+      })
+      .observe();
+
+    document.styleSheets[0].insertRule(rule, 0);
+    // Trigger font display violation.
+    const p = document.getElementById('text');
+    p.textContent = 'a';
+    p.style.fontFamily = `${family}, Arial`;
+  };
+</script>
+
+</html>
