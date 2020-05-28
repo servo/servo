@@ -17,6 +17,8 @@ bluetooth_test(() => getMeasurementIntervalCharacteristic()
         getDescriptors()|
         readValue()|
         writeValue(new Uint8Array(1))|
+        writeValueWithResponse(new Uint8Array(1))|
+        writeValueWithoutResponse(new Uint8Array(1))|
         startNotifications()
       ]), expected)),
     test_desc);

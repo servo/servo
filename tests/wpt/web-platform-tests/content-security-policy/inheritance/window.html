@@ -23,8 +23,8 @@
     var img = document.createElement('img');
     img.onerror = t.step_func_done(_ => w.close());
     img.onload = t.unreached_func();
-    w.document.body.appendChild(img);
     img.src = "/images/red-16x16.png";
+    w.document.body.appendChild(img);
   }, "window.open() inherits policy.");
 
   async_test(t => {

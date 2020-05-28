@@ -14,7 +14,7 @@ async_test(t => {
   }));
   const frame = document.createElement("iframe");
   t.add_cleanup(() => frame.remove());
-  frame.src = `data:text/html,<script>${createScript("null", window.origin)}<\/script>`;
+  frame.src = `data:text/html,<script>${encodeURIComponent(createScript("null", window.origin))}<\/script>`;
   document.body.append(frame);
 }, "Cross-Origin-Embedder-Policy and data: URLs");
 </script>

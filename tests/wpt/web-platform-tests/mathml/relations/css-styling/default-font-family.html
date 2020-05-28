@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Default font-family on the &lt;math&gt; root</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-top-level-math-element">
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#user-agent-stylesheet">
+<meta name="assert" content="Verify that the default font-family is 'math'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="log"></div>
+  <div style="font-family: BB2F7F3E9FEE11EA96DF67A737751C2F;">
+    <div id="inherited-reference"></div>
+    <math id="math-not-inherited"></math>
+  </div>
+  <math id="math-default"></math>
+
+  <script>
+    function getFontFamily(id) {
+        return window.getComputedStyle(document.getElementById(id)).fontFamily;
+    }
+
+    test(function () {
+        assert_equals(getFontFamily("inherited-reference"), "BB2F7F3E9FEE11EA96DF67A737751C2F");
+        assert_not_equals(getFontFamily("math-not-inherited"), getFontFamily("inherited-reference"));
+    }, "Default font-family on <math> is not inherited");
+
+    test(function () {
+        assert_equals(getFontFamily("math-not-inherited"), "math");
+        assert_equals(getFontFamily("math-default"), "math");
+    }, "Default font-family on <math> is 'math'");
+  </script>
+</body>
+</html>

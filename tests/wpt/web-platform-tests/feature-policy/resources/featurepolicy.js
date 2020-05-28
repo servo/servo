@@ -354,13 +354,9 @@ function test_subframe_header_policy(
     assert_feature_policy_supported()
     frame.src = src + '?pipe=sub|header(Feature-Policy,' + feature + ' '
         + frame_header_policy + ';)';
-    return new Promise(function(resolve, reject) {
-      let results = [];
+    return new Promise(function(resolve) {
       window.addEventListener('message', function handler(evt) {
-        results.push(evt.data);
-        if (results.length >= 6) {
-          resolve(results);
-        }
+        resolve(evt.data);
       });
       document.body.appendChild(frame);
     }).then(function(results) {

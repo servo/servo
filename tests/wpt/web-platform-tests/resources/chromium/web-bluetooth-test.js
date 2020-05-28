@@ -13,6 +13,23 @@ function toMojoCentralState(state) {
   }
 }
 
+// Converts bluetooth.mojom.WriteType to a string. If |writeType| is
+// invalid, this method will throw.
+function writeTypeToString(writeType) {
+  switch (writeType) {
+    case bluetooth.mojom.WriteType.kNone:
+      return 'none';
+    case bluetooth.mojom.WriteType.kWriteDefaultDeprecated:
+      return 'default-deprecated';
+    case bluetooth.mojom.WriteType.kWriteWithResponse:
+      return 'with-response';
+    case bluetooth.mojom.WriteType.kWriteWithoutResponse:
+      return 'without-response';
+    default:
+      throw `Unknown bluetooth.mojom.WriteType: ${writeType}`;
+  }
+}
+
 // Canonicalizes UUIDs and converts them to Mojo UUIDs.
 function canonicalizeAndConvertToMojoUUID(uuids) {
   let canonicalUUIDs = uuids.map(val => ({uuid: BluetoothUUID.getService(val)}));
@@ -448,16 +465,19 @@ class FakeRemoteGATTCharacteristic {
     return isNotifying;
   }
 
-  // Gets the last successfully written value to the characteristic.
-  // Returns null if no value has yet been written to the characteristic.
+  // Gets the last successfully written value to the characteristic and its
+  // write type. Write type is one of 'none', 'default-deprecated',
+  // 'with-response', 'without-response'. Returns {lastValue: null,
+  // lastWriteType: 'none'} if no value has yet been written to the
+  // characteristic.
   async getLastWrittenValue() {
-    let {success, value} =
-      await this.fake_central_ptr_.getLastWrittenCharacteristicValue(
-          ...this.ids_);
+    let {success, value, writeType} =
+        await this.fake_central_ptr_.getLastWrittenCharacteristicValue(
+            ...this.ids_);
 
     if (!success) throw 'getLastWrittenCharacteristicValue failed';
 
-    return value;
+    return {lastValue: value, lastWriteType: writeTypeToString(writeType)};
   }
 
   // Removes the fake GATT Characteristic from its fake service.

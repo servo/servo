@@ -193,18 +193,21 @@
   promise_test(async t => {
     const timeline = createScrollTimeline(t);
     const scroller = timeline.scrollSource;
-    // Timeline should be inactive since layout hasn't updated yet
+    // Setting the scroller to display none should make the timeline inactive
+    scroller.style.display = "none";
+    scroller.scrollTop;
+    await waitForNextFrame();
     assert_equals(timeline.phase, "inactive");
 
-    // Accessing scroller.scrollHeight forces the scroller to update
-    scroller.scrollHeight;
-    // Wait for new animation frame which allows the timeline to compute new
-    // current time.
+    // Setting the scroller to display "block" should make the timeline active
+    scroller.style.display = "block";
+    scroller.scrollTop;
     await waitForNextFrame();
     assert_equals(timeline.phase, "active");
 
     // Setting the scroller to display none should make the timeline inactive
-    scroller.style.display = "none"
+    scroller.style.display = "none";
+    scroller.scrollTop;
     await waitForNextFrame();
 
     assert_equals(timeline.phase, "inactive");

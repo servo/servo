@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1086732">
+<link rel="match" href="appearance-transition-ref.html">
+<style>
+  input {
+    background-color: rgb(0, 0, 0);
+    transition: background-color 1e10s steps(2, start);
+  }
+
+  .bg200 {
+    background-color: rgb(0, 200, 0);
+  }
+</style>
+<input value="text" id=input>
+<script>
+  document.documentElement.offsetTop;
+  input.classList.toggle('bg200');
+</script>
+<p>PASS if the input field has a dark green background</p>
