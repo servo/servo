@@ -21,13 +21,14 @@ use script_layout_interface::wrapper_traits::{
 };
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
+use servo_arc::Arc as ServoArc;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use style::computed_values::position::T as Position;
 use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::OpaqueNode;
 use style::dom::TElement;
-use style::properties::{LonghandId, PropertyDeclarationId, PropertyId};
+use style::properties::{ComputedValues, LonghandId, PropertyDeclarationId, PropertyId};
 use style::selector_parser::PseudoElement;
 use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
@@ -137,6 +138,10 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ResolvedStyleResponse(rw_data.resolved_style_response.clone())
+    }
+
+    fn parsed_font(&self) -> Option<ServoArc<ComputedValues>> {
+        unimplemented!()
     }
 
     fn offset_parent(&self) -> OffsetParentResponse {

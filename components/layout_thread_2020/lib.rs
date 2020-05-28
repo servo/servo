@@ -914,6 +914,7 @@ impl LayoutThread {
                         &QueryMsg::ResolvedStyleQuery(_, _, _) => {
                             rw_data.resolved_style_response = String::new();
                         },
+                        &QueryMsg::ParseFontQuery(_, _, _) => unimplemented!(),
                         &QueryMsg::OffsetParentQuery(_) => {
                             rw_data.offset_parent_response = OffsetParentResponse::empty();
                         },
@@ -1206,6 +1207,7 @@ impl LayoutThread {
                         fragment_tree,
                     );
                 },
+                &QueryMsg::ParseFontQuery(_, _, _) => unimplemented!(),
                 &QueryMsg::OffsetParentQuery(node) => {
                     rw_data.offset_parent_response = process_offset_parent_query(node);
                 },
@@ -1242,7 +1244,6 @@ impl LayoutThread {
                     //            builder in order to support query iframe sizing.
                     rw_data.inner_window_dimensions_response = None;
                 },
-                &QueryMsg::ParseFontQuery(_, _) => unimplemented!(),
             },
             ReflowGoal::Full | ReflowGoal::TickAnimations => {},
         }
