@@ -1849,9 +1849,6 @@ impl Window {
     }
 
     pub fn parse_font_query(&self, node: &Node, value: String) -> Option<ServoArc<ComputedValues>> {
-        if !node.is_connected() {
-            return None;
-        }
         let id = PropertyId::Shorthand(ShorthandId::Font);
         if !self.layout_reflow(QueryMsg::ParseFontQuery(
             node.to_trusted_node_address(),

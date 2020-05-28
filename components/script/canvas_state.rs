@@ -22,7 +22,7 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
-use crate::dom::node::{Node, NodeDamage};
+use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
@@ -1007,7 +1007,14 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
-    pub fn set_font(&self, _canvas: Option<&HTMLCanvasElement>, _value: DOMString) {
+    pub fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
+        let _resolved_font = if let Some(element) = canvas {
+            let node = element.upcast::<Node>();
+            let window = window_from_node(&*node);
+            window.parse_font_query(&node, value.to_string())
+        } else {
+            None
+        };
         unimplemented!()
     }
 
