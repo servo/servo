@@ -17,9 +17,9 @@ cd "$(git rev-parse --show-toplevel)"
 PATHS=(
     "components/compositing/compositor.rs"
     "components/constellation/"
-    "ports/glutin/headed_window.rs"
-    "ports/glutin/headless_window.rs"
-    "ports/glutin/embedder.rs"
+    "ports/winit/headed_window.rs"
+    "ports/winit/headless_window.rs"
+    "ports/winit/embedder.rs"
 )
 
 # Make sure the paths exist

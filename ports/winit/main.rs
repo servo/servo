@@ -8,12 +8,11 @@
 //! the compositor's `WindowMethods` to create a working web browser.
 //!
 //! This browser's implementation of `WindowMethods` is built on top
-//! of [glutin], the cross-platform OpenGL utility and windowing
-//! library.
+//! of [winit], the cross-platform windowing library.
 //!
 //! For the engine itself look next door in `components/servo/lib.rs`.
 //!
-//! [glutin]: https://github.com/tomaka/glutin
+//! [winit]: https://github.com/rust-windowing/winit
 
 #[cfg(not(target_os = "android"))]
 include!("main2.rs");

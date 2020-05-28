@@ -102,7 +102,7 @@ See [Cargo's documentation about Cargo.toml and Cargo.lock files](https://doc.ru
 
 As explained above, Servo depends on a lot of libraries, which makes it very modular. While working on a bug in Servo, you'll often end up in one of its dependencies. You will then want to compile your own version of the dependency (and maybe compiling against the HEAD of the library will fix the issue!).
 
-For example, I'm trying to bring some cocoa events to Servo. The Servo window on Desktop is constructed with a library named [Glutin](https://github.com/tomaka/glutin). Glutin itself depends on a cocoa library named [cocoa-rs](https://github.com/servo/cocoa-rs). When building Servo, magically, all these dependencies are downloaded and built for you. But because I want to work on this cocoa event feature, I want Servo to use my own version of *glutin* and *cocoa-rs*.
+For example, I'm trying to bring some cocoa events to Servo. The Servo window on Desktop is constructed with a library named [winit](https://github.com/rust-windowing/winit). winit itself depends on a cocoa library named [cocoa-rs](https://github.com/servo/cocoa-rs). When building Servo, magically, all these dependencies are downloaded and built for you. But because I want to work on this cocoa event feature, I want Servo to use my own version of *winit* and *cocoa-rs*.
 
 This is how my projects are laid out:
 
