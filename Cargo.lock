@@ -2165,9 +2165,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-audio-sys"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "03c8b1cc44e9df434e1817ee00bfa5cb146008cacfcfbd88de4a0dac90b04496"
+checksum = "bbc91f53eec49fc31d6e0aea7502c4c4b502a4164e351b97fe81677f8a0ebce7"
 dependencies = [
  "glib-sys",
  "gobject-sys",
