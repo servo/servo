@@ -508,7 +508,6 @@ dependencies = [
  "canvas_traits",
  "crossbeam-channel",
  "cssparser",
- "embedder_traits",
  "euclid",
  "fnv",
  "gleam 0.11.0",
@@ -551,16 +550,6 @@ dependencies = [
  "time",
  "webrender_api",
  "webxr-api",
-]
-
-[[package]]
-name = "caseless"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "808dab3318747be122cb31d36de18d4d1c81277a76f8332a02b81a3d73463d7f"
-dependencies = [
- "regex",
- "unicode-normalization",
 ]
 
 [[package]]
@@ -838,7 +827,6 @@ dependencies = [
  "script_traits",
  "serde",
  "servo_config",
- "servo_geometry",
  "servo_rand",
  "servo_remutex",
  "servo_url",
@@ -2834,11 +2822,9 @@ dependencies = [
  "atomic_refcell",
  "bitflags",
  "canvas_traits",
- "crossbeam-channel",
  "embedder_traits",
  "euclid",
  "fnv",
- "fxhash",
  "gfx",
  "gfx_traits",
  "html5ever",
@@ -2903,7 +2889,6 @@ dependencies = [
  "serde",
  "serde_json",
  "servo_arc",
- "servo_geometry",
  "servo_url",
  "style",
  "style_traits",
@@ -2949,7 +2934,6 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "servo_config",
- "servo_geometry",
  "servo_url",
  "style",
  "style_traits",
@@ -2992,11 +2976,9 @@ dependencies = [
  "servo_arc",
  "servo_atoms",
  "servo_config",
- "servo_geometry",
  "servo_url",
  "style",
  "style_traits",
- "time",
  "webrender_api",
 ]
 
@@ -3005,7 +2987,6 @@ name = "layout_traits"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
- "euclid",
  "gfx",
  "ipc-channel",
  "metrics",
@@ -3013,7 +2994,6 @@ dependencies = [
  "net_traits",
  "profile_traits",
  "script_traits",
- "servo_geometry",
  "servo_url",
  "webrender_api",
 ]
@@ -3587,7 +3567,6 @@ dependencies = [
  "malloc_size_of_derive",
  "parking_lot 0.10.2",
  "serde",
- "servo_url",
  "size_of_test",
  "webrender_api",
 ]
@@ -4251,7 +4230,6 @@ dependencies = [
  "servo_config",
  "task_info",
  "time",
- "tokio",
 ]
 
 [[package]]
@@ -4268,7 +4246,6 @@ dependencies = [
 name = "profile_traits"
 version = "0.0.1"
 dependencies = [
- "bincode",
  "crossbeam-channel",
  "energy-monitor",
  "energymon",
@@ -4614,11 +4591,9 @@ dependencies = [
  "app_units",
  "backtrace",
  "base64 0.10.1",
- "bincode",
  "bitflags",
  "bluetooth_traits",
  "canvas_traits",
- "caseless",
  "chrono",
  "content-security-policy",
  "cookie",
@@ -4791,7 +4766,6 @@ dependencies = [
  "smallvec 0.6.13",
  "style_traits",
  "time",
- "url",
  "uuid",
  "webdriver",
  "webgpu",
@@ -4894,7 +4868,6 @@ dependencies = [
  "clipboard",
  "euclid",
  "getopts",
- "gleam 0.11.0",
  "image",
  "keyboard-types",
  "lazy_static",
@@ -4907,7 +4880,6 @@ dependencies = [
  "surfman",
  "tinyfiledialogs",
  "webxr",
- "webxr-api",
  "winapi",
  "winit",
  "winres",
@@ -4959,7 +4931,6 @@ version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
  "euclid",
- "gleam 0.11.0",
  "glib",
  "gst-plugin-version-helper",
  "gstreamer",
@@ -6478,7 +6449,6 @@ dependencies = [
  "servo_config",
  "servo_url",
  "style_traits",
- "url",
  "uuid",
  "webdriver",
 ]
@@ -6487,7 +6457,6 @@ dependencies = [
 name = "webgpu"
 version = "0.0.1"
 dependencies = [
- "embedder_traits",
  "ipc-channel",
  "log",
  "malloc_size_of",
@@ -6584,7 +6553,6 @@ name = "webrender_traits"
 version = "0.0.1"
 dependencies = [
  "euclid",
- "servo_geometry",
  "webrender_api",
 ]
 

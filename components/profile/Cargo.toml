@@ -19,7 +19,6 @@ serde = "1.0"
 serde_json = "1.0"
 servo_config = {path = "../config"}
 time_crate = {package = "time", version = "0.1.12"}
-tokio = "0.1"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 task_info = {path = "../../support/rust-task_info"}

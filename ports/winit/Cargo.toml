@@ -52,7 +52,6 @@ backtrace = "0.3"
 clipboard = "0.5"
 euclid = "0.20"
 getopts = "0.2.11"
-gleam = "0.11"
 keyboard-types = "0.4.3"
 lazy_static = "1"
 libc = "0.2"
@@ -63,7 +62,6 @@ shellwords = "1.0.0"
 surfman = { version = "0.2", features = ["sm-winit", "sm-x11"] }
 tinyfiledialogs = "3.0"
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "glwindow", "headless"] }
-webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 winit = "0.19"
 
 [target.'cfg(any(target_os = "linux", target_os = "windows"))'.dependencies]

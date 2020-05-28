@@ -44,3 +44,6 @@ pub mod test {
     pub use crate::hosts::{parse_hostsfile, replace_host_table};
     pub use crate::http_loader::HttpState;
 }
+
+// This dependency gives `build.rs` access to the `DEP_OPENSSL_VERSION_NUMBER` env variable.
+use openssl_sys as _;
