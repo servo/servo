@@ -63,7 +63,7 @@
 * mach
   * A command-line tool to help with developer tasks.
 * ports
-  * glutin
+  * winit
     * Embedding implementation for the `winit` windowing library.
 * python
   * servo

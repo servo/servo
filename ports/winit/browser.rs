@@ -513,7 +513,7 @@ where
                 },
                 EmbedderMsg::MediaSessionEvent(_) => {
                     debug!("MediaSessionEvent received");
-                    // TODO(ferjm): MediaSession support for Glutin based browsers.
+                    // TODO(ferjm): MediaSession support for winit based browsers.
                 },
                 EmbedderMsg::OnDevtoolsStarted(port) => {
                     match port {

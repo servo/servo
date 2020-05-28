@@ -696,7 +696,7 @@ install them, let us know by filing a bug!")
 
         # These are set because they are the variable names that build-apk
         # expects. However, other submodules have makefiles that reference
-        # the env var names above. Once glutin is enabled and set as the
+        # the env var names above. Once winit is enabled and set as the
         # default, we could modify the subproject makefiles to use the names
         # below and remove the vars above, to avoid duplication.
         if "ANDROID_SDK" in env:
@@ -869,7 +869,7 @@ install them, let us know by filing a bug!")
                     api = "capi"
                 port = path.join("libsimpleservo", api)
             else:
-                port = "glutin"
+                port = "winit"
             args += [
                 "--manifest-path",
                 path.join(self.context.topdir, "ports", port, "Cargo.toml"),

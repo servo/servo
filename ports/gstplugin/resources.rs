@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// This is a copy of the resource loader from the glutin port
+// This is a copy of the resource loader from the winit port
 // TODO: move this to somewhere where it can be shared.
 // https://github.com/servo/servo/issues/24853
 
