@@ -677,7 +677,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
     if type.isSequence() or type.isRecord():
         innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
                                                 descriptorProvider,
-                                                isMember=isMember,
+                                                isMember="Sequence",
                                                 isAutoRooted=isAutoRooted)
         declType = wrapInNativeContainerType(type, innerInfo.declType)
         config = getConversionConfigForType(type, isEnforceRange, isClamp, treatNullAs)
@@ -1075,7 +1075,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         assert not isEnforceRange and not isClamp
         assert isMember != "Union"
 
-        if isMember == "Dictionary" or isAutoRooted:
+        if isMember in ("Dictionary", "Sequence") or isAutoRooted:
             templateBody = "${val}.get()"
 
             if defaultValue is None:
@@ -1087,7 +1087,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
             else:
                 raise TypeError("Can't handle non-null, non-undefined default value here")
 
-            if isMember == "Dictionary":
+            if not isAutoRooted:
                 templateBody = "RootedTraceableBox::from_box(Heap::boxed(%s))" % templateBody
                 if default is not None:
                     default = "RootedTraceableBox::from_box(Heap::boxed(%s))" % default
@@ -1115,15 +1115,19 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
         assert not isEnforceRange and not isClamp
 
         templateBody = "${val}.get().to_object()"
-        default = "ptr::null_mut()"
 
-        if isMember in ("Dictionary", "Union"):
+        if isArgument or not isMember or isMember == "Variadic":
+            declType = CGGeneric("RawHandleObject")
+            templateBody = "RawHandleObject::from_marked_location(&" + templateBody + ")"
+            default = "RawHandleObject::null()"
+        elif not isAutoRooted:
             templateBody = "RootedTraceableBox::from_box(Heap::boxed(%s))" % templateBody
             default = "RootedTraceableBox::new(Heap::default())"
             declType = CGGeneric("RootedTraceableBox<Heap<*mut JSObject>>")
         else:
             # TODO: Need to root somehow
             # https://github.com/servo/servo/issues/6382
+            default = "ptr::null_mut()"
             declType = CGGeneric("*mut JSObject")
 
         templateBody = wrapObjectTemplate(templateBody, default,
@@ -7486,11 +7490,11 @@ class CGIterableMethodGenerator(CGGeneric):
         if methodName == "forEach":
             CGGeneric.__init__(self, fill(
                 """
-                if !IsCallable(arg0) {
+                if !IsCallable(*arg0) {
                   throw_type_error(*cx, "Argument 1 of ${ifaceName}.forEach is not callable.");
                   return false;
                 }
-                rooted!(in(*cx) let arg0 = ObjectValue(arg0));
+                rooted!(in(*cx) let arg0 = ObjectValue(*arg0));
                 rooted!(in(*cx) let mut call_arg1 = UndefinedValue());
                 rooted!(in(*cx) let mut call_arg2 = UndefinedValue());
                 let mut call_args = vec![UndefinedValue(), UndefinedValue(), ObjectValue(*_obj)];

@@ -1327,8 +1327,7 @@ impl HTMLInputElementMethods for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-input-valueasdate
     #[allow(unsafe_code, non_snake_case)]
-    fn SetValueAsDate(&self, cx: SafeJSContext, value: *mut JSObject) -> ErrorResult {
-        rooted!(in(*cx) let value = value);
+    fn SetValueAsDate(&self, cx: SafeJSContext, value: Handle<*mut JSObject>) -> ErrorResult {
         if !self.does_value_as_date_apply() {
             return Err(Error::InvalidState);
         }
@@ -1341,13 +1340,13 @@ impl HTMLInputElementMethods for HTMLInputElement {
         // which we then reinflate into a NaiveDate for use in safe code.
         unsafe {
             let mut isDate = false;
-            if !ObjectIsDate(*cx, Handle::from(value.handle()), &mut isDate) {
+            if !ObjectIsDate(*cx, Handle::from(value), &mut isDate) {
                 return Err(Error::JSFailed);
             }
             if !isDate {
                 return Err(Error::Type("Value was not a date".to_string()));
             }
-            if !DateGetMsecSinceEpoch(*cx, Handle::from(value.handle()), &mut msecs) {
+            if !DateGetMsecSinceEpoch(*cx, Handle::from(value), &mut msecs) {
                 return Err(Error::JSFailed);
             }
             if !msecs.is_finite() {

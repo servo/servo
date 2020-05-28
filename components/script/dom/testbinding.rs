@@ -53,7 +53,7 @@ use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::timers::OneshotTimerCallback;
 use dom_struct::dom_struct;
-use js::jsapi::{Heap, JSContext, JSObject};
+use js::jsapi::{HandleObject as RawHandleObject, Heap, JSContext, JSObject};
 use js::jsapi::{JS_NewPlainObject, JS_NewUint8ClampedArray};
 use js::jsval::{JSVal, NullValue};
 use js::rust::CustomAutoRooterGuard;
@@ -231,7 +231,7 @@ impl TestBindingMethods for TestBinding {
             NonNull::new(obj.get()).expect("got a null pointer")
         }
     }
-    fn SetObjectAttribute(&self, _: SafeJSContext, _: *mut JSObject) {}
+    fn SetObjectAttribute(&self, _: SafeJSContext, _: RawHandleObject) {}
 
     fn GetBooleanAttributeNullable(&self) -> Option<bool> {
         Some(false)
@@ -331,7 +331,7 @@ impl TestBindingMethods for TestBinding {
     fn GetObjectAttributeNullable(&self, _: SafeJSContext) -> Option<NonNull<JSObject>> {
         None
     }
-    fn SetObjectAttributeNullable(&self, _: SafeJSContext, _: *mut JSObject) {}
+    fn SetObjectAttributeNullable(&self, _: SafeJSContext, _: RawHandleObject) {}
     fn GetUnionAttributeNullable(&self) -> Option<HTMLElementOrLong> {
         Some(HTMLElementOrLong::Long(0))
     }
@@ -661,7 +661,7 @@ impl TestBindingMethods for TestBinding {
     fn PassUnionWithTypedef(&self, _: DocumentOrTestTypedef) {}
     fn PassUnionWithTypedef2(&self, _: LongSequenceOrTestTypedef) {}
     fn PassAny(&self, _: SafeJSContext, _: HandleValue) {}
-    fn PassObject(&self, _: SafeJSContext, _: *mut JSObject) {}
+    fn PassObject(&self, _: SafeJSContext, _: RawHandleObject) {}
     fn PassCallbackFunction(&self, _: Rc<Function>) {}
     fn PassCallbackInterface(&self, _: Rc<EventListener>) {}
     fn PassSequence(&self, _: Vec<i32>) {}
@@ -706,7 +706,7 @@ impl TestBindingMethods for TestBinding {
     fn PassNullableByteString(&self, _: Option<ByteString>) {}
     // fn PassNullableEnum(self, _: Option<TestEnum>) {}
     fn PassNullableInterface(&self, _: Option<&Blob>) {}
-    fn PassNullableObject(&self, _: SafeJSContext, _: *mut JSObject) {}
+    fn PassNullableObject(&self, _: SafeJSContext, _: RawHandleObject) {}
     fn PassNullableTypedArray(&self, _: CustomAutoRooterGuard<Option<typedarray::Int8Array>>) {}
     fn PassNullableUnion(&self, _: Option<HTMLElementOrLong>) {}
     fn PassNullableUnion2(&self, _: Option<EventOrString>) {}
@@ -743,7 +743,7 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalUnion5(&self, _: Option<UnsignedLongOrBoolean>) {}
     fn PassOptionalUnion6(&self, _: Option<ByteStringOrLong>) {}
     fn PassOptionalAny(&self, _: SafeJSContext, _: HandleValue) {}
-    fn PassOptionalObject(&self, _: SafeJSContext, _: Option<*mut JSObject>) {}
+    fn PassOptionalObject(&self, _: SafeJSContext, _: Option<RawHandleObject>) {}
     fn PassOptionalCallbackFunction(&self, _: Option<Rc<Function>>) {}
     fn PassOptionalCallbackInterface(&self, _: Option<Rc<EventListener>>) {}
     fn PassOptionalSequence(&self, _: Option<Vec<i32>>) {}
@@ -766,7 +766,7 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalNullableByteString(&self, _: Option<Option<ByteString>>) {}
     // fn PassOptionalNullableEnum(self, _: Option<Option<TestEnum>>) {}
     fn PassOptionalNullableInterface(&self, _: Option<Option<&Blob>>) {}
-    fn PassOptionalNullableObject(&self, _: SafeJSContext, _: Option<*mut JSObject>) {}
+    fn PassOptionalNullableObject(&self, _: SafeJSContext, _: Option<RawHandleObject>) {}
     fn PassOptionalNullableUnion(&self, _: Option<Option<HTMLElementOrLong>>) {}
     fn PassOptionalNullableUnion2(&self, _: Option<Option<EventOrString>>) {}
     fn PassOptionalNullableUnion3(&self, _: Option<Option<StringOrLongSequence>>) {}
@@ -810,7 +810,7 @@ impl TestBindingMethods for TestBinding {
     fn PassOptionalNullableByteStringWithDefault(&self, _: Option<ByteString>) {}
     // fn PassOptionalNullableEnumWithDefault(self, _: Option<TestEnum>) {}
     fn PassOptionalNullableInterfaceWithDefault(&self, _: Option<&Blob>) {}
-    fn PassOptionalNullableObjectWithDefault(&self, _: SafeJSContext, _: *mut JSObject) {}
+    fn PassOptionalNullableObjectWithDefault(&self, _: SafeJSContext, _: RawHandleObject) {}
     fn PassOptionalNullableUnionWithDefault(&self, _: Option<HTMLElementOrLong>) {}
     fn PassOptionalNullableUnion2WithDefault(&self, _: Option<EventOrString>) {}
     // fn PassOptionalNullableCallbackFunctionWithDefault(self, _: Option<Function>) {}
@@ -865,7 +865,7 @@ impl TestBindingMethods for TestBinding {
     fn PassVariadicUnion6(&self, _: Vec<UnsignedLongOrBoolean>) {}
     fn PassVariadicUnion7(&self, _: Vec<ByteStringOrLong>) {}
     fn PassVariadicAny(&self, _: SafeJSContext, _: Vec<HandleValue>) {}
-    fn PassVariadicObject(&self, _: SafeJSContext, _: Vec<*mut JSObject>) {}
+    fn PassVariadicObject(&self, _: SafeJSContext, _: Vec<RawHandleObject>) {}
     fn BooleanMozPreference(&self, pref_name: DOMString) -> bool {
         prefs::pref_map()
             .get(pref_name.as_ref())

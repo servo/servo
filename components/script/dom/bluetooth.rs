@@ -36,7 +36,7 @@ use dom_struct::dom_struct;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::conversions::ConversionResult;
-use js::jsapi::JSObject;
+use js::jsapi::HandleObject;
 use js::jsval::{ObjectValue, UndefinedValue};
 use profile_traits::ipc as ProfiledIpc;
 use std::collections::HashMap;
@@ -609,12 +609,12 @@ impl PermissionAlgorithm for Bluetooth {
 
     fn create_descriptor(
         cx: JSContext,
-        permission_descriptor_obj: *mut JSObject,
+        permission_descriptor_obj: HandleObject,
     ) -> Result<BluetoothPermissionDescriptor, Error> {
         rooted!(in(*cx) let mut property = UndefinedValue());
         property
             .handle_mut()
-            .set(ObjectValue(permission_descriptor_obj));
+            .set(ObjectValue(permission_descriptor_obj.get()));
         match BluetoothPermissionDescriptor::new(cx, property.handle()) {
             Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),

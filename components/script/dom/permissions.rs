@@ -22,7 +22,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{self, EmbedderMsg, PermissionPrompt, PermissionRequest};
 use ipc_channel::ipc;
 use js::conversions::ConversionResult;
-use js::jsapi::JSObject;
+use js::jsapi::HandleObject;
 use js::jsval::{ObjectValue, UndefinedValue};
 use servo_config::pref;
 use std::rc::Rc;
@@ -32,7 +32,7 @@ pub trait PermissionAlgorithm {
     type Status;
     fn create_descriptor(
         cx: JSContext,
-        permission_descriptor_obj: *mut JSObject,
+        permission_descriptor_obj: HandleObject,
     ) -> Result<Self::Descriptor, Error>;
     fn permission_query(
         cx: JSContext,
@@ -80,7 +80,7 @@ impl Permissions {
         &self,
         op: Operation,
         cx: JSContext,
-        permissionDesc: *mut JSObject,
+        permissionDesc: HandleObject,
         promise: Option<Rc<Promise>>,
     ) -> Rc<Promise> {
         // (Query, Request) Step 3.
@@ -188,17 +188,17 @@ impl Permissions {
 #[allow(non_snake_case)]
 impl PermissionsMethods for Permissions {
     // https://w3c.github.io/permissions/#dom-permissions-query
-    fn Query(&self, cx: JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+    fn Query(&self, cx: JSContext, permissionDesc: HandleObject) -> Rc<Promise> {
         self.manipulate(Operation::Query, cx, permissionDesc, None)
     }
 
     // https://w3c.github.io/permissions/#dom-permissions-request
-    fn Request(&self, cx: JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+    fn Request(&self, cx: JSContext, permissionDesc: HandleObject) -> Rc<Promise> {
         self.manipulate(Operation::Request, cx, permissionDesc, None)
     }
 
     // https://w3c.github.io/permissions/#dom-permissions-revoke
-    fn Revoke(&self, cx: JSContext, permissionDesc: *mut JSObject) -> Rc<Promise> {
+    fn Revoke(&self, cx: JSContext, permissionDesc: HandleObject) -> Rc<Promise> {
         self.manipulate(Operation::Revoke, cx, permissionDesc, None)
     }
 }
@@ -209,12 +209,12 @@ impl PermissionAlgorithm for Permissions {
 
     fn create_descriptor(
         cx: JSContext,
-        permission_descriptor_obj: *mut JSObject,
+        permission_descriptor_obj: HandleObject,
     ) -> Result<PermissionDescriptor, Error> {
         rooted!(in(*cx) let mut property = UndefinedValue());
         property
             .handle_mut()
-            .set(ObjectValue(permission_descriptor_obj));
+            .set(ObjectValue(permission_descriptor_obj.get()));
         match PermissionDescriptor::new(cx, property.handle()) {
             Ok(ConversionResult::Success(descriptor)) => Ok(descriptor),
             Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),

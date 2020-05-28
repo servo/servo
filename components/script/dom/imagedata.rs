@@ -11,8 +11,8 @@ use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::IpcSharedMemory;
-use js::jsapi::{Heap, JSObject};
-use js::rust::Runtime;
+use js::jsapi::{HandleObject, Heap, JSObject};
+use js::rust::{IntoHandle, Runtime};
 use js::typedarray::{CreateWith, Uint8ClampedArray};
 use std::borrow::Cow;
 use std::default::Default;
@@ -45,7 +45,12 @@ impl ImageData {
                 d.resize(len as usize, 0);
                 let data = CreateWith::Slice(&d[..]);
                 Uint8ClampedArray::create(*cx, data, js_object.handle_mut()).unwrap();
-                Self::new_with_jsobject(global, width, Some(height), js_object.get())
+                Self::new_with_jsobject(
+                    global,
+                    width,
+                    Some(height),
+                    js_object.handle().into_handle(),
+                )
             } else {
                 Self::new_without_jsobject(global, width, height)
             }
@@ -57,11 +62,11 @@ impl ImageData {
         global: &GlobalScope,
         width: u32,
         opt_height: Option<u32>,
-        jsobject: *mut JSObject,
+        jsobject: HandleObject,
     ) -> Fallible<DomRoot<ImageData>> {
         // checking jsobject type
         let cx = global.get_cx();
-        typedarray!(in(*cx) let array_res: Uint8ClampedArray = jsobject);
+        typedarray!(in(*cx) let array_res: Uint8ClampedArray = jsobject.get());
         let array = array_res.map_err(|_| {
             Error::Type("Argument to Image data is not an Uint8ClampedArray".to_owned())
         })?;
@@ -88,7 +93,7 @@ impl ImageData {
             data: Heap::default(),
         });
 
-        (*imagedata).data.set(jsobject);
+        (*imagedata).data.set(*jsobject);
 
         Ok(reflect_dom_object(imagedata, global))
     }
@@ -129,7 +134,7 @@ impl ImageData {
     pub unsafe fn Constructor_(
         cx: JSContext,
         global: &GlobalScope,
-        jsobject: *mut JSObject,
+        jsobject: HandleObject,
         width: u32,
         opt_height: Option<u32>,
     ) -> Fallible<DomRoot<Self>> {
