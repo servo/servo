@@ -58,6 +58,7 @@ struct TransmitBodyConnectHandler {
     canceller: TaskCanceller,
     bytes_sender: Option<IpcSender<Vec<u8>>>,
     control_sender: IpcSender<BodyChunkRequest>,
+    in_memory: Option<Vec<u8>>,
 }
 
 impl TransmitBodyConnectHandler {
@@ -66,6 +67,7 @@ impl TransmitBodyConnectHandler {
         task_source: NetworkingTaskSource,
         canceller: TaskCanceller,
         control_sender: IpcSender<BodyChunkRequest>,
+        in_memory: Option<Vec<u8>>,
     ) -> TransmitBodyConnectHandler {
         TransmitBodyConnectHandler {
             stream: stream,
@@ -73,6 +75,7 @@ impl TransmitBodyConnectHandler {
             canceller,
             bytes_sender: None,
             control_sender,
+            in_memory,
         }
     }
 
@@ -96,6 +99,12 @@ impl TransmitBodyConnectHandler {
             .bytes_sender
             .clone()
             .expect("No bytes sender to transmit chunk.");
+
+        // In case of the data being in-memory, send everything in one chunk, by-passing SpiderMonkey.
+        if let Some(bytes) = self.in_memory.take() {
+            let _ = bytes_sender.send(bytes);
+            return;
+        }
 
         let _ = self.task_source.queue_with_canceller(
             task!(setup_native_body_promise_handler: move || {
@@ -247,11 +256,15 @@ impl ExtractedBody {
         let task_source = global.networking_task_source();
         let canceller = global.task_canceller(TaskSourceName::Networking);
 
+        // In case of the data being in-memory, send everything in one chunk, by-passing SM.
+        let in_memory = stream.get_in_memory_bytes();
+
         let mut body_handler = TransmitBodyConnectHandler::new(
             trusted_stream,
             task_source,
             canceller,
             chunk_request_sender.clone(),
+            in_memory,
         );
 
         ROUTER.add_route(
@@ -280,6 +293,11 @@ impl ExtractedBody {
 
         // Also return the stream for this body, which can be used by script to consume it.
         (request_body, stream)
+    }
+
+    /// Is the data of the stream of this extracted body available in memory?
+    pub fn in_memory(&self) -> bool {
+        self.stream.in_memory()
     }
 }
 

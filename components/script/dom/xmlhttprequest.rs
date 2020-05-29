@@ -580,7 +580,13 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 })
             },
             Some(DocumentOrBodyInit::Blob(ref b)) => {
-                Some(b.extract(&self.global()).expect("Couldn't extract body."))
+                let extracted_body = b.extract(&self.global()).expect("Couldn't extract body.");
+                if !extracted_body.in_memory() && self.sync.get() {
+                    warn!("Sync XHR with not in-memory Blob as body not supported");
+                    None
+                } else {
+                    Some(extracted_body)
+                }
             },
             Some(DocumentOrBodyInit::FormData(ref formdata)) => Some(
                 formdata
@@ -620,21 +626,23 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 })
             },
             Some(DocumentOrBodyInit::ReadableStream(ref stream)) => {
-                // TODO:
-                // 1. If the keepalive flag is set, then throw a TypeError.
+                if self.sync.get() {
+                    warn!("Sync XHR with ReadableStream as body not supported");
+                    None
+                } else {
+                    if stream.is_locked() || stream.is_disturbed() {
+                        return Err(Error::Type(
+                            "The body's stream is disturbed or locked".to_string(),
+                        ));
+                    }
 
-                if stream.is_locked() || stream.is_disturbed() {
-                    return Err(Error::Type(
-                        "The body's stream is disturbed or locked".to_string(),
-                    ));
+                    Some(ExtractedBody {
+                        stream: stream.clone(),
+                        total_bytes: None,
+                        content_type: None,
+                        source: BodySource::Null,
+                    })
                 }
-
-                Some(ExtractedBody {
-                    stream: stream.clone(),
-                    total_bytes: None,
-                    content_type: None,
-                    source: BodySource::Null,
-                })
             },
             None => None,
         };

@@ -196,6 +196,21 @@ impl ReadableStream {
             .close(cx, handle);
     }
 
+    /// Does the stream have all data in memory?
+    pub fn in_memory(&self) -> bool {
+        self.external_underlying_source
+            .as_ref()
+            .map(|source| source.in_memory())
+            .unwrap_or(false)
+    }
+
+    /// Return bytes for synchronous use, if the stream has all data in memory.
+    pub fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
+        self.external_underlying_source
+            .as_ref()
+            .and_then(|source| source.get_in_memory_bytes())
+    }
+
     /// Acquires a reader and locks the stream,
     /// must be done before `read_a_chunk`.
     #[allow(unsafe_code)]
@@ -372,20 +387,35 @@ struct ExternalUnderlyingSourceController {
     buffer: RefCell<Vec<u8>>,
     /// Has the stream been closed by native code?
     closed: Cell<bool>,
+    /// Does this stream contains all it's data in memory?
+    in_memory: Cell<bool>,
 }
 
 impl ExternalUnderlyingSourceController {
     fn new(source: ExternalUnderlyingSource) -> ExternalUnderlyingSourceController {
-        let buffer = match source {
-            ExternalUnderlyingSource::Blob(size) | ExternalUnderlyingSource::Memory(size) => {
-                Vec::with_capacity(size)
-            },
-            ExternalUnderlyingSource::FetchResponse => vec![],
+        let (buffer, in_mem) = match source {
+            ExternalUnderlyingSource::Blob(size) => (Vec::with_capacity(size), false),
+            ExternalUnderlyingSource::Memory(size) => (Vec::with_capacity(size), true),
+            ExternalUnderlyingSource::FetchResponse => (vec![], false),
         };
         ExternalUnderlyingSourceController {
             buffer: RefCell::new(buffer),
             closed: Cell::new(false),
+            in_memory: Cell::new(in_mem),
         }
+    }
+
+    /// Does the stream have all data in memory?
+    pub fn in_memory(&self) -> bool {
+        self.in_memory.get()
+    }
+
+    /// Return bytes synchronously if the stream has all data in memory.
+    pub fn get_in_memory_bytes(&self) -> Option<Vec<u8>> {
+        if self.in_memory.get() {
+            return Some(self.buffer.borrow().clone());
+        }
+        None
     }
 
     /// Signal available bytes if the stream is currently readable.
