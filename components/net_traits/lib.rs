@@ -30,6 +30,7 @@ use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use mime::Mime;
 use msg::constellation_msg::HistoryStateId;
+use servo_rand::RngCore;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use time::precise_time_ns;
 use webrender_api::{ImageData, ImageDescriptor, ImageKey};
@@ -810,4 +811,8 @@ impl WebrenderIpcSender {
             warn!("Error sending image update: {}", e);
         }
     }
+}
+
+lazy_static! {
+    pub static ref PRIVILEGED_SECRET: u32 = servo_rand::ServoRng::new().next_u32();
 }

@@ -821,6 +821,8 @@ impl FetchResponseListener for ParserContext {
                     let page = page.replace("${reason}", &reason);
                     let page =
                         page.replace("${bytes}", std::str::from_utf8(&bytes).unwrap_or_default());
+                    let page =
+                        page.replace("${secret}", &net_traits::PRIVILEGED_SECRET.to_string());
                     parser.push_string_input_chunk(page);
                     parser.parse_sync();
                 }

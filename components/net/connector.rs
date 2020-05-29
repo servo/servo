@@ -98,11 +98,15 @@ pub type Connector = HttpsConnector<HttpConnector>;
 pub type TlsConfig = SslConnectorBuilder;
 
 #[derive(Clone)]
-pub struct ExtraCerts(pub Arc<Mutex<Vec<Vec<u8>>>>);
+pub struct ExtraCerts(Arc<Mutex<Vec<Vec<u8>>>>);
 
 impl ExtraCerts {
     pub(crate) fn new() -> Self {
         Self(Arc::new(Mutex::new(vec![])))
+    }
+
+    pub(crate) fn add(&self, bytes: Vec<u8>) {
+        self.0.lock().unwrap().push(bytes);
     }
 }
 
