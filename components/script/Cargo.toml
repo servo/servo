@@ -34,11 +34,9 @@ accountable-refcell = { version = "0.2.0", optional = true }
 app_units = "0.7"
 backtrace = { version = "0.3", optional = true }
 base64 = "0.10.1"
-bincode = "1"
 bitflags = "1.0"
 bluetooth_traits = { path = "../bluetooth_traits" }
 canvas_traits = { path = "../canvas_traits" }
-caseless = "0.2"
 chrono = "0.4"
 content-security-policy = { version = "0.4.0", features = ["serde"] }
 cookie = "0.11"

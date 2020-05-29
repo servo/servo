@@ -12,6 +12,5 @@ path = "lib.rs"
 
 [dependencies]
 euclid = "0.20"
-servo_geometry = {path = "../geometry"}
 webrender_api = {git = "https://github.com/servo/webrender"}
 

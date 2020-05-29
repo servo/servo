@@ -29,6 +29,5 @@ script_traits = {path = "../script_traits"}
 servo_config = {path = "../config"}
 servo_url = {path = "../url"}
 style_traits = {path = "../style_traits"}
-url = "2.0"
 uuid = {version = "0.8", features = ["v4"]}
 webdriver = "0.40"
