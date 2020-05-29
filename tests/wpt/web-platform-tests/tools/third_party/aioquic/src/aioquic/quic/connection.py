@@ -46,6 +46,7 @@ from .stream import QuicStream
 
 logger = logging.getLogger("quic")
 
+CRYPTO_BUFFER_SIZE = 16384
 EPOCH_SHORTCUTS = {
     "I": tls.Epoch.INITIAL,
     "H": tls.Epoch.HANDSHAKE,
@@ -1195,9 +1196,9 @@ class QuicConnection:
             tls.Epoch.ONE_RTT: CryptoPair(),
         }
         self._crypto_buffers = {
-            tls.Epoch.INITIAL: Buffer(capacity=4096),
-            tls.Epoch.HANDSHAKE: Buffer(capacity=4096),
-            tls.Epoch.ONE_RTT: Buffer(capacity=4096),
+            tls.Epoch.INITIAL: Buffer(capacity=CRYPTO_BUFFER_SIZE),
+            tls.Epoch.HANDSHAKE: Buffer(capacity=CRYPTO_BUFFER_SIZE),
+            tls.Epoch.ONE_RTT: Buffer(capacity=CRYPTO_BUFFER_SIZE),
         }
         self._crypto_streams = {
             tls.Epoch.INITIAL: QuicStream(),

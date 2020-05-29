@@ -10,8 +10,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-align-3/#align-flex">
 <link rel="help" href="https://drafts.csswg.org/css-align-3/#align-grid">
 <link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
-<meta name="assert" content="The align-content: 'stretch' prevents the multi-line column flexbox to shrink-to-fit (default behavior), hence the grid container will be stretched, honoring its align-self: 'normal (behaves as 'stretch'), so that its grid item, honoring its justify-self: 'normal' (behaves as 'stretch') ">
-<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="assert" content="The align-content: 'stretch' prevents the multi-line column flexbox to shrink-to-fit (default behavior), hence the grid container will be stretched, honoring its align-self: 'normal (behaves as 'stretch'), as well as its grid item, honoring its justify-self: 'normal' (behaves as 'stretch') ">
 <style>
     body { overflow: hidden; }
     .flexbox {
@@ -20,13 +19,11 @@
         align-content: stretch;
         width: 100px;
         height: 100px;
-        font: 25px/1 Ahem;
-        color: green;
+        background: red;
     }
     .grid {
         display: grid;
         align-items: baseline;
-        background: red;
     }
     .gridItem {
         background: green;
@@ -36,6 +33,6 @@
 <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 <div class="flexbox">
     <div class="grid">
-        <div class="gridItem">XX</div>
+        <div class="gridItem"></div>
     </div>
 </div>

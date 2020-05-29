@@ -123,7 +123,7 @@
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
 
-    return createDataChannelPair(pc1, pc2)
+    return createDataChannelPair(t, {}, pc1, pc2)
     .then(([channel1, channel2]) => {
       // Send a ping message and wait for it just to make sure
       // that the connection is fully working before testing

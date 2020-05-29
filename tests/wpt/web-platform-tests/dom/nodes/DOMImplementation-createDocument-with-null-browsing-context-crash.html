@@ -1,0 +1,13 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>DOMImplementation.createDocument()</title>
+<link rel="author" title="Nate Chapin" href="mailto:japhet@chromium.org">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-domimplementation-createdocument">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1086801">
+<meta name="assert" content="Calling on createDocument() on a DOMImplementation from a document with a null browsing context should not crash"/>
+<iframe id="i"></iframe>
+<script>
+var doc = i.contentDocument;
+i.remove();
+doc.implementation.createDocument("", "");
+</script>

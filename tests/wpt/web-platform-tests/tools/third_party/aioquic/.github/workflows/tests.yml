@@ -47,7 +47,7 @@ jobs:
           echo "::set-env name=LINK::/LIBPATH:C:\Progra~1\OpenSSL-Win64\lib"
       - name: Run tests
         run: |
-          pip install -U pip setuptools wheel
+          python -m pip install -U pip setuptools wheel
           pip install coverage
           pip install .
           coverage run -m unittest discover -v
@@ -84,20 +84,10 @@ jobs:
       - uses: actions/setup-python@v1
         with:
           python-version: 3.7
-      - name: Install nasm
-        if: matrix.os == 'windows-latest'
-        run: choco install -y nasm
-      - name: Install nmake
-        if: matrix.os == 'windows-latest'
-        run: |
-          & "C:\Program Files (x86)\Microsoft Visual Studio\Installer\vs_installer.exe" modify `
-           --installPath "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise" `
-           --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --passive --norestart
-        shell: powershell
       - name: Build wheels
         env:
-          CIBW_BEFORE_BUILD: scripts/build-openssl /tmp/vendor
-          CIBW_BEFORE_BUILD_WINDOWS: scripts\build-openssl.bat C:\cibw\vendor
+          CIBW_BEFORE_BUILD: python scripts/fetch-vendor /tmp/vendor
+          CIBW_BEFORE_BUILD_WINDOWS: python scripts\fetch-vendor C:\cibw\vendor
           CIBW_ENVIRONMENT: AIOQUIC_SKIP_TESTS=ipv6,loss CFLAGS=-I/tmp/vendor/include LDFLAGS=-L/tmp/vendor/lib
           CIBW_ENVIRONMENT_WINDOWS: AIOQUIC_SKIP_TESTS=ipv6,loss CL="/IC:\cibw\vendor\include" LINK="/LIBPATH:C:\cibw\vendor\lib"
           CIBW_SKIP: cp27-* cp33-* cp34-* cp35-* pp27-*

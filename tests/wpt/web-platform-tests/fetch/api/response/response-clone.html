@@ -70,13 +70,13 @@
         return fetch('../resources/trickle.py?count=2&delay=100').then(function(res) {
             clone = res.clone();
             response = res;
-            return clone.arrayBuffer();
+            return clone.text();
         }).then(function(r) {
-            assert_equals(r.byteLength, 26);
+            assert_equals(r.length, 26);
             result = r;
-            return response.arrayBuffer();
+            return response.text();
         }).then(function(r) {
-            assert_array_equals(r, result, "cloned responses should provide the same data");
+            assert_equals(r, result, "cloned responses should provide the same data");
         });
      }, 'Cloned responses should provide the same data');
 

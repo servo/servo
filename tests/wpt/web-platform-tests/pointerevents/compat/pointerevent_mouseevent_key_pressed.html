@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Mouse events with keys pressed</title>
+        <link rel="author" title="Google" href="http://www.google.com/" />
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script type="text/javascript" src="../pointerevent_support.js"></script>
+        <script>
+          let testMouseKeyPressed = async_test('Tests that the mouse events with some keys pressed.');
+          let activeKeys = false;
+
+          window.addEventListener('pointermove', function(e) {
+            activeKeys = e.getModifierState("Alt") &&
+                         e.getModifierState("Control") &&
+                         e.getModifierState("Meta") &&
+                         e.getModifierState("Shift");
+          });
+
+          async function runTest(){
+            let event_watcher = new EventWatcher(testMouseKeyPressed, window, ["pointermove"],
+              ()=>waitForAnimationFrames(200));
+            await Promise.all([event_watcher.wait_for(["pointermove"]), inject_input()]);
+            testMouseKeyPressed.step_func_done(()=>{
+              assert_true(activeKeys, "Modifier keys not reflected in the pointermove event!");
+            })();
+          }
+
+          function inject_input() {
+            const x = 100;
+            const y = 100;
+            const altKey = '\uE00A';
+            const ctrlKey = '\uE009';
+            const metaKey = '\uE03d';
+            const shiftKey = '\uE008'
+
+            // First press Alt, Control, Meta, Shift keys and then send a mouse move.
+            return new test_driver.Actions()
+                      .keyDown(altKey)
+                      .keyDown(ctrlKey)
+                      .keyDown(metaKey)
+                      .keyDown(shiftKey)
+                      .pointerMove(x,y)
+                      .send();
+          }
+        </script>
+
+    </head>
+    <body id="target" onload="runTest()">
+        <h4>Test Description: Tests that the mouse events with some keys pressed.
+            <ol>
+                <li>Press Alt, Control, Meta, Shift keys and move the mouse</li>
+            </ol>
+        </h4>
+    </body>
+</html>
