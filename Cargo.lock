@@ -2467,9 +2467,9 @@ dependencies = [
 
 [[package]]
 name = "heartbeats-simple-sys"
-version = "0.4.1"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e1a408c0011427cc0e0049f7861c70377819aedfc006e8c901b1c70fd98fb1a4"
+checksum = "29f06e482fdc3f29015d288ad63bc5e855ffca0830866550a08b29e55924c935"
 dependencies = [
  "cmake",
  "libc",
