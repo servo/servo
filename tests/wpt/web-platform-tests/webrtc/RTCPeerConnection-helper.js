@@ -303,21 +303,36 @@ function listenForSSRCs(t, receiver) {
   });
 }
 
-// Helper function to create a pair of connected data channel.
+// Helper function to create a pair of connected data channels.
 // On success the promise resolves to an array with two data channels.
 // It does the heavy lifting of performing signaling handshake,
 // ICE candidate exchange, and waiting for data channel at two
-// end points to open.
-async function createDataChannelPair(
-  pc1 = new RTCPeerConnection(),
-  pc2 = new RTCPeerConnection()) {
-  const pair = [pc1, pc2].map(pc =>
-      pc.createDataChannel('', {negotiated: true, id: 0}));
-  const bothOpen = Promise.all(pair.map(dc => new Promise((r, e) => {
-    dc.onopen = r;
-    dc.onerror = ({error}) => e(error);
-  })));
+// end points to open. Can do both negotiated and non-negotiated setup.
+async function createDataChannelPair(t, options,
+                                     pc1 = createPeerConnectionWithCleanup(t),
+                                     pc2 = createPeerConnectionWithCleanup(t)) {
+  let pair = [], bothOpen;
   try {
+    if (options.negotiated) {
+      pair = [pc1, pc2].map(pc => pc.createDataChannel('', options));
+      bothOpen = Promise.all(pair.map(dc => new Promise((r, e) => {
+        dc.onopen = r;
+        dc.onerror = ({error}) => e(error);
+      })));
+    } else {
+      pair = [pc1.createDataChannel('', options)];
+      bothOpen = Promise.all([
+        new Promise((r, e) => {
+          pair[0].onopen = r;
+          pair[0].onerror = ({error}) => e(error);
+        }),
+        new Promise((r, e) => pc2.ondatachannel = ({channel}) => {
+          pair[1] = channel;
+          channel.onopen = r;
+          channel.onerror = ({error}) => e(error);
+        })
+      ]);
+    }
     exchangeIceCandidates(pc1, pc2);
     await exchangeOfferAnswer(pc1, pc2);
     await bothOpen;

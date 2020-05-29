@@ -115,42 +115,9 @@ You will need to set some environment variables to link against OpenSSL:
 Running the examples
 --------------------
 
-After checking out the code using git you can run:
+`aioquic` comes with a number of examples illustrating various QUIC usecases.
 
-.. code-block:: console
-
-   $ pip install -e .
-   $ pip install aiofiles asgiref httpbin starlette wsproto
-
-HTTP/3 server
-.............
-
-You can run the example server, which handles both HTTP/0.9 and HTTP/3:
-
-.. code-block:: console
-
-   $ python examples/http3_server.py --certificate tests/ssl_cert.pem --private-key tests/ssl_key.pem
-
-HTTP/3 client
-.............
-
-You can run the example client to perform an HTTP/3 request:
-
-.. code-block:: console
-
-  $ python examples/http3_client.py --ca-certs tests/pycacert.pem https://localhost:4433/
-
-Alternatively you can perform an HTTP/0.9 request:
-
-.. code-block:: console
-
-  $ python examples/http3_client.py --ca-certs tests/pycacert.pem --legacy-http https://localhost:4433/
-
-You can also open a WebSocket over HTTP/3:
-
-.. code-block:: console
-
-  $ python examples/http3_client.py --ca-certs tests/pycacert.pem wss://localhost:4433/ws
+You can browse these examples here: https://github.com/aiortc/aioquic/tree/master/examples
 
 License
 -------
