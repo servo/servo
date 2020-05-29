@@ -161,7 +161,12 @@ impl WorkerGlobalScope {
         }
     }
 
+    /// Clear various items when the worker event-loop shuts-down.
     pub fn clear_js_runtime(&self) {
+        self.upcast::<GlobalScope>()
+            .remove_web_messaging_and_dedicated_workers_infra();
+
+        // Drop the runtime.
         let runtime = self.runtime.borrow_mut().take();
         drop(runtime);
     }
