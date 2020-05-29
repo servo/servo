@@ -161,6 +161,7 @@ use webgpu::{
     wgpu::command::RawPass, WebGPU, WebGPUAdapter, WebGPUBindGroup, WebGPUBindGroupLayout,
     WebGPUBuffer, WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePipeline, WebGPUDevice,
     WebGPUPipelineLayout, WebGPUQueue, WebGPURenderPipeline, WebGPUSampler, WebGPUShaderModule,
+    WebGPUTexture, WebGPUTextureView,
 };
 use webrender_api::{DocumentId, ImageKey};
 use webxr_api::SwapChainId as WebXRSwapChainId;
@@ -561,6 +562,8 @@ unsafe_no_jsmanaged_fields!(WebGPUPipelineLayout);
 unsafe_no_jsmanaged_fields!(WebGPUQueue);
 unsafe_no_jsmanaged_fields!(WebGPUShaderModule);
 unsafe_no_jsmanaged_fields!(WebGPUSampler);
+unsafe_no_jsmanaged_fields!(WebGPUTexture);
+unsafe_no_jsmanaged_fields!(WebGPUTextureView);
 unsafe_no_jsmanaged_fields!(WebGPUCommandBuffer);
 unsafe_no_jsmanaged_fields!(WebGPUCommandEncoder);
 unsafe_no_jsmanaged_fields!(WebGPUDevice);

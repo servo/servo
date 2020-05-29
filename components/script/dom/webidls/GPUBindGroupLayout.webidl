@@ -13,11 +13,12 @@ dictionary GPUBindGroupLayoutDescriptor : GPUObjectDescriptorBase {
 };
 
 dictionary GPUBindGroupLayoutEntry {
-    required unsigned long binding;
+    required GPUIndex32 binding;
     required GPUShaderStageFlags visibility;
     required GPUBindingType type;
-    //GPUTextureViewDimension textureDimension = "2d";
-    //GPUTextureComponentType textureComponentType = "float";
+    GPUTextureViewDimension viewDimension = "2d";
+    GPUTextureComponentType textureComponentType = "float";
+    GPUTextureFormat storageTextureFormat;
     boolean multisampled = false;
     boolean hasDynamicOffset = false;
 };

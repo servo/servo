@@ -5,7 +5,7 @@
 // https://gpuweb.github.io/gpuweb/#gpudevice
 [Exposed=(Window, DedicatedWorker)/*, Serializable */, Pref="dom.webgpu.enabled"]
 interface GPUDevice : EventTarget {
-    /*[SameObject]*/ readonly attribute GPUAdapter adapter;
+    [SameObject] readonly attribute GPUAdapter adapter;
     readonly attribute object extensions;
     readonly attribute object limits;
 
@@ -13,7 +13,7 @@ interface GPUDevice : EventTarget {
 
     GPUBuffer createBuffer(GPUBufferDescriptor descriptor);
     GPUMappedBuffer createBufferMapped(GPUBufferDescriptor descriptor);
-    // GPUTexture createTexture(GPUTextureDescriptor descriptor);
+    GPUTexture createTexture(GPUTextureDescriptor descriptor);
     GPUSampler createSampler(optional GPUSamplerDescriptor descriptor = {});
 
     GPUBindGroupLayout createBindGroupLayout(GPUBindGroupLayoutDescriptor descriptor);

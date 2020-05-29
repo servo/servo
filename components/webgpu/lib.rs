@@ -127,7 +127,18 @@ pub enum WebGPURequest {
         program_id: id::ShaderModuleId,
         program: Vec<u32>,
     },
+    CreateTexture {
+        device_id: id::DeviceId,
+        texture_id: id::TextureId,
+        descriptor: wgt::TextureDescriptor<String>,
+    },
+    CreateTextureView {
+        texture_id: id::TextureId,
+        texture_view_id: id::TextureViewId,
+        descriptor: wgt::TextureViewDescriptor<String>,
+    },
     DestroyBuffer(id::BufferId),
+    DestroyTexture(id::TextureId),
     Exit(IpcSender<()>),
     RequestAdapter {
         sender: IpcSender<WebGPUResponseResult>,
@@ -457,9 +468,36 @@ impl WGPU {
                     let _ = gfx_select!(program_id =>
                         global.device_create_shader_module(device_id, &descriptor, program_id));
                 },
+                WebGPURequest::CreateTexture {
+                    device_id,
+                    texture_id,
+                    descriptor,
+                } => {
+                    let global = &self.global;
+                    let st = CString::new(descriptor.label.as_bytes()).unwrap();
+                    let _ = gfx_select!(texture_id =>
+                        global.device_create_texture(device_id, &descriptor.map_label(|_| st.as_ptr()), texture_id));
+                },
+                WebGPURequest::CreateTextureView {
+                    texture_id,
+                    texture_view_id,
+                    descriptor,
+                } => {
+                    let global = &self.global;
+                    let st = CString::new(descriptor.label.as_bytes()).unwrap();
+                    let _ = gfx_select!(texture_view_id => global.texture_create_view(
+                        texture_id,
+                        Some(&descriptor.map_label(|_| st.as_ptr())),
+                        texture_view_id
+                    ));
+                },
                 WebGPURequest::DestroyBuffer(buffer) => {
                     let global = &self.global;
                     gfx_select!(buffer => global.buffer_destroy(buffer));
+                },
+                WebGPURequest::DestroyTexture(texture) => {
+                    let global = &self.global;
+                    gfx_select!(texture => global.texture_destroy(texture));
                 },
                 WebGPURequest::Exit(sender) => {
                     if let Err(e) = self.script_sender.send(WebGPUMsg::Exit) {
@@ -605,3 +643,5 @@ webgpu_resource!(WebGPUQueue, id::QueueId);
 webgpu_resource!(WebGPURenderPipeline, id::RenderPipelineId);
 webgpu_resource!(WebGPUSampler, id::SamplerId);
 webgpu_resource!(WebGPUShaderModule, id::ShaderModuleId);
+webgpu_resource!(WebGPUTexture, id::TextureId);
+webgpu_resource!(WebGPUTextureView, id::TextureViewId);
