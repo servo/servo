@@ -3,49 +3,50 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUPipelineLayoutBinding::GPUPipelineLayoutMethods;
-use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
+use crate::dom::bindings::codegen::Bindings::GPURenderPipelineBinding::GPURenderPipelineMethods;
+use crate::dom::bindings::reflector::reflect_dom_object;
+use crate::dom::bindings::reflector::Reflector;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;
-use webgpu::{WebGPUBindGroupLayout, WebGPUPipelineLayout};
+use webgpu::{WebGPUDevice, WebGPURenderPipeline};
 
 #[dom_struct]
-pub struct GPUPipelineLayout {
+pub struct GPURenderPipeline {
     reflector_: Reflector,
-    bind_group_layouts: Vec<WebGPUBindGroupLayout>,
     label: DomRefCell<Option<DOMString>>,
-    pipeline_layout: WebGPUPipelineLayout,
+    render_pipeline: WebGPURenderPipeline,
+    device: WebGPUDevice,
     valid: Cell<bool>,
 }
 
-impl GPUPipelineLayout {
+impl GPURenderPipeline {
     fn new_inherited(
-        bind_group_layouts: Vec<WebGPUBindGroupLayout>,
-        pipeline_layout: WebGPUPipelineLayout,
+        render_pipeline: WebGPURenderPipeline,
+        device: WebGPUDevice,
         valid: bool,
-    ) -> GPUPipelineLayout {
+    ) -> GPURenderPipeline {
         Self {
             reflector_: Reflector::new(),
-            bind_group_layouts,
             label: DomRefCell::new(None),
-            pipeline_layout,
+            render_pipeline,
             valid: Cell::new(valid),
+            device,
         }
     }
 
     pub fn new(
         global: &GlobalScope,
-        bind_group_layouts: Vec<WebGPUBindGroupLayout>,
-        pipeline_layout: WebGPUPipelineLayout,
+        render_pipeline: WebGPURenderPipeline,
+        device: WebGPUDevice,
         valid: bool,
-    ) -> DomRoot<GPUPipelineLayout> {
+    ) -> DomRoot<GPURenderPipeline> {
         reflect_dom_object(
-            Box::new(GPUPipelineLayout::new_inherited(
-                bind_group_layouts,
-                pipeline_layout,
+            Box::new(GPURenderPipeline::new_inherited(
+                render_pipeline,
+                device,
                 valid,
             )),
             global,
@@ -53,17 +54,7 @@ impl GPUPipelineLayout {
     }
 }
 
-impl GPUPipelineLayout {
-    pub fn id(&self) -> WebGPUPipelineLayout {
-        self.pipeline_layout
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.valid.get()
-    }
-}
-
-impl GPUPipelineLayoutMethods for GPUPipelineLayout {
+impl GPURenderPipelineMethods for GPURenderPipeline {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn GetLabel(&self) -> Option<DOMString> {
         self.label.borrow().clone()

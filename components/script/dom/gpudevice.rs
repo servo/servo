@@ -16,6 +16,11 @@ use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::{
     GPUCommandEncoderDescriptor, GPUDeviceMethods,
 };
 use crate::dom::bindings::codegen::Bindings::GPUPipelineLayoutBinding::GPUPipelineLayoutDescriptor;
+use crate::dom::bindings::codegen::Bindings::GPURenderPipelineBinding::{
+    GPUBlendDescriptor, GPUBlendFactor, GPUBlendOperation, GPUCullMode, GPUFrontFace,
+    GPUIndexFormat, GPUInputStepMode, GPUPrimitiveTopology, GPURenderPipelineDescriptor,
+    GPUStencilOperation, GPUVertexFormat,
+};
 use crate::dom::bindings::codegen::Bindings::GPUSamplerBinding::{
     GPUAddressMode, GPUCompareFunction, GPUFilterMode, GPUSamplerDescriptor,
 };
@@ -35,9 +40,11 @@ use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::gpuqueue::GPUQueue;
+use crate::dom::gpurenderpipeline::GPURenderPipeline;
 use crate::dom::gpusampler::GPUSampler;
 use crate::dom::gpushadermodule::GPUShaderModule;
 use crate::script_runtime::JSContext as SafeJSContext;
+use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue};
@@ -47,7 +54,7 @@ use std::ptr::{self, NonNull};
 use webgpu::wgpu::binding_model::{
     BindGroupEntry, BindGroupLayoutEntry, BindingResource, BindingType, BufferBinding,
 };
-use webgpu::{self, wgt, WebGPU, WebGPURequest};
+use webgpu::{self, wgpu, wgt, WebGPU, WebGPURequest};
 
 #[dom_struct]
 pub struct GPUDevice {
@@ -605,6 +612,7 @@ impl GPUDeviceMethods for GPUDevice {
         let compute_pipeline = webgpu::WebGPUComputePipeline(compute_pipeline_id);
         GPUComputePipeline::new(&self.global(), compute_pipeline)
     }
+
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder
     fn CreateCommandEncoder(
         &self,
@@ -627,6 +635,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         GPUCommandEncoder::new(&self.global(), self.channel.clone(), encoder, true)
     }
+
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createsampler
     fn CreateSampler(&self, descriptor: &GPUSamplerDescriptor) -> DomRoot<GPUSampler> {
         let sampler_id = self
@@ -637,25 +646,16 @@ impl GPUDeviceMethods for GPUDevice {
         let compare_enable = descriptor.compare.is_some();
         let desc = wgt::SamplerDescriptor {
             label: Default::default(),
-            address_mode_u: assign_address_mode(descriptor.addressModeU),
-            address_mode_v: assign_address_mode(descriptor.addressModeV),
-            address_mode_w: assign_address_mode(descriptor.addressModeW),
-            mag_filter: assign_filter_mode(descriptor.magFilter),
-            min_filter: assign_filter_mode(descriptor.minFilter),
-            mipmap_filter: assign_filter_mode(descriptor.mipmapFilter),
+            address_mode_u: convert_address_mode(descriptor.addressModeU),
+            address_mode_v: convert_address_mode(descriptor.addressModeV),
+            address_mode_w: convert_address_mode(descriptor.addressModeW),
+            mag_filter: convert_filter_mode(descriptor.magFilter),
+            min_filter: convert_filter_mode(descriptor.minFilter),
+            mipmap_filter: convert_filter_mode(descriptor.mipmapFilter),
             lod_min_clamp: *descriptor.lodMinClamp,
             lod_max_clamp: *descriptor.lodMaxClamp,
             compare: if let Some(c) = descriptor.compare {
-                match c {
-                    GPUCompareFunction::Never => wgt::CompareFunction::Never,
-                    GPUCompareFunction::Less => wgt::CompareFunction::Less,
-                    GPUCompareFunction::Equal => wgt::CompareFunction::Equal,
-                    GPUCompareFunction::Less_equal => wgt::CompareFunction::LessEqual,
-                    GPUCompareFunction::Greater => wgt::CompareFunction::Greater,
-                    GPUCompareFunction::Not_equal => wgt::CompareFunction::NotEqual,
-                    GPUCompareFunction::Greater_equal => wgt::CompareFunction::GreaterEqual,
-                    GPUCompareFunction::Always => wgt::CompareFunction::Always,
-                }
+                convert_compare_function(c)
             } else {
                 wgt::CompareFunction::Undefined
             },
@@ -680,9 +680,154 @@ impl GPUDeviceMethods for GPUDevice {
             true,
         )
     }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline
+    fn CreateRenderPipeline(
+        &self,
+        descriptor: &GPURenderPipelineDescriptor,
+    ) -> DomRoot<GPURenderPipeline> {
+        let mut valid = descriptor.parent.layout.is_valid();
+        valid &= descriptor.colorStates.len() <= wgpu::device::MAX_COLOR_TARGETS;
+        if descriptor.alphaToCoverageEnabled {
+            valid &= descriptor.sampleCount > 1;
+        }
+
+        let vertex_module = descriptor.vertexStage.module.id().0;
+        let vertex_entry_point = descriptor.vertexStage.entryPoint.to_string();
+        let (fragment_module, fragment_entry_point) = match descriptor.fragmentStage {
+            Some(ref frag) => (Some(frag.module.id().0), Some(frag.entryPoint.to_string())),
+            None => (None, None),
+        };
+
+        let primitive_topology = match descriptor.primitiveTopology {
+            GPUPrimitiveTopology::Point_list => wgt::PrimitiveTopology::PointList,
+            GPUPrimitiveTopology::Line_list => wgt::PrimitiveTopology::LineList,
+            GPUPrimitiveTopology::Line_strip => wgt::PrimitiveTopology::LineStrip,
+            GPUPrimitiveTopology::Triangle_list => wgt::PrimitiveTopology::TriangleList,
+            GPUPrimitiveTopology::Triangle_strip => wgt::PrimitiveTopology::TriangleStrip,
+        };
+
+        let ref rs_desc = descriptor.rasterizationState;
+        let rasterization_state = wgt::RasterizationStateDescriptor {
+            front_face: match rs_desc.frontFace {
+                GPUFrontFace::Ccw => wgt::FrontFace::Ccw,
+                GPUFrontFace::Cw => wgt::FrontFace::Cw,
+            },
+            cull_mode: match rs_desc.cullMode {
+                GPUCullMode::None => wgt::CullMode::None,
+                GPUCullMode::Front => wgt::CullMode::Front,
+                GPUCullMode::Back => wgt::CullMode::Back,
+            },
+            depth_bias: rs_desc.depthBias,
+            depth_bias_slope_scale: *rs_desc.depthBiasSlopeScale,
+            depth_bias_clamp: *rs_desc.depthBiasClamp,
+        };
+
+        let color_states = descriptor
+            .colorStates
+            .iter()
+            .map(|state| wgt::ColorStateDescriptor {
+                format: wgt::TextureFormat::Rgba8UnormSrgb, //TODO: Update this after implementing Texture
+                alpha_blend: convert_blend_descriptor(&state.alphaBlend),
+                color_blend: convert_blend_descriptor(&state.colorBlend),
+                write_mask: match wgt::ColorWrite::from_bits(state.writeMask) {
+                    Some(mask) => mask,
+                    None => {
+                        valid = false;
+                        wgt::ColorWrite::empty()
+                    },
+                },
+            })
+            .collect::<ArrayVec<_>>();
+
+        let depth_stencil_state = if let Some(ref dss_desc) = descriptor.depthStencilState {
+            Some(wgt::DepthStencilStateDescriptor {
+                format: wgt::TextureFormat::Rgba8UnormSrgb, //TODO: Update this
+                depth_write_enabled: dss_desc.depthWriteEnabled,
+                depth_compare: convert_compare_function(dss_desc.depthCompare),
+                stencil_front: wgt::StencilStateFaceDescriptor {
+                    compare: convert_compare_function(dss_desc.stencilFront.compare),
+                    fail_op: convert_stencil_op(dss_desc.stencilFront.failOp),
+                    depth_fail_op: convert_stencil_op(dss_desc.stencilFront.depthFailOp),
+                    pass_op: convert_stencil_op(dss_desc.stencilFront.passOp),
+                },
+                stencil_back: wgt::StencilStateFaceDescriptor {
+                    compare: convert_compare_function(dss_desc.stencilBack.compare),
+                    fail_op: convert_stencil_op(dss_desc.stencilBack.failOp),
+                    depth_fail_op: convert_stencil_op(dss_desc.stencilBack.depthFailOp),
+                    pass_op: convert_stencil_op(dss_desc.stencilBack.passOp),
+                },
+                stencil_read_mask: dss_desc.stencilReadMask,
+                stencil_write_mask: dss_desc.stencilWriteMask,
+            })
+        } else {
+            None
+        };
+
+        let ref vs_desc = descriptor.vertexState;
+        let vertex_state = (
+            match vs_desc.indexFormat {
+                GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
+                GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
+            },
+            vs_desc
+                .vertexBuffers
+                .iter()
+                .map(|buffer| {
+                    (
+                        buffer.arrayStride,
+                        match buffer.stepMode {
+                            GPUInputStepMode::Vertex => wgt::InputStepMode::Vertex,
+                            GPUInputStepMode::Instance => wgt::InputStepMode::Instance,
+                        },
+                        buffer
+                            .attributes
+                            .iter()
+                            .map(|att| wgt::VertexAttributeDescriptor {
+                                format: convert_vertex_format(att.format),
+                                offset: att.offset,
+                                shader_location: att.shaderLocation,
+                            })
+                            .collect::<Vec<_>>(),
+                    )
+                })
+                .collect::<Vec<_>>(),
+        );
+
+        let render_pipeline_id = self
+            .global()
+            .wgpu_id_hub()
+            .lock()
+            .create_render_pipeline_id(self.device.0.backend());
+
+        self.channel
+            .0
+            .send(WebGPURequest::CreateRenderPipeline {
+                device_id: self.device.0,
+                render_pipeline_id,
+                pipeline_layout_id: descriptor.parent.layout.id().0,
+                vertex_module,
+                vertex_entry_point,
+                fragment_module,
+                fragment_entry_point,
+                primitive_topology,
+                rasterization_state,
+                color_states,
+                depth_stencil_state,
+                vertex_state,
+                sample_count: descriptor.sampleCount,
+                sample_mask: descriptor.sampleMask,
+                alpha_to_coverage_enabled: descriptor.alphaToCoverageEnabled,
+            })
+            .expect("Failed to create WebGPU render pipeline");
+
+        let render_pipeline = webgpu::WebGPURenderPipeline(render_pipeline_id);
+
+        GPURenderPipeline::new(&self.global(), render_pipeline, self.device, valid)
+    }
 }
 
-fn assign_address_mode(address_mode: GPUAddressMode) -> wgt::AddressMode {
+fn convert_address_mode(address_mode: GPUAddressMode) -> wgt::AddressMode {
     match address_mode {
         GPUAddressMode::Clamp_to_edge => wgt::AddressMode::ClampToEdge,
         GPUAddressMode::Repeat => wgt::AddressMode::Repeat,
@@ -690,9 +835,102 @@ fn assign_address_mode(address_mode: GPUAddressMode) -> wgt::AddressMode {
     }
 }
 
-fn assign_filter_mode(filter_mode: GPUFilterMode) -> wgt::FilterMode {
+fn convert_filter_mode(filter_mode: GPUFilterMode) -> wgt::FilterMode {
     match filter_mode {
         GPUFilterMode::Nearest => wgt::FilterMode::Nearest,
         GPUFilterMode::Linear => wgt::FilterMode::Linear,
+    }
+}
+
+fn convert_compare_function(compare: GPUCompareFunction) -> wgt::CompareFunction {
+    match compare {
+        GPUCompareFunction::Never => wgt::CompareFunction::Never,
+        GPUCompareFunction::Less => wgt::CompareFunction::Less,
+        GPUCompareFunction::Equal => wgt::CompareFunction::Equal,
+        GPUCompareFunction::Less_equal => wgt::CompareFunction::LessEqual,
+        GPUCompareFunction::Greater => wgt::CompareFunction::Greater,
+        GPUCompareFunction::Not_equal => wgt::CompareFunction::NotEqual,
+        GPUCompareFunction::Greater_equal => wgt::CompareFunction::GreaterEqual,
+        GPUCompareFunction::Always => wgt::CompareFunction::Always,
+    }
+}
+
+fn convert_blend_descriptor(desc: &GPUBlendDescriptor) -> wgt::BlendDescriptor {
+    wgt::BlendDescriptor {
+        src_factor: convert_blend_factor(desc.srcFactor),
+        dst_factor: convert_blend_factor(desc.dstFactor),
+        operation: match desc.operation {
+            GPUBlendOperation::Add => wgt::BlendOperation::Add,
+            GPUBlendOperation::Subtract => wgt::BlendOperation::Subtract,
+            GPUBlendOperation::Reverse_subtract => wgt::BlendOperation::ReverseSubtract,
+            GPUBlendOperation::Min => wgt::BlendOperation::Min,
+            GPUBlendOperation::Max => wgt::BlendOperation::Max,
+        },
+    }
+}
+
+fn convert_blend_factor(factor: GPUBlendFactor) -> wgt::BlendFactor {
+    match factor {
+        GPUBlendFactor::Zero => wgt::BlendFactor::Zero,
+        GPUBlendFactor::One => wgt::BlendFactor::One,
+        GPUBlendFactor::Src_color => wgt::BlendFactor::SrcColor,
+        GPUBlendFactor::One_minus_src_color => wgt::BlendFactor::OneMinusSrcColor,
+        GPUBlendFactor::Src_alpha => wgt::BlendFactor::SrcAlpha,
+        GPUBlendFactor::One_minus_src_alpha => wgt::BlendFactor::OneMinusSrcAlpha,
+        GPUBlendFactor::Dst_color => wgt::BlendFactor::DstColor,
+        GPUBlendFactor::One_minus_dst_color => wgt::BlendFactor::OneMinusDstColor,
+        GPUBlendFactor::Dst_alpha => wgt::BlendFactor::DstAlpha,
+        GPUBlendFactor::One_minus_dst_alpha => wgt::BlendFactor::OneMinusDstAlpha,
+        GPUBlendFactor::Src_alpha_saturated => wgt::BlendFactor::SrcAlphaSaturated,
+        GPUBlendFactor::Blend_color => wgt::BlendFactor::BlendColor,
+        GPUBlendFactor::One_minus_blend_color => wgt::BlendFactor::OneMinusBlendColor,
+    }
+}
+
+fn convert_stencil_op(operation: GPUStencilOperation) -> wgt::StencilOperation {
+    match operation {
+        GPUStencilOperation::Keep => wgt::StencilOperation::Keep,
+        GPUStencilOperation::Zero => wgt::StencilOperation::Zero,
+        GPUStencilOperation::Replace => wgt::StencilOperation::Replace,
+        GPUStencilOperation::Invert => wgt::StencilOperation::Invert,
+        GPUStencilOperation::Increment_clamp => wgt::StencilOperation::IncrementClamp,
+        GPUStencilOperation::Decrement_clamp => wgt::StencilOperation::DecrementClamp,
+        GPUStencilOperation::Increment_wrap => wgt::StencilOperation::IncrementWrap,
+        GPUStencilOperation::Decrement_wrap => wgt::StencilOperation::DecrementWrap,
+    }
+}
+
+fn convert_vertex_format(format: GPUVertexFormat) -> wgt::VertexFormat {
+    match format {
+        GPUVertexFormat::Uchar2 => wgt::VertexFormat::Uchar2,
+        GPUVertexFormat::Uchar4 => wgt::VertexFormat::Uchar4,
+        GPUVertexFormat::Char2 => wgt::VertexFormat::Char2,
+        GPUVertexFormat::Char4 => wgt::VertexFormat::Char4,
+        GPUVertexFormat::Uchar2norm => wgt::VertexFormat::Uchar2Norm,
+        GPUVertexFormat::Uchar4norm => wgt::VertexFormat::Uchar4Norm,
+        GPUVertexFormat::Char2norm => wgt::VertexFormat::Char2Norm,
+        GPUVertexFormat::Char4norm => wgt::VertexFormat::Char4Norm,
+        GPUVertexFormat::Ushort2 => wgt::VertexFormat::Ushort2,
+        GPUVertexFormat::Ushort4 => wgt::VertexFormat::Ushort4,
+        GPUVertexFormat::Short2 => wgt::VertexFormat::Short2,
+        GPUVertexFormat::Short4 => wgt::VertexFormat::Short4,
+        GPUVertexFormat::Ushort2norm => wgt::VertexFormat::Ushort2Norm,
+        GPUVertexFormat::Ushort4norm => wgt::VertexFormat::Ushort4Norm,
+        GPUVertexFormat::Short2norm => wgt::VertexFormat::Short2Norm,
+        GPUVertexFormat::Short4norm => wgt::VertexFormat::Short4Norm,
+        GPUVertexFormat::Half2 => wgt::VertexFormat::Half2,
+        GPUVertexFormat::Half4 => wgt::VertexFormat::Half4,
+        GPUVertexFormat::Float => wgt::VertexFormat::Float,
+        GPUVertexFormat::Float2 => wgt::VertexFormat::Float2,
+        GPUVertexFormat::Float3 => wgt::VertexFormat::Float3,
+        GPUVertexFormat::Float4 => wgt::VertexFormat::Float4,
+        GPUVertexFormat::Uint => wgt::VertexFormat::Uint,
+        GPUVertexFormat::Uint2 => wgt::VertexFormat::Uint2,
+        GPUVertexFormat::Uint3 => wgt::VertexFormat::Uint3,
+        GPUVertexFormat::Uint4 => wgt::VertexFormat::Uint4,
+        GPUVertexFormat::Int => wgt::VertexFormat::Int,
+        GPUVertexFormat::Int2 => wgt::VertexFormat::Int2,
+        GPUVertexFormat::Int3 => wgt::VertexFormat::Int3,
+        GPUVertexFormat::Int4 => wgt::VertexFormat::Int4,
     }
 }
