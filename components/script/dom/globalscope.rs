@@ -794,9 +794,18 @@ impl GlobalScope {
     }
 
     /// Remove the routers for ports and broadcast-channels.
-    pub fn remove_web_messaging_infra(&self) {
+    /// Drain the list of workers.
+    pub fn remove_web_messaging_and_dedicated_workers_infra(&self) {
         self.remove_message_ports_router();
         self.remove_broadcast_channel_router();
+
+        // Drop each ref to a worker explicitly now,
+        // which will send a shutdown signal,
+        // and join on the worker thread.
+        self.list_auto_close_worker
+            .borrow_mut()
+            .drain(0..)
+            .for_each(|worker| drop(worker));
     }
 
     /// Update our state to un-managed,

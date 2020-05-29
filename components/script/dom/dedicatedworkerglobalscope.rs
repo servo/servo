@@ -460,6 +460,7 @@ impl DedicatedWorkerGlobalScope {
                         parent_sender,
                         CommonScriptMsg::CollectReports,
                     );
+                scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")
     }
