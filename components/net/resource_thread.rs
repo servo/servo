@@ -727,6 +727,8 @@ impl CoreResourceManager {
             action_receiver,
             http_state.clone(),
             self.certificate_path.clone(),
+            http_state.extra_certs.clone(),
+            http_state.connection_certs.clone(),
         );
     }
 }

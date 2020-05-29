@@ -38,6 +38,8 @@ struct Client<'a> {
     event_sender: &'a IpcSender<WebSocketNetworkEvent>,
     protocol_in_use: Option<String>,
     certificate_path: Option<String>,
+    extra_certs: ExtraCerts,
+    connection_certs: ConnectionCerts,
 }
 
 impl<'a> Factory for Client<'a> {
@@ -167,8 +169,12 @@ impl<'a> Handler for Client<'a> {
                 WebSocketErrorKind::Protocol,
                 format!("Unable to parse domain from {}. Needed for SSL.", url),
             ))?;
-        let tls_config =
-            create_tls_config(&certs, ALPN_H1, ExtraCerts::new(), ConnectionCerts::new());
+        let tls_config = create_tls_config(
+            &certs,
+            ALPN_H1,
+            self.extra_certs.clone(),
+            self.connection_certs.clone(),
+        );
         tls_config
             .build()
             .connect(domain, stream)
@@ -182,6 +188,8 @@ pub fn init(
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
     http_state: Arc<HttpState>,
     certificate_path: Option<String>,
+    extra_certs: ExtraCerts,
+    connection_certs: ConnectionCerts,
 ) {
     thread::Builder::new()
         .name(format!("WebSocket connection to {}", req_builder.url))
@@ -230,6 +238,8 @@ pub fn init(
                 event_sender: &resource_event_sender,
                 protocol_in_use: None,
                 certificate_path,
+                extra_certs,
+                connection_certs,
             };
             let mut ws = WebSocket::new(client).unwrap();
 

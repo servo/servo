@@ -184,12 +184,13 @@ pub(crate) fn create_tls_config(
             Err(_) => return false,
         };
 
-        // Ensure there's an entry stored in the set of known connection certs for this connection.
-        let host = ssl.ex_data(*HOST_INDEX).unwrap();
         let ssl_context = ssl.ssl_context();
-        let connection_certs = ssl_context.ex_data(*CONNECTION_INDEX).unwrap();
 
-        connection_certs.store((*host).0.clone(), pem.clone());
+        // Ensure there's an entry stored in the set of known connection certs for this connection.
+        if let Some(host) = ssl.ex_data(*HOST_INDEX) {
+            let connection_certs = ssl_context.ex_data(*CONNECTION_INDEX).unwrap();
+            connection_certs.store((*host).0.clone(), pem.clone());
+        }
 
         // Fall back to the dynamic set of allowed certs.
         let extra_certs = ssl_context.ex_data(*EXTRA_INDEX).unwrap();
