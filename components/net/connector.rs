@@ -10,9 +10,10 @@ use hyper::{Body, Client};
 use hyper_openssl::HttpsConnector;
 use openssl::ex_data::Index;
 use openssl::ssl::{
-    SslConnector, SslConnectorBuilder, SslContext, SslMethod, SslOptions, SslVerifyMode,
+    Ssl, SslConnector, SslConnectorBuilder, SslContext, SslMethod, SslOptions, SslVerifyMode,
 };
 use openssl::x509::{self, X509StoreContext};
+use std::collections::hash_map::{Entry, HashMap};
 use std::sync::{Arc, Mutex};
 use tokio::prelude::future::Executor;
 
@@ -33,6 +34,38 @@ const SIGNATURE_ALGORITHMS: &'static str = concat!(
     "RSA-PSS+SHA512:RSA-PSS+SHA384:RSA-PSS+SHA256:",
     "RSA+SHA512:RSA+SHA384:RSA+SHA256"
 );
+
+#[derive(Clone)]
+pub struct ConnectionCerts {
+    certs: Arc<Mutex<HashMap<String, (Vec<u8>, u32)>>>,
+}
+
+impl ConnectionCerts {
+    pub(crate) fn new() -> Self {
+        Self {
+            certs: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+
+    fn store(&self, host: String, cert_bytes: Vec<u8>) {
+        let mut certs = self.certs.lock().unwrap();
+        let entry = certs.entry(host).or_insert((cert_bytes, 0));
+        entry.1 += 1;
+    }
+
+    pub(crate) fn remove(&self, host: String) -> Option<Vec<u8>> {
+        match self.certs.lock().unwrap().entry(host) {
+            Entry::Vacant(_) => return None,
+            Entry::Occupied(mut e) => {
+                e.get_mut().1 -= 1;
+                if e.get().1 == 0 {
+                    return Some((e.remove_entry().1).0);
+                }
+                Some(e.get().0.clone())
+            },
+        }
+    }
+}
 
 pub struct HttpConnector {
     inner: HyperHttpConnector,
@@ -65,7 +98,7 @@ pub type Connector = HttpsConnector<HttpConnector>;
 pub type TlsConfig = SslConnectorBuilder;
 
 #[derive(Clone)]
-pub(crate) struct ExtraCerts(pub Arc<Mutex<Vec<Vec<u8>>>>);
+pub struct ExtraCerts(pub Arc<Mutex<Vec<Vec<u8>>>>);
 
 impl ExtraCerts {
     pub(crate) fn new() -> Self {
@@ -73,11 +106,21 @@ impl ExtraCerts {
     }
 }
 
+struct Host(String);
+
 lazy_static! {
-    static ref INDEX: Index<SslContext, ExtraCerts> = SslContext::new_ex_index().unwrap();
+    static ref EXTRA_INDEX: Index<SslContext, ExtraCerts> = SslContext::new_ex_index().unwrap();
+    static ref CONNECTION_INDEX: Index<SslContext, ConnectionCerts> =
+        SslContext::new_ex_index().unwrap();
+    static ref HOST_INDEX: Index<Ssl, Host> = Ssl::new_ex_index().unwrap();
 }
 
-pub(crate) fn create_tls_config(certs: &str, alpn: &[u8], extra_certs: ExtraCerts) -> TlsConfig {
+pub(crate) fn create_tls_config(
+    certs: &str,
+    alpn: &[u8],
+    extra_certs: ExtraCerts,
+    connection_certs: ConnectionCerts,
+) -> TlsConfig {
     // certs include multiple certificates. We could add all of them at once,
     // but if any of them were already added, openssl would fail to insert all
     // of them.
@@ -121,30 +164,41 @@ pub(crate) fn create_tls_config(certs: &str, alpn: &[u8], extra_certs: ExtraCert
             SslOptions::NO_COMPRESSION,
     );
 
-    cfg.set_ex_data(*INDEX, extra_certs);
+    cfg.set_ex_data(*EXTRA_INDEX, extra_certs);
+    cfg.set_ex_data(*CONNECTION_INDEX, connection_certs);
     cfg.set_verify_callback(SslVerifyMode::PEER, |verified, x509_store_context| {
         if verified {
             return true;
         }
-        if let Some(cert) = x509_store_context.current_cert() {
-            match cert.to_pem() {
-                Ok(pem) => {
-                    let ssl_idx = X509StoreContext::ssl_idx().unwrap();
-                    let ssl = x509_store_context.ex_data(ssl_idx).unwrap();
-                    let ssl_context = ssl.ssl_context();
-                    let extra_certs = ssl_context.ex_data(*INDEX).unwrap();
-                    for cert in &*extra_certs.0.lock().unwrap() {
-                        if pem == *cert {
-                            return true;
-                        }
-                    }
-                    false
-                },
-                Err(_) => false,
+
+        let ssl_idx = X509StoreContext::ssl_idx().unwrap();
+        let ssl = x509_store_context.ex_data(ssl_idx).unwrap();
+
+        // Obtain the cert bytes for this connection.
+        let cert = match x509_store_context.current_cert() {
+            Some(cert) => cert,
+            None => return false,
+        };
+        let pem = match cert.to_pem() {
+            Ok(pem) => pem,
+            Err(_) => return false,
+        };
+
+        // Ensure there's an entry stored in the set of known connection certs for this connection.
+        let host = ssl.ex_data(*HOST_INDEX).unwrap();
+        let ssl_context = ssl.ssl_context();
+        let connection_certs = ssl_context.ex_data(*CONNECTION_INDEX).unwrap();
+
+        connection_certs.store((*host).0.clone(), pem.clone());
+
+        // Fall back to the dynamic set of allowed certs.
+        let extra_certs = ssl_context.ex_data(*EXTRA_INDEX).unwrap();
+        for cert in &*extra_certs.0.lock().unwrap() {
+            if pem == *cert {
+                return true;
             }
-        } else {
-            false
         }
+        false
     });
 
     cfg
@@ -154,7 +208,11 @@ pub fn create_http_client<E>(tls_config: TlsConfig, executor: E) -> Client<Conne
 where
     E: Executor<Box<dyn Future<Error = (), Item = ()> + Send + 'static>> + Sync + Send + 'static,
 {
-    let connector = HttpsConnector::with_connector(HttpConnector::new(), tls_config).unwrap();
+    let mut connector = HttpsConnector::with_connector(HttpConnector::new(), tls_config).unwrap();
+    connector.set_callback(|configuration, destination| {
+        configuration.set_ex_data(*HOST_INDEX, Host(destination.host().to_owned()));
+        Ok(())
+    });
 
     Client::builder()
         .http1_title_case_headers(true)

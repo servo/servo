@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::connector::{create_tls_config, ExtraCerts, ALPN_H1};
+use crate::connector::{create_tls_config, ConnectionCerts, ExtraCerts, ALPN_H1};
 use crate::cookie::Cookie;
 use crate::fetch::methods::should_be_blocked_due_to_bad_port;
 use crate::hosts::replace_host;
@@ -167,7 +167,8 @@ impl<'a> Handler for Client<'a> {
                 WebSocketErrorKind::Protocol,
                 format!("Unable to parse domain from {}. Needed for SSL.", url),
             ))?;
-        let tls_config = create_tls_config(&certs, ALPN_H1, ExtraCerts::new());
+        let tls_config =
+            create_tls_config(&certs, ALPN_H1, ExtraCerts::new(), ConnectionCerts::new());
         tls_config
             .build()
             .connect(domain, stream)

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::connector::{create_http_client, Connector, TlsConfig};
+use crate::connector::{create_http_client, ConnectionCerts, Connector, ExtraCerts, TlsConfig};
 use crate::cookie;
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
@@ -89,6 +89,8 @@ pub struct HttpState {
     pub auth_cache: RwLock<AuthCache>,
     pub history_states: RwLock<HashMap<HistoryStateId, Vec<u8>>>,
     pub client: Client<Connector, Body>,
+    pub extra_certs: ExtraCerts,
+    pub connection_certs: ConnectionCerts,
 }
 
 impl HttpState {
@@ -104,6 +106,8 @@ impl HttpState {
                 tls_config,
                 HANDLE.lock().unwrap().as_ref().unwrap().executor(),
             ),
+            extra_certs: ExtraCerts::new(),
+            connection_certs: ConnectionCerts::new(),
         }
     }
 }
@@ -527,11 +531,19 @@ fn obtain_response(
     let method = method.clone();
     let send_start = precise_time_ms();
 
+    let host = request.uri().host().unwrap_or("").to_owned();
+    let host_clone = request.uri().host().unwrap_or("").to_owned();
+    let connection_certs = context.state.connection_certs.clone();
+    let connection_certs_clone = context.state.connection_certs.clone();
+
     let headers = headers.clone();
     Box::new(
         client
             .request(request)
             .and_then(move |res| {
+                // We no longer need to track the cert for this connection.
+                connection_certs.remove(host);
+
                 let send_end = precise_time_ms();
 
                 // TODO(#21271) response_start: immediately after receiving first byte of response
@@ -564,7 +576,9 @@ fn obtain_response(
                 };
                 Ok((Decoder::detect(res), msg))
             })
-            .map_err(move |e| NetworkError::from_hyper_error(&e)),
+            .map_err(move |e| {
+                NetworkError::from_hyper_error(&e, connection_certs_clone.remove(host_clone))
+            }),
     )
 }
 

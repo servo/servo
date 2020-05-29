@@ -731,8 +731,8 @@ impl FetchResponseListener for ParserContext {
                 FetchMetadata::Unfiltered(m) => m,
                 FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
             }),
-            Err(NetworkError::SslValidation(reason)) => {
-                ssl_error = Some(reason);
+            Err(NetworkError::SslValidation(reason, cert_bytes)) => {
+                ssl_error = Some((reason, cert_bytes));
                 let mut meta = Metadata::default(self.url.clone());
                 let mime: Option<Mime> = "text/html".parse().ok();
                 meta.set_content_type(mime.as_ref());
@@ -815,10 +815,12 @@ impl FetchResponseListener for ParserContext {
             },
             Some(ref mime) if mime.type_() == mime::TEXT && mime.subtype() == mime::HTML => {
                 // Handle text/html
-                if let Some(reason) = ssl_error {
+                if let Some((reason, bytes)) = ssl_error {
                     self.is_synthesized_document = true;
                     let page = resources::read_string(Resource::BadCertHTML);
                     let page = page.replace("${reason}", &reason);
+                    let page =
+                        page.replace("${bytes}", std::str::from_utf8(&bytes).unwrap_or_default());
                     parser.push_string_input_chunk(page);
                     parser.parse_sync();
                 }
