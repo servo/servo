@@ -10,6 +10,7 @@ pub extern crate wgpu_types as wgt;
 
 pub mod identity;
 
+use arrayvec::ArrayVec;
 use identity::{IdentityRecyclerFactory, WebGPUMsg};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
@@ -95,6 +96,26 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         pipeline_layout_id: id::PipelineLayoutId,
         bind_group_layouts: Vec<id::BindGroupLayoutId>,
+    },
+    CreateRenderPipeline {
+        device_id: id::DeviceId,
+        render_pipeline_id: id::RenderPipelineId,
+        pipeline_layout_id: id::PipelineLayoutId,
+        vertex_module: id::ShaderModuleId,
+        vertex_entry_point: String,
+        fragment_module: Option<id::ShaderModuleId>,
+        fragment_entry_point: Option<String>,
+        primitive_topology: wgt::PrimitiveTopology,
+        rasterization_state: wgt::RasterizationStateDescriptor,
+        color_states: ArrayVec<[wgt::ColorStateDescriptor; wgpu::device::MAX_COLOR_TARGETS]>,
+        depth_stencil_state: Option<wgt::DepthStencilStateDescriptor>,
+        vertex_state: (
+            wgt::IndexFormat,
+            Vec<(u64, wgt::InputStepMode, Vec<wgt::VertexAttributeDescriptor>)>,
+        ),
+        sample_count: u32,
+        sample_mask: u32,
+        alpha_to_coverage_enabled: bool,
     },
     CreateSampler {
         device_id: id::DeviceId,
@@ -340,6 +361,77 @@ impl WGPU {
                     let _ = gfx_select!(pipeline_layout_id =>
                         global.device_create_pipeline_layout(device_id, &descriptor, pipeline_layout_id));
                 },
+                //TODO: consider https://github.com/gfx-rs/wgpu/issues/684
+                WebGPURequest::CreateRenderPipeline {
+                    device_id,
+                    render_pipeline_id,
+                    pipeline_layout_id,
+                    vertex_module,
+                    vertex_entry_point,
+                    fragment_module,
+                    fragment_entry_point,
+                    primitive_topology,
+                    rasterization_state,
+                    color_states,
+                    depth_stencil_state,
+                    vertex_state,
+                    sample_count,
+                    sample_mask,
+                    alpha_to_coverage_enabled,
+                } => {
+                    let global = &self.global;
+                    let vertex_ep = std::ffi::CString::new(vertex_entry_point).unwrap();
+                    let frag_stage = match fragment_module {
+                        Some(frag) => {
+                            let frag_ep =
+                                std::ffi::CString::new(fragment_entry_point.unwrap()).unwrap();
+                            let frag_module = wgpu_core::pipeline::ProgrammableStageDescriptor {
+                                module: frag,
+                                entry_point: frag_ep.as_ptr(),
+                            };
+                            Some(frag_module)
+                        },
+                        None => None,
+                    };
+                    let descriptor = wgpu_core::pipeline::RenderPipelineDescriptor {
+                        layout: pipeline_layout_id,
+                        vertex_stage: wgpu_core::pipeline::ProgrammableStageDescriptor {
+                            module: vertex_module,
+                            entry_point: vertex_ep.as_ptr(),
+                        },
+                        fragment_stage: frag_stage
+                            .as_ref()
+                            .map_or(ptr::null(), |fs| fs as *const _),
+                        primitive_topology,
+                        rasterization_state: &rasterization_state as *const _,
+                        color_states: color_states.as_ptr(),
+                        color_states_length: color_states.len(),
+                        depth_stencil_state: depth_stencil_state
+                            .as_ref()
+                            .map_or(ptr::null(), |dss| dss as *const _),
+                        vertex_state: wgpu_core::pipeline::VertexStateDescriptor {
+                            index_format: vertex_state.0,
+                            vertex_buffers_length: vertex_state.1.len(),
+                            vertex_buffers: vertex_state
+                                .1
+                                .iter()
+                                .map(|buffer| wgpu_core::pipeline::VertexBufferLayoutDescriptor {
+                                    array_stride: buffer.0,
+                                    step_mode: buffer.1,
+                                    attributes_length: buffer.2.len(),
+                                    attributes: buffer.2.as_ptr(),
+                                })
+                                .collect::<Vec<_>>()
+                                .as_ptr(),
+                        },
+                        sample_count,
+                        sample_mask,
+                        alpha_to_coverage_enabled,
+                    };
+
+                    let _ = gfx_select!(render_pipeline_id =>
+                        global.device_create_render_pipeline(device_id, &descriptor, render_pipeline_id));
+                },
                 WebGPURequest::CreateSampler {
                     device_id,
                     sampler_id,
@@ -510,5 +602,6 @@ webgpu_resource!(WebGPUComputePipeline, id::ComputePipelineId);
 webgpu_resource!(WebGPUDevice, id::DeviceId);
 webgpu_resource!(WebGPUPipelineLayout, id::PipelineLayoutId);
 webgpu_resource!(WebGPUQueue, id::QueueId);
+webgpu_resource!(WebGPURenderPipeline, id::RenderPipelineId);
 webgpu_resource!(WebGPUSampler, id::SamplerId);
 webgpu_resource!(WebGPUShaderModule, id::ShaderModuleId);

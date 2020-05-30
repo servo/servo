@@ -152,6 +152,9 @@ name = "arrayvec"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cff77d8686867eceff3105329d4698d96c2391c176d5d03adc90c7389162b5b8"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "ascii"
@@ -4589,6 +4592,7 @@ version = "0.0.1"
 dependencies = [
  "accountable-refcell",
  "app_units",
+ "arrayvec 0.5.1",
  "backtrace",
  "base64 0.10.1",
  "bitflags",
@@ -6457,6 +6461,7 @@ dependencies = [
 name = "webgpu"
 version = "0.0.1"
 dependencies = [
+ "arrayvec 0.5.1",
  "ipc-channel",
  "log",
  "malloc_size_of",

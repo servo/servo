@@ -1134,7 +1134,7 @@ def getJSToNativeConversionInfo(type, descriptorProvider, failureCode=None,
 
     if type.isDictionary():
         # There are no nullable dictionaries
-        assert not type.nullable()
+        assert not type.nullable() or (isMember and isMember != "Dictionary")
 
         typeName = "%s::%s" % (CGDictionary.makeModuleName(type.inner),
                                CGDictionary.makeDictionaryName(type.inner))
@@ -6645,7 +6645,10 @@ class CGDictionary(CGThing):
 
     @staticmethod
     def makeDictionaryName(dictionary):
-        return dictionary.identifier.name
+        if isinstance(dictionary, IDLWrapperType):
+            return CGDictionary.makeDictionaryName(dictionary.inner)
+        else:
+            return dictionary.identifier.name
 
     def makeClassName(self, dictionary):
         return self.makeDictionaryName(dictionary)

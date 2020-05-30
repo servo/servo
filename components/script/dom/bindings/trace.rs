@@ -160,7 +160,7 @@ use uuid::Uuid;
 use webgpu::{
     wgpu::command::RawPass, WebGPU, WebGPUAdapter, WebGPUBindGroup, WebGPUBindGroupLayout,
     WebGPUBuffer, WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePipeline, WebGPUDevice,
-    WebGPUPipelineLayout, WebGPUQueue, WebGPUSampler, WebGPUShaderModule,
+    WebGPUPipelineLayout, WebGPUQueue, WebGPURenderPipeline, WebGPUSampler, WebGPUShaderModule,
 };
 use webrender_api::{DocumentId, ImageKey};
 use webxr_api::SwapChainId as WebXRSwapChainId;
@@ -556,6 +556,7 @@ unsafe_no_jsmanaged_fields!(WebGPUBuffer);
 unsafe_no_jsmanaged_fields!(WebGPUBindGroup);
 unsafe_no_jsmanaged_fields!(WebGPUBindGroupLayout);
 unsafe_no_jsmanaged_fields!(WebGPUComputePipeline);
+unsafe_no_jsmanaged_fields!(WebGPURenderPipeline);
 unsafe_no_jsmanaged_fields!(WebGPUPipelineLayout);
 unsafe_no_jsmanaged_fields!(WebGPUQueue);
 unsafe_no_jsmanaged_fields!(WebGPUShaderModule);
