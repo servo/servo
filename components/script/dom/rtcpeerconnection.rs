@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelInit;
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCPeerConnectionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
@@ -20,12 +21,14 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::str::USVString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
+use crate::dom::rtcdatachannel::RTCDataChannel;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::rtcpeerconnectioniceevent::RTCPeerConnectionIceEvent;
 use crate::dom::rtcsessiondescription::RTCSessionDescription;
@@ -448,6 +451,9 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         SetOnsignalingstatechange
     );
 
+    // https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ondatachannel
+    event_handler!(datachannel, GetOndatachannel, SetOndatachannel);
+
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addicecandidate
     fn AddIceCandidate(&self, candidate: &RTCIceCandidateInit, comp: InRealm) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(&self.global(), comp);
@@ -632,6 +638,15 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
 
         // Step 11
         // (no current support for connection state)
+    }
+
+    /// https://www.w3.org/TR/webrtc/#dom-peerconnection-createdatachannel
+    fn CreateDataChannel(
+        &self,
+        label: USVString,
+        dataChannelDict: &RTCDataChannelInit,
+    ) -> DomRoot<RTCDataChannel> {
+        RTCDataChannel::new(&self.global(), &self.controller, label, dataChannelDict)
     }
 }
 
