@@ -15,7 +15,7 @@
           return credFetch(target + "/cookies/resources/list.py")
 
             .then(r => r.json())
-            .then(cookies => getSameSiteVerifier()(expectedStatus, value, cookies));
+            .then(cookies => getSameSiteVerifier()(expectedStatus, value, cookies, DomSameSiteStatus.SAME_SITE));
         });
     }, title);
   }

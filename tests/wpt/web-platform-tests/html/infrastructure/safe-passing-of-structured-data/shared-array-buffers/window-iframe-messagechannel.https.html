@@ -10,23 +10,33 @@
 <div id="log"></div>
 
 <script>
-["same-origin", "same-site"].forEach(originOrSite => {
-  promise_test(t => {
-    return new Promise(resolve => {
-      const iframe = document.createElement("iframe");
-      window.onmessage = t.step_func((message) => {
-        // data will be a MessagePort
-        resolve(testSharingViaIncrementerScript(t, message.data, "window", message.data, "iframe"));
-      });
-      let url = "resources/incrementer-iframe-messagechannel.html";
-      if (originOrSite === "same-site") {
-        url = get_host_info().HTTPS_REMOTE_ORIGIN + new URL(url, window.location).pathname;
-      }
-      iframe.src = url;
-      document.body.appendChild(iframe);
+promise_test(t => {
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    window.onmessage = t.step_func((message) => {
+      // data will be a MessagePort
+      resolve(testSharingViaIncrementerScript(t, message.data, "window", message.data, "iframe"));
     });
-  }, `postMessaging to a ${originOrSite} iframe via MessageChannel allows them to see each others' modifications`);
-});
+    iframe.src = "resources/incrementer-iframe-messagechannel.html";
+    document.body.appendChild(iframe);
+  });
+}, `postMessaging to a same-origin iframe via MessageChannel allows them to see each others' modifications`);
+
+promise_test(t => {
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    window.onmessage = t.step_func((message) => {
+      // data will be a MessagePort
+      message.data.postMessage(new SharedArrayBuffer(10));
+      message.data.onmessage = t.step_func(message => {
+        assert_equals(message.data, "messageerror event received");
+        resolve();
+      });
+    });
+    iframe.src = get_host_info().HTTPS_REMOTE_ORIGIN + new URL("resources/iframe-messagechannel-site-failure.html", window.location).pathname;
+    document.body.appendChild(iframe);
+  });
+}, "postMessaging to a same-site iframe via MessageChannel should fail");
 
 promise_test(t => {
   return new Promise(resolve => {

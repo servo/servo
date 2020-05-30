@@ -94,14 +94,14 @@
 
       const observer = new MutationObserver(mutations => {
         t.step(() => {
-          assert_equals(phase, 1);
-          assert_equals(mutations.length, 1);
+          assert_equals(phase, 1, "phase");
+          assert_equals(mutations.length, 1, "mutations.length");
           const mutation = mutations[0];
-          assert_equals(mutation.type, "childList");
-          assert_equals(mutation.addedNodes.length, 2);
-          assert_array_equals([...mutation.addedNodes], insertions);
-          assert_equals(mutation.removedNodes.length, 2);
-          assert_array_equals([...mutation.removedNodes], children);
+          assert_equals(mutation.type, "childList", "mutation.type");
+          assert_equals(mutation.addedNodes.length, 2, "added nodes length");
+          assert_array_equals([...mutation.addedNodes], insertions, "added nodes");
+          assert_equals(mutation.removedNodes.length, 2, "removed nodes length");
+          assert_array_equals([...mutation.removedNodes], children, "removed nodes");
         });
         t.done();
       });

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<link rel="help" href="http://www.w3.org/TR/css3-background/#the-box-shadow">
+<link rel="match" href="inset-box-shadow-scroll-ref.html"/>
+<style>
+#target {
+  position: absolute;
+  z-index: 1;
+  width: 200px;
+  height: 100px;
+  overflow: scroll;
+  background-color: white;
+  box-shadow: 10px 10px green inset;
+  padding: 10px;
+}
+#inner {
+  height: 120px;
+}
+</style>
+<div id="target">
+  <div id="inner">
+    Passes if green inset shadow is visible.
+  </div>
+</div>

@@ -17,7 +17,7 @@
             var reloaded = false;
             var msgHandler = e => {
               try {
-                getSameSiteVerifier()(expectedStatus, value, e.data);
+                getSameSiteVerifier()(expectedStatus, value, e.data, DomSameSiteStatus.SAME_SITE);
               } catch (e) {
                 reject(e);
               }
