@@ -55,7 +55,7 @@ function compare_Object(callback, callback_is_async) {
 
 function enumerate_props(compare_func, test_obj) {
   return function(actual, input) {
-    for (var x in input) {
+    for (const x in input) {
       compare_func(actual[x], input[x], test_obj);
     }
   };
@@ -80,6 +80,10 @@ check('primitive number, 9007199254740992', 9007199254740992, compare_primitive)
 check('primitive number, -9007199254740992', -9007199254740992, compare_primitive);
 check('primitive number, 9007199254740994', 9007199254740994, compare_primitive);
 check('primitive number, -9007199254740994', -9007199254740994, compare_primitive);
+check('primitive BigInt, 0n', 0n, compare_primitive);
+check('primitive BigInt, -0n', -0n, compare_primitive);
+check('primitive BigInt, -9007199254740994000n', -9007199254740994000n, compare_primitive);
+check('primitive BigInt, -9007199254740994000900719925474099400090071992547409940009007199254740994000n', -9007199254740994000900719925474099400090071992547409940009007199254740994000n, compare_primitive);
 
 check('Array primitives', [undefined,
                            null,
@@ -99,7 +103,10 @@ check('Array primitives', [undefined,
                            9007199254740992,
                            -9007199254740992,
                            9007199254740994,
-                           -9007199254740994], compare_Array(enumerate_props(compare_primitive)));
+                           -9007199254740994,
+                           -12n,
+                           -0n,
+                           0n], compare_Array(enumerate_props(compare_primitive)));
 check('Object primitives', {'undefined':undefined,
                            'null':null,
                            'true':true,
@@ -135,7 +142,7 @@ check('Array Boolean objects', [new Boolean(true), new Boolean(false)], compare_
 check('Object Boolean objects', {'true':new Boolean(true), 'false':new Boolean(false)}, compare_Object(enumerate_props(compare_Boolean)));
 
 function compare_obj(what) {
-  var Type = self[what];
+  const Type = self[what];
   return function(actual, input, test_obj) {
     if (typeof actual === 'string')
       assert_unreached(actual);
@@ -172,6 +179,9 @@ check('Number 9007199254740992', new Number(9007199254740992), compare_obj('Numb
 check('Number -9007199254740992', new Number(-9007199254740992), compare_obj('Number'));
 check('Number 9007199254740994', new Number(9007199254740994), compare_obj('Number'));
 check('Number -9007199254740994', new Number(-9007199254740994), compare_obj('Number'));
+// BigInt does not have a non-throwing constructor
+check('BigInt -9007199254740994n', Object(-9007199254740994n), compare_obj('BigInt'));
+
 check('Array Number objects', [new Number(0.2),
                                new Number(0),
                                new Number(-0),
@@ -234,7 +244,7 @@ function compare_RegExp(expected_source) {
   }
 }
 function func_RegExp_flags_lastIndex() {
-  var r = /foo/gim;
+  const r = /foo/gim;
   r.lastIndex = 2;
   return r;
 }
@@ -292,7 +302,7 @@ function b(str) {
 function encode_cesu8(codeunits) {
   // http://www.unicode.org/reports/tr26/ section 2.2
   // only the 3-byte form is supported
-  var rv = [];
+  const rv = [];
   codeunits.forEach(function(codeunit) {
     rv.push(b('11100000') + ((codeunit & b('1111000000000000')) >> 12));
     rv.push(b('10000000') + ((codeunit & b('0000111111000000')) >> 6));
@@ -302,9 +312,9 @@ function encode_cesu8(codeunits) {
 }
 function func_Blob_bytes(arr) {
   return function() {
-    var buffer = new ArrayBuffer(arr.length);
-    var view = new DataView(buffer);
-    for (var i = 0; i < arr.length; ++i) {
+    const buffer = new ArrayBuffer(arr.length);
+    const view = new DataView(buffer);
+    for (let i = 0; i < arr.length; ++i) {
       view.setUint8(i, arr[i]);
     }
     return new Blob([view]);
@@ -361,7 +371,7 @@ function compare_FileList(actual, input, test_obj) {
     test_obj.done();
 }
 function func_FileList_empty() {
-  var input = document.createElement('input');
+  const input = document.createElement('input');
   input.type = 'file';
   return input.files;
 }
@@ -370,14 +380,14 @@ check('Array FileList object, FileList empty', () => ([func_FileList_empty()]), 
 check('Object FileList object, FileList empty', () => ({'x':func_FileList_empty()}), compare_Object(enumerate_props(compare_FileList)), true);
 
 function compare_ArrayBufferView(view) {
-  var Type = self[view];
+  const Type = self[view];
   return function(actual, input, test_obj) {
     if (typeof actual === 'string')
       assert_unreached(actual);
     assert_true(actual instanceof Type, 'instanceof '+view);
     assert_equals(actual.length, input.length, 'length');
     assert_not_equals(actual.buffer, input.buffer, 'buffer');
-    for (var i = 0; i < actual.length; ++i) {
+    for (let i = 0; i < actual.length; ++i) {
       assert_equals(actual[i], input[i], 'actual['+i+']');
     }
     if (test_obj)
@@ -395,15 +405,15 @@ function compare_ImageData(actual, input, test_obj) {
     test_obj.done();
 }
 function func_ImageData_1x1_transparent_black() {
-  var canvas = document.createElement('canvas');
-  var ctx = canvas.getContext('2d');
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
   return ctx.createImageData(1, 1);
 }
 check('ImageData 1x1 transparent black', func_ImageData_1x1_transparent_black, compare_ImageData, true);
 function func_ImageData_1x1_non_transparent_non_black() {
-  var canvas = document.createElement('canvas');
-  var ctx = canvas.getContext('2d');
-  var imagedata = ctx.createImageData(1, 1);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const imagedata = ctx.createImageData(1, 1);
   imagedata.data[0] = 100;
   imagedata.data[1] = 101;
   imagedata.data[2] = 102;
@@ -419,7 +429,7 @@ check('Object ImageData object, ImageData 1x1 non-transparent non-black', () => 
 
 check('Array sparse', new Array(10), compare_Array(enumerate_props(compare_primitive)));
 check('Array with non-index property', function() {
-  var rv = [];
+  const rv = [];
   rv.foo = 'bar';
   return rv;
 }, compare_Array(enumerate_props(compare_primitive)));
@@ -430,12 +440,12 @@ function check_circular_property(prop) {
   };
 }
 check('Array with circular reference', function() {
-  var rv = [];
+  const rv = [];
   rv[0] = rv;
   return rv;
 }, compare_Array(check_circular_property('0')));
 check('Object with circular reference', function() {
-  var rv = {};
+  const rv = {};
   rv['x'] = rv;
   return rv;
 }, compare_Object(check_circular_property('x')));
@@ -445,11 +455,11 @@ function check_identical_property_values(prop1, prop2) {
   };
 }
 check('Array with identical property values', function() {
-  var obj = {}
+  const obj = {}
   return [obj, obj];
 }, compare_Array(check_identical_property_values('0', '1')));
 check('Object with identical property values', function() {
-  var obj = {}
+  const obj = {}
   return {'x':obj, 'y':obj};
 }, compare_Object(check_identical_property_values('x', 'y')));
 
@@ -459,13 +469,13 @@ function check_absent_property(prop) {
   };
 }
 check('Object with property on prototype', function() {
-  var Foo = function() {};
+  const Foo = function() {};
   Foo.prototype = {'foo':'bar'};
   return new Foo();
 }, compare_Object(check_absent_property('foo')));
 
 check('Object with non-enumerable property', function() {
-  var rv = {};
+  const rv = {};
   Object.defineProperty(rv, 'foo', {value:'bar', enumerable:false, writable:true, configurable:true});
   return rv;
 }, compare_Object(check_absent_property('foo')));
@@ -478,7 +488,7 @@ function check_writable_property(prop) {
   };
 }
 check('Object with non-writable property', function() {
-  var rv = {};
+  const rv = {};
   Object.defineProperty(rv, 'foo', {value:'bar', enumerable:true, writable:false, configurable:true});
   return rv;
 }, compare_Object(check_writable_property('foo')));
@@ -491,7 +501,7 @@ function check_configurable_property(prop) {
   };
 }
 check('Object with non-configurable property', function() {
-  var rv = {};
+  const rv = {};
   Object.defineProperty(rv, 'foo', {value:'bar', enumerable:true, writable:true, configurable:false});
   return rv;
 }, compare_Object(check_configurable_property('foo')));
@@ -500,18 +510,18 @@ check('Object with non-configurable property', function() {
 more substantial changed due to their previous async setup */
 
 function get_canvas_1x1_transparent_black() {
-  var canvas = document.createElement('canvas');
+  const canvas = document.createElement('canvas');
   canvas.width = 1;
   canvas.height = 1;
   return canvas;
 }
 
 function get_canvas_1x1_non_transparent_non_black() {
-  var canvas = document.createElement('canvas');
+  const canvas = document.createElement('canvas');
   canvas.width = 1;
   canvas.height = 1;
-  var ctx = canvas.getContext('2d');
-  var imagedata = ctx.getImageData(0, 0, 1, 1);
+  const ctx = canvas.getContext('2d');
+  const imagedata = ctx.getImageData(0, 0, 1, 1);
   imagedata.data[0] = 100;
   imagedata.data[1] = 101;
   imagedata.data[2] = 102;
@@ -530,7 +540,7 @@ function compare_ImageBitmap(actual, input) {
 structuredCloneBatteryOfTests.push({
   description: 'ImageBitmap 1x1 transparent black',
   async f(runner) {
-    var canvas = get_canvas_1x1_transparent_black();
+    const canvas = get_canvas_1x1_transparent_black();
     const bm = await createImageBitmap(canvas);
     const copy = await runner.structuredClone(bm);
     compare_ImageBitmap(bm, copy);
@@ -541,7 +551,7 @@ structuredCloneBatteryOfTests.push({
 structuredCloneBatteryOfTests.push({
   description: 'ImageBitmap 1x1 non-transparent non-black',
   async f(runner) {
-    var canvas = get_canvas_1x1_non_transparent_non_black();
+    const canvas = get_canvas_1x1_non_transparent_non_black();
     const bm = await createImageBitmap(canvas);
     const copy = await runner.structuredClone(bm);
     compare_ImageBitmap(bm, copy);
@@ -552,7 +562,7 @@ structuredCloneBatteryOfTests.push({
 structuredCloneBatteryOfTests.push({
   description: 'Array ImageBitmap object, ImageBitmap 1x1 transparent black',
   async f(runner) {
-    var canvas = get_canvas_1x1_transparent_black();
+    const canvas = get_canvas_1x1_transparent_black();
     const bm = [await createImageBitmap(canvas)];
     const copy = await runner.structuredClone(bm);
     compare_Array(enumerate_props(compare_ImageBitmap))(bm, copy);
@@ -563,7 +573,7 @@ structuredCloneBatteryOfTests.push({
 structuredCloneBatteryOfTests.push({
   description: 'Array ImageBitmap object, ImageBitmap 1x1 transparent non-black',
   async f(runner) {
-    var canvas = get_canvas_1x1_non_transparent_non_black();
+    const canvas = get_canvas_1x1_non_transparent_non_black();
     const bm = [await createImageBitmap(canvas)];
     const copy = await runner.structuredClone(bm);
     compare_Array(enumerate_props(compare_ImageBitmap))(bm, copy);
@@ -574,7 +584,7 @@ structuredCloneBatteryOfTests.push({
 structuredCloneBatteryOfTests.push({
   description: 'Object ImageBitmap object, ImageBitmap 1x1 transparent black',
   async f(runner) {
-    var canvas = get_canvas_1x1_transparent_black();
+    const canvas = get_canvas_1x1_transparent_black();
     const bm = {x: await createImageBitmap(canvas)};
     const copy = await runner.structuredClone(bm);
     compare_Object(enumerate_props(compare_ImageBitmap))(bm, copy);
@@ -585,7 +595,7 @@ structuredCloneBatteryOfTests.push({
 structuredCloneBatteryOfTests.push({
   description: 'Object ImageBitmap object, ImageBitmap 1x1 transparent non-black',
   async f(runner) {
-    var canvas = get_canvas_1x1_non_transparent_non_black();
+    const canvas = get_canvas_1x1_non_transparent_non_black();
     const bm = {x: await createImageBitmap(canvas)};
     const copy = await runner.structuredClone(bm);
     compare_Object(enumerate_props(compare_ImageBitmap))(bm, copy);

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Structured cloning of SharedArrayBuffers into same-origin-domain windows</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#structuredserialize">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script>
+"use strict";
+document.domain = "{{host}}";
+
+async_test(t => {
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+  iframe.src = "//{{domains[www1]}}:{{location[port]}}/html/infrastructure/safe-passing-of-structured-data/shared-array-buffers/resources/iframe-domain-failure.sub.html";
+  window.onmessage = t.unreached_func("Got a message event, expected a messageerror event");
+  window.onmessageerror = t.step_func_done();
+  document.body.append(iframe);
+}, "SharedArrayBuffer and a same-origin-domain (but not same-origin) iframe");
+</script>

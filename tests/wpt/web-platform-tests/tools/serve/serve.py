@@ -10,6 +10,7 @@ import os
 import platform
 import signal
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -528,7 +529,8 @@ def start_servers(host, ports, paths, routes, bind_address, config, **kwargs):
                          "https": start_https_server,
                          "h2": start_http2_server,
                          "ws": start_ws_server,
-                         "wss": start_wss_server}[scheme]
+                         "wss": start_wss_server,
+                         "quic-transport": start_quic_transport_server}[scheme]
 
             server_proc = ServerProc(scheme=scheme)
             server_proc.start(init_func, host, port, paths, routes, bind_address,
@@ -702,6 +704,63 @@ def start_wss_server(host, port, paths, routes, bind_address, config, **kwargs):
         startup_failed(log=False)
 
 
+class QuicTransportDaemon(object):
+    def __init__(self, host, port, handlers_path=None, private_key=None, certificate=None, log_level=None):
+        args = ["python3", "wpt", "serve-quic-transport"]
+        if host:
+            args += ["--host", host]
+        if port:
+            args += ["--port", str(port)]
+        if private_key:
+            args += ["--private-key", private_key]
+        if certificate:
+            args += ["--certificate", certificate]
+        if handlers_path:
+            args += ["--handlers-path", handlers_path]
+        if log_level == "debug":
+            args += ["--verbose"]
+        self.command = args
+        self.proc = None
+
+    def start(self, block=False):
+        if block:
+            subprocess.call(self.command)
+        else:
+            def handle_signal(*_):
+                if self.proc:
+                    try:
+                        self.proc.terminate()
+                    except OSError:
+                        # It's fine if the child already exits.
+                        pass
+                    self.proc.wait()
+                sys.exit(0)
+
+            signal.signal(signal.SIGTERM, handle_signal)
+            signal.signal(signal.SIGINT, handle_signal)
+
+            self.proc = subprocess.Popen(self.command)
+            # Give the server a second to start and then check.
+            time.sleep(1)
+            if self.proc.poll():
+                sys.exit(1)
+
+
+def start_quic_transport_server(host, port, paths, routes, bind_address, config, **kwargs):
+    # Ensure that when we start this in a new process we have the global lock
+    # in the logging module unlocked
+    reload_module(logging)
+    release_mozlog_lock()
+    try:
+        return QuicTransportDaemon(host,
+                          port,
+                          private_key=config.ssl_config["key_path"],
+                          certificate=config.ssl_config["cert_path"],
+                          log_level=config.log_level)
+    except Exception:
+        startup_failed(log=False)
+
+
 def start(config, routes, **kwargs):
     host = config["server_host"]
     ports = config.ports
@@ -729,6 +788,8 @@ def build_config(override_path=None, **kwargs):
         enable_http2 = True
     if enable_http2:
         rv._default["ports"]["h2"] = [9000]
+    if kwargs.get("quic_transport"):
+        rv._default["ports"]["quic-transport"] = [10000]
 
     if override_path and os.path.exists(override_path):
         with open(override_path) as f:
@@ -880,6 +941,7 @@ def get_parser():
                         help=argparse.SUPPRESS)
     parser.add_argument("--no-h2", action="store_false", dest="h2", default=None,
                         help="Disable the HTTP/2.0 server")
+    parser.add_argument("--quic-transport", action="store_true", help="Enable QUIC server for WebTransport")
     return parser
 
 

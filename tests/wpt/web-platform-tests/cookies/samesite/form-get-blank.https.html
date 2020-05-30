@@ -33,7 +33,7 @@
               window.removeEventListener("message", msgHandler);
               e.source.close();
               try {
-                getSameSiteVerifier()(expectedStatus, value, e.data);
+                getSameSiteVerifier()(expectedStatus, value, e.data, DomSameSiteStatus.SAME_SITE);
                 resolve("Popup received the cookie.");
               } catch (e) {
                 reject(e);

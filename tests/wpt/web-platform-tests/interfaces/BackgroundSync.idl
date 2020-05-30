@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into reffy-reports
 // (https://github.com/tidoust/reffy-reports)
-// Source: Web Background Synchronization (https://wicg.github.io/BackgroundSync/spec/)
+// Source: Web Background Synchronization (https://wicg.github.io/background-sync/spec/)
 
 partial interface ServiceWorkerRegistration {
   readonly attribute SyncManager sync;
@@ -17,8 +17,9 @@ partial interface ServiceWorkerGlobalScope {
   attribute EventHandler onsync;
 };
 
-[Constructor(DOMString type, SyncEventInit init), Exposed=ServiceWorker]
+[Exposed=ServiceWorker]
 interface SyncEvent : ExtendableEvent {
+  constructor(DOMString type, SyncEventInit init);
   readonly attribute DOMString tag;
   readonly attribute boolean lastChance;
 };

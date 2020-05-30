@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-import argparse
 import asyncio
 import io
 import logging
@@ -7,6 +5,7 @@ import os
 import re
 import struct
 import urllib.parse
+import traceback
 from typing import Dict, Optional
 
 from aioquic.asyncio import QuicConnectionProtocol, serve
@@ -16,8 +15,9 @@ from aioquic.quic.events import StreamDataReceived, QuicEvent
 from aioquic.tls import SessionTicket
 
 SERVER_NAME = 'aioquic-transport'
+logger = logging.getLogger(__name__)
 
-handlers_path = None
+handlers_path = ''
 
 
 class EventHandler:
@@ -50,7 +50,7 @@ class QuicTransportProtocol(QuicConnectionProtocol):
 
     def quic_event_received(self, event: QuicEvent) -> None:
         prefix = '!!'
-        logging.log(logging.INFO, 'QUIC event: %s' % type(event))
+        logger.info('QUIC event: %s', type(event))
         try:
             if (not self.client_indication_finished and
                     isinstance(event, StreamDataReceived) and
@@ -75,7 +75,8 @@ class QuicTransportProtocol(QuicConnectionProtocol):
                 self.handler.handle_event(event)
         except Exception as e:
             self.handler = None
-            logging.log(logging.WARN, prefix + str(e))
+            logger.warn(prefix + str(e))
+            traceback.print_exc()
             self.close()
 
     def parse_client_indication(self, bs):
@@ -113,8 +114,7 @@ class QuicTransportProtocol(QuicConnectionProtocol):
             else:
                 # We must ignore unrecognized fields.
                 pass
-        logging.log(logging.INFO,
-                    'origin = %s, path = %s' % (origin_string, path_string))
+        logger.info('origin = %s, path = %s', origin_string, path_string)
         if origin is None:
             raise Exception('No origin is given')
         if path is None:
@@ -125,7 +125,7 @@ class QuicTransportProtocol(QuicConnectionProtocol):
             raise Exception('Invalid origin: %s' % origin_string)
 
         # To make the situation simple we accept only simple path strings.
-        m = re.compile('^/([a-zA-Z0-9\._\-]+)$').match(path.path)
+        m = re.compile(r'^/([a-zA-Z0-9\._\-]+)$').match(path.path)
         if m is None:
             raise Exception('Invalid path: %s' % path_string)
 
@@ -136,7 +136,7 @@ class QuicTransportProtocol(QuicConnectionProtocol):
         if self.is_closing_or_closed():
             return
         self.client_indication_finished = True
-        logging.log(logging.INFO, 'Client indication finished')
+        logger.info('Client indication finished')
 
     def create_event_handler(self, handler_name: str) -> None:
         global_dict = {}
@@ -167,73 +167,29 @@ class SessionTicketStore:
         return self.tickets.pop(label, None)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='QUIC server')
-    parser.add_argument(
-        '-c',
-        '--certificate',
-        type=str,
-        required=True,
-        help='load the TLS certificate from the specified file',
-    )
-    parser.add_argument(
-        '--host',
-        type=str,
-        default='::',
-        help='listen on the specified address (defaults to ::)',
-    )
-    parser.add_argument(
-        '--port',
-        type=int,
-        default=4433,
-        help='listen on the specified port (defaults to 4433)',
-    )
-    parser.add_argument(
-        '-k',
-        '--private-key',
-        type=str,
-        required=True,
-        help='load the TLS private key from the specified file',
-    )
-    parser.add_argument(
-        '--handlers-path',
-        type=str,
-        required=True,
-        help='the directory path of QuicTransport event handlers',
-    )
-    parser.add_argument(
-        '-v',
-        '--verbose',
-        action='store_true',
-        help='increase logging verbosity'
-    )
-    args = parser.parse_args()
-
-    logging.basicConfig(
-        format='%(asctime)s %(levelname)s %(name)s %(message)s',
-        level=logging.DEBUG if args.verbose else logging.INFO,
-    )
-
+def start(kwargs):
     configuration = QuicConfiguration(
         alpn_protocols=['wq-vvv-01'] + ['siduck'],
         is_client=False,
         max_datagram_frame_size=65536,
     )
 
-    handlers_path = os.path.abspath(os.path.expanduser(args.handlers_path))
-    logging.log(logging.INFO, 'port = %s' % args.port)
-    logging.log(logging.INFO, 'handlers path = %s' % handlers_path)
+    global handlers_path
+    handlers_path = os.path.abspath(os.path.expanduser(
+        kwargs['handlers_path']))
+    logger.info('port = %s', kwargs['port'])
+    logger.info('handlers path = %s', handlers_path)
 
     # load SSL certificate and key
-    configuration.load_cert_chain(args.certificate, args.private_key)
+    configuration.load_cert_chain(kwargs['certificate'], kwargs['private_key'])
 
     ticket_store = SessionTicketStore()
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(
         serve(
-            args.host,
-            args.port,
+            kwargs['host'],
+            kwargs['port'],
             configuration=configuration,
             create_protocol=QuicTransportProtocol,
             session_ticket_fetcher=ticket_store.pop,

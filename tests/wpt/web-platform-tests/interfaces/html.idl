@@ -194,6 +194,7 @@ interface HTMLLinkElement : HTMLElement {
   [CEReactions] attribute USVString imageSrcset;
   [CEReactions] attribute DOMString imageSizes;
   [CEReactions] attribute DOMString referrerPolicy;
+  [CEReactions] attribute boolean disabled;
 };
 HTMLLinkElement includes LinkStyle;
 

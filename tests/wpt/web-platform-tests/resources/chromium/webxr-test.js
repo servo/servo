@@ -201,9 +201,115 @@ class MockVRService {
   }
 }
 
+class FakeXRAnchorController {
+  constructor() {
+    // Private properties.
+    this.device_ = null;
+    this.id_ = null;
+    this.dirty_ = true;
+
+    // Properties backing up public attributes / methods.
+    this.deleted_ = false;
+    this.paused_ = false;
+    this.anchorOrigin_ = XRMathHelper.identity();
+  }
+
+  get deleted() {
+    return this.deleted_;
+  }
+
+  pauseTracking() {
+    if(!this.paused_) {
+      this.paused_ = true;
+      this.dirty_ = true;
+    }
+  }
+
+  resumeTracking() {
+    if(this.paused_) {
+      this.paused_ = false;
+      this.dirty_ = true;
+    }
+  }
+
+  stopTracking() {
+    if(!this.deleted_) {
+      this.device_.deleteAnchorController(this.id_);
+
+      this.deleted_ = true;
+      this.dirty_ = true;
+    }
+  }
+
+  setAnchorOrigin(anchorOrigin) {
+    this.anchorOrigin_ = getMatrixFromTransform(anchorOrigin);
+    this.dirty_ = true;
+  }
+
+  // Internal implementation:
+  set id(value) {
+    this.id_ = value;
+  }
+
+  set device(value) {
+    this.device_ = value;
+  }
+
+  get dirty() {
+    return this.dirty_;
+  }
+
+  markProcessed() {
+    this.dirty_ = false;
+  }
+
+  getAnchorOrigin() {
+    return this.anchorOrigin_;
+  }
+}
+
+class FakeXRAnchorCreationEvent extends Event {
+  constructor(type, eventInitDict) {
+    super(type, eventInitDict);
+
+    this.success_ = false;
+    this.requestedAnchorOrigin_ = {};
+    this.isAttachedToEntity_ = false;
+    this.anchorController_ = new FakeXRAnchorController();
+
+    if(eventInitDict.requestedAnchorOrigin != null) {
+      this.requestedAnchorOrigin_ = eventInitDict.requestedAnchorOrigin;
+    }
+
+    if(eventInitDict.isAttachedToEntity != null) {
+      this.isAttachedToEntity_ = eventInitDict.isAttachedToEntity;
+    }
+  }
+
+  get requestedAnchorOrigin() {
+    return this.requestedAnchorOrigin_;
+  }
+
+  get isAttachedToEntity() {
+    return this.isAttachedToEntity_;
+  }
+
+  get success() {
+    return this.success_;
+  }
+
+  set success(value) {
+    this.success_ = value;
+  }
+
+  get anchorController() {
+    return this.anchorController_;
+  }
+}
+
 // Implements XRFrameDataProvider and XRPresentationProvider. Maintains a mock
-// for XRPresentationProvider.
-class MockRuntime {
+// for XRPresentationProvider. Implements FakeXRDevice test API.
+class MockRuntime extends EventTarget {
   // Mapping from string feature names to the corresponding mojo types.
   // This is exposed as a member for extensibility.
   static featureToMojoMap = {
@@ -215,6 +321,7 @@ class MockRuntime {
     'hit-test': device.mojom.XRSessionFeature.HIT_TEST,
     'dom-overlay': device.mojom.XRSessionFeature.DOM_OVERLAY,
     'light-estimation': device.mojom.XRSessionFeature.LIGHT_ESTIMATION,
+    'anchors': device.mojom.XRSessionFeature.ANCHORS,
   };
 
   static sessionModeToMojoMap = {
@@ -224,6 +331,8 @@ class MockRuntime {
   };
 
   constructor(fakeDeviceInit, service) {
+    super();
+
     this.sessionClient_ = new device.mojom.XRSessionClientPtr();
     this.presentation_provider_ = new MockXRPresentationProvider();
 
@@ -247,6 +356,10 @@ class MockRuntime {
     this.transientHitTestSubscriptions_ = new Map();
     // ID of the next subscription to be assigned.
     this.next_hit_test_id_ = 1;
+
+    this.anchor_controllers_ = new Map();
+    // ID of the next anchor to be assigned.
+    this.next_anchor_id_ = 1;
 
     let supportedModes = [];
     if (fakeDeviceInit.supportedModes) {
@@ -571,6 +684,11 @@ class MockRuntime {
     this.input_sources_.delete(source.source_id_);
   }
 
+  // These methods are intended to be used by FakeXRAnchorController only.
+  deleteAnchorController(controllerId) {
+    this.anchor_controllers_.delete(controllerId);
+  }
+
   // Extension point for non-standard modules.
 
   _injectAdditionalFrameData(options, frameData) {
@@ -623,6 +741,8 @@ class MockRuntime {
 
     this._calculateHitTestResults(frameData);
 
+    this._calculateAnchorInformation(frameData);
+
     this._injectAdditionalFrameData(options, frameData);
 
     return Promise.resolve({
@@ -662,25 +782,7 @@ class MockRuntime {
       });
     }
 
-    if (nativeOriginInformation.$tag == device.mojom.XRNativeOriginInformation.Tags.inputSourceId) {
-      if (!this.input_sources_.has(nativeOriginInformation.inputSourceId)) {
-        // Reject - unknown input source ID.
-        return Promise.resolve({
-          result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
-          subscriptionId : 0
-        });
-      }
-    } else if (nativeOriginInformation.$tag == device.mojom.XRNativeOriginInformation.Tags.referenceSpaceCategory) {
-      // Bounded_floor & unbounded ref spaces are not yet supported for AR:
-      if (nativeOriginInformation.referenceSpaceCategory == device.mojom.XRReferenceSpaceCategory.UNBOUNDED
-       || nativeOriginInformation.referenceSpaceCategory == device.mojom.XRReferenceSpaceCategory.BOUNDED_FLOOR) {
-        return Promise.resolve({
-          result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
-          subscriptionId : 0
-        });
-      }
-    } else {
-      // Planes and anchors are not yet supported by the mock interface.
+    if (!this._nativeOriginKnown(nativeOriginInformation)) {
       return Promise.resolve({
         result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
         subscriptionId : 0
@@ -713,6 +815,65 @@ class MockRuntime {
     return Promise.resolve({
       result : device.mojom.SubscribeToHitTestResult.SUCCESS,
       subscriptionId : id
+    });
+  }
+
+  createAnchor(nativeOriginInformation, nativeOriginFromAnchor) {
+    return new Promise((resolve) => {
+      const mojoFromNativeOrigin = this._getMojoFromNativeOrigin(nativeOriginInformation);
+      if(mojoFromNativeOrigin == null) {
+        resolve({
+          result : device.mojom.CreateAnchorResult.FAILURE,
+          anchorId : 0
+        });
+
+        return;
+      }
+
+      const mojoFromAnchor = XRMathHelper.mul4x4(mojoFromNativeOrigin, nativeOriginFromAnchor);
+
+      const createAnchorEvent = new FakeXRAnchorCreationEvent("anchorcreate", {
+        requestedAnchorOrigin: mojoFromAnchor,
+        isAttachedToEntity: false,
+      });
+
+      this.dispatchEvent(createAnchorEvent);
+
+      if(createAnchorEvent.success) {
+        let anchor_controller = createAnchorEvent.anchorController;
+        const anchor_id = this.next_anchor_id_;
+        this.next_anchor_id_++;
+
+        // If the test allowed the anchor creation,
+        // store the anchor controller & return success.
+        this.anchor_controllers_.set(anchor_id, anchor_controller);
+        anchor_controller.device = this;
+        anchor_controller.id = anchor_id;
+
+        resolve({
+          result : device.mojom.CreateAnchorResult.SUCCESS,
+          anchorId : anchor_id
+        });
+
+        return;
+      }
+
+      resolve({
+        result : device.mojom.CreateAnchorResult.FAILURE,
+        anchorId : 0
+      });
+    });
+  }
+
+  createPlaneAnchor(planeFromAnchor, planeId) {
+    return new Promise((resolve) => {
+
+      // Not supported yet.
+
+      resolve({
+        result : device.mojom.CreateAnchorResult.FAILURE,
+        anchorId : 0
+      });
     });
   }
 
@@ -775,6 +936,61 @@ class MockRuntime {
     return Promise.resolve({
       supportsSession: this.supportedModes_.includes(options.mode)
     });
+  }
+
+  // Private functions - utilities:
+  _nativeOriginKnown(nativeOriginInformation){
+
+    if (nativeOriginInformation.$tag == device.mojom.XRNativeOriginInformation.Tags.inputSourceId) {
+      if (!this.input_sources_.has(nativeOriginInformation.inputSourceId)) {
+        // Unknown input source.
+        return false;
+      }
+
+      return true;
+    } else if (nativeOriginInformation.$tag == device.mojom.XRNativeOriginInformation.Tags.referenceSpaceCategory) {
+      // Bounded_floor & unbounded ref spaces are not yet supported for AR:
+      if (nativeOriginInformation.referenceSpaceCategory == device.mojom.XRReferenceSpaceCategory.UNBOUNDED
+       || nativeOriginInformation.referenceSpaceCategory == device.mojom.XRReferenceSpaceCategory.BOUNDED_FLOOR) {
+        return false;
+      }
+
+      return true;
+    } else {
+      // Planes and anchors are not yet supported by the mock interface.
+      return false;
+    }
+  }
+
+  // Private functions - anchors implementation:
+
+  // Modifies passed in frameData to add anchor information.
+  _calculateAnchorInformation(frameData) {
+    if (!this.supportedModes_.includes(device.mojom.XRSessionMode.kImmersiveAr)) {
+      return;
+    }
+
+    frameData.anchorsData = new device.mojom.XRAnchorsData();
+    frameData.anchorsData.allAnchorsIds = [];
+    frameData.anchorsData.updatedAnchorsData = [];
+
+    for(const [id, controller] of this.anchor_controllers_) {
+      frameData.anchorsData.allAnchorsIds.push(id);
+
+      // Send the entire anchor data over if there was a change since last GetFrameData().
+      if(controller.dirty) {
+        const anchorData = new device.mojom.XRAnchorData();
+        anchorData.id = id;
+        if(!controller.paused) {
+          anchorData.pose = XRMathHelper.decomposeRigidTransform(
+            controller.getAnchorOrigin());
+        }
+
+        controller.markProcessed();
+
+        frameData.anchorsData.updatedAnchorsData.push(anchorData);
+      }
+    }
   }
 
   // Private functions - hit test implementation:

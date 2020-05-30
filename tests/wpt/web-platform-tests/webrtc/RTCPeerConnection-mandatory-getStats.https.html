@@ -212,8 +212,9 @@ promise_test(async t => {
   const pc2 = new RTCPeerConnection();
   t.add_cleanup(() => pc2.close());
 
-  pc1.createDataChannel("dummy", {negotiated: true, id: 0});
-  pc2.createDataChannel("dummy", {negotiated: true, id: 0});
+  const dc1 = pc1.createDataChannel("dummy", {negotiated: true, id: 0});
+  const dc2 = pc2.createDataChannel("dummy", {negotiated: true, id: 0});
+
   const stream = await getNoiseStream({video: true, audio:true});
   for (const track of stream.getTracks()) {
     pc1.addTrack(track, stream);
