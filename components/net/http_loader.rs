@@ -59,7 +59,7 @@ use tokio::prelude::{future, Future, Stream};
 use tokio::runtime::Runtime;
 
 lazy_static! {
-    pub static ref HANDLE: Mutex<Runtime> = Mutex::new(Runtime::new().unwrap());
+    pub static ref HANDLE: Mutex<Option<Runtime>> = Mutex::new(Some(Runtime::new().unwrap()));
 }
 
 /// The various states an entry of the HttpCache can be in.
@@ -95,7 +95,10 @@ impl HttpState {
             history_states: RwLock::new(HashMap::new()),
             http_cache: RwLock::new(HttpCache::new()),
             http_cache_state: Mutex::new(HashMap::new()),
-            client: create_http_client(tls_config, HANDLE.lock().unwrap().executor()),
+            client: create_http_client(
+                tls_config,
+                HANDLE.lock().unwrap().as_ref().unwrap().executor(),
+            ),
         }
     }
 }
@@ -1613,7 +1616,7 @@ fn http_network_fetch(
     let timing_ptr3 = context.timing.clone();
     let url1 = request.url();
     let url2 = url1.clone();
-    HANDLE.lock().unwrap().spawn(
+    HANDLE.lock().unwrap().as_mut().unwrap().spawn(
         res.into_body()
             .map_err(|_| ())
             .fold(res_body, move |res_body, chunk| {
