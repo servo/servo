@@ -741,10 +741,10 @@ install them, let us know by filing a bug!")
 
             git_sha = None
             # Check if it's a bundle commit
-            if git_commit_subject.startswith("Shallow version of commit "):
+            if git_commit_subject.startswith(b"Shallow version of commit "):
                 # This is a bundle commit
                 # Get the SHA-1 from the bundle subject: "Shallow version of commit {sha1}"
-                git_sha = git_commit_subject.split(' ')[-1].strip()
+                git_sha = git_commit_subject.split(b' ')[-1].strip()
                 # Shorten hash
                 # NOTE: Partially verifies the hash, but it will still pass if it's, e.g., a tree
                 git_sha = subprocess.check_output([
