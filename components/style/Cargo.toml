@@ -36,13 +36,12 @@ bitflags = "1.0"
 byteorder = "1.0"
 cssparser = "0.27"
 derive_more = "0.99"
-new_debug_unreachable = "1.0"
-encoding_rs = {version = "0.8", optional = true}
+encoding_rs = { version = "0.8", optional = true }
 euclid = "0.20"
 fallible = { path = "../fallible" }
 fxhash = "0.2"
 hashglobe = { path = "../hashglobe" }
-html5ever = {version = "0.25", optional = true}
+html5ever = { version = "0.25", optional = true }
 indexmap = "1.0"
 itertools = "0.8"
 itoa = "0.4"
@@ -50,38 +49,39 @@ lazy_static = "1"
 log = { version = "0.4", features = ["std"] }
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = "0.1"
-num_cpus = {version = "1.1.0", optional = true}
+new_debug_unreachable = "1.0"
+num-derive = "0.3"
 num-integer = "0.1"
 num-traits = "0.2"
-num-derive = "0.3"
+num_cpus = { version = "1.1.0", optional = true }
 owning_ref = "0.4"
 parking_lot = "0.10"
 precomputed-hash = "0.1.1"
 rayon = "1"
 selectors = { path = "../selectors" }
-serde = {version = "1.0", optional = true, features = ["derive"]}
+serde = { version = "1.0", optional = true, features = ["derive"] }
 servo_arc = { path = "../servo_arc" }
-servo_atoms = {path = "../atoms", optional = true}
-servo_config = {path = "../config", optional = true}
+servo_atoms = { path = "../atoms", optional = true }
+servo_config = { path = "../config", optional = true }
+servo_url = { path = "../url", optional = true }
 smallbitvec = "2.3.0"
 smallvec = "1.0"
 string_cache = { version = "0.8", optional = true }
-style_derive = {path = "../style_derive"}
-style_traits = {path = "../style_traits"}
-servo_url = {path = "../url", optional = true}
-thin-slice = {version = "0.1.0", optional = true}
-to_shmem = {path = "../to_shmem"}
-to_shmem_derive = {path = "../to_shmem_derive"}
+style_derive = { path = "../style_derive" }
+style_traits = { path = "../style_traits" }
+thin-slice = { version = "0.1.0", optional = true }
 time = "0.1"
+to_shmem = { path = "../to_shmem" }
+to_shmem_derive = { path = "../to_shmem_derive" }
 uluru = "0.4"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"
 void = "1.0.2"
 
 [build-dependencies]
+bindgen = { version = "0.53", optional = true, default-features = false }
 lazy_static = "1"
 log = "0.4"
-bindgen = {version = "0.53", optional = true, default-features = false}
-regex = {version = "1.1", optional = true}
+regex = { version = "1.1", optional = true }
+toml = { version = "0.5", optional = true, default-features = false }
 walkdir = "2.1.4"
-toml = {version = "0.5", optional = true, default-features = false}

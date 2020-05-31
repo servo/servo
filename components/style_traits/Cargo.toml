@@ -15,17 +15,17 @@ gecko = []
 
 [dependencies]
 app_units = "0.7"
-cssparser = "0.27"
 bitflags = "1.0"
+cssparser = "0.27"
 euclid = "0.20"
 lazy_static = "1"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = "0.1"
 selectors = { path = "../selectors" }
 serde = "1.0"
-webrender_api = {git = "https://github.com/servo/webrender", optional = true}
-servo_atoms = {path = "../atoms", optional = true}
 servo_arc = { path = "../servo_arc" }
+servo_atoms = { path = "../atoms", optional = true }
 servo_url = { path = "../url", optional = true }
 to_shmem = { path = "../to_shmem" }
 to_shmem_derive = { path = "../to_shmem_derive" }
+webrender_api = { git = "https://github.com/servo/webrender", optional = true }
