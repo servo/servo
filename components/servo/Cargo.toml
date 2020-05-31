@@ -15,82 +15,82 @@ crate-type = ["rlib"]
 debugmozjs = ["script/debugmozjs"]
 egl = ["mozangle/egl"]
 energy-profiling = ["profile_traits/energy-profiling"]
-profilemozjs = ["script/profilemozjs"]
 googlevr = ["webxr/googlevr"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 layout-2013 = ["layout_thread_2013"]
 layout-2020 = ["layout_thread_2020"]
 max_log_level = ["log/release_max_level_info"]
+media-dummy = ["servo-media-dummy"]
+media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
 native-bluetooth = ["bluetooth/native-bluetooth"]
 no-wgl = ["canvas/no-wgl"]
-uwp = ["servo_config/uwp", "script/uwp"]
-webrender_debugger = ["webrender/debugger"]
 no_static_freetype = ["webrender/no_static_freetype"]
+profilemozjs = ["script/profilemozjs"]
 refcell_backtrace = ["script/refcell_backtrace"]
+uwp = ["servo_config/uwp", "script/uwp"]
 webdriver = ["webdriver_server"]
 webgl_backtrace = [
     "script/webgl_backtrace",
     "canvas/webgl_backtrace",
     "canvas_traits/webgl_backtrace",
 ]
-media-dummy = ["servo-media-dummy"]
-media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
+webrender_debugger = ["webrender/debugger"]
 xr-profile = ["canvas/xr-profile", "canvas_traits/xr-profile", "script/xr-profile", "webxr/profile"]
 
 [dependencies]
-background_hang_monitor = {path = "../background_hang_monitor"}
-bluetooth_traits = {path = "../bluetooth_traits"}
-bluetooth = {path = "../bluetooth"}
-canvas = {path = "../canvas", default-features = false}
-canvas_traits = {path = "../canvas_traits"}
-compositing = {path = "../compositing", features = ["gl"]}
-constellation = {path = "../constellation"}
+background_hang_monitor = { path = "../background_hang_monitor" }
+bluetooth = { path = "../bluetooth" }
+bluetooth_traits = { path = "../bluetooth_traits" }
+canvas = { path = "../canvas", default-features = false }
+canvas_traits = { path = "../canvas_traits" }
+compositing = { path = "../compositing", features = ["gl"] }
+constellation = { path = "../constellation" }
 crossbeam-channel = "0.4"
-debugger = {path = "../debugger"}
-devtools = {path = "../devtools"}
-devtools_traits = {path = "../devtools_traits"}
-embedder_traits = {path = "../embedder_traits"}
+debugger = { path = "../debugger" }
+devtools = { path = "../devtools" }
+devtools_traits = { path = "../devtools_traits" }
+embedder_traits = { path = "../embedder_traits" }
 env_logger = "0.7"
 euclid = "0.20"
-gfx = {path = "../gfx"}
+gfx = { path = "../gfx" }
 gleam = "0.11"
+gstreamer = { version = "0.15", optional = true }
 ipc-channel = "0.14"
 keyboard-types = "0.4"
-layout_thread_2013 = {path = "../layout_thread", optional = true}
-layout_thread_2020 = {path = "../layout_thread_2020", optional = true}
+layout_thread_2013 = { path = "../layout_thread", optional = true }
+layout_thread_2020 = { path = "../layout_thread_2020", optional = true }
 log = "0.4"
-media = {path = "../media"}
-msg = {path = "../msg"}
-net = {path = "../net"}
-net_traits = {path = "../net_traits"}
-profile = {path = "../profile"}
-profile_traits = {path = "../profile_traits"}
-script = {path = "../script"}
-script_layout_interface = {path = "../script_layout_interface"}
-script_traits = {path = "../script_traits"}
-servo_config = {path = "../config"}
-servo_geometry = {path = "../geometry"}
-servo-media = {git = "https://github.com/servo/media"}
-servo-media-dummy = {git = "https://github.com/servo/media", optional = true}
-servo-media-gstreamer = {git = "https://github.com/servo/media", optional = true}
-servo_url = {path = "../url"}
+media = { path = "../media" }
+msg = { path = "../msg" }
+net = { path = "../net" }
+net_traits = { path = "../net_traits" }
+profile = { path = "../profile" }
+profile_traits = { path = "../profile_traits" }
+script = { path = "../script" }
+script_layout_interface = { path = "../script_layout_interface" }
+script_traits = { path = "../script_traits" }
+servo-media = { git = "https://github.com/servo/media" }
+servo-media-dummy = { git = "https://github.com/servo/media", optional = true }
+servo-media-gstreamer = { git = "https://github.com/servo/media", optional = true }
+servo_config = { path = "../config" }
+servo_geometry = { path = "../geometry" }
+servo_url = { path = "../url" }
 sparkle = "0.1"
-style = {path = "../style", features = ["servo"]}
-style_traits = {path = "../style_traits", features = ["servo"]}
-webgpu = {path = "../webgpu"}
-webrender = {git = "https://github.com/servo/webrender"}
-webrender_api = {git = "https://github.com/servo/webrender"}
-webrender_surfman = {path = "../webrender_surfman"}
-webrender_traits = {path = "../webrender_traits"}
-webdriver_server = {path = "../webdriver_server", optional = true}
-webxr-api = {git = "https://github.com/servo/webxr"}
-webxr = {git = "https://github.com/servo/webxr"}
+style = { path = "../style", features = ["servo"] }
+style_traits = { path = "../style_traits", features = ["servo"] }
 surfman = "0.2"
-gstreamer = { version = "0.15", optional = true }
+webdriver_server = { path = "../webdriver_server", optional = true }
+webgpu = { path = "../webgpu" }
+webrender = { git = "https://github.com/servo/webrender" }
+webrender_api = { git = "https://github.com/servo/webrender" }
+webrender_surfman = { path = "../webrender_surfman" }
+webrender_traits = { path = "../webrender_traits" }
+webxr = { git = "https://github.com/servo/webxr" }
+webxr-api = { git = "https://github.com/servo/webxr" }
 
-[target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]
+[target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_arch = "arm"), not(target_arch = "aarch64")))'.dependencies]
 gaol = "0.2.1"
 
 [target.'cfg(target_os = "windows")'.dependencies]
-mozangle = {version = "0.2"}
+mozangle = { version = "0.2" }
