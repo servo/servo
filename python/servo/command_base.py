@@ -742,7 +742,7 @@ install them, let us know by filing a bug!")
             git_sha = git_bundle_subject.split(' ')[-1]
             # Verify that it's a valid commit
             # NOTE: this will pass even if `git_sha` is 'master' or another branch or ref
-            subprocess.check_call('git', 'cat-file', 'commit', git_sha)
+            subprocess.check_call(['git', 'cat-file', 'commit', git_sha])
 
             git_is_dirty = bool(subprocess.check_output([
                 'git', 'status', '--porcelain'
