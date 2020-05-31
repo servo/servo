@@ -67,6 +67,7 @@ impl fmt::Debug for dyn TaskBox {
 }
 
 /// Encapsulated state required to create cancellable tasks from non-script threads.
+#[derive(Clone)]
 pub struct TaskCanceller {
     pub cancelled: Option<Arc<AtomicBool>>,
 }

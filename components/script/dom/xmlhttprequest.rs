@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::body::{Extractable, ExtractedBody};
+use crate::body::{BodySource, Extractable, ExtractedBody};
 use crate::document_loader::DocumentLoader;
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
@@ -55,9 +55,7 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime, Name};
-use net_traits::request::{
-    BodySource, CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode,
-};
+use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
 use net_traits::trim_http_whitespace;
 use net_traits::CoreResourceMsg::Fetch;
 use net_traits::{FetchChannels, FetchMetadata, FilteredMetadata};
@@ -576,7 +574,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     stream,
                     total_bytes: Some(total_bytes),
                     content_type: Some(DOMString::from(content_type)),
-                    source: BodySource::Null,
+                    source: BodySource::Object,
                 })
             },
             Some(DocumentOrBodyInit::Blob(ref b)) => {
@@ -610,7 +608,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     stream,
                     total_bytes: Some(total_bytes),
                     content_type: None,
-                    source: BodySource::BufferSource,
+                    source: BodySource::Object,
                 })
             },
             Some(DocumentOrBodyInit::ArrayBufferView(ref typedarray)) => {
@@ -622,7 +620,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     stream,
                     total_bytes: Some(total_bytes),
                     content_type: None,
-                    source: BodySource::BufferSource,
+                    source: BodySource::Object,
                 })
             },
             Some(DocumentOrBodyInit::ReadableStream(ref stream)) => {

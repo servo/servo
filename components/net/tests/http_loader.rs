@@ -113,11 +113,7 @@ fn create_request_body_with_content(content: Vec<u8>) -> RequestBody {
         }),
     );
 
-    RequestBody {
-        stream: Some(chunk_request_sender),
-        source: BodySource::USVString,
-        total_bytes: Some(content_len),
-    }
+    RequestBody::new(chunk_request_sender, BodySource::Object, Some(content_len))
 }
 
 #[test]

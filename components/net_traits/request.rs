@@ -8,7 +8,7 @@ use crate::ResourceTimingType;
 use content_security_policy::{self as csp, CspList};
 use http::HeaderMap;
 use hyper::Method;
-use ipc_channel::ipc::IpcSender;
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use mime::Mime;
 use msg::constellation_msg::PipelineId;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -120,18 +120,16 @@ pub enum ParserMetadata {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum BodySource {
     Null,
-    Blob,
-    BufferSource,
-    FormData,
-    URLSearchParams,
-    USVString,
+    Object,
 }
 
 /// Messages used to implement <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum BodyChunkRequest {
     /// Connect a fetch in `net`, with a stream of bytes from `script`.
     Connect(IpcSender<Vec<u8>>),
+    /// Re-extract a new stream from the source, following a redirect.
+    Extract(IpcReceiver<BodyChunkRequest>),
     /// Ask for another chunk.
     Chunk,
     /// Signal the stream is done.
@@ -141,18 +139,47 @@ pub enum BodyChunkRequest {
 /// The net component's view into <https://fetch.spec.whatwg.org/#bodies>
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct RequestBody {
-    /// Net's view into a <https://fetch.spec.whatwg.org/#concept-body-stream>
+    /// Net's channel to communicate with script re this body.
     #[ignore_malloc_size_of = "Channels are hard"]
-    pub stream: Option<IpcSender<BodyChunkRequest>>,
+    chan: IpcSender<BodyChunkRequest>,
+    /// Has the stream been read from already?
+    read_from: bool,
     /// <https://fetch.spec.whatwg.org/#concept-body-source>
-    pub source: BodySource,
+    source: BodySource,
     /// <https://fetch.spec.whatwg.org/#concept-body-total-bytes>
-    pub total_bytes: Option<usize>,
+    total_bytes: Option<usize>,
 }
 
 impl RequestBody {
+    pub fn new(
+        chan: IpcSender<BodyChunkRequest>,
+        source: BodySource,
+        total_bytes: Option<usize>,
+    ) -> Self {
+        RequestBody {
+            chan,
+            source,
+            total_bytes,
+            read_from: false,
+        }
+    }
+
     pub fn take_stream(&mut self) -> Option<IpcSender<BodyChunkRequest>> {
-        self.stream.take()
+        if self.read_from {
+            match self.source {
+                BodySource::Null => panic!(
+                    "Null sources should never be read more than once(no re-direct allowed)."
+                ),
+                BodySource::Object => {
+                    let (chan, port) = ipc::channel().unwrap();
+                    let _ = self.chan.send(BodyChunkRequest::Extract(port));
+                    self.chan = chan.clone();
+                    return Some(chan);
+                },
+            }
+        }
+        self.read_from = true;
+        Some(self.chan.clone())
     }
 
     pub fn source_is_null(&self) -> bool {

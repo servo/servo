@@ -973,8 +973,7 @@ fn http_network_or_cache_fetch(
     let http_request = if request_has_no_window && request.redirect_mode == RedirectMode::Error {
         request
     } else {
-        // Step 5.2
-        // TODO Implement body source
+        // Step 5.2.1, .2.2 and .2.3 and 2.4
         http_request = request.clone();
         &mut http_request
     };
