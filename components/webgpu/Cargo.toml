@@ -16,7 +16,7 @@ ipc-channel = "0.14"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 serde = { version = "1.0", features = ["serde_derive"] }
-servo_config = {path = "../config"}
+servo_config = { path = "../config" }
 smallvec = { version = "0.6", features = ["serde"] }
-wgpu-core = { version = "0.5.0", git = "https://github.com/gfx-rs/wgpu", features = ["trace", "replay"] }
-wgpu-types = { version = "0.5.0", git = "https://github.com/gfx-rs/wgpu", features = ["trace", "replay"] }
+wgpu-core = { version = "0.5.0", git = "https://github.com/gfx-rs/wgpu", features = ["replay", "trace"] }
+wgpu-types = { version = "0.5.0", git = "https://github.com/gfx-rs/wgpu", features = ["replay", "trace"] }
