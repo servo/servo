@@ -734,15 +734,27 @@ install them, let us know by filing a bug!")
 
         git_info = []
         if os.path.isdir('.git') and is_build:
-            # Get the subject of the bundle commit
-            git_bundle_subject = subprocess.check_output([
+            # Get the subject of the commit
+            git_commit_subject = subprocess.check_output([
                 'git', 'show', '-s', '--format=%s', 'HEAD'
             ]).strip()
-            # Get the SHA-1 from the bundle subject: "Shallow version of commit {sha1}"
-            git_sha = git_bundle_subject.split(' ')[-1]
-            # Verify that it's a valid commit
-            # NOTE: this will pass even if `git_sha` is 'master' or another branch or ref
-            subprocess.check_call(['git', 'cat-file', 'commit', git_sha])
+
+            git_sha = None
+            # Check if it's a bundle commit
+            if git_commit_subject.startswith("Shallow version of commit "):
+                # This is a bundle commit
+                # Get the SHA-1 from the bundle subject: "Shallow version of commit {sha1}"
+                git_sha = git_commit_subject.split(' ')[-1].strip()
+                # Shorten hash
+                # NOTE: Partially verifies the hash, but it will still pass if it's, e.g., a tree
+                git_sha = subprocess.check_output([
+                    'git', 'rev-parse', '--short', git_sha
+                ])
+            else:
+                # This is a regular commit
+                git_sha = subprocess.check_output([
+                    'git', 'rev-parse', '--short', 'HEAD'
+                ]).strip()
 
             git_is_dirty = bool(subprocess.check_output([
                 'git', 'status', '--porcelain'
