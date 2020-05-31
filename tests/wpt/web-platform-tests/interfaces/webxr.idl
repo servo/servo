@@ -44,7 +44,7 @@ enum XRVisibilityState {
   [NewObject] Promise<XRReferenceSpace> requestReferenceSpace(XRReferenceSpaceType type);
 
   unsigned long requestAnimationFrame(XRFrameRequestCallback callback);
-  void cancelAnimationFrame(long handle);
+  void cancelAnimationFrame(unsigned long handle);
 
   Promise<void> end();
 
