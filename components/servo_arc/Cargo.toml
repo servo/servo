@@ -11,10 +11,10 @@ name = "servo_arc"
 path = "lib.rs"
 
 [features]
-servo = ["serde"]
 gecko_refcount_logging = []
+servo = ["serde"]
 
 [dependencies]
-nodrop = {version = "0.1.8"}
-serde = {version = "1.0", optional = true}
+nodrop = { version = "0.1.8" }
+serde = { version = "1.0", optional = true }
 stable_deref_trait = "1.0.0"
