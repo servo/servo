@@ -5,15 +5,18 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelInit;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelMethods;
+use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{RTCErrorDetailType, RTCErrorInit};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::USVString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::rtcerror::RTCError;
+use crate::dom::rtcerrorevent::RTCErrorEvent;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
 use js::rust::CustomAutoRooterGuard;
@@ -164,7 +167,22 @@ impl RTCDataChannel {
         event.upcast::<Event>().fire(self.upcast());
     }
 
-    fn on_error(&self, error: WebRtcError) {}
+    fn on_error(&self, error: WebRtcError) {
+        let init = RTCErrorInit {
+            errorDetail: RTCErrorDetailType::Data_channel_failure,
+            httpRequestStatusCode: None,
+            receivedAlert: None,
+            sctpCauseCode: None,
+            sdpLineNumber: None,
+            sentAlert: None,
+        };
+        let message = match error {
+            WebRtcError::Backend(message) => DOMString::from(message),
+        };
+        let error = RTCError::new(&self.global(), &init, message);
+        let event = RTCErrorEvent::new(&self.global(), atom!("error"), false, false, &error);
+        event.upcast::<Event>().fire(self.upcast());
+    }
 
     fn on_message(&self, message: String) {}
 }

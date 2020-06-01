@@ -40,7 +40,7 @@ impl RTCError {
         }
     }
 
-    fn new(global: &GlobalScope, init: &RTCErrorInit, message: DOMString) -> DomRoot<RTCError> {
+    pub fn new(global: &GlobalScope, init: &RTCErrorInit, message: DOMString) -> DomRoot<RTCError> {
         reflect_dom_object(
             Box::new(RTCError::new_inherited(global, init, message)),
             global,

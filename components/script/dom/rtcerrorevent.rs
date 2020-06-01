@@ -30,7 +30,7 @@ impl RTCErrorEvent {
         }
     }
 
-    fn new(
+    pub fn new(
         global: &GlobalScope,
         type_: Atom,
         bubbles: bool,
