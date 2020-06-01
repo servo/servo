@@ -4165,9 +4165,9 @@ dependencies = [
 
 [[package]]
 name = "podio"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "780fb4b6698bbf9cf2444ea5d22411cef2953f0824b98f33cf454ec5615645bd"
+checksum = "b18befed8bc2b61abc79a457295e7e838417326da1586050b919414073977f19"
 
 [[package]]
 name = "ppv-lite86"
