@@ -15,10 +15,14 @@ use crate::dom::blob::Blob;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::messageevent::MessageEvent;
 use crate::dom::rtcerror::RTCError;
 use crate::dom::rtcerrorevent::RTCErrorEvent;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
+use js::conversions::ToJSValConvertible;
+use js::jsapi::JSAutoRealm;
+use js::jsval::UndefinedValue;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferView};
 use servo_media::webrtc::{
@@ -184,7 +188,26 @@ impl RTCDataChannel {
         event.upcast::<Event>().fire(self.upcast());
     }
 
-    fn on_message(&self, message: String) {}
+    #[allow(unsafe_code)]
+    fn on_message(&self, text: String) {
+        // XXX(ferjm) Support binary messages
+        unsafe {
+            let global = self.global();
+            let cx = global.get_cx();
+            let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
+            rooted!(in(*cx) let mut message = UndefinedValue());
+            text.to_jsval(*cx, message.handle_mut());
+
+            MessageEvent::dispatch_jsval(
+                self.upcast(),
+                &global,
+                message.handle(),
+                Some(&global.origin().immutable().ascii_serialization()),
+                None,
+                vec![],
+            );
+        }
+    }
 }
 
 impl RTCDataChannelMethods for RTCDataChannel {
