@@ -7,7 +7,7 @@
 //! Re-entrant mutexes are like mutexes, but where it is expected
 //! that a single thread may own a lock more than once.
 
-//! It provides the same interface as https://github.com/rust-lang/rust/blob/master/src/libstd/sys/common/remutex.rs
+//! It provides the same interface as https://github.com/rust-lang/rust/blob/5edaa7eefd76d4996dcf85dfc1c1a3f737087257/src/libstd/sys_common/remutex.rs
 //! so if those types are ever exported, we should be able to replace this implemtation.
 
 #[macro_use]
@@ -151,7 +151,7 @@ unsafe impl Send for HandOverHandMutex {}
 
 /// A type for re-entrant mutexes.
 ///
-/// It provides the same interface as https://github.com/rust-lang/rust/blob/master/src/libstd/sys/common/remutex.rs
+/// It provides the same interface as https://github.com/rust-lang/rust/blob/5edaa7eefd76d4996dcf85dfc1c1a3f737087257/src/libstd/sys_common/remutex.rs
 
 pub struct ReentrantMutex<T> {
     mutex: HandOverHandMutex,
