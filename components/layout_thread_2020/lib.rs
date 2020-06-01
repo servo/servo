@@ -1081,38 +1081,42 @@ impl LayoutThread {
         let rayon_pool = STYLE_THREAD_POOL.pool();
         let rayon_pool = rayon_pool.as_ref();
 
-        let box_tree = if token.should_traverse() {
-            driver::traverse_dom(&traversal, token, rayon_pool);
+        if token.should_traverse() {
+            let dirty_root = driver::traverse_dom(&traversal, token, rayon_pool).as_node();
 
             let root_node = root_element.as_node();
-            let build_box_tree = || BoxTree::construct(traversal.context(), root_node);
-            let box_tree = if let Some(pool) = rayon_pool {
+            let mut box_tree = self.box_tree.borrow_mut();
+            let box_tree = &mut *box_tree;
+            let mut build_box_tree = || {
+                if !BoxTree::update(traversal.context(), dirty_root) {
+                    *box_tree = Some(Arc::new(BoxTree::construct(traversal.context(), root_node)));
+                }
+            };
+            if let Some(pool) = rayon_pool {
                 pool.install(build_box_tree)
             } else {
                 build_box_tree()
             };
 
-            Some(Arc::new(box_tree))
-        } else {
-            None
-        };
-
-        layout_context = traversal.destroy();
-
-        if let Some(box_tree) = box_tree {
             let viewport_size = Size2D::new(
                 self.viewport_size.width.to_f32_px(),
                 self.viewport_size.height.to_f32_px(),
             );
-            let run_layout = || box_tree.layout(&layout_context, viewport_size);
+            let run_layout = || {
+                box_tree
+                    .as_ref()
+                    .unwrap()
+                    .layout(traversal.context(), viewport_size)
+            };
             let fragment_tree = Arc::new(if let Some(pool) = rayon_pool {
                 pool.install(run_layout)
             } else {
                 run_layout()
             });
-            *self.box_tree.borrow_mut() = Some(box_tree);
             *self.fragment_tree.borrow_mut() = Some(fragment_tree);
         }
+
+        layout_context = traversal.destroy();
 
         for element in elements_with_snapshot {
             unsafe { element.unset_snapshot_flags() }

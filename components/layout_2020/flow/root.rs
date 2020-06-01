@@ -12,6 +12,7 @@ use crate::dom_traversal::{iter_child_nodes, Contents, NodeExt};
 use crate::element_data::LayoutBox;
 use crate::flow::construct::ContainsFloats;
 use crate::flow::float::FloatBox;
+use crate::flow::inline::InlineLevelBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::Fragment;
@@ -22,9 +23,11 @@ use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::ComputedValuesExt;
-use crate::style_ext::{Display, DisplayGeneratingBox};
+use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
+use crate::wrapper::GetStyleAndLayoutData;
 use crate::DefiniteContainingBlock;
 use app_units::Au;
+use atomic_refcell::AtomicRef;
 use euclid::default::{Point2D, Rect, Size2D};
 use fxhash::FxHashSet;
 use gfx_traits::print_tree::PrintTree;
@@ -86,6 +89,141 @@ impl BoxTree {
                 contents: BlockContainer::BlockLevelBoxes(boxes),
             },
             canvas_background: CanvasBackground::for_root_element(context, root_element),
+        }
+    }
+
+    /// This method attempts to incrementally update the box tree from an
+    /// arbitrary node that is not necessarily the document's root element.
+    ///
+    /// If the node is not a valid candidate for incremental update, the method
+    /// loops over its parent. The only valid candidates for now are absolutely
+    /// positioned boxes which don't change their outside display mode (i.e. it
+    /// will not attempt to update from an absolutely positioned inline element
+    /// which became an absolutely positioned block element). The value `true`
+    /// is returned if an incremental update could be done, and `false`
+    /// otherwise.
+    ///
+    /// There are various pain points that need to be taken care of to extend
+    /// the set of valid candidates:
+    /// * it is not obvious how to incrementally check whether a block
+    ///   formatting context still contains floats or not;
+    /// * the propagation of text decorations towards node descendants is
+    ///   hard to do incrementally with our current representation of boxes
+    /// * how intrinsic content sizes are computed eagerly makes it hard
+    ///   to update those sizes for ancestors of the node from which we
+    ///   made an incremental update.
+    pub fn update<'dom, Node>(context: &LayoutContext, mut dirty_node: Node) -> bool
+    where
+        Node: 'dom + Copy + LayoutNode<'dom> + Send + Sync,
+    {
+        enum UpdatePoint {
+            AbsolutelyPositionedBlockLevelBox(ArcRefCell<BlockLevelBox>),
+            AbsolutelyPositionedInlineLevelBox(ArcRefCell<InlineLevelBox>),
+        }
+
+        fn update_point<'dom, Node>(
+            node: Node,
+        ) -> Option<(Arc<ComputedValues>, DisplayInside, UpdatePoint)>
+        where
+            Node: NodeExt<'dom>,
+        {
+            if !node.is_element() {
+                return None;
+            }
+
+            if node.type_id() == LayoutNodeType::Element(LayoutElementType::HTMLBodyElement) {
+                // This can require changes to the canvas background.
+                return None;
+            }
+
+            // Don't update unstyled nodes.
+            let data = node.get_style_and_layout_data()?;
+
+            // Don't update nodes that have pseudo-elements.
+            let element_data = data.style_data.element_data.borrow();
+            if !element_data.styles.pseudos.is_empty() {
+                return None;
+            }
+
+            let layout_data = data.layout_data.borrow();
+            if layout_data.pseudo_before_box.borrow().is_some() {
+                return None;
+            }
+            if layout_data.pseudo_after_box.borrow().is_some() {
+                return None;
+            }
+
+            let primary_style = element_data.styles.primary();
+            let box_style = primary_style.get_box();
+
+            if !box_style.position.is_absolutely_positioned() {
+                return None;
+            }
+
+            let display_inside = match Display::from(box_style.display) {
+                Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { inside, .. }) => {
+                    inside
+                },
+                _ => return None,
+            };
+
+            let update_point =
+                match &*AtomicRef::filter_map(layout_data.self_box.borrow(), Option::as_ref)? {
+                    LayoutBox::DisplayContents => return None,
+                    LayoutBox::BlockLevel(block_level_box) => match &*block_level_box.borrow() {
+                        BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
+                            if box_style.position.is_absolutely_positioned() =>
+                        {
+                            UpdatePoint::AbsolutelyPositionedBlockLevelBox(block_level_box.clone())
+                        },
+                        _ => return None,
+                    },
+                    LayoutBox::InlineLevel(inline_level_box) => match &*inline_level_box.borrow() {
+                        InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
+                            if box_style.position.is_absolutely_positioned() =>
+                        {
+                            UpdatePoint::AbsolutelyPositionedInlineLevelBox(
+                                inline_level_box.clone(),
+                            )
+                        },
+                        _ => return None,
+                    },
+                };
+            Some((primary_style.clone(), display_inside, update_point))
+        }
+
+        loop {
+            if let Some((primary_style, display_inside, update_point)) = update_point(dirty_node) {
+                let contents = ReplacedContent::for_element(dirty_node)
+                    .map_or(Contents::OfElement, Contents::Replaced);
+                let out_of_flow_absolutely_positioned_box =
+                    Arc::new(AbsolutelyPositionedBox::construct(
+                        context,
+                        dirty_node,
+                        primary_style,
+                        display_inside,
+                        contents,
+                    ));
+                match update_point {
+                    UpdatePoint::AbsolutelyPositionedBlockLevelBox(block_level_box) => {
+                        *block_level_box.borrow_mut() =
+                            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                                out_of_flow_absolutely_positioned_box,
+                            );
+                    },
+                    UpdatePoint::AbsolutelyPositionedInlineLevelBox(inline_level_box) => {
+                        *inline_level_box.borrow_mut() =
+                            InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                                out_of_flow_absolutely_positioned_box,
+                            );
+                    },
+                }
+                return true;
+            }
+            dirty_node = match dirty_node.parent_node() {
+                Some(parent) => parent,
+                None => return false,
+            };
         }
     }
 }
