@@ -274,7 +274,11 @@ impl RTCDataChannelMethods for RTCDataChannel {
     //    fn SetBinaryType(&self, value: DOMString) -> ();
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send
-    fn Send(&self, data: USVString) -> () {}
+    fn Send(&self, data: USVString) -> () {
+        if let Err(error) = self.channel.send(&data.0) {
+            warn!("Could not send data channel message. Error: {:?}", error);
+        }
+    }
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-1
     fn Send_(&self, data: &Blob) -> () {}
