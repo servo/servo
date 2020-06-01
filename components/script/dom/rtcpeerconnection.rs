@@ -29,6 +29,7 @@ use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
 use crate::dom::rtcdatachannel::RTCDataChannel;
+use crate::dom::rtcdatachannelevent::RTCDataChannelEvent;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::rtcpeerconnectioniceevent::RTCPeerConnectionIceEvent;
 use crate::dom::rtcsessiondescription::RTCSessionDescription;
@@ -44,7 +45,7 @@ use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
 use servo_media::webrtc::{
     BundlePolicy, GatheringState, IceCandidate, IceConnectionState, SdpType, SessionDescription,
-    SignalingState, WebRtcController, WebRtcSignaller,
+    SignalingState, WebRtcController, WebRtcDataChannelBackend, WebRtcSignaller,
 };
 use servo_media::ServoMedia;
 
@@ -140,6 +141,18 @@ impl WebRtcSignaller for RTCSignaller {
             task!(on_add_stream: move || {
                 let this = this.root();
                 this.on_add_stream(id, ty);
+            }),
+            &self.canceller,
+        );
+    }
+
+    fn on_data_channel(&self, channel: Box<dyn WebRtcDataChannelBackend>) {
+        // XXX(ferjm) get label and options from channel properties.
+        let this = self.trusted.clone();
+        let _ = self.task_source.queue_with_canceller(
+            task!(on_data_channel: move || {
+                let this = this.root();
+                this.on_data_channel(channel);
             }),
             &self.canceller,
         );
@@ -256,6 +269,24 @@ impl RTCPeerConnection {
         }
         let track = MediaStreamTrack::new(&self.global(), id, ty);
         let event = RTCTrackEvent::new(&self.global(), atom!("track"), false, false, &track);
+        event.upcast::<Event>().fire(self.upcast());
+    }
+
+    fn on_data_channel(&self, channel: Box<dyn WebRtcDataChannelBackend>) {
+        if self.closed.get() {
+            return;
+        }
+
+        let channel = RTCDataChannel::new(
+            &self.global(),
+            &self.controller,
+            USVString::from("".to_owned()),
+            &RTCDataChannelInit::empty(),
+            Some(channel),
+        );
+
+        let event =
+            RTCDataChannelEvent::new(&self.global(), atom!("datachannel"), false, false, &channel);
         event.upcast::<Event>().fire(self.upcast());
     }
 
@@ -646,7 +677,13 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         label: USVString,
         dataChannelDict: &RTCDataChannelInit,
     ) -> DomRoot<RTCDataChannel> {
-        RTCDataChannel::new(&self.global(), &self.controller, label, dataChannelDict)
+        RTCDataChannel::new(
+            &self.global(),
+            &self.controller,
+            label,
+            dataChannelDict,
+            None,
+        )
     }
 }
 

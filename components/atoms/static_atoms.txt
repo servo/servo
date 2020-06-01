@@ -23,6 +23,7 @@ compositionstart
 compositionupdate
 controllerchange
 cursive
+datachannel
 date
 datetime-local
 dir

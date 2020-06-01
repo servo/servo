@@ -50,6 +50,7 @@ impl RTCDataChannel {
         webrtc_controller: &DomRefCell<Option<WebRtcController>>,
         label: USVString,
         options: &RTCDataChannelInit,
+        channel: Option<Box<dyn WebRtcDataChannelBackend>>,
     ) -> RTCDataChannel {
         let webrtc = webrtc_controller.borrow();
         let webrtc = webrtc.as_ref().unwrap();
@@ -59,8 +60,12 @@ impl RTCDataChannel {
         let mut init: WebRtcDataChannelInit = options.into();
         init.label = label.to_string();
 
-        webrtc.create_data_channel(init, sender);
-        let channel = receiver.recv().unwrap();
+        let channel = if channel.is_none() {
+            webrtc.create_data_channel(init, sender);
+            receiver.recv().unwrap()
+        } else {
+            channel.unwrap()
+        };
 
         let rtc_data_channel = RTCDataChannel {
             eventtarget: EventTarget::new_inherited(),
@@ -140,12 +145,14 @@ impl RTCDataChannel {
         webrtc_controller: &DomRefCell<Option<WebRtcController>>,
         label: USVString,
         options: &RTCDataChannelInit,
+        channel: Option<Box<dyn WebRtcDataChannelBackend>>,
     ) -> DomRoot<RTCDataChannel> {
         reflect_dom_object(
             Box::new(RTCDataChannel::new_inherited(
                 webrtc_controller,
                 label,
                 options,
+                channel,
             )),
             global,
         )

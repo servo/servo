@@ -487,6 +487,7 @@ pub mod readablestream;
 pub mod request;
 pub mod response;
 pub mod rtcdatachannel;
+pub mod rtcdatachannelevent;
 pub mod rtcerror;
 pub mod rtcerrorevent;
 pub mod rtcicecandidate;
