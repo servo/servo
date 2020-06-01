@@ -1120,9 +1120,9 @@ dependencies = [
 
 [[package]]
 name = "dbus"
-version = "0.6.3"
+version = "0.6.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3d975a175aa2dced1a6cd410b89a1bf23918f301eab2b6f7c5e608291b757639"
+checksum = "48b5f0f36f1eebe901b0e6bee369a77ed3396334bf3f09abd46454a576f71819"
 dependencies = [
  "libc",
  "libdbus-sys",
@@ -3036,9 +3036,9 @@ checksum = "3baa92041a6fec78c687fa0cc2b3fae8884f743d672cf551bed1d6dac6988d0f"
 
 [[package]]
 name = "libdbus-sys"
-version = "0.1.5"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "18cb88963258d00f4962205dbb5933d82780d9962c8c8a064b651d2ad7189210"
+checksum = "dc12a3bc971424edbbf7edaf6e5740483444db63aa8e23d3751ff12a30f306f0"
 dependencies = [
  "pkg-config",
 ]
