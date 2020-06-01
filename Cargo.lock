@@ -517,7 +517,7 @@ dependencies = [
  "half",
  "ipc-channel",
  "log",
- "lyon_geom 0.14.0",
+ "lyon_geom 0.14.1",
  "num-traits",
  "pixels",
  "raqote",
@@ -3201,9 +3201,9 @@ dependencies = [
 
 [[package]]
 name = "lyon_geom"
-version = "0.14.0"
+version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69589b8844c0b3745cc031a35b62bc33b0fb9e5ba7613756d802c52861dcdb4c"
+checksum = "ca04310c9807612a311506106000b6eccb2e27bca9bfb594ce80fb8a31231f9d"
 dependencies = [
  "arrayvec 0.4.12",
  "euclid",
