@@ -45,7 +45,6 @@ pub struct RTCDataChannel {
 }
 
 impl RTCDataChannel {
-    #[allow(unrooted_must_root)]
     pub fn new_inherited(
         webrtc_controller: &DomRefCell<Option<WebRtcController>>,
         label: USVString,
@@ -67,7 +66,7 @@ impl RTCDataChannel {
             channel.unwrap()
         };
 
-        let rtc_data_channel = RTCDataChannel {
+        RTCDataChannel {
             eventtarget: EventTarget::new_inherited(),
             channel,
             label,
@@ -77,67 +76,7 @@ impl RTCDataChannel {
             protocol: options.protocol.clone(),
             negotiated: options.negotiated,
             id: options.id,
-        };
-
-        let trusted = Trusted::new(&rtc_data_channel);
-
-        let this = trusted.clone();
-        rtc_data_channel.channel.set_on_open(Box::new(move || {
-            let this_ = this.clone();
-            let global = this.root().global();
-            let task_source = global.networking_task_source();
-            let _ = task_source.queue(
-                task!(on_open: move || {
-                    this_.root().on_open();
-                }),
-                global.upcast(),
-            );
-        }));
-
-        let this = trusted.clone();
-        rtc_data_channel.channel.set_on_close(Box::new(move || {
-            let this_ = this.clone();
-            let global = this.root().global();
-            let task_source = global.networking_task_source();
-            let _ = task_source.queue(
-                task!(on_close: move || {
-                    this_.root().on_close();
-                }),
-                global.upcast(),
-            );
-        }));
-
-        let this = trusted.clone();
-        rtc_data_channel
-            .channel
-            .set_on_error(Box::new(move |error| {
-                let this_ = this.clone();
-                let global = this.root().global();
-                let task_source = global.networking_task_source();
-                let _ = task_source.queue(
-                    task!(on_error: move || {
-                        this_.root().on_error(error);
-                    }),
-                    global.upcast(),
-                );
-            }));
-
-        let this = trusted.clone();
-        rtc_data_channel
-            .channel
-            .set_on_message(Box::new(move |message| {
-                let this_ = this.clone();
-                let global = this.root().global();
-                let task_source = global.networking_task_source();
-                let _ = task_source.queue(
-                    task!(on_message: move || {
-                        this_.root().on_message(message);
-                    }),
-                    global.upcast(),
-                );
-            }));
-
-        rtc_data_channel
+        }
     }
 
     pub fn new(
@@ -147,7 +86,7 @@ impl RTCDataChannel {
         options: &RTCDataChannelInit,
         channel: Option<Box<dyn WebRtcDataChannelBackend>>,
     ) -> DomRoot<RTCDataChannel> {
-        reflect_dom_object(
+        let rtc_data_channel = reflect_dom_object(
             Box::new(RTCDataChannel::new_inherited(
                 webrtc_controller,
                 label,
@@ -155,7 +94,75 @@ impl RTCDataChannel {
                 channel,
             )),
             global,
-        )
+        );
+
+        let trusted = Trusted::new(&*rtc_data_channel);
+        let (task_source, canceller) = global
+            .as_window()
+            .task_manager()
+            .networking_task_source_with_canceller();
+
+        let this = trusted.clone();
+        rtc_data_channel.channel.set_on_open(Box::new(move || {
+            let this = this.clone();
+            let _ = task_source.queue_with_canceller(
+                task!(on_open: move || {
+                    this.root().on_open();
+                }),
+                &canceller,
+            );
+        }));
+
+        let this = trusted.clone();
+        let (task_source, canceller) = global
+            .as_window()
+            .task_manager()
+            .networking_task_source_with_canceller();
+        rtc_data_channel.channel.set_on_close(Box::new(move || {
+            let this = this.clone();
+            let _ = task_source.queue_with_canceller(
+                task!(on_close: move || {
+                    this.root().on_close();
+                }),
+                &canceller,
+            );
+        }));
+
+        let this = trusted.clone();
+        let (task_source, canceller) = global
+            .as_window()
+            .task_manager()
+            .networking_task_source_with_canceller();
+        rtc_data_channel
+            .channel
+            .set_on_error(Box::new(move |error| {
+                let this = this.clone();
+                let _ = task_source.queue_with_canceller(
+                    task!(on_error: move || {
+                        this.root().on_error(error);
+                    }),
+                    &canceller,
+                );
+            }));
+
+        let this = trusted.clone();
+        let (task_source, canceller) = global
+            .as_window()
+            .task_manager()
+            .networking_task_source_with_canceller();
+        rtc_data_channel
+            .channel
+            .set_on_message(Box::new(move |message| {
+                let this = this.clone();
+                let _ = task_source.queue_with_canceller(
+                    task!(on_message: move || {
+                        this.root().on_message(message);
+                    }),
+                    &canceller,
+                );
+            }));
+
+        rtc_data_channel
     }
 
     fn on_open(&self) {
