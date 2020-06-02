@@ -15,6 +15,7 @@ pub mod data;
 pub mod display_list;
 mod dom_traversal;
 pub mod element_data;
+mod flexbox;
 mod flow;
 mod formatting_contexts;
 mod fragments;
