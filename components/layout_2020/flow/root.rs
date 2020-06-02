@@ -10,6 +10,7 @@ use crate::display_list::stacking_context::{
 };
 use crate::dom_traversal::{iter_child_nodes, Contents, NodeExt};
 use crate::element_data::LayoutBox;
+use crate::flexbox::FlexLevelBox;
 use crate::flow::construct::ContainsFloats;
 use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineLevelBox;
@@ -119,6 +120,7 @@ impl BoxTree {
         enum UpdatePoint {
             AbsolutelyPositionedBlockLevelBox(ArcRefCell<BlockLevelBox>),
             AbsolutelyPositionedInlineLevelBox(ArcRefCell<InlineLevelBox>),
+            AbsolutelyPositionedFlexLevelBox(ArcRefCell<FlexLevelBox>),
         }
 
         fn update_point<'dom, Node>(
@@ -188,6 +190,14 @@ impl BoxTree {
                         },
                         _ => return None,
                     },
+                    LayoutBox::FlexLevel(flex_level_box) => match &*flex_level_box.borrow() {
+                        FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_)
+                            if box_style.position.is_absolutely_positioned() =>
+                        {
+                            UpdatePoint::AbsolutelyPositionedFlexLevelBox(flex_level_box.clone())
+                        },
+                        _ => return None,
+                    },
                 };
             Some((primary_style.clone(), display_inside, update_point))
         }
@@ -214,6 +224,12 @@ impl BoxTree {
                     UpdatePoint::AbsolutelyPositionedInlineLevelBox(inline_level_box) => {
                         *inline_level_box.borrow_mut() =
                             InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                                out_of_flow_absolutely_positioned_box,
+                            );
+                    },
+                    UpdatePoint::AbsolutelyPositionedFlexLevelBox(flex_level_box) => {
+                        *flex_level_box.borrow_mut() =
+                            FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(
                                 out_of_flow_absolutely_positioned_box,
                             );
                     },
