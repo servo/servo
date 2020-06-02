@@ -197,33 +197,51 @@ where
     where
         F: FnOnce(&mut CssWriter<'b, W>) -> fmt::Result,
     {
-        let old_prefix = self.inner.prefix;
-        if old_prefix.is_none() {
-            // If there is no prefix in the inner writer, a previous
-            // call to this method produced output, which means we need
-            // to write the separator next time we produce output again.
-            self.inner.prefix = Some(self.separator);
+        // Separate non-generic functions so that this code is not repeated
+        // in every monomorphization with a different type `F` or `W`.
+        // https://github.com/servo/servo/issues/26713
+        fn before(
+            prefix: &mut Option<&'static str>,
+            separator: &'static str,
+        ) -> Option<&'static str> {
+            let old_prefix = *prefix;
+            if old_prefix.is_none() {
+                // If there is no prefix in the inner writer, a previous
+                // call to this method produced output, which means we need
+                // to write the separator next time we produce output again.
+                *prefix = Some(separator);
+            }
+            old_prefix
         }
+        fn after(
+            old_prefix: Option<&'static str>,
+            prefix: &mut Option<&'static str>,
+            separator: &'static str,
+        ) {
+            match (old_prefix, *prefix) {
+                (_, None) => {
+                    // This call produced output and cleaned up after itself.
+                },
+                (None, Some(p)) => {
+                    // Some previous call to `item` produced output,
+                    // but this one did not, prefix should be the same as
+                    // the one we set.
+                    debug_assert_eq!(separator, p);
+                    // We clean up here even though it's not necessary just
+                    // to be able to do all these assertion checks.
+                    *prefix = None;
+                },
+                (Some(old), Some(new)) => {
+                    // No previous call to `item` produced output, and this one
+                    // either.
+                    debug_assert_eq!(old, new);
+                },
+            }
+        }
+
+        let old_prefix = before(&mut self.inner.prefix, self.separator);
         f(self.inner)?;
-        match (old_prefix, self.inner.prefix) {
-            (_, None) => {
-                // This call produced output and cleaned up after itself.
-            },
-            (None, Some(p)) => {
-                // Some previous call to `item` produced output,
-                // but this one did not, prefix should be the same as
-                // the one we set.
-                debug_assert_eq!(self.separator, p);
-                // We clean up here even though it's not necessary just
-                // to be able to do all these assertion checks.
-                self.inner.prefix = None;
-            },
-            (Some(old), Some(new)) => {
-                // No previous call to `item` produced output, and this one
-                // either.
-                debug_assert_eq!(old, new);
-            },
-        }
+        after(old_prefix, &mut self.inner.prefix, self.separator);
         Ok(())
     }
 
