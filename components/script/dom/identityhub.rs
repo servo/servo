@@ -7,7 +7,8 @@ use webgpu::wgpu::{
     hub::IdentityManager,
     id::{
         AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
-        DeviceId, PipelineLayoutId, RenderPipelineId, SamplerId, ShaderModuleId,
+        DeviceId, PipelineLayoutId, RenderPipelineId, SamplerId, ShaderModuleId, TextureId,
+        TextureViewId,
     },
 };
 use webgpu::wgt::Backend;
@@ -23,6 +24,8 @@ pub struct IdentityHub {
     pipeline_layouts: IdentityManager,
     shader_modules: IdentityManager,
     command_encoders: IdentityManager,
+    textures: IdentityManager,
+    texture_views: IdentityManager,
     samplers: IdentityManager,
     render_pipelines: IdentityManager,
 }
@@ -39,6 +42,8 @@ impl IdentityHub {
             pipeline_layouts: IdentityManager::default(),
             shader_modules: IdentityManager::default(),
             command_encoders: IdentityManager::default(),
+            textures: IdentityManager::default(),
+            texture_views: IdentityManager::default(),
             samplers: IdentityManager::default(),
             render_pipelines: IdentityManager::default(),
         }
@@ -193,5 +198,21 @@ impl Identities {
 
     pub fn kill_render_pipeline_id(&mut self, id: RenderPipelineId) {
         self.select(id.backend()).render_pipelines.free(id);
+    }
+
+    pub fn create_texture_id(&mut self, backend: Backend) -> TextureId {
+        self.select(backend).textures.alloc(backend)
+    }
+
+    pub fn kill_texture_id(&mut self, id: TextureId) {
+        self.select(id.backend()).textures.free(id);
+    }
+
+    pub fn create_texture_view_id(&mut self, backend: Backend) -> TextureViewId {
+        self.select(backend).texture_views.alloc(backend)
+    }
+
+    pub fn kill_texture_view_id(&mut self, id: TextureViewId) {
+        self.select(id.backend()).texture_views.free(id);
     }
 }

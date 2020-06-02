@@ -56,7 +56,7 @@ enum GPUCullMode {
 };
 
 dictionary GPUColorStateDescriptor {
-    //required GPUTextureFormat format;
+    required GPUTextureFormat format;
 
     GPUBlendDescriptor alphaBlend = {};
     GPUBlendDescriptor colorBlend = {};
@@ -107,7 +107,7 @@ enum GPUStencilOperation {
 typedef [EnforceRange] unsigned long GPUStencilValue;
 
 dictionary GPUDepthStencilStateDescriptor {
-    //required GPUTextureFormat format;
+    required GPUTextureFormat format;
 
     boolean depthWriteEnabled = false;
     GPUCompareFunction depthCompare = "always";
