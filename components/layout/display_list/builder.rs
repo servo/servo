@@ -1571,6 +1571,11 @@ impl Fragment {
             return;
         }
 
+        // If this fragment takes up no space, we don't need to build any display items for it.
+        if self.has_non_invertible_transform() {
+            return;
+        }
+
         debug!(
             "Fragment::build_display_list at rel={:?}, abs={:?}: {:?}",
             self.border_box, stacking_relative_border_box, self
@@ -2376,6 +2381,11 @@ impl BlockFlow {
         state: &mut StackingContextCollectionState,
         flags: StackingContextCollectionFlags,
     ) {
+        // This block flow produces no stacking contexts if it takes up no space.
+        if self.has_non_invertible_transform() {
+            return;
+        }
+
         let mut preserved_state = SavedStackingContextCollectionState::new(state);
 
         let stacking_context_type = self.stacking_context_type(flags);

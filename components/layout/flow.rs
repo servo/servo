@@ -273,6 +273,22 @@ pub trait Flow: HasBaseFlow + fmt::Debug + Sync + Send + 'static {
         might_have_floats_in_or_out
     }
 
+    fn has_non_invertible_transform(&self) -> bool {
+        if !self.class().is_block_like() ||
+            self.as_block()
+                .fragment
+                .style
+                .get_box()
+                .transform
+                .0
+                .is_empty()
+        {
+            return false;
+        }
+
+        self.as_block().fragment.has_non_invertible_transform()
+    }
+
     fn get_overflow_in_parent_coordinates(&self) -> Overflow {
         // FIXME(#2795): Get the real container size.
         let container_size = Size2D::zero();
@@ -1160,7 +1176,9 @@ impl BaseFlow {
         state: &mut StackingContextCollectionState,
     ) {
         for kid in self.children.iter_mut() {
-            kid.collect_stacking_contexts(state);
+            if !kid.has_non_invertible_transform() {
+                kid.collect_stacking_contexts(state);
+            }
         }
     }
 
