@@ -9,10 +9,6 @@
     <script src="/resources/testharnessreport.js"></script>
   </head>
   <body>
-    <!-- Specifying both allow-top-navigation and
-         allow-top-navigation-by-user-activation is a document conformance
-         error: allow-top-navigation-by-user-activation will have no effect. -->
-    <iframe sandbox="allow-top-navigation allow-top-navigation-by-user-activation allow-scripts"></iframe>
     <script>
       // We are the main test page.  Open a popup, so that we can
       // can experiment navigation of the top frame.
@@ -21,7 +17,11 @@
           assert_equals(e.data, "can navigate");
           e.source.close();
         }));
-        window.open("support/load-into-the-iframe.html");
+        // Specifying both allow-top-navigation and
+        // allow-top-navigation-by-user-activation is a document conformance
+        // error: allow-top-navigation-by-user-activation will have no effect.
+        let sandbox = "allow-top-navigation allow-top-navigation-by-user-activation allow-scripts";
+        window.open("support/load-into-the-iframe.html?sandbox=" + sandbox);
       }, "Frames with `allow-top-navigation` should be able to navigate the top frame even when `allow-top-navigation-by-user-activation` is set.");
     </script>
   </body>

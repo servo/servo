@@ -156,11 +156,10 @@ class BrowserSetup(object):
     name = None
     browser_cls = None
 
-    def __init__(self, venv, prompt=True, sub_product=None):
+    def __init__(self, venv, prompt=True):
         self.browser = self.browser_cls(logger)
         self.venv = venv
         self.prompt = prompt
-        self.sub_product = sub_product
 
     def prompt_install(self, component):
         if not self.prompt:
@@ -588,8 +587,10 @@ class Sauce(BrowserSetup):
         raise NotImplementedError
 
     def setup_kwargs(self, kwargs):
-        kwargs.set_if_none("sauce_browser", self.sub_product[0])
-        kwargs.set_if_none("sauce_version", self.sub_product[1])
+        if kwargs["sauce_browser"] is None:
+            raise WptrunError("Missing required argument --sauce-browser")
+        if kwargs["sauce_version"] is None:
+            raise WptrunError("Missing required argument --sauce-version")
         kwargs["test_types"] = ["testharness", "reftest"]
 
 
@@ -719,9 +720,7 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
 
     kwargs = utils.Kwargs(iteritems(kwargs))
 
-    product_parts = kwargs["product"].split(":")
-    kwargs["product"] = product_parts[0].replace("-", "_")
-    sub_product = product_parts[1:]
+    kwargs["product"] = kwargs["product"].replace("-", "_")
 
     check_environ(kwargs["product"])
     args_general(kwargs)
@@ -729,7 +728,7 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
     if kwargs["product"] not in product_setup:
         raise WptrunError("Unsupported product %s" % kwargs["product"])
 
-    setup_cls = product_setup[kwargs["product"]](venv, prompt, sub_product)
+    setup_cls = product_setup[kwargs["product"]](venv, prompt)
     setup_cls.install_requirements()
 
     affected_revish = kwargs.pop("affected", None)

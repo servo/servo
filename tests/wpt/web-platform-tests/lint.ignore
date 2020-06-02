@@ -757,6 +757,7 @@ TESTHARNESS-IN-OTHER-TYPE: html/semantics/interactive-elements/the-summary-eleme
 TESTHARNESS-IN-OTHER-TYPE: html/semantics/text-level-semantics/the-ruby-element/rt-without-ruby-crash.html
 TESTHARNESS-IN-OTHER-TYPE: portals/portals-no-frame-crash.html
 TESTHARNESS-IN-OTHER-TYPE: quirks/table-replaced-descendant-percentage-height-crash.html
+TESTHARNESS-IN-OTHER-TYPE: scroll-animations/null-scroll-source-crash.html
 TESTHARNESS-IN-OTHER-TYPE: svg/extensibility/foreignObject/foreign-object-circular-filter-reference-crash.html
 TESTHARNESS-IN-OTHER-TYPE: svg/extensibility/foreignObject/foreign-object-under-clip-path-crash.html
 TESTHARNESS-IN-OTHER-TYPE: svg/extensibility/foreignObject/foreign-object-under-defs-crash.html

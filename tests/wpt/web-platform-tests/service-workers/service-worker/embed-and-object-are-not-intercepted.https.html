@@ -75,4 +75,30 @@ promise_test(t => {
         });
   }, 'requests for OBJECT elements of an image should not be intercepted by service workers');
 
+promise_test(t => {
+    let frame;
+    return with_iframe('resources/object-navigation-is-not-intercepted-iframe.html')
+      .then(f => {
+          frame = f;
+          t.add_cleanup(() => { frame.remove(); });
+          return frame.contentWindow.test_promise;
+        })
+      .then(result => {
+          assert_equals(result, 'request for embedded content was not intercepted');
+        });
+  }, 'post-load navigation of OBJECT elements should not be intercepted by service workers');
+
+
+promise_test(t => {
+    let frame;
+    return with_iframe('resources/embed-navigation-is-not-intercepted-iframe.html')
+      .then(f => {
+          frame = f;
+          t.add_cleanup(() => { frame.remove(); });
+          return frame.contentWindow.test_promise;
+        })
+      .then(result => {
+          assert_equals(result, 'request for embedded content was not intercepted');
+        });
+  }, 'post-load navigation of EMBED elements should not be intercepted by service workers');
 </script>

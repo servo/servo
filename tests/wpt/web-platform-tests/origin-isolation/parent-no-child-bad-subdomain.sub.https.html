@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parent is not isolated, child attempts to isolate but uses a bad header value, child is a subdomain of the parent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="log"></div>
+
+<script type="module">
+import { insertIframe, sendWasmModule, setBothDocumentDomains } from "./resources/helpers.mjs";
+
+for (const badValue of ["", "?0", "true", "\"?1\"", "1", "?2", "(?1)"]) {
+  let frameWindow;
+  promise_test(async () => {
+    frameWindow = await insertIframe("{{hosts[][www]}}", badValue);
+  }, `"${badValue}": frame insertion`);
+
+  // Since the header values are bad there should be no isolation
+
+  promise_test(async () => {
+    const whatHappened = await sendWasmModule(frameWindow);
+
+    assert_equals(whatHappened, "WebAssembly.Module message received");
+  }, `"${badValue}": message event must occur for`);
+
+  promise_test(async () => {
+    await setBothDocumentDomains(frameWindow);
+
+    // Must not throw
+    frameWindow.document;
+  }, `"${badValue}": setting document.domain must give sync access`);
+}
+</script>
