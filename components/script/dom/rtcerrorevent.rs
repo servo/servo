@@ -62,10 +62,12 @@ impl RTCErrorEvent {
 }
 
 impl RTCErrorEventMethods for RTCErrorEvent {
+    // https://www.w3.org/TR/webrtc/#dom-rtcerrorevent-error
     fn Error(&self) -> DomRoot<RTCError> {
         DomRoot::from_ref(&*self.error)
     }
 
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }

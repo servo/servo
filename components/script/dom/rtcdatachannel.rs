@@ -282,26 +282,26 @@ impl RTCDataChannelMethods for RTCDataChannel {
     //    fn SetBufferedAmountLowThreshold(&self, value: u32) -> ();
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-close
-    fn Close(&self) -> () {}
+    fn Close(&self) {}
 
     //    fn BinaryType(&self) -> DOMString;
     //    fn SetBinaryType(&self, value: DOMString) -> ();
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send
-    fn Send(&self, data: USVString) -> () {
+    fn Send(&self, data: USVString) {
         if let Err(error) = self.channel.send(&data.0) {
             warn!("Could not send data channel message. Error: {:?}", error);
         }
     }
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-1
-    fn Send_(&self, data: &Blob) -> () {}
+    // fn Send_(&self, data: &Blob) -> () {}
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-2
-    fn Send__(&self, data: CustomAutoRooterGuard<ArrayBuffer>) -> () {}
+    // fn Send__(&self, data: CustomAutoRooterGuard<ArrayBuffer>) -> () {}
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-3
-    fn Send___(&self, data: CustomAutoRooterGuard<ArrayBufferView>) -> () {}
+    // fn Send___(&self, data: CustomAutoRooterGuard<ArrayBufferView>) -> () {}
 }
 
 impl From<&RTCDataChannelInit> for WebRtcDataChannelInit {

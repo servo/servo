@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
- // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel
+// https://w3c.github.io/webrtc-pc/#dom-rtcdatachannel
 
  [Exposed=Window]
 interface RTCDataChannel : EventTarget {
@@ -25,9 +25,9 @@ interface RTCDataChannel : EventTarget {
   attribute EventHandler onmessage;
   //attribute DOMString binaryType;
   void send(USVString data);
-  void send(Blob data);
-  void send(ArrayBuffer data);
-  void send(ArrayBufferView data);
+  //void send(Blob data);
+  //void send(ArrayBuffer data);
+  //void send(ArrayBufferView data);
 };
 
 // https://www.w3.org/TR/webrtc/#dom-rtcdatachannelinit

@@ -675,15 +675,9 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
     fn CreateDataChannel(
         &self,
         label: USVString,
-        dataChannelDict: &RTCDataChannelInit,
+        init: &RTCDataChannelInit,
     ) -> DomRoot<RTCDataChannel> {
-        RTCDataChannel::new(
-            &self.global(),
-            &self.controller,
-            label,
-            dataChannelDict,
-            None,
-        )
+        RTCDataChannel::new(&self.global(), &self.controller, label, init, None)
     }
 }
 

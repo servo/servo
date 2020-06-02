@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
- // https://www.w3.org/TR/webrtc/#rtcdatachannelevent
+// https://w3c.github.io/webrtc-pc/#dom-rtcdatachannelevent
 
  [Exposed=Window]
 interface RTCDataChannelEvent : Event {

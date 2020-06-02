@@ -48,6 +48,7 @@ impl RTCDataChannelEvent {
         event
     }
 
+    #[allow(non_snake_case)]
     pub fn Constructor(
         window: &Window,
         type_: DOMString,
@@ -64,10 +65,12 @@ impl RTCDataChannelEvent {
 }
 
 impl RTCDataChannelEventMethods for RTCDataChannelEvent {
+    // https://www.w3.org/TR/webrtc/#dom-datachannelevent-channel
     fn Channel(&self) -> DomRoot<RTCDataChannel> {
         DomRoot::from_ref(&*self.channel)
     }
 
+    // https://dom.spec.whatwg.org/#dom-event-istrusted
     fn IsTrusted(&self) -> bool {
         self.event.IsTrusted()
     }
