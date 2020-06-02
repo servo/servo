@@ -73,12 +73,12 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         bind_group_id: id::BindGroupId,
         bind_group_layout_id: id::BindGroupLayoutId,
-        bindings: Vec<BindGroupEntry>,
+        entries: Vec<BindGroupEntry>,
     },
     CreateBindGroupLayout {
         device_id: id::DeviceId,
         bind_group_layout_id: id::BindGroupLayoutId,
-        bindings: Vec<BindGroupLayoutEntry>,
+        entries: Vec<BindGroupLayoutEntry>,
     },
     CreateBuffer {
         device_id: id::DeviceId,
@@ -334,13 +334,13 @@ impl WGPU {
                     device_id,
                     bind_group_id,
                     bind_group_layout_id,
-                    bindings,
+                    entries,
                 } => {
                     let global = &self.global;
                     let descriptor = BindGroupDescriptor {
                         layout: bind_group_layout_id,
-                        entries: bindings.as_ptr(),
-                        entries_length: bindings.len(),
+                        entries: entries.as_ptr(),
+                        entries_length: entries.len(),
                         label: ptr::null(),
                     };
                     let _ = gfx_select!(bind_group_id =>
@@ -349,12 +349,12 @@ impl WGPU {
                 WebGPURequest::CreateBindGroupLayout {
                     device_id,
                     bind_group_layout_id,
-                    bindings,
+                    entries,
                 } => {
                     let global = &self.global;
                     let descriptor = BindGroupLayoutDescriptor {
-                        entries: bindings.as_ptr(),
-                        entries_length: bindings.len(),
+                        entries: entries.as_ptr(),
+                        entries_length: entries.len(),
                         label: ptr::null(),
                     };
                     let _ = gfx_select!(bind_group_layout_id =>

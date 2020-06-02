@@ -240,8 +240,8 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             None => false,
         };
         valid &= (*self.state.borrow() == GPUCommandEncoderState::Open) &&
-            source.valid() &&
-            destination.valid() &
+            source.is_valid() &&
+            destination.is_valid() &
                 !(size & BUFFER_COPY_ALIGN_MASK == 0) &
                 !(source_offset & BUFFER_COPY_ALIGN_MASK == 0) &
                 !(destination_offset & BUFFER_COPY_ALIGN_MASK == 0) &

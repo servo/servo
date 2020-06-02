@@ -64,6 +64,20 @@ impl GPUSampler {
     }
 }
 
+impl GPUSampler {
+    pub fn id(&self) -> WebGPUSampler {
+        self.sampler
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.valid.get()
+    }
+
+    pub fn compare(&self) -> bool {
+        self.compare_enable
+    }
+}
+
 impl GPUSamplerMethods for GPUSampler {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn GetLabel(&self) -> Option<DOMString> {

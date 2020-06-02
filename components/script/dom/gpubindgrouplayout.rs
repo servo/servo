@@ -12,6 +12,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;
+use std::collections::HashMap;
 use webgpu::{WebGPU, WebGPUBindGroupLayout};
 
 #[dom_struct]
@@ -20,7 +21,7 @@ pub struct GPUBindGroupLayout {
     label: DomRefCell<Option<DOMString>>,
     bind_group_layout: WebGPUBindGroupLayout,
     #[ignore_malloc_size_of = "defined in webgpu"]
-    bindings: Vec<GPUBindGroupLayoutEntry>,
+    entry_map: HashMap<u32, GPUBindGroupLayoutEntry>,
     #[ignore_malloc_size_of = "defined in webgpu"]
     channel: WebGPU,
     valid: Cell<bool>,
@@ -30,7 +31,7 @@ impl GPUBindGroupLayout {
     fn new_inherited(
         channel: WebGPU,
         bind_group_layout: WebGPUBindGroupLayout,
-        bindings: Vec<GPUBindGroupLayoutEntry>,
+        entry_map: HashMap<u32, GPUBindGroupLayoutEntry>,
         valid: bool,
     ) -> Self {
         Self {
@@ -38,7 +39,7 @@ impl GPUBindGroupLayout {
             channel,
             label: DomRefCell::new(None),
             bind_group_layout,
-            bindings,
+            entry_map,
             valid: Cell::new(valid),
         }
     }
@@ -47,14 +48,14 @@ impl GPUBindGroupLayout {
         global: &GlobalScope,
         channel: WebGPU,
         bind_group_layout: WebGPUBindGroupLayout,
-        bindings: Vec<GPUBindGroupLayoutEntry>,
+        entry_map: HashMap<u32, GPUBindGroupLayoutEntry>,
         valid: bool,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBindGroupLayout::new_inherited(
                 channel,
                 bind_group_layout,
-                bindings,
+                entry_map,
                 valid,
             )),
             global,
@@ -71,8 +72,8 @@ impl GPUBindGroupLayout {
         self.bind_group_layout
     }
 
-    pub fn bindings(&self) -> &[GPUBindGroupLayoutEntry] {
-        &self.bindings
+    pub fn entries(&self) -> &HashMap<u32, GPUBindGroupLayoutEntry> {
+        &self.entry_map
     }
 }
 

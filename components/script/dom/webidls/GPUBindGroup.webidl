@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://gpuweb.github.io/gpuweb/#gpubindgrouplayout
-[Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPUBindGroup {
 };
 GPUBindGroup includes GPUObjectBase;
@@ -13,10 +13,10 @@ dictionary GPUBindGroupDescriptor : GPUObjectDescriptorBase {
     required sequence<GPUBindGroupEntry> entries;
 };
 
-typedef /*(GPUSampler or GPUTextureView or*/ GPUBufferBindings/*)*/ GPUBindingResource;
+typedef (GPUSampler or GPUTextureView or GPUBufferBindings) GPUBindingResource;
 
 dictionary GPUBindGroupEntry {
-    required unsigned long binding;
+    required GPUIndex32 binding;
     required GPUBindingResource resource;
 };
 

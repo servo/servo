@@ -16,11 +16,19 @@ dictionary GPUBindGroupLayoutEntry {
     required GPUIndex32 binding;
     required GPUShaderStageFlags visibility;
     required GPUBindingType type;
-    GPUTextureViewDimension viewDimension = "2d";
-    GPUTextureComponentType textureComponentType = "float";
-    GPUTextureFormat storageTextureFormat;
-    boolean multisampled = false;
+
+    // Used for uniform buffer and storage buffer bindings.
     boolean hasDynamicOffset = false;
+
+    // Used for sampled texture and storage texture bindings.
+    GPUTextureViewDimension viewDimension;
+
+    // Used for sampled texture bindings.
+    GPUTextureComponentType textureComponentType;
+    boolean multisampled = false;
+
+    // Used for storage texture bindings.
+    GPUTextureFormat storageTextureFormat;
 };
 
 enum GPUBindingType {
@@ -31,5 +39,5 @@ enum GPUBindingType {
     "sampled-texture",
     "readonly-storage-texture",
     "writeonly-storage-texture",
-    //"comparison-sampler",
+    "comparison-sampler",
 };
