@@ -63,12 +63,17 @@ where
     /// out references which cannot outlive this new `Root`.
     #[allow(unrooted_must_root)]
     pub unsafe fn new(value: T) -> Self {
-        debug_assert!(thread_state::get().is_script());
-        STACK_ROOTS.with(|ref root_list| {
-            let root_list = &*root_list.get().unwrap();
-            root_list.root(value.stable_trace_object());
-            Root { value, root_list }
-        })
+        unsafe fn add_to_root_list(object: *const dyn JSTraceable) -> *const RootCollection {
+            debug_assert!(thread_state::get().is_script());
+            STACK_ROOTS.with(|ref root_list| {
+                let root_list = &*root_list.get().unwrap();
+                root_list.root(object);
+                root_list
+            })
+        }
+
+        let root_list = add_to_root_list(value.stable_trace_object());
+        Root { value, root_list }
     }
 }
 
