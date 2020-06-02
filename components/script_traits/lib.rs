@@ -697,6 +697,7 @@ pub trait ScriptThreadFactory {
         relayout_event: bool,
         prepare_for_screenshot: bool,
         unminify_js: bool,
+        local_script_source: Option<String>,
         userscripts_path: Option<String>,
         headless: bool,
         replace_surrogates: bool,

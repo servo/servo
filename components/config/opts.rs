@@ -210,6 +210,9 @@ pub struct Opts {
     /// Unminify Javascript.
     pub unminify_js: bool,
 
+    /// Directory path that was created with "unminify-js"
+    pub local_script_source: Option<String>,
+
     /// Print Progressive Web Metrics to console.
     pub print_pwm: bool,
 }
@@ -522,6 +525,7 @@ pub fn default_opts() -> Opts {
         signpost: false,
         certificate_path: None,
         unminify_js: false,
+        local_script_source: None,
         print_pwm: false,
     }
 }
@@ -676,6 +680,12 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
     opts.optopt("", "profiler-db-name", "Profiler database name", "");
     opts.optflag("", "print-pwm", "Print Progressive Web Metrics");
     opts.optopt("", "vslogger-level", "Visual Studio logger level", "Warn");
+    opts.optopt(
+        "",
+        "local-script-source",
+        "Directory root with unminified scripts",
+        "",
+    );
 
     let opt_match = match opts.parse(args) {
         Ok(m) => m,
@@ -923,6 +933,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         signpost: debug_options.signpost,
         certificate_path: opt_match.opt_str("certificate-path"),
         unminify_js: opt_match.opt_present("unminify-js"),
+        local_script_source: opt_match.opt_str("local-script-source"),
         print_pwm: opt_match.opt_present("print-pwm"),
     };
 

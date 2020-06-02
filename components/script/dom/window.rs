@@ -119,7 +119,7 @@ use script_traits::{
 use script_traits::{TimerSchedulerMsg, WebrenderIpcSender, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
-use servo_url::{Host, ImmutableOrigin, MutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::Cow;
 use std::borrow::ToOwned;
 use std::cell::Cell;
@@ -127,7 +127,6 @@ use std::collections::hash_map::Entry;
 use std::collections::{HashMap, HashSet};
 use std::default::Default;
 use std::env;
-use std::fs;
 use std::io::{stderr, stdout, Write};
 use std::mem;
 use std::rc::Rc;
@@ -286,6 +285,9 @@ pub struct Window {
     /// Directory to store unminified scripts for this window if unminify-js
     /// opt is enabled.
     unminified_js_dir: DomRefCell<Option<String>>,
+
+    /// Directory with stored unminified scripts
+    local_script_source: Option<String>,
 
     /// Worklets
     test_worklet: MutNullableDom<Worklet>,
@@ -1977,25 +1979,10 @@ impl Window {
         if !self.unminify_js {
             return;
         }
-        // Create a folder for the document host to store unminified scripts.
-        if let Some(&Host::Domain(ref host)) = document.url().origin().host() {
-            let mut path = env::current_dir().unwrap();
-            path.push("unminified-js");
-            path.push(host);
-            let _ = fs::remove_dir_all(&path);
-            match fs::create_dir_all(&path) {
-                Ok(_) => {
-                    *self.unminified_js_dir.borrow_mut() =
-                        Some(path.into_os_string().into_string().unwrap());
-                    debug!(
-                        "Created folder for {:?} unminified scripts {:?}",
-                        host,
-                        self.unminified_js_dir.borrow()
-                    );
-                },
-                Err(_) => warn!("Could not create unminified dir for {:?}", host),
-            }
-        }
+        // Set a path for the document host to store unminified scripts.
+        let mut path = env::current_dir().unwrap();
+        path.push("unminified-js");
+        *self.unminified_js_dir.borrow_mut() = Some(path.into_os_string().into_string().unwrap());
     }
 
     /// Commence a new URL load which will either replace this window or scroll to a fragment.
@@ -2271,6 +2258,10 @@ impl Window {
         self.unminified_js_dir.borrow().clone()
     }
 
+    pub fn local_script_source(&self) -> &Option<String> {
+        &self.local_script_source
+    }
+
     pub fn set_navigation_start(&self) {
         let current_time = time::get_time();
         let now = (current_time.sec * 1000 + current_time.nsec as i64 / 1000000) as u64;
@@ -2334,6 +2325,7 @@ impl Window {
         relayout_event: bool,
         prepare_for_screenshot: bool,
         unminify_js: bool,
+        local_script_source: Option<String>,
         userscripts_path: Option<String>,
         is_headless: bool,
         replace_surrogates: bool,
@@ -2408,6 +2400,7 @@ impl Window {
             webxr_registry,
             pending_layout_images: Default::default(),
             unminified_js_dir: Default::default(),
+            local_script_source,
             test_worklet: Default::default(),
             paint_worklet: Default::default(),
             webrender_document,

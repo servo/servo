@@ -649,6 +649,9 @@ pub struct ScriptThread {
     /// Unminify Javascript.
     unminify_js: bool,
 
+    /// Directory with stored unminified scripts
+    local_script_source: Option<String>,
+
     /// Where to load userscripts from, if any. An empty string will load from
     /// the resources/user-agent-js directory, and if the option isn't passed userscripts
     /// won't be loaded
@@ -723,6 +726,7 @@ impl ScriptThreadFactory for ScriptThread {
         relayout_event: bool,
         prepare_for_screenshot: bool,
         unminify_js: bool,
+        local_script_source: Option<String>,
         userscripts_path: Option<String>,
         headless: bool,
         replace_surrogates: bool,
@@ -758,6 +762,7 @@ impl ScriptThreadFactory for ScriptThread {
                     relayout_event,
                     prepare_for_screenshot,
                     unminify_js,
+                    local_script_source,
                     userscripts_path,
                     headless,
                     replace_surrogates,
@@ -1209,6 +1214,7 @@ impl ScriptThread {
         relayout_event: bool,
         prepare_for_screenshot: bool,
         unminify_js: bool,
+        local_script_source: Option<String>,
         userscripts_path: Option<String>,
         headless: bool,
         replace_surrogates: bool,
@@ -1322,6 +1328,7 @@ impl ScriptThread {
             relayout_event,
             prepare_for_screenshot,
             unminify_js,
+            local_script_source,
 
             userscripts_path,
             headless,
@@ -3161,6 +3168,7 @@ impl ScriptThread {
             self.relayout_event,
             self.prepare_for_screenshot,
             self.unminify_js,
+            self.local_script_source.clone(),
             self.userscripts_path.clone(),
             self.headless,
             self.replace_surrogates,

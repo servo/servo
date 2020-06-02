@@ -45,7 +45,7 @@ use servo_atoms::Atom;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::cell::Cell;
-use std::fs::File;
+use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{Read, Seek, Write};
 use std::path::PathBuf;
 use std::process::Command;
@@ -698,17 +698,34 @@ impl HTMLScriptElement {
                 return;
             },
         }
-
-        let path = if script.external {
+        let (base, has_name) = match script.url.as_str().ends_with("/") {
+            true => (
+                path.join(&script.url[url::Position::BeforeHost..])
+                    .as_path()
+                    .to_owned(),
+                false,
+            ),
+            false => (
+                path.join(&script.url[url::Position::BeforeHost..])
+                    .parent()
+                    .unwrap()
+                    .to_owned(),
+                true,
+            ),
+        };
+        match create_dir_all(base.clone()) {
+            Ok(()) => debug!("Created base dir: {:?}", base),
+            Err(e) => {
+                debug!("Failed to create base dir: {:?}, {:?}", base, e);
+                return;
+            },
+        }
+        let path = if script.external && has_name {
             // External script.
-            let path_parts = script.url.path_segments().unwrap();
-            match path_parts.last() {
-                Some(script_name) => path.join(script_name),
-                None => path.join(Uuid::new_v4().to_string()),
-            }
+            path.join(&script.url[url::Position::BeforeHost..])
         } else {
-            // Inline script.
-            path.join(Uuid::new_v4().to_string())
+            // Inline script or url ends with '/'
+            base.join(Uuid::new_v4().to_string())
         };
 
         debug!("script will be stored in {:?}", path);
@@ -716,6 +733,34 @@ impl HTMLScriptElement {
         match File::create(&path) {
             Ok(mut file) => file.write_all(script.text.as_bytes()).unwrap(),
             Err(why) => warn!("Could not store script {:?}", why),
+        }
+    }
+
+    fn substitute_with_local_script(&self, script: &mut ScriptOrigin) {
+        if self
+            .parser_document
+            .window()
+            .local_script_source()
+            .is_none() ||
+            !script.external
+        {
+            return;
+        }
+        let mut path = PathBuf::from(
+            self.parser_document
+                .window()
+                .local_script_source()
+                .clone()
+                .unwrap(),
+        );
+        path = path.join(&script.url[url::Position::BeforeHost..]);
+        debug!("Attempting to read script stored at: {:?}", path);
+        match read_to_string(path.clone()) {
+            Ok(local_script) => {
+                debug!("Found script stored at: {:?}", path);
+                script.text = DOMString::from(local_script);
+            },
+            Err(why) => warn!("Could not restore script from file {:?}", why),
         }
     }
 
@@ -740,6 +785,7 @@ impl HTMLScriptElement {
 
         if script.type_ == ScriptType::Classic {
             self.unminify_js(&mut script);
+            self.substitute_with_local_script(&mut script);
         }
 
         // Step 3.
