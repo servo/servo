@@ -47,6 +47,30 @@ impl BlockFormattingContext {
         };
         (bfc, inline_content_sizes)
     }
+
+    pub fn construct_for_text_runs<'dom>(
+        context: &LayoutContext,
+        runs: impl Iterator<Item = TextRun>,
+        content_sizes: ContentSizesRequest,
+        text_decoration_line: TextDecorationLine,
+    ) -> (Self, BoxContentSizes) {
+        // FIXME: do white space collapsing
+        let inline_level_boxes = runs
+            .map(|run| ArcRefCell::new(InlineLevelBox::TextRun(run)))
+            .collect();
+
+        let ifc = InlineFormattingContext {
+            inline_level_boxes,
+            text_decoration_line,
+        };
+        let content_sizes = content_sizes.compute(|| ifc.inline_content_sizes(context));
+        let contents = BlockContainer::InlineFormattingContext(ifc);
+        let bfc = Self {
+            contents,
+            contains_floats: false,
+        };
+        (bfc, content_sizes)
+    }
 }
 
 struct BlockLevelJob<'dom, Node> {

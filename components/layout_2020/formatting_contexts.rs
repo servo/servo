@@ -115,6 +115,28 @@ impl IndependentFormattingContext {
         }
     }
 
+    pub fn construct_for_text_runs<'dom>(
+        context: &LayoutContext,
+        node: impl NodeExt<'dom>,
+        style: Arc<ComputedValues>,
+        runs: impl Iterator<Item = crate::flow::inline::TextRun>,
+        content_sizes: ContentSizesRequest,
+        propagated_text_decoration_line: TextDecorationLine,
+    ) -> Self {
+        let (bfc, content_sizes) = BlockFormattingContext::construct_for_text_runs(
+            context,
+            runs,
+            content_sizes,
+            propagated_text_decoration_line,
+        );
+        Self {
+            tag: node.as_opaque(),
+            style,
+            content_sizes,
+            contents: IndependentFormattingContextContents::Flow(bfc),
+        }
+    }
+
     pub fn as_replaced(&self) -> Result<&ReplacedContent, NonReplacedIFC> {
         use self::IndependentFormattingContextContents as Contents;
         use self::NonReplacedIFC as NR;

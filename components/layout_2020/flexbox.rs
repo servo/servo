@@ -6,6 +6,7 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::{BoxSlot, Contents, NodeExt, NonReplacedContents, TraversalHandler};
 use crate::element_data::LayoutBox;
+use crate::flow::inline::TextRun;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{BoxContentSizes, ContentSizes, ContentSizesRequest};
@@ -44,27 +45,34 @@ impl FlexContainer {
             propagated_text_decoration_line | style.clone_text_decoration_line();
         let mut builder = FlexContainerBuilder {
             context,
+            node,
+            style,
+            anonymous_style: None,
             text_decoration_line,
-            flex_container: Self {
-                children: Vec::new(),
-            },
+            contiguous_text_runs: Vec::new(),
+            children: Vec::new(),
         };
         contents.traverse(context, node, style, &mut builder);
         let content_sizes = content_sizes.compute(|| {
             // FIXME
             ContentSizes::zero()
         });
-        (builder.flex_container, content_sizes)
+        (builder.finish(), content_sizes)
     }
 }
 
-struct FlexContainerBuilder<'context> {
-    context: &'context LayoutContext<'context>,
+/// https://drafts.csswg.org/css-flexbox/#flex-items
+struct FlexContainerBuilder<'a, Node> {
+    context: &'a LayoutContext<'a>,
+    node: Node,
+    style: &'a Arc<ComputedValues>,
+    anonymous_style: Option<Arc<ComputedValues>>,
     text_decoration_line: TextDecorationLine,
-    flex_container: FlexContainer,
+    contiguous_text_runs: Vec<TextRun>,
+    children: Vec<ArcRefCell<FlexLevelBox>>,
 }
 
-impl<'context, 'dom, Node: 'dom> TraversalHandler<'dom, Node> for FlexContainerBuilder<'context>
+impl<'a, 'dom, Node: 'dom> TraversalHandler<'dom, Node> for FlexContainerBuilder<'a, Node>
 where
     Node: NodeExt<'dom>,
 {
@@ -74,10 +82,11 @@ where
         text: Cow<'dom, str>,
         parent_style: &Arc<ComputedValues>,
     ) {
-        // FIXME
-        let _ = node;
-        let _ = text;
-        let _ = parent_style;
+        self.contiguous_text_runs.push(TextRun {
+            tag: node.as_opaque(),
+            parent_style: parent_style.clone(),
+            text: text.into(),
+        })
     }
 
     /// Or pseudo-element
@@ -89,6 +98,11 @@ where
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
+        // FIXME: are text runs considered "contiguous" if they are only separated
+        // by an out-of-flow abspos element?
+        // (That is, are they wrapped in the same anonymous flex item, or each its own?)
+        self.wrap_any_text_in_anonymous_block_container();
+
         let display_inside = match display {
             DisplayGeneratingBox::OutsideInside { inside, .. } => inside,
         };
@@ -104,18 +118,76 @@ where
                 ),
             )))
         } else {
-            ArcRefCell::new(FlexLevelBox::FlexItem(IndependentFormattingContext::construct(
+            ArcRefCell::new(FlexLevelBox::FlexItem(
+                IndependentFormattingContext::construct(
+                    self.context,
+                    node,
+                    style.clone(),
+                    display_inside,
+                    contents,
+                    ContentSizesRequest::None, // FIXME: request sizes when we start using them
+                    self.text_decoration_line,
+                ),
+            ))
+        };
+        self.children.push(box_.clone());
+        box_slot.set(LayoutBox::FlexLevel(box_))
+    }
+}
+
+/// https://drafts.csswg.org/css-text/#white-space
+fn is_only_document_white_space(string: &str) -> bool {
+    // FIXME: is this the right definition? See
+    // https://github.com/w3c/csswg-drafts/issues/5146
+    // https://github.com/w3c/csswg-drafts/issues/5147
+    string
+        .bytes()
+        .all(|byte| matches!(byte, b' ' | b'\n' | b'\t'))
+}
+
+impl<'a, 'dom, Node: 'dom> FlexContainerBuilder<'a, Node>
+where
+    Node: NodeExt<'dom>,
+{
+    fn wrap_any_text_in_anonymous_block_container(&mut self) {
+        if self
+            .contiguous_text_runs
+            .iter()
+            .all(|run| is_only_document_white_space(&run.text))
+        {
+            // There is no text run, or they all only contain document white space characters
+            self.contiguous_text_runs.clear();
+            return;
+        }
+        let context = self.context;
+        let style = self.style;
+        let anonymous_style = self.anonymous_style.get_or_insert_with(|| {
+            context
+                .shared_context()
+                .stylist
+                .style_for_anonymous::<Node::ConcreteElement>(
+                    &context.shared_context().guards,
+                    &style::selector_parser::PseudoElement::ServoText,
+                    style,
+                )
+        });
+        self.children.push(ArcRefCell::new(FlexLevelBox::FlexItem(
+            IndependentFormattingContext::construct_for_text_runs(
                 self.context,
-                node,
-                style.clone(),
-                display_inside,
-                contents,
+                self.node,
+                anonymous_style.clone(),
+                self.contiguous_text_runs.drain(..),
                 ContentSizesRequest::None, // FIXME: request sizes when we start using them
                 self.text_decoration_line,
-            )))
-        };
-        self.flex_container.children.push(box_.clone());
-        box_slot.set(LayoutBox::FlexLevel(box_))
+            ),
+        )))
+    }
+
+    fn finish(mut self) -> FlexContainer {
+        self.wrap_any_text_in_anonymous_block_container();
+        FlexContainer {
+            children: self.children,
+        }
     }
 }
 
