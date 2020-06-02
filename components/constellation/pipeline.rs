@@ -584,6 +584,7 @@ impl UnprivilegedPipelineContent {
                 self.opts.exit_after_load ||
                 self.opts.webdriver_port.is_some(),
             self.opts.unminify_js,
+            self.opts.local_script_source,
             self.opts.userscripts,
             self.opts.headless,
             self.opts.replace_surrogates,
