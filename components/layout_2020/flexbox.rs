@@ -185,6 +185,17 @@ where
 
     fn finish(mut self) -> FlexContainer {
         self.wrap_any_text_in_anonymous_block_container();
+
+        // https://drafts.csswg.org/css-flexbox/#order-modified-document-order
+        self.children.sort_by_key(|child| match &*child.borrow() {
+            FlexLevelBox::FlexItem(item) => item.style.clone_order(),
+
+            // “Absolutely-positioned children of a flex container are treated
+            //  as having order: 0 for the purpose of determining their painting order
+            //  relative to flex items.”
+            FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => 0,
+        });
+
         FlexContainer {
             children: self.children,
         }
