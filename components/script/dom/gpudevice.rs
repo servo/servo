@@ -98,7 +98,6 @@ impl GPUDevice {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,
@@ -647,7 +646,13 @@ impl GPUDeviceMethods for GPUDevice {
 
         let encoder = webgpu::WebGPUCommandEncoder(command_encoder_id);
 
-        GPUCommandEncoder::new(&self.global(), self.channel.clone(), encoder, true)
+        GPUCommandEncoder::new(
+            &self.global(),
+            self.channel.clone(),
+            self.device,
+            encoder,
+            true,
+        )
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture

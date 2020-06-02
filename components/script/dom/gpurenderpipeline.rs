@@ -54,6 +54,12 @@ impl GPURenderPipeline {
     }
 }
 
+impl GPURenderPipeline {
+    pub fn id(&self) -> WebGPURenderPipeline {
+        self.render_pipeline
+    }
+}
+
 impl GPURenderPipelineMethods for GPURenderPipeline {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn GetLabel(&self) -> Option<DOMString> {

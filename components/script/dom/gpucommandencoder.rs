@@ -6,6 +6,10 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUSize64;
 use crate::dom::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
     GPUCommandBufferDescriptor, GPUCommandEncoderMethods, GPUComputePassDescriptor,
+    GPURenderPassDescriptor, GPUStencilLoadValue, GPUStoreOp,
+};
+use crate::dom::bindings::codegen::UnionTypes::{
+    GPULoadOpOrDoubleSequenceOrGPUColorDict as GPUColorLoad, GPULoadOpOrFloat,
 };
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -15,17 +19,20 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
+use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::collections::HashSet;
-use webgpu::wgt::BufferUsage;
-use webgpu::{self, WebGPU, WebGPURequest};
+use webgpu::wgpu::command::{
+    RawPass, RenderPassColorAttachmentDescriptor, RenderPassDepthStencilAttachmentDescriptor,
+    RenderPassDescriptor,
+};
+use webgpu::{self, wgt, WebGPU, WebGPUDevice, WebGPURequest};
 
 const BUFFER_COPY_ALIGN_MASK: u64 = 3;
 
 // https://gpuweb.github.io/gpuweb/#enumdef-encoder-state
 #[derive(MallocSizeOf, PartialEq)]
-#[allow(dead_code)]
 pub enum GPUCommandEncoderState {
     Open,
     EncodingRenderPass,
@@ -42,19 +49,22 @@ pub struct GPUCommandEncoder {
     encoder: webgpu::WebGPUCommandEncoder,
     buffers: DomRefCell<HashSet<DomRoot<GPUBuffer>>>,
     state: DomRefCell<GPUCommandEncoderState>,
+    device: WebGPUDevice,
     valid: Cell<bool>,
 }
 
 impl GPUCommandEncoder {
     pub fn new_inherited(
         channel: WebGPU,
+        device: WebGPUDevice,
         encoder: webgpu::WebGPUCommandEncoder,
         valid: bool,
-    ) -> GPUCommandEncoder {
-        GPUCommandEncoder {
+    ) -> Self {
+        Self {
             channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
+            device,
             encoder,
             buffers: DomRefCell::new(HashSet::new()),
             state: DomRefCell::new(GPUCommandEncoderState::Open),
@@ -65,11 +75,14 @@ impl GPUCommandEncoder {
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,
+        device: WebGPUDevice,
         encoder: webgpu::WebGPUCommandEncoder,
         valid: bool,
-    ) -> DomRoot<GPUCommandEncoder> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUCommandEncoder::new_inherited(channel, encoder, valid)),
+            Box::new(GPUCommandEncoder::new_inherited(
+                channel, device, encoder, valid,
+            )),
             global,
         )
     }
@@ -113,6 +126,92 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         GPUComputePassEncoder::new(&self.global(), self.channel.clone(), &self)
     }
 
+    #[allow(unsafe_code)]
+    /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-beginrenderpass
+    fn BeginRenderPass(
+        &self,
+        descriptor: &GPURenderPassDescriptor,
+    ) -> DomRoot<GPURenderPassEncoder> {
+        self.set_state(
+            GPUCommandEncoderState::EncodingRenderPass,
+            GPUCommandEncoderState::Open,
+        );
+
+        let colors = descriptor
+            .colorAttachments
+            .iter()
+            .map(|color| {
+                let (load_op, clear_color) = match color.loadValue {
+                    GPUColorLoad::GPULoadOp(_) => (wgt::LoadOp::Load, wgt::Color::TRANSPARENT),
+                    GPUColorLoad::DoubleSequence(ref s) => (
+                        wgt::LoadOp::Clear,
+                        wgt::Color {
+                            r: *s[0],
+                            g: *s[1],
+                            b: *s[2],
+                            a: *s[3],
+                        },
+                    ),
+                    GPUColorLoad::GPUColorDict(ref d) => (
+                        wgt::LoadOp::Clear,
+                        wgt::Color {
+                            r: *d.r,
+                            g: *d.g,
+                            b: *d.b,
+                            a: *d.a,
+                        },
+                    ),
+                };
+                RenderPassColorAttachmentDescriptor {
+                    attachment: color.attachment.id().0,
+                    resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
+                    load_op,
+                    store_op: match color.storeOp {
+                        GPUStoreOp::Store => wgt::StoreOp::Store,
+                        GPUStoreOp::Clear => wgt::StoreOp::Clear,
+                    },
+                    clear_color,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let depth_stencil = descriptor.depthStencilAttachment.as_ref().map(|depth| {
+            let (depth_load_op, clear_depth) = match depth.depthLoadValue {
+                GPULoadOpOrFloat::GPULoadOp(_) => (wgt::LoadOp::Load, 0.0f32),
+                GPULoadOpOrFloat::Float(f) => (wgt::LoadOp::Clear, *f),
+            };
+            let (stencil_load_op, clear_stencil) = match depth.stencilLoadValue {
+                GPUStencilLoadValue::GPULoadOp(_) => (wgt::LoadOp::Load, 0u32),
+                GPUStencilLoadValue::RangeEnforcedUnsignedLong(l) => (wgt::LoadOp::Clear, l),
+            };
+            RenderPassDepthStencilAttachmentDescriptor {
+                attachment: depth.attachment.id().0,
+                depth_load_op,
+                depth_store_op: match depth.depthStoreOp {
+                    GPUStoreOp::Store => wgt::StoreOp::Store,
+                    GPUStoreOp::Clear => wgt::StoreOp::Clear,
+                },
+                clear_depth,
+                stencil_load_op,
+                stencil_store_op: match depth.stencilStoreOp {
+                    GPUStoreOp::Store => wgt::StoreOp::Store,
+                    GPUStoreOp::Clear => wgt::StoreOp::Clear,
+                },
+                clear_stencil,
+            }
+        });
+
+        let desc = RenderPassDescriptor {
+            color_attachments: colors.as_ptr(),
+            color_attachments_length: colors.len(),
+            depth_stencil_attachment: depth_stencil.as_ref(),
+        };
+
+        let raw_pass = unsafe { RawPass::new_render(self.id().0, &desc) };
+
+        GPURenderPassEncoder::new(&self.global(), self.channel.clone(), raw_pass, &self)
+    }
+
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-copybuffertobuffer
     fn CopyBufferToBuffer(
         &self,
@@ -130,12 +229,12 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             Some(_) => true,
             None => false,
         };
-        valid &= match BufferUsage::from_bits(source.usage()) {
-            Some(usage) => usage.contains(BufferUsage::COPY_SRC),
+        valid &= match wgt::BufferUsage::from_bits(source.usage()) {
+            Some(usage) => usage.contains(wgt::BufferUsage::COPY_SRC),
             None => false,
         };
-        valid &= match BufferUsage::from_bits(destination.usage()) {
-            Some(usage) => usage.contains(BufferUsage::COPY_DST),
+        valid &= match wgt::BufferUsage::from_bits(destination.usage()) {
+            Some(usage) => usage.contains(wgt::BufferUsage::COPY_DST),
             None => false,
         };
         valid &= (*self.state.borrow() == GPUCommandEncoderState::Open) &&
