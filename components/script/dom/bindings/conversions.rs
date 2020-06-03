@@ -452,13 +452,10 @@ where
 /// Returns Err(()) if `obj` is a wrapper or if the object is not an object
 /// for a DOM object of the given type (as defined by the proto_id and proto_depth).
 #[inline]
-pub unsafe fn private_from_proto_check_static<F>(
+unsafe fn private_from_proto_check_static(
     obj: *mut JSObject,
-    proto_check: F,
-) -> Result<*const libc::c_void, ()>
-where
-    F: Fn(&'static DOMClass) -> bool,
-{
+    proto_check: fn(&'static DOMClass) -> bool,
+) -> Result<*const libc::c_void, ()> {
     let dom_class = get_dom_class(obj).map_err(|_| ())?;
     if proto_check(dom_class) {
         trace!("good prototype");
