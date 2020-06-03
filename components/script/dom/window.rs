@@ -137,7 +137,8 @@ use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
-use style::properties::{ComputedValues, PropertyId, ShorthandId};
+use style::properties::style_structs::Font;
+use style::properties::{PropertyId, ShorthandId};
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
@@ -1848,16 +1849,16 @@ impl Window {
         )
     }
 
-    pub fn parse_font_query(&self, node: &Node, value: String) -> Option<ServoArc<ComputedValues>> {
+    pub fn resolved_font_style_query(&self, node: &Node, value: String) -> Option<ServoArc<Font>> {
         let id = PropertyId::Shorthand(ShorthandId::Font);
-        if !self.layout_reflow(QueryMsg::ParseFontQuery(
+        if !self.layout_reflow(QueryMsg::ResolvedFontStyleQuery(
             node.to_trusted_node_address(),
             id,
             value,
         )) {
             return None;
         }
-        self.layout_rpc.parsed_font()
+        self.layout_rpc.resolved_font_style()
     }
 
     pub fn layout(&self) -> &dyn LayoutRPC {
@@ -2513,11 +2514,11 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
             &QueryMsg::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
             &QueryMsg::NodeScrollIdQuery(_n) => "\tNodeScrollIdQuery",
             &QueryMsg::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
+            &QueryMsg::ResolvedFontStyleQuery(..) => "\nResolvedFontStyleQuery",
             &QueryMsg::OffsetParentQuery(_n) => "\tOffsetParentQuery",
             &QueryMsg::StyleQuery => "\tStyleQuery",
             &QueryMsg::TextIndexQuery(..) => "\tTextIndexQuery",
             &QueryMsg::ElementInnerTextQuery(_) => "\tElementInnerTextQuery",
-            &QueryMsg::ParseFontQuery(..) => "\nParseFontQuery",
             &QueryMsg::InnerWindowDimensionsQuery(_) => "\tInnerWindowDimensionsQuery",
         },
     };

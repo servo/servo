@@ -288,7 +288,8 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
-        self.canvas_state.fill_text(text, x, y, max_width);
+        self.canvas_state
+            .fill_text(self.canvas.as_ref().map(|c| &**c), text, x, y, max_width);
         self.mark_as_dirty();
     }
 

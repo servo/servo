@@ -60,11 +60,6 @@ impl OffscreenCanvasRenderingContext2D {
         ));
         reflect_dom_object(boxed, global)
     }
-    /*
-    pub fn get_canvas_state(&self) -> Ref<CanvasState> {
-        self.canvas_state.borrow()
-    }
-    */
 
     pub fn set_canvas_bitmap_dimensions(&self, size: Size2D<u64>) {
         self.canvas_state.set_bitmap_dimensions(size);
@@ -249,7 +244,13 @@ impl OffscreenCanvasRenderingContext2DMethods for OffscreenCanvasRenderingContex
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
-        self.canvas_state.fill_text(text, x, y, max_width)
+        self.canvas_state.fill_text(
+            self.htmlcanvas.as_ref().map(|c| &**c),
+            text,
+            x,
+            y,
+            max_width,
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#textmetrics

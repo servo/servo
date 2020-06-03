@@ -40,9 +40,10 @@ use style::computed_values::visibility::T as Visibility;
 use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use style::dom::TElement;
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
+use style::properties::style_structs::{self, Font};
 use style::properties::{
-    parse_one_declaration_into, style_structs, ComputedValues, Importance, LonghandId,
-    PropertyDeclarationBlock, PropertyDeclarationId, PropertyId, SourcePropertyDeclaration,
+    parse_one_declaration_into, ComputedValues, Importance, LonghandId, PropertyDeclarationBlock,
+    PropertyDeclarationId, PropertyId, SourcePropertyDeclaration,
 };
 use style::selector_parser::PseudoElement;
 use style::shared_lock::SharedRwLock;
@@ -80,7 +81,7 @@ pub struct LayoutThreadData {
     pub resolved_style_response: String,
 
     /// A queued response for the resolved font style for canvas.
-    pub parse_font_response: Option<ServoArc<ComputedValues>>,
+    pub resolved_font_style_response: Option<ServoArc<Font>>,
 
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
@@ -179,10 +180,10 @@ impl LayoutRPC for LayoutRPCImpl {
         ResolvedStyleResponse(rw_data.resolved_style_response.clone())
     }
 
-    fn parsed_font(&self) -> Option<ServoArc<ComputedValues>> {
+    fn resolved_font_style(&self) -> Option<ServoArc<Font>> {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
-        rw_data.parse_font_response.clone()
+        rw_data.resolved_font_style_response.clone()
     }
 
     fn offset_parent(&self) -> OffsetParentResponse {
@@ -800,14 +801,14 @@ where
         )
 }
 
-pub fn process_parse_font_request<'dom, E>(
+pub fn process_resolved_font_style_request<'dom, E>(
     context: &LayoutContext,
     node: E,
     value: &str,
     property: &PropertyId,
     url_data: ServoUrl,
     shared_lock: &SharedRwLock,
-) -> Option<ServoArc<ComputedValues>>
+) -> Option<ServoArc<Font>>
 where
     E: LayoutNode<'dom>,
 {
@@ -846,12 +847,14 @@ where
     };
 
     // 3. Resolve the parsed value with resolved styles of the parent element
-    Some(resolve_for_declarations::<E>(
+    let computed_values = resolve_for_declarations::<E>(
         &context.style_context,
         Some(&*parent_style),
         declarations,
         shared_lock,
-    ))
+    );
+
+    Some(computed_values.clone_font())
 }
 
 /// Return the resolved value of property for a given (pseudo)element.

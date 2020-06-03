@@ -49,6 +49,7 @@ use std::cell::Cell;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
+use style::properties::style_structs::Font;
 
 #[unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -86,6 +87,7 @@ pub(crate) struct CanvasContextState {
     shadow_offset_y: f64,
     shadow_blur: f64,
     shadow_color: RGBA,
+    font_style: Option<Font>,
 }
 
 impl CanvasContextState {
@@ -106,6 +108,7 @@ impl CanvasContextState {
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
             shadow_color: RGBA::transparent(),
+            font_style: None,
         }
     }
 }
@@ -987,9 +990,18 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
-    pub fn fill_text(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
-        let is_max_width_finite = max_width.map_or(true, |max_width| max_width.is_finite());
-        if !(x.is_finite() && y.is_finite() && is_max_width_finite) {
+    pub fn fill_text(
+        &self,
+        _canvas: Option<&HTMLCanvasElement>,
+        text: DOMString,
+        x: f64,
+        y: f64,
+        max_width: Option<f64>,
+    ) {
+        if !x.is_finite() || !y.is_finite() {
+            return;
+        }
+        if max_width.map_or(false, |max_width| !max_width.is_finite() || max_width <= 0.) {
             return;
         }
 
@@ -1008,14 +1020,17 @@ impl CanvasState {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
     pub fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
-        let _resolved_font = if let Some(element) = canvas {
-            let node = element.upcast::<Node>();
-            let window = window_from_node(&*node);
-            window.parse_font_query(&node, value.to_string())
-        } else {
-            None
+        let canvas = match canvas {
+            Some(element) => element,
+            None => return,
         };
-        unimplemented!()
+        let node = canvas.upcast::<Node>();
+        let window = window_from_node(&*canvas);
+        let font_style = match window.resolved_font_style_query(&node, value.to_string()) {
+            Some(value) => value,
+            None => return, // syntax error
+        };
+        self.state.borrow_mut().font_style = Some((*font_style).clone());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font

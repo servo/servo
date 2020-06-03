@@ -914,7 +914,9 @@ impl LayoutThread {
                         &QueryMsg::ResolvedStyleQuery(_, _, _) => {
                             rw_data.resolved_style_response = String::new();
                         },
-                        &QueryMsg::ParseFontQuery(_, _, _) => unimplemented!(),
+                        &QueryMsg::ResolvedFontStyleQuery(_, _, _) => {
+                            rw_data.resolved_font_style_response = None;
+                        },
                         &QueryMsg::OffsetParentQuery(_) => {
                             rw_data.offset_parent_response = OffsetParentResponse::empty();
                         },
@@ -1207,7 +1209,7 @@ impl LayoutThread {
                         fragment_tree,
                     );
                 },
-                &QueryMsg::ParseFontQuery(_, _, _) => unimplemented!(),
+                &QueryMsg::ResolvedFontStyleQuery(_, _, _) => unimplemented!(),
                 &QueryMsg::OffsetParentQuery(node) => {
                     rw_data.offset_parent_response = process_offset_parent_query(node);
                 },

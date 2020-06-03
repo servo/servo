@@ -28,7 +28,8 @@ use style::computed_values::position::T as Position;
 use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::OpaqueNode;
 use style::dom::TElement;
-use style::properties::{ComputedValues, LonghandId, PropertyDeclarationId, PropertyId};
+use style::properties::style_structs::Font;
+use style::properties::{LonghandId, PropertyDeclarationId, PropertyId};
 use style::selector_parser::PseudoElement;
 use style::stylist::RuleInclusion;
 use style::traversal::resolve_style;
@@ -65,6 +66,9 @@ pub struct LayoutThreadData {
 
     /// A queued response for the resolved style property of an element.
     pub resolved_style_response: String,
+
+    /// A queued response for the resolved font style for canvas.
+    pub resolved_font_style_response: Option<ServoArc<Font>>,
 
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
@@ -140,8 +144,10 @@ impl LayoutRPC for LayoutRPCImpl {
         ResolvedStyleResponse(rw_data.resolved_style_response.clone())
     }
 
-    fn parsed_font(&self) -> Option<ServoArc<ComputedValues>> {
-        unimplemented!()
+    fn resolved_font_style(&self) -> Option<ServoArc<Font>> {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        rw_data.resolved_font_style_response.clone()
     }
 
     fn offset_parent(&self) -> OffsetParentResponse {
