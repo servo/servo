@@ -8,7 +8,6 @@
     <script src="/resources/testharnessreport.js"></script>
   </head>
   <body>
-    <iframe sandbox="allow-top-navigation allow-scripts"></iframe>
     <script>
       // We are the main test page.  Open a popup, so that we can
       // can experiment navigation of the top frame.
@@ -17,7 +16,8 @@
           assert_equals(e.data, "can navigate");
           e.source.close();
         }));
-        window.open("support/load-into-the-iframe.html");
+        let sandbox = "allow-top-navigation allow-scripts";
+        window.open("support/load-into-the-iframe.html?sandbox=" + sandbox);
       }, "Frames with `allow-top-navigation` should be able to navigate the top frame.");
     </script>
   </body>

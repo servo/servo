@@ -7,13 +7,18 @@
   <body>
     <iframe sandbox="allow-scripts"></iframe>
     <script>
+      let frame = document.querySelector("iframe");
+      let sandbox = new URL(location.href).searchParams.get("sandbox");
+      if (sandbox) {
+        frame.sandbox = sandbox;
+      }
       // We're the popup (i.e. a top frame).  Load into the iframe the page
       // trying to modifying the top frame and transmit the result to our
       // opener.
       onmessage = function(e) {
         opener.postMessage(e.data, "*")
       }
-      document.querySelector("iframe").src = "iframe-that-performs-top-navigation-on-popup.html";
+      frame.src = "iframe-that-performs-top-navigation-on-popup.html";
     </script>
   </body>
 </html>

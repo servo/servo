@@ -796,3 +796,32 @@ const gInvalidKeyframeEffectOptionTests = [
   { desc: 'a variable easing', input: { easing: 'var(--x)' } },
   { desc: 'a multi-value easing', input: { easing: 'ease-in-out, ease-out' } },
 ];
+
+// There is currently only ScrollTimeline that can be constructed and used here
+// beyond document timeline. Given that ScrollTimeline is not stable as of yet
+// it's tested in scroll-animations/animation-with-animatable-interface.html.
+const gAnimationTimelineTests = [
+  {
+    expectedTimeline: document.timeline,
+    expectedTimelineDescription: 'document.timeline',
+    description: 'with no timeline parameter'
+  },
+  {
+    timeline: undefined,
+    expectedTimeline: document.timeline,
+    expectedTimelineDescription: 'document.timeline',
+    description: 'with undefined timeline'
+  },
+  {
+    timeline: null,
+    expectedTimeline: null,
+    expectedTimelineDescription: 'null',
+    description: 'with null timeline'
+  },
+  {
+    timeline: document.timeline,
+    expectedTimeline: document.timeline,
+    expectedTimelineDescription: 'document.timeline',
+    description: 'with DocumentTimeline'
+  },
+];

@@ -202,6 +202,18 @@ async_test(t => {
 }, 'Element.animate() correctly sets the Animation\'s timeline when ' +
    'triggered on an element in a different document');
 
+for (const subtest of gAnimationTimelineTests) {
+  test(t => {
+    const anim = createDiv(t).animate(null, { timeline: subtest.timeline });
+    assert_not_equals(anim, null,
+                      'An animation sohuld be created');
+    assert_equals(anim.timeline, subtest.expectedTimeline,
+                  'Animation timeline should be '+
+                  subtest.expectedTimelineDescription);
+  }, 'Element.animate() correctly sets the Animation\'s timeline '
+     + subtest.description + ' in KeyframeAnimationOptions.');
+}
+
 test(t => {
   const anim = createDiv(t).animate(null, 2000);
   assert_equals(anim.playState, 'running');
