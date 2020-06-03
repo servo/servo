@@ -538,225 +538,223 @@ macro_rules! system_metric_feature {
     }};
 }
 
-lazy_static! {
-    /// Adding new media features requires (1) adding the new feature to this
-    /// array, with appropriate entries (and potentially any new code needed
-    /// to support new types in these entries and (2) ensuring that either
-    /// nsPresContext::MediaFeatureValuesChanged is called when the value that
-    /// would be returned by the evaluator function could change.
-    pub static ref MEDIA_FEATURES: [MediaFeatureDescription; 53] = [
-        feature!(
-            atom!("width"),
-            AllowsRanges::Yes,
-            Evaluator::Length(eval_width),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("height"),
-            AllowsRanges::Yes,
-            Evaluator::Length(eval_height),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("aspect-ratio"),
-            AllowsRanges::Yes,
-            Evaluator::NumberRatio(eval_aspect_ratio),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("orientation"),
-            AllowsRanges::No,
-            keyword_evaluator!(eval_orientation, Orientation),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("device-width"),
-            AllowsRanges::Yes,
-            Evaluator::Length(eval_device_width),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("device-height"),
-            AllowsRanges::Yes,
-            Evaluator::Length(eval_device_height),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("device-aspect-ratio"),
-            AllowsRanges::Yes,
-            Evaluator::NumberRatio(eval_device_aspect_ratio),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("-moz-device-orientation"),
-            AllowsRanges::No,
-            keyword_evaluator!(eval_device_orientation, Orientation),
-            ParsingRequirements::empty(),
-        ),
-        // Webkit extensions that we support for de-facto web compatibility.
-        // -webkit-{min|max}-device-pixel-ratio (controlled with its own pref):
-        feature!(
-            atom!("device-pixel-ratio"),
-            AllowsRanges::Yes,
-            Evaluator::Float(eval_device_pixel_ratio),
-            ParsingRequirements::WEBKIT_PREFIX,
-        ),
-        // -webkit-transform-3d.
-        feature!(
-            atom!("transform-3d"),
-            AllowsRanges::No,
-            Evaluator::BoolInteger(eval_transform_3d),
-            ParsingRequirements::WEBKIT_PREFIX,
-        ),
-        feature!(
-            atom!("-moz-device-pixel-ratio"),
-            AllowsRanges::Yes,
-            Evaluator::Float(eval_device_pixel_ratio),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("resolution"),
-            AllowsRanges::Yes,
-            Evaluator::Resolution(eval_resolution),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("display-mode"),
-            AllowsRanges::No,
-            keyword_evaluator!(eval_display_mode, DisplayMode),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("grid"),
-            AllowsRanges::No,
-            Evaluator::BoolInteger(eval_grid),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("scan"),
-            AllowsRanges::No,
-            keyword_evaluator!(eval_scan, Scan),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("color"),
-            AllowsRanges::Yes,
-            Evaluator::Integer(eval_color),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("color-index"),
-            AllowsRanges::Yes,
-            Evaluator::Integer(eval_color_index),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("monochrome"),
-            AllowsRanges::Yes,
-            Evaluator::Integer(eval_monochrome),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("prefers-reduced-motion"),
-            AllowsRanges::No,
-            keyword_evaluator!(eval_prefers_reduced_motion, PrefersReducedMotion),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("overflow-block"),
-            AllowsRanges::No,
-            keyword_evaluator!(eval_overflow_block, OverflowBlock),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("overflow-inline"),
-            AllowsRanges::No,
-            keyword_evaluator!(eval_overflow_inline, OverflowInline),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("prefers-color-scheme"),
-            AllowsRanges::No,
-            keyword_evaluator!(eval_prefers_color_scheme, PrefersColorScheme),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("pointer"),
-            AllowsRanges::No,
-            keyword_evaluator!(eval_pointer, Pointer),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("any-pointer"),
-            AllowsRanges::No,
-            keyword_evaluator!(eval_any_pointer, Pointer),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("hover"),
-            AllowsRanges::No,
-            keyword_evaluator!(eval_hover, Hover),
-            ParsingRequirements::empty(),
-        ),
-        feature!(
-            atom!("any-hover"),
-            AllowsRanges::No,
-            keyword_evaluator!(eval_any_hover, Hover),
-            ParsingRequirements::empty(),
-        ),
+/// Adding new media features requires (1) adding the new feature to this
+/// array, with appropriate entries (and potentially any new code needed
+/// to support new types in these entries and (2) ensuring that either
+/// nsPresContext::MediaFeatureValuesChanged is called when the value that
+/// would be returned by the evaluator function could change.
+pub static MEDIA_FEATURES: [MediaFeatureDescription; 53] = [
+    feature!(
+        atom!("width"),
+        AllowsRanges::Yes,
+        Evaluator::Length(eval_width),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("height"),
+        AllowsRanges::Yes,
+        Evaluator::Length(eval_height),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("aspect-ratio"),
+        AllowsRanges::Yes,
+        Evaluator::NumberRatio(eval_aspect_ratio),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("orientation"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_orientation, Orientation),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("device-width"),
+        AllowsRanges::Yes,
+        Evaluator::Length(eval_device_width),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("device-height"),
+        AllowsRanges::Yes,
+        Evaluator::Length(eval_device_height),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("device-aspect-ratio"),
+        AllowsRanges::Yes,
+        Evaluator::NumberRatio(eval_device_aspect_ratio),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("-moz-device-orientation"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_device_orientation, Orientation),
+        ParsingRequirements::empty(),
+    ),
+    // Webkit extensions that we support for de-facto web compatibility.
+    // -webkit-{min|max}-device-pixel-ratio (controlled with its own pref):
+    feature!(
+        atom!("device-pixel-ratio"),
+        AllowsRanges::Yes,
+        Evaluator::Float(eval_device_pixel_ratio),
+        ParsingRequirements::WEBKIT_PREFIX,
+    ),
+    // -webkit-transform-3d.
+    feature!(
+        atom!("transform-3d"),
+        AllowsRanges::No,
+        Evaluator::BoolInteger(eval_transform_3d),
+        ParsingRequirements::WEBKIT_PREFIX,
+    ),
+    feature!(
+        atom!("-moz-device-pixel-ratio"),
+        AllowsRanges::Yes,
+        Evaluator::Float(eval_device_pixel_ratio),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("resolution"),
+        AllowsRanges::Yes,
+        Evaluator::Resolution(eval_resolution),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("display-mode"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_display_mode, DisplayMode),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("grid"),
+        AllowsRanges::No,
+        Evaluator::BoolInteger(eval_grid),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("scan"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_scan, Scan),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("color"),
+        AllowsRanges::Yes,
+        Evaluator::Integer(eval_color),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("color-index"),
+        AllowsRanges::Yes,
+        Evaluator::Integer(eval_color_index),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("monochrome"),
+        AllowsRanges::Yes,
+        Evaluator::Integer(eval_monochrome),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("prefers-reduced-motion"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_prefers_reduced_motion, PrefersReducedMotion),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("overflow-block"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_overflow_block, OverflowBlock),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("overflow-inline"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_overflow_inline, OverflowInline),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("prefers-color-scheme"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_prefers_color_scheme, PrefersColorScheme),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("pointer"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_pointer, Pointer),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("any-pointer"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_any_pointer, Pointer),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("hover"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_hover, Hover),
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("any-hover"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_any_hover, Hover),
+        ParsingRequirements::empty(),
+    ),
 
-        // Internal -moz-is-glyph media feature: applies only inside SVG glyphs.
-        // Internal because it is really only useful in the user agent anyway
-        // and therefore not worth standardizing.
-        feature!(
-            atom!("-moz-is-glyph"),
-            AllowsRanges::No,
-            Evaluator::BoolInteger(eval_moz_is_glyph),
-            ParsingRequirements::CHROME_AND_UA_ONLY,
-        ),
-        feature!(
-            atom!("-moz-is-resource-document"),
-            AllowsRanges::No,
-            Evaluator::BoolInteger(eval_moz_is_resource_document),
-            ParsingRequirements::CHROME_AND_UA_ONLY,
-        ),
-        feature!(
-            atom!("-moz-os-version"),
-            AllowsRanges::No,
-            Evaluator::Ident(eval_moz_os_version),
-            ParsingRequirements::CHROME_AND_UA_ONLY,
-        ),
-        system_metric_feature!(atom!("-moz-scrollbar-start-backward")),
-        system_metric_feature!(atom!("-moz-scrollbar-start-forward")),
-        system_metric_feature!(atom!("-moz-scrollbar-end-backward")),
-        system_metric_feature!(atom!("-moz-scrollbar-end-forward")),
-        system_metric_feature!(atom!("-moz-scrollbar-thumb-proportional")),
-        system_metric_feature!(atom!("-moz-overlay-scrollbars")),
-        system_metric_feature!(atom!("-moz-windows-default-theme")),
-        system_metric_feature!(atom!("-moz-mac-graphite-theme")),
-        system_metric_feature!(atom!("-moz-mac-yosemite-theme")),
-        system_metric_feature!(atom!("-moz-windows-accent-color-in-titlebar")),
-        system_metric_feature!(atom!("-moz-windows-compositor")),
-        system_metric_feature!(atom!("-moz-windows-classic")),
-        system_metric_feature!(atom!("-moz-windows-glass")),
-        system_metric_feature!(atom!("-moz-menubar-drag")),
-        system_metric_feature!(atom!("-moz-swipe-animation-enabled")),
-        system_metric_feature!(atom!("-moz-gtk-csd-available")),
-        system_metric_feature!(atom!("-moz-gtk-csd-hide-titlebar-by-default")),
-        system_metric_feature!(atom!("-moz-gtk-csd-transparent-background")),
-        system_metric_feature!(atom!("-moz-gtk-csd-minimize-button")),
-        system_metric_feature!(atom!("-moz-gtk-csd-maximize-button")),
-        system_metric_feature!(atom!("-moz-gtk-csd-close-button")),
-        system_metric_feature!(atom!("-moz-gtk-csd-reversed-placement")),
-        system_metric_feature!(atom!("-moz-system-dark-theme")),
-        // This is the only system-metric media feature that's accessible to
-        // content as of today.
-        // FIXME(emilio): Restrict (or remove?) when bug 1035774 lands.
-        feature!(
-            atom!("-moz-touch-enabled"),
-            AllowsRanges::No,
-            Evaluator::BoolInteger(eval_moz_touch_enabled),
-            ParsingRequirements::empty(),
-        ),
-    ];
-}
+    // Internal -moz-is-glyph media feature: applies only inside SVG glyphs.
+    // Internal because it is really only useful in the user agent anyway
+    // and therefore not worth standardizing.
+    feature!(
+        atom!("-moz-is-glyph"),
+        AllowsRanges::No,
+        Evaluator::BoolInteger(eval_moz_is_glyph),
+        ParsingRequirements::CHROME_AND_UA_ONLY,
+    ),
+    feature!(
+        atom!("-moz-is-resource-document"),
+        AllowsRanges::No,
+        Evaluator::BoolInteger(eval_moz_is_resource_document),
+        ParsingRequirements::CHROME_AND_UA_ONLY,
+    ),
+    feature!(
+        atom!("-moz-os-version"),
+        AllowsRanges::No,
+        Evaluator::Ident(eval_moz_os_version),
+        ParsingRequirements::CHROME_AND_UA_ONLY,
+    ),
+    system_metric_feature!(atom!("-moz-scrollbar-start-backward")),
+    system_metric_feature!(atom!("-moz-scrollbar-start-forward")),
+    system_metric_feature!(atom!("-moz-scrollbar-end-backward")),
+    system_metric_feature!(atom!("-moz-scrollbar-end-forward")),
+    system_metric_feature!(atom!("-moz-scrollbar-thumb-proportional")),
+    system_metric_feature!(atom!("-moz-overlay-scrollbars")),
+    system_metric_feature!(atom!("-moz-windows-default-theme")),
+    system_metric_feature!(atom!("-moz-mac-graphite-theme")),
+    system_metric_feature!(atom!("-moz-mac-yosemite-theme")),
+    system_metric_feature!(atom!("-moz-windows-accent-color-in-titlebar")),
+    system_metric_feature!(atom!("-moz-windows-compositor")),
+    system_metric_feature!(atom!("-moz-windows-classic")),
+    system_metric_feature!(atom!("-moz-windows-glass")),
+    system_metric_feature!(atom!("-moz-menubar-drag")),
+    system_metric_feature!(atom!("-moz-swipe-animation-enabled")),
+    system_metric_feature!(atom!("-moz-gtk-csd-available")),
+    system_metric_feature!(atom!("-moz-gtk-csd-hide-titlebar-by-default")),
+    system_metric_feature!(atom!("-moz-gtk-csd-transparent-background")),
+    system_metric_feature!(atom!("-moz-gtk-csd-minimize-button")),
+    system_metric_feature!(atom!("-moz-gtk-csd-maximize-button")),
+    system_metric_feature!(atom!("-moz-gtk-csd-close-button")),
+    system_metric_feature!(atom!("-moz-gtk-csd-reversed-placement")),
+    system_metric_feature!(atom!("-moz-system-dark-theme")),
+    // This is the only system-metric media feature that's accessible to
+    // content as of today.
+    // FIXME(emilio): Restrict (or remove?) when bug 1035774 lands.
+    feature!(
+        atom!("-moz-touch-enabled"),
+        AllowsRanges::No,
+        Evaluator::BoolInteger(eval_moz_touch_enabled),
+        ParsingRequirements::empty(),
+    ),
+];
