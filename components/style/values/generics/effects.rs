@@ -17,8 +17,8 @@
     ToAnimatedZero,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericBoxShadow<Color, SizeLength, BlurShapeLength, ShapeLength> {
     /// The base shadow.
@@ -47,8 +47,8 @@ pub use self::GenericBoxShadow as BoxShadow;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericFilter<Angle, NonNegativeFactor, ZeroToOneFactor, Length, Shadow, U> {
     /// `blur(<length>)`
@@ -104,8 +104,8 @@ pub use self::GenericFilter as Filter;
     ToAnimatedZero,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericSimpleShadow<Color, SizeLength, ShapeLength> {
     /// Color.

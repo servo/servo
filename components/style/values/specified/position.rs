@@ -39,7 +39,8 @@ pub type HorizontalPosition = PositionComponent<HorizontalPositionKeyword>;
 pub type VerticalPosition = PositionComponent<VerticalPositionKeyword>;
 
 /// The specified value of a component of a CSS `<position>`.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum PositionComponent<S> {
     /// `center`
     Center,
@@ -63,8 +64,8 @@ pub enum PositionComponent<S> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 #[repr(u8)]
 pub enum HorizontalPositionKeyword {
@@ -86,8 +87,8 @@ pub enum HorizontalPositionKeyword {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 #[repr(u8)]
 pub enum VerticalPositionKeyword {
@@ -369,8 +370,8 @@ bitflags! {
         SpecifiedValueInfo,
         ToComputedValue,
         ToResolvedValue,
-        ToShmem
     )]
+    #[cfg_attr(feature = "gecko", derive(ToShmem))]
     #[value_info(other_values = "row,column,dense")]
     #[repr(C)]
     pub struct GridAutoFlow: u8 {
@@ -459,8 +460,8 @@ impl ToCss for GridAutoFlow {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 /// https://drafts.csswg.org/css-grid/#named-grid-area
 pub struct TemplateAreas {
@@ -584,8 +585,8 @@ impl Parse for TemplateAreas {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct TemplateAreasArc(#[ignore_malloc_size_of = "Arc"] pub Arc<TemplateAreas>);
 
@@ -603,15 +604,9 @@ impl Parse for TemplateAreasArc {
 /// purposes.
 #[repr(C)]
 #[derive(
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct UnsignedRange {
     /// The start of the range.
     pub start: u32,
@@ -620,15 +615,9 @@ pub struct UnsignedRange {
 }
 
 #[derive(
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 /// Not associated with any particular grid item, but can be referenced from the
 /// grid-placement properties.
@@ -692,8 +681,8 @@ fn is_name_code_point(c: char) -> bool {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum GridTemplateAreas {
     /// The `none` value.
     None,

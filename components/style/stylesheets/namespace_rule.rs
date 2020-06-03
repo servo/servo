@@ -12,7 +12,8 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
 /// A `@namespace` rule.
-#[derive(Clone, Debug, PartialEq, ToShmem)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 pub struct NamespaceRule {
     /// The namespace prefix, and `None` if it's the default Namespace

@@ -133,8 +133,8 @@ pub const PAINT_ORDER_MASK: u8 = 0b11;
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct SVGPaintOrder(pub u8);
 
@@ -247,7 +247,8 @@ impl ToCss for SVGPaintOrder {
 
 bitflags! {
     /// The context properties we understand.
-    #[derive(Default, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[derive(Default, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue)]
+    #[cfg_attr(feature = "gecko", derive(ToShmem))]
     #[repr(C)]
     pub struct ContextPropertyBits: u8 {
         /// `fill`
@@ -273,8 +274,8 @@ bitflags! {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct MozContextProperties {
     #[css(iterable, if_empty = "none")]

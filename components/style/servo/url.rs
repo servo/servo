@@ -24,7 +24,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
 ///
 /// TODO(emilio): This should be shrunk by making CssUrl a wrapper type of an
 /// arc, and keep the serialization in that Arc. See gecko/url.rs for example.
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, SpecifiedValueInfo, ToShmem)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize, SpecifiedValueInfo)]
 pub struct CssUrl {
     /// The original URI. This might be optional since we may insert computed
     /// values of images into the cascade directly, and we don't bother to

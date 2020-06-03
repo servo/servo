@@ -19,7 +19,8 @@ use servo_arc::Arc;
 use std::fmt::{self, Write};
 
 /// A style rule, with selectors and declarations.
-#[derive(Debug, ToShmem)]
+#[derive(Debug)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct StyleRule {
     /// The list of selectors in this rule.
     pub selectors: SelectorList<SelectorImpl>,

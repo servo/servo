@@ -132,8 +132,8 @@ impl ToComputedValue for LineHeight {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum TextOverflowSide {
     /// Clip inline content.
@@ -168,7 +168,8 @@ impl Parse for TextOverflowSide {
     }
 }
 
-#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 /// text-overflow. Specifies rendering when inline content overflows its line box edge.
 pub struct TextOverflow {
     /// First value. Applies to end line box edge if no second is supplied; line-left edge otherwise.
@@ -228,7 +229,8 @@ impl ToComputedValue for TextOverflow {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, Serialize, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[derive(MallocSizeOf, Serialize, SpecifiedValueInfo, ToComputedValue, ToResolvedValue)]
+    #[cfg_attr(feature = "gecko", derive(ToShmem))]
     #[value_info(other_values = "none,underline,overline,line-through,blink")]
     #[repr(C)]
     /// Specified keyword values for the text-decoration-line property.
@@ -367,8 +369,8 @@ impl TextDecorationLine {
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 /// Specified value of the text-transform property, stored in two parts:
 /// the case-related transforms (mutually exclusive, only one may be in effect), and others (non-exclusive).
@@ -475,8 +477,8 @@ impl ToCss for TextTransform {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 /// Specified keyword values for case transforms in the text-transform property. (These are exclusive.)
 pub enum TextTransformCase {
@@ -491,7 +493,8 @@ pub enum TextTransformCase {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue)]
+    #[cfg_attr(feature = "gecko", derive(ToShmem))]
     #[value_info(other_values = "none,full-width,full-size-kana")]
     #[repr(C)]
     /// Specified keyword values for non-case transforms in the text-transform property. (Non-exclusive.)
@@ -543,8 +546,8 @@ impl ToCss for TextTransformOther {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 #[repr(u8)]
 pub enum TextAlignLast {
@@ -572,8 +575,8 @@ pub enum TextAlignLast {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 #[repr(u8)]
 pub enum TextAlignKeyword {
@@ -603,8 +606,9 @@ pub enum TextAlignKeyword {
 
 /// Specified value of text-align property.
 #[derive(
-    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum TextAlign {
     /// Keyword value of text-align property.
     Keyword(TextAlignKeyword),
@@ -682,7 +686,8 @@ fn fill_mode_is_default_and_shape_exists(
 /// Specified value of text-emphasis-style property.
 ///
 /// https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-style
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 pub enum TextEmphasisStyle {
     /// [ <fill> || <shape> ]
@@ -709,8 +714,8 @@ pub enum TextEmphasisStyle {
     ToCss,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum TextEmphasisFillMode {
     /// `filled`
@@ -740,8 +745,8 @@ impl TextEmphasisFillMode {
     ToCss,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum TextEmphasisShapeKeyword {
     /// `dot`
@@ -859,8 +864,8 @@ impl Parse for TextEmphasisStyle {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum TextEmphasisHorizontalWritingModeValue {
     /// Draw marks over the text in horizontal writing mode.
     Over,
@@ -881,8 +886,8 @@ pub enum TextEmphasisHorizontalWritingModeValue {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum TextEmphasisVerticalWritingModeValue {
     /// Draws marks to the right of the text in vertical writing mode.
     Right,
@@ -901,8 +906,8 @@ pub enum TextEmphasisVerticalWritingModeValue {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct TextEmphasisPosition(
     pub TextEmphasisHorizontalWritingModeValue,
     pub TextEmphasisVerticalWritingModeValue,
@@ -1003,8 +1008,8 @@ impl From<TextEmphasisPosition> for u8 {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 pub enum WordBreak {
     Normal,
@@ -1032,8 +1037,8 @@ pub enum WordBreak {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 pub enum LineBreak {
     Auto,
@@ -1057,8 +1062,8 @@ pub enum LineBreak {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 pub enum OverflowWrap {
     Normal,
@@ -1083,8 +1088,8 @@ pub enum OverflowWrap {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 pub enum TextDecorationSkipInk {
     Auto,
@@ -1110,7 +1115,8 @@ impl TextDecorationLength {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue)]
+    #[cfg_attr(feature = "gecko", derive(ToShmem))]
     #[value_info(other_values = "auto,from-font,under,left,right")]
     #[repr(C)]
     /// Specified keyword values for the text-underline-position property.

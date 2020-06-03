@@ -20,7 +20,8 @@ use style_traits::{CssType, CssWriter, KeywordsCollectFn, ParseError, StyleParse
 use style_traits::{SpecifiedValueInfo, ToCss, ValueParseErrorKind};
 
 /// Specified color value
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum Color {
     /// The 'currentColor' keyword
     CurrentColor,
@@ -582,7 +583,8 @@ impl ToComputedValue for Color {
 /// parse-time, but it's not exposed to the web so it doesn't really matter.
 ///
 /// We resolve it to `transparent` instead.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct MozFontSmoothingBackgroundColor(pub Color);
 
 impl Parse for MozFontSmoothingBackgroundColor {
@@ -623,8 +625,8 @@ impl SpecifiedValueInfo for Color {
 
 /// Specified value for the "color" property, which resolves the `currentcolor`
 /// keyword to the parent color instead of self's color.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Debug, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf, ToShmem))]
 pub struct ColorPropertyValue(pub Color);
 
 impl ToComputedValue for ColorPropertyValue {

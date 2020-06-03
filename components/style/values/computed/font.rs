@@ -227,9 +227,8 @@ impl ToCss for FontFamily {
     }
 }
 
-#[derive(
-    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
-)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 /// The name of a font family of choice
 pub struct FamilyName {
@@ -273,8 +272,9 @@ impl ToCss for FamilyName {
 }
 
 #[derive(
-    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 /// Font family names must either be given quoted as strings,
 /// or unquoted as a sequence of one or more identifiers.
@@ -289,9 +289,8 @@ pub enum FontFamilyNameSyntax {
     Identifiers,
 }
 
-#[derive(
-    Clone, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToComputedValue, ToResolvedValue, ToShmem,
-)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize, Hash))]
 /// A set of faces that vary in weight, width or slope.
 pub enum SingleFontFamily {
@@ -318,8 +317,8 @@ pub enum SingleFontFamily {
     ToCss,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
 #[allow(missing_docs)]
@@ -444,9 +443,8 @@ impl SingleFontFamily {
 }
 
 #[cfg(feature = "servo")]
-#[derive(
-    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
-)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 /// A list of SingleFontFamily
 pub struct FontFamilyList(Box<[SingleFontFamily]>);
 

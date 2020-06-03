@@ -54,11 +54,13 @@ pub type SpecifiedFilter = GenericFilter<
 pub use self::SpecifiedFilter as Filter;
 
 /// A value for the `<factor>` parts in `Filter`.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct NonNegativeFactor(NumberOrPercentage);
 
 /// A value for the `<factor>` parts in `Filter` which clamps to one.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct ZeroToOneFactor(NumberOrPercentage);
 
 /// Clamp the value to 1 if the value is over 100%.

@@ -41,8 +41,8 @@ use style_traits::{CssWriter, ParseError, ToCss};
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum BorderStyle {
     Hidden,
@@ -66,7 +66,8 @@ impl BorderStyle {
 }
 
 /// A specified value for a single side of the `border-width` property.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum BorderSideWidth {
     /// `thin`
     Thin,
@@ -245,8 +246,8 @@ impl Parse for BorderSpacing {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum BorderImageRepeatKeyword {
     Stretch,
     Repeat,
@@ -266,8 +267,8 @@ pub enum BorderImageRepeatKeyword {
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct BorderImageRepeat(pub BorderImageRepeatKeyword, pub BorderImageRepeatKeyword);
 
 impl ToCss for BorderImageRepeat {

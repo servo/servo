@@ -327,7 +327,8 @@
         % if separator == "Comma":
         #[css(comma)]
         % endif
-        #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+        #[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+        #[cfg_attr(feature = "gecko", derive(ToShmem))]
         pub struct SpecifiedValue(
             % if not allow_empty:
             #[css(iterable)]
@@ -571,8 +572,8 @@
                 SpecifiedValueInfo,
                 ToCss,
                 ToResolvedValue,
-                ToShmem,
             )]
+            #[cfg_attr(feature = "gecko", derive(ToShmem))]
             pub enum T {
             % for value in keyword.values_for(engine):
                 ${to_camel_case(value)},
@@ -583,7 +584,8 @@
         }
 
         #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-        #[derive(Clone, Copy, Debug, Eq, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+        #[derive(Clone, Copy, Debug, Eq, PartialEq, SpecifiedValueInfo, ToCss)]
+        #[cfg_attr(feature = "gecko", derive(ToShmem))]
         pub enum SpecifiedValue {
             Keyword(computed_value::T),
             #[css(skip)]
@@ -755,8 +757,8 @@
                 PartialEq,
                 SpecifiedValueInfo,
                 ToCss,
-                ToShmem,
             )]
+            #[cfg_attr(feature = "gecko", derive(ToShmem))]
             pub enum SpecifiedValue {
                 ${variants(keyword.values_for(engine) + extra_specified.split(), bool(extra_specified))}
             }
@@ -767,7 +769,8 @@
             #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
             #[derive(Clone, Copy, Debug, Eq, FromPrimitive, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
             % if not extra_specified:
-            #[derive(Parse, SpecifiedValueInfo, ToComputedValue, ToShmem)]
+            #[derive(Parse, SpecifiedValueInfo, ToComputedValue)]
+            #[cfg_attr(feature = "gecko", derive(ToShmem))]
             % endif
             pub enum T {
                 ${variants(data.longhands_by_name[name].keyword.values_for(engine), not extra_specified)}

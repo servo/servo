@@ -11,7 +11,7 @@ path = "lib.rs"
 
 [features]
 servo = ["servo_atoms", "cssparser/serde", "webrender_api", "servo_url", "euclid/serde"]
-gecko = []
+gecko = ["to_shmem", "to_shmem_derive"]
 
 [dependencies]
 app_units = "0.7"
@@ -26,6 +26,6 @@ serde = "1.0"
 servo_arc = { path = "../servo_arc" }
 servo_atoms = { path = "../atoms", optional = true }
 servo_url = { path = "../url", optional = true }
-to_shmem = { path = "../to_shmem" }
-to_shmem_derive = { path = "../to_shmem_derive" }
+to_shmem = { path = "../to_shmem", optional = true }
+to_shmem_derive = { path = "../to_shmem_derive", optional = true }
 webrender_api = { git = "https://github.com/servo/webrender", optional = true }

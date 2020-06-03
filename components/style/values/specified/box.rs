@@ -38,7 +38,8 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
 /// the two basic qualities of how an element generates boxes
 /// <https://drafts.csswg.org/css-display/#propdef-display>
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum DisplayOutside {
     None = 0,
@@ -55,7 +56,8 @@ pub enum DisplayOutside {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, FromPrimitive, Hash, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum DisplayInside {
     None = 0,
@@ -123,8 +125,8 @@ pub enum DisplayInside {
     PartialEq,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct Display(u16);
 
@@ -726,8 +728,8 @@ impl AnimationIterationCount {
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[value_info(other_values = "none")]
 pub struct AnimationName(pub Option<KeyframesName>);
 
@@ -784,8 +786,8 @@ impl Parse for AnimationName {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum ScrollSnapAxis {
     X,
@@ -810,8 +812,8 @@ pub enum ScrollSnapAxis {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum ScrollSnapStrictness {
     #[css(skip)]
@@ -833,8 +835,8 @@ pub enum ScrollSnapStrictness {
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct ScrollSnapType {
     axis: ScrollSnapAxis,
@@ -906,8 +908,8 @@ impl ToCss for ScrollSnapType {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum ScrollSnapAlignKeyword {
     None,
@@ -928,8 +930,8 @@ pub enum ScrollSnapAlignKeyword {
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct ScrollSnapAlign {
     block: ScrollSnapAlignKeyword,
@@ -987,8 +989,8 @@ impl ToCss for ScrollSnapAlign {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum OverscrollBehavior {
     Auto,
@@ -1010,8 +1012,8 @@ pub enum OverscrollBehavior {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum OverflowAnchor {
     Auto,
@@ -1032,8 +1034,8 @@ pub enum OverflowAnchor {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum OverflowClipBox {
     PaddingBox,
@@ -1050,8 +1052,8 @@ pub enum OverflowClipBox {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[css(comma)]
 #[repr(C)]
 /// Provides a rendering hint to the user agent, stating what kinds of changes
@@ -1083,7 +1085,8 @@ impl WillChange {
 
 bitflags! {
     /// The change bits that we care about.
-    #[derive(Default, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[derive(Default, MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue)]
+    #[cfg_attr(feature = "gecko", derive(ToShmem))]
     #[repr(C)]
     pub struct WillChangeBits: u8 {
         /// Whether the stacking context will change.
@@ -1182,7 +1185,8 @@ impl Parse for WillChange {
 
 bitflags! {
     /// Values for the `touch-action` property.
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue)]
+    #[cfg_attr(feature = "gecko", derive(ToShmem))]
     /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
     #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y")]
     #[repr(C)]
@@ -1255,7 +1259,8 @@ impl Parse for TouchAction {
 }
 
 bitflags! {
-    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue)]
+    #[cfg_attr(feature = "gecko", derive(ToShmem))]
     #[value_info(other_values = "none,strict,content,size,layout,paint")]
     #[repr(C)]
     /// Constants for contain: https://drafts.csswg.org/css-contain/#contain-property
@@ -1357,9 +1362,8 @@ pub type Perspective = GenericPerspective<NonNegativeLength>;
 
 /// A given transition property, that is either `All`, a longhand or shorthand
 /// property, or an unsupported or custom property.
-#[derive(
-    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
-)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum TransitionProperty {
     /// A shorthand.
     Shorthand(ShorthandId),
@@ -1454,8 +1458,9 @@ impl TransitionProperty {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 /// https://drafts.csswg.org/css-box/#propdef-float
 pub enum Float {
     Left,
@@ -1469,8 +1474,9 @@ pub enum Float {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 /// https://drafts.csswg.org/css-box/#propdef-clear
 pub enum Clear {
     None,
@@ -1486,8 +1492,9 @@ pub enum Clear {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem,
+    Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum Resize {
     None,
     Both,
@@ -1515,8 +1522,8 @@ pub enum Resize {
     ToCss,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum Appearance {
     /// No appearance at all.
@@ -1881,8 +1888,8 @@ impl Appearance {
     ToCss,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum BreakBetween {
     Always,
@@ -1954,8 +1961,8 @@ impl BreakBetween {
     ToCss,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum BreakWithin {
     Auto,
@@ -1977,8 +1984,8 @@ pub enum BreakWithin {
     ToCss,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum Overflow {
     Visible,

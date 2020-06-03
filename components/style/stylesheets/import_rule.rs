@@ -15,8 +15,10 @@ use crate::stylesheets::{CssRule, Origin, StylesheetInDocument};
 use crate::values::CssUrl;
 use cssparser::SourceLocation;
 use std::fmt::{self, Write};
+#[cfg(feature = "gecko")]
 use std::mem::ManuallyDrop;
 use style_traits::{CssWriter, ToCss};
+#[cfg(feature = "gecko")]
 use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 /// With asynchronous stylesheet parsing, we can't synchronously create a
@@ -183,6 +185,7 @@ pub struct ImportRule {
     pub source_location: SourceLocation,
 }
 
+#[cfg(feature = "gecko")]
 impl ToShmem for ImportRule {
     fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> ManuallyDrop<Self> {
         panic!("ToShmem failed for ImportRule: cannot handle imported style sheets")

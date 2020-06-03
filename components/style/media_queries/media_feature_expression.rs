@@ -27,7 +27,8 @@ use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
 /// An aspect ratio, with a numerator and denominator.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct AspectRatio(pub CSSFloat, pub CSSFloat);
 
 impl ToCss for AspectRatio {
@@ -51,7 +52,8 @@ impl PartialOrd for AspectRatio {
 }
 
 /// The kind of matching that should be performed on a media feature value.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum Range {
     /// At least the specified value.
     Min,
@@ -60,7 +62,8 @@ pub enum Range {
 }
 
 /// The operator that was specified in this media feature.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum Operator {
     /// =
     Equal,
@@ -93,7 +96,8 @@ impl ToCss for Operator {
 ///
 /// Ranged media features are not allowed with operations (that'd make no
 /// sense).
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum RangeOrOperator {
     /// A `Range`.
     Range(Range),
@@ -151,7 +155,8 @@ impl RangeOrOperator {
 
 /// A feature expression contains a reference to the media feature, the value
 /// the media query contained, and the range to evaluate.
-#[derive(Clone, Debug, MallocSizeOf, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct MediaFeatureExpression {
     feature_index: usize,
     value: Option<MediaExpressionValue>,
@@ -448,7 +453,8 @@ impl MediaFeatureExpression {
 /// If the first, this would need to store the relevant values.
 ///
 /// See: https://github.com/w3c/csswg-drafts/issues/1968
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum MediaExpressionValue {
     /// A length.
     Length(Length),

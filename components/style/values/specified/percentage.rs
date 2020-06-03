@@ -16,7 +16,8 @@ use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
 
 /// A percentage value.
-#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct Percentage {
     /// The percentage value as a float.
     ///

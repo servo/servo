@@ -5203,7 +5203,6 @@ dependencies = [
  "malloc_size_of_derive",
  "serde",
  "servo_rand",
- "to_shmem",
  "url",
  "uuid",
 ]
@@ -5818,7 +5817,6 @@ dependencies = [
  "servo_arc",
  "smallbitvec",
  "smallvec 1.3.0",
- "string_cache",
  "thin-slice",
 ]
 

@@ -20,8 +20,8 @@
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub enum GenericFlexBasis<S> {
     /// `content`

@@ -23,8 +23,8 @@ use std::ops::Deref;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericCounterPair<Integer> {
     /// The name of the counter.
@@ -45,8 +45,8 @@ pub use self::GenericCounterPair as CounterPair;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct GenericCounterIncrement<I>(pub GenericCounters<I>);
 pub use self::GenericCounterIncrement as CounterIncrement;
@@ -79,8 +79,8 @@ impl<I> Deref for CounterIncrement<I> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct GenericCounterSetOrReset<I>(pub GenericCounters<I>);
 pub use self::GenericCounterSetOrReset as CounterSetOrReset;
@@ -115,8 +115,8 @@ impl<I> Deref for CounterSetOrReset<I> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct GenericCounters<I>(
     #[css(iterable, if_empty = "none")] crate::OwnedSlice<GenericCounterPair<I>>,
@@ -144,9 +144,8 @@ fn is_decimal(counter_type: &CounterStyleType) -> bool {
 /// The specified value for the `content` property.
 ///
 /// https://drafts.csswg.org/css-content/#propdef-content
-#[derive(
-    Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss, ToShmem,
-)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum GenericContent<ImageUrl> {
     /// `normal` reserved keyword.
@@ -184,8 +183,8 @@ impl<ImageUrl> Content<ImageUrl> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum GenericContentItem<ImageUrl> {
     /// Literal string content.

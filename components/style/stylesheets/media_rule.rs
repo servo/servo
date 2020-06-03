@@ -21,7 +21,8 @@ use style_traits::{CssWriter, ToCss};
 /// An [`@media`][media] urle.
 ///
 /// [media]: https://drafts.csswg.org/css-conditional/#at-ruledef-media
-#[derive(Debug, ToShmem)]
+#[derive(Debug)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct MediaRule {
     /// The list of media queries used by this media rule.
     pub media_queries: Arc<Locked<MediaList>>,

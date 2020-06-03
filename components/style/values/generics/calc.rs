@@ -24,8 +24,8 @@ use style_traits::{CssWriter, ToCss};
     Serialize,
     ToAnimatedZero,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum MinMaxOp {
     /// `min()`
@@ -62,16 +62,9 @@ pub enum SortKey {
 /// but we can't because of https://github.com/serde-rs/serde/issues/1565.
 #[repr(u8)]
 #[derive(
-    Clone,
-    Debug,
-    Deserialize,
-    MallocSizeOf,
-    PartialEq,
-    Serialize,
-    ToAnimatedZero,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize, ToAnimatedZero, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum GenericCalcNode<L> {
     /// A leaf node.
     Leaf(L),

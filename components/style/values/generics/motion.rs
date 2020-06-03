@@ -24,8 +24,8 @@ use crate::values::specified::SVGPathData;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum RaySize {
     ClosestSide,
@@ -52,8 +52,8 @@ pub enum RaySize {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct RayFunction<Angle> {
     /// The bearing angle with `0deg` pointing up and positive angles
@@ -88,8 +88,8 @@ pub struct RayFunction<Angle> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericOffsetPath<Angle> {
     // We could merge SVGPathData into ShapeSource, so we could reuse them. However,

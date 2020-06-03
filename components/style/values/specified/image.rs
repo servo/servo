@@ -92,7 +92,8 @@ impl SpecifiedValueInfo for Gradient {
 /// A specified gradient line direction.
 ///
 /// FIXME(emilio): This should be generic over Angle.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum LineDirection {
     /// An angular direction.
     Angle(Angle),
@@ -122,8 +123,8 @@ pub type MozImageRect = generic::GenericMozImageRect<NumberOrPercentage, Specifi
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 /// Empty enum on non-Gecko
 pub enum MozImageRect {}
 

@@ -17,11 +17,10 @@ doctest = false
 
 [features]
 gecko = ["style_traits/gecko", "fallible/known_system_malloc", "bindgen", "regex", "toml",
-         "num_cpus", "thin-slice"]
+         "num_cpus", "thin-slice", "to_shmem", "to_shmem_derive", "selectors/to-shmem"]
 servo = ["serde", "style_traits/servo", "servo_atoms", "servo_config", "html5ever",
          "cssparser/serde", "encoding_rs", "malloc_size_of/servo", "servo_url",
-         "string_cache", "to_shmem/servo",
-         "servo_arc/servo"]
+         "string_cache", "servo_arc/servo"]
 servo-layout-2013 = []
 servo-layout-2020 = []
 gecko_debug = []
@@ -71,8 +70,8 @@ style_derive = { path = "../style_derive" }
 style_traits = { path = "../style_traits" }
 thin-slice = { version = "0.1.0", optional = true }
 time = "0.1"
-to_shmem = { path = "../to_shmem" }
-to_shmem_derive = { path = "../to_shmem_derive" }
+to_shmem = { path = "../to_shmem", optional = true }
+to_shmem_derive = { path = "../to_shmem_derive", optional = true }
 uluru = "0.4"
 unicode-bidi = "0.3"
 unicode-segmentation = "1.0"

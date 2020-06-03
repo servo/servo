@@ -19,7 +19,9 @@ extern crate precomputed_hash;
 extern crate servo_arc;
 extern crate smallvec;
 extern crate thin_slice;
+#[cfg(feature = "to-shmem")]
 extern crate to_shmem;
+#[cfg(feature = "to-shmem")]
 #[macro_use]
 extern crate to_shmem_derive;
 

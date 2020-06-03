@@ -31,8 +31,8 @@ use style_traits::{CssWriter, ToCss};
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum ShapeGeometryBox {
     /// Depending on which kind of element this style value applied on, the
@@ -73,8 +73,8 @@ impl Default for ShapeGeometryBox {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum ShapeBox {
     MarginBox,
@@ -104,8 +104,8 @@ impl Default for ShapeBox {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum GenericClipPath<BasicShape, U> {
     #[animation(error)]
@@ -139,8 +139,8 @@ pub use self::GenericClipPath as ClipPath;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum GenericShapeOutside<BasicShape, I> {
     #[animation(error)]
@@ -167,23 +167,23 @@ pub use self::GenericShapeOutside as ShapeOutside;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericBasicShape<H, V, LengthPercentage, NonNegativeLengthPercentage> {
     Inset(
         #[css(field_bound)]
-        #[shmem(field_bound)]
+        #[cfg_attr(feature = "gecko", shmem(field_bound))]
         InsetRect<LengthPercentage, NonNegativeLengthPercentage>,
     ),
     Circle(
         #[css(field_bound)]
-        #[shmem(field_bound)]
+        #[cfg_attr(feature = "gecko", shmem(field_bound))]
         Circle<H, V, NonNegativeLengthPercentage>,
     ),
     Ellipse(
         #[css(field_bound)]
-        #[shmem(field_bound)]
+        #[cfg_attr(feature = "gecko", shmem(field_bound))]
         Ellipse<H, V, NonNegativeLengthPercentage>,
     ),
     Polygon(GenericPolygon<LengthPercentage>),
@@ -205,12 +205,12 @@ pub use self::GenericBasicShape as BasicShape;
     ToAnimatedValue,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
     pub rect: Rect<LengthPercentage>,
-    #[shmem(field_bound)]
+    #[cfg_attr(feature = "gecko", shmem(field_bound))]
     pub round: GenericBorderRadius<NonNegativeLengthPercentage>,
 }
 
@@ -229,8 +229,8 @@ pub struct InsetRect<LengthPercentage, NonNegativeLengthPercentage> {
     ToAnimatedValue,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct Circle<H, V, NonNegativeLengthPercentage> {
     pub position: GenericPosition<H, V>,
@@ -252,8 +252,8 @@ pub struct Circle<H, V, NonNegativeLengthPercentage> {
     ToAnimatedValue,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
     pub position: GenericPosition<H, V>,
@@ -276,8 +276,8 @@ pub struct Ellipse<H, V, NonNegativeLengthPercentage> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericShapeRadius<NonNegativeLengthPercentage> {
     Length(NonNegativeLengthPercentage),
@@ -303,8 +303,8 @@ pub use self::GenericShapeRadius as ShapeRadius;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericPolygon<LengthPercentage> {
     /// The filling rule for a polygon.
@@ -328,8 +328,8 @@ pub use self::GenericPolygon as Polygon;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct PolygonCoord<LengthPercentage>(pub LengthPercentage, pub LengthPercentage);
 
@@ -352,8 +352,8 @@ pub struct PolygonCoord<LengthPercentage>(pub LengthPercentage, pub LengthPercen
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum FillRule {
     Nonzero,
@@ -376,8 +376,8 @@ pub enum FillRule {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct Path {
     /// The filling rule for the svg path.

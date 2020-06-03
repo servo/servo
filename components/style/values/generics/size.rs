@@ -25,8 +25,8 @@ use style_traits::{CssWriter, ParseError, ToCss};
     ToAnimatedValue,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 #[repr(C)]
 pub struct Size2D<L> {

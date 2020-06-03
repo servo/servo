@@ -16,6 +16,7 @@ path = "lib.rs"
 
 [features]
 bench = []
+to-shmem = ["to_shmem", "to_shmem_derive"]
 
 [dependencies]
 bitflags = "1.0"
@@ -28,8 +29,8 @@ precomputed-hash = "0.1"
 servo_arc = { version = "0.1", path = "../servo_arc" }
 smallvec = "1.0"
 thin-slice = "0.1.0"
-to_shmem = { path = "../to_shmem" }
-to_shmem_derive = { path = "../to_shmem_derive" }
+to_shmem = { path = "../to_shmem", optional = true }
+to_shmem_derive = { path = "../to_shmem_derive", optional = true }
 
 [build-dependencies]
 phf_codegen = "0.8"

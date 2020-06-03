@@ -15,16 +15,9 @@ use style_traits::{StyleParseErrorKind, ToCss};
 
 /// https://drafts.csswg.org/css-fonts-4/#feature-tag-value
 #[derive(
-    Clone,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct FeatureTagValue<Integer> {
     /// A four-character tag, packed into a u32 (one byte per character).
     pub tag: FontTag,
@@ -66,8 +59,8 @@ where
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct VariationValue<Number> {
     /// A four-character tag, packed into a u32 (one byte per character).
     #[animation(constant)]
@@ -88,8 +81,8 @@ pub struct VariationValue<Number> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct FontSettings<T>(#[css(if_empty = "normal", iterable)] pub Box<[T]>);
 
 impl<T> FontSettings<T> {
@@ -135,8 +128,8 @@ impl<T: Parse> Parse for FontSettings<T> {
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct FontTag(pub u32);
 
 impl ToCss for FontTag {
@@ -189,8 +182,8 @@ impl Parse for FontTag {
     ToAnimatedValue,
     ToAnimatedZero,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum FontStyle<Angle> {
     #[animation(error)]
     Normal,

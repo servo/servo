@@ -13,7 +13,8 @@ use std::ops::{Deref, DerefMut};
 /// A struct that basically replaces a Box<str>, but with a defined layout,
 /// suitable for FFI.
 #[repr(C)]
-#[derive(Clone, Default, Eq, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Default, Eq, MallocSizeOf, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct OwnedStr(OwnedSlice<u8>);
 
 impl fmt::Debug for OwnedStr {

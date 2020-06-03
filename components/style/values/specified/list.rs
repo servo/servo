@@ -24,8 +24,8 @@ use style_traits::{ParseError, StyleParseErrorKind};
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum ListStyleType {
     /// `none`
     None,
@@ -97,8 +97,8 @@ impl Parse for ListStyleType {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct QuotePair {
     /// The opening quote.
@@ -119,8 +119,8 @@ pub struct QuotePair {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct QuoteList(
     #[css(iterable, if_empty = "none")]
@@ -139,8 +139,8 @@ pub struct QuoteList(
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub enum Quotes {
     /// list of quote pairs
@@ -205,8 +205,8 @@ impl Parse for Quotes {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum MozListReversed {
     /// the initial value

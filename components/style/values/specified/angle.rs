@@ -17,7 +17,8 @@ use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, ToCss};
 
 /// A specified angle dimension.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToCss, ToShmem)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToCss)]
 pub enum AngleDimension {
     /// An angle with degree unit.
     #[css(dimension)]
@@ -68,7 +69,8 @@ impl AngleDimension {
 /// A specified Angle value, which is just the angle dimension, plus whether it
 /// was specified as `calc()` or not.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq)]
 pub struct Angle {
     value: AngleDimension,
     was_calc: bool,

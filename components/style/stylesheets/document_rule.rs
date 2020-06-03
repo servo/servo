@@ -20,7 +20,8 @@ use servo_arc::Arc;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
-#[derive(Debug, ToShmem)]
+#[derive(Debug)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 /// A @-moz-document rule
 pub struct DocumentRule {
     /// The parsed condition
@@ -72,7 +73,8 @@ impl DeepCloneWithLock for DocumentRule {
 }
 
 /// The kind of media document that the rule will match.
-#[derive(Clone, Copy, Debug, Parse, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, Parse, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 pub enum MediaDocumentKind {
     All,
@@ -82,7 +84,8 @@ pub enum MediaDocumentKind {
 }
 
 /// A matching function for a `@document` rule's condition.
-#[derive(Clone, Debug, ToCss, ToShmem)]
+#[derive(Clone, Debug, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum DocumentMatchingFunction {
     /// Exact URL matching function. It evaluates to true whenever the
     /// URL of the document being styled is exactly the URL given.
@@ -216,7 +219,8 @@ impl DocumentMatchingFunction {
 /// URL matching functions, and the condition evaluates to true whenever any
 /// one of those functions evaluates to true.
 #[css(comma)]
-#[derive(Clone, Debug, ToCss, ToShmem)]
+#[derive(Clone, Debug, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct DocumentCondition(#[css(iterable)] Vec<DocumentMatchingFunction>);
 
 impl DocumentCondition {

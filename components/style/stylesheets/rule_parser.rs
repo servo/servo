@@ -136,7 +136,8 @@ pub enum State {
     Body = 4,
 }
 
-#[derive(Clone, Debug, MallocSizeOf, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 /// Vendor prefix.
 pub enum VendorPrefix {
     /// -moz prefix.

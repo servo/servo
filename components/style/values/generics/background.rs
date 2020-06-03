@@ -21,8 +21,8 @@ use crate::values::generics::length::{GenericLengthPercentageOrAuto, LengthPerce
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericBackgroundSize<LengthPercent> {
     /// `<width> <height>`

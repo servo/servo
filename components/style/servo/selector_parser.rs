@@ -29,7 +29,8 @@ use style_traits::{ParseError, StyleParseErrorKind};
 /// A pseudo-element, both public and private.
 ///
 /// NB: If you add to this list, be sure to update `each_simple_pseudo_element` too.
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 #[repr(usize)]
 pub enum PseudoElement {
@@ -272,7 +273,8 @@ pub type Lang = Box<str>;
 
 /// A non tree-structural pseudo-class.
 /// See https://drafts.csswg.org/selectors-4/#structural-pseudos
-#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 pub enum NonTSPseudoClass {
     Active,

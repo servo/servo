@@ -24,8 +24,8 @@ use style_traits::{CssWriter, ParseError, ToCss};
     ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct Rect<T>(pub T, pub T, pub T, pub T);
 

@@ -13,6 +13,7 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use std::ptr::NonNull;
 use std::{fmt, iter, mem, slice};
+#[cfg(feature = "gecko")]
 use to_shmem::{SharedMemoryBuilder, ToShmem};
 
 /// A struct that basically replaces a `Box<[T]>`, but which cbindgen can
@@ -158,6 +159,7 @@ impl<T: MallocSizeOf + Sized> MallocSizeOf for OwnedSlice<T> {
     }
 }
 
+#[cfg(feature = "gecko")]
 impl<T: ToShmem + Sized> ToShmem for OwnedSlice<T> {
     fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> mem::ManuallyDrop<Self> {
         unsafe {

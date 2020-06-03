@@ -34,7 +34,8 @@ use style_traits::{StyleParseErrorKind, ToCss};
 
 /// A source for a font-face rule.
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Debug, Eq, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Debug, Eq, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum Source {
     /// A `url()` source.
     Url(UrlSource),
@@ -68,7 +69,8 @@ pub enum FontFaceSourceListComponent {
 ///
 /// <https://drafts.csswg.org/css-fonts/#src-desc>
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(Clone, Debug, Eq, PartialEq, ToShmem)]
+#[derive(Clone, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct UrlSource {
     /// The specified url.
     pub url: SpecifiedUrl,
@@ -101,9 +103,8 @@ impl ToCss for UrlSource {
 /// on whether and when it is downloaded and ready to use.
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
-#[derive(
-    Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss, ToShmem,
-)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum FontDisplay {
     Auto,
@@ -146,7 +147,8 @@ macro_rules! impl_range {
 /// The font-weight descriptor:
 ///
 /// https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-weight
-#[derive(Clone, Debug, PartialEq, ToShmem)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct FontWeightRange(pub AbsoluteFontWeight, pub AbsoluteFontWeight);
 impl_range!(FontWeightRange, AbsoluteFontWeight);
 
@@ -178,7 +180,8 @@ impl FontWeightRange {
 /// The font-stretch descriptor:
 ///
 /// https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-stretch
-#[derive(Clone, Debug, PartialEq, ToShmem)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct FontStretchRange(pub FontStretch, pub FontStretch);
 impl_range!(FontStretchRange, FontStretch);
 
@@ -207,7 +210,8 @@ impl FontStretchRange {
 /// The font-style descriptor:
 ///
 /// https://drafts.csswg.org/css-fonts-4/#descdef-font-face-font-style
-#[derive(Clone, Debug, PartialEq, ToShmem)]
+#[derive(Clone, Debug, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 pub enum FontStyle {
     Normal,
@@ -431,7 +435,8 @@ macro_rules! font_face_descriptors_common {
         /// Data inside a `@font-face` rule.
         ///
         /// <https://drafts.csswg.org/css-fonts/#font-face-rule>
-        #[derive(Clone, Debug, PartialEq, ToShmem)]
+        #[derive(Clone, Debug, PartialEq)]
+        #[cfg_attr(feature = "gecko", derive(ToShmem))]
         pub struct FontFaceRuleData {
             $(
                 #[$doc]

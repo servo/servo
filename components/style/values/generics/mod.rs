@@ -42,20 +42,11 @@ pub mod url;
 
 /// https://drafts.csswg.org/css-counter-styles/#typedef-symbols-type
 #[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(u8)]
 pub enum SymbolsType {
     Cyclic,
@@ -68,8 +59,8 @@ pub enum SymbolsType {
 /// <https://drafts.csswg.org/css-counter-styles/#typedef-counter-style>
 ///
 /// Note that 'none' is not a valid name.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem)]
+#[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToCss, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf, ToShmem))]
 #[repr(u8)]
 pub enum CounterStyle {
     /// `<counter-style-name>`
@@ -143,7 +134,6 @@ impl SpecifiedValueInfo for CounterStyle {
 }
 
 /// A wrapper of Non-negative values.
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
     Animate,
     Clone,
@@ -159,8 +149,9 @@ impl SpecifiedValueInfo for CounterStyle {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct NonNegative<T>(pub T);
 
@@ -183,7 +174,6 @@ impl<T: Zero> Zero for NonNegative<T> {
 }
 
 /// A wrapper of greater-than-or-equal-to-one values.
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
     Animate,
     Clone,
@@ -198,12 +188,12 @@ impl<T: Zero> Zero for NonNegative<T> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct GreaterThanOrEqualToOne<T>(pub T);
 
 /// A wrapper of values between zero and one.
-#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
     Animate,
     Clone,
@@ -219,8 +209,9 @@ pub struct GreaterThanOrEqualToOne<T>(pub T);
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
+#[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[repr(transparent)]
 pub struct ZeroToOne<T>(pub T);
 
@@ -239,8 +230,8 @@ pub struct ZeroToOne<T>(pub T);
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[css(function = "rect", comma)]
 #[repr(C)]
 pub struct GenericClipRect<LengthOrAuto> {
@@ -269,8 +260,8 @@ pub use self::GenericClipRect as ClipRect;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericClipRectOrAuto<R> {
     Auto,

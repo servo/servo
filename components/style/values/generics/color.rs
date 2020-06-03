@@ -6,7 +6,8 @@
 
 /// Ratios representing the contribution of color and currentcolor to
 /// the final color value.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct ComplexColorRatios {
     /// Numeric color contribution.
@@ -24,7 +25,8 @@ impl ComplexColorRatios {
 
 /// This enum represents a combined color from a numeric color and
 /// the current foreground color (currentcolor keyword).
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericColor<RGBA> {
     ///  Numeric RGBA color.
@@ -99,8 +101,8 @@ impl<RGBA> From<RGBA> for Color<RGBA> {
     ToAnimatedZero,
     ToComputedValue,
     ToCss,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericColorOrAuto<C> {
     /// A `<color>`.

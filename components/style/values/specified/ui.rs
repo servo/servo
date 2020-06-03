@@ -77,8 +77,8 @@ impl Parse for CursorImage {
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct MozForceBrokenImageIcon(pub bool);
 
 impl MozForceBrokenImageIcon {
@@ -162,8 +162,8 @@ impl Parse for ScrollbarColor {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum UserSelect {
     Auto,
@@ -191,8 +191,8 @@ pub enum UserSelect {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum CursorKind {
     None,

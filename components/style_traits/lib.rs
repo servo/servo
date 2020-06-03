@@ -29,7 +29,9 @@ extern crate servo_arc;
 extern crate servo_atoms;
 #[cfg(feature = "servo")]
 extern crate servo_url;
+#[cfg(feature = "gecko")]
 extern crate to_shmem;
+#[cfg(feature = "gecko")]
 #[macro_use]
 extern crate to_shmem_derive;
 #[cfg(feature = "servo")]

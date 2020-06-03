@@ -26,8 +26,8 @@ use style_traits::{CssWriter, ToCss};
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericBorderImageSideWidth<LP, N> {
     /// `<number>`
@@ -58,8 +58,8 @@ pub use self::GenericBorderImageSideWidth as BorderImageSideWidth;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericBorderImageSlice<NumberOrPercentage> {
     /// The offsets.
@@ -88,12 +88,12 @@ pub use self::GenericBorderImageSlice as BorderImageSlice;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericBorderCornerRadius<L>(
     #[css(field_bound)]
-    #[shmem(field_bound)]
+    #[cfg_attr(feature = "gecko", shmem(field_bound))]
     pub Size2D<L>,
 );
 
@@ -131,12 +131,12 @@ impl<L: Zero> Zero for BorderCornerRadius<L> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct BorderSpacing<L>(
     #[css(field_bound)]
-    #[shmem(field_bound)]
+    #[cfg_attr(feature = "gecko", shmem(field_bound))]
     pub Size2D<L>,
 );
 
@@ -162,12 +162,12 @@ impl<L> BorderSpacing<L> {
     ToAnimatedValue,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericBorderRadius<LengthPercentage> {
     /// The top left radius.
-    #[shmem(field_bound)]
+    #[cfg_attr(feature = "gecko", shmem(field_bound))]
     pub top_left: GenericBorderCornerRadius<LengthPercentage>,
     /// The top right radius.
     pub top_right: GenericBorderCornerRadius<LengthPercentage>,

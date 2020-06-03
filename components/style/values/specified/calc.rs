@@ -34,7 +34,8 @@ pub enum MathFunction {
 }
 
 /// A leaf node inside a `Calc` expression's AST.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum Leaf {
     /// `<length>`
     Length(NoCalcLength),
@@ -88,7 +89,8 @@ enum CalcUnit {
 /// relative lengths, and to_computed_pixel_length_without_context() handles
 /// this case. Therefore, if you want to add a new field, please make sure this
 /// function work properly.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 pub struct CalcLengthPercentage {
     #[css(skip)]

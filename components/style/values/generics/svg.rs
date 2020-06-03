@@ -23,8 +23,8 @@ use style_traits::ParseError;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericSVGPaintFallback<C> {
     /// The `none` keyword.
@@ -56,8 +56,8 @@ pub use self::GenericSVGPaintFallback as SVGPaintFallback;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericSVGPaint<Color, Url> {
     /// The paint source.
@@ -96,8 +96,8 @@ impl<C, U> Default for SVGPaint<C, U> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericSVGPaintKind<C, U> {
     /// `none`
@@ -150,8 +150,8 @@ impl<C: Parse, U: Parse> Parse for SVGPaint<C, U> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericSVGLength<L> {
     /// `<length> | <percentage> | <number>`
@@ -175,8 +175,8 @@ pub use self::GenericSVGLength as SVGLength;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericSVGStrokeDashArray<L> {
     /// `[ <length> | <percentage> | <number> ]#`
@@ -204,8 +204,8 @@ pub use self::GenericSVGStrokeDashArray as SVGStrokeDashArray;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericSVGOpacity<OpacityType> {
     /// `<opacity-value>`

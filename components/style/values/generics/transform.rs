@@ -30,8 +30,8 @@ use style_traits::{CssWriter, ToCss};
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[css(comma, function = "matrix")]
 #[repr(C)]
 pub struct GenericMatrix<T> {
@@ -60,8 +60,8 @@ pub use self::GenericMatrix as Matrix;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericMatrix3D<T> {
     pub m11: T, pub m12: T, pub m13: T, pub m14: T,
@@ -112,8 +112,8 @@ impl<T: Into<f64>> From<Matrix3D<T>> for Transform3D<f64> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericTransformOrigin<H, V, Depth> {
     /// The horizontal origin.
@@ -152,8 +152,8 @@ fn is_same<N: PartialEq>(x: &N, y: &N) -> bool {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 /// A single operation in the list of a `transform` value
 pub enum GenericTransformOperation<Angle, Number, Length, Integer, LengthPercentage>
@@ -280,8 +280,8 @@ pub use self::GenericTransformOperation as TransformOperation;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 /// A value of the `transform` property
 pub struct GenericTransform<T>(#[css(if_empty = "none", iterable)] pub crate::OwnedSlice<T>);
@@ -632,8 +632,8 @@ pub fn get_normalized_vector_and_angle<T: Zero>(
     ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 /// A value of the `Rotate` property
 ///
@@ -709,8 +709,8 @@ where
     ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 /// A value of the `Scale` property
 ///
@@ -777,8 +777,8 @@ fn y_axis_and_z_axis_are_zero<LengthPercentage: Zero, Length: Zero>(
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 /// A value of the `translate` property
 ///
@@ -823,8 +823,8 @@ pub use self::GenericTranslate as Translate;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum TransformStyle {
     Flat,

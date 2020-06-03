@@ -134,7 +134,8 @@ pub mod url;
 /// <angle> | <percentage>
 /// https://drafts.csswg.org/css-values/#typedef-angle-percentage
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum AngleOrPercentage {
     Percentage(Percentage),
     Angle(Angle),
@@ -201,7 +202,8 @@ fn parse_number_with_clamping_mode<'i, 't>(
 /// A CSS `<number>` specified value.
 ///
 /// https://drafts.csswg.org/css-values-3/#number-value
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct Number {
     /// The numeric value itself.
     value: CSSFloat,
@@ -399,7 +401,8 @@ impl Parse for GreaterThanOrEqualToOneNumber {
 ///
 /// Accepts only non-negative numbers.
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum NumberOrPercentage {
     Percentage(Percentage),
     Number(Number),
@@ -477,9 +480,8 @@ impl Parse for NonNegativeNumberOrPercentage {
 /// The value of Opacity is <alpha-value>, which is "<number> | <percentage>".
 /// However, we serialize the specified value as number, so it's ok to store
 /// the Opacity as Number.
-#[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, SpecifiedValueInfo, ToCss, ToShmem,
-)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, PartialOrd, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct Opacity(Number);
 
 impl Parse for Opacity {
@@ -519,7 +521,8 @@ impl ToComputedValue for Opacity {
 /// A specified `<integer>`, optionally coming from a `calc()` expression.
 ///
 /// <https://drafts.csswg.org/css-values/#integers>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, PartialOrd)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct Integer {
     value: CSSInteger,
     was_calc: bool,
@@ -800,16 +803,9 @@ impl AllowQuirks {
 ///
 /// `[namespace? `|`]? ident`
 #[derive(
-    Clone,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[css(function)]
 #[repr(C)]
 pub struct Attr {

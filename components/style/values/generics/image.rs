@@ -18,9 +18,8 @@ use values::generics::position::PositionComponent;
 /// An `<image> | none` value.
 ///
 /// https://drafts.csswg.org/css-images/#image-values
-#[derive(
-    Clone, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem,
-)]
+#[derive(Clone, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericImage<G, MozImageRect, ImageUrl> {
     /// `none` variant.
@@ -51,7 +50,8 @@ pub use self::GenericImage as Image;
 
 /// A CSS gradient.
 /// <https://drafts.csswg.org/css-images/#gradients>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub enum GenericGradient<
     LineDirection,
@@ -102,7 +102,8 @@ pub enum GenericGradient<
 
 pub use self::GenericGradient as Gradient;
 
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 /// Whether we used the modern notation or the compatibility `-webkit`, `-moz` prefixes.
 pub enum GradientCompatMode {
@@ -115,9 +116,8 @@ pub enum GradientCompatMode {
 }
 
 /// A radial gradient's ending shape.
-#[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
-)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericEndingShape<NonNegativeLength, NonNegativeLengthPercentage> {
     /// A circular gradient.
@@ -129,7 +129,8 @@ pub enum GenericEndingShape<NonNegativeLength, NonNegativeLengthPercentage> {
 pub use self::GenericEndingShape as EndingShape;
 
 /// A circle shape.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericCircle<NonNegativeLength> {
     /// A circle radius.
@@ -141,9 +142,8 @@ pub enum GenericCircle<NonNegativeLength> {
 pub use self::GenericCircle as Circle;
 
 /// An ellipse shape.
-#[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
-)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericEllipse<NonNegativeLengthPercentage> {
     /// An ellipse pair of radii.
@@ -158,18 +158,9 @@ pub use self::GenericEllipse as Ellipse;
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum ShapeExtent {
     ClosestSide,
@@ -182,9 +173,8 @@ pub enum ShapeExtent {
 
 /// A gradient item.
 /// <https://drafts.csswg.org/css-images-4/#color-stop-syntax>
-#[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
-)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericGradientItem<Color, T> {
     /// A simple color stop, without position.
@@ -204,9 +194,8 @@ pub use self::GenericGradientItem as GradientItem;
 
 /// A color stop.
 /// <https://drafts.csswg.org/css-images/#typedef-color-stop-list>
-#[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
-)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct ColorStop<Color, T> {
     /// The color of this stop.
     pub color: Color,
@@ -231,7 +220,8 @@ impl<Color, T> ColorStop<Color, T> {
 /// Specified values for a paint worklet.
 /// <https://drafts.css-houdini.org/css-paint-api/>
 #[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-#[derive(Clone, Debug, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
+#[derive(Clone, Debug, PartialEq, ToComputedValue, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct PaintWorklet {
     /// The name the worklet was registered with.
     pub name: Atom,
@@ -274,8 +264,8 @@ impl ToCss for PaintWorklet {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericMozImageRect<NumberOrPercentage, MozImageRectUrl> {
     pub url: MozImageRectUrl,

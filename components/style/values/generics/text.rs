@@ -20,8 +20,8 @@ use style_traits::ParseError;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum InitialLetter<Number, Integer> {
     /// `normal`
     Normal,
@@ -38,7 +38,8 @@ impl<N, I> InitialLetter<N, I> {
 }
 
 /// A generic spacing value for the `letter-spacing` and `word-spacing` properties.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum Spacing<Value> {
     /// `normal`
     Normal,
@@ -88,10 +89,10 @@ fn line_height_moz_block_height_enabled(context: &ParserContext) -> bool {
     SpecifiedValueInfo,
     ToAnimatedValue,
     ToCss,
-    ToShmem,
     ToResolvedValue,
     Parse,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericLineHeight<N, L> {
     /// `normal`
@@ -144,8 +145,8 @@ impl<N, L> LineHeight<N, L> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 pub enum GenericTextDecorationLength<L> {
     LengthPercentage(L),

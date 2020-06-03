@@ -205,8 +205,8 @@ impl Size {
     ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct CSSPixelLength(CSSFloat);
 
@@ -487,8 +487,8 @@ pub type NonNegativeLengthOrNumber = GenericLengthOrNumber<NonNegativeLength, No
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum ExtremumLength {
     #[parse(aliases = "-moz-max-content")]

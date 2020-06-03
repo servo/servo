@@ -29,8 +29,8 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
     ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct SVGPathData(
     // TODO(emilio): Should probably measure this somehow only from the
@@ -161,8 +161,8 @@ impl ComputeSquaredDistance for SVGPathData {
     ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 #[repr(C, u8)]
 pub enum PathCommand {
@@ -492,8 +492,8 @@ impl ToCss for PathCommand {
     ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum IsAbsolute {
     Yes,
@@ -525,8 +525,8 @@ impl IsAbsolute {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct CoordPair(CSSFloat, CSSFloat);
 
@@ -550,8 +550,8 @@ impl CoordPair {
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct ArcFlag(bool);
 

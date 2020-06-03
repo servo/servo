@@ -81,8 +81,8 @@ macro_rules! define_keyword_type {
             ToComputedValue,
             ToCss,
             ToResolvedValue,
-            ToShmem,
         )]
+        #[cfg_attr(feature = "gecko", derive(ToShmem))]
         pub struct $name;
 
         impl fmt::Debug for $name {

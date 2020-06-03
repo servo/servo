@@ -34,8 +34,8 @@ pub const MAX_GRID_LINE: i32 = 10000;
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericGridLine<Integer> {
     /// A custom identifier for named lines, or the empty atom otherwise.
@@ -211,8 +211,8 @@ impl Parse for GridLine<specified::Integer> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericTrackBreadth<L> {
     /// The generic type is almost always a non-negative `<length-percentage>`
@@ -245,15 +245,9 @@ impl<L> TrackBreadth<L> {
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-size>
 #[derive(
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericTrackSize<L> {
     /// A flexible `<track-breadth>`
@@ -365,8 +359,8 @@ impl<L: ToCss> ToCss for TrackSize<L> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct GenericImplicitGridTracks<T>(
     #[css(if_empty = "auto", iterable)] pub crate::OwnedSlice<T>,
@@ -414,9 +408,8 @@ where
 /// The initial argument of the `repeat` function.
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-repeat>
-#[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue, ToShmem,
-)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum RepeatCount<Integer> {
     /// A positive integer. This is allowed only for `<track-repeat>` and `<fixed-repeat>`
@@ -450,15 +443,9 @@ impl Parse for RepeatCount<specified::Integer> {
 /// It can also hold `repeat()` function parameters, which expands into the respective
 /// values in its computed form.
 #[derive(
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[css(function = "repeat")]
 #[repr(C)]
 pub struct GenericTrackRepeat<L, I> {
@@ -521,8 +508,8 @@ impl<L: ToCss, I: ToCss> ToCss for TrackRepeat<L, I> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericTrackListValue<LengthPercentage, Integer> {
     /// A <track-size> value.
@@ -561,15 +548,9 @@ impl<L, I> Default for TrackListValue<L, I> {
 ///
 /// <https://drafts.csswg.org/css-grid/#typedef-track-list>
 #[derive(
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericTrackList<LengthPercentage, Integer> {
     /// The index in `values` where our `<auto-repeat>` value is, if in bounds.
@@ -649,8 +630,8 @@ impl<L: ToCss, I: ToCss> ToCss for TrackList<L, I> {
     SpecifiedValueInfo,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct LineNameList {
     /// The optional `<line-name-list>`
@@ -768,8 +749,8 @@ impl ToCss for LineNameList {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericGridTemplateComponent<L, I> {
     /// `none` value.
@@ -779,7 +760,7 @@ pub enum GenericGridTemplateComponent<L, I> {
         #[animation(field_bound)]
         #[compute(field_bound)]
         #[resolve(field_bound)]
-        #[shmem(field_bound)]
+        #[cfg_attr(feature = "gecko", shmem(field_bound))]
         Box<GenericTrackList<L, I>>,
     ),
     /// A `subgrid <line-name-list>?`

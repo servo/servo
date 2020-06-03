@@ -163,7 +163,8 @@ macro_rules! counter_style_descriptors {
         $( #[$doc: meta] $name: tt $ident: ident / $setter: ident [$checker: tt]: $ty: ty, )+
     ) => {
         /// An @counter-style rule
-        #[derive(Clone, Debug, ToShmem)]
+        #[derive(Clone, Debug)]
+        #[cfg_attr(feature = "gecko", derive(ToShmem))]
         pub struct CounterStyleRuleData {
             name: CustomIdent,
             generation: Wrapping<u32>,
@@ -336,7 +337,8 @@ impl CounterStyleRuleData {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-system>
-#[derive(Clone, Debug, ToShmem)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum System {
     /// 'cyclic'
     Cyclic,
@@ -408,9 +410,8 @@ impl ToCss for System {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#typedef-symbol>
-#[derive(
-    Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToCss, ToShmem,
-)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum Symbol {
     /// <string>
@@ -448,7 +449,8 @@ impl Symbol {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-negative>
-#[derive(Clone, Debug, ToCss, ToShmem)]
+#[derive(Clone, Debug, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct Negative(pub Symbol, pub Option<Symbol>);
 
 impl Parse for Negative {
@@ -464,7 +466,8 @@ impl Parse for Negative {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-range>
-#[derive(Clone, Debug, ToCss, ToShmem)]
+#[derive(Clone, Debug, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct CounterRange {
     /// The start of the range.
     pub start: CounterBound,
@@ -475,12 +478,14 @@ pub struct CounterRange {
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-range>
 ///
 /// Empty represents 'auto'
-#[derive(Clone, Debug, ToCss, ToShmem)]
+#[derive(Clone, Debug, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[css(comma)]
 pub struct CounterRanges(#[css(iterable, if_empty = "auto")] pub crate::OwnedSlice<CounterRange>);
 
 /// A bound found in `CounterRanges`.
-#[derive(Clone, Copy, Debug, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum CounterBound {
     /// An integer bound.
     Integer(Integer),
@@ -527,7 +532,8 @@ fn parse_bound<'i, 't>(
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-pad>
-#[derive(Clone, Debug, ToCss, ToShmem)]
+#[derive(Clone, Debug, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct Pad(pub Integer, pub Symbol);
 
 impl Parse for Pad {
@@ -543,7 +549,8 @@ impl Parse for Pad {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-fallback>
-#[derive(Clone, Debug, ToCss, ToShmem)]
+#[derive(Clone, Debug, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct Fallback(pub CustomIdent);
 
 impl Parse for Fallback {
@@ -556,9 +563,8 @@ impl Parse for Fallback {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-symbols>
-#[derive(
-    Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToCss, ToShmem,
-)]
+#[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct Symbols(#[css(iterable)] pub crate::OwnedSlice<Symbol>);
 
@@ -579,7 +585,8 @@ impl Parse for Symbols {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#descdef-counter-style-additive-symbols>
-#[derive(Clone, Debug, ToCss, ToShmem)]
+#[derive(Clone, Debug, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[css(comma)]
 pub struct AdditiveSymbols(#[css(iterable)] pub crate::OwnedSlice<AdditiveTuple>);
 
@@ -601,7 +608,8 @@ impl Parse for AdditiveSymbols {
 }
 
 /// <integer> && <symbol>
-#[derive(Clone, Debug, ToCss, ToShmem)]
+#[derive(Clone, Debug, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct AdditiveTuple {
     /// <integer>
     pub weight: Integer,
@@ -626,7 +634,8 @@ impl Parse for AdditiveTuple {
 }
 
 /// <https://drafts.csswg.org/css-counter-styles/#counter-style-speak-as>
-#[derive(Clone, Debug, ToCss, ToShmem)]
+#[derive(Clone, Debug, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum SpeakAs {
     /// auto
     Auto,

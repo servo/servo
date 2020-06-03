@@ -48,7 +48,8 @@ pub const AU_PER_PT: CSSFloat = AU_PER_IN / 72.;
 pub const AU_PER_PC: CSSFloat = AU_PER_PT * 12.;
 
 /// A font relative length.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum FontRelativeLength {
     /// A "em" value: https://drafts.csswg.org/css-values/#em
     #[css(dimension)]
@@ -252,7 +253,8 @@ impl FontRelativeLength {
 /// A viewport-relative length.
 ///
 /// <https://drafts.csswg.org/css-values/#viewport-relative-lengths>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum ViewportPercentageLength {
     /// A vw unit: https://drafts.csswg.org/css-values/#vw
     #[css(dimension)]
@@ -333,7 +335,8 @@ impl ViewportPercentageLength {
 }
 
 /// HTML5 "character width", as defined in HTML5 § 14.5.4.
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct CharacterWidth(pub i32);
 
 impl CharacterWidth {
@@ -350,7 +353,8 @@ impl CharacterWidth {
 }
 
 /// Represents an absolute length with its unit
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum AbsoluteLength {
     /// An absolute length in pixels (px)
     #[css(dimension)]
@@ -474,7 +478,8 @@ impl Add<AbsoluteLength> for AbsoluteLength {
 /// A `<length>` without taking `calc` expressions into account
 ///
 /// <https://drafts.csswg.org/css-values/#lengths>
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum NoCalcLength {
     /// An absolute length
     ///
@@ -660,7 +665,8 @@ impl Zero for NoCalcLength {
 /// This is commonly used for the `<length>` values.
 ///
 /// <https://drafts.csswg.org/css-values/#lengths>
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum Length {
     /// The internal length type that cannot parse `calc`
     NoCalc(NoCalcLength),
@@ -925,7 +931,8 @@ impl NonNegativeLength {
 ///
 /// https://drafts.csswg.org/css-values-4/#typedef-length-percentage
 #[allow(missing_docs)]
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum LengthPercentage {
     Length(NoCalcLength),
     Percentage(computed::Percentage),

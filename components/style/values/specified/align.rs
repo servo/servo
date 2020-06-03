@@ -13,7 +13,8 @@ use style_traits::{CssWriter, KeywordsCollectFn, ParseError, SpecifiedValueInfo,
 
 bitflags! {
     /// Constants shared by multiple CSS Box Alignment properties
-    #[derive(MallocSizeOf, ToComputedValue, ToResolvedValue, ToShmem)]
+    #[derive(MallocSizeOf, ToComputedValue, ToResolvedValue)]
+    #[cfg_attr(feature = "gecko", derive(ToShmem))]
     #[repr(C)]
     pub struct AlignFlags: u8 {
         // Enumeration stored in the lower 5 bits:
@@ -133,19 +134,11 @@ pub enum AxisDirection {
 ///
 /// <https://drafts.csswg.org/css-align/#content-distribution>
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue,
 )]
-#[repr(C)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
+#[repr(C)]
 pub struct ContentDistribution {
     primary: AlignFlags,
     // FIXME(https://github.com/w3c/csswg-drafts/issues/1002): This will need to
@@ -258,17 +251,9 @@ impl ContentDistribution {
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-align-content>
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct AlignContent(pub ContentDistribution);
 
@@ -296,17 +281,9 @@ impl SpecifiedValueInfo for AlignContent {
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-justify-content>
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct JustifyContent(pub ContentDistribution);
 
@@ -346,17 +323,9 @@ impl From<JustifyContent> for u16 {
 
 /// <https://drafts.csswg.org/css-align/#self-alignment>
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(transparent)]
 pub struct SelfAlignment(pub AlignFlags);
 
@@ -418,17 +387,9 @@ impl SelfAlignment {
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-align-self>
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct AlignSelf(pub SelfAlignment);
 
@@ -456,17 +417,9 @@ impl SpecifiedValueInfo for AlignSelf {
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-justify-self>
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct JustifySelf(pub SelfAlignment);
 
@@ -494,17 +447,9 @@ impl SpecifiedValueInfo for JustifySelf {
 ///
 /// <https://drafts.csswg.org/css-align/#propdef-align-items>
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    PartialEq,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToComputedValue, ToCss, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct AlignItems(pub AlignFlags);
 
@@ -556,7 +501,8 @@ impl SpecifiedValueInfo for AlignItems {
 /// Value of the `justify-items` property
 ///
 /// <https://drafts.csswg.org/css-align/#justify-items-property>
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToResolvedValue, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, ToCss, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct JustifyItems(pub AlignFlags);
 

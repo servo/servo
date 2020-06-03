@@ -21,8 +21,8 @@
     ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct GenericPosition<H, V> {
     /// The horizontal component of position.
@@ -81,8 +81,8 @@ pub trait PositionComponent {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericPositionOrAuto<Pos> {
     /// The <position> value.
@@ -116,8 +116,8 @@ impl<Pos> PositionOrAuto<Pos> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericZIndex<I> {
     /// An integer value.

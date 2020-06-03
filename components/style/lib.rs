@@ -94,7 +94,9 @@ extern crate style_traits;
 #[cfg(feature = "gecko")]
 extern crate thin_slice;
 extern crate time;
+#[cfg(feature = "gecko")]
 extern crate to_shmem;
+#[cfg(feature = "gecko")]
 #[macro_use]
 extern crate to_shmem_derive;
 extern crate uluru;

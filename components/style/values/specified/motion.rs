@@ -100,7 +100,8 @@ impl Parse for OffsetPath {
 }
 
 /// The direction of offset-rotate.
-#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, Parse, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum OffsetRotateDirection {
     /// Unspecified direction keyword.
@@ -129,7 +130,8 @@ fn direction_specified_and_angle_is_zero(direction: &OffsetRotateDirection, angl
 /// The syntax is: "[ auto | reverse ] || <angle>"
 ///
 /// https://drafts.fxtf.org/motion-1/#offset-rotate-property
-#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct OffsetRotate {
     /// [auto | reverse].
     #[css(skip_if = "OffsetRotateDirection::is_none")]

@@ -66,7 +66,8 @@ pub use self::viewport_rule::ViewportRule;
 
 /// The CORS mode used for a CSS load.
 #[repr(u8)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum CorsMode {
     /// No CORS mode, so cross-origin loads can be done.
     None,
@@ -232,7 +233,8 @@ impl Eq for UrlExtraData {}
 /// A CSS rule.
 ///
 /// TODO(emilio): Lots of spec links should be around.
-#[derive(Clone, Debug, ToShmem)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 pub enum CssRule {
     // No Charset here, CSSCharsetRule has been removed from CSSOM

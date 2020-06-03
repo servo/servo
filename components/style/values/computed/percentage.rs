@@ -29,8 +29,8 @@ use style_traits::{CssWriter, ToCss};
     ToAnimatedZero,
     ToComputedValue,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C)]
 pub struct Percentage(pub CSSFloat);
 

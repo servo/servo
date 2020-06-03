@@ -19,8 +19,8 @@ use crate::values::CSSFloat;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[value_info(ty = "TIMING_FUNCTION")]
 #[repr(u8, C)]
 pub enum TimingFunction<Integer, Number> {
@@ -56,8 +56,8 @@ pub enum TimingFunction<Integer, Number> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum TimingKeyword {
     Linear,
@@ -80,18 +80,9 @@ fn step_position_jump_enabled(_context: &ParserContext) -> bool {
 #[allow(missing_docs)]
 #[cfg_attr(feature = "servo", derive(Deserialize, Serialize))]
 #[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    ToComputedValue,
-    ToCss,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Copy, Debug, Eq, MallocSizeOf, Parse, PartialEq, ToComputedValue, ToCss, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 pub enum StepPosition {
     #[parse(condition = "step_position_jump_enabled")]

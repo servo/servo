@@ -23,8 +23,8 @@ use style_traits::ParseError;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 /// <https://drafts.csswg.org/css-ui/#propdef-outline-style>
 pub enum OutlineStyle {

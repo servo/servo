@@ -37,6 +37,7 @@ use selectors::parser::SelectorParseErrorKind;
 #[cfg(feature = "servo")] use servo_config::prefs;
 use style_traits::{CssWriter, KeywordsCollectFn, ParseError, ParsingMode};
 use style_traits::{SpecifiedValueInfo, StyleParseErrorKind, ToCss};
+#[cfg(feature = "gecko")]
 use to_shmem::impl_trivial_to_shmem;
 use crate::stylesheets::{CssRuleType, Origin, UrlExtraData};
 use crate::use_counters::UseCounters;
@@ -257,7 +258,7 @@ pub mod shorthands {
 %>
 
 /// Servo's representation for a property declaration.
-#[derive(ToShmem)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u16)]
 pub enum PropertyDeclaration {
     % for variant in variants:
@@ -802,6 +803,7 @@ pub struct LonghandIdSet {
     storage: [u32; (${len(data.longhands)} - 1 + 32) / 32]
 }
 
+#[cfg(feature = "gecko")]
 impl_trivial_to_shmem!(LonghandIdSet);
 
 /// An iterator over a set of longhand ids.
@@ -990,8 +992,8 @@ impl LonghandIdSet {
 }
 
 /// An enum to represent a CSS Wide keyword.
-#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo,
-         ToCss, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum CSSWideKeyword {
     /// The `initial` keyword.
     Initial,
@@ -1069,7 +1071,8 @@ bitflags! {
 }
 
 /// An identifier for a given longhand property.
-#[derive(Clone, Copy, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
+#[derive(Clone, Copy, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u16)]
 pub enum LonghandId {
     % for i, property in enumerate(data.longhands):
@@ -1382,7 +1385,8 @@ where
 }
 
 /// An identifier for a given shorthand property.
-#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u16)]
 pub enum ShorthandId {
     % for i, property in enumerate(data.shorthands):
@@ -1580,7 +1584,8 @@ impl ShorthandId {
 }
 
 /// An unparsed property value that contains `var()` functions.
-#[derive(Debug, Eq, PartialEq, ToShmem)]
+#[derive(Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct UnparsedValue {
     /// The css serialization for this value.
     css: String,
@@ -2107,7 +2112,8 @@ impl PropertyId {
 
 /// A declaration using a CSS-wide keyword.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct WideKeywordDeclaration {
     #[css(skip)]
     id: LonghandId,
@@ -2116,7 +2122,8 @@ pub struct WideKeywordDeclaration {
 
 /// An unparsed declaration that contains `var()` functions.
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct VariableDeclaration {
     #[css(skip)]
     id: LonghandId,
@@ -2126,7 +2133,8 @@ pub struct VariableDeclaration {
 
 /// A custom property declaration value is either an unparsed value or a CSS
 /// wide-keyword.
-#[derive(Clone, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum CustomDeclarationValue {
     /// A value.
     Value(Arc<crate::custom_properties::SpecifiedValue>),
@@ -2135,8 +2143,8 @@ pub enum CustomDeclarationValue {
 }
 
 /// A custom property declaration with the property name and the declared value.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf, ToShmem))]
 pub struct CustomDeclaration {
     /// The name of the custom property.
     #[css(skip)]

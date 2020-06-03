@@ -26,7 +26,8 @@ use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 /// An [`@supports`][supports] rule.
 ///
 /// [supports]: https://drafts.csswg.org/css-conditional-3/#at-supports
-#[derive(Debug, ToShmem)]
+#[derive(Debug)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct SupportsRule {
     /// The parsed condition
     pub condition: SupportsCondition,
@@ -76,7 +77,8 @@ impl DeepCloneWithLock for SupportsRule {
 /// An @supports condition
 ///
 /// <https://drafts.csswg.org/css-conditional-3/#at-supports>
-#[derive(Clone, Debug, ToShmem)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum SupportsCondition {
     /// `not (condition)`
     Not(Box<SupportsCondition>),
@@ -305,7 +307,8 @@ impl ToCss for SupportsCondition {
     }
 }
 
-#[derive(Clone, Debug, ToShmem)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 /// A possibly-invalid CSS selector.
 pub struct RawSelector(pub String);
 
@@ -365,7 +368,8 @@ impl RawSelector {
     }
 }
 
-#[derive(Clone, Debug, ToShmem)]
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 /// A possibly-invalid property declaration
 pub struct Declaration(pub String);
 

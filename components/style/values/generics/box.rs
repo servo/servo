@@ -20,8 +20,8 @@ use crate::values::animated::ToAnimatedZero;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum VerticalAlignKeyword {
@@ -50,8 +50,8 @@ pub enum VerticalAlignKeyword {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericVerticalAlign<LengthPercentage> {
     /// One of the vertical-align keywords.
@@ -86,8 +86,8 @@ impl<L> ToAnimatedZero for VerticalAlign<L> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum AnimationIterationCount<Number> {
     /// A `<number>` value.
     Number(Number),
@@ -111,8 +111,8 @@ pub enum AnimationIterationCount<Number> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericPerspective<NonNegativeLength> {
     /// A non-negative length.

@@ -27,8 +27,8 @@ use style_traits::ParseError;
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericLengthPercentageOrAuto<LengthPercent> {
     LengthPercentage(LengthPercent),
@@ -145,8 +145,8 @@ impl<LengthPercentage: Parse> Parse for LengthPercentageOrAuto<LengthPercentage>
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericSize<LengthPercent> {
     LengthPercentage(LengthPercent),
@@ -188,8 +188,8 @@ impl<LengthPercentage> Size<LengthPercentage> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericMaxSize<LengthPercent> {
     LengthPercentage(LengthPercent),
@@ -225,8 +225,8 @@ impl<LengthPercentage> MaxSize<LengthPercentage> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 pub enum GenericLengthOrNumber<L, N> {
     /// A number.
@@ -269,8 +269,8 @@ impl<L, N: Zero> Zero for LengthOrNumber<L, N> {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[repr(C, u8)]
 #[allow(missing_docs)]
 pub enum GenericLengthPercentageOrNormal<LengthPercent> {

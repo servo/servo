@@ -91,8 +91,8 @@ impl Importance {
 }
 
 /// Overridden declarations are skipped.
-#[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
-#[derive(Clone, ToShmem)]
+#[derive(Clone)]
+#[cfg_attr(feature = "gecko", derive(MallocSizeOf, ToShmem))]
 pub struct PropertyDeclarationBlock {
     /// The group of declarations, along with their importance.
     ///

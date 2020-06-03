@@ -12,7 +12,8 @@ use cssparser::{Parser, Token};
 use style_traits::{ParseError, StyleParseErrorKind};
 
 /// A specified resolution.
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss, ToShmem)]
+#[derive(Clone, Debug, MallocSizeOf, PartialEq, ToCss)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub enum Resolution {
     /// Dots per inch.
     #[css(dimension)]

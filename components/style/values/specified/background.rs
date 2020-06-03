@@ -48,8 +48,8 @@ impl Parse for BackgroundSize {
     ToComputedValue,
     ToCss,
     ToResolvedValue,
-    ToShmem,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 #[allow(missing_docs)]
 #[value_info(other_values = "repeat-x,repeat-y")]
 pub enum BackgroundRepeatKeyword {
@@ -65,15 +65,9 @@ pub enum BackgroundRepeatKeyword {
 ///
 /// https://drafts.csswg.org/css-backgrounds/#the-background-repeat
 #[derive(
-    Clone,
-    Debug,
-    MallocSizeOf,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
+    Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToComputedValue, ToResolvedValue,
 )]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct BackgroundRepeat(pub BackgroundRepeatKeyword, pub BackgroundRepeatKeyword);
 
 impl BackgroundRepeat {

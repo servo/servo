@@ -17,7 +17,8 @@ use servo_arc::{Arc, RawOffsetArc};
 use std::fmt::{self, Write};
 
 /// A list of CSS rules.
-#[derive(Debug, ToShmem)]
+#[derive(Debug)]
+#[cfg_attr(feature = "gecko", derive(ToShmem))]
 pub struct CssRules(pub Vec<CssRule>);
 
 impl CssRules {
