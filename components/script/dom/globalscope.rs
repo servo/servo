@@ -26,7 +26,9 @@ use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
 use crate::dom::blob::Blob;
 use crate::dom::broadcastchannel::BroadcastChannel;
 use crate::dom::crypto::Crypto;
-use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
+use crate::dom::dedicatedworkerglobalscope::{
+    DedicatedWorkerControlMsg, DedicatedWorkerGlobalScope,
+};
 use crate::dom::errorevent::ErrorEvent;
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
@@ -65,6 +67,7 @@ use crate::task_source::TaskSourceName;
 use crate::timers::{IsInterval, OneshotTimerCallback, OneshotTimerHandle};
 use crate::timers::{OneshotTimers, TimerCallback};
 use content_security_policy::CspList;
+use crossbeam_channel::Sender;
 use devtools_traits::{PageError, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
@@ -112,15 +115,46 @@ use std::ops::Index;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::thread::JoinHandle;
 use time::{get_time, Timespec};
 use uuid::Uuid;
 
 #[derive(JSTraceable)]
-pub struct AutoCloseWorker(Arc<AtomicBool>);
+pub struct AutoCloseWorker {
+    /// https://html.spec.whatwg.org/multipage/#dom-workerglobalscope-closing
+    closing: Arc<AtomicBool>,
+    /// A handle to join on the worker thread.
+    join_handle: Option<JoinHandle<()>>,
+    /// A sender of control messages,
+    /// currently only used to signal shutdown.
+    control_sender: Sender<DedicatedWorkerControlMsg>,
+}
 
 impl Drop for AutoCloseWorker {
+    /// <https://html.spec.whatwg.org/multipage/#terminate-a-worker>
     fn drop(&mut self) {
-        self.0.store(true, Ordering::SeqCst);
+        // Step 1.
+        self.closing.store(true, Ordering::SeqCst);
+
+        if self
+            .control_sender
+            .send(DedicatedWorkerControlMsg::Exit)
+            .is_err()
+        {
+            warn!("Couldn't send an exit message to a dedicated worker.");
+        }
+
+        // TODO: step 2 and 3.
+        // Step 4 is unnecessary since we don't use actual ports for dedicated workers.
+        if self
+            .join_handle
+            .take()
+            .expect("No handle to join on worker.")
+            .join()
+            .is_err()
+        {
+            warn!("Failed to join on dedicated worker thread.");
+        }
     }
 }
 
@@ -760,9 +794,18 @@ impl GlobalScope {
     }
 
     /// Remove the routers for ports and broadcast-channels.
-    pub fn remove_web_messaging_infra(&self) {
+    /// Drain the list of workers.
+    pub fn remove_web_messaging_and_dedicated_workers_infra(&self) {
         self.remove_message_ports_router();
         self.remove_broadcast_channel_router();
+
+        // Drop each ref to a worker explicitly now,
+        // which will send a shutdown signal,
+        // and join on the worker thread.
+        self.list_auto_close_worker
+            .borrow_mut()
+            .drain(0..)
+            .for_each(|worker| drop(worker));
     }
 
     /// Update our state to un-managed,
@@ -1794,10 +1837,19 @@ impl GlobalScope {
         &self.permission_state_invocation_results
     }
 
-    pub fn track_worker(&self, closing_worker: Arc<AtomicBool>) {
+    pub fn track_worker(
+        &self,
+        closing: Arc<AtomicBool>,
+        join_handle: JoinHandle<()>,
+        control_sender: Sender<DedicatedWorkerControlMsg>,
+    ) {
         self.list_auto_close_worker
             .borrow_mut()
-            .push(AutoCloseWorker(closing_worker));
+            .push(AutoCloseWorker {
+                closing,
+                join_handle: Some(join_handle),
+                control_sender: control_sender,
+            });
     }
 
     pub fn track_event_source(&self, event_source: &EventSource) {

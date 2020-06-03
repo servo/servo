@@ -45,7 +45,7 @@ use servo_config::pref;
 use servo_rand::random;
 use servo_url::ServoUrl;
 use std::sync::Arc;
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use style::thread_state::{self, ThreadState};
 
@@ -116,9 +116,16 @@ impl QueuedTaskConversion for ServiceWorkerScriptMsg {
     }
 }
 
+/// Messages sent from the owning registration.
+pub enum ServiceWorkerControlMsg {
+    /// Shutdown.
+    Exit,
+}
+
 pub enum MixedMessage {
     FromServiceWorker(ServiceWorkerScriptMsg),
     FromDevtools(DevtoolScriptControlMsg),
+    FromControl(ServiceWorkerControlMsg),
 }
 
 #[derive(Clone, JSTraceable)]
@@ -165,22 +172,32 @@ pub struct ServiceWorkerGlobalScope {
     swmanager_sender: IpcSender<ServiceWorkerMsg>,
 
     scope_url: ServoUrl,
+
+    /// A receiver of control messages,
+    /// currently only used to signal shutdown.
+    #[ignore_malloc_size_of = "Channels are hard"]
+    control_receiver: Receiver<ServiceWorkerControlMsg>,
 }
 
 impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
     type WorkerMsg = ServiceWorkerScriptMsg;
+    type ControlMsg = ServiceWorkerControlMsg;
     type Event = MixedMessage;
 
     fn task_queue(&self) -> &TaskQueue<ServiceWorkerScriptMsg> {
         &self.task_queue
     }
 
-    fn handle_event(&self, event: MixedMessage) {
-        self.handle_mixed_message(event);
+    fn handle_event(&self, event: MixedMessage) -> bool {
+        self.handle_mixed_message(event)
     }
 
     fn handle_worker_post_event(&self, _worker: &TrustedWorkerAddress) -> Option<AutoWorkerReset> {
         None
+    }
+
+    fn from_control_msg(&self, msg: ServiceWorkerControlMsg) -> MixedMessage {
+        MixedMessage::FromControl(msg)
     }
 
     fn from_worker_msg(&self, msg: ServiceWorkerScriptMsg) -> MixedMessage {
@@ -189,6 +206,10 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
 
     fn from_devtools_msg(&self, msg: DevtoolScriptControlMsg) -> MixedMessage {
         MixedMessage::FromDevtools(msg)
+    }
+
+    fn control_receiver(&self) -> &Receiver<ServiceWorkerControlMsg> {
+        &self.control_receiver
     }
 }
 
@@ -203,6 +224,7 @@ impl ServiceWorkerGlobalScope {
         time_out_port: Receiver<Instant>,
         swmanager_sender: IpcSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
+        control_receiver: Receiver<ServiceWorkerControlMsg>,
     ) -> ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -220,6 +242,7 @@ impl ServiceWorkerGlobalScope {
             time_out_port,
             swmanager_sender: swmanager_sender,
             scope_url: scope_url,
+            control_receiver,
         }
     }
 
@@ -234,6 +257,7 @@ impl ServiceWorkerGlobalScope {
         time_out_port: Receiver<Instant>,
         swmanager_sender: IpcSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
+        control_receiver: Receiver<ServiceWorkerControlMsg>,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
@@ -246,6 +270,7 @@ impl ServiceWorkerGlobalScope {
             time_out_port,
             swmanager_sender,
             scope_url,
+            control_receiver,
         ));
         unsafe { ServiceWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
     }
@@ -259,7 +284,8 @@ impl ServiceWorkerGlobalScope {
         devtools_receiver: IpcReceiver<DevtoolScriptControlMsg>,
         swmanager_sender: IpcSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
-    ) {
+        control_receiver: Receiver<ServiceWorkerControlMsg>,
+    ) -> JoinHandle<()> {
         let ScopeThings {
             script_url,
             init,
@@ -315,6 +341,7 @@ impl ServiceWorkerGlobalScope {
                     time_out_port,
                     swmanager_sender,
                     scope_url,
+                    control_receiver,
                 );
 
                 let (_url, source) =
@@ -361,35 +388,33 @@ impl ServiceWorkerGlobalScope {
                     );
                 scope.clear_js_runtime();
             })
-            .expect("Thread spawning failed");
+            .expect("Thread spawning failed")
     }
 
     fn handle_mixed_message(&self, msg: MixedMessage) -> bool {
         match msg {
-            MixedMessage::FromDevtools(msg) => {
-                match msg {
-                    DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
-                        devtools::handle_evaluate_js(self.upcast(), string, sender)
-                    },
-                    DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
-                        devtools::handle_wants_live_notifications(self.upcast(), bool_val)
-                    },
-                    _ => debug!("got an unusable devtools control message inside the worker!"),
-                }
-                true
+            MixedMessage::FromDevtools(msg) => match msg {
+                DevtoolScriptControlMsg::EvaluateJS(_pipe_id, string, sender) => {
+                    devtools::handle_evaluate_js(self.upcast(), string, sender)
+                },
+                DevtoolScriptControlMsg::WantsLiveNotifications(_pipe_id, bool_val) => {
+                    devtools::handle_wants_live_notifications(self.upcast(), bool_val)
+                },
+                _ => debug!("got an unusable devtools control message inside the worker!"),
             },
             MixedMessage::FromServiceWorker(msg) => {
                 self.handle_script_event(msg);
-                true
+            },
+            MixedMessage::FromControl(ServiceWorkerControlMsg::Exit) => {
+                return false;
             },
         }
+        true
     }
 
     fn has_timed_out(&self) -> bool {
         // TODO: https://w3c.github.io/ServiceWorker/#service-worker-lifetime
-        // Since we don't have a shutdown mechanism yet, see #26548
-        // immediately stop the event-loop after executing the initial script.
-        true
+        false
     }
 
     fn handle_script_event(&self, msg: ServiceWorkerScriptMsg) {

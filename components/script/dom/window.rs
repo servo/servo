@@ -1443,8 +1443,8 @@ impl Window {
     }
 
     pub fn clear_js_runtime(&self) {
-        // Remove the infra for managing messageports and broadcast channels.
-        self.upcast::<GlobalScope>().remove_web_messaging_infra();
+        self.upcast::<GlobalScope>()
+            .remove_web_messaging_and_dedicated_workers_infra();
 
         // Clean up any active promises
         // https://github.com/servo/servo/issues/15318
