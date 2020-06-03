@@ -247,6 +247,7 @@ impl<'a> CanvasPaintThread<'a> {
             },
             Canvas2dMsg::SetShadowBlur(value) => self.canvas(canvas_id).set_shadow_blur(value),
             Canvas2dMsg::SetShadowColor(color) => self.canvas(canvas_id).set_shadow_color(color),
+            Canvas2dMsg::SetFont(font_style) => self.canvas(canvas_id).set_font(font_style),
         }
     }
 

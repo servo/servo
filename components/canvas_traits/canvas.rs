@@ -8,6 +8,7 @@ use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMem
 use serde_bytes::ByteBuf;
 use std::default::Default;
 use std::str::FromStr;
+use style::properties::style_structs::Font;
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FillRule {
@@ -70,6 +71,7 @@ pub enum Canvas2dMsg {
     SetShadowOffsetY(f64),
     SetShadowBlur(f64),
     SetShadowColor(RGBA),
+    SetFont(Font),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]

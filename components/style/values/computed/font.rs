@@ -80,6 +80,8 @@ impl ToAnimatedValue for FontWeight {
     ToAnimatedZero,
     ToCss,
     ToResolvedValue,
+    Serialize,
+    Deserialize,
 )]
 /// The computed value of font-size
 pub struct FontSize {
@@ -179,7 +181,7 @@ impl ToAnimatedValue for FontSize {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq, ToComputedValue, ToResolvedValue)]
-#[cfg_attr(feature = "servo", derive(Hash, MallocSizeOf))]
+#[cfg_attr(feature = "servo", derive(Hash, MallocSizeOf, Serialize, Deserialize))]
 /// Specifies a prioritized list of font family names or generic family names.
 pub struct FontFamily {
     /// The actual list of family names.
@@ -445,7 +447,17 @@ impl SingleFontFamily {
 
 #[cfg(feature = "servo")]
 #[derive(
-    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
+    Clone,
+    Debug,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+    Serialize,
+    Deserialize,
 )]
 /// A list of SingleFontFamily
 pub struct FontFamilyList(Box<[SingleFontFamily]>);

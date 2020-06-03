@@ -496,6 +496,8 @@ impl ToComputedValue for FontStretch {
     ToCss,
     ToResolvedValue,
     ToShmem,
+    Serialize,
+    Deserialize,
 )]
 #[allow(missing_docs)]
 pub enum KeywordSize {
@@ -540,6 +542,8 @@ impl Default for KeywordSize {
     ToCss,
     ToResolvedValue,
     ToShmem,
+    Serialize,
+    Deserialize,
 )]
 /// Additional information for keyword-derived font sizes.
 pub struct KeywordInfo {

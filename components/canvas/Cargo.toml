@@ -34,6 +34,7 @@ pixels = { path = "../pixels" }
 raqote = { version = "0.8", features = ["text"] }
 servo_config = { path = "../config" }
 sparkle = "0.1.24"
+style = { path = "../style" }
 # NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
 surfman = { version = "0.2", features = ["sm-angle", "sm-angle-default"] }
 surfman-chains = "0.3"

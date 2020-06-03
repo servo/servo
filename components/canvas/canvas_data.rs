@@ -13,6 +13,7 @@ use num_traits::ToPrimitive;
 use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
+use style::properties::style_structs::Font as FontStyleStruct;
 use webrender_api::units::RectExt as RectExt_;
 
 /// The canvas data stores a state machine for the current status of
@@ -1067,6 +1068,10 @@ impl<'a> CanvasData<'a> {
         self.backend.set_shadow_color(value, &mut self.state);
     }
 
+    pub fn set_font(&mut self, font_style: FontStyleStruct) {
+        self.state.font_style = Some(font_style)
+    }
+
     // https://html.spec.whatwg.org/multipage/#when-shadows-are-drawn
     fn need_to_draw_shadow(&self) -> bool {
         self.backend.need_to_draw_shadow(&self.state.shadow_color) &&
@@ -1158,6 +1163,7 @@ pub struct CanvasPaintState<'a> {
     pub shadow_offset_y: f64,
     pub shadow_blur: f64,
     pub shadow_color: Color,
+    pub font_style: Option<FontStyleStruct>,
 }
 
 /// It writes an image to the destination target

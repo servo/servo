@@ -49,7 +49,10 @@ use std::cell::Cell;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
+use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
 use style::properties::style_structs::Font;
+use style::values::computed::font::FontStyle;
+use style_traits::values::ToCss;
 
 #[unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -1026,16 +1029,24 @@ impl CanvasState {
         };
         let node = canvas.upcast::<Node>();
         let window = window_from_node(&*canvas);
-        let font_style = match window.resolved_font_style_query(&node, value.to_string()) {
+        let resolved_font_style = match window.resolved_font_style_query(&node, value.to_string()) {
             Some(value) => value,
             None => return, // syntax error
         };
-        self.state.borrow_mut().font_style = Some((*font_style).clone());
+        self.state.borrow_mut().font_style = Some((*resolved_font_style).clone());
+        self.send_canvas_2d_msg(Canvas2dMsg::SetFont((*resolved_font_style).clone()));
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
     pub fn font(&self) -> DOMString {
-        unimplemented!()
+        self.state.borrow().font_style.as_ref().map_or_else(
+            || DOMString::from("10px sans-serif"),
+            |style| {
+                let mut result = String::new();
+                serialize_font(style, &mut result).unwrap();
+                DOMString::from(result)
+            },
+        )
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
@@ -1662,4 +1673,25 @@ pub fn adjust_size_sign(
         origin.y = origin.y.saturating_sub(size.height);
     }
     (origin, size.to_u32())
+}
+
+fn serialize_font<W>(style: &Font, dest: &mut W) -> fmt::Result
+where
+    W: fmt::Write,
+{
+    if style.font_style == FontStyle::Italic {
+        write!(dest, "{} ", style.font_style.to_css_string())?;
+    }
+    if style.font_weight.is_bold() {
+        write!(dest, "{} ", style.font_weight.to_css_string())?;
+    }
+    if style.font_variant_caps == FontVariantCaps::SmallCaps {
+        write!(dest, "{} ", style.font_variant_caps.to_css_string())?;
+    }
+    write!(
+        dest,
+        "{} {}",
+        style.font_size.to_css_string(),
+        style.font_family.to_css_string()
+    )
 }

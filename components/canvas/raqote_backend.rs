@@ -90,6 +90,7 @@ impl<'a> CanvasPaintState<'a> {
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
             shadow_color: Color::Raqote(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0)),
+            font_style: None,
         }
     }
 }
