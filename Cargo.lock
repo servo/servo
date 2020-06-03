@@ -2400,11 +2400,11 @@ checksum = "63d68db75012a85555434ee079e7e6337931f87a087ab2988becbadf64673a7f"
 
 [[package]]
 name = "harfbuzz-sys"
-version = "0.3.3"
+version = "0.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf14b85a0c906ef4ef3ff87d0fba25ee45b724404a1a3100dc25eeb4f37ff43b"
+checksum = "212d74cab8498b2d15700b694fb38f77562869d05e1f8b602dd05221a1ca2d63"
 dependencies = [
- "cmake",
+ "cc",
  "core-graphics 0.17.3",
  "core-text 13.2.0",
  "foreign-types",
