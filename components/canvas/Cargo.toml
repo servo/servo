@@ -30,7 +30,7 @@ log = "0.4"
 lyon_geom = "0.14"
 num-traits = "0.2"
 pixels = { path = "../pixels" }
-raqote = { git = "https://github.com/jrmuizel/raqote" }
+raqote = "0.8"
 servo_config = { path = "../config" }
 sparkle = "0.1.24"
 # NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
