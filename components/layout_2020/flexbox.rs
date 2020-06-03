@@ -80,11 +80,11 @@ where
         &mut self,
         node: Node,
         text: Cow<'dom, str>,
-        parent_style: &Arc<ComputedValues>,
+        parent_style: Arc<ComputedValues>,
     ) {
         self.contiguous_text_runs.push(TextRun {
             tag: node.as_opaque(),
-            parent_style: parent_style.clone(),
+            parent_style,
             text: text.into(),
         })
     }
@@ -93,7 +93,7 @@ where
     fn handle_element(
         &mut self,
         node: Node,
-        style: &Arc<ComputedValues>,
+        style: Arc<ComputedValues>,
         display: DisplayGeneratingBox,
         contents: Contents,
         box_slot: BoxSlot<'dom>,
