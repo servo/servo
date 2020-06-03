@@ -245,6 +245,12 @@ pub enum SystemColor {
 
     MozGtkInfoBarText,
 
+    /// Color of tree column headers
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozColheadertext,
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    MozColheaderhovertext,
+
     #[css(skip)]
     End, // Just for array-indexing purposes.
 }
