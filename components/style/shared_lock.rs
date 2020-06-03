@@ -15,7 +15,6 @@ use std::cell::UnsafeCell;
 use std::fmt;
 #[cfg(feature = "servo")]
 use std::mem;
-use std::mem::ManuallyDrop;
 #[cfg(feature = "gecko")]
 use std::ptr;
 use to_shmem::{SharedMemoryBuilder, ToShmem};

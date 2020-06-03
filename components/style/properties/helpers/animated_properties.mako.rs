@@ -68,8 +68,7 @@ pub type AnimationValueMap = FxHashMap<LonghandId, AnimationValue>;
 ///
 /// FIXME: We need to add a path for custom properties, but that's trivial after
 /// this (is a similar path to that of PropertyDeclaration).
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-#[derive(Debug)]
+#[derive(Debug, MallocSizeOf)]
 #[repr(u16)]
 pub enum AnimationValue {
     % for prop in data.longhands:
@@ -420,6 +419,7 @@ impl AnimationValue {
     ///
     /// SERVO ONLY: This doesn't properly handle things like updating 'em' units
     /// when animated font-size.
+    #[cfg(feature = "servo")]
     pub fn set_in_style_for_servo(&self, style: &mut ComputedValues) {
         match self {
             % for prop in data.longhands:
@@ -438,6 +438,11 @@ impl AnimationValue {
             % endif
             % endfor
         }
+    }
+
+    /// As above, but a stub for Gecko.
+    #[cfg(feature = "gecko")]
+    pub fn set_in_style_for_servo(&self, _: &mut ComputedValues) {
     }
 }
 

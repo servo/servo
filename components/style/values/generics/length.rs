@@ -174,13 +174,13 @@ impl<LengthPercentage> Size<LengthPercentage> {
 
 /// A generic value for the `max-width` or `max-height` property.
 #[allow(missing_docs)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[derive(
     Animate,
     Clone,
     ComputeSquaredDistance,
     Copy,
     Debug,
+    MallocSizeOf,
     PartialEq,
     SpecifiedValueInfo,
     ToAnimatedValue,

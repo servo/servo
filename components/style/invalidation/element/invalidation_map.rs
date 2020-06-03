@@ -196,7 +196,7 @@ pub struct InvalidationMap {
     /// A list of document state dependencies in the rules we represent.
     pub document_state_selectors: Vec<DocumentStateDependency>,
     /// A map of other attribute affecting selectors.
-    pub other_attribute_affecting_selectors: PrecomputedHashMap<Atom, SmallVec<[Dependency; 1]>>,
+    pub other_attribute_affecting_selectors: PrecomputedHashMap<LocalName, SmallVec<[Dependency; 1]>>,
 }
 
 impl InvalidationMap {
@@ -461,7 +461,6 @@ impl<'a> SelectorVisitor for SelectorDependencyCollector<'a> {
     }
 
     fn visit_simple_selector(&mut self, s: &Component<SelectorImpl>) -> bool {
-        #[cfg(feature = "gecko")]
         use crate::selector_parser::NonTSPseudoClass;
 
         match *s {

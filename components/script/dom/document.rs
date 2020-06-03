@@ -3331,7 +3331,7 @@ impl Document {
     pub fn element_state_will_change(&self, el: &Element) {
         let mut entry = self.ensure_pending_restyle(el);
         if entry.snapshot.is_none() {
-            entry.snapshot = Some(Snapshot::new(el.html_element_in_html_document()));
+            entry.snapshot = Some(Snapshot::new());
         }
         let snapshot = entry.snapshot.as_mut().unwrap();
         if snapshot.state.is_none() {
@@ -3347,7 +3347,7 @@ impl Document {
         // could in theory do it in the DOM I think.
         let mut entry = self.ensure_pending_restyle(el);
         if entry.snapshot.is_none() {
-            entry.snapshot = Some(Snapshot::new(el.html_element_in_html_document()));
+            entry.snapshot = Some(Snapshot::new());
         }
         if attr.local_name() == &local_name!("style") {
             entry.hint.insert(RestyleHint::RESTYLE_STYLE_ATTRIBUTE);
@@ -3359,11 +3359,20 @@ impl Document {
 
         let snapshot = entry.snapshot.as_mut().unwrap();
         if attr.local_name() == &local_name!("id") {
+            if snapshot.id_changed {
+                return;
+            }
             snapshot.id_changed = true;
         } else if attr.local_name() == &local_name!("class") {
+            if snapshot.class_changed {
+                return;
+            }
             snapshot.class_changed = true;
         } else {
             snapshot.other_attributes_changed = true;
+        }
+        if !snapshot.changed_attrs.contains(attr.local_name()) {
+            snapshot.changed_attrs.push(attr.local_name().clone());
         }
         if snapshot.attrs.is_none() {
             let attrs = el

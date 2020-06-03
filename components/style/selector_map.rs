@@ -278,9 +278,12 @@ impl SelectorMap<Rule> {
 }
 
 impl<T: SelectorMapEntry> SelectorMap<T> {
-    /// Inserts into the correct hash, trying id, class, localname and
-    /// namespace.
-    pub fn insert(&mut self, entry: T, quirks_mode: QuirksMode) -> Result<(), FailedAllocationError> {
+    /// Inserts an entry into the correct bucket(s).
+    pub fn insert(
+        &mut self,
+        entry: T,
+        quirks_mode: QuirksMode,
+    ) -> Result<(), FailedAllocationError> {
         self.count += 1;
 
         // NOTE(emilio): It'd be nice for this to be a separate function, but
