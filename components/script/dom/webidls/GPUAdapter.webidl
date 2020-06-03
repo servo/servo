@@ -14,12 +14,13 @@ interface GPUAdapter {
 };
 
 dictionary GPUDeviceDescriptor : GPUObjectDescriptorBase {
-    GPUExtensions extensions = {};
+    sequence<GPUExtensionName> extensions = [];
     GPULimits limits = {};
 };
 
-dictionary GPUExtensions {
-    boolean anisotropicFiltering = false;
+enum GPUExtensionName {
+    "texture-compression-bc",
+    "pipeline-statistics-query"
 };
 
 dictionary GPULimits {

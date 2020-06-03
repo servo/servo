@@ -26,7 +26,7 @@ impl GPUPipelineLayout {
         bind_group_layouts: Vec<WebGPUBindGroupLayout>,
         pipeline_layout: WebGPUPipelineLayout,
         valid: bool,
-    ) -> GPUPipelineLayout {
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
             bind_group_layouts,
@@ -41,7 +41,7 @@ impl GPUPipelineLayout {
         bind_group_layouts: Vec<WebGPUBindGroupLayout>,
         pipeline_layout: WebGPUPipelineLayout,
         valid: bool,
-    ) -> DomRoot<GPUPipelineLayout> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUPipelineLayout::new_inherited(
                 bind_group_layouts,

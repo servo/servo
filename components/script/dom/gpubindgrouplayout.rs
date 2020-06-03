@@ -32,7 +32,7 @@ impl GPUBindGroupLayout {
         bind_group_layout: WebGPUBindGroupLayout,
         bindings: Vec<GPUBindGroupLayoutEntry>,
         valid: bool,
-    ) -> GPUBindGroupLayout {
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
             channel,
@@ -49,7 +49,7 @@ impl GPUBindGroupLayout {
         bind_group_layout: WebGPUBindGroupLayout,
         bindings: Vec<GPUBindGroupLayoutEntry>,
         valid: bool,
-    ) -> DomRoot<GPUBindGroupLayout> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBindGroupLayout::new_inherited(
                 channel,

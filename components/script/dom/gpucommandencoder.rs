@@ -192,12 +192,14 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                     GPUStoreOp::Clear => wgt::StoreOp::Clear,
                 },
                 clear_depth,
+                depth_read_only: depth.depthReadOnly,
                 stencil_load_op,
                 stencil_store_op: match depth.stencilStoreOp {
                     GPUStoreOp::Store => wgt::StoreOp::Store,
                     GPUStoreOp::Clear => wgt::StoreOp::Clear,
                 },
                 clear_stencil,
+                stencil_read_only: depth.stencilReadOnly,
             }
         });
 

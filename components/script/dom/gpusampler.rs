@@ -31,7 +31,7 @@ impl GPUSampler {
         compare_enable: bool,
         sampler: WebGPUSampler,
         valid: bool,
-    ) -> GPUSampler {
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
             channel,
@@ -50,7 +50,7 @@ impl GPUSampler {
         compare_enable: bool,
         sampler: WebGPUSampler,
         valid: bool,
-    ) -> DomRoot<GPUSampler> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUSampler::new_inherited(
                 channel,

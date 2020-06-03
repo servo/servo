@@ -27,7 +27,7 @@ impl GPURenderPipeline {
         render_pipeline: WebGPURenderPipeline,
         device: WebGPUDevice,
         valid: bool,
-    ) -> GPURenderPipeline {
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
@@ -42,7 +42,7 @@ impl GPURenderPipeline {
         render_pipeline: WebGPURenderPipeline,
         device: WebGPUDevice,
         valid: bool,
-    ) -> DomRoot<GPURenderPipeline> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderPipeline::new_inherited(
                 render_pipeline,

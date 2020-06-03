@@ -37,8 +37,8 @@ impl GPUCommandBuffer {
         channel: WebGPU,
         command_buffer: WebGPUCommandBuffer,
         buffers: HashSet<DomRoot<GPUBuffer>>,
-    ) -> GPUCommandBuffer {
-        GPUCommandBuffer {
+    ) -> Self {
+        Self {
             channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
@@ -52,7 +52,7 @@ impl GPUCommandBuffer {
         channel: WebGPU,
         command_buffer: WebGPUCommandBuffer,
         buffers: HashSet<DomRoot<GPUBuffer>>,
-    ) -> DomRoot<GPUCommandBuffer> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUCommandBuffer::new_inherited(
                 channel,

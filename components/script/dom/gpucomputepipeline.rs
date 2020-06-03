@@ -20,7 +20,7 @@ pub struct GPUComputePipeline {
 }
 
 impl GPUComputePipeline {
-    fn new_inherited(compute_pipeline: WebGPUComputePipeline) -> GPUComputePipeline {
+    fn new_inherited(compute_pipeline: WebGPUComputePipeline) -> Self {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
@@ -28,10 +28,7 @@ impl GPUComputePipeline {
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
-        compute_pipeline: WebGPUComputePipeline,
-    ) -> DomRoot<GPUComputePipeline> {
+    pub fn new(global: &GlobalScope, compute_pipeline: WebGPUComputePipeline) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUComputePipeline::new_inherited(compute_pipeline)),
             global,

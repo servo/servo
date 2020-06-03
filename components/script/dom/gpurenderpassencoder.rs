@@ -173,12 +173,11 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setindexbuffer
     fn SetIndexBuffer(&self, buffer: &GPUBuffer, offset: u64, size: u64) {
-        let s;
-        if size == 0 {
-            s = buffer.size() - offset;
+        let s = if size == 0 {
+            wgt::BufferSize::WHOLE
         } else {
-            s = size;
-        }
+            wgt::BufferSize(size)
+        };
 
         if let Some(raw_pass) = self.raw_pass.borrow_mut().as_mut() {
             unsafe {
@@ -189,12 +188,11 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer
     fn SetVertexBuffer(&self, slot: u32, buffer: &GPUBuffer, offset: u64, size: u64) {
-        let s;
-        if size == 0 {
-            s = buffer.size() - offset;
+        let s = if size == 0 {
+            wgt::BufferSize::WHOLE
         } else {
-            s = size;
-        }
+            wgt::BufferSize(size)
+        };
 
         if let Some(raw_pass) = self.raw_pass.borrow_mut().as_mut() {
             unsafe {
