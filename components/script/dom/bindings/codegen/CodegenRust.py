@@ -5761,75 +5761,12 @@ let global = DomRoot::downcast::<dom::types::%s>(global).unwrap();
         if self.constructor.isHTMLConstructor():
             signatures = self.constructor.signatures()
             assert len(signatures) == 1
-            constructorCall = CGGeneric("""\
-// Step 2 https://html.spec.whatwg.org/multipage/#htmlconstructor
-// The custom element definition cannot use an element interface as its constructor
-
-// The new_target might be a cross-realm wrapper. Get the underlying object
-// so we can do the spec's object-identity checks.
-rooted!(in(*cx) let new_target = UnwrapObjectDynamic(args.new_target().to_object(), *cx, 1));
-if new_target.is_null() {
-    throw_dom_exception(cx, global.upcast::<GlobalScope>(), Error::Type("new.target is null".to_owned()));
-    return false;
-}
-
-if args.callee() == new_target.get() {
-    throw_dom_exception(cx, global.upcast::<GlobalScope>(),
-        Error::Type("new.target must not be the active function object".to_owned()));
-    return false;
-}
-
-// Step 6
-rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
-{
-    rooted!(in(*cx) let mut proto_val = UndefinedValue());
-    let _ac = JSAutoRealm::new(*cx, new_target.get());
-    if !JS_GetProperty(*cx, new_target.handle(), b"prototype\\0".as_ptr() as *const _, proto_val.handle_mut()) {
-        return false;
-    }
-
-    if !proto_val.is_object() {
-        // Step 7 of https://html.spec.whatwg.org/multipage/#htmlconstructor.
-        // This fallback behavior is designed to match analogous behavior for the
-        // JavaScript built-ins. So we enter the realm of our underlying
-        // newTarget object and fall back to the prototype object from that global.
-        // XXX The spec says to use GetFunctionRealm(), which is not actually
-        // the same thing as what we have here (e.g. in the case of scripted callable proxies
-        // whose target is not same-realm with the proxy, or bound functions, etc).
-        // https://bugzilla.mozilla.org/show_bug.cgi?id=1317658
-
-        rooted!(in(*cx) let global_object = CurrentGlobalOrNull(*cx));
-        GetProtoObject(cx, global_object.handle(), prototype.handle_mut());
-    } else {
-        // Step 6
-        prototype.set(proto_val.to_object());
-    };
-}
-
-// Wrap prototype in this context since it is from the newTarget realm
-if !JS_WrapObject(*cx, prototype.handle_mut()) {
-    return false;
-}
-
-let result: Result<DomRoot<%s>, Error> = html_constructor(&global, &args);
-let result = match result {
-    Ok(result) => result,
-    Err(e) => {
-        throw_dom_exception(cx, global.upcast::<GlobalScope>(), e);
-        return false;
-    },
-};
-
-rooted!(in(*cx) let mut element = result.reflector().get_jsobject().get());
-if !JS_WrapObject(*cx, element.handle_mut()) {
-    return false;
-}
-
-JS_SetPrototype(*cx, element.handle(), prototype.handle());
-
-(result).to_jsval(*cx, MutableHandleValue::from_raw(args.rval()));
-return true;
-""" % self.descriptor.name)
+            constructorCall = CGGeneric("""dom::bindings::htmlconstructor::call_html_constructor::<dom::types::%s>(
+                cx,
+                &args,
+                &*global,
+                GetProtoObject,
+            )""" % self.descriptor.name)
         else:
             name = self.constructor.identifier.name
             nativeName = MakeNativeName(self.descriptor.binaryNameFor(name))
@@ -6145,7 +6082,6 @@ def generate_imports(config, cgthings, descriptors, callbacks=None, dictionaries
         'crate::dom::bindings::interface::define_guarded_constants',
         'crate::dom::bindings::interface::define_guarded_methods',
         'crate::dom::bindings::interface::define_guarded_properties',
-        'crate::dom::bindings::htmlconstructor::html_constructor',
         'crate::dom::bindings::interface::is_exposed_in',
         'crate::dom::bindings::htmlconstructor::pop_current_element_queue',
         'crate::dom::bindings::htmlconstructor::push_new_element_queue',

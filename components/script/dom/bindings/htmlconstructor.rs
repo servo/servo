@@ -71,56 +71,86 @@ use crate::dom::bindings::codegen::Bindings::HTMLUListElementBinding;
 use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::conversions::DerivedFrom;
-use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::error::{throw_dom_exception, Error};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::create::create_native_html_element;
 use crate::dom::customelementregistry::{ConstructionStackEntry, CustomElementState};
 use crate::dom::element::{Element, ElementCreator};
+use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
 use crate::script_runtime::JSContext;
 use crate::script_thread::ScriptThread;
 use html5ever::interface::QualName;
 use html5ever::LocalName;
-use js::glue::UnwrapObjectStatic;
+use js::conversions::ToJSValConvertible;
+use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic};
 use js::jsapi::{CallArgs, CurrentGlobalOrNull};
 use js::jsapi::{JSAutoRealm, JSObject};
-use js::rust::HandleObject;
-use js::rust::MutableHandleObject;
+use js::jsval::UndefinedValue;
+use js::rust::wrappers::{JS_GetProperty, JS_SetPrototype, JS_WrapObject};
+use js::rust::{HandleObject, MutableHandleObject, MutableHandleValue};
 use std::ptr;
 
 // https://html.spec.whatwg.org/multipage/#htmlconstructor
-pub unsafe fn html_constructor<T>(window: &Window, call_args: &CallArgs) -> Fallible<DomRoot<T>>
-where
-    T: DerivedFrom<Element>,
-{
+unsafe fn html_constructor(
+    cx: JSContext,
+    window: &Window,
+    call_args: &CallArgs,
+    check_type: fn(&Element) -> bool,
+    get_proto_object: fn(JSContext, HandleObject, MutableHandleObject),
+) -> Result<(), ()> {
     let document = window.Document();
+    let global = window.upcast::<GlobalScope>();
 
     // Step 1
     let registry = window.CustomElements();
 
-    // Step 2 is checked in the generated caller code
+    // Step 2 https://html.spec.whatwg.org/multipage/#htmlconstructor
+    // The custom element definition cannot use an element interface as its constructor
+
+    // The new_target might be a cross-compartment wrapper. Get the underlying object
+    // so we can do the spec's object-identity checks.
+    rooted!(in(*cx) let new_target_unwrapped = UnwrapObjectDynamic(call_args.new_target().to_object(), *cx, 1));
+    if new_target_unwrapped.is_null() {
+        throw_dom_exception(cx, global, Error::Type("new.target is null".to_owned()));
+        return Err(());
+    }
+    if call_args.callee() == new_target_unwrapped.get() {
+        throw_dom_exception(
+            cx,
+            global,
+            Error::Type("new.target must not be the active function object".to_owned()),
+        );
+        return Err(());
+    }
 
     // Step 3
-    rooted!(in(*window.get_cx()) let new_target = call_args.new_target().to_object());
+    rooted!(in(*cx) let new_target = call_args.new_target().to_object());
     let definition = match registry.lookup_definition_by_constructor(new_target.handle()) {
         Some(definition) => definition,
         None => {
-            return Err(Error::Type(
-                "No custom element definition found for new.target".to_owned(),
-            ));
+            throw_dom_exception(
+                cx,
+                global,
+                Error::Type("No custom element definition found for new.target".to_owned()),
+            );
+            return Err(());
         },
     };
 
-    rooted!(in(*window.get_cx()) let callee = UnwrapObjectStatic(call_args.callee()));
+    rooted!(in(*cx) let callee = UnwrapObjectStatic(call_args.callee()));
     if callee.is_null() {
-        return Err(Error::Security);
+        throw_dom_exception(cx, global, Error::Security);
+        return Err(());
     }
 
     {
-        let _ac = JSAutoRealm::new(*window.get_cx(), callee.get());
-        rooted!(in(*window.get_cx()) let mut constructor = ptr::null_mut::<JSObject>());
-        rooted!(in(*window.get_cx()) let global_object = CurrentGlobalOrNull(*window.get_cx()));
+        let _ac = JSAutoRealm::new(*cx, callee.get());
+        rooted!(in(*cx) let mut constructor = ptr::null_mut::<JSObject>());
+        rooted!(in(*cx) let global_object = CurrentGlobalOrNull(*cx));
 
         if definition.is_autonomous() {
             // Step 4
@@ -128,7 +158,7 @@ where
 
             // Retrieve the constructor object for HTMLElement
             HTMLElementBinding::GetConstructorObject(
-                window.get_cx(),
+                cx,
                 global_object.handle(),
                 constructor.handle_mut(),
             );
@@ -136,21 +166,61 @@ where
             // Step 5
             get_constructor_object_from_local_name(
                 definition.local_name.clone(),
-                window.get_cx(),
+                cx,
                 global_object.handle(),
                 constructor.handle_mut(),
             );
         }
         // Callee must be the same as the element interface's constructor object.
         if constructor.get() != callee.get() {
-            return Err(Error::Type(
-                "Custom element does not extend the proper interface".to_owned(),
-            ));
+            throw_dom_exception(
+                cx,
+                global,
+                Error::Type("Custom element does not extend the proper interface".to_owned()),
+            );
+            return Err(());
         }
     }
 
+    // Step 6
+    rooted!(in(*cx) let mut prototype = ptr::null_mut::<JSObject>());
+    {
+        rooted!(in(*cx) let mut proto_val = UndefinedValue());
+        let _ac = JSAutoRealm::new(*cx, new_target_unwrapped.get());
+        if !JS_GetProperty(
+            *cx,
+            new_target_unwrapped.handle(),
+            b"prototype\0".as_ptr() as *const _,
+            proto_val.handle_mut(),
+        ) {
+            return Err(());
+        }
+
+        if !proto_val.is_object() {
+            // Step 7 of https://html.spec.whatwg.org/multipage/#htmlconstructor.
+            // This fallback behavior is designed to match analogous behavior for the
+            // JavaScript built-ins. So we enter the realm of our underlying
+            // newTarget object and fall back to the prototype object from that global.
+            // XXX The spec says to use GetFunctionRealm(), which is not actually
+            // the same thing as what we have here (e.g. in the case of scripted callable proxies
+            // whose target is not same-realm with the proxy, or bound functions, etc).
+            // https://bugzilla.mozilla.org/show_bug.cgi?id=1317658
+
+            rooted!(in(*cx) let global_object = CurrentGlobalOrNull(*cx));
+            get_proto_object(cx, global_object.handle(), prototype.handle_mut());
+        } else {
+            // Step 6
+            prototype.set(proto_val.to_object());
+        }
+    }
+
+    // Wrap prototype in this context since it is from the newTarget realm
+    if !JS_WrapObject(*cx, prototype.handle_mut()) {
+        return Err(());
+    }
+
     let entry = definition.construction_stack.borrow().last().cloned();
-    match entry {
+    let result = match entry {
         // Step 8
         None => {
             // Step 8.1
@@ -170,7 +240,12 @@ where
             element.set_custom_element_definition(definition.clone());
 
             // Step 8.5
-            DomRoot::downcast(element).ok_or(Error::InvalidState)
+            if !check_type(&*element) {
+                throw_dom_exception(cx, global, Error::InvalidState);
+                return Err(());
+            } else {
+                element
+            }
         },
         // Step 9
         Some(ConstructionStackEntry::Element(element)) => {
@@ -182,16 +257,32 @@ where
             construction_stack.push(ConstructionStackEntry::AlreadyConstructedMarker);
 
             // Step 13
-            DomRoot::downcast(element).ok_or(Error::InvalidState)
+            if !check_type(&*element) {
+                throw_dom_exception(cx, global, Error::InvalidState);
+                return Err(());
+            } else {
+                element
+            }
         },
         // Step 10
         Some(ConstructionStackEntry::AlreadyConstructedMarker) => {
             let s = "Top of construction stack marked AlreadyConstructed due to \
                      a custom element constructor constructing itself after super()"
                 .to_string();
-            Err(Error::Type(s))
+            throw_dom_exception(cx, global, Error::Type(s));
+            return Err(());
         },
+    };
+
+    rooted!(in(*cx) let mut element = result.reflector().get_jsobject().get());
+    if !JS_WrapObject(*cx, element.handle_mut()) {
+        return Err(());
     }
+
+    JS_SetPrototype(*cx, element.handle(), prototype.handle());
+
+    result.to_jsval(*cx, MutableHandleValue::from_raw(call_args.rval()));
+    Ok(())
 }
 
 /// Returns the constructor object for the element associated with the given local name.
@@ -346,4 +437,24 @@ pub fn pop_current_element_queue() {
 
 pub fn push_new_element_queue() {
     ScriptThread::push_new_element_queue();
+}
+
+pub(crate) unsafe fn call_html_constructor<T: DerivedFrom<Element> + DomObject>(
+    cx: JSContext,
+    args: &CallArgs,
+    global: &Window,
+    get_proto_object: fn(JSContext, HandleObject, MutableHandleObject),
+) -> bool {
+    fn element_derives_interface<T: DerivedFrom<Element>>(element: &Element) -> bool {
+        element.is::<T>()
+    }
+
+    html_constructor(
+        cx,
+        global,
+        args,
+        element_derives_interface::<T>,
+        get_proto_object,
+    )
+    .is_ok()
 }
