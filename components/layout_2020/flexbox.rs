@@ -6,12 +6,12 @@ use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::{BoxSlot, Contents, NodeExt, NonReplacedContents, TraversalHandler};
 use crate::element_data::LayoutBox;
-use crate::flow::inline::TextRun;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::sizing::{BoxContentSizes, ContentSizes, ContentSizesRequest};
 use crate::style_ext::DisplayGeneratingBox;
 use crate::ContainingBlock;
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use servo_arc::Arc;
 use std::borrow::Cow;
 use style::properties::ComputedValues;
@@ -47,10 +47,10 @@ impl FlexContainer {
             context,
             node,
             style,
-            anonymous_style: None,
             text_decoration_line,
             contiguous_text_runs: Vec::new(),
-            children: Vec::new(),
+            jobs: Vec::new(),
+            has_text_runs: false,
         };
         contents.traverse(context, node, style, &mut builder);
         let content_sizes = content_sizes.compute(|| {
@@ -62,30 +62,44 @@ impl FlexContainer {
 }
 
 /// https://drafts.csswg.org/css-flexbox/#flex-items
-struct FlexContainerBuilder<'a, Node> {
+struct FlexContainerBuilder<'a, 'dom, Node> {
     context: &'a LayoutContext<'a>,
     node: Node,
     style: &'a Arc<ComputedValues>,
-    anonymous_style: Option<Arc<ComputedValues>>,
     text_decoration_line: TextDecorationLine,
-    contiguous_text_runs: Vec<TextRun>,
-    children: Vec<ArcRefCell<FlexLevelBox>>,
+    contiguous_text_runs: Vec<TextRun<'dom, Node>>,
+    /// To be run in parallel with rayon in `finish`
+    jobs: Vec<FlexLevelJob<'dom, Node>>,
+    has_text_runs: bool,
 }
 
-impl<'a, 'dom, Node: 'dom> TraversalHandler<'dom, Node> for FlexContainerBuilder<'a, Node>
+enum FlexLevelJob<'dom, Node> {
+    /// Or pseudo-element
+    Element {
+        node: Node,
+        style: Arc<ComputedValues>,
+        display: DisplayGeneratingBox,
+        contents: Contents,
+        box_slot: BoxSlot<'dom>,
+    },
+    TextRuns(Vec<TextRun<'dom, Node>>),
+}
+
+struct TextRun<'dom, Node> {
+    node: Node,
+    text: Cow<'dom, str>,
+    parent_style: Arc<ComputedValues>,
+}
+
+impl<'a, 'dom, Node: 'dom> TraversalHandler<'dom, Node> for FlexContainerBuilder<'a, 'dom, Node>
 where
     Node: NodeExt<'dom>,
 {
-    fn handle_text(
-        &mut self,
-        node: Node,
-        text: Cow<'dom, str>,
-        parent_style: Arc<ComputedValues>,
-    ) {
+    fn handle_text(&mut self, node: Node, text: Cow<'dom, str>, parent_style: Arc<ComputedValues>) {
         self.contiguous_text_runs.push(TextRun {
-            tag: node.as_opaque(),
+            node,
+            text,
             parent_style,
-            text: text.into(),
         })
     }
 
@@ -103,91 +117,117 @@ where
         // (That is, are they wrapped in the same anonymous flex item, or each its own?)
         self.wrap_any_text_in_anonymous_block_container();
 
-        let display_inside = match display {
-            DisplayGeneratingBox::OutsideInside { inside, .. } => inside,
-        };
-        let box_ = if style.get_box().position.is_absolutely_positioned() {
-            // https://drafts.csswg.org/css-flexbox/#abspos-items
-            ArcRefCell::new(FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
-                AbsolutelyPositionedBox::construct(
-                    self.context,
-                    node,
-                    style.clone(),
-                    display_inside,
-                    contents,
-                ),
-            )))
-        } else {
-            ArcRefCell::new(FlexLevelBox::FlexItem(
-                IndependentFormattingContext::construct(
-                    self.context,
-                    node,
-                    style.clone(),
-                    display_inside,
-                    contents,
-                    ContentSizesRequest::None, // FIXME: request sizes when we start using them
-                    self.text_decoration_line,
-                ),
-            ))
-        };
-        self.children.push(box_.clone());
-        box_slot.set(LayoutBox::FlexLevel(box_))
+        self.jobs.push(FlexLevelJob::Element {
+            node,
+            style,
+            display,
+            contents,
+            box_slot,
+        })
     }
 }
 
 /// https://drafts.csswg.org/css-text/#white-space
-fn is_only_document_white_space(string: &str) -> bool {
+fn is_only_document_white_space<Node>(run: &TextRun<'_, Node>) -> bool {
     // FIXME: is this the right definition? See
     // https://github.com/w3c/csswg-drafts/issues/5146
     // https://github.com/w3c/csswg-drafts/issues/5147
-    string
+    run.text
         .bytes()
         .all(|byte| matches!(byte, b' ' | b'\n' | b'\t'))
 }
 
-impl<'a, 'dom, Node: 'dom> FlexContainerBuilder<'a, Node>
+impl<'a, 'dom, Node: 'dom> FlexContainerBuilder<'a, 'dom, Node>
 where
     Node: NodeExt<'dom>,
 {
     fn wrap_any_text_in_anonymous_block_container(&mut self) {
-        if self
-            .contiguous_text_runs
-            .iter()
-            .all(|run| is_only_document_white_space(&run.text))
-        {
+        let runs = std::mem::take(&mut self.contiguous_text_runs);
+        if runs.iter().all(is_only_document_white_space) {
             // There is no text run, or they all only contain document white space characters
-            self.contiguous_text_runs.clear();
-            return;
+        } else {
+            self.jobs.push(FlexLevelJob::TextRuns(runs));
+            self.has_text_runs = true;
         }
-        let context = self.context;
-        let style = self.style;
-        let anonymous_style = self.anonymous_style.get_or_insert_with(|| {
-            context
-                .shared_context()
-                .stylist
-                .style_for_anonymous::<Node::ConcreteElement>(
-                    &context.shared_context().guards,
-                    &style::selector_parser::PseudoElement::ServoText,
-                    style,
-                )
-        });
-        self.children.push(ArcRefCell::new(FlexLevelBox::FlexItem(
-            IndependentFormattingContext::construct_for_text_runs(
-                self.context,
-                self.node,
-                anonymous_style.clone(),
-                self.contiguous_text_runs.drain(..),
-                ContentSizesRequest::None, // FIXME: request sizes when we start using them
-                self.text_decoration_line,
-            ),
-        )))
     }
 
     fn finish(mut self) -> FlexContainer {
         self.wrap_any_text_in_anonymous_block_container();
 
+        let anonymous_style = if self.has_text_runs {
+            Some(
+                self.context
+                    .shared_context()
+                    .stylist
+                    .style_for_anonymous::<Node::ConcreteElement>(
+                        &self.context.shared_context().guards,
+                        &style::selector_parser::PseudoElement::ServoText,
+                        self.style,
+                    ),
+            )
+        } else {
+            None
+        };
+
+        let mut children = std::mem::take(&mut self.jobs)
+            .into_par_iter()
+            .map(|job| match job {
+                FlexLevelJob::TextRuns(runs) => ArcRefCell::new(FlexLevelBox::FlexItem(
+                    IndependentFormattingContext::construct_for_text_runs(
+                        self.context,
+                        self.node,
+                        anonymous_style.clone().unwrap(),
+                        runs.into_iter().map(|run| crate::flow::inline::TextRun {
+                            tag: run.node.as_opaque(),
+                            text: run.text.into(),
+                            parent_style: run.parent_style,
+                        }),
+                        ContentSizesRequest::None, // FIXME: request sizes when we start using them
+                        self.text_decoration_line,
+                    ),
+                )),
+                FlexLevelJob::Element {
+                    node,
+                    style,
+                    display,
+                    contents,
+                    box_slot,
+                } => {
+                    let display_inside = match display {
+                        DisplayGeneratingBox::OutsideInside { inside, .. } => inside,
+                    };
+                    let box_ = if style.get_box().position.is_absolutely_positioned() {
+                        // https://drafts.csswg.org/css-flexbox/#abspos-items
+                        ArcRefCell::new(FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
+                            AbsolutelyPositionedBox::construct(
+                                self.context,
+                                node,
+                                style.clone(),
+                                display_inside,
+                                contents,
+                            ),
+                        )))
+                    } else {
+                        ArcRefCell::new(FlexLevelBox::FlexItem(
+                            IndependentFormattingContext::construct(
+                                self.context,
+                                node,
+                                style.clone(),
+                                display_inside,
+                                contents,
+                                ContentSizesRequest::None, // FIXME: request sizes when we start using them
+                                self.text_decoration_line,
+                            ),
+                        ))
+                    };
+                    box_slot.set(LayoutBox::FlexLevel(box_.clone()));
+                    box_
+                },
+            })
+            .collect::<Vec<_>>();
+
         // https://drafts.csswg.org/css-flexbox/#order-modified-document-order
-        self.children.sort_by_key(|child| match &*child.borrow() {
+        children.sort_by_key(|child| match &*child.borrow() {
             FlexLevelBox::FlexItem(item) => item.style.clone_order(),
 
             // “Absolutely-positioned children of a flex container are treated
@@ -196,9 +236,7 @@ where
             FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => 0,
         });
 
-        FlexContainer {
-            children: self.children,
-        }
+        FlexContainer { children }
     }
 }
 
