@@ -18,9 +18,8 @@ use crate::context::QuirksMode;
 use crate::parser::{Parse, ParserContext};
 use crate::values::serialize_atom_identifier;
 use crate::values::specified::calc::CalcNode;
-use crate::{Atom, Namespace, Prefix, Zero};
+use crate::{Atom, Namespace, One, Prefix, Zero};
 use cssparser::{Parser, Token};
-use num_traits::One;
 use std::f32;
 use std::fmt::{self, Write};
 use std::ops::Add;
@@ -28,9 +27,9 @@ use style_traits::values::specified::AllowedNumericType;
 use style_traits::{CssWriter, ParseError, SpecifiedValueInfo, StyleParseErrorKind, ToCss};
 
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignContent, AlignItems, AlignSelf, ContentDistribution};
+pub use self::align::{AlignContent, AlignItems, AlignSelf, AlignTracks, ContentDistribution};
 #[cfg(feature = "gecko")]
-pub use self::align::{JustifyContent, JustifyItems, JustifySelf, SelfAlignment};
+pub use self::align::{JustifyContent, JustifyItems, JustifySelf, JustifyTracks, SelfAlignment};
 pub use self::angle::{AllowUnitlessZeroAngle, Angle};
 pub use self::background::{BackgroundRepeat, BackgroundSize};
 pub use self::basic_shape::FillRule;
@@ -72,7 +71,10 @@ pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
-pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, PositionOrAuto};
+pub use self::position::AspectRatio;
+pub use self::position::{
+    GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto,
+};
 pub use self::position::{PositionComponent, ZIndex};
 pub use self::rect::NonNegativeLengthOrNumberRect;
 pub use self::resolution::Resolution;
@@ -375,10 +377,28 @@ impl Parse for NonNegativeNumber {
     }
 }
 
+impl One for NonNegativeNumber {
+    #[inline]
+    fn one() -> Self {
+        NonNegativeNumber::new(1.0)
+    }
+
+    #[inline]
+    fn is_one(&self) -> bool {
+        self.get() == 1.0
+    }
+}
+
 impl NonNegativeNumber {
     /// Returns a new non-negative number with the value `val`.
     pub fn new(val: CSSFloat) -> Self {
         NonNegative::<Number>(Number::new(val.max(0.)))
+    }
+
+    /// Returns the numeric value.
+    #[inline]
+    pub fn get(&self) -> f32 {
+        self.0.get()
     }
 }
 
@@ -542,14 +562,10 @@ impl One for Integer {
     fn one() -> Self {
         Self::new(1)
     }
-}
 
-// This is not great, because it loses calc-ness, but it's necessary for One.
-impl ::std::ops::Mul<Integer> for Integer {
-    type Output = Self;
-
-    fn mul(self, other: Self) -> Self {
-        Self::new(self.value * other.value)
+    #[inline]
+    fn is_one(&self) -> bool {
+        self.value() == 1
     }
 }
 

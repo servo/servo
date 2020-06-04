@@ -272,3 +272,26 @@ where
         <Self as num_traits::Zero>::is_zero(self)
     }
 }
+
+/// A trait pretty much similar to num_traits::One, but without the need of
+/// implementing `Mul`.
+pub trait One {
+    /// Reutrns the one value.
+    fn one() -> Self;
+
+    /// Returns whether this value is one.
+    fn is_one(&self) -> bool;
+}
+
+impl<T> One for T
+where
+    T: num_traits::One + PartialEq,
+{
+    fn one() -> Self {
+        <Self as num_traits::One>::one()
+    }
+
+    fn is_one(&self) -> bool {
+        *self == One::one()
+    }
+}

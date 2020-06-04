@@ -5,6 +5,10 @@
 //! Generic types for CSS handling of specified and computed values of
 //! [`position`](https://drafts.csswg.org/css-backgrounds-3/#position)
 
+use crate::One;
+use std::fmt::{self, Write};
+use style_traits::{CssWriter, ToCss};
+
 /// A generic type for representing a CSS [position](https://drafts.csswg.org/css-values/#position).
 #[derive(
     Animate,
@@ -147,6 +151,107 @@ impl<Integer> ZIndex<Integer> {
         match self {
             ZIndex::Integer(n) => n,
             ZIndex::Auto => auto,
+        }
+    }
+}
+
+/// A generic value for the `<ratio>` value.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub struct Ratio<N>(pub N, pub N);
+
+impl<N> ToCss for Ratio<N>
+where
+    N: ToCss + One + std::cmp::PartialEq,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
+    where
+        W: Write,
+    {
+        self.0.to_css(dest)?;
+        // The second defaults to 1. So if it is one, we omit it in serialization.
+        if !self.1.is_one() {
+            dest.write_str(" / ")?;
+            self.1.to_css(dest)?;
+        }
+        Ok(())
+    }
+}
+
+/// Ratio or None.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C, u8)]
+pub enum PreferredRatio<N> {
+    /// Without specified ratio
+    #[css(skip)]
+    None,
+    /// With specified ratio
+    Ratio(#[css(field_bound)] Ratio<N>),
+}
+
+/// A generic value for the `aspect-ratio` property, the value is `auto || <ratio>`.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(C)]
+pub struct GenericAspectRatio<N> {
+    /// Specifiy auto or not.
+    #[animation(constant)]
+    #[css(represents_keyword)]
+    pub auto: bool,
+    /// The preferred aspect-ratio value.
+    #[css(field_bound)]
+    pub ratio: PreferredRatio<N>,
+}
+
+pub use self::GenericAspectRatio as AspectRatio;
+
+impl<N> AspectRatio<N> {
+    /// Returns `auto`
+    #[inline]
+    pub fn auto() -> Self {
+        AspectRatio {
+            auto: true,
+            ratio: PreferredRatio::None,
         }
     }
 }

@@ -1446,7 +1446,7 @@ impl<'le> TElement for GeckoElement<'le> {
     #[inline]
     fn may_have_animations(&self) -> bool {
         if let Some(pseudo) = self.implemented_pseudo_element() {
-            if !pseudo.is_before_or_after() {
+            if !pseudo.is_animatable() {
                 return false;
             }
             // FIXME(emilio): When would the parent of a ::before / ::after
@@ -2037,8 +2037,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozHandlerCrashed |
             NonTSPseudoClass::Required |
             NonTSPseudoClass::Optional |
-            NonTSPseudoClass::MozReadOnly |
-            NonTSPseudoClass::MozReadWrite |
+            NonTSPseudoClass::ReadOnly |
+            NonTSPseudoClass::ReadWrite |
             NonTSPseudoClass::FocusWithin |
             NonTSPseudoClass::FocusVisible |
             NonTSPseudoClass::MozDragOver |
@@ -2062,6 +2062,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozDirAttrRTL |
             NonTSPseudoClass::MozDirAttrLikeAuto |
             NonTSPseudoClass::MozAutofill |
+            NonTSPseudoClass::MozModalDialog |
             NonTSPseudoClass::Active |
             NonTSPseudoClass::Hover |
             NonTSPseudoClass::MozAutofillPreview => {

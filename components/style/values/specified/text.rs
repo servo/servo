@@ -128,6 +128,7 @@ impl ToComputedValue for LineHeight {
     Eq,
     MallocSizeOf,
     PartialEq,
+    Parse,
     SpecifiedValueInfo,
     ToComputedValue,
     ToCss,
@@ -142,30 +143,6 @@ pub enum TextOverflowSide {
     Ellipsis,
     /// Render a given string to represent clipped inline content.
     String(crate::OwnedStr),
-}
-
-impl Parse for TextOverflowSide {
-    fn parse<'i, 't>(
-        _context: &ParserContext,
-        input: &mut Parser<'i, 't>,
-    ) -> Result<TextOverflowSide, ParseError<'i>> {
-        let location = input.current_source_location();
-        match *input.next()? {
-            Token::Ident(ref ident) => {
-                match_ignore_ascii_case! { ident,
-                    "clip" => Ok(TextOverflowSide::Clip),
-                    "ellipsis" => Ok(TextOverflowSide::Ellipsis),
-                    _ => Err(location.new_custom_error(
-                        SelectorParseErrorKind::UnexpectedIdent(ident.clone())
-                    ))
-                }
-            },
-            Token::QuotedString(ref v) => {
-                Ok(TextOverflowSide::String(v.as_ref().to_owned().into()))
-            },
-            ref t => Err(location.new_unexpected_token_error(t.clone())),
-        }
-    }
 }
 
 #[derive(Clone, Debug, Eq, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]

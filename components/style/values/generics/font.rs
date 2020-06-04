@@ -5,9 +5,9 @@
 //! Generic types for font stuff.
 
 use crate::parser::{Parse, ParserContext};
+use crate::One;
 use byteorder::{BigEndian, ReadBytesExt};
 use cssparser::Parser;
-use num_traits::One;
 use std::fmt::{self, Write};
 use std::io::Cursor;
 use style_traits::{CssWriter, ParseError};
@@ -42,7 +42,7 @@ where
     {
         self.tag.to_css(dest)?;
         // Don't serialize the default value.
-        if self.value != Integer::one() {
+        if !self.value.is_one() {
             dest.write_char(' ')?;
             self.value.to_css(dest)?;
         }

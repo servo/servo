@@ -21,7 +21,7 @@ use crate::media_queries::Device;
 use crate::properties;
 use crate::properties::{ComputedValues, LonghandId, StyleBuilder};
 use crate::rule_cache::RuleCacheConditions;
-use crate::{ArcSlice, Atom};
+use crate::{ArcSlice, Atom, One};
 use euclid::default::Size2D;
 use servo_arc::Arc;
 use std::cell::RefCell;
@@ -29,7 +29,10 @@ use std::cmp;
 use std::f32;
 
 #[cfg(feature = "gecko")]
-pub use self::align::{AlignContent, AlignItems, JustifyContent, JustifyItems, SelfAlignment};
+pub use self::align::{
+    AlignContent, AlignItems, AlignTracks, JustifyContent, JustifyItems, JustifyTracks,
+    SelfAlignment,
+};
 #[cfg(feature = "gecko")]
 pub use self::align::{AlignSelf, JustifySelf};
 pub use self::angle::Angle;
@@ -68,7 +71,10 @@ pub use self::list::Quotes;
 pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::percentage::{NonNegativePercentage, Percentage};
-pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, PositionOrAuto, ZIndex};
+pub use self::position::AspectRatio;
+pub use self::position::{
+    GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto, ZIndex,
+};
 pub use self::rect::NonNegativeLengthOrNumberRect;
 pub use self::resolution::Resolution;
 pub use self::svg::MozContextProperties;
@@ -223,8 +229,8 @@ impl<'a> Context<'a> {
     pub fn maybe_zoom_text(&self, size: CSSPixelLength) -> CSSPixelLength {
         // We disable zoom for <svg:text> by unsetting the
         // -x-text-zoom property, which leads to a false value
-        // in mAllowZoom
-        if self.style().get_font().gecko.mAllowZoom {
+        // in mAllowZoomAndMinSize
+        if self.style().get_font().gecko.mAllowZoomAndMinSize {
             self.device().zoom_text(Au::from(size)).into()
         } else {
             size
@@ -597,6 +603,18 @@ impl From<NonNegativeNumber> for CSSFloat {
     #[inline]
     fn from(number: NonNegativeNumber) -> CSSFloat {
         number.0
+    }
+}
+
+impl One for NonNegativeNumber {
+    #[inline]
+    fn one() -> Self {
+        NonNegative(1.0)
+    }
+
+    #[inline]
+    fn is_one(&self) -> bool {
+        self.0 == 1.0
     }
 }
 

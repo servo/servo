@@ -207,11 +207,20 @@ where
     }
 }
 
-impl Parse for UnicodeRange {
+impl Parse for crate::OwnedStr {
     fn parse<'i, 't>(
-        _context: &ParserContext,
+        _: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        UnicodeRange::parse(input).map_err(|e| e.into())
+        Ok(input.expect_string()?.as_ref().to_owned().into())
+    }
+}
+
+impl Parse for UnicodeRange {
+    fn parse<'i, 't>(
+        _: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        Ok(UnicodeRange::parse(input)?)
     }
 }

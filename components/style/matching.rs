@@ -7,7 +7,6 @@
 #![allow(unsafe_code)]
 #![deny(missing_docs)]
 
-use crate::animation::AnimationState;
 use crate::computed_value_flags::ComputedValueFlags;
 use crate::context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
 use crate::context::{SharedStyleContext, StyleContext};
@@ -438,6 +437,8 @@ trait PrivateMatchMethods: TElement {
         _restyle_hint: RestyleHint,
         _important_rules_changed: bool,
     ) {
+        use crate::animation::AnimationState;
+
         let this_opaque = self.as_node().opaque();
         let shared_context = context.shared;
         let mut animation_states = shared_context.animation_states.write();

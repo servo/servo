@@ -7,13 +7,16 @@
 //!
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
-use crate::values::computed::{Integer, LengthPercentage, Percentage};
+use crate::values::computed::{Integer, LengthPercentage, NonNegativeNumber, Percentage};
+use crate::values::generics::position::AspectRatio as GenericAspectRatio;
 use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
+use crate::values::generics::position::Ratio as GenericRatio;
 use crate::values::generics::position::ZIndex as GenericZIndex;
-pub use crate::values::specified::position::{GridAutoFlow, GridTemplateAreas};
+pub use crate::values::specified::position::{GridAutoFlow, GridTemplateAreas, MasonryAutoFlow};
 use crate::Zero;
+use std::cmp::{Ordering, PartialOrd};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -68,3 +71,25 @@ impl GenericPositionComponent for LengthPercentage {
 
 /// A computed value for the `z-index` property.
 pub type ZIndex = GenericZIndex<Integer>;
+
+/// A computed <ratio> value.
+pub type Ratio = GenericRatio<NonNegativeNumber>;
+
+impl PartialOrd for Ratio {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        f64::partial_cmp(
+            &((self.0).0 as f64 * (other.1).0 as f64),
+            &((self.1).0 as f64 * (other.0).0 as f64),
+        )
+    }
+}
+
+impl Ratio {
+    /// Returns a new Ratio.
+    pub fn new(a: f32, b: f32) -> Self {
+        GenericRatio(a.into(), b.into())
+    }
+}
+
+/// A computed value for the `aspect-ratio` property.
+pub type AspectRatio = GenericAspectRatio<NonNegativeNumber>;

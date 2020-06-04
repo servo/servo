@@ -4,6 +4,7 @@
 
 //! Helpers for different FFI pointer kinds that Gecko's FFI layer uses.
 
+use gecko_bindings::structs::root::mozilla::detail::CopyablePtr;
 use servo_arc::{Arc, RawOffsetArc};
 use std::marker::PhantomData;
 use std::mem::{forget, transmute};
@@ -330,5 +331,18 @@ impl<GeckoType> OwnedOrNull<GeckoType> {
     /// null.
     pub fn borrow_mut(&self) -> Option<&mut GeckoType> {
         unsafe { transmute(self) }
+    }
+}
+
+impl<T> Deref for CopyablePtr<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.mPtr
+    }
+}
+
+impl<T> DerefMut for CopyablePtr<T> {
+    fn deref_mut<'a>(&'a mut self) -> &'a mut T {
+        &mut self.mPtr
     }
 }

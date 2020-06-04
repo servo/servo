@@ -85,9 +85,22 @@ pub fn add_predicate(where_clause: &mut Option<syn::WhereClause>, pred: WherePre
         .push(pred);
 }
 
-pub fn fmap_match<F>(input: &DeriveInput, bind_style: BindStyle, mut f: F) -> TokenStream
+pub fn fmap_match<F>(input: &DeriveInput, bind_style: BindStyle, f: F) -> TokenStream
 where
-    F: FnMut(BindingInfo) -> TokenStream,
+    F: FnMut(&BindingInfo) -> TokenStream,
+{
+    fmap2_match(input, bind_style, f, |_| None)
+}
+
+pub fn fmap2_match<F, G>(
+    input: &DeriveInput,
+    bind_style: BindStyle,
+    mut f: F,
+    mut g: G,
+) -> TokenStream
+where
+    F: FnMut(&BindingInfo) -> TokenStream,
+    G: FnMut(&BindingInfo) -> Option<TokenStream>,
 {
     let mut s = synstructure::Structure::new(input);
     s.variants_mut().iter_mut().for_each(|v| {
@@ -95,12 +108,20 @@ where
     });
     s.each_variant(|variant| {
         let (mapped, mapped_fields) = value(variant, "mapped");
-        let fields_pairs = variant.bindings().iter().zip(mapped_fields);
+        let fields_pairs = variant.bindings().iter().zip(mapped_fields.iter());
         let mut computations = quote!();
         computations.append_all(fields_pairs.map(|(field, mapped_field)| {
-            let expr = f(field.clone());
+            let expr = f(field);
             quote! { let #mapped_field = #expr; }
         }));
+        computations.append_all(
+            mapped_fields
+                .iter()
+                .map(|mapped_field| match g(mapped_field) {
+                    Some(expr) => quote! { let #mapped_field = #expr; },
+                    None => quote!(),
+                }),
+        );
         computations.append_all(mapped);
         Some(computations)
     })

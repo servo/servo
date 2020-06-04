@@ -42,7 +42,6 @@ where
     descendant_invalidations: &'a mut DescendantInvalidationLists<'selectors>,
     sibling_invalidations: &'a mut InvalidationVector<'selectors>,
     invalidates_self: bool,
-    attr_selector_flags: InvalidationMapFlags,
 }
 
 /// An invalidation processor for style changes due to state and attribute
@@ -77,6 +76,39 @@ impl<'a, 'b: 'a, E: TElement + 'b> StateAndAttrInvalidationProcessor<'a, 'b, E> 
             matching_context,
         }
     }
+}
+
+/// Checks a dependency against a given element and wrapper, to see if something
+/// changed.
+pub fn check_dependency<E, W>(
+    dependency: &Dependency,
+    element: &E,
+    wrapper: &W,
+    mut context: &mut MatchingContext<'_, E::Impl>,
+) -> bool
+where
+    E: TElement,
+    W: selectors::Element<Impl = E::Impl>,
+{
+    let matches_now = matches_selector(
+        &dependency.selector,
+        dependency.selector_offset,
+        None,
+        element,
+        &mut context,
+        &mut |_, _| {},
+    );
+
+    let matched_then = matches_selector(
+        &dependency.selector,
+        dependency.selector_offset,
+        None,
+        wrapper,
+        &mut context,
+        &mut |_, _| {},
+    );
+
+    matched_then != matches_now
 }
 
 /// Whether we should process the descendants of a given element for style
@@ -133,6 +165,14 @@ where
         true
     }
 
+    fn check_outer_dependency(&mut self, dependency: &Dependency, element: E) -> bool {
+        // We cannot assert about `element` having a snapshot here (in fact it
+        // most likely won't), because it may be an arbitrary descendant or
+        // later-sibling of the element we started invalidating with.
+        let wrapper = ElementWrapper::new(element, &*self.shared_context.snapshot_map);
+        check_dependency(dependency, &element, &wrapper, &mut self.matching_context)
+    }
+
     fn matching_context(&mut self) -> &mut MatchingContext<'a, E::Impl> {
         &mut self.matching_context
     }
@@ -156,8 +196,6 @@ where
             return false;
         }
 
-        let mut attr_selector_flags = InvalidationMapFlags::empty();
-
         // If we the visited state changed, we force a restyle here. Matching
         // doesn't depend on the actual visited state at all, so we can't look
         // at matching results to decide what to do for this case.
@@ -175,7 +213,6 @@ where
         let mut classes_removed = SmallVec::<[Atom; 8]>::new();
         let mut classes_added = SmallVec::<[Atom; 8]>::new();
         if snapshot.class_changed() {
-            attr_selector_flags.insert(InvalidationMapFlags::HAS_CLASS_ATTR_SELECTOR);
             // TODO(emilio): Do this more efficiently!
             snapshot.each_class(|c| {
                 if !element.has_class(c, CaseSensitivity::CaseSensitive) {
@@ -193,7 +230,6 @@ where
         let mut id_removed = None;
         let mut id_added = None;
         if snapshot.id_changed() {
-            attr_selector_flags.insert(InvalidationMapFlags::HAS_ID_ATTR_SELECTOR);
             let old_id = snapshot.id_attr();
             let current_id = element.id();
 
@@ -204,10 +240,7 @@ where
         }
 
         if log_enabled!(::log::Level::Debug) {
-            debug!(
-                "Collecting changes for: {:?}, flags {:?}",
-                element, attr_selector_flags
-            );
+            debug!("Collecting changes for: {:?}", element);
             if !state_changes.is_empty() {
                 debug!(" > state: {:?}", state_changes);
             }
@@ -220,7 +253,11 @@ where
                     classes_added, classes_removed
                 );
             }
-            if snapshot.other_attr_changed() {
+            let mut attributes_changed = false;
+            snapshot.each_attr_changed(|_| {
+                attributes_changed = true;
+            });
+            if attributes_changed {
                 debug!(
                     " > attributes changed, old: {}",
                     snapshot.debug_list_attributes()
@@ -255,7 +292,6 @@ where
                 descendant_invalidations,
                 sibling_invalidations,
                 invalidates_self: false,
-                attr_selector_flags,
             };
 
             let document_origins = if !matches_document_author_rules {
@@ -365,30 +401,18 @@ where
             }
         }
 
-        let should_examine_attribute_selector_map =
-            self.snapshot.other_attr_changed() || map.flags.intersects(self.attr_selector_flags);
-
-        if should_examine_attribute_selector_map {
-            self.collect_dependencies_in_map(&map.other_attribute_affecting_selectors)
-        }
+        self.snapshot.each_attr_changed(|attribute| {
+            if let Some(deps) = map.other_attribute_affecting_selectors.get(attribute) {
+                for dep in deps {
+                    self.scan_dependency(dep);
+                }
+            }
+        });
 
         let state_changes = self.state_changes;
         if !state_changes.is_empty() {
             self.collect_state_dependencies(&map.state_affecting_selectors, state_changes)
         }
-    }
-
-    fn collect_dependencies_in_map(&mut self, map: &'selectors SelectorMap<Dependency>) {
-        map.lookup_with_additional(
-            self.lookup_element,
-            self.matching_context.quirks_mode(),
-            self.removed_id,
-            self.classes_removed,
-            |dependency| {
-                self.scan_dependency(dependency);
-                true
-            },
-        );
     }
 
     fn collect_state_dependencies(
@@ -412,28 +436,14 @@ where
     }
 
     /// Check whether a dependency should be taken into account.
+    #[inline]
     fn check_dependency(&mut self, dependency: &Dependency) -> bool {
-        let element = &self.element;
-        let wrapper = &self.wrapper;
-        let matches_now = matches_selector(
-            &dependency.selector,
-            dependency.selector_offset,
-            None,
-            element,
+        check_dependency(
+            dependency,
+            &self.element,
+            &self.wrapper,
             &mut self.matching_context,
-            &mut |_, _| {},
-        );
-
-        let matched_then = matches_selector(
-            &dependency.selector,
-            dependency.selector_offset,
-            None,
-            wrapper,
-            &mut self.matching_context,
-            &mut |_, _| {},
-        );
-
-        matched_then != matches_now
+        )
     }
 
     fn scan_dependency(&mut self, dependency: &'selectors Dependency) {
@@ -456,18 +466,21 @@ where
 
         let invalidation_kind = dependency.invalidation_kind();
         if matches!(invalidation_kind, DependencyInvalidationKind::Element) {
-            self.invalidates_self = true;
+            if let Some(ref parent) = dependency.parent {
+                // We know something changed in the inner selector, go outwards
+                // now.
+                self.scan_dependency(parent);
+            } else {
+                self.invalidates_self = true;
+            }
             return;
         }
 
         debug_assert_ne!(dependency.selector_offset, 0);
         debug_assert_ne!(dependency.selector_offset, dependency.selector.len());
 
-        let invalidation = Invalidation::new(
-            &dependency.selector,
-            self.matching_context.current_host.clone(),
-            dependency.selector.len() - dependency.selector_offset + 1,
-        );
+        let invalidation =
+            Invalidation::new(&dependency, self.matching_context.current_host.clone());
 
         match invalidation_kind {
             DependencyInvalidationKind::Element => unreachable!(),

@@ -328,6 +328,7 @@ class Longhand(object):
                 "AlignItems",
                 "AlignSelf",
                 "Appearance",
+                "AspectRatio",
                 "BreakBetween",
                 "BreakWithin",
                 "BackgroundRepeat",
@@ -356,6 +357,7 @@ class Longhand(object):
                 "JustifyItems",
                 "JustifySelf",
                 "LineBreak",
+                "MasonryAutoFlow",
                 "MozForceBrokenImageIcon",
                 "MozListReversed",
                 "MozScriptLevel",
@@ -363,7 +365,6 @@ class Longhand(object):
                 "MozScriptSizeMultiplier",
                 "TextDecorationSkipInk",
                 "NonNegativeNumber",
-                "Number",
                 "OffsetRotate",
                 "Opacity",
                 "OutlineStyle",
@@ -687,6 +688,7 @@ class PropertyRestrictions:
     def first_letter(data):
         props = set([
             "color",
+            "opacity",
             "float",
             "initial-letter",
 
@@ -721,6 +723,7 @@ class PropertyRestrictions:
         props = set([
             # Per spec.
             "color",
+            "opacity",
 
             # Kinda like css-fonts?
             "-moz-osx-font-smoothing",

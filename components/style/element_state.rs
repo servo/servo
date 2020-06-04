@@ -87,9 +87,9 @@ bitflags! {
         /// <https://html.spec.whatwg.org/multipage/#selector-out-of-range>
         const IN_OUTOFRANGE_STATE = 1 << 28;
         /// <https://html.spec.whatwg.org/multipage/#selector-read-only>
-        const IN_MOZ_READONLY_STATE = 1 << 29;
+        const IN_READONLY_STATE = 1 << 29;
         /// <https://html.spec.whatwg.org/multipage/#selector-read-write>
-        const IN_MOZ_READWRITE_STATE = 1 << 30;
+        const IN_READWRITE_STATE = 1 << 30;
         /// <https://html.spec.whatwg.org/multipage/#selector-default>
         const IN_DEFAULT_STATE = 1 << 31;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-submit-invalid
@@ -141,6 +141,10 @@ bitflags! {
         ///
         /// https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo
         const IN_FOCUS_VISIBLE_STATE = 1 << 52;
+        /// State that dialog element is modal, for centered alignment
+        ///
+        /// https://html.spec.whatwg.org/multipage/#centered-alignment
+        const IN_MODAL_DIALOG_STATE = 1 << 53;
     }
 }
 

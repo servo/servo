@@ -12,8 +12,7 @@ use crate::values::generics::color::{Color as GenericColor, ComplexColorRatios};
 ///
 /// Unlike in computed values, each component value may exceed the
 /// range `[0.0, 1.0]`.
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
-#[derive(Clone, Copy, Debug, PartialEq, ToAnimatedZero)]
+#[derive(Clone, Copy, Debug, MallocSizeOf, PartialEq, ToAnimatedZero)]
 pub struct RGBA {
     /// The red component.
     pub red: f32,

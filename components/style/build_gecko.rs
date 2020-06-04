@@ -131,6 +131,7 @@ impl BuilderExt for Builder {
         // them.
         let mut builder = Builder::default()
             .rust_target(RustTarget::Stable_1_25)
+            .size_t_is_usize(true)
             .disable_untagged_union();
 
         let rustfmt_path = env::var_os("RUSTFMT")

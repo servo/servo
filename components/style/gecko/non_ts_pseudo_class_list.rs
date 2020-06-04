@@ -50,6 +50,7 @@ macro_rules! apply_non_ts_list {
                 ("-moz-devtools-highlighted", MozDevtoolsHighlighted, IN_DEVTOOLS_HIGHLIGHTED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-styleeditor-transitioning", MozStyleeditorTransitioning, IN_STYLEEDITOR_TRANSITIONING_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("fullscreen", Fullscreen, IN_FULLSCREEN_STATE, _),
+                ("-moz-modal-dialog", MozModalDialog, IN_MODAL_DIALOG_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 // TODO(emilio): This is inconsistently named (the capital R).
                 ("-moz-focusring", MozFocusRing, IN_FOCUSRING_STATE, _),
                 ("-moz-broken", MozBroken, IN_BROKEN_STATE, _),
@@ -79,8 +80,8 @@ macro_rules! apply_non_ts_list {
                 ("out-of-range", OutOfRange, IN_OUTOFRANGE_STATE, _),
                 ("default", Default, IN_DEFAULT_STATE, _),
                 ("placeholder-shown", PlaceholderShown, IN_PLACEHOLDER_SHOWN_STATE, _),
-                ("-moz-read-only", MozReadOnly, IN_MOZ_READONLY_STATE, _),
-                ("-moz-read-write", MozReadWrite, IN_MOZ_READWRITE_STATE, _),
+                ("read-only", ReadOnly, IN_READONLY_STATE, _),
+                ("read-write", ReadWrite, IN_READWRITE_STATE, _),
                 ("-moz-submit-invalid", MozSubmitInvalid, IN_MOZ_SUBMITINVALID_STATE, _),
                 ("-moz-ui-valid", MozUIValid, IN_MOZ_UI_VALID_STATE, _),
                 ("-moz-ui-invalid", MozUIInvalid, IN_MOZ_UI_INVALID_STATE, _),
