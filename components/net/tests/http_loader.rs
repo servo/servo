@@ -24,13 +24,18 @@ use http::uri::Authority;
 use http::{Method, StatusCode};
 use hyper::body::Body;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
+use ipc_channel::ipc;
+use ipc_channel::router::ROUTER;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
 use net::http_loader::determine_request_referrer;
 use net::resource_thread::AuthCacheEntry;
 use net::test::replace_host_table;
-use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestMode};
+use net_traits::request::{
+    BodyChunkRequest, BodySource, CredentialsMode, Destination, RequestBody, RequestBuilder,
+    RequestMode,
+};
 use net_traits::response::{HttpsState, ResponseBody};
 use net_traits::{CookieSource, NetworkError, ReferrerPolicy};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -92,6 +97,23 @@ pub fn expect_devtools_http_response(
         },
         _ => panic!("No HttpResponse Received"),
     }
+}
+
+fn create_request_body_with_content(content: Vec<u8>) -> RequestBody {
+    let content_len = content.len();
+
+    let (chunk_request_sender, chunk_request_receiver) = ipc::channel().unwrap();
+    ROUTER.add_route(
+        chunk_request_receiver.to_opaque(),
+        Box::new(move |message| {
+            let request = message.to().unwrap();
+            if let BodyChunkRequest::Connect(sender) = request {
+                let _ = sender.send(content.clone());
+            }
+        }),
+    );
+
+    RequestBody::new(chunk_request_sender, BodySource::Object, Some(content_len))
 }
 
 #[test]
@@ -276,7 +298,7 @@ fn test_request_and_response_data_with_network_messages() {
         url: url,
         method: Method::GET,
         headers: headers,
-        body: Some(b"".to_vec()),
+        body: Some(vec![]),
         pipeline_id: TEST_PIPELINE_ID,
         startedDateTime: devhttprequest.startedDateTime,
         timeStamp: devhttprequest.timeStamp,
@@ -526,8 +548,11 @@ fn test_load_doesnt_send_request_body_on_any_redirect() {
     };
     let (pre_server, pre_url) = make_server(pre_handler);
 
+    let content = b"Body on POST!";
+    let request_body = create_request_body_with_content(content.to_vec());
+
     let mut request = RequestBuilder::new(pre_url.clone())
-        .body(Some(b"Body on POST!".to_vec()))
+        .body(Some(request_body))
         .method(Method::POST)
         .destination(Destination::Document)
         .origin(mock_origin())
@@ -819,9 +844,11 @@ fn test_load_sets_content_length_to_length_of_request_body() {
     };
     let (server, url) = make_server(handler);
 
+    let request_body = create_request_body_with_content(content.to_vec());
+
     let mut request = RequestBuilder::new(url.clone())
         .method(Method::POST)
-        .body(Some(content.to_vec()))
+        .body(Some(request_body))
         .destination(Destination::Document)
         .origin(mock_origin())
         .pipeline_id(Some(TEST_PIPELINE_ID))

@@ -32,13 +32,17 @@ use http::header::{
 use http::{HeaderMap, Request as HyperRequest};
 use hyper::{Body, Client, Method, Response as HyperResponse, StatusCode};
 use hyper_serde::Serde;
+use ipc_channel::ipc::{self, IpcSender};
+use ipc_channel::router::ROUTER;
 use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::pub_domains::reg_suffix;
 use net_traits::quality::{quality_to_value, Quality, QualityItem};
 use net_traits::request::Origin::Origin as SpecificOrigin;
 use net_traits::request::{is_cors_safelisted_method, is_cors_safelisted_request_header};
+use net_traits::request::{
+    BodyChunkRequest, RedirectMode, Referrer, Request, RequestBuilder, RequestMode,
+};
 use net_traits::request::{CacheMode, CredentialsMode, Destination, Origin};
-use net_traits::request::{RedirectMode, Referrer, Request, RequestBuilder, RequestMode};
 use net_traits::request::{ResponseTainting, ServiceWorkersMode};
 use net_traits::response::{HttpsState, Response, ResponseBody, ResponseType};
 use net_traits::{CookieSource, FetchMetadata, NetworkError, ReferrerPolicy};
@@ -52,11 +56,12 @@ use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
 use std::str::FromStr;
-use std::sync::{Condvar, Mutex, RwLock};
+use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime};
 use time::{self, Tm};
-use tokio::prelude::{future, Future, Stream};
+use tokio::prelude::{future, Future, Sink, Stream};
 use tokio::runtime::Runtime;
+use tokio::sync::mpsc::channel;
 
 lazy_static! {
     pub static ref HANDLE: Mutex<Option<Runtime>> = Mutex::new(Some(Runtime::new().unwrap()));
@@ -400,8 +405,8 @@ fn obtain_response(
     client: &Client<Connector, Body>,
     url: &ServoUrl,
     method: &Method,
-    headers: &HeaderMap,
-    data: &Option<Vec<u8>>,
+    request_headers: &HeaderMap,
+    body: Option<IpcSender<BodyChunkRequest>>,
     pipeline_id: &Option<PipelineId>,
     request_id: Option<&str>,
     is_xhr: bool,
@@ -412,7 +417,70 @@ fn obtain_response(
         Error = NetworkError,
     >,
 > {
-    let request_body = data.as_ref().cloned().unwrap_or(vec![]);
+    let headers = request_headers.clone();
+
+    let devtools_bytes = StdArc::new(Mutex::new(vec![]));
+
+    // https://url.spec.whatwg.org/#percent-encoded-bytes
+    let encoded_url = url
+        .clone()
+        .into_url()
+        .as_ref()
+        .replace("|", "%7C")
+        .replace("{", "%7B")
+        .replace("}", "%7D");
+
+    let request = if let Some(chunk_requester) = body {
+        // TODO: If body is a stream, append `Transfer-Encoding`/`chunked`,
+        // see step 4.2 of https://fetch.spec.whatwg.org/#concept-http-network-fetch
+
+        let (body_chan, body_port) = ipc::channel().unwrap();
+
+        let (sender, receiver) = channel(1);
+
+        let _ = chunk_requester.send(BodyChunkRequest::Connect(body_chan));
+
+        // https://fetch.spec.whatwg.org/#concept-request-transmit-body
+        // Request the first chunk, corresponding to Step 3 and 4.
+        let _ = chunk_requester.send(BodyChunkRequest::Chunk);
+
+        let devtools_bytes = devtools_bytes.clone();
+
+        ROUTER.add_route(
+            body_port.to_opaque(),
+            Box::new(move |message| {
+                let bytes: Vec<u8> = message.to().unwrap();
+                let chunk_requester = chunk_requester.clone();
+                let sender = sender.clone();
+
+                devtools_bytes.lock().unwrap().append(&mut bytes.clone());
+
+                HANDLE.lock().unwrap().as_mut().unwrap().spawn(
+                    // Step 5.1.2.2
+                    // Transmit a chunk over the network(and blocking until this is done).
+                    sender
+                        .send(bytes)
+                        .map(move |_| {
+                            // Step 5.1.2.3
+                            // Request the next chunk.
+                            let _ = chunk_requester.send(BodyChunkRequest::Chunk);
+                            ()
+                        })
+                        .map_err(|_| ()),
+                );
+            }),
+        );
+
+        HyperRequest::builder()
+            .method(method)
+            .uri(encoded_url)
+            .body(Body::wrap_stream(receiver))
+    } else {
+        HyperRequest::builder()
+            .method(method)
+            .uri(encoded_url)
+            .body(Body::empty())
+    };
 
     context
         .timing
@@ -428,19 +496,6 @@ fn obtain_response(
         .lock()
         .unwrap()
         .set_attribute(ResourceAttribute::ConnectStart(connect_start));
-
-    // https://url.spec.whatwg.org/#percent-encoded-bytes
-    let request = HyperRequest::builder()
-        .method(method)
-        .uri(
-            url.clone()
-                .into_url()
-                .as_ref()
-                .replace("|", "%7C")
-                .replace("{", "%7B")
-                .replace("}", "%7D"),
-        )
-        .body(request_body.clone().into());
 
     // TODO: We currently don't know when the handhhake before the connection is done
     // so our best bet would be to set `secure_connection_start` here when we are currently
@@ -488,7 +543,7 @@ fn obtain_response(
                             closure_url,
                             method.clone(),
                             headers,
-                            Some(request_body.clone()),
+                            Some(devtools_bytes.lock().unwrap().clone()),
                             pipeline_id,
                             time::now(),
                             connect_end - connect_start,
@@ -804,7 +859,7 @@ pub fn http_redirect_fetch(
         .status
         .as_ref()
         .map_or(true, |s| s.0 != StatusCode::SEE_OTHER) &&
-        request.body.as_ref().map_or(false, |b| b.is_empty())
+        request.body.as_ref().map_or(false, |b| b.source_is_null())
     {
         return Response::network_error(NetworkError::Internal("Request body is not done".into()));
     }
@@ -918,8 +973,7 @@ fn http_network_or_cache_fetch(
     let http_request = if request_has_no_window && request.redirect_mode == RedirectMode::Error {
         request
     } else {
-        // Step 5.2
-        // TODO Implement body source
+        // Step 5.2.1, .2.2 and .2.3 and 2.4
         http_request = request.clone();
         &mut http_request
     };
@@ -943,7 +997,7 @@ fn http_network_or_cache_fetch(
             _ => None,
         },
         // Step 5.6
-        Some(ref http_request_body) => Some(http_request_body.len() as u64),
+        Some(ref http_request_body) => http_request_body.len().map(|size| size as u64),
     };
 
     // Step 5.7
@@ -1460,7 +1514,7 @@ impl Drop for ResponseEndTimer {
 
 /// [HTTP network fetch](https://fetch.spec.whatwg.org/#http-network-fetch)
 fn http_network_fetch(
-    request: &Request,
+    request: &mut Request,
     credentials_flag: bool,
     done_chan: &mut DoneChannel,
     context: &FetchContext,
@@ -1503,7 +1557,7 @@ fn http_network_fetch(
         &url,
         &request.method,
         &request.headers,
-        &request.body,
+        request.body.as_mut().and_then(|body| body.take_stream()),
         &request.pipeline_id,
         request_id.as_ref().map(Deref::deref),
         is_xhr,

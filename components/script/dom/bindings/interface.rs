@@ -138,6 +138,7 @@ pub unsafe fn create_global_object(
     let mut options = RealmOptions::default();
     options.creationOptions_.traceGlobal_ = Some(trace);
     options.creationOptions_.sharedMemoryAndAtomics_ = true;
+    options.creationOptions_.streams_ = true;
 
     rval.set(JS_NewGlobalObject(
         *cx,

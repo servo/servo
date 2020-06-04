@@ -7,7 +7,7 @@
 
 #![allow(dead_code)]
 
-use crate::body::BodyOperations;
+use crate::body::BodyMixin;
 use crate::dom::bindings::codegen::Bindings::PromiseBinding::PromiseJobCallback;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseBinding::ResponseMethods;
 use crate::dom::bindings::codegen::Bindings::ResponseBinding::ResponseType as DOMResponseType;
@@ -979,7 +979,7 @@ unsafe extern "C" fn consume_stream(
         }
 
         // Step 2.6.2 If response body is alreaady consumed, return with a TypeError and abort these substeps.
-        if unwrapped_source.get_body_used() {
+        if unwrapped_source.is_disturbed() {
             throw_dom_exception(
                 cx,
                 &global,
