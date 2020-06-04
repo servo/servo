@@ -30,7 +30,6 @@ cc = "1.0"
 debugmozjs = ["simpleservo/debugmozjs"]
 default = ["webdriver", "max_log_level"]
 egl = ["simpleservo/egl"]
-energy-profiling = ["simpleservo/energy-profiling"]
 googlevr = ["simpleservo/googlevr"]
 js_backtrace = ["simpleservo/js_backtrace"]
 layout-2013 = ["simpleservo/layout-2013"]

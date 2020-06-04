@@ -62,31 +62,3 @@ Time is measured in nanoseconds and energy is measured in microjoules.
 `Work`, `Time`, and `Energy` also have `Global` and `Window` values which are the summed over the entire runtime and sliding window period, respectively.
 
 `Perf` (performance) and `Pwr` (power) have `Global`, `Window`, and `Instant` values as described above.
-
-
-# Energy Profiling
-
-Energy monitoring is hardware and platform-specific, so it is only enabled with the `energy-profiling` feature.
-
-To use energy profiling, you must have a compatible `energymon-default` implementation installed to your system as `energymon-default-static` when building Servo.
-Otherwise a default dummy implementation is used.
-The library is linked through a chain of dependencies:
-
-* servo::profile_traits
-  * energymon - Rust abstractions
-    * energymon-default-sys - Rust bindings to `energymon-default.h`
-      * energymon-default-static: A statically linked C library installed to the system that implements `energymon.h` and `energymon-default.h`
-
-For instructions on building existing native libraries, visit the [energymon project source](https://github.com/energymon/energymon).
-You may also write your own implementation of `energymon.h` and `energymon-default.h` and install it as `energymon-default-static` where pkg-config can find it.
-
-Once you install the proper library, you will need to rebuild the `energymon-default-sys` crate.
-The most straightforward way to do this is to do a clean build of Servo.
-
-To build Servo with the `energy-profiling` feature enabled, pass `--features "energy-profiling"` to the `mach` command, e.g.:
-
-```sh
-./mach build -r --features "energy-profiling"
-```
-
-When running Servo, you will want to enable the desired Heartbeats to record the results.

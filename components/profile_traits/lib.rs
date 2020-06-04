@@ -13,8 +13,6 @@ extern crate log;
 #[macro_use]
 extern crate serde;
 
-#[allow(unsafe_code)]
-pub mod energy;
 pub mod ipc;
 pub mod mem;
 pub mod time;

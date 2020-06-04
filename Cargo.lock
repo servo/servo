@@ -1378,49 +1378,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "energy-monitor"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe872d0664f1cc60db36349af245d892ee67d3c8f78055df0ebc43271fd4e05c"
-
-[[package]]
-name = "energymon"
-version = "0.3.0"
-source = "git+https://github.com/energymon/energymon-rust.git#89daf8f37858eab96ad8eec7cc81accb17b2411e"
-dependencies = [
- "energy-monitor",
- "energymon-default-sys",
- "libc",
-]
-
-[[package]]
-name = "energymon-builder"
-version = "0.3.0"
-source = "git+https://github.com/energymon/energymon-sys.git#f8d77ea2906b25f9c0fd358aa9d300a46dc3e97c"
-dependencies = [
- "cmake",
- "pkg-config",
-]
-
-[[package]]
-name = "energymon-default-sys"
-version = "0.3.0"
-source = "git+https://github.com/energymon/energymon-sys.git#f8d77ea2906b25f9c0fd358aa9d300a46dc3e97c"
-dependencies = [
- "energymon-builder",
- "energymon-sys",
- "libc",
-]
-
-[[package]]
-name = "energymon-sys"
-version = "0.3.0"
-source = "git+https://github.com/energymon/energymon-sys.git#f8d77ea2906b25f9c0fd358aa9d300a46dc3e97c"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "enum-iterator"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4241,8 +4198,6 @@ name = "profile_traits"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
- "energy-monitor",
- "energymon",
  "ipc-channel",
  "log",
  "serde",

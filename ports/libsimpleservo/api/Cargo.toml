@@ -35,7 +35,6 @@ gl_generator = "0.14"
 debugmozjs = ["libservo/debugmozjs"]
 default = ["webdriver", "max_log_level"]
 egl = ["libservo/egl"]
-energy-profiling = ["libservo/energy-profiling"]
 googlevr = ["libservo/googlevr"]
 jitspew = ["libservo/jitspew"]
 js_backtrace = ["libservo/js_backtrace"]
