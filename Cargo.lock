@@ -3035,9 +3035,9 @@ dependencies = [
 
 [[package]]
 name = "libflate"
-version = "0.1.26"
+version = "0.1.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45c97cf62125b79dcac52d506acdc4799f21a198597806947fd5f40dc7b93412"
+checksum = "d9135df43b1f5d0e333385cb6e7897ecd1a43d7d11b91ac003f4d2c2d2401fdd"
 dependencies = [
  "adler32",
  "crc32fast",
