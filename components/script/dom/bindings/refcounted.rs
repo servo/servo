@@ -50,12 +50,15 @@ mod dummy {
 pub use self::dummy::LIVE_REFERENCES;
 
 /// A pointer to a Rust DOM object that needs to be destroyed.
-pub struct TrustedReference(*const libc::c_void);
+struct TrustedReference(*const libc::c_void);
 unsafe impl Send for TrustedReference {}
 
 impl TrustedReference {
-    fn new<T: DomObject>(ptr: *const T) -> TrustedReference {
-        TrustedReference(ptr as *const libc::c_void)
+    /// Creates a new TrustedReference from a pointer to a value that impements DOMObject.
+    /// This is not enforced by the type system to reduce duplicated generic code,
+    /// which is acceptable since this method is internal to this module.
+    unsafe fn new(ptr: *const libc::c_void) -> TrustedReference {
+        TrustedReference(ptr)
     }
 }
 
@@ -156,7 +159,7 @@ pub struct Trusted<T: DomObject> {
     /// A pointer to the Rust DOM object of type T, but void to allow
     /// sending `Trusted<T>` between threads, regardless of T's sendability.
     refcount: Arc<TrustedReference>,
-    owner_thread: *const libc::c_void,
+    owner_thread: *const LiveDOMReferences,
     phantom: PhantomData<T>,
 }
 
@@ -167,27 +170,37 @@ impl<T: DomObject> Trusted<T> {
     /// be prevented from being GCed for the duration of the resulting `Trusted<T>` object's
     /// lifetime.
     pub fn new(ptr: &T) -> Trusted<T> {
-        LIVE_REFERENCES.with(|ref r| {
-            let r = r.borrow();
-            let live_references = r.as_ref().unwrap();
-            let refcount = live_references.addref(&*ptr as *const T);
-            Trusted {
-                refcount: refcount,
-                owner_thread: (&*live_references) as *const _ as *const libc::c_void,
-                phantom: PhantomData,
-            }
-        })
+        fn add_live_reference(
+            ptr: *const libc::c_void,
+        ) -> (Arc<TrustedReference>, *const LiveDOMReferences) {
+            LIVE_REFERENCES.with(|ref r| {
+                let r = r.borrow();
+                let live_references = r.as_ref().unwrap();
+                let refcount = unsafe { live_references.addref(ptr) };
+                (refcount, live_references as *const _)
+            })
+        }
+
+        let (refcount, owner_thread) = add_live_reference(ptr as *const T as *const _);
+        Trusted {
+            refcount,
+            owner_thread,
+            phantom: PhantomData,
+        }
     }
 
     /// Obtain a usable DOM pointer from a pinned `Trusted<T>` value. Fails if used on
     /// a different thread than the original value from which this `Trusted<T>` was
     /// obtained.
     pub fn root(&self) -> DomRoot<T> {
-        assert!(LIVE_REFERENCES.with(|ref r| {
-            let r = r.borrow();
-            let live_references = r.as_ref().unwrap();
-            self.owner_thread == (&*live_references) as *const _ as *const libc::c_void
-        }));
+        fn validate(owner_thread: *const LiveDOMReferences) {
+            assert!(LIVE_REFERENCES.with(|ref r| {
+                let r = r.borrow();
+                let live_references = r.as_ref().unwrap();
+                owner_thread == live_references
+            }));
+        }
+        validate(self.owner_thread);
         unsafe { DomRoot::from_ref(&*(self.refcount.0 as *const T)) }
     }
 }
@@ -234,7 +247,10 @@ impl LiveDOMReferences {
         table.entry(&*promise).or_insert(vec![]).push(promise)
     }
 
-    fn addref<T: DomObject>(&self, ptr: *const T) -> Arc<TrustedReference> {
+    /// ptr must be a pointer to a type that implements DOMObject.
+    /// This is not enforced by the type system to reduce duplicated generic code,
+    /// which is acceptable since this method is internal to this module.
+    unsafe fn addref(&self, ptr: *const libc::c_void) -> Arc<TrustedReference> {
         let mut table = self.reflectable_table.borrow_mut();
         let capacity = table.capacity();
         let len = table.len();
@@ -243,7 +259,7 @@ impl LiveDOMReferences {
             remove_nulls(&mut table);
             table.reserve(len);
         }
-        match table.entry(ptr as *const libc::c_void) {
+        match table.entry(ptr) {
             Occupied(mut entry) => match entry.get().upgrade() {
                 Some(refcount) => refcount,
                 None => {
