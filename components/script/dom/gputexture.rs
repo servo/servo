@@ -49,7 +49,7 @@ impl GPUTexture {
         format: GPUTextureFormat,
         texture_usage: u32,
         valid: bool,
-    ) -> GPUTexture {
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
             texture,
@@ -78,7 +78,7 @@ impl GPUTexture {
         format: GPUTextureFormat,
         texture_usage: u32,
         valid: bool,
-    ) -> DomRoot<GPUTexture> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUTexture::new_inherited(
                 texture,

@@ -39,8 +39,8 @@ impl GPUAdapter {
         name: DOMString,
         extensions: Heap<*mut JSObject>,
         adapter: WebGPUAdapter,
-    ) -> GPUAdapter {
-        GPUAdapter {
+    ) -> Self {
+        Self {
             reflector_: Reflector::new(),
             channel,
             name,
@@ -55,7 +55,7 @@ impl GPUAdapter {
         name: DOMString,
         extensions: Heap<*mut JSObject>,
         adapter: WebGPUAdapter,
-    ) -> DomRoot<GPUAdapter> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUAdapter::new_inherited(
                 channel, name, extensions, adapter,
@@ -81,9 +81,7 @@ impl GPUAdapterMethods for GPUAdapter {
         let promise = Promise::new_in_current_realm(&self.global(), comp);
         let sender = response_async(&promise, self);
         let desc = wgt::DeviceDescriptor {
-            extensions: wgt::Extensions {
-                anisotropic_filtering: descriptor.extensions.anisotropicFiltering,
-            },
+            extensions: wgt::Extensions::empty(),
             limits: wgt::Limits {
                 max_bind_groups: descriptor.limits.maxBindGroups,
             },

@@ -23,7 +23,7 @@ pub struct GPUQueue {
 }
 
 impl GPUQueue {
-    fn new_inherited(channel: WebGPU, queue: WebGPUQueue) -> GPUQueue {
+    fn new_inherited(channel: WebGPU, queue: WebGPUQueue) -> Self {
         GPUQueue {
             channel,
             reflector_: Reflector::new(),
@@ -32,7 +32,7 @@ impl GPUQueue {
         }
     }
 
-    pub fn new(global: &GlobalScope, channel: WebGPU, queue: WebGPUQueue) -> DomRoot<GPUQueue> {
+    pub fn new(global: &GlobalScope, channel: WebGPU, queue: WebGPUQueue) -> DomRoot<Self> {
         reflect_dom_object(Box::new(GPUQueue::new_inherited(channel, queue)), global)
     }
 }

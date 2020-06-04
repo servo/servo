@@ -57,7 +57,7 @@ impl GPUBuffer {
         usage: u32,
         valid: bool,
         mapping: RootedTraceableBox<Heap<*mut JSObject>>,
-    ) -> GPUBuffer {
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
             channel,
@@ -83,7 +83,7 @@ impl GPUBuffer {
         usage: u32,
         valid: bool,
         mapping: RootedTraceableBox<Heap<*mut JSObject>>,
-    ) -> DomRoot<GPUBuffer> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBuffer::new_inherited(
                 channel, buffer, device, state, size, usage, valid, mapping,

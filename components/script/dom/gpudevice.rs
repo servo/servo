@@ -85,7 +85,7 @@ impl GPUDevice {
         limits: Heap<*mut JSObject>,
         device: webgpu::WebGPUDevice,
         queue: &GPUQueue,
-    ) -> GPUDevice {
+    ) -> Self {
         Self {
             eventtarget: EventTarget::new_inherited(),
             channel,
@@ -98,7 +98,6 @@ impl GPUDevice {
         }
     }
 
-    #[allow(unsafe_code)]
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,
@@ -107,7 +106,7 @@ impl GPUDevice {
         limits: Heap<*mut JSObject>,
         device: webgpu::WebGPUDevice,
         queue: webgpu::WebGPUQueue,
-    ) -> DomRoot<GPUDevice> {
+    ) -> DomRoot<Self> {
         let queue = GPUQueue::new(global, channel.clone(), queue);
         reflect_dom_object(
             Box::new(GPUDevice::new_inherited(
@@ -122,6 +121,7 @@ impl GPUDevice {
     fn validate_buffer_descriptor(
         &self,
         descriptor: &GPUBufferDescriptor,
+        mapped_at_creation: bool,
     ) -> (bool, wgt::BufferDescriptor<std::string::String>) {
         // TODO: Record a validation error in the current scope if the descriptor is invalid.
         let wgpu_usage = wgt::BufferUsage::from_bits(descriptor.usage);
@@ -133,6 +133,7 @@ impl GPUDevice {
                 wgt::BufferDescriptor {
                     size: descriptor.size,
                     usage: wgpu_usage.unwrap(),
+                    mapped_at_creation,
                     label: Default::default(),
                 },
             )
@@ -142,6 +143,7 @@ impl GPUDevice {
                 wgt::BufferDescriptor {
                     size: 0,
                     usage: wgt::BufferUsage::empty(),
+                    mapped_at_creation,
                     label: Default::default(),
                 },
             )
@@ -182,7 +184,7 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
     fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> DomRoot<GPUBuffer> {
-        let (valid, wgpu_descriptor) = self.validate_buffer_descriptor(descriptor);
+        let (valid, wgpu_descriptor) = self.validate_buffer_descriptor(descriptor, false);
         let id = self
             .global()
             .wgpu_id_hub()
@@ -218,7 +220,7 @@ impl GPUDeviceMethods for GPUDevice {
         cx: SafeJSContext,
         descriptor: &GPUBufferDescriptor,
     ) -> Vec<JSVal> {
-        let (valid, wgpu_descriptor) = self.validate_buffer_descriptor(descriptor);
+        let (valid, wgpu_descriptor) = self.validate_buffer_descriptor(descriptor, true);
         let buffer_id = self
             .global()
             .wgpu_id_hub()
@@ -226,7 +228,7 @@ impl GPUDeviceMethods for GPUDevice {
             .create_buffer_id(self.device.0.backend());
         self.channel
             .0
-            .send(WebGPURequest::CreateBufferMapped {
+            .send(WebGPURequest::CreateBuffer {
                 device_id: self.device.0,
                 buffer_id,
                 descriptor: wgpu_descriptor.clone(),
@@ -547,7 +549,9 @@ impl GPUDeviceMethods for GPUDevice {
                 resource: BindingResource::Buffer(BufferBinding {
                     buffer: bind.resource.buffer.id().0,
                     offset: bind.resource.offset,
-                    size: bind.resource.size.unwrap_or(bind.resource.buffer.size()),
+                    size: wgt::BufferSize(
+                        bind.resource.size.unwrap_or(bind.resource.buffer.size()),
+                    ),
                 }),
             })
             .collect::<Vec<_>>();
@@ -647,7 +651,13 @@ impl GPUDeviceMethods for GPUDevice {
 
         let encoder = webgpu::WebGPUCommandEncoder(command_encoder_id);
 
-        GPUCommandEncoder::new(&self.global(), self.channel.clone(), encoder, true)
+        GPUCommandEncoder::new(
+            &self.global(),
+            self.channel.clone(),
+            self.device,
+            encoder,
+            true,
+        )
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture
@@ -724,11 +734,8 @@ impl GPUDeviceMethods for GPUDevice {
             mipmap_filter: convert_filter_mode(descriptor.mipmapFilter),
             lod_min_clamp: *descriptor.lodMinClamp,
             lod_max_clamp: *descriptor.lodMaxClamp,
-            compare: if let Some(c) = descriptor.compare {
-                convert_compare_function(c)
-            } else {
-                wgt::CompareFunction::Undefined
-            },
+            compare: descriptor.compare.map(|c| convert_compare_function(c)),
+            anisotropy_clamp: None,
         };
         self.channel
             .0

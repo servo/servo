@@ -21,7 +21,7 @@ pub struct GPUBindGroup {
 }
 
 impl GPUBindGroup {
-    fn new_inherited(bind_group: WebGPUBindGroup, valid: bool) -> GPUBindGroup {
+    fn new_inherited(bind_group: WebGPUBindGroup, valid: bool) -> Self {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
@@ -30,11 +30,7 @@ impl GPUBindGroup {
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
-        bind_group: WebGPUBindGroup,
-        valid: bool,
-    ) -> DomRoot<GPUBindGroup> {
+    pub fn new(global: &GlobalScope, bind_group: WebGPUBindGroup, valid: bool) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBindGroup::new_inherited(bind_group, valid)),
             global,

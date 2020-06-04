@@ -333,6 +333,7 @@ pub mod gpucomputepipeline;
 pub mod gpudevice;
 pub mod gpupipelinelayout;
 pub mod gpuqueue;
+pub mod gpurenderpassencoder;
 pub mod gpurenderpipeline;
 pub mod gpusampler;
 pub mod gpushadermodule;

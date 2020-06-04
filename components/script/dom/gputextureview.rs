@@ -22,11 +22,7 @@ pub struct GPUTextureView {
 }
 
 impl GPUTextureView {
-    fn new_inherited(
-        texture_view: WebGPUTextureView,
-        device: WebGPUDevice,
-        valid: bool,
-    ) -> GPUTextureView {
+    fn new_inherited(texture_view: WebGPUTextureView, device: WebGPUDevice, valid: bool) -> Self {
         Self {
             reflector_: Reflector::new(),
             device,
@@ -41,11 +37,17 @@ impl GPUTextureView {
         texture_view: WebGPUTextureView,
         device: WebGPUDevice,
         valid: bool,
-    ) -> DomRoot<GPUTextureView> {
+    ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUTextureView::new_inherited(texture_view, device, valid)),
             global,
         )
+    }
+}
+
+impl GPUTextureView {
+    pub fn id(&self) -> WebGPUTextureView {
+        self.texture_view
     }
 }
 

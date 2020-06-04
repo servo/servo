@@ -74,11 +74,6 @@ pub enum WebGPURequest {
         buffer_id: id::BufferId,
         descriptor: wgt::BufferDescriptor<String>,
     },
-    CreateBufferMapped {
-        device_id: id::DeviceId,
-        buffer_id: id::BufferId,
-        descriptor: wgt::BufferDescriptor<String>,
-    },
     CreateCommandEncoder {
         device_id: id::DeviceId,
         // TODO(zakorgy): Serialize CommandEncoderDescriptor in wgpu-core
@@ -152,6 +147,10 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
     },
     RunComputePass {
+        command_encoder_id: id::CommandEncoderId,
+        pass_data: Vec<u8>,
+    },
+    RunRenderPass {
         command_encoder_id: id::CommandEncoderId,
         pass_data: Vec<u8>,
     },
@@ -311,26 +310,9 @@ impl WGPU {
                     descriptor,
                 } => {
                     let global = &self.global;
-                    let desc = wgt::BufferDescriptor {
-                        size: descriptor.size,
-                        usage: descriptor.usage,
-                        label: ptr::null(),
-                    };
-                    let _ = gfx_select!(buffer_id => global.device_create_buffer(device_id, &desc, buffer_id));
-                },
-                WebGPURequest::CreateBufferMapped {
-                    device_id,
-                    buffer_id,
-                    descriptor,
-                } => {
-                    let global = &self.global;
-                    let desc = wgt::BufferDescriptor {
-                        size: descriptor.size,
-                        usage: descriptor.usage,
-                        label: ptr::null(),
-                    };
+                    let st = CString::new(descriptor.label.as_bytes()).unwrap();
                     let _ = gfx_select!(buffer_id =>
-                        global.device_create_buffer_mapped(device_id, &desc, buffer_id));
+                        global.device_create_buffer(device_id, &descriptor.map_label(|_| st.as_ptr()), buffer_id));
                 },
                 WebGPURequest::CreateCommandEncoder {
                     device_id,
@@ -582,6 +564,16 @@ impl WGPU {
                 } => {
                     let global = &self.global;
                     gfx_select!(command_encoder_id => global.command_encoder_run_compute_pass(
+                        command_encoder_id,
+                        &pass_data
+                    ));
+                },
+                WebGPURequest::RunRenderPass {
+                    command_encoder_id,
+                    pass_data,
+                } => {
+                    let global = &self.global;
+                    gfx_select!(command_encoder_id => global.command_encoder_run_render_pass(
                         command_encoder_id,
                         &pass_data
                     ));
