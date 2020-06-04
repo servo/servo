@@ -1379,9 +1379,9 @@ dependencies = [
 
 [[package]]
 name = "energy-monitor"
-version = "0.2.0"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe872d0664f1cc60db36349af245d892ee67d3c8f78055df0ebc43271fd4e05c"
+checksum = "7093c15fe67a55350c73669a49ce0681f9a9589866ea1c7447934bf4c1530b06"
 
 [[package]]
 name = "energymon"
