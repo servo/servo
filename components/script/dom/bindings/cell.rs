@@ -4,6 +4,7 @@
 
 //! A shareable mutable container for the DOM.
 
+use crate::dom::bindings::root::{assert_in_layout, assert_in_script};
 #[cfg(feature = "refcell_backtrace")]
 pub use accountable_refcell::{ref_filter_map, Ref, RefCell, RefMut};
 #[cfg(not(feature = "refcell_backtrace"))]
@@ -11,7 +12,6 @@ pub use ref_filter_map::ref_filter_map;
 use std::cell::{BorrowError, BorrowMutError};
 #[cfg(not(feature = "refcell_backtrace"))]
 pub use std::cell::{Ref, RefCell, RefMut};
-use style::thread_state::{self, ThreadState};
 
 /// A mutable field in the DOM.
 ///
@@ -31,7 +31,7 @@ impl<T> DomRefCell<T> {
     /// For use in the layout thread only.
     #[allow(unsafe_code)]
     pub unsafe fn borrow_for_layout(&self) -> &T {
-        debug_assert!(thread_state::get().is_layout());
+        assert_in_layout();
         self.value
             .try_borrow_unguarded()
             .expect("cell is mutably borrowed")
@@ -41,7 +41,7 @@ impl<T> DomRefCell<T> {
     ///
     #[allow(unsafe_code)]
     pub unsafe fn borrow_for_script_deallocation(&self) -> &mut T {
-        debug_assert!(thread_state::get().contains(ThreadState::SCRIPT));
+        assert_in_script();
         &mut *self.value.as_ptr()
     }
 
@@ -49,7 +49,7 @@ impl<T> DomRefCell<T> {
     /// `RefCell::try_borrow_mut_unguarded` but that doesn't exist yet.
     #[allow(unsafe_code)]
     pub unsafe fn borrow_mut_for_layout(&self) -> &mut T {
-        debug_assert!(thread_state::get().is_layout());
+        assert_in_layout();
         &mut *self.value.as_ptr()
     }
 }
@@ -105,7 +105,7 @@ impl<T> DomRefCell<T> {
     ///
     /// Panics if this is called off the script thread.
     pub fn try_borrow(&self) -> Result<Ref<T>, BorrowError> {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         self.value.try_borrow()
     }
 
@@ -120,7 +120,7 @@ impl<T> DomRefCell<T> {
     ///
     /// Panics if this is called off the script thread.
     pub fn try_borrow_mut(&self) -> Result<RefMut<T>, BorrowMutError> {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         self.value.try_borrow_mut()
     }
 }
