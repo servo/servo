@@ -47,6 +47,30 @@ impl BlockFormattingContext {
         };
         (bfc, inline_content_sizes)
     }
+
+    pub fn construct_for_text_runs<'dom>(
+        context: &LayoutContext,
+        runs: impl Iterator<Item = TextRun>,
+        content_sizes: ContentSizesRequest,
+        text_decoration_line: TextDecorationLine,
+    ) -> (Self, BoxContentSizes) {
+        // FIXME: do white space collapsing
+        let inline_level_boxes = runs
+            .map(|run| ArcRefCell::new(InlineLevelBox::TextRun(run)))
+            .collect();
+
+        let ifc = InlineFormattingContext {
+            inline_level_boxes,
+            text_decoration_line,
+        };
+        let content_sizes = content_sizes.compute(|| ifc.inline_content_sizes(context));
+        let contents = BlockContainer::InlineFormattingContext(ifc);
+        let bfc = Self {
+            contents,
+            contains_floats: false,
+        };
+        (bfc, content_sizes)
+    }
 }
 
 struct BlockLevelJob<'dom, Node> {
@@ -249,7 +273,7 @@ where
     fn handle_element(
         &mut self,
         node: Node,
-        style: &Arc<ComputedValues>,
+        style: Arc<ComputedValues>,
         display: DisplayGeneratingBox,
         contents: Contents,
         box_slot: BoxSlot<'dom>,
@@ -265,22 +289,12 @@ where
                     // https://drafts.csswg.org/css2/visuren.html#dis-pos-flo
                     if box_style.position.is_absolutely_positioned() {
                         self.handle_absolutely_positioned_element(
-                            node,
-                            style.clone(),
-                            inside,
-                            contents,
-                            box_slot,
+                            node, style, inside, contents, box_slot,
                         )
                     } else if box_style.float.is_floating() {
-                        self.handle_float_element(node, style.clone(), inside, contents, box_slot)
+                        self.handle_float_element(node, style, inside, contents, box_slot)
                     } else {
-                        self.handle_block_level_element(
-                            node,
-                            style.clone(),
-                            inside,
-                            contents,
-                            box_slot,
-                        )
+                        self.handle_block_level_element(node, style, inside, contents, box_slot)
                     }
                 },
             },
@@ -291,7 +305,7 @@ where
         &mut self,
         node: Node,
         input: Cow<'dom, str>,
-        parent_style: &Arc<ComputedValues>,
+        parent_style: Arc<ComputedValues>,
     ) {
         let (leading_whitespace, mut input) = self.handle_leading_whitespace(&input);
         if leading_whitespace || !input.is_empty() {
@@ -341,7 +355,6 @@ where
             }
 
             if let Some(text) = new_text_run_contents {
-                let parent_style = parent_style.clone();
                 inlines.push(ArcRefCell::new(InlineLevelBox::TextRun(TextRun {
                     tag: node.as_opaque(),
                     parent_style,
@@ -418,7 +431,7 @@ where
     fn handle_inline_level_element(
         &mut self,
         node: Node,
-        style: &Arc<ComputedValues>,
+        style: Arc<ComputedValues>,
         display_inside: DisplayInside,
         contents: Contents,
     ) -> ArcRefCell<InlineLevelBox> {
@@ -449,14 +462,15 @@ where
             inline_box.last_fragment = true;
             ArcRefCell::new(InlineLevelBox::InlineBox(inline_box))
         } else {
+            let content_sizes = ContentSizesRequest::inline_if(!style.inline_size_is_length());
             ArcRefCell::new(InlineLevelBox::Atomic(
                 IndependentFormattingContext::construct(
                     self.context,
                     node,
-                    style.clone(),
+                    style,
                     display_inside,
                     contents,
-                    ContentSizesRequest::inline_if(!style.inline_size_is_length()),
+                    content_sizes,
                     // Text decorations are not propagated to atomic inline-level descendants.
                     TextDecorationLine::NONE,
                 ),

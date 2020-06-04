@@ -48,6 +48,7 @@ pub(crate) enum DisplayOutside {
 pub(crate) enum DisplayInside {
     Flow,
     FlowRoot,
+    Flex,
 }
 
 /// Percentages resolved but not `auto` margins
@@ -394,6 +395,7 @@ impl From<stylo::Display> for Display {
         let inside = match packed.inside() {
             stylo::DisplayInside::Flow => DisplayInside::Flow,
             stylo::DisplayInside::FlowRoot => DisplayInside::FlowRoot,
+            stylo::DisplayInside::Flex => DisplayInside::Flex,
 
             // These should not be values of DisplayInside, but oh well
             stylo::DisplayInside::None => return Display::None,

@@ -454,6 +454,9 @@ mod gen {
                 columns: {
                     enabled: bool,
                 },
+                flexbox: {
+                    enabled: bool,
+                },
                 #[serde(default = "default_layout_threads")]
                 threads: i64,
                 viewport: {

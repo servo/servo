@@ -34,6 +34,17 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
         static_prefs::pref!("layout.css.xul-box-display-values.content.enabled")
 }
 
+fn flexbox_enabled() -> bool {
+    if cfg!(feature = "servo-layout-2020") {
+        servo_config::prefs::pref_map()
+            .get("layout.flexbox.enabled")
+            .as_bool()
+            .unwrap_or(false)
+    } else {
+        true
+    }
+}
+
 /// Defines an element’s display type, which consists of
 /// the two basic qualities of how an element generates boxes
 /// <https://drafts.csswg.org/css-display/#propdef-display>
@@ -63,7 +74,6 @@ pub enum DisplayInside {
     Contents,
     Flow,
     FlowRoot,
-    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     Flex,
     #[cfg(feature = "gecko")]
     Grid,
@@ -146,9 +156,7 @@ impl Display {
     pub const Block: Self = Self::new(DisplayOutside::Block, DisplayInside::Flow);
     #[cfg(feature = "gecko")]
     pub const FlowRoot: Self = Self::new(DisplayOutside::Block, DisplayInside::FlowRoot);
-    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const Flex: Self = Self::new(DisplayOutside::Block, DisplayInside::Flex);
-    #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
     pub const InlineFlex: Self = Self::new(DisplayOutside::Inline, DisplayInside::Flex);
     #[cfg(feature = "gecko")]
     pub const Grid: Self = Self::new(DisplayOutside::Block, DisplayInside::Grid);
@@ -317,9 +325,9 @@ impl Display {
     #[inline]
     pub fn is_atomic_inline_level(&self) -> bool {
         match *self {
-            Display::InlineBlock => true,
+            Display::InlineBlock | Display::InlineFlex => true,
             #[cfg(any(feature = "servo-layout-2013"))]
-            Display::InlineFlex | Display::InlineTable => true,
+            Display::InlineTable => true,
             _ => false,
         }
     }
@@ -330,7 +338,6 @@ impl Display {
     /// This is used to implement various style fixups.
     pub fn is_item_container(&self) -> bool {
         match self.inside() {
-            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             DisplayInside::Flex => true,
             #[cfg(feature = "gecko")]
             DisplayInside::Grid => true,
@@ -432,12 +439,9 @@ impl ToCss for Display {
             _ => match (outside, inside) {
                 #[cfg(feature = "gecko")]
                 (DisplayOutside::Inline, DisplayInside::Grid) => dest.write_str("inline-grid"),
+                (DisplayOutside::Inline, DisplayInside::Flex) => dest.write_str("inline-flex"),
                 #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-                (DisplayOutside::Inline, DisplayInside::Flex) |
-                (DisplayOutside::Inline, DisplayInside::Table) => {
-                    dest.write_str("inline-")?;
-                    inside.to_css(dest)
-                },
+                (DisplayOutside::Inline, DisplayInside::Table) => dest.write_str("inline-table"),
                 #[cfg(feature = "gecko")]
                 (DisplayOutside::Block, DisplayInside::Ruby) => dest.write_str("block ruby"),
                 (_, inside) => {
@@ -467,12 +471,11 @@ fn parse_display_inside<'i, 't>(
 ) -> Result<DisplayInside, ParseError<'i>> {
     Ok(try_match_ident_ignore_ascii_case! { input,
         "flow" => DisplayInside::Flow,
+        "flex" if flexbox_enabled() => DisplayInside::Flex,
         #[cfg(any(feature = "servo-layout-2020", feature = "gecko"))]
         "flow-root" => DisplayInside::FlowRoot,
         #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
         "table" => DisplayInside::Table,
-        #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-        "flex" => DisplayInside::Flex,
         #[cfg(feature = "gecko")]
         "grid" => DisplayInside::Grid,
         #[cfg(feature = "gecko")]
@@ -575,10 +578,8 @@ impl Parse for Display {
             "inline-block" => Display::InlineBlock,
             #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
             "inline-table" => Display::InlineTable,
-            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-            "-webkit-flex" => Display::Flex,
-            #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]
-            "inline-flex" | "-webkit-inline-flex" => Display::InlineFlex,
+            "-webkit-flex" if flexbox_enabled() => Display::Flex,
+            "inline-flex" | "-webkit-inline-flex" if flexbox_enabled() => Display::InlineFlex,
             #[cfg(feature = "gecko")]
             "inline-grid" => Display::InlineGrid,
             #[cfg(any(feature = "servo-layout-2013", feature = "gecko"))]

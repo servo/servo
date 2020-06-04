@@ -4,6 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeExt};
+use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::fragments::Fragment;
 use crate::positioned::PositioningContext;
@@ -43,6 +44,7 @@ pub(crate) struct IndependentLayout {
 #[derive(Debug, Serialize)]
 enum IndependentFormattingContextContents {
     Flow(BlockFormattingContext),
+    Flex(FlexContainer),
 
     // Not called FC in specs, but behaves close enough
     Replaced(ReplacedContent),
@@ -53,6 +55,7 @@ pub(crate) struct NonReplacedIFC<'a>(NonReplacedIFCKind<'a>);
 
 enum NonReplacedIFCKind<'a> {
     Flow(&'a BlockFormattingContext),
+    Flex(&'a FlexContainer),
 }
 
 impl IndependentFormattingContext {
@@ -83,6 +86,22 @@ impl IndependentFormattingContext {
                         contents: IndependentFormattingContextContents::Flow(bfc),
                     }
                 },
+                DisplayInside::Flex => {
+                    let (fc, content_sizes) = FlexContainer::construct(
+                        context,
+                        node,
+                        &style,
+                        non_replaced,
+                        content_sizes,
+                        propagated_text_decoration_line,
+                    );
+                    Self {
+                        tag: node.as_opaque(),
+                        style,
+                        content_sizes,
+                        contents: IndependentFormattingContextContents::Flex(fc),
+                    }
+                },
             },
             Err(replaced) => {
                 let content_sizes = content_sizes.compute(|| replaced.inline_content_sizes(&style));
@@ -96,6 +115,28 @@ impl IndependentFormattingContext {
         }
     }
 
+    pub fn construct_for_text_runs<'dom>(
+        context: &LayoutContext,
+        node: impl NodeExt<'dom>,
+        style: Arc<ComputedValues>,
+        runs: impl Iterator<Item = crate::flow::inline::TextRun>,
+        content_sizes: ContentSizesRequest,
+        propagated_text_decoration_line: TextDecorationLine,
+    ) -> Self {
+        let (bfc, content_sizes) = BlockFormattingContext::construct_for_text_runs(
+            context,
+            runs,
+            content_sizes,
+            propagated_text_decoration_line,
+        );
+        Self {
+            tag: node.as_opaque(),
+            style,
+            content_sizes,
+            contents: IndependentFormattingContextContents::Flow(bfc),
+        }
+    }
+
     pub fn as_replaced(&self) -> Result<&ReplacedContent, NonReplacedIFC> {
         use self::IndependentFormattingContextContents as Contents;
         use self::NonReplacedIFC as NR;
@@ -103,6 +144,7 @@ impl IndependentFormattingContext {
         match &self.contents {
             Contents::Replaced(r) => Ok(r),
             Contents::Flow(f) => Err(NR(Kind::Flow(f))),
+            Contents::Flex(f) => Err(NR(Kind::Flex(f))),
         }
     }
 }
@@ -117,6 +159,12 @@ impl NonReplacedIFC<'_> {
     ) -> IndependentLayout {
         match &self.0 {
             NonReplacedIFCKind::Flow(bfc) => bfc.layout(
+                layout_context,
+                positioning_context,
+                containing_block,
+                tree_rank,
+            ),
+            NonReplacedIFCKind::Flex(fc) => fc.layout(
                 layout_context,
                 positioning_context,
                 containing_block,

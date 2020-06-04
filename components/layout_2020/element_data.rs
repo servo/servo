@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::cell::ArcRefCell;
+use crate::flexbox::FlexLevelBox;
 use crate::flow::inline::InlineLevelBox;
 use crate::flow::BlockLevelBox;
 
@@ -17,4 +18,5 @@ pub(super) enum LayoutBox {
     DisplayContents,
     BlockLevel(ArcRefCell<BlockLevelBox>),
     InlineLevel(ArcRefCell<InlineLevelBox>),
+    FlexLevel(ArcRefCell<FlexLevelBox>),
 }
