@@ -7,7 +7,9 @@
 use crate::dom::bindings::codegen::InterfaceObjectMap;
 use crate::dom::bindings::codegen::PrototypeList;
 use crate::dom::bindings::codegen::PrototypeList::{MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE_LENGTH};
-use crate::dom::bindings::conversions::{jsstring_to_str, private_from_proto_check};
+use crate::dom::bindings::conversions::{
+    jsstring_to_str, private_from_proto_check, PrototypeCheck,
+};
 use crate::dom::bindings::error::throw_invalid_this;
 use crate::dom::bindings::inheritance::TopTypeId;
 use crate::dom::bindings::str::DOMString;
@@ -507,9 +509,8 @@ unsafe fn generic_call(
     } else {
         GetNonCCWObjectGlobal(JS_CALLEE(cx, vp).to_object_or_null())
     });
-    let depth = (*info).__bindgen_anon_3.depth;
-    let proto_check =
-        |class: &'static DOMClass| class.interface_chain[depth as usize] as u16 == proto_id;
+    let depth = (*info).__bindgen_anon_3.depth as usize;
+    let proto_check = PrototypeCheck::Depth { depth, proto_id };
     let this = match private_from_proto_check(obj.get(), cx, proto_check) {
         Ok(val) => val,
         Err(()) => {
