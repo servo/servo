@@ -37,6 +37,7 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::utils::WindowProxyHandler;
 use crate::dom::gpubuffer::GPUBufferState;
+use crate::dom::gpucanvascontext::WebGPUContextId;
 use crate::dom::gpucommandencoder::GPUCommandEncoderState;
 use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
@@ -168,7 +169,7 @@ use webgpu::{
     WebGPUPipelineLayout, WebGPUQueue, WebGPURenderPipeline, WebGPUSampler, WebGPUShaderModule,
     WebGPUTexture, WebGPUTextureView,
 };
-use webrender_api::{DocumentId, ImageKey};
+use webrender_api::{DocumentId, ExternalImageId, ImageKey};
 use webxr_api::SwapChainId as WebXRSwapChainId;
 use webxr_api::{Finger, Hand, Ray, View};
 
@@ -541,6 +542,7 @@ unsafe_no_jsmanaged_fields!(PathBuf);
 unsafe_no_jsmanaged_fields!(DrawAPaintImageResult);
 unsafe_no_jsmanaged_fields!(DocumentId);
 unsafe_no_jsmanaged_fields!(ImageKey);
+unsafe_no_jsmanaged_fields!(ExternalImageId);
 unsafe_no_jsmanaged_fields!(WebGLBufferId);
 unsafe_no_jsmanaged_fields!(WebGLChan);
 unsafe_no_jsmanaged_fields!(WebGLFramebufferId);
@@ -572,6 +574,7 @@ unsafe_no_jsmanaged_fields!(WebGPUShaderModule);
 unsafe_no_jsmanaged_fields!(WebGPUSampler);
 unsafe_no_jsmanaged_fields!(WebGPUTexture);
 unsafe_no_jsmanaged_fields!(WebGPUTextureView);
+unsafe_no_jsmanaged_fields!(WebGPUContextId);
 unsafe_no_jsmanaged_fields!(WebGPUCommandBuffer);
 unsafe_no_jsmanaged_fields!(WebGPUCommandEncoder);
 unsafe_no_jsmanaged_fields!(WebGPUDevice);

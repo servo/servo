@@ -1905,6 +1905,7 @@ impl Fragment {
 
                 let image_key = match canvas_fragment_info.source {
                     CanvasFragmentSource::WebGL(image_key) => image_key,
+                    CanvasFragmentSource::WebGPU(image_key) => image_key,
                     CanvasFragmentSource::Image(ref ipc_renderer) => match *ipc_renderer {
                         Some(ref ipc_renderer) => {
                             let ipc_renderer = ipc_renderer.lock().unwrap();

@@ -118,6 +118,10 @@ impl GPUDevice {
 }
 
 impl GPUDevice {
+    pub fn id(&self) -> webgpu::WebGPUDevice {
+        self.device
+    }
+
     fn validate_buffer_descriptor(
         &self,
         descriptor: &GPUBufferDescriptor,

@@ -103,6 +103,12 @@ impl Drop for GPUTexture {
     }
 }
 
+impl GPUTexture {
+    pub fn id(&self) -> WebGPUTexture {
+        self.texture
+    }
+}
+
 impl GPUTextureMethods for GPUTexture {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn GetLabel(&self) -> Option<DOMString> {

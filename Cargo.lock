@@ -832,6 +832,7 @@ dependencies = [
  "style_traits",
  "webgpu",
  "webrender_api",
+ "webrender_traits",
  "webxr-api",
 ]
 
@@ -6389,12 +6390,15 @@ name = "webgpu"
 version = "0.0.1"
 dependencies = [
  "arrayvec 0.5.1",
+ "euclid",
  "ipc-channel",
  "log",
  "malloc_size_of",
  "serde",
  "servo_config",
  "smallvec 0.6.13",
+ "webrender_api",
+ "webrender_traits",
  "wgpu-core",
  "wgpu-types",
 ]

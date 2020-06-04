@@ -18,18 +18,24 @@ use webrender_api::units::TexelRect;
 /// This trait is used to notify lock/unlock messages and get the
 /// required info that WR needs.
 pub trait WebrenderExternalImageApi {
-    fn lock(&mut self, id: u64) -> (u32, Size2D<i32>);
+    fn lock(&mut self, id: u64) -> (WebrenderImageSource, Size2D<i32>);
     fn unlock(&mut self, id: u64);
+}
+
+pub enum WebrenderImageSource<'a> {
+    TextureHandle(u32),
+    Raw(&'a [u8]),
 }
 
 /// Type of Webrender External Image Handler.
 pub enum WebrenderImageHandlerType {
     WebGL,
     Media,
+    WebGPU,
 }
 
 /// List of Webrender external images to be shared among all external image
-/// consumers (WebGL, Media).
+/// consumers (WebGL, Media, WebGPU).
 /// It ensures that external image identifiers are unique.
 pub struct WebrenderExternalImageRegistry {
     /// Map of all generated external images.
@@ -71,6 +77,8 @@ pub struct WebrenderExternalImageHandlers {
     webgl_handler: Option<Box<dyn WebrenderExternalImageApi>>,
     /// Media player handler.
     media_handler: Option<Box<dyn WebrenderExternalImageApi>>,
+    /// WebGPU handler.
+    webgpu_handler: Option<Box<dyn WebrenderExternalImageApi>>,
     /// Webrender external images.
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
 }
@@ -82,6 +90,7 @@ impl WebrenderExternalImageHandlers {
             Self {
                 webgl_handler: None,
                 media_handler: None,
+                webgpu_handler: None,
                 external_images: external_images.clone(),
             },
             external_images,
@@ -96,6 +105,7 @@ impl WebrenderExternalImageHandlers {
         match handler_type {
             WebrenderImageHandlerType::WebGL => self.webgl_handler = Some(handler),
             WebrenderImageHandlerType::Media => self.media_handler = Some(handler),
+            WebrenderImageHandlerType::WebGPU => self.webgpu_handler = Some(handler),
         }
     }
 }
@@ -115,25 +125,40 @@ impl webrender_api::ExternalImageHandler for WebrenderExternalImageHandlers {
         let handler_type = external_images
             .get(&key)
             .expect("Tried to get unknown external image");
-        let (texture_id, uv) = match handler_type {
+        match handler_type {
             WebrenderImageHandlerType::WebGL => {
-                let (texture_id, size) = self.webgl_handler.as_mut().unwrap().lock(key.0);
-                (
-                    texture_id,
-                    TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
-                )
+                let (source, size) = self.webgl_handler.as_mut().unwrap().lock(key.0);
+                let texture_id = match source {
+                    WebrenderImageSource::TextureHandle(b) => b,
+                    _ => panic!("Wrong type"),
+                };
+                webrender_api::ExternalImage {
+                    uv: TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
+                    source: webrender_api::ExternalImageSource::NativeTexture(texture_id),
+                }
             },
             WebrenderImageHandlerType::Media => {
-                let (texture_id, size) = self.media_handler.as_mut().unwrap().lock(key.0);
-                (
-                    texture_id,
-                    TexelRect::new(0.0, 0.0, size.width as f32, size.height as f32),
-                )
+                let (source, size) = self.media_handler.as_mut().unwrap().lock(key.0);
+                let texture_id = match source {
+                    WebrenderImageSource::TextureHandle(b) => b,
+                    _ => panic!("Wrong type"),
+                };
+                webrender_api::ExternalImage {
+                    uv: TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
+                    source: webrender_api::ExternalImageSource::NativeTexture(texture_id),
+                }
             },
-        };
-        webrender_api::ExternalImage {
-            uv,
-            source: webrender_api::ExternalImageSource::NativeTexture(texture_id),
+            WebrenderImageHandlerType::WebGPU => {
+                let (source, size) = self.webgpu_handler.as_mut().unwrap().lock(key.0);
+                let buffer = match source {
+                    WebrenderImageSource::Raw(b) => b,
+                    _ => panic!("Wrong type"),
+                };
+                webrender_api::ExternalImage {
+                    uv: TexelRect::new(0.0, size.height as f32, size.width as f32, 0.0),
+                    source: webrender_api::ExternalImageSource::RawData(buffer),
+                }
+            },
         }
     }
 
@@ -147,6 +172,9 @@ impl webrender_api::ExternalImageHandler for WebrenderExternalImageHandlers {
         match handler_type {
             WebrenderImageHandlerType::WebGL => self.webgl_handler.as_mut().unwrap().unlock(key.0),
             WebrenderImageHandlerType::Media => self.media_handler.as_mut().unwrap().unlock(key.0),
+            WebrenderImageHandlerType::WebGPU => {
+                self.webgpu_handler.as_mut().unwrap().unlock(key.0)
+            },
         };
     }
 }

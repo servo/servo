@@ -278,6 +278,7 @@ pub struct GlobalScope {
     /// An optional string allowing the user agent to be set for testing.
     user_agent: Cow<'static, str>,
 
+    /// Identity Manager for WebGPU resources
     #[ignore_malloc_size_of = "defined in wgpu"]
     gpu_id_hub: Arc<Mutex<Identities>>,
 

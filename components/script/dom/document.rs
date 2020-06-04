@@ -53,6 +53,7 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventDefault, Even
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::focusevent::FocusEvent;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::gpucanvascontext::{GPUCanvasContext, WebGPUContextId};
 use crate::dom::hashchangeevent::HashChangeEvent;
 use crate::dom::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::htmlareaelement::HTMLAreaElement;
@@ -377,6 +378,8 @@ pub struct Document {
     media_controls: DomRefCell<HashMap<String, Dom<ShadowRoot>>>,
     /// List of all WebGL context IDs that need flushing.
     dirty_webgl_contexts: DomRefCell<HashMap<WebGLContextId, Dom<WebGLRenderingContext>>>,
+    /// List of all WebGPU context IDs that need flushing.
+    dirty_webgpu_contexts: DomRefCell<HashMap<WebGPUContextId, Dom<GPUCanvasContext>>>,
     /// https://html.spec.whatwg.org/multipage/#concept-document-csp-list
     #[ignore_malloc_size_of = "Defined in rust-content-security-policy"]
     csp_list: DomRefCell<Option<CspList>>,
@@ -2643,14 +2646,14 @@ impl Document {
         }
     }
 
-    pub fn add_dirty_canvas(&self, context: &WebGLRenderingContext) {
+    pub fn add_dirty_webgl_canvas(&self, context: &WebGLRenderingContext) {
         self.dirty_webgl_contexts
             .borrow_mut()
             .entry(context.context_id())
             .or_insert_with(|| Dom::from_ref(context));
     }
 
-    pub fn flush_dirty_canvases(&self) {
+    pub fn flush_dirty_webgl_canvases(&self) {
         let dirty_context_ids: Vec<_> = self
             .dirty_webgl_contexts
             .borrow_mut()
@@ -2676,6 +2679,21 @@ impl Document {
             .send(WebGLMsg::SwapBuffers(dirty_context_ids, sender, time))
             .unwrap();
         receiver.recv().unwrap();
+    }
+
+    pub fn add_dirty_webgpu_canvas(&self, context: &GPUCanvasContext) {
+        self.dirty_webgpu_contexts
+            .borrow_mut()
+            .entry(context.context_id())
+            .or_insert_with(|| Dom::from_ref(context));
+    }
+
+    #[allow(unrooted_must_root)]
+    pub fn flush_dirty_webgpu_canvases(&self) {
+        self.dirty_webgpu_contexts
+            .borrow_mut()
+            .drain()
+            .for_each(|(_, context)| context.send_swap_chain_present());
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
@@ -3039,6 +3057,7 @@ impl Document {
             shadow_roots_styles_changed: Cell::new(false),
             media_controls: DomRefCell::new(HashMap::new()),
             dirty_webgl_contexts: DomRefCell::new(HashMap::new()),
+            dirty_webgpu_contexts: DomRefCell::new(HashMap::new()),
             csp_list: DomRefCell::new(None),
             selection: MutNullableDom::new(None),
             animation_timeline: if pref!(layout.animations.test.enabled) {

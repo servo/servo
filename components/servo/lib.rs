@@ -115,6 +115,7 @@ use servo_media::player::context::GlContext;
 use servo_media::ServoMedia;
 use std::borrow::Cow;
 use std::cmp::max;
+use std::collections::HashMap;
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -476,12 +477,20 @@ where
         let glplayer_threads = match window.get_gl_context() {
             GlContext::Unknown => None,
             _ => {
-                let (glplayer_threads, image_handler) = GLPlayerThreads::new(external_images);
+                let (glplayer_threads, image_handler) =
+                    GLPlayerThreads::new(external_images.clone());
                 external_image_handlers
                     .set_handler(image_handler, WebrenderImageHandlerType::Media);
                 Some(glplayer_threads)
             },
         };
+
+        let wgpu_image_handler = webgpu::WGPUExternalImages::new();
+        let wgpu_image_map = wgpu_image_handler.images.clone();
+        external_image_handlers.set_handler(
+            Box::new(wgpu_image_handler),
+            WebrenderImageHandlerType::WebGPU,
+        );
 
         let player_context = WindowGLContext {
             gl_context: window.get_gl_context(),
@@ -514,12 +523,15 @@ where
             debugger_chan,
             devtools_chan,
             webrender_document,
+            webrender_api_sender,
             webxr_main_thread.registry(),
             player_context,
             webgl_threads,
             glplayer_threads,
             event_loop_waker,
             window_size,
+            external_images,
+            wgpu_image_map,
         );
 
         if cfg!(feature = "webdriver") {
@@ -851,12 +863,15 @@ fn create_constellation(
     debugger_chan: Option<debugger::Sender>,
     devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
     webrender_document: webrender_api::DocumentId,
+    webrender_api_sender: webrender_api::RenderApiSender,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
     webgl_threads: Option<WebGLThreads>,
     glplayer_threads: Option<GLPlayerThreads>,
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     initial_window_size: WindowSizeData,
+    external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    wgpu_image_map: Arc<Mutex<HashMap<u64, webgpu::PresentationData>>>,
 ) -> Sender<ConstellationMsg> {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -896,12 +911,15 @@ fn create_constellation(
         time_profiler_chan,
         mem_profiler_chan,
         webrender_document,
+        webrender_api_sender,
         webxr_registry,
         webgl_threads,
         glplayer_threads,
         player_context,
         event_loop_waker,
         user_agent,
+        webrender_external_images: external_images,
+        wgpu_image_map,
     };
 
     let constellation_chan = Constellation::<

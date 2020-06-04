@@ -22,7 +22,9 @@ use surfman_chains::SwapChains;
 use surfman_chains_api::SwapChainAPI;
 use surfman_chains_api::SwapChainsAPI;
 use webrender_surfman::WebrenderSurfman;
-use webrender_traits::{WebrenderExternalImageApi, WebrenderExternalImageRegistry};
+use webrender_traits::{
+    WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
+};
 use webxr_api::SwapChainId as WebXRSwapChainId;
 
 pub struct WebGLComm {
@@ -138,9 +140,10 @@ impl WebGLExternalImages {
 }
 
 impl WebrenderExternalImageApi for WebGLExternalImages {
-    fn lock(&mut self, id: u64) -> (u32, Size2D<i32>) {
+    fn lock(&mut self, id: u64) -> (WebrenderImageSource, Size2D<i32>) {
         let id = WebGLContextId(id);
-        self.lock_swap_chain(id).unwrap_or_default()
+        let (texture_id, size) = self.lock_swap_chain(id).unwrap_or_default();
+        (WebrenderImageSource::TextureHandle(texture_id), size)
     }
 
     fn unlock(&mut self, id: u64) {

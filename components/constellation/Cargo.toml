@@ -43,6 +43,7 @@ servo_url = { path = "../url" }
 style_traits = { path = "../style_traits" }
 webgpu = { path = "../webgpu" }
 webrender_api = { git = "https://github.com/servo/webrender" }
+webrender_traits = { path = "../webrender_traits" }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_arch="arm"), not(target_arch="aarch64")))'.dependencies]

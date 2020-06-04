@@ -23,7 +23,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::element::cors_setting_for_element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::htmlcanvaselement::utils as canvas_utils;
-use crate::dom::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::node::{document_from_node, window_from_node, Node, NodeDamage};
 use crate::dom::promise::Promise;
@@ -539,7 +539,7 @@ impl WebGLRenderingContext {
             .dirty(NodeDamage::OtherNodeDamage);
 
         let document = document_from_node(&*self.canvas);
-        document.add_dirty_canvas(self);
+        document.add_dirty_webgl_canvas(self);
     }
 
     fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
@@ -4697,12 +4697,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     }
 }
 
-pub trait LayoutCanvasWebGLRenderingContextHelpers {
-    #[allow(unsafe_code)]
-    unsafe fn canvas_data_source(self) -> HTMLCanvasDataSource;
-}
-
-impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<'_, WebGLRenderingContext> {
+impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGLRenderingContext> {
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(self) -> HTMLCanvasDataSource {
         (*self.unsafe_get()).layout_handle()

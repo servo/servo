@@ -38,7 +38,7 @@ use std::collections::{HashMap, VecDeque};
 use std::fmt;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
-use webgpu::{wgpu, WebGPUResponseResult};
+use webgpu::{wgpu, WebGPU, WebGPUResponseResult};
 use webrender_api::units::{DeviceIntPoint, DeviceIntSize};
 
 /// A particular iframe's size, associated with a browsing context.
@@ -280,6 +280,8 @@ pub enum ScriptMsg {
         wgpu::instance::RequestAdapterOptions,
         SmallVec<[wgpu::id::AdapterId; 4]>,
     ),
+    /// Get WebGPU channel
+    GetWebGPUChan(IpcSender<WebGPU>),
 }
 
 impl fmt::Debug for ScriptMsg {
@@ -338,6 +340,7 @@ impl fmt::Debug for ScriptMsg {
             GetScreenAvailSize(..) => "GetScreenAvailSize",
             MediaSessionEvent(..) => "MediaSessionEvent",
             RequestAdapter(..) => "RequestAdapter",
+            GetWebGPUChan(..) => "GetWebGPUChan",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }
