@@ -2750,7 +2750,9 @@ class CGWrapMethod(CGAbstractMethod):
         unforgeable = CopyUnforgeablePropertiesToInstance(self.descriptor)
         if self.descriptor.proxy:
             create = """
-let handler = RegisterBindings::proxy_handlers::%(concreteType)s;
+let handler: *const libc::c_void =
+    RegisterBindings::proxy_handlers::%(concreteType)s
+    .load(std::sync::atomic::Ordering::Acquire);
 rooted!(in(*cx) let obj = NewProxyObject(
     *cx,
     handler,
@@ -6744,7 +6746,10 @@ class CGRegisterProxyHandlersMethod(CGAbstractMethod):
 
     def definition_body(self):
         return CGList([
-            CGGeneric("proxy_handlers::%s = Bindings::%s::DefineProxyHandler();"
+            CGGeneric("proxy_handlers::%s.store(\n"
+                      "    Bindings::%s::DefineProxyHandler() as *mut _,\n"
+                      "    std::sync::atomic::Ordering::Release,\n"
+                      ");"
                       % (desc.name, '::'.join([desc.name + 'Binding'] * 2)))
             for desc in self.descriptors
         ], "\n")
@@ -6758,7 +6763,8 @@ class CGRegisterProxyHandlers(CGThing):
                 "#[allow(non_upper_case_globals)]\n" +
                 "pub mod proxy_handlers {\n" +
                 "".join(
-                    "  pub static mut %s: *const libc::c_void = std::ptr::null();\n"
+                    "    pub static %s: std::sync::atomic::AtomicPtr<libc::c_void> =\n"
+                    "        std::sync::atomic::AtomicPtr::new(std::ptr::null_mut());\n"
                     % desc.name
                     for desc in descriptors
                 ) +
