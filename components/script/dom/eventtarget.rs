@@ -512,7 +512,7 @@ impl EventTarget {
         // Step 3.9
 
         let url_serialized = CString::new(handler.url.to_string()).unwrap();
-        let name = CString::new(&**ty).unwrap();
+        let name = CString::new(format!("on{}", &**ty)).unwrap();
 
         // Step 3.9, subsection ParameterList
         static mut ARG_NAMES: [*const c_char; 1] = [b"event\0" as *const u8 as *const c_char];
