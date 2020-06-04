@@ -144,9 +144,7 @@ impl SelectorParsingState {
 
     #[inline]
     fn allows_non_functional_pseudo_classes(self) -> bool {
-        !self.intersects(
-            Self::AFTER_SLOTTED | Self::AFTER_NON_STATEFUL_PSEUDO_ELEMENT,
-        )
+        !self.intersects(Self::AFTER_SLOTTED | Self::AFTER_NON_STATEFUL_PSEUDO_ELEMENT)
     }
 
     #[inline]
@@ -354,10 +352,9 @@ impl<Impl: SelectorImpl> SelectorList<Impl> {
     {
         let mut values = SmallVec::new();
         loop {
-            values.push(
-                input
-                    .parse_until_before(Delimiter::Comma, |input| parse_selector(parser, input, state))?,
-            );
+            values.push(input.parse_until_before(Delimiter::Comma, |input| {
+                parse_selector(parser, input, state)
+            })?);
             match input.next() {
                 Err(_) => return Ok(SelectorList(values)),
                 Ok(&Token::Comma) => continue,
@@ -382,7 +379,11 @@ where
     P: Parser<'i, Impl = Impl>,
     Impl: SelectorImpl,
 {
-    parse_selector(parser, input, state | SelectorParsingState::DISALLOW_PSEUDOS | SelectorParsingState::DISALLOW_COMBINATORS)
+    parse_selector(
+        parser,
+        input,
+        state | SelectorParsingState::DISALLOW_PSEUDOS | SelectorParsingState::DISALLOW_COMBINATORS,
+    )
 }
 
 /// Parse a comma separated list of compound selectors.
@@ -395,7 +396,9 @@ where
     Impl: SelectorImpl,
 {
     input
-        .parse_comma_separated(|input| parse_inner_compound_selector(parser, input, SelectorParsingState::empty()))
+        .parse_comma_separated(|input| {
+            parse_inner_compound_selector(parser, input, SelectorParsingState::empty())
+        })
         .map(|selectors| selectors.into_boxed_slice())
 }
 
@@ -450,9 +453,7 @@ where
             },
             // In quirks mode, class and id selectors should match
             // case-insensitively, so just avoid inserting them into the filter.
-            Component::ID(ref id) if quirks_mode != QuirksMode::Quirks => {
-                id.precomputed_hash()
-            },
+            Component::ID(ref id) if quirks_mode != QuirksMode::Quirks => id.precomputed_hash(),
             Component::Class(ref class) if quirks_mode != QuirksMode::Quirks => {
                 class.precomputed_hash()
             },
@@ -466,7 +467,7 @@ where
                     }
                 }
                 continue;
-            }
+            },
             _ => continue,
         };
 
@@ -1086,11 +1087,14 @@ impl<Impl: SelectorImpl> Component<Impl> {
     pub fn maybe_allowed_after_pseudo_element(&self) -> bool {
         match *self {
             Component::NonTSPseudoClass(..) => true,
-            Component::Negation(ref components) => components.iter().all(|c| c.maybe_allowed_after_pseudo_element()),
-            Component::Is(ref selectors) |
-            Component::Where(ref selectors) => {
+            Component::Negation(ref components) => components
+                .iter()
+                .all(|c| c.maybe_allowed_after_pseudo_element()),
+            Component::Is(ref selectors) | Component::Where(ref selectors) => {
                 selectors.iter().all(|selector| {
-                    selector.iter_raw_match_order().all(|c| c.maybe_allowed_after_pseudo_element())
+                    selector
+                        .iter_raw_match_order()
+                        .all(|c| c.maybe_allowed_after_pseudo_element())
                 })
             },
             _ => false,
@@ -1110,12 +1114,14 @@ impl<Impl: SelectorImpl> Component<Impl> {
             *self
         );
         match *self {
-            Component::Negation(ref components) => {
-                !components.iter().all(|c| c.matches_for_stateless_pseudo_element())
-            },
+            Component::Negation(ref components) => !components
+                .iter()
+                .all(|c| c.matches_for_stateless_pseudo_element()),
             Component::Is(ref selectors) | Component::Where(ref selectors) => {
                 selectors.iter().any(|selector| {
-                    selector.iter_raw_match_order().all(|c| c.matches_for_stateless_pseudo_element())
+                    selector
+                        .iter_raw_match_order()
+                        .all(|c| c.matches_for_stateless_pseudo_element())
                 })
             },
             _ => false,
@@ -2254,7 +2260,11 @@ where
     //     Pseudo-elements cannot be represented by the matches-any
     //     pseudo-class; they are not valid within :is().
     //
-    let inner = SelectorList::parse_with_state(parser, input, state | SelectorParsingState::DISALLOW_PSEUDOS)?;
+    let inner = SelectorList::parse_with_state(
+        parser,
+        input,
+        state | SelectorParsingState::DISALLOW_PSEUDOS,
+    )?;
     Ok(component(inner.0.into_vec().into_boxed_slice()))
 }
 

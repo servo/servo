@@ -703,7 +703,6 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 53] = [
         keyword_evaluator!(eval_any_hover, Hover),
         ParsingRequirements::empty(),
     ),
-
     // Internal -moz-is-glyph media feature: applies only inside SVG glyphs.
     // Internal because it is really only useful in the user agent anyway
     // and therefore not worth standardizing.

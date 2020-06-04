@@ -177,13 +177,10 @@ pub struct Invalidation<'a> {
 
 impl<'a> Invalidation<'a> {
     /// Create a new invalidation for matching a dependency.
-    pub fn new(
-        dependency: &'a Dependency,
-        scope: Option<OpaqueElement>,
-    ) -> Self {
+    pub fn new(dependency: &'a Dependency, scope: Option<OpaqueElement>) -> Self {
         debug_assert!(
             dependency.selector_offset == dependency.selector.len() + 1 ||
-            dependency.invalidation_kind() != DependencyInvalidationKind::Element,
+                dependency.invalidation_kind() != DependencyInvalidationKind::Element,
             "No point to this, if the dependency matched the element we should just invalidate it"
         );
         Self {
@@ -206,7 +203,11 @@ impl<'a> Invalidation<'a> {
         // for the weird pseudos in <input type="number">.
         //
         // We should be able to do better here!
-        match self.dependency.selector.combinator_at_parse_order(self.offset - 1) {
+        match self
+            .dependency
+            .selector
+            .combinator_at_parse_order(self.offset - 1)
+        {
             Combinator::Descendant | Combinator::LaterSibling | Combinator::PseudoElement => true,
             Combinator::Part |
             Combinator::SlotAssignment |
@@ -220,7 +221,11 @@ impl<'a> Invalidation<'a> {
             return InvalidationKind::Descendant(DescendantInvalidationKind::Dom);
         }
 
-        match self.dependency.selector.combinator_at_parse_order(self.offset - 1) {
+        match self
+            .dependency
+            .selector
+            .combinator_at_parse_order(self.offset - 1)
+        {
             Combinator::Child | Combinator::Descendant | Combinator::PseudoElement => {
                 InvalidationKind::Descendant(DescendantInvalidationKind::Dom)
             },
@@ -238,7 +243,11 @@ impl<'a> fmt::Debug for Invalidation<'a> {
         use cssparser::ToCss;
 
         f.write_str("Invalidation(")?;
-        for component in self.dependency.selector.iter_raw_parse_order_from(self.offset) {
+        for component in self
+            .dependency
+            .selector
+            .iter_raw_parse_order_from(self.offset)
+        {
             if matches!(*component, Component::Combinator(..)) {
                 break;
             }
@@ -816,9 +825,11 @@ where
                 let mut cur_dependency = invalidation.dependency;
                 loop {
                     cur_dependency = match cur_dependency.parent {
-                        None => return SingleInvalidationResult {
-                            invalidated_self: true,
-                            matched: true,
+                        None => {
+                            return SingleInvalidationResult {
+                                invalidated_self: true,
+                                matched: true,
+                            }
                         },
                         Some(ref p) => &**p,
                     };
@@ -828,11 +839,14 @@ where
                     // The inner selector changed, now check if the full
                     // previous part of the selector did, before keeping
                     // checking for descendants.
-                    if !self.processor.check_outer_dependency(cur_dependency, self.element) {
+                    if !self
+                        .processor
+                        .check_outer_dependency(cur_dependency, self.element)
+                    {
                         return SingleInvalidationResult {
                             invalidated_self: false,
                             matched: false,
-                        }
+                        };
                     }
 
                     if cur_dependency.invalidation_kind() == DependencyInvalidationKind::Element {
@@ -840,24 +854,21 @@ where
                     }
 
                     debug!(" > Generating invalidation");
-                    break Invalidation::new(cur_dependency, invalidation.scope)
+                    break Invalidation::new(cur_dependency, invalidation.scope);
                 }
             },
             CompoundSelectorMatchingResult::Matched {
                 next_combinator_offset,
-            } => {
-                Invalidation {
-                    dependency: invalidation.dependency,
-                    scope: invalidation.scope,
-                    offset: next_combinator_offset + 1,
-                    matched_by_any_previous: false,
-                }
+            } => Invalidation {
+                dependency: invalidation.dependency,
+                scope: invalidation.scope,
+                offset: next_combinator_offset + 1,
+                matched_by_any_previous: false,
             },
         };
 
         debug_assert_ne!(
-            next_invalidation.offset,
-            0,
+            next_invalidation.offset, 0,
             "Rightmost selectors shouldn't generate more invalidations",
         );
 
@@ -886,7 +897,9 @@ where
                         c.maybe_allowed_after_pseudo_element(),
                         "Someone seriously messed up selector parsing: \
                          {:?} at offset {:?}: {:?}",
-                        next_invalidation.dependency, next_invalidation.offset, c,
+                        next_invalidation.dependency,
+                        next_invalidation.offset,
+                        c,
                     );
 
                     None

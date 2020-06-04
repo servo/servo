@@ -7,9 +7,9 @@
 
 use crate::context::QuirksMode;
 use crate::dom::{TDocument, TElement, TNode, TShadowRoot};
+use crate::invalidation::element::invalidation_map::Dependency;
 use crate::invalidation::element::invalidator::{DescendantInvalidationLists, Invalidation};
 use crate::invalidation::element::invalidator::{InvalidationProcessor, InvalidationVector};
-use crate::invalidation::element::invalidation_map::Dependency;
 use crate::Atom;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{self, MatchingContext, MatchingMode};
@@ -145,7 +145,10 @@ where
     }
 
     fn check_outer_dependency(&mut self, _: &Dependency, _: E) -> bool {
-        debug_assert!(false, "How? We should only have parent-less dependencies here!");
+        debug_assert!(
+            false,
+            "How? We should only have parent-less dependencies here!"
+        );
         true
     }
 
@@ -647,9 +650,11 @@ pub fn query_selector<E, Q>(
     if root_element.is_some() || !invalidation_may_be_useful {
         query_selector_slow::<E, Q>(root, selector_list, results, &mut matching_context);
     } else {
-        let dependencies = selector_list.0.iter().map(|selector| {
-            Dependency::for_full_selector_invalidation(selector.clone())
-        }).collect::<SmallVec<[_; 5]>>();
+        let dependencies = selector_list
+            .0
+            .iter()
+            .map(|selector| Dependency::for_full_selector_invalidation(selector.clone()))
+            .collect::<SmallVec<[_; 5]>>();
         let mut processor = QuerySelectorProcessor::<E, Q> {
             results,
             matching_context,

@@ -452,13 +452,12 @@ pub struct MasonryAutoFlow {
 
 #[inline]
 fn is_pack_with_non_default_order(placement: &MasonryPlacement, order: &MasonryItemOrder) -> bool {
-   *placement == MasonryPlacement::Pack &&
-        *order != MasonryItemOrder::DefiniteFirst
+    *placement == MasonryPlacement::Pack && *order != MasonryItemOrder::DefiniteFirst
 }
 
 #[inline]
 fn is_item_order_definite_first(order: &MasonryItemOrder) -> bool {
-   *order == MasonryItemOrder::DefiniteFirst
+    *order == MasonryItemOrder::DefiniteFirst
 }
 
 impl MasonryAutoFlow {

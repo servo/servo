@@ -300,19 +300,14 @@ impl SpecifiedValueInfo for AlignContent {
 )]
 #[repr(transparent)]
 #[css(comma)]
-pub struct AlignTracks(
-    #[css(iterable, if_empty = "normal")]
-    pub crate::OwnedSlice<AlignContent>
-);
+pub struct AlignTracks(#[css(iterable, if_empty = "normal")] pub crate::OwnedSlice<AlignContent>);
 
 impl Parse for AlignTracks {
     fn parse<'i, 't>(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let values = input.parse_comma_separated(|input| {
-            AlignContent::parse(context, input)
-        })?;
+        let values = input.parse_comma_separated(|input| AlignContent::parse(context, input))?;
         Ok(AlignTracks(values.into()))
     }
 }
@@ -373,8 +368,7 @@ impl SpecifiedValueInfo for JustifyContent {
 #[repr(transparent)]
 #[css(comma)]
 pub struct JustifyTracks(
-    #[css(iterable, if_empty = "normal")]
-    pub crate::OwnedSlice<JustifyContent>
+    #[css(iterable, if_empty = "normal")] pub crate::OwnedSlice<JustifyContent>,
 );
 
 impl Parse for JustifyTracks {
@@ -382,9 +376,7 @@ impl Parse for JustifyTracks {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let values = input.parse_comma_separated(|input| {
-            JustifyContent::parse(context, input)
-        })?;
+        let values = input.parse_comma_separated(|input| JustifyContent::parse(context, input))?;
         Ok(JustifyTracks(values.into()))
     }
 }

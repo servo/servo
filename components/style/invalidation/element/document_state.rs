@@ -67,7 +67,10 @@ where
     I: Iterator<Item = &'a CascadeData>,
 {
     fn check_outer_dependency(&mut self, _: &Dependency, _: E) -> bool {
-        debug_assert!(false, "how, we should only have parent-less dependencies here!");
+        debug_assert!(
+            false,
+            "how, we should only have parent-less dependencies here!"
+        );
         true
     }
 

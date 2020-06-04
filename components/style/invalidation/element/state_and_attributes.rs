@@ -254,7 +254,9 @@ where
                 );
             }
             let mut attributes_changed = false;
-            snapshot.each_attr_changed(|_| { attributes_changed = true; });
+            snapshot.each_attr_changed(|_| {
+                attributes_changed = true;
+            });
             if attributes_changed {
                 debug!(
                     " > attributes changed, old: {}",
@@ -436,7 +438,12 @@ where
     /// Check whether a dependency should be taken into account.
     #[inline]
     fn check_dependency(&mut self, dependency: &Dependency) -> bool {
-        check_dependency(dependency, &self.element, &self.wrapper, &mut self.matching_context)
+        check_dependency(
+            dependency,
+            &self.element,
+            &self.wrapper,
+            &mut self.matching_context,
+        )
     }
 
     fn scan_dependency(&mut self, dependency: &'selectors Dependency) {
@@ -472,10 +479,8 @@ where
         debug_assert_ne!(dependency.selector_offset, 0);
         debug_assert_ne!(dependency.selector_offset, dependency.selector.len());
 
-        let invalidation = Invalidation::new(
-            &dependency,
-            self.matching_context.current_host.clone(),
-        );
+        let invalidation =
+            Invalidation::new(&dependency, self.matching_context.current_host.clone());
 
         match invalidation_kind {
             DependencyInvalidationKind::Element => unreachable!(),

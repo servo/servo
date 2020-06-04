@@ -331,8 +331,9 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
                         .try_entry(url.clone())?
                         .or_insert_with(SmallVec::new),
                     Bucket::Universal => &mut self.other,
-                }.try_push($entry)?;
-            }}
+                }
+                .try_push($entry)?;
+            }};
         }
 
         let bucket = {
@@ -354,7 +355,11 @@ impl<T: SelectorMapEntry> SelectorMap<T> {
             // This is specially true if there's any universal selector in the
             // `disjoint_selectors` set, at which point we'd just be doing
             // wasted work.
-            if !disjoint_buckets.is_empty() && disjoint_buckets.iter().all(|b| b.more_specific_than(&bucket)) {
+            if !disjoint_buckets.is_empty() &&
+                disjoint_buckets
+                    .iter()
+                    .all(|b| b.more_specific_than(&bucket))
+            {
                 for bucket in &disjoint_buckets {
                     let entry = entry.clone();
                     insert_into_bucket!(entry, *bucket);

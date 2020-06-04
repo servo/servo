@@ -72,7 +72,9 @@ pub use self::motion::{OffsetPath, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::percentage::Percentage;
 pub use self::position::AspectRatio;
-pub use self::position::{GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto};
+pub use self::position::{
+    GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto,
+};
 pub use self::position::{PositionComponent, ZIndex};
 pub use self::rect::NonNegativeLengthOrNumberRect;
 pub use self::resolution::Resolution;

@@ -154,8 +154,14 @@ pub fn derive(mut input: DeriveInput) -> TokenStream {
     let mut parse_non_keywords = quote! {};
     for (i, (variant, css_attrs, parse_attrs)) in non_keywords.iter().enumerate() {
         let skip_try = !has_keywords && i == non_keywords.len() - 1;
-        let parse_variant =
-            parse_non_keyword_variant(&mut where_clause, name, variant, css_attrs, parse_attrs, skip_try);
+        let parse_variant = parse_non_keyword_variant(
+            &mut where_clause,
+            name,
+            variant,
+            css_attrs,
+            parse_attrs,
+            skip_try,
+        );
         parse_non_keywords.extend(parse_variant);
     }
 

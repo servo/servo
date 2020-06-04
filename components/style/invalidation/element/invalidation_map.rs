@@ -6,7 +6,9 @@
 
 use crate::context::QuirksMode;
 use crate::element_state::{DocumentState, ElementState};
-use crate::selector_map::{MaybeCaseInsensitiveHashMap, PrecomputedHashMap, SelectorMap, SelectorMapEntry};
+use crate::selector_map::{
+    MaybeCaseInsensitiveHashMap, PrecomputedHashMap, SelectorMap, SelectorMapEntry,
+};
 use crate::selector_parser::SelectorImpl;
 use crate::{Atom, LocalName, Namespace};
 use fallible::FallibleVec;
@@ -196,7 +198,8 @@ pub struct InvalidationMap {
     /// A list of document state dependencies in the rules we represent.
     pub document_state_selectors: Vec<DocumentStateDependency>,
     /// A map of other attribute affecting selectors.
-    pub other_attribute_affecting_selectors: PrecomputedHashMap<LocalName, SmallVec<[Dependency; 1]>>,
+    pub other_attribute_affecting_selectors:
+        PrecomputedHashMap<LocalName, SmallVec<[Dependency; 1]>>,
 }
 
 impl InvalidationMap {
@@ -331,7 +334,11 @@ impl<'a> SelectorDependencyCollector<'a> {
         self.visit_whole_selector_from(iter, 0)
     }
 
-    fn visit_whole_selector_from(&mut self, mut iter: SelectorIter<SelectorImpl>, mut index: usize) -> bool {
+    fn visit_whole_selector_from(
+        &mut self,
+        mut iter: SelectorIter<SelectorImpl>,
+        mut index: usize,
+    ) -> bool {
         loop {
             // Reset the compound state.
             self.compound_state = PerCompoundState::new(index);
@@ -384,7 +391,7 @@ impl<'a> SelectorDependencyCollector<'a> {
             Err(err) => {
                 *self.alloc_error = Some(err);
                 return false;
-            }
+            },
         }
     }
 
@@ -395,8 +402,7 @@ impl<'a> SelectorDependencyCollector<'a> {
         // cache them or something.
         for &(ref selector, ref selector_offset) in self.parent_selectors.iter() {
             debug_assert_ne!(
-                self.compound_state.offset,
-                0,
+                self.compound_state.offset, 0,
                 "Shouldn't bother creating nested dependencies for the rightmost compound",
             );
             let new_parent = Dependency {
@@ -442,7 +448,8 @@ impl<'a> SelectorVisitor for SelectorDependencyCollector<'a> {
 
             index += 1; // account for the combinator.
 
-            self.parent_selectors.push((self.selector.clone(), self.compound_state.offset));
+            self.parent_selectors
+                .push((self.selector.clone(), self.compound_state.offset));
             let mut nested = SelectorDependencyCollector {
                 map: &mut *self.map,
                 document_state: &mut *self.document_state,
@@ -483,7 +490,7 @@ impl<'a> SelectorVisitor for SelectorDependencyCollector<'a> {
                     Err(err) => {
                         *self.alloc_error = Some(err);
                         return false;
-                    }
+                    },
                 }
             },
             Component::NonTSPseudoClass(ref pc) => {
