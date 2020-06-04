@@ -52,6 +52,7 @@ use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::htmltitleelement::HTMLTitleElement;
 use crate::dom::htmlvideoelement::HTMLVideoElement;
 use crate::dom::node::{BindContext, ChildrenMutation, CloneChildrenFlag, Node, UnbindContext};
+use crate::dom::svgelement::SVGElement;
 use crate::dom::svgsvgelement::SVGSVGElement;
 use html5ever::LocalName;
 use style::attr::AttrValue;
@@ -269,6 +270,9 @@ pub fn vtable_for(node: &Node) -> &dyn VirtualMethods {
         NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGGraphicsElement(
             SVGGraphicsElementTypeId::SVGSVGElement,
         ))) => node.downcast::<SVGSVGElement>().unwrap() as &dyn VirtualMethods,
+        NodeTypeId::Element(ElementTypeId::SVGElement(SVGElementTypeId::SVGElement)) => {
+            node.downcast::<SVGElement>().unwrap() as &dyn VirtualMethods
+        },
         NodeTypeId::Element(ElementTypeId::Element) => {
             node.downcast::<Element>().unwrap() as &dyn VirtualMethods
         },
