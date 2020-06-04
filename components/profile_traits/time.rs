@@ -110,7 +110,6 @@ pub enum ProfilerCategory {
     TimeToInteractive = 0x82,
     IpcReceiver = 0x83,
     IpcBytesReceiver = 0x84,
-    ApplicationHeartbeat = 0x90,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]

@@ -386,7 +386,6 @@ where
         let time_profiler_chan = profile_time::Profiler::create(
             &opts.time_profiling,
             opts.time_profiler_trace_path.clone(),
-            opts.profile_heartbeats,
         );
         let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
 

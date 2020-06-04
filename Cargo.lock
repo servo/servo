@@ -2394,27 +2394,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "heartbeats-simple"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78bef7dfbf1dbfa968260a57d59f5bb9078625593c35d5a4a3dc78dd4f86e28b"
-dependencies = [
- "heartbeats-simple-sys",
- "libc",
-]
-
-[[package]]
-name = "heartbeats-simple-sys"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29f06e482fdc3f29015d288ad63bc5e855ffca0830866550a08b29e55924c935"
-dependencies = [
- "cmake",
- "libc",
- "pkg-config",
-]
-
-[[package]]
 name = "heck"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4169,10 +4148,8 @@ checksum = "9a1574a51c3fd37b26d2c0032b649d08a7d51d4cca9c41bbc5bf7118fa4509d0"
 name = "profile"
 version = "0.0.1"
 dependencies = [
- "heartbeats-simple",
  "ipc-channel",
  "libc",
- "log",
  "profile_traits",
  "regex",
  "serde",
@@ -4180,7 +4157,6 @@ dependencies = [
  "servo_allocator",
  "servo_config",
  "task_info",
- "time",
 ]
 
 [[package]]

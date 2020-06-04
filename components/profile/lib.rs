@@ -5,14 +5,10 @@
 #![deny(unsafe_code)]
 
 #[macro_use]
-extern crate log;
-#[macro_use]
 extern crate profile_traits;
 #[macro_use]
 extern crate serde;
 
-#[allow(unsafe_code)]
-mod heartbeats;
 #[allow(unsafe_code)]
 pub mod mem;
 pub mod time;

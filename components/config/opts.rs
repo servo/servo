@@ -109,9 +109,6 @@ pub struct Opts {
     /// Periodically print out on which events script threads spend their processing time.
     pub profile_script_events: bool,
 
-    /// Enable all heartbeats for profiling.
-    pub profile_heartbeats: bool,
-
     /// `None` to disable debugger or `Some` with a port number to start a server to listen to
     /// remote Firefox debugger connections.
     pub debugger_port: Option<u16>,
@@ -264,9 +261,6 @@ pub struct DebugOptions {
     /// Profile which events script threads spend their time on.
     pub profile_script_events: bool,
 
-    /// Enable all heartbeats for profiling.
-    pub profile_heartbeats: bool,
-
     /// Paint borders along fragment boundaries.
     pub show_fragment_borders: bool,
 
@@ -333,7 +327,6 @@ impl DebugOptions {
                 "dump-display-list-json" => self.dump_display_list_json = true,
                 "relayout-event" => self.relayout_event = true,
                 "profile-script-events" => self.profile_script_events = true,
-                "profile-heartbeats" => self.profile_heartbeats = true,
                 "show-fragment-borders" => self.show_fragment_borders = true,
                 "show-parallel-layout" => self.show_parallel_layout = true,
                 "trace-layout" => self.trace_layout = true,
@@ -396,10 +389,6 @@ fn print_debug_usage(app: &str) -> ! {
     print_option(
         "profile-script-events",
         "Enable profiling of script-related events.",
-    );
-    print_option(
-        "profile-heartbeats",
-        "Enable heartbeats for all thread categories.",
     );
     print_option(
         "show-fragment-borders",
@@ -509,7 +498,6 @@ pub fn default_opts() -> Opts {
         dump_display_list_json: false,
         relayout_event: false,
         profile_script_events: false,
-        profile_heartbeats: false,
         disable_share_style_cache: false,
         style_sharing_stats: false,
         convert_mouse_to_touch: false,
@@ -896,7 +884,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         hard_fail: opt_match.opt_present("f") && !opt_match.opt_present("F"),
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_script_events: debug_options.profile_script_events,
-        profile_heartbeats: debug_options.profile_heartbeats,
         trace_layout: debug_options.trace_layout,
         debugger_port: debugger_port,
         devtools_port: devtools_port,
