@@ -25,12 +25,6 @@ struct TraceEntry {
 
     #[serde(rename = "endTime")]
     end_time: u64,
-
-    #[serde(rename = "startEnergy")]
-    start_energy: u64,
-
-    #[serde(rename = "endEnergy")]
-    end_energy: u64,
 }
 
 impl TraceDump {
@@ -50,15 +44,12 @@ impl TraceDump {
         &mut self,
         category: &(ProfilerCategory, Option<TimerMetadata>),
         time: (u64, u64),
-        energy: (u64, u64),
     ) {
         let entry = TraceEntry {
             category: category.0,
             metadata: category.1.clone(),
             start_time: time.0,
             end_time: time.1,
-            start_energy: energy.0,
-            end_energy: energy.1,
         };
         serde_json::to_writer(&mut self.file, &entry).unwrap();
         writeln!(&mut self.file, ",").unwrap();

@@ -1456,8 +1456,6 @@ impl LayoutThread {
                 &self.time_profiler_chan,
                 0,
                 text_shaping_time as u64,
-                0,
-                0,
             );
 
             // Retrieve the (possibly rebuilt) root flow.

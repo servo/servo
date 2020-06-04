@@ -1378,49 +1378,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "energy-monitor"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe872d0664f1cc60db36349af245d892ee67d3c8f78055df0ebc43271fd4e05c"
-
-[[package]]
-name = "energymon"
-version = "0.3.0"
-source = "git+https://github.com/energymon/energymon-rust.git#89daf8f37858eab96ad8eec7cc81accb17b2411e"
-dependencies = [
- "energy-monitor",
- "energymon-default-sys",
- "libc",
-]
-
-[[package]]
-name = "energymon-builder"
-version = "0.3.0"
-source = "git+https://github.com/energymon/energymon-sys.git#f8d77ea2906b25f9c0fd358aa9d300a46dc3e97c"
-dependencies = [
- "cmake",
- "pkg-config",
-]
-
-[[package]]
-name = "energymon-default-sys"
-version = "0.3.0"
-source = "git+https://github.com/energymon/energymon-sys.git#f8d77ea2906b25f9c0fd358aa9d300a46dc3e97c"
-dependencies = [
- "energymon-builder",
- "energymon-sys",
- "libc",
-]
-
-[[package]]
-name = "energymon-sys"
-version = "0.3.0"
-source = "git+https://github.com/energymon/energymon-sys.git#f8d77ea2906b25f9c0fd358aa9d300a46dc3e97c"
-dependencies = [
- "libc",
-]
-
-[[package]]
 name = "enum-iterator"
 version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2434,27 +2391,6 @@ checksum = "967131279aaa9f7c20c7205b45a391638a83ab118e6509b2d0ccbe08de044237"
 dependencies = [
  "bytes",
  "http",
-]
-
-[[package]]
-name = "heartbeats-simple"
-version = "0.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "78bef7dfbf1dbfa968260a57d59f5bb9078625593c35d5a4a3dc78dd4f86e28b"
-dependencies = [
- "heartbeats-simple-sys",
- "libc",
-]
-
-[[package]]
-name = "heartbeats-simple-sys"
-version = "0.4.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29f06e482fdc3f29015d288ad63bc5e855ffca0830866550a08b29e55924c935"
-dependencies = [
- "cmake",
- "libc",
- "pkg-config",
 ]
 
 [[package]]
@@ -4212,10 +4148,8 @@ checksum = "9a1574a51c3fd37b26d2c0032b649d08a7d51d4cca9c41bbc5bf7118fa4509d0"
 name = "profile"
 version = "0.0.1"
 dependencies = [
- "heartbeats-simple",
  "ipc-channel",
  "libc",
- "log",
  "profile_traits",
  "regex",
  "serde",
@@ -4223,7 +4157,6 @@ dependencies = [
  "servo_allocator",
  "servo_config",
  "task_info",
- "time",
 ]
 
 [[package]]
@@ -4241,8 +4174,6 @@ name = "profile_traits"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel",
- "energy-monitor",
- "energymon",
  "ipc-channel",
  "log",
  "serde",

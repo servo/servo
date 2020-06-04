@@ -4,24 +4,20 @@
 
 //! Timing functions.
 
-use crate::heartbeats;
 use crate::trace_dump::TraceDump;
 use ipc_channel::ipc::{self, IpcReceiver};
-use profile_traits::energy::{energy_interval_ms, read_energy_uj};
 use profile_traits::time::{
     ProfilerCategory, ProfilerChan, ProfilerData, ProfilerMsg, TimerMetadata,
 };
 use profile_traits::time::{TimerMetadataFrameType, TimerMetadataReflowType};
 use servo_config::opts::OutputOptions;
 use std::borrow::ToOwned;
-use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::{self, Write};
 use std::path::Path;
 use std::time::Duration;
 use std::{f64, thread, u32, u64};
-use time_crate::precise_time_ns;
 
 pub trait Formattable {
     fn format(&self, output: &Option<OutputOptions>) -> String;
@@ -153,7 +149,6 @@ impl Formattable for ProfilerCategory {
             ProfilerCategory::TimeToInteractive => "Time to Interactive",
             ProfilerCategory::IpcReceiver => "Blocked at IPC Receive",
             ProfilerCategory::IpcBytesReceiver => "Blocked at IPC Bytes Receive",
-            ProfilerCategory::ApplicationHeartbeat => "Application Heartbeat",
         };
         format!("{}{}", padding, name)
     }
@@ -169,15 +164,10 @@ pub struct Profiler {
     pub last_msg: Option<ProfilerMsg>,
     trace: Option<TraceDump>,
     blocked_layout_queries: HashMap<String, u32>,
-    profile_heartbeats: bool,
 }
 
 impl Profiler {
-    pub fn create(
-        output: &Option<OutputOptions>,
-        file_path: Option<String>,
-        profile_heartbeats: bool,
-    ) -> ProfilerChan {
+    pub fn create(output: &Option<OutputOptions>, file_path: Option<String>) -> ProfilerChan {
         let (chan, port) = ipc::channel().unwrap();
         match *output {
             Some(ref option) => {
@@ -187,8 +177,7 @@ impl Profiler {
                     .name("Time profiler".to_owned())
                     .spawn(move || {
                         let trace = file_path.as_ref().and_then(|p| TraceDump::new(p).ok());
-                        let mut profiler =
-                            Profiler::new(port, trace, Some(outputoption), profile_heartbeats);
+                        let mut profiler = Profiler::new(port, trace, Some(outputoption));
                         profiler.start();
                     })
                     .expect("Thread spawning failed");
@@ -218,7 +207,7 @@ impl Profiler {
                         .name("Time profiler".to_owned())
                         .spawn(move || {
                             let trace = file_path.as_ref().and_then(|p| TraceDump::new(p).ok());
-                            let mut profiler = Profiler::new(port, trace, None, profile_heartbeats);
+                            let mut profiler = Profiler::new(port, trace, None);
                             profiler.start();
                         })
                         .expect("Thread spawning failed");
@@ -241,70 +230,13 @@ impl Profiler {
             },
         }
 
-        heartbeats::init(profile_heartbeats);
-        let profiler_chan = ProfilerChan(chan);
-
-        // only spawn the application-level profiler thread if its heartbeat is enabled
-        let run_ap_thread = move || {
-            heartbeats::is_heartbeat_enabled(
-                &ProfilerCategory::ApplicationHeartbeat,
-                profile_heartbeats,
-            )
-        };
-        if run_ap_thread() {
-            let profiler_chan = profiler_chan.clone();
-            // min of 1 heartbeat/sec, max of 20 should provide accurate enough power/energy readings
-            // waking up more frequently allows the thread to end faster on exit
-            const SLEEP_MS: u32 = 10;
-            const MIN_ENERGY_INTERVAL_MS: u32 = 50;
-            const MAX_ENERGY_INTERVAL_MS: u32 = 1000;
-            let interval_ms = enforce_range(
-                MIN_ENERGY_INTERVAL_MS,
-                MAX_ENERGY_INTERVAL_MS,
-                energy_interval_ms(),
-            );
-            let loop_count: u32 = (interval_ms as f32 / SLEEP_MS as f32).ceil() as u32;
-            thread::Builder::new()
-                .name("Application heartbeat profiler".to_owned())
-                .spawn(move || {
-                    let mut start_time = precise_time_ns();
-                    let mut start_energy = read_energy_uj();
-                    loop {
-                        for _ in 0..loop_count {
-                            if run_ap_thread() {
-                                thread::sleep(Duration::from_millis(SLEEP_MS as u64))
-                            } else {
-                                return;
-                            }
-                        }
-                        let end_time = precise_time_ns();
-                        let end_energy = read_energy_uj();
-                        // send using the inner channel
-                        // (using ProfilerChan.send() forces an unwrap
-                        // and sometimes panics for this background profiler)
-                        let ProfilerChan(ref c) = profiler_chan;
-                        if let Err(_) = c.send(ProfilerMsg::Time(
-                            (ProfilerCategory::ApplicationHeartbeat, None),
-                            (start_time, end_time),
-                            (start_energy, end_energy),
-                        )) {
-                            return;
-                        }
-                        start_time = end_time;
-                        start_energy = end_energy;
-                    }
-                })
-                .expect("Thread spawning failed");
-        }
-
-        profiler_chan
+        ProfilerChan(chan)
     }
 
     pub fn new(
         port: IpcReceiver<ProfilerMsg>,
         trace: Option<TraceDump>,
         output: Option<OutputOptions>,
-        profile_heartbeats: bool,
     ) -> Profiler {
         Profiler {
             port: port,
@@ -313,7 +245,6 @@ impl Profiler {
             last_msg: None,
             trace: trace,
             blocked_layout_queries: HashMap::new(),
-            profile_heartbeats,
         }
     }
 
@@ -331,10 +262,9 @@ impl Profiler {
 
     fn handle_msg(&mut self, msg: ProfilerMsg) -> bool {
         match msg.clone() {
-            ProfilerMsg::Time(k, t, e) => {
-                heartbeats::maybe_heartbeat(&k.0, t.0, t.1, e.0, e.1, self.profile_heartbeats);
+            ProfilerMsg::Time(k, t) => {
                 if let Some(ref mut trace) = self.trace {
-                    trace.write_one(&k, t, e);
+                    trace.write_one(&k, t);
                 }
                 let ms = (t.1 - t.0) as f64 / 1000000f64;
                 self.find_or_insert(k, ms);
@@ -358,7 +288,6 @@ impl Profiler {
                 *self.blocked_layout_queries.entry(url).or_insert(0) += 1;
             },
             ProfilerMsg::Exit(chan) => {
-                heartbeats::cleanup();
                 self.print_buckets();
                 let _ = chan.send(());
                 return false;
@@ -472,20 +401,6 @@ impl Profiler {
             },
             None => { /* Do nothing if no output option has been set */ },
         };
-    }
-}
-
-fn enforce_range<T>(min: T, max: T, value: T) -> T
-where
-    T: Ord,
-{
-    assert!(min <= max);
-    match value.cmp(&max) {
-        Ordering::Equal | Ordering::Greater => max,
-        Ordering::Less => match value.cmp(&min) {
-            Ordering::Equal | Ordering::Less => min,
-            Ordering::Greater => value,
-        },
     }
 }
 

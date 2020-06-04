@@ -87,8 +87,6 @@
 * tests
   * dromaeo
     * Harness for automatically running the Dromaeo testsuite.
-  * heartbeats
-    * Tools for periodic measurement of energy consumption.
   * html
     * Manual tests and experiments.
   * jquery

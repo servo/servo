@@ -81,8 +81,6 @@ fn set_metric<U: ProgressiveWebMetric>(
         &pwm.get_time_profiler_chan(),
         time,
         time,
-        0,
-        0,
     );
 
     // Print the metric to console if the print-pwm option was given.
