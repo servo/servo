@@ -51,6 +51,6 @@ In all Servo-related forums, we follow the [Rust Code of Conduct](https://www.ru
 
 ## Communication
 
-Servo contributors frequent the `#servo` channel on [`irc.mozilla.org`](https://wiki.mozilla.org/IRC).
+Servo contributors frequent the [Servo room](https://chat.mozilla.org/#/room/#servo:mozilla.org) on [Mozilla Matrix](https://wiki.mozilla.org/Matrix).
 
 You can also join the [`dev-servo` mailing list](https://lists.mozilla.org/listinfo/dev-servo).
