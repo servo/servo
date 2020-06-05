@@ -404,6 +404,11 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
     Err(())
 }
 
+pub(crate) enum PrototypeCheck {
+    Derive(fn(&'static DOMClass) -> bool),
+    Depth { depth: usize, proto_id: u16 },
+}
+
 /// Get a `*const libc::c_void` for the given DOM object, unwrapping any
 /// wrapper around it first, and checking if the object is of the correct type.
 ///
@@ -411,14 +416,11 @@ pub unsafe fn get_dom_class(obj: *mut JSObject) -> Result<&'static DOMClass, ()>
 /// not an object for a DOM object of the given type (as defined by the
 /// proto_id and proto_depth).
 #[inline]
-pub unsafe fn private_from_proto_check<F>(
+pub(crate) unsafe fn private_from_proto_check(
     mut obj: *mut JSObject,
     cx: *mut JSContext,
-    proto_check: F,
-) -> Result<*const libc::c_void, ()>
-where
-    F: Fn(&'static DOMClass) -> bool,
-{
+    proto_check: PrototypeCheck,
+) -> Result<*const libc::c_void, ()> {
     let dom_class = get_dom_class(obj).or_else(|_| {
         if IsWrapper(obj) {
             trace!("found wrapper");
@@ -437,7 +439,14 @@ where
         }
     })?;
 
-    if proto_check(dom_class) {
+    let prototype_matches = match proto_check {
+        PrototypeCheck::Derive(f) => (f)(dom_class),
+        PrototypeCheck::Depth { depth, proto_id } => {
+            dom_class.interface_chain[depth] as u16 == proto_id
+        },
+    };
+
+    if prototype_matches {
         trace!("good prototype");
         Ok(private_from_object(obj))
     } else {
@@ -471,7 +480,10 @@ pub fn native_from_object<T>(obj: *mut JSObject, cx: *mut JSContext) -> Result<*
 where
     T: DomObject + IDLInterface,
 {
-    unsafe { private_from_proto_check(obj, cx, T::derives).map(|ptr| ptr as *const T) }
+    unsafe {
+        private_from_proto_check(obj, cx, PrototypeCheck::Derive(T::derives))
+            .map(|ptr| ptr as *const T)
+    }
 }
 
 /// Get a `*const T` for a DOM object accessible from a `JSObject`, where the DOM object

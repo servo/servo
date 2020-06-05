@@ -64,7 +64,7 @@ where
     #[allow(unrooted_must_root)]
     pub unsafe fn new(value: T) -> Self {
         unsafe fn add_to_root_list(object: *const dyn JSTraceable) -> *const RootCollection {
-            debug_assert!(thread_state::get().is_script());
+            assert_in_script();
             STACK_ROOTS.with(|ref root_list| {
                 let root_list = &*root_list.get().unwrap();
                 root_list.root(object);
@@ -137,7 +137,7 @@ where
     type Target = <T as Deref>::Target;
 
     fn deref(&self) -> &Self::Target {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         &self.value
     }
 }
@@ -251,7 +251,7 @@ impl<'a> Drop for ThreadLocalStackRoots<'a> {
 impl RootCollection {
     /// Create an empty collection of roots
     pub fn new() -> RootCollection {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         RootCollection {
             roots: UnsafeCell::new(vec![]),
         }
@@ -259,13 +259,13 @@ impl RootCollection {
 
     /// Starts tracking a trace object.
     unsafe fn root(&self, object: *const dyn JSTraceable) {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         (*self.roots.get()).push(object);
     }
 
     /// Stops tracking a trace object, asserting if it isn't found.
     unsafe fn unroot(&self, object: *const dyn JSTraceable) {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         let roots = &mut *self.roots.get();
         match roots
             .iter()
@@ -333,7 +333,7 @@ impl<T> MallocSizeOf for Dom<T> {
 impl<T> Dom<T> {
     /// Returns `LayoutDom<T>` containing the same pointer.
     pub unsafe fn to_layout(&self) -> LayoutDom<T> {
-        debug_assert!(thread_state::get().is_layout());
+        assert_in_layout();
         LayoutDom {
             value: self.ptr.as_ref(),
         }
@@ -344,7 +344,7 @@ impl<T: DomObject> Dom<T> {
     /// Create a Dom<T> from a &T
     #[allow(unrooted_must_root)]
     pub fn from_ref(obj: &T) -> Dom<T> {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         Dom {
             ptr: ptr::NonNull::from(obj),
         }
@@ -355,7 +355,7 @@ impl<T: DomObject> Deref for Dom<T> {
     type Target = T;
 
     fn deref(&self) -> &T {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         // We can only have &Dom<T> from a rooted thing, so it's safe to deref
         // it to &T.
         unsafe { &*self.ptr.as_ptr() }
@@ -432,7 +432,7 @@ where
         U: Castable,
         T: DerivedFrom<U>,
     {
-        debug_assert!(thread_state::get().is_layout());
+        assert_in_layout();
         LayoutDom {
             value: self.value.upcast::<U>(),
         }
@@ -443,7 +443,7 @@ where
     where
         U: DerivedFrom<T>,
     {
-        debug_assert!(thread_state::get().is_layout());
+        assert_in_layout();
         self.value.downcast::<U>().map(|value| LayoutDom { value })
     }
 
@@ -452,7 +452,7 @@ where
     where
         U: DerivedFrom<T>,
     {
-        debug_assert!(thread_state::get().is_layout());
+        assert_in_layout();
         self.value.is::<U>()
     }
 }
@@ -463,7 +463,7 @@ where
 {
     /// Get the reflector.
     pub unsafe fn get_jsobject(&self) -> *mut JSObject {
-        debug_assert!(thread_state::get().is_layout());
+        assert_in_layout();
         self.value.reflector().get_jsobject().get()
     }
 }
@@ -508,7 +508,7 @@ impl<T> Clone for Dom<T> {
     #[inline]
     #[allow(unrooted_must_root)]
     fn clone(&self) -> Self {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         Dom {
             ptr: self.ptr.clone(),
         }
@@ -518,7 +518,7 @@ impl<T> Clone for Dom<T> {
 impl<T> Clone for LayoutDom<'_, T> {
     #[inline]
     fn clone(&self) -> Self {
-        debug_assert!(thread_state::get().is_layout());
+        assert_in_layout();
         LayoutDom { value: self.value }
     }
 }
@@ -527,7 +527,7 @@ impl LayoutDom<'_, Node> {
     /// Create a new JS-owned value wrapped from an address known to be a
     /// `Node` pointer.
     pub unsafe fn from_trusted_node_address(inner: TrustedNodeAddress) -> Self {
-        debug_assert!(thread_state::get().is_layout());
+        assert_in_layout();
         let TrustedNodeAddress(addr) = inner;
         LayoutDom {
             value: &*(addr as *const Node),
@@ -549,7 +549,7 @@ pub struct MutDom<T: DomObject> {
 impl<T: DomObject> MutDom<T> {
     /// Create a new `MutDom`.
     pub fn new(initial: &T) -> MutDom<T> {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         MutDom {
             val: UnsafeCell::new(Dom::from_ref(initial)),
         }
@@ -557,7 +557,7 @@ impl<T: DomObject> MutDom<T> {
 
     /// Set this `MutDom` to the given value.
     pub fn set(&self, val: &T) {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         unsafe {
             *self.val.get() = Dom::from_ref(val);
         }
@@ -565,7 +565,7 @@ impl<T: DomObject> MutDom<T> {
 
     /// Get the value in this `MutDom`.
     pub fn get(&self) -> DomRoot<T> {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         unsafe { DomRoot::from_ref(&*ptr::read(self.val.get())) }
     }
 }
@@ -589,6 +589,14 @@ impl<T: DomObject + PartialEq> PartialEq<T> for MutDom<T> {
     }
 }
 
+pub(crate) fn assert_in_script() {
+    debug_assert!(thread_state::get().is_script());
+}
+
+pub(crate) fn assert_in_layout() {
+    debug_assert!(thread_state::get().is_layout());
+}
+
 /// A holder that provides interior mutability for GC-managed values such as
 /// `Dom<T>`, with nullability represented by an enclosing Option wrapper.
 /// Essentially a `Cell<Option<Dom<T>>>`, but safer.
@@ -604,7 +612,7 @@ pub struct MutNullableDom<T: DomObject> {
 impl<T: DomObject> MutNullableDom<T> {
     /// Create a new `MutNullableDom`.
     pub fn new(initial: Option<&T>) -> MutNullableDom<T> {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         MutNullableDom {
             ptr: UnsafeCell::new(initial.map(Dom::from_ref)),
         }
@@ -616,7 +624,7 @@ impl<T: DomObject> MutNullableDom<T> {
     where
         F: FnOnce() -> DomRoot<T>,
     {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         match self.get() {
             Some(inner) => inner,
             None => {
@@ -631,20 +639,20 @@ impl<T: DomObject> MutNullableDom<T> {
     /// For use by layout, which can't use safe types like Temporary.
     #[allow(unrooted_must_root)]
     pub unsafe fn get_inner_as_layout(&self) -> Option<LayoutDom<T>> {
-        debug_assert!(thread_state::get().is_layout());
+        assert_in_layout();
         (*self.ptr.get()).as_ref().map(|js| js.to_layout())
     }
 
     /// Get a rooted value out of this object
     #[allow(unrooted_must_root)]
     pub fn get(&self) -> Option<DomRoot<T>> {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         unsafe { ptr::read(self.ptr.get()).map(|o| DomRoot::from_ref(&*o)) }
     }
 
     /// Set this `MutNullableDom` to the given value.
     pub fn set(&self, val: Option<&T>) {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         unsafe {
             *self.ptr.get() = val.map(|p| Dom::from_ref(p));
         }
@@ -673,7 +681,7 @@ impl<'a, T: DomObject> PartialEq<Option<&'a T>> for MutNullableDom<T> {
 impl<T: DomObject> Default for MutNullableDom<T> {
     #[allow(unrooted_must_root)]
     fn default() -> MutNullableDom<T> {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         MutNullableDom {
             ptr: UnsafeCell::new(None),
         }
@@ -709,7 +717,7 @@ where
     where
         F: FnOnce() -> DomRoot<T>,
     {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         &self.ptr.init_once(|| Dom::from_ref(&cb()))
     }
 }
@@ -717,7 +725,7 @@ where
 impl<T: DomObject> Default for DomOnceCell<T> {
     #[allow(unrooted_must_root)]
     fn default() -> DomOnceCell<T> {
-        debug_assert!(thread_state::get().is_script());
+        assert_in_script();
         DomOnceCell {
             ptr: OnceCell::new(),
         }
@@ -747,7 +755,7 @@ where
     /// Returns a reference to the interior of this JS object. The fact
     /// that this is unsafe is what necessitates the layout wrappers.
     pub unsafe fn unsafe_get(self) -> &'dom T {
-        debug_assert!(thread_state::get().is_layout());
+        assert_in_layout();
         self.value
     }
 
