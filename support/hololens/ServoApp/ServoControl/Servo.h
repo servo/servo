@@ -17,6 +17,8 @@ extern "C" {
 }
 } // namespace capi
 
+using namespace capi;
+
 hstring char2hstring(const char *);
 std::unique_ptr<char *> hstring2char(hstring);
 
@@ -39,57 +41,49 @@ public:
   static PrefTuple SetFloatPref(hstring key, double val);
   static PrefTuple ResetPref(hstring key);
 
-  typedef capi::CMouseButton MouseButton;
-  typedef capi::CPromptResult PromptResult;
-  typedef capi::CContextMenuResult ContextMenuResult;
-  typedef capi::CMediaSessionActionType MediaSessionActionType;
-  typedef capi::CMediaSessionPlaybackState MediaSessionPlaybackState;
-  typedef capi::CDevtoolsServerState DevtoolsServerState;
-  typedef capi::CPrefType CPrefType;
+  typedef CMouseButton MouseButton;
+  typedef CPromptResult PromptResult;
+  typedef CContextMenuResult ContextMenuResult;
+  typedef CMediaSessionActionType MediaSessionActionType;
+  typedef CMediaSessionPlaybackState MediaSessionPlaybackState;
+  typedef CDevtoolsServerState DevtoolsServerState;
+  typedef CPrefType CPrefType;
 
-  void PerformUpdates() { capi::perform_updates(); }
-  void DeInit() { capi::deinit(); }
-  void RequestShutdown() { capi::request_shutdown(); }
-  void SetBatchMode(bool mode) { capi::set_batch_mode(mode); }
-  void GoForward() { capi::go_forward(); }
-  void GoBack() { capi::go_back(); }
-  void Click(float x, float y) { capi::click(x, y); }
-  void MouseDown(float x, float y, capi::CMouseButton b) {
-    capi::mouse_down(x, y, b);
-  }
-  void MouseUp(float x, float y, capi::CMouseButton b) {
-    capi::mouse_up(x, y, b);
-  }
-  void TouchDown(float x, float y, int32_t id) { capi::touch_down(x, y, id); }
-  void TouchUp(float x, float y, int32_t id) { capi::touch_up(x, y, id); }
-  void TouchMove(float x, float y, int32_t id) { capi::touch_move(x, y, id); }
-  void TouchCancel(float x, float y, int32_t id) {
-    capi::touch_cancel(x, y, id);
-  }
-  void MouseMove(float x, float y) { capi::mouse_move(x, y); }
+  void PerformUpdates() { perform_updates(); }
+  void DeInit() { deinit(); }
+  void RequestShutdown() { request_shutdown(); }
+  void SetBatchMode(bool mode) { set_batch_mode(mode); }
+  void GoForward() { go_forward(); }
+  void GoBack() { go_back(); }
+  void Click(float x, float y) { click(x, y); }
+  void MouseDown(float x, float y, CMouseButton b) { mouse_down(x, y, b); }
+  void MouseUp(float x, float y, CMouseButton b) { mouse_up(x, y, b); }
+  void TouchDown(float x, float y, int32_t id) { touch_down(x, y, id); }
+  void TouchUp(float x, float y, int32_t id) { touch_up(x, y, id); }
+  void TouchMove(float x, float y, int32_t id) { touch_move(x, y, id); }
+  void TouchCancel(float x, float y, int32_t id) { touch_cancel(x, y, id); }
+  void MouseMove(float x, float y) { mouse_move(x, y); }
 
-  void Reload() { capi::reload(); }
-  void Stop() { capi::stop(); }
-  bool LoadUri(hstring uri) { return capi::load_uri(*hstring2char(uri)); }
-  void ChangeVisibility(bool visible) { capi::change_visibility(visible); }
-  bool IsUriValid(hstring uri) {
-    return capi::is_uri_valid(*hstring2char(uri));
-  }
+  void Reload() { reload(); }
+  void Stop() { stop(); }
+  bool LoadUri(hstring uri) { return load_uri(*hstring2char(uri)); }
+  void ChangeVisibility(bool visible) { change_visibility(visible); }
+  bool IsUriValid(hstring uri) { return is_uri_valid(*hstring2char(uri)); }
   void Scroll(float dx, float dy, float x, float y) {
-    capi::scroll((int32_t)dx, (int32_t)dy, (int32_t)x, (int32_t)y);
+    scroll((int32_t)dx, (int32_t)dy, (int32_t)x, (int32_t)y);
   }
   void SetSize(GLsizei width, GLsizei height) {
     if (width != mWindowWidth || height != mWindowHeight) {
       mWindowWidth = width;
       mWindowHeight = height;
-      capi::resize(mWindowWidth, mWindowHeight);
+      resize(mWindowWidth, mWindowHeight);
     }
   }
-  void SendMediaSessionAction(capi::CMediaSessionActionType action) {
-    capi::media_session_action(action);
+  void SendMediaSessionAction(CMediaSessionActionType action) {
+    media_session_action(action);
   }
-  void ContextMenuClosed(capi::CContextMenuResult res, unsigned int idx) {
-    capi::on_context_menu_closed(res, idx);
+  void ContextMenuClosed(CContextMenuResult res, unsigned int idx) {
+    on_context_menu_closed(res, idx);
   }
 
 private:
@@ -97,7 +91,7 @@ private:
   GLsizei mWindowWidth;
   GLsizei mWindowHeight;
   static void SaveUserPref(PrefTuple);
-  static PrefTuple WrapPref(capi::CPref cpref);
+  static PrefTuple WrapPref(CPref cpref);
 };
 
 class ServoDelegate {
