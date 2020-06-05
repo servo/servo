@@ -23,12 +23,19 @@ use unwind_sys::{
 #[link(name = "lzma")]
 extern "C" {}
 
-static mut SHARED_STATE: SharedState = SharedState {
-    msg2: None,
-    msg3: None,
-    msg4: None,
-    context: AtomicPtr::new(ptr::null_mut()),
-};
+struct UncheckedSyncUnsafeCell<T>(std::cell::UnsafeCell<T>);
+
+/// Safety: dereferencing the pointer from `UnsafeCell::get` must involve external synchronization
+unsafe impl<T> Sync for UncheckedSyncUnsafeCell<T> {}
+
+static SHARED_STATE: UncheckedSyncUnsafeCell<SharedState> =
+    UncheckedSyncUnsafeCell(std::cell::UnsafeCell::new(SharedState {
+        msg2: None,
+        msg3: None,
+        msg4: None,
+    }));
+
+static CONTEXT: AtomicPtr<libc::ucontext_t> = AtomicPtr::new(ptr::null_mut());
 
 type MonitoredThreadId = libc::pid_t;
 
@@ -37,25 +44,30 @@ struct SharedState {
     msg2: Option<PosixSemaphore>,
     msg3: Option<PosixSemaphore>,
     msg4: Option<PosixSemaphore>,
-    context: AtomicPtr<libc::ucontext_t>,
 }
 
 fn clear_shared_state() {
+    // Safety: this is only called from the sampling thread (there’s only one)
+    // Sampled threads only access SHARED_STATE in their signal handler.
+    // This signal and the semaphores in SHARED_STATE provide the necessary synchronization.
     unsafe {
-        SHARED_STATE.msg2 = None;
-        SHARED_STATE.msg3 = None;
-        SHARED_STATE.msg4 = None;
-        SHARED_STATE.context = AtomicPtr::new(ptr::null_mut());
+        let shared_state = &mut *SHARED_STATE.0.get();
+        shared_state.msg2 = None;
+        shared_state.msg3 = None;
+        shared_state.msg4 = None;
     }
+    CONTEXT.store(ptr::null_mut(), Ordering::SeqCst);
 }
 
 fn reset_shared_state() {
+    // Safety: same as clear_shared_state
     unsafe {
-        SHARED_STATE.msg2 = Some(PosixSemaphore::new(0).expect("valid semaphore"));
-        SHARED_STATE.msg3 = Some(PosixSemaphore::new(0).expect("valid semaphore"));
-        SHARED_STATE.msg4 = Some(PosixSemaphore::new(0).expect("valid semaphore"));
-        SHARED_STATE.context = AtomicPtr::new(ptr::null_mut());
+        let shared_state = &mut *SHARED_STATE.0.get();
+        shared_state.msg2 = Some(PosixSemaphore::new(0).expect("valid semaphore"));
+        shared_state.msg3 = Some(PosixSemaphore::new(0).expect("valid semaphore"));
+        shared_state.msg4 = Some(PosixSemaphore::new(0).expect("valid semaphore"));
     }
+    CONTEXT.store(ptr::null_mut(), Ordering::SeqCst);
 }
 
 struct PosixSemaphore {
@@ -194,16 +206,18 @@ impl Sampler for LinuxSampler {
 
         // signal the thread, wait for it to tell us state was copied.
         send_sigprof(self.thread_id);
-        unsafe {
-            SHARED_STATE
-                .msg2
-                .as_ref()
-                .unwrap()
-                .wait_through_intr()
-                .expect("msg2 failed");
-        }
 
-        let context = unsafe { SHARED_STATE.context.load(Ordering::SeqCst) };
+        // Safety: non-exclusive reference only
+        // since sampled threads are accessing this concurrently
+        let shared_state = unsafe { &*SHARED_STATE.0.get() };
+        shared_state
+            .msg2
+            .as_ref()
+            .unwrap()
+            .wait_through_intr()
+            .expect("msg2 failed");
+
+        let context = CONTEXT.load(Ordering::SeqCst);
         let mut cursor = mem::MaybeUninit::uninit();
         let ret = unsafe { unw_init_local(cursor.as_mut_ptr(), context) };
         let result = if ret == UNW_ESUCCESS {
@@ -231,24 +245,23 @@ impl Sampler for LinuxSampler {
         };
 
         // signal the thread to continue.
-        unsafe {
-            SHARED_STATE
-                .msg3
-                .as_ref()
-                .unwrap()
-                .post()
-                .expect("msg3 failed");
-        }
+        shared_state
+            .msg3
+            .as_ref()
+            .unwrap()
+            .post()
+            .expect("msg3 failed");
 
         // wait for thread to continue.
-        unsafe {
-            SHARED_STATE
-                .msg4
-                .as_ref()
-                .unwrap()
-                .wait_through_intr()
-                .expect("msg4 failed");
-        }
+        shared_state
+            .msg4
+            .as_ref()
+            .unwrap()
+            .wait_through_intr()
+            .expect("msg4 failed");
+
+        // No-op, but marks the end of the shared borrow
+        drop(shared_state);
 
         clear_shared_state();
 
@@ -271,26 +284,27 @@ extern "C" fn sigprof_handler(
     ctx: *mut libc::c_void,
 ) {
     assert_eq!(sig, libc::SIGPROF);
-    unsafe {
-        // copy the context.
-        SHARED_STATE
-            .context
-            .store(ctx as *mut libc::ucontext_t, Ordering::SeqCst);
-        // Tell the sampler we copied the context.
-        SHARED_STATE.msg2.as_ref().unwrap().post().expect("posted");
+    // copy the context.
+    CONTEXT.store(ctx as *mut libc::ucontext_t, Ordering::SeqCst);
 
-        // Wait for sampling to finish.
-        SHARED_STATE
-            .msg3
-            .as_ref()
-            .unwrap()
-            .wait_through_intr()
-            .expect("msg3 wait succeeded");
+    // Safety: non-exclusive reference only
+    // since the sampling thread is accessing this concurrently
+    let shared_state = unsafe { &*SHARED_STATE.0.get() };
 
-        // OK we are done!
-        SHARED_STATE.msg4.as_ref().unwrap().post().expect("posted");
-        // DO NOT TOUCH shared state here onwards.
-    }
+    // Tell the sampler we copied the context.
+    shared_state.msg2.as_ref().unwrap().post().expect("posted");
+
+    // Wait for sampling to finish.
+    shared_state
+        .msg3
+        .as_ref()
+        .unwrap()
+        .wait_through_intr()
+        .expect("msg3 wait succeeded");
+
+    // OK we are done!
+    shared_state.msg4.as_ref().unwrap().post().expect("posted");
+    // DO NOT TOUCH shared state here onwards.
 }
 
 fn send_sigprof(to: libc::pid_t) {
