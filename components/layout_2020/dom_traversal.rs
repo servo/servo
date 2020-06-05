@@ -27,9 +27,50 @@ use style::values::generics::counters::Content;
 use style::values::generics::counters::ContentItem;
 
 #[derive(Clone, Copy, Debug)]
-pub enum WhichPseudoElement {
+pub(crate) enum WhichPseudoElement {
     Before,
     After,
+}
+
+/// A data structure used to pass and store related layout information together to
+/// avoid having to repeat the same arguments in argument lists.
+#[derive(Clone)]
+pub(crate) struct NodeAndStyleInfo<Node> {
+    pub node: Node,
+    pub pseudo_element_type: Option<WhichPseudoElement>,
+    pub style: ServoArc<ComputedValues>,
+}
+
+impl<Node> NodeAndStyleInfo<Node> {
+    fn new_with_pseudo(
+        node: Node,
+        pseudo_element_type: WhichPseudoElement,
+        style: ServoArc<ComputedValues>,
+    ) -> Self {
+        Self {
+            node,
+            pseudo_element_type: Some(pseudo_element_type),
+            style,
+        }
+    }
+
+    pub(crate) fn new(node: Node, style: ServoArc<ComputedValues>) -> Self {
+        Self {
+            node,
+            pseudo_element_type: None,
+            style,
+        }
+    }
+}
+
+impl<Node: Clone> NodeAndStyleInfo<Node> {
+    pub(crate) fn new_replacing_style(&self, style: ServoArc<ComputedValues>) -> Self {
+        Self {
+            node: self.node.clone(),
+            pseudo_element_type: self.pseudo_element_type.clone(),
+            style,
+        }
+    }
 }
 
 pub(super) enum Contents {
@@ -60,18 +101,12 @@ pub(super) trait TraversalHandler<'dom, Node>
 where
     Node: 'dom,
 {
-    fn handle_text(
-        &mut self,
-        node: Node,
-        text: Cow<'dom, str>,
-        parent_style: ServoArc<ComputedValues>,
-    );
+    fn handle_text(&mut self, info: &NodeAndStyleInfo<Node>, text: Cow<'dom, str>);
 
     /// Or pseudo-element
     fn handle_element(
         &mut self,
-        node: Node,
-        style: ServoArc<ComputedValues>,
+        info: &NodeAndStyleInfo<Node>,
         display: DisplayGeneratingBox,
         contents: Contents,
         box_slot: BoxSlot<'dom>,
@@ -89,7 +124,8 @@ fn traverse_children_of<'dom, Node>(
 
     for child in iter_child_nodes(parent_element) {
         if let Some(contents) = child.as_text() {
-            handler.handle_text(child, contents, child.style(context));
+            let info = NodeAndStyleInfo::new(child, child.style(context));
+            handler.handle_text(&info, contents);
         } else if child.is_element() {
             traverse_element(child, context, handler);
         }
@@ -122,7 +158,8 @@ fn traverse_element<'dom, Node>(
         Display::GeneratingBox(display) => {
             let contents = replaced.map_or(Contents::OfElement, Contents::Replaced);
             let box_slot = element.element_box_slot();
-            handler.handle_element(element, style, display, contents, box_slot);
+            let info = NodeAndStyleInfo::new(element, style);
+            handler.handle_element(&info, display, contents, box_slot);
         },
     }
 }
@@ -136,19 +173,20 @@ fn traverse_pseudo_element<'dom, Node>(
     Node: NodeExt<'dom>,
 {
     if let Some(style) = pseudo_element_style(which, element, context) {
-        match Display::from(style.get_box().display) {
+        let info = NodeAndStyleInfo::new_with_pseudo(element, which, style);
+        match Display::from(info.style.get_box().display) {
             Display::None => element.unset_pseudo_element_box(which),
             Display::Contents => {
-                let items = generate_pseudo_element_content(&style, element, context);
+                let items = generate_pseudo_element_content(&info.style, element, context);
                 let box_slot = element.pseudo_element_box_slot(which);
                 box_slot.set(LayoutBox::DisplayContents);
-                traverse_pseudo_element_contents(element, &style, context, handler, items);
+                traverse_pseudo_element_contents(&info, context, handler, items);
             },
             Display::GeneratingBox(display) => {
-                let items = generate_pseudo_element_content(&style, element, context);
+                let items = generate_pseudo_element_content(&info.style, element, context);
                 let box_slot = element.pseudo_element_box_slot(which);
                 let contents = Contents::OfPseudoElement(items);
-                handler.handle_element(element, style, display, contents, box_slot);
+                handler.handle_element(&info, display, contents, box_slot);
             },
         }
     } else {
@@ -157,8 +195,7 @@ fn traverse_pseudo_element<'dom, Node>(
 }
 
 fn traverse_pseudo_element_contents<'dom, Node>(
-    node: Node,
-    pseudo_element_style: &ServoArc<ComputedValues>,
+    info: &NodeAndStyleInfo<Node>,
     context: &LayoutContext,
     handler: &mut impl TraversalHandler<'dom, Node>,
     items: Vec<PseudoElementContentItem>,
@@ -168,9 +205,7 @@ fn traverse_pseudo_element_contents<'dom, Node>(
     let mut anonymous_style = None;
     for item in items {
         match item {
-            PseudoElementContentItem::Text(text) => {
-                handler.handle_text(node, text.into(), pseudo_element_style.clone())
-            },
+            PseudoElementContentItem::Text(text) => handler.handle_text(&info, text.into()),
             PseudoElementContentItem::Replaced(contents) => {
                 let item_style = anonymous_style.get_or_insert_with(|| {
                     context
@@ -179,7 +214,7 @@ fn traverse_pseudo_element_contents<'dom, Node>(
                         .style_for_anonymous::<Node::ConcreteElement>(
                             &context.shared_context().guards,
                             &PseudoElement::ServoText,
-                            &pseudo_element_style,
+                            &info.style,
                         )
                 });
                 let display_inline = DisplayGeneratingBox::OutsideInside {
@@ -191,9 +226,9 @@ fn traverse_pseudo_element_contents<'dom, Node>(
                     Display::from(item_style.get_box().display) ==
                         Display::GeneratingBox(display_inline)
                 );
+                let info = info.new_replacing_style(item_style.clone());
                 handler.handle_element(
-                    node,
-                    item_style.clone(),
+                    &info,
                     display_inline,
                     Contents::Replaced(contents),
                     // We don’t keep pointers to boxes generated by contents of pseudo-elements
@@ -239,16 +274,15 @@ impl NonReplacedContents {
     pub(crate) fn traverse<'dom, Node>(
         self,
         context: &LayoutContext,
-        node: Node,
-        inherited_style: &ServoArc<ComputedValues>,
+        info: &NodeAndStyleInfo<Node>,
         handler: &mut impl TraversalHandler<'dom, Node>,
     ) where
         Node: NodeExt<'dom>,
     {
         match self {
-            NonReplacedContents::OfElement => traverse_children_of(node, context, handler),
+            NonReplacedContents::OfElement => traverse_children_of(info.node, context, handler),
             NonReplacedContents::OfPseudoElement(items) => {
-                traverse_pseudo_element_contents(node, inherited_style, context, handler, items)
+                traverse_pseudo_element_contents(info, context, handler, items)
             },
         }
     }

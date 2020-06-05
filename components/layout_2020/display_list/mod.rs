@@ -4,7 +4,7 @@
 
 use crate::context::LayoutContext;
 use crate::display_list::conversions::ToWebRender;
-use crate::fragments::{BoxFragment, Fragment, TextFragment};
+use crate::fragments::{BoxFragment, Fragment, Tag, TextFragment};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 use crate::replaced::IntrinsicSizes;
 use crate::style_ext::ComputedValuesExt;
@@ -348,7 +348,7 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_background(&mut self, builder: &mut DisplayListBuilder) {
-        if self.fragment.tag == builder.element_for_canvas_background {
+        if self.fragment.tag.node() == builder.element_for_canvas_background {
             // This background is already painted for the canvas, don’t paint it again here.
             return;
         }
@@ -405,7 +405,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     let (width, height, key) = match image_url.url() {
                         Some(url) => {
                             match builder.context.get_webrender_image_for_url(
-                                self.fragment.tag,
+                                self.fragment.tag.node(),
                                 url.clone(),
                                 UsePlaceholder::No,
                             ) {
@@ -541,7 +541,7 @@ fn glyphs(
     glyphs
 }
 
-fn hit_info(style: &ComputedValues, tag: OpaqueNode, auto_cursor: Cursor) -> HitInfo {
+fn hit_info(style: &ComputedValues, tag: Tag, auto_cursor: Cursor) -> HitInfo {
     use style::computed_values::pointer_events::T as PointerEvents;
 
     let inherited_ui = style.get_inherited_ui();
@@ -549,7 +549,7 @@ fn hit_info(style: &ComputedValues, tag: OpaqueNode, auto_cursor: Cursor) -> Hit
         None
     } else {
         let cursor = cursor(inherited_ui.cursor.keyword, auto_cursor);
-        Some((tag.0 as u64, cursor as u16))
+        Some((tag.node().0 as u64, cursor as u16))
     }
 }
 

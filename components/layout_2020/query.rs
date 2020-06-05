@@ -5,7 +5,7 @@
 //! Utilities for querying the layout, as needed by the layout thread.
 use crate::context::LayoutContext;
 use crate::flow::FragmentTree;
-use crate::fragments::Fragment;
+use crate::fragments::{Fragment, Tag};
 use app_units::Au;
 use euclid::default::{Point2D, Rect};
 use euclid::Size2D;
@@ -250,10 +250,13 @@ pub fn process_resolved_style_request<'dom>(
     let computed_style =
         || style.computed_value_to_string(PropertyDeclarationId::Longhand(longhand_id));
 
-    // We do not yet support pseudo content.
-    if pseudo.is_some() {
-        return computed_style();
-    }
+    let opaque = node.opaque();
+    let tag_to_find = match *pseudo {
+        None => Tag::Node(opaque),
+        Some(PseudoElement::Before) => Tag::BeforePseudo(opaque),
+        Some(PseudoElement::After) => Tag::AfterPseudo(opaque),
+        Some(_) => unreachable!("Should have returned before this point."),
+    };
 
     // https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle
     // Here we are trying to conform to the specification that says that getComputedStyle
@@ -287,9 +290,7 @@ pub fn process_resolved_style_request<'dom>(
     fragment_tree
         .find(|fragment, containing_block| {
             let box_fragment = match fragment {
-                Fragment::Box(ref box_fragment) if box_fragment.tag == node.opaque() => {
-                    box_fragment
-                },
+                Fragment::Box(ref box_fragment) if box_fragment.tag == tag_to_find => box_fragment,
                 _ => return None,
             };
 

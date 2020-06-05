@@ -9,7 +9,7 @@ use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{
     AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment, CollapsedBlockMargins,
-    DebugId, FontMetrics, Fragment, TextFragment,
+    DebugId, FontMetrics, Fragment, Tag, TextFragment,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{
@@ -22,7 +22,6 @@ use crate::ContainingBlock;
 use app_units::Au;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
-use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
 use style::values::specified::text::TextAlignKeyword;
@@ -47,7 +46,7 @@ pub(crate) enum InlineLevelBox {
 
 #[derive(Debug, Serialize)]
 pub(crate) struct InlineBox {
-    pub tag: OpaqueNode,
+    pub tag: Tag,
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
     pub first_fragment: bool,
@@ -58,7 +57,7 @@ pub(crate) struct InlineBox {
 /// https://www.w3.org/TR/css-display-3/#css-text-run
 #[derive(Debug, Serialize)]
 pub(crate) struct TextRun {
-    pub tag: OpaqueNode,
+    pub tag: Tag,
     #[serde(skip_serializing)]
     pub parent_style: Arc<ComputedValues>,
     pub text: String,
@@ -78,7 +77,7 @@ struct InlineNestingLevelState<'box_tree> {
 }
 
 struct PartialInlineBoxFragment<'box_tree> {
-    tag: OpaqueNode,
+    tag: Tag,
     style: Arc<ComputedValues>,
     start_corner: Vec2<Length>,
     padding: Sides<Length>,

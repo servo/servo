@@ -4,7 +4,7 @@
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::dom_traversal::{Contents, NodeExt};
+use crate::dom_traversal::{Contents, NodeAndStyleInfo, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
@@ -71,25 +71,23 @@ pub(crate) enum AbsoluteBoxOffsets {
 impl AbsolutelyPositionedBox {
     pub fn construct<'dom>(
         context: &LayoutContext,
-        node: impl NodeExt<'dom>,
-        style: Arc<ComputedValues>,
+        node_info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         display_inside: DisplayInside,
         contents: Contents,
     ) -> Self {
         // "Shrink-to-fit" in https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
         let content_sizes = ContentSizesRequest::inline_if(
             // If inline-size is non-auto, that value is used without shrink-to-fit
-            !style.inline_size_is_length() &&
+            !node_info.style.inline_size_is_length() &&
             // If it is, then the only case where shrink-to-fit is *not* used is
             // if both offsets are non-auto, leaving inline-size as the only variable
             // in the constraint equation.
-            !style.inline_box_offsets_are_both_non_auto(),
+            !node_info.style.inline_box_offsets_are_both_non_auto(),
         );
         Self {
             contents: IndependentFormattingContext::construct(
                 context,
-                node,
-                style,
+                node_info,
                 display_inside,
                 contents,
                 content_sizes,

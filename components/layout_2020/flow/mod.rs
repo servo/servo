@@ -9,8 +9,10 @@ use crate::context::LayoutContext;
 use crate::flow::float::{FloatBox, FloatContext};
 use crate::flow::inline::InlineFormattingContext;
 use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout, NonReplacedIFC};
-use crate::fragments::{AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment};
-use crate::fragments::{CollapsedBlockMargins, CollapsedMargin, Fragment};
+use crate::fragments::{
+    AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment, CollapsedBlockMargins,
+    CollapsedMargin, Fragment, Tag,
+};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContent;
@@ -19,7 +21,6 @@ use crate::ContainingBlock;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
-use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
@@ -46,7 +47,7 @@ pub(crate) enum BlockContainer {
 #[derive(Debug, Serialize)]
 pub(crate) enum BlockLevelBox {
     SameFormattingContextBlock {
-        tag: OpaqueNode,
+        tag: Tag,
         #[serde(skip_serializing)]
         style: Arc<ComputedValues>,
         contents: BlockContainer,
@@ -345,7 +346,7 @@ fn layout_in_flow_non_replaced_block_level(
     layout_context: &LayoutContext,
     positioning_context: &mut PositioningContext,
     containing_block: &ContainingBlock,
-    tag: OpaqueNode,
+    tag: Tag,
     style: &Arc<ComputedValues>,
     block_level_kind: NonReplacedContents,
     tree_rank: usize,
@@ -500,7 +501,7 @@ fn layout_in_flow_non_replaced_block_level(
 /// https://drafts.csswg.org/css2/visudet.html#inline-replaced-height
 fn layout_in_flow_replaced_block_level<'a>(
     containing_block: &ContainingBlock,
-    tag: OpaqueNode,
+    tag: Tag,
     style: &Arc<ComputedValues>,
     replaced: &ReplacedContent,
 ) -> BoxFragment {
