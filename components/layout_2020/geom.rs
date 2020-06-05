@@ -81,6 +81,20 @@ where
     }
 }
 
+impl<T> Sub<&'_ flow_relative::Vec2<T>> for &'_ flow_relative::Vec2<T>
+where
+    T: Sub<Output = T> + Copy,
+{
+    type Output = flow_relative::Vec2<T>;
+
+    fn sub(self, other: &'_ flow_relative::Vec2<T>) -> Self::Output {
+        flow_relative::Vec2 {
+            inline: self.inline - other.inline,
+            block: self.block - other.block,
+        }
+    }
+}
+
 impl<T> AddAssign<&'_ flow_relative::Vec2<T>> for flow_relative::Vec2<T>
 where
     T: AddAssign<T> + Copy,
