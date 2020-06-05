@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "Servo.h"
 #include <EGL/egl.h>
+#include "../DefaultUrl.h"
 
 namespace winrt::servo {
 
@@ -130,10 +131,64 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
   SetEnvironmentVariableA("PreviewRuntimeEnabled", "1");
 
+  Windows::Storage::ApplicationDataContainer localSettings =
+      Windows::Storage::ApplicationData::Current().LocalSettings();
+  if (!localSettings.Containers().HasKey(L"servoUserPrefs")) {
+    Windows::Storage::ApplicationDataContainer container =
+        localSettings.CreateContainer(
+            L"servoUserPrefs",
+            Windows::Storage::ApplicationDataCreateDisposition::Always);
+  }
+
+  auto prefs = localSettings.Containers().Lookup(L"servoUserPrefs");
+
+  if (!prefs.Values().HasKey(L"shell.homepage")) {
+    prefs.Values().Insert(L"shell.homepage", box_value(DEFAULT_URL));
+  }
+
+  if (!prefs.Values().HasKey(L"dom.webxr.enabled")) {
+    prefs.Values().Insert(L"dom.webxr.enabled", box_value(true));
+  }
+
+  std::vector<capi::CPref> cprefs;
+
+  for (auto pref : prefs.Values()) {
+    auto key = *hstring2char(pref.Key());
+    auto value = pref.Value();
+    auto type = value.as<Windows::Foundation::IPropertyValue>().Type();
+    capi::CPref pref;
+    pref.key = key;
+    pref.pref_type = capi::CPrefType::Missing;
+    pref.value = NULL;
+    if (type == Windows::Foundation::PropertyType::Boolean) {
+      pref.pref_type = capi::CPrefType::Bool;
+      auto val = unbox_value<bool>(value);
+      pref.value = &val;
+    } else if (type == Windows::Foundation::PropertyType::String) {
+      pref.pref_type = capi::CPrefType::Str;
+      pref.value = *hstring2char(unbox_value<hstring>(value));
+    } else if (type == Windows::Foundation::PropertyType::Int64) {
+      pref.pref_type = capi::CPrefType::Int;
+      auto val = unbox_value<int64_t>(value);
+      pref.value = &val;
+    } else if (type == Windows::Foundation::PropertyType::Double) {
+      pref.pref_type = capi::CPrefType::Float;
+      auto val = unbox_value<double>(value);
+      pref.value = &val;
+    } else if (type == Windows::Foundation::PropertyType::Empty) {
+      pref.pref_type = capi::CPrefType::Missing;
+    } else {
+      log("skipping pref %s. Unknown type", key);
+      continue;
+    }
+    cprefs.push_back(pref);
+  }
+
+  capi::CPrefList prefsList = {cprefs.size(), cprefs.data()};
+
   capi::CInitOptions o;
-  hstring defaultPrefs = L" --pref dom.webxr.enabled --devtools";
-  o.args = *hstring2char(args + defaultPrefs);
-  o.url = *hstring2char(url);
+  o.prefs = &prefsList;
+  o.args = *hstring2char(args + L"--devtools");
   o.width = mWindowWidth;
   o.height = mWindowHeight;
   o.density = dpi;
@@ -219,6 +274,96 @@ Servo::~Servo() {
   sServo = nullptr;
   if (sLogHandle != INVALID_HANDLE_VALUE)
     CloseHandle(sLogHandle);
+}
+
+Servo::PrefTuple Servo::SetFloatPref(hstring key, double val) {
+  auto ckey = *hstring2char(key);
+  capi::set_float_pref(ckey, val);
+  auto updatedPref = WrapPref(capi::get_pref(ckey));
+  SaveUserPref(updatedPref);
+  return updatedPref;
+}
+
+Servo::PrefTuple Servo::SetIntPref(hstring key, int64_t val) {
+  auto ckey = *hstring2char(key);
+  capi::set_int_pref(ckey, val);
+  auto updatedPref = WrapPref(capi::get_pref(ckey));
+  SaveUserPref(updatedPref);
+  return updatedPref;
+}
+
+Servo::PrefTuple Servo::SetBoolPref(hstring key, bool val) {
+  auto ckey = *hstring2char(key);
+  capi::set_bool_pref(ckey, val);
+  auto updatedPref = WrapPref(capi::get_pref(ckey));
+  SaveUserPref(updatedPref);
+  return updatedPref;
+}
+
+Servo::PrefTuple Servo::SetStringPref(hstring key, hstring val) {
+  auto ckey = *hstring2char(key);
+  auto cval = *hstring2char(val);
+  capi::set_str_pref(ckey, cval);
+  auto updatedPref = WrapPref(capi::get_pref(ckey));
+  SaveUserPref(updatedPref);
+  return updatedPref;
+}
+
+Servo::PrefTuple Servo::ResetPref(hstring key) {
+  auto ckey = *hstring2char(key);
+  capi::reset_pref(ckey);
+  auto updatedPref = WrapPref(capi::get_pref(ckey));
+  SaveUserPref(updatedPref);
+  return updatedPref;
+}
+
+void Servo::SaveUserPref(PrefTuple pref) {
+  auto localSettings =
+      Windows::Storage::ApplicationData::Current().LocalSettings();
+  auto values = localSettings.Containers().Lookup(L"servoUserPrefs").Values();
+  auto [key, val, isDefault] = pref;
+  if (isDefault) {
+    values.Remove(key);
+  } else {
+    values.Insert(key, val);
+  }
+}
+
+Servo::PrefTuple Servo::WrapPref(capi::CPref pref) {
+  winrt::Windows::Foundation::IInspectable val;
+  if (pref.pref_type == capi::CPrefType::Bool) {
+    val = box_value(*(capi::get_pref_as_bool(pref.value)));
+  } else if (pref.pref_type == capi::CPrefType::Int) {
+    val = box_value(*(capi::get_pref_as_int(pref.value)));
+  } else if (pref.pref_type == capi::CPrefType::Float) {
+    val = box_value(*(capi::get_pref_as_float(pref.value)));
+  } else if (pref.pref_type == capi::CPrefType::Str) {
+    val = box_value(char2hstring(capi::get_pref_as_str(pref.value)));
+  }
+  auto key = char2hstring(pref.key);
+  auto isDefault = pref.is_default;
+  Servo::PrefTuple t{key, val, isDefault};
+  return t;
+}
+
+Servo::PrefTuple Servo::GetPref(hstring key) {
+  auto ckey = *hstring2char(key);
+  return WrapPref(capi::get_pref(ckey));
+}
+
+std::vector<Servo::PrefTuple> Servo::GetPrefs() {
+  if (sServo == nullptr) {
+    return {};
+  }
+  auto prefs = capi::get_prefs();
+  std::vector<
+      std::tuple<hstring, winrt::Windows::Foundation::IInspectable, bool>>
+      vec;
+  for (auto i = 0; i < prefs.len; i++) {
+    auto pref = WrapPref(prefs.list[i]);
+    vec.push_back(pref);
+  }
+  return vec;
 }
 
 winrt::hstring char2hstring(const char *c_str) {

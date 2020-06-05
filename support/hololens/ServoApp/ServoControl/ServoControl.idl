@@ -11,6 +11,14 @@ namespace ServoApp {
     Failed,
   };
 
+  runtimeclass Pref
+  {
+    Pref(String key, IInspectable val, Boolean isDefault);
+    IInspectable Value { get; };
+    String Key { get; };
+    Boolean IsDefault { get; };
+  }
+
   runtimeclass ServoControl : Windows.UI.Xaml.Controls.Control {
       ServoControl();
       void GoBack();
@@ -33,5 +41,12 @@ namespace ServoApp {
       event Windows.Foundation.EventHandler<String> OnURLChanged;
       event MediaSessionMetadataDelegate OnMediaSessionMetadata;
       event Windows.Foundation.EventHandler<int> OnMediaSessionPlaybackStateChange;
+      Windows.Foundation.Collections.IVector<Pref> Preferences { get; };
+      Pref GetPref(String key);
+      Pref SetBoolPref(String key, Boolean val);
+      Pref SetIntPref(String key, Int64 val);
+      Pref SetFloatPref(String key, Double val);
+      Pref SetStringPref(String key, String val);
+      Pref ResetPref(String key);
 }
 } // namespace ServoApp

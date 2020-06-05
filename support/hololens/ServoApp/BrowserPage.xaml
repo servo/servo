@@ -6,7 +6,11 @@
     xmlns:local="using:ServoApp"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:muxc="using:Microsoft.UI.Xaml.Controls"
     mc:Ignorable="d">
+
+
+
     <Page.Resources>
         <Style x:Key="NavigationBarButton" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
@@ -82,7 +86,9 @@
     <Grid VerticalAlignment="Stretch">
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
-            <RowDefinition Height="*"/>
+            <RowDefinition Height="*" MinHeight="200"/>
+            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/>
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
         <Grid Grid.Row="0" x:Name="navigationBar" Background="{ThemeResource InkToolbarButtonBackgroundThemeBrush}">
@@ -111,7 +117,7 @@
                     </Button.KeyboardAccelerators>
                 </Button>
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="stopButton" IsTabStop="true" IsEnabled="false" Visibility="Collapsed" Click="OnStopButtonClicked" AutomationProperties.Name="Stop" ToolTipService.ToolTip="Stop">
-                    <Image Source="Assets/UI/stop.png" Height="18"></Image>
+                    <Image Source="Assets/UI/cross.png" Height="18"></Image>
                     <Button.KeyboardAccelerators>
                         <KeyboardAccelerator Key="Escape" Modifiers="None" />
                     </Button.KeyboardAccelerators>
@@ -132,9 +138,49 @@
                 <ProgressRing x:Name="urlbarLoadingIndicator" Margin="10,0"/>
             </StackPanel>
         </Grid>
-        <local:ServoControl TabIndex="0" x:Name="servoControl" Grid.Row="1"/>
-        <ProgressBar x:Name="transientLoadingIndicator" Visibility="Collapsed" Grid.Row="2"/>
-        <CommandBar Grid.Row="2" x:Name="mediaControls" Visibility="Collapsed">
+        <local:ServoControl Grid.Row="1" TabIndex="0" x:Name="servoControl"/>
+        <muxc:TabView x:Name="toolbox" IsAddTabButtonVisible="False" Grid.Row="2" Visibility="Collapsed" Height="300">
+            <muxc:TabView.TabStripFooter>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <Button Grid.Column="1" Style="{StaticResource NavigationBarButton}" x:Name="toolboxCloseButton" IsTabStop="true" Click="OnDevtoolsButtonClicked">
+                        <Image Source="Assets/UI/cross.png" Height="18"></Image>
+                    </Button>
+                </Grid>
+            </muxc:TabView.TabStripFooter>
+            <muxc:TabViewItem Header="Devtools Server" IsClosable="False">
+                <StackPanel>
+                    <TextBlock x:Name="DevtoolsStatusOK" Visibility="Collapsed" Margin="10">
+                        <Run>Devtools server is listening on port </Run>
+                        <Run FontWeight="Bold" x:Name="DevtoolsPort"></Run>
+                        <Run>.</Run>
+                    </TextBlock>
+                    <TextBlock x:Name="DevtoolsStatusKO" Visibility="Collapsed">
+                        <Run>Devtools server failed to start.</Run>
+                    </TextBlock>
+                    <TextBlock x:Name="DevtoolsStatusWIP" Visibility="Collapsed">
+                        <Run>Devtools server is starting..</Run>
+                    </TextBlock>
+                </StackPanel>
+            </muxc:TabViewItem>
+            <muxc:TabViewItem Header="Preferences" IsClosable="False">
+                <Grid VerticalAlignment="Stretch">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBox Grid.Row="0" Text="" IsTabStop="true" PlaceholderText="Search preferences" x:Name="preferenceSearchbox" VerticalAlignment="Center" KeyUp="OnPrefererenceSearchboxEdited" IsSpellCheckEnabled="False" Margin="3"/>
+                    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                        <StackPanel x:Name="prefList"/>
+                    </ScrollViewer>
+                </Grid>
+            </muxc:TabViewItem>
+        </muxc:TabView>
+        <ProgressBar x:Name="transientLoadingIndicator" Visibility="Collapsed" Grid.Row="3"/>
+        <CommandBar Grid.Row="4" x:Name="mediaControls" Visibility="Collapsed">
             <AppBarButton Icon="Play" Label="Play" x:Name="playButton" Visibility="Collapsed" Click="OnMediaControlsPlayClicked"/>
             <AppBarButton Icon="Pause" Label="Pause" x:Name="pauseButton" Click="OnMediaControlsPauseClicked"/>
         </CommandBar>

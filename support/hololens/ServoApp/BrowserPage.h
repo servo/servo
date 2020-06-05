@@ -9,6 +9,8 @@
 
 namespace winrt::ServoApp::implementation {
 
+using namespace winrt::Windows::Foundation;
+
 static const hstring SERVO_SCHEME = L"fxr";
 static const hstring SERVO_SCHEME_SLASH_SLASH = L"fxr://";
 
@@ -42,9 +44,14 @@ public:
                                   Windows::UI::Xaml::RoutedEventArgs const &);
   void OnMediaControlsPauseClicked(Windows::Foundation::IInspectable const &,
                                    Windows::UI::Xaml::RoutedEventArgs const &);
+  void OnPrefererenceSearchboxEdited(
+      Windows::Foundation::IInspectable const &,
+      Windows::UI::Xaml::Input::KeyRoutedEventArgs const &);
 
 private:
+  void UpdatePref(ServoApp::Pref, Windows::UI::Xaml::Controls::Control);
   void BindServoEvents();
+  void BuildPrefList();
   DevtoolsStatus mDevtoolsStatus = DevtoolsStatus::Stopped;
   unsigned int mDevtoolsPort = 0;
 };

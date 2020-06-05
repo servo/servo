@@ -29,12 +29,23 @@ public:
   ~Servo();
   ServoDelegate &Delegate() { return mDelegate; }
 
+  typedef std::tuple<hstring, winrt::Windows::Foundation::IInspectable, bool>
+      PrefTuple;
+  static std::vector<PrefTuple> GetPrefs();
+  static PrefTuple GetPref(hstring key);
+  static PrefTuple SetBoolPref(hstring key, bool val);
+  static PrefTuple SetStringPref(hstring key, hstring val);
+  static PrefTuple SetIntPref(hstring key, int64_t val);
+  static PrefTuple SetFloatPref(hstring key, double val);
+  static PrefTuple ResetPref(hstring key);
+
   typedef capi::CMouseButton MouseButton;
   typedef capi::CPromptResult PromptResult;
   typedef capi::CContextMenuResult ContextMenuResult;
   typedef capi::CMediaSessionActionType MediaSessionActionType;
   typedef capi::CMediaSessionPlaybackState MediaSessionPlaybackState;
   typedef capi::CDevtoolsServerState DevtoolsServerState;
+  typedef capi::CPrefType CPrefType;
 
   void PerformUpdates() { capi::perform_updates(); }
   void DeInit() { capi::deinit(); }
@@ -85,6 +96,8 @@ private:
   ServoDelegate &mDelegate;
   GLsizei mWindowWidth;
   GLsizei mWindowHeight;
+  static void SaveUserPref(PrefTuple);
+  static PrefTuple WrapPref(capi::CPref cpref);
 };
 
 class ServoDelegate {
