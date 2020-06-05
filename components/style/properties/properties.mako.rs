@@ -2111,7 +2111,8 @@ impl PropertyId {
 pub struct WideKeywordDeclaration {
     #[css(skip)]
     id: LonghandId,
-    keyword: CSSWideKeyword,
+    /// The CSS-wide keyword.
+    pub keyword: CSSWideKeyword,
 }
 
 /// An unparsed declaration that contains `var()` functions.
