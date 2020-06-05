@@ -82,6 +82,8 @@ def create_parser_wpt():
                         help="Servo's JSON logger of unexpected results")
     parser.add_argument('--always-succeed', default=False, action="store_true",
                         help="Always yield exit code of zero")
+    parser.add_argument('--no-default-test-types', default=False, action="store_true",
+                        help="Run all of the test types provided by wptrunner or specified explicitly by --test-types"),
     return parser
 
 
@@ -462,6 +464,14 @@ class MachCommands(CommandBase):
             for pref in prefs:
                 binary_args.append("--pref=" + pref)
             kwargs["binary_args"] = binary_args
+
+        if not kwargs.get('no_default_test_types'):
+            test_types = {
+                "servo": ["testharness", "reftest", "wdspec"],
+                "servodriver": ["testharness", "reftest"],
+            }
+            product = kwargs.get("product") or "servo"
+            kwargs["test_types"] = test_types[product]
 
         run_globals = {"__file__": run_file}
         exec(compile(open(run_file).read(), run_file, 'exec'), run_globals)
