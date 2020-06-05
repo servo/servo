@@ -18,6 +18,7 @@ mod events_loop;
 mod headed_window;
 mod headless_window;
 mod keyutils;
+mod prefs;
 mod resources;
 mod window_trait;
 
@@ -102,9 +103,22 @@ pub fn main() {
         "Set custom user agent string (or ios / android / desktop for platform default)",
         "NCSA Mosaic/1.0 (X11;SunOS 4.1.4 sun4m)",
     );
+    opts.optmulti(
+        "",
+        "pref",
+        "A preference to set to enable",
+        "dom.bluetooth.enabled",
+    );
+    opts.optmulti(
+        "",
+        "pref",
+        "A preference to set to disable",
+        "dom.webgpu.enabled=false",
+    );
 
     let opts_matches;
     let content_process_token;
+
     match opts::from_cmdline_args(opts, &args) {
         ArgumentParsingResult::ContentProcess(matches, token) => {
             opts_matches = matches;
@@ -118,6 +132,8 @@ pub fn main() {
             content_process_token = None;
         },
     };
+
+    prefs::register_user_prefs(&opts_matches);
 
     // TODO: once log-panics is released, can this be replaced by
     // log_panics::init()?

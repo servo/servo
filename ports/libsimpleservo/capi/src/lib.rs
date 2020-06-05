@@ -8,6 +8,8 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
+mod prefs;
+
 #[cfg(target_os = "windows")]
 mod vslogger;
 
@@ -187,7 +189,7 @@ fn do_redirect_stdout_stderr(handler: LogHandlerFn) -> Result<(), ()> {
 
 fn call<T, F>(f: F) -> T
 where
-    F: Fn(&mut ServoGlue) -> Result<T, &'static str>,
+    F: FnOnce(&mut ServoGlue) -> Result<T, &'static str>,
 {
     match SERVO.with(|s| match s.borrow_mut().as_mut() {
         Some(ref mut s) => (f)(s),
@@ -235,7 +237,6 @@ pub struct CHostCallbacks {
 #[repr(C)]
 pub struct CInitOptions {
     pub args: *const c_char,
-    pub url: *const c_char,
     pub width: i32,
     pub height: i32,
     pub density: f32,
@@ -243,6 +244,7 @@ pub struct CInitOptions {
     pub vslogger_mod_list: *const *const c_char,
     pub vslogger_mod_size: u32,
     pub native_widget: *mut c_void,
+    pub prefs: *const prefs::CPrefList,
 }
 
 #[repr(C)]
@@ -427,15 +429,18 @@ unsafe fn init(
         warn!("Error redirecting stdout/stderr: {}", reason);
     }
 
-    let url = CStr::from_ptr(opts.url);
-    let url = url.to_str().map(|s| s.to_string()).ok();
-
     let coordinates = Coordinates::new(0, 0, opts.width, opts.height, opts.width, opts.height);
+
+    let prefs = if opts.prefs.is_null() {
+        None
+    } else {
+        Some((*opts.prefs).convert())
+    };
 
     let opts = InitOptions {
         args,
-        url,
         coordinates,
+        prefs,
         density: opts.density,
         xr_discovery: None,
         enable_subpixel_text_antialiasing: opts.enable_subpixel_text_antialiasing,
@@ -532,6 +537,9 @@ pub extern "C" fn resize(width: i32, height: i32) {
 pub extern "C" fn perform_updates() {
     catch_any_panic(|| {
         debug!("perform_updates");
+        // We might have allocated some memory to respond to a potential
+        // request, from the embedder, for a copy of Servo's preferences.
+        prefs::free_prefs();
         call(|s| s.perform_updates());
     });
 }
