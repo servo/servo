@@ -11,7 +11,6 @@ use crate::fragments::{
 use crate::geom::PhysicalRect;
 use crate::style_ext::ComputedValuesExt;
 use euclid::default::Rect;
-use gfx_traits::{combine_id_with_fragment_type, FragmentType};
 use servo_arc::Arc as ServoArc;
 use std::cmp::Ordering;
 use std::mem;
@@ -329,7 +328,7 @@ impl StackingContext {
 
         // The `StackingContextFragment` we found is for the root DOM element:
         debug_assert_eq!(
-            box_fragment.tag,
+            box_fragment.tag.node(),
             fragment_tree.canvas_background.root_element
         );
 
@@ -705,12 +704,10 @@ impl BoxFragment {
         let overflow_y = self.style.get_box().overflow_y;
         let original_scroll_and_clip_info = builder.current_space_and_clip;
         if overflow_x != ComputedOverflow::Visible || overflow_y != ComputedOverflow::Visible {
-            // TODO(mrobinson): We should use the correct fragment type, once we generate
-            // fragments from ::before and ::after generated content selectors.
-            let id =
-                combine_id_with_fragment_type(self.tag.id() as usize, FragmentType::FragmentBody)
-                    as u64;
-            let external_id = wr::ExternalScrollId(id, builder.wr.pipeline_id);
+            let external_id = wr::ExternalScrollId(
+                self.tag.to_display_list_fragment_id(),
+                builder.wr.pipeline_id,
+            );
 
             let sensitivity = if ComputedOverflow::Hidden == overflow_x &&
                 ComputedOverflow::Hidden == overflow_y

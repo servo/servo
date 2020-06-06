@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::cell::ArcRefCell;
+use crate::dom_traversal::{NodeAndStyleInfo, NodeExt, WhichPseudoElement};
 use crate::geom::flow_relative::{Rect, Sides};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 #[cfg(debug_assertions)]
@@ -10,6 +11,7 @@ use crate::layout_debug;
 use gfx::font::FontMetrics as GfxFontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
+use gfx_traits::{combine_id_with_fragment_type, FragmentType};
 #[cfg(not(debug_assertions))]
 use serde::ser::{Serialize, Serializer};
 use servo_arc::Arc as ServoArc;
@@ -23,6 +25,42 @@ use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
 use style::Zero;
 use webrender_api::{FontInstanceKey, ImageKey};
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
+pub(crate) enum Tag {
+    Node(OpaqueNode),
+    BeforePseudo(OpaqueNode),
+    AfterPseudo(OpaqueNode),
+}
+
+impl Tag {
+    pub(crate) fn node(&self) -> OpaqueNode {
+        match self {
+            Self::Node(node) | Self::AfterPseudo(node) | Self::BeforePseudo(node) => *node,
+        }
+    }
+
+    pub(crate) fn to_display_list_fragment_id(&self) -> u64 {
+        let (node, content_type) = match self {
+            Self::Node(node) => (node, FragmentType::FragmentBody),
+            Self::AfterPseudo(node) => (node, FragmentType::BeforePseudoContent),
+            Self::BeforePseudo(node) => (node, FragmentType::AfterPseudoContent),
+        };
+        combine_id_with_fragment_type(node.id() as usize, content_type) as u64
+    }
+
+    pub(crate) fn from_node_and_style_info<'dom, Node>(info: &NodeAndStyleInfo<Node>) -> Self
+    where
+        Node: NodeExt<'dom>,
+    {
+        let opaque_node = info.node.as_opaque();
+        match info.pseudo_element_type {
+            None => Self::Node(opaque_node),
+            Some(WhichPseudoElement::Before) => Self::BeforePseudo(opaque_node),
+            Some(WhichPseudoElement::After) => Self::AfterPseudo(opaque_node),
+        }
+    }
+}
 
 #[derive(Serialize)]
 pub(crate) enum Fragment {
@@ -41,7 +79,7 @@ pub(crate) struct AbsoluteOrFixedPositionedFragment {
 
 #[derive(Serialize)]
 pub(crate) struct BoxFragment {
-    pub tag: OpaqueNode,
+    pub tag: Tag,
     pub debug_id: DebugId,
     #[serde(skip_serializing)]
     pub style: ServoArc<ComputedValues>,
@@ -113,7 +151,7 @@ impl From<&GfxFontMetrics> for FontMetrics {
 #[derive(Serialize)]
 pub(crate) struct TextFragment {
     pub debug_id: DebugId,
-    pub tag: OpaqueNode,
+    pub tag: Tag,
     #[serde(skip_serializing)]
     pub parent_style: ServoArc<ComputedValues>,
     pub rect: Rect<Length>,
@@ -148,7 +186,7 @@ impl Fragment {
         position.inline += *offset;
     }
 
-    pub fn tag(&self) -> Option<OpaqueNode> {
+    pub fn tag(&self) -> Option<Tag> {
         match self {
             Fragment::Box(fragment) => Some(fragment.tag),
             Fragment::Text(fragment) => Some(fragment.tag),
@@ -278,7 +316,7 @@ impl AnonymousFragment {
 
 impl BoxFragment {
     pub fn new(
-        tag: OpaqueNode,
+        tag: Tag,
         style: ServoArc<ComputedValues>,
         children: Vec<Fragment>,
         content_rect: Rect<Length>,

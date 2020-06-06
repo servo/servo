@@ -8,7 +8,7 @@ use crate::display_list::stacking_context::{
     ContainingBlock, ContainingBlockInfo, StackingContext, StackingContextBuildMode,
     StackingContextBuilder,
 };
-use crate::dom_traversal::{iter_child_nodes, Contents, NodeExt};
+use crate::dom_traversal::{iter_child_nodes, Contents, NodeAndStyleInfo, NodeExt};
 use crate::element_data::LayoutBox;
 use crate::flexbox::FlexLevelBox;
 use crate::flow::construct::ContainsFloats;
@@ -16,7 +16,7 @@ use crate::flow::float::FloatBox;
 use crate::flow::inline::InlineLevelBox;
 use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragments::Fragment;
+use crate::fragments::{Fragment, Tag};
 use crate::geom::flow_relative::Vec2;
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::positioned::AbsolutelyPositionedBox;
@@ -206,14 +206,10 @@ impl BoxTree {
             if let Some((primary_style, display_inside, update_point)) = update_point(dirty_node) {
                 let contents = ReplacedContent::for_element(dirty_node)
                     .map_or(Contents::OfElement, Contents::Replaced);
-                let out_of_flow_absolutely_positioned_box =
-                    Arc::new(AbsolutelyPositionedBox::construct(
-                        context,
-                        dirty_node,
-                        primary_style,
-                        display_inside,
-                        contents,
-                    ));
+                let info = NodeAndStyleInfo::new(dirty_node, Arc::clone(&primary_style));
+                let out_of_flow_absolutely_positioned_box = Arc::new(
+                    AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
+                );
                 match update_point {
                     UpdatePoint::AbsolutelyPositionedBlockLevelBox(block_level_box) => {
                         *block_level_box.borrow_mut() =
@@ -248,8 +244,8 @@ fn construct_for_root_element<'dom>(
     context: &LayoutContext,
     root_element: impl NodeExt<'dom>,
 ) -> (ContainsFloats, Vec<ArcRefCell<BlockLevelBox>>) {
-    let style = root_element.style(context);
-    let box_style = style.get_box();
+    let info = NodeAndStyleInfo::new(root_element, root_element.style(context));
+    let box_style = info.style.get_box();
 
     let display_inside = match Display::from(box_style.display) {
         Display::None => {
@@ -272,13 +268,7 @@ fn construct_for_root_element<'dom>(
         (
             ContainsFloats::No,
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
-                AbsolutelyPositionedBox::construct(
-                    context,
-                    root_element,
-                    style,
-                    display_inside,
-                    contents,
-                ),
+                AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
             )),
         )
     } else if box_style.float.is_floating() {
@@ -286,20 +276,18 @@ fn construct_for_root_element<'dom>(
             ContainsFloats::Yes,
             BlockLevelBox::OutOfFlowFloatBox(FloatBox::construct(
                 context,
-                root_element,
-                style,
+                &info,
                 display_inside,
                 contents,
             )),
         )
     } else {
-        let propagated_text_decoration_line = style.clone_text_decoration_line();
+        let propagated_text_decoration_line = info.style.clone_text_decoration_line();
         (
             ContainsFloats::No,
             BlockLevelBox::Independent(IndependentFormattingContext::construct(
                 context,
-                root_element,
-                style,
+                &info,
                 display_inside,
                 contents,
                 ContentSizesRequest::None,
@@ -461,7 +449,7 @@ impl FragmentTree {
     pub fn remove_nodes_in_fragment_tree_from_set(&self, set: &mut FxHashSet<OpaqueNode>) {
         self.find(|fragment, _| {
             if let Some(tag) = fragment.tag().as_ref() {
-                set.remove(tag);
+                set.remove(&tag.node());
             }
             None::<()>
         });
@@ -469,8 +457,9 @@ impl FragmentTree {
 
     pub fn get_content_box_for_node(&self, requested_node: OpaqueNode) -> Rect<Au> {
         let mut bounding_box = PhysicalRect::zero();
+        let tag_to_find = Tag::Node(requested_node);
         self.find(|fragment, containing_block| {
-            if fragment.tag() != Some(requested_node) {
+            if fragment.tag() != Some(tag_to_find) {
                 return None::<()>;
             }
 
@@ -507,7 +496,7 @@ impl FragmentTree {
     pub fn get_border_dimensions_for_node(&self, requested_node: OpaqueNode) -> Rect<i32> {
         self.find(|fragment, containing_block| {
             let (style, padding_rect) = match fragment {
-                Fragment::Box(fragment) if fragment.tag == requested_node => {
+                Fragment::Box(fragment) if fragment.tag.node() == requested_node => {
                     (&fragment.style, fragment.padding_rect())
                 },
                 Fragment::AbsoluteOrFixedPositioned(_) |

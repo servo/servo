@@ -3,12 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::context::LayoutContext;
-use crate::dom_traversal::{Contents, NodeExt};
+use crate::dom_traversal::{Contents, NodeAndStyleInfo, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
-use servo_arc::Arc;
-use style::properties::ComputedValues;
 use style::values::specified::text::TextDecorationLine;
 
 #[derive(Debug, Serialize)]
@@ -30,17 +28,15 @@ impl FloatContext {
 impl FloatBox {
     pub fn construct<'dom>(
         context: &LayoutContext,
-        node: impl NodeExt<'dom>,
-        style: Arc<ComputedValues>,
+        info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         display_inside: DisplayInside,
         contents: Contents,
     ) -> Self {
-        let content_sizes = ContentSizesRequest::inline_if(!style.inline_size_is_length());
+        let content_sizes = ContentSizesRequest::inline_if(!info.style.inline_size_is_length());
         Self {
             contents: IndependentFormattingContext::construct(
                 context,
-                node,
-                style,
+                info,
                 display_inside,
                 contents,
                 content_sizes,
