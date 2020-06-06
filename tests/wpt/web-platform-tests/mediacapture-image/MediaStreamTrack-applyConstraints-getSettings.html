@@ -131,9 +131,9 @@ image_capture_test(async t => {
   const constraints = [{ pan: 8 }, { tilt: 9 }];
   await Promise.all(constraints.map(async constraint =>
     promise_rejects_dom(
-        t, 'NotAllowedError',
+        t, 'NotSupportedError',
         videoTrack.applyConstraints({ advanced: [constraint] }),
-        "applyConstraints should throw a NotAllowedError for " +
+        "applyConstraints should throw a NotSupportedError for " +
         JSON.stringify(constraint))
   ));
 

@@ -34,7 +34,7 @@ layout changes on percentage-based scroll offset">
   }
 
   #spacer {
-    height: 400px;
+    height: 80px;
   }
 
   .invisible {
@@ -70,15 +70,18 @@ layout changes on percentage-based scroll offset">
   const animation = new Animation(effect, timeline);
   animation.play();
 
-  // Moves the scroller to the end point (400px).
+  // Moves the scroller to the end point (240px).
   const maxScroll = scroller.scrollHeight - scroller.clientHeight;
-  scroller.scrollTop = maxScroll;
+  scroller.scrollTop = maxScroll * 0.6;
 
-  // Adds 400px to scroll height which pushes scroll progress back to 50%.
-  const spacer = document.getElementById('spacer');
-  spacer.classList.remove('invisible');
-
+  // Makes sure that the animation runs on compositor with current scroll offset
   waitForAnimationFrames(2).then(_ => {
-    takeScreenshot();
+    // Adds 80px to scroll height which pushes scroll progress back to 50%.
+    const spacer = document.getElementById('spacer');
+    spacer.classList.remove('invisible');
+    // Makes sure that the change is propagated to the compositor.
+    waitForAnimationFrames(2).then(_ => {
+      takeScreenshot();
+    });
   });
 </script>

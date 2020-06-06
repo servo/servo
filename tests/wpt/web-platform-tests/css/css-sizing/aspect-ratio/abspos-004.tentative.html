@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS aspect-ratio: abspos div inline size</title>
+<link rel="author" title="Google LLC" href="https://www.google.com/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht" />
+
+<!-- It is not entirely clear if this is testing the right behavior. See:
+     https://github.com/w3c/csswg-drafts/issues/5151
+  -->
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="width: 500px; height: 100px; position: relative;">
+  <div style="background: green; aspect-ratio: 1/1; position: absolute; left: 0; top: 0; bottom: 0;"></div>
+</div>

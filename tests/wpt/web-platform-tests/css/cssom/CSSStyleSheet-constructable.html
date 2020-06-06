@@ -590,7 +590,7 @@ test(() => {
   assert_throws_dom("SyntaxError", () => { (new CSSStyleSheet).insertRule(import_text) });
 }, 'Inserting an @import rule through insertRule on a constructed stylesheet throws an exception');
 
-async_test(t => {
+promise_test(t => {
     const importUrl = "support/constructable-import.css";
     const sheet = new CSSStyleSheet();
 
@@ -601,14 +601,17 @@ async_test(t => {
     link.rel = "stylesheet";
     link.href = importUrl;
 
-    link.addEventListener("error", t.unreached_func("Load shouldn't fail"));
-    link.addEventListener("load", t.step_func_done(event => {
-      let entries = window.performance.getEntriesByType('resource').filter(entry => entry.name.includes(importUrl));
-      assert_equals(entries.length, 1, "There should be only one entry for the import URL");
-      assert_greater_than_equal(entries[0].startTime, timeAfterReplaceSync, "The entry's start time should be after replaceSync threw");
-      link.remove();
-    }));
-    document.body.appendChild(link);
+    return new Promise(resolve => {
+      link.addEventListener("error", t.unreached_func("Load shouldn't fail"));
+      link.addEventListener("load", t.step_func(() => {
+        let entries = window.performance.getEntriesByType('resource').filter(entry => entry.name.includes(importUrl));
+        assert_equals(entries.length, 1, "There should be only one entry for the import URL");
+        assert_greater_than_equal(entries[0].startTime, timeAfterReplaceSync, "The entry's start time should be after replaceSync threw");
+        link.remove();
+        resolve();
+      }));
+      document.body.appendChild(link);
+    });
 }, "CSSStyleSheet.replaceSync should not trigger any loads from @import rules")
 
 promise_test(() => {

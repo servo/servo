@@ -191,11 +191,16 @@
             description: '5.1->2 explicit downmix producing 2-channel output'
           },
           (task, should) => {
+            // Scale tolerance by maximum amplitude expected in down-mix
+            // output.
+            let threshold = (1.0 + Math.sqrt(0.5) * 2) * absoluteThreshold;
+
             downMixTest(
                 {
                   channelCountMode: 'explicit',
                   numberOfInputs: 6,
-                  prefix: '5.1 chan downmix explicit'
+                  prefix: '5.1 chan downmix explicit',
+                  absoluteThreshold: threshold
                 },
                 should)
                 .then(() => task.done());
@@ -219,11 +224,11 @@
                   should(out0.slice(1), '1->2 explicit upmix: channel 0')
                       .beCloseToArray(
                           input.slice(0, length - 1),
-                          {absoluteThreshold: 3.577e-7});
+                          {absoluteThreshold: absoluteThreshold});
                   should(out1.slice(1), '1->2 explicit upmix: channel 1')
                       .beCloseToArray(
                           input.slice(0, length - 1),
-                          {absoluteThreshold: 3.577e-7});
+                          {absoluteThreshold: absoluteThreshold});
                 })
                 .then(() => task.done());
           });
@@ -247,7 +252,7 @@
                   should(out0.slice(1), '1->2 clamped-max upmix: channel 0')
                       .beCloseToArray(
                           input.slice(0, length - 1),
-                          {absoluteThreshold: 3.577e-7});
+                          {absoluteThreshold: absoluteThreshold});
                   should(out1, '1->2 clamped-max upmix: channel 1')
                       .beConstantValueOf(0);
                 })

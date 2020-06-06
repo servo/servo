@@ -130,6 +130,20 @@ def test_name_is_tentative():
     assert not s.name_is_tentative
 
 
+@pytest.mark.parametrize("rel_path", [
+    "webdriver/tests/foo.py",
+    "webdriver/tests/print/foo.py",
+    "webdriver/tests/foo-crash.py",
+    "webdriver/tests/foo-visual.py",
+])
+def test_name_is_webdriver(rel_path):
+    s = create(rel_path)
+    assert s.name_is_webdriver
+
+    item_type, items = s.manifest_items()
+    assert item_type == "wdspec"
+
+
 def test_worker():
     s = create("html/test.worker.js")
     assert not s.name_is_non_test

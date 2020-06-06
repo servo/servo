@@ -204,21 +204,23 @@ function testCounts(t, resolve, looseCount, eventType, expectedCount) {
 
 // Tests the given |eventType| by creating events whose target are the element with id
 // 'target'. The test assumes that such element already exists. |looseCount| is set for
-// eventTypes for which events would occur for other elements besides the target, so the
-// counts will be larger.
+// eventTypes for which events would occur for other interactions other than the ones being
+// specified for the target, so the counts could be larger.
 async function testEventType(t, eventType, looseCount=false) {
   assert_implements(window.EventCounts, "Event Counts isn't supported");
-  assert_equals(performance.eventCounts.get(eventType), 0);
   const target = document.getElementById('target');
   if (requiresListener(eventType)) {
     target.addEventListener(eventType, () =>{});
   }
-  assert_equals(performance.eventCounts.get(eventType), 0, 'No events yet.');
+  const initialCount = performance.eventCounts.get(eventType);
+  if (!looseCount) {
+    assert_equals(initialCount, 0, 'No events yet.');
+  }
   // Trigger two 'fast' events of the type.
   await applyAction(eventType, target);
   await applyAction(eventType, target);
   await new Promise(t.step_func(resolve => {
-    testCounts(t, resolve, looseCount, eventType, 2);
+    testCounts(t, resolve, looseCount, eventType, initialCount + 2);
   }));
   // The durationThreshold used by the observer. A slow events needs to be slower than that.
   const durationThreshold = 16;
@@ -254,7 +256,7 @@ async function testEventType(t, eventType, looseCount=false) {
                   notCancelable(eventType));
       // Shouldn't need async testing here since we already got the observer entry, but might as
       // well reuse the method.
-      testCounts(t, resolve, looseCount, eventType, 3);
+      testCounts(t, resolve, looseCount, eventType, initialCount + 3);
     })).observe({type: 'event', durationThreshold: durationThreshold});
   });
   // Cause a slow event.

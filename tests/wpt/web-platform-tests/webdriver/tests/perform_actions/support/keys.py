@@ -26,7 +26,7 @@ class Keys(object):
     """
     Set of special keys codes.
 
-    See also https://w3c.github.io/webdriver/#h-keyboard-actions
+    See also https://w3c.github.io/webdriver/#keyboard-actions
     """
 
     NULL = u"\ue000"

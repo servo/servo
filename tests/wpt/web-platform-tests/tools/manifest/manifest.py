@@ -15,8 +15,16 @@ from six import (
 )
 
 from . import vcs
-from .item import (ConformanceCheckerTest, ManifestItem, ManualTest, RefTest, SupportFile,
-                   TestharnessTest, VisualTest, WebDriverSpecTest, CrashTest)
+from .item import (ConformanceCheckerTest,
+                   CrashTest,
+                   ManifestItem,
+                   ManualTest,
+                   PrintRefTest,
+                   RefTest,
+                   SupportFile,
+                   TestharnessTest,
+                   VisualTest,
+                   WebDriverSpecTest)
 from .log import get_logger
 from .sourcefile import SourceFile
 from .typedata import TypeData
@@ -57,6 +65,7 @@ class ManifestVersionMismatch(ManifestError):
 
 item_classes = {"testharness": TestharnessTest,
                 "reftest": RefTest,
+                "print-reftest": PrintRefTest,
                 "crashtest": CrashTest,
                 "manual": ManualTest,
                 "wdspec": WebDriverSpecTest,

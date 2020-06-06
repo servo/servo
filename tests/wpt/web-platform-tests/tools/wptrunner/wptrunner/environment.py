@@ -182,6 +182,11 @@ class TestEnvironment(object):
 
         for path, format_args, content_type, route in [
                 ("testharness_runner.html", {}, "text/html", "/testharness_runner.html"),
+                ("print_reftest_runner.html", {}, "text/html", "/print_reftest_runner.html"),
+                (os.path.join(here, "..", "..", "third_party", "pdf_js", "pdf.js"), None,
+                 "text/javascript", "/_pdf_js/pdf.js"),
+                (os.path.join(here, "..", "..", "third_party", "pdf_js", "pdf.worker.js"), None,
+                 "text/javascript", "/_pdf_js/pdf.worker.js"),
                 (self.options.get("testharnessreport", "testharnessreport.js"),
                  {"output": self.pause_after_test,
                   "timeout_multiplier": self.testharness_timeout_multipler,

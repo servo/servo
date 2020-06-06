@@ -3,8 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: WebDriver (https://w3c.github.io/webdriver/)
 
-Navigator includes NavigatorAutomationInformation;
-
 interface mixin NavigatorAutomationInformation {
   readonly attribute boolean webdriver;
 };
+Navigator includes NavigatorAutomationInformation;

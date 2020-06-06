@@ -1,0 +1,84 @@
+<title>
+  COOP reports are sent when the openee used COOP-RO+COEP and then its opener
+  tries to access it.
+</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src="/common/utils.js"></script>
+<script src="./resources/dispatcher.js"></script>
+<script>
+
+const directory = "/html/cross-origin-opener-policy/access-reporting";
+const executor_path = directory + "/resources/executor.html?pipe=";
+const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
+const coep_header = '|header(Cross-Origin-Embedder-Policy,require-corp)';
+
+let operation = [
+//[test name           , operation                   ] ,
+  ["Call blur"         , w => w.blur()               ] ,
+  ["Call foo"          , w => w.foo()                ] ,
+  ["Call location"     , w => w.location()           ] ,
+  ["Call opener"       , w => w.opener()             ] ,
+  ["Call postMessage"  , w => w.postMessage()        ] ,
+  ["Call window"       , w => w.window()             ] ,
+  ["Read blur"         , w => w.blur                 ] ,
+  ["Read foo"          , w => w.foo                  ] ,
+  ["Read location"     , w => w.location             ] ,
+  ["Read opener"       , w => w.opener               ] ,
+  ["Read postMessage"  , w => w.postMessage          ] ,
+  ["Read window"       , w => w.window               ] ,
+  ["Write blur"        , w => w.blur = "test"        ] ,
+  ["Write foo"         , w => w.foo = "test"         ] ,
+  ["Write location"    , w => w.location = "test"    ] ,
+  ["Write opener"      , w => w.opener = "test"      ] ,
+  ["Write postMessage" , w => w.postMessage = "test" ] ,
+  ["Write window"      , w => w.window = "test"      ] ,
+];
+
+operation.forEach(([test, op]) => {
+  promise_test(async t => {
+    const report_token = token();
+    const executor_token = token();
+    const callback_token = token();
+
+    const reportTo = reportToHeaders(report_token);
+    const openee_url = cross_origin + executor_path +
+      reportTo.header + reportTo.coopReportOnlySameOrigin + coep_header +
+      `&uuid=${executor_token}`;
+    const openee = window.open(openee_url);
+    t.add_cleanup(() => send(executor_token, "window.close()"))
+
+    // 1. Make sure the new document to be loaded.
+    send(executor_token, `
+      send("${callback_token}", "Ready");
+    `);
+    let reply = await receive(callback_token);
+    assert_equals(reply, "Ready");
+
+    // 2. Skip the first report about the opener breakage.
+    let report_1 = await receive(report_token);
+    assert_not_equals(report_1, "timeout");
+    report_1 = JSON.parse(report_1);
+    assert_equals(report_1.length, 1);
+    assert_equals(report_1[0].type, "coop");
+    assert_equals(report_1[0].body["violation-type"], "navigation-to-document");
+    assert_equals(report_1[0].body["disposition"], "reporting");
+
+    // 3. Try to access the openee. A report is sent, because of COOP-RO+COEP.
+    try {op(openee)} catch(e) {}
+
+    // 4. A COOP access reports must be sent as a result of (3).
+    let report_2 = await receive(report_token);
+    assert_not_equals(report_1, "timeout");
+    report_2 = JSON.parse(report_2);
+    assert_equals(report_2.length, 1);
+    assert_equals(report_2[0].type, "coop");
+    assert_equals(report_2[0].body["violation-type"], "access");
+    assert_equals(report_2[0].body["disposition"], "reporting");
+    assert_equals(report_2[0].body["effective-policy"], "same-origin-plus-coep");
+  }, `${test}`);
+});
+
+</script>
