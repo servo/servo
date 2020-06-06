@@ -13,9 +13,7 @@ use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::Angle;
-use font_kit::family_name::FamilyName;
-use font_kit::properties::Properties;
-use font_kit::source::SystemSource;
+use font_kit::font::Font;
 use lyon_geom::Arc;
 use raqote::PathOp;
 use std::marker::PhantomData;
@@ -78,6 +76,9 @@ impl Backend for RaqoteBackend {
 }
 
 impl<'a> CanvasPaintState<'a> {
+    pub const HANGING_BASELINE_DEFAULT: f32 = 0.8; // fraction of ascent
+    pub const IDEOGRAPHIC_BASELINE_DEFAULT: f32 = 0.5; // fraction descent
+
     pub fn new(_antialias: AntialiasMode) -> CanvasPaintState<'a> {
         let pattern = Pattern::Color(255, 0, 0, 0);
         CanvasPaintState {
@@ -91,6 +92,8 @@ impl<'a> CanvasPaintState<'a> {
             shadow_blur: 0.0,
             shadow_color: Color::Raqote(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0)),
             font_style: None,
+            text_align: Default::default(),
+            text_baseline: Default::default(),
         }
     }
 }
@@ -520,26 +523,20 @@ impl GenericDrawTarget for raqote::DrawTarget {
 
     fn fill_text(
         &mut self,
-        text: String,
-        x: f64,
-        y: f64,
-        _max_width: Option<f64>,
+        font: &Font,
+        point_size: f32,
+        text: &str,
+        start: Point2D<f32>,
         pattern: canvas_data::Pattern,
-        draw_options: &DrawOptions,
+        options: &DrawOptions,
     ) {
-        let font = SystemSource::new()
-            .select_best_match(&[FamilyName::SansSerif], &Properties::new())
-            .unwrap()
-            .load()
-            .unwrap();
-
         self.draw_text(
-            &font,
-            24.,
-            &text,
-            Point2D::new(x as f32, y as f32),
+            font,
+            point_size,
+            text,
+            start,
             &pattern.source(),
-            draw_options.as_raqote(),
+            options.as_raqote(),
         );
     }
 

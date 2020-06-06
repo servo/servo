@@ -3,10 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasDirection;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasTextAlign;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasTextBaseline;
 use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -27,7 +30,7 @@ use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
-use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
+use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg, Direction, TextAlign, TextBaseline};
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
 use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle};
@@ -91,9 +94,14 @@ pub(crate) struct CanvasContextState {
     shadow_blur: f64,
     shadow_color: RGBA,
     font_style: Option<Font>,
+    text_align: TextAlign,
+    text_baseline: TextBaseline,
+    direction: Direction,
 }
 
 impl CanvasContextState {
+    const DEFAULT_FONT_STYLE: &'static str = "10px sans-serif";
+
     pub(crate) fn new() -> CanvasContextState {
         let black = RGBA::new(0, 0, 0, 255);
         CanvasContextState {
@@ -112,6 +120,9 @@ impl CanvasContextState {
             shadow_blur: 0.0,
             shadow_color: RGBA::transparent(),
             font_style: None,
+            text_align: Default::default(),
+            text_baseline: Default::default(),
+            direction: Default::default(),
         }
     }
 }
@@ -995,7 +1006,7 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     pub fn fill_text(
         &self,
-        _canvas: Option<&HTMLCanvasElement>,
+        canvas: Option<&HTMLCanvasElement>,
         text: DOMString,
         x: f64,
         y: f64,
@@ -1007,9 +1018,19 @@ impl CanvasState {
         if max_width.map_or(false, |max_width| !max_width.is_finite() || max_width <= 0.) {
             return;
         }
-
+        if self.state.borrow().font_style.is_none() {
+            self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into())
+        }
+        let is_rtl = false; // TODO: resolve is_rtl wrt to canvas element
         let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
-        self.send_canvas_2d_msg(Canvas2dMsg::FillText(text.into(), x, y, max_width, style));
+        self.send_canvas_2d_msg(Canvas2dMsg::FillText(
+            text.into(),
+            x,
+            y,
+            max_width,
+            style,
+            is_rtl,
+        ));
     }
 
     // https://html.spec.whatwg.org/multipage/#textmetrics
@@ -1040,13 +1061,80 @@ impl CanvasState {
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
     pub fn font(&self) -> DOMString {
         self.state.borrow().font_style.as_ref().map_or_else(
-            || DOMString::from("10px sans-serif"),
+            || CanvasContextState::DEFAULT_FONT_STYLE.into(),
             |style| {
                 let mut result = String::new();
                 serialize_font(style, &mut result).unwrap();
                 DOMString::from(result)
             },
         )
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
+    pub fn text_align(&self) -> CanvasTextAlign {
+        match self.state.borrow().text_align {
+            TextAlign::Start => CanvasTextAlign::Start,
+            TextAlign::End => CanvasTextAlign::End,
+            TextAlign::Left => CanvasTextAlign::Left,
+            TextAlign::Right => CanvasTextAlign::Right,
+            TextAlign::Center => CanvasTextAlign::Center,
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
+    pub fn set_text_align(&self, value: CanvasTextAlign) {
+        let text_align = match value {
+            CanvasTextAlign::Start => TextAlign::Start,
+            CanvasTextAlign::End => TextAlign::End,
+            CanvasTextAlign::Left => TextAlign::Left,
+            CanvasTextAlign::Right => TextAlign::Right,
+            CanvasTextAlign::Center => TextAlign::Center,
+        };
+        self.state.borrow_mut().text_align = text_align;
+        self.send_canvas_2d_msg(Canvas2dMsg::SetTextAlign(text_align));
+    }
+
+    pub fn text_baseline(&self) -> CanvasTextBaseline {
+        match self.state.borrow().text_baseline {
+            TextBaseline::Top => CanvasTextBaseline::Top,
+            TextBaseline::Hanging => CanvasTextBaseline::Hanging,
+            TextBaseline::Middle => CanvasTextBaseline::Middle,
+            TextBaseline::Alphabetic => CanvasTextBaseline::Alphabetic,
+            TextBaseline::Ideographic => CanvasTextBaseline::Ideographic,
+            TextBaseline::Bottom => CanvasTextBaseline::Bottom,
+        }
+    }
+
+    pub fn set_text_baseline(&self, value: CanvasTextBaseline) {
+        let text_baseline = match value {
+            CanvasTextBaseline::Top => TextBaseline::Top,
+            CanvasTextBaseline::Hanging => TextBaseline::Hanging,
+            CanvasTextBaseline::Middle => TextBaseline::Middle,
+            CanvasTextBaseline::Alphabetic => TextBaseline::Alphabetic,
+            CanvasTextBaseline::Ideographic => TextBaseline::Ideographic,
+            CanvasTextBaseline::Bottom => TextBaseline::Bottom,
+        };
+        self.state.borrow_mut().text_baseline = text_baseline;
+        self.send_canvas_2d_msg(Canvas2dMsg::SetTextBaseline(text_baseline));
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-direction
+    pub fn direction(&self) -> CanvasDirection {
+        match self.state.borrow().direction {
+            Direction::Ltr => CanvasDirection::Ltr,
+            Direction::Rtl => CanvasDirection::Rtl,
+            Direction::Inherit => CanvasDirection::Inherit,
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-direction
+    pub fn set_direction(&self, value: CanvasDirection) {
+        let direction = match value {
+            CanvasDirection::Ltr => Direction::Ltr,
+            CanvasDirection::Rtl => Direction::Rtl,
+            CanvasDirection::Inherit => Direction::Inherit,
+        };
+        self.state.borrow_mut().direction = direction;
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth

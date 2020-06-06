@@ -7,12 +7,22 @@ use crate::raqote_backend::Repetition;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
+use euclid::point2;
+use font_kit::family_name::FamilyName;
+use font_kit::font::Font;
+use font_kit::properties::Properties;
+use font_kit::source::SystemSource;
+use gfx::font::FontHandleMethods;
+use gfx::font_cache_thread::FontCacheThread;
+use gfx::font_context::FontContext;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use num_traits::ToPrimitive;
+use servo_arc::Arc as ServoArc;
+use std::cell::RefCell;
 #[allow(unused_imports)]
 use std::marker::PhantomData;
 use std::mem;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use style::properties::style_structs::Font as FontStyleStruct;
 use webrender_api::units::RectExt as RectExt_;
 
@@ -267,10 +277,10 @@ pub trait GenericDrawTarget {
     fn fill(&mut self, path: &Path, pattern: Pattern, draw_options: &DrawOptions);
     fn fill_text(
         &mut self,
-        text: String,
-        x: f64,
-        y: f64,
-        max_width: Option<f64>,
+        font: &Font,
+        point_size: f32,
+        text: &str,
+        start: Point2D<f32>,
         pattern: Pattern,
         draw_options: &DrawOptions,
     );
@@ -370,6 +380,21 @@ pub enum Filter {
     Point,
 }
 
+pub(crate) type CanvasFontContext = FontContext<FontCacheThread>;
+
+thread_local!(static FONT_CONTEXT: RefCell<Option<CanvasFontContext>> = RefCell::new(None));
+
+pub(crate) fn with_thread_local_font_context<F, R>(canvas_data: &CanvasData, f: F) -> R
+where
+    F: FnOnce(&mut CanvasFontContext) -> R,
+{
+    FONT_CONTEXT.with(|font_context| {
+        f(font_context.borrow_mut().get_or_insert_with(|| {
+            FontContext::new(canvas_data.font_cache_thread.lock().unwrap().clone())
+        }))
+    })
+}
+
 pub struct CanvasData<'a> {
     backend: Box<dyn Backend>,
     drawtarget: Box<dyn GenericDrawTarget>,
@@ -382,6 +407,7 @@ pub struct CanvasData<'a> {
     old_image_key: Option<webrender_api::ImageKey>,
     /// An old webrender image key that can be deleted when the current epoch ends.
     very_old_image_key: Option<webrender_api::ImageKey>,
+    font_cache_thread: Mutex<FontCacheThread>,
     _canvas_id: CanvasId,
 }
 
@@ -395,6 +421,7 @@ impl<'a> CanvasData<'a> {
         webrender_api: Box<dyn WebrenderApi>,
         antialias: AntialiasMode,
         canvas_id: CanvasId,
+        font_cache_thread: FontCacheThread,
     ) -> CanvasData<'a> {
         let backend = create_backend();
         let draw_target = backend.create_drawtarget(size);
@@ -408,6 +435,7 @@ impl<'a> CanvasData<'a> {
             image_key: None,
             old_image_key: None,
             very_old_image_key: None,
+            font_cache_thread: Mutex::new(font_cache_thread),
             _canvas_id: canvas_id,
         }
     }
@@ -466,30 +494,49 @@ impl<'a> CanvasData<'a> {
         }
     }
 
-    pub fn fill_text(&mut self, text: String, x: f64, y: f64, max_width: Option<f64>) {
-        // 1. If maxWidth was provided but is less than or equal to zero or equal to NaN,
-        //    then return an empty array.
-        if max_width.map_or(false, |max_width| max_width <= 0.) {
-            return;
-        }
+    pub fn fill_text(
+        &mut self,
+        text: String,
+        x: f64,
+        y: f64,
+        _max_width: Option<f64>,
+        _is_rtl: bool,
+    ) {
+        // Step 2. Replace all ASCII whitespace in text with U+0020 SPACE characters.
+        let text = replace_ascii_whitespace(text);
 
-        // 2. Replace all ASCII whitespace in text with U+0020 SPACE characters.
-        let text = text
-            .chars()
-            .map(|c| match c {
-                ' ' | '\t' | '\n' | '\r' | '\x0C' => '\x20',
-                _ => c,
-            })
-            .collect();
-
-        self.drawtarget.fill_text(
-            text,
-            x,
-            y,
-            max_width,
-            self.state.fill_style.clone(),
-            &self.state.draw_options,
+        // Step 3. Let font be the current font of target, as given by that object's font attribute.
+        let point_size = self
+            .state
+            .font_style
+            .as_ref()
+            .map_or(10., |style| style.font_size.size().px());
+        let font_style = self.state.font_style.as_ref();
+        let font = font_style.map_or_else(
+            || load_system_font_from_style(font_style),
+            |style| {
+                with_thread_local_font_context(&self, |font_context| {
+                    let font_group = font_context.font_group(ServoArc::new(style.clone()));
+                    let font = font_group.borrow_mut().first(font_context).expect("");
+                    let font = font.borrow_mut();
+                    if let Some(bytes) = font.handle.template().bytes_if_in_memory() {
+                        Font::from_bytes(Arc::new(bytes), 0)
+                            .unwrap_or_else(|_| load_system_font_from_style(Some(style)))
+                    } else {
+                        load_system_font_from_style(Some(style))
+                    }
+                })
+            },
         );
+        let start = point2(x as f32, y as f32);
+
+        // TODO: Process bidi text
+
+        // Step 8.
+        let fill_style = self.state.fill_style.clone();
+        let draw_options = &self.state.draw_options;
+        self.drawtarget
+            .fill_text(&font, point_size, &text, start, fill_style, draw_options);
     }
 
     pub fn fill_rect(&mut self, rect: &Rect<f32>) {
@@ -1072,6 +1119,14 @@ impl<'a> CanvasData<'a> {
         self.state.font_style = Some(font_style)
     }
 
+    pub fn set_text_align(&mut self, text_align: TextAlign) {
+        self.state.text_align = text_align;
+    }
+
+    pub fn set_text_baseline(&mut self, text_baseline: TextBaseline) {
+        self.state.text_baseline = text_baseline;
+    }
+
     // https://html.spec.whatwg.org/multipage/#when-shadows-are-drawn
     fn need_to_draw_shadow(&self) -> bool {
         self.backend.need_to_draw_shadow(&self.state.shadow_color) &&
@@ -1164,6 +1219,8 @@ pub struct CanvasPaintState<'a> {
     pub shadow_blur: f64,
     pub shadow_color: Color,
     pub font_style: Option<FontStyleStruct>,
+    pub text_align: TextAlign,
+    pub text_baseline: TextBaseline,
 }
 
 /// It writes an image to the destination target
@@ -1244,4 +1301,46 @@ impl RectExt for Rect<u32> {
     fn to_u64(&self) -> Rect<u64> {
         self.cast()
     }
+}
+
+fn load_system_font_from_style(font_style: Option<&FontStyleStruct>) -> Font {
+    let mut properties = Properties::new();
+    let style = match font_style {
+        Some(style) => style,
+        None => return load_default_system_fallback_font(&properties),
+    };
+    let family_names = style
+        .font_family
+        .families
+        .iter()
+        .map(|family_name| family_name.into())
+        .collect::<Vec<FamilyName>>();
+    let properties = properties
+        .style(style.font_style.into())
+        .weight(style.font_weight.into())
+        .stretch(style.font_stretch.into());
+    let font_handle = match SystemSource::new().select_best_match(&family_names, &properties) {
+        Ok(handle) => handle,
+        Err(_) => return load_default_system_fallback_font(&properties),
+    };
+    font_handle
+        .load()
+        .unwrap_or_else(|_| load_default_system_fallback_font(&properties))
+}
+
+fn load_default_system_fallback_font(properties: &Properties) -> Font {
+    SystemSource::new()
+        .select_best_match(&[FamilyName::SansSerif], properties)
+        .unwrap()
+        .load()
+        .unwrap()
+}
+
+fn replace_ascii_whitespace(text: String) -> String {
+    text.chars()
+        .map(|c| match c {
+            ' ' | '\t' | '\n' | '\r' | '\x0C' => '\x20',
+            _ => c,
+        })
+        .collect()
 }

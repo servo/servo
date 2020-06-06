@@ -212,10 +212,10 @@ interface mixin CanvasPathDrawingStyles {
 interface mixin CanvasTextDrawingStyles {
   // text
   attribute DOMString font; // (default 10px sans-serif)
-  //attribute CanvasTextAlign textAlign; // "start", "end", "left", "right", "center" (default: "start")
-  //attribute CanvasTextBaseline textBaseline; // "top", "hanging", "middle", "alphabetic",
+  attribute CanvasTextAlign textAlign; // "start", "end", "left", "right", "center" (default: "start")
+  attribute CanvasTextBaseline textBaseline; // "top", "hanging", "middle", "alphabetic",
                                       // "ideographic", "bottom" (default: "alphabetic")
-  //attribute CanvasDirection direction; // "ltr", "rtl", "inherit" (default: "inherit")
+  attribute CanvasDirection direction; // "ltr", "rtl", "inherit" (default: "inherit")
 };
 
 [Exposed=(PaintWorklet, Window, Worker)]

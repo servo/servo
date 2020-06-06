@@ -47,7 +47,10 @@ use app_units::Au;
 use canvas_traits::canvas::{
     CanvasGradientStop, CanvasId, LinearGradientStyle, RadialGradientStyle,
 };
-use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
+use canvas_traits::canvas::{
+    CompositionOrBlending, Direction, LineCapStyle, LineJoinStyle, RepetitionStyle, TextAlign,
+    TextBaseline,
+};
 use canvas_traits::webgl::WebGLVertexArrayId;
 use canvas_traits::webgl::{
     ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, GlType, TexDataType, TexFormat,
@@ -503,6 +506,7 @@ unsafe_no_jsmanaged_fields!(RGBA);
 unsafe_no_jsmanaged_fields!(StorageType);
 unsafe_no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
 unsafe_no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
+unsafe_no_jsmanaged_fields!(TextAlign, TextBaseline, Direction);
 unsafe_no_jsmanaged_fields!(RepetitionStyle);
 unsafe_no_jsmanaged_fields!(WebGLError, GLLimits, GlType);
 unsafe_no_jsmanaged_fields!(TimeProfilerChan);

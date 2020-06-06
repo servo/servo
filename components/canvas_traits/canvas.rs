@@ -46,7 +46,7 @@ pub enum Canvas2dMsg {
     ClosePath,
     Ellipse(Point2D<f32>, f32, f32, f32, f32, f32, bool),
     Fill(FillOrStrokeStyle),
-    FillText(String, f64, f64, Option<f64>, FillOrStrokeStyle),
+    FillText(String, f64, f64, Option<f64>, FillOrStrokeStyle, bool),
     FillRect(Rect<f32>, FillOrStrokeStyle),
     GetImageData(Rect<u64>, Size2D<u64>, IpcBytesSender),
     GetTransform(IpcSender<Transform2D<f32>>),
@@ -72,6 +72,8 @@ pub enum Canvas2dMsg {
     SetShadowBlur(f64),
     SetShadowColor(RGBA),
     SetFont(Font),
+    SetTextAlign(TextAlign),
+    SetTextBaseline(TextBaseline),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -392,5 +394,93 @@ impl FromStr for CompositionOrBlending {
         }
 
         Err(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum TextAlign {
+    Start,
+    End,
+    Left,
+    Right,
+    Center,
+}
+
+impl FromStr for TextAlign {
+    type Err = ();
+
+    fn from_str(string: &str) -> Result<TextAlign, ()> {
+        match string {
+            "start" => Ok(TextAlign::Start),
+            "end" => Ok(TextAlign::End),
+            "left" => Ok(TextAlign::Left),
+            "right" => Ok(TextAlign::Right),
+            "center" => Ok(TextAlign::Center),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Default for TextAlign {
+    fn default() -> TextAlign {
+        TextAlign::Start
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum TextBaseline {
+    Top,
+    Hanging,
+    Middle,
+    Alphabetic,
+    Ideographic,
+    Bottom,
+}
+
+impl FromStr for TextBaseline {
+    type Err = ();
+
+    fn from_str(string: &str) -> Result<TextBaseline, ()> {
+        match string {
+            "top" => Ok(TextBaseline::Top),
+            "hanging" => Ok(TextBaseline::Hanging),
+            "middle" => Ok(TextBaseline::Middle),
+            "alphabetic" => Ok(TextBaseline::Alphabetic),
+            "ideographic" => Ok(TextBaseline::Ideographic),
+            "bottom" => Ok(TextBaseline::Bottom),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Default for TextBaseline {
+    fn default() -> TextBaseline {
+        TextBaseline::Alphabetic
+    }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum Direction {
+    Ltr,
+    Rtl,
+    Inherit,
+}
+
+impl FromStr for Direction {
+    type Err = ();
+
+    fn from_str(string: &str) -> Result<Direction, ()> {
+        match string {
+            "ltr" => Ok(Direction::Ltr),
+            "rtl" => Ok(Direction::Rtl),
+            "inherit" => Ok(Direction::Inherit),
+            _ => Err(()),
+        }
+    }
+}
+
+impl Default for Direction {
+    fn default() -> Direction {
+        Direction::Inherit
     }
 }

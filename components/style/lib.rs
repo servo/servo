@@ -40,6 +40,8 @@ extern crate debug_unreachable;
 extern crate derive_more;
 extern crate euclid;
 extern crate fallible;
+#[cfg(feature = "servo")]
+extern crate font_kit;
 extern crate fxhash;
 #[cfg(feature = "gecko")]
 #[macro_use]
