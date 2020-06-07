@@ -32,7 +32,7 @@ promise_test(async t => {
       navigator.serviceWorker.addEventListener('message', resolve,
                                                {once: true}));
   worker.postMessage('WithoutCorp');
-  assert_equals((await p).data, 'TypeError: Failed to fetch');
+  assert_equals((await p).data, 'Exception: TypeError');
 }, "fetch() to no CORP response should not succeed.");
 
 promise_test(async t => {

@@ -9,6 +9,10 @@
 <body>
   <script>
     var tests = [
+      // Note that the returned csp should always allow execution of an
+      // inline script with nonce "abc" (as returned by
+      // support/echo-policy-multiple.py), otherwise the test might
+      // return false negatives.
       { "name": "'strict-dynamic' is ineffective for `style-src`.", 
         "required_csp": "style-src http://example1.com/foo/ 'self'", 
         "returned_csp_1": "style-src 'strict-dynamic' http://example1.com/foo/bar.html",
@@ -27,11 +31,11 @@
         "expected": IframeLoad.EXPECT_LOAD },
       { "name": "'strict-dynamic' is effective only for `script-src`.", 
         "required_csp": "script-src http://example1.com/foo/ 'self'", 
-        "returned_csp_1": "script-src 'strict-dynamic' http://example1.com/foo/bar.html",
+        "returned_csp_1": "script-src 'strict-dynamic' http://example1.com/foo/bar.html 'nonce-abc'",
         "expected": IframeLoad.EXPECT_BLOCK },
-      { "name": "'strict-dynamic' is proper handled for finding effective policy.", 
+      { "name": "'strict-dynamic' is properly handled for finding effective policy.",
         "required_csp": "script-src http://example1.com/foo/ 'self'", 
-        "returned_csp_1": "script-src 'strict-dynamic' http://example1.com/foo/bar.html",
+        "returned_csp_1": "script-src 'strict-dynamic' http://example1.com/foo/bar.html 'nonce-abc'",
         "returned_csp_2": "script-src 'strict-dynamic' 'nonce-abc'",
         "expected": IframeLoad.EXPECT_BLOCK },
       { "name": "'strict-dynamic' makes host source expressions ineffective.", 

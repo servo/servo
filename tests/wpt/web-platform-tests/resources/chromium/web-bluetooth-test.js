@@ -183,8 +183,12 @@ class FakeCentral {
   // from a device. If central is currently scanning, the device will appear on
   // the list of discovered devices.
   async simulateAdvertisementReceived(scanResult) {
+    // Create a deep-copy to prevent the original |scanResult| from being
+    // modified when the UUIDs, manufacturer, and service data are converted.
+    let clonedScanResult = JSON.parse(JSON.stringify(scanResult));
+
     if ('uuids' in scanResult.scanRecord) {
-      scanResult.scanRecord.uuids =
+      clonedScanResult.scanRecord.uuids =
           canonicalizeAndConvertToMojoUUID(scanResult.scanRecord.uuids);
     }
 
@@ -193,13 +197,13 @@ class FakeCentral {
     // the fields are undefined, set the hasValue field as false and value as 0.
     // Otherwise, set the hasValue field as true and value with the field value.
     const has_appearance = 'appearance' in scanResult.scanRecord;
-    scanResult.scanRecord.appearance = {
+    clonedScanResult.scanRecord.appearance = {
       hasValue: has_appearance,
       value: (has_appearance ? scanResult.scanRecord.appearance : 0)
     }
 
     const has_tx_power = 'txPower' in scanResult.scanRecord;
-    scanResult.scanRecord.txPower = {
+    clonedScanResult.scanRecord.txPower = {
       hasValue: has_tx_power,
       value: (has_tx_power ? scanResult.scanRecord.txPower : 0)
     }
@@ -207,21 +211,21 @@ class FakeCentral {
     // Convert manufacturerData from a record<DOMString, BufferSource> into a
     // map<uint8, array<uint8>> for Mojo.
     if ('manufacturerData' in scanResult.scanRecord) {
-      scanResult.scanRecord.manufacturerData = convertToMojoMap(
-          scanResult.scanRecord.manufacturerData, Number);
+      clonedScanResult.scanRecord.manufacturerData =
+          convertToMojoMap(scanResult.scanRecord.manufacturerData, Number);
     }
 
     // Convert serviceData from a record<DOMString, BufferSource> into a
     // map<string, array<uint8>> for Mojo.
     if ('serviceData' in scanResult.scanRecord) {
-      scanResult.scanRecord.serviceData.serviceData = convertToMojoMap(
+      clonedScanResult.scanRecord.serviceData.serviceData = convertToMojoMap(
           scanResult.scanRecord.serviceData, BluetoothUUID.getService);
     }
 
     await this.fake_central_ptr_.simulateAdvertisementReceived(
-        new bluetooth.mojom.ScanResult(scanResult));
+        new bluetooth.mojom.ScanResult(clonedScanResult));
 
-    return this.fetchOrCreatePeripheral_(scanResult.deviceAddress);
+    return this.fetchOrCreatePeripheral_(clonedScanResult.deviceAddress);
   }
 
   // Simulates a change in the central device described by |state|. For example,

@@ -43,7 +43,7 @@ def SourceFileWithTests(path, hash, cls, variants):
 
 @hs.composite
 def sourcefile_strategy(draw):
-    item_classes = [item.TestharnessTest, item.RefTest,
+    item_classes = [item.TestharnessTest, item.RefTest, item.PrintRefTest,
                     item.ManualTest, item.WebDriverSpecTest,
                     item.ConformanceCheckerTest, item.SupportFile]
     cls = draw(hs.sampled_from(item_classes))
@@ -55,7 +55,7 @@ def sourcefile_strategy(draw):
                   rel_path_parts=rel_path_parts,
                   hash=hash)
 
-    if cls is item.RefTest:
+    if cls in (item.RefTest, item.PrintRefTest):
         ref_path = u"b"
         ref_eq = draw(hs.sampled_from(["==", "!="]))
         test = cls("/foobar", path, "/", utils.from_os_path(path), references=[(utils.from_os_path(ref_path), ref_eq)])

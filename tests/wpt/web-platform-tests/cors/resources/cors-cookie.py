@@ -1,21 +1,21 @@
 
 def main(request, response):
-    origin = request.GET.first("origin", request.headers["origin"])
-    credentials = request.GET.first("credentials", "true")
+    origin = request.GET.first(b"origin", request.headers[b"origin"])
+    credentials = request.GET.first(b"credentials", b"true")
 
-    headers = [("Content-Type", "text/plain")]
-    if origin != 'none':
-        headers.append(("Access-Control-Allow-Origin", origin))
-    if credentials != 'none':
-        headers.append(("Access-Control-Allow-Credentials", credentials))
+    headers = [(b"Content-Type", b"text/plain")]
+    if origin != b'none':
+        headers.append((b"Access-Control-Allow-Origin", origin))
+    if credentials != b'none':
+        headers.append((b"Access-Control-Allow-Credentials", credentials))
 
-    ident = request.GET.first('ident', 'test')
+    ident = request.GET.first(b'ident', b'test')
 
     if ident in request.cookies:
         body = request.cookies[ident].value
         response.delete_cookie(ident)
     else:
-        response.set_cookie(ident, "COOKIE")
-        body = "NO_COOKIE"
+        response.set_cookie(ident, b"COOKIE")
+        body = u"NO_COOKIE"
 
     return headers, body
