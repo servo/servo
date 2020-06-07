@@ -117,7 +117,7 @@ pub enum ParserMetadata {
 }
 
 /// <https://fetch.spec.whatwg.org/#concept-body-source>
-#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum BodySource {
     Null,
     Object,
@@ -178,10 +178,7 @@ impl RequestBody {
     }
 
     pub fn source_is_null(&self) -> bool {
-        if let BodySource::Null = self.source {
-            return true;
-        }
-        false
+        self.source == BodySource::Null
     }
 
     pub fn len(&self) -> Option<usize> {
