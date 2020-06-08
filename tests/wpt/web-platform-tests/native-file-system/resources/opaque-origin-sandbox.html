@@ -4,7 +4,7 @@
 
   // Sends two messages to its creator:
   // (1) The result of chooseFileSystemEntries().
-  // (2) The result of FileSystemDirectoryHandle.getSystemDirectory().
+  // (2) The result of getOriginPrivateDirectory().
 
   function post_message(data) {
     if (window.parent !== null) {
@@ -27,13 +27,13 @@
   }
 
   try {
-    window.FileSystemDirectoryHandle.getSystemDirectory({ type: 'sandbox' })
+    window.getOriginPrivateDirectory()
       .then(() => {
-        post_message('getSystemDirectory(): FULFILLED');
+        post_message('getOriginPrivateDirectory(): FULFILLED');
       }).catch(error => {
-        post_message(`getSystemDirectory(): REJECTED: ${error.name}`);
+        post_message(`getOriginPrivateDirectory(): REJECTED: ${error.name}`);
       });
   } catch (error) {
-    post_message(`getSystemDirectory(): EXCEPTION: ${error.name}`);
+    post_message(`getOriginPrivateDirectory(): EXCEPTION: ${error.name}`);
   }
 </script>

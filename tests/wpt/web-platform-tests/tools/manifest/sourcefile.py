@@ -33,8 +33,16 @@ except ImportError:
 import html5lib
 
 from . import XMLParser
-from .item import (ManifestItem, ManualTest, WebDriverSpecTest, RefTest, TestharnessTest,
-                   SupportFile, CrashTest, ConformanceCheckerTest, VisualTest)
+from .item import (ConformanceCheckerTest,
+                   CrashTest,
+                   ManifestItem,
+                   ManualTest,
+                   PrintRefTest,
+                   RefTest,
+                   SupportFile,
+                   TestharnessTest,
+                   VisualTest,
+                   WebDriverSpecTest)
 from .utils import ContextManagerBytesIO, cached_property
 
 wd_pattern = "*.py"
@@ -44,6 +52,7 @@ python_meta_re = re.compile(br"#\s*META:\s*(\w*)=(.*)$")
 reference_file_re = re.compile(r'(^|[\-_])(not)?ref[0-9]*([\-_]|$)')
 
 space_chars = u"".join(html5lib.constants.spaceCharacters)  # type: Text
+
 
 def replace_end(s, old, new):
     # type: (Text, Text, Text) -> Text
@@ -415,6 +424,11 @@ class SourceFile(object):
 
         See https://web-platform-tests.org/writing-tests/file-names.html#test-features"""
         return "tentative" in self.meta_flags
+
+    @property
+    def name_is_print_reftest(self):
+        # type: () -> bool
+        return self.type_flag == "print" or "print" in self.dir_path.split(os.path.sep)
 
     @property
     def markup_type(self):
@@ -851,6 +865,16 @@ class SourceFile(object):
                     self.rel_path
                 )]
 
+        elif self.name_is_webdriver:
+            rv = WebDriverSpecTest.item_type, [
+                WebDriverSpecTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    self.rel_url,
+                    timeout=self.timeout
+                )]
+
         elif self.name_is_visual:
             rv = VisualTest.item_type, [
                 VisualTest(
@@ -867,6 +891,23 @@ class SourceFile(object):
                     self.rel_path,
                     self.url_base,
                     self.rel_url
+                )]
+
+        elif self.name_is_print_reftest:
+            references = self.references
+            if not references:
+                raise ValueError("%s detected as print reftest but doesn't have any refs" %
+                                 self.path)
+            rv = PrintRefTest.item_type, [
+                PrintRefTest(
+                    self.tests_root,
+                    self.rel_path,
+                    self.url_base,
+                    self.rel_url,
+                    references=references,
+                    timeout=self.timeout,
+                    viewport_size=self.viewport_size,
+                    fuzzy=self.fuzzy,
                 )]
 
         elif self.name_is_multi_global:
@@ -925,16 +966,6 @@ class SourceFile(object):
                 for variant in self.test_variants
             ]
             rv = TestharnessTest.item_type, tests
-
-        elif self.name_is_webdriver:
-            rv = WebDriverSpecTest.item_type, [
-                WebDriverSpecTest(
-                    self.tests_root,
-                    self.rel_path,
-                    self.url_base,
-                    self.rel_url,
-                    timeout=self.timeout
-                )]
 
         elif self.content_is_css_manual and not self.name_is_reference:
             rv = ManualTest.item_type, [

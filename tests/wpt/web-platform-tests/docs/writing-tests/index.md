@@ -25,6 +25,7 @@ There's also a load of [general guidelines](general-guidelines) that apply to al
    manual
    reftest-tutorial
    reftests
+   print-reftests
    rendering
    server-features
    submission-process

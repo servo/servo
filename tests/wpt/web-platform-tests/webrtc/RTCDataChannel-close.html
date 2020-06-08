@@ -66,6 +66,10 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     assert_array_equals(events, ['error', 'close']);
     assert_true(error instanceof RTCError);
     assert_equals(error.name, 'OperationError');
+    assert_equals(error.errorDetail, 'sctp-failure');
+    // Closing a peerconnection causes a DTLS close, but this event has
+    // no corresponding SCTP cause code.
+    assert_equals(error.sctpCauseCode, null);
   }, `Close peerconnection causes close event and error to be called on ${mode}`);
 
   promise_test(async t => {

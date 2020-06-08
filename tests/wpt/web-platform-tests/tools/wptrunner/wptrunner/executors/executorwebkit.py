@@ -1,8 +1,8 @@
 from ..webdriver_server import WebKitDriverServer
-from .base import WdspecExecutor, WebDriverProtocol
+from .base import WdspecExecutor, WdspecProtocol
 
 
-class WebKitDriverProtocol(WebDriverProtocol):
+class WebKitDriverProtocol(WdspecProtocol):
     server_cls = WebKitDriverServer
 
 

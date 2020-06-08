@@ -1,8 +1,8 @@
 from ..webdriver_server import EdgeChromiumDriverServer
-from .base import WdspecExecutor, WebDriverProtocol
+from .base import WdspecExecutor, WdspecProtocol
 
 
-class EdgeChromiumDriverProtocol(WebDriverProtocol):
+class EdgeChromiumDriverProtocol(WdspecProtocol):
     server_cls = EdgeChromiumDriverServer
 
 

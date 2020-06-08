@@ -5,7 +5,8 @@ from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorwebdriver import (WebDriverTestharnessExecutor,  # noqa: F401
                                            WebDriverRefTestExecutor,  # noqa: F401
                                            WebDriverCrashtestExecutor)  # noqa: F401
-from ..executors.executorchrome import ChromeDriverWdspecExecutor  # noqa: F401
+from ..executors.executorchrome import (ChromeDriverWdspecExecutor,  # noqa: F401
+                                        ChromeDriverPrintRefTestExecutor)  # noqa: F401
 
 
 __wptrunner__ = {"product": "chrome",
@@ -13,6 +14,7 @@ __wptrunner__ = {"product": "chrome",
                  "browser": "ChromeBrowser",
                  "executor": {"testharness": "WebDriverTestharnessExecutor",
                               "reftest": "WebDriverRefTestExecutor",
+                              "print-reftest": "ChromeDriverPrintRefTestExecutor",
                               "wdspec": "ChromeDriverWdspecExecutor",
                               "crashtest": "WebDriverCrashtestExecutor"},
                  "browser_kwargs": "browser_kwargs",
@@ -81,7 +83,9 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         chrome_options["args"].extend(kwargs["binary_args"])
 
     # Pass the --headless flag to Chrome if WPT's own --headless flag was set
-    if kwargs["headless"] and "--headless" not in chrome_options["args"]:
+    # or if we're running print reftests because of crbug.com/753118
+    if ((kwargs["headless"] or test_type == "print-reftest") and
+        "--headless" not in chrome_options["args"]):
         chrome_options["args"].append("--headless")
 
     executor_kwargs["capabilities"] = capabilities

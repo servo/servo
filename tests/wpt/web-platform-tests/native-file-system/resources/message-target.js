@@ -85,8 +85,7 @@ function add_message_event_handlers(receiver, target, target_origin) {
         case 'create-file':
           // Create a new file and then respond to the sender with it.
           const directory =
-            await FileSystemDirectoryHandle.getSystemDirectory(
-              { type: 'sandbox' });
+            await self.getOriginPrivateDirectory();
           const file_handle =
             await directory.getFile('temp-file', { create: true });
           message_source.postMessage(
@@ -97,8 +96,7 @@ function add_message_event_handlers(receiver, target, target_origin) {
         case 'create-directory':
           // Create a new directory and then respond to the sender with it.
           const parent_directory =
-            await FileSystemDirectoryHandle.getSystemDirectory(
-              { type: 'sandbox' });
+            await self.getOriginPrivateDirectory();
           const directory_handle =
             await parent_directory.getDirectory('temp-directory',
               { create: true });

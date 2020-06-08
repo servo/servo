@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script>
+
+xr_promise_test(
+  "Verify promise from a non-reentrant to makeXRCompatible() is resolved",
+  (t) => {
+    var gl = document.createElement('canvas').getContext('webgl');
+    return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
+      .then((controller) => {
+        assert_false(gl.getContextAttributes().xrCompatible);
+        return gl.makeXRCompatible();
+      }).then(() => {
+        assert_true(gl.getContextAttributes().xrCompatible);
+        return gl.makeXRCompatible();
+      }).then(() => {
+        assert_true(gl.getContextAttributes().xrCompatible);
+      });
+  });
+
+xr_promise_test(
+  "Verify promises from reentrant calls to makeXRCompatible() are resolved",
+  (t) => {
+    var gl = document.createElement('canvas').getContext('webgl');
+    return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
+      .then((controller) => {
+        assert_false(gl.getContextAttributes().xrCompatible);
+
+        return Promise.all([gl.makeXRCompatible(),
+                            gl.makeXRCompatible(),
+                            gl.makeXRCompatible()]);
+      }).then(() => {
+        assert_true(gl.getContextAttributes().xrCompatible);
+      });
+  });
+
+</script>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>backface visibility: hidden does not apply to child pseudo-stacking context descendants, even when animation is present</title>
+<link rel="author" title="Chris Harrelson" href="mailto:chrishtr@chromium.org">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-2/#propdef-backface-visibility">
+<link rel="match" href="backface-visibility-hidden-004-ref.html">
+
+<p>The test passes if there is a green rectangle and no red</p>
+<style>
+
+  div {
+    width: 100px;
+    height: 100px;
+  }
+  @keyframes spin {
+    from { transform: rotateY(180deg); }
+    to { transform: rotateY(180deg); }
+  }
+  .target {
+    animation: 10000s linear 0s 1 forwards spin;
+  }
+</style>
+<div class=target style="backface-visibility: hidden">
+  <div style="background: green; isolation: isolate"></div>
+</div>

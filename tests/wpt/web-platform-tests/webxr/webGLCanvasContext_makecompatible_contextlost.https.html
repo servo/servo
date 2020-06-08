@@ -13,7 +13,9 @@
       return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
         .then( (controller) => {
           webglCanvas = document.getElementById('webgl-canvas');
-          gl = webglCanvas.getContext('webgl', {xrCompatible: true});
+          gl = webglCanvas.getContext('webgl');
+          return gl.makeXRCompatible();
+        }).then( () => {
           gl.getExtension('WEBGL_lose_context').loseContext();
           return promise_rejects_dom(t, 'InvalidStateError', gl.makeXRCompatible());
         });
