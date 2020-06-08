@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- A xx-XX/Resources.resw file doesn't need to 100% cover the en-US/Resources.resw counterpart.
+       The application falls back to the english resources if the string is not found -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="appDescription" xml:space="preserve">
+    <value>Firefox Reality brings the best and freshest content from the web that you know and love to Virtual Reality headsets. Our browser provides an open, accessible and secure way for everyone to explore the web. Experience sharp text, high quality videos, and a seamless transition from 2D to 3D immersive modes. Enjoy the best possible web browsing experience with Firefox Reality.</value>
+  </data>
+  <data name="backButton.AutomationProperties.Name" xml:space="preserve">
+    <value>Back</value>
+    <comment>Will be recognized by the speech recognition system</comment>
+  </data>
+  <data name="backButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Back</value>
+  </data>
+  <data name="devtoolsButton.AutomationProperties.Name" xml:space="preserve">
+    <value>Developer Tools</value>
+    <comment>Will be recognized by the speech recognition system</comment>
+  </data>
+  <data name="devtoolsButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Developer Tools</value>
+  </data>
+  <data name="forwardButton.AutomationProperties.Name" xml:space="preserve">
+    <value>Forward</value>
+    <comment>Will be recognized by the speech recognition system</comment>
+  </data>
+  <data name="forwardButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Forward</value>
+  </data>
+  <data name="homeButton.AutomationProperties.Name" xml:space="preserve">
+    <value>Home</value>
+    <comment>Will be recognized by the speech recognition system</comment>
+  </data>
+  <data name="homeButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Home</value>
+  </data>
+  <data name="reloadButton.AutomationProperties.Name" xml:space="preserve">
+    <value>Reload</value>
+    <comment>Will be recognized by the speech recognition system</comment>
+  </data>
+  <data name="reloadButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="stopButton.AutomationProperties.Name" xml:space="preserve">
+    <value>Stop</value>
+    <comment>Will be recognized by the speech recognition system</comment>
+  </data>
+  <data name="stopButton.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="urlTextbox.PlaceholderText" xml:space="preserve">
+    <value>Type a URL</value>
+  </data>
+  <data name="devtoolsTabServer.[using:Microsoft.UI.Xaml.Controls]TabViewItem.Header" xml:space="preserve">
+    <value>Devtools Server</value>
+  </data>
+  <data name="devtoolsTabPrefs.[using:Microsoft.UI.Xaml.Controls]TabViewItem.Header" xml:space="preserve">
+    <value>Preferences</value>
+  </data>
+  <data name="preferenceSearchbox.PlaceholderText" xml:space="preserve">
+    <value>Search Preferences</value>
+  </data>
+  <data name="playButton.Label" xml:space="preserve">
+    <value>Play</value>
+  </data>
+  <data name="pauseButton.Label" xml:space="preserve">
+    <value>Pause</value>
+  </data>
+  <data name="devtoolsStatus.Running" xml:space="preserve">
+    <value>Devtools server is listening on port %s.</value>
+  </data>
+  <data name="devtoolsStatus.Failed" xml:space="preserve">
+    <value>Devtools server failed to start.</value>
+  </data>
+  <data name="devtoolsStatus.Stopped" xml:space="preserve">
+    <value>Devtools server is starting.</value>
+  </data>
+  <data name="devtoolsPreferenceResetButton.Content" xml:space="preserve">
+    <value>reset</value>
+  </data>
+  <data name="URINotValid.Alert" xml:space="preserve">
+    <value>URI not valid</value>
+  </data>
+  <data name="JavascriptPrompt.ok" xml:space="preserve">
+    <value>ok</value>
+  </data>
+  <data name="JavascriptPrompt.cancel" xml:space="preserve">
+    <value>cancel</value>
+  </data>
+  <data name="JavascriptPrompt.yes" xml:space="preserve">
+    <value>yes</value>
+  </data>
+  <data name="JavascriptPrompt.no" xml:space="preserve">
+    <value>no</value>
+  </data>
+  <data name="JavascriptPrompt.title" xml:space="preserve">
+    <value>"%s" says:</value>
+  </data>
+  <data name="ContextMenu.title" xml:space="preserve">
+    <value>Menu</value>
+  </data>
+</root>

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 
 using namespace std::placeholders;
+using namespace winrt::Windows::ApplicationModel::Resources;
 using namespace winrt::Windows::Graphics::Display;
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Popups;
@@ -22,6 +23,16 @@ ServoControl::ServoControl() {
   mDPI = (float)DisplayInformation::GetForCurrentView().ResolutionScale() / 100;
   DefaultStyleKey(winrt::box_value(L"ServoApp.ServoControl"));
   Loaded(std::bind(&ServoControl::OnLoaded, this, _1, _2));
+
+  auto r = ResourceLoader::GetForCurrentView();
+  L10NStrings l10NStrings = {r.GetString(L"ContextMenu/title"),
+                             r.GetString(L"JavascriptPrompt/title"),
+                             r.GetString(L"JavascriptPrompt/ok"),
+                             r.GetString(L"JavascriptPrompt/cancel"),
+                             r.GetString(L"JavascriptPrompt/yes"),
+                             r.GetString(L"JavascriptPrompt/no"),
+                             r.GetString(L"URINotValid/Alert")};
+  mL10NStrings = std::make_unique<L10NStrings>(l10NStrings);
 }
 
 void ServoControl::Shutdown() {
@@ -278,9 +289,11 @@ hstring ServoControl::LoadURIOrSearch(hstring input) {
 
   // Doesn't look like a URI. Let's search for the string.
   auto escapedInput = Uri::EscapeComponent(input);
-  std::wstring searchUri = unbox_value<hstring>(std::get<1>(Servo::GetPref(L"shell.searchpage"))).c_str();
-  std::wstring formated = format(searchUri, escapedInput.c_str());
-  hstring finalUri{formated};
+  std::wstring searchUri =
+      unbox_value<hstring>(std::get<1>(Servo::GetPref(L"shell.searchpage")))
+          .c_str();
+  std::wstring formatted = format(searchUri, escapedInput.c_str());
+  hstring finalUri{formatted};
   TryLoadUri(finalUri);
   return finalUri;
 }
@@ -299,7 +312,7 @@ void ServoControl::TryLoadUri(hstring input) {
     RunOnGLThread([=] {
       if (!mServo->LoadUri(input)) {
         RunOnUIThread([=] {
-          MessageDialog msg{L"URI not valid"};
+          MessageDialog msg{mL10NStrings->URINotValid};
           msg.ShowAsync();
         });
       }
@@ -509,14 +522,19 @@ ServoControl::PromptSync(hstring title, hstring message, hstring primaryButton,
 }
 
 void ServoControl::OnServoPromptAlert(winrt::hstring message, bool trusted) {
-  auto title = trusted ? L"" : mCurrentUrl + L" says:";
-  PromptSync(title, message, L"OK", {}, {});
+  auto titlefmt =
+      format(mL10NStrings->PromptTitle.c_str(), mCurrentUrl.c_str());
+  hstring title{trusted ? L"" : titlefmt};
+  PromptSync(title, message, mL10NStrings->PromptOk, {}, {});
 }
 
-Servo::PromptResult
-ServoControl::OnServoPromptOkCancel(winrt::hstring message, bool trusted) {
-  auto title = trusted ? L"" : mCurrentUrl + L" says:";
-  auto [button, string] = PromptSync(title, message, L"OK", L"Cancel", {});
+Servo::PromptResult ServoControl::OnServoPromptOkCancel(winrt::hstring message,
+                                                        bool trusted) {
+  auto titlefmt =
+      format(mL10NStrings->PromptTitle.c_str(), mCurrentUrl.c_str());
+  hstring title{trusted ? L"" : titlefmt};
+  auto [button, string] = PromptSync(title, message, mL10NStrings->PromptOk,
+                                     mL10NStrings->PromptCancel, {});
   if (button == Controls::ContentDialogResult::Primary) {
     return Servo::PromptResult::Primary;
   } else if (button == Controls::ContentDialogResult::Secondary) {
@@ -526,10 +544,13 @@ ServoControl::OnServoPromptOkCancel(winrt::hstring message, bool trusted) {
   }
 }
 
-Servo::PromptResult
-ServoControl::OnServoPromptYesNo(winrt::hstring message, bool trusted) {
-  auto title = trusted ? L"" : mCurrentUrl + L" says:";
-  auto [button, string] = PromptSync(title, message, L"Yes", L"No", {});
+Servo::PromptResult ServoControl::OnServoPromptYesNo(winrt::hstring message,
+                                                     bool trusted) {
+  auto titlefmt =
+      format(mL10NStrings->PromptTitle.c_str(), mCurrentUrl.c_str());
+  hstring title{trusted ? L"" : titlefmt};
+  auto [button, string] = PromptSync(title, message, mL10NStrings->PromptYes,
+                                     mL10NStrings->PromptNo, {});
   if (button == Controls::ContentDialogResult::Primary) {
     return Servo::PromptResult::Primary;
   } else if (button == Controls::ContentDialogResult::Secondary) {
@@ -542,8 +563,11 @@ ServoControl::OnServoPromptYesNo(winrt::hstring message, bool trusted) {
 std::optional<hstring> ServoControl::OnServoPromptInput(winrt::hstring message,
                                                         winrt::hstring default,
                                                         bool trusted) {
-  auto title = trusted ? L"" : mCurrentUrl + L" says:";
-  auto [button, string] = PromptSync(title, message, L"Ok", L"Cancel", default);
+  auto titlefmt =
+      format(mL10NStrings->PromptTitle.c_str(), mCurrentUrl.c_str());
+  hstring title{trusted ? L"" : titlefmt};
+  auto [button, string] = PromptSync(title, message, mL10NStrings->PromptOk,
+                                     mL10NStrings->PromptCancel, default);
   return string;
 }
 
@@ -558,7 +582,8 @@ void ServoControl::OnServoDevtoolsStarted(bool success,
 void ServoControl::OnServoShowContextMenu(std::optional<hstring> title,
                                           std::vector<winrt::hstring> items) {
   RunOnUIThread([=] {
-    MessageDialog msg{title.value_or(L"Menu")};
+    auto titlestr = mL10NStrings->ContextMenuTitle;
+    MessageDialog msg{title.value_or(titlestr)};
     for (auto i = 0; i < items.size(); i++) {
       UICommand cmd{items[i], [=](auto) {
                       RunOnGLThread([=] {
@@ -568,7 +593,7 @@ void ServoControl::OnServoShowContextMenu(std::optional<hstring> title,
                     }};
       msg.Commands().Append(cmd);
     }
-    UICommand cancel{L"Cancel", [=](auto) {
+    UICommand cancel{mL10NStrings->PromptCancel, [=](auto) {
                        RunOnGLThread([=] {
                          mServo->ContextMenuClosed(
                              Servo::ContextMenuResult::Dismissed_, 0);

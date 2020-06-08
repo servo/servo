@@ -26,6 +26,16 @@ private:
   bool mIsDefault;
 };
 
+struct L10NStrings {
+  hstring ContextMenuTitle;
+  hstring PromptTitle;
+  hstring PromptOk;
+  hstring PromptCancel;
+  hstring PromptYes;
+  hstring PromptNo;
+  hstring URINotValid;
+};
+
 struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
 
   ServoControl();
@@ -266,8 +276,8 @@ private:
   CONDITION_VARIABLE mGLCondVar;
   std::unique_ptr<Concurrency::task<void>> mLoopTask;
   hstring mArgs;
-
   std::optional<servo::Servo::MouseButton> mPressedMouseButton = {};
+  std::unique_ptr<L10NStrings> mL10NStrings = nullptr;
 };
 } // namespace winrt::ServoApp::implementation
 

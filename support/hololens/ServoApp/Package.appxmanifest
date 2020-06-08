@@ -16,7 +16,7 @@
   </Resources>
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="ServoApp.App">
-      <uap:VisualElements DisplayName="Firefox Reality" Description="Firefox Reality brings the best and freshest content from the web that you know and love to Virtual Reality headsets. Our browser provides an open, accessible and secure way for everyone to explore the web. Experience sharp text, high quality videos, and a seamless transition from 2D to 3D immersive modes. Enjoy the best possible web browsing experience with Firefox Reality." Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" BackgroundColor="transparent">
+      <uap:VisualElements DisplayName="Firefox Reality" Square150x150Logo="Assets\Square150x150Logo.png" Square44x44Logo="Assets\Square44x44Logo.png" BackgroundColor="transparent" Description="ms-resource:appDescription">
         <uap:DefaultTile Wide310x150Logo="Assets\Wide310x150Logo.png" ShortName="Firefox Reality" Square310x310Logo="Assets\LargeTile.png" Square71x71Logo="Assets\SmallTile.png">
           <uap:ShowNameOnTiles>
             <uap:ShowOn Tile="square150x150Logo" />

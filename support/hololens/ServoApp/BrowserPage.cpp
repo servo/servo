@@ -19,6 +19,7 @@ using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::UI::ViewManagement;
 using namespace winrt::Windows::ApplicationModel::Core;
+using namespace winrt::Windows::ApplicationModel::Resources;
 using namespace winrt::Windows::UI::Notifications;
 using namespace winrt::Windows::Data::Xml::Dom;
 
@@ -181,6 +182,9 @@ void BrowserPage::BuildPrefList() {
   // it's pretty difficiult to have different controls depending
   // on the pref type.
   prefList().Children().Clear();
+  auto resourceLoader = ResourceLoader::GetForCurrentView();
+  auto resetStr =
+      resourceLoader.GetString(L"devtoolsPreferenceResetButton/Content");
   for (auto pref : ServoControl().Preferences()) {
     auto value = pref.Value();
     auto type = value.as<IPropertyValue>().Type();
@@ -244,7 +248,7 @@ void BrowserPage::BuildPrefList() {
       ctrl->Margin({4, 0, 40, 0});
       stack.Children().Append(*ctrl);
       auto reset = Controls::Button();
-      reset.Content(winrt::box_value(L"reset"));
+      reset.Content(winrt::box_value(resetStr));
       reset.IsEnabled(!pref.IsDefault());
       reset.Click([=](const auto &, auto const &) {
         auto upref = ServoControl().ResetPref(pref.Key());
@@ -284,18 +288,19 @@ void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
 
   BuildPrefList();
 
-  // FIXME: we could use template + binding for this.
-  auto ok = mDevtoolsStatus == DevtoolsStatus::Running ? Visibility::Visible
-                                                       : Visibility::Collapsed;
-  auto ko = mDevtoolsStatus == DevtoolsStatus::Failed ? Visibility::Visible
-                                                      : Visibility::Collapsed;
-  auto wip = mDevtoolsStatus == DevtoolsStatus::Stopped ? Visibility::Visible
-                                                        : Visibility::Collapsed;
-  DevtoolsStatusOK().Visibility(ok);
-  DevtoolsStatusKO().Visibility(ko);
-  DevtoolsStatusWIP().Visibility(wip);
+  auto resourceLoader = ResourceLoader::GetForCurrentView();
   if (mDevtoolsStatus == DevtoolsStatus::Running) {
-    DevtoolsPort().Text(std::to_wstring(mDevtoolsPort));
+    std::wstring message =
+        resourceLoader.GetString(L"devtoolsStatus/Running").c_str();
+    std::wstring formatted =
+        format(message, std::to_wstring(mDevtoolsPort).c_str());
+    DevtoolsStatusMessage().Text(formatted);
+  } else if (mDevtoolsStatus == DevtoolsStatus::Failed) {
+    DevtoolsStatusMessage().Text(
+        resourceLoader.GetString(L"devtoolsStatus/Failed"));
+  } else if (mDevtoolsStatus == DevtoolsStatus::Stopped) {
+    DevtoolsStatusMessage().Text(
+        resourceLoader.GetString(L"devtoolsStatus/Stopped"));
   }
 }
 
