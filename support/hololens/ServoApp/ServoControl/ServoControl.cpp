@@ -83,8 +83,8 @@ Controls::SwapChainPanel ServoControl::Panel() {
 }
 
 void ServoControl::CreateNativeWindow() {
-  mPanelWidth = Panel().ActualWidth() * mDPI;
-  mPanelHeight = Panel().ActualHeight() * mDPI;
+  mPanelWidth = (int)(Panel().ActualWidth() * mDPI);
+  mPanelHeight = (int)(Panel().ActualHeight() * mDPI);
   mNativeWindowProperties.Insert(EGLNativeWindowTypeProperty, Panel());
   // How to set size and or scale:
   // Insert(EGLRenderSurfaceSizeProperty),
@@ -513,29 +513,29 @@ void ServoControl::OnServoPromptAlert(winrt::hstring message, bool trusted) {
   PromptSync(title, message, L"OK", {}, {});
 }
 
-servo::Servo::PromptResult
+Servo::PromptResult
 ServoControl::OnServoPromptOkCancel(winrt::hstring message, bool trusted) {
   auto title = trusted ? L"" : mCurrentUrl + L" says:";
   auto [button, string] = PromptSync(title, message, L"OK", L"Cancel", {});
   if (button == Controls::ContentDialogResult::Primary) {
-    return servo::Servo::PromptResult::Primary;
+    return Servo::PromptResult::Primary;
   } else if (button == Controls::ContentDialogResult::Secondary) {
-    return servo::Servo::PromptResult::Secondary;
+    return Servo::PromptResult::Secondary;
   } else {
-    return servo::Servo::PromptResult::Dismissed;
+    return Servo::PromptResult::Dismissed;
   }
 }
 
-servo::Servo::PromptResult
+Servo::PromptResult
 ServoControl::OnServoPromptYesNo(winrt::hstring message, bool trusted) {
   auto title = trusted ? L"" : mCurrentUrl + L" says:";
   auto [button, string] = PromptSync(title, message, L"Yes", L"No", {});
   if (button == Controls::ContentDialogResult::Primary) {
-    return servo::Servo::PromptResult::Primary;
+    return Servo::PromptResult::Primary;
   } else if (button == Controls::ContentDialogResult::Secondary) {
-    return servo::Servo::PromptResult::Secondary;
+    return Servo::PromptResult::Secondary;
   } else {
-    return servo::Servo::PromptResult::Dismissed;
+    return Servo::PromptResult::Dismissed;
   }
 }
 
