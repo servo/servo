@@ -10,7 +10,6 @@
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
-    <ClCompile Include="logs.cpp" />
     <ClCompile Include="BrowserPage.cpp" />
     <ClCompile Include="App.cpp" />
     <ClCompile Include="ServoControl\OpenGLES.cpp">
@@ -25,7 +24,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
-    <ClInclude Include="logs.h" />
     <ClInclude Include="BrowserPage.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="ServoControl\OpenGLES.h">
@@ -38,6 +36,7 @@
       <Filter>ServoControl</Filter>
     </ClInclude>
     <ClInclude Include="DefaultUrl.h" />
+    <ClInclude Include="strutils.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">

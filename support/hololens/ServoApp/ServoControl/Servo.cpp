@@ -178,7 +178,7 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
     } else if (type == Windows::Foundation::PropertyType::Empty) {
       pref.pref_type = capi::CPrefType::Missing;
     } else {
-      log("skipping pref %s. Unknown type", key);
+      log(L"skipping pref %s. Unknown type", key);
       continue;
     }
     cprefs.push_back(pref);

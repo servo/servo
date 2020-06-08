@@ -119,7 +119,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="logs.h" />
+    <ClInclude Include="strutils.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="App.h">
       <DependentUpon>App.xaml</DependentUpon>
@@ -923,7 +923,6 @@
       <DependentUpon>BrowserPage.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
-    <ClCompile Include="logs.cpp" />
     <ClCompile Include="ServoControl\OpenGLES.cpp" />
     <ClCompile Include="ServoControl\Servo.cpp" />
     <ClCompile Include="ServoControl\ServoControl.cpp" />

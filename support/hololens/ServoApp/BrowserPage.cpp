@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "pch.h"
-#include "logs.h"
+#include "strutils.h"
 #include "BrowserPage.h"
 #include "BrowserPage.g.cpp"
 #include "DefaultUrl.h"
@@ -103,7 +103,7 @@ void BrowserPage::LoadServoURI(Uri uri) {
   auto scheme = uri.SchemeName();
 
   if (scheme != SERVO_SCHEME) {
-    log("Unexpected URL: ", uri.RawUri().c_str());
+    log(L"Unexpected URL: ", uri.RawUri().c_str());
     return;
   }
   std::wstring raw{uri.RawUri()};

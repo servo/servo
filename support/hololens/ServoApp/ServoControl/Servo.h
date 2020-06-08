@@ -6,7 +6,7 @@
 
 #include "pch.h"
 #include <EGL/egl.h>
-#include "logs.h"
+#include "strutils.h"
 #include <stdlib.h>
 
 namespace winrt::servo {
