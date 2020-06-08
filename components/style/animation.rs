@@ -882,10 +882,9 @@ impl ElementAnimationSet {
     }
 
     fn cancel_active_transitions(&mut self) {
-        self.dirty = !self.transitions.is_empty();
-
         for transition in self.transitions.iter_mut() {
             if transition.state != AnimationState::Finished {
+                self.dirty = true;
                 transition.state = AnimationState::Canceled;
             }
         }
