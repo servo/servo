@@ -4478,9 +4478,9 @@ dependencies = [
 
 [[package]]
 name = "ryu"
-version = "0.2.8"
+version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b96a9549dc8d48f2c283938303c4b5a77aa29bfbc5b54b084fb1630408899a8f"
+checksum = "71d301d4193d031abdd79ff7e3dd721168a9572ef3fe51a1517aba235bd8f86e"
 
 [[package]]
 name = "same-file"
@@ -4765,9 +4765,9 @@ dependencies = [
 
 [[package]]
 name = "serde_json"
-version = "1.0.27"
+version = "1.0.53"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59790990c5115d16027f00913e2e66de23a51f70422e549d2ad68c8c5f268f1c"
+checksum = "993948e75b189211a9b31a7528f950c6adc21f9720b6438ff80a7fa2f864cea2"
 dependencies = [
  "itoa",
  "ryu",
