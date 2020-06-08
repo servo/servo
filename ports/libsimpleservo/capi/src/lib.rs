@@ -337,14 +337,14 @@ pub enum CContextMenuResult {
     Selected,
     // Can't use Dismissed. Already used by PromptResult. See:
     // https://github.com/servo/servo/issues/25986
-    Dismissed_,
+    Dismiss,
 }
 
 impl CContextMenuResult {
     pub fn convert(&self, idx: u32) -> ContextMenuResult {
         match self {
             CContextMenuResult::Ignored => ContextMenuResult::Ignored,
-            CContextMenuResult::Dismissed_ => ContextMenuResult::Dismissed,
+            CContextMenuResult::Dismiss => ContextMenuResult::Dismissed,
             CContextMenuResult::Selected => ContextMenuResult::Selected(idx as usize),
         }
     }

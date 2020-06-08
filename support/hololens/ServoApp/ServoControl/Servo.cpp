@@ -61,7 +61,7 @@ void on_media_session_metadata(const char *title, const char *album,
 
 void on_media_session_playback_state_change(
     const capi::CMediaSessionPlaybackState state) {
-  return sServo->Delegate().OnServoMediaSessionPlaybackStateChange(state);
+  return sServo->Delegate().OnServoMediaSessionPlaybackStateChange(static_cast<int>(state));
 }
 
 void prompt_alert(const char *message, bool trusted) {

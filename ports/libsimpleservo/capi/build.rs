@@ -17,11 +17,22 @@ fn main() {
     let profile_dir = env::var("PROFILE").unwrap();
     path.push(profile_dir);
     path.push("simpleservo.h");
+    let mut path2 = path.clone();
+
     cbindgen::Builder::new()
-        .with_crate(crate_dir)
+        .with_crate(crate_dir.clone())
         .with_language(cbindgen::Language::C)
         .exclude_item("OutputDebugStringA")
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file(path);
+
+    path2.set_extension("hh");
+    cbindgen::Builder::new()
+        .with_crate(crate_dir)
+        .with_language(cbindgen::Language::Cxx)
+        .exclude_item("OutputDebugStringA")
+        .generate()
+        .expect("Unable to generate Cpp bindings")
+        .write_to_file(path2);
 }

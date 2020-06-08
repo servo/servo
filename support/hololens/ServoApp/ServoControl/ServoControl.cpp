@@ -567,7 +567,7 @@ void ServoControl::OnServoShowContextMenu(std::optional<hstring> title,
     UICommand cancel{L"Cancel", [=](auto) {
                        RunOnGLThread([=] {
                          mServo->ContextMenuClosed(
-                             Servo::ContextMenuResult::Dismissed_, 0);
+                             Servo::ContextMenuResult::Dismiss, 0);
                        });
                      }};
     msg.Commands().Append(cancel);

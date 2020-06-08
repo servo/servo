@@ -12,9 +12,10 @@
 namespace winrt::servo {
 
 namespace capi {
-extern "C" {
-#include <simpleservo.h>
-}
+//extern "C" {
+//#include <simpleservo.h>
+//}
+#include <simpleservo.hh>
 } // namespace capi
 
 hstring char2hstring(const char *);

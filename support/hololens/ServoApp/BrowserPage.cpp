@@ -59,17 +59,17 @@ void BrowserPage::BindServoEvents() {
       [=](hstring title, hstring artist, hstring album) {});
   servoControl().OnMediaSessionPlaybackStateChange(
       [=](const auto &, int state) {
-        if (state == servo::Servo::MediaSessionPlaybackState::None) {
+        if (state == static_cast<int>(servo::Servo::MediaSessionPlaybackState::None)) {
           mediaControls().Visibility(Visibility::Collapsed);
           return;
         }
         mediaControls().Visibility(Visibility::Visible);
         playButton().Visibility(
-            state == servo::Servo::MediaSessionPlaybackState::Paused
+            state == static_cast<int>(servo::Servo::MediaSessionPlaybackState::Paused)
                 ? Visibility::Visible
                 : Visibility::Collapsed);
         pauseButton().Visibility(
-            state == servo::Servo::MediaSessionPlaybackState::Paused
+            state == static_cast<int>(servo::Servo::MediaSessionPlaybackState::Paused)
                 ? Visibility::Collapsed
                 : Visibility::Visible);
       });
