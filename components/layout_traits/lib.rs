@@ -44,7 +44,6 @@ pub trait LayoutThreadFactory {
         time_profiler_chan: time::ProfilerChan,
         mem_profiler_chan: mem::ProfilerChan,
         webrender_api_sender: WebrenderIpcSender,
-        webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,

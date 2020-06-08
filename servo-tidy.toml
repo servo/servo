@@ -37,7 +37,6 @@ packages = [
   "wayland-sys",
   "parking_lot",
   "parking_lot_core",
-  "ron",
 
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "gl_generator",

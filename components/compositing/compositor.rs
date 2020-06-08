@@ -587,10 +587,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
     /// instance in the parent process.
     fn handle_webrender_message(&mut self, msg: WebrenderMsg) {
         match msg {
-            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendInitialTransaction(
-                _doc,
-                pipeline,
-            )) => {
+            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendInitialTransaction(pipeline)) => {
                 self.waiting_on_pending_frame = true;
                 let mut txn = webrender_api::Transaction::new();
                 txn.set_display_list(
@@ -605,7 +602,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             WebrenderMsg::Layout(script_traits::WebrenderMsg::SendScrollNode(
-                _doc,
                 point,
                 scroll_id,
                 clamping,
@@ -617,7 +613,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             WebrenderMsg::Layout(script_traits::WebrenderMsg::SendDisplayList(
-                _doc,
                 epoch,
                 size,
                 pipeline,
@@ -644,7 +639,6 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             WebrenderMsg::Layout(script_traits::WebrenderMsg::HitTest(
-                _doc,
                 pipeline,
                 point,
                 flags,
@@ -684,6 +678,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 self.webrender_api
                     .send_transaction(self.webrender_document, txn);
             },
+
             WebrenderMsg::Font(WebrenderFontMsg::AddFontInstance(font_key, size, sender)) => {
                 let key = self.webrender_api.generate_font_instance_key();
                 let mut txn = webrender_api::Transaction::new();
@@ -692,6 +687,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
                 let _ = sender.send(key);
             },
+
             WebrenderMsg::Font(WebrenderFontMsg::AddFont(data, sender)) => {
                 let font_key = self.webrender_api.generate_font_key();
                 let mut txn = webrender_api::Transaction::new();
@@ -703,9 +699,11 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     .send_transaction(self.webrender_document, txn);
                 let _ = sender.send(font_key);
             },
+
             WebrenderMsg::Canvas(WebrenderCanvasMsg::GenerateKey(sender)) => {
                 let _ = sender.send(self.webrender_api.generate_image_key());
             },
+
             WebrenderMsg::Canvas(WebrenderCanvasMsg::UpdateImages(updates)) => {
                 let mut txn = webrender_api::Transaction::new();
                 for update in updates {

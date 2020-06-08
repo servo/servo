@@ -1100,12 +1100,11 @@ impl From<i32> for MediaSessionActionType {
 #[derive(Deserialize, Serialize)]
 pub enum WebrenderMsg {
     /// Inform WebRender of the existence of this pipeline.
-    SendInitialTransaction(DocumentId, webrender_api::PipelineId),
+    SendInitialTransaction(webrender_api::PipelineId),
     /// Perform a scroll operation.
-    SendScrollNode(DocumentId, LayoutPoint, ExternalScrollId, ScrollClamping),
+    SendScrollNode(LayoutPoint, ExternalScrollId, ScrollClamping),
     /// Inform WebRender of a new display list for the given pipeline.
     SendDisplayList(
-        DocumentId,
         webrender_api::Epoch,
         LayoutSize,
         webrender_api::PipelineId,
@@ -1116,7 +1115,6 @@ pub enum WebrenderMsg {
     /// Perform a hit test operation. The result will be returned via
     /// the provided channel sender.
     HitTest(
-        DocumentId,
         Option<webrender_api::PipelineId>,
         WorldPoint,
         HitTestFlags,
@@ -1140,15 +1138,8 @@ impl WebrenderIpcSender {
     }
 
     /// Inform WebRender of the existence of this pipeline.
-    pub fn send_initial_transaction(
-        &self,
-        document: DocumentId,
-        pipeline: webrender_api::PipelineId,
-    ) {
-        if let Err(e) = self
-            .0
-            .send(WebrenderMsg::SendInitialTransaction(document, pipeline))
-        {
+    pub fn send_initial_transaction(&self, pipeline: webrender_api::PipelineId) {
+        if let Err(e) = self.0.send(WebrenderMsg::SendInitialTransaction(pipeline)) {
             warn!("Error sending initial transaction: {}", e);
         }
     }
@@ -1156,14 +1147,14 @@ impl WebrenderIpcSender {
     /// Perform a scroll operation.
     pub fn send_scroll_node(
         &self,
-        document: DocumentId,
         point: LayoutPoint,
         scroll_id: ExternalScrollId,
         clamping: ScrollClamping,
     ) {
-        if let Err(e) = self.0.send(WebrenderMsg::SendScrollNode(
-            document, point, scroll_id, clamping,
-        )) {
+        if let Err(e) = self
+            .0
+            .send(WebrenderMsg::SendScrollNode(point, scroll_id, clamping))
+        {
             warn!("Error sending scroll node: {}", e);
         }
     }
@@ -1171,14 +1162,12 @@ impl WebrenderIpcSender {
     /// Inform WebRender of a new display list for the given pipeline.
     pub fn send_display_list(
         &self,
-        document: DocumentId,
         epoch: Epoch,
         size: LayoutSize,
         (pipeline, size2, list): (webrender_api::PipelineId, LayoutSize, BuiltDisplayList),
     ) {
         let (data, descriptor) = list.into_data();
         if let Err(e) = self.0.send(WebrenderMsg::SendDisplayList(
-            document,
             webrender_api::Epoch(epoch.0),
             size,
             pipeline,
@@ -1194,16 +1183,13 @@ impl WebrenderIpcSender {
     /// and a result is available.
     pub fn hit_test(
         &self,
-        document: DocumentId,
         pipeline: Option<webrender_api::PipelineId>,
         point: WorldPoint,
         flags: HitTestFlags,
     ) -> HitTestResult {
         let (sender, receiver) = ipc::channel().unwrap();
         self.0
-            .send(WebrenderMsg::HitTest(
-                document, pipeline, point, flags, sender,
-            ))
+            .send(WebrenderMsg::HitTest(pipeline, point, flags, sender))
             .expect("error sending hit test");
         receiver.recv().expect("error receiving hit test result")
     }
