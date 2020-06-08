@@ -2071,9 +2071,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-app-sys"
-version = "0.8.0"
+version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41c85ef44d827b9292833203f6623cf6592d5eda06ad1eeefa63bca0cc38ce71"
+checksum = "bf869ce152c23bca5d761ab62146b47f750d0b28d4d499731857532897d48167"
 dependencies = [
  "glib-sys",
  "gstreamer-base-sys",
