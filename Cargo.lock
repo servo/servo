@@ -919,9 +919,9 @@ dependencies = [
 
 [[package]]
 name = "core-text"
-version = "13.2.0"
+version = "13.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d95a72b5e50e549969dd88eff3047495fe5b8c6f028635442c2b708be707e669"
+checksum = "db84654ad95211c082cf9795f6f83dc17d0ae6c985ac1b906369dc7384ed346d"
 dependencies = [
  "core-foundation 0.6.4",
  "core-graphics 0.17.3",
@@ -2353,7 +2353,7 @@ checksum = "212d74cab8498b2d15700b694fb38f77562869d05e1f8b602dd05221a1ca2d63"
 dependencies = [
  "cc",
  "core-graphics 0.17.3",
- "core-text 13.2.0",
+ "core-text 13.3.2",
  "foreign-types",
  "freetype",
  "pkg-config",
