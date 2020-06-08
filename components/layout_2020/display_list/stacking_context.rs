@@ -234,6 +234,12 @@ impl StackingContext {
             ));
         }
 
+        // TODO(jdm): WebRender now requires us to create stacking context items
+        //            with the IS_BLEND_CONTAINER flag enabled if any children
+        //            of the stacking context have a blend mode applied.
+        //            This will require additional tracking during layout
+        //            before we start collecting stacking contexts so that
+        //            information will be available when we reach this point.
         builder.wr.push_stacking_context(
             LayoutPoint::zero(), // origin
             self.spatial_id,
@@ -245,8 +251,7 @@ impl StackingContext {
             &vec![], // filter_datas
             &vec![], // filter_primitives
             wr::RasterSpace::Screen,
-            false, // cache_tiles,
-            false, // false
+            wr::StackingContextFlags::empty(),
         );
 
         true

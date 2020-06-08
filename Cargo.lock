@@ -755,6 +755,7 @@ dependencies = [
 name = "compositing"
 version = "0.0.1"
 dependencies = [
+ "app_units",
  "canvas",
  "crossbeam-channel",
  "embedder_traits",
@@ -1892,10 +1893,12 @@ dependencies = [
 name = "gfx_traits"
 version = "0.0.1"
 dependencies = [
+ "app_units",
  "malloc_size_of",
  "malloc_size_of_derive",
  "range",
  "serde",
+ "webrender_api",
 ]
 
 [[package]]
@@ -3018,6 +3021,7 @@ dependencies = [
 name = "libservo"
 version = "0.0.1"
 dependencies = [
+ "app_units",
  "background_hang_monitor",
  "bluetooth",
  "bluetooth_traits",
@@ -3034,6 +3038,7 @@ dependencies = [
  "euclid",
  "gaol",
  "gfx",
+ "gfx_traits",
  "gleam 0.11.0",
  "gstreamer",
  "ipc-channel",
@@ -3928,7 +3933,7 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/servo/webrender#01082a9091ab98c392af8934d04271eb1dd546df"
+source = "git+https://github.com/servo/webrender#de3999583ab20aad7c57ea35a3e0394ed45be627"
 dependencies = [
  "euclid",
  "peek-poke-derive 0.2.1 (git+https://github.com/servo/webrender)",
@@ -3946,7 +3951,7 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
-source = "git+https://github.com/servo/webrender#01082a9091ab98c392af8934d04271eb1dd546df"
+source = "git+https://github.com/servo/webrender#de3999583ab20aad7c57ea35a3e0394ed45be627"
 dependencies = [
  "proc-macro2 1.0.17",
  "quote 1.0.2",
@@ -4410,15 +4415,6 @@ name = "rle-decode-fast"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "cabe4fa914dec5870285fa7f71f602645da47c486e68486d2b4ceb4a343e90ac"
-
-[[package]]
-name = "ron"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da06feaa07f69125ab9ddc769b11de29090122170b402547f64b86fe16ebc399"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "ron"
@@ -6401,7 +6397,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender#01082a9091ab98c392af8934d04271eb1dd546df"
+source = "git+https://github.com/servo/webrender#de3999583ab20aad7c57ea35a3e0394ed45be627"
 dependencies = [
  "base64 0.10.1",
  "bincode",
@@ -6427,7 +6423,7 @@ dependencies = [
  "num-traits",
  "plane-split",
  "rayon",
- "ron 0.1.7",
+ "ron",
  "serde",
  "serde_json",
  "smallvec 1.3.0",
@@ -6443,7 +6439,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender#01082a9091ab98c392af8934d04271eb1dd546df"
+source = "git+https://github.com/servo/webrender#de3999583ab20aad7c57ea35a3e0394ed45be627"
 dependencies = [
  "app_units",
  "bitflags",
@@ -6464,7 +6460,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#01082a9091ab98c392af8934d04271eb1dd546df"
+source = "git+https://github.com/servo/webrender#de3999583ab20aad7c57ea35a3e0394ed45be627"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -6544,7 +6540,7 @@ dependencies = [
  "naga",
  "parking_lot 0.10.2",
  "peek-poke 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "ron 0.5.1",
+ "ron",
  "serde",
  "smallvec 1.3.0",
  "spirv_headers",
@@ -6644,7 +6640,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#01082a9091ab98c392af8934d04271eb1dd546df"
+source = "git+https://github.com/servo/webrender#de3999583ab20aad7c57ea35a3e0394ed45be627"
 dependencies = [
  "app_units",
  "euclid",

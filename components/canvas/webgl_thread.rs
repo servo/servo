@@ -655,7 +655,7 @@ impl WebGLThread {
         );
 
         let image_key = Self::create_wr_external_image(
-            &self.webrender_api,
+            &mut self.webrender_api,
             self.webrender_doc,
             size.to_i32(),
             has_alpha,
@@ -718,7 +718,7 @@ impl WebGLThread {
             .contains(ContextAttributeFlags::ALPHA);
         let texture_target = current_wr_texture_target(&self.device);
         Self::update_wr_external_image(
-            &self.webrender_api,
+            &mut self.webrender_api,
             self.webrender_doc,
             size.to_i32(),
             has_alpha,
@@ -1021,7 +1021,7 @@ impl WebGLThread {
 
     /// Creates a `webrender_api::ImageKey` that uses shared textures.
     fn create_wr_external_image(
-        webrender_api: &webrender_api::RenderApi,
+        webrender_api: &mut webrender_api::RenderApi,
         webrender_doc: webrender_api::DocumentId,
         size: Size2D<i32>,
         alpha: bool,
@@ -1041,7 +1041,7 @@ impl WebGLThread {
 
     /// Updates a `webrender_api::ImageKey` that uses shared textures.
     fn update_wr_external_image(
-        webrender_api: &webrender_api::RenderApi,
+        webrender_api: &mut webrender_api::RenderApi,
         webrender_doc: webrender_api::DocumentId,
         size: Size2D<i32>,
         alpha: bool,

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::canvas_paint_thread::AntialiasMode;
+use crate::canvas_paint_thread::{AntialiasMode, ImageUpdate, WebrenderApi};
 use crate::raqote_backend::Repetition;
 use canvas_traits::canvas::*;
 use cssparser::RGBA;
@@ -13,7 +13,6 @@ use num_traits::ToPrimitive;
 use std::marker::PhantomData;
 use std::mem;
 use std::sync::Arc;
-use webrender::api::DirtyRect;
 use webrender_api::units::RectExt as RectExt_;
 
 /// The canvas data stores a state machine for the current status of
@@ -367,8 +366,7 @@ pub struct CanvasData<'a> {
     path_state: Option<PathState>,
     state: CanvasPaintState<'a>,
     saved_states: Vec<CanvasPaintState<'a>>,
-    webrender_api: webrender_api::RenderApi,
-    webrender_doc: webrender_api::DocumentId,
+    webrender_api: Box<dyn WebrenderApi>,
     image_key: Option<webrender_api::ImageKey>,
     /// An old webrender image key that can be deleted when the next epoch ends.
     old_image_key: Option<webrender_api::ImageKey>,
@@ -384,22 +382,19 @@ fn create_backend() -> Box<dyn Backend> {
 impl<'a> CanvasData<'a> {
     pub fn new(
         size: Size2D<u64>,
-        webrender_api_sender: webrender_api::RenderApiSender,
-        webrender_doc: webrender_api::DocumentId,
+        webrender_api: Box<dyn WebrenderApi>,
         antialias: AntialiasMode,
         canvas_id: CanvasId,
     ) -> CanvasData<'a> {
         let backend = create_backend();
         let draw_target = backend.create_drawtarget(size);
-        let webrender_api = webrender_api_sender.create_api();
         CanvasData {
             backend,
             drawtarget: draw_target,
             path_state: None,
             state: CanvasPaintState::new(antialias),
             saved_states: vec![],
-            webrender_api: webrender_api,
-            webrender_doc,
+            webrender_api,
             image_key: None,
             old_image_key: None,
             very_old_image_key: None,
@@ -979,27 +974,28 @@ impl<'a> CanvasData<'a> {
         let data = self.drawtarget.snapshot_data_owned();
         let data = webrender_api::ImageData::Raw(Arc::new(data));
 
-        let mut txn = webrender_api::Transaction::new();
+        let mut updates = vec![];
 
         match self.image_key {
             Some(image_key) => {
                 debug!("Updating image {:?}.", image_key);
-                txn.update_image(image_key, descriptor, data, &DirtyRect::All);
+                updates.push(ImageUpdate::Update(image_key, descriptor, data));
             },
             None => {
-                self.image_key = Some(self.webrender_api.generate_image_key());
+                let key = self.webrender_api.generate_key();
+                updates.push(ImageUpdate::Add(key, descriptor, data));
+                self.image_key = Some(key);
                 debug!("New image {:?}.", self.image_key);
-                txn.add_image(self.image_key.unwrap(), descriptor, data, None);
             },
         }
 
         if let Some(image_key) =
             mem::replace(&mut self.very_old_image_key, self.old_image_key.take())
         {
-            txn.delete_image(image_key);
+            updates.push(ImageUpdate::Delete(image_key));
         }
 
-        self.webrender_api.send_transaction(self.webrender_doc, txn);
+        self.webrender_api.update_images(updates);
 
         let data = CanvasImageData {
             image_key: self.image_key.unwrap(),
@@ -1110,16 +1106,15 @@ impl<'a> CanvasData<'a> {
 
 impl<'a> Drop for CanvasData<'a> {
     fn drop(&mut self) {
-        let mut txn = webrender_api::Transaction::new();
-
+        let mut updates = vec![];
         if let Some(image_key) = self.old_image_key.take() {
-            txn.delete_image(image_key);
+            updates.push(ImageUpdate::Delete(image_key));
         }
         if let Some(image_key) = self.very_old_image_key.take() {
-            txn.delete_image(image_key);
+            updates.push(ImageUpdate::Delete(image_key));
         }
 
-        self.webrender_api.send_transaction(self.webrender_doc, txn);
+        self.webrender_api.update_images(updates);
     }
 }
 

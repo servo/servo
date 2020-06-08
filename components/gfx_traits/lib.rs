@@ -103,3 +103,17 @@ pub fn node_id_from_scroll_id(id: usize) -> Option<usize> {
     }
     None
 }
+
+pub enum FontData {
+    Raw(Vec<u8>),
+    Native(webrender_api::NativeFontHandle),
+}
+
+pub trait WebrenderApi {
+    fn add_font_instance(
+        &self,
+        font_key: webrender_api::FontKey,
+        size: app_units::Au,
+    ) -> webrender_api::FontInstanceKey;
+    fn add_font(&self, data: FontData) -> webrender_api::FontKey;
+}

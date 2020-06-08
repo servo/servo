@@ -109,6 +109,7 @@ use canvas_traits::webgl::WebGLThreads;
 use canvas_traits::ConstellationCanvasMsg;
 use compositing::compositor_thread::CompositorProxy;
 use compositing::compositor_thread::Msg as ToCompositorMsg;
+use compositing::compositor_thread::WebrenderMsg;
 use compositing::{ConstellationMsg as FromCompositorMsg, SendableFrameTree};
 use crossbeam_channel::{after, never, unbounded, Receiver, Sender};
 use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
@@ -171,7 +172,6 @@ use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
 use std::rc::{Rc, Weak};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 use style_traits::viewport::ViewportConstraints;
@@ -384,10 +384,6 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     /// A single WebRender document the constellation operates on.
     webrender_document: webrender_api::DocumentId,
 
-    /// A channel for the constellation to send messages to the
-    /// WebRender thread.
-    webrender_api_sender: webrender_api::RenderApiSender,
-
     /// A channel for content processes to send messages that will
     /// be relayed to the WebRender thread.
     webrender_api_ipc_sender: script_traits::WebrenderIpcSender,
@@ -537,9 +533,6 @@ pub struct InitialConstellationState {
     /// Webrender document ID.
     pub webrender_document: webrender_api::DocumentId,
 
-    /// Webrender API.
-    pub webrender_api_sender: webrender_api::RenderApiSender,
-
     /// Entry point to create and get channels to a WebGLThread.
     pub webgl_threads: Option<WebGLThreads>,
 
@@ -553,9 +546,6 @@ pub struct InitialConstellationState {
 
     /// Mechanism to force the compositor to process events.
     pub event_loop_waker: Option<Box<dyn EventLoopWaker>>,
-
-    /// A flag share with the compositor to indicate that a WR frame is in progress.
-    pub pending_wr_frame: Arc<AtomicBool>,
 
     /// User agent string to report in network requests.
     pub user_agent: Cow<'static, str>,
@@ -726,113 +716,6 @@ where
     mpsc_receiver
 }
 
-enum WebrenderMsg {
-    Layout(script_traits::WebrenderMsg),
-    Net(net_traits::WebrenderImageMsg),
-}
-
-/// Accept messages from content processes that need to be relayed to the WebRender
-/// instance in the parent process.
-fn handle_webrender_message(
-    pending_wr_frame: &AtomicBool,
-    webrender_api: &webrender_api::RenderApi,
-    webrender_doc: webrender_api::DocumentId,
-    msg: WebrenderMsg,
-) {
-    match msg {
-        WebrenderMsg::Layout(script_traits::WebrenderMsg::SendInitialTransaction(
-            doc,
-            pipeline,
-        )) => {
-            pending_wr_frame.store(true, Ordering::SeqCst);
-            let mut txn = webrender_api::Transaction::new();
-            txn.set_display_list(
-                webrender_api::Epoch(0),
-                None,
-                Default::default(),
-                (pipeline, Default::default(), Default::default()),
-                false,
-            );
-            webrender_api.send_transaction(doc, txn);
-        },
-
-        WebrenderMsg::Layout(script_traits::WebrenderMsg::SendScrollNode(
-            doc,
-            point,
-            scroll_id,
-            clamping,
-        )) => {
-            let mut txn = webrender_api::Transaction::new();
-            txn.scroll_node_with_id(point, scroll_id, clamping);
-            webrender_api.send_transaction(doc, txn);
-        },
-
-        WebrenderMsg::Layout(script_traits::WebrenderMsg::SendDisplayList(
-            doc,
-            epoch,
-            size,
-            pipeline,
-            size2,
-            data,
-            descriptor,
-        )) => {
-            pending_wr_frame.store(true, Ordering::SeqCst);
-            let mut txn = webrender_api::Transaction::new();
-            txn.set_display_list(
-                epoch,
-                None,
-                size,
-                (
-                    pipeline,
-                    size2,
-                    webrender_api::BuiltDisplayList::from_data(data, descriptor),
-                ),
-                true,
-            );
-            txn.generate_frame();
-            webrender_api.send_transaction(doc, txn);
-        },
-
-        WebrenderMsg::Layout(script_traits::WebrenderMsg::HitTest(
-            doc,
-            pipeline,
-            point,
-            flags,
-            sender,
-        )) => {
-            let result = webrender_api.hit_test(doc, pipeline, point, flags);
-            let _ = sender.send(result);
-        },
-
-        WebrenderMsg::Layout(script_traits::WebrenderMsg::GenerateImageKey(sender)) |
-        WebrenderMsg::Net(net_traits::WebrenderImageMsg::GenerateImageKey(sender)) => {
-            let _ = sender.send(webrender_api.generate_image_key());
-        },
-
-        WebrenderMsg::Layout(script_traits::WebrenderMsg::UpdateImages(updates)) => {
-            let mut txn = webrender_api::Transaction::new();
-            for update in updates {
-                match update {
-                    script_traits::ImageUpdate::AddImage(key, desc, data) => {
-                        txn.add_image(key, desc, data, None)
-                    },
-                    script_traits::ImageUpdate::DeleteImage(key) => txn.delete_image(key),
-                    script_traits::ImageUpdate::UpdateImage(key, desc, data) => {
-                        txn.update_image(key, desc, data, &webrender_api::DirtyRect::All)
-                    },
-                }
-            }
-            webrender_api.send_transaction(webrender_doc, txn);
-        },
-
-        WebrenderMsg::Net(net_traits::WebrenderImageMsg::AddImage(key, desc, data)) => {
-            let mut txn = webrender_api::Transaction::new();
-            txn.add_image(key, desc, data, None);
-            webrender_api.send_transaction(webrender_doc, txn);
-        },
-    }
-}
-
 impl<Message, LTF, STF, SWF> Constellation<Message, LTF, STF, SWF>
 where
     LTF: LayoutThreadFactory<Message = Message>,
@@ -931,32 +814,23 @@ where
                 let (webrender_image_ipc_sender, webrender_image_ipc_receiver) =
                     ipc::channel().expect("ipc channel failure");
 
-                let webrender_api = state.webrender_api_sender.create_api();
-                let webrender_doc = state.webrender_document;
-                let pending_wr_frame_clone = state.pending_wr_frame.clone();
+                let compositor_proxy = state.compositor_proxy.clone();
                 ROUTER.add_route(
                     webrender_ipc_receiver.to_opaque(),
                     Box::new(move |message| {
-                        handle_webrender_message(
-                            &pending_wr_frame_clone,
-                            &webrender_api,
-                            webrender_doc,
+                        let _ = compositor_proxy.send(ToCompositorMsg::Webrender(
                             WebrenderMsg::Layout(message.to().expect("conversion failure")),
-                        )
+                        ));
                     }),
                 );
 
-                let webrender_api = state.webrender_api_sender.create_api();
-                let pending_wr_frame_clone = state.pending_wr_frame.clone();
+                let compositor_proxy = state.compositor_proxy.clone();
                 ROUTER.add_route(
                     webrender_image_ipc_receiver.to_opaque(),
                     Box::new(move |message| {
-                        handle_webrender_message(
-                            &pending_wr_frame_clone,
-                            &webrender_api,
-                            webrender_doc,
+                        let _ = compositor_proxy.send(ToCompositorMsg::Webrender(
                             WebrenderMsg::Net(message.to().expect("conversion failure")),
-                        )
+                        ));
                     }),
                 );
 
@@ -1009,7 +883,6 @@ where
                     scheduler_receiver,
                     document_states: HashMap::new(),
                     webrender_document: state.webrender_document,
-                    webrender_api_sender: state.webrender_api_sender,
                     webrender_api_ipc_sender: script_traits::WebrenderIpcSender::new(
                         webrender_ipc_sender,
                     ),
@@ -1474,10 +1347,10 @@ where
                 ))
             }
             recv(self.swmanager_receiver) -> msg => {
-                msg.expect("Unexpected panic channel panic in constellation").map(Request::FromSWManager)
+                msg.expect("Unexpected SW channel panic in constellation").map(Request::FromSWManager)
             }
             recv(self.scheduler_receiver) -> msg => {
-                msg.expect("Unexpected panic channel panic in constellation").map(Request::Timer)
+                msg.expect("Unexpected schedule channel panic in constellation").map(Request::Timer)
             }
             recv(scheduler_timeout) -> _ => {
                 // Note: by returning, we go back to the top,
@@ -4386,14 +4259,11 @@ where
         size: UntypedSize2D<u64>,
         response_sender: IpcSender<(IpcSender<CanvasMsg>, CanvasId)>,
     ) {
-        let webrender_api = self.webrender_api_sender.clone();
         let (canvas_id_sender, canvas_id_receiver) = unbounded();
 
         if let Err(e) = self.canvas_chan.send(ConstellationCanvasMsg::Create {
             id_sender: canvas_id_sender,
             size,
-            webrender_sender: webrender_api,
-            webrender_doc: self.webrender_document,
             antialias: self.enable_canvas_antialiasing,
         }) {
             return warn!("Create canvas paint thread failed ({})", e);

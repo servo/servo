@@ -64,10 +64,12 @@ fn webdriver(_port: u16, _constellation: Sender<ConstellationMsg>) {}
 
 use bluetooth::BluetoothThreadFactory;
 use bluetooth_traits::BluetoothRequest;
+use canvas::canvas_paint_thread::{self, CanvasPaintThread};
 use canvas::{SurfaceProviders, WebGLComm, WebGlExecutor};
 use canvas_traits::webgl::WebGLThreads;
 use compositing::compositor_thread::{
-    CompositorProxy, CompositorReceiver, InitialCompositorState, Msg,
+    CompositorProxy, CompositorReceiver, InitialCompositorState, Msg, WebrenderCanvasMsg,
+    WebrenderFontMsg, WebrenderMsg,
 };
 use compositing::windowing::{EmbedderMethods, WindowEvent, WindowMethods};
 use compositing::{CompositingReason, ConstellationMsg, IOCompositor, ShutdownState};
@@ -115,7 +117,6 @@ use std::borrow::Cow;
 use std::cmp::max;
 use std::path::PathBuf;
 use std::rc::Rc;
-use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use surfman::GLApi;
 use webrender::ShaderPrecacheFlags;
@@ -454,7 +455,7 @@ where
             webrender_surfman.clone(),
             webrender_gl.clone(),
             &mut webrender,
-            webrender_api_sender.clone(),
+            webrender_api.create_sender(),
             webrender_document,
             &mut webxr_main_thread,
             &mut external_image_handlers,
@@ -500,8 +501,6 @@ where
             device_pixel_ratio: Scale::new(device_pixel_ratio),
         };
 
-        let pending_wr_frame = Arc::new(AtomicBool::new(false));
-
         // Create the constellation, which maintains the engine
         // pipelines, including the script and layout threads, as well
         // as the navigation context.
@@ -515,14 +514,12 @@ where
             debugger_chan,
             devtools_chan,
             webrender_document,
-            webrender_api_sender,
             webxr_main_thread.registry(),
             player_context,
             webgl_threads,
             glplayer_threads,
             event_loop_waker,
             window_size,
-            pending_wr_frame.clone(),
         );
 
         if cfg!(feature = "webdriver") {
@@ -547,7 +544,6 @@ where
                 webrender_surfman,
                 webrender_gl,
                 webxr_main_thread,
-                pending_wr_frame,
             },
             opts.output_file.clone(),
             opts.is_running_problem_test,
@@ -855,14 +851,12 @@ fn create_constellation(
     debugger_chan: Option<debugger::Sender>,
     devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
     webrender_document: webrender_api::DocumentId,
-    webrender_api_sender: webrender_api::RenderApiSender,
     webxr_registry: webxr_api::Registry,
     player_context: WindowGLContext,
     webgl_threads: Option<WebGLThreads>,
     glplayer_threads: Option<GLPlayerThreads>,
     event_loop_waker: Option<Box<dyn EventLoopWaker>>,
     initial_window_size: WindowSizeData,
-    pending_wr_frame: Arc<AtomicBool>,
 ) -> Sender<ConstellationMsg> {
     // Global configuration options, parsed from the command line.
     let opts = opts::get();
@@ -879,14 +873,14 @@ fn create_constellation(
         config_dir,
         opts.certificate_path.clone(),
     );
+
     let font_cache_thread = FontCacheThread::new(
         public_resource_threads.sender(),
-        webrender_api_sender.create_api(),
-        webrender_document,
+        Box::new(FontCacheWR(compositor_proxy.clone())),
     );
 
     let initial_state = InitialConstellationState {
-        compositor_proxy,
+        compositor_proxy: compositor_proxy.clone(),
         embedder_proxy,
         debugger_chan,
         devtools_chan,
@@ -897,17 +891,16 @@ fn create_constellation(
         time_profiler_chan,
         mem_profiler_chan,
         webrender_document,
-        webrender_api_sender,
         webxr_registry,
         webgl_threads,
         glplayer_threads,
         player_context,
         event_loop_waker,
-        pending_wr_frame,
         user_agent,
     };
 
-    let (canvas_chan, ipc_canvas_chan) = canvas::canvas_paint_thread::CanvasPaintThread::start();
+    let (canvas_chan, ipc_canvas_chan) =
+        CanvasPaintThread::start(Box::new(CanvasWebrenderApi(compositor_proxy)));
 
     let constellation_chan = Constellation::<
         script_layout_interface::message::Msg,
@@ -927,6 +920,50 @@ fn create_constellation(
     );
 
     constellation_chan
+}
+
+struct FontCacheWR(CompositorProxy);
+
+impl gfx_traits::WebrenderApi for FontCacheWR {
+    fn add_font_instance(
+        &self,
+        font_key: webrender_api::FontKey,
+        size: app_units::Au,
+    ) -> webrender_api::FontInstanceKey {
+        let (sender, receiver) = unbounded();
+        let _ = self.0.send(Msg::Webrender(WebrenderMsg::Font(
+            WebrenderFontMsg::AddFontInstance(font_key, size, sender),
+        )));
+        receiver.recv().unwrap()
+    }
+    fn add_font(&self, data: gfx_traits::FontData) -> webrender_api::FontKey {
+        let (sender, receiver) = unbounded();
+        let _ = self.0.send(Msg::Webrender(WebrenderMsg::Font(
+            WebrenderFontMsg::AddFont(data, sender),
+        )));
+        receiver.recv().unwrap()
+    }
+}
+
+#[derive(Clone)]
+struct CanvasWebrenderApi(CompositorProxy);
+
+impl canvas_paint_thread::WebrenderApi for CanvasWebrenderApi {
+    fn generate_key(&self) -> webrender_api::ImageKey {
+        let (sender, receiver) = unbounded();
+        let _ = self.0.send(Msg::Webrender(WebrenderMsg::Canvas(
+            WebrenderCanvasMsg::GenerateKey(sender),
+        )));
+        receiver.recv().unwrap()
+    }
+    fn update_images(&self, updates: Vec<canvas_paint_thread::ImageUpdate>) {
+        let _ = self.0.send(Msg::Webrender(WebrenderMsg::Canvas(
+            WebrenderCanvasMsg::UpdateImages(updates),
+        )));
+    }
+    fn clone(&self) -> Box<dyn canvas_paint_thread::WebrenderApi> {
+        Box::new(<Self as Clone>::clone(self))
+    }
 }
 
 // A logger that logs to two downstream loggers.

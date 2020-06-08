@@ -6,6 +6,7 @@
 
 use crate::compositor::CompositingReason;
 use crate::{ConstellationMsg, SendableFrameTree};
+use canvas::canvas_paint_thread::ImageUpdate;
 use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::EventLoopWaker;
 use euclid::Rect;
@@ -18,8 +19,6 @@ use profile_traits::time;
 use script_traits::{AnimationState, EventResult, MouseButton, MouseEventType};
 use std::fmt::{Debug, Error, Formatter};
 use std::rc::Rc;
-use std::sync::atomic::AtomicBool;
-use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
 use webrender_api;
@@ -122,6 +121,30 @@ pub enum Msg {
     GetScreenSize(IpcSender<DeviceIntSize>),
     /// Get screen available size.
     GetScreenAvailSize(IpcSender<DeviceIntSize>),
+
+    /// Webrender operations requested from non-compositor threads.
+    Webrender(WebrenderMsg),
+}
+
+pub enum WebrenderFontMsg {
+    AddFontInstance(
+        webrender_api::FontKey,
+        app_units::Au,
+        Sender<webrender_api::FontInstanceKey>,
+    ),
+    AddFont(gfx_traits::FontData, Sender<webrender_api::FontKey>),
+}
+
+pub enum WebrenderCanvasMsg {
+    GenerateKey(Sender<webrender_api::ImageKey>),
+    UpdateImages(Vec<ImageUpdate>),
+}
+
+pub enum WebrenderMsg {
+    Layout(script_traits::WebrenderMsg),
+    Net(net_traits::WebrenderImageMsg),
+    Font(WebrenderFontMsg),
+    Canvas(WebrenderCanvasMsg),
 }
 
 impl Debug for Msg {
@@ -148,6 +171,7 @@ impl Debug for Msg {
             Msg::GetClientWindow(..) => write!(f, "GetClientWindow"),
             Msg::GetScreenSize(..) => write!(f, "GetScreenSize"),
             Msg::GetScreenAvailSize(..) => write!(f, "GetScreenAvailSize"),
+            Msg::Webrender(..) => write!(f, "Webrender"),
         }
     }
 }
@@ -171,5 +195,4 @@ pub struct InitialCompositorState {
     pub webrender_surfman: WebrenderSurfman,
     pub webrender_gl: Rc<dyn gleam::gl::Gl>,
     pub webxr_main_thread: webxr::MainThreadRegistry,
-    pub pending_wr_frame: Arc<AtomicBool>,
 }

@@ -38,6 +38,7 @@ webrender_debugger = ["webrender/debugger"]
 xr-profile = ["canvas/xr-profile", "canvas_traits/xr-profile", "script/xr-profile", "webxr/profile"]
 
 [dependencies]
+app_units = "0.7"
 background_hang_monitor = { path = "../background_hang_monitor" }
 bluetooth = { path = "../bluetooth" }
 bluetooth_traits = { path = "../bluetooth_traits" }
@@ -53,6 +54,7 @@ embedder_traits = { path = "../embedder_traits" }
 env_logger = "0.7"
 euclid = "0.20"
 gfx = { path = "../gfx" }
+gfx_traits = { path = "../gfx_traits" }
 gleam = "0.11"
 gstreamer = { version = "0.15", optional = true }
 ipc-channel = "0.14"
