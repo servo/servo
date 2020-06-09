@@ -275,7 +275,7 @@ impl InlineFormattingContext {
 
         loop {
             if let Some(child) = ifc.current_nesting_level.remaining_boxes.next() {
-                match &*child.borrow() {
+                match &mut *child.borrow_mut() {
                     InlineLevelBox::InlineBox(inline) => {
                         let partial = inline.start_layout(child.clone(), &mut ifc);
                         ifc.partial_inline_boxes_stack.push(partial)
@@ -529,7 +529,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
 fn layout_atomic(
     layout_context: &LayoutContext,
     ifc: &mut InlineFormattingContextState,
-    atomic: &IndependentFormattingContext,
+    atomic: &mut IndependentFormattingContext,
 ) {
     let pbm = atomic.style.padding_border_margin(&ifc.containing_block);
     let margin = pbm.margin.auto_is(Length::zero);
