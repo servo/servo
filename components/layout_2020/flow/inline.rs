@@ -20,6 +20,7 @@ use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
 use crate::ContainingBlock;
 use app_units::Au;
+use atomic_refcell::AtomicRef;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -39,7 +40,7 @@ pub(crate) struct InlineFormattingContext {
 pub(crate) enum InlineLevelBox {
     InlineBox(InlineBox),
     TextRun(TextRun),
-    OutOfFlowAbsolutelyPositionedBox(Arc<AbsolutelyPositionedBox>),
+    OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
     OutOfFlowFloatBox(FloatBox),
     Atomic(IndependentFormattingContext),
 }
@@ -275,7 +276,7 @@ impl InlineFormattingContext {
 
         loop {
             if let Some(child) = ifc.current_nesting_level.remaining_boxes.next() {
-                match &*child.borrow() {
+                match &mut *child.borrow_mut() {
                     InlineLevelBox::InlineBox(inline) => {
                         let partial = inline.start_layout(child.clone(), &mut ifc);
                         ifc.partial_inline_boxes_stack.push(partial)
@@ -283,8 +284,9 @@ impl InlineFormattingContext {
                     InlineLevelBox::TextRun(run) => run.layout(layout_context, &mut ifc),
                     InlineLevelBox::Atomic(a) => layout_atomic(layout_context, &mut ifc, a),
                     InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
+                        let style = AtomicRef::map(box_.borrow(), |box_| &box_.contents.style);
                         let initial_start_corner =
-                            match Display::from(box_.contents.style.get_box().original_display) {
+                            match Display::from(style.get_box().original_display) {
                                 Display::GeneratingBox(DisplayGeneratingBox::OutsideInside {
                                     outside,
                                     inside: _,
@@ -313,7 +315,7 @@ impl InlineFormattingContext {
                             Fragment::AbsoluteOrFixedPositioned(
                                 AbsoluteOrFixedPositionedFragment {
                                     hoisted_fragment,
-                                    position: box_.contents.style.clone_position(),
+                                    position: style.clone_position(),
                                 },
                             ),
                         );
@@ -529,7 +531,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
 fn layout_atomic(
     layout_context: &LayoutContext,
     ifc: &mut InlineFormattingContextState,
-    atomic: &IndependentFormattingContext,
+    atomic: &mut IndependentFormattingContext,
 ) {
     let pbm = atomic.style.padding_border_margin(&ifc.containing_block);
     let margin = pbm.margin.auto_is(Length::zero);

@@ -52,7 +52,7 @@ pub(crate) enum BlockLevelBox {
         style: Arc<ComputedValues>,
         contents: BlockContainer,
     },
-    OutOfFlowAbsolutelyPositionedBox(Arc<AbsolutelyPositionedBox>),
+    OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
     OutOfFlowFloatBox(FloatBox),
     Independent(IndependentFormattingContext),
 }
@@ -206,7 +206,7 @@ fn layout_block_level_children(
                 .iter()
                 .enumerate()
                 .map(|(tree_rank, box_)| {
-                    let mut fragment = box_.borrow().layout(
+                    let mut fragment = box_.borrow_mut().layout(
                         layout_context,
                         positioning_context,
                         containing_block,
@@ -226,7 +226,7 @@ fn layout_block_level_children(
                 .mapfold_reduce_into(
                     positioning_context,
                     |positioning_context, (tree_rank, box_)| {
-                        box_.borrow().layout(
+                        box_.borrow_mut().layout(
                             layout_context,
                             positioning_context,
                             containing_block,
@@ -259,7 +259,7 @@ fn layout_block_level_children(
 
 impl BlockLevelBox {
     fn layout(
-        &self,
+        &mut self,
         layout_context: &LayoutContext,
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
@@ -322,7 +322,7 @@ impl BlockLevelBox {
                 positioning_context.push(hoisted_box);
                 Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment {
                     hoisted_fragment,
-                    position: box_.contents.style.clone_position(),
+                    position: box_.borrow().contents.style.clone_position(),
                 })
             },
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {
