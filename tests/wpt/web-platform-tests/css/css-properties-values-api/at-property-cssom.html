@@ -55,8 +55,8 @@
 <script>
 
 function find_at_property_rule(name) {
-  for (let rule of  document.styleSheets[0].cssRules) {
-    if (rule.type != CSSRule.PROPERTY_RULE)
+  for (let rule of document.styleSheets[0].cssRules) {
+    if (rule.constructor.name != "CSSPropertyRule")
       continue;
     if (rule.name == name)
       return rule;
@@ -119,6 +119,13 @@ test_css_text('--no-initial-value', '@property --no-initial-value { syntax: "<co
 test_css_text('--syntax-only', '@property --syntax-only { syntax: "<color> | none"; }');
 test_css_text('--inherits-only', '@property --inherits-only { inherits: true; }');
 test_css_text('--initial-value-only', '@property --initial-value-only { initial-value: red; }');
+
+// CSSRule.type
+
+test(() => {
+  let rule = find_at_property_rule('--valid');
+  assert_equals(rule.type, 0);
+}, 'CSSRule.type returns 0');
 
 // CSSPropertyRule.name
 

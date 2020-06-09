@@ -1,8 +1,8 @@
 from ..webdriver_server import OperaDriverServer
-from .base import WdspecExecutor, WebDriverProtocol
+from .base import WdspecExecutor, WdspecProtocol
 
 
-class OperaDriverProtocol(WebDriverProtocol):
+class OperaDriverProtocol(WdspecProtocol):
     server_cls = OperaDriverServer
 
 

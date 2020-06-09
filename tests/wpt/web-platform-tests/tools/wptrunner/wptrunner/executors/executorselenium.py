@@ -84,6 +84,8 @@ class SeleniumTestharnessProtocolPart(TestharnessProtocolPart):
         self.runner_handle = None
         with open(os.path.join(here, "runner.js")) as f:
             self.runner_script = f.read()
+        with open(os.path.join(here, "window-loaded.js")) as f:
+            self.window_loaded_script = f.read()
 
     def load_runner(self, url_protocol):
         if self.runner_handle:
@@ -144,6 +146,19 @@ class SeleniumTestharnessProtocolPart(TestharnessProtocolPart):
             time.sleep(0.1)
 
         raise Exception("unable to find test window")
+
+    def test_window_loaded(self):
+        """Wait until the page in the new window has been loaded.
+
+        Hereby ignore Javascript execptions that are thrown when
+        the document has been unloaded due to a process change.
+        """
+        while True:
+            try:
+                self.webdriver.execute_script(self.window_loaded_script, asynchronous=True)
+                break
+            except exceptions.JavascriptException:
+                pass
 
 
 class SeleniumSelectorProtocolPart(SelectorProtocolPart):
@@ -317,6 +332,8 @@ class SeleniumTestharnessExecutor(TestharnessExecutor):
                                                            parent_window,
                                                            timeout=5*self.timeout_multiplier)
         self.protocol.base.set_window(test_window)
+        protocol.testharness.test_window_loaded()
+
         protocol.base.load(url)
 
         if not self.supports_eager_pageload:

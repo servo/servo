@@ -8,7 +8,7 @@
 </head>
 <body>
 <script>
-  trustedTypes.createPolicy("default", {createScript: s => s + 4});
+  trustedTypes.createPolicy("default", {createScript: s => s.replace("1", "4")});
   const p = trustedTypes.createPolicy("p", {createScript: s => s});
 
   test(t => {
@@ -16,7 +16,7 @@
   }, "eval of TrustedScript works.");
 
   test(t => {
-    assert_equals(eval('1+1'), 15); // '1+1' + 4 becomes '1+14'.
+    assert_equals(eval('1+1'), 5); // '1+1' becomes '4+1'.
   }, "eval of string works.");
 
   test(t => {
@@ -25,5 +25,15 @@
     assert_equals(eval(null), null);
     assert_equals(eval(undefined), undefined);
    }, "eval of !TrustedScript and !string works.");
+
+  test(t => {
+    // The Function constructor will string-ify its arguments. Hence, this
+    // will apply the default policy, despite being TrustedScript.
+    assert_equals(new Function(p.createScript('return 1+1'))(), 5);
+  }, "Function constructor of TrustedScript works.");
+
+  test(t => {
+    assert_equals(new Function('return 1+1')(), 5);
+  }, "Function constructor of string works.");
 </script>
 

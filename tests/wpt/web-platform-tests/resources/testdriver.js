@@ -87,7 +87,7 @@
          * Triggers a user-initiated click
          *
          * This matches the behaviour of the {@link
-         * https://w3c.github.io/webdriver/webdriver-spec.html#element-click|WebDriver
+         * https://w3c.github.io/webdriver/#element-click|WebDriver
          * Element Click command}.
          *
          * @param {Element} element - element to be clicked
@@ -126,7 +126,7 @@
          * Send keys to an element
          *
          * This matches the behaviour of the {@link
-         * https://w3c.github.io/webdriver/webdriver-spec.html#element-send-keys|WebDriver
+         * https://w3c.github.io/webdriver/#element-send-keys|WebDriver
          * Send Keys command}.
          *
          * @param {Element} element - element to send keys to

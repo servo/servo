@@ -4,5 +4,5 @@ X-Frame-Options: DENY
 
 <!DOCTYPE html>
 <script>
-window.portalHost.postMessage('loaded');
+window.portalHost.postMessage('loaded', '*');
 </script>

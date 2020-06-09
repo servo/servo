@@ -115,3 +115,16 @@ f.math.RadicalKernBeforeDegree = 0
 f.math.RadicalRuleThickness = v2
 f.math.RadicalVerticalGap = v1
 mathfont.save(f)
+
+v1 = 1 * mathfont.em
+v2 = 1 * mathfont.em
+f = mathfont.create("radical-negativekernbeforedegree%d-rulethickness%d" % (v1, v2), "Copyright (c) 2020 Igalia S.L.")
+createStretchyRadical(f)
+f.math.RadicalDegreeBottomRaisePercent = 0
+f.math.RadicalDisplayStyleVerticalGap = 0
+f.math.RadicalExtraAscender = 0
+f.math.RadicalKernAfterDegree = 0
+f.math.RadicalKernBeforeDegree = -v1
+f.math.RadicalRuleThickness = v2
+f.math.RadicalVerticalGap = 0
+mathfont.save(f)

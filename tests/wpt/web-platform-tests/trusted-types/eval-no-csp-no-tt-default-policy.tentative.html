@@ -25,5 +25,13 @@
     assert_equals(eval(null), null);
     assert_equals(eval(undefined), undefined);
    }, "eval of !TrustedScript and !string works.");
+
+  test(t => {
+    assert_equals(new Function(p.createScript('return 1+1'))(), 2);
+  }, "Function constructor of TrustedScript works.");
+
+  test(t => {
+    assert_equals(new Function('return 1+1')(), 2);
+  }, "Function constructor of string works and does not call a default policy.");
 </script>
 

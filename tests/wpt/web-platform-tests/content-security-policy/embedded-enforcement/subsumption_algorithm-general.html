@@ -8,6 +8,10 @@
 </head>
 <body>
   <script>
+    // Note that the returned csp should always allow execution of an
+    // inline script with nonce "abc" (as returned by
+    // support/echo-policy-multiple.py), otherwise the test might
+    // return false negatives.
     var tests = [
       { "name": "If there is no required csp, iframe should load.", 
         "required_csp": null, 
@@ -27,7 +31,7 @@
         "expected": IframeLoad.EXPECT_LOAD },
       { "name": "Iframe with less restricting CSP should be blocked.", 
         "required_csp": "style-src 'none'; script-src 'none'", 
-        "returned_csp": "style-src 'none'; script-src 'self'", 
+        "returned_csp": "style-src 'none'; script-src 'self' 'nonce-abc'", 
         "expected": IframeLoad.EXPECT_BLOCK },
       { "name": "Iframe with a different CSP should be blocked.", 
         "required_csp": "script-src 'nonce-abc' 'nonce-123'", 

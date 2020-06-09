@@ -29,7 +29,7 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                        "timeout_multiplier": timeout_multiplier,
                        "debug_info": kwargs["debug_info"]}
 
-    if test_type == "reftest":
+    if test_type in ("reftest", "print-reftest"):
         executor_kwargs["screenshot_cache"] = cache_manager.dict()
 
     if test_type == "wdspec":
@@ -80,9 +80,10 @@ class TestharnessResultConverter(object):
 testharness_result_converter = TestharnessResultConverter()
 
 
-def hash_screenshot(data):
-    """Computes the sha1 checksum of a base64-encoded screenshot."""
-    return hashlib.sha1(base64.b64decode(data)).hexdigest()
+def hash_screenshots(screenshots):
+    """Computes the sha1 checksum of a list of base64-encoded screenshots."""
+    return [hashlib.sha1(base64.b64decode(screenshot)).hexdigest()
+            for screenshot in screenshots]
 
 
 def _ensure_hash_in_reftest_screenshots(extra):
@@ -98,7 +99,52 @@ def _ensure_hash_in_reftest_screenshots(extra):
             # Skip relation strings.
             continue
         if "hash" not in item:
-            item["hash"] = hash_screenshot(item["screenshot"])
+            item["hash"] = hash_screenshots([item["screenshot"]])[0]
+
+
+def get_pages(ranges_value, total_pages):
+    """Get a set of page numbers to include in a print reftest.
+
+    :param ranges_value: String containing the range specifier from a meta element
+                         e.g. "1-2,4,6-"
+    :param total_pages: Integer total number of pages in the paginated output.
+    :retval: Set containing integer page numbers to include in the comparison e.g.
+             for the example ranges value and 10 total pages this would be
+             {1,2,4,6,7,8,9,10}"""
+    if not ranges_value:
+        return set(range(1, total_pages + 1))
+
+    range_parts = [item.strip() for item in ranges_value.split(",")]
+
+    rv = set()
+    for range_part in range_parts:
+        if "-" not in range_part:
+            try:
+                part = int(range_part)
+            except ValueError:
+                raise ValueError("Page ranges must be either <int> or <int> '-' <int> (found %s)" % range_part)
+            if part <= total_pages:
+                rv.add(part)
+        else:
+            parts = [item.strip() for item in range_part.split("-")]
+            if len(parts) != 2:
+                raise ValueError("Page ranges must be either <int> or <int> '-' <int> (found %s)" % range_part)
+            range_limits = []
+            for part in parts:
+                if part:
+                    try:
+                        range_limits.append(int(part))
+                    except ValueError:
+                        raise ValueError("Page ranges must be either <int> or <int> '-' <int> (found %s)" % range_part)
+                else:
+                    if range_limits:
+                        range_limits.append(total_pages)
+                    else:
+                        range_limits.append(1)
+            if range_limits[0] > total_pages:
+                continue
+            rv |= set(range(range_limits[0], range_limits[1] + 1))
+    return rv
 
 
 def reftest_result_converter(self, test, result):
@@ -125,6 +171,7 @@ def pytest_result_converter(self, test, data):
 
 def crashtest_result_converter(self, test, result):
     return test.result_cls(**result), []
+
 
 class ExecutorException(Exception):
     def __init__(self, status, message):
@@ -326,6 +373,10 @@ class CrashtestExecutor(TestExecutor):
     convert_result = crashtest_result_converter
 
 
+class PrintRefTestExecutor(TestExecutor):
+    convert_result = reftest_result_converter
+
+
 class RefTestImplementation(object):
     def __init__(self, executor):
         self.timeout_multiplier = executor.timeout_multiplier
@@ -351,16 +402,16 @@ class RefTestImplementation(object):
         key = (test.url, viewport_size, dpi)
 
         if key not in self.screenshot_cache:
-            success, data = self.executor.screenshot(test, viewport_size, dpi)
+            success, data = self.get_screenshot_list(test, viewport_size, dpi)
 
             if not success:
                 return False, data
 
-            screenshot = data
-            hash_value = hash_screenshot(data)
-            self.screenshot_cache[key] = (hash_value, screenshot)
+            screenshots = data
+            hash_values = hash_screenshots(data)
+            self.screenshot_cache[key] = (hash_values, screenshots)
 
-            rv = (hash_value, screenshot)
+            rv = (hash_values, screenshots)
         else:
             rv = self.screenshot_cache[key]
 
@@ -370,28 +421,56 @@ class RefTestImplementation(object):
     def reset(self):
         self.screenshot_cache.clear()
 
-    def is_pass(self, hashes, screenshots, urls, relation, fuzzy):
-        assert relation in ("==", "!=")
-        if not fuzzy or fuzzy == ((0,0), (0,0)):
-            equal = hashes[0] == hashes[1]
-            # sometimes images can have different hashes, but pixels can be identical.
-            if not equal:
-                self.logger.info("Image hashes didn't match, checking pixel differences")
-                max_per_channel, pixels_different = self.get_differences(screenshots, urls)
-                equal = pixels_different == 0 and max_per_channel == 0
-        else:
-            max_per_channel, pixels_different = self.get_differences(screenshots, urls)
-            allowed_per_channel, allowed_different = fuzzy
-            self.logger.info("Allowed %s pixels different, maximum difference per channel %s" %
-                             ("-".join(str(item) for item in allowed_different),
-                              "-".join(str(item) for item in allowed_per_channel)))
-            equal = ((pixels_different == 0 and allowed_different[0] == 0) or
-                     (max_per_channel == 0 and allowed_per_channel[0] == 0) or
-                     (allowed_per_channel[0] <= max_per_channel <= allowed_per_channel[1] and
-                      allowed_different[0] <= pixels_different <= allowed_different[1]))
-        return equal if relation == "==" else not equal
+    def check_pass(self, hashes, screenshots, urls, relation, fuzzy):
+        """Check if a test passes, and return a tuple of (pass, page_idx),
+        where page_idx is the zero-based index of the first page on which a
+        difference occurs if any, or None if there are no differences"""
 
-    def get_differences(self, screenshots, urls):
+        assert relation in ("==", "!=")
+        lhs_hashes, rhs_hashes = hashes
+        lhs_screenshots, rhs_screenshots = screenshots
+
+        if len(lhs_hashes) != len(rhs_hashes):
+            self.logger.info("Got different number of pages")
+            return False
+
+        assert len(lhs_screenshots) == len(lhs_hashes) == len(rhs_screenshots) == len(rhs_hashes)
+
+        for (page_idx, (lhs_hash,
+                        rhs_hash,
+                        lhs_screenshot,
+                        rhs_screenshot)) in enumerate(zip(lhs_hashes,
+                                                          rhs_hashes,
+                                                          lhs_screenshots,
+                                                          rhs_screenshots)):
+            comparison_screenshots = (lhs_screenshot, rhs_screenshot)
+            if not fuzzy or fuzzy == ((0, 0), (0, 0)):
+                equal = lhs_hash == rhs_hash
+                # sometimes images can have different hashes, but pixels can be identical.
+                if not equal:
+                    self.logger.info("Image hashes didn't match%s, checking pixel differences" %
+                                     ("" if len(hashes) == 1 else " on page %i" % (page_idx + 1)))
+                    max_per_channel, pixels_different = self.get_differences(comparison_screenshots,
+                                                                             urls)
+                    equal = pixels_different == 0 and max_per_channel == 0
+            else:
+                max_per_channel, pixels_different = self.get_differences(comparison_screenshots,
+                                                                         urls,
+                                                                         page_idx if len(hashes) > 1 else None)
+                allowed_per_channel, allowed_different = fuzzy
+                self.logger.info("Allowed %s pixels different, maximum difference per channel %s" %
+                                 ("-".join(str(item) for item in allowed_different),
+                                  "-".join(str(item) for item in allowed_per_channel)))
+                equal = ((pixels_different == 0 and allowed_different[0] == 0) or
+                         (max_per_channel == 0 and allowed_per_channel[0] == 0) or
+                         (allowed_per_channel[0] <= max_per_channel <= allowed_per_channel[1] and
+                          allowed_different[0] <= pixels_different <= allowed_different[1]))
+            if not equal:
+                return (False if relation == "==" else True, page_idx)
+        # All screenshots were equal within the fuzziness
+        return (True if relation == "==" else False, None)
+
+    def get_differences(self, screenshots, urls, page_idx=None):
         from PIL import Image, ImageChops, ImageStat
 
         lhs = Image.open(io.BytesIO(base64.b64decode(screenshots[0]))).convert("RGB")
@@ -404,8 +483,10 @@ class RefTestImplementation(object):
         stat = ImageStat.Stat(minimal_diff, mask)
         per_channel = max(item[1] for item in stat.extrema)
         count = stat.count[0]
-        self.logger.info("Found %s pixels different, maximum difference per channel %s" %
-                         (count, per_channel))
+        self.logger.info("Found %s pixels different, maximum difference per channel %s%s" %
+                         (count,
+                          per_channel,
+                          "" if page_idx is None else " on page %i" % (page_idx + 1)))
         return per_channel, count
 
     def check_if_solid_color(self, image, url):
@@ -423,6 +504,7 @@ class RefTestImplementation(object):
         # of reachings a leaf node with only pass results
 
         stack = list(((test, item[0]), item[1]) for item in reversed(test.references))
+        page_idx = None
         while stack:
             hashes = [None, None]
             screenshots = [None, None]
@@ -439,16 +521,21 @@ class RefTestImplementation(object):
                 hashes[i], screenshots[i] = data
                 urls[i] = node.url
 
-            if self.is_pass(hashes, screenshots, urls, relation, fuzzy):
+            is_pass, page_idx = self.check_pass(hashes, screenshots, urls, relation, fuzzy)
+            if is_pass:
                 fuzzy = self.get_fuzzy(test, nodes, relation)
                 if nodes[1].references:
-                    stack.extend(list(((nodes[1], item[0]), item[1]) for item in reversed(nodes[1].references)))
+                    stack.extend(list(((nodes[1], item[0]), item[1])
+                                      for item in reversed(nodes[1].references)))
                 else:
                     # We passed
-                    return {"status":"PASS", "message": None}
+                    return {"status": "PASS", "message": None}
 
         # We failed, so construct a failure message
 
+        if page_idx is None:
+            # default to outputting the last page
+            page_idx = -1
         for i, (node, screenshot) in enumerate(zip(nodes, screenshots)):
             if screenshot is None:
                 success, screenshot = self.retake_screenshot(node, viewport_size, dpi)
@@ -456,9 +543,13 @@ class RefTestImplementation(object):
                     screenshots[i] = screenshot
 
         log_data = [
-            {"url": nodes[0].url, "screenshot": screenshots[0], "hash": hashes[0]},
+            {"url": nodes[0].url,
+             "screenshot": screenshots[0][page_idx],
+             "hash": hashes[0][page_idx]},
             relation,
-            {"url": nodes[1].url, "screenshot": screenshots[1], "hash": hashes[1]},
+            {"url": nodes[1].url,
+             "screenshot": screenshots[1][page_idx],
+             "hash": hashes[1][page_idx]},
         ]
 
         return {"status": "FAIL",
@@ -485,7 +576,7 @@ class RefTestImplementation(object):
         return value
 
     def retake_screenshot(self, node, viewport_size, dpi):
-        success, data = self.executor.screenshot(node, viewport_size, dpi)
+        success, data = self.get_screenshot_list(node, viewport_size, dpi)
         if not success:
             return False, data
 
@@ -493,6 +584,12 @@ class RefTestImplementation(object):
         hash_val, _ = self.screenshot_cache[key]
         self.screenshot_cache[key] = hash_val, data
         return True, data
+
+    def get_screenshot_list(self, node, viewport_size, dpi):
+        success, data = self.executor.screenshot(node, viewport_size, dpi)
+        if success and not isinstance(data, list):
+            return success, [data]
+        return success, data
 
 
 class WdspecExecutor(TestExecutor):
@@ -609,7 +706,7 @@ class ConnectionlessProtocol(Protocol):
         pass
 
 
-class WebDriverProtocol(Protocol):
+class WdspecProtocol(Protocol):
     server_cls = None
 
     implements = [ConnectionlessBaseProtocolPart]

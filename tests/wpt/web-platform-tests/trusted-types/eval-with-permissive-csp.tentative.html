@@ -21,14 +21,35 @@
   }, "eval with plain string with Trusted Types and permissive CSP throws (no type).");
 
   test(t => {
+    let a = 0;
+    assert_throws_js(EvalError, _ => {
+      new Function('a="hello there"');
+    });
+    assert_equals(a, 0);
+  }, "Function constructor with plain string with Trusted Types and permissive CSP throws (no type).");
+
+  test(t => {
     let s = eval(p.createScript('"Hello transformed string"'));
     assert_equals("" + s, "Hello a cat string");
   }, "eval with TrustedScript and permissive CSP works.");
+
+  test(t => {
+    assert_throws_js(EvalError, _ => {
+      // The Function constructor will string-ify its arguments. Hence, this
+      // throw because no default policy is defined.
+      let s = new Function(p.createScript('return "Hello transformed string"'));
+    });
+  }, "new Function with TrustedScript and permissive CSP works.");
 
   trustedTypes.createPolicy("default", { createScript: createScriptJS }, true);
   test(t => {
     let s = eval('"Hello transformed untrusted string"');
     assert_equals(s, "Hello a cat untrusted string");
   }, "eval with default policy and permissive CSP still obeys default policy.");
+
+  test(t => {
+    let s = new Function('return "Hello transformed untrusted string"')();
+    assert_equals(s, "Hello a cat untrusted string");
+  }, "new Function with default policy and permissive CSP still obeys default policy.");
 </script>
 

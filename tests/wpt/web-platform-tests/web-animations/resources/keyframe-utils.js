@@ -28,7 +28,8 @@ function assert_frames_equal(a, b, name) {
   assert_equals(Object.keys(a).sort().toString(),
                 Object.keys(b).sort().toString(),
                 `properties on ${name} should match`);
-  for (const p in a) {
+  // Iterates sorted keys to ensure stable failures.
+  for (const p of Object.keys(a).sort()) {
     assert_equals(a[p], b[p], `value for '${p}' on ${name}`);
   }
 }

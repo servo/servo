@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <title>fractions linethickness</title>
     <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#fractions-mfrac">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#dom-and-javascript">
     <meta name="assert" content="Verifies fraction with positive, negative, percent and named space linethickness values.">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
@@ -62,6 +63,16 @@
           assert_approx_equals(LineThickness("calc"), defaultRuleThickness, epsilon);
         }, "Calc() expression");
 
+        test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          document.getElementById("dynamic-attach").setAttribute("linethickness", "400%");
+          document.getElementById("dynamic-modify").setAttribute("linethickness", "200%");
+          document.getElementById("dynamic-remove").removeAttribute("linethickness");
+          assert_approx_equals(LineThickness("dynamic-attach"), defaultRuleThickness * 4, epsilon, "attach");
+          assert_approx_equals(LineThickness("dynamic-modify"), defaultRuleThickness * 2, epsilon, "modify");
+          assert_approx_equals(LineThickness("dynamic-remove"), defaultRuleThickness, epsilon, "remove");
+        }, "Dynamic linethickness");
+
         done();
       }
     </script>
@@ -93,6 +104,24 @@
     </math>
     <math>
       <mfrac id="calc" linethickness="calc(20px)">
+        <mspace width="20px" height="10px" style="background: blue"></mspace>
+        <mspace width="20px" height="10px" style="background: cyan"></mspace>
+      </mfrac>
+    </math>
+    <math>
+      <mfrac id="dynamic-attach">
+        <mspace width="20px" height="10px" style="background: blue"></mspace>
+        <mspace width="20px" height="10px" style="background: cyan"></mspace>
+      </mfrac>
+    </math>
+    <math>
+      <mfrac id="dynamic-modify" linethickness="300%">
+        <mspace width="20px" height="10px" style="background: blue"></mspace>
+        <mspace width="20px" height="10px" style="background: cyan"></mspace>
+      </mfrac>
+    </math>
+    <math>
+      <mfrac id="dynamic-remove" linethickness="300%">
         <mspace width="20px" height="10px" style="background: blue"></mspace>
         <mspace width="20px" height="10px" style="background: cyan"></mspace>
       </mfrac>

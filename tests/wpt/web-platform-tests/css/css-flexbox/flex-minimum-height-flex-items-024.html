@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Flex minimum height with intrinsic min-height specified</title>
+<link rel="author" title="dgrogan@chromium.org" href="mailto:dgrogan@chromium.org" />
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#min-size-auto" />
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#valdef-width-min-content" />
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html" />
+<link rel="bookmark" href="https://crbug.com/1088223">
+<meta name="assert" content="Flex uses automatic minimum sizes when item specifies min-height:intrinsic, because that is treated as auto.">
+
+<p>Test passes if there is a filled green square.</p>
+
+<div style="display: flex; flex-direction: column;">
+  <div style="display: flex; flex-basis: 0; min-height: min-content;">
+    <div style="background: green;">
+      <div style="height: 100px; width: 100px;"></div>
+    </div>
+  </div>
+</div>

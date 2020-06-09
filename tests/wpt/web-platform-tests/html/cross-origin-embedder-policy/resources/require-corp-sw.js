@@ -19,7 +19,7 @@ self.addEventListener('message', e => {
       const response = await fetch(url, { mode: 'no-cors' });
       result = response.type;
     } catch (error) {
-      result = `${error.name}: ${error.message}`;
+      result = `Exception: ${error.name}`;
     } finally {
       e.source.postMessage(result);
     }
