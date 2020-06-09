@@ -15,14 +15,16 @@ use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt, Range};
 use http::header::{self, HeaderMap, HeaderName};
 use hyper::Method;
 use hyper::StatusCode;
-use ipc_channel::ipc::IpcReceiver;
+use ipc_channel::ipc::{self, IpcReceiver};
 use mime::{self, Mime};
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, Origin, ResponseTainting, Window,
 };
-use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
+use net_traits::request::{
+    BodyChunkRequest, CredentialsMode, Destination, Referrer, Request, RequestMode,
+};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use net_traits::{ResourceAttribute, ResourceTimeValue, ResourceTimingType};
@@ -634,18 +636,24 @@ fn scheme_fetch(
         "about" if url.path() == "blank" => create_blank_reply(url, request.timing_type()),
 
         "chrome" if url.path() == "allowcert" => {
-            let mut secret = None;
-            let mut cert_bytes = None;
-            for (name, value) in url.as_url().query_pairs() {
-                match &*name {
-                    "secret" => secret = Some(value),
-                    "bytes" => cert_bytes = base64::decode(value.as_bytes()).ok(),
-                    _ => (),
-                }
-            }
-            if let (Some(secret), Some(bytes)) = (secret, cert_bytes) {
-                if secret.parse() == Ok(*net_traits::PRIVILEGED_SECRET) {
-                    context.state.extra_certs.add(bytes);
+            let data = request.body.as_mut().and_then(|body| {
+                let stream = body.take_stream();
+                let (body_chan, body_port) = ipc::channel().unwrap();
+                let _ = stream.send(BodyChunkRequest::Connect(body_chan));
+                let _ = stream.send(BodyChunkRequest::Chunk);
+                body_port.recv().ok()
+            });
+            let data = data.as_ref().and_then(|b| {
+                let idx = b.iter().position(|b| *b == b'&')?;
+                Some(b.split_at(idx))
+            });
+
+            if let Some((secret, bytes)) = data {
+                let secret = str::from_utf8(secret).ok().and_then(|s| s.parse().ok());
+                if secret == Some(*net_traits::PRIVILEGED_SECRET) {
+                    if let Ok(bytes) = base64::decode(&bytes[1..]) {
+                        context.state.extra_certs.add(bytes);
+                    }
                 }
             }
 

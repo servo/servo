@@ -164,7 +164,7 @@ impl RequestBody {
         }
     }
 
-    pub fn take_stream(&mut self) -> Option<IpcSender<BodyChunkRequest>> {
+    pub fn take_stream(&mut self) -> IpcSender<BodyChunkRequest> {
         if self.read_from {
             match self.source {
                 BodySource::Null => panic!(
@@ -174,12 +174,12 @@ impl RequestBody {
                     let (chan, port) = ipc::channel().unwrap();
                     let _ = self.chan.send(BodyChunkRequest::Extract(port));
                     self.chan = chan.clone();
-                    return Some(chan);
+                    return chan;
                 },
             }
         }
         self.read_from = true;
-        Some(self.chan.clone())
+        self.chan.clone()
     }
 
     pub fn source_is_null(&self) -> bool {

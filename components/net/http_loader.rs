@@ -1571,7 +1571,7 @@ fn http_network_fetch(
         &url,
         &request.method,
         &request.headers,
-        request.body.as_mut().and_then(|body| body.take_stream()),
+        request.body.as_mut().map(|body| body.take_stream()),
         &request.pipeline_id,
         request_id.as_ref().map(Deref::deref),
         is_xhr,

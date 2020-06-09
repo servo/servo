@@ -14,11 +14,11 @@
     if (bytes.length) {
         button.onclick = function() {
             let xhr = new XMLHttpRequest();
-            xhr.open('GET', 'chrome:allowcert?secret=${secret}&bytes=' + btoa(bytes));
+            xhr.open('POST', 'chrome:allowcert');
             xhr.onloadend = function() {
                 location.reload(true);
             };
-            xhr.send();
+            xhr.send("${secret}&" + btoa(bytes));
         };
     } else {
         button.style.display = "none";
