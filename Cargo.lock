@@ -1352,9 +1352,9 @@ dependencies = [
 
 [[package]]
 name = "encoding_c"
-version = "0.9.7"
+version = "0.9.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1891d977f814fd638c3b964987778665b5d1dc8690f46c4c7adc91466ad1c78a"
+checksum = "9af727805f3b0d79956bde5b35732669fb5c5d45a94893798e7b7e70cfbf9cc1"
 dependencies = [
  "encoding_rs",
 ]
