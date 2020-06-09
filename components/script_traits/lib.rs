@@ -1195,12 +1195,12 @@ impl WebrenderIpcSender {
     }
 
     /// Create a new image key. Blocks until the key is available.
-    pub fn generate_image_key(&self) -> ImageKey {
+    pub fn generate_image_key(&self) -> Result<ImageKey, ()> {
         let (sender, receiver) = ipc::channel().unwrap();
         self.0
             .send(WebrenderMsg::GenerateImageKey(sender))
-            .expect("error sending image key generation");
-        receiver.recv().expect("error receiving image key result")
+            .map_err(|_| ())?;
+        receiver.recv().map_err(|_| ())
     }
 
     /// Perform a resource update operation.

@@ -213,7 +213,10 @@ impl VideoFrameRenderer for MediaFrameRenderer {
             Some((ref mut image_key, ref mut width, ref mut height)) => {
                 self.old_frame = Some(*image_key);
 
-                let new_image_key = self.api.generate_image_key();
+                let new_image_key = match self.api.generate_image_key() {
+                    Ok(key) => key,
+                    Err(()) => return,
+                };
 
                 /* update current_frame */
                 *image_key = new_image_key;
@@ -243,7 +246,10 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                 updates.push(ImageUpdate::AddImage(new_image_key, descriptor, image_data));
             },
             None => {
-                let image_key = self.api.generate_image_key();
+                let image_key = match self.api.generate_image_key() {
+                    Ok(key) => key,
+                    Err(()) => return,
+                };
                 self.current_frame = Some((image_key, frame.get_width(), frame.get_height()));
 
                 let image_data = if frame.is_gl_texture() && self.player_id.is_some() {
