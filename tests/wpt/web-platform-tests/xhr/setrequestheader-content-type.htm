@@ -215,24 +215,6 @@
         // https://fetch.spec.whatwg.org/#bodyinit, so the user's must be changed to match it
         // as per https://xhr.spec.whatwg.org/#the-send%28%29-method step 4.
       )
-      request(
-        function _ReadableStream() { return new ReadableStream() },
-        {"Content-Type": ""},
-        "",
-        'ReadableStream request respects setRequestHeader("")'
-      )
-      request(
-        function _ReadableStream() { return new ReadableStream() },
-        {},
-        undefined,
-        "ReadableStream request with under type sends no Content-Type without setRequestHeader() call"
-      )
-      request(
-        function _ReadableStream() { return new ReadableStream() },
-        {"Content-Type": "application/xml;charset=ASCII"},
-        "application/xml;charset=ASCII",
-        "ReadableStream request keeps setRequestHeader() Content-Type and charset"
-      )
     </script>
   </body>
 </html>

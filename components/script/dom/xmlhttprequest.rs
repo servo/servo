@@ -8,7 +8,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestMethods;
 use crate::dom::bindings::codegen::Bindings::XMLHttpRequestBinding::XMLHttpRequestResponseType;
-use crate::dom::bindings::codegen::UnionTypes::DocumentOrBodyInit;
+use crate::dom::bindings::codegen::UnionTypes::DocumentOrXMLHttpRequestBodyInit;
 use crate::dom::bindings::conversions::ToJSValConvertible;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -547,7 +547,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
     }
 
     // https://xhr.spec.whatwg.org/#the-send()-method
-    fn Send(&self, data: Option<DocumentOrBodyInit>) -> ErrorResult {
+    fn Send(&self, data: Option<DocumentOrXMLHttpRequestBodyInit>) -> ErrorResult {
         // Step 1, 2
         if self.ready_state.get() != XMLHttpRequestState::Opened || self.send_flag.get() {
             return Err(Error::InvalidState);
@@ -560,7 +560,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         };
         // Step 4 (first half)
         let mut extracted_or_serialized = match data {
-            Some(DocumentOrBodyInit::Document(ref doc)) => {
+            Some(DocumentOrXMLHttpRequestBodyInit::Document(ref doc)) => {
                 let bytes = Vec::from(serialize_document(&doc)?.as_ref());
                 let content_type = if doc.is_html_document() {
                     "text/html;charset=UTF-8"
@@ -577,7 +577,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     source: BodySource::Object,
                 })
             },
-            Some(DocumentOrBodyInit::Blob(ref b)) => {
+            Some(DocumentOrXMLHttpRequestBodyInit::Blob(ref b)) => {
                 let extracted_body = b.extract(&self.global()).expect("Couldn't extract body.");
                 if !extracted_body.in_memory() && self.sync.get() {
                     warn!("Sync XHR with not in-memory Blob as body not supported");
@@ -586,20 +586,20 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     Some(extracted_body)
                 }
             },
-            Some(DocumentOrBodyInit::FormData(ref formdata)) => Some(
+            Some(DocumentOrXMLHttpRequestBodyInit::FormData(ref formdata)) => Some(
                 formdata
                     .extract(&self.global())
                     .expect("Couldn't extract body."),
             ),
-            Some(DocumentOrBodyInit::String(ref str)) => {
+            Some(DocumentOrXMLHttpRequestBodyInit::String(ref str)) => {
                 Some(str.extract(&self.global()).expect("Couldn't extract body."))
             },
-            Some(DocumentOrBodyInit::URLSearchParams(ref urlsp)) => Some(
+            Some(DocumentOrXMLHttpRequestBodyInit::URLSearchParams(ref urlsp)) => Some(
                 urlsp
                     .extract(&self.global())
                     .expect("Couldn't extract body."),
             ),
-            Some(DocumentOrBodyInit::ArrayBuffer(ref typedarray)) => {
+            Some(DocumentOrXMLHttpRequestBodyInit::ArrayBuffer(ref typedarray)) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
                 let global = self.global();
@@ -611,7 +611,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     source: BodySource::Object,
                 })
             },
-            Some(DocumentOrBodyInit::ArrayBufferView(ref typedarray)) => {
+            Some(DocumentOrXMLHttpRequestBodyInit::ArrayBufferView(ref typedarray)) => {
                 let bytes = typedarray.to_vec();
                 let total_bytes = bytes.len();
                 let global = self.global();
@@ -622,25 +622,6 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                     content_type: None,
                     source: BodySource::Object,
                 })
-            },
-            Some(DocumentOrBodyInit::ReadableStream(ref stream)) => {
-                if self.sync.get() {
-                    warn!("Sync XHR with ReadableStream as body not supported");
-                    None
-                } else {
-                    if stream.is_locked() || stream.is_disturbed() {
-                        return Err(Error::Type(
-                            "The body's stream is disturbed or locked".to_string(),
-                        ));
-                    }
-
-                    Some(ExtractedBody {
-                        stream: stream.clone(),
-                        total_bytes: None,
-                        content_type: None,
-                        source: BodySource::Null,
-                    })
-                }
             },
             None => None,
         };
@@ -725,7 +706,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         match content_type {
             Some(content_type) => {
                 let encoding = match data {
-                    Some(DocumentOrBodyInit::String(_)) | Some(DocumentOrBodyInit::Document(_)) =>
+                    Some(DocumentOrXMLHttpRequestBodyInit::String(_)) |
+                    Some(DocumentOrXMLHttpRequestBodyInit::Document(_)) =>
                     // XHR spec differs from http, and says UTF-8 should be in capitals,
                     // instead of "utf-8", which is what Hyper defaults to. So not
                     // using content types provided by Hyper.
