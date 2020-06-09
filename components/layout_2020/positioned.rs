@@ -12,9 +12,8 @@ use crate::geom::{LengthOrAuto, LengthPercentageOrAuto};
 use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
-use rayon::iter::{IntoParallelRefIterator, ParallelExtend};
+use rayon::iter::{IntoParallelRefMutIterator, ParallelExtend};
 use rayon_croissant::ParallelIteratorExt;
-use servo_arc::Arc;
 use style::computed_values::position::T as Position;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage};
@@ -36,7 +35,7 @@ pub(crate) struct PositioningContext {
 }
 
 pub(crate) struct HoistedAbsolutelyPositionedBox {
-    absolutely_positioned_box: Arc<AbsolutelyPositionedBox>,
+    absolutely_positioned_box: ArcRefCell<AbsolutelyPositionedBox>,
 
     /// The rank of the child from which this absolutely positioned fragment
     /// came from, when doing the layout of a block container. Used to compute
@@ -98,14 +97,14 @@ impl AbsolutelyPositionedBox {
     }
 
     pub(crate) fn to_hoisted(
-        self_: Arc<Self>,
+        self_: ArcRefCell<Self>,
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
     ) -> HoistedAbsolutelyPositionedBox {
         fn absolute_box_offsets(
             initial_static_start: Length,
-            start: LengthPercentageOrAuto,
-            end: LengthPercentageOrAuto,
+            start: LengthPercentageOrAuto<'_>,
+            end: LengthPercentageOrAuto<'_>,
         ) -> AbsoluteBoxOffsets {
             match (start.non_auto(), end.non_auto()) {
                 (None, None) => AbsoluteBoxOffsets::StaticStart {
@@ -122,10 +121,10 @@ impl AbsolutelyPositionedBox {
             }
         }
 
-        let box_offsets = self_.contents.style.box_offsets();
-        HoistedAbsolutelyPositionedBox {
-            tree_rank,
-            box_offsets: Vec2 {
+        let box_offsets = {
+            let box_ = self_.borrow();
+            let box_offsets = box_.contents.style.box_offsets();
+            Vec2 {
                 inline: absolute_box_offsets(
                     initial_start_corner.inline,
                     box_offsets.inline_start,
@@ -136,7 +135,11 @@ impl AbsolutelyPositionedBox {
                     box_offsets.block_start,
                     box_offsets.block_end,
                 ),
-            },
+            }
+        };
+        HoistedAbsolutelyPositionedBox {
+            tree_rank,
+            box_offsets,
             fragment: ArcRefCell::new(None),
             absolutely_positioned_box: self_,
         }
@@ -268,7 +271,7 @@ impl PositioningContext {
         while !hoisted_boxes.is_empty() {
             HoistedAbsolutelyPositionedBox::layout_many(
                 layout_context,
-                &hoisted_boxes,
+                &mut hoisted_boxes,
                 &mut laid_out_child_fragments,
                 &mut self.for_nearest_containing_block_for_all_descendants,
                 &containing_block,
@@ -281,12 +284,13 @@ impl PositioningContext {
 
     pub(crate) fn push(&mut self, box_: HoistedAbsolutelyPositionedBox) {
         if let Some(nearest) = &mut self.for_nearest_positioned_ancestor {
-            match box_
+            let position = box_
                 .absolutely_positioned_box
+                .borrow()
                 .contents
                 .style
-                .clone_position()
-            {
+                .clone_position();
+            match position {
                 Position::Fixed => {}, // fall through
                 Position::Absolute => return nearest.push(box_),
                 Position::Static | Position::Relative => unreachable!(),
@@ -357,7 +361,7 @@ impl PositioningContext {
         {
             HoistedAbsolutelyPositionedBox::layout_many(
                 layout_context,
-                &std::mem::take(&mut self.for_nearest_containing_block_for_all_descendants),
+                &mut std::mem::take(&mut self.for_nearest_containing_block_for_all_descendants),
                 fragments,
                 &mut self.for_nearest_containing_block_for_all_descendants,
                 initial_containing_block,
@@ -369,13 +373,13 @@ impl PositioningContext {
 impl HoistedAbsolutelyPositionedBox {
     pub(crate) fn layout_many(
         layout_context: &LayoutContext,
-        boxes: &[Self],
+        boxes: &mut [Self],
         fragments: &mut Vec<ArcRefCell<Fragment>>,
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
     ) {
         if layout_context.use_rayon {
-            fragments.par_extend(boxes.par_iter().mapfold_reduce_into(
+            fragments.par_extend(boxes.par_iter_mut().mapfold_reduce_into(
                 for_nearest_containing_block_for_all_descendants,
                 |for_nearest_containing_block_for_all_descendants, box_| {
                     let new_fragment = ArcRefCell::new(Fragment::Box(box_.layout(
@@ -391,7 +395,7 @@ impl HoistedAbsolutelyPositionedBox {
                 vec_append_owned,
             ))
         } else {
-            fragments.extend(boxes.iter().map(|box_| {
+            fragments.extend(boxes.iter_mut().map(|box_| {
                 let new_fragment = ArcRefCell::new(Fragment::Box(box_.layout(
                     layout_context,
                     for_nearest_containing_block_for_all_descendants,
@@ -404,19 +408,20 @@ impl HoistedAbsolutelyPositionedBox {
     }
 
     pub(crate) fn layout(
-        &self,
+        &mut self,
         layout_context: &LayoutContext,
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
         containing_block: &DefiniteContainingBlock,
     ) -> BoxFragment {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
-        let style = &self.absolutely_positioned_box.contents.style;
+        let absolutely_positioned_box = self.absolutely_positioned_box.borrow_mut();
+        let style = &absolutely_positioned_box.contents.style;
         let pbm = style.padding_border_margin(&containing_block.into());
 
         let size;
         let replaced_used_size;
-        match self.absolutely_positioned_box.contents.as_replaced() {
+        match absolutely_positioned_box.contents.as_replaced() {
             Ok(replaced) => {
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
@@ -468,11 +473,11 @@ impl HoistedAbsolutelyPositionedBox {
             |positioning_context| {
                 let size;
                 let fragments;
-                match self.absolutely_positioned_box.contents.as_replaced() {
+                match absolutely_positioned_box.contents.as_replaced() {
                     Ok(replaced) => {
                         // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                         // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                        let style = &self.absolutely_positioned_box.contents.style;
+                        let style = &absolutely_positioned_box.contents.style;
                         size = replaced_used_size.unwrap();
                         fragments = replaced.make_fragments(style, size.clone());
                     },
@@ -488,7 +493,7 @@ impl HoistedAbsolutelyPositionedBox {
                                 anchor -
                                 pbm.padding_border_sums.inline -
                                 margin.inline_sum();
-                            self.absolutely_positioned_box
+                            absolutely_positioned_box
                                 .contents
                                 .content_sizes
                                 .shrink_to_fit(available_size)
@@ -544,7 +549,7 @@ impl HoistedAbsolutelyPositionedBox {
                 };
 
                 BoxFragment::new(
-                    self.absolutely_positioned_box.contents.tag,
+                    absolutely_positioned_box.contents.tag,
                     style.clone(),
                     fragments,
                     content_rect,

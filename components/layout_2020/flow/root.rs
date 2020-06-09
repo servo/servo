@@ -207,7 +207,7 @@ impl BoxTree {
                 let contents = ReplacedContent::for_element(dirty_node)
                     .map_or(Contents::OfElement, Contents::Replaced);
                 let info = NodeAndStyleInfo::new(dirty_node, Arc::clone(&primary_style));
-                let out_of_flow_absolutely_positioned_box = Arc::new(
+                let out_of_flow_absolutely_positioned_box = ArcRefCell::new(
                     AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
                 );
                 match update_point {
@@ -267,7 +267,7 @@ fn construct_for_root_element<'dom>(
     let (contains_floats, root_box) = if box_style.position.is_absolutely_positioned() {
         (
             ContainsFloats::No,
-            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
+            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
                 AbsolutelyPositionedBox::construct(context, &info, display_inside, contents),
             )),
         )

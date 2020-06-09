@@ -20,6 +20,7 @@ use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
 use crate::ContainingBlock;
 use app_units::Au;
+use atomic_refcell::AtomicRef;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
 use style::properties::ComputedValues;
@@ -39,7 +40,7 @@ pub(crate) struct InlineFormattingContext {
 pub(crate) enum InlineLevelBox {
     InlineBox(InlineBox),
     TextRun(TextRun),
-    OutOfFlowAbsolutelyPositionedBox(Arc<AbsolutelyPositionedBox>),
+    OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
     OutOfFlowFloatBox(FloatBox),
     Atomic(IndependentFormattingContext),
 }
@@ -283,8 +284,9 @@ impl InlineFormattingContext {
                     InlineLevelBox::TextRun(run) => run.layout(layout_context, &mut ifc),
                     InlineLevelBox::Atomic(a) => layout_atomic(layout_context, &mut ifc, a),
                     InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
+                        let style = AtomicRef::map(box_.borrow(), |box_| &box_.contents.style);
                         let initial_start_corner =
-                            match Display::from(box_.contents.style.get_box().original_display) {
+                            match Display::from(style.get_box().original_display) {
                                 Display::GeneratingBox(DisplayGeneratingBox::OutsideInside {
                                     outside,
                                     inside: _,
@@ -313,7 +315,7 @@ impl InlineFormattingContext {
                             Fragment::AbsoluteOrFixedPositioned(
                                 AbsoluteOrFixedPositionedFragment {
                                     hoisted_fragment,
-                                    position: box_.contents.style.clone_position(),
+                                    position: style.clone_position(),
                                 },
                             ),
                         );

@@ -15,7 +15,6 @@ use crate::sizing::{BoxContentSizes, ContentSizes, ContentSizesRequest};
 use crate::style_ext::DisplayGeneratingBox;
 use crate::ContainingBlock;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
-use servo_arc::Arc;
 use std::borrow::Cow;
 use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
@@ -31,7 +30,7 @@ pub(crate) struct FlexContainer {
 #[derive(Debug, Serialize)]
 pub(crate) enum FlexLevelBox {
     FlexItem(IndependentFormattingContext),
-    OutOfFlowAbsolutelyPositionedBox(Arc<AbsolutelyPositionedBox>),
+    OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
 }
 
 impl FlexContainer {
@@ -192,14 +191,14 @@ where
                     };
                     let box_ = if info.style.get_box().position.is_absolutely_positioned() {
                         // https://drafts.csswg.org/css-flexbox/#abspos-items
-                        ArcRefCell::new(FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
-                            AbsolutelyPositionedBox::construct(
+                        ArcRefCell::new(FlexLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                            ArcRefCell::new(AbsolutelyPositionedBox::construct(
                                 self.context,
                                 &info,
                                 display_inside,
                                 contents,
-                            ),
-                        )))
+                            )),
+                        ))
                     } else {
                         ArcRefCell::new(FlexLevelBox::FlexItem(
                             IndependentFormattingContext::construct(
