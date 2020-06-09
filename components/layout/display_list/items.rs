@@ -217,6 +217,12 @@ impl StackingContext {
         parent_clipping_and_scrolling: ClippingAndScrolling,
         established_reference_frame: Option<ClipScrollNodeIndex>,
     ) -> StackingContext {
+        if let Some(ref t) = transform {
+            // These are used as scale values by webrender, and it can't handle
+            // divisors of 0 when scaling.
+            assert_ne!(t.m11, 0.);
+            assert_ne!(t.m22, 0.);
+        }
         StackingContext {
             id,
             context_type,

@@ -447,6 +447,14 @@ impl Fragment {
                     return;
                 }
 
+                // If this fragment has a transform applied that makes it take up no spae
+                // then we don't need to create any stacking contexts for it.
+                let has_non_invertible_transform =
+                    fragment.has_non_invertible_transform(&containing_block_info.rect.to_untyped());
+                if has_non_invertible_transform {
+                    return;
+                }
+
                 fragment.build_stacking_context_tree(
                     fragment_ref,
                     builder,
@@ -775,6 +783,15 @@ impl BoxFragment {
         })
     }
 
+    /// Returns true if the given style contains a transform that is not invertible.
+    fn has_non_invertible_transform(&self, containing_block: &Rect<Length>) -> bool {
+        let list = &self.style.get_box().transform;
+        match list.to_transform_3d_matrix(Some(containing_block)) {
+            Ok(t) => !t.0.is_invertible(),
+            Err(_) => false,
+        }
+    }
+
     /// Returns the 4D matrix representing this fragment's transform.
     pub fn calculate_transform_matrix(
         &self,
@@ -783,6 +800,10 @@ impl BoxFragment {
         let list = &self.style.get_box().transform;
         let transform =
             LayoutTransform::from_untyped(&list.to_transform_3d_matrix(Some(&border_rect)).ok()?.0);
+        // WebRender will end up dividing by the scale value of this transform, so we
+        // want to ensure we don't feed it a divisor of 0.
+        assert_ne!(transform.m11, 0.);
+        assert_ne!(transform.m22, 0.);
 
         let transform_origin = &self.style.get_box().transform_origin;
         let transform_origin_x = transform_origin

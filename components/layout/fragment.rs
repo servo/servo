@@ -2730,6 +2730,12 @@ impl Fragment {
             self.style().get_box().perspective != Perspective::None
     }
 
+    /// Returns true if this fragment has a transform applied that causes it to take up no space.
+    pub fn has_non_invertible_transform(&self) -> bool {
+        self.transform_matrix(&Rect::default())
+            .map_or(false, |matrix| !matrix.is_invertible())
+    }
+
     /// Returns true if this fragment establishes a new stacking context and false otherwise.
     pub fn establishes_stacking_context(&self) -> bool {
         // Text fragments shouldn't create stacking contexts.

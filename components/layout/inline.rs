@@ -1871,6 +1871,11 @@ impl Flow for InlineFlow {
         let previous_cb_clipping_and_scrolling = state.containing_block_clipping_and_scrolling;
 
         for fragment in self.fragments.fragments.iter_mut() {
+            // If a particular fragment would establish a stacking context but has a transform
+            // applied that causes it to take up no space, we can skip it entirely.
+            if fragment.has_non_invertible_transform() {
+                continue;
+            }
             state.containing_block_clipping_and_scrolling = previous_cb_clipping_and_scrolling;
 
             let abspos_containing_block = fragment.style.get_box().position != Position::Static;
