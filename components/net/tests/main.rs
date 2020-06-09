@@ -29,7 +29,7 @@ use hyper::server::conn::Http;
 use hyper::server::Server as HyperServer;
 use hyper::service::service_fn_ok;
 use hyper::{Body, Request as HyperRequest, Response as HyperResponse};
-use net::connector::{create_tls_config, ALPN_H2_H1};
+use net::connector::{create_tls_config, ConnectionCerts, ExtraCerts, ALPN_H2_H1};
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -91,7 +91,12 @@ fn new_fetch_context(
     pool_handle: Option<Weak<CoreResourceThreadPool>>,
 ) -> FetchContext {
     let certs = resources::read_string(Resource::SSLCertificates);
-    let tls_config = create_tls_config(&certs, ALPN_H2_H1);
+    let tls_config = create_tls_config(
+        &certs,
+        ALPN_H2_H1,
+        ExtraCerts::new(),
+        ConnectionCerts::new(),
+    );
     let sender = fc.unwrap_or_else(|| create_embedder_proxy());
 
     FetchContext {

@@ -41,7 +41,7 @@ pub struct ConnectionCerts {
 }
 
 impl ConnectionCerts {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self {
             certs: Arc::new(Mutex::new(HashMap::new())),
         }
@@ -101,11 +101,11 @@ pub type TlsConfig = SslConnectorBuilder;
 pub struct ExtraCerts(Arc<Mutex<Vec<Vec<u8>>>>);
 
 impl ExtraCerts {
-    pub(crate) fn new() -> Self {
+    pub fn new() -> Self {
         Self(Arc::new(Mutex::new(vec![])))
     }
 
-    pub(crate) fn add(&self, bytes: Vec<u8>) {
+    pub fn add(&self, bytes: Vec<u8>) {
         self.0.lock().unwrap().push(bytes);
     }
 }
@@ -119,7 +119,7 @@ lazy_static! {
     static ref HOST_INDEX: Index<Ssl, Host> = Ssl::new_ex_index().unwrap();
 }
 
-pub(crate) fn create_tls_config(
+pub fn create_tls_config(
     certs: &str,
     alpn: &[u8],
     extra_certs: ExtraCerts,

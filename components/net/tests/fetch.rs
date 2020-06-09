@@ -22,7 +22,7 @@ use hyper::body::Body;
 use hyper::{Request as HyperRequest, Response as HyperResponse};
 use mime::{self, Mime};
 use msg::constellation_msg::TEST_PIPELINE_ID;
-use net::connector::{create_tls_config, ALPN_H2_H1};
+use net::connector::{create_tls_config, ConnectionCerts, ExtraCerts, ALPN_H2_H1};
 use net::fetch::cors_cache::CorsCache;
 use net::fetch::methods::{self, CancellationListener, FetchContext};
 use net::filemanager_thread::FileManager;
@@ -682,7 +682,12 @@ fn test_fetch_with_hsts() {
     let (server, url) = make_ssl_server(handler, cert_path.clone(), key_path.clone());
 
     let certs = fs::read_to_string(cert_path).expect("Couldn't find certificate file");
-    let tls_config = create_tls_config(&certs, ALPN_H2_H1);
+    let tls_config = create_tls_config(
+        &certs,
+        ALPN_H2_H1,
+        ExtraCerts::new(),
+        ConnectionCerts::new(),
+    );
 
     let mut context = FetchContext {
         state: Arc::new(HttpState::new(tls_config)),
@@ -735,7 +740,12 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
     url.as_mut_url().set_scheme("https").unwrap();
 
     let certs = fs::read_to_string(cert_path).expect("Couldn't find certificate file");
-    let tls_config = create_tls_config(&certs, ALPN_H2_H1);
+    let tls_config = create_tls_config(
+        &certs,
+        ALPN_H2_H1,
+        ExtraCerts::new(),
+        ConnectionCerts::new(),
+    );
 
     let mut context = FetchContext {
         state: Arc::new(HttpState::new(tls_config)),
@@ -774,6 +784,85 @@ fn test_load_adds_host_to_hsts_list_when_url_is_https() {
         .read()
         .unwrap()
         .is_host_secure(url.host_str().unwrap()));
+}
+
+#[test]
+fn test_fetch_self_signed() {
+    let handler = move |_: HyperRequest<Body>, response: &mut HyperResponse<Body>| {
+        *response.body_mut() = b"Yay!".to_vec().into();
+    };
+    let client_cert_path = Path::new("../../resources/certs").canonicalize().unwrap();
+    let cert_path = Path::new("../../resources/self_signed_certificate_for_testing.crt")
+        .canonicalize()
+        .unwrap();
+    let key_path = Path::new("../../resources/privatekey_for_testing.key")
+        .canonicalize()
+        .unwrap();
+    let (_server, mut url) = make_ssl_server(handler, cert_path.clone(), key_path.clone());
+    url.as_mut_url().set_scheme("https").unwrap();
+
+    let cert_data = fs::read_to_string(cert_path.clone()).expect("Couldn't find certificate file");
+    let client_cert_data =
+        fs::read_to_string(client_cert_path.clone()).expect("Couldn't find certificate file");
+    let extra_certs = ExtraCerts::new();
+    let tls_config = create_tls_config(
+        &client_cert_data,
+        ALPN_H2_H1,
+        extra_certs.clone(),
+        ConnectionCerts::new(),
+    );
+
+    let mut context = FetchContext {
+        state: Arc::new(HttpState::new(tls_config)),
+        user_agent: DEFAULT_USER_AGENT.into(),
+        devtools_chan: None,
+        filemanager: FileManager::new(create_embedder_proxy(), Weak::new()),
+        file_token: FileTokenCheck::NotRequired,
+        cancellation_listener: Arc::new(Mutex::new(CancellationListener::new(None))),
+        timing: ServoArc::new(Mutex::new(ResourceFetchTiming::new(
+            ResourceTimingType::Navigation,
+        ))),
+    };
+
+    let mut request = RequestBuilder::new(url.clone())
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(url.clone().origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .build();
+
+    let response = fetch_with_context(&mut request, &mut context);
+
+    assert!(matches!(
+        response.get_network_error(),
+        Some(NetworkError::SslValidation(..))
+    ));
+
+    extra_certs.add(cert_data.as_bytes().into());
+
+    // FIXME: something weird happens inside the SSL server after the first
+    //        connection encounters a verification error, and it no longer
+    //        accepts new connections that should work fine. We are forced
+    //        to start a new server and connect to that to verfiy that
+    //        the self-signed cert is now accepted.
+
+    let (server, mut url) = make_ssl_server(handler, cert_path.clone(), key_path.clone());
+    url.as_mut_url().set_scheme("https").unwrap();
+
+    let mut request = RequestBuilder::new(url.clone())
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(url.clone().origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .build();
+
+    let response = fetch_with_context(&mut request, &mut context);
+
+    assert!(response.status.unwrap().0.is_success());
+
+    let _ = server.close();
 }
 
 #[test]
