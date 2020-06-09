@@ -129,8 +129,6 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
              EGLNativeWindowType eglNativeWindow, float dpi,
              ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
-  SetEnvironmentVariableA("PreviewRuntimeEnabled", "1");
-
   Windows::Storage::ApplicationDataContainer localSettings =
       Windows::Storage::ApplicationData::Current().LocalSettings();
   if (!localSettings.Containers().HasKey(L"servoUserPrefs")) {
