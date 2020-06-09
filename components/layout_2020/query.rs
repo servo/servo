@@ -387,3 +387,11 @@ pub fn process_element_inner_text_query<'dom>(_node: impl LayoutNode<'dom>) -> S
 pub fn process_text_index_request(_node: OpaqueNode, _point: Point2D<Au>) -> TextIndexResponse {
     TextIndexResponse(None)
 }
+
+pub fn process_resolved_font_style_query<'dom>(
+    _node: impl LayoutNode<'dom>,
+    _property: &PropertyId,
+    _value: &str,
+) -> Option<ServoArc<Font>> {
+    None
+}

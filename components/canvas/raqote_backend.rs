@@ -76,9 +76,6 @@ impl Backend for RaqoteBackend {
 }
 
 impl<'a> CanvasPaintState<'a> {
-    pub const HANGING_BASELINE_DEFAULT: f32 = 0.8; // fraction of ascent
-    pub const IDEOGRAPHIC_BASELINE_DEFAULT: f32 = 0.5; // fraction descent
-
     pub fn new(_antialias: AntialiasMode) -> CanvasPaintState<'a> {
         let pattern = Pattern::Color(255, 0, 0, 0);
         CanvasPaintState {
@@ -92,8 +89,8 @@ impl<'a> CanvasPaintState<'a> {
             shadow_blur: 0.0,
             shadow_color: Color::Raqote(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0)),
             font_style: None,
-            text_align: Default::default(),
-            text_baseline: Default::default(),
+            text_align: TextAlign::default(),
+            text_baseline: TextBaseline::default(),
         }
     }
 }
@@ -527,7 +524,7 @@ impl GenericDrawTarget for raqote::DrawTarget {
         point_size: f32,
         text: &str,
         start: Point2D<f32>,
-        pattern: canvas_data::Pattern,
+        pattern: &canvas_data::Pattern,
         options: &DrawOptions,
     ) {
         self.draw_text(

@@ -1021,7 +1021,13 @@ impl CanvasState {
         if self.state.borrow().font_style.is_none() {
             self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into())
         }
-        let is_rtl = false; // TODO: resolve is_rtl wrt to canvas element
+
+        let is_rtl = match self.state.borrow().direction {
+            Direction::Ltr => false,
+            Direction::Rtl => true,
+            Direction::Inherit => false, // TODO: resolve direction wrt to canvas element
+        };
+
         let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
         self.send_canvas_2d_msg(Canvas2dMsg::FillText(
             text.into(),
@@ -1046,7 +1052,7 @@ impl CanvasState {
     pub fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
         let canvas = match canvas {
             Some(element) => element,
-            None => return,
+            None => return, // offscreen canvas doesn't have a placeholder canvas
         };
         let node = canvas.upcast::<Node>();
         let window = window_from_node(&*canvas);
