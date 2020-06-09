@@ -27,6 +27,7 @@ function do_test(obj, expected, name) {
 do_test({}, '[object Object]', 'sending a plain empty object')
 do_test(Math, '[object Math]', 'sending the ES Math object')
 do_test(new XMLHttpRequest, '[object XMLHttpRequest]', 'sending a new XHR instance')
+do_test(new ReadableStream, '[object ReadableStream]', 'sending a new ReadableStream instance')
 do_test({toString:function(){}}, 'undefined', 'sending object that stringifies to undefined')
 do_test({toString:function(){return null}}, 'null', 'sending object that stringifies to null')
 var ancestor = {toString: function(){
