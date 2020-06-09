@@ -8,6 +8,7 @@ use crate::ContainingBlock;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
+use style::logical_geometry::WritingMode;
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::ComputedValues;
@@ -64,10 +65,22 @@ pub(crate) struct PaddingBorderMargin {
 pub(crate) trait ComputedValuesExt {
     fn inline_size_is_length(&self) -> bool;
     fn inline_box_offsets_are_both_non_auto(&self) -> bool;
-    fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto<'_>>;
-    fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>>;
-    fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>>;
-    fn max_box_size(&self) -> flow_relative::Vec2<Option<&LengthPercentage>>;
+    fn box_offsets(
+        &self,
+        containing_block: &ContainingBlock,
+    ) -> flow_relative::Sides<LengthPercentageOrAuto<'_>>;
+    fn box_size(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>>;
+    fn min_box_size(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>>;
+    fn max_box_size(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> flow_relative::Vec2<Option<&LengthPercentage>>;
     fn content_box_size(
         &self,
         containing_block: &ContainingBlock,
@@ -84,9 +97,18 @@ pub(crate) trait ComputedValuesExt {
         pbm: &PaddingBorderMargin,
     ) -> flow_relative::Vec2<Option<Length>>;
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
-    fn padding(&self) -> flow_relative::Sides<&LengthPercentage>;
-    fn border_width(&self) -> flow_relative::Sides<Length>;
-    fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto<'_>>;
+    fn padding(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> flow_relative::Sides<&LengthPercentage>;
+    fn border_width(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> flow_relative::Sides<Length>;
+    fn margin(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> flow_relative::Sides<LengthPercentageOrAuto<'_>>;
     fn has_transform_or_perspective(&self) -> bool;
     fn effective_z_index(&self) -> i32;
     fn establishes_stacking_context(&self) -> bool;
@@ -99,6 +121,7 @@ pub(crate) trait ComputedValuesExt {
 impl ComputedValuesExt for ComputedValues {
     fn inline_size_is_length(&self) -> bool {
         let position = self.get_position();
+        // FIXME: this is the wrong writing mode but we plan to remove eager content size computation.
         let size = if self.writing_mode.is_horizontal() {
             &position.width
         } else {
@@ -109,6 +132,7 @@ impl ComputedValuesExt for ComputedValues {
 
     fn inline_box_offsets_are_both_non_auto(&self) -> bool {
         let position = self.get_position();
+        // FIXME: this is the wrong writing mode but we plan to remove eager content size computation.
         let (a, b) = if self.writing_mode.is_horizontal() {
             (&position.left, &position.right)
         } else {
@@ -117,7 +141,10 @@ impl ComputedValuesExt for ComputedValues {
         !a.is_auto() && !b.is_auto()
     }
 
-    fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto<'_>> {
+    fn box_offsets(
+        &self,
+        containing_block: &ContainingBlock,
+    ) -> flow_relative::Sides<LengthPercentageOrAuto<'_>> {
         let position = self.get_position();
         flow_relative::Sides::from_physical(
             &PhysicalSides::new(
@@ -126,33 +153,42 @@ impl ComputedValuesExt for ComputedValues {
                 position.bottom.as_ref(),
                 position.left.as_ref(),
             ),
-            self.writing_mode,
+            containing_block.style.writing_mode,
         )
     }
 
-    fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>> {
+    fn box_size(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>> {
         let position = self.get_position();
         flow_relative::Vec2::from_physical_size(
             &PhysicalSize::new(
                 size_to_length(&position.width),
                 size_to_length(&position.height),
             ),
-            self.writing_mode,
+            containing_block_writing_mode,
         )
     }
 
-    fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>> {
+    fn min_box_size(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>> {
         let position = self.get_position();
         flow_relative::Vec2::from_physical_size(
             &PhysicalSize::new(
                 size_to_length(&position.min_width),
                 size_to_length(&position.min_height),
             ),
-            self.writing_mode,
+            containing_block_writing_mode,
         )
     }
 
-    fn max_box_size(&self) -> flow_relative::Vec2<Option<&LengthPercentage>> {
+    fn max_box_size(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> flow_relative::Vec2<Option<&LengthPercentage>> {
         fn unwrap(max_size: &MaxSize<NonNegativeLengthPercentage>) -> Option<&LengthPercentage> {
             match max_size {
                 MaxSize::LengthPercentage(length) => Some(&length.0),
@@ -162,7 +198,7 @@ impl ComputedValuesExt for ComputedValues {
         let position = self.get_position();
         flow_relative::Vec2::from_physical_size(
             &PhysicalSize::new(unwrap(&position.max_width), unwrap(&position.max_height)),
-            self.writing_mode,
+            containing_block_writing_mode,
         )
     }
 
@@ -171,7 +207,9 @@ impl ComputedValuesExt for ComputedValues {
         containing_block: &ContainingBlock,
         pbm: &PaddingBorderMargin,
     ) -> flow_relative::Vec2<LengthOrAuto> {
-        let box_size = self.box_size().percentages_relative_to(containing_block);
+        let box_size = self
+            .box_size(containing_block.style.writing_mode)
+            .percentages_relative_to(containing_block);
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => box_size,
             BoxSizing::BorderBox => flow_relative::Vec2 {
@@ -189,7 +227,7 @@ impl ComputedValuesExt for ComputedValues {
         pbm: &PaddingBorderMargin,
     ) -> flow_relative::Vec2<LengthOrAuto> {
         let min_box_size = self
-            .min_box_size()
+            .min_box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => min_box_size,
@@ -211,7 +249,7 @@ impl ComputedValuesExt for ComputedValues {
         pbm: &PaddingBorderMargin,
     ) -> flow_relative::Vec2<Option<Length>> {
         let max_box_size = self
-            .max_box_size()
+            .max_box_size(containing_block.style.writing_mode)
             .percentages_relative_to(containing_block);
         match self.get_position().box_sizing {
             BoxSizing::ContentBox => max_box_size,
@@ -232,8 +270,10 @@ impl ComputedValuesExt for ComputedValues {
 
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin {
         let cbis = containing_block.inline_size;
-        let padding = self.padding().percentages_relative_to(cbis);
-        let border = self.border_width();
+        let padding = self
+            .padding(containing_block.style.writing_mode)
+            .percentages_relative_to(cbis);
+        let border = self.border_width(containing_block.style.writing_mode);
         PaddingBorderMargin {
             padding_border_sums: flow_relative::Vec2 {
                 inline: padding.inline_sum() + border.inline_sum(),
@@ -241,11 +281,16 @@ impl ComputedValuesExt for ComputedValues {
             },
             padding,
             border,
-            margin: self.margin().percentages_relative_to(cbis),
+            margin: self
+                .margin(containing_block.style.writing_mode)
+                .percentages_relative_to(cbis),
         }
     }
 
-    fn padding(&self) -> flow_relative::Sides<&LengthPercentage> {
+    fn padding(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> flow_relative::Sides<&LengthPercentage> {
         let padding = self.get_padding();
         flow_relative::Sides::from_physical(
             &PhysicalSides::new(
@@ -254,11 +299,14 @@ impl ComputedValuesExt for ComputedValues {
                 &padding.padding_bottom.0,
                 &padding.padding_left.0,
             ),
-            self.writing_mode,
+            containing_block_writing_mode,
         )
     }
 
-    fn border_width(&self) -> flow_relative::Sides<Length> {
+    fn border_width(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> flow_relative::Sides<Length> {
         let border = self.get_border();
         flow_relative::Sides::from_physical(
             &PhysicalSides::new(
@@ -267,11 +315,14 @@ impl ComputedValuesExt for ComputedValues {
                 border.border_bottom_width.0,
                 border.border_left_width.0,
             ),
-            self.writing_mode,
+            containing_block_writing_mode,
         )
     }
 
-    fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto<'_>> {
+    fn margin(
+        &self,
+        containing_block_writing_mode: WritingMode,
+    ) -> flow_relative::Sides<LengthPercentageOrAuto<'_>> {
         let margin = self.get_margin();
         flow_relative::Sides::from_physical(
             &PhysicalSides::new(
@@ -280,7 +331,7 @@ impl ComputedValuesExt for ComputedValues {
                 margin.margin_bottom.as_ref(),
                 margin.margin_left.as_ref(),
             ),
-            self.writing_mode,
+            containing_block_writing_mode,
         )
     }
 
