@@ -234,6 +234,12 @@ impl DisplayItem {
                     builder.push_iter(&stacking_context.filters);
                 }
 
+                // TODO(jdm): WebRender now requires us to create stacking context items
+                //            with the IS_BLEND_CONTAINER flag enabled if any children
+                //            of the stacking context have a blend mode applied.
+                //            This will require additional tracking during layout
+                //            before we start collecting stacking contexts so that
+                //            information will be available when we reach this point.
                 let wr_item = PushStackingContextDisplayItem {
                     origin: bounds.origin,
                     spatial_id,
@@ -243,9 +249,7 @@ impl DisplayItem {
                         mix_blend_mode: stacking_context.mix_blend_mode,
                         clip_id: None,
                         raster_space: RasterSpace::Screen,
-                        // TODO(pcwalton): Enable picture caching?
-                        cache_tiles: false,
-                        is_backdrop_root: false,
+                        flags: Default::default(),
                     },
                 };
 

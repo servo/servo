@@ -212,9 +212,6 @@ pub struct LayoutThread {
     /// Webrender interface.
     webrender_api: WebrenderIpcSender,
 
-    /// Webrender document.
-    webrender_document: webrender_api::DocumentId,
-
     /// Paint time metrics.
     paint_time_metrics: PaintTimeMetrics,
 
@@ -276,7 +273,6 @@ impl LayoutThreadFactory for LayoutThread {
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
         webrender_api_sender: WebrenderIpcSender,
-        webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
@@ -325,7 +321,6 @@ impl LayoutThreadFactory for LayoutThread {
                         time_profiler_chan,
                         mem_profiler_chan.clone(),
                         webrender_api_sender,
-                        webrender_document,
                         paint_time_metrics,
                         busy,
                         load_webfonts_synchronously,
@@ -495,7 +490,6 @@ impl LayoutThread {
         time_profiler_chan: profile_time::ProfilerChan,
         mem_profiler_chan: profile_mem::ProfilerChan,
         webrender_api: WebrenderIpcSender,
-        webrender_document: webrender_api::DocumentId,
         paint_time_metrics: PaintTimeMetrics,
         busy: Arc<AtomicBool>,
         load_webfonts_synchronously: bool,
@@ -510,7 +504,7 @@ impl LayoutThread {
         dump_flow_tree: bool,
     ) -> LayoutThread {
         // Let webrender know about this pipeline by sending an empty display list.
-        webrender_api.send_initial_transaction(webrender_document, id.to_webrender());
+        webrender_api.send_initial_transaction(id.to_webrender());
 
         let device = Device::new(
             MediaType::screen(),
@@ -553,7 +547,6 @@ impl LayoutThread {
             epoch: Cell::new(Epoch(1)),
             viewport_size: Size2D::new(Au(0), Au(0)),
             webrender_api,
-            webrender_document,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             rw_data: Arc::new(Mutex::new(LayoutThreadData {
                 constellation_chan: constellation_chan,
@@ -773,7 +766,6 @@ impl LayoutThread {
 
                 let point = Point2D::new(-state.scroll_offset.x, -state.scroll_offset.y);
                 self.webrender_api.send_scroll_node(
-                    self.webrender_document,
                     webrender_api::units::LayoutPoint::from_untyped(point),
                     state.scroll_id,
                     webrender_api::ScrollClamping::ToContentBounds,
@@ -882,7 +874,6 @@ impl LayoutThread {
             self.time_profiler_chan.clone(),
             self.mem_profiler_chan.clone(),
             self.webrender_api.clone(),
-            self.webrender_document,
             info.paint_time_metrics,
             info.layout_is_busy,
             self.load_webfonts_synchronously,
@@ -1171,12 +1162,8 @@ impl LayoutThread {
                 self.paint_time_metrics
                     .maybe_observe_paint_time(self, epoch, is_contentful.0);
 
-                self.webrender_api.send_display_list(
-                    self.webrender_document,
-                    epoch,
-                    viewport_size,
-                    builder.finalize(),
-                );
+                self.webrender_api
+                    .send_display_list(epoch, viewport_size, builder.finalize());
             },
         );
     }
@@ -1578,7 +1565,6 @@ impl LayoutThread {
 
                     let client_point = webrender_api::units::WorldPoint::from_untyped(client_point);
                     let results = self.webrender_api.hit_test(
-                        self.webrender_document,
                         Some(self.id.to_webrender()),
                         client_point,
                         flags,

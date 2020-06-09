@@ -3,7 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::compositor_thread::CompositorReceiver;
-use crate::compositor_thread::{InitialCompositorState, Msg};
+use crate::compositor_thread::{
+    InitialCompositorState, Msg, WebrenderCanvasMsg, WebrenderFontMsg, WebrenderMsg,
+};
 #[cfg(feature = "gl")]
 use crate::gl;
 use crate::touch::{TouchAction, TouchHandler};
@@ -11,10 +13,11 @@ use crate::windowing::{
     self, EmbedderCoordinates, MouseWindowEvent, WebRenderDebugOption, WindowMethods,
 };
 use crate::{CompositionPipeline, ConstellationMsg, SendableFrameTree};
+use canvas::canvas_paint_thread::ImageUpdate;
 use crossbeam_channel::Sender;
 use embedder_traits::Cursor;
 use euclid::{Point2D, Rect, Scale, Vector2D};
-use gfx_traits::Epoch;
+use gfx_traits::{Epoch, FontData};
 #[cfg(feature = "gl")]
 use image::{DynamicImage, ImageFormat};
 use ipc_channel::ipc;
@@ -40,8 +43,6 @@ use std::fs::{create_dir_all, File};
 use std::io::Write;
 use std::num::NonZeroU32;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel, PinchZoomFactor};
 use time::{now, precise_time_ns, precise_time_s};
@@ -218,7 +219,7 @@ pub struct IOCompositor<Window: WindowMethods + ?Sized> {
     /// True if a WR frame render has been requested. Screenshots
     /// taken before the render is complete will not reflect the
     /// most up to date rendering.
-    waiting_on_pending_frame: Arc<AtomicBool>,
+    waiting_on_pending_frame: bool,
 }
 
 #[derive(Clone, Copy)]
@@ -334,7 +335,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             is_running_problem_test,
             exit_after_load,
             convert_mouse_to_touch,
-            waiting_on_pending_frame: state.pending_wr_frame,
+            waiting_on_pending_frame: false,
         }
     }
 
@@ -443,7 +444,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             },
 
             (Msg::Recomposite(reason), ShutdownState::NotShuttingDown) => {
-                self.waiting_on_pending_frame.store(false, Ordering::SeqCst);
+                self.waiting_on_pending_frame = false;
                 self.composition_request = CompositionRequest::CompositeNow(reason)
             },
 
@@ -474,7 +475,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                     self.ready_to_save_state,
                     ReadyState::WaitingForConstellationReply
                 );
-                if is_ready && !self.waiting_on_pending_frame.load(Ordering::SeqCst) {
+                if is_ready && !self.waiting_on_pending_frame {
                     self.ready_to_save_state = ReadyState::ReadyToSaveImage;
                     if self.is_running_problem_test {
                         println!("ready to save image!");
@@ -569,6 +570,10 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
                 }
             },
 
+            (Msg::Webrender(msg), ShutdownState::NotShuttingDown) => {
+                self.handle_webrender_message(msg);
+            },
+
             // When we are shutting_down, we need to avoid performing operations
             // such as Paint that may crash because we have begun tearing down
             // the rest of our resources.
@@ -576,6 +581,146 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         }
 
         true
+    }
+
+    /// Accept messages from content processes that need to be relayed to the WebRender
+    /// instance in the parent process.
+    fn handle_webrender_message(&mut self, msg: WebrenderMsg) {
+        match msg {
+            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendInitialTransaction(pipeline)) => {
+                self.waiting_on_pending_frame = true;
+                let mut txn = webrender_api::Transaction::new();
+                txn.set_display_list(
+                    webrender_api::Epoch(0),
+                    None,
+                    Default::default(),
+                    (pipeline, Default::default(), Default::default()),
+                    false,
+                );
+                self.webrender_api
+                    .send_transaction(self.webrender_document, txn);
+            },
+
+            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendScrollNode(
+                point,
+                scroll_id,
+                clamping,
+            )) => {
+                let mut txn = webrender_api::Transaction::new();
+                txn.scroll_node_with_id(point, scroll_id, clamping);
+                self.webrender_api
+                    .send_transaction(self.webrender_document, txn);
+            },
+
+            WebrenderMsg::Layout(script_traits::WebrenderMsg::SendDisplayList(
+                epoch,
+                size,
+                pipeline,
+                size2,
+                data,
+                descriptor,
+            )) => {
+                self.waiting_on_pending_frame = true;
+                let mut txn = webrender_api::Transaction::new();
+                txn.set_display_list(
+                    epoch,
+                    None,
+                    size,
+                    (
+                        pipeline,
+                        size2,
+                        webrender_api::BuiltDisplayList::from_data(data, descriptor),
+                    ),
+                    true,
+                );
+                txn.generate_frame();
+                self.webrender_api
+                    .send_transaction(self.webrender_document, txn);
+            },
+
+            WebrenderMsg::Layout(script_traits::WebrenderMsg::HitTest(
+                pipeline,
+                point,
+                flags,
+                sender,
+            )) => {
+                let result =
+                    self.webrender_api
+                        .hit_test(self.webrender_document, pipeline, point, flags);
+                let _ = sender.send(result);
+            },
+
+            WebrenderMsg::Layout(script_traits::WebrenderMsg::GenerateImageKey(sender)) |
+            WebrenderMsg::Net(net_traits::WebrenderImageMsg::GenerateImageKey(sender)) => {
+                let _ = sender.send(self.webrender_api.generate_image_key());
+            },
+
+            WebrenderMsg::Layout(script_traits::WebrenderMsg::UpdateImages(updates)) => {
+                let mut txn = webrender_api::Transaction::new();
+                for update in updates {
+                    match update {
+                        script_traits::ImageUpdate::AddImage(key, desc, data) => {
+                            txn.add_image(key, desc, data, None)
+                        },
+                        script_traits::ImageUpdate::DeleteImage(key) => txn.delete_image(key),
+                        script_traits::ImageUpdate::UpdateImage(key, desc, data) => {
+                            txn.update_image(key, desc, data, &webrender_api::DirtyRect::All)
+                        },
+                    }
+                }
+                self.webrender_api
+                    .send_transaction(self.webrender_document, txn);
+            },
+
+            WebrenderMsg::Net(net_traits::WebrenderImageMsg::AddImage(key, desc, data)) => {
+                let mut txn = webrender_api::Transaction::new();
+                txn.add_image(key, desc, data, None);
+                self.webrender_api
+                    .send_transaction(self.webrender_document, txn);
+            },
+
+            WebrenderMsg::Font(WebrenderFontMsg::AddFontInstance(font_key, size, sender)) => {
+                let key = self.webrender_api.generate_font_instance_key();
+                let mut txn = webrender_api::Transaction::new();
+                txn.add_font_instance(key, font_key, size, None, None, Vec::new());
+                self.webrender_api
+                    .send_transaction(self.webrender_document, txn);
+                let _ = sender.send(key);
+            },
+
+            WebrenderMsg::Font(WebrenderFontMsg::AddFont(data, sender)) => {
+                let font_key = self.webrender_api.generate_font_key();
+                let mut txn = webrender_api::Transaction::new();
+                match data {
+                    FontData::Raw(bytes) => txn.add_raw_font(font_key, bytes, 0),
+                    FontData::Native(native_font) => txn.add_native_font(font_key, native_font),
+                }
+                self.webrender_api
+                    .send_transaction(self.webrender_document, txn);
+                let _ = sender.send(font_key);
+            },
+
+            WebrenderMsg::Canvas(WebrenderCanvasMsg::GenerateKey(sender)) => {
+                let _ = sender.send(self.webrender_api.generate_image_key());
+            },
+
+            WebrenderMsg::Canvas(WebrenderCanvasMsg::UpdateImages(updates)) => {
+                let mut txn = webrender_api::Transaction::new();
+                for update in updates {
+                    match update {
+                        ImageUpdate::Add(key, descriptor, data) => {
+                            txn.add_image(key, descriptor, data, None)
+                        },
+                        ImageUpdate::Update(key, descriptor, data) => {
+                            txn.update_image(key, descriptor, data, &webrender_api::DirtyRect::All)
+                        },
+                        ImageUpdate::Delete(key) => txn.delete_image(key),
+                    }
+                }
+                self.webrender_api
+                    .send_transaction(self.webrender_document, txn);
+            },
+        }
     }
 
     /// Sets or unsets the animations-running flag for the given pipeline, and schedules a

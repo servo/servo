@@ -12,6 +12,7 @@ use crate::platform::font_list::system_default_family;
 use crate::platform::font_list::SANS_SERIF_FONT_FAMILY;
 use crate::platform::font_template::FontTemplateData;
 use app_units::Au;
+use gfx_traits::{FontData, WebrenderApi};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use net_traits::request::{Destination, RequestBuilder};
 use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg};
@@ -135,9 +136,8 @@ struct FontCache {
     web_families: HashMap<LowercaseString, FontTemplates>,
     font_context: FontContextHandle,
     core_resource_thread: CoreResourceThread,
-    webrender_api: webrender_api::RenderApi,
+    webrender_api: Box<dyn WebrenderApi>,
     webrender_fonts: HashMap<Atom, webrender_api::FontKey>,
-    webrender_doc: webrender_api::DocumentId,
     font_instances: HashMap<(webrender_api::FontKey, Au), webrender_api::FontInstanceKey>,
 }
 
@@ -181,19 +181,11 @@ impl FontCache {
                 },
                 Command::GetFontInstance(font_key, size, result) => {
                     let webrender_api = &self.webrender_api;
-                    let doc = self.webrender_doc;
 
-                    let instance_key =
-                        *self
-                            .font_instances
-                            .entry((font_key, size))
-                            .or_insert_with(|| {
-                                let key = webrender_api.generate_font_instance_key();
-                                let mut txn = webrender_api::Transaction::new();
-                                txn.add_font_instance(key, font_key, size, None, None, Vec::new());
-                                webrender_api.send_transaction(doc, txn);
-                                key
-                            });
+                    let instance_key = *self
+                        .font_instances
+                        .entry((font_key, size))
+                        .or_insert_with(|| webrender_api.add_font_instance(font_key, size));
 
                     let _ = result.send(instance_key);
                 },
@@ -391,21 +383,17 @@ impl FontCache {
 
     fn get_font_template_info(&mut self, template: Arc<FontTemplateData>) -> FontTemplateInfo {
         let webrender_api = &self.webrender_api;
-        let doc = self.webrender_doc;
         let webrender_fonts = &mut self.webrender_fonts;
 
         let font_key = *webrender_fonts
             .entry(template.identifier.clone())
             .or_insert_with(|| {
-                let font_key = webrender_api.generate_font_key();
-                let mut txn = webrender_api::Transaction::new();
-                match (template.bytes_if_in_memory(), template.native_font()) {
-                    (Some(bytes), _) => txn.add_raw_font(font_key, bytes, 0),
-                    (None, Some(native_font)) => txn.add_native_font(font_key, native_font),
-                    (None, None) => txn.add_raw_font(font_key, template.bytes(), 0),
-                }
-                webrender_api.send_transaction(doc, txn);
-                font_key
+                let font = match (template.bytes_if_in_memory(), template.native_font()) {
+                    (Some(bytes), _) => FontData::Raw(bytes),
+                    (None, Some(native_font)) => FontData::Native(native_font),
+                    (None, None) => FontData::Raw(template.bytes()),
+                };
+                webrender_api.add_font(font)
             });
 
         FontTemplateInfo {
@@ -444,8 +432,7 @@ pub struct FontCacheThread {
 impl FontCacheThread {
     pub fn new(
         core_resource_thread: CoreResourceThread,
-        webrender_api: webrender_api::RenderApi,
-        webrender_doc: webrender_api::DocumentId,
+        webrender_api: Box<dyn WebrenderApi + Send>,
     ) -> FontCacheThread {
         let (chan, port) = ipc::channel().unwrap();
 
@@ -465,7 +452,6 @@ impl FontCacheThread {
                     font_context: FontContextHandle::new(),
                     core_resource_thread,
                     webrender_api,
-                    webrender_doc,
                     webrender_fonts: HashMap::new(),
                     font_instances: HashMap::new(),
                 };

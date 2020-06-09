@@ -26,8 +26,6 @@ pub enum ConstellationCanvasMsg {
     Create {
         id_sender: Sender<CanvasId>,
         size: Size2D<u64>,
-        webrender_sender: webrender_api::RenderApiSender,
-        webrender_doc: webrender_api::DocumentId,
         antialias: bool,
     },
     Exit,

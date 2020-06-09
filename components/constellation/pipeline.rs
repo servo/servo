@@ -606,7 +606,6 @@ impl UnprivilegedPipelineContent {
             self.time_profiler_chan,
             self.mem_profiler_chan,
             self.webrender_api_sender,
-            self.webrender_document,
             paint_time_metrics,
             layout_thread_busy_flag.clone(),
             self.opts.load_webfonts_synchronously,
