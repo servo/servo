@@ -2,36 +2,21 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use super::{FlexContainer, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom_traversal::{
     BoxSlot, Contents, NodeAndStyleInfo, NodeExt, NonReplacedContents, TraversalHandler,
 };
 use crate::element_data::LayoutBox;
-use crate::formatting_contexts::{IndependentFormattingContext, IndependentLayout};
+use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::Tag;
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
+use crate::positioned::AbsolutelyPositionedBox;
 use crate::sizing::{BoxContentSizes, ContentSizes, ContentSizesRequest};
 use crate::style_ext::DisplayGeneratingBox;
-use crate::ContainingBlock;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::borrow::Cow;
-use style::values::computed::Length;
 use style::values::specified::text::TextDecorationLine;
-use style::Zero;
-
-// FIXME: `min-width: auto` is not zero: https://drafts.csswg.org/css-flexbox/#min-size-auto
-
-#[derive(Debug, Serialize)]
-pub(crate) struct FlexContainer {
-    children: Vec<ArcRefCell<FlexLevelBox>>,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) enum FlexLevelBox {
-    FlexItem(IndependentFormattingContext),
-    OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
-}
 
 impl FlexContainer {
     pub fn construct<'dom>(
@@ -228,25 +213,5 @@ where
         });
 
         FlexContainer { children }
-    }
-}
-
-impl FlexContainer {
-    pub(crate) fn layout(
-        &self,
-        layout_context: &LayoutContext,
-        positioning_context: &mut PositioningContext,
-        containing_block: &ContainingBlock,
-        tree_rank: usize,
-    ) -> IndependentLayout {
-        // FIXME
-        let _ = layout_context;
-        let _ = positioning_context;
-        let _ = containing_block;
-        let _ = tree_rank;
-        IndependentLayout {
-            fragments: Vec::new(),
-            content_block_size: Length::zero(),
-        }
     }
 }
