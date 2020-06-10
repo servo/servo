@@ -21,6 +21,7 @@ use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
 use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextDecorationLine;
@@ -67,7 +68,12 @@ impl BlockFormattingContext {
             inline_level_boxes,
             text_decoration_line,
         };
-        let content_sizes = content_sizes.compute(|| ifc.inline_content_sizes(context));
+        // FIXME: this is the wrong writing mode
+        // but we plan to remove eager content size computation.
+        let not_actually_containing_block_writing_mode = WritingMode::empty();
+        let content_sizes = content_sizes.compute(|| {
+            ifc.inline_content_sizes(context, not_actually_containing_block_writing_mode)
+        });
         let contents = BlockContainer::InlineFormattingContext(ifc);
         let bfc = Self {
             contents,
@@ -203,10 +209,13 @@ impl BlockContainer {
             .is_empty()
         {
             if builder.block_level_boxes.is_empty() {
+                // FIXME: this is the wrong writing mode
+                // but we plan to remove eager content size computation.
+                let not_actually_containing_block_writing_mode = info.style.writing_mode;
                 let content_sizes = content_sizes.compute(|| {
                     builder
                         .ongoing_inline_formatting_context
-                        .inline_content_sizes(context)
+                        .inline_content_sizes(context, not_actually_containing_block_writing_mode)
                 });
                 let container = BlockContainer::InlineFormattingContext(
                     builder.ongoing_inline_formatting_context,
@@ -678,6 +687,9 @@ where
         max_assign_in_flow_outer_content_sizes_to: Option<&mut ContentSizes>,
     ) -> (ArcRefCell<BlockLevelBox>, ContainsFloats) {
         let info = &self.info;
+        // FIXME: this is the wrong writing mode
+        // but we plan to remove eager content size computation.
+        let not_actually_containing_block_writing_mode = info.style.writing_mode;
         let (block_level_box, contains_floats) = match self.kind {
             BlockLevelCreator::SameFormattingContextBlock(contents) => {
                 let (contents, contains_floats, box_content_sizes) = contents.finish(
@@ -689,7 +701,10 @@ where
                     ),
                 );
                 if let Some(to) = max_assign_in_flow_outer_content_sizes_to {
-                    to.max_assign(&box_content_sizes.outer_inline(&info.style))
+                    to.max_assign(
+                        &box_content_sizes
+                            .outer_inline(&info.style, not_actually_containing_block_writing_mode),
+                    )
                 }
                 let block_level_box = ArcRefCell::new(BlockLevelBox::SameFormattingContextBlock {
                     tag: Tag::from_node_and_style_info(info),
@@ -716,7 +731,12 @@ where
                     propagated_text_decoration_line,
                 );
                 if let Some(to) = max_assign_in_flow_outer_content_sizes_to {
-                    to.max_assign(&contents.content_sizes.outer_inline(&contents.style))
+                    to.max_assign(
+                        &contents.content_sizes.outer_inline(
+                            &contents.style,
+                            not_actually_containing_block_writing_mode,
+                        ),
+                    )
                 }
                 (
                     ArcRefCell::new(BlockLevelBox::Independent(contents)),
@@ -771,7 +791,12 @@ impl IntermediateBlockContainer {
                 )
             },
             IntermediateBlockContainer::InlineFormattingContext(ifc) => {
-                let content_sizes = content_sizes.compute(|| ifc.inline_content_sizes(context));
+                // FIXME: this is the wrong writing mode
+                // but we plan to remove eager content size computation.
+                let not_actually_containing_block_writing_mode = info.style.writing_mode;
+                let content_sizes = content_sizes.compute(|| {
+                    ifc.inline_content_sizes(context, not_actually_containing_block_writing_mode)
+                });
                 // If that inline formatting context contained any float, those
                 // were already taken into account during the first phase of
                 // box construction.

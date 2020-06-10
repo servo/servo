@@ -23,6 +23,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRef;
 use gfx::text::text_run::GlyphRun;
 use servo_arc::Arc;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
 use style::values::specified::text::TextAlignKeyword;
@@ -139,24 +140,30 @@ impl InlineFormattingContext {
     // This works on an already-constructed `InlineFormattingContext`,
     // Which would have to change if/when
     // `BlockContainer::construct` parallelize their construction.
-    pub(super) fn inline_content_sizes(&self, layout_context: &LayoutContext) -> ContentSizes {
-        struct Computation {
+    pub(super) fn inline_content_sizes(
+        &self,
+        layout_context: &LayoutContext,
+        containing_block_writing_mode: WritingMode,
+    ) -> ContentSizes {
+        struct Computation<'a> {
+            layout_context: &'a LayoutContext<'a>,
+            containing_block_writing_mode: WritingMode,
             paragraph: ContentSizes,
             current_line: ContentSizes,
             current_line_percentages: Percentage,
         }
-        impl Computation {
-            fn traverse(
-                &mut self,
-                layout_context: &LayoutContext,
-                inline_level_boxes: &[ArcRefCell<InlineLevelBox>],
-            ) {
+        impl Computation<'_> {
+            fn traverse(&mut self, inline_level_boxes: &[ArcRefCell<InlineLevelBox>]) {
                 for inline_level_box in inline_level_boxes {
                     match &*inline_level_box.borrow() {
                         InlineLevelBox::InlineBox(inline_box) => {
-                            let padding = inline_box.style.padding();
-                            let border = inline_box.style.border_width();
-                            let margin = inline_box.style.margin();
+                            let padding =
+                                inline_box.style.padding(self.containing_block_writing_mode);
+                            let border = inline_box
+                                .style
+                                .border_width(self.containing_block_writing_mode);
+                            let margin =
+                                inline_box.style.margin(self.containing_block_writing_mode);
                             macro_rules! add {
                                 ($condition: ident, $side: ident) => {
                                     if inline_box.$condition {
@@ -170,7 +177,7 @@ impl InlineFormattingContext {
                             }
 
                             add!(first_fragment, inline_start);
-                            self.traverse(layout_context, &inline_box.children);
+                            self.traverse(&inline_box.children);
                             add!(last_fragment, inline_end);
                         },
                         InlineLevelBox::TextRun(text_run) => {
@@ -178,7 +185,7 @@ impl InlineFormattingContext {
                                 runs,
                                 break_at_start,
                                 ..
-                            } = text_run.break_and_shape(layout_context);
+                            } = text_run.break_and_shape(self.layout_context);
                             if break_at_start {
                                 self.line_break_opportunity()
                             }
@@ -193,9 +200,10 @@ impl InlineFormattingContext {
                             }
                         },
                         InlineLevelBox::Atomic(atomic) => {
-                            let (outer, pc) = atomic
-                                .content_sizes
-                                .outer_inline_and_percentages(&atomic.style);
+                            let (outer, pc) = atomic.content_sizes.outer_inline_and_percentages(
+                                &atomic.style,
+                                self.containing_block_writing_mode,
+                            );
                             self.current_line.min_content += outer.min_content;
                             self.current_line.max_content += outer.max_content;
                             self.current_line_percentages += pc;
@@ -239,11 +247,13 @@ impl InlineFormattingContext {
             std::mem::replace(x, T::zero())
         }
         let mut computation = Computation {
+            layout_context,
+            containing_block_writing_mode,
             paragraph: ContentSizes::zero(),
             current_line: ContentSizes::zero(),
             current_line_percentages: Percentage::zero(),
         };
-        computation.traverse(layout_context, &self.inline_level_boxes);
+        computation.traverse(&self.inline_level_boxes);
         computation.forced_line_break();
         computation.paragraph
     }
@@ -308,6 +318,7 @@ impl InlineFormattingContext {
                             box_.clone(),
                             initial_start_corner,
                             tree_rank,
+                            ifc.containing_block,
                         );
                         let hoisted_fragment = hoisted_box.fragment.clone();
                         ifc.push_hoisted_box_to_positioning_context(hoisted_box);

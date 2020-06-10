@@ -5,6 +5,7 @@
 //! https://drafts.csswg.org/css-sizing/
 
 use crate::style_ext::ComputedValuesExt;
+use style::logical_geometry::WritingMode;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
@@ -105,8 +106,13 @@ impl BoxContentSizes {
     }
 
     /// https://dbaron.org/css/intrinsic/#outer-intrinsic
-    pub fn outer_inline(&self, style: &ComputedValues) -> ContentSizes {
-        let (mut outer, percentages) = self.outer_inline_and_percentages(style);
+    pub fn outer_inline(
+        &self,
+        style: &ComputedValues,
+        containing_block_writing_mode: WritingMode,
+    ) -> ContentSizes {
+        let (mut outer, percentages) =
+            self.outer_inline_and_percentages(style, containing_block_writing_mode);
         outer.adjust_for_pbm_percentages(percentages);
         outer
     }
@@ -114,10 +120,11 @@ impl BoxContentSizes {
     pub(crate) fn outer_inline_and_percentages(
         &self,
         style: &ComputedValues,
+        containing_block_writing_mode: WritingMode,
     ) -> (ContentSizes, Percentage) {
-        let padding = style.padding();
-        let border = style.border_width();
-        let margin = style.margin();
+        let padding = style.padding(containing_block_writing_mode);
+        let border = style.border_width(containing_block_writing_mode);
+        let margin = style.margin(containing_block_writing_mode);
 
         let mut pbm_percentages = Percentage::zero();
         let mut decompose = |x: &LengthPercentage| {
@@ -136,20 +143,20 @@ impl BoxContentSizes {
 
         let box_sizing = style.get_position().box_sizing;
         let inline_size = style
-            .box_size()
+            .box_size(containing_block_writing_mode)
             .inline
             .non_auto()
             // Percentages for 'width' are treated as 'auto'
             .and_then(|lp| lp.to_length());
         let min_inline_size = style
-            .min_box_size()
+            .min_box_size(containing_block_writing_mode)
             .inline
             // Percentages for 'min-width' are treated as zero
             .percentage_relative_to(Length::zero())
             // FIXME: 'auto' is not zero in Flexbox
             .auto_is(Length::zero);
         let max_inline_size = style
-            .max_box_size()
+            .max_box_size(containing_block_writing_mode)
             .inline
             // Percentages for 'max-width' are treated as 'none'
             .and_then(|lp| lp.to_length());

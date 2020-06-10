@@ -100,6 +100,7 @@ impl AbsolutelyPositionedBox {
         self_: ArcRefCell<Self>,
         initial_start_corner: Vec2<Length>,
         tree_rank: usize,
+        containing_block: &ContainingBlock,
     ) -> HoistedAbsolutelyPositionedBox {
         fn absolute_box_offsets(
             initial_static_start: Length,
@@ -123,7 +124,7 @@ impl AbsolutelyPositionedBox {
 
         let box_offsets = {
             let box_ = self_.borrow();
-            let box_offsets = box_.contents.style.box_offsets();
+            let box_offsets = box_.contents.style.box_offsets(containing_block);
             Vec2 {
                 inline: absolute_box_offsets(
                     initial_start_corner.inline,
@@ -708,10 +709,12 @@ pub(crate) fn relative_adjustement(
 ) -> Vec2<Length> {
     let cbis = containing_block.inline_size;
     let cbbs = containing_block.block_size.auto_is(Length::zero);
-    let box_offsets = style.box_offsets().map_inline_and_block_axes(
-        |v| v.percentage_relative_to(cbis),
-        |v| v.percentage_relative_to(cbbs),
-    );
+    let box_offsets = style
+        .box_offsets(containing_block)
+        .map_inline_and_block_axes(
+            |v| v.percentage_relative_to(cbis),
+            |v| v.percentage_relative_to(cbbs),
+        );
     fn adjust(start: LengthOrAuto, end: LengthOrAuto) -> Length {
         match (start, end) {
             (LengthOrAuto::Auto, LengthOrAuto::Auto) => Length::zero(),
