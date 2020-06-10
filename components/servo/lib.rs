@@ -949,12 +949,12 @@ impl gfx_traits::WebrenderApi for FontCacheWR {
 struct CanvasWebrenderApi(CompositorProxy);
 
 impl canvas_paint_thread::WebrenderApi for CanvasWebrenderApi {
-    fn generate_key(&self) -> webrender_api::ImageKey {
+    fn generate_key(&self) -> Result<webrender_api::ImageKey, ()> {
         let (sender, receiver) = unbounded();
         let _ = self.0.send(Msg::Webrender(WebrenderMsg::Canvas(
             WebrenderCanvasMsg::GenerateKey(sender),
         )));
-        receiver.recv().unwrap()
+        receiver.recv().map_err(|_| ())
     }
     fn update_images(&self, updates: Vec<canvas_paint_thread::ImageUpdate>) {
         let _ = self.0.send(Msg::Webrender(WebrenderMsg::Canvas(
