@@ -28,7 +28,7 @@ pub(crate) struct IndependentFormattingContext {
     /// If it was requested during construction
     pub content_sizes: BoxContentSizes,
 
-    contents: IndependentFormattingContextContents,
+    pub contents: IndependentFormattingContextContents,
 }
 
 pub(crate) struct IndependentLayout {
@@ -38,10 +38,13 @@ pub(crate) struct IndependentLayout {
     pub content_block_size: Length,
 }
 
+#[derive(Debug, Serialize)]
+pub(crate) struct IndependentFormattingContextContents(IndependentFormattingContextContentsKind);
+
 // Private so that code outside of this module cannot match variants.
 // It should got through methods instead.
 #[derive(Debug, Serialize)]
-enum IndependentFormattingContextContents {
+enum IndependentFormattingContextContentsKind {
     Flow(BlockFormattingContext),
     Flex(FlexContainer),
 
@@ -80,7 +83,9 @@ impl IndependentFormattingContext {
                         tag: Tag::from_node_and_style_info(info),
                         style: Arc::clone(&info.style),
                         content_sizes,
-                        contents: IndependentFormattingContextContents::Flow(bfc),
+                        contents: IndependentFormattingContextContents(
+                            IndependentFormattingContextContentsKind::Flow(bfc),
+                        ),
                     }
                 },
                 DisplayInside::Flex => {
@@ -95,7 +100,9 @@ impl IndependentFormattingContext {
                         tag: Tag::from_node_and_style_info(info),
                         style: Arc::clone(&info.style),
                         content_sizes,
-                        contents: IndependentFormattingContextContents::Flex(fc),
+                        contents: IndependentFormattingContextContents(
+                            IndependentFormattingContextContentsKind::Flex(fc),
+                        ),
                     }
                 },
             },
@@ -106,7 +113,9 @@ impl IndependentFormattingContext {
                     tag: Tag::from_node_and_style_info(info),
                     style: Arc::clone(&info.style),
                     content_sizes,
-                    contents: IndependentFormattingContextContents::Replaced(replaced),
+                    contents: IndependentFormattingContextContents(
+                        IndependentFormattingContextContentsKind::Replaced(replaced),
+                    ),
                 }
             },
         }
@@ -129,15 +138,19 @@ impl IndependentFormattingContext {
             tag: Tag::from_node_and_style_info(info),
             style: Arc::clone(&info.style),
             content_sizes,
-            contents: IndependentFormattingContextContents::Flow(bfc),
+            contents: IndependentFormattingContextContents(
+                IndependentFormattingContextContentsKind::Flow(bfc),
+            ),
         }
     }
+}
 
-    pub fn as_replaced(&self) -> Result<&ReplacedContent, NonReplacedIFC> {
-        use self::IndependentFormattingContextContents as Contents;
+impl IndependentFormattingContextContents {
+    pub fn as_replaced(&self) -> Result<&ReplacedContent, NonReplacedIFC<'_>> {
+        use self::IndependentFormattingContextContentsKind as Contents;
         use self::NonReplacedIFC as NR;
         use self::NonReplacedIFCKind as Kind;
-        match &self.contents {
+        match &self.0 {
             Contents::Replaced(r) => Ok(r),
             Contents::Flow(f) => Err(NR(Kind::Flow(f))),
             Contents::Flex(f) => Err(NR(Kind::Flex(f))),

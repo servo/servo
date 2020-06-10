@@ -556,7 +556,7 @@ fn layout_atomic(
         start_corner += &relative_adjustement(&atomic.style, ifc.containing_block)
     }
 
-    let fragment = match atomic.as_replaced() {
+    let fragment = match atomic.contents.as_replaced() {
         Ok(replaced) => {
             let size =
                 replaced.used_size_as_if_inline_element(ifc.containing_block, &atomic.style, &pbm);

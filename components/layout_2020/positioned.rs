@@ -422,7 +422,7 @@ impl HoistedAbsolutelyPositionedBox {
 
         let size;
         let replaced_used_size;
-        match absolutely_positioned_box.context.as_replaced() {
+        match absolutely_positioned_box.context.contents.as_replaced() {
             Ok(replaced) => {
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
@@ -474,7 +474,7 @@ impl HoistedAbsolutelyPositionedBox {
             |positioning_context| {
                 let size;
                 let fragments;
-                match absolutely_positioned_box.context.as_replaced() {
+                match absolutely_positioned_box.context.contents.as_replaced() {
                     Ok(replaced) => {
                         // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                         // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height

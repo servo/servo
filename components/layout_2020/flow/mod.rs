@@ -288,24 +288,24 @@ impl BlockLevelBox {
                     )
                 },
             )),
-            BlockLevelBox::Independent(contents) => {
+            BlockLevelBox::Independent(independent) => {
                 Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
                     layout_context,
                     containing_block,
-                    &contents.style,
-                    |positioning_context| match contents.as_replaced() {
+                    &independent.style,
+                    |positioning_context| match independent.contents.as_replaced() {
                         Ok(replaced) => layout_in_flow_replaced_block_level(
                             containing_block,
-                            contents.tag,
-                            &contents.style,
+                            independent.tag,
+                            &independent.style,
                             replaced,
                         ),
                         Err(non_replaced) => layout_in_flow_non_replaced_block_level(
                             layout_context,
                             positioning_context,
                             containing_block,
-                            contents.tag,
-                            &contents.style,
+                            independent.tag,
+                            &independent.style,
                             NonReplacedContents::EstablishesAnIndependentFormattingContext(
                                 non_replaced,
                             ),
