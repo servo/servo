@@ -6,6 +6,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 import { compareQueries, Ordering } from './query/compare.js';
 import { TestQueryMultiCase, TestQuerySingleCase, TestQueryMultiFile, TestQueryMultiTest } from './query/query.js';
+import { kBigSeparator, kWildcard, kPathSeparator, kParamSeparator } from './query/separators.js';
 import { stringifySingleParam } from './query/stringify_params.js';
 import { assert } from './util/util.js'; // `loadTreeForQuery()` loads a TestTree for a given queryToLoad.
 // The resulting tree is a linked-list all the way from `suite:*` to queryToLoad,
@@ -45,6 +46,20 @@ export class TestTree {
   iterateLeaves() {
     return TestTree.iterateSubtreeLeaves(this.root);
   }
+  /**
+   * If a parent and its child are at different levels, then
+   * generally the parent has only one child, i.e.:
+   *   a,* { a,b,* { a,b:* { ... } } }
+   * Collapse that down into:
+   *   a,* { a,b:* { ... } }
+   * which is less needlessly verbose when displaying the tree in the standalone runner.
+   */
+
+
+  dissolveLevelBoundaries() {
+    const newRoot = dissolveLevelBoundaries(this.root);
+    assert(newRoot === this.root);
+  }
 
   toString() {
     return TestTree.subtreeToString('(root)', this.root, '');
@@ -72,11 +87,11 @@ export class TestTree {
 
   static subtreeToString(name, tree, indent) {
     const collapsible = 'run' in tree ? '>' : tree.collapsible ? '+' : '-';
-    let s = indent + `${collapsible} ${JSON.stringify(name)} => ` + `${tree.query}        ${JSON.stringify(tree.query)}`;
+    let s = indent + `${collapsible} ${JSON.stringify(name)} => ${tree.query}`;
 
     if ('children' in tree) {
       if (tree.description !== undefined) {
-        s += indent + `\n    | ${JSON.stringify(tree.description)}`;
+        s += `\n${indent}  | ${JSON.stringify(tree.description)}`;
       }
 
       for (const [name, child] of tree.children) {
@@ -167,21 +182,19 @@ export async function loadTreeForQuery(loader, queryToLoad, subqueriesToExpand) 
     }
   }
 
-  const tree = new TestTree(subtreeL0);
-
   for (const [i, sq] of subqueriesToExpandEntries) {
     const seen = seenSubqueriesToExpand[i];
     assert(seen, `subqueriesToExpand entry did not match anything \
 (can happen due to overlap with another subquery): ${sq.toString()}`);
   }
 
-  assert(foundCase, 'Query does not match any cases'); // TODO: Contains lots of single-child subtrees. Consider cleaning those up (as postprocess?).
-
-  return tree;
+  assert(foundCase, 'Query does not match any cases');
+  return new TestTree(subtreeL0);
 }
 
 function makeTreeForSuite(suite) {
   return {
+    readableRelativeName: suite + kBigSeparator,
     query: new TestQueryMultiFile(suite, []),
     children: new Map(),
     collapsible: false
@@ -197,6 +210,7 @@ function addSubtreeForDirPath(tree, file) {
     tree = getOrInsertSubtree(part, tree, () => {
       const query = new TestQueryMultiFile(tree.query.suite, subqueryFile);
       return {
+        readableRelativeName: part + kPathSeparator + kWildcard,
         query,
         collapsible: false
       };
@@ -213,7 +227,9 @@ function addSubtreeForFilePath(tree, file, description, checkCollapsible) {
 
   const subtree = getOrInsertSubtree('', tree, () => {
     const query = new TestQueryMultiTest(tree.query.suite, tree.query.filePathParts, []);
+    assert(file.length > 0, 'file path is empty');
     return {
+      readableRelativeName: file[file.length - 1] + kBigSeparator + kWildcard,
       query,
       description,
       collapsible: checkCollapsible(query)
@@ -231,6 +247,7 @@ function addSubtreeForTestPath(tree, test, isCollapsible) {
     tree = getOrInsertSubtree(part, tree, () => {
       const query = new TestQueryMultiTest(tree.query.suite, tree.query.filePathParts, subqueryTest);
       return {
+        readableRelativeName: part + kPathSeparator + kWildcard,
         query,
         collapsible: isCollapsible(query)
       };
@@ -240,7 +257,10 @@ function addSubtreeForTestPath(tree, test, isCollapsible) {
 
   return getOrInsertSubtree('', tree, () => {
     const query = new TestQueryMultiCase(tree.query.suite, tree.query.filePathParts, subqueryTest, {});
+    assert(subqueryTest.length > 0, 'subqueryTest is empty');
     return {
+      readableRelativeName: subqueryTest[subqueryTest.length - 1] + kBigSeparator + kWildcard,
+      kWildcard,
       query,
       collapsible: isCollapsible(query)
     };
@@ -259,6 +279,7 @@ function addLeafForCase(tree, t, checkCollapsible) {
     tree = getOrInsertSubtree(name, tree, () => {
       const subquery = new TestQueryMultiCase(query.suite, query.filePathParts, query.testPathParts, subqueryParams);
       return {
+        readableRelativeName: name + kParamSeparator + kWildcard,
         query: subquery,
         collapsible: checkCollapsible(subquery)
       };
@@ -293,10 +314,48 @@ function getOrInsertSubtree(key, parent, createSubtree) {
 function insertLeaf(parent, query, t) {
   const key = '';
   const leaf = {
+    readableRelativeName: readableNameForCase(query),
     query,
     run: rec => t.run(rec)
   };
   assert(!parent.children.has(key));
   parent.children.set(key, leaf);
+}
+
+function dissolveLevelBoundaries(tree) {
+  if ('children' in tree) {
+    if (tree.children.size === 1 && tree.description === undefined) {
+      // Loops exactly once
+      for (const [, child] of tree.children) {
+        if (child.query.level > tree.query.level) {
+          const newtree = dissolveLevelBoundaries(child);
+          return newtree;
+        }
+      }
+    }
+
+    for (const [k, child] of tree.children) {
+      const newChild = dissolveLevelBoundaries(child);
+
+      if (newChild !== child) {
+        tree.children.set(k, newChild);
+      }
+    }
+  }
+
+  return tree;
+}
+/** Generate a readable relative name for a case (used in standalone). */
+
+
+function readableNameForCase(query) {
+  const paramsKeys = Object.keys(query.params);
+
+  if (paramsKeys.length === 0) {
+    return query.testPathParts[query.testPathParts.length - 1] + kBigSeparator;
+  } else {
+    const lastKey = paramsKeys[paramsKeys.length - 1];
+    return stringifySingleParam(lastKey, query.params[lastKey]);
+  }
 }
 //# sourceMappingURL=tree.js.map

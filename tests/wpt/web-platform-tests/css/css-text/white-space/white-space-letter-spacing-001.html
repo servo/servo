@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS Test: letter-spacing is not applied to preserved line-breaks</title>
+<link rel="author" title="Jonathan Kew" href="mailto:jkew@mozilla.com"/>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#letter-spacing-property"/>
+<link rel="match" href="reference/white-space-letter-spacing-001-ref.html"/>
+<meta name="assert" content="Letter-spacing must not be applied at the beginning or at the end of a line."/>
+<style>
+div {
+  font: 16px monospace;
+  float: left;
+  clear: left;
+  border: 1px solid silver;
+  margin: 1em;
+  letter-spacing: .5em;
+}
+.test1 {
+  white-space: pre;
+}
+.test2 {
+  white-space: pre-line;
+}
+.test3 {
+  white-space: pre-wrap;
+}
+.test4 {
+  white-space: break-spaces;
+}
+</style>
+<p>The five boxes below should all look the same:</p>
+<div>Two lines<br>of text</div>
+<div class=test1>Two lines
+of text</div>
+<div class=test2>Two lines
+of text</div>
+<div class=test3>Two lines
+of text</div>
+<div class=test4>Two lines
+of text</div>

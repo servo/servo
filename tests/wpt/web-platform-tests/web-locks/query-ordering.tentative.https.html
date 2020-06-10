@@ -42,6 +42,7 @@ function nextMessage() {
 // distinguishable client_ids (otherwise it would not be possible to
 // distinguish the requests and thus impossible to verify ordering).
 promise_test(async testCase => {
+  assert_implements(navigator.locks);
   const resourceName = uniqueName(testCase);
 
   // Set up clients.

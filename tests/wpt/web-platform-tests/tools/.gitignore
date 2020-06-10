@@ -10,3 +10,8 @@ coverage.xml
 *~
 \#*
 runner/MANIFEST.json
+
+# WAVE
+!wave/www/lib
+!wave/export/lib
+!wave/export/css

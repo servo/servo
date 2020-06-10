@@ -2,11 +2,15 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/
 
-// Encodes a stringified TestQuery so that it can be placed in a `?q=` parameter in a URL.
-// encodeURIComponent encodes in accordance with `application/x-www-form-urlencoded`, but URLs don't
-// actually have to be as strict as HTML form encoding (we interpret this purely from JavaScript).
-// So we encode the component, then selectively convert some %-encoded escape codes back to their
-// original form for readability/copyability.
+/**
+ * Encodes a stringified TestQuery so that it can be placed in a `?q=` parameter in a URL.
+ *
+ * `encodeURIComponent` encodes in accordance with `application/x-www-form-urlencoded`,
+ * but URLs don't actually have to be as strict as HTML form encoding
+ * (we interpret this purely from JavaScript).
+ * So we encode the component, then selectively convert some %-encoded escape codes
+ * back to their original form for readability/copyability.
+ */
 export function encodeURIComponentSelectively(s) {
   let ret = encodeURIComponent(s);
   ret = ret.replace(/%22/g, '"'); // for JSON strings

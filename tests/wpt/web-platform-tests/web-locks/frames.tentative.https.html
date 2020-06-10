@@ -10,6 +10,7 @@
 'use strict';
 
 promise_test(async t => {
+  assert_implements(navigator.locks);
   const res = uniqueName(t);
 
   const frame = await iframe('resources/iframe.html');
@@ -25,6 +26,7 @@ promise_test(async t => {
 }, 'Window and Frame - shared mode');
 
 promise_test(async t => {
+  assert_implements(navigator.locks);
   const res = uniqueName(t);
 
   const frame = await iframe('resources/iframe.html');
@@ -54,6 +56,7 @@ promise_test(async t => {
 }, 'Window and Frame - exclusive mode');
 
 promise_test(async t => {
+  assert_implements(navigator.locks);
   const res = uniqueName(t);
 
   const frame1 = await iframe('resources/iframe.html');
@@ -86,6 +89,7 @@ promise_test(async t => {
 }, 'Frame and Frame - exclusive mode');
 
 promise_test(async t => {
+  assert_implements(navigator.locks);
   const res = uniqueName(t);
 
   const frame = await iframe('resources/iframe.html');
@@ -114,6 +118,7 @@ promise_test(async t => {
 }, 'Terminated Frame with held lock');
 
 promise_test(async t => {
+  assert_implements(navigator.locks);
   const res = uniqueName(t);
 
   const frame = await iframe('resources/iframe.html');
@@ -142,6 +147,7 @@ promise_test(async t => {
 }, 'Navigated Frame with held lock');
 
 promise_test(async t => {
+  assert_implements(navigator.locks);
   const res = uniqueName(t);
 
   // frame1 requests and holds res - should be granted immediately.
@@ -190,6 +196,7 @@ promise_test(async t => {
 }, 'Navigated Frame with pending request');
 
 promise_test(async t => {
+  assert_implements(navigator.locks);
   const res = uniqueName(t);
 
   // frame1 requests and holds res - should be granted immediately.

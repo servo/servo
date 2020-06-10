@@ -69,6 +69,8 @@ commands are:
 * `wpt manifest` - For updating or generating a `MANIFEST.json` test manifest
 * `wpt install` - For installing the latest release of a browser or
   webdriver server on the local machine.
+* `wpt serve-wave` - For starting the wpt http server and the WAVE test runner.
+For more details on how to use the WAVE test runner see the [documentation](./tools/wave/docs/usage/usage.md).
 
 <span id="windows-notes">Windows Notes</span>
 =============================================

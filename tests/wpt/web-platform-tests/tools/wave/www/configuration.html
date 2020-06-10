@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Session Configuration - Web Platform Test</title>
+    <link rel="stylesheet" href="css/bulma-0.7.5/bulma.min.css" />
+    <link rel="stylesheet" href="css/fontawesome-5.7.2.min.css" />
+    <script src="lib/utils.js"></script>
+    <script src="lib/wave-service.js"></script>
+    <script src="lib/ui.js"></script>
+    <style>
+      .site-logo {
+        max-width: 300px;
+        margin: 0 0 30px -15px;
+      }
+    </style>
+  </head>
+  <body>
+    <script>
+//      var apis = [
+//        { title: "2D Context", path: "/2dcontext" },
+//        { title: "Content Security Policy", path: "/content-security-policy" },
+//        { title: "CSS", path: "/css" },
+//        { title: "DOM", path: "/dom" },
+//        { title: "ECMAScript", path: "/ecmascript" },
+//        { title: "Encrypted media", path: "/encrypted-media" },
+//        { title: "Fetch", path: "/fetch" },
+//        { title: "FileAPI", path: "/FileAPI" },
+//        { title: "Fullscreen", path: "/fullscreen" },
+//        { title: "WebGL", path: "/webgl" },
+//        { title: "HTML", path: "/html" },
+//        { title: "IndexedDB", path: "/IndexedDB" },
+//        { title: "Media Source", path: "/media-source" },
+//        { title: "Notifications", path: "/notifications" },
+//        { title: "Page Visibility", path: "/page-visibility" },
+//        { title: "Service Workers", path: "/service-workers" },
+//        { title: "UI Events", path: "/uievents" },
+//        { title: "WAVE Extra", path: "/wave-extra" },
+//        { title: "Webaudio", path: "/webaudio" },
+//        { title: "WebCryptoAPI", path: "/WebCryptoAPI" },
+//        { title: "Webmessaging", path: "/webmessaging" },
+//        { title: "Websockets", path: "/websockets" },
+//        { title: "Webstorage", path: "/webstorage" },
+//        { title: "Workers", path: "/workers" },
+//        { title: "XHR", path: "/xhr" }
+//      ];
+			var apis = [];
+
+      var types = [
+        { title: "Automatic", value: "automatic" },
+        { title: "Manual", value: "manual" }
+      ];
+
+//      var referenceSessions = [
+//        {
+//          title: "Edge 44.17763",
+//          engine: "",
+//          token: "b2924d20-6a93-11e9-98b4-a11fb92a6d1c",
+//          icon: "fab fa-edge"
+//        },
+//        {
+//          title: "Firefox 64.0",
+//          engine: "Gecko 64.0",
+//          token: "bb7aafa0-6a92-11e9-8ec2-04f58dad2e4f",
+//          icon: "fab fa-firefox"
+//        },
+//        {
+//          title: "WebKit 605.1.15",
+//          engine: "Revision 239158",
+//          token: "caf823e0-6a92-11e9-b732-3188d0065ebc",
+//          icon: "fab fa-safari"
+//        },
+//        {
+//          title: "Chromium 73.0.3640.0",
+//          engine: "Blink 537.36",
+//          token: "a50c6db0-6a94-11e9-8d1b-e23fc4555885",
+//          icon: "fab fa-chrome"
+//        }
+//      ];
+			var referenceSessions= [];
+
+      window.onload = function() {
+        const query = utils.parseQuery(location.search);
+        token = query.token;
+        if (token) WaveService.addRecentSession(token);
+        configurationUi.render();
+				WaveService.readAvailableApis(function(available_apis) {
+					available_apis = available_apis.sort((apiA, apiB) => apiA.title.toLowerCase() > apiB.title.toLowerCase() ? 1 : -1)
+					apis = available_apis;
+					WaveService.readPublicSessions(function(tokens) {
+						console.log(tokens);
+						WaveService.readMultipleSessions(tokens, function(configurations) {
+							referenceSessions = configurations
+								.sort((confA, confB) => confA.browser.name.toLowerCase() > confB.browser.name.toLowerCase() ? 1 : -1)
+								.map(configuration => {
+									var icon = "";
+									switch(configuration.browser.name.toLowerCase()) {
+										case "firefox": icon = "fab fa-firefox"; break;
+										case "webkit":
+										case "safari": icon = "fab fa-safari"; break;
+										case "edge": icon = "fab fa-edge"; break;
+										case "chrome":
+										case "chromium": icon = "fab fa-chrome"; break;
+									}
+									return {
+										title: configuration.browser.name + " " + configuration.browser.version,
+										token: configuration.token,
+										icon,
+										engine: configuration.browser.engine || ""
+									}
+								});
+							WaveService.readSessionStatus(
+								token,
+								function(status) {
+									if (status.status !== "pending") {
+										configurationUi.openResultsPage(token);
+										return;
+									}
+
+									WaveService.readSession(token, function(configuration) {
+										if (
+											configuration.tests.include.findIndex(test => test === "/") !==
+											-1
+										) {
+											configuration.tests.include = apis.map(api => api.path);
+										}
+										configurationUi.state.configurationBackup = utils.copyObject(
+											configuration
+										);
+										configurationUi.state.configuration = configuration;
+										setTimeout(
+											configurationUi.handleExpiration,
+											configuration.expirationDate - Date.now()
+										);
+										configurationUi.renderSessionConfiguration();
+									});
+								},
+								function() {
+									configurationUi.state.expired = true;
+									configurationUi.renderSessionConfiguration();
+									configurationUi.renderExcludedTests();
+									configurationUi.renderResumeView();
+								}
+							);
+						});
+					});
+				});
+      };
+
+      var configurationUi = {
+        state: {},
+        hasIncludedTest: function(path) {
+          var configuration = configurationUi.state.configuration;
+          var index = configuration.tests.include.findIndex(
+            test => test === path
+          );
+          return index !== -1;
+        },
+        handleIncludedTestToggle: function(path) {
+          var configuration = configurationUi.state.configuration;
+          if (configurationUi.hasIncludedTest(path)) {
+            var index = configuration.tests.include.findIndex(
+              test => test === path
+            );
+            configuration.tests.include.splice(index, 1);
+          } else {
+            configuration.tests.include.push(path);
+          }
+          configurationUi.renderSessionConfiguration();
+        },
+        selectAllTests: function() {
+          var configuration = configurationUi.state.configuration;
+          configuration.tests.include = apis.map(api => api.path);
+          configurationUi.renderSessionConfiguration();
+        },
+        deselectAllTests: function() {
+          var configuration = configurationUi.state.configuration;
+          configuration.tests.include = [];
+          configurationUi.renderSessionConfiguration();
+        },
+        hasTestType: function(value) {
+          var configuration = configurationUi.state.configuration;
+          var index = configuration.types.findIndex(type => type === value);
+          return index !== -1;
+        },
+        handleTestTypeToggle: function(value) {
+          var configuration = configurationUi.state.configuration;
+          if (configurationUi.hasTestType(value)) {
+            var index = configuration.types.findIndex(type => type === value);
+            configuration.types.splice(index, 1);
+          } else {
+            configuration.types.push(value);
+          }
+          configurationUi.renderSessionConfiguration();
+        },
+        selectAllTestTypes: function() {
+          var configuration = configurationUi.state.configuration;
+          configuration.types = types.map(type => type.value);
+          configurationUi.renderSessionConfiguration();
+        },
+        deselectAllTestTypes: function() {
+          var configuration = configurationUi.state.configuration;
+          configuration.types = [];
+          configurationUi.renderSessionConfiguration();
+        },
+        hasRefSession: function(session) {
+          var configuration = configurationUi.state.configuration;
+          var index = configuration.referenceTokens.findIndex(
+            token => token === session.token
+          );
+          return index !== -1;
+        },
+        handleRefSessionToggle: function(session) {
+          var configuration = configurationUi.state.configuration;
+          if (configurationUi.hasRefSession(session)) {
+            var index = configuration.referenceTokens.findIndex(
+              token => token === session.token
+            );
+            configuration.referenceTokens.splice(index, 1);
+          } else {
+            configuration.referenceTokens.push(session.token);
+          }
+          configurationUi.renderSessionConfiguration();
+        },
+        selectAllRefSessions: function() {
+          var configuration = configurationUi.state.configuration;
+          configuration.referenceTokens = referenceSessions.map(
+            session => session.token
+          );
+          configurationUi.renderSessionConfiguration();
+        },
+        deselectAllRefSessions: function() {
+          var configuration = configurationUi.state.configuration;
+          configuration.referenceTokens = [];
+          configurationUi.renderSessionConfiguration();
+        },
+        isTestListValid: function() {
+          var configuration = configurationUi.state.configuration;
+          return configuration.tests.include.length > 0;
+        },
+        isTestTypeListValid: function() {
+          var configuration = configurationUi.state.configuration;
+          return configuration.types.length > 0;
+        },
+        isConfigurationValid: function() {
+          if (!configurationUi.isTestListValid()) return false;
+          if (!configurationUi.isTestTypeListValid()) return false;
+          return true;
+        },
+        isSessionStarting: function() {
+          return configurationUi.state.isStarting;
+        },
+        handleStart: function() {
+          if (configurationUi.isSessionStarting()) return;
+          var configuration = configurationUi.state.configuration;
+          var token = configuration.token;
+          WaveService.updateSession(token, configuration, function() {
+            WaveService.updateLabels(token, configuration.labels, function() {
+              WaveService.startSession(token, function() {
+                configurationUi.openResultsPage(token);
+              });
+            });
+          });
+          configurationUi.state.isStarting = true;
+          configurationUi.renderSessionConfiguration();
+        },
+        handleDiscardChanges: function() {
+          configurationUi.state.configuration = utils.copyObject(
+            configurationUi.state.configurationBackup
+          );
+          configurationUi.renderSessionConfiguration();
+        },
+        handleExpiration: function() {
+          configurationUi.state.expired = true;
+          configurationUi.renderSessionConfiguration();
+          configurationUi.renderResumeView();
+        },
+        openResultsPage: function(token) {
+          location.href = WEB_ROOT + "results.html?token=" + token;
+        },
+        handleAddExludedTestsRaw: function() {
+          var excludedTestsTextArea = UI.getElement("excluded-tests-text");
+          var tests = excludedTestsTextArea.value.split("\n");
+          var configuration = configurationUi.state.configuration;
+          var excludedTests = configuration.tests.exclude;
+          for (var test of tests) {
+            if (!test) continue;
+            if (test.startsWith("#")) continue;
+            if (excludedTests.indexOf(test) !== -1) continue;
+            excludedTests.push(test);
+          }
+
+          excludedTestsTextArea.value = "";
+          configurationUi.renderExcludedTests();
+        },
+        handleAddExludedTestsMalfunctioning: function() {
+          var excludedTestsTextArea = UI.getElement("excluded-tests-text");
+          var token = excludedTestsTextArea.value;
+          var tokenRegExp = new RegExp(
+            "^[a-f0-9]{8}(-[a-f0-9]{0,4}|$)(-[a-f0-9]{0,4}|$)(-[a-f0-9]{0,4}|$)(-[a-f0-9]{0,12}|$)"
+          );
+          var configuration = configurationUi.state.configuration;
+          var excludedTests = configuration.tests.exclude;
+          if (tokenRegExp.test(token)) {
+            WaveService.findToken(
+              token,
+              function(token) {
+                WaveService.readMalfunctioningTests(token, function(
+                  malfunctioningTests
+                ) {
+                  for (var test of malfunctioningTests) {
+                    if (!test) continue;
+                    if (excludedTests.indexOf(test) !== -1) continue;
+                    excludedTests.push(test);
+                  }
+                  configurationUi.renderExcludedTests();
+                });
+              },
+              function() {
+                configurationUi.state.excludedTestError = "Session not found";
+                configurationUi.renderExcludedTests();
+              }
+            );
+          } else {
+            configurationUi.state.excludedTestError = "Invalid session token";
+            configurationUi.renderExcludedTests();
+          }
+        },
+        handleAddExludedTestsExcluded: function() {
+          var excludedTestsTextArea = UI.getElement("excluded-tests-text");
+          var token = excludedTestsTextArea.value;
+          var tokenRegExp = new RegExp(
+            "^[a-f0-9]{8}(-[a-f0-9]{0,4}|$)(-[a-f0-9]{0,4}|$)(-[a-f0-9]{0,4}|$)(-[a-f0-9]{0,12}|$)"
+          );
+          var configuration = configurationUi.state.configuration;
+          var excludedTests = configuration.tests.exclude;
+          if (tokenRegExp.test(token)) {
+            WaveService.findToken(
+              token,
+              function(token) {
+                WaveService.readSession(token, function(sessionConfig) {
+                  var prevExcludedTests = sessionConfig.tests.exclude;
+                  for (var test of prevExcludedTests) {
+                    if (!test) continue;
+                    if (excludedTests.indexOf(test) !== -1) continue;
+                    excludedTests.push(test);
+                  }
+                  configurationUi.renderExcludedTests();
+                });
+              },
+              function() {
+                configurationUi.state.excludedTestError = "Session not found";
+                configurationUi.renderExcludedTests();
+              }
+            );
+          } else {
+            configurationUi.state.excludedTestError = "Invalid session token";
+            configurationUi.renderExcludedTests();
+          }
+        },
+        handleRemoveExcludedTest: function(test) {
+          var configuration = configurationUi.state.configuration;
+          var excludedTests = configuration.tests.exclude;
+          var index = excludedTests.indexOf(test);
+          excludedTests.splice(index, 1);
+          configurationUi.renderExcludedTests();
+        },
+        handleExcludeInputChange: function(type) {
+          if (configurationUi.state.activeExcludeInput === type) {
+            configurationUi.state.activeExcludeInput = null;
+          } else {
+            configurationUi.state.activeExcludeInput = type;
+          }
+          configurationUi.renderExcludedTests();
+        },
+        showAddLabel: function() {
+          configurationUi.state.addLabelVisible = true;
+          configurationUi.renderSessionConfiguration();
+          UI.getElement("session-label-input").focus();
+        },
+        hideAddLabel: function() {
+          configurationUi.state.addLabelVisible = false;
+          configurationUi.renderSessionConfiguration();
+        },
+        addLabel: function() {
+          var label = UI.getElement("session-label-input").value;
+          if (!label) return;
+          configurationUi.state.configuration.labels.push(label);
+          configurationUi.renderSessionConfiguration();
+          UI.getElement("session-label-input").focus();
+        },
+        removeLabel: function(index) {
+          const { configuration } = configurationUi.state;
+          configuration.labels.splice(index, 1);
+          configurationUi.renderSessionConfiguration();
+        },
+        resumeSession: function() {
+          var resumeToken = UI.getElement("resume-token").value;
+          if (!resumeToken) return;
+
+          WaveService.resumeSession(
+            configurationUi.state.configuration.token,
+            resumeToken,
+            function() {
+              configurationUi.openResultsPage(resumeToken);
+            }
+          );
+        },
+        render: function() {
+          const configurationView = UI.createElement({
+            element: "section",
+            className: "section",
+            children: [
+              {
+                className: "container",
+                style: "margin-bottom: 2em",
+                children: [
+                  {
+                    element: "img",
+                    src: "res/wavelogo_2016.jpg",
+                    className: "site-logo"
+                  },
+                  { className: "title", text: "Session Configuration" }
+                ]
+              },
+              {
+                id: "session-configuration",
+                className: "container",
+                style: "margin-bottom: 2em"
+              },
+              {
+                id: "resume-view",
+                className: "container",
+                style: "margin-bottom: 2em"
+              }
+            ]
+          });
+          const root = UI.getRoot();
+          root.innerHTML = "";
+          root.appendChild(configurationView);
+          configurationUi.renderSessionConfiguration();
+          configurationUi.renderResumeView();
+        },
+        renderSessionConfiguration: function() {
+          var configuration = configurationUi.state.configuration;
+          var sessionConfigurationView = UI.createElement({});
+          var sessionConfiguration = UI.getElement("session-configuration");
+          sessionConfiguration.innerHTML = "";
+
+          if (configurationUi.state.expired) {
+            var expiredIndicator = UI.createElement({
+              className: "level",
+              children: {
+                element: "span",
+                className: "level-item",
+                children: [
+                  {
+                    text:
+                      "The specified session does not exist or is already expired."
+                  }
+                ]
+              }
+            });
+            sessionConfigurationView.appendChild(expiredIndicator);
+            sessionConfiguration.appendChild(sessionConfigurationView);
+            return;
+          }
+
+          if (!configuration) {
+            var loadingIndicator = UI.createElement({
+              className: "level",
+              children: {
+                element: "span",
+                className: "level-item",
+                children: [
+                  {
+                    element: "i",
+                    className: "fas fa-spinner fa-pulse"
+                  },
+                  {
+                    style: "margin-left: 0.4em;",
+                    text: "Loading configuration ..."
+                  }
+                ]
+              }
+            });
+            sessionConfigurationView.appendChild(loadingIndicator);
+            sessionConfiguration.appendChild(sessionConfigurationView);
+            return;
+          }
+
+          var addLabelVisible = configurationUi.state.addLabelVisible;
+
+          var tokenField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Token" }
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: "control",
+                    text: configuration.token
+                  }
+                }
+              }
+            ]
+          });
+          sessionConfiguration.appendChild(tokenField);
+
+          expirationField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Expires" }
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: "control",
+                    text: new Date(
+                      configuration.expirationDate
+                    ).toLocaleString()
+                  }
+                }
+              }
+            ]
+          });
+          sessionConfiguration.appendChild(expirationField);
+
+          var labelsField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Labels" }
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field is-grouped is-grouped-multiline",
+                  children: configuration.labels
+                    .map((label, index) => ({
+                      className: "control",
+                      children: {
+                        className: "tags has-addons",
+                        children: [
+                          {
+                            element: "span",
+                            className: "tag is-info",
+                            text: label
+                          },
+                          {
+                            element: "a",
+                            className: "tag is-delete",
+                            onClick: () => configurationUi.removeLabel(index)
+                          }
+                        ]
+                      }
+                    }))
+                    .concat(
+                      addLabelVisible
+                        ? [
+                            {
+                              className: "control field is-grouped",
+                              children: [
+                                {
+                                  element: "input",
+                                  className: "input is-small control",
+                                  style: "width: 10rem",
+                                  id: "session-label-input",
+                                  type: "text",
+                                  onKeyUp: event =>
+                                    event.keyCode === 13
+                                      ? configurationUi.addLabel()
+                                      : null
+                                },
+                                {
+                                  className:
+                                    "button is-dark is-outlined is-small is-rounded control",
+                                  text: "save",
+                                  onClick: configurationUi.addLabel
+                                },
+                                {
+                                  className:
+                                    "button is-dark is-outlined is-small is-rounded control",
+                                  text: "cancel",
+                                  onClick: configurationUi.hideAddLabel
+                                }
+                              ]
+                            }
+                          ]
+                        : [
+                            {
+                              className: "button is-rounded is-small",
+                              text: "Add",
+                              onClick: configurationUi.showAddLabel
+                            }
+                          ]
+                    )
+                }
+              }
+            ]
+          });
+          sessionConfiguration.appendChild(labelsField);
+
+          var apisField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: [
+                  { className: "label", text: "APIs" },
+                  configurationUi.createSelectDeselectButtons(
+                    configurationUi.selectAllTests,
+                    configurationUi.deselectAllTests
+                  )
+                ]
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: "control",
+                    children: [
+                      configurationUi.isTestListValid()
+                        ? null
+                        : configurationUi.createErrorMessage(
+                            "Select at least one API"
+                          )
+                    ].concat(configurationUi.createApiList(apis))
+                  }
+                }
+              }
+            ]
+          });
+          sessionConfiguration.appendChild(apisField);
+
+          var excludeField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Excluded Tests" }
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: "control",
+                    children: { id: "excluded-tests-view" }
+                  }
+                }
+              }
+            ]
+          });
+          sessionConfiguration.appendChild(excludeField);
+
+          var typesField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: { className: "label", text: "Test Types" }
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: "control",
+                    children: [
+                      configurationUi.isTestTypeListValid()
+                        ? null
+                        : configurationUi.createErrorMessage(
+                            "Select at least one test type"
+                          )
+                    ].concat(configurationUi.createTestTypeList(types))
+                  }
+                }
+              }
+            ]
+          });
+          sessionConfiguration.appendChild(typesField);
+
+          var referencesField = UI.createElement({
+            className: "field is-horizontal",
+            children: [
+              {
+                className: "field-label",
+                children: [
+                  { className: "label", text: "Reference Browsers" },
+                  configurationUi.createSelectDeselectButtons(
+                    configurationUi.selectAllRefSessions,
+                    configurationUi.deselectAllRefSessions
+                  )
+                ]
+              },
+              {
+                className: "field-body",
+                children: {
+                  className: "field",
+                  children: {
+                    className: "control",
+                    children: configurationUi.createRefSessionsList(
+                      referenceSessions
+                    )
+                  }
+                }
+              }
+            ]
+          });
+          sessionConfiguration.appendChild(referencesField);
+
+          var buttonList = UI.createElement({
+            className: "level level-right",
+            children: [
+              {
+                element: "button",
+                className: "button is-success",
+                style: "margin-right: 0.3em",
+                disabled: !configurationUi.isConfigurationValid(),
+                onClick: configurationUi.handleStart,
+                children: [
+                  {
+                    element: "span",
+                    className: "icon",
+                    children: [
+                      {
+                        element: "i",
+                        className: configurationUi.isSessionStarting()
+                          ? "fas fa-spinner fa-pulse"
+                          : "fas fa-play"
+                      }
+                    ]
+                  },
+                  {
+                    element: "span",
+                    text: configurationUi.isSessionStarting()
+                      ? "Starting Session ..."
+                      : "Start Session"
+                  }
+                ]
+              },
+              {
+                element: "button",
+                className: "button",
+                onClick: configurationUi.handleDiscardChanges,
+                disabled: configurationUi.isSessionStarting(),
+                children: [
+                  {
+                    element: "span",
+                    className: "icon",
+                    children: [
+                      {
+                        element: "i",
+                        className: "fas fa-times"
+                      }
+                    ]
+                  },
+                  {
+                    element: "span",
+                    text: "Discard Changes"
+                  }
+                ]
+              }
+            ]
+          });
+          sessionConfiguration.appendChild(buttonList);
+
+          configurationUi.renderExcludedTests();
+        },
+        renderExcludedTests: function() {
+          var excludedTestsView = UI.getElement("excluded-tests-view");
+          if (!excludedTestsView) return;
+          excludedTestsView.innerHTML = "";
+
+          var errorMessage = configurationUi.state.excludedTestError;
+          if (errorMessage) {
+            var error = configurationUi.createErrorMessage(errorMessage);
+            excludedTestsView.appendChild(UI.createElement(error));
+          }
+
+          var excludeInputs = [
+            { title: "Add Raw", type: "raw" },
+            { title: "Add Malfunctioning", type: "malfunc" },
+            { title: "Add Previous Excluded", type: "excluded" }
+          ];
+
+          var activeExcludeInput = configurationUi.state.activeExcludeInput;
+
+          var excludedTestInputSwitch = UI.createElement({
+            className: "tabs is-centered is-toggle is-small",
+            children: {
+              element: "ul",
+              children: excludeInputs.map(function(input) {
+                return {
+                  element: "li",
+                  onClick: function() {
+                    configurationUi.handleExcludeInputChange(input.type);
+                  },
+                  className: (function() {
+                    if (activeExcludeInput === input.type) return "is-active";
+                    return "";
+                  })(),
+                  children: { element: "a", text: input.title }
+                };
+              })
+            }
+          });
+          excludedTestsView.appendChild(excludedTestInputSwitch);
+
+          if (activeExcludeInput === "raw") {
+            var rawInput = UI.createElement({
+              children: [
+                {
+                  className: "is-size-7",
+                  style: "margin-bottom: 20px",
+                  text:
+                    "Provide paths to test files or directories to exclude them from the session. One path per line, lines starting with # are omitted."
+                },
+                {
+                  element: "textarea",
+                  className: "textarea",
+                  id: "excluded-tests-text"
+                },
+                {
+                  style: "margin-top: 10px",
+                  onClick: function() {
+                    configurationUi.handleAddExludedTestsRaw();
+                  },
+                  children: [
+                    {
+                      element: "button",
+                      className: "button",
+                      style: "margin-bottom: 20px",
+                      text: "Add"
+                    }
+                  ]
+                }
+              ]
+            });
+            excludedTestsView.appendChild(rawInput);
+          } else if (
+            activeExcludeInput === "malfunc" ||
+            activeExcludeInput === "excluded"
+          ) {
+            var malfuncInput = UI.createElement({
+              style: "margin-bottom: 1em",
+              children: [
+                {
+                  className: "is-size-7",
+                  style: "margin-bottom: 1em",
+                  text:
+                    activeExcludeInput === "malfunc"
+                      ? "Add malfunctioning tests from past sessions by providing at least the first eight characters of the session's token."
+                      : "Add excluded tests from past sessions by providing at least the first eight characters of the session's token."
+                },
+                {
+                  className: "field is-horizontal",
+                  children: [
+                    {
+                      className: "field-label",
+                      children: { className: "label", text: "Session Token" }
+                    },
+                    {
+                      className: "field-body",
+                      children: {
+                        className: "field is-grouped is-multiline",
+                        children: [
+                          {
+                            id: "excluded-tests-text",
+                            className: "input",
+                            element: "input",
+                            type: "text"
+                          },
+                          {
+                            className: "button",
+                            style: "margin-left: 1em",
+                            text: "Add",
+                            onClick: function() {
+                              if (activeExcludeInput === "malfunc") {
+                                configurationUi.handleAddExludedTestsMalfunctioning();
+                              } else {
+                                configurationUi.handleAddExludedTestsExcluded();
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            });
+            excludedTestsView.appendChild(malfuncInput);
+          }
+
+          var excludedTestsTable = configurationUi.createExcludedTestsTable();
+          var tableWrapper = UI.createElement({
+            style: "max-height: 250px; overflow: auto; margin-bottom: 10px"
+          });
+          tableWrapper.appendChild(excludedTestsTable);
+          excludedTestsView.appendChild(tableWrapper);
+        },
+        renderResumeView: function() {
+          var query = utils.parseQuery(location.search);
+          var resumeToken = query.resume;
+          if (!resumeToken) resumeToken = "";
+
+          var renderResumeElement = UI.getElement("resume-view");
+          renderResumeElement.innerHTML = "";
+          if (configurationUi.state.expired) return;
+
+          var heading = UI.createElement({
+            element: "h2",
+            className: "title is-5",
+            text: "Resume session"
+          });
+          renderResumeElement.appendChild(heading);
+
+          var resumeControls = UI.createElement({
+            className: "columns",
+            children: [
+              {
+                className: "column",
+                children: {
+                  className: "field",
+                  children: [
+                    {
+                      element: "label",
+                      className: "label",
+                      text: "Token (first 8 characters or more)"
+                    },
+                    {
+                      className: "control",
+                      children: {
+                        element: "input",
+                        id: "resume-token",
+                        className: "input is-family-monospace tabbable",
+                        type: "text",
+                        style: "max-width: 30em",
+                        value: resumeToken
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                className: "column",
+                style:
+                  "display: flex; align-items: flex-end; justify-content: flex-end",
+                children: {
+                  className: "button",
+                  onClick: function() {
+                    configurationUi.resumeSession();
+                  },
+                  children: [
+                    {
+                      element: "span",
+                      className: "icon",
+                      children: { element: "i", className: "fas fa-redo-alt" }
+                    },
+                    {
+                      element: "span",
+                      text: "Resume"
+                    }
+                  ]
+                }
+              }
+            ]
+          });
+          renderResumeElement.appendChild(resumeControls);
+        },
+        createExcludedTestsTable: function() {
+          var excludedTests = configurationUi.state.configuration.tests.exclude;
+          if (excludedTests.length === 0) {
+            return UI.createElement({
+              style: "text-align: center",
+              text: "- No Excluded Tests -"
+            });
+          }
+          var table = UI.createElement({
+            element: "table",
+            className: "table",
+            style: "width: 100%",
+            children: excludedTests.map(function(test) {
+              return {
+                element: "tr",
+                children: [
+                  { element: "td", style: "width: 100%;", text: test },
+                  {
+                    element: "td",
+                    children: {
+                      element: "button",
+                      className: "button is-small",
+                      onClick: function() {
+                        configurationUi.handleRemoveExcludedTest(test);
+                      },
+                      children: {
+                        element: "span",
+                        className: "icon",
+                        children: {
+                          element: "i",
+                          className: "fas fa-trash-alt"
+                        }
+                      }
+                    }
+                  }
+                ]
+              };
+            })
+          });
+          return table;
+        },
+        createApiList: function(apis) {
+          return apis.map(api => ({
+            element: "button",
+            style: "margin-right: 0.3em; margin-bottom: 0.3em",
+            className:
+              "button" +
+              (configurationUi.hasIncludedTest(api.path) ? " is-info" : ""),
+            text: api.title,
+            onClick: function(event) {
+              configurationUi.handleIncludedTestToggle(api.path);
+            }
+          }));
+        },
+        createTestTypeList: function(types) {
+          return types.map(type => ({
+            element: "button",
+            style: "margin-right: 0.3em; margin-bottom: 0.3em",
+            className:
+              "button" +
+              (configurationUi.hasTestType(type.value) ? " is-info" : ""),
+            text: type.title,
+            onClick: function(event) {
+              configurationUi.handleTestTypeToggle(type.value);
+            }
+          }));
+        },
+        createRefSessionsList: function(referenceSessions) {
+          return referenceSessions.map(session => ({
+            element: "button",
+            className:
+              "button" +
+              (configurationUi.hasRefSession(session) ? " is-info" : ""),
+            style: "margin-right: 0.3em; margin-bottom: 0.3em; height: auto",
+            onClick: function() {
+              configurationUi.handleRefSessionToggle(session);
+            },
+            children: [
+              {
+                element: "span",
+                className: "icon",
+                children: [{ element: "i", className: session.icon }]
+              },
+              {
+                element: "span",
+                children: [
+                  { text: session.title },
+                  {
+                    text: session.engine,
+                    style: "font-size: 0.8em"
+                  }
+                ]
+              }
+            ]
+          }));
+        },
+        createSelectDeselectButtons: function(onSelect, onDeselect) {
+          return {
+            style: "margin-top: 0.3em",
+            children: [
+              {
+                element: "button",
+                style: "margin-right: 0.3em",
+                className: "button is-rounded is-small",
+                text: "All",
+                onClick: onSelect
+              },
+              {
+                element: "button",
+                className: "button is-rounded is-small",
+                text: "None",
+                onClick: onDeselect
+              }
+            ]
+          };
+        },
+        createErrorMessage: function(message) {
+          return {
+            element: "article",
+            className: "message is-danger",
+            children: [
+              {
+                className: "message-body",
+                text: message
+              }
+            ]
+          };
+        }
+      };
+    </script>
+  </body>
+</html>

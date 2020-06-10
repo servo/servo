@@ -14,10 +14,10 @@ export class TestFileLoader {
   }
 
   async loadTree(query, subqueriesToExpand = []) {
-    return loadTreeForQuery(this, parseQuery(query), subqueriesToExpand.map(q => parseQuery(q)));
+    return loadTreeForQuery(this, query, subqueriesToExpand.map(q => parseQuery(q)));
   }
 
-  async loadTests(query) {
+  async loadCases(query) {
     const tree = await this.loadTree(query);
     return tree.iterateLeaves();
   }

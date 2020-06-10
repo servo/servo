@@ -34,7 +34,7 @@ g.test('mapReadAsync').params(poptions('size', [12, 512 * 1024])).fn(async t => 
   }
 
   buffer.unmap();
-  const actual = new Uint8Array((await buffer.mapReadAsync()));
+  const actual = new Uint8Array(await buffer.mapReadAsync());
   t.expectBuffer(actual, new Uint8Array(expected.buffer));
 });
 g.test('createBufferMapped').params(params().combine(poptions('size', [12, 512 * 1024])).combine(pbool('mappable'))).fn(async t => {

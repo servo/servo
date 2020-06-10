@@ -764,5 +764,8 @@ TESTHARNESS-IN-OTHER-TYPE: svg/extensibility/foreignObject/foreign-object-under-
 TESTHARNESS-IN-OTHER-TYPE: svg/extensibility/foreignObject/foreign-object-under-defs-crash.html
 TESTHARNESS-IN-OTHER-TYPE: svg/svg-in-svg/svg-in-svg-circular-filter-reference-crash.html
 
+TESTHARNESS-PATH: referrer-policy/generic/iframe-upgrade-request.sub.html
+TESTHARNESSREPORT-PATH: referrer-policy/generic/iframe-upgrade-request.sub.html
+
 PRINT STATEMENT: webdriver/tests/print/printcmd.py
 PRINT STATEMENT: webdriver/tests/print/user_prompts.py

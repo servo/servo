@@ -2,8 +2,6 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/
 
-import * as C from '../common/constants.js';
-
 function keysOf(obj) {
   return Object.keys(obj);
 }
@@ -456,11 +454,11 @@ export const kTextureAspectInfo =
 };
 export const kTextureAspects = keysOf(kTextureAspectInfo);
 export const kTextureUsageInfo = {
-  [C.TextureUsage.CopySrc]: {},
-  [C.TextureUsage.CopyDst]: {},
-  [C.TextureUsage.Sampled]: {},
-  [C.TextureUsage.Storage]: {},
-  [C.TextureUsage.OutputAttachment]: {}
+  [GPUTextureUsage.COPY_SRC]: {},
+  [GPUTextureUsage.COPY_DST]: {},
+  [GPUTextureUsage.SAMPLED]: {},
+  [GPUTextureUsage.STORAGE]: {},
+  [GPUTextureUsage.OUTPUT_ATTACHMENT]: {}
 };
 export const kTextureUsages = numericKeysOf(kTextureUsageInfo); // Typedefs for bindings
 
@@ -564,26 +562,26 @@ const kBindingKind =
 }; // Binding type info
 
 const kValidStagesAll = {
-  validStages: C.ShaderStage.Vertex | C.ShaderStage.Fragment | C.ShaderStage.Compute
+  validStages: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE
 };
 const kValidStagesStorageWrite = {
-  validStages: C.ShaderStage.Fragment | C.ShaderStage.Compute
+  validStages: GPUShaderStage.FRAGMENT | GPUShaderStage.COMPUTE
 };
 export const kBufferBindingTypeInfo =
 /* prettier-ignore */
 {
   'uniform-buffer': {
-    usage: C.BufferUsage.Uniform,
+    usage: GPUBufferUsage.UNIFORM,
     ...kBindingKind.uniformBuf,
     ...kValidStagesAll
   },
   'storage-buffer': {
-    usage: C.BufferUsage.Storage,
+    usage: GPUBufferUsage.STORAGE,
     ...kBindingKind.storageBuf,
     ...kValidStagesStorageWrite
   },
   'readonly-storage-buffer': {
-    usage: C.BufferUsage.Storage,
+    usage: GPUBufferUsage.STORAGE,
     ...kBindingKind.storageBuf,
     ...kValidStagesAll
   }
@@ -604,17 +602,17 @@ export const kTextureBindingTypeInfo =
 /* prettier-ignore */
 {
   'sampled-texture': {
-    usage: C.TextureUsage.Sampled,
+    usage: GPUTextureUsage.SAMPLED,
     ...kBindingKind.sampledTex,
     ...kValidStagesAll
   },
   'writeonly-storage-texture': {
-    usage: C.TextureUsage.Storage,
+    usage: GPUTextureUsage.STORAGE,
     ...kBindingKind.storageTex,
     ...kValidStagesStorageWrite
   },
   'readonly-storage-texture': {
-    usage: C.TextureUsage.Storage,
+    usage: GPUTextureUsage.STORAGE,
     ...kBindingKind.storageTex,
     ...kValidStagesAll
   }
@@ -626,6 +624,6 @@ export const kBindingTypeInfo = { ...kBufferBindingTypeInfo,
   ...kTextureBindingTypeInfo
 };
 export const kBindingTypes = keysOf(kBindingTypeInfo);
-export const kShaderStages = [C.ShaderStage.Vertex, C.ShaderStage.Fragment, C.ShaderStage.Compute];
+export const kShaderStages = [GPUShaderStage.VERTEX, GPUShaderStage.FRAGMENT, GPUShaderStage.COMPUTE];
 export const kShaderStageCombinations = [0, 1, 2, 3, 4, 5, 6, 7];
 //# sourceMappingURL=capability_info.js.map

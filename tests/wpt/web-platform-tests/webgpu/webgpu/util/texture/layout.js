@@ -2,7 +2,6 @@
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
 **/
 
-import * as C from '../../../common/constants.js';
 import { assert, unreachable } from '../../../common/framework/util/util.js';
 import { kTextureFormatInfo } from '../../capability_info.js';
 import { align, isAligned } from '../math.js';
@@ -112,7 +111,7 @@ export function createTextureUploadBuffer(texelValue, device, format, dimension,
   } = getTextureCopyLayout(format, dimension, size, options);
   const [buffer, mapping] = device.createBufferMapped({
     size: byteLength,
-    usage: C.BufferUsage.CopySrc
+    usage: GPUBufferUsage.COPY_SRC
   });
   assert(texelValue.byteLength === bytesPerBlock);
   fillTextureDataWithTexelValue(texelValue, format, dimension, mapping, size, options);

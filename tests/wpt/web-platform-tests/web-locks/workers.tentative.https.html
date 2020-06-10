@@ -9,6 +9,7 @@
 'use strict';
 
 promise_test(async t => {
+  assert_implements(navigator.locks);
   const worker = new Worker('resources/worker.js');
   t.add_cleanup(() => { worker.terminate(); });
 
@@ -24,6 +25,7 @@ promise_test(async t => {
 }, 'Window and Worker - shared mode');
 
 promise_test(async t => {
+  assert_implements(navigator.locks);
   const worker = new Worker('resources/worker.js');
   t.add_cleanup(() => { worker.terminate(); });
 
@@ -55,6 +57,7 @@ promise_test(async t => {
 }, 'Window and Worker - exclusive mode');
 
 promise_test(async t => {
+  assert_implements(navigator.locks);
   const worker1 = new Worker('resources/worker.js');
   const worker2 = new Worker('resources/worker.js');
   t.add_cleanup(() => { worker1.terminate(); worker2.terminate(); });
@@ -87,6 +90,7 @@ promise_test(async t => {
 }, 'Worker and Worker - exclusive mode');
 
 promise_test(async t => {
+  assert_implements(navigator.locks);
   const worker = new Worker('resources/worker.js');
 
   const res = 'exclusive resource 3';

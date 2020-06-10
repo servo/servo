@@ -5,7 +5,6 @@
 export const description = `
 createPipelineLayout validation tests.
 `;
-import * as C from '../../../common/constants.js';
 import { pbool, poptions, params } from '../../../common/framework/params_builder.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { kBindingTypeInfo, kBindingTypes, kShaderStageCombinations } from '../../capability_info.js';
@@ -16,7 +15,7 @@ function clone(descriptor) {
 }
 
 export const g = makeTestGroup(ValidationTest);
-g.test('number_of_dynamic_buffers_exceeds_the_maximum_value').params(params().combine(poptions('visibility', [0, 2, 4, 6])).combine(poptions('type', [C.BindingType.UniformBuffer, C.BindingType.StorageBuffer, C.BindingType.ReadonlyStorageBuffer]))).fn(async t => {
+g.test('number_of_dynamic_buffers_exceeds_the_maximum_value').params(params().combine(poptions('visibility', [0, 2, 4, 6])).combine(poptions('type', ['uniform-buffer', 'storage-buffer', 'readonly-storage-buffer']))).fn(async t => {
   const {
     type,
     visibility

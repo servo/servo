@@ -5,7 +5,6 @@
 export const description = `
 createBindGroup validation tests.
 `;
-import * as C from '../../../common/constants.js';
 import { poptions, params } from '../../../common/framework/params_builder.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { unreachable } from '../../../common/framework/util/util.js';
@@ -137,7 +136,7 @@ g.test('texture_binding_must_have_correct_usage').params(params().combine(poptio
       height: 16,
       depth: 1
     },
-    format: C.TextureFormat.RGBA8Unorm,
+    format: 'rgba8unorm',
     usage
   };
   const shouldError = usage !== info.usage;
@@ -151,7 +150,7 @@ g.test('texture_binding_must_have_correct_usage').params(params().combine(poptio
     });
   }, shouldError);
 });
-g.test('texture_must_have_correct_component_type').params(poptions('textureComponentType', [C.TextureComponentType.Float, C.TextureComponentType.Sint, C.TextureComponentType.Uint])).fn(async t => {
+g.test('texture_must_have_correct_component_type').params(poptions('textureComponentType', ['float', 'sint', 'uint'])).fn(async t => {
   const {
     textureComponentType
   } = t.params;
@@ -239,7 +238,7 @@ g.test('texture_must_have_correct_dimension').fn(async t => {
       height: 16,
       depth: 1
     },
-    format: C.TextureFormat.RGBA8Unorm,
+    format: 'rgba8unorm',
     usage: GPUTextureUsage.SAMPLED
   }; // Control case
 

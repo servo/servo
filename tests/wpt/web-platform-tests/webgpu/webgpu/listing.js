@@ -247,6 +247,14 @@ export const listing = [
   },
   {
     "file": [
+      "idl",
+      "constants",
+      "flags"
+    ],
+    "description": "Test the values of flags interfaces (e.g. GPUTextureUsage)."
+  },
+  {
+    "file": [
       "shader"
     ],
     "readme": "Tests for full coverage of the shaders that can be passed to WebGPU."
