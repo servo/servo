@@ -326,7 +326,7 @@ impl BlockLevelBox {
                 positioning_context.push(hoisted_box);
                 Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment {
                     hoisted_fragment,
-                    position: box_.borrow().contents.style.clone_position(),
+                    position: box_.borrow().context.style.clone_position(),
                 })
             },
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {

@@ -22,7 +22,7 @@ use style::Zero;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct AbsolutelyPositionedBox {
-    pub contents: IndependentFormattingContext,
+    pub context: IndependentFormattingContext,
 }
 
 pub(crate) struct PositioningContext {
@@ -84,7 +84,7 @@ impl AbsolutelyPositionedBox {
             !node_info.style.inline_box_offsets_are_both_non_auto(),
         );
         Self {
-            contents: IndependentFormattingContext::construct(
+            context: IndependentFormattingContext::construct(
                 context,
                 node_info,
                 display_inside,
@@ -124,7 +124,7 @@ impl AbsolutelyPositionedBox {
 
         let box_offsets = {
             let box_ = self_.borrow();
-            let box_offsets = box_.contents.style.box_offsets(containing_block);
+            let box_offsets = box_.context.style.box_offsets(containing_block);
             Vec2 {
                 inline: absolute_box_offsets(
                     initial_start_corner.inline,
@@ -288,7 +288,7 @@ impl PositioningContext {
             let position = box_
                 .absolutely_positioned_box
                 .borrow()
-                .contents
+                .context
                 .style
                 .clone_position();
             match position {
@@ -417,12 +417,12 @@ impl HoistedAbsolutelyPositionedBox {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
         let absolutely_positioned_box = self.absolutely_positioned_box.borrow_mut();
-        let style = &absolutely_positioned_box.contents.style;
+        let style = &absolutely_positioned_box.context.style;
         let pbm = style.padding_border_margin(&containing_block.into());
 
         let size;
         let replaced_used_size;
-        match absolutely_positioned_box.contents.as_replaced() {
+        match absolutely_positioned_box.context.as_replaced() {
             Ok(replaced) => {
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
@@ -474,11 +474,11 @@ impl HoistedAbsolutelyPositionedBox {
             |positioning_context| {
                 let size;
                 let fragments;
-                match absolutely_positioned_box.contents.as_replaced() {
+                match absolutely_positioned_box.context.as_replaced() {
                     Ok(replaced) => {
                         // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                         // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                        let style = &absolutely_positioned_box.contents.style;
+                        let style = &absolutely_positioned_box.context.style;
                         size = replaced_used_size.unwrap();
                         fragments = replaced.make_fragments(style, size.clone());
                     },
@@ -495,7 +495,7 @@ impl HoistedAbsolutelyPositionedBox {
                                 pbm.padding_border_sums.inline -
                                 margin.inline_sum();
                             absolutely_positioned_box
-                                .contents
+                                .context
                                 .content_sizes
                                 .shrink_to_fit(available_size)
                         });
@@ -550,7 +550,7 @@ impl HoistedAbsolutelyPositionedBox {
                 };
 
                 BoxFragment::new(
-                    absolutely_positioned_box.contents.tag,
+                    absolutely_positioned_box.context.tag,
                     style.clone(),
                     fragments,
                     content_rect,

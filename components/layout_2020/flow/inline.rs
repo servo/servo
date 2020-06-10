@@ -294,7 +294,7 @@ impl InlineFormattingContext {
                     InlineLevelBox::TextRun(run) => run.layout(layout_context, &mut ifc),
                     InlineLevelBox::Atomic(a) => layout_atomic(layout_context, &mut ifc, a),
                     InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
-                        let style = AtomicRef::map(box_.borrow(), |box_| &box_.contents.style);
+                        let style = AtomicRef::map(box_.borrow(), |box_| &box_.context.style);
                         let initial_start_corner =
                             match Display::from(style.get_box().original_display) {
                                 Display::GeneratingBox(DisplayGeneratingBox::OutsideInside {
