@@ -142,8 +142,6 @@ pub struct RequestBody {
     /// Net's channel to communicate with script re this body.
     #[ignore_malloc_size_of = "Channels are hard"]
     chan: IpcSender<BodyChunkRequest>,
-    /// Has the stream been read from already?
-    read_from: bool,
     /// <https://fetch.spec.whatwg.org/#concept-body-source>
     source: BodySource,
     /// <https://fetch.spec.whatwg.org/#concept-body-total-bytes>
@@ -160,25 +158,22 @@ impl RequestBody {
             chan,
             source,
             total_bytes,
-            read_from: false,
+        }
+    }
+
+    /// Step 12 of https://fetch.spec.whatwg.org/#concept-http-redirect-fetch
+    pub fn extract_source(&mut self) {
+        match self.source {
+            BodySource::Null => panic!("Null sources should never be re-directed."),
+            BodySource::Object => {
+                let (chan, port) = ipc::channel().unwrap();
+                let _ = self.chan.send(BodyChunkRequest::Extract(port));
+                self.chan = chan.clone();
+            },
         }
     }
 
     pub fn take_stream(&mut self) -> IpcSender<BodyChunkRequest> {
-        if self.read_from {
-            match self.source {
-                BodySource::Null => panic!(
-                    "Null sources should never be read more than once(no re-direct allowed)."
-                ),
-                BodySource::Object => {
-                    let (chan, port) = ipc::channel().unwrap();
-                    let _ = self.chan.send(BodyChunkRequest::Extract(port));
-                    self.chan = chan.clone();
-                    return chan;
-                },
-            }
-        }
-        self.read_from = true;
         self.chan.clone()
     }
 
