@@ -613,6 +613,7 @@ where
                         &new_styles.primary,
                         Some(&mut target),
                         traversal_data.current_dom_depth,
+                        &context.shared,
                     );
 
                     new_styles
@@ -669,6 +670,7 @@ where
                     &new_styles.primary,
                     None,
                     traversal_data.current_dom_depth,
+                    &context.shared,
                 );
             }
 

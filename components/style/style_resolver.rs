@@ -66,6 +66,18 @@ pub struct ResolvedElementStyles {
     pub pseudos: EagerPseudoStyles,
 }
 
+impl ResolvedElementStyles {
+    /// Convenience accessor for the primary style.
+    pub fn primary_style(&self) -> &Arc<ComputedValues> {
+        &self.primary.style.0
+    }
+
+    /// Convenience mutable accessor for the style.
+    pub fn primary_style_mut(&mut self) -> &mut Arc<ComputedValues> {
+        &mut self.primary.style.0
+    }
+}
+
 impl PrimaryStyle {
     /// Convenience accessor for the style.
     pub fn style(&self) -> &ComputedValues {
@@ -433,7 +445,7 @@ where
                 implemented_pseudo.as_ref(),
                 self.element.style_attribute(),
                 self.element.smil_override(),
-                self.element.animation_rules(),
+                self.element.animation_rules(self.context.shared),
                 self.rule_inclusion,
                 &mut applicable_declarations,
                 &mut matching_context,

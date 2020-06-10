@@ -479,23 +479,25 @@ pub trait TElement:
     /// Get the combined animation and transition rules.
     ///
     /// FIXME(emilio): Is this really useful?
-    fn animation_rules(&self) -> AnimationRules {
+    fn animation_rules(&self, context: &SharedStyleContext) -> AnimationRules {
         if !self.may_have_animations() {
             return AnimationRules(None, None);
         }
 
-        AnimationRules(self.animation_rule(), self.transition_rule())
+        AnimationRules(self.animation_rule(context), self.transition_rule(context))
     }
 
     /// Get this element's animation rule.
-    fn animation_rule(&self) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
-        None
-    }
+    fn animation_rule(
+        &self,
+        _: &SharedStyleContext,
+    ) -> Option<Arc<Locked<PropertyDeclarationBlock>>>;
 
     /// Get this element's transition rule.
-    fn transition_rule(&self) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
-        None
-    }
+    fn transition_rule(
+        &self,
+        context: &SharedStyleContext,
+    ) -> Option<Arc<Locked<PropertyDeclarationBlock>>>;
 
     /// Get this element's state, for non-tree-structural pseudos.
     fn state(&self) -> ElementState;
@@ -729,9 +731,7 @@ pub trait TElement:
     /// In Gecko, element has a flag that represents the element may have
     /// any type of animations or not to bail out animation stuff early.
     /// Whereas Servo doesn't have such flag.
-    fn may_have_animations(&self) -> bool {
-        false
-    }
+    fn may_have_animations(&self) -> bool;
 
     /// Creates a task to update various animation state on a given (pseudo-)element.
     #[cfg(feature = "gecko")]
@@ -748,14 +748,14 @@ pub trait TElement:
     /// Returns true if the element has relevant animations. Relevant
     /// animations are those animations that are affecting the element's style
     /// or are scheduled to do so in the future.
-    fn has_animations(&self) -> bool;
+    fn has_animations(&self, context: &SharedStyleContext) -> bool;
 
     /// Returns true if the element has a CSS animation.
     fn has_css_animations(&self, context: &SharedStyleContext) -> bool;
 
     /// Returns true if the element has a CSS transition (including running transitions and
     /// completed transitions).
-    fn has_css_transitions(&self) -> bool;
+    fn has_css_transitions(&self, context: &SharedStyleContext) -> bool;
 
     /// Returns true if the element has animation restyle hints.
     fn has_animation_restyle_hints(&self) -> bool {

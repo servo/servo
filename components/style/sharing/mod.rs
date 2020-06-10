@@ -587,6 +587,7 @@ impl<E: TElement> StyleSharingCache<E> {
         style: &PrimaryStyle,
         validation_data_holder: Option<&mut StyleSharingTarget<E>>,
         dom_depth: usize,
+        shared_context: &SharedStyleContext,
     ) {
         let parent = match element.traversal_parent() {
             Some(element) => element,
@@ -619,7 +620,7 @@ impl<E: TElement> StyleSharingCache<E> {
         //   * Our computed style can still be affected by animations after we no
         //     longer match any animation rules, since removing animations involves
         //     a sequential task and an additional traversal.
-        if element.has_animations() {
+        if element.has_animations(shared_context) {
             debug!("Failing to insert to the cache: running animations");
             return;
         }
@@ -700,6 +701,7 @@ impl<E: TElement> StyleSharingCache<E> {
                 bloom_filter,
                 nth_index_cache,
                 selector_flags_map,
+                shared_context,
             )
         })
     }
@@ -711,6 +713,7 @@ impl<E: TElement> StyleSharingCache<E> {
         bloom: &StyleBloom<E>,
         nth_index_cache: &mut NthIndexCache,
         selector_flags_map: &mut SelectorFlagsMap<E>,
+        shared_context: &SharedStyleContext,
     ) -> Option<ResolvedElementStyles> {
         debug_assert!(!target.is_in_native_anonymous_subtree());
 
@@ -770,7 +773,7 @@ impl<E: TElement> StyleSharingCache<E> {
             return None;
         }
 
-        if target.element.has_animations() {
+        if target.element.has_animations(shared_context) {
             trace!("Miss: Has Animations");
             return None;
         }

@@ -8,7 +8,7 @@
 #![deny(missing_docs)]
 
 use crate::computed_value_flags::ComputedValueFlags;
-use crate::context::{ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
+use crate::context::{CascadeInputs, ElementCascadeInputs, QuirksMode, SelectorFlagsMap};
 use crate::context::{SharedStyleContext, StyleContext};
 use crate::data::ElementData;
 use crate::dom::TElement;
@@ -17,8 +17,10 @@ use crate::dom::TNode;
 use crate::invalidation::element::restyle_hints::RestyleHint;
 use crate::properties::longhands::display::computed_value::T as Display;
 use crate::properties::ComputedValues;
+use crate::properties::PropertyDeclarationBlock;
 use crate::rule_tree::{CascadeLevel, StrongRuleNode};
 use crate::selector_parser::{PseudoElement, RestyleDamage};
+use crate::shared_lock::Locked;
 use crate::style_resolver::ResolvedElementStyles;
 use crate::style_resolver::{PseudoElementResolution, StyleResolverForElement};
 use crate::stylist::RuleInclusion;
@@ -87,6 +89,29 @@ enum CascadeVisitedMode {
 }
 
 trait PrivateMatchMethods: TElement {
+    fn replace_single_rule_node(
+        context: &mut StyleContext<Self>,
+        level: CascadeLevel,
+        pdb: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
+        path: &mut StrongRuleNode,
+    ) -> bool {
+        let stylist = &context.shared.stylist;
+        let guards = &context.shared.guards;
+
+        let mut important_rules_changed = false;
+        let new_node = stylist.rule_tree().update_rule_at_level(
+            level,
+            pdb,
+            path,
+            guards,
+            &mut important_rules_changed,
+        );
+        if let Some(n) = new_node {
+            *path = n;
+        }
+        important_rules_changed
+    }
+
     /// Updates the rule nodes without re-running selector matching, using just
     /// the rule tree, for a specific visited mode.
     ///
@@ -98,16 +123,10 @@ trait PrivateMatchMethods: TElement {
         cascade_visited: CascadeVisitedMode,
         cascade_inputs: &mut ElementCascadeInputs,
     ) -> bool {
-        use crate::properties::PropertyDeclarationBlock;
-        use crate::shared_lock::Locked;
-
         debug_assert!(
             replacements.intersects(RestyleHint::replacements()) &&
                 (replacements & !RestyleHint::replacements()).is_empty()
         );
-
-        let stylist = &context.shared.stylist;
-        let guards = &context.shared.guards;
 
         let primary_rules = match cascade_visited {
             CascadeVisitedMode::Unvisited => cascade_inputs.primary.rules.as_mut(),
@@ -119,34 +138,18 @@ trait PrivateMatchMethods: TElement {
             None => return false,
         };
 
-        let replace_rule_node = |level: CascadeLevel,
-                                 pdb: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
-                                 path: &mut StrongRuleNode|
-         -> bool {
-            let mut important_rules_changed = false;
-            let new_node = stylist.rule_tree().update_rule_at_level(
-                level,
-                pdb,
-                path,
-                guards,
-                &mut important_rules_changed,
-            );
-            if let Some(n) = new_node {
-                *path = n;
-            }
-            important_rules_changed
-        };
-
         if !context.shared.traversal_flags.for_animation_only() {
             let mut result = false;
             if replacements.contains(RestyleHint::RESTYLE_STYLE_ATTRIBUTE) {
                 let style_attribute = self.style_attribute();
-                result |= replace_rule_node(
+                result |= Self::replace_single_rule_node(
+                    context,
                     CascadeLevel::same_tree_author_normal(),
                     style_attribute,
                     primary_rules,
                 );
-                result |= replace_rule_node(
+                result |= Self::replace_single_rule_node(
+                    context,
                     CascadeLevel::same_tree_author_important(),
                     style_attribute,
                     primary_rules,
@@ -166,7 +169,8 @@ trait PrivateMatchMethods: TElement {
             debug_assert!(context.shared.traversal_flags.for_animation_only());
 
             if replacements.contains(RestyleHint::RESTYLE_SMIL) {
-                replace_rule_node(
+                Self::replace_single_rule_node(
+                    context,
                     CascadeLevel::SMILOverride,
                     self.smil_override(),
                     primary_rules,
@@ -174,17 +178,23 @@ trait PrivateMatchMethods: TElement {
             }
 
             if replacements.contains(RestyleHint::RESTYLE_CSS_TRANSITIONS) {
-                replace_rule_node(
+                Self::replace_single_rule_node(
+                    context,
                     CascadeLevel::Transitions,
-                    self.transition_rule().as_ref().map(|a| a.borrow_arc()),
+                    self.transition_rule(&context.shared)
+                        .as_ref()
+                        .map(|a| a.borrow_arc()),
                     primary_rules,
                 );
             }
 
             if replacements.contains(RestyleHint::RESTYLE_CSS_ANIMATIONS) {
-                replace_rule_node(
+                Self::replace_single_rule_node(
+                    context,
                     CascadeLevel::Animations,
-                    self.animation_rule().as_ref().map(|a| a.borrow_arc()),
+                    self.animation_rule(&context.shared)
+                        .as_ref()
+                        .map(|a| a.borrow_arc()),
                     primary_rules,
                 );
             }
@@ -194,14 +204,11 @@ trait PrivateMatchMethods: TElement {
     }
 
     /// If there is no transition rule in the ComputedValues, it returns None.
-    #[cfg(feature = "gecko")]
     fn after_change_style(
         &self,
         context: &mut StyleContext<Self>,
         primary_style: &Arc<ComputedValues>,
     ) -> Option<Arc<ComputedValues>> {
-        use crate::context::CascadeInputs;
-
         let rule_node = primary_style.rules();
         let without_transition_rules = context
             .shared
@@ -314,6 +321,29 @@ trait PrivateMatchMethods: TElement {
         false
     }
 
+    fn might_need_transitions_update(
+        &self,
+        context: &StyleContext<Self>,
+        old_style: Option<&ComputedValues>,
+        new_style: &ComputedValues,
+    ) -> bool {
+        let old_style = match old_style {
+            Some(v) => v,
+            None => return false,
+        };
+
+        let new_box_style = new_style.get_box();
+        if !self.has_css_transitions(context.shared) && !new_box_style.specifies_transitions() {
+            return false;
+        }
+
+        if new_box_style.clone_display().is_none() || old_style.clone_display().is_none() {
+            return false;
+        }
+
+        return true;
+    }
+
     /// Create a SequentialTask for resolving descendants in a SMIL display
     /// property animation if the display property changed from none.
     #[cfg(feature = "gecko")]
@@ -350,12 +380,13 @@ trait PrivateMatchMethods: TElement {
         &self,
         context: &mut StyleContext<Self>,
         old_values: &mut Option<Arc<ComputedValues>>,
-        new_values: &mut Arc<ComputedValues>,
+        new_styles: &mut ResolvedElementStyles,
         restyle_hint: RestyleHint,
         important_rules_changed: bool,
     ) {
         use crate::context::UpdateAnimationsTasks;
 
+        let new_values = new_styles.primary_style_mut();
         if context.shared.traversal_flags.for_animation_only() {
             self.handle_display_change_for_smil_if_needed(
                 context,
@@ -374,10 +405,12 @@ trait PrivateMatchMethods: TElement {
             tasks.insert(UpdateAnimationsTasks::CSS_ANIMATIONS);
         }
 
-        let before_change_style = if self
-            .might_need_transitions_update(old_values.as_ref().map(|s| &**s), new_values)
-        {
-            let after_change_style = if self.has_css_transitions() {
+        let before_change_style = if self.might_need_transitions_update(
+            context,
+            old_values.as_ref().map(|s| &**s),
+            new_values,
+        ) {
+            let after_change_style = if self.has_css_transitions(context.shared) {
                 self.after_change_style(context, new_values)
             } else {
                 None
@@ -432,16 +465,81 @@ trait PrivateMatchMethods: TElement {
         &self,
         context: &mut StyleContext<Self>,
         old_values: &mut Option<Arc<ComputedValues>>,
-        new_values: &mut Arc<ComputedValues>,
+        new_resolved_styles: &mut ResolvedElementStyles,
         _restyle_hint: RestyleHint,
         _important_rules_changed: bool,
     ) {
+        if !self.process_animations_for_style(
+            context,
+            old_values,
+            new_resolved_styles.primary_style_mut(),
+        ) {
+            return;
+        }
+
+        // If we have modified animation or transitions, we recascade style for this node.
+        let mut rule_node = new_resolved_styles.primary_style().rules().clone();
+        Self::replace_single_rule_node(
+            context,
+            CascadeLevel::Transitions,
+            self.transition_rule(&context.shared)
+                .as_ref()
+                .map(|a| a.borrow_arc()),
+            &mut rule_node,
+        );
+        Self::replace_single_rule_node(
+            context,
+            CascadeLevel::Animations,
+            self.animation_rule(&context.shared)
+                .as_ref()
+                .map(|a| a.borrow_arc()),
+            &mut rule_node,
+        );
+
+        // If these animations haven't modified the rule now, we can just exit early.
+        if rule_node == *new_resolved_styles.primary_style().rules() {
+            return;
+        }
+
+        let inputs = CascadeInputs {
+            rules: Some(rule_node),
+            visited_rules: new_resolved_styles.primary_style().visited_rules().cloned(),
+        };
+
+        let style = StyleResolverForElement::new(
+            *self,
+            context,
+            RuleInclusion::All,
+            PseudoElementResolution::IfApplicable,
+        )
+        .cascade_style_and_visited_with_default_parents(inputs);
+
+        new_resolved_styles.primary.style = style;
+    }
+
+    #[cfg(feature = "servo")]
+    fn process_animations_for_style(
+        &self,
+        context: &mut StyleContext<Self>,
+        old_values: &mut Option<Arc<ComputedValues>>,
+        new_values: &mut Arc<ComputedValues>,
+    ) -> bool {
         use crate::animation::AnimationState;
 
         // We need to call this before accessing the `ElementAnimationSet` from the
         // map because this call will do a RwLock::read().
         let needs_animations_update =
             self.needs_animations_update(context, old_values.as_ref().map(|s| &**s), new_values);
+        let might_need_transitions_update = self.might_need_transitions_update(
+            context,
+            old_values.as_ref().map(|s| &**s),
+            new_values,
+        );
+
+        let mut after_change_style = None;
+        if might_need_transitions_update {
+            after_change_style = self.after_change_style(context, new_values);
+        }
 
         let this_opaque = self.as_node().opaque();
         let shared_context = context.shared;
@@ -471,28 +569,33 @@ trait PrivateMatchMethods: TElement {
         }
 
         animation_set.update_transitions_for_new_style(
+            might_need_transitions_update,
             &shared_context,
             this_opaque,
             old_values.as_ref(),
-            new_values,
+            after_change_style.as_ref().unwrap_or(new_values),
         );
 
-        animation_set.apply_active_animations(shared_context, new_values);
-
         // We clear away any finished transitions, but retain animations, because they
-        // might still be used for proper calculation of `animation-fill-mode`.
+        // might still be used for proper calculation of `animation-fill-mode`. This
+        // should change the computed values in the style, so we don't need to mark
+        // this set as dirty.
         animation_set
             .transitions
             .retain(|transition| transition.state != AnimationState::Finished);
 
         // If the ElementAnimationSet is empty, and don't store it in order to
         // save memory and to avoid extra processing later.
+        let changed_animations = animation_set.dirty;
         if !animation_set.is_empty() {
+            animation_set.dirty = false;
             shared_context
                 .animation_states
                 .write()
                 .insert(this_opaque, animation_set);
         }
+
+        changed_animations
     }
 
     /// Computes and applies non-redundant damage.
@@ -658,7 +761,7 @@ pub trait MatchMethods: TElement {
         self.process_animations(
             context,
             &mut data.styles.primary,
-            &mut new_styles.primary.style.0,
+            &mut new_styles,
             data.hint,
             important_rules_changed,
         );
