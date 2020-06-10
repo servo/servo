@@ -689,9 +689,9 @@ dependencies = [
 
 [[package]]
 name = "cocoa"
-version = "0.18.4"
+version = "0.18.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf79daa4e11e5def06e55306aa3601b87de6b5149671529318da048f67cdd77b"
+checksum = "1706996401131526e36b3b49f0c4d912639ce110996f3ca144d78946727bce54"
 dependencies = [
  "bitflags",
  "block",
@@ -6611,7 +6611,7 @@ dependencies = [
  "android_glue",
  "backtrace",
  "bitflags",
- "cocoa 0.18.4",
+ "cocoa 0.18.5",
  "core-foundation 0.6.4",
  "core-graphics 0.17.3",
  "lazy_static",
