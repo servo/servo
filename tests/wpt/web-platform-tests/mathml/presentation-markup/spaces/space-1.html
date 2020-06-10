@@ -71,6 +71,36 @@
       assert_approx_equals(containerWidth, mspaceWidth, epsilon);
     }, "Preferred width");
 
+    // Dynamically set attributes.
+    ["width", "height", "depth"].forEach(function (name, index) {
+        document.getElementById("dynamic-remove").removeAttribute(name);
+        let length = `${50 + index * 10}px`;
+        document.getElementById("dynamic-attach").setAttribute(name, length);
+        document.getElementById("dynamic-modify").setAttribute(name, length);
+    });
+    let baseline = getBox("baseline2").bottom;
+
+    test(function() {
+        let remove = getBox("dynamic-remove");
+        assert_approx_equals(remove.width, 0, epsilon);
+        assert_approx_equals(remove.height, 0, epsilon);
+        assert_approx_equals(remove.top, baseline, epsilon);
+    }, "dynamic attributes (remove)");
+
+    test(function() {
+        let attach = getBox("dynamic-attach");
+        assert_approx_equals(attach.width, 50, epsilon);
+        assert_approx_equals(attach.height, 60 + 70, epsilon);
+        assert_approx_equals(baseline - attach.top, 60, epsilon);
+    }, "dynamic attributes (attach)");
+
+    test(function() {
+        let modify = getBox("dynamic-modify");
+        assert_approx_equals(modify.width, 50, epsilon);
+        assert_approx_equals(modify.height, 60 + 70, epsilon);
+        assert_approx_equals(baseline - modify.top, 60, epsilon);
+    }, "dynamic attributes (modify)");
+
     done();
   }
 </script>
@@ -108,5 +138,13 @@ div.shrink-wrap {
       <math><mspace width="75px" height="25px" depth="50px" style="background: green"/></math>
     </div>
   </div>
+  <p>
+    <span id="baseline2" style="display: inline-block; width: 30px; height: 5px; background: blue"></span>
+    <math>
+      <mspace id="dynamic-attach" style="background: lightgreen"/>
+      <mspace id="dynamic-remove" width="10px" height="20px" depth="30px" style="background: lightyellow"/>
+      <mspace id="dynamic-modify" width="100px" height="200px" depth="300px" style="background: pink"/>
+    </math>
+  </p>
 </body>
 </html>

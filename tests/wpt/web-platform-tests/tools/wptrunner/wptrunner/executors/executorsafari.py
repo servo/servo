@@ -1,8 +1,8 @@
 from ..webdriver_server import SafariDriverServer
-from .base import WdspecExecutor, WebDriverProtocol
+from .base import WdspecExecutor, WdspecProtocol
 
 
-class SafariDriverProtocol(WebDriverProtocol):
+class SafariDriverProtocol(WdspecProtocol):
     server_cls = SafariDriverServer
 
 

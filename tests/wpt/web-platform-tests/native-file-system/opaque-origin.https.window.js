@@ -38,7 +38,7 @@ async function verify_does_not_exist_in_data_uri_iframe(
 
 // |kSandboxWindowUrl| sends two messages to this window. The first is the
 // result of chooseFileSystemEntries(). The second is the result of
-// getSystemDirectory(). For windows using sandbox='allow-scripts',
+// getOriginPrivateDirectory(). For windows using sandbox='allow-scripts',
 // both results must produce rejected promises.
 async function verify_results_from_sandboxed_child_window(test) {
   const event_watcher = new EventWatcher(test, self, 'message');
@@ -49,7 +49,7 @@ async function verify_results_from_sandboxed_child_window(test) {
 
   const second_message_event = await event_watcher.wait_for('message');
   assert_equals(second_message_event.data,
-    'getSystemDirectory(): REJECTED: SecurityError');
+    'getOriginPrivateDirectory(): REJECTED: SecurityError');
 }
 
 promise_test(async test => {
@@ -65,7 +65,7 @@ promise_test(async test => {
 promise_test(async test => {
   add_iframe(test, kSandboxWindowUrl, /*sandbox=*/'allow-scripts');
   await verify_results_from_sandboxed_child_window(test);
-}, 'FileSystemDirectoryHandle.getSystemDirectory() and ' +
+}, 'getOriginPrivateDirectory() and ' +
 'chooseFileSystemEntries() must reject in a sandboxed iframe.');
 
 promise_test(async test => {
@@ -78,5 +78,5 @@ promise_test(async test => {
   });
 
   await verify_results_from_sandboxed_child_window(test);
-}, 'FileSystemDirectoryHandle.getSystemDirectory() and '
+}, 'getOriginPrivateDirectory() and '
 + 'chooseFileSystemEntries() must reject in a sandboxed opened window.');

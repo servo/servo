@@ -29,21 +29,23 @@ xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate error
     .then(() => {
       return new Promise((resolve) => {
         navigator.xr.test.simulateUserActivation(() => {
+          let xrSession = null;
           navigator.xr.requestSession('immersive-vr')
           .then((session) => {
+            xrSession = session;
             t.step_func(() => {
               try {
-                let webglLayerIncompatible = new XRWebGLLayer(session, gl);
+                let webglLayerIncompatible = new XRWebGLLayer(xrSession, gl);
                 assert_unreached("XRWebGLLayer should fail when created with a context that is not XRCompatible")
               } catch (err) {
                 assert_equals(err.name, "InvalidStateError");
               }
             })
 
-            gl.makeXRCompatible();
-
+            return gl.makeXRCompatible();
+          }).then(() => {
             try {
-              let webglLayerGood = new XRWebGLLayer(session, gl);
+              let webglLayerGood = new XRWebGLLayer(xrSession, gl);
             } catch (err) {
               reject("XRWebGLLayer should not fail with valid arguments");
             }
@@ -54,7 +56,7 @@ xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate error
               ev.preventDefault();
 
               try {
-                let webglLayerBadContext = new XRWebGLLayer(session, gl);
+                let webglLayerBadContext = new XRWebGLLayer(xrSession, gl);
                 reject("XRWebGLLayer should fail when created with a lost context");
               } catch (err) {
                 assert_equals(err.name, 'InvalidStateError');
@@ -63,9 +65,9 @@ xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate error
             });
 
             webglCanvas.addEventListener('webglcontextrestored', (ev) => {
-              resolve(session.end().then(() => {
+              resolve(xrSession.end().then(() => {
                 try {
-                  let webglLayerBadSession = new XRWebGLLayer(session, gl);
+                  let webglLayerBadSession = new XRWebGLLayer(xrSession, gl);
                   assert_unreached("XRWebGLLayer should fail when created with an ended session");
                 } catch (err) {
                   assert_equals(err.name, 'InvalidStateError');

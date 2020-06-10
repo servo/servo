@@ -102,7 +102,7 @@ var measurement_interval = {
 };
 
 /**
- * An advertisement packet object that simulates a device.
+ * An advertisement packet object that simulates a Health Thermometer device.
  * @type {ScanResult}
  */
 const health_thermometer_ad_packet = {
@@ -111,6 +111,19 @@ const health_thermometer_ad_packet = {
   scanRecord: {
     name: 'Health Thermometer',
     uuids: [health_thermometer.uuid],
+  },
+};
+
+/**
+ * An advertisement packet object that simulates a Heart Rate device.
+ * @type {ScanResult}
+ */
+const heart_rate_ad_packet = {
+  deviceAddress: '08:08:08:08:08:08',
+  rssi: -10,
+  scanRecord: {
+    name: 'Heart Rate',
+    uuids: [heart_rate.uuid],
   },
 };
 
@@ -1044,6 +1057,29 @@ async function getUserDescriptionDescriptor() {
     descriptor,
     fake_descriptor: result.fake_user_description,
   });
+}
+
+/** Heart Rate Bluetooth Device Helper Methods */
+
+/** @type {FakeDeviceOptions} */
+const heartRateFakeDeviceOptionsDefault = {
+  address: '08:08:08:08:08:08',
+  name: 'Heart Rate',
+  knownServiceUUIDs: ['generic_access', 'heart_rate'],
+  connectable: false,
+  serviceDiscoveryComplete: false,
+};
+
+/** @type {RequestDeviceOptions} */
+const heartRateRequestDeviceOptionsDefault = {
+  filters: [{services: ['heart_rate']}]
+};
+
+async function getHeartRateDevice(setupOptionsOverride) {
+  let setupOptions = createSetupOptions(
+      {fakeDeviceOptions: heartRateFakeDeviceOptionsDefault},
+      setupOptionsOverride);
+  return await setUpPreconnectedFakeDevice(setupOptions);
 }
 
 /**

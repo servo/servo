@@ -55,63 +55,86 @@ test(t => {
 }, 'A transition with no keyframes still returns the original'
    + ' transitionProperty');
 
+function retarget_test(description, newKeyframes, reversed_start) {
+  test(t => {
+    const div = addDiv(t);
+
+    div.style.left = '0px';
+    getComputedStyle(div).transitionProperty;
+    div.style.transition = 'left 100s linear';
+    div.style.left = '100px';
+
+    const transition = div.getAnimations()[0];
+    transition.currentTime = 50 * MS_PER_SEC;
+    transition.effect.setKeyframes(newKeyframes);
+
+    // Reverse transition
+    div.style.left = '0px';
+    const reversedTransition = div.getAnimations()[0];
+
+    assert_approx_equals(
+      reversedTransition.effect.getComputedTiming().activeDuration,
+      50 * MS_PER_SEC, 1,
+      "The reversed transition has correctly reduced duration"
+    );
+    assert_equals(reversedTransition.effect.getKeyframes()[0].left, reversed_start,
+        "The reversed transition starts at the expected point");
+  },  description);
+}
+
+retarget_test("A transition with replaced keyframes animating the same property " +
+    "still exhibits normal reversing behavior.",
+    {left: ['200px', '300px', '100px']}, '300px');
+
+retarget_test("A transition with replaced keyframes animating a different property " +
+    "still exhibits normal reversing behavior  (reversing from the base value).",
+    {top: ['200px', '300px', '100px']}, '100px');
+
+retarget_test("A transition with replaced keyframes animating nothing " +
+    "still exhibits normal reversing behavior (reversing from the base value).",
+    {}, '100px');
+
 test(t => {
   const div = addDiv(t);
-
-  div.style.left = '0px';
-  getComputedStyle(div).transitionProperty;
-  div.style.transition = 'left 100s';
+  // initial conditions
   div.style.left = '100px';
+  div.style.top = '100px';
+  div.style.transition = 'left 100s linear, top 100s linear';
+  getComputedStyle(div).left;
 
-  const transition = div.getAnimations()[0];
+  // start some transitions
+  div.style.left ='200px';
+  div.style.top = '200px';
+  const transitions = div.getAnimations();
 
-  // Seek to the middle and get the portion.
-  //
-  // We deliberately DON'T set transition-timing-function to linear so that we
-  // can test that it is applied correctly.
-  transition.currentTime = 50 * MS_PER_SEC;
-  const portion = transition.effect.getComputedTiming().progress;
+  // hand control of the left property over to top's transition
+  assert_equals(transitions[0].transitionProperty, 'left');
+  transitions[0].effect.setKeyframes({});
+  transitions[1].effect.setKeyframes([
+    {left: '100px', top: '100px'},
+    {left: '400px', top: '200px'}])
+  getComputedStyle(div).left;
 
-  transition.effect.setKeyframes({ top: ['200px', '300px', '100px'] });
+  // these form a single style change, equivalent to setting times and then setting left
+  transitions[0].currentTime = 50 * MS_PER_SEC;
+  div.style.left ='100px';
+  transitions[1].currentTime = 60 * MS_PER_SEC;
 
-  // Reverse transition
-  div.style.left = '0px';
-  const reversedTransition = div.getAnimations()[0];
-
-  const expectedDuration = 100 * MS_PER_SEC * portion;
+  const reversedTransition = div.getAnimations()[1]
+  assert_equals(reversedTransition.transitionProperty, 'left',
+      "A reversed transition on left is produced");
   assert_approx_equals(
-    reversedTransition.effect.getComputedTiming().activeDuration,
-    expectedDuration,
-    1
-  );
-}, 'A transition with replaced keyframes still exhibits the regular transition'
-   + ' reversing behavior');
+      reversedTransition.effect.getComputedTiming().activeDuration,
+      50 * MS_PER_SEC, 1,
+      "The reversed transition has correctly reduced duration (based on the original left transition)."
+    );
+  assert_equals(reversedTransition.effect.getKeyframes()[0].left, '280px',
+      "The reversed transition gets its start value from the other transition controlling left");
 
-test(t => {
-  const div = addDiv(t);
+},  "A transition with replaced keyframes animating nothing on a property being controlled by another " +
+    "modified transition exhibits normal reversing behavior and reverses from the other " +
+    "transition's current value.");
 
-  div.style.left = '0px';
-  getComputedStyle(div).transitionProperty;
-  div.style.transition = 'left 100s';
-  div.style.left = '100px';
 
-  const transition = div.getAnimations()[0];
-
-  transition.currentTime = 50 * MS_PER_SEC;
-  const portion = transition.effect.getComputedTiming().progress;
-
-  transition.effect.setKeyframes({ });
-
-  div.style.left = '0px';
-  const reversedTransition = div.getAnimations()[0];
-
-  const expectedDuration = 100 * MS_PER_SEC * portion;
-  assert_approx_equals(
-    reversedTransition.effect.getComputedTiming().activeDuration,
-    expectedDuration,
-    1
-  );
-}, 'A transition with no keyframes still exhibits the regular transition'
-   + ' reversing behavior');
 
 </script>

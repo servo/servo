@@ -28,7 +28,7 @@ def test_get_named_session_cookie(session, url):
     assert isinstance(cookie, dict)
 
     # table for cookie conversion
-    # https://w3c.github.io/webdriver/webdriver-spec.html#dfn-table-for-cookie-conversion
+    # https://w3c.github.io/webdriver/#dfn-table-for-cookie-conversion
     assert "name" in cookie
     assert isinstance(cookie["name"], text_type)
     assert "value" in cookie

@@ -15,8 +15,8 @@ enum ScrollTimelineAutoKeyword { "auto" };
 dictionary ScrollTimelineOptions {
   Element? source = null;
   ScrollDirection orientation = "block";
-  DOMString start = "auto";
-  DOMString end = "auto";
+  (DOMString or ElementBasedOffset) start = "auto";
+  (DOMString or ElementBasedOffset) end = "auto";
   (double or ScrollTimelineAutoKeyword) timeRange = "auto";
 };
 
@@ -28,4 +28,12 @@ interface ScrollTimeline : AnimationTimeline {
   readonly attribute DOMString start;
   readonly attribute DOMString end;
   readonly attribute (double or ScrollTimelineAutoKeyword) timeRange;
+};
+
+enum Edge { "start", "end" };
+
+dictionary ElementBasedOffset {
+  Element target;
+  Edge edge = "start";
+  double threshold = 0.0;
 };

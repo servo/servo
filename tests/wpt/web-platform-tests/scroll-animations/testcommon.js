@@ -7,6 +7,19 @@ function createScroller(test) {
   return scroller;
 }
 
+function createScrollerWithStartAndEnd(test, orientationClass = 'vertical') {
+  var scroller = createDiv(test);
+  scroller.innerHTML =
+    `<div class='contents'>
+        <div id='start'></div>
+        <div id='end'></div>
+      </div>`;
+  scroller.classList.add('scroller');
+  scroller.classList.add(orientationClass);
+
+  return scroller;
+}
+
 function createScrollTimeline(test, options) {
   options = options || {
     scrollSource: createScroller(test),
@@ -32,4 +45,13 @@ function createScrollLinkedAnimation(test, timeline) {
   const KEYFRAMES = { opacity: [0, 1] };
   return new Animation(
     new KeyframeEffect(createDiv(test), KEYFRAMES, DURATION), timeline);
+}
+
+function assert_approx_equals_or_null(actual, expected, tolerance, name){
+  if (actual === null || expected === null){
+    assert_equals(actual, expected, name);
+  }
+  else {
+    assert_approx_equals(actual, expected, tolerance, name);
+  }
 }

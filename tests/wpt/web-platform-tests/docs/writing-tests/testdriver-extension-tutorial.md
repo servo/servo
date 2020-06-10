@@ -9,7 +9,7 @@ We assume the following in this writeup:
 
 ## Introduction!
 
-Let's implement window resizing. We can do this via the [Set Window Rect](https://w3c.github.io/webdriver/webdriver-spec.html#dfn-set-window-rect) command in WebDriver.
+Let's implement window resizing. We can do this via the [Set Window Rect](https://w3c.github.io/webdriver/#set-window-rect) command in WebDriver.
 
 First, we need to think of what the API will look like a little. We will be using WebDriver and Marionette for this, so we can look and see that they take in x, y coordinates, width and height integers.
 
@@ -30,7 +30,7 @@ window.test_driver = {
     * Triggers browser window to be resized and relocated
     *
     * This matches the behaviour of the {@link
-    * https://w3c.github.io/webdriver/webdriver-spec.html#dfn-set-window-rect|WebDriver
+    * https://w3c.github.io/webdriver/#set-window-rect|WebDriver
     * Set Window Rect command}.
     *
     * @param {Integer} x - The x coordinate of the top left of the window
@@ -56,7 +56,7 @@ window.test_driver_internal = {
      * Triggers browser window to be resized and relocated
      *
      * This matches the behaviour of the {@link
-     * https://w3c.github.io/webdriver/webdriver-spec.html#dfn-set-window-rect|WebDriver
+     * https://w3c.github.io/webdriver/#set-window-rect|WebDriver
      * Set Window Rect command}.
      *
      * @param {Integer} x - The x coordinate of the top left of the window
@@ -325,7 +325,7 @@ class GetWindowRectAction(object):
         return self.protocol.get_window_rect.get_window_rect()
 ```
 
-The WebDriver command will return a [WindowRect object](https://www.w3.org/TR/webdriver1/#dfn-window-rect), which is a dictionary with keys `x`, `y`, `width`, and `height`.
+The WebDriver command will return a [WindowRect object](https://w3c.github.io/webdriver/#dfn-window-rect), which is a dictionary with keys `x`, `y`, `width`, and `height`.
 ```python
 class WebDriverGetWindowRectProtocolPart(GetWindowRectProtocolPart):
     def get_window_rect(self):

@@ -302,6 +302,12 @@ class RefTest(URLManifestItem):
                    **extras)
 
 
+class PrintRefTest(RefTest):
+    __slots__ = ("references",)
+
+    item_type = "print-reftest"
+
+
 class ManualTest(URLManifestItem):
     __slots__ = ()
 

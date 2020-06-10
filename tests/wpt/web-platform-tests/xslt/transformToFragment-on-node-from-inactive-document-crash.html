@@ -1,0 +1,11 @@
+<body>
+<iframe id=i></iframe>
+<script>
+var el = i.contentDocument.documentElement;
+i.remove()
+var x = new XSLTProcessor();
+var xsl =new DOMParser().parseFromString('<xsl:stylesheet xmlns:xsl="http://www.w3.org/1999/XSL/Transform" version="1.0"/>','application/xml');
+x.importStylesheet(xsl);
+x.transformToDocument(el);
+</script>
+</body>

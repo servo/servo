@@ -221,6 +221,7 @@ GENERATE_TESTS: resources/testharness.js
 
 # generate_tests usage (should be got rid of)
 GENERATE_TESTS: html/canvas/element/drawing-images-to-the-canvas/*
+GENERATE_TESTS: html/canvas/element/manual/drawing-images-to-the-canvas/*
 GENERATE_TESTS: css/css-shapes/shape-outside/values/*
 GENERATE_TESTS: css/css-tables/bounding-box-computation-1.html
 GENERATE_TESTS: css/css-tables/bounding-box-computation-2.html
@@ -723,7 +724,7 @@ AHEM SYSTEM FONT: infrastructure/assumptions/ahem-ref.html
 AHEM SYSTEM FONT: infrastructure/assumptions/ahem.html
 
 # Existing crashtests using testharness
-TESTHARNESS-IN-OTHER-TYPE: html/canvas/element/wide-gamut-canvas/imagedata-no-color-settings-crash.html
+TESTHARNESS-IN-OTHER-TYPE: html/canvas/element/manual/wide-gamut-canvas/imagedata-no-color-settings-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/CSS2/floats-clear/adjoining-float-new-fc-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/CSS2/floats/floats-saturated-position-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/CSS2/linebox/video-needs-layout-crash.html
