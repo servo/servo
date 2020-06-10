@@ -5,7 +5,8 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="flex-flow"
-                    engines="gecko servo-2013"
+                    engines="gecko servo-2013 servo-2020",
+                    servo_2020_pref="layout.flexbox.enabled",
                     sub_properties="flex-direction flex-wrap"
                     extra_prefixes="webkit"
                     derive_serialize="True"
@@ -45,7 +46,8 @@
 </%helpers:shorthand>
 
 <%helpers:shorthand name="flex"
-                    engines="gecko servo-2013"
+                    engines="gecko servo-2013 servo-2020",
+                    servo_2020_pref="layout.flexbox.enabled",
                     sub_properties="flex-grow flex-shrink flex-basis"
                     extra_prefixes="webkit"
                     derive_serialize="True"
