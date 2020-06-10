@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>Declarative Shadow DOM innerHTML</title>
+<link rel='author' title='Mason Freed' href='mailto:masonfreed@chromium.org'>
+<link rel='help' href='https://github.com/whatwg/dom/issues/831'>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+
+<body>
+<script>
+function myObserver(mutationsList) {
+  for (let mutation of mutationsList) {
+    for (let n of mutation.addedNodes) {
+      if (n.id === 'shadow') {
+        n.innerHTML = "<span id=replaced>This should be in &lt;div>'s shadow root</span>";
+      }
+    }
+  }
+}
+var observer = new MutationObserver(myObserver);
+observer.observe(document.body, { childList: true, subtree: true });
+</script>
+
+<div id=host>
+  <template id=shadow shadowroot=open>
+    <span id=toreplace>This should get removed</span>
+    <script></script> <!-- Ensure observer runs -->
+  </template>
+</div>
+
+<script>
+test(t => {
+  t.add_cleanup(function() { observer.disconnect(); });
+  let host = document.querySelector('#host');
+  let template = host.querySelector('template');
+  assert_true(!template, 'Declarative shadow template should not be left over');
+  let shadowroot = host.shadowRoot;
+  assert_true(!!shadowroot, 'Shadow root should be present');
+  assert_true(!!shadowroot.querySelector('#replaced'),'The innerHTML replacement content should be present');
+  assert_true(!shadowroot.querySelector('#toreplace'),'The old replaced content should not be present');
+}, 'Declarative Shadow DOM: innerHTML should work while parsing declarative shadow root <template>');
+</script>
+</body>

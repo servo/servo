@@ -1,3 +1,3 @@
 def main(request, response):
-    response.headers.set("Content-Type", "text/event-stream")
-    return ""
+    response.headers.set(b"Content-Type", b"text/event-stream")
+    return u""

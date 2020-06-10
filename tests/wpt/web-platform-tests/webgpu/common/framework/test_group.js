@@ -105,7 +105,7 @@ class TestBuilder {
   }
 
   *iterate() {
-    assert(this.testFn !== undefined, 'internal error');
+    assert(this.testFn !== undefined, 'No test function (.fn()) for test');
 
     for (const params of this.cases || [{}]) {
       yield new RunCaseSpecific(this.testPath, params, this.fixture, this.testFn);

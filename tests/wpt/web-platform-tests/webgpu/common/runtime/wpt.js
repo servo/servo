@@ -4,6 +4,7 @@
 
 import { DefaultTestFileLoader } from '../framework/file_loader.js';
 import { Logger } from '../framework/logging/logger.js';
+import { parseQuery } from '../framework/query/parseQuery.js';
 import { AsyncMutex } from '../framework/util/async_mutex.js';
 import { assert } from '../framework/util/util.js';
 import { optionEnabled } from './helper/options.js';
@@ -13,9 +14,9 @@ import { TestWorker } from './helper/test_worker.js';
   const loader = new DefaultTestFileLoader();
   const qs = new URLSearchParams(window.location.search).getAll('q');
   assert(qs.length === 1, 'currently, there must be exactly one ?q=');
-  const testcases = await loader.loadTests(qs[0]);
+  const testcases = await loader.loadCases(parseQuery(qs[0]));
   await addWPTTests(testcases);
-})(); // Note: async_tests must ALL be added within the same task. This function *must not* be async.
+})(); // Note: `async_test`s must ALL be added within the same task. This function *must not* be async.
 
 
 function addWPTTests(testcases) {

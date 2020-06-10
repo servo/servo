@@ -328,7 +328,8 @@ class RoutesBuilder(object):
 
         self.forbidden = [("*", "/_certs/*", handlers.ErrorHandler(404)),
                           ("*", "/tools/*", handlers.ErrorHandler(404)),
-                          ("*", "{spec}/tools/*", handlers.ErrorHandler(404))]
+                          ("*", "{spec}/tools/*", handlers.ErrorHandler(404)),
+                          ("*", "/results/", handlers.ErrorHandler(404))]
 
         self.extra = []
 
@@ -384,7 +385,7 @@ class RoutesBuilder(object):
         self.mountpoint_routes[file_url] = [("GET", file_url, handlers.FileHandler(base_path=base_path, url_base=url_base))]
 
 
-def build_routes(aliases):
+def get_route_builder(aliases, config=None):
     builder = RoutesBuilder()
     for alias in aliases:
         url = alias["url-path"]
@@ -396,7 +397,7 @@ def build_routes(aliases):
             builder.add_mount_point(url, directory)
         else:
             builder.add_file_mount_point(url, directory)
-    return builder.get_routes()
+    return builder
 
 
 class ServerProc(object):
@@ -450,17 +451,16 @@ class ServerProc(object):
         return self.proc.is_alive()
 
 
-def check_subdomains(config):
+def check_subdomains(config, routes):
     paths = config.paths
     bind_address = config.bind_address
-    aliases = config.aliases
 
     host = config.server_host
     port = get_port()
     logger.debug("Going to use port %d to check subdomains" % port)
 
     wrapper = ServerProc()
-    wrapper.start(start_http_server, host, port, paths, build_routes(aliases),
+    wrapper.start(start_http_server, host, port, paths, routes,
                   bind_address, config)
 
     url = "http://{}:{}/".format(host, port)
@@ -780,45 +780,6 @@ def iter_procs(servers):
             yield server.proc
 
 
-def build_config(override_path=None, **kwargs):
-    rv = ConfigBuilder()
-
-    enable_http2 = kwargs.get("h2")
-    if enable_http2 is None:
-        enable_http2 = True
-    if enable_http2:
-        rv._default["ports"]["h2"] = [9000]
-    if kwargs.get("quic_transport"):
-        rv._default["ports"]["quic-transport"] = [10000]
-
-    if override_path and os.path.exists(override_path):
-        with open(override_path) as f:
-            override_obj = json.load(f)
-        rv.update(override_obj)
-
-    if kwargs.get("config_path"):
-        other_path = os.path.abspath(os.path.expanduser(kwargs.get("config_path")))
-        if os.path.exists(other_path):
-            with open(other_path) as f:
-                override_obj = json.load(f)
-            rv.update(override_obj)
-        else:
-            raise ValueError("Config path %s does not exist" % other_path)
-
-    overriding_path_args = [("doc_root", "Document root"),
-                            ("ws_doc_root", "WebSockets document root")]
-    for key, title in overriding_path_args:
-        value = kwargs.get(key)
-        if value is None:
-            continue
-        value = os.path.abspath(os.path.expanduser(value))
-        if not os.path.exists(value):
-            raise ValueError("%s path %s does not exist" % (title, value))
-        setattr(rv, key, value)
-
-    return rv
-
-
 def _make_subdomains_product(s, depth=2):
     return {u".".join(x) for x in chain(*(product(s, repeat=i) for i in range(1, depth+1)))}
 
@@ -925,6 +886,43 @@ class ConfigBuilder(config.ConfigBuilder):
         return rv
 
 
+def build_config(override_path=None, config_cls=ConfigBuilder, **kwargs):
+    rv = config_cls()
+
+    enable_http2 = kwargs.get("h2")
+    if enable_http2 is None:
+        enable_http2 = True
+    if enable_http2:
+        rv._default["ports"]["h2"] = [9000]
+
+    if override_path and os.path.exists(override_path):
+        with open(override_path) as f:
+            override_obj = json.load(f)
+        rv.update(override_obj)
+
+    if kwargs.get("config_path"):
+        other_path = os.path.abspath(os.path.expanduser(kwargs.get("config_path")))
+        if os.path.exists(other_path):
+            with open(other_path) as f:
+                override_obj = json.load(f)
+            rv.update(override_obj)
+        else:
+            raise ValueError("Config path %s does not exist" % other_path)
+
+    overriding_path_args = [("doc_root", "Document root"),
+                            ("ws_doc_root", "WebSockets document root")]
+    for key, title in overriding_path_args:
+        value = kwargs.get(key)
+        if value is None:
+            continue
+        value = os.path.abspath(os.path.expanduser(value))
+        if not os.path.exists(value):
+            raise ValueError("%s path %s does not exist" % (title, value))
+        setattr(rv, key, value)
+
+    return rv
+
+
 def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("--latency", type=int,
@@ -942,13 +940,16 @@ def get_parser():
     parser.add_argument("--no-h2", action="store_false", dest="h2", default=None,
                         help="Disable the HTTP/2.0 server")
     parser.add_argument("--quic-transport", action="store_true", help="Enable QUIC server for WebTransport")
+    parser.set_defaults(report=False)
+    parser.set_defaults(is_wave=False)
     return parser
 
 
-def run(**kwargs):
+def run(config_cls=ConfigBuilder, route_builder=None, **kwargs):
     received_signal = threading.Event()
 
     with build_config(os.path.join(repo_root, "config.json"),
+                      config_cls=config_cls,
                       **kwargs) as config:
         global logger
         logger = config.logger
@@ -971,8 +972,12 @@ def run(**kwargs):
                         'local-dir': doc_root,
                     })
 
+        if route_builder is None:
+            route_builder = get_route_builder
+        routes = route_builder(config.aliases, config).get_routes()
+
         if config["check_subdomains"]:
-            check_subdomains(config)
+            check_subdomains(config, routes)
 
         stash_address = None
         if bind_address:
@@ -980,7 +985,7 @@ def run(**kwargs):
             logger.debug("Going to use port %d for stash" % stash_address[1])
 
         with stash.StashServer(stash_address, authkey=str(uuid.uuid4())):
-            servers = start(config, build_routes(config["aliases"]), **kwargs)
+            servers = start(config, routes, **kwargs)
             signal.signal(signal.SIGTERM, handle_signal)
             signal.signal(signal.SIGINT, handle_signal)
 

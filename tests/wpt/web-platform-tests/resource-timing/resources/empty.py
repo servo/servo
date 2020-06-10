@@ -1,3 +1,3 @@
 def main(request, response):
-    response.headers.set("Content-Type", "text/plain")
-    return ""
+    response.headers.set(b"Content-Type", b"text/plain")
+    return u""

@@ -17,6 +17,7 @@ function nextMessage() {
 }
 
 promise_test(async t => {
+  assert_implements(navigator.locks);
   const iframe_url = 'resources/sw-controlled-iframe.html';
 
   // Register a service worker that will control an iframe.

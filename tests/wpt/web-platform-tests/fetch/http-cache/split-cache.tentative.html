@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>HTTP Cache - Partioning by top-level origin</title>
-  <meta name="help" href="https://fetch.spec.whatwg.org/#request">
+  <meta name="help" href="https://fetch.spec.whatwg.org/#http-cache-partitions">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/common/utils.js"></script>
@@ -14,8 +14,12 @@
 <script>
 const host = get_host_info();
 
-// We run this entire test twice: first with a same-origin then with a cross-origin popup
-function performFullTest(is_same_origin_test) {
+// We run this entire test four times, varying the following two booleans:
+// - is_same_origin_test, which controls whether the popup is same-origin.
+// - load_resource_in_iframe, which controls whether the popup loads the
+//     resource in an iframe or the mainframe. Note that the iframe is always
+//     same-origin to the opener.
+function performFullTest(is_same_origin_test, load_resource_in_iframe) {
   const POPUP_HTTP_ORIGIN = is_same_origin_test ? host.HTTP_ORIGIN : host.HTTP_NOTSAMESITE_ORIGIN
   const LOCAL_HTTP_ORIGIN = host.HTTP_ORIGIN
 
@@ -40,6 +44,9 @@ function performFullTest(is_same_origin_test) {
         ],
         // If the popup's request was a cache hit, we would only expect 2
         // requests to the server. If it was a cache miss, we would expect 3.
+        // load_resource_in_iframe does not affect the expectation as, even
+        // though the iframe (if present) is same-origin, we expect a cache miss
+        // when the popup's mainframe is a different origin.
         expected_response_headers: [
           ["server-request-count", is_same_origin_test ? "2" : "3"]
         ],
@@ -61,10 +68,13 @@ function performFullTest(is_same_origin_test) {
 
   function popup_fetch() {
     return new Promise(function(resolve, reject) {
-      var win = window.open(popupBaseURL + "resources/split-origin-popup.html")
+      var relativeUrl = load_resource_in_iframe
+          ? "resources/split-origin-popup-with-iframe.html"
+          : "resources/split-origin-popup.html";
+      var win = window.open(popupBaseURL + relativeUrl);
 
-      // Post a message to intisearchte the popup's request and give the necessary
-      // information. Posted researchtedly to account for dropped messages as the
+      // Post a message to initiate the popup's request and give the necessary
+      // information. Posted repeatedly to account for dropped messages as the
       // popup is loading.
       function postMessage(event) {
         var payload = {
@@ -111,8 +121,10 @@ function performFullTest(is_same_origin_test) {
   promise_test(() => local_fetch().then(popup_fetch).then(local_fetch2).then(check_server_info))
 }
 
-performFullTest(true);
-performFullTest(false);
+performFullTest(true, true);
+performFullTest(false, true);
+performFullTest(true, false);
+performFullTest(false, false);
 </script>
 </body>
 </html>

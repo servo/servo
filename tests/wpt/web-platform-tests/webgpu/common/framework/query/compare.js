@@ -4,8 +4,12 @@
 
 import { paramKeyIsPublic } from '../params_utils.js';
 import { assert, objectEquals } from '../util/util.js';
-export let Ordering; // Compares two queries for their ordering (which is used to build the tree).
-// See src/unittests/query_compare.spec.ts for examples.
+export let Ordering;
+/**
+ * Compares two queries for their ordering (which is used to build the tree).
+ *
+ * See src/unittests/query_compare.spec.ts for examples.
+ */
 
 (function (Ordering) {
   Ordering[Ordering["Unordered"] = 0] = "Unordered";
@@ -40,10 +44,14 @@ export function compareQueries(a, b) {
   }
 
   return Ordering.Equal;
-} // Compares a single level of a query.
-// "IsBig" means the query is big relative to the level, e.g. for test-level:
-//   anything >= suite:a,* is big
-//   anything <= suite:a:* is small
+}
+/**
+ * Compares a single level of a query.
+ *
+ * "IsBig" means the query is big relative to the level, e.g. for test-level:
+ *   - Anything >= `suite:a,*` is big
+ *   - Anything <= `suite:a:*` is small
+ */
 
 function compareOneLevel(ordering, aIsBig, bIsBig) {
   assert(ordering !== Ordering.Equal || aIsBig || bIsBig);

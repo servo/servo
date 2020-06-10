@@ -5,7 +5,6 @@
 export const description = `
 createBindGroupLayout validation tests.
 `;
-import * as C from '../../../common/constants.js';
 import { poptions, params } from '../../../common/framework/params_builder.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { kBindingTypeInfo, kBindingTypes, kMaxBindingsPerBindGroup, kShaderStages } from '../../capability_info.js';
@@ -21,11 +20,11 @@ g.test('some_binding_index_was_specified_more_than_once').fn(async t => {
     entries: [{
       binding: 0,
       visibility: GPUShaderStage.COMPUTE,
-      type: C.BindingType.StorageBuffer
+      type: 'storage-buffer'
     }, {
       binding: 1,
       visibility: GPUShaderStage.COMPUTE,
-      type: C.BindingType.StorageBuffer
+      type: 'storage-buffer'
     }]
   }; // Control case
 
@@ -47,10 +46,10 @@ g.test('visibility_of_bindings_can_be_0').fn(async t => {
   });
 });
 g.test('number_of_dynamic_buffers_exceeds_the_maximum_value').params([{
-  type: C.BindingType.StorageBuffer,
+  type: 'storage-buffer',
   maxDynamicBufferCount: 4
 }, {
-  type: C.BindingType.UniformBuffer,
+  type: 'uniform-buffer',
   maxDynamicBufferCount: 8
 }]).fn(async t => {
   const {

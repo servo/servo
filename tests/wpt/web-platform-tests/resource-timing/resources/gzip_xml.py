@@ -1,20 +1,23 @@
 import gzip as gzip_module
-from cStringIO import StringIO
 import os
 
+from six import BytesIO
+
+from wptserve.utils import isomorphic_decode
+
 def main(request, response):
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    file_path = os.path.join(dir_path, 'resource_timing_test0.xml')
-    f = open(file_path, 'r')
+    dir_path = os.path.dirname(os.path.realpath(isomorphic_decode(__file__)))
+    file_path = os.path.join(dir_path, u'resource_timing_test0.xml')
+    f = open(file_path, u'rb')
     output = f.read()
 
-    out = StringIO()
+    out = BytesIO()
     with gzip_module.GzipFile(fileobj=out, mode="w") as f:
-      f.write(output)
+        f.write(output)
     output = out.getvalue()
 
-    headers = [("Content-type", "text/plain"),
-               ("Content-Encoding", "gzip"),
-               ("Content-Length", len(output))]
+    headers = [(b"Content-type", b"text/plain"),
+               (b"Content-Encoding", b"gzip"),
+               (b"Content-Length", len(output))]
 
     return headers, output

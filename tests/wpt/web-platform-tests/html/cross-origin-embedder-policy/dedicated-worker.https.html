@@ -46,10 +46,9 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
   const worker = await createWorker(t, true, false, {});
-  worker.onerror = () => t.done();
-
-  await new Promise(resolve => t.step_timeout(resolve, 500));
-  assert_unreached('The worker should fire an error event');
+  await new Promise(resolve => {
+    worker.onerror = resolve;
+  });
 }, 'COEP: none worker in COEP: require-corp frame');
 
 promise_test(async (t) => {
@@ -84,10 +83,9 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
   const worker = await createWorker(t, true, false, {type: 'module'});
-  worker.onerror = () => t.done();
-
-  await new Promise(resolve => t.step_timeout(resolve, 500));
-  assert_unreached('The worker should fire an error event');
+  await new Promise(resolve => {
+    worker.onerror = resolve;
+  });
 }, 'COEP: none module worker in COEP: require-corp frame');
 
 promise_test(async (t) => {
