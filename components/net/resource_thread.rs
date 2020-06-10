@@ -4,7 +4,9 @@
 
 //! A thread that takes a URL and streams back the binary data.
 
-use crate::connector::{create_http_client, create_tls_config, ALPN_H2_H1};
+use crate::connector::{
+    create_http_client, create_tls_config, ConnectionCerts, ExtraCerts, ALPN_H2_H1,
+};
 use crate::cookie;
 use crate::cookie_storage::CookieStorage;
 use crate::fetch::cors_cache::CorsCache;
@@ -143,6 +145,9 @@ fn create_http_states(
         None => resources::read_string(Resource::SSLCertificates),
     };
 
+    let extra_certs = ExtraCerts::new();
+    let connection_certs = ConnectionCerts::new();
+
     let http_state = HttpState {
         hsts_list: RwLock::new(hsts_list),
         cookie_jar: RwLock::new(cookie_jar),
@@ -151,10 +156,20 @@ fn create_http_states(
         http_cache: RwLock::new(http_cache),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(
-            create_tls_config(&certs, ALPN_H2_H1),
+            create_tls_config(
+                &certs,
+                ALPN_H2_H1,
+                extra_certs.clone(),
+                connection_certs.clone(),
+            ),
             HANDLE.lock().unwrap().as_ref().unwrap().executor(),
         ),
+        extra_certs,
+        connection_certs,
     };
+
+    let extra_certs = ExtraCerts::new();
+    let connection_certs = ConnectionCerts::new();
 
     let private_http_state = HttpState {
         hsts_list: RwLock::new(HstsList::from_servo_preload()),
@@ -164,9 +179,16 @@ fn create_http_states(
         http_cache: RwLock::new(HttpCache::new()),
         http_cache_state: Mutex::new(HashMap::new()),
         client: create_http_client(
-            create_tls_config(&certs, ALPN_H2_H1),
+            create_tls_config(
+                &certs,
+                ALPN_H2_H1,
+                extra_certs.clone(),
+                connection_certs.clone(),
+            ),
             HANDLE.lock().unwrap().as_ref().unwrap().executor(),
         ),
+        extra_certs,
+        connection_certs,
     };
 
     (Arc::new(http_state), Arc::new(private_http_state))
@@ -705,6 +727,8 @@ impl CoreResourceManager {
             action_receiver,
             http_state.clone(),
             self.certificate_path.clone(),
+            http_state.extra_certs.clone(),
+            http_state.connection_certs.clone(),
         );
     }
 }

@@ -1,3 +1,7 @@
+button {
+    cursor: default;
+}
+
 button,
 input {
   background: white;

@@ -3614,6 +3614,7 @@ dependencies = [
  "pixels",
  "serde",
  "servo_arc",
+ "servo_rand",
  "servo_url",
  "std_test_override",
  "time",

@@ -33,6 +33,7 @@ piston_image = { package = "image", version = "0.23" }
 pixels = { path = "../pixels" }
 serde = "1.0"
 servo_arc = { path = "../servo_arc" }
+servo_rand = { path = "../rand" }
 servo_url = { path = "../url" }
 time = "0.1"
 url = "2.0"

@@ -30,6 +30,7 @@ use ipc_channel::router::ROUTER;
 use ipc_channel::Error as IpcError;
 use mime::Mime;
 use msg::constellation_msg::HistoryStateId;
+use servo_rand::RngCore;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use time::precise_time_ns;
 use webrender_api::{ImageData, ImageDescriptor, ImageKey};
@@ -712,12 +713,17 @@ pub enum NetworkError {
     Internal(String),
     LoadCancelled,
     /// SSL validation error that has to be handled in the HTML parser
-    SslValidation(ServoUrl, String),
+    SslValidation(String, Vec<u8>),
 }
 
 impl NetworkError {
-    pub fn from_hyper_error(error: &HyperError) -> Self {
-        NetworkError::Internal(error.to_string())
+    pub fn from_hyper_error(error: &HyperError, cert_bytes: Option<Vec<u8>>) -> Self {
+        let s = error.to_string();
+        if s.contains("the handshake failed") {
+            NetworkError::SslValidation(s, cert_bytes.unwrap_or_default())
+        } else {
+            NetworkError::Internal(s)
+        }
     }
 
     pub fn from_http_error(error: &HttpError) -> Self {
@@ -805,4 +811,8 @@ impl WebrenderIpcSender {
             warn!("Error sending image update: {}", e);
         }
     }
+}
+
+lazy_static! {
+    pub static ref PRIVILEGED_SECRET: u32 = servo_rand::ServoRng::new().next_u32();
 }

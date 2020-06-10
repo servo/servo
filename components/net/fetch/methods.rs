@@ -15,17 +15,19 @@ use headers::{AccessControlExposeHeaders, ContentType, HeaderMapExt, Range};
 use http::header::{self, HeaderMap, HeaderName};
 use hyper::Method;
 use hyper::StatusCode;
-use ipc_channel::ipc::IpcReceiver;
+use ipc_channel::ipc::{self, IpcReceiver};
 use mime::{self, Mime};
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, Origin, ResponseTainting, Window,
 };
-use net_traits::request::{CredentialsMode, Destination, Referrer, Request, RequestMode};
+use net_traits::request::{
+    BodyChunkRequest, CredentialsMode, Destination, Referrer, Request, RequestMode,
+};
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
-use net_traits::{ResourceAttribute, ResourceTimeValue};
+use net_traits::{ResourceAttribute, ResourceTimeValue, ResourceTimingType};
 use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 use std::borrow::Cow;
@@ -282,7 +284,10 @@ pub fn main_fetch(
             false
         };
 
-        if (same_origin && !cors_flag) || current_url.scheme() == "data" {
+        if (same_origin && !cors_flag) ||
+            current_url.scheme() == "data" ||
+            current_url.scheme() == "chrome"
+        {
             // Substep 1.
             request.response_tainting = ResponseTainting::Basic;
 
@@ -606,6 +611,17 @@ fn range_not_satisfiable_error(response: &mut Response) {
     response.raw_status = Some((StatusCode::RANGE_NOT_SATISFIABLE.as_u16(), reason.into()));
 }
 
+fn create_blank_reply(url: ServoUrl, timing_type: ResourceTimingType) -> Response {
+    let mut response = Response::new(url, ResourceFetchTiming::new(timing_type));
+    response
+        .headers
+        .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
+    *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
+    response.status = Some((StatusCode::OK, "OK".to_string()));
+    response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
+    response
+}
+
 /// [Scheme fetch](https://fetch.spec.whatwg.org#scheme-fetch)
 fn scheme_fetch(
     request: &mut Request,
@@ -617,15 +633,31 @@ fn scheme_fetch(
     let url = request.current_url();
 
     match url.scheme() {
-        "about" if url.path() == "blank" => {
-            let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-            response
-                .headers
-                .typed_insert(ContentType::from(mime::TEXT_HTML_UTF_8));
-            *response.body.lock().unwrap() = ResponseBody::Done(vec![]);
-            response.status = Some((StatusCode::OK, "OK".to_string()));
-            response.raw_status = Some((StatusCode::OK.as_u16(), b"OK".to_vec()));
-            response
+        "about" if url.path() == "blank" => create_blank_reply(url, request.timing_type()),
+
+        "chrome" if url.path() == "allowcert" => {
+            let data = request.body.as_mut().and_then(|body| {
+                let stream = body.take_stream();
+                let (body_chan, body_port) = ipc::channel().unwrap();
+                let _ = stream.send(BodyChunkRequest::Connect(body_chan));
+                let _ = stream.send(BodyChunkRequest::Chunk);
+                body_port.recv().ok()
+            });
+            let data = data.as_ref().and_then(|b| {
+                let idx = b.iter().position(|b| *b == b'&')?;
+                Some(b.split_at(idx))
+            });
+
+            if let Some((secret, bytes)) = data {
+                let secret = str::from_utf8(secret).ok().and_then(|s| s.parse().ok());
+                if secret == Some(*net_traits::PRIVILEGED_SECRET) {
+                    if let Ok(bytes) = base64::decode(&bytes[1..]) {
+                        context.state.extra_certs.add(bytes);
+                    }
+                }
+            }
+
+            create_blank_reply(url, request.timing_type())
         },
 
         "http" | "https" => http_fetch(

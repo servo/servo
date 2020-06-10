@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::connector::{create_tls_config, ALPN_H1};
+use crate::connector::{create_tls_config, ConnectionCerts, ExtraCerts, ALPN_H1};
 use crate::cookie::Cookie;
 use crate::fetch::methods::should_be_blocked_due_to_bad_port;
 use crate::hosts::replace_host;
@@ -38,6 +38,8 @@ struct Client<'a> {
     event_sender: &'a IpcSender<WebSocketNetworkEvent>,
     protocol_in_use: Option<String>,
     certificate_path: Option<String>,
+    extra_certs: ExtraCerts,
+    connection_certs: ConnectionCerts,
 }
 
 impl<'a> Factory for Client<'a> {
@@ -167,7 +169,12 @@ impl<'a> Handler for Client<'a> {
                 WebSocketErrorKind::Protocol,
                 format!("Unable to parse domain from {}. Needed for SSL.", url),
             ))?;
-        let tls_config = create_tls_config(&certs, ALPN_H1);
+        let tls_config = create_tls_config(
+            &certs,
+            ALPN_H1,
+            self.extra_certs.clone(),
+            self.connection_certs.clone(),
+        );
         tls_config
             .build()
             .connect(domain, stream)
@@ -181,6 +188,8 @@ pub fn init(
     dom_action_receiver: IpcReceiver<WebSocketDomAction>,
     http_state: Arc<HttpState>,
     certificate_path: Option<String>,
+    extra_certs: ExtraCerts,
+    connection_certs: ConnectionCerts,
 ) {
     thread::Builder::new()
         .name(format!("WebSocket connection to {}", req_builder.url))
@@ -229,6 +238,8 @@ pub fn init(
                 event_sender: &resource_event_sender,
                 protocol_in_use: None,
                 certificate_path,
+                extra_certs,
+                connection_certs,
             };
             let mut ws = WebSocket::new(client).unwrap();
 
