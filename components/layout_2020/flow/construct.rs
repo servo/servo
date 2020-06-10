@@ -571,9 +571,14 @@ where
                 kind,
             });
         } else {
-            let box_ = ArcRefCell::new(InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
-                AbsolutelyPositionedBox::construct(self.context, info, display_inside, contents),
-            )));
+            let box_ = ArcRefCell::new(InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(
+                ArcRefCell::new(AbsolutelyPositionedBox::construct(
+                    self.context,
+                    info,
+                    display_inside,
+                    contents,
+                )),
+            ));
             self.current_inline_level_boxes().push(box_.clone());
             box_slot.set(LayoutBox::InlineLevel(box_))
         }
@@ -722,10 +727,11 @@ where
                 display_inside,
                 contents,
             } => {
-                let block_level_box =
-                    ArcRefCell::new(BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(Arc::new(
+                let block_level_box = ArcRefCell::new(
+                    BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(ArcRefCell::new(
                         AbsolutelyPositionedBox::construct(context, info, display_inside, contents),
-                    )));
+                    )),
+                );
                 (block_level_box, ContainsFloats::No)
             },
             BlockLevelCreator::OutOfFlowFloatBox {

@@ -64,9 +64,9 @@ pub(crate) struct PaddingBorderMargin {
 pub(crate) trait ComputedValuesExt {
     fn inline_size_is_length(&self) -> bool;
     fn inline_box_offsets_are_both_non_auto(&self) -> bool;
-    fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto>;
-    fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
-    fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto>;
+    fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto<'_>>;
+    fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>>;
+    fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>>;
     fn max_box_size(&self) -> flow_relative::Vec2<Option<&LengthPercentage>>;
     fn content_box_size(
         &self,
@@ -86,7 +86,7 @@ pub(crate) trait ComputedValuesExt {
     fn padding_border_margin(&self, containing_block: &ContainingBlock) -> PaddingBorderMargin;
     fn padding(&self) -> flow_relative::Sides<&LengthPercentage>;
     fn border_width(&self) -> flow_relative::Sides<Length>;
-    fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto>;
+    fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto<'_>>;
     fn has_transform_or_perspective(&self) -> bool;
     fn effective_z_index(&self) -> i32;
     fn establishes_stacking_context(&self) -> bool;
@@ -117,7 +117,7 @@ impl ComputedValuesExt for ComputedValues {
         !a.is_auto() && !b.is_auto()
     }
 
-    fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto> {
+    fn box_offsets(&self) -> flow_relative::Sides<LengthPercentageOrAuto<'_>> {
         let position = self.get_position();
         flow_relative::Sides::from_physical(
             &PhysicalSides::new(
@@ -130,7 +130,7 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto> {
+    fn box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>> {
         let position = self.get_position();
         flow_relative::Vec2::from_physical_size(
             &PhysicalSize::new(
@@ -141,7 +141,7 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto> {
+    fn min_box_size(&self) -> flow_relative::Vec2<LengthPercentageOrAuto<'_>> {
         let position = self.get_position();
         flow_relative::Vec2::from_physical_size(
             &PhysicalSize::new(
@@ -271,7 +271,7 @@ impl ComputedValuesExt for ComputedValues {
         )
     }
 
-    fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto> {
+    fn margin(&self) -> flow_relative::Sides<LengthPercentageOrAuto<'_>> {
         let margin = self.get_margin();
         flow_relative::Sides::from_physical(
             &PhysicalSides::new(
