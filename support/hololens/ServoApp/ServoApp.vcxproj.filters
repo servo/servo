@@ -148,7 +148,7 @@
     <Image Include="Assets\UI\reload.png">
       <Filter>Assets\UI</Filter>
     </Image>
-    <Image Include="Assets\UI\stop.png">
+    <Image Include="Assets\UI\cross.png">
       <Filter>Assets\UI</Filter>
     </Image>
     <Image Include="Assets\UI\home.png">

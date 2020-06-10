@@ -7,6 +7,7 @@ extern crate log;
 
 pub mod gl_glue;
 
+pub use servo::config::prefs::{add_user_prefs, PrefValue};
 pub use servo::embedder_traits::{
     ContextMenuResult, MediaSessionPlaybackState, PermissionPrompt, PermissionRequest, PromptResult,
 };
@@ -19,6 +20,7 @@ use servo::compositing::windowing::{
     AnimationState, EmbedderCoordinates, EmbedderMethods, MouseWindowEvent, WindowEvent,
     WindowMethods,
 };
+use servo::config::prefs::pref_map;
 use servo::embedder_traits::resources::{self, Resource, ResourceReaderMethods};
 use servo::embedder_traits::{
     EmbedderMsg, EmbedderProxy, MediaSessionEvent, PromptDefinition, PromptOrigin,
@@ -36,6 +38,7 @@ use servo::webrender_surfman::WebrenderSurfman;
 use servo::{self, gl, BrowserId, Servo};
 use servo_media::player::context as MediaPlayerContext;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::mem;
 use std::os::raw::c_void;
 use std::path::PathBuf;
@@ -55,7 +58,6 @@ pub use servo::embedder_traits::EventLoopWaker;
 
 pub struct InitOptions {
     pub args: Vec<String>,
-    pub url: Option<String>,
     pub coordinates: Coordinates,
     pub density: f32,
     pub xr_discovery: Option<webxr::Discovery>,
@@ -63,6 +65,7 @@ pub struct InitOptions {
     pub gl_context_pointer: Option<*const c_void>,
     pub native_display_pointer: Option<*const c_void>,
     pub native_widget: *mut c_void,
+    pub prefs: Option<HashMap<String, PrefValue>>,
 }
 
 #[derive(Clone, Debug)]
@@ -173,6 +176,44 @@ pub fn is_uri_valid(url: &str) -> bool {
     ServoUrl::parse(url).is_ok()
 }
 
+/// Retrieve a snapshot of the current preferences
+pub fn get_prefs() -> HashMap<String, (PrefValue, bool)> {
+    pref_map()
+        .iter()
+        .map(|(key, value)| {
+            let is_default = pref_map().is_default(&key).unwrap();
+            (key, (value, is_default))
+        })
+        .collect()
+}
+
+/// Retrieve a preference.
+pub fn get_pref(key: &str) -> (PrefValue, bool) {
+    if let Ok(is_default) = pref_map().is_default(&key) {
+        (pref_map().get(key), is_default)
+    } else {
+        (PrefValue::Missing, false)
+    }
+}
+
+/// Restore a preference to its default value.
+pub fn reset_pref(key: &str) -> bool {
+    pref_map().reset(key).is_ok()
+}
+
+/// Restore all the preferences to their default values.
+pub fn reset_all_prefs() {
+    pref_map().reset_all();
+}
+
+/// Change the value of a preference.
+pub fn set_pref(key: &str, val: PrefValue) -> Result<(), &'static str> {
+    pref_map()
+        .set(key, val)
+        .map(|_| ())
+        .map_err(|_| "Pref set failed")
+}
+
 /// Initialize Servo. At that point, we need a valid GL context.
 /// In the future, this will be done in multiple steps.
 pub fn init(
@@ -195,16 +236,14 @@ pub fn init(
         opts::from_cmdline_args(Options::new(), &args);
     }
 
-    let embedder_url = init_opts.url.as_ref().and_then(|s| ServoUrl::parse(s).ok());
-    let cmdline_url = opts::get().url.clone();
+    if let Some(prefs) = init_opts.prefs {
+        add_user_prefs(prefs);
+    }
+
     let pref_url = ServoUrl::parse(&pref!(shell.homepage)).ok();
     let blank_url = ServoUrl::parse("about:blank").ok();
 
-    let url = embedder_url
-        .or(cmdline_url)
-        .or(pref_url)
-        .or(blank_url)
-        .unwrap();
+    let url = pref_url.or(blank_url).unwrap();
 
     gl.clear_color(1.0, 1.0, 1.0, 1.0);
     gl.clear(gl::COLOR_BUFFER_BIT);

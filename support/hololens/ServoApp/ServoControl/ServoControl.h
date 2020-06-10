@@ -1,5 +1,6 @@
 #pragma once
 #include "ServoControl.g.h"
+#include "Pref.g.h"
 #include "OpenGLES.h"
 #include "Servo.h"
 #include "DefaultUrl.h"
@@ -7,9 +8,29 @@
 using namespace winrt::Windows::Foundation::Collections;
 
 namespace winrt::ServoApp::implementation {
+
+struct Pref : PrefT<Pref> {
+public:
+  Pref(hstring key, IInspectable value, bool isDefault) {
+    mKey = key;
+    mValue = value;
+    mIsDefault = isDefault;
+  };
+  IInspectable Value() { return mValue; }
+  hstring Key() { return mKey; }
+  bool IsDefault() { return mIsDefault; }
+
+private:
+  hstring mKey;
+  IInspectable mValue;
+  bool mIsDefault;
+};
+
 struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
 
   ServoControl();
+
+  Windows::Foundation::Collections::IVector<ServoApp::Pref> Preferences();
 
   void GoBack();
   void GoForward();
@@ -19,6 +40,36 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   void Shutdown();
   hstring LoadURIOrSearch(hstring);
   void SendMediaSessionAction(int32_t);
+
+  ServoApp::Pref SetBoolPref(hstring aKey, bool aVal) {
+    auto [key, val, isDefault] = servo::Servo::SetBoolPref(aKey, aVal);
+    return ServoApp::Pref(key, val, isDefault);
+  }
+
+  ServoApp::Pref SetStringPref(hstring aKey, hstring aVal) {
+    auto [key, val, isDefault] = servo::Servo::SetStringPref(aKey, aVal);
+    return ServoApp::Pref(key, val, isDefault);
+  }
+
+  ServoApp::Pref SetIntPref(hstring aKey, int64_t aVal) {
+    auto [key, val, isDefault] = servo::Servo::SetIntPref(aKey, aVal);
+    return ServoApp::Pref(key, val, isDefault);
+  }
+
+  ServoApp::Pref SetFloatPref(hstring aKey, double aVal) {
+    auto [key, val, isDefault] = servo::Servo::SetFloatPref(aKey, aVal);
+    return ServoApp::Pref(key, val, isDefault);
+  }
+
+  ServoApp::Pref ResetPref(hstring aKey) {
+    auto [key, val, isDefault] = servo::Servo::ResetPref(aKey);
+    return ServoApp::Pref(key, val, isDefault);
+  }
+
+  ServoApp::Pref GetPref(hstring aKey) {
+    auto [key, val, isDefault] = servo::Servo::GetPref(aKey);
+    return ServoApp::Pref(key, val, isDefault);
+  }
 
   void OnLoaded(IInspectable const &,
                 Windows::UI::Xaml::RoutedEventArgs const &);
@@ -223,4 +274,5 @@ private:
 namespace winrt::ServoApp::factory_implementation {
 struct ServoControl
     : ServoControlT<ServoControl, implementation::ServoControl> {};
+struct Pref : PrefT<Pref, implementation::Pref> {};
 } // namespace winrt::ServoApp::factory_implementation

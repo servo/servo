@@ -6,19 +6,19 @@
 #include "App.xaml.g.h"
 
 namespace winrt::ServoApp::implementation {
+using namespace winrt::Windows::Foundation;
+using namespace winrt::Windows::UI::Xaml;
+using namespace winrt::Windows::ApplicationModel;
+using namespace winrt::Windows::ApplicationModel::Activation;
+
 struct App : AppT<App> {
   App();
 
-  void createRootFrame(winrt::Windows::UI::Xaml::Controls::Frame &, bool,
-                       winrt::Windows::Foundation::IInspectable const &);
-  void OnLaunched(
-      Windows::ApplicationModel::Activation::LaunchActivatedEventArgs const &);
-  void App::OnActivated(
-      Windows::ApplicationModel::Activation::IActivatedEventArgs const &);
-  void OnSuspending(IInspectable const &,
-                    Windows::ApplicationModel::SuspendingEventArgs const &);
-  void OnNavigationFailed(
-      IInspectable const &,
-      Windows::UI::Xaml::Navigation::NavigationFailedEventArgs const &);
+  void createRootFrame(Controls::Frame &, bool, IInspectable const &);
+  void OnLaunched(LaunchActivatedEventArgs const &);
+  void App::OnActivated(IActivatedEventArgs const &);
+  void OnSuspending(IInspectable const &, SuspendingEventArgs const &);
+  void OnNavigationFailed(IInspectable const &,
+                          Navigation::NavigationFailedEventArgs const &);
 };
 } // namespace winrt::ServoApp::implementation

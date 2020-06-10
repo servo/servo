@@ -9,6 +9,10 @@
 
 namespace winrt::ServoApp::implementation {
 
+using namespace winrt::Windows;
+using namespace winrt::Windows::Foundation;
+using namespace winrt::Windows::UI::Xaml;
+
 static const hstring SERVO_SCHEME = L"fxr";
 static const hstring SERVO_SCHEME_SLASH_SLASH = L"fxr://";
 
@@ -16,35 +20,32 @@ struct BrowserPage : BrowserPageT<BrowserPage> {
 public:
   BrowserPage();
 
-  void OnForwardButtonClicked(Windows::Foundation::IInspectable const &,
-                              Windows::UI::Xaml::RoutedEventArgs const &);
-  void OnBackButtonClicked(Windows::Foundation::IInspectable const &,
-                           Windows::UI::Xaml::RoutedEventArgs const &);
-  void OnReloadButtonClicked(Windows::Foundation::IInspectable const &,
-                             Windows::UI::Xaml::RoutedEventArgs const &);
-  void OnStopButtonClicked(Windows::Foundation::IInspectable const &,
-                           Windows::UI::Xaml::RoutedEventArgs const &);
-  void OnHomeButtonClicked(Windows::Foundation::IInspectable const &,
-                           Windows::UI::Xaml::RoutedEventArgs const &);
-  void OnDevtoolsButtonClicked(Windows::Foundation::IInspectable const &,
-                               Windows::UI::Xaml::RoutedEventArgs const &);
-  void OnURLEdited(Windows::Foundation::IInspectable const &,
-                   Windows::UI::Xaml::Input::KeyRoutedEventArgs const &);
-  void OnURLFocused(Windows::Foundation::IInspectable const &);
-  void OnURLKeyboardAccelerator(
-      Windows::Foundation::IInspectable const &,
-      Windows::UI::Xaml::Input::KeyboardAcceleratorInvokedEventArgs const &);
+  void OnForwardButtonClicked(IInspectable const &, RoutedEventArgs const &);
+  void OnBackButtonClicked(IInspectable const &, RoutedEventArgs const &);
+  void OnReloadButtonClicked(IInspectable const &, RoutedEventArgs const &);
+  void OnStopButtonClicked(IInspectable const &, RoutedEventArgs const &);
+  void OnHomeButtonClicked(IInspectable const &, RoutedEventArgs const &);
+  void OnDevtoolsButtonClicked(IInspectable const &, RoutedEventArgs const &);
+  void OnURLEdited(IInspectable const &, Input::KeyRoutedEventArgs const &);
+  void OnURLFocused(IInspectable const &);
+  void
+  OnURLKeyboardAccelerator(IInspectable const &,
+                           Input::KeyboardAcceleratorInvokedEventArgs const &);
   void Shutdown();
-  void LoadServoURI(Windows::Foundation::Uri uri);
+  void LoadServoURI(Uri uri);
   void SetTransientMode(bool);
   void SetArgs(hstring);
-  void OnMediaControlsPlayClicked(Windows::Foundation::IInspectable const &,
-                                  Windows::UI::Xaml::RoutedEventArgs const &);
-  void OnMediaControlsPauseClicked(Windows::Foundation::IInspectable const &,
-                                   Windows::UI::Xaml::RoutedEventArgs const &);
+  void OnMediaControlsPlayClicked(IInspectable const &,
+                                  RoutedEventArgs const &);
+  void OnMediaControlsPauseClicked(IInspectable const &,
+                                   RoutedEventArgs const &);
+  void OnPrefererenceSearchboxEdited(IInspectable const &,
+                                     Input::KeyRoutedEventArgs const &);
 
 private:
+  void UpdatePref(ServoApp::Pref, Controls::Control);
   void BindServoEvents();
+  void BuildPrefList();
   DevtoolsStatus mDevtoolsStatus = DevtoolsStatus::Stopped;
   unsigned int mDevtoolsPort = 0;
 };

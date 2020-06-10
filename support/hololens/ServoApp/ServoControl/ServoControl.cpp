@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "ServoControl.h"
 #include "ServoControl.g.cpp"
+#include "Pref.g.cpp"
 #include <stdlib.h>
 
 using namespace std::placeholders;
@@ -275,10 +276,19 @@ hstring ServoControl::LoadURIOrSearch(hstring input) {
   }
 
   // Doesn't look like a URI. Let's search for the string.
-  hstring searchUri =
-      L"https://duckduckgo.com/html/?q=" + Uri::EscapeComponent(input);
-  TryLoadUri(searchUri);
-  return searchUri;
+  auto escapedInput = Uri::EscapeComponent(input);
+  std::wstring searchUri =
+      unbox_value<hstring>(std::get<1>(Servo::GetPref(L"shell.searchpage")))
+          .c_str();
+  std::wstring keyword = L"%s";
+  size_t start_pos = searchUri.find(keyword);
+  if (start_pos == std::string::npos)
+    searchUri = searchUri + escapedInput;
+  else
+    searchUri.replace(start_pos, keyword.length(), escapedInput);
+  hstring finalUri{searchUri};
+  TryLoadUri(finalUri);
+  return finalUri;
 }
 
 void ServoControl::SendMediaSessionAction(int32_t action) {
@@ -578,6 +588,15 @@ void ServoControl::OnServoShowContextMenu(std::optional<hstring> title,
 
 template <typename Callable> void ServoControl::RunOnUIThread(Callable cb) {
   Dispatcher().RunAsync(CoreDispatcherPriority::High, cb);
+}
+
+Collections::IVector<ServoApp::Pref> ServoControl::Preferences() {
+  std::vector<ServoApp::Pref> prefs;
+  for (auto [key, val, isDefault] : Servo::GetPrefs()) {
+    prefs.push_back(ServoApp::Pref(key, val, isDefault));
+  }
+  return winrt::single_threaded_observable_vector<ServoApp::Pref>(
+      std::move(prefs));
 }
 
 } // namespace winrt::ServoApp::implementation

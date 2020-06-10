@@ -907,7 +907,7 @@
     <Image Include="Assets\UI\forward.png" />
     <Image Include="Assets\UI\home.png" />
     <Image Include="Assets\UI\reload.png" />
-    <Image Include="Assets\UI\stop.png" />
+    <Image Include="Assets\UI\cross.png" />
     <Image Include="Assets\Wide310x150Logo.scale-100.png" />
     <Image Include="Assets\Wide310x150Logo.scale-200.png" />
     <Image Include="Assets\Wide310x150Logo.scale-400.png" />
@@ -948,6 +948,7 @@
     <Import Project="..\packages\Microsoft.Windows.CppWinRT.2.0.200316.3\build\native\Microsoft.Windows.CppWinRT.targets" Condition="Exists('..\packages\Microsoft.Windows.CppWinRT.2.0.200316.3\build\native\Microsoft.Windows.CppWinRT.targets')" />
     <Import Project="..\packages\OpenXR.Loader.1.0.6.2\build\native\OpenXR.Loader.targets" Condition="Exists('..\packages\OpenXR.Loader.1.0.6.2\build\native\OpenXR.Loader.targets')" />
     <Import Project="..\packages\ANGLE.WindowsStore.Servo.2.1.19\build\native\ANGLE.WindowsStore.Servo.targets" Condition="Exists('..\packages\ANGLE.WindowsStore.Servo.2.1.19\build\native\ANGLE.WindowsStore.Servo.targets')" />
+    <Import Project="..\packages\Microsoft.UI.Xaml.2.4.2\build\native\Microsoft.UI.Xaml.targets" Condition="Exists('..\packages\Microsoft.UI.Xaml.2.4.2\build\native\Microsoft.UI.Xaml.targets')" />
   </ImportGroup>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
@@ -958,5 +959,6 @@
     <Error Condition="!Exists('..\packages\OpenXR.Loader.1.0.6.2\build\native\OpenXR.Loader.props')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenXR.Loader.1.0.6.2\build\native\OpenXR.Loader.props'))" />
     <Error Condition="!Exists('..\packages\OpenXR.Loader.1.0.6.2\build\native\OpenXR.Loader.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\OpenXR.Loader.1.0.6.2\build\native\OpenXR.Loader.targets'))" />
     <Error Condition="!Exists('..\packages\ANGLE.WindowsStore.Servo.2.1.19\build\native\ANGLE.WindowsStore.Servo.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\ANGLE.WindowsStore.Servo.2.1.19\build\native\ANGLE.WindowsStore.Servo.targets'))" />
+    <Error Condition="!Exists('..\packages\Microsoft.UI.Xaml.2.4.2\build\native\Microsoft.UI.Xaml.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Microsoft.UI.Xaml.2.4.2\build\native\Microsoft.UI.Xaml.targets'))" />
   </Target>
 </Project>

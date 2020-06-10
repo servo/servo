@@ -5,7 +5,6 @@
 //! Configuration options for a single run of the servo application. Created
 //! from command line arguments.
 
-use crate::prefs::{self, PrefValue};
 use euclid::Size2D;
 use getopts::{Matches, Options};
 use servo_geometry::DeviceIndependentPixel;
@@ -640,18 +639,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "Run as a content process and connect to the given pipe",
         "servo-ipc-channel.abcdefg",
     );
-    opts.optmulti(
-        "",
-        "pref",
-        "A preference to set to enable",
-        "dom.bluetooth.enabled",
-    );
-    opts.optmulti(
-        "",
-        "pref",
-        "A preference to set to enable",
-        "dom.webgpu.enabled",
-    );
     opts.optflag("b", "no-native-titlebar", "Do not use native titlebar");
     opts.optflag("w", "webrender", "Use webrender backend");
     opts.optopt("G", "graphics", "Select graphics backend (gl or es2)", "gl");
@@ -926,16 +913,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
 
     set_options(opts);
 
-    // These must happen after setting the default options, since the prefs rely on
-    // on the resource path.
-    // Note that command line preferences have the highest precedence
-
-    prefs::add_user_prefs();
-
-    for pref in opt_match.opt_strs("pref").iter() {
-        parse_pref_from_command_line(pref);
-    }
-
     if let Some(layout_threads) = layout_threads {
         set_pref!(layout.threads, layout_threads as i64);
     }
@@ -963,31 +940,6 @@ pub fn set_options(opts: Opts) {
 #[inline]
 pub fn get() -> RwLockReadGuard<'static, Opts> {
     OPTIONS.read().unwrap()
-}
-
-pub fn parse_pref_from_command_line(pref: &str) {
-    let split: Vec<&str> = pref.splitn(2, '=').collect();
-    let pref_name = split[0];
-    let pref_value = parse_cli_pref_value(split.get(1).cloned());
-    prefs::pref_map()
-        .set(pref_name, pref_value)
-        .expect(format!("Error setting preference: {}", pref).as_str());
-}
-
-fn parse_cli_pref_value(input: Option<&str>) -> PrefValue {
-    match input {
-        Some("true") | None => PrefValue::Bool(true),
-        Some("false") => PrefValue::Bool(false),
-        Some(string) => {
-            if let Some(int) = string.parse::<i64>().ok() {
-                PrefValue::Int(int)
-            } else if let Some(float) = string.parse::<f64>().ok() {
-                PrefValue::Float(float)
-            } else {
-                PrefValue::from(string)
-            }
-        },
-    }
 }
 
 pub fn parse_url_or_filename(cwd: &Path, input: &str) -> Result<ServoUrl, ()> {

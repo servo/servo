@@ -2,15 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::basedir::default_config_dir;
-use crate::opts;
 use embedder_traits::resources::{self, Resource};
 use serde_json::{self, Value};
 use std::borrow::ToOwned;
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::{stderr, Read, Write};
-use std::path::PathBuf;
 
 use crate::pref_util::Preferences;
 pub use crate::pref_util::{PrefError, PrefValue};
@@ -58,40 +53,10 @@ pub fn pref_map() -> &'static Preferences<'static, Prefs> {
     &PREFS
 }
 
-pub(crate) fn add_user_prefs() {
-    if let Some(path) = user_prefs_path() {
-        init_user_prefs(path);
+pub fn add_user_prefs(prefs: HashMap<String, PrefValue>) {
+    if let Err(error) = PREFS.set_all(prefs.into_iter()) {
+        panic!("Error setting preference: {:?}", error);
     }
-}
-
-fn user_prefs_path() -> Option<PathBuf> {
-    opts::get()
-        .config_dir
-        .clone()
-        .or_else(|| default_config_dir())
-        .map(|path| path.join("prefs.json"))
-        .filter(|path| path.exists())
-}
-
-fn init_user_prefs(path: PathBuf) {
-    if let Ok(mut file) = File::open(&path) {
-        let mut txt = String::new();
-        file.read_to_string(&mut txt)
-            .expect("Can't read user prefs");
-        match read_prefs_map(&txt) {
-            Ok(prefs) => {
-                if let Err(error) = PREFS.set_all(prefs.into_iter()) {
-                    writeln!(&mut stderr(), "Error setting preference: {:?}", error)
-                } else {
-                    Ok(())
-                }
-            },
-            Err(error) => writeln!(&mut stderr(), "Error parsing prefs.json: {:?}", error),
-        }
-    } else {
-        writeln!(&mut stderr(), "Error opening user prefs from {:?}", path)
-    }
-    .expect("failed printing to stderr");
 }
 
 pub fn read_prefs_map(txt: &str) -> Result<HashMap<String, PrefValue>, PrefError> {

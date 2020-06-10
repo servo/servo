@@ -11,7 +11,6 @@ publish = false
 [[bin]]
 name = "servo"
 path = "main.rs"
-test = false
 bench = false
 
 [target.'cfg(windows)'.build-dependencies]
