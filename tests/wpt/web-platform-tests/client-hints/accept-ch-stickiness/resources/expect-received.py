@@ -5,16 +5,16 @@ def main(request, response):
     verify_navigation_state() in accept-ch-test.js
     """
 
-    if "device-memory" in request.headers and "sec-ch-ua" in request.headers and "sec-ch-ua-mobile" in request.headers:
-      result = "PASS"
+    if b"device-memory" in request.headers and b"sec-ch-ua" in request.headers and b"sec-ch-ua-mobile" in request.headers:
+      result = u"PASS"
     else:
-      result = "FAIL"
+      result = u"FAIL"
 
-    content = '''
+    content = u'''
 <script>
   let messagee = window.opener || window.parent;
   messagee.postMessage("%s" , "*");
 </script>
 ''' % (result)
-    headers = [("Content-Type", "text/html"), ("Access-Control-Allow-Origin", "*")]
+    headers = [(b"Content-Type", b"text/html"), (b"Access-Control-Allow-Origin", b"*")]
     return 200, headers, content

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div>
+  email with leading whitespace: <input id=emailinput type=email>
+</div>
+<div>
+  number with trailing incomplete exponent: <input id=numberinput type=number>
+</div>
+
+<script>
+window.onload = async () => {
+  await test_driver.send_keys(emailinput, '  user');
+  await test_driver.send_keys(numberinput, '123e');
+
+  document.documentElement.classList.remove('reftest-wait');
+};
+</script>

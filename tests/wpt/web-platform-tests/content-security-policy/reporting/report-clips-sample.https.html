@@ -26,7 +26,7 @@
     });
     return waitUntilCSPEventForTrustedTypes(t).then(t.step_func_done(e => {
       assert_equals(e.sample.replace(/\n/g, ""),
-                    "eval|(function anonymous(a,b) {return '1234");
+                    "Function|(a,b) {return '12345678901234567890123");
     }));
   }, "Function constructor - the other kind of eval - is clipped.");
 

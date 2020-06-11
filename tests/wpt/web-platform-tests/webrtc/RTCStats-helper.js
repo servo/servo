@@ -178,10 +178,10 @@ function validateRtpStreamStats(statsReport, stats) {
   [webrtc-stats]
   7.2.  RTCCodecStats dictionary
     dictionary RTCCodecStats : RTCStats {
-      unsigned long payloadType;
+      required unsigned long payloadType;
       RTCCodecType  codecType;
-      DOMString     transportId;
-      DOMString     mimeType;
+      required DOMString     transportId;
+      required DOMString     mimeType;
       unsigned long clockRate;
       unsigned long channels;
       DOMString     sdpFmtpLine;
@@ -201,7 +201,7 @@ function validateCodecStats(statsReport, stats) {
   validateRtcStats(statsReport, stats);
 
   assert_unsigned_int_field(stats, 'payloadType');
-  assert_enum_field(stats, 'codecType', ['encode', 'decode']);
+  assert_optional_enum_field(stats, 'codecType', ['encode', 'decode']);
 
   validateOptionalIdField(statsReport, stats, 'transportId', 'transport');
 
@@ -435,7 +435,6 @@ function validateSentRtpStreamStats(statsReport, stats) {
   [webrtc-stats]
   7.7.  RTCOutboundRtpStreamStats dictionary
     dictionary RTCOutboundRtpStreamStats : RTCSentRtpStreamStats {
-      DOMString            trackId;
       DOMString            mediaSourceId;
       DOMString            senderId;
       DOMString            remoteId;
@@ -476,7 +475,10 @@ function validateSentRtpStreamStats(statsReport, stats) {
       unsigned long        sliCount;
       DOMString            encoderImplementation;
     };
-
+    Obsolete members:
+    partial dictionary RTCOutboundStreamStats {
+      DOMString            trackId;
+    };
     [webrtc-pc]
     8.6.  Mandatory To Implement Stats
       - RTCOutboundRtpStreamStats, with all required attributes from its
@@ -485,7 +487,6 @@ function validateSentRtpStreamStats(statsReport, stats) {
 function validateOutboundRtpStreamStats(statsReport, stats) {
   validateSentRtpStreamStats(statsReport, stats)
 
-  validateOptionalIdField(statsReport, stats, 'trackId', 'track');
   validateOptionalIdField(statsReport, stats, 'mediaSourceId', 'media-source');
   validateIdField(statsReport, stats, 'senderId', 'sender');
   validateIdField(statsReport, stats, 'remoteId', 'remote-inbound-rtp');
@@ -556,6 +557,8 @@ function validateOutboundRtpStreamStats(statsReport, stats) {
   assert_optional_unsigned_int_field(stats, 'pliCount');
   assert_optional_unsigned_int_field(stats, 'sliCount');
   assert_optional_string_field(stats, 'encoderImplementation');
+  // Obsolete stats
+  validateOptionalIdField(statsReport, stats, 'trackId', 'track');
 }
 
 /*
@@ -883,8 +886,8 @@ function validateTransportStats(statsReport, stats) {
   [webrtc-stats]
   7.15. RTCIceCandidateStats dictionary
     dictionary RTCIceCandidateStats : RTCStats {
-      DOMString           transportId;
-      DOMString           address;
+      required DOMString  transportId;
+      DOMString?          address;
       long                port;
       DOMString           protocol;
       RTCIceCandidateType candidateType;
@@ -908,9 +911,16 @@ function validateTransportStats(statsReport, stats) {
 function validateIceCandidateStats(statsReport, stats) {
   validateRtcStats(statsReport, stats);
 
-  validateOptionalIdField(statsReport, stats, 'transportId', 'transport');
-
-  assert_string_field(stats, 'address');
+  validateIdField(statsReport, stats, 'transportId', 'transport');
+  // The address is mandatory to implement, but is allowed to be null
+  // when hidden for privacy reasons.
+  if (stats.address != null) {
+    // Departure from strict spec reading:
+    // This field is populated in a racy manner in Chrome.
+    // We allow it to be present or not present for the time being.
+    // TODO(https://bugs.chromium.org/1092721): Become consistent.
+    assert_optional_string_field(stats, 'address');
+  }
   assert_unsigned_int_field(stats, 'port');
   assert_string_field(stats, 'protocol');
 
@@ -918,7 +928,10 @@ function validateIceCandidateStats(statsReport, stats) {
     ['host', 'srflx', 'prflx', 'relay']);
 
   assert_optional_int_field(stats, 'priority');
-  assert_string_field(stats, 'url');
+  // The url field is mandatory for local candidates gathered from
+  // a STUN or TURN server, and MUST NOT be present otherwise.
+  // TODO(hta): Improve checking.
+  assert_optional_string_field(stats, 'url');
   assert_optional_string_field(stats, 'relayProtocol');
 }
 
