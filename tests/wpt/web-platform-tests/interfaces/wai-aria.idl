@@ -4,7 +4,7 @@
 // Source: Accessible Rich Internet Applications (WAI-ARIA) 1.2 (https://w3c.github.io/aria/)
 
 interface mixin AccessibilityRole {
-  attribute DOMString? role;
+  attribute DOMString role;
 };
 Element includes AccessibilityRole;
 

@@ -5,15 +5,15 @@ def main(request, response):
     verify_subresource_state() in accept-ch-test.js
     """
 
-    if "device-memory" in request.headers:
-      result = "FAIL"
+    if b"device-memory" in request.headers:
+      result = u"FAIL"
     else:
-      result = "PASS"
+      result = u"PASS"
 
-    content = '''
+    content = u'''
 <script>
   window.opener.postMessage("%s" , "*");
 </script>
 ''' % (result)
-    headers = [("Content-Type", "text/html"), ("Access-Control-Allow-Origin", "*")]
+    headers = [(b"Content-Type", b"text/html"), (b"Access-Control-Allow-Origin", b"*")]
     return 200, headers, content

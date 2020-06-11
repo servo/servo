@@ -1,3 +1,5 @@
+from wptserve.utils import isomorphic_encode
+
 def main(request, response):
     """Handler that causes multiple redirections.
 
@@ -16,42 +18,42 @@ def main(request, response):
     Note: |step| is used internally to track the current redirect number.
     """
     step = 1
-    if "step" in request.GET:
+    if b"step" in request.GET:
         try:
-            step = int(request.GET.first("step"))
+            step = int(request.GET.first(b"step"))
         except ValueError:
             pass
 
-    redirect_count = int(request.GET.first("redirect_count"))
-    final_resource = request.GET.first("final_resource")
+    redirect_count = int(request.GET.first(b"redirect_count"))
+    final_resource = request.GET.first(b"final_resource")
 
     tao_value = None
-    tao = "tao" + str(step)
+    tao = b"tao" + isomorphic_encode(str(step))
     if tao in request.GET:
         tao_value = request.GET.first(tao)
 
-    redirect_url = ""
-    origin = "origin" + str(step)
+    redirect_url = b""
+    origin = b"origin" + isomorphic_encode(str(step))
     if origin in request.GET:
         redirect_url = request.GET.first(origin)
 
     if step == redirect_count:
         redirect_url += final_resource
     else:
-        redirect_url += "/element-timing/resources/multiple-redirects.py?"
-        redirect_url += "redirect_count=" + str(redirect_count)
-        redirect_url += "&final_resource=" + final_resource
+        redirect_url += b"/element-timing/resources/multiple-redirects.py?"
+        redirect_url += b"redirect_count=" + isomorphic_encode(str(redirect_count))
+        redirect_url += b"&final_resource=" + final_resource
         for i in range(1, redirect_count + 1):
-            tao = "tao" + str(i)
+            tao = b"tao" + isomorphic_encode(str(i))
             if tao in request.GET:
-                redirect_url += "&" + tao + "=" + request.GET.first(tao)
-            origin = "origin" + str(i)
+                redirect_url += b"&" + tao + b"=" + request.GET.first(tao)
+            origin = b"origin" + isomorphic_encode(str(i))
             if origin in request.GET:
-                redirect_url += "&" + origin + "=" + request.GET.first(origin)
-        redirect_url += "&step=" + str(step + 1)
+                redirect_url += b"&" + origin + b"=" + request.GET.first(origin)
+        redirect_url += b"&step=" + isomorphic_encode(str(step + 1))
 
     if tao_value:
-        response.headers.set("timing-allow-origin", tao_value)
+        response.headers.set(b"timing-allow-origin", tao_value)
 
     response.status = 302
-    response.headers.set("Location", redirect_url)
+    response.headers.set(b"Location", redirect_url)

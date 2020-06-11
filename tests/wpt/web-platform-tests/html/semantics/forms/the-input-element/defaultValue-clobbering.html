@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+<link rel="match" href="defaultValue-clobbering-ref.html">
+<meta name="assert" content="Assigning to defaultValue does not modify text a user has already typed in.">
+
+<!-- This behavior is not explicitly specified. -->
+
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<div>
+  email with leading whitespace: <input id=emailinput type=email>
+</div>
+<div>
+  number with trailing incomplete exponent: <input id=numberinput type=number>
+</div>
+
+<script>
+window.onload = async () => {
+  await test_driver.send_keys(emailinput, '  user');
+  await test_driver.send_keys(numberinput, '123e');
+
+  emailinput.defaultValue = emailinput.value;
+  numberinput.defaultValue = numberinput.value;
+
+  document.documentElement.classList.remove('reftest-wait');
+};
+</script>

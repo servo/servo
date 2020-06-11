@@ -7,14 +7,13 @@
  SecureContext]
 interface CookieStore : EventTarget {
   Promise<CookieListItem?> get(USVString name);
-  Promise<CookieListItem?> get(CookieStoreGetOptions options);
+  Promise<CookieListItem?> get(optional CookieStoreGetOptions options = {});
 
   Promise<CookieList> getAll(USVString name);
   Promise<CookieList> getAll(optional CookieStoreGetOptions options = {});
 
-  Promise<void> set(USVString name, USVString value,
-                    optional CookieStoreSetOptions options = {});
-  Promise<void> set(CookieStoreSetExtraOptions options);
+  Promise<void> set(USVString name, USVString value);
+  Promise<void> set(CookieInit options);
 
   Promise<void> delete(USVString name);
   Promise<void> delete(CookieStoreDeleteOptions options);
@@ -40,16 +39,13 @@ enum CookieSameSite {
   "none"
 };
 
-dictionary CookieStoreSetOptions {
+dictionary CookieInit {
+  required USVString name;
+  required USVString value;
   DOMTimeStamp? expires = null;
   USVString? domain = null;
   USVString path = "/";
   CookieSameSite sameSite = "strict";
-};
-
-dictionary CookieStoreSetExtraOptions : CookieStoreSetOptions {
-  required USVString name;
-  required USVString value;
 };
 
 dictionary CookieStoreDeleteOptions {
@@ -59,13 +55,13 @@ dictionary CookieStoreDeleteOptions {
 };
 
 dictionary CookieListItem {
-  required USVString name;
+  USVString name;
   USVString value;
-  USVString? domain = null;
-  USVString path = "/";
-  DOMTimeStamp? expires = null;
-  boolean secure = true;
-  CookieSameSite sameSite = "strict";
+  USVString? domain;
+  USVString path;
+  DOMTimeStamp? expires;
+  boolean secure;
+  CookieSameSite sameSite;
 };
 
 typedef sequence<CookieListItem> CookieList;

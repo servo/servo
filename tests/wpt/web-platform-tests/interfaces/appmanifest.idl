@@ -9,8 +9,8 @@ dictionary WebAppManifest {
    USVString name;
    USVString short_name;
    USVString description;
-   sequence<ImageResource> icons;
-   sequence<ImageResource> screenshots;
+   sequence<ManifestImageResource> icons;
+   sequence<ManifestImageResource> screenshots;
    sequence<USVString> categories;
    DOMString iarc_rating_id;
    USVString start_url;
@@ -33,12 +33,9 @@ enum DisplayModeType {
   "browser"
 };
 
-dictionary ImageResource {
-  required USVString src;
-  DOMString sizes;
-  USVString type;
-  USVString purpose;
+dictionary ManifestImageResource : ImageResource {
   USVString platform;
+  USVString purpose;
 };
 
 dictionary ShortcutItem {
@@ -46,7 +43,7 @@ dictionary ShortcutItem {
   USVString short_name;
   USVString description;
   required USVString url;
-  sequence<ImageResource> icons;
+  sequence<ManifestImageResource> icons;
 };
 
 dictionary ExternalApplicationResource {
