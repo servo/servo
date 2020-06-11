@@ -5882,9 +5882,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-sync"
-version = "0.1.6"
+version = "0.1.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2162248ff317e2bc713b261f242b69dbb838b85248ed20bb21df56d60ea4cae7"
+checksum = "edfe50152bc8164fcc456dab7891fa9bf8beaf01c5ee7e1dd43a397c3cf87dee"
 dependencies = [
  "fnv",
  "futures",
