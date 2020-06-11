@@ -7,10 +7,12 @@ use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChann
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelMethods;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelState;
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{RTCErrorDetailType, RTCErrorInit};
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::blob::Blob;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -22,6 +24,8 @@ use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::JSAutoRealm;
 use js::jsval::UndefinedValue;
+use js::rust::CustomAutoRooterGuard;
+use js::typedarray::{ArrayBuffer, ArrayBufferView};
 use servo_media::webrtc::{
     DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState, WebRtcError,
 };
@@ -180,6 +184,29 @@ impl RTCDataChannel {
         };
         *self.ready_state.borrow_mut() = state.into();
     }
+
+    fn send(&self, source: &SendSource) -> Fallible<()> {
+        if *self.ready_state.borrow() != RTCDataChannelState::Open {
+            return Err(Error::InvalidState);
+        }
+
+        let message = match source {
+            SendSource::String(string) => DataChannelMessage::Text(string.0.clone()),
+            SendSource::Blob(blob) => {
+                DataChannelMessage::Binary(blob.get_bytes().unwrap_or(vec![]))
+            },
+            SendSource::ArrayBuffer(array) => DataChannelMessage::Binary(array.to_vec()),
+            SendSource::ArrayBufferView(array) => DataChannelMessage::Binary(array.to_vec()),
+        };
+
+        let controller = self.peer_connection.get_webrtc_controller().borrow();
+        controller
+            .as_ref()
+            .unwrap()
+            .send_data_channel_message(&self.servo_media_id, message);
+
+        Ok(())
+    }
 }
 
 impl Drop for RTCDataChannel {
@@ -187,6 +214,13 @@ impl Drop for RTCDataChannel {
         self.peer_connection
             .unregister_data_channel(&self.servo_media_id);
     }
+}
+
+enum SendSource<'a, 'b> {
+    String(&'a USVString),
+    Blob(&'a Blob),
+    ArrayBuffer(CustomAutoRooterGuard<'b, ArrayBuffer>),
+    ArrayBufferView(CustomAutoRooterGuard<'b, ArrayBufferView>),
 }
 
 impl RTCDataChannelMethods for RTCDataChannel {
@@ -265,22 +299,24 @@ impl RTCDataChannelMethods for RTCDataChannel {
     //    fn SetBinaryType(&self, value: DOMString) -> ();
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send
-    fn Send(&self, data: USVString) {
-        let controller = self.peer_connection.get_webrtc_controller().borrow();
-        controller
-            .as_ref()
-            .unwrap()
-            .send_data_channel_message(&self.servo_media_id, DataChannelMessage::Text(data.0));
+    fn Send(&self, data: USVString) -> Fallible<()> {
+        self.send(&SendSource::String(&data))
     }
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-1
-    // fn Send_(&self, data: &Blob) -> () {}
+    fn Send_(&self, data: &Blob) -> Fallible<()> {
+        self.send(&SendSource::Blob(data))
+    }
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-2
-    // fn Send__(&self, data: CustomAutoRooterGuard<ArrayBuffer>) -> () {}
+    fn Send__(&self, data: CustomAutoRooterGuard<ArrayBuffer>) -> Fallible<()> {
+        self.send(&SendSource::ArrayBuffer(data))
+    }
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-3
-    // fn Send___(&self, data: CustomAutoRooterGuard<ArrayBufferView>) -> () {}
+    fn Send___(&self, data: CustomAutoRooterGuard<ArrayBufferView>) -> Fallible<()> {
+        self.send(&SendSource::ArrayBufferView(data))
+    }
 }
 
 impl From<&RTCDataChannelInit> for DataChannelInit {
