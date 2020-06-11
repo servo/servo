@@ -3675,10 +3675,11 @@ dependencies = [
 
 [[package]]
 name = "num-iter"
-version = "0.1.37"
+version = "0.1.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "af3fdbbc3291a5464dc57b03860ec37ca6bf915ed6ee385e7c6c052c422b2124"
+checksum = "dfb0800a0291891dd9f4fe7bd9c19384f98f7fbe0cd0f39a2c6b88b9868bbc00"
 dependencies = [
+ "autocfg",
  "num-integer",
  "num-traits",
 ]
