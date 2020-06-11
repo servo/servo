@@ -218,27 +218,6 @@ impl PositioningContext {
         new_fragment
     }
 
-    /// Given `fragment_layout_fn`, a closure which lays out a fragment in a provided
-    /// `PositioningContext`, create a positioning context for a positioned fragment and lay out
-    /// the fragment and all its children. Returns the resulting `BoxFragment`.
-    fn create_and_layout_positioned(
-        layout_context: &LayoutContext,
-        style: &ComputedValues,
-        for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
-        fragment_layout_fn: impl FnOnce(&mut Self) -> BoxFragment,
-    ) -> BoxFragment {
-        let mut new_context = match Self::new_for_style(style) {
-            Some(new_context) => new_context,
-            None => unreachable!(),
-        };
-
-        let mut new_fragment = fragment_layout_fn(&mut new_context);
-        new_context.layout_collected_children(layout_context, &mut new_fragment);
-        for_nearest_containing_block_for_all_descendants
-            .extend(new_context.for_nearest_containing_block_for_all_descendants);
-        new_fragment
-    }
-
     // Lay out the hoisted boxes collected into this `PositioningContext` and add them
     // to the given `BoxFragment`.
     pub fn layout_collected_children(
@@ -467,100 +446,96 @@ impl HoistedAbsolutelyPositionedBox {
             block_end: block_axis.margin_end,
         };
 
-        PositioningContext::create_and_layout_positioned(
-            layout_context,
-            style,
-            for_nearest_containing_block_for_all_descendants,
-            |positioning_context| {
-                let size;
-                let fragments;
-                match absolutely_positioned_box.context.contents.as_replaced() {
-                    Ok(replaced) => {
-                        // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
-                        // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                        let style = &absolutely_positioned_box.context.style;
-                        size = replaced_used_size.unwrap();
-                        fragments = replaced.make_fragments(style, size.clone());
-                    },
-                    Err(non_replaced) => {
-                        // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
-                        // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
-                        let inline_size = inline_axis.size.auto_is(|| {
-                            let anchor = match inline_axis.anchor {
-                                Anchor::Start(start) => start,
-                                Anchor::End(end) => end,
-                            };
-                            let available_size = cbis -
-                                anchor -
-                                pbm.padding_border_sums.inline -
-                                margin.inline_sum();
-                            absolutely_positioned_box
-                                .context
-                                .content_sizes
-                                .shrink_to_fit(available_size)
-                        });
-
-                        let containing_block_for_children = ContainingBlock {
-                            inline_size,
-                            block_size: block_axis.size,
-                            style,
+        let mut positioning_context = PositioningContext::new_for_style(style).unwrap();
+        let mut new_fragment = {
+            let size;
+            let fragments;
+            match absolutely_positioned_box.context.contents.as_replaced() {
+                Ok(replaced) => {
+                    // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
+                    // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
+                    let style = &absolutely_positioned_box.context.style;
+                    size = replaced_used_size.unwrap();
+                    fragments = replaced.make_fragments(style, size.clone());
+                },
+                Err(non_replaced) => {
+                    // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
+                    // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
+                    let inline_size = inline_axis.size.auto_is(|| {
+                        let anchor = match inline_axis.anchor {
+                            Anchor::Start(start) => start,
+                            Anchor::End(end) => end,
                         };
-                        // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-                        assert_eq!(
-                            containing_block.style.writing_mode,
-                            containing_block_for_children.style.writing_mode,
-                            "Mixed writing modes are not supported yet"
-                        );
-                        let dummy_tree_rank = 0;
-                        let independent_layout = non_replaced.layout(
-                            layout_context,
-                            positioning_context,
-                            &containing_block_for_children,
-                            dummy_tree_rank,
-                        );
+                        let available_size =
+                            cbis - anchor - pbm.padding_border_sums.inline - margin.inline_sum();
+                        absolutely_positioned_box
+                            .context
+                            .content_sizes
+                            .shrink_to_fit(available_size)
+                    });
 
-                        size = Vec2 {
-                            inline: inline_size,
-                            block: block_axis
-                                .size
-                                .auto_is(|| independent_layout.content_block_size),
-                        };
-                        fragments = independent_layout.fragments
-                    },
-                };
+                    let containing_block_for_children = ContainingBlock {
+                        inline_size,
+                        block_size: block_axis.size,
+                        style,
+                    };
+                    // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+                    assert_eq!(
+                        containing_block.style.writing_mode,
+                        containing_block_for_children.style.writing_mode,
+                        "Mixed writing modes are not supported yet"
+                    );
+                    let dummy_tree_rank = 0;
+                    let independent_layout = non_replaced.layout(
+                        layout_context,
+                        &mut positioning_context,
+                        &containing_block_for_children,
+                        dummy_tree_rank,
+                    );
 
-                let pb = &pbm.padding + &pbm.border;
-                let inline_start = match inline_axis.anchor {
-                    Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
-                    Anchor::End(end) => {
-                        cbis - end - pb.inline_end - margin.inline_end - size.inline
-                    },
-                };
-                let block_start = match block_axis.anchor {
-                    Anchor::Start(start) => start + pb.block_start + margin.block_start,
-                    Anchor::End(end) => cbbs - end - pb.block_end - margin.block_end - size.block,
-                };
+                    size = Vec2 {
+                        inline: inline_size,
+                        block: block_axis
+                            .size
+                            .auto_is(|| independent_layout.content_block_size),
+                    };
+                    fragments = independent_layout.fragments
+                },
+            };
 
-                let content_rect = Rect {
-                    start_corner: Vec2 {
-                        inline: inline_start,
-                        block: block_start,
-                    },
-                    size,
-                };
+            let pb = &pbm.padding + &pbm.border;
+            let inline_start = match inline_axis.anchor {
+                Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
+                Anchor::End(end) => cbis - end - pb.inline_end - margin.inline_end - size.inline,
+            };
+            let block_start = match block_axis.anchor {
+                Anchor::Start(start) => start + pb.block_start + margin.block_start,
+                Anchor::End(end) => cbbs - end - pb.block_end - margin.block_end - size.block,
+            };
 
-                BoxFragment::new(
-                    absolutely_positioned_box.context.tag,
-                    style.clone(),
-                    fragments,
-                    content_rect,
-                    pbm.padding,
-                    pbm.border,
-                    margin,
-                    CollapsedBlockMargins::zero(),
-                )
-            },
-        )
+            let content_rect = Rect {
+                start_corner: Vec2 {
+                    inline: inline_start,
+                    block: block_start,
+                },
+                size,
+            };
+
+            BoxFragment::new(
+                absolutely_positioned_box.context.tag,
+                style.clone(),
+                fragments,
+                content_rect,
+                pbm.padding,
+                pbm.border,
+                margin,
+                CollapsedBlockMargins::zero(),
+            )
+        };
+        positioning_context.layout_collected_children(layout_context, &mut new_fragment);
+        for_nearest_containing_block_for_all_descendants
+            .extend(positioning_context.for_nearest_containing_block_for_all_descendants);
+        new_fragment
     }
 }
 
