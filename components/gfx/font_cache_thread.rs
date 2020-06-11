@@ -182,10 +182,13 @@ impl FontCache {
                 Command::GetFontInstance(font_key, size, result) => {
                     let webrender_api = &self.webrender_api;
 
-                    let instance_key = *self
-                        .font_instances
-                        .entry((font_key, size))
-                        .or_insert_with(|| webrender_api.add_font_instance(font_key, size));
+                    let instance_key =
+                        *self
+                            .font_instances
+                            .entry((font_key, size))
+                            .or_insert_with(|| {
+                                webrender_api.add_font_instance(font_key, size.to_f32_px())
+                            });
 
                     let _ = result.send(instance_key);
                 },

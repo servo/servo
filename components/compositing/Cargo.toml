@@ -16,7 +16,6 @@ default = []
 gl = ["gleam", "pixels"]
 
 [dependencies]
-app_units = "0.7"
 canvas = { path = "../canvas" }
 crossbeam-channel = "0.4"
 embedder_traits = { path = "../embedder_traits" }

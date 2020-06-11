@@ -129,7 +129,7 @@ pub enum Msg {
 pub enum WebrenderFontMsg {
     AddFontInstance(
         webrender_api::FontKey,
-        app_units::Au,
+        f32,
         Sender<webrender_api::FontInstanceKey>,
     ),
     AddFont(gfx_traits::FontData, Sender<webrender_api::FontKey>),

@@ -928,7 +928,7 @@ impl gfx_traits::WebrenderApi for FontCacheWR {
     fn add_font_instance(
         &self,
         font_key: webrender_api::FontKey,
-        size: app_units::Au,
+        size: f32,
     ) -> webrender_api::FontInstanceKey {
         let (sender, receiver) = unbounded();
         let _ = self.0.send(Msg::Webrender(WebrenderMsg::Font(

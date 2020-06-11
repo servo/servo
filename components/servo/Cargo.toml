@@ -38,7 +38,6 @@ webrender_debugger = ["webrender/debugger"]
 xr-profile = ["canvas/xr-profile", "canvas_traits/xr-profile", "script/xr-profile", "webxr/profile"]
 
 [dependencies]
-app_units = "0.7"
 background_hang_monitor = { path = "../background_hang_monitor" }
 bluetooth = { path = "../bluetooth" }
 bluetooth_traits = { path = "../bluetooth_traits" }
