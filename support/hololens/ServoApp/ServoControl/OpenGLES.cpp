@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "pch.h"
-#include "logs.h"
+#include "strutils.h"
 #include "OpenGLES.h"
 
 using namespace winrt::Windows::UI::Xaml::Controls;
@@ -13,7 +13,7 @@ using namespace winrt::Windows::Foundation::Collections;
 OpenGLES::OpenGLES()
     : mEglConfig(nullptr), mEglDisplay(EGL_NO_DISPLAY),
       mEglContext(EGL_NO_CONTEXT) {
-  log("OpenGLES::OpenGLES()");
+  log(L"OpenGLES::OpenGLES()");
   Initialize();
 }
 

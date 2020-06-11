@@ -10,7 +10,6 @@
   <ItemGroup>
     <ClCompile Include="pch.cpp" />
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
-    <ClCompile Include="logs.cpp" />
     <ClCompile Include="BrowserPage.cpp" />
     <ClCompile Include="App.cpp" />
     <ClCompile Include="ServoControl\OpenGLES.cpp">
@@ -25,7 +24,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
-    <ClInclude Include="logs.h" />
     <ClInclude Include="BrowserPage.h" />
     <ClInclude Include="App.h" />
     <ClInclude Include="ServoControl\OpenGLES.h">
@@ -38,6 +36,7 @@
       <Filter>ServoControl</Filter>
     </ClInclude>
     <ClInclude Include="DefaultUrl.h" />
+    <ClInclude Include="strutils.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -888,6 +887,15 @@
     <Filter Include="Assets\UI">
       <UniqueIdentifier>{d49fe329-5e22-4470-8310-5b925419e6f8}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Strings">
+      <UniqueIdentifier>{49e23631-d899-4caf-bf7b-30776fee4d09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Strings\en-US">
+      <UniqueIdentifier>{c12ff5d4-3730-4a0e-8b16-56ded3138875}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Strings\fr-FR">
+      <UniqueIdentifier>{b7d3273d-a27c-4176-87a1-3d5222b796b3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <None Include="PropertySheet.props" />
@@ -900,5 +908,13 @@
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml" />
+  </ItemGroup>
+  <ItemGroup>
+    <PRIResource Include="Strings\en-US\Resources.resw">
+      <Filter>Strings\en-US</Filter>
+    </PRIResource>
+    <PRIResource Include="Strings\fr-FR\Resources.resw">
+      <Filter>Strings\fr-FR</Filter>
+    </PRIResource>
   </ItemGroup>
 </Project>
