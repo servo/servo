@@ -5,7 +5,6 @@ function test_interfaces(interfaceNamesInGlobalScope) {
     var ecmaGlobals = [
       "Array",
       "ArrayBuffer",
-      "Atomics",
       "BigInt",
       "BigInt64Array",
       "BigUint64Array",
@@ -43,7 +42,6 @@ function test_interfaces(interfaceNamesInGlobalScope) {
       "Reflect",
       "RegExp",
       "Set",
-      "SharedArrayBuffer",
       "String",
       "Symbol",
       "SyntaxError",
