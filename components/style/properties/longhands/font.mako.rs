@@ -369,7 +369,7 @@ ${helpers.predefined_type(
                 let id = match *self {
                     % for font in system_fonts:
                         SystemFont::${to_camel_case(font)} => {
-                            LookAndFeel_FontID::eFont_${to_camel_case(font.replace("-moz-", ""))}
+                            LookAndFeel_FontID::${to_camel_case(font.replace("-moz-", ""))}
                         }
                     % endfor
                 };
