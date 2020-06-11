@@ -22,13 +22,15 @@ use crate::dom::rtcerrorevent::RTCErrorEvent;
 use crate::dom::rtcpeerconnection::RTCPeerConnection;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
-use js::jsapi::JSAutoRealm;
+use js::jsapi::{JSAutoRealm, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{ArrayBuffer, ArrayBufferView};
+use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
+use script_traits::serializable::BlobImpl;
 use servo_media::webrtc::{
     DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState, WebRtcError,
 };
+use std::ptr;
 
 #[dom_struct]
 pub struct RTCDataChannel {
@@ -44,6 +46,7 @@ pub struct RTCDataChannel {
     negotiated: bool,
     id: Option<u16>,
     ready_state: DomRefCell<RTCDataChannelState>,
+    binary_type: DomRefCell<DOMString>,
 }
 
 impl RTCDataChannel {
@@ -78,6 +81,7 @@ impl RTCDataChannel {
             negotiated: options.negotiated,
             id: options.id,
             ready_state: DomRefCell::new(RTCDataChannelState::Connecting),
+            binary_type: DomRefCell::new(DOMString::from("blob")),
         };
 
         peer_connection.register_data_channel(servo_media_id, &channel);
@@ -146,26 +150,46 @@ impl RTCDataChannel {
     }
 
     #[allow(unsafe_code)]
-    pub fn on_message(&self, message: DataChannelMessage) {
-        // XXX(ferjm) Support binary messages
-        match message {
-            DataChannelMessage::Text(text) => unsafe {
-                let global = self.global();
-                let cx = global.get_cx();
-                let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
-                rooted!(in(*cx) let mut message = UndefinedValue());
-                text.to_jsval(*cx, message.handle_mut());
+    pub fn on_message(&self, channel_message: DataChannelMessage) {
+        unsafe {
+            let global = self.global();
+            let cx = global.get_cx();
+            let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
+            rooted!(in(*cx) let mut message = UndefinedValue());
 
-                MessageEvent::dispatch_jsval(
-                    self.upcast(),
-                    &global,
-                    message.handle(),
-                    Some(&global.origin().immutable().ascii_serialization()),
-                    None,
-                    vec![],
-                );
-            },
-            DataChannelMessage::Binary(_) => {},
+            match channel_message {
+                DataChannelMessage::Text(text) => {
+                    text.to_jsval(*cx, message.handle_mut());
+                },
+                DataChannelMessage::Binary(data) => match &**self.binary_type.borrow() {
+                    "blob" => {
+                        let blob =
+                            Blob::new(&global, BlobImpl::new_from_bytes(data, "".to_owned()));
+                        blob.to_jsval(*cx, message.handle_mut());
+                    },
+                    "arraybuffer" => {
+                        rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+                        assert!(ArrayBuffer::create(
+                            *cx,
+                            CreateWith::Slice(&data),
+                            array_buffer.handle_mut()
+                        )
+                        .is_ok());
+
+                        (*array_buffer).to_jsval(*cx, message.handle_mut());
+                    },
+                    _ => unreachable!(),
+                },
+            }
+
+            MessageEvent::dispatch_jsval(
+                self.upcast(),
+                &global,
+                message.handle(),
+                Some(&global.origin().immutable().ascii_serialization()),
+                None,
+                vec![],
+            );
         }
     }
 
@@ -295,8 +319,19 @@ impl RTCDataChannelMethods for RTCDataChannel {
             .close_data_channel(&self.servo_media_id);
     }
 
-    //    fn BinaryType(&self) -> DOMString;
-    //    fn SetBinaryType(&self, value: DOMString) -> ();
+    // https://www.w3.org/TR/webrtc/#dom-datachannel-binarytype
+    fn BinaryType(&self) -> DOMString {
+        self.binary_type.borrow().clone()
+    }
+
+    // https://www.w3.org/TR/webrtc/#dom-datachannel-binarytype
+    fn SetBinaryType(&self, value: DOMString) -> Fallible<()> {
+        if value != "blob" || value != "arraybuffer" {
+            return Err(Error::Syntax);
+        }
+        *self.binary_type.borrow_mut() = value;
+        Ok(())
+    }
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send
     fn Send(&self, data: USVString) -> Fallible<()> {

@@ -23,7 +23,7 @@ interface RTCDataChannel : EventTarget {
   attribute EventHandler onclose;
   void close();
   attribute EventHandler onmessage;
-  //attribute DOMString binaryType;
+  [SetterThrows] attribute DOMString binaryType;
   [Throws] void send(USVString data);
   [Throws] void send(Blob data);
   [Throws] void send(ArrayBuffer data);
