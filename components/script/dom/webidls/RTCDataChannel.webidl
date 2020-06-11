@@ -13,7 +13,7 @@ interface RTCDataChannel : EventTarget {
   readonly attribute USVString protocol;
   readonly attribute boolean negotiated;
   readonly attribute unsigned short? id;
-  //readonly attribute RTCDataChannelState readyState;
+  readonly attribute RTCDataChannelState readyState;
   //readonly attribute unsigned long bufferedAmount;
   //attribute unsigned long bufferedAmountLowThreshold;
   attribute EventHandler onopen;

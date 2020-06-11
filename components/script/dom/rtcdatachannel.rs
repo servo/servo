@@ -2,8 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelInit;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelMethods;
+use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelState;
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{RTCErrorDetailType, RTCErrorInit};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -20,7 +22,9 @@ use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::JSAutoRealm;
 use js::jsval::UndefinedValue;
-use servo_media::webrtc::{DataChannelId, DataChannelInit, DataChannelMessage, WebRtcError};
+use servo_media::webrtc::{
+    DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState, WebRtcError,
+};
 
 #[dom_struct]
 pub struct RTCDataChannel {
@@ -35,6 +39,7 @@ pub struct RTCDataChannel {
     protocol: USVString,
     negotiated: bool,
     id: Option<u16>,
+    ready_state: DomRefCell<RTCDataChannelState>,
 }
 
 impl RTCDataChannel {
@@ -68,6 +73,7 @@ impl RTCDataChannel {
             protocol: options.protocol.clone(),
             negotiated: options.negotiated,
             id: options.id,
+            ready_state: DomRefCell::new(RTCDataChannelState::Connecting),
         };
 
         peer_connection.register_data_channel(servo_media_id, &channel);
@@ -158,6 +164,22 @@ impl RTCDataChannel {
             DataChannelMessage::Binary(_) => {},
         }
     }
+
+    pub fn on_state_change(&self, state: DataChannelState) {
+        match state {
+            DataChannelState::Closing => {
+                let event = Event::new(
+                    &self.global(),
+                    atom!("closing"),
+                    EventBubbles::DoesNotBubble,
+                    EventCancelable::NotCancelable,
+                );
+                event.upcast::<Event>().fire(self.upcast());
+            },
+            _ => {},
+        };
+        *self.ready_state.borrow_mut() = state.into();
+    }
 }
 
 impl Drop for RTCDataChannel {
@@ -219,7 +241,13 @@ impl RTCDataChannelMethods for RTCDataChannel {
         self.id
     }
 
-    //    fn ReadyState(&self) -> RTCDataChannelState;
+    fn ReadyState(&self) -> RTCDataChannelState {
+        *self.ready_state.borrow()
+    }
+
+    // XXX We need a way to know when the underlying data transport
+    // actually sends data from its queue to decrease buffered amount.
+
     //    fn BufferedAmount(&self) -> u32;
     //    fn BufferedAmountLowThreshold(&self) -> u32;
     //    fn SetBufferedAmountLowThreshold(&self, value: u32) -> ();
@@ -265,6 +293,19 @@ impl From<&RTCDataChannelInit> for DataChannelInit {
             negotiated: init.negotiated,
             ordered: init.ordered,
             protocol: init.protocol.to_string(),
+        }
+    }
+}
+
+impl From<DataChannelState> for RTCDataChannelState {
+    fn from(state: DataChannelState) -> RTCDataChannelState {
+        match state {
+            DataChannelState::New |
+            DataChannelState::Connecting |
+            DataChannelState::__Unknown(_) => RTCDataChannelState::Connecting,
+            DataChannelState::Open => RTCDataChannelState::Open,
+            DataChannelState::Closing => RTCDataChannelState::Closing,
+            DataChannelState::Closed => RTCDataChannelState::Closed,
         }
     }
 }

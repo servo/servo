@@ -320,7 +320,8 @@ impl RTCPeerConnection {
                         DataChannelEvent::Close => channel.on_close(),
                         DataChannelEvent::Error(error) => channel.on_error(error),
                         DataChannelEvent::OnMessage(message) => channel.on_message(message),
-                        _ => unreachable!(),
+                        DataChannelEvent::StateChange(state) => channel.on_state_change(state),
+                        DataChannelEvent::NewChannel => unreachable!(),
                     }
                 } else {
                     debug_assert!(false, "Got an event for an unregistered data channel");

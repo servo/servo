@@ -16,6 +16,7 @@ characteristicvaluechanged
 checkbox
 click
 close
+closing
 color
 complete
 compositionend
