@@ -2,39 +2,32 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelInit;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelMethods;
 use crate::dom::bindings::codegen::Bindings::RTCErrorBinding::{RTCErrorDetailType, RTCErrorInit};
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::blob::Blob;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::rtcerror::RTCError;
 use crate::dom::rtcerrorevent::RTCErrorEvent;
-use crate::task_source::TaskSource;
+use crate::dom::rtcpeerconnection::RTCPeerConnection;
 use dom_struct::dom_struct;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::JSAutoRealm;
 use js::jsval::UndefinedValue;
-use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{ArrayBuffer, ArrayBufferView};
-use servo_media::webrtc::{
-    WebRtcController, WebRtcDataChannelBackend, WebRtcDataChannelInit, WebRtcError,
-};
-use std::sync::mpsc;
+use servo_media::webrtc::{DataChannelId, DataChannelInit, DataChannelMessage, WebRtcError};
 
 #[dom_struct]
 pub struct RTCDataChannel {
     eventtarget: EventTarget,
     #[ignore_malloc_size_of = "defined in servo-media"]
-    channel: Box<dyn WebRtcDataChannelBackend>,
+    servo_media_id: DataChannelId,
+    peer_connection: Dom<RTCPeerConnection>,
     label: USVString,
     ordered: bool,
     max_packet_life_time: Option<u16>,
@@ -45,30 +38,29 @@ pub struct RTCDataChannel {
 }
 
 impl RTCDataChannel {
+    #[allow(unrooted_must_root)]
     pub fn new_inherited(
-        webrtc_controller: &DomRefCell<Option<WebRtcController>>,
+        peer_connection: &RTCPeerConnection,
         label: USVString,
         options: &RTCDataChannelInit,
-        channel: Option<Box<dyn WebRtcDataChannelBackend>>,
+        servo_media_id: Option<DataChannelId>,
     ) -> RTCDataChannel {
-        let webrtc = webrtc_controller.borrow();
-        let webrtc = webrtc.as_ref().unwrap();
-
-        let (sender, receiver) = mpsc::channel::<Box<dyn WebRtcDataChannelBackend>>();
-
-        let mut init: WebRtcDataChannelInit = options.into();
+        let mut init: DataChannelInit = options.into();
         init.label = label.to_string();
 
-        let channel = if channel.is_none() {
-            webrtc.create_data_channel(init, sender);
-            receiver.recv().unwrap()
-        } else {
-            channel.unwrap()
-        };
+        let controller = peer_connection.get_webrtc_controller().borrow();
+        let servo_media_id = servo_media_id.unwrap_or(
+            controller
+                .as_ref()
+                .unwrap()
+                .create_data_channel(init)
+                .expect("Expected data channel id"),
+        );
 
-        RTCDataChannel {
+        let channel = RTCDataChannel {
             eventtarget: EventTarget::new_inherited(),
-            channel,
+            servo_media_id,
+            peer_connection: Dom::from_ref(&peer_connection),
             label,
             ordered: options.ordered,
             max_packet_life_time: options.maxPacketLifeTime,
@@ -76,96 +68,34 @@ impl RTCDataChannel {
             protocol: options.protocol.clone(),
             negotiated: options.negotiated,
             id: options.id,
-        }
+        };
+
+        peer_connection.register_data_channel(servo_media_id, &channel);
+
+        channel
     }
 
     pub fn new(
         global: &GlobalScope,
-        webrtc_controller: &DomRefCell<Option<WebRtcController>>,
+        peer_connection: &RTCPeerConnection,
         label: USVString,
         options: &RTCDataChannelInit,
-        channel: Option<Box<dyn WebRtcDataChannelBackend>>,
+        servo_media_id: Option<DataChannelId>,
     ) -> DomRoot<RTCDataChannel> {
         let rtc_data_channel = reflect_dom_object(
             Box::new(RTCDataChannel::new_inherited(
-                webrtc_controller,
+                peer_connection,
                 label,
                 options,
-                channel,
+                servo_media_id,
             )),
             global,
         );
 
-        let trusted = Trusted::new(&*rtc_data_channel);
-        let (task_source, canceller) = global
-            .as_window()
-            .task_manager()
-            .networking_task_source_with_canceller();
-
-        let this = trusted.clone();
-        rtc_data_channel.channel.set_on_open(Box::new(move || {
-            let this = this.clone();
-            let _ = task_source.queue_with_canceller(
-                task!(on_open: move || {
-                    this.root().on_open();
-                }),
-                &canceller,
-            );
-        }));
-
-        let this = trusted.clone();
-        let (task_source, canceller) = global
-            .as_window()
-            .task_manager()
-            .networking_task_source_with_canceller();
-        rtc_data_channel.channel.set_on_close(Box::new(move || {
-            let this = this.clone();
-            let _ = task_source.queue_with_canceller(
-                task!(on_close: move || {
-                    this.root().on_close();
-                }),
-                &canceller,
-            );
-        }));
-
-        let this = trusted.clone();
-        let (task_source, canceller) = global
-            .as_window()
-            .task_manager()
-            .networking_task_source_with_canceller();
-        rtc_data_channel
-            .channel
-            .set_on_error(Box::new(move |error| {
-                let this = this.clone();
-                let _ = task_source.queue_with_canceller(
-                    task!(on_error: move || {
-                        this.root().on_error(error);
-                    }),
-                    &canceller,
-                );
-            }));
-
-        let this = trusted.clone();
-        let (task_source, canceller) = global
-            .as_window()
-            .task_manager()
-            .networking_task_source_with_canceller();
-        rtc_data_channel
-            .channel
-            .set_on_message(Box::new(move |message| {
-                let this = this.clone();
-                let _ = task_source.queue_with_canceller(
-                    task!(on_message: move || {
-                        this.root().on_message(message);
-                    }),
-                    &canceller,
-                );
-            }));
-
         rtc_data_channel
     }
 
-    fn on_open(&self) {
+    pub fn on_open(&self) {
         let event = Event::new(
             &self.global(),
             atom!("open"),
@@ -175,7 +105,7 @@ impl RTCDataChannel {
         event.upcast::<Event>().fire(self.upcast());
     }
 
-    fn on_close(&self) {
+    pub fn on_close(&self) {
         let event = Event::new(
             &self.global(),
             atom!("close"),
@@ -183,9 +113,12 @@ impl RTCDataChannel {
             EventCancelable::NotCancelable,
         );
         event.upcast::<Event>().fire(self.upcast());
+
+        self.peer_connection
+            .unregister_data_channel(&self.servo_media_id);
     }
 
-    fn on_error(&self, error: WebRtcError) {
+    pub fn on_error(&self, error: WebRtcError) {
         let init = RTCErrorInit {
             errorDetail: RTCErrorDetailType::Data_channel_failure,
             httpRequestStatusCode: None,
@@ -203,24 +136,34 @@ impl RTCDataChannel {
     }
 
     #[allow(unsafe_code)]
-    fn on_message(&self, text: String) {
+    pub fn on_message(&self, message: DataChannelMessage) {
         // XXX(ferjm) Support binary messages
-        unsafe {
-            let global = self.global();
-            let cx = global.get_cx();
-            let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
-            rooted!(in(*cx) let mut message = UndefinedValue());
-            text.to_jsval(*cx, message.handle_mut());
+        match message {
+            DataChannelMessage::Text(text) => unsafe {
+                let global = self.global();
+                let cx = global.get_cx();
+                let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
+                rooted!(in(*cx) let mut message = UndefinedValue());
+                text.to_jsval(*cx, message.handle_mut());
 
-            MessageEvent::dispatch_jsval(
-                self.upcast(),
-                &global,
-                message.handle(),
-                Some(&global.origin().immutable().ascii_serialization()),
-                None,
-                vec![],
-            );
+                MessageEvent::dispatch_jsval(
+                    self.upcast(),
+                    &global,
+                    message.handle(),
+                    Some(&global.origin().immutable().ascii_serialization()),
+                    None,
+                    vec![],
+                );
+            },
+            DataChannelMessage::Binary(_) => {},
         }
+    }
+}
+
+impl Drop for RTCDataChannel {
+    fn drop(&mut self) {
+        self.peer_connection
+            .unregister_data_channel(&self.servo_media_id);
     }
 }
 
@@ -282,16 +225,24 @@ impl RTCDataChannelMethods for RTCDataChannel {
     //    fn SetBufferedAmountLowThreshold(&self, value: u32) -> ();
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-close
-    fn Close(&self) {}
+    fn Close(&self) {
+        let controller = self.peer_connection.get_webrtc_controller().borrow();
+        controller
+            .as_ref()
+            .unwrap()
+            .close_data_channel(&self.servo_media_id);
+    }
 
     //    fn BinaryType(&self) -> DOMString;
     //    fn SetBinaryType(&self, value: DOMString) -> ();
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send
     fn Send(&self, data: USVString) {
-        if let Err(error) = self.channel.send(&data.0) {
-            warn!("Could not send data channel message. Error: {:?}", error);
-        }
+        let controller = self.peer_connection.get_webrtc_controller().borrow();
+        controller
+            .as_ref()
+            .unwrap()
+            .send_data_channel_message(&self.servo_media_id, DataChannelMessage::Text(data.0));
     }
 
     // https://www.w3.org/TR/webrtc/#dom-rtcdatachannel-send!overload-1
@@ -304,9 +255,9 @@ impl RTCDataChannelMethods for RTCDataChannel {
     // fn Send___(&self, data: CustomAutoRooterGuard<ArrayBufferView>) -> () {}
 }
 
-impl From<&RTCDataChannelInit> for WebRtcDataChannelInit {
-    fn from(init: &RTCDataChannelInit) -> WebRtcDataChannelInit {
-        WebRtcDataChannelInit {
+impl From<&RTCDataChannelInit> for DataChannelInit {
+    fn from(init: &RTCDataChannelInit) -> DataChannelInit {
+        DataChannelInit {
             label: String::new(),
             id: init.id,
             max_packet_life_time: init.maxPacketLifeTime,
