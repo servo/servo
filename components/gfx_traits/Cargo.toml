@@ -11,7 +11,6 @@ name = "gfx_traits"
 path = "lib.rs"
 
 [dependencies]
-app_units = "0.7"
 malloc_size_of = { path = "../malloc_size_of" }
 malloc_size_of_derive = "0.1"
 range = { path = "../range" }

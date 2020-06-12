@@ -755,7 +755,6 @@ dependencies = [
 name = "compositing"
 version = "0.0.1"
 dependencies = [
- "app_units",
  "canvas",
  "crossbeam-channel",
  "embedder_traits",
@@ -1890,7 +1889,6 @@ dependencies = [
 name = "gfx_traits"
 version = "0.0.1"
 dependencies = [
- "app_units",
  "malloc_size_of",
  "malloc_size_of_derive",
  "range",
@@ -3018,7 +3016,6 @@ dependencies = [
 name = "libservo"
 version = "0.0.1"
 dependencies = [
- "app_units",
  "background_hang_monitor",
  "bluetooth",
  "bluetooth_traits",
@@ -3935,7 +3932,7 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/servo/webrender#de3999583ab20aad7c57ea35a3e0394ed45be627"
+source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
 dependencies = [
  "euclid",
  "peek-poke-derive 0.2.1 (git+https://github.com/servo/webrender)",
@@ -3953,7 +3950,7 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
-source = "git+https://github.com/servo/webrender#de3999583ab20aad7c57ea35a3e0394ed45be627"
+source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
 dependencies = [
  "proc-macro2 1.0.17",
  "quote 1.0.2",
@@ -6399,7 +6396,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender#de3999583ab20aad7c57ea35a3e0394ed45be627"
+source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
 dependencies = [
  "base64 0.10.1",
  "bincode",
@@ -6441,7 +6438,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender#de3999583ab20aad7c57ea35a3e0394ed45be627"
+source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
 dependencies = [
  "app_units",
  "bitflags",
@@ -6462,7 +6459,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#de3999583ab20aad7c57ea35a3e0394ed45be627"
+source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -6642,7 +6639,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#de3999583ab20aad7c57ea35a3e0394ed45be627"
+source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
 dependencies = [
  "app_units",
  "euclid",

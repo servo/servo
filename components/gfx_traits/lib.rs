@@ -113,7 +113,7 @@ pub trait WebrenderApi {
     fn add_font_instance(
         &self,
         font_key: webrender_api::FontKey,
-        size: app_units::Au,
+        size: f32,
     ) -> webrender_api::FontInstanceKey;
     fn add_font(&self, data: FontData) -> webrender_api::FontKey;
 }
