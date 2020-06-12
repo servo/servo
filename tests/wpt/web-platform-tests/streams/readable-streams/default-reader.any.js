@@ -2,15 +2,6 @@
 // META: script=../resources/rs-utils.js
 'use strict';
 
-let ReadableStreamDefaultReader;
-
-test(() => {
-
-  // It's not exposed globally, but we test a few of its properties here.
-  ReadableStreamDefaultReader = (new ReadableStream()).getReader().constructor;
-
-}, 'Can get the ReadableStreamDefaultReader constructor indirectly');
-
 test(() => {
 
   assert_throws_js(TypeError, () => new ReadableStreamDefaultReader('potato'));
@@ -18,44 +9,6 @@ test(() => {
   assert_throws_js(TypeError, () => new ReadableStreamDefaultReader());
 
 }, 'ReadableStreamDefaultReader constructor should get a ReadableStream object as argument');
-
-test(() => {
-
-  const methods = ['cancel', 'constructor', 'read', 'releaseLock'];
-  const properties = methods.concat(['closed']).sort();
-
-  const rsReader = new ReadableStreamDefaultReader(new ReadableStream());
-  const proto = Object.getPrototypeOf(rsReader);
-
-  assert_array_equals(Object.getOwnPropertyNames(proto).sort(), properties);
-
-  for (const m of methods) {
-    const propDesc = Object.getOwnPropertyDescriptor(proto, m);
-    assert_equals(propDesc.enumerable, false, 'method should be non-enumerable');
-    assert_equals(propDesc.configurable, true, 'method should be configurable');
-    assert_equals(propDesc.writable, true, 'method should be writable');
-    assert_equals(typeof rsReader[m], 'function', 'should have be a method');
-    const expectedName = m === 'constructor' ? 'ReadableStreamDefaultReader' : m;
-    assert_equals(rsReader[m].name, expectedName, 'method should have the correct name');
-  }
-
-  const closedPropDesc = Object.getOwnPropertyDescriptor(proto, 'closed');
-  assert_equals(closedPropDesc.enumerable, false, 'closed should be non-enumerable');
-  assert_equals(closedPropDesc.configurable, true, 'closed should be configurable');
-  assert_not_equals(closedPropDesc.get, undefined, 'closed should have a getter');
-  assert_equals(closedPropDesc.set, undefined, 'closed should not have a setter');
-
-  assert_equals(rsReader.cancel.length, 1, 'cancel has 1 parameter');
-  assert_not_equals(rsReader.closed, undefined, 'has a non-undefined closed property');
-  assert_equals(typeof rsReader.closed.then, 'function', 'closed property is thenable');
-  assert_equals(typeof rsReader.constructor, 'function', 'has a constructor method');
-  assert_equals(rsReader.constructor.length, 1, 'constructor has 1 parameter');
-  assert_equals(typeof rsReader.read, 'function', 'has a getReader method');
-  assert_equals(rsReader.read.length, 0, 'read has no parameters');
-  assert_equals(typeof rsReader.releaseLock, 'function', 'has a releaseLock method');
-  assert_equals(rsReader.releaseLock.length, 0, 'releaseLock has no parameters');
-
-}, 'ReadableStreamDefaultReader instances should have the correct list of properties');
 
 test(() => {
 
@@ -491,7 +444,7 @@ test(() => {
       return '';
     }
   };
-  assert_throws_js(RangeError, () => rs.getReader({ mode }), 'getReader() should throw');
+  assert_throws_js(TypeError, () => rs.getReader({ mode }), 'getReader() should throw');
   assert_true(toStringCalled, 'toString() should be called');
 }, 'getReader() should call ToString() on mode');
 

@@ -102,12 +102,8 @@ promise_test(t => {
 
 promise_test(t => {
 
-  const startPromise = Promise.resolve();
   let rejectSinkWritePromise;
   const ws = recordingWritableStream({
-    start() {
-      return startPromise;
-    },
     write() {
       return new Promise((r, reject) => {
         rejectSinkWritePromise = reject;
@@ -115,7 +111,7 @@ promise_test(t => {
     }
   });
 
-  return startPromise.then(() => {
+  return flushAsyncEvents().then(() => {
     const writer = ws.getWriter();
     const writePromise = writer.write('a');
     rejectSinkWritePromise(error1);

@@ -727,18 +727,13 @@ class MockRuntime extends EventTarget {
       }
     }
 
-    // Convert current document time to monotonic time.
-    let now = window.performance.now() / 1000.0;
-    const diff = now - internals.monotonicTimeToZeroBasedDocumentTime(now);
-    now += diff;
-    now *= 1000000;
-
     const frameData = {
       pose: this.pose_,
       mojoSpaceReset: mojo_space_reset,
       inputState: input_state,
       timeDelta: {
-        microseconds: now,
+        // window.performance.now() is in milliseconds, so convert to microseconds.
+        microseconds: window.performance.now() * 1000,
       },
       frameId: this.next_frame_id_++,
       bufferHolder: null,
@@ -1201,32 +1196,32 @@ class MockRuntime extends EventTarget {
         }
 
         const hitResult = new device.mojom.XRHitResult();
-        hitResult.hitMatrix = new gfx.mojom.Transform();
-
         hitResult.distance = distance;  // Extend the object with additional information used by higher layers.
                                         // It will not be serialized over mojom.
 
-        hitResult.hitMatrix.matrix = new Array(16);
+        const matrix = new Array(16);
 
-        hitResult.hitMatrix.matrix[0] = x_axis.x;
-        hitResult.hitMatrix.matrix[1] = x_axis.y;
-        hitResult.hitMatrix.matrix[2] = x_axis.z;
-        hitResult.hitMatrix.matrix[3] = 0;
+        matrix[0] = x_axis.x;
+        matrix[1] = x_axis.y;
+        matrix[2] = x_axis.z;
+        matrix[3] = 0;
 
-        hitResult.hitMatrix.matrix[4] = y_axis.x;
-        hitResult.hitMatrix.matrix[5] = y_axis.y;
-        hitResult.hitMatrix.matrix[6] = y_axis.z;
-        hitResult.hitMatrix.matrix[7] = 0;
+        matrix[4] = y_axis.x;
+        matrix[5] = y_axis.y;
+        matrix[6] = y_axis.z;
+        matrix[7] = 0;
 
-        hitResult.hitMatrix.matrix[8] = z_axis.x;
-        hitResult.hitMatrix.matrix[9] = z_axis.y;
-        hitResult.hitMatrix.matrix[10] = z_axis.z;
-        hitResult.hitMatrix.matrix[11] = 0;
+        matrix[8] = z_axis.x;
+        matrix[9] = z_axis.y;
+        matrix[10] = z_axis.z;
+        matrix[11] = 0;
 
-        hitResult.hitMatrix.matrix[12] = intersection_point.x;
-        hitResult.hitMatrix.matrix[13] = intersection_point.y;
-        hitResult.hitMatrix.matrix[14] = intersection_point.z;
-        hitResult.hitMatrix.matrix[15] = 1;
+        matrix[12] = intersection_point.x;
+        matrix[13] = intersection_point.y;
+        matrix[14] = intersection_point.z;
+        matrix[15] = 1;
+
+        hitResult.mojoFromResult = XRMathHelper.decomposeRigidTransform(matrix);
 
         return hitResult;
       }

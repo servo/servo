@@ -1,13 +1,13 @@
 def main(request, response):
-    headers = [("Content-Type", "text/html"), ("X-Frame-Options", request.GET.first("value"))]
+    headers = [(b"Content-Type", b"text/html"), (b"X-Frame-Options", request.GET.first(b"value"))]
 
-    if "value2" in request.GET:
-        headers.append(("X-Frame-Options", request.GET.first("value2")))
+    if b"value2" in request.GET:
+        headers.append((b"X-Frame-Options", request.GET.first(b"value2")))
 
-    if "csp_value" in request.GET:
-        headers.append(("Content-Security-Policy", request.GET.first("csp_value")))
+    if b"csp_value" in request.GET:
+        headers.append((b"Content-Security-Policy", request.GET.first(b"csp_value")))
 
-    body = """<!DOCTYPE html>
+    body = u"""<!DOCTYPE html>
         <html>
         <head>
           <title>XFO.</title>

@@ -51,6 +51,8 @@
   @property --initial-value-only {
     initial-value: red;
   }
+  /* U+0009 CHARACTER TABULATION */
+  @property --tab\9 tab {  }
 </style>
 <script>
 
@@ -119,6 +121,7 @@ test_css_text('--no-initial-value', '@property --no-initial-value { syntax: "<co
 test_css_text('--syntax-only', '@property --syntax-only { syntax: "<color> | none"; }');
 test_css_text('--inherits-only', '@property --inherits-only { inherits: true; }');
 test_css_text('--initial-value-only', '@property --initial-value-only { initial-value: red; }');
+test_css_text('--tab\ttab', '@property --tab\\9 tab { }');
 
 // CSSRule.type
 

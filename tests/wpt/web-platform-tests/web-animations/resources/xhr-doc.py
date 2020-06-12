@@ -1,5 +1,5 @@
 def main(request, response):
-    headers = [("Content-type", "text/html;charset=utf-8")]
-    content = "<!doctype html><div id=test></div>"
+    headers = [(b"Content-type", b"text/html;charset=utf-8")]
+    content = u"<!doctype html><div id=test></div>"
 
     return headers, content

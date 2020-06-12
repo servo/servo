@@ -57,5 +57,23 @@
       );
       // TODO: Test more variant of resoruces attribute values.
     }, "resoruces attribute must return null or specified value");
+
+    test(() => {
+      const link = document.createElement("link");
+      assert_class_string(link.resources, "DOMTokenList");
+      assert_equals(
+        String(link.resources.value),
+        "",
+        "resources.value should return the empty list for an undefined resources attribute"
+      );
+      link.setAttribute(
+        "resources",
+        "https://test1.example.com https://test2.example.com "
+      );
+      assert_array_equals(link.resources, [
+        "https://test1.example.com",
+        "https://test2.example.com"
+      ]);
+    }, "resources must be DOMTokenList");
   </script>
 </body>

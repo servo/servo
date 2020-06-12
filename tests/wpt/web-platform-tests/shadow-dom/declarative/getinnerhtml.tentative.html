@@ -20,12 +20,20 @@ function testElementType(allowsShadowDom, elementType, mode, delegatesFocus) {
 
     const isOpen = mode === 'open';
     if (allowsShadowDom) {
-      let correctShadowHtml = isOpen ? `<template shadowroot="${mode}"><slot></slot></template>` : '';
-      let correctHtml = `<${elementType}>${correctShadowHtml}</${elementType}>`;
+      const correctShadowHtml = `<template shadowroot="${mode}"><slot></slot></template>`;
+      const correctHtml = `<${elementType}>${correctShadowHtml}</${elementType}>`;
       const shadowRoot = element.attachShadow({mode: mode, delegatesFocus: delegatesFocus});
       shadowRoot.appendChild(document.createElement('slot'));
-      assert_equals(wrapper.getInnerHTML({includeShadowRoots: true}),correctHtml);
-      assert_equals(wrapper.getInnerHTML(),correctHtml,'The default for includeShadowRoots should be true');
+      if (isOpen) {
+        // We can only test this for open roots
+        assert_equals(wrapper.getInnerHTML(),correctHtml,'The default for includeShadowRoots should be true');
+      } else {
+        // Closed shadow roots should not be returned unless closedRoots contains the shadow root:
+        const emptyElement = `<${elementType}></${elementType}>`;
+        assert_equals(wrapper.getInnerHTML({includeShadowRoots: true}), emptyElement);
+        assert_equals(wrapper.getInnerHTML({includeShadowRoots: true, closedRoots: []}), emptyElement);
+      }
+      assert_equals(wrapper.getInnerHTML({includeShadowRoots: true, closedRoots: [shadowRoot]}),correctHtml);
     } else {
       // For non-shadow hosts, getInnerHTML() should also match .innerHTML
       assert_equals(wrapper.getInnerHTML({includeShadowRoots: true}),wrapper.innerHTML);
@@ -41,11 +49,11 @@ function testElementType(allowsShadowDom, elementType, mode, delegatesFocus) {
 function runAllTests() {
   const allElements = HTML5_ELEMENT_NAMES;
   const safelisted = ATTACHSHADOW_SAFELISTED_ELEMENTS;
-  for (let elementName of allElements) {
+  for (const elementName of allElements) {
     const allowsShadowDom = safelisted.includes(elementName);
     if (allowsShadowDom) {
-      for (let delegatesFocus of [false, true]) {
-        for (let mode of ['open', 'closed']) {
+      for (const delegatesFocus of [false, true]) {
+        for (const mode of ['open', 'closed']) {
           testElementType(true, elementName, mode, delegatesFocus);
         }
       }

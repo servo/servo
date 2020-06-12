@@ -1,4 +1,5 @@
 // META: global=window,worker,jsshell
+'use strict';
 
 class ThrowingOptions {
   constructor(whatShouldThrow) {
@@ -34,7 +35,7 @@ class ThrowingOptions {
   }
 }
 
-const checkOrder = ['preventClose', 'preventAbort', 'preventCancel', 'signal'];
+const checkOrder = ['preventAbort', 'preventCancel', 'preventClose', 'signal'];
 
 for (let i = 0; i < checkOrder.length; ++i) {
   const whatShouldThrow = checkOrder[i];

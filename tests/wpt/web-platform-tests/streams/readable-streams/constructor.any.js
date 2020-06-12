@@ -1,37 +1,17 @@
 // META: global=window,worker,jsshell
-// META: script=../resources/constructor-ordering.js
 'use strict';
 
-const operations = [
-  op('get', 'size'),
-  op('get', 'highWaterMark'),
-  op('get', 'type'),
-  op('validate', 'type'),
-  op('validate', 'size'),
-  op('tonumber', 'highWaterMark'),
-  op('validate', 'highWaterMark'),
-  op('get', 'pull'),
-  op('validate', 'pull'),
-  op('get', 'cancel'),
-  op('validate', 'cancel'),
-  op('get', 'start'),
-  op('validate', 'start')
-];
+const error1 = new Error('error1');
+error1.name = 'error1';
 
-for (const failureOp of operations) {
-  test(() => {
-    const record = new OpRecorder(failureOp);
-    const underlyingSource = createRecordingObjectWithProperties(record, ['type', 'start', 'pull', 'cancel']);
-    const strategy = createRecordingStrategy(record);
+const error2 = new Error('error2');
+error2.name = 'error2';
 
-    try {
-      new ReadableStream(underlyingSource, strategy);
-      assert_unreached('constructor should throw');
-    } catch (e) {
-      assert_equals(typeof e, 'object', 'e should be an object');
-    }
+test(() => {
+  const underlyingSource = { get start() { throw error1; } };
+  const queuingStrategy = { highWaterMark: 0, get size() { throw error2; } };
 
-    assert_equals(record.actual(), expectedAsString(operations, failureOp),
-                  'operations should be performed in the right order');
-  }, `ReadableStream constructor should stop after ${failureOp} fails`);
-}
+  // underlyingSource is converted in prose in the method body, whereas queuingStrategy is done at the IDL layer.
+  // So the queuingStrategy exception should be encountered first.
+  assert_throws_exactly(error2, () => new ReadableStream(underlyingSource, queuingStrategy));
+}, 'underlyingSource argument should be converted after queuingStrategy argument');

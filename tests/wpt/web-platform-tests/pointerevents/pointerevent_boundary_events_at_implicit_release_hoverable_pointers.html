@@ -25,6 +25,7 @@
 
       function run() {
         var test_pointer_event = setup_pointerevent_test("Event sequence at implicit release on click", ["mouse"]);
+        var actions_promise;
 
         var target = document.getElementById("target");
         var capture_target = document.getElementById("capture-target");
@@ -50,14 +51,17 @@
                   var expected_events = "pointerup, lostpointercapture, pointerout, pointerleave";
                   assert_equals(event_log.join(", "), "pointerout@target, pointerleave@target, pointerover@capture-target, pointerenter@capture-target, gotpointercapture@capture-target, pointerup@capture-target, lostpointercapture@capture-target, pointerout@capture-target, pointerleave@capture-target, pointerover@target, pointerenter@target");
                 });
-                test_pointer_event.done();
+                // Make sure the test finishes after all the input actions are completed.
+                actions_promise.then( () => {
+                  test_pointer_event.done();
+                });
               }, 200);
             }
           });
         });
 
         // Inject mouse inputs.
-        new test_driver.Actions()
+        actions_promise = new test_driver.Actions()
           .pointerMove(0, 0, {origin: target})
           .pointerDown()
           .pointerUp()

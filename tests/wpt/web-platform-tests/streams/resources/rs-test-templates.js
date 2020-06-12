@@ -23,10 +23,13 @@ self.templatedRSEmpty = (label, factory) => {
   test(() => {
     const rs = factory();
 
-    assert_throws_js(RangeError, () => rs.getReader({ mode: '' }), 'empty string mode should throw');
-    assert_throws_js(RangeError, () => rs.getReader({ mode: null }), 'null mode should throw');
-    assert_throws_js(RangeError, () => rs.getReader({ mode: 'asdf' }), 'asdf mode should throw');
-    assert_throws_js(TypeError, () => rs.getReader(null), 'null should throw');
+    assert_throws_js(TypeError, () => rs.getReader({ mode: '' }), 'empty string mode should throw');
+    assert_throws_js(TypeError, () => rs.getReader({ mode: null }), 'null mode should throw');
+    assert_throws_js(TypeError, () => rs.getReader({ mode: 'asdf' }), 'asdf mode should throw');
+    assert_throws_js(TypeError, () => rs.getReader(5), '5 should throw');
+
+    // Should not throw
+    rs.getReader(null);
 
   }, label + ': calling getReader with invalid arguments should throw appropriate errors');
 };

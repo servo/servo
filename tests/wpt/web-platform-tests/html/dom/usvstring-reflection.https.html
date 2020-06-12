@@ -124,7 +124,7 @@ promise_test(t => {
   const sendString = 'hello\uD999';
   const receiveString = 'hello\uFFFD';
 
-  return createDataChannelPair()
+  return createDataChannelPair(t)
   .then(([channel1, channel2]) => {
     channel1.send(sendString);
     return awaitMessage(channel2)
