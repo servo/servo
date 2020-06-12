@@ -1025,6 +1025,17 @@ impl Document {
         *self.focus_transaction.borrow_mut() = FocusTransaction::InTransaction(Default::default());
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#focus-fixup-rule>
+    pub(crate) fn perform_focus_fixup_rule(&self, not_focusable: &Element) {
+        if Some(not_focusable) != self.focused.get().as_ref().map(|e| &**e) {
+            return;
+        }
+        self.request_focus(
+            self.GetBody().as_ref().map(|e| &*e.upcast()),
+            FocusType::Element,
+        )
+    }
+
     /// Request that the given element receive focus once the current transaction is complete.
     /// If None is passed, then whatever element is currently focused will no longer be focused
     /// once the transaction is complete.

@@ -182,14 +182,17 @@ impl VirtualMethods for HTMLFieldSetElement {
                         let el = field.downcast::<Element>().unwrap();
                         el.set_disabled_state(true);
                         el.set_enabled_state(false);
+                        el.update_sequentially_focusable_status();
                     }
                 } else {
                     for field in fields {
                         let el = field.downcast::<Element>().unwrap();
                         el.check_disabled_attribute();
                         el.check_ancestors_disabled_state_for_form_control();
+                        el.update_sequentially_focusable_status();
                     }
                 }
+                el.update_sequentially_focusable_status();
             },
             &local_name!("form") => {
                 self.form_attribute_mutated(mutation);

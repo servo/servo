@@ -478,6 +478,7 @@ impl VirtualMethods for HTMLTextAreaElement {
                         }
                     },
                 }
+                el.update_sequentially_focusable_status();
             },
             local_name!("maxlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {

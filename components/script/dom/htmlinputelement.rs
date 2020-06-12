@@ -2291,6 +2291,8 @@ impl VirtualMethods for HTMLInputElement {
                     let read_write = !(self.ReadOnly() || el.disabled_state());
                     el.set_read_write_state(read_write);
                 }
+
+                el.update_sequentially_focusable_status();
             },
             &local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
