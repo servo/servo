@@ -2602,6 +2602,7 @@ pub mod style_structs {
     % for style_struct in data.active_style_structs():
         % if style_struct.name == "Font":
         #[derive(Clone, Debug, MallocSizeOf)]
+        #[cfg_attr(feature = "servo", derive(Serialize, Deserialize))]
         % else:
         #[derive(Clone, Debug, MallocSizeOf, PartialEq)]
         % endif

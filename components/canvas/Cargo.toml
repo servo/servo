@@ -22,7 +22,9 @@ canvas_traits = { path = "../canvas_traits" }
 crossbeam-channel = "0.4"
 cssparser = "0.27"
 euclid = "0.20"
+font-kit = "0.7"
 fnv = "1.0"
+gfx = { path = "../gfx" }
 gleam = "0.11"
 half = "1"
 ipc-channel = "0.14"
@@ -30,9 +32,11 @@ log = "0.4"
 lyon_geom = "0.14"
 num-traits = "0.2"
 pixels = { path = "../pixels" }
-raqote = "0.8"
+raqote = { version = "0.8", features = ["text"] }
+servo_arc = { path = "../servo_arc" }
 servo_config = { path = "../config" }
 sparkle = "0.1.24"
+style = { path = "../style" }
 # NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
 surfman = { version = "0.2", features = ["sm-angle", "sm-angle-default"] }
 surfman-chains = "0.3"

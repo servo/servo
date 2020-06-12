@@ -3,11 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::canvas_state::CanvasState;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasDirection;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasRenderingContext2DMethods;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasTextAlign;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasTextBaseline;
 use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
@@ -288,13 +291,55 @@ impl CanvasRenderingContext2DMethods for CanvasRenderingContext2D {
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
     fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
-        self.canvas_state.fill_text(text, x, y, max_width);
+        self.canvas_state
+            .fill_text(self.canvas.as_ref().map(|c| &**c), text, x, y, max_width);
         self.mark_as_dirty();
     }
 
     // https://html.spec.whatwg.org/multipage/#textmetrics
     fn MeasureText(&self, text: DOMString) -> DomRoot<TextMetrics> {
         self.canvas_state.measure_text(&self.global(), text)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    fn Font(&self) -> DOMString {
+        self.canvas_state.font()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    fn SetFont(&self, value: DOMString) {
+        self.canvas_state
+            .set_font(self.canvas.as_ref().map(|c| &**c), value)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
+    fn TextAlign(&self) -> CanvasTextAlign {
+        self.canvas_state.text_align()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
+    fn SetTextAlign(&self, value: CanvasTextAlign) {
+        self.canvas_state.set_text_align(value)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-textbaseline
+    fn TextBaseline(&self) -> CanvasTextBaseline {
+        self.canvas_state.text_baseline()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-textbaseline
+    fn SetTextBaseline(&self, value: CanvasTextBaseline) {
+        self.canvas_state.set_text_baseline(value)
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-direction
+    fn Direction(&self) -> CanvasDirection {
+        self.canvas_state.direction()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-direction
+    fn SetDirection(&self, value: CanvasDirection) {
+        self.canvas_state.set_direction(value)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-drawimage

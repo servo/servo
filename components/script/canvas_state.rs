@@ -3,10 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasDirection;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasFillRule;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasImageSource;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineCap;
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasLineJoin;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasTextAlign;
+use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::CanvasTextBaseline;
 use crate::dom::bindings::codegen::Bindings::ImageDataBinding::ImageDataMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrCanvasGradientOrCanvasPattern;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
@@ -22,12 +25,12 @@ use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlcanvaselement::{CanvasContext, HTMLCanvasElement};
 use crate::dom::imagedata::ImageData;
-use crate::dom::node::{Node, NodeDamage};
+use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::dom::offscreencanvas::{OffscreenCanvas, OffscreenCanvasContext};
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 use crate::dom::textmetrics::TextMetrics;
 use crate::unpremultiplytable::UNPREMULTIPLY_TABLE;
-use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg};
+use canvas_traits::canvas::{Canvas2dMsg, CanvasId, CanvasMsg, Direction, TextAlign, TextBaseline};
 use canvas_traits::canvas::{CompositionOrBlending, FillOrStrokeStyle, FillRule};
 use canvas_traits::canvas::{LineCapStyle, LineJoinStyle, LinearGradientStyle};
 use canvas_traits::canvas::{RadialGradientStyle, RepetitionStyle};
@@ -49,6 +52,10 @@ use std::cell::Cell;
 use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
+use style::properties::longhands::font_variant_caps::computed_value::T as FontVariantCaps;
+use style::properties::style_structs::Font;
+use style::values::computed::font::FontStyle;
+use style_traits::values::ToCss;
 
 #[unrooted_must_root_lint::must_root]
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -86,9 +93,15 @@ pub(crate) struct CanvasContextState {
     shadow_offset_y: f64,
     shadow_blur: f64,
     shadow_color: RGBA,
+    font_style: Option<Font>,
+    text_align: TextAlign,
+    text_baseline: TextBaseline,
+    direction: Direction,
 }
 
 impl CanvasContextState {
+    const DEFAULT_FONT_STYLE: &'static str = "10px sans-serif";
+
     pub(crate) fn new() -> CanvasContextState {
         let black = RGBA::new(0, 0, 0, 255);
         CanvasContextState {
@@ -106,6 +119,10 @@ impl CanvasContextState {
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
             shadow_color: RGBA::transparent(),
+            font_style: None,
+            text_align: Default::default(),
+            text_baseline: Default::default(),
+            direction: Default::default(),
         }
     }
 }
@@ -987,10 +1004,39 @@ impl CanvasState {
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext
-    pub fn fill_text(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
-        let parsed_text: String = text.into();
+    pub fn fill_text(
+        &self,
+        canvas: Option<&HTMLCanvasElement>,
+        text: DOMString,
+        x: f64,
+        y: f64,
+        max_width: Option<f64>,
+    ) {
+        if !x.is_finite() || !y.is_finite() {
+            return;
+        }
+        if max_width.map_or(false, |max_width| !max_width.is_finite() || max_width <= 0.) {
+            return;
+        }
+        if self.state.borrow().font_style.is_none() {
+            self.set_font(canvas, CanvasContextState::DEFAULT_FONT_STYLE.into())
+        }
+
+        let is_rtl = match self.state.borrow().direction {
+            Direction::Ltr => false,
+            Direction::Rtl => true,
+            Direction::Inherit => false, // TODO: resolve direction wrt to canvas element
+        };
+
         let style = self.state.borrow().fill_style.to_fill_or_stroke_style();
-        self.send_canvas_2d_msg(Canvas2dMsg::FillText(parsed_text, x, y, max_width, style));
+        self.send_canvas_2d_msg(Canvas2dMsg::FillText(
+            text.into(),
+            x,
+            y,
+            max_width,
+            style,
+            is_rtl,
+        ));
     }
 
     // https://html.spec.whatwg.org/multipage/#textmetrics
@@ -1000,6 +1046,101 @@ impl CanvasState {
         TextMetrics::new(
             global, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
         )
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    pub fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
+        let canvas = match canvas {
+            Some(element) => element,
+            None => return, // offscreen canvas doesn't have a placeholder canvas
+        };
+        let node = canvas.upcast::<Node>();
+        let window = window_from_node(&*canvas);
+        let resolved_font_style = match window.resolved_font_style_query(&node, value.to_string()) {
+            Some(value) => value,
+            None => return, // syntax error
+        };
+        self.state.borrow_mut().font_style = Some((*resolved_font_style).clone());
+        self.send_canvas_2d_msg(Canvas2dMsg::SetFont((*resolved_font_style).clone()));
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-font
+    pub fn font(&self) -> DOMString {
+        self.state.borrow().font_style.as_ref().map_or_else(
+            || CanvasContextState::DEFAULT_FONT_STYLE.into(),
+            |style| {
+                let mut result = String::new();
+                serialize_font(style, &mut result).unwrap();
+                DOMString::from(result)
+            },
+        )
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
+    pub fn text_align(&self) -> CanvasTextAlign {
+        match self.state.borrow().text_align {
+            TextAlign::Start => CanvasTextAlign::Start,
+            TextAlign::End => CanvasTextAlign::End,
+            TextAlign::Left => CanvasTextAlign::Left,
+            TextAlign::Right => CanvasTextAlign::Right,
+            TextAlign::Center => CanvasTextAlign::Center,
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-textalign
+    pub fn set_text_align(&self, value: CanvasTextAlign) {
+        let text_align = match value {
+            CanvasTextAlign::Start => TextAlign::Start,
+            CanvasTextAlign::End => TextAlign::End,
+            CanvasTextAlign::Left => TextAlign::Left,
+            CanvasTextAlign::Right => TextAlign::Right,
+            CanvasTextAlign::Center => TextAlign::Center,
+        };
+        self.state.borrow_mut().text_align = text_align;
+        self.send_canvas_2d_msg(Canvas2dMsg::SetTextAlign(text_align));
+    }
+
+    pub fn text_baseline(&self) -> CanvasTextBaseline {
+        match self.state.borrow().text_baseline {
+            TextBaseline::Top => CanvasTextBaseline::Top,
+            TextBaseline::Hanging => CanvasTextBaseline::Hanging,
+            TextBaseline::Middle => CanvasTextBaseline::Middle,
+            TextBaseline::Alphabetic => CanvasTextBaseline::Alphabetic,
+            TextBaseline::Ideographic => CanvasTextBaseline::Ideographic,
+            TextBaseline::Bottom => CanvasTextBaseline::Bottom,
+        }
+    }
+
+    pub fn set_text_baseline(&self, value: CanvasTextBaseline) {
+        let text_baseline = match value {
+            CanvasTextBaseline::Top => TextBaseline::Top,
+            CanvasTextBaseline::Hanging => TextBaseline::Hanging,
+            CanvasTextBaseline::Middle => TextBaseline::Middle,
+            CanvasTextBaseline::Alphabetic => TextBaseline::Alphabetic,
+            CanvasTextBaseline::Ideographic => TextBaseline::Ideographic,
+            CanvasTextBaseline::Bottom => TextBaseline::Bottom,
+        };
+        self.state.borrow_mut().text_baseline = text_baseline;
+        self.send_canvas_2d_msg(Canvas2dMsg::SetTextBaseline(text_baseline));
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-direction
+    pub fn direction(&self) -> CanvasDirection {
+        match self.state.borrow().direction {
+            Direction::Ltr => CanvasDirection::Ltr,
+            Direction::Rtl => CanvasDirection::Rtl,
+            Direction::Inherit => CanvasDirection::Inherit,
+        }
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-context-2d-direction
+    pub fn set_direction(&self, value: CanvasDirection) {
+        let direction = match value {
+            CanvasDirection::Ltr => Direction::Ltr,
+            CanvasDirection::Rtl => Direction::Rtl,
+            CanvasDirection::Inherit => Direction::Inherit,
+        };
+        self.state.borrow_mut().direction = direction;
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-context-2d-linewidth
@@ -1626,4 +1767,25 @@ pub fn adjust_size_sign(
         origin.y = origin.y.saturating_sub(size.height);
     }
     (origin, size.to_u32())
+}
+
+fn serialize_font<W>(style: &Font, dest: &mut W) -> fmt::Result
+where
+    W: fmt::Write,
+{
+    if style.font_style == FontStyle::Italic {
+        write!(dest, "{} ", style.font_style.to_css_string())?;
+    }
+    if style.font_weight.is_bold() {
+        write!(dest, "{} ", style.font_weight.to_css_string())?;
+    }
+    if style.font_variant_caps == FontVariantCaps::SmallCaps {
+        write!(dest, "{} ", style.font_variant_caps.to_css_string())?;
+    }
+    write!(
+        dest,
+        "{} {}",
+        style.font_size.to_css_string(),
+        style.font_family.to_css_string()
+    )
 }

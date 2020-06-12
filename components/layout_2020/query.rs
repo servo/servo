@@ -21,12 +21,14 @@ use script_layout_interface::wrapper_traits::{
 };
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
+use servo_arc::Arc as ServoArc;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 use style::computed_values::position::T as Position;
 use style::context::{StyleContext, ThreadLocalStyleContext};
 use style::dom::OpaqueNode;
 use style::dom::TElement;
+use style::properties::style_structs::Font;
 use style::properties::{LonghandId, PropertyDeclarationId, PropertyId};
 use style::selector_parser::PseudoElement;
 use style::stylist::RuleInclusion;
@@ -64,6 +66,9 @@ pub struct LayoutThreadData {
 
     /// A queued response for the resolved style property of an element.
     pub resolved_style_response: String,
+
+    /// A queued response for the resolved font style for canvas.
+    pub resolved_font_style_response: Option<ServoArc<Font>>,
 
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
@@ -137,6 +142,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ResolvedStyleResponse(rw_data.resolved_style_response.clone())
+    }
+
+    fn resolved_font_style(&self) -> Option<ServoArc<Font>> {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        rw_data.resolved_font_style_response.clone()
     }
 
     fn offset_parent(&self) -> OffsetParentResponse {
@@ -375,4 +386,12 @@ pub fn process_element_inner_text_query<'dom>(_node: impl LayoutNode<'dom>) -> S
 
 pub fn process_text_index_request(_node: OpaqueNode, _point: Point2D<Au>) -> TextIndexResponse {
     TextIndexResponse(None)
+}
+
+pub fn process_resolved_font_style_query<'dom>(
+    _node: impl LayoutNode<'dom>,
+    _property: &PropertyId,
+    _value: &str,
+) -> Option<ServoArc<Font>> {
+    None
 }

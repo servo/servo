@@ -879,8 +879,13 @@ fn create_constellation(
         Box::new(FontCacheWR(compositor_proxy.clone())),
     );
 
+    let (canvas_chan, ipc_canvas_chan) = CanvasPaintThread::start(
+        Box::new(CanvasWebrenderApi(compositor_proxy.clone())),
+        font_cache_thread.clone(),
+    );
+
     let initial_state = InitialConstellationState {
-        compositor_proxy: compositor_proxy.clone(),
+        compositor_proxy,
         embedder_proxy,
         debugger_chan,
         devtools_chan,
@@ -898,9 +903,6 @@ fn create_constellation(
         event_loop_waker,
         user_agent,
     };
-
-    let (canvas_chan, ipc_canvas_chan) =
-        CanvasPaintThread::start(Box::new(CanvasWebrenderApi(compositor_proxy)));
 
     let constellation_chan = Constellation::<
         script_layout_interface::message::Msg,

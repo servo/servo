@@ -118,6 +118,7 @@ use script_traits::{
 };
 use script_traits::{TimerSchedulerMsg, WebrenderIpcSender, WindowSizeData, WindowSizeType};
 use selectors::attr::CaseSensitivity;
+use servo_arc::Arc as ServoArc;
 use servo_geometry::{f32_rect_to_au_rect, MaxRect};
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::Cow;
@@ -136,7 +137,8 @@ use style::dom::OpaqueNode;
 use style::error_reporting::{ContextualParseError, ParseErrorReporter};
 use style::media_queries;
 use style::parser::ParserContext as CssParserContext;
-use style::properties::PropertyId;
+use style::properties::style_structs::Font;
+use style::properties::{PropertyId, ShorthandId};
 use style::selector_parser::PseudoElement;
 use style::str::HTML_SPACE_CHARACTERS;
 use style::stylesheets::CssRuleType;
@@ -1847,6 +1849,18 @@ impl Window {
         )
     }
 
+    pub fn resolved_font_style_query(&self, node: &Node, value: String) -> Option<ServoArc<Font>> {
+        let id = PropertyId::Shorthand(ShorthandId::Font);
+        if !self.layout_reflow(QueryMsg::ResolvedFontStyleQuery(
+            node.to_trusted_node_address(),
+            id,
+            value,
+        )) {
+            return None;
+        }
+        self.layout_rpc.resolved_font_style()
+    }
+
     pub fn layout(&self) -> &dyn LayoutRPC {
         &*self.layout_rpc
     }
@@ -2500,6 +2514,7 @@ fn debug_reflow_events(id: PipelineId, reflow_goal: &ReflowGoal, reason: &Reflow
             &QueryMsg::NodeScrollGeometryQuery(_n) => "\tNodeScrollGeometryQuery",
             &QueryMsg::NodeScrollIdQuery(_n) => "\tNodeScrollIdQuery",
             &QueryMsg::ResolvedStyleQuery(_, _, _) => "\tResolvedStyleQuery",
+            &QueryMsg::ResolvedFontStyleQuery(..) => "\nResolvedFontStyleQuery",
             &QueryMsg::OffsetParentQuery(_n) => "\tOffsetParentQuery",
             &QueryMsg::StyleQuery => "\tStyleQuery",
             &QueryMsg::TextIndexQuery(..) => "\tTextIndexQuery",

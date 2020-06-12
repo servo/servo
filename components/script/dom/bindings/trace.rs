@@ -47,7 +47,10 @@ use app_units::Au;
 use canvas_traits::canvas::{
     CanvasGradientStop, CanvasId, LinearGradientStyle, RadialGradientStyle,
 };
-use canvas_traits::canvas::{CompositionOrBlending, LineCapStyle, LineJoinStyle, RepetitionStyle};
+use canvas_traits::canvas::{
+    CompositionOrBlending, Direction, LineCapStyle, LineJoinStyle, RepetitionStyle, TextAlign,
+    TextBaseline,
+};
 use canvas_traits::webgl::WebGLVertexArrayId;
 use canvas_traits::webgl::{
     ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, GlType, TexDataType, TexFormat,
@@ -144,6 +147,7 @@ use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::element_state::*;
 use style::media_queries::MediaList;
+use style::properties::style_structs::Font;
 use style::properties::PropertyDeclarationBlock;
 use style::selector_parser::{PseudoElement, Snapshot};
 use style::shared_lock::{Locked as StyleLocked, SharedRwLock as StyleSharedRwLock};
@@ -479,6 +483,7 @@ unsafe_no_jsmanaged_fields!(NetworkError);
 unsafe_no_jsmanaged_fields!(Atom, Prefix, LocalName, Namespace, QualName);
 unsafe_no_jsmanaged_fields!(TrustedPromise);
 unsafe_no_jsmanaged_fields!(PropertyDeclarationBlock);
+unsafe_no_jsmanaged_fields!(Font);
 // These three are interdependent, if you plan to put jsmanaged data
 // in one of these make sure it is propagated properly to containing structs
 unsafe_no_jsmanaged_fields!(DocumentActivity, WindowSizeData, WindowSizeType);
@@ -501,6 +506,7 @@ unsafe_no_jsmanaged_fields!(RGBA);
 unsafe_no_jsmanaged_fields!(StorageType);
 unsafe_no_jsmanaged_fields!(CanvasGradientStop, LinearGradientStyle, RadialGradientStyle);
 unsafe_no_jsmanaged_fields!(LineCapStyle, LineJoinStyle, CompositionOrBlending);
+unsafe_no_jsmanaged_fields!(TextAlign, TextBaseline, Direction);
 unsafe_no_jsmanaged_fields!(RepetitionStyle);
 unsafe_no_jsmanaged_fields!(WebGLError, GLLimits, GlType);
 unsafe_no_jsmanaged_fields!(TimeProfilerChan);

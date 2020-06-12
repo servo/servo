@@ -29,18 +29,25 @@ use script_layout_interface::wrapper_traits::{
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use script_traits::LayoutMsg as ConstellationMsg;
 use script_traits::UntrustedNodeAddress;
+use servo_arc::Arc as ServoArc;
+use servo_url::ServoUrl;
 use std::cmp::{max, min};
 use std::ops::Deref;
 use std::sync::{Arc, Mutex};
 use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
-use style::context::{StyleContext, ThreadLocalStyleContext};
+use style::context::{QuirksMode, SharedStyleContext, StyleContext, ThreadLocalStyleContext};
 use style::dom::TElement;
 use style::logical_geometry::{BlockFlowDirection, InlineBaseDirection, WritingMode};
-use style::properties::{style_structs, LonghandId, PropertyDeclarationId, PropertyId};
+use style::properties::style_structs::{self, Font};
+use style::properties::{
+    parse_one_declaration_into, ComputedValues, Importance, LonghandId, PropertyDeclarationBlock,
+    PropertyDeclarationId, PropertyId, SourcePropertyDeclaration,
+};
 use style::selector_parser::PseudoElement;
-use style_traits::{CSSPixel, ToCss};
+use style::shared_lock::SharedRwLock;
+use style_traits::{CSSPixel, ParsingMode, ToCss};
 use webrender_api::ExternalScrollId;
 
 /// Mutable data belonging to the LayoutThread.
@@ -72,6 +79,9 @@ pub struct LayoutThreadData {
 
     /// A queued response for the resolved style property of an element.
     pub resolved_style_response: String,
+
+    /// A queued response for the resolved font style for canvas.
+    pub resolved_font_style_response: Option<ServoArc<Font>>,
 
     /// A queued response for the offset parent/rect of a node.
     pub offset_parent_response: OffsetParentResponse,
@@ -168,6 +178,12 @@ impl LayoutRPC for LayoutRPCImpl {
         let &LayoutRPCImpl(ref rw_data) = self;
         let rw_data = rw_data.lock().unwrap();
         ResolvedStyleResponse(rw_data.resolved_style_response.clone())
+    }
+
+    fn resolved_font_style(&self) -> Option<ServoArc<Font>> {
+        let &LayoutRPCImpl(ref rw_data) = self;
+        let rw_data = rw_data.lock().unwrap();
+        rw_data.resolved_font_style_response.clone()
     }
 
     fn offset_parent(&self) -> OffsetParentResponse {
@@ -733,6 +749,112 @@ pub fn process_node_scroll_area_request(
             )
         },
     }
+}
+
+fn create_font_declaration(
+    value: &str,
+    property: &PropertyId,
+    url_data: &ServoUrl,
+    quirks_mode: QuirksMode,
+) -> Option<PropertyDeclarationBlock> {
+    let mut declarations = SourcePropertyDeclaration::new();
+    let result = parse_one_declaration_into(
+        &mut declarations,
+        property.clone(),
+        value,
+        url_data,
+        None,
+        ParsingMode::DEFAULT,
+        quirks_mode,
+    );
+    let declarations = match result {
+        Ok(()) => {
+            let mut block = PropertyDeclarationBlock::new();
+            block.extend(declarations.drain(), Importance::Normal);
+            block
+        },
+        Err(_) => return None,
+    };
+    // TODO: Force to set line-height property to 'normal' font property.
+    Some(declarations)
+}
+
+fn resolve_for_declarations<'dom, E>(
+    context: &SharedStyleContext,
+    parent_style: Option<&ComputedValues>,
+    declarations: PropertyDeclarationBlock,
+    shared_lock: &SharedRwLock,
+) -> ServoArc<ComputedValues>
+where
+    E: LayoutNode<'dom>,
+{
+    let parent_style = match parent_style {
+        Some(parent) => &*parent,
+        None => context.stylist.device().default_computed_values(),
+    };
+    context
+        .stylist
+        .compute_for_declarations::<E::ConcreteElement>(
+            &context.guards,
+            &*parent_style,
+            ServoArc::new(shared_lock.wrap(declarations)),
+        )
+}
+
+pub fn process_resolved_font_style_request<'dom, E>(
+    context: &LayoutContext,
+    node: E,
+    value: &str,
+    property: &PropertyId,
+    url_data: ServoUrl,
+    shared_lock: &SharedRwLock,
+) -> Option<ServoArc<Font>>
+where
+    E: LayoutNode<'dom>,
+{
+    use style::stylist::RuleInclusion;
+    use style::traversal::resolve_style;
+
+    // 1. Parse the given font property value
+    let quirks_mode = context.style_context.quirks_mode();
+    let declarations = create_font_declaration(value, property, &url_data, quirks_mode)?;
+
+    // TODO: Reject 'inherit' and 'initial' values for the font property.
+
+    // 2. Get resolved styles for the parent element
+    let element = node.as_element().unwrap();
+    let parent_style = if node.is_connected() {
+        if element.has_data() {
+            node.to_threadsafe().as_element().unwrap().resolved_style()
+        } else {
+            let mut tlc = ThreadLocalStyleContext::new(&context.style_context);
+            let mut context = StyleContext {
+                shared: &context.style_context,
+                thread_local: &mut tlc,
+            };
+            let styles = resolve_style(&mut context, element, RuleInclusion::All, None);
+            styles.primary().clone()
+        }
+    } else {
+        let default_declarations =
+            create_font_declaration("10px sans-serif", property, &url_data, quirks_mode).unwrap();
+        resolve_for_declarations::<E>(
+            &context.style_context,
+            None,
+            default_declarations,
+            shared_lock,
+        )
+    };
+
+    // 3. Resolve the parsed value with resolved styles of the parent element
+    let computed_values = resolve_for_declarations::<E>(
+        &context.style_context,
+        Some(&*parent_style),
+        declarations,
+        shared_lock,
+    );
+
+    Some(computed_values.clone_font())
 }
 
 /// Return the resolved value of property for a given (pseudo)element.

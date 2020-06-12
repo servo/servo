@@ -37,7 +37,8 @@ use layout::context::LayoutContext;
 use layout::display_list::{DisplayListBuilder, WebRenderImageInfo};
 use layout::layout_debug;
 use layout::query::{
-    process_content_box_request, process_content_boxes_request, LayoutRPCImpl, LayoutThreadData,
+    process_content_box_request, process_content_boxes_request, process_resolved_font_style_query,
+    LayoutRPCImpl, LayoutThreadData,
 };
 use layout::query::{process_element_inner_text_query, process_node_geometry_request};
 use layout::query::{process_node_scroll_area_request, process_node_scroll_id_request};
@@ -525,6 +526,7 @@ impl LayoutThread {
                 scroll_id_response: None,
                 scroll_area_response: Rect::zero(),
                 resolved_style_response: String::new(),
+                resolved_font_style_response: None,
                 offset_parent_response: OffsetParentResponse::empty(),
                 scroll_offsets: HashMap::new(),
                 text_index_response: TextIndexResponse(None),
@@ -914,6 +916,9 @@ impl LayoutThread {
                         &QueryMsg::ResolvedStyleQuery(_, _, _) => {
                             rw_data.resolved_style_response = String::new();
                         },
+                        &QueryMsg::ResolvedFontStyleQuery(_, _, _) => {
+                            rw_data.resolved_font_style_response = None;
+                        },
                         &QueryMsg::OffsetParentQuery(_) => {
                             rw_data.offset_parent_response = OffsetParentResponse::empty();
                         },
@@ -1205,6 +1210,11 @@ impl LayoutThread {
                         property,
                         fragment_tree,
                     );
+                },
+                &QueryMsg::ResolvedFontStyleQuery(node, ref property, ref value) => {
+                    let node = unsafe { ServoLayoutNode::new(&node) };
+                    rw_data.resolved_font_style_response =
+                        process_resolved_font_style_query(node, property, value);
                 },
                 &QueryMsg::OffsetParentQuery(node) => {
                     rw_data.offset_parent_response = process_offset_parent_query(node);

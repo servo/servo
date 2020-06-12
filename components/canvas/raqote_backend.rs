@@ -13,6 +13,7 @@ use canvas_traits::canvas::*;
 use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D, Vector2D};
 use euclid::Angle;
+use font_kit::font::Font;
 use lyon_geom::Arc;
 use raqote::PathOp;
 use std::marker::PhantomData;
@@ -87,6 +88,9 @@ impl<'a> CanvasPaintState<'a> {
             shadow_offset_y: 0.0,
             shadow_blur: 0.0,
             shadow_color: Color::Raqote(raqote::SolidSource::from_unpremultiplied_argb(0, 0, 0, 0)),
+            font_style: None,
+            text_align: TextAlign::default(),
+            text_baseline: TextBaseline::default(),
         }
     }
 }
@@ -513,6 +517,26 @@ impl GenericDrawTarget for raqote::DrawTarget {
             ),
         }
     }
+
+    fn fill_text(
+        &mut self,
+        font: &Font,
+        point_size: f32,
+        text: &str,
+        start: Point2D<f32>,
+        pattern: &canvas_data::Pattern,
+        options: &DrawOptions,
+    ) {
+        self.draw_text(
+            font,
+            point_size,
+            text,
+            start,
+            &pattern.source(),
+            options.as_raqote(),
+        );
+    }
+
     fn fill_rect(
         &mut self,
         rect: &Rect<f32>,

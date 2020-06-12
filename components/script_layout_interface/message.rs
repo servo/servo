@@ -117,6 +117,7 @@ pub enum QueryMsg {
     ResolvedStyleQuery(TrustedNodeAddress, Option<PseudoElement>, PropertyId),
     StyleQuery,
     ElementInnerTextQuery(TrustedNodeAddress),
+    ResolvedFontStyleQuery(TrustedNodeAddress, PropertyId, String),
     InnerWindowDimensionsQuery(BrowsingContextId),
 }
 
@@ -145,6 +146,7 @@ impl ReflowGoal {
                 QueryMsg::NodeScrollGeometryQuery(_) |
                 QueryMsg::NodeScrollIdQuery(_) |
                 QueryMsg::ResolvedStyleQuery(..) |
+                QueryMsg::ResolvedFontStyleQuery(..) |
                 QueryMsg::OffsetParentQuery(_) |
                 QueryMsg::StyleQuery => false,
             },
@@ -166,6 +168,7 @@ impl ReflowGoal {
                 QueryMsg::NodeScrollGeometryQuery(_) |
                 QueryMsg::NodeScrollIdQuery(_) |
                 QueryMsg::ResolvedStyleQuery(..) |
+                QueryMsg::ResolvedFontStyleQuery(..) |
                 QueryMsg::OffsetParentQuery(_) |
                 QueryMsg::InnerWindowDimensionsQuery(_) |
                 QueryMsg::StyleQuery => false,
