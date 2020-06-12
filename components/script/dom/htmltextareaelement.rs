@@ -23,7 +23,7 @@ use crate::dom::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::keyboardevent::KeyboardEvent;
-use crate::dom::node::{document_from_node, window_from_node};
+use crate::dom::node::window_from_node;
 use crate::dom::node::{
     BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, UnbindContext,
 };
@@ -606,8 +606,6 @@ impl VirtualMethods for HTMLTextAreaElement {
 
         if event.type_() == atom!("click") && !event.DefaultPrevented() {
             //TODO: set the editing position for text inputs
-
-            document_from_node(self).request_focus(self.upcast());
         } else if event.type_() == atom!("keydown") && !event.DefaultPrevented() {
             if let Some(kevent) = event.downcast::<KeyboardEvent>() {
                 // This can't be inlined, as holding on to textinput.borrow_mut()

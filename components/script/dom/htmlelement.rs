@@ -411,9 +411,7 @@ impl HTMLElementMethods for HTMLElement {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
         let document = document_from_node(self);
-        document.begin_focus_transaction();
-        document.request_focus(self.upcast());
-        document.commit_focus_transaction(FocusType::Element);
+        document.request_focus(Some(self.upcast()), FocusType::Element);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-blur
@@ -424,9 +422,7 @@ impl HTMLElementMethods for HTMLElement {
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
         let document = document_from_node(self);
-        document.begin_focus_transaction();
-        // If `request_focus` is not called, focus will be set to None.
-        document.commit_focus_transaction(FocusType::Element);
+        document.request_focus(None, FocusType::Element);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent
