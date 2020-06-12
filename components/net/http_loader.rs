@@ -911,8 +911,8 @@ pub fn http_redirect_fetch(
     }
 
     // Step 12
-    if let Some(_) = request.body {
-        // TODO: extract request's body's source
+    if let Some(body) = request.body.as_mut() {
+        body.extract_source();
     }
 
     // Step 13
