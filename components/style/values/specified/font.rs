@@ -496,9 +496,8 @@ impl ToComputedValue for FontStretch {
     ToCss,
     ToResolvedValue,
     ToShmem,
-    Serialize,
-    Deserialize,
 )]
+#[cfg_attr(feature = "servo", derive(Serialize, Deserialize))]
 #[allow(missing_docs)]
 pub enum KeywordSize {
     #[css(keyword = "xx-small")]
@@ -542,9 +541,8 @@ impl Default for KeywordSize {
     ToCss,
     ToResolvedValue,
     ToShmem,
-    Serialize,
-    Deserialize,
 )]
+#[cfg_attr(feature = "servo", derive(Serialize, Deserialize))]
 /// Additional information for keyword-derived font sizes.
 pub struct KeywordInfo {
     /// The keyword used

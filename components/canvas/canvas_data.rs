@@ -409,7 +409,6 @@ pub struct CanvasData<'a> {
     /// An old webrender image key that can be deleted when the current epoch ends.
     very_old_image_key: Option<webrender_api::ImageKey>,
     font_cache_thread: Mutex<FontCacheThread>,
-    _canvas_id: CanvasId,
 }
 
 fn create_backend() -> Box<dyn Backend> {
@@ -421,7 +420,6 @@ impl<'a> CanvasData<'a> {
         size: Size2D<u64>,
         webrender_api: Box<dyn WebrenderApi>,
         antialias: AntialiasMode,
-        canvas_id: CanvasId,
         font_cache_thread: FontCacheThread,
     ) -> CanvasData<'a> {
         let backend = create_backend();
@@ -437,7 +435,6 @@ impl<'a> CanvasData<'a> {
             old_image_key: None,
             very_old_image_key: None,
             font_cache_thread: Mutex::new(font_cache_thread),
-            _canvas_id: canvas_id,
         }
     }
 
@@ -495,6 +492,7 @@ impl<'a> CanvasData<'a> {
         }
     }
 
+    // https://html.spec.whatwg.org/multipage/#text-preparation-algorithm
     pub fn fill_text(
         &mut self,
         text: String,

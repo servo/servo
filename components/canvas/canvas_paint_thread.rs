@@ -134,7 +134,6 @@ impl<'a> CanvasPaintThread<'a> {
             size,
             self.webrender_api.clone(),
             antialias,
-            canvas_id.clone(),
             font_cache_thread,
         );
         self.canvases.insert(canvas_id.clone(), canvas_data);
