@@ -133,6 +133,9 @@ impl RTCDataChannel {
     }
 
     pub fn on_error(&self, error: WebRtcError) {
+        let global = self.global();
+        let cx = global.get_cx();
+        let _ac = JSAutoRealm::new(*cx, self.reflector().get_jsobject().get());
         let init = RTCErrorInit {
             errorDetail: RTCErrorDetailType::Data_channel_failure,
             httpRequestStatusCode: None,
@@ -144,8 +147,8 @@ impl RTCDataChannel {
         let message = match error {
             WebRtcError::Backend(message) => DOMString::from(message),
         };
-        let error = RTCError::new(&self.global(), &init, message);
-        let event = RTCErrorEvent::new(&self.global(), atom!("error"), false, false, &error);
+        let error = RTCError::new(&global, &init, message);
+        let event = RTCErrorEvent::new(&global, atom!("error"), false, false, &error);
         event.upcast::<Event>().fire(self.upcast());
     }
 
@@ -299,6 +302,7 @@ impl RTCDataChannelMethods for RTCDataChannel {
         self.id
     }
 
+    // https://www.w3.org/TR/webrtc/#dom-datachannel-readystate
     fn ReadyState(&self) -> RTCDataChannelState {
         *self.ready_state.borrow()
     }

@@ -44,7 +44,7 @@ use dom_struct::dom_struct;
 use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
 use servo_media::webrtc::{
-    BundlePolicy, DataChannelEvent, DataChannelId, GatheringState, IceCandidate,
+    BundlePolicy, DataChannelEvent, DataChannelId, DataChannelState, GatheringState, IceCandidate,
     IceConnectionState, SdpType, SessionDescription, SignalingState, WebRtcController,
     WebRtcSignaller,
 };
@@ -169,7 +169,6 @@ impl WebRtcSignaller for RTCSignaller {
 
     fn close(&self) {
         // do nothing
-        // XXX(ferjm) close all data channels.
     }
 }
 
@@ -716,8 +715,13 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         // Step 5 handled by backend
         self.controller.borrow_mut().as_ref().unwrap().quit();
 
-        // Step 6-10
-        // (no current support for data channels, transports, etc)
+        // Step 6
+        for (_, val) in self.data_channels.borrow().iter() {
+            val.on_state_change(DataChannelState::Closed);
+        }
+
+        // Step 7-10
+        // (no current support for transports, etc)
 
         // Step 11
         self.ice_connection_state.set(RTCIceConnectionState::Closed);
