@@ -26,10 +26,10 @@
         </h4>
         <div id="target0" style="background:black"></div>
         <script>
-            var eventTested = false;
             var detected_pointertypes = {};
             var test_pointermove = async_test("pointer locked pointermove events received for button state changes");
             add_completion_callback(showPointerTypes);
+            var actions_promise;
 
             var step = 0;
             var firstButton = 0;
@@ -68,11 +68,14 @@
                 on_event(target0, "pointerup", function (event) {
                     if (pointer_locked) {
                         detected_pointertypes[event.pointerType] = true;
-                        test_pointermove.step(function() {assert_true(step === 3, "The pointerup event must be triggered after pressing and releasing the second button.");});
-                        test_pointermove.step(function() {assert_true(event.buttons === 0, "The pointerup event must be triggered by releasing the last pressed button.");});
-                        document.exitPointerLock();
-                        test_pointermove.done();
-                        eventTested = true;
+                        step_timeout(function() {
+                            test_pointermove.step(function() {assert_true(step === 3, "The pointerup event must be triggered after pressing and releasing the second button.");});
+                            test_pointermove.step(function() {assert_true(event.buttons === 0, "The pointerup event must be triggered by releasing the last pressed button.");});
+                            document.exitPointerLock();
+                            actions_promise.then( () => {
+                                test_pointermove.done();
+                            });
+                        }, 500);
                     } else {
                         target0.requestPointerLock();
                     }
@@ -92,7 +95,7 @@
 
                 // Inject mouse input
                 var actions = new test_driver.Actions();
-                actions.pointerMove(0, 0, {origin: target0})
+                actions_promise = actions.pointerMove(0, 0, {origin: target0})
                        .pointerDown({button: actions.ButtonType.LEFT})
                        .pointerUp({button: actions.ButtonType.LEFT})
                        .pointerDown({button: actions.ButtonType.LEFT})

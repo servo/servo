@@ -1,6 +1,6 @@
 import json
 
-RESPONSE = """
+RESPONSE = u"""
 <!DOCTYPE html>
 <html>
   <head>
@@ -34,7 +34,7 @@ RESPONSE = """
 # embedder whether the data deletion succeeded.
 def main(request, response):
     types = [key for key in request.GET.keys()]
-    header = ",".join("\"" + type + "\"" for type in types)
-    return ([("Clear-Site-Data", header),
-             ("Content-Type", "text/html")],
+    header = b",".join(b"\"" + type + b"\"" for type in types)
+    return ([(b"Clear-Site-Data", header),
+             (b"Content-Type", b"text/html")],
             RESPONSE)

@@ -29,11 +29,14 @@ function validate_results(callback, test, w, channelName, hasOpener, openerDOMAc
   }
 }
 
-function url_test(t, url, channelName, hasOpener, openerDOMAccess) {
+function url_test(t, url, channelName, hasOpener, openerDOMAccess, callback) {
+  if (callback === undefined) {
+    callback = () => { t.done(); };
+  }
   const bc = new BroadcastChannel(channelName);
   bc.onmessage = t.step_func(event => {
     const payload = event.data;
-    validate_results(() => { t.done(); }, t, w, channelName, hasOpener, openerDOMAccess, payload);
+    validate_results(callback, t, w, channelName, hasOpener, openerDOMAccess, payload);
   });
 
   const w = window.open(url, channelName);
@@ -46,12 +49,12 @@ function url_test(t, url, channelName, hasOpener, openerDOMAccess) {
   });
 }
 
-function coop_coep_test(t, host, coop, coep, channelName, hasOpener, openerDOMAccess) {
-  url_test(t, `${host.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${encodeURIComponent(coop)}&coep=${coep}&channel=${channelName}`, channelName, hasOpener, openerDOMAccess);
+function coop_coep_test(t, host, coop, coep, channelName, hasOpener, openerDOMAccess, callback) {
+  url_test(t, `${host.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${encodeURIComponent(coop)}&coep=${coep}&channel=${channelName}`, channelName, hasOpener, openerDOMAccess, callback);
 }
 
-function coop_test(t, host, coop, channelName, hasOpener) {
-  coop_coep_test(t, host, coop, "", channelName, hasOpener);
+function coop_test(t, host, coop, channelName, hasOpener, callback) {
+  coop_coep_test(t, host, coop, "", channelName, hasOpener, undefined /* openerDOMAccess */, callback);
 }
 
 function run_coop_tests(documentCOOPValueTitle, testArray) {
@@ -59,7 +62,7 @@ function run_coop_tests(documentCOOPValueTitle, testArray) {
     async_test(t => {
       coop_test(t, test[0], test[1],
                 `${documentCOOPValueTitle}_to_${test[0].name}_${test[1].replace(/ /g,"-")}`,
-                test[2]);
+                test[2], () => { t.done(); });
     }, `${documentCOOPValueTitle} document opening popup to ${test[0].origin} with COOP: "${test[1]}"`);
   }
 }

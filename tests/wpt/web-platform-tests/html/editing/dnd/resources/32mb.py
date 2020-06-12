@@ -1,5 +1,5 @@
 thirty_two_megabytes = 32 * 1024 * 1024
-chunk = 'ab' * 512 * 512
+chunk = b'ab' * 512 * 512
 chunk_length = len(chunk)
 
 def main(request, response):
@@ -9,4 +9,4 @@ def main(request, response):
             yield chunk
             bytes_sent += chunk_length
 
-    return [("Content-Type", "text/plain")], content()
+    return [(b"Content-Type", b"text/plain")], content()

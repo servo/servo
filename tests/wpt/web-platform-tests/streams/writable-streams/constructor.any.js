@@ -1,9 +1,11 @@
 // META: global=window,worker,jsshell
-// META: script=../resources/constructor-ordering.js
 'use strict';
 
 const error1 = new Error('error1');
 error1.name = 'error1';
+
+const error2 = new Error('error2');
+error2.name = 'error2';
 
 promise_test(() => {
   let controller;
@@ -86,6 +88,15 @@ test(() => {
 }, 'WritableStream should be constructible with no arguments');
 
 test(() => {
+  const underlyingSink = { get start() { throw error1; } };
+  const queuingStrategy = { highWaterMark: 0, get size() { throw error2; } };
+
+  // underlyingSink is converted in prose in the method body, whereas queuingStrategy is done at the IDL layer.
+  // So the queuingStrategy exception should be encountered first.
+  assert_throws_exactly(error2, () => new WritableStream(underlyingSink, queuingStrategy));
+}, 'underlyingSink argument should be converted after queuingStrategy argument');
+
+test(() => {
   const ws = new WritableStream({});
 
   const writer = ws.getWriter();
@@ -101,11 +112,6 @@ test(() => {
   assert_not_equals(typeof writer.closed, 'undefined', 'writer should have a closed property');
   assert_equals(typeof writer.closed.then, 'function', 'closed property should be thenable');
 }, 'WritableStream instances should have standard methods and properties');
-
-test(() => {
-  ['WritableStreamDefaultWriter', 'WritableStreamDefaultController'].forEach(c =>
-      assert_equals(typeof self[c], 'undefined', `${c} should not be exported`));
-}, 'private constructors should not be exported');
 
 test(() => {
   let WritableStreamDefaultController;
@@ -147,39 +153,3 @@ test(() => {
   assert_throws_js(TypeError, () => new WritableStreamDefaultWriter(stream),
                    'constructor should throw a TypeError exception');
 }, 'WritableStreamDefaultWriter constructor should throw when stream argument is locked');
-
-const operations = [
-  op('get', 'size'),
-  op('get', 'highWaterMark'),
-  op('get', 'type'),
-  op('validate', 'type'),
-  op('validate', 'size'),
-  op('tonumber', 'highWaterMark'),
-  op('validate', 'highWaterMark'),
-  op('get', 'write'),
-  op('validate', 'write'),
-  op('get', 'close'),
-  op('validate', 'close'),
-  op('get', 'abort'),
-  op('validate', 'abort'),
-  op('get', 'start'),
-  op('validate', 'start')
-];
-
-for (const failureOp of operations) {
-  test(() => {
-    const record = new OpRecorder(failureOp);
-    const underlyingSink = createRecordingObjectWithProperties(record, ['type', 'start', 'write', 'close', 'abort']);
-    const strategy = createRecordingStrategy(record);
-
-    try {
-      new WritableStream(underlyingSink, strategy);
-      assert_unreached('constructor should throw');
-    } catch (e) {
-      assert_equals(typeof e, 'object', 'e should be an object');
-    }
-
-    assert_equals(record.actual(), expectedAsString(operations, failureOp),
-                  'operations should be performed in the right order');
-  }, `WritableStream constructor should stop after ${failureOp} fails`);
-}

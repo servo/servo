@@ -1,3 +1,3 @@
 def main(request, response):
-    return ([("Content-Type", "text/html")],
-            "FROM_NETWORK")
+    return ([(b"Content-Type", b"text/html")],
+            u"FROM_NETWORK")

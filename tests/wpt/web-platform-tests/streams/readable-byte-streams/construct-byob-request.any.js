@@ -17,8 +17,6 @@ function getRealByteStreamController() {
   return controller;
 }
 
-const ReadableByteStreamController = getRealByteStreamController().constructor;
-
 // Create an object pretending to have prototype |prototype|, of type |type|. |type| is one of "undefined", "null",
 // "fake", or "real". "real" will call the realObjectCreator function to get a real instance of the object.
 function createDummyObject(prototype, type, realObjectCreator) {
@@ -41,39 +39,15 @@ function createDummyObject(prototype, type, realObjectCreator) {
 
 const dummyTypes = ['undefined', 'null', 'fake', 'real'];
 
-function runTests(ReadableStreamBYOBRequest) {
-  for (const controllerType of dummyTypes) {
-    const controller = createDummyObject(ReadableByteStreamController.prototype, controllerType,
-                                       getRealByteStreamController);
-    for (const viewType of dummyTypes) {
-      const view = createDummyObject(Uint8Array.prototype, viewType, () => new Uint8Array(16));
-      test(() => {
-        assert_throws_js(TypeError, () => new ReadableStreamBYOBRequest(controller, view),
-                         'constructor should throw');
-      }, `ReadableStreamBYOBRequest constructor should throw when passed a ${controllerType} ` +
-         `ReadableByteStreamController and a ${viewType} view`);
-    }
+for (const controllerType of dummyTypes) {
+  const controller = createDummyObject(ReadableByteStreamController.prototype, controllerType,
+                                        getRealByteStreamController);
+  for (const viewType of dummyTypes) {
+    const view = createDummyObject(Uint8Array.prototype, viewType, () => new Uint8Array(16));
+    test(() => {
+      assert_throws_js(TypeError, () => new ReadableStreamBYOBRequest(controller, view),
+                        'constructor should throw');
+    }, `ReadableStreamBYOBRequest constructor should throw when passed a ${controllerType} ` +
+        `ReadableByteStreamController and a ${viewType} view`);
   }
 }
-
-function getConstructorAndRunTests() {
-  let ReadableStreamBYOBRequest;
-  const rs = new ReadableStream({
-    pull(controller) {
-      const byobRequest = controller.byobRequest;
-      ReadableStreamBYOBRequest = byobRequest.constructor;
-      byobRequest.respond(4);
-    },
-    type: 'bytes'
-  });
-  rs.getReader({ mode: 'byob' }).read(new Uint8Array(8)).then(() => {
-    runTests(ReadableStreamBYOBRequest);
-    done();
-  });
-}
-
-// We can only get at the ReadableStreamBYOBRequest constructor asynchronously, so we need to make the test harness wait
-// for us to explicitly tell it all our tests have run.
-setup({ explicit_done: true });
-
-getConstructorAndRunTests();

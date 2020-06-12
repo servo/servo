@@ -106,17 +106,19 @@ for (const readable of badReadables) {
 
   test(() => {
     const rs = new ReadableStream();
-    const writable = new WritableStream();
     let writableGetterCalled = false;
-    assert_throws_js(TypeError, () => rs.pipeThrough({
-      get writable() {
-        writableGetterCalled = true;
-        return new WritableStream();
-      },
-      readable
-    }),
-                  'pipeThrough should brand-check readable');
-    assert_true(writableGetterCalled, 'writable should have been accessed');
+    assert_throws_js(
+      TypeError,
+      () => rs.pipeThrough({
+        get writable() {
+          writableGetterCalled = true;
+          return new WritableStream();
+        },
+        readable
+      }),
+      'pipeThrough should brand-check readable'
+    );
+    assert_false(writableGetterCalled, 'writable should not have been accessed');
   }, `pipeThrough should brand-check readable and not allow '${readable}'`);
 }
 
@@ -150,7 +152,7 @@ test(t => {
   }, { highWaterMark: 0 });
 
   const throwingWritable = {
-    readable: {},
+    readable: rs,
     get writable() {
       throw error;
     }

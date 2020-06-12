@@ -21,20 +21,23 @@ let testFunction = function(session, fakeDeviceController, t) {
       let windowFrameTime = 0;
       let frameTime = 0;
       let lastFrameTime = 0;
+
       let firstFrame = true;
 
       function onFrameFirst(time, xrFrame) {
         lastFrameTime = frameTime;
         frameTime = time;
-        firstFrame = false;
         let now = performance.now();
 
         t.step( () => {
-          // This callback must be the first one called.
-          assert_equals(counter, 0);
-
-          if (!firstFrame) {
+          if(firstFrame) {
+            // This callback must be the first one called.
+            assert_equals(counter, 0);
+          } else {
+            // If it's a second animation frame, the timestamp must be greater
+            // than the timestamp on a previous frame.
             assert_greater_than(frameTime, lastFrameTime);
+            // ... but not grater than 10 seconds.
             assert_approx_equals(frameTime, lastFrameTime, TEN_SECONDS);
           }
 
@@ -46,11 +49,13 @@ let testFunction = function(session, fakeDeviceController, t) {
         });
 
         if (firstFrame) {
+          // We also want this method to run for the second animation frame.
           session.requestAnimationFrame(onFrameFirst);
         } else {
           resolve();
         }
 
+        firstFrame = false;
         counter++;
       }
 

@@ -17,6 +17,17 @@ function uint8ArrayToBase64url(array) {
   return base64urlEncode(String.fromCharCode.apply(null, array));
 }
 
+// Encodes a Uint8Array to lowercase hex.
+function uint8ArrayToHex(array) {
+  const hexTable = '0123456789abcdef';
+  let s = '';
+  for (let i = 0; i < array.length; i++) {
+    s += hexTable.charAt(array[i] >> 4);
+    s += hexTable.charAt(array[i] & 15);
+  }
+  return s;
+}
+
 // Convert a EC signature from DER to a concatenation of the r and s parameters,
 // as expected by the subtle crypto API.
 function convertDERSignatureToSubtle(der) {
@@ -158,13 +169,7 @@ class Cbor {
     return this.slice.length == 0;
   }
   get hex() {
-    const hexTable = '0123456789abcdef';
-    let s = '';
-    for (let i = 0; i < this.data.length; i++) {
-      s += hexTable.charAt(this.data[i] >> 4);
-      s += hexTable.charAt(this.data[i] & 15);
-    }
-    return s;
+    return uint8ArrayToHex(this.data);
   }
   compare(other) {
     if (this.length < other.length) {

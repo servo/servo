@@ -14,36 +14,10 @@ test(() => {
 
 test(() => {
   const ts = new TransformStream({ transform() { } });
-  const proto = Object.getPrototypeOf(ts);
-
-  const writableStream = Object.getOwnPropertyDescriptor(proto, 'writable');
-  assert_true(writableStream !== undefined, 'it has a writable property');
-  assert_false(writableStream.enumerable, 'writable should be non-enumerable');
-  assert_equals(typeof writableStream.get, 'function', 'writable should have a getter');
-  assert_equals(writableStream.set, undefined, 'writable should not have a setter');
-  assert_true(writableStream.configurable, 'writable should be configurable');
-  assert_true(ts.writable instanceof WritableStream, 'writable is an instance of WritableStream');
-  assert_not_equals(WritableStream.prototype.getWriter.call(ts.writable), undefined,
-                    'writable should pass WritableStream brand check');
-
-  const readableStream = Object.getOwnPropertyDescriptor(proto, 'readable');
-  assert_true(readableStream !== undefined, 'it has a readable property');
-  assert_false(readableStream.enumerable, 'readable should be non-enumerable');
-  assert_equals(typeof readableStream.get, 'function', 'readable should have a getter');
-  assert_equals(readableStream.set, undefined, 'readable should not have a setter');
-  assert_true(readableStream.configurable, 'readable should be configurable');
-  assert_true(ts.readable instanceof ReadableStream, 'readable is an instance of ReadableStream');
-  assert_not_equals(ReadableStream.prototype.getReader.call(ts.readable), undefined,
-                    'readable should pass ReadableStream brand check');
-}, 'TransformStream instances must have writable and readable properties of the correct types');
-
-test(() => {
-  const ts = new TransformStream({ transform() { } });
 
   const writer = ts.writable.getWriter();
   assert_equals(writer.desiredSize, 1, 'writer.desiredSize should be 1');
 }, 'TransformStream writable starts in the writable state');
-
 
 promise_test(() => {
   const ts = new TransformStream();

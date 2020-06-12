@@ -1,4 +1,4 @@
-script = '''
+script = b'''
 <script>
 function fetchCachedFileTest() {
   return fetch('appcache-data.py?type=cached')
@@ -37,7 +37,7 @@ fetchCachedFileTest()
 '''
 
 def main(request, response):
-    type = request.GET['type']
-    if request.GET['type'] == 'fallingback':
-        return 404, [('Content-Type', 'text/plain')], "Page not found"
-    return [('Content-Type', 'text/html')], script % type
+    type = request.GET[b'type']
+    if request.GET[b'type'] == b'fallingback':
+        return 404, [(b'Content-Type', b'text/plain')], u"Page not found"
+    return [(b'Content-Type', b'text/html')], script % type

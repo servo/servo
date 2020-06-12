@@ -1,13 +1,42 @@
+def get_reporting_group(host, endpoint):
+  return '\
+{{\
+    "group": "{endpoint}",\
+    "max_age": 10886400,\
+    "endpoints":\
+  [{{\
+    "url": "https://{host}/html/cross-origin-opener-policy/resources/report.py?endpoint={endpoint}"\
+  }}]\
+}}'.format(host=host, endpoint=endpoint)
+
 def main(request, response):
     coop = request.GET.first("coop")
+    coopReportOnly = request.GET.first("coop-report-only") if "coop-report-only" in request.GET else ""
     coep = request.GET.first("coep")
+    coepReportOnly = request.GET.first("coep-report-only") if "coep-report-only" in request.GET else ""
     redirect = request.GET.first("redirect", None)
     if coop != "":
         response.headers.set("Cross-Origin-Opener-Policy", coop)
+    if coop != "":
+        response.headers.set("Cross-Origin-Opener-Policy-Report-Only", coopReportOnly)
     if coep != "":
         response.headers.set("Cross-Origin-Embedder-Policy", coep)
+    if coep != "":
+         response.headers.set("Cross-Origin-Embedder-Policy-Report-Only", coepReportOnly)
     if 'cache' in request.GET:
         response.headers.set('Cache-Control', 'max-age=3600')
+    host = request.url_parts[1]
+
+    # add all possible reporting endpoints to the report-to header
+    # Note that this also returns the coop-report-endpoint, as it may override
+    # the test's endpoints if same-origin.
+    response.headers.set('report-to',
+      get_reporting_group(host, "coop-report-endpoint") + ',' +
+      get_reporting_group(host, "coop-report-only-endpoint") + ',' +
+      get_reporting_group(host, "coop-redirect-report-endpoint") + ',' +
+      get_reporting_group(host, "coop-redirect-report-only-endpoint") + ',' +
+      get_reporting_group(host, "coop-popup-report-endpoint") + ',' +
+      get_reporting_group(host, "coop-popup-report-only-endpoint") )
 
     if redirect != None:
         response.status = 302

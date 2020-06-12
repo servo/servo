@@ -46,10 +46,14 @@ function checkNotVerticallyCentered(dialog) {
 
 function checkVerticallyCentered(dialog) {
     var centeredTop = (window.innerHeight - dialog.offsetHeight) / 2;
-    assert_equals(dialog.getBoundingClientRect().top, centeredTop);
+    // Using approx equals because getBoundingClientRect() and centeredTop
+    // are calculated by different parts of the engine. Due to the loss
+    // of precision, the numbers might not equal exactly.
+    assert_approx_equals(dialog.getBoundingClientRect().top, centeredTop, 1);
 }
 
 function reset() {
+    document.body.style.width = "auto";
     if (dialog.open)
         dialog.close();
     dialog.remove();
@@ -127,8 +131,6 @@ test(function() {
     dialog.showModal();
     checkVerticallyCentered(dialog);
 
-    // Set back original value to 'width'.
-    document.body.style.width = 'auto';
 }, "The dialog should be centered regardless of the presence of a horizontal scrollbar.");
 
 test(function() {

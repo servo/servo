@@ -1,10 +1,10 @@
 def main(request, response):
-    origin = request.GET.first("origin");
-    value = request.GET.first("value");
+    origin = request.GET.first(b"origin");
+    value = request.GET.first(b"value");
     # This is used to solve the race condition we have for postMessages
-    shouldSucceed = request.GET.first("loadShouldSucceed", "false");
-    return ([("Content-Type", "text/html")],
-            """<!DOCTYPE html>
+    shouldSucceed = request.GET.first(b"loadShouldSucceed", b"false");
+    return ([(b"Content-Type", b"text/html")],
+            b"""<!DOCTYPE html>
 <title>XFO.</title>
 <body>
 <script>
