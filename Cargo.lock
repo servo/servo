@@ -259,9 +259,9 @@ checksum = "88ceb0d16c4fd0e42876e298d7d3ce3780dd9ebdcbe4199816a32c77e08597ff"
 
 [[package]]
 name = "bincode"
-version = "1.0.0"
+version = "1.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bda13183df33055cbb84b847becce220d392df502ebe7a4a78d7021771ed94d0"
+checksum = "5753e2a71534719bf3f4e57006c3a4f0d2c672a4b676eec84161f763eca87dbf"
 dependencies = [
  "byteorder",
  "serde",
