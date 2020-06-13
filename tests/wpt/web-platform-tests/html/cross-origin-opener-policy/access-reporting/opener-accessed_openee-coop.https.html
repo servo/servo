@@ -16,28 +16,28 @@ const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
 const coep_header = '|header(Cross-Origin-Embedder-Policy,require-corp)';
 
 let operation = [
-//[test name           , operation                     ]   ,
-  ["Call blur"         , "opener.blur()"               ] ,
-  ["Call foo"          , "opener.foo()"                ] ,
-  ["Call location"     , "opener.location()"           ] ,
-  ["Call opener"       , "opener.opener()"             ] ,
-  ["Call postMessage"  , "opener.postMessage()"        ] ,
-  ["Call window"       , "opener.window()"             ] ,
-  ["Read blur"         , "opener.blur"                 ] ,
-  ["Read foo"          , "opener.foo"                  ] ,
-  ["Read location"     , "opener.location"             ] ,
-  ["Read opener"       , "opener.opener"               ] ,
-  ["Read postMessage"  , "opener.postMessage"          ] ,
-  ["Read window"       , "opener.window"               ] ,
-  ["Write blur"        , "opener.blur = 'test'"        ]  ,
-  ["Write foo"         , "opener.foo = 'test'"         ]  ,
-  ["Write location"    , "opener.location = 'test'"    ]  ,
-  ["Write opener"      , "opener.opener = 'test'"      ]  ,
-  ["Write postMessage" , "opener.postMessage = 'test'" ]  ,
-  ["Write window"      , "opener.window = 'test'"      ]  ,
+//[type    , property      , operation                     ] ,
+  ["Call"  , "blur"        , "opener.blur()"               ] ,
+  ["Call"  , "foo"         , "opener.foo()"                ] ,
+  ["Call"  , "location"    , "opener.location()"           ] ,
+  ["Call"  , "opener"      , "opener.opener()"             ] ,
+  ["Call"  , "postMessage" , "opener.postMessage()"        ] ,
+  ["Call"  , "window"      , "opener.window()"             ] ,
+  ["Read"  , "blur"        , "opener.blur"                 ] ,
+  ["Read"  , "foo"         , "opener.foo"                  ] ,
+  ["Read"  , "location"    , "opener.location"             ] ,
+  ["Read"  , "opener"      , "opener.opener"               ] ,
+  ["Read"  , "postMessage" , "opener.postMessage"          ] ,
+  ["Read"  , "window"      , "opener.window"               ] ,
+  ["Write" , "blur"        , "opener.blur = 'test'"        ] ,
+  ["Write" , "foo"         , "opener.foo = 'test'"         ] ,
+  ["Write" , "location"    , "opener.location = 'test'"    ] ,
+  ["Write" , "opener"      , "opener.opener = 'test'"      ] ,
+  ["Write" , "postMessage" , "opener.postMessage = 'test'" ] ,
+  ["Write" , "window"      , "opener.window = 'test'"      ] ,
 ];
 
-operation.forEach(([test, op]) => {
+operation.forEach(([type, property, op]) => {
   promise_test(async t => {
     const report_token = token();
     const executor_token = token();
@@ -45,7 +45,7 @@ operation.forEach(([test, op]) => {
 
     const reportTo = reportToHeaders(report_token);
     const openee_url = cross_origin + executor_path +
-      reportTo.header + reportTo.coopSameOrigin + coep_header +
+      reportTo.header + reportTo.coopSameOriginHeader + coep_header +
       `&uuid=${executor_token}`;
     const openee = window.open(openee_url);
     t.add_cleanup(() => send(executor_token, "window.close()"));
@@ -59,7 +59,7 @@ operation.forEach(([test, op]) => {
     assert_equals(report_1[0].body["violation-type"], "navigation-to-document");
     assert_equals(report_1[0].body["disposition"], "enforce");
 
-    // 3. Try to access the opener. A report is sent, because of COOP-RO+COEP.
+    // 3. Try to access the opener. A report is sent, because of COOP+COEP.
     send(executor_token, `
       try {${op}} catch(e) {}
       send("${callback_token}", "Done");
@@ -74,10 +74,14 @@ operation.forEach(([test, op]) => {
 
     assert_equals(report_2.length, 1);
     assert_equals(report_2[0].type, "coop");
-    assert_equals(report_2[0].body["violation-type"], "access");
+    assert_equals(report_2[0].body["violation-type"], "access-from-coop-page");
     assert_equals(report_2[0].body["disposition"], "enforce");
     assert_equals(report_2[0].body["effective-policy"], "same-origin-plus-coep");
-  }, `${test}`);
+    assert_equals(report_2[0].body["property"], property);
+    assert_equals(report_2[0].body["source-file"], undefined);
+    assert_equals(report_2[0].body["lineno"], undefined);
+    assert_equals(report_2[0].body["colno"], undefined);
+  }, `${type} ${property}`);
 });
 
 </script>

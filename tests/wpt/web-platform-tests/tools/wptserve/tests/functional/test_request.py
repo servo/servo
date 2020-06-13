@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import pytest
+from six import PY3
 
 wptserve = pytest.importorskip("wptserve")
 from .base import TestUsingServer
@@ -117,7 +118,7 @@ class TestRequest(TestUsingServer):
     def test_non_ascii_in_headers(self):
         @wptserve.handlers.handler
         def handler(request, response):
-            return request.headers["foo"]
+            return request.headers[b"foo"]
 
         route = ("GET", "/test/test_unicode_in_headers", handler)
         self.server.router.register(*route)
@@ -131,6 +132,45 @@ class TestRequest(TestUsingServer):
         # returned in verbatim.
         encoded_text = u"どうも".encode("shift-jis")
         resp = self.request(route[1], headers={"foo": encoded_text})
+        self.assertEqual(encoded_text, resp.read())
+
+    def test_non_ascii_in_GET_params(self):
+        @wptserve.handlers.handler
+        def handler(request, response):
+            return request.GET[b"foo"]
+
+        route = ("GET", "/test/test_unicode_in_get", handler)
+        self.server.router.register(*route)
+
+        # We intentionally choose an encoding that's not the default UTF-8.
+        encoded_text = u"どうも".encode("shift-jis")
+        if PY3:
+            from urllib.parse import quote_from_bytes
+            quoted = quote_from_bytes(encoded_text)
+        else:
+            from urllib import quote
+            quoted = quote(encoded_text)
+        resp = self.request(route[1], query="foo="+quoted)
+        self.assertEqual(encoded_text, resp.read())
+
+    def test_non_ascii_in_POST_params(self):
+        @wptserve.handlers.handler
+        def handler(request, response):
+            return request.POST[b"foo"]
+
+        route = ("POST", "/test/test_unicode_in_POST", handler)
+        self.server.router.register(*route)
+
+        # We intentionally choose an encoding that's not the default UTF-8.
+        encoded_text = u"どうも".encode("shift-jis")
+        if PY3:
+            from urllib.parse import quote_from_bytes
+            # After urlencoding, the string should only contain ASCII.
+            quoted = quote_from_bytes(encoded_text).encode("ascii")
+        else:
+            from urllib import quote
+            quoted = quote(encoded_text)
+        resp = self.request(route[1], method="POST", body=b"foo="+quoted)
         self.assertEqual(encoded_text, resp.read())
 
 

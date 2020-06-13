@@ -1,0 +1,405 @@
+- name: 2d.transformation.order
+  desc: Transformations are applied in the right order
+  testing:
+  - 2d.transformation.order
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.scale(2, 1);
+    ctx.rotate(Math.PI / 2);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, -50, 50, 50);
+    @assert pixel 75,25 == 0,255,0,255;
+  expected: green
+
+
+- name: 2d.transformation.scale.basic
+  desc: scale() works
+  testing:
+  - 2d.transformation.scale
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.scale(2, 4);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 12.5);
+    @assert pixel 90,40 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.scale.zero
+  desc: scale() with a scale factor of zero works
+  testing:
+  - 2d.transformation.scale
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.save();
+    ctx.translate(50, 0);
+    ctx.scale(0, 1);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(0, 25);
+    ctx.scale(1, 0);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.restore();
+
+    canvas.toDataURL();
+
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.scale.negative
+  desc: scale() with negative scale factors works
+  testing:
+  - 2d.transformation.scale
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(-50, 0, 50, 50);
+    ctx.restore();
+
+    ctx.save();
+    ctx.scale(1, -1);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(50, -50, 50, 50);
+    ctx.restore();
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.scale.large
+  desc: scale() with large scale factors works
+  notes: Not really that large at all, but it hits the limits in Firefox.
+  testing:
+  - 2d.transformation.scale
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.scale(1e5, 1e5);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 1, 1);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.scale.nonfinite
+  desc: scale() with Infinity/NaN is ignored
+  testing:
+  - 2d.nonfinite
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.translate(100, 10);
+    @nonfinite ctx.scale(<0.1 Infinity -Infinity NaN>, <0.1 Infinity -Infinity NaN>);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(-100, -10, 100, 50);
+
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.scale.multiple
+  desc: Multiple scale()s combine
+  testing:
+  - 2d.transformation.scale.multiple
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.scale(Math.sqrt(2), Math.sqrt(2));
+    ctx.scale(Math.sqrt(2), Math.sqrt(2));
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 25);
+    @assert pixel 90,40 == 0,255,0,255;
+  expected: green
+
+
+- name: 2d.transformation.rotate.zero
+  desc: rotate() by 0 does nothing
+  testing:
+  - 2d.transformation.rotate
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.rotate(0);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.rotate.radians
+  desc: rotate() uses radians
+  testing:
+  - 2d.transformation.rotate.radians
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.rotate(Math.PI); // should fail obviously if this is 3.1 degrees
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(-100, -50, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.rotate.direction
+  desc: rotate() is clockwise
+  testing:
+  - 2d.transformation.rotate.direction
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.rotate(Math.PI / 2);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, -100, 50, 100);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.rotate.wrap
+  desc: rotate() wraps large positive values correctly
+  testing:
+  - 2d.transformation.rotate
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.rotate(Math.PI * (1 + 4096)); // == pi (mod 2*pi)
+    // We need about pi +/- 0.001 in order to get correct-looking results
+    // 32-bit floats can store pi*4097 with precision 2^-10, so that should
+    // be safe enough on reasonable implementations
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(-100, -50, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,2 == 0,255,0,255;
+    @assert pixel 98,47 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.rotate.wrapnegative
+  desc: rotate() wraps large negative values correctly
+  testing:
+  - 2d.transformation.rotate
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.rotate(-Math.PI * (1 + 4096));
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(-100, -50, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,2 == 0,255,0,255;
+    @assert pixel 98,47 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.rotate.nonfinite
+  desc: rotate() with Infinity/NaN is ignored
+  testing:
+  - 2d.nonfinite
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.translate(100, 10);
+    @nonfinite ctx.rotate(<0.1 Infinity -Infinity NaN>);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(-100, -10, 100, 50);
+
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.translate.basic
+  desc: translate() works
+  testing:
+  - 2d.transformation.translate
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.translate(100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(-100, -50, 100, 50);
+    @assert pixel 90,40 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.translate.nonfinite
+  desc: translate() with Infinity/NaN is ignored
+  testing:
+  - 2d.nonfinite
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.translate(100, 10);
+    @nonfinite ctx.translate(<0.1 Infinity -Infinity NaN>, <0.1 Infinity -Infinity NaN>);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(-100, -10, 100, 50);
+
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+
+- name: 2d.transformation.transform.identity
+  desc: transform() with the identity matrix does nothing
+  testing:
+  - 2d.transformation.transform
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.transform(1,0, 0,1, 0,0);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.transform.skewed
+  desc: transform() with skewy matrix transforms correctly
+  testing:
+  - 2d.transformation.transform
+  code: |
+    // Create green with a red square ring inside it
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(20, 10, 60, 30);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(40, 20, 20, 10);
+
+    // Draw a skewed shape to fill that gap, to make sure it is aligned correctly
+    ctx.transform(1,4, 2,3, 5,6);
+    // Post-transform coordinates:
+    //   [[20,10],[80,10],[80,40],[20,40],[20,10],[40,20],[40,30],[60,30],[60,20],[40,20],[20,10]];
+    // Hence pre-transform coordinates:
+    var pts=[[-7.4,11.2],[-43.4,59.2],[-31.4,53.2],[4.6,5.2],[-7.4,11.2],
+             [-15.4,25.2],[-11.4,23.2],[-23.4,39.2],[-27.4,41.2],[-15.4,25.2],
+             [-7.4,11.2]];
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var i = 0; i < pts.length; ++i)
+        ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.fill();
+    @assert pixel 21,11 == 0,255,0,255;
+    @assert pixel 79,11 == 0,255,0,255;
+    @assert pixel 21,39 == 0,255,0,255;
+    @assert pixel 79,39 == 0,255,0,255;
+    @assert pixel 39,19 == 0,255,0,255;
+    @assert pixel 61,19 == 0,255,0,255;
+    @assert pixel 39,31 == 0,255,0,255;
+    @assert pixel 61,31 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.transform.multiply
+  desc: transform() multiplies the CTM
+  testing:
+  - 2d.transformation.transform.multiply
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.transform(1,2, 3,4, 5,6);
+    ctx.transform(-2,1, 3/2,-1/2, 1,-2);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.transform.nonfinite
+  desc: transform() with Infinity/NaN is ignored
+  testing:
+  - 2d.nonfinite
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.translate(100, 10);
+    @nonfinite ctx.transform(<0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(-100, -10, 100, 50);
+
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+
+- name: 2d.transformation.setTransform.skewed
+  testing:
+  - 2d.transformation.setTransform
+  code: |
+    // Create green with a red square ring inside it
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(20, 10, 60, 30);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(40, 20, 20, 10);
+
+    // Draw a skewed shape to fill that gap, to make sure it is aligned correctly
+    ctx.setTransform(1,4, 2,3, 5,6);
+    // Post-transform coordinates:
+    //   [[20,10],[80,10],[80,40],[20,40],[20,10],[40,20],[40,30],[60,30],[60,20],[40,20],[20,10]];
+    // Hence pre-transform coordinates:
+    var pts=[[-7.4,11.2],[-43.4,59.2],[-31.4,53.2],[4.6,5.2],[-7.4,11.2],
+             [-15.4,25.2],[-11.4,23.2],[-23.4,39.2],[-27.4,41.2],[-15.4,25.2],
+             [-7.4,11.2]];
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var i = 0; i < pts.length; ++i)
+        ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.fill();
+    @assert pixel 21,11 == 0,255,0,255;
+    @assert pixel 79,11 == 0,255,0,255;
+    @assert pixel 21,39 == 0,255,0,255;
+    @assert pixel 79,39 == 0,255,0,255;
+    @assert pixel 39,19 == 0,255,0,255;
+    @assert pixel 61,19 == 0,255,0,255;
+    @assert pixel 39,31 == 0,255,0,255;
+    @assert pixel 61,31 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.setTransform.multiple
+  testing:
+  - 2d.transformation.setTransform.identity
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.setTransform(1/2,0, 0,1/2, 0,0);
+    ctx.setTransform();
+    ctx.setTransform(2,0, 0,2, 0,0);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 25);
+    @assert pixel 75,35 == 0,255,0,255;
+  expected: green
+
+- name: 2d.transformation.setTransform.nonfinite
+  desc: setTransform() with Infinity/NaN is ignored
+  testing:
+  - 2d.nonfinite
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.translate(100, 10);
+    @nonfinite ctx.setTransform(<0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>);
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(-100, -10, 100, 50);
+
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: green
+
+

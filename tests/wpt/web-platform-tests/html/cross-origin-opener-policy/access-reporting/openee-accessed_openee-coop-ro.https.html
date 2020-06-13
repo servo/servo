@@ -16,28 +16,28 @@ const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
 const coep_header = '|header(Cross-Origin-Embedder-Policy,require-corp)';
 
 let operation = [
-//[test name           , operation                   ] ,
-  ["Call blur"         , w => w.blur()               ] ,
-  ["Call foo"          , w => w.foo()                ] ,
-  ["Call location"     , w => w.location()           ] ,
-  ["Call opener"       , w => w.opener()             ] ,
-  ["Call postMessage"  , w => w.postMessage()        ] ,
-  ["Call window"       , w => w.window()             ] ,
-  ["Read blur"         , w => w.blur                 ] ,
-  ["Read foo"          , w => w.foo                  ] ,
-  ["Read location"     , w => w.location             ] ,
-  ["Read opener"       , w => w.opener               ] ,
-  ["Read postMessage"  , w => w.postMessage          ] ,
-  ["Read window"       , w => w.window               ] ,
-  ["Write blur"        , w => w.blur = "test"        ] ,
-  ["Write foo"         , w => w.foo = "test"         ] ,
-  ["Write location"    , w => w.location = "test"    ] ,
-  ["Write opener"      , w => w.opener = "test"      ] ,
-  ["Write postMessage" , w => w.postMessage = "test" ] ,
-  ["Write window"      , w => w.window = "test"      ] ,
+//[type    , property      , operation                   ] ,
+  ["Call"  , "blur"        , w => w.blur()               ] ,
+  ["Call"  , "foo"         , w => w.foo()                ] ,
+  ["Call"  , "location"    , w => w.location()           ] ,
+  ["Call"  , "opener"      , w => w.opener()             ] ,
+  ["Call"  , "postMessage" , w => w.postMessage()        ] ,
+  ["Call"  , "window"      , w => w.window()             ] ,
+  ["Read"  , "blur"        , w => w.blur                 ] ,
+  ["Read"  , "foo"         , w => w.foo                  ] ,
+  ["Read"  , "location"    , w => w.location             ] ,
+  ["Read"  , "opener"      , w => w.opener               ] ,
+  ["Read"  , "postMessage" , w => w.postMessage          ] ,
+  ["Read"  , "window"      , w => w.window               ] ,
+  ["Write" , "blur"        , w => w.blur = "test"        ] ,
+  ["Write" , "foo"         , w => w.foo = "test"         ] ,
+  ["Write" , "location"    , w => w.location = "test"    ] ,
+  ["Write" , "opener"      , w => w.opener = "test"      ] ,
+  ["Write" , "postMessage" , w => w.postMessage = "test" ] ,
+  ["Write" , "window"      , w => w.window = "test"      ] ,
 ];
 
-operation.forEach(([test, op]) => {
+operation.forEach(([type, property, op]) => {
   promise_test(async t => {
     const report_token = token();
     const executor_token = token();
@@ -45,7 +45,7 @@ operation.forEach(([test, op]) => {
 
     const reportTo = reportToHeaders(report_token);
     const openee_url = cross_origin + executor_path +
-      reportTo.header + reportTo.coopReportOnlySameOrigin + coep_header +
+      reportTo.header + reportTo.coopReportOnlySameOriginHeader + coep_header +
       `&uuid=${executor_token}`;
     const openee = window.open(openee_url);
     t.add_cleanup(() => send(executor_token, "window.close()"))
@@ -75,10 +75,16 @@ operation.forEach(([test, op]) => {
     report_2 = JSON.parse(report_2);
     assert_equals(report_2.length, 1);
     assert_equals(report_2[0].type, "coop");
-    assert_equals(report_2[0].body["violation-type"], "access");
+    assert_equals(report_2[0].url, openee_url);
+    assert_equals(report_2[0].body["violation-type"], "access-to-coop-page");
     assert_equals(report_2[0].body["disposition"], "reporting");
     assert_equals(report_2[0].body["effective-policy"], "same-origin-plus-coep");
-  }, `${test}`);
+    assert_equals(report_2[0].body["property"], property);
+    assert_equals(report_2[0].body["source-file"], undefined);
+    assert_equals(report_2[0].body["lineno"], undefined);
+    assert_equals(report_2[0].body["colno"], undefined);
+    // TODO(arthursonzogni): Add check for report > body > blocked-window-url
+  }, `${type} ${property}`);
 });
 
 </script>

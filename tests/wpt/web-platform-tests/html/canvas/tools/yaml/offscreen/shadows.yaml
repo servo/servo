@@ -1,0 +1,1069 @@
+- name: 2d.shadow.attributes.shadowBlur.initial
+  testing:
+  - 2d.shadow.blur.get
+  - 2d.shadow.blur.initial
+  code: |
+    @assert ctx.shadowBlur === 0;
+    t.done();
+
+- name: 2d.shadow.attributes.shadowBlur.valid
+  testing:
+  - 2d.shadow.blur.get
+  - 2d.shadow.blur.set
+  code: |
+    ctx.shadowBlur = 1;
+    @assert ctx.shadowBlur === 1;
+    ctx.shadowBlur = 0.5;
+    @assert ctx.shadowBlur === 0.5;
+    ctx.shadowBlur = 1e6;
+    @assert ctx.shadowBlur === 1e6;
+    ctx.shadowBlur = 0;
+    @assert ctx.shadowBlur === 0;
+    t.done();
+
+- name: 2d.shadow.attributes.shadowBlur.invalid
+  testing:
+  - 2d.shadow.blur.invalid
+  code: |
+    ctx.shadowBlur = 1;
+    ctx.shadowBlur = -2;
+    @assert ctx.shadowBlur === 1;
+    ctx.shadowBlur = 1;
+    ctx.shadowBlur = Infinity;
+    @assert ctx.shadowBlur === 1;
+    ctx.shadowBlur = 1;
+    ctx.shadowBlur = -Infinity;
+    @assert ctx.shadowBlur === 1;
+    ctx.shadowBlur = 1;
+    ctx.shadowBlur = NaN;
+    @assert ctx.shadowBlur === 1;
+    t.done();
+
+- name: 2d.shadow.attributes.shadowOffset.initial
+  testing:
+  - 2d.shadow.offset.initial
+  code: |
+    @assert ctx.shadowOffsetX === 0;
+    @assert ctx.shadowOffsetY === 0;
+    t.done();
+
+- name: 2d.shadow.attributes.shadowOffset.valid
+  testing:
+  - 2d.shadow.offset.get
+  - 2d.shadow.offset.set
+  code: |
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 2;
+    @assert ctx.shadowOffsetX === 1;
+    @assert ctx.shadowOffsetY === 2;
+    ctx.shadowOffsetX = 0.5;
+    ctx.shadowOffsetY = 0.25;
+    @assert ctx.shadowOffsetX === 0.5;
+    @assert ctx.shadowOffsetY === 0.25;
+    ctx.shadowOffsetX = -0.5;
+    ctx.shadowOffsetY = -0.25;
+    @assert ctx.shadowOffsetX === -0.5;
+    @assert ctx.shadowOffsetY === -0.25;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    @assert ctx.shadowOffsetX === 0;
+    @assert ctx.shadowOffsetY === 0;
+    ctx.shadowOffsetX = 1e6;
+    ctx.shadowOffsetY = 1e6;
+    @assert ctx.shadowOffsetX === 1e6;
+    @assert ctx.shadowOffsetY === 1e6;
+    t.done();
+
+- name: 2d.shadow.attributes.shadowOffset.invalid
+  testing:
+  - 2d.shadow.offset.invalid
+  code: |
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 2;
+    ctx.shadowOffsetX = Infinity;
+    ctx.shadowOffsetY = Infinity;
+    @assert ctx.shadowOffsetX === 1;
+    @assert ctx.shadowOffsetY === 2;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 2;
+    ctx.shadowOffsetX = -Infinity;
+    ctx.shadowOffsetY = -Infinity;
+    @assert ctx.shadowOffsetX === 1;
+    @assert ctx.shadowOffsetY === 2;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 2;
+    ctx.shadowOffsetX = NaN;
+    ctx.shadowOffsetY = NaN;
+    @assert ctx.shadowOffsetX === 1;
+    @assert ctx.shadowOffsetY === 2;
+    t.done();
+
+- name: 2d.shadow.attributes.shadowColor.initial
+  testing:
+  - 2d.shadow.color.initial
+  code: |
+    @assert ctx.shadowColor === 'rgba(0, 0, 0, 0)';
+    t.done();
+
+- name: 2d.shadow.attributes.shadowColor.valid
+  testing:
+  - 2d.shadow.color.get
+  - 2d.shadow.color.set
+  code: |
+    ctx.shadowColor = 'lime';
+    @assert ctx.shadowColor === '#00ff00';
+    ctx.shadowColor = 'RGBA(0,255, 0,0)';
+    @assert ctx.shadowColor === 'rgba(0, 255, 0, 0)';
+    t.done();
+
+- name: 2d.shadow.attributes.shadowColor.invalid
+  testing:
+  - 2d.shadow.color.invalid
+  code: |
+    ctx.shadowColor = '#00ff00';
+    ctx.shadowColor = 'bogus';
+    @assert ctx.shadowColor === '#00ff00';
+    ctx.shadowColor = '#00ff00';
+    ctx.shadowColor = 'red bogus';
+    @assert ctx.shadowColor === '#00ff00';
+    ctx.shadowColor = '#00ff00';
+    ctx.shadowColor = ctx;
+    @assert ctx.shadowColor === '#00ff00';
+    ctx.shadowColor = '#00ff00';
+    ctx.shadowColor = undefined;
+    @assert ctx.shadowColor === '#00ff00';
+    t.done();
+
+- name: 2d.shadow.enable.off.1
+  desc: Shadows are not drawn when only shadowColor is set
+  testing:
+  - 2d.shadow.enable
+  - 2d.shadow.render
+  code: |
+    ctx.shadowColor = '#f00';
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.enable.off.2
+  desc: Shadows are not drawn when only shadowColor is set
+  testing:
+  - 2d.shadow.enable
+  - 2d.shadow.render
+  code: |
+    ctx.globalCompositeOperation = 'destination-atop';
+    ctx.shadowColor = '#f00';
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.enable.blur
+  desc: Shadows are drawn if shadowBlur is set
+  testing:
+  - 2d.shadow.enable
+  - 2d.shadow.render
+  code: |
+    ctx.globalCompositeOperation = 'destination-atop';
+    ctx.shadowColor = '#0f0';
+    ctx.shadowBlur = 0.1;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.enable.x
+  desc: Shadows are drawn if shadowOffsetX is set
+  testing:
+  - 2d.shadow.enable
+  - 2d.shadow.render
+  code: |
+    ctx.globalCompositeOperation = 'destination-atop';
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetX = 0.1;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.enable.y
+  desc: Shadows are drawn if shadowOffsetY is set
+  testing:
+  - 2d.shadow.enable
+  - 2d.shadow.render
+  code: |
+    ctx.globalCompositeOperation = 'destination-atop';
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetY = 0.1;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.offset.positiveX
+  desc: Shadows can be offset with positive x
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetX = 50;
+    ctx.fillRect(0, 0, 50, 50);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.offset.negativeX
+  desc: Shadows can be offset with negative x
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetX = -50;
+    ctx.fillRect(50, 0, 50, 50);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.offset.positiveY
+  desc: Shadows can be offset with positive y
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetY = 25;
+    ctx.fillRect(0, 0, 100, 25);
+    @assert pixel 50,12 == 0,255,0,255;
+    @assert pixel 50,37 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.offset.negativeY
+  desc: Shadows can be offset with negative y
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetY = -25;
+    ctx.fillRect(0, 25, 100, 25);
+    @assert pixel 50,12 == 0,255,0,255;
+    @assert pixel 50,37 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.outside
+  desc: Shadows of shapes outside the visible area can be offset onto the visible
+    area
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetX = 100;
+    ctx.fillRect(-100, 0, 25, 50);
+    ctx.shadowOffsetX = -100;
+    ctx.fillRect(175, 0, 25, 50);
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 100;
+    ctx.fillRect(25, -100, 50, 25);
+    ctx.shadowOffsetY = -100;
+    ctx.fillRect(25, 125, 50, 25);
+    @assert pixel 12,25 == 0,255,0,255;
+    @assert pixel 87,25 == 0,255,0,255;
+    @assert pixel 50,12 == 0,255,0,255;
+    @assert pixel 50,37 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.clip.1
+  desc: Shadows of clipped shapes are still drawn within the clipping region
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(50, 0, 50, 50);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(50, 0, 50, 50);
+    ctx.clip();
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetX = 50;
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.restore();
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.clip.2
+  desc: Shadows are not drawn outside the clipping region
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(50, 0, 50, 50);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, 50, 50);
+    ctx.clip();
+    ctx.shadowColor = '#f00';
+    ctx.shadowOffsetX = 50;
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.restore();
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.clip.3
+  desc: Shadows of clipped shapes are still drawn within the clipping region
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(50, 0, 50, 50);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, 50, 50);
+    ctx.clip();
+    ctx.fillStyle = '#f00';
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetX = 50;
+    ctx.fillRect(-50, 0, 50, 50);
+    ctx.restore();
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.stroke.basic
+  desc: Shadows are drawn for strokes
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.strokeStyle = '#f00';
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetY = 50;
+    ctx.beginPath();
+    ctx.lineWidth = 50;
+    ctx.moveTo(0, -25);
+    ctx.lineTo(100, -25);
+    ctx.stroke();
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.stroke.cap.1
+  desc: Shadows are not drawn for areas outside stroke caps
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.strokeStyle = '#f00';
+    ctx.shadowColor = '#f00';
+    ctx.shadowOffsetY = 50;
+    ctx.beginPath();
+    ctx.lineWidth = 50;
+    ctx.lineCap = 'butt';
+    ctx.moveTo(-50, -25);
+    ctx.lineTo(0, -25);
+    ctx.moveTo(100, -25);
+    ctx.lineTo(150, -25);
+    ctx.stroke();
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.stroke.cap.2
+  desc: Shadows are drawn for stroke caps
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.strokeStyle = '#f00';
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetY = 50;
+    ctx.beginPath();
+    ctx.lineWidth = 50;
+    ctx.lineCap = 'square';
+    ctx.moveTo(25, -25);
+    ctx.lineTo(75, -25);
+    ctx.stroke();
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.stroke.join.1
+  desc: Shadows are not drawn for areas outside stroke joins
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.strokeStyle = '#f00';
+    ctx.shadowColor = '#f00';
+    ctx.shadowOffsetX = 100;
+    ctx.lineWidth = 200;
+    ctx.lineJoin = 'bevel';
+    ctx.beginPath();
+    ctx.moveTo(-200, -50);
+    ctx.lineTo(-150, -50);
+    ctx.lineTo(-151, -100);
+    ctx.stroke();
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.stroke.join.2
+  desc: Shadows are drawn for stroke joins
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(50, 0, 50, 50);
+    ctx.strokeStyle = '#f00';
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetX = 100;
+    ctx.lineWidth = 200;
+    ctx.lineJoin = 'miter';
+    ctx.beginPath();
+    ctx.moveTo(-200, -50);
+    ctx.lineTo(-150, -50);
+    ctx.lineTo(-151, -100);
+    ctx.stroke();
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.stroke.join.3
+  desc: Shadows are drawn for stroke joins respecting miter limit
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.strokeStyle = '#f00';
+    ctx.shadowColor = '#f00';
+    ctx.shadowOffsetX = 100;
+    ctx.lineWidth = 200;
+    ctx.lineJoin = 'miter';
+    ctx.miterLimit = 0.1;
+    ctx.beginPath();
+    ctx.moveTo(-200, -50);
+    ctx.lineTo(-150, -50);
+    ctx.lineTo(-151, -100); // (not an exact right angle, to avoid some other bug in Firefox 3)
+    ctx.stroke();
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.image.basic
+  desc: Shadows are drawn for images
+  testing:
+  - 2d.shadow.render
+  images:
+  - red.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetY = 50;
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, -50);
+            @assert pixel 50,25 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.shadow.image.transparent.1
+  desc: Shadows are not drawn for transparent images
+  testing:
+  - 2d.shadow.render
+  images:
+  - transparent.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowColor = '#f00';
+    ctx.shadowOffsetY = 50;
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/transparent.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, -50);
+            @assert pixel 50,25 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.shadow.image.transparent.2
+  desc: Shadows are not drawn for transparent parts of images
+  testing:
+  - 2d.shadow.render
+  images:
+  - redtransparent.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(50, 0, 50, 50);
+    ctx.shadowOffsetY = 50;
+    ctx.shadowColor = '#0f0';
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/redtransparent.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 50, -50);
+            ctx.shadowColor = '#f00';
+            ctx.drawImage(bitmap, -50, -50);
+            @assert pixel 25,25 == 0,255,0,255;
+            @assert pixel 50,25 == 0,255,0,255;
+            @assert pixel 75,25 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.shadow.image.alpha
+  desc: Shadows are drawn correctly for partially-transparent images
+  testing:
+  - 2d.shadow.render
+  images:
+  - transparent50.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowOffsetY = 50;
+    ctx.shadowColor = '#00f';
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/transparent50.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, -50);
+            @assert pixel 50,25 ==~ 127,0,127,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.shadow.image.section
+  desc: Shadows are not drawn for areas outside image source rectangles
+  testing:
+  - 2d.shadow.render
+  images:
+  - redtransparent.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowOffsetY = 50;
+    ctx.shadowColor = '#f00';
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/redtransparent.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 50, 0, 50, 50, 0, -50, 50, 50);
+            @assert pixel 25,25 ==~ 0,255,0,255;
+            @assert pixel 50,25 ==~ 0,255,0,255;
+            @assert pixel 75,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.shadow.image.scale
+  desc: Shadows are drawn correctly for scaled images
+  testing:
+  - 2d.shadow.render
+  images:
+  - redtransparent.png
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowOffsetY = 50;
+    ctx.shadowColor = '#0f0';
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/redtransparent.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            ctx.drawImage(bitmap, 0, 0, 100, 50, -10, -50, 240, 50);
+            @assert pixel 25,25 ==~ 0,255,0,255;
+            @assert pixel 50,25 ==~ 0,255,0,255;
+            @assert pixel 75,25 ==~ 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.shadow.canvas.basic
+  desc: Shadows are drawn for canvases
+  testing:
+  - 2d.shadow.render
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetY = 50;
+    ctx.drawImage(offscreenCanvas2, 0, -50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.canvas.transparent.1
+  desc: Shadows are not drawn for transparent canvases
+  testing:
+  - 2d.shadow.render
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowColor = '#f00';
+    ctx.shadowOffsetY = 50;
+    ctx.drawImage(offscreenCanvas2, 0, -50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.canvas.transparent.2
+  desc: Shadows are not drawn for transparent parts of canvases
+  testing:
+  - 2d.shadow.render
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 50, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(50, 0, 50, 50);
+    ctx.shadowOffsetY = 50;
+    ctx.shadowColor = '#0f0';
+    ctx.drawImage(offscreenCanvas2, 50, -50);
+    ctx.shadowColor = '#f00';
+    ctx.drawImage(offscreenCanvas2, -50, -50);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.canvas.alpha
+  desc: Shadows are drawn correctly for partially-transparent canvases
+  testing:
+  - 2d.shadow.render
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = 'rgba(255, 0, 0, 0.5)';
+    ctx2.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowOffsetY = 50;
+    ctx.shadowColor = '#00f';
+    ctx.drawImage(offscreenCanvas2, 0, -50);
+    @assert pixel 50,25 ==~ 127,0,127,255;
+    t.done();
+
+- name: 2d.shadow.pattern.basic
+  desc: Shadows are drawn for fill patterns
+  testing:
+  - 2d.shadow.render
+  images:
+  - red.png
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat');
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.shadowColor = '#0f0';
+            ctx.shadowOffsetY = 50;
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, -50, 100, 50);
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.shadow.pattern.transparent.1
+  desc: Shadows are not drawn for transparent fill patterns
+  testing:
+  - 2d.shadow.render
+  # http://bugs.webkit.org/show_bug.cgi?id=15266
+  images:
+  - transparent.png
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/transparent.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat');
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.shadowColor = '#f00';
+            ctx.shadowOffsetY = 50;
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, -50, 100, 50);
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.shadow.pattern.transparent.2
+  desc: Shadows are not drawn for transparent parts of fill patterns
+  testing:
+  - 2d.shadow.render
+  images:
+  - redtransparent.png
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/redtransparent.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat');
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(0, 0, 50, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(50, 0, 50, 50);
+            ctx.shadowOffsetY = 50;
+            ctx.shadowColor = '#0f0';
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, -50, 100, 50);
+            @assert pixel 25,25 == 0,255,0,255;
+            @assert pixel 50,25 == 0,255,0,255;
+            @assert pixel 75,25 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.shadow.pattern.alpha
+  desc: Shadows are drawn correctly for partially-transparent fill patterns
+  testing:
+  - 2d.shadow.render
+  images:
+  - transparent50.png
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/transparent50.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat');
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.shadowOffsetY = 50;
+            ctx.shadowColor = '#00f';
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, -50, 100, 50);
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.shadow.gradient.basic
+  desc: Shadows are drawn for gradient fills
+  testing:
+  - 2d.shadow.render
+  # http://bugs.webkit.org/show_bug.cgi?id=15266
+  code: |
+    var gradient = ctx.createLinearGradient(0, 0, 100, 0);
+    gradient.addColorStop(0, '#f00');
+    gradient.addColorStop(1, '#f00');
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowColor = '#0f0';
+    ctx.shadowOffsetY = 50;
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, -50, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.gradient.transparent.1
+  desc: Shadows are not drawn for transparent gradient fills
+  testing:
+  - 2d.shadow.render
+  # http://bugs.webkit.org/show_bug.cgi?id=15266
+  code: |
+    var gradient = ctx.createLinearGradient(0, 0, 100, 0);
+    gradient.addColorStop(0, 'rgba(0,0,0,0)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowColor = '#f00';
+    ctx.shadowOffsetY = 50;
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, -50, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.gradient.transparent.2
+  desc: Shadows are not drawn for transparent parts of gradient fills
+  testing:
+  - 2d.shadow.render
+  code: |
+    var gradient = ctx.createLinearGradient(0, 0, 100, 0);
+    gradient.addColorStop(0, '#f00');
+    gradient.addColorStop(0.499, '#f00');
+    gradient.addColorStop(0.5, 'rgba(0,0,0,0)');
+    gradient.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(50, 0, 50, 50);
+    ctx.shadowOffsetY = 50;
+    ctx.shadowColor = '#0f0';
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, -50, 100, 50);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.gradient.alpha
+  desc: Shadows are drawn correctly for partially-transparent gradient fills
+  testing:
+  - 2d.shadow.render
+  code: |
+    var gradient = ctx.createLinearGradient(0, 0, 100, 0);
+    gradient.addColorStop(0, 'rgba(255,0,0,0.5)');
+    gradient.addColorStop(1, 'rgba(255,0,0,0.5)');
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowOffsetY = 50;
+    ctx.shadowColor = '#00f';
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, -50, 100, 50);
+    @assert pixel 50,25 ==~ 127,0,127,255;
+    t.done();
+
+- name: 2d.shadow.transform.1
+  desc: Shadows take account of transformations
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowOffsetY = 50;
+    ctx.shadowColor = '#0f0';
+    ctx.translate(100, 100);
+    ctx.fillRect(-100, -150, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.transform.2
+  desc: Shadow offsets are not affected by transformations
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowOffsetY = 50;
+    ctx.shadowColor = '#0f0';
+    ctx.rotate(Math.PI)
+    ctx.fillRect(-100, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.alpha.1
+  desc: Shadow colour alpha components are used
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowColor = 'rgba(255, 0, 0, 0.01)';
+    ctx.shadowOffsetY = 50;
+    ctx.fillRect(0, -50, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255 +/- 4;
+    t.done();
+
+- name: 2d.shadow.alpha.2
+  desc: Shadow colour alpha components are used
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.shadowColor = 'rgba(0, 0, 255, 0.5)';
+    ctx.shadowOffsetY = 50;
+    ctx.fillRect(0, -50, 100, 50);
+    @assert pixel 50,25 ==~ 127,0,127,255;
+    t.done();
+
+- name: 2d.shadow.alpha.3
+  desc: Shadows are affected by globalAlpha
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00'; // (work around broken Firefox globalAlpha caching)
+    ctx.shadowColor = '#00f';
+    ctx.shadowOffsetY = 50;
+    ctx.globalAlpha = 0.5;
+    ctx.fillRect(0, -50, 100, 50);
+    @assert pixel 50,25 ==~ 127,0,127,255;
+    t.done();
+
+- name: 2d.shadow.alpha.4
+  desc: Shadows with alpha components are correctly affected by globalAlpha
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00'; // (work around broken Firefox globalAlpha caching)
+    ctx.shadowColor = 'rgba(0, 0, 255, 0.707)';
+    ctx.shadowOffsetY = 50;
+    ctx.globalAlpha = 0.707;
+    ctx.fillRect(0, -50, 100, 50);
+    @assert pixel 50,25 ==~ 127,0,127,255;
+    t.done();
+
+- name: 2d.shadow.alpha.5
+  desc: Shadows of shapes with alpha components are drawn correctly
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = 'rgba(64, 0, 0, 0.5)';
+    ctx.shadowColor = '#00f';
+    ctx.shadowOffsetY = 50;
+    ctx.fillRect(0, -50, 100, 50);
+    @assert pixel 50,25 ==~ 127,0,127,255;
+    t.done();
+
+- name: 2d.shadow.composite.1
+  desc: Shadows are drawn using globalCompositeOperation
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalCompositeOperation = 'xor';
+    ctx.shadowColor = '#f00';
+    ctx.shadowOffsetX = 100;
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(-100, 0, 200, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.composite.2
+  desc: Shadows are drawn using globalCompositeOperation
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalCompositeOperation = 'xor';
+    ctx.shadowColor = '#f00';
+    ctx.shadowBlur = 1;
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(-10, -10, 120, 70);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+    t.done();
+
+- name: 2d.shadow.composite.3
+  desc: Areas outside shadows are drawn correctly with destination-out
+  testing:
+  - 2d.shadow.render
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.globalCompositeOperation = 'destination-out';
+    ctx.shadowColor = '#f00';
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(200, 0, 100, 50);
+    @assert pixel 5,5 ==~ 0,255,0,255;
+    @assert pixel 50,25 ==~ 0,255,0,255;
+    t.done();
+

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Transforms Test: Subpixel transform changes trivial 3D</title>
+<link rel="author" title="Manuel Rego Casasnovas" href="mailto:rego@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-transforms/#transform-property">
+<link rel="match" href="reference/subpixel-transform-changes-004-ref.html">
+<meta name="assert" content="Test checks that subpixel transform changes work as expected regardless of trivial 3D transforms.">
+
+<div id="translateX1" style="transform: translate3d(0.12px, 0px, 0px);">transform: translate3d(0.48px, 0px, 0px);</div>
+<div id="translateX2" style="transform: translate3d(0.56px, 0px, 0px);">transform: translate3d(3.17px, 0px, 0px);</div>
+<div id="translateX3" style="transform: translate3d(1.87px, 0px, 0px);">transform: translate3d(0.34px, 0px, 0px);</div>
+
+<div id="translateY1" style="transform: translate3d(0px, 0.12px, 0px);">transform: translate3d(0px, 0.48px, 0px);</div>
+<div id="translateY2" style="transform: translate3d(0px, 0.56px, 0px);">transform: translate3d(0px, 3.17px, 0px);</div>
+<div id="translateY3" style="transform: translate3d(0px, 1.87px, 0px);">transform: translate3d(0px, 0.34px, 0px);</div>
+
+<script>
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    translateX1.style.transform = "translate3d(0.48px, 0px, 0px)";
+    translateX2.style.transform = "translate3d(3.17px, 0px, 0px)";
+    translateX3.style.transform = "translate3d(0.34px, 0px, 0px)";
+
+    translateY1.style.transform = "translate3d(0px, 0.48px, 0px)";
+    translateY2.style.transform = "translate3d(0px, 3.17px, 0px)";
+    translateY3.style.transform = "translate3d(0px, 0.34px, 0px)";
+
+    document.documentElement.classList.remove("reftest-wait");
+  }));
+</script>
+</html>

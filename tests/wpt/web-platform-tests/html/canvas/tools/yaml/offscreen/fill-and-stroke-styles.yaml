@@ -1,0 +1,1697 @@
+- name: 2d.fillStyle.invalidstring
+  testing:
+  - 2d.colours.invalidstring
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillStyle = 'invalid';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.fillStyle.invalidtype
+  testing:
+  - 2d.colours.invalidtype
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillStyle = null;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.fillStyle.get.solid
+  testing:
+  - 2d.colours.getcolour
+  - 2d.serializecolour.solid
+  code: |
+    ctx.fillStyle = '#fa0';
+    @assert ctx.fillStyle === '#ffaa00';
+    t.done();
+
+- name: 2d.fillStyle.get.semitransparent
+  testing:
+  - 2d.colours.getcolour
+  - 2d.serializecolour.transparent
+  code: |
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    @assert ctx.fillStyle =~ /^rgba\(255, 255, 255, 0\.4\d+\)$/;
+    t.done();
+
+- name: 2d.fillStyle.get.transparent
+  testing:
+  - 2d.colours.getcolour
+  - 2d.serializecolour.transparent
+  code: |
+    ctx.fillStyle = 'rgba(0,0,0,0)';
+    @assert ctx.fillStyle === 'rgba(0, 0, 0, 0)';
+    t.done();
+
+- name: 2d.fillStyle.default
+  testing:
+  - 2d.colours.default
+  code: |
+    @assert ctx.fillStyle === '#000000';
+    t.done();
+
+- name: 2d.strokeStyle.default
+  testing:
+  - 2d.colours.default
+  code: |
+    @assert ctx.strokeStyle === '#000000';
+    t.done();
+
+- name: 2d.gradient.interpolate.solid
+  testing:
+  - 2d.gradient.interpolate.linear
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.interpolate.colour
+  testing:
+  - 2d.gradient.interpolate.linear
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, '#ff0');
+    g.addColorStop(1, '#00f');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,25 ==~ 191,191,63,255 +/- 3;
+    @assert pixel 50,25 ==~ 127,127,127,255 +/- 3;
+    @assert pixel 75,25 ==~ 63,63,191,255 +/- 3;
+    t.done();
+
+- name: 2d.gradient.interpolate.alpha
+  testing:
+  - 2d.gradient.interpolate.linear
+  code: |
+    ctx.fillStyle = '#ff0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, 'rgba(0,0,255, 0)');
+    g.addColorStop(1, 'rgba(0,0,255, 1)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,25 ==~ 191,191,63,255 +/- 3;
+    @assert pixel 50,25 ==~ 127,127,127,255 +/- 3;
+    @assert pixel 75,25 ==~ 63,63,191,255 +/- 3;
+    t.done();
+
+- name: 2d.gradient.interpolate.colouralpha
+  testing:
+  - 2d.gradient.interpolate.alpha
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, 'rgba(255,255,0, 0)');
+    g.addColorStop(1, 'rgba(0,0,255, 1)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,25 ==~ 190,190,65,65 +/- 3;
+    @assert pixel 50,25 ==~ 126,126,128,128 +/- 3;
+    @assert pixel 75,25 ==~ 62,62,192,192 +/- 3;
+    t.done();
+
+- name: 2d.gradient.interpolate.outside
+  testing:
+  - 2d.gradient.outside.first
+  - 2d.gradient.outside.last
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createLinearGradient(25, 0, 75, 0);
+    g.addColorStop(0.4, '#0f0');
+    g.addColorStop(0.6, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 20,25 ==~ 0,255,0,255;
+    @assert pixel 50,25 ==~ 0,255,0,255;
+    @assert pixel 80,25 ==~ 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.interpolate.zerosize.fill
+  testing:
+  - 2d.gradient.linear.zerosize
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createLinearGradient(50, 25, 50, 25); // zero-length line (undefined direction)
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.rect(0, 0, 100, 50);
+    ctx.fill();
+    @assert pixel 40,20 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.interpolate.zerosize.stroke
+  testing:
+  - 2d.gradient.linear.zerosize
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createLinearGradient(50, 25, 50, 25); // zero-length line (undefined direction)
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.strokeStyle = g;
+    ctx.rect(20, 20, 60, 10);
+    ctx.stroke();
+    @assert pixel 19,19 == 0,255,0,255;
+    @assert pixel 20,19 == 0,255,0,255;
+    @assert pixel 21,19 == 0,255,0,255;
+    @assert pixel 19,20 == 0,255,0,255;
+    @assert pixel 20,20 == 0,255,0,255;
+    @assert pixel 21,20 == 0,255,0,255;
+    @assert pixel 19,21 == 0,255,0,255;
+    @assert pixel 20,21 == 0,255,0,255;
+    @assert pixel 21,21 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.interpolate.zerosize.fillRect
+  testing:
+  - 2d.gradient.linear.zerosize
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createLinearGradient(50, 25, 50, 25); // zero-length line (undefined direction)
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 40,20 == 0,255,0,255; @moz-todo
+    t.done();
+
+- name: 2d.gradient.interpolate.zerosize.strokeRect
+  testing:
+  - 2d.gradient.linear.zerosize
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createLinearGradient(50, 25, 50, 25); // zero-length line (undefined direction)
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.strokeStyle = g;
+    ctx.strokeRect(20, 20, 60, 10);
+    @assert pixel 19,19 == 0,255,0,255;
+    @assert pixel 20,19 == 0,255,0,255;
+    @assert pixel 21,19 == 0,255,0,255;
+    @assert pixel 19,20 == 0,255,0,255;
+    @assert pixel 20,20 == 0,255,0,255;
+    @assert pixel 21,20 == 0,255,0,255;
+    @assert pixel 19,21 == 0,255,0,255;
+    @assert pixel 20,21 == 0,255,0,255;
+    @assert pixel 21,21 == 0,255,0,255;
+    t.done();
+
+
+- name: 2d.gradient.interpolate.vertical
+  testing:
+  - 2d.gradient.interpolate.linear
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 0, 50);
+    g.addColorStop(0, '#ff0');
+    g.addColorStop(1, '#00f');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,12 ==~ 191,191,63,255 +/- 10;
+    @assert pixel 50,25 ==~ 127,127,127,255 +/- 5;
+    @assert pixel 50,37 ==~ 63,63,191,255 +/- 10;
+    t.done();
+
+- name: 2d.gradient.interpolate.multiple
+  testing:
+  - 2d.gradient.interpolate.linear
+  code: |
+    offscreenCanvas.width = 200;
+    var g = ctx.createLinearGradient(0, 0, 200, 0);
+    g.addColorStop(0, '#ff0');
+    g.addColorStop(0.5, '#0ff');
+    g.addColorStop(1, '#f0f');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 200, 50);
+    @assert pixel 50,25 ==~ 127,255,127,255 +/- 3;
+    @assert pixel 100,25 ==~ 0,255,255,255 +/- 3;
+    @assert pixel 150,25 ==~ 127,127,255,255 +/- 3;
+    t.done();
+
+- name: 2d.gradient.interpolate.overlap
+  testing:
+  - 2d.gradient.interpolate.overlap
+  code: |
+    offscreenCanvas.width = 200;
+    var g = ctx.createLinearGradient(0, 0, 200, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(0, '#ff0');
+    g.addColorStop(0.25, '#00f');
+    g.addColorStop(0.25, '#0f0');
+    g.addColorStop(0.25, '#0f0');
+    g.addColorStop(0.25, '#0f0');
+    g.addColorStop(0.25, '#ff0');
+    g.addColorStop(0.5, '#00f');
+    g.addColorStop(0.5, '#0f0');
+    g.addColorStop(0.75, '#00f');
+    g.addColorStop(0.75, '#f00');
+    g.addColorStop(0.75, '#ff0');
+    g.addColorStop(0.5, '#0f0');
+    g.addColorStop(0.5, '#0f0');
+    g.addColorStop(0.5, '#ff0');
+    g.addColorStop(1, '#00f');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 200, 50);
+    @assert pixel 49,25 ==~ 0,0,255,255 +/- 16;
+    @assert pixel 51,25 ==~ 255,255,0,255 +/- 16;
+    @assert pixel 99,25 ==~ 0,0,255,255 +/- 16;
+    @assert pixel 101,25 ==~ 255,255,0,255 +/- 16;
+    @assert pixel 149,25 ==~ 0,0,255,255 +/- 16;
+    @assert pixel 151,25 ==~ 255,255,0,255 +/- 16;
+    t.done();
+
+- name: 2d.gradient.interpolate.overlap2
+  testing:
+  - 2d.gradient.interpolate.overlap
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    var ps = [ 0, 1/10, 1/4, 1/3, 1/2, 3/4, 1 ];
+    for (var p = 0; p < ps.length; ++p)
+    {
+            g.addColorStop(ps[p], '#0f0');
+            for (var i = 0; i < 15; ++i)
+                    g.addColorStop(ps[p], '#f00');
+            g.addColorStop(ps[p], '#0f0');
+    }
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 30,25 == 0,255,0,255;
+    @assert pixel 40,25 == 0,255,0,255;
+    @assert pixel 60,25 == 0,255,0,255;
+    @assert pixel 80,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.empty
+  testing:
+  - 2d.gradient.empty
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createLinearGradient(0, 0, 0, 50);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.object.update
+  testing:
+  - 2d.gradient.update
+  code: |
+    var g = ctx.createLinearGradient(-100, 0, 200, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    g.addColorStop(0.1, '#0f0');
+    g.addColorStop(0.9, '#0f0');
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.object.compare
+  testing:
+  - 2d.gradient.object
+  code: |
+    var g1 = ctx.createLinearGradient(0, 0, 100, 0);
+    var g2 = ctx.createLinearGradient(0, 0, 100, 0);
+    @assert g1 !== g2;
+    ctx.fillStyle = g1;
+    @assert ctx.fillStyle === g1;
+    t.done();
+
+- name: 2d.gradient.object.crosscanvas
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var g = offscreenCanvas2.getContext('2d').createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 ==~ 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.object.invalidoffset
+  testing:
+  - 2d.gradient.invalidoffset
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    @assert throws INDEX_SIZE_ERR g.addColorStop(-1, '#000');
+    @assert throws INDEX_SIZE_ERR g.addColorStop(2, '#000');
+    @assert throws TypeError g.addColorStop(Infinity, '#000');
+    @assert throws TypeError g.addColorStop(-Infinity, '#000');
+    @assert throws TypeError g.addColorStop(NaN, '#000');
+    t.done();
+
+- name: 2d.gradient.object.invalidcolour
+  testing:
+  - 2d.gradient.invalidcolour
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    @assert throws SYNTAX_ERR g.addColorStop(0, "");
+    @assert throws SYNTAX_ERR g.addColorStop(0, 'null');
+    @assert throws SYNTAX_ERR g.addColorStop(0, 'undefined');
+    @assert throws SYNTAX_ERR g.addColorStop(0, null);
+    @assert throws SYNTAX_ERR g.addColorStop(0, undefined);
+    t.done();
+
+- name: 2d.gradient.linear.nonfinite
+  desc: createLinearGradient() throws TypeError if arguments are not finite
+  testing:
+  - 2d.gradient.linear.nonfinite
+  code: |
+    @nonfinite @assert throws TypeError ctx.createLinearGradient(<0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <1 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>);
+    t.done();
+
+- name: 2d.gradient.linear.transform.1
+  desc: Linear gradient coordinates are relative to the coordinate space at the time
+    of filling
+  testing:
+  - 2d.gradient.linear.transform
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 200, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(0.25, '#0f0');
+    g.addColorStop(0.75, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.translate(-50, 0);
+    ctx.fillRect(50, 0, 100, 50);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.linear.transform.2
+  desc: Linear gradient coordinates are relative to the coordinate space at the time
+    of filling
+  testing:
+  - 2d.gradient.linear.transform
+  code: |
+    ctx.translate(100, 0);
+    var g = ctx.createLinearGradient(0, 0, 200, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(0.25, '#0f0');
+    g.addColorStop(0.75, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.translate(-150, 0);
+    ctx.fillRect(50, 0, 100, 50);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.linear.transform.3
+  desc: Linear gradient transforms do not experience broken caching effects
+  testing:
+  - 2d.gradient.linear.transform
+  code: |
+    var g = ctx.createLinearGradient(0, 0, 200, 0);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(0.25, '#0f0');
+    g.addColorStop(0.75, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.translate(-50, 0);
+    ctx.fillRect(50, 0, 100, 50);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.negative
+  desc: createRadialGradient() throws INDEX_SIZE_ERR if either radius is negative
+  testing:
+  - 2d.gradient.radial.negative
+  code: |
+    @assert throws INDEX_SIZE_ERR ctx.createRadialGradient(0, 0, -0.1, 0, 0, 1);
+    @assert throws INDEX_SIZE_ERR ctx.createRadialGradient(0, 0, 1, 0, 0, -0.1);
+    @assert throws INDEX_SIZE_ERR ctx.createRadialGradient(0, 0, -0.1, 0, 0, -0.1);
+    t.done();
+- name: 2d.gradient.radial.nonfinite
+
+  desc: createRadialGradient() throws TypeError if arguments are not finite
+  testing:
+  - 2d.gradient.radial.nonfinite
+  code: |
+    @nonfinite @assert throws TypeError ctx.createRadialGradient(<0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <1 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <0 Infinity -Infinity NaN>, <1 Infinity -Infinity NaN>);
+    t.done();
+
+- name: 2d.gradient.radial.inside1
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(50, 25, 100, 50, 25, 200);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.inside2
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(50, 25, 200, 50, 25, 100);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.inside3
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(50, 25, 200, 50, 25, 100);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(0.993, '#f00');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.outside1
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(200, 25, 10, 200, 25, 20);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.outside2
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(200, 25, 20, 200, 25, 10);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.outside3
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(200, 25, 20, 200, 25, 10);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(0.001, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.touch1
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(150, 25, 50, 200, 25, 100);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255; @moz-todo
+    @assert pixel 50,1 == 0,255,0,255; @moz-todo
+    @assert pixel 98,1 == 0,255,0,255; @moz-todo
+    @assert pixel 1,25 == 0,255,0,255; @moz-todo
+    @assert pixel 50,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 == 0,255,0,255; @moz-todo
+    @assert pixel 1,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 == 0,255,0,255; @moz-todo
+    @assert pixel 98,48 == 0,255,0,255; @moz-todo
+    t.done();
+
+- name: 2d.gradient.radial.touch2
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(-80, 25, 70, 0, 25, 150);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(0.01, '#0f0');
+    g.addColorStop(0.99, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.touch3
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(120, -15, 25, 140, -30, 50);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255; @moz-todo
+    @assert pixel 50,1 == 0,255,0,255; @moz-todo
+    @assert pixel 98,1 == 0,255,0,255; @moz-todo
+    @assert pixel 1,25 == 0,255,0,255; @moz-todo
+    @assert pixel 50,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 == 0,255,0,255; @moz-todo
+    @assert pixel 1,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 == 0,255,0,255; @moz-todo
+    @assert pixel 98,48 == 0,255,0,255; @moz-todo
+    t.done();
+
+- name: 2d.gradient.radial.equal
+  testing:
+  - 2d.gradient.radial.equal
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(50, 25, 20, 50, 25, 20);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255; @moz-todo
+    @assert pixel 50,1 == 0,255,0,255; @moz-todo
+    @assert pixel 98,1 == 0,255,0,255; @moz-todo
+    @assert pixel 1,25 == 0,255,0,255; @moz-todo
+    @assert pixel 50,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 == 0,255,0,255; @moz-todo
+    @assert pixel 1,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 == 0,255,0,255; @moz-todo
+    @assert pixel 98,48 == 0,255,0,255; @moz-todo
+    t.done();
+
+- name: 2d.gradient.radial.cone.behind
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(120, 25, 10, 211, 25, 100);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255; @moz-todo
+    @assert pixel 50,1 == 0,255,0,255; @moz-todo
+    @assert pixel 98,1 == 0,255,0,255; @moz-todo
+    @assert pixel 1,25 == 0,255,0,255; @moz-todo
+    @assert pixel 50,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 == 0,255,0,255; @moz-todo
+    @assert pixel 1,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 == 0,255,0,255; @moz-todo
+    @assert pixel 98,48 == 0,255,0,255; @moz-todo
+    t.done();
+
+- name: 2d.gradient.radial.cone.front
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(311, 25, 10, 210, 25, 100);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.cone.bottom
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(210, 25, 100, 230, 25, 101);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.cone.top
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(230, 25, 100, 100, 25, 101);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.cone.beside
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(0, 100, 40, 100, 100, 50);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255; @moz-todo
+    @assert pixel 50,1 == 0,255,0,255; @moz-todo
+    @assert pixel 98,1 == 0,255,0,255; @moz-todo
+    @assert pixel 1,25 == 0,255,0,255; @moz-todo
+    @assert pixel 50,25 == 0,255,0,255; @moz-todo
+    @assert pixel 98,25 == 0,255,0,255; @moz-todo
+    @assert pixel 1,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 == 0,255,0,255; @moz-todo
+    @assert pixel 98,48 == 0,255,0,255; @moz-todo
+    t.done();
+
+- name: 2d.gradient.radial.cone.cylinder
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(210, 25, 100, 230, 25, 100);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.cone.shape1
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    var tol = 1; // tolerance to avoid antialiasing artifacts
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.beginPath();
+    ctx.moveTo(30+tol, 40);
+    ctx.lineTo(110, -20+tol);
+    ctx.lineTo(110, 100-tol);
+    ctx.fill();
+    var g = ctx.createRadialGradient(30+10*5/2, 40, 10*3/2, 30+10*15/4, 40, 10*9/4);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#0f0');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.cone.shape2
+  testing:
+  - 2d.gradient.radial.rendering
+  code: |
+    var tol = 1; // tolerance to avoid antialiasing artifacts
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var g = ctx.createRadialGradient(30+10*5/2, 40, 10*3/2, 30+10*15/4, 40, 10*9/4);
+    g.addColorStop(0, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.beginPath();
+    ctx.moveTo(30-tol, 40);
+    ctx.lineTo(110, -20-tol);
+    ctx.lineTo(110, 100+tol);
+    ctx.fill();
+    @assert pixel 1,1 == 0,255,0,255; @moz-todo
+    @assert pixel 50,1 == 0,255,0,255; @moz-todo
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255; @moz-todo
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255; @moz-todo
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.transform.1
+  desc: Radial gradient coordinates are relative to the coordinate space at the time
+    of filling
+  testing:
+  - 2d.gradient.radial.transform
+  code: |
+    var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 11.2);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(0.5, '#0f0');
+    g.addColorStop(0.51, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.translate(50, 25);
+    ctx.scale(10, 10);
+    ctx.fillRect(-5, -2.5, 10, 5);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.transform.2
+  desc: Radial gradient coordinates are relative to the coordinate space at the time
+    of filling
+  testing:
+  - 2d.gradient.radial.transform
+  code: |
+    ctx.translate(100, 0);
+    var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 11.2);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(0.5, '#0f0');
+    g.addColorStop(0.51, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.translate(-50, 25);
+    ctx.scale(10, 10);
+    ctx.fillRect(-5, -2.5, 10, 5);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.gradient.radial.transform.3
+  desc: Radial gradient transforms do not experience broken caching effects
+  testing:
+  - 2d.gradient.radial.transform
+  code: |
+    var g = ctx.createRadialGradient(0, 0, 0, 0, 0, 11.2);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(0.5, '#0f0');
+    g.addColorStop(0.51, '#f00');
+    g.addColorStop(1, '#f00');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.translate(50, 25);
+    ctx.scale(10, 10);
+    ctx.fillRect(-5, -2.5, 10, 5);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    t.done();
+
+- name: 2d.pattern.basic.image
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.basic.canvas
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+    var pattern = ctx.createPattern(offscreenCanvas2, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 50,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 98,25 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 50,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.pattern.basic.zerocanvas
+  testing:
+  - 2d.pattern.zerocanvas
+  code: |
+    offscreenCanvas.width = 0;
+    offscreenCanvas.height = 10;
+    @assert offscreenCanvas.width === 0;
+    @assert offscreenCanvas.height === 10;
+    @assert throws INVALID_STATE_ERR ctx.createPattern(offscreenCanvas, 'repeat');
+    offscreenCanvas.width = 10;
+    offscreenCanvas.height = 0;
+    @assert offscreenCanvas.width === 10;
+    @assert offscreenCanvas.height === 0;
+    @assert throws INVALID_STATE_ERR ctx.createPattern(offscreenCanvas, 'repeat');
+    offscreenCanvas.width = 0;
+    offscreenCanvas.height = 0;
+    @assert offscreenCanvas.width === 0;
+    @assert offscreenCanvas.height === 0;
+    @assert throws INVALID_STATE_ERR ctx.createPattern(offscreenCanvas, 'repeat');
+    t.done();
+
+- name: 2d.pattern.basic.nocontext
+  testing:
+  - 2d.pattern.painting
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var pattern = ctx.createPattern(offscreenCanvas2, 'no-repeat');
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.pattern.image.undefined
+  testing:
+  - 2d.pattern.IDL
+  code: |
+    @assert throws TypeError ctx.createPattern(undefined, 'repeat');
+    t.done();
+
+- name: 2d.pattern.image.null
+  testing:
+  - 2d.pattern.IDL
+  code: |
+    @assert throws TypeError ctx.createPattern(null, 'repeat');
+    t.done();
+
+- name: 2d.pattern.image.string
+  testing:
+  - 2d.pattern.IDL
+  code: |
+    @assert throws TypeError ctx.createPattern('../images/red.png', 'repeat');
+    t.done();
+
+- name: 2d.pattern.repeat.empty
+  testing:
+  - 2d.pattern.missing
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green-1x1.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, "");
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 200, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.repeat.null
+  testing:
+  - 2d.pattern.unrecognised
+  code: |
+    @assert ctx.createPattern(offscreenCanvas, null) != null;
+    t.done();
+
+- name: 2d.pattern.repeat.undefined
+  testing:
+  - 2d.pattern.unrecognised
+  code: |
+    @assert throws SYNTAX_ERR ctx.createPattern(offscreenCanvas, undefined);
+    t.done();
+
+- name: 2d.pattern.repeat.unrecognised
+  testing:
+  - 2d.pattern.unrecognised
+  code: |
+    @assert throws SYNTAX_ERR ctx.createPattern(offscreenCanvas, "invalid");
+    t.done();
+
+- name: 2d.pattern.repeat.unrecognisednull
+  testing:
+  - 2d.pattern.unrecognised
+  code: |
+    @assert throws SYNTAX_ERR ctx.createPattern(offscreenCanvas, "null");
+    t.done();
+
+- name: 2d.pattern.repeat.case
+  testing:
+  - 2d.pattern.exact
+  code: |
+    @assert throws SYNTAX_ERR ctx.createPattern(offscreenCanvas, "Repeat");
+    t.done();
+
+- name: 2d.pattern.repeat.nullsuffix
+  testing:
+  - 2d.pattern.exact
+  code: |
+    @assert throws SYNTAX_ERR ctx.createPattern(offscreenCanvas, "repeat\0");
+    t.done();
+
+- name: 2d.pattern.modify.canvas1
+  testing:
+  - 2d.pattern.modify
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+    var pattern = ctx.createPattern(offscreenCanvas2, 'no-repeat');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.pattern.modify.canvas2
+  testing:
+  - 2d.pattern.modify
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 0, 100, 50);
+    var pattern = ctx.createPattern(offscreenCanvas2, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+
+- name: 2d.pattern.crosscanvas
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+            var pattern = offscreenCanvas2.getContext('2d').createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 50,25 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.norepeat.basic
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.norepeat.outside
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, -50, 100, 50);
+            ctx.fillRect(-100, 0, 100, 50);
+            ctx.fillRect(0, 50, 100, 50);
+            ctx.fillRect(100, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.norepeat.coord1
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 50, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(50, 0, 50, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.translate(50, 0);
+            ctx.fillRect(-50, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.norepeat.coord2
+  testing:
+  - 2d.pattern.painting
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 50, 50);
+            ctx.fillStyle = '#f00';
+            ctx.fillRect(50, 0, 50, 50);
+            ctx.fillStyle = pattern;
+            ctx.translate(50, 0);
+            ctx.fillRect(-50, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.norepeat.coord3
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.translate(50, 25);
+            ctx.fillRect(-50, -25, 100, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 50, 25);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.repeat.basic
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green-16x16.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.repeat.outside
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green-16x16.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.translate(50, 25);
+            ctx.fillRect(-50, -25, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.repeat.coord1
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/rgrg-256x256.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.translate(-128, -78);
+            ctx.fillRect(128, 78, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.repeat.coord2
+  testing:
+  - 2d.pattern.painting
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/grgr-256x256.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.repeat.coord3
+  testing:
+  - 2d.pattern.painting
+  code: |
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/rgrg-256x256.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.translate(-128, -78);
+            ctx.fillRect(128, 78, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.repeatx.basic
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 16);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green-16x16.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat-x');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.repeatx.outside
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red-16x16.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat-x');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 16);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.repeatx.coord1
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red-16x16.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat-x');
+            ctx.fillStyle = pattern;
+            ctx.translate(0, 16);
+            ctx.fillRect(0, -16, 100, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 16);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,25 == 0,255,0,255;
+            @assert pixel 98,25 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.repeaty.basic
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 16, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/green-16x16.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat-y');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.repeaty.outside
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red-16x16.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat-y');
+            ctx.fillStyle = pattern;
+            ctx.fillRect(0, 0, 100, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 16, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.repeaty.coord1
+  testing:
+  - 2d.pattern.painting
+  images:
+  - red-16x16.png
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/red-16x16.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'repeat-y');
+            ctx.fillStyle = pattern;
+            ctx.translate(48, 0);
+            ctx.fillRect(-48, 0, 100, 50);
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 16, 50);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 50,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 50,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.orientation.image
+  desc: Image patterns do not get flipped when painted
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var promise = new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", '/images/rrgg-256x256.png');
+        xhr.responseType = 'blob';
+        xhr.send();
+        xhr.onload = function() {
+            resolve(xhr.response);
+        };
+    });
+    promise.then(function(response) {
+        createImageBitmap(response).then(bitmap => {
+            var pattern = ctx.createPattern(bitmap, 'no-repeat');
+            ctx.fillStyle = pattern;
+            ctx.save();
+            ctx.translate(0, -103);
+            ctx.fillRect(0, 103, 100, 50);
+            ctx.restore();
+            ctx.fillStyle = '#0f0';
+            ctx.fillRect(0, 0, 100, 25);
+            @assert pixel 1,1 == 0,255,0,255;
+            @assert pixel 98,1 == 0,255,0,255;
+            @assert pixel 1,48 == 0,255,0,255;
+            @assert pixel 98,48 == 0,255,0,255;
+        }, t_fail);
+    }).then(t_pass, t_fail);
+
+- name: 2d.pattern.paint.orientation.canvas
+  desc: Canvas patterns do not get flipped when painted
+  testing:
+  - 2d.pattern.painting
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var ctx2 = offscreenCanvas2.getContext('2d');
+    ctx2.fillStyle = '#f00';
+    ctx2.fillRect(0, 0, 100, 25);
+    ctx2.fillStyle = '#0f0';
+    ctx2.fillRect(0, 25, 100, 25);
+    var pattern = ctx.createPattern(offscreenCanvas2, 'no-repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 25);
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+    t.done();
+

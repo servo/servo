@@ -294,7 +294,12 @@ class Request(object):
     @property
     def GET(self):
         if self._GET is None:
-            params = parse_qsl(self.url_parts.query, keep_blank_values=True)
+            kwargs = {
+                "keep_blank_values": True,
+            }
+            if PY3:
+                kwargs["encoding"] = "iso-8859-1"
+            params = parse_qsl(self.url_parts.query, **kwargs)
             self._GET = MultiDict()
             for key, value in params:
                 self._GET.add(isomorphic_encode(key), isomorphic_encode(value))

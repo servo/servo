@@ -211,6 +211,415 @@ const instanceTestFactory = [
   ],
 
   [
+    "i64 exports and imports",
+    function() {
+      const value = 102n;
+
+      const builder = new WasmModuleBuilder();
+
+      const index = builder.addImportedGlobal("module", "global", kWasmI64);
+      builder
+        .addFunction("fn", kSig_l_v)
+        .addBody([
+            kExprGlobalGet,
+            index,
+            kExprReturn,
+        ])
+        .exportFunc();
+
+      const index2 = builder.addImportedGlobal("module", "global2", kWasmI64);
+      builder.addExportOfKind("global", kExternalGlobal, index2);
+
+      const buffer = builder.toBuffer();
+
+      const imports = {
+        "module": {
+          "global": value,
+          "global2": 2n ** 63n,
+        },
+      };
+
+      const exports = {
+        "fn": { "kind": "function", "name": "0", "length": 0 },
+        "global": { "kind": "global", "value": -(2n ** 63n) },
+      };
+
+      return {
+        buffer,
+        args: [imports],
+        exports,
+        verify: instance => assert_equals(instance.exports.fn(), value)
+      };
+    }
+  ],
+
+  [
+    "import with i32-returning function",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      const fnIndex = builder.addImport("module", "fn", kSig_i_v);
+      const fn2 = builder
+        .addFunction("fn2", kSig_v_v)
+        .addBody([
+            kExprCallFunction,
+            fnIndex,
+            kExprReturn,
+        ])
+        .exportFunc();
+
+      const buffer = builder.toBuffer();
+
+      let called = false;
+      const imports = {
+        "module": {
+          "fn": function() {
+            called = true;
+            return 6n;
+          },
+        },
+      };
+
+      return {
+        buffer,
+        args: [imports],
+        exports: {
+          "fn2": { "kind": "function", "name": String(fn2.index), "length": 0 },
+        },
+        verify: instance => {
+          assert_throws_js(TypeError, () => instance.exports.fn2());
+          assert_true(called, "Should have called into JS");
+        }
+      };
+    }
+  ],
+
+  [
+    "import with function that takes and returns i32",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      const fnIndex = builder.addImport("module", "fn", kSig_i_i);
+      const fn2 = builder
+        .addFunction("fn2", kSig_i_v)
+        .addBody([
+            kExprI32Const, 0x66,
+            kExprCallFunction,
+            fnIndex,
+            kExprReturn,
+        ])
+        .exportFunc();
+
+      const buffer = builder.toBuffer();
+
+      let called = false;
+      const imports = {
+        "module": {
+          "fn": function(n) {
+            called = true;
+            assert_equals(n, -26);
+            return { valueOf() { return 6; } };
+          },
+        },
+      };
+
+      return {
+        buffer,
+        args: [imports],
+        exports: {
+          "fn2": { "kind": "function", "name": String(fn2.index), "length": 0 },
+        },
+        verify: instance => {
+          assert_equals(instance.exports.fn2(), 6);
+          assert_true(called, "Should have called into JS");
+        }
+      };
+    }
+  ],
+
+  [
+    "import with i64-returning function",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      const fnIndex = builder.addImport("module", "fn", kSig_l_v);
+      const fn2 = builder
+        .addFunction("fn2", kSig_v_v)
+        .addBody([
+            kExprCallFunction,
+            fnIndex,
+            kExprReturn,
+        ])
+        .exportFunc();
+
+      const buffer = builder.toBuffer();
+
+      let called = false;
+      const imports = {
+        "module": {
+          "fn": function() {
+            called = true;
+            return 6;
+          },
+        },
+      };
+
+      return {
+        buffer,
+        args: [imports],
+        exports: {
+          "fn2": { "kind": "function", "name": String(fn2.index), "length": 0 },
+        },
+        verify: instance => {
+          assert_throws_js(TypeError, () => instance.exports.fn2());
+          assert_true(called, "Should have called into JS");
+        }
+      };
+    }
+  ],
+
+  [
+    "import with function that takes and returns i64",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      const fnIndex = builder.addImport("module", "fn", kSig_l_l);
+      const fn2 = builder
+        .addFunction("fn2", kSig_l_v)
+        .addBody([
+            kExprI64Const, 0x66,
+            kExprCallFunction,
+            fnIndex,
+            kExprReturn,
+        ])
+        .exportFunc();
+
+      const buffer = builder.toBuffer();
+
+      let called = false;
+      const imports = {
+        "module": {
+          "fn": function(n) {
+            called = true;
+            assert_equals(n, -26n);
+            return { valueOf() { return 6n; } };
+          },
+        },
+      };
+
+      return {
+        buffer,
+        args: [imports],
+        exports: {
+          "fn2": { "kind": "function", "name": String(fn2.index), "length": 0 },
+        },
+        verify: instance => {
+          assert_equals(instance.exports.fn2(), 6n);
+          assert_true(called, "Should have called into JS");
+        }
+      };
+    }
+  ],
+
+  [
+    "import with i32-taking function",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      const fn = builder
+        .addFunction("fn", kSig_v_i)
+        .addBody([
+            kExprReturn,
+        ])
+        .exportFunc();
+
+      const buffer = builder.toBuffer();
+
+      return {
+        buffer,
+        args: [],
+        exports: {
+          "fn": { "kind": "function", "name": String(fn.index), "length": 1 },
+        },
+        verify: instance => assert_throws_js(TypeError, () => instance.exports.fn(6n))
+      };
+    }
+  ],
+
+  [
+    "import with i64-taking function",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      const fn = builder
+        .addFunction("fn", kSig_v_l)
+        .addBody([
+            kExprReturn,
+        ])
+        .exportFunc();
+
+      const buffer = builder.toBuffer();
+
+      return {
+        buffer,
+        args: [],
+        exports: {
+          "fn": { "kind": "function", "name": String(fn.index), "length": 1 },
+        },
+        verify: instance => assert_throws_js(TypeError, () => instance.exports.fn(6))
+      };
+    }
+  ],
+
+  [
+    "export i64-returning function",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      const fn = builder
+        .addFunction("fn", kSig_l_v)
+        .addBody([
+            kExprI64Const, 0x66,
+            kExprReturn,
+        ])
+        .exportFunc();
+
+      const buffer = builder.toBuffer();
+
+      return {
+        buffer,
+        args: [],
+        exports: {
+          "fn": { "kind": "function", "name": String(fn.index), "length": 0 },
+        },
+        verify: instance => assert_equals(instance.exports.fn(), -26n)
+      };
+    }
+  ],
+
+  [
+    "i32 mutable WebAssembly.Global import",
+    function() {
+      const initial = 102;
+      const value = new WebAssembly.Global({ "value": "i32", "mutable": true }, initial);
+
+      const builder = new WasmModuleBuilder();
+
+      const index = builder.addImportedGlobal("module", "global", kWasmI32, true);
+      const fn = builder
+        .addFunction("fn", kSig_i_v)
+        .addBody([
+            kExprGlobalGet,
+            index,
+            kExprReturn,
+        ])
+        .exportFunc();
+
+      const buffer = builder.toBuffer();
+
+      const imports = {
+        "module": {
+          "global": value,
+        },
+      };
+
+      const exports = {
+        "fn": { "kind": "function", "name": String(fn.index), "length": 0 },
+      };
+
+      return {
+        buffer,
+        args: [imports],
+        exports,
+        verify: instance => {
+          assert_equals(instance.exports.fn(), initial);
+          const after = 201;
+          value.value = after;
+          assert_equals(instance.exports.fn(), after);
+        }
+      };
+    }
+  ],
+
+  [
+    "i64 mutable WebAssembly.Global import",
+    function() {
+      const initial = 102n;
+      const value = new WebAssembly.Global({ "value": "i64", "mutable": true }, initial);
+
+      const builder = new WasmModuleBuilder();
+
+      const index = builder.addImportedGlobal("module", "global", kWasmI64, true);
+      const fn = builder
+        .addFunction("fn", kSig_l_v)
+        .addBody([
+            kExprGlobalGet,
+            index,
+            kExprReturn,
+        ])
+        .exportFunc();
+
+      const buffer = builder.toBuffer();
+
+      const imports = {
+        "module": {
+          "global": value,
+        },
+      };
+
+      const exports = {
+        "fn": { "kind": "function", "name": String(fn.index), "length": 0 },
+      };
+
+      return {
+        buffer,
+        args: [imports],
+        exports,
+        verify: instance => {
+          assert_equals(instance.exports.fn(), initial);
+          const after = 201n;
+          value.value = after;
+          assert_equals(instance.exports.fn(), after);
+        }
+      };
+    }
+  ],
+
+  [
+    "Multiple i64 arguments",
+    function() {
+      const builder = new WasmModuleBuilder();
+
+      const fn = builder
+          .addFunction("fn", kSig_l_ll)
+          .addBody([
+              kExprLocalGet, 1,
+          ])
+          .exportFunc();
+
+      const buffer = builder.toBuffer();
+
+      const exports = {
+        "fn": { "kind": "function", "name": String(fn.index), "length": 2 },
+      };
+
+      return {
+        buffer,
+        args: [],
+        exports,
+        verify: instance => {
+          const fn = instance.exports.fn;
+          assert_equals(fn(1n, 0n), 0n);
+          assert_equals(fn(1n, 123n), 123n);
+          assert_equals(fn(1n, -123n), -123n);
+          assert_equals(fn(1n, "5"), 5n);
+          assert_throws_js(TypeError, () => fn(1n, 5));
+        }
+      };
+    }
+  ],
+
+  [
     "stray argument",
     function() {
       return {

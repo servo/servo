@@ -1,0 +1,318 @@
+- name: 2d.canvas.reference
+  desc: canvas refers back to its canvas
+  testing:
+  - 2d.canvas
+  code: |
+    @assert ctx.canvas === offscreenCanvas;
+    t.done();
+
+- name: 2d.canvas.readonly
+  desc: canvas is readonly
+  testing:
+  - 2d.canvas.attribute
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    var d = ctx.canvas;
+    @assert offscreenCanvas2 !== d;
+    ctx.canvas = offscreenCanvas2;
+    @assert ctx.canvas === d;
+    t.done();
+
+- name: 2d.getcontext.exists
+  desc: The 2D context is implemented
+  testing:
+  - context.2d
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    @assert offscreenCanvas2.getContext('2d') !== null;
+    t.done();
+
+- name: 2d.getcontext.extraargs
+  desc: The 2D context ignores extra getContext arguments
+  testing:
+  - context.2d.extraargs
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    @assert offscreenCanvas2.getContext('2d', false, {}, [], 1, "2") !== null;
+    @assert offscreenCanvas2.getContext('2d', 123) !== null;
+    @assert offscreenCanvas2.getContext('2d', "test") !== null;
+    @assert offscreenCanvas2.getContext('2d', undefined) !== null;
+    @assert offscreenCanvas2.getContext('2d', null) !== null;
+    @assert offscreenCanvas2.getContext('2d', Symbol.hasInstance) !== null;
+    t.done();
+
+- name: 2d.getcontext.unique
+  desc: getContext('2d') returns the same object
+  testing:
+  - context.unique
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    @assert offscreenCanvas2.getContext('2d') === offscreenCanvas2.getContext('2d');
+    t.done();
+
+- name: 2d.getcontext.shared
+  desc: getContext('2d') returns objects which share canvas state
+  testing:
+  - context.unique
+  code: |
+    var ctx2 = offscreenCanvas.getContext('2d');
+    ctx.fillStyle = '#f00';
+    ctx2.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: context.emptystring
+  desc: getContext with empty string returns null
+  testing:
+  - context.unrecognised
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    @assert throws TypeError offscreenCanvas2.getContext("");
+    t.done();
+
+- name: context.unrecognised.badname
+  desc: getContext with unrecognised context name returns null
+  testing:
+  - context.unrecognised
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    @assert throws TypeError offscreenCanvas2.getContext('This is not an implemented context in any real browser');
+    t.done();
+
+- name: context.unrecognised.badsuffix
+  desc: Context name "2d" plus a suffix is unrecognised
+  testing:
+  - context.unrecognised
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    @assert throws TypeError offscreenCanvas2.getContext("2d#");
+    t.done();
+
+- name: context.unrecognised.nullsuffix
+  desc: Context name "2d" plus a "\0" suffix is unrecognised
+  testing:
+  - context.unrecognised
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    @assert throws TypeError offscreenCanvas2.getContext("2d\0");
+    t.done();
+
+- name: context.unrecognised.unicode
+  desc: Context name which kind of looks like "2d" is unrecognised
+  testing:
+  - context.unrecognised
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    @assert throws TypeError offscreenCanvas2.getContext("2\uFF44");
+    t.done();
+
+- name: context.casesensitive
+  desc: Context name "2D" is unrecognised; matching is case sensitive
+  testing:
+  - context.unrecognised
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    @assert throws TypeError offscreenCanvas2.getContext('2D');
+    t.done();
+
+- name: context.arguments.missing
+  testing:
+  - canvas.getContext
+  code: |
+    var offscreenCanvas2 = new OffscreenCanvas(100, 50);
+    @assert throws TypeError offscreenCanvas2.getContext(); @moz-todo
+    t.done();
+
+
+- name: initial.colour
+  desc: Initial state is transparent black
+  testing:
+  - initial.colour
+  code: |
+    @assert pixel 20,20 == 0,0,0,0;
+    t.done();
+
+- name: initial.reset.different
+  desc: Changing size resets canvas to transparent black
+  testing:
+  - initial.reset
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 50, 50);
+    @assert pixel 20,20 == 255,0,0,255;
+    offscreenCanvas.width = 50;
+    @assert pixel 20,20 == 0,0,0,0;
+    t.done();
+
+- name: initial.reset.same
+  desc: Setting size (not changing the value) resets canvas to transparent black
+  testing:
+  - initial.reset
+  code: |
+    offscreenCanvas.width = 100;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 50, 50);
+    @assert pixel 20,20 == 255,0,0,255;
+    offscreenCanvas.width = 100;
+    @assert pixel 20,20 == 0,0,0,0;
+    t.done();
+
+- name: initial.reset.path
+  desc: Resetting the canvas state resets the current path
+  testing:
+  - initial.reset
+  code: |
+    offscreenCanvas.width = 100;
+    ctx.rect(0, 0, 100, 50);
+    offscreenCanvas.width = 100;
+    ctx.fillStyle = '#f00';
+    ctx.fill();
+    @assert pixel 20,20 == 0,0,0,0;
+    t.done();
+
+- name: initial.reset.clip
+  desc: Resetting the canvas state resets the current clip region
+  testing:
+  - initial.reset
+  code: |
+    offscreenCanvas.width = 100;
+    ctx.rect(0, 0, 1, 1);
+    ctx.clip();
+    offscreenCanvas.width = 100;
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 20,20 == 0,255,0,255;
+    t.done();
+
+- name: initial.reset.transform
+  desc: Resetting the canvas state resets the current transformation matrix
+  testing:
+  - initial.reset
+  code: |
+    offscreenCanvas.width = 100;
+    ctx.scale(0.1, 0.1);
+    offscreenCanvas.width = 100;
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 20,20 == 0,255,0,255;
+    t.done();
+
+- name: initial.reset.gradient
+  desc: Resetting the canvas state does not invalidate any existing gradients
+  testing:
+  - initial.reset
+  code: |
+    offscreenCanvas.width = 50;
+    var g = ctx.createLinearGradient(0, 0, 100, 0);
+    g.addColorStop(0, '#0f0');
+    g.addColorStop(1, '#0f0');
+    offscreenCanvas.width = 100;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: initial.reset.pattern
+  desc: Resetting the canvas state does not invalidate any existing patterns
+  testing:
+  - initial.reset
+  code: |
+    offscreenCanvas.width = 30;
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 30, 50);
+    var p = ctx.createPattern(offscreenCanvas, 'repeat-x');
+    offscreenCanvas.width = 100;
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = p;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+    t.done();
+
+- name: size.attributes.idl.set.zero
+  desc: Setting width/height IDL attributes to 0
+  testing:
+  - size.width
+  - size.height
+  code: |
+    offscreenCanvas.width = 0;
+    offscreenCanvas.height = 0;
+    @assert offscreenCanvas.width === 0;
+    @assert offscreenCanvas.height === 0;
+    t.done();
+
+- name: size.attributes.idl
+  desc: Getting/setting width/height IDL attributes
+  testing:
+  - size.width
+  - size.height
+  webidl:
+  - es-unsigned-long
+  code: |
+    offscreenCanvas.width = "100";
+    offscreenCanvas.height = "100";
+    @assert offscreenCanvas.width === 100;
+    @assert offscreenCanvas.height === 100;
+    offscreenCanvas.width = "+1.5e2";
+    offscreenCanvas.height = "0x96";
+    @assert offscreenCanvas.width === 150;
+    @assert offscreenCanvas.height === 150;
+    offscreenCanvas.width = 301.999;
+    offscreenCanvas.height = 301.001;
+    @assert offscreenCanvas.width === 301;
+    @assert offscreenCanvas.height === 301;
+    offscreenCanvas.width = "400x";
+    offscreenCanvas.height = "foo";
+    @assert offscreenCanvas.width === 0;
+    @assert offscreenCanvas.height === 0;
+    t.done();
+
+- name: size.attributes.default
+  desc: Default width/height when attributes are missing
+  testing:
+  - size.default
+  - size.missing
+  code: |
+    @assert offscreenCanvas.width === 100;
+    @assert offscreenCanvas.height === 50;
+    t.done();
+
+- name: size.attributes.reflect.setidl
+  desc: Setting IDL attributes updates IDL and content attributes
+  testing:
+  - size.reflect
+  code: |
+    offscreenCanvas.width = 120;
+    offscreenCanvas.height = 60;
+    @assert offscreenCanvas.width === 120;
+    @assert offscreenCanvas.height === 60;
+    t.done();
+
+- name: size.attributes.reflect.setidlzero
+  desc: Setting IDL attributes to 0 updates IDL and content attributes
+  testing:
+  - size.reflect
+  code: |
+    offscreenCanvas.width = 0;
+    offscreenCanvas.height = 0;
+    @assert offscreenCanvas.width === 0;
+    @assert offscreenCanvas.height === 0;
+    t.done();
+
+- name: size.large
+  testing:
+  - size.width
+  - size.height
+  notes: Not sure how reasonable this is, but the spec doesn't say there's an upper
+    limit on the size.
+  code: |
+    var n = 2147483647; // 2^31 - 1, which should be supported by any sensible definition of "long"
+    offscreenCanvas.width = n;
+    offscreenCanvas.height = n;
+    @assert offscreenCanvas.width === n;
+    @assert offscreenCanvas.height === n;
+    t.done();
+
