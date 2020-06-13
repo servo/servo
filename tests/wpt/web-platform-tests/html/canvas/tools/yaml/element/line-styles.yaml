@@ -1,0 +1,1017 @@
+- name: 2d.line.defaults
+  testing:
+  - 2d.lineWidth.default
+  - 2d.lineCap.default
+  - 2d.lineJoin.default
+  - 2d.miterLimit.default
+  code: |
+    @assert ctx.lineWidth === 1;
+    @assert ctx.lineCap === 'butt';
+    @assert ctx.lineJoin === 'miter';
+    @assert ctx.miterLimit === 10;
+
+- name: 2d.line.width.basic
+  desc: lineWidth determines the width of line strokes
+  testing:
+  - 2d.lineWidth
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineWidth = 20;
+    // Draw a green line over a red box, to check the line is not too small
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+    ctx.fillRect(15, 15, 20, 20);
+    ctx.beginPath();
+    ctx.moveTo(25, 15);
+    ctx.lineTo(25, 35);
+    ctx.stroke();
+
+    // Draw a green box over a red line, to check the line is not too large
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+    ctx.beginPath();
+    ctx.moveTo(75, 15);
+    ctx.lineTo(75, 35);
+    ctx.stroke();
+    ctx.fillRect(65, 15, 20, 20);
+
+    @assert pixel 14,25 == 0,255,0,255;
+    @assert pixel 15,25 == 0,255,0,255;
+    @assert pixel 16,25 == 0,255,0,255;
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 34,25 == 0,255,0,255;
+    @assert pixel 35,25 == 0,255,0,255;
+    @assert pixel 36,25 == 0,255,0,255;
+
+    @assert pixel 64,25 == 0,255,0,255;
+    @assert pixel 65,25 == 0,255,0,255;
+    @assert pixel 66,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    @assert pixel 84,25 == 0,255,0,255;
+    @assert pixel 85,25 == 0,255,0,255;
+    @assert pixel 86,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.width.transformed
+  desc: Line stroke widths are affected by scale transformations
+  testing:
+  - 2d.lineWidth
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineWidth = 4;
+    // Draw a green line over a red box, to check the line is not too small
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+    ctx.fillRect(15, 15, 20, 20);
+    ctx.save();
+     ctx.scale(5, 1);
+     ctx.beginPath();
+     ctx.moveTo(5, 15);
+     ctx.lineTo(5, 35);
+     ctx.stroke();
+    ctx.restore();
+
+    // Draw a green box over a red line, to check the line is not too large
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+    ctx.save();
+     ctx.scale(-5, 1);
+     ctx.beginPath();
+     ctx.moveTo(-15, 15);
+     ctx.lineTo(-15, 35);
+     ctx.stroke();
+    ctx.restore();
+    ctx.fillRect(65, 15, 20, 20);
+
+    @assert pixel 14,25 == 0,255,0,255;
+    @assert pixel 15,25 == 0,255,0,255;
+    @assert pixel 16,25 == 0,255,0,255;
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 34,25 == 0,255,0,255;
+    @assert pixel 35,25 == 0,255,0,255;
+    @assert pixel 36,25 == 0,255,0,255;
+
+    @assert pixel 64,25 == 0,255,0,255;
+    @assert pixel 65,25 == 0,255,0,255;
+    @assert pixel 66,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    @assert pixel 84,25 == 0,255,0,255;
+    @assert pixel 85,25 == 0,255,0,255;
+    @assert pixel 86,25 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.width.scaledefault
+  desc: Default lineWidth strokes are affected by scale transformations
+  testing:
+  - 2d.lineWidth
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.scale(50, 50);
+    ctx.strokeStyle = '#0f0';
+    ctx.moveTo(0, 0.5);
+    ctx.lineTo(2, 0.5);
+    ctx.stroke();
+
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+    @assert pixel 50,5 == 0,255,0,255;
+    @assert pixel 50,45 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.width.valid
+  desc: Setting lineWidth to valid values works
+  testing:
+  - 2d.lineWidth.set
+  - 2d.lineWidth.get
+  code: |
+    ctx.lineWidth = 1.5;
+    @assert ctx.lineWidth === 1.5;
+
+    ctx.lineWidth = "1e1";
+    @assert ctx.lineWidth === 10;
+
+    ctx.lineWidth = 1/1024;
+    @assert ctx.lineWidth === 1/1024;
+
+    ctx.lineWidth = 1000;
+    @assert ctx.lineWidth === 1000;
+
+- name: 2d.line.width.invalid
+  desc: Setting lineWidth to invalid values is ignored
+  testing:
+  - 2d.lineWidth.invalid
+  code: |
+    ctx.lineWidth = 1.5;
+    @assert ctx.lineWidth === 1.5;
+
+    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 0;
+    @assert ctx.lineWidth === 1.5;
+
+    ctx.lineWidth = 1.5;
+    ctx.lineWidth = -1;
+    @assert ctx.lineWidth === 1.5;
+
+    ctx.lineWidth = 1.5;
+    ctx.lineWidth = Infinity;
+    @assert ctx.lineWidth === 1.5;
+
+    ctx.lineWidth = 1.5;
+    ctx.lineWidth = -Infinity;
+    @assert ctx.lineWidth === 1.5;
+
+    ctx.lineWidth = 1.5;
+    ctx.lineWidth = NaN;
+    @assert ctx.lineWidth === 1.5;
+
+    ctx.lineWidth = 1.5;
+    ctx.lineWidth = 'string';
+    @assert ctx.lineWidth === 1.5;
+
+    ctx.lineWidth = 1.5;
+    ctx.lineWidth = true;
+    @assert ctx.lineWidth === 1;
+
+    ctx.lineWidth = 1.5;
+    ctx.lineWidth = false;
+    @assert ctx.lineWidth === 1.5;
+
+- name: 2d.line.cap.butt
+  desc: lineCap 'butt' is rendered correctly
+  testing:
+  - 2d.lineCap.butt
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineCap = 'butt';
+    ctx.lineWidth = 20;
+
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+    ctx.fillRect(15, 15, 20, 20);
+    ctx.beginPath();
+    ctx.moveTo(25, 15);
+    ctx.lineTo(25, 35);
+    ctx.stroke();
+
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+    ctx.beginPath();
+    ctx.moveTo(75, 15);
+    ctx.lineTo(75, 35);
+    ctx.stroke();
+    ctx.fillRect(65, 15, 20, 20);
+
+    @assert pixel 25,14 == 0,255,0,255;
+    @assert pixel 25,15 == 0,255,0,255;
+    @assert pixel 25,16 == 0,255,0,255;
+    @assert pixel 25,34 == 0,255,0,255;
+    @assert pixel 25,35 == 0,255,0,255;
+    @assert pixel 25,36 == 0,255,0,255;
+
+    @assert pixel 75,14 == 0,255,0,255;
+    @assert pixel 75,15 == 0,255,0,255;
+    @assert pixel 75,16 == 0,255,0,255;
+    @assert pixel 75,34 == 0,255,0,255;
+    @assert pixel 75,35 == 0,255,0,255;
+    @assert pixel 75,36 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.cap.round
+  desc: lineCap 'round' is rendered correctly
+  testing:
+  - 2d.lineCap.round
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var tol = 1; // tolerance to avoid antialiasing artifacts
+
+    ctx.lineCap = 'round';
+    ctx.lineWidth = 20;
+
+
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+
+    ctx.beginPath();
+    ctx.moveTo(35-tol, 15);
+    ctx.arc(25, 15, 10-tol, 0, Math.PI, true);
+    ctx.arc(25, 35, 10-tol, Math.PI, 0, true);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(25, 15);
+    ctx.lineTo(25, 35);
+    ctx.stroke();
+
+
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+
+    ctx.beginPath();
+    ctx.moveTo(75, 15);
+    ctx.lineTo(75, 35);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(85+tol, 15);
+    ctx.arc(75, 15, 10+tol, 0, Math.PI, true);
+    ctx.arc(75, 35, 10+tol, Math.PI, 0, true);
+    ctx.fill();
+
+    @assert pixel 17,6 == 0,255,0,255;
+    @assert pixel 25,6 == 0,255,0,255;
+    @assert pixel 32,6 == 0,255,0,255;
+    @assert pixel 17,43 == 0,255,0,255;
+    @assert pixel 25,43 == 0,255,0,255;
+    @assert pixel 32,43 == 0,255,0,255;
+
+    @assert pixel 67,6 == 0,255,0,255;
+    @assert pixel 75,6 == 0,255,0,255;
+    @assert pixel 82,6 == 0,255,0,255;
+    @assert pixel 67,43 == 0,255,0,255;
+    @assert pixel 75,43 == 0,255,0,255;
+    @assert pixel 82,43 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.cap.square
+  desc: lineCap 'square' is rendered correctly
+  testing:
+  - 2d.lineCap.square
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineCap = 'square';
+    ctx.lineWidth = 20;
+
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+    ctx.fillRect(15, 5, 20, 40);
+    ctx.beginPath();
+    ctx.moveTo(25, 15);
+    ctx.lineTo(25, 35);
+    ctx.stroke();
+
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+    ctx.beginPath();
+    ctx.moveTo(75, 15);
+    ctx.lineTo(75, 35);
+    ctx.stroke();
+    ctx.fillRect(65, 5, 20, 40);
+
+    @assert pixel 25,4 == 0,255,0,255;
+    @assert pixel 25,5 == 0,255,0,255;
+    @assert pixel 25,6 == 0,255,0,255;
+    @assert pixel 25,44 == 0,255,0,255;
+    @assert pixel 25,45 == 0,255,0,255;
+    @assert pixel 25,46 == 0,255,0,255;
+
+    @assert pixel 75,4 == 0,255,0,255;
+    @assert pixel 75,5 == 0,255,0,255;
+    @assert pixel 75,6 == 0,255,0,255;
+    @assert pixel 75,44 == 0,255,0,255;
+    @assert pixel 75,45 == 0,255,0,255;
+    @assert pixel 75,46 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.cap.open
+  desc: Line caps are drawn at the corners of an unclosed rectangle
+  testing:
+  - 2d.lineCap.end
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineJoin = 'bevel';
+    ctx.lineCap = 'square';
+    ctx.lineWidth = 400;
+
+    ctx.beginPath();
+    ctx.moveTo(200, 200);
+    ctx.lineTo(200, 1000);
+    ctx.lineTo(1000, 1000);
+    ctx.lineTo(1000, 200);
+    ctx.lineTo(200, 200);
+    ctx.stroke();
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.cap.closed
+  desc: Line caps are not drawn at the corners of an unclosed rectangle
+  testing:
+  - 2d.lineCap.end
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineJoin = 'bevel';
+    ctx.lineCap = 'square';
+    ctx.lineWidth = 400;
+
+    ctx.beginPath();
+    ctx.moveTo(200, 200);
+    ctx.lineTo(200, 1000);
+    ctx.lineTo(1000, 1000);
+    ctx.lineTo(1000, 200);
+    ctx.closePath();
+    ctx.stroke();
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.cap.valid
+  desc: Setting lineCap to valid values works
+  testing:
+  - 2d.lineCap.set
+  - 2d.lineCap.get
+  code: |
+    ctx.lineCap = 'butt'
+    @assert ctx.lineCap === 'butt';
+
+    ctx.lineCap = 'round';
+    @assert ctx.lineCap === 'round';
+
+    ctx.lineCap = 'square';
+    @assert ctx.lineCap === 'square';
+
+- name: 2d.line.cap.invalid
+  desc: Setting lineCap to invalid values is ignored
+  testing:
+  - 2d.lineCap.invalid
+  code: |
+    ctx.lineCap = 'butt'
+    @assert ctx.lineCap === 'butt';
+
+    ctx.lineCap = 'butt';
+    ctx.lineCap = 'invalid';
+    @assert ctx.lineCap === 'butt';
+
+    ctx.lineCap = 'butt';
+    ctx.lineCap = 'ROUND';
+    @assert ctx.lineCap === 'butt';
+
+    ctx.lineCap = 'butt';
+    ctx.lineCap = 'round\0';
+    @assert ctx.lineCap === 'butt';
+
+    ctx.lineCap = 'butt';
+    ctx.lineCap = 'round ';
+    @assert ctx.lineCap === 'butt';
+
+    ctx.lineCap = 'butt';
+    ctx.lineCap = "";
+    @assert ctx.lineCap === 'butt';
+
+    ctx.lineCap = 'butt';
+    ctx.lineCap = 'bevel';
+    @assert ctx.lineCap === 'butt';
+
+- name: 2d.line.join.bevel
+  desc: lineJoin 'bevel' is rendered correctly
+  testing:
+  - 2d.lineJoin.common
+  - 2d.lineJoin.bevel
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var tol = 1; // tolerance to avoid antialiasing artifacts
+
+    ctx.lineJoin = 'bevel';
+    ctx.lineWidth = 20;
+
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+
+    ctx.fillRect(10, 10, 20, 20);
+    ctx.fillRect(20, 20, 20, 20);
+    ctx.beginPath();
+    ctx.moveTo(30, 20);
+    ctx.lineTo(40-tol, 20);
+    ctx.lineTo(30, 10+tol);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(10, 20);
+    ctx.lineTo(30, 20);
+    ctx.lineTo(30, 40);
+    ctx.stroke();
+
+
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+
+    ctx.beginPath();
+    ctx.moveTo(60, 20);
+    ctx.lineTo(80, 20);
+    ctx.lineTo(80, 40);
+    ctx.stroke();
+
+    ctx.fillRect(60, 10, 20, 20);
+    ctx.fillRect(70, 20, 20, 20);
+    ctx.beginPath();
+    ctx.moveTo(80, 20);
+    ctx.lineTo(90+tol, 20);
+    ctx.lineTo(80, 10-tol);
+    ctx.fill();
+
+    @assert pixel 34,16 == 0,255,0,255;
+    @assert pixel 34,15 == 0,255,0,255;
+    @assert pixel 35,15 == 0,255,0,255;
+    @assert pixel 36,15 == 0,255,0,255;
+    @assert pixel 36,14 == 0,255,0,255;
+
+    @assert pixel 84,16 == 0,255,0,255;
+    @assert pixel 84,15 == 0,255,0,255;
+    @assert pixel 85,15 == 0,255,0,255;
+    @assert pixel 86,15 == 0,255,0,255;
+    @assert pixel 86,14 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.join.round
+  desc: lineJoin 'round' is rendered correctly
+  testing:
+  - 2d.lineJoin.round
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    var tol = 1; // tolerance to avoid antialiasing artifacts
+
+    ctx.lineJoin = 'round';
+    ctx.lineWidth = 20;
+
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+
+    ctx.fillRect(10, 10, 20, 20);
+    ctx.fillRect(20, 20, 20, 20);
+    ctx.beginPath();
+    ctx.moveTo(30, 20);
+    ctx.arc(30, 20, 10-tol, 0, 2*Math.PI, true);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(10, 20);
+    ctx.lineTo(30, 20);
+    ctx.lineTo(30, 40);
+    ctx.stroke();
+
+
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+
+    ctx.beginPath();
+    ctx.moveTo(60, 20);
+    ctx.lineTo(80, 20);
+    ctx.lineTo(80, 40);
+    ctx.stroke();
+
+    ctx.fillRect(60, 10, 20, 20);
+    ctx.fillRect(70, 20, 20, 20);
+    ctx.beginPath();
+    ctx.moveTo(80, 20);
+    ctx.arc(80, 20, 10+tol, 0, 2*Math.PI, true);
+    ctx.fill();
+
+    @assert pixel 36,14 == 0,255,0,255;
+    @assert pixel 36,13 == 0,255,0,255;
+    @assert pixel 37,13 == 0,255,0,255;
+    @assert pixel 38,13 == 0,255,0,255;
+    @assert pixel 38,12 == 0,255,0,255;
+
+    @assert pixel 86,14 == 0,255,0,255;
+    @assert pixel 86,13 == 0,255,0,255;
+    @assert pixel 87,13 == 0,255,0,255;
+    @assert pixel 88,13 == 0,255,0,255;
+    @assert pixel 88,12 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.join.miter
+  desc: lineJoin 'miter' is rendered correctly
+  testing:
+  - 2d.lineJoin.miter
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineJoin = 'miter';
+    ctx.lineWidth = 20;
+
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+
+    ctx.fillRect(10, 10, 30, 20);
+    ctx.fillRect(20, 10, 20, 30);
+
+    ctx.beginPath();
+    ctx.moveTo(10, 20);
+    ctx.lineTo(30, 20);
+    ctx.lineTo(30, 40);
+    ctx.stroke();
+
+
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+
+    ctx.beginPath();
+    ctx.moveTo(60, 20);
+    ctx.lineTo(80, 20);
+    ctx.lineTo(80, 40);
+    ctx.stroke();
+
+    ctx.fillRect(60, 10, 30, 20);
+    ctx.fillRect(70, 10, 20, 30);
+
+    @assert pixel 38,12 == 0,255,0,255;
+    @assert pixel 39,11 == 0,255,0,255;
+    @assert pixel 40,10 == 0,255,0,255;
+    @assert pixel 41,9 == 0,255,0,255;
+    @assert pixel 42,8 == 0,255,0,255;
+
+    @assert pixel 88,12 == 0,255,0,255;
+    @assert pixel 89,11 == 0,255,0,255;
+    @assert pixel 90,10 == 0,255,0,255;
+    @assert pixel 91,9 == 0,255,0,255;
+    @assert pixel 92,8 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.join.open
+  desc: Line joins are not drawn at the corner of an unclosed rectangle
+  testing:
+  - 2d.lineJoin.joins
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.strokeStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineJoin = 'miter';
+    ctx.lineWidth = 200;
+
+    ctx.beginPath();
+    ctx.moveTo(100, 50);
+    ctx.lineTo(100, 1000);
+    ctx.lineTo(1000, 1000);
+    ctx.lineTo(1000, 50);
+    ctx.lineTo(100, 50);
+    ctx.stroke();
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.join.closed
+  desc: Line joins are drawn at the corner of a closed rectangle
+  testing:
+  - 2d.lineJoin.joinclosed
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.strokeStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineJoin = 'miter';
+    ctx.lineWidth = 200;
+
+    ctx.beginPath();
+    ctx.moveTo(100, 50);
+    ctx.lineTo(100, 1000);
+    ctx.lineTo(1000, 1000);
+    ctx.lineTo(1000, 50);
+    ctx.closePath();
+    ctx.stroke();
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.join.parallel
+  desc: Line joins are drawn at 180-degree joins
+  testing:
+  - 2d.lineJoin.joins
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.strokeStyle = '#0f0';
+    ctx.lineWidth = 300;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-100, 25);
+    ctx.lineTo(0, 25);
+    ctx.lineTo(-100, 25);
+    ctx.stroke();
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.join.valid
+  desc: Setting lineJoin to valid values works
+  testing:
+  - 2d.lineJoin.set
+  - 2d.lineJoin.get
+  code: |
+    ctx.lineJoin = 'bevel'
+    @assert ctx.lineJoin === 'bevel';
+
+    ctx.lineJoin = 'round';
+    @assert ctx.lineJoin === 'round';
+
+    ctx.lineJoin = 'miter';
+    @assert ctx.lineJoin === 'miter';
+
+- name: 2d.line.join.invalid
+  desc: Setting lineJoin to invalid values is ignored
+  testing:
+  - 2d.lineJoin.invalid
+  code: |
+    ctx.lineJoin = 'bevel'
+    @assert ctx.lineJoin === 'bevel';
+
+    ctx.lineJoin = 'bevel';
+    ctx.lineJoin = 'invalid';
+    @assert ctx.lineJoin === 'bevel';
+
+    ctx.lineJoin = 'bevel';
+    ctx.lineJoin = 'ROUND';
+    @assert ctx.lineJoin === 'bevel';
+
+    ctx.lineJoin = 'bevel';
+    ctx.lineJoin = 'round\0';
+    @assert ctx.lineJoin === 'bevel';
+
+    ctx.lineJoin = 'bevel';
+    ctx.lineJoin = 'round ';
+    @assert ctx.lineJoin === 'bevel';
+
+    ctx.lineJoin = 'bevel';
+    ctx.lineJoin = "";
+    @assert ctx.lineJoin === 'bevel';
+
+    ctx.lineJoin = 'bevel';
+    ctx.lineJoin = 'butt';
+    @assert ctx.lineJoin === 'bevel';
+
+- name: 2d.line.miter.exceeded
+  desc: Miter joins are not drawn when the miter limit is exceeded
+  testing:
+  - 2d.lineJoin.miterLimit
+  - 2d.lineJoin.miter
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineWidth = 400;
+    ctx.lineJoin = 'miter';
+
+    ctx.strokeStyle = '#f00';
+    ctx.miterLimit = 1.414;
+    ctx.beginPath();
+    ctx.moveTo(200, 1000);
+    ctx.lineTo(200, 200);
+    ctx.lineTo(1000, 201); // slightly non-right-angle to avoid being a special case
+    ctx.stroke();
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.miter.acute
+  desc: Miter joins are drawn correctly with acute angles
+  testing:
+  - 2d.lineJoin.miterLimit
+  - 2d.lineJoin.miter
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineWidth = 200;
+    ctx.lineJoin = 'miter';
+
+    ctx.strokeStyle = '#0f0';
+    ctx.miterLimit = 2.614;
+    ctx.beginPath();
+    ctx.moveTo(100, 1000);
+    ctx.lineTo(100, 100);
+    ctx.lineTo(1000, 1000);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#f00';
+    ctx.miterLimit = 2.613;
+    ctx.beginPath();
+    ctx.moveTo(100, 1000);
+    ctx.lineTo(100, 100);
+    ctx.lineTo(1000, 1000);
+    ctx.stroke();
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.miter.obtuse
+  desc: Miter joins are drawn correctly with obtuse angles
+  testing:
+  - 2d.lineJoin.miterLimit
+  - 2d.lineJoin.miter
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineWidth = 1600;
+    ctx.lineJoin = 'miter';
+
+    ctx.strokeStyle = '#0f0';
+    ctx.miterLimit = 1.083;
+    ctx.beginPath();
+    ctx.moveTo(800, 10000);
+    ctx.lineTo(800, 300);
+    ctx.lineTo(10000, -8900);
+    ctx.stroke();
+
+    ctx.strokeStyle = '#f00';
+    ctx.miterLimit = 1.082;
+    ctx.beginPath();
+    ctx.moveTo(800, 10000);
+    ctx.lineTo(800, 300);
+    ctx.lineTo(10000, -8900);
+    ctx.stroke();
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.miter.rightangle
+  desc: Miter joins are not drawn when the miter limit is exceeded, on exact right
+    angles
+  testing:
+  - 2d.lineJoin.miter
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineWidth = 400;
+    ctx.lineJoin = 'miter';
+
+    ctx.strokeStyle = '#f00';
+    ctx.miterLimit = 1.414;
+    ctx.beginPath();
+    ctx.moveTo(200, 1000);
+    ctx.lineTo(200, 200);
+    ctx.lineTo(1000, 200);
+    ctx.stroke();
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.miter.lineedge
+  desc: Miter joins are not drawn when the miter limit is exceeded at the corners
+    of a zero-height rectangle
+  testing:
+  - 2d.lineJoin.miter
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineWidth = 200;
+    ctx.lineJoin = 'miter';
+
+    ctx.strokeStyle = '#f00';
+    ctx.miterLimit = 1.414;
+    ctx.beginPath();
+    ctx.strokeRect(100, 25, 200, 0);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.miter.within
+  desc: Miter joins are drawn when the miter limit is not quite exceeded
+  testing:
+  - 2d.lineJoin.miter
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineWidth = 400;
+    ctx.lineJoin = 'miter';
+
+    ctx.strokeStyle = '#0f0';
+    ctx.miterLimit = 1.416;
+    ctx.beginPath();
+    ctx.moveTo(200, 1000);
+    ctx.lineTo(200, 200);
+    ctx.lineTo(1000, 201);
+    ctx.stroke();
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.miter.valid
+  desc: Setting miterLimit to valid values works
+  testing:
+  - 2d.miterLimit.set
+  - 2d.miterLimit.get
+  code: |
+    ctx.miterLimit = 1.5;
+    @assert ctx.miterLimit === 1.5;
+
+    ctx.miterLimit = "1e1";
+    @assert ctx.miterLimit === 10;
+
+    ctx.miterLimit = 1/1024;
+    @assert ctx.miterLimit === 1/1024;
+
+    ctx.miterLimit = 1000;
+    @assert ctx.miterLimit === 1000;
+
+- name: 2d.line.miter.invalid
+  desc: Setting miterLimit to invalid values is ignored
+  testing:
+  - 2d.miterLimit.invalid
+  code: |
+    ctx.miterLimit = 1.5;
+    @assert ctx.miterLimit === 1.5;
+
+    ctx.miterLimit = 1.5;
+    ctx.miterLimit = 0;
+    @assert ctx.miterLimit === 1.5;
+
+    ctx.miterLimit = 1.5;
+    ctx.miterLimit = -1;
+    @assert ctx.miterLimit === 1.5;
+
+    ctx.miterLimit = 1.5;
+    ctx.miterLimit = Infinity;
+    @assert ctx.miterLimit === 1.5;
+
+    ctx.miterLimit = 1.5;
+    ctx.miterLimit = -Infinity;
+    @assert ctx.miterLimit === 1.5;
+
+    ctx.miterLimit = 1.5;
+    ctx.miterLimit = NaN;
+    @assert ctx.miterLimit === 1.5;
+
+    ctx.miterLimit = 1.5;
+    ctx.miterLimit = 'string';
+    @assert ctx.miterLimit === 1.5;
+
+    ctx.miterLimit = 1.5;
+    ctx.miterLimit = true;
+    @assert ctx.miterLimit === 1;
+
+    ctx.miterLimit = 1.5;
+    ctx.miterLimit = false;
+    @assert ctx.miterLimit === 1.5;
+
+- name: 2d.line.cross
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineWidth = 200;
+    ctx.lineJoin = 'bevel';
+
+    ctx.strokeStyle = '#f00';
+    ctx.beginPath();
+    ctx.moveTo(110, 50);
+    ctx.lineTo(110, 60);
+    ctx.lineTo(100, 60);
+    ctx.stroke();
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.line.union
+  code: |
+    ctx.fillStyle = '#f00';
+    ctx.fillRect(0, 0, 100, 50);
+
+    ctx.lineWidth = 100;
+    ctx.lineCap = 'round';
+
+    ctx.strokeStyle = '#0f0';
+    ctx.beginPath();
+    ctx.moveTo(0, 24);
+    ctx.lineTo(100, 25);
+    ctx.lineTo(0, 26);
+    ctx.closePath();
+    ctx.stroke();
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 25,1 == 0,255,0,255;
+    @assert pixel 48,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 25,1 == 0,255,0,255;
+    @assert pixel 48,48 == 0,255,0,255;
+  expected: green
+
+
+
+
+
+
+
+- name: 2d.line.invalid.strokestyle
+  desc: Verify correct behavior of canvas on an invalid strokeStyle()
+  testing:
+  - 2d.strokestyle.invalid
+  code: |
+    ctx.strokeStyle = 'rgb(0, 255, 0)';
+    ctx.strokeStyle = 'nonsense';
+    ctx.lineWidth = 200;
+    ctx.moveTo(0,100);
+    ctx.lineTo(200,100);
+    ctx.stroke();
+    var imageData = ctx.getImageData(0, 0, 200, 200);
+    var imgdata = imageData.data;
+    @assert imgdata[4] == 0;
+    @assert imgdata[5] == 255;
+    @assert imgdata[6] == 0;
+

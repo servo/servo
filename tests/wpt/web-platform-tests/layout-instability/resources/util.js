@@ -70,7 +70,7 @@ ScoreWatcher = function() {
 };
 
 ScoreWatcher.prototype.checkExpectation = function(expectation) {
-  if (expectation.score)
+  if (expectation.score != undefined)
     assert_equals(this.score, expectation.score);
   if (expectation.sources)
     check_sources(expectation.sources, this.lastEntry.sources);

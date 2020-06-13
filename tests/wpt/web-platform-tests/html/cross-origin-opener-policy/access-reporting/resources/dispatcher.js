@@ -49,7 +49,7 @@ const reportToHeaders = function(uuid) {
 
   return {
     header: `|header(report-to,${reportToJSON})`,
-    coopSameOrigin: `|header(Cross-Origin-Opener-Policy, same-origin%3Breport-to="${uuid}")`,
-    coopReportOnlySameOrigin: `|header(Cross-Origin-Opener-Policy-Report-Only, same-origin%3Breport-to="${uuid}")`,
+    coopSameOriginHeader: `|header(Cross-Origin-Opener-Policy, same-origin%3Breport-to="${uuid}")`,
+    coopReportOnlySameOriginHeader: `|header(Cross-Origin-Opener-Policy-Report-Only, same-origin%3Breport-to="${uuid}")`,
   };
 };

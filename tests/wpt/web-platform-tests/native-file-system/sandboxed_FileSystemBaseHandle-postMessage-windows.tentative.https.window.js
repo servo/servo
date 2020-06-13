@@ -4,3 +4,4 @@
 // META: script=resources/messaging-blob-helpers.js
 // META: script=resources/messaging-serialize-helpers.js
 // META: script=script-tests/FileSystemBaseHandle-postMessage-windows.js
+// META: timeout=long

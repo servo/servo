@@ -135,9 +135,12 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
             spec_assertions.append(s)
 
     tests = []
-    TESTSFILES = ['tests.yaml', 'tests2d.yaml', 'tests2dtext.yaml']
+    test_yaml_directory = "yaml/element"
     if ISOFFSCREENCANVAS:
-        TESTSFILES = ['tests2d-offscreen.yaml']
+        test_yaml_directory = "yaml/offscreen"
+    TESTSFILES = [
+        os.path.join(test_yaml_directory, f) for f in os.listdir(test_yaml_directory)
+        if f.endswith(".yaml")]
     for t in sum([ yaml.load(open(f, "r").read()) for f in TESTSFILES], []):
         if 'DISABLED' in t:
             continue
@@ -308,9 +311,9 @@ def genTestUtils(TESTOUTPUTDIR, IMAGEOUTPUTDIR, TEMPLATEFILE, NAME2DIRFILE, ISOF
             expected = test['expected']
             expected_img = None
             if expected == 'green':
-                expected_img = "/images/" + make_flat_image('green-100x50.png', 100, 50, 0,1,0,1)
+                expected_img = "/images/green-100x50.png"
             elif expected == 'clear':
-                expected_img = "/images/" + make_flat_image('clear-100x50.png', 100, 50, 0,0,0,0)
+                expected_img = "/images/clear-100x50.png"
             else:
                 if ';' in expected:
                     print("Found semicolon in %s" % name)

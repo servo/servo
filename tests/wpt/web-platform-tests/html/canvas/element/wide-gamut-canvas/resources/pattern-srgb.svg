@@ -1,6 +1,0 @@
-<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-    <rect x="0" y="0" width="10px" height="10px" fill="#9b1b1b"/>
-    <rect x="10" y="0" width="10px" height="10px" fill="#1b9b1b"/>
-    <rect x="0" y="10" width="10px" height="10px" fill="#1b1b9b"/>
-    <rect x="10" y="10" width="10px" height="10px" fill="#1b1b1b"/>
-</svg>
