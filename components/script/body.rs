@@ -55,7 +55,7 @@ pub enum BodySource {
     Null,
     /// Another Dom object as source,
     /// TODO: store the actual object
-    /// and re-exctact a stream on re-direct.
+    /// and re-extract a stream on re-direct.
     Object,
 }
 
@@ -72,6 +72,7 @@ struct TransmitBodyConnectHandler {
     bytes_sender: Option<IpcSender<Vec<u8>>>,
     control_sender: IpcSender<BodyChunkRequest>,
     in_memory: Option<Vec<u8>>,
+    in_memory_done: bool,
     source: BodySource,
 }
 
@@ -91,14 +92,22 @@ impl TransmitBodyConnectHandler {
             bytes_sender: None,
             control_sender,
             in_memory,
+            in_memory_done: false,
             source,
         }
     }
 
+    /// Reset `in_memory_done`, called when a stream is
+    /// re-extracted from the source to support a re-direct.
+    pub fn reset_in_memory_done(&mut self) {
+        self.in_memory_done = false;
+    }
+
     /// Re-extract the source to support streaming it again for a re-direct.
     /// TODO: actually re-extract the source, instead of just cloning data, to support Blob.
-    fn re_extract(&self, chunk_request_receiver: IpcReceiver<BodyChunkRequest>) {
+    fn re_extract(&mut self, chunk_request_receiver: IpcReceiver<BodyChunkRequest>) {
         let mut body_handler = self.clone();
+        body_handler.reset_in_memory_done();
 
         ROUTER.add_route(
             chunk_request_receiver.to_opaque(),
@@ -126,11 +135,20 @@ impl TransmitBodyConnectHandler {
     /// TODO: this method should be deprecated
     /// in favor of making `re_extract` actually re-extract a stream from the source.
     /// See #26686
-    fn transmit_source(&self) {
+    fn transmit_source(&mut self) {
+        if self.in_memory_done {
+            // Step 5.1.3
+            self.stop_reading();
+            return;
+        }
+
         if let BodySource::Null = self.source {
             panic!("ReadableStream(Null) sources should not re-direct.");
         }
+
         if let Some(bytes) = self.in_memory.clone() {
+            // The memoized bytes are sent so we mark it as done again
+            self.in_memory_done = true;
             let _ = self
                 .bytes_sender
                 .as_ref()
@@ -155,6 +173,12 @@ impl TransmitBodyConnectHandler {
 
     /// The entry point to <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
     fn transmit_body_chunk(&mut self) {
+        if self.in_memory_done {
+            // Step 5.1.3
+            self.stop_reading();
+            return;
+        }
+
         let stream = self.stream.clone();
         let control_sender = self.control_sender.clone();
         let bytes_sender = self
@@ -165,6 +189,9 @@ impl TransmitBodyConnectHandler {
         // In case of the data being in-memory, send everything in one chunk, by-passing SpiderMonkey.
         if let Some(bytes) = self.in_memory.clone() {
             let _ = bytes_sender.send(bytes);
+            // Mark this body as `done` so that we can stop reading in the next tick,
+            // matching the behavior of the promise-based flow
+            self.in_memory_done = true;
             return;
         }
 
