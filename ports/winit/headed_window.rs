@@ -33,6 +33,7 @@ use servo::webrender_api::units::{DeviceIntPoint, DeviceIntRect, DeviceIntSize};
 use servo::webrender_surfman::WebrenderSurfman;
 use servo_media::player::context::{GlApi, GlContext as PlayerGLContext, NativeDisplay};
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::mem;
 use std::rc::Rc;
 #[cfg(target_os = "linux")]
@@ -73,7 +74,10 @@ pub struct Window {
     primary_monitor: winit::MonitorId,
     event_queue: RefCell<Vec<WindowEvent>>,
     mouse_pos: Cell<Point2D<i32, DevicePixel>>,
-    last_pressed: Cell<Option<KeyboardEvent>>,
+    last_pressed: Cell<Option<(KeyboardEvent, Option<VirtualKeyCode>)>>,
+    /// A map of winit's key codes to key values that are interpreted from
+    /// winit's ReceivedChar events.
+    keys_down: RefCell<HashMap<VirtualKeyCode, Key>>,
     animation_state: Cell<AnimationState>,
     fullscreen: Cell<bool>,
     device_pixels_per_px: Option<f32>,
@@ -166,6 +170,7 @@ impl Window {
             mouse_down_point: Cell::new(Point2D::new(0, 0)),
             mouse_pos: Cell::new(Point2D::new(0, 0)),
             last_pressed: Cell::new(None),
+            keys_down: RefCell::new(HashMap::new()),
             animation_state: Cell::new(AnimationState::Idle),
             fullscreen: Cell::new(false),
             inner_size: Cell::new(inner_size),
@@ -185,8 +190,8 @@ impl Window {
             // shift ASCII control characters to lowercase
             ch = (ch as u8 + 96) as char;
         }
-        let mut event = if let Some(event) = self.last_pressed.replace(None) {
-            event
+        let (mut event, key_code) = if let Some((event, key_code)) = self.last_pressed.replace(None) {
+            (event, key_code)
         } else if ch.is_ascii() {
             // Some keys like Backspace emit a control character in winit
             // but they are already dealt with in handle_keyboard_input
@@ -195,9 +200,19 @@ impl Window {
         } else {
             // For combined characters like the letter e with an acute accent
             // no keyboard event is emitted. A dummy event is created in this case.
-            KeyboardEvent::default()
+            (KeyboardEvent::default(), None)
         };
         event.key = Key::Character(ch.to_string());
+
+        if event.state == KeyState::Down {
+            // Ensure that when we receive a keyup event from winit, we are able
+            // to infer that it's related to this character and set the event
+            // properties appropriately.
+            if let Some(key_code) = key_code {
+                self.keys_down.borrow_mut().insert(key_code, event.key.clone());
+            }
+        }
+
         let xr_poses = self.xr_window_poses.borrow();
         for xr_window_pose in &*xr_poses {
             xr_window_pose.handle_xr_translation(&event);
@@ -208,11 +223,23 @@ impl Window {
     }
 
     fn handle_keyboard_input(&self, input: KeyboardInput) {
-        let event = keyboard_event_from_winit(input);
+        let mut event = keyboard_event_from_winit(input);
+        trace!("handling {:?}", event);
         if event.state == KeyState::Down && event.key == Key::Unidentified {
             // If pressed and probably printable, we expect a ReceivedCharacter event.
-            self.last_pressed.set(Some(event));
-        } else if event.key != Key::Unidentified {
+            // Wait for that to be received and don't queue any event right now.
+            self.last_pressed.set(Some((event, input.virtual_keycode)));
+            return;
+        } else if event.state == KeyState::Up && event.key == Key::Unidentified {
+            // If release and probably printable, this is following a ReceiverCharacter event.
+            if let Some(key_code) = input.virtual_keycode {
+                if let Some(key) = self.keys_down.borrow_mut().remove(&key_code) {
+                    event.key = key;
+                }
+            }
+        }
+
+        if event.key != Key::Unidentified {
             self.last_pressed.set(None);
             let xr_poses = self.xr_window_poses.borrow();
             for xr_window_pose in &*xr_poses {
