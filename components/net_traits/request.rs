@@ -124,16 +124,33 @@ pub enum BodySource {
 }
 
 /// Messages used to implement <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
+/// which are sent from script to net.
+#[derive(Debug, Deserialize, Serialize)]
+pub enum BodyChunkResponse {
+    /// A chunk of bytes.
+    Chunk(Vec<u8>),
+    /// The body is done.
+    Done,
+    /// There was an error streaming the body,
+    /// terminate fetch.
+    Error,
+}
+
+/// Messages used to implement <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
+/// which are sent from net to script
+/// (with the exception of Done, which is sent from script to script).
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BodyChunkRequest {
     /// Connect a fetch in `net`, with a stream of bytes from `script`.
-    Connect(IpcSender<Vec<u8>>),
+    Connect(IpcSender<BodyChunkResponse>),
     /// Re-extract a new stream from the source, following a redirect.
     Extract(IpcReceiver<BodyChunkRequest>),
     /// Ask for another chunk.
     Chunk,
-    /// Signal the stream is done.
+    /// Signal the stream is done(sent from script to script).
     Done,
+    /// Signal the stream has errored(sent from script to script).
+    Error,
 }
 
 /// The net component's view into <https://fetch.spec.whatwg.org/#bodies>
@@ -173,7 +190,7 @@ impl RequestBody {
         }
     }
 
-    pub fn take_stream(&mut self) -> IpcSender<BodyChunkRequest> {
+    pub fn take_stream(&self) -> IpcSender<BodyChunkRequest> {
         self.chan.clone()
     }
 

@@ -23,7 +23,8 @@ use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, Origin, ResponseTainting, Window,
 };
 use net_traits::request::{
-    BodyChunkRequest, CredentialsMode, Destination, Referrer, Request, RequestMode,
+    BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Referrer, Request,
+    RequestMode,
 };
 use net_traits::response::{Response, ResponseBody, ResponseType};
 use net_traits::{FetchTaskTarget, NetworkError, ReferrerPolicy, ResourceFetchTiming};
@@ -641,7 +642,10 @@ fn scheme_fetch(
                 let (body_chan, body_port) = ipc::channel().unwrap();
                 let _ = stream.send(BodyChunkRequest::Connect(body_chan));
                 let _ = stream.send(BodyChunkRequest::Chunk);
-                body_port.recv().ok()
+                match body_port.recv().ok() {
+                    Some(BodyChunkResponse::Chunk(bytes)) => Some(bytes),
+                    _ => panic!("cert should be sent in a single chunk."),
+                }
             });
             let data = data.as_ref().and_then(|b| {
                 let idx = b.iter().position(|b| *b == b'&')?;

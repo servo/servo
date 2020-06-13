@@ -33,8 +33,8 @@ use net::http_loader::determine_request_referrer;
 use net::resource_thread::AuthCacheEntry;
 use net::test::replace_host_table;
 use net_traits::request::{
-    BodyChunkRequest, BodySource, CredentialsMode, Destination, RequestBody, RequestBuilder,
-    RequestMode,
+    BodyChunkRequest, BodyChunkResponse, BodySource, CredentialsMode, Destination, RequestBody,
+    RequestBuilder, RequestMode,
 };
 use net_traits::response::{HttpsState, ResponseBody};
 use net_traits::{CookieSource, NetworkError, ReferrerPolicy};
@@ -108,7 +108,8 @@ fn create_request_body_with_content(content: Vec<u8>) -> RequestBody {
         Box::new(move |message| {
             let request = message.to().unwrap();
             if let BodyChunkRequest::Connect(sender) = request {
-                let _ = sender.send(content.clone());
+                let _ = sender.send(BodyChunkResponse::Chunk(content.clone()));
+                let _ = sender.send(BodyChunkResponse::Done);
             }
         }),
     );
