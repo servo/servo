@@ -451,6 +451,7 @@ where
             HTMLCanvasDataSource::Image(ipc_sender) => {
                 CanvasSource::Image(ipc_sender.map(|renderer| Arc::new(Mutex::new(renderer))))
             },
+            HTMLCanvasDataSource::WebGPU(image_key) => CanvasSource::WebGPU(image_key),
         };
         Some((
             CanvasInfo {
