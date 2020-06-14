@@ -9,10 +9,8 @@
 // TODO: collapse. Well, do tables first.
 ${helpers.single_keyword(
     "visibility",
-    "visible hidden",
+    "visible hidden collapse",
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
-    extra_gecko_values="collapse",
     gecko_ffi_name="mVisible",
     animation_value_type="ComputedValue",
     spec="https://drafts.csswg.org/css-box/#propdef-visibility",

@@ -16,6 +16,7 @@ use net_traits::image_cache::UsePlaceholder;
 use std::sync::Arc;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
 use style::dom::OpaqueNode;
+use style::properties::longhands::visibility::computed_value::T as Visibility;
 use style::properties::ComputedValues;
 use style::values::computed::{BorderStyle, Length, LengthPercentage};
 use style::values::specified::text::TextDecorationLine;
@@ -93,28 +94,42 @@ impl Fragment {
         containing_block: &PhysicalRect<Length>,
     ) {
         match self {
-            Fragment::Box(b) => BuilderForBoxFragment::new(b, containing_block).build(builder),
+            Fragment::Box(b) => match b.style.get_inherited_box().visibility {
+                Visibility::Visible => {
+                    BuilderForBoxFragment::new(b, containing_block).build(builder)
+                },
+                Visibility::Hidden => (),
+                Visibility::Collapse => (),
+            },
             Fragment::AbsoluteOrFixedPositioned(_) => {},
             Fragment::Anonymous(_) => {},
-            Fragment::Image(i) => {
-                builder.is_contentful = true;
-                let rect = i
-                    .rect
-                    .to_physical(i.style.writing_mode, containing_block)
-                    .translate(containing_block.origin.to_vector());
+            Fragment::Image(i) => match i.style.get_inherited_box().visibility {
+                Visibility::Visible => {
+                    builder.is_contentful = true;
+                    let rect = i
+                        .rect
+                        .to_physical(i.style.writing_mode, containing_block)
+                        .translate(containing_block.origin.to_vector());
 
-                let common = builder.common_properties(rect.to_webrender(), &i.style);
-                builder.wr.push_image(
-                    &common,
-                    rect.to_webrender(),
-                    image_rendering(i.style.get_inherited_box().image_rendering),
-                    wr::AlphaType::PremultipliedAlpha,
-                    i.image_key,
-                    wr::ColorF::WHITE,
-                );
+                    let common = builder.common_properties(rect.to_webrender(), &i.style);
+                    builder.wr.push_image(
+                        &common,
+                        rect.to_webrender(),
+                        image_rendering(i.style.get_inherited_box().image_rendering),
+                        wr::AlphaType::PremultipliedAlpha,
+                        i.image_key,
+                        wr::ColorF::WHITE,
+                    );
+                },
+                Visibility::Hidden => (),
+                Visibility::Collapse => (),
             },
-            Fragment::Text(t) => {
-                self.build_display_list_for_text_fragment(t, builder, containing_block)
+            Fragment::Text(t) => match t.parent_style.get_inherited_box().visibility {
+                Visibility::Visible => {
+                    self.build_display_list_for_text_fragment(t, builder, containing_block)
+                },
+                Visibility::Hidden => (),
+                Visibility::Collapse => (),
             },
         }
     }
