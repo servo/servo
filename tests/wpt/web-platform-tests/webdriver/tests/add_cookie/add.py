@@ -1,3 +1,5 @@
+import pytest
+
 from datetime import datetime, timedelta
 from six import text_type
 
@@ -179,3 +181,59 @@ def test_add_session_cookie_with_leading_dot_character_in_domain(session, url, s
     assert cookie["value"] == "world"
     assert cookie["domain"] == server_config["browser_host"] or \
         cookie["domain"] == ".%s" % server_config["browser_host"]
+
+
+@pytest.mark.parametrize("same_site", ["None", "Lax", "Strict"])
+def test_add_cookie_with_valid_samesite_flag(session, url, same_site):
+    new_cookie = {
+        "name": "hello",
+        "value": "world",
+        "sameSite": same_site
+    }
+
+    session.url = url("/common/blank.html")
+    clear_all_cookies(session)
+
+    result = add_cookie(session, new_cookie)
+    assert_success(result)
+
+    cookie = session.cookies("hello")
+    assert "name" in cookie
+    assert isinstance(cookie["name"], text_type)
+    assert "value" in cookie
+    assert isinstance(cookie["value"], text_type)
+    assert "sameSite" in cookie
+    assert isinstance(cookie["sameSite"], text_type)
+
+    assert cookie["name"] == "hello"
+    assert cookie["value"] == "world"
+    assert cookie["sameSite"] == same_site
+
+
+def test_add_cookie_with_invalid_samesite_flag(session, url):
+    new_cookie = {
+        "name": "hello",
+        "value": "world",
+        "sameSite": "invalid"
+    }
+
+    session.url = url("/common/blank.html")
+    clear_all_cookies(session)
+
+    response = add_cookie(session, new_cookie)
+    assert_error(response, "invalid argument")
+
+
+@pytest.mark.parametrize("same_site", [False, 12, dict()])
+def test_add_cookie_with_invalid_samesite_type(session, url, same_site):
+    new_cookie = {
+        "name": "hello",
+        "value": "world",
+        "sameSite": same_site
+    }
+
+    session.url = url("/common/blank.html")
+    clear_all_cookies(session)
+
+    response = add_cookie(session, new_cookie)
+    assert_error(response, "invalid argument")

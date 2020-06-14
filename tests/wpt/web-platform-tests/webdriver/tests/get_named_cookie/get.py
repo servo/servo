@@ -1,3 +1,5 @@
+import pytest
+
 from datetime import datetime, timedelta
 from six import integer_types, text_type
 
@@ -43,6 +45,8 @@ def test_get_named_session_cookie(session, url):
     assert isinstance(cookie["httpOnly"], bool)
     if "expiry" in cookie:
         assert cookie.get("expiry") is None
+    assert "sameSite" in cookie
+    assert isinstance(cookie["sameSite"], text_type)
 
     assert cookie["name"] == "foo"
     assert cookie["value"] == "bar"
@@ -67,6 +71,9 @@ def test_get_named_cookie(session, url):
     assert isinstance(cookie["value"], text_type)
     assert "expiry" in cookie
     assert isinstance(cookie["expiry"], integer_types)
+    assert "sameSite" in cookie
+    assert isinstance(cookie["sameSite"], text_type)
+
 
     assert cookie["name"] == "foo"
     assert cookie["value"] == "bar"
@@ -104,6 +111,32 @@ def test_duplicated_cookie(session, url, server_config):
     assert isinstance(cookie["name"], text_type)
     assert "value" in cookie
     assert isinstance(cookie["value"], text_type)
+    assert "sameSite" in cookie
+    assert isinstance(cookie["sameSite"], text_type)
 
     assert cookie["name"] == new_cookie["name"]
     assert cookie["value"] == "newworld"
+
+
+@pytest.mark.parametrize("same_site", ["None", "Lax", "Strict"])
+@pytest.mark.capabilities({"acceptInsecureCerts": True})
+def test_get_cookie_with_same_site_flag(session, url, same_site):
+    session.url = url("/common/blank.html", protocol="https")
+    clear_all_cookies(session)
+
+    session.execute_script("document.cookie = 'foo=bar;Secure;SameSite=%s'" % same_site)
+
+    result = get_named_cookie(session, "foo")
+    cookie = assert_success(result)
+    assert isinstance(cookie, dict)
+
+    assert "name" in cookie
+    assert isinstance(cookie["name"], basestring)
+    assert "value" in cookie
+    assert isinstance(cookie["value"], basestring)
+    assert "sameSite" in cookie
+    assert isinstance(cookie["sameSite"], basestring)
+
+    assert cookie["name"] == "foo"
+    assert cookie["value"] == "bar"
+    assert cookie["sameSite"] == same_site
