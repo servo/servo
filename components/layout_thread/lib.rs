@@ -42,7 +42,7 @@ use layout::context::malloc_size_of_persistent_local_context;
 use layout::context::LayoutContext;
 use layout::context::RegisteredPainter;
 use layout::context::RegisteredPainters;
-use layout::display_list::items::{OpaqueNode, WebRenderImageInfo};
+use layout::display_list::items::WebRenderImageInfo;
 use layout::display_list::{IndexableText, ToLayout};
 use layout::flow::{Flow, GetBaseFlow, ImmutableFlowUtils, MutableOwnedFlowUtils};
 use layout::flow_ref::FlowRef;
@@ -98,7 +98,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
-use style::animation::ElementAnimationSet;
+use style::animation::{AnimationSetKey, DocumentAnimationSet, ElementAnimationSet};
 use style::context::SharedStyleContext;
 use style::context::{QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters};
 use style::dom::{ShowSubtree, ShowSubtreeDataAndPrimaryValues, TDocument, TElement, TNode};
@@ -604,7 +604,7 @@ impl LayoutThread {
         snapshot_map: &'a SnapshotMap,
         origin: ImmutableOrigin,
         animation_timeline_value: f64,
-        animation_states: ServoArc<RwLock<FxHashMap<OpaqueNode, ElementAnimationSet>>>,
+        animations: &DocumentAnimationSet,
         stylesheets_changed: bool,
     ) -> LayoutContext<'a> {
         let traversal_flags = match stylesheets_changed {
@@ -620,7 +620,7 @@ impl LayoutThread {
                 options: GLOBAL_STYLE_DATA.options.clone(),
                 guards,
                 visited_styles_enabled: false,
-                animation_states,
+                animations: animations.clone(),
                 registered_speculative_painters: &self.registered_painters,
                 current_time_for_animations: animation_timeline_value,
                 traversal_flags,
@@ -1402,7 +1402,7 @@ impl LayoutThread {
             &map,
             origin,
             data.animation_timeline_value,
-            data.animations.clone(),
+            &data.animations,
             data.stylesheets_changed,
         );
 
@@ -1643,24 +1643,26 @@ impl LayoutThread {
     /// TODO(mrobinson): We should look into a way of doing this during flow tree construction.
     /// This also doesn't yet handles nodes that have been reparented.
     fn cancel_animations_for_nodes_not_in_flow_tree(
-        animation_states: &mut FxHashMap<OpaqueNode, ElementAnimationSet>,
+        animations: &mut FxHashMap<AnimationSetKey, ElementAnimationSet>,
         root_flow: &mut dyn Flow,
     ) {
         // Assume all nodes have been removed until proven otherwise.
-        let mut invalid_nodes: FxHashSet<OpaqueNode> = animation_states.keys().cloned().collect();
-        fn traverse_flow(flow: &mut dyn Flow, invalid_nodes: &mut FxHashSet<OpaqueNode>) {
+        let mut invalid_nodes = animations.keys().cloned().collect();
+
+        fn traverse_flow(flow: &mut dyn Flow, invalid_nodes: &mut FxHashSet<AnimationSetKey>) {
             flow.mutate_fragments(&mut |fragment| {
-                invalid_nodes.remove(&fragment.node);
+                invalid_nodes.remove(&AnimationSetKey(fragment.node));
             });
             for kid in flow.mut_base().children.iter_mut() {
                 traverse_flow(kid, invalid_nodes)
             }
         }
+
         traverse_flow(root_flow, &mut invalid_nodes);
 
         // Cancel animations for any nodes that are no longer in the flow tree.
         for node in &invalid_nodes {
-            if let Some(state) = animation_states.get_mut(node) {
+            if let Some(state) = animations.get_mut(node) {
                 state.cancel_all_animations();
             }
         }
@@ -1676,7 +1678,7 @@ impl LayoutThread {
         context: &mut LayoutContext,
     ) {
         Self::cancel_animations_for_nodes_not_in_flow_tree(
-            &mut *(context.style_context.animation_states.write()),
+            &mut *(context.style_context.animations.sets.write()),
             FlowRef::deref_mut(root_flow),
         );
 

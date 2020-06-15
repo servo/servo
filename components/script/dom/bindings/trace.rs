@@ -140,7 +140,7 @@ use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Instant, SystemTime};
-use style::animation::ElementAnimationSet;
+use style::animation::DocumentAnimationSet;
 use style::attr::{AttrIdentifier, AttrValue, LengthOrPercentageOrAuto};
 use style::author_styles::AuthorStyles;
 use style::context::QuirksMode;
@@ -618,7 +618,7 @@ unsafe_no_jsmanaged_fields!(MediaSessionActionType);
 unsafe_no_jsmanaged_fields!(MediaMetadata);
 unsafe_no_jsmanaged_fields!(WebrenderIpcSender);
 unsafe_no_jsmanaged_fields!(StreamConsumer);
-unsafe_no_jsmanaged_fields!(ElementAnimationSet);
+unsafe_no_jsmanaged_fields!(DocumentAnimationSet);
 
 unsafe impl<'a> JSTraceable for &'a str {
     #[inline]

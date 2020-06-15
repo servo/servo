@@ -5,11 +5,9 @@
 //! The context within which style is calculated.
 
 #[cfg(feature = "servo")]
-use crate::animation::ElementAnimationSet;
+use crate::animation::DocumentAnimationSet;
 use crate::bloom::StyleBloom;
 use crate::data::{EagerPseudoStyles, ElementData};
-#[cfg(feature = "servo")]
-use crate::dom::OpaqueNode;
 use crate::dom::{SendElement, TElement};
 use crate::font_metrics::FontMetricsProvider;
 #[cfg(feature = "gecko")]
@@ -31,10 +29,9 @@ use app_units::Au;
 use euclid::default::Size2D;
 use euclid::Scale;
 use fxhash::FxHashMap;
-#[cfg(feature = "servo")]
-use parking_lot::RwLock;
 use selectors::matching::ElementSelectorFlags;
 use selectors::NthIndexCache;
+#[cfg(feature = "gecko")]
 use servo_arc::Arc;
 #[cfg(feature = "servo")]
 use servo_atoms::Atom;
@@ -167,7 +164,7 @@ pub struct SharedStyleContext<'a> {
 
     /// The state of all animations for our styled elements.
     #[cfg(feature = "servo")]
-    pub animation_states: Arc<RwLock<FxHashMap<OpaqueNode, ElementAnimationSet>>>,
+    pub animations: DocumentAnimationSet,
 
     /// Paint worklets
     #[cfg(feature = "servo")]

@@ -7,13 +7,11 @@ use crate::{PendingImage, TrustedNodeAddress};
 use app_units::Au;
 use crossbeam_channel::{Receiver, Sender};
 use euclid::default::{Point2D, Rect};
-use fxhash::FxHashMap;
 use gfx_traits::Epoch;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use metrics::PaintTimeMetrics;
 use msg::constellation_msg::{BackgroundHangMonitorRegister, BrowsingContextId, PipelineId};
 use net_traits::image_cache::ImageCache;
-use parking_lot::RwLock;
 use profile_traits::mem::ReportsChan;
 use script_traits::Painter;
 use script_traits::{
@@ -25,7 +23,7 @@ use servo_atoms::Atom;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
-use style::animation::ElementAnimationSet;
+use style::animation::DocumentAnimationSet;
 use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::invalidation::element::restyle_hints::RestyleHint;
@@ -215,7 +213,7 @@ pub struct ScriptReflow {
     /// The current animation timeline value.
     pub animation_timeline_value: f64,
     /// The set of animations for this document.
-    pub animations: ServoArc<RwLock<FxHashMap<OpaqueNode, ElementAnimationSet>>>,
+    pub animations: DocumentAnimationSet,
 }
 
 pub struct LayoutThreadInit {
