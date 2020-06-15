@@ -8,6 +8,8 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::EventListenerBinding::EventListener;
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::TestBindingBinding::SimpleCallback;
+use crate::dom::bindings::codegen::Bindings::TestBindingBinding::TestDictionaryParent;
+use crate::dom::bindings::codegen::Bindings::TestBindingBinding::TestDictionaryWithParent;
 use crate::dom::bindings::codegen::Bindings::TestBindingBinding::{
     TestBindingMethods, TestDictionary,
 };
@@ -1078,6 +1080,15 @@ impl TestBindingMethods for TestBinding {
 
     fn SemiExposedBoolFromPartialInterface(&self) -> bool {
         true
+    }
+
+    fn GetDictionaryWithParent(&self, s1: DOMString, s2: DOMString) -> TestDictionaryWithParent {
+        TestDictionaryWithParent {
+            parent: TestDictionaryParent {
+                parentStringMember: Some(s1),
+            },
+            stringMember: Some(s2),
+        }
     }
 }
 

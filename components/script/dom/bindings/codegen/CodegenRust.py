@@ -6557,7 +6557,10 @@ class CGDictionary(CGThing):
                                       (name, name, varInsert(name, member.identifier.name).define()))
             return CGGeneric("%s\n" % insertion.define())
 
-        memberInserts = CGList([memberInsert(m) for m in self.memberInfo])
+        memberInserts = [memberInsert(m) for m in self.memberInfo]
+
+        if d.parent:
+            memberInserts = [CGGeneric("self.parent.to_jsobject(cx, obj);\n")] + memberInserts
 
         selfName = self.makeClassName(d)
         if self.membersNeedTracing():
@@ -6602,10 +6605,16 @@ class CGDictionary(CGThing):
             "    }\n"
             "}\n"
             "\n"
+            "impl ${selfName} {\n"
+            "    pub(crate) unsafe fn to_jsobject(&self, cx: *mut JSContext, mut obj: MutableHandleObject) {\n"
+            "${insertMembers}"
+            "    }\n"
+            "}\n"
+            "\n"
             "impl ToJSValConvertible for ${selfName} {\n"
             "    unsafe fn to_jsval(&self, cx: *mut JSContext, mut rval: MutableHandleValue) {\n"
-            "        rooted!(in(cx) let obj = JS_NewObject(cx, ptr::null()));\n"
-            "${insertMembers}"
+            "        rooted!(in(cx) let mut obj = JS_NewObject(cx, ptr::null()));\n"
+            "        self.to_jsobject(cx, obj.handle_mut());\n"
             "        rval.set(ObjectOrNullValue(obj.get()))\n"
             "    }\n"
             "}\n").substitute({
@@ -6614,7 +6623,7 @@ class CGDictionary(CGThing):
                 "empty": CGIndenter(CGGeneric(self.makeEmpty()), indentLevel=4).define(),
                 "initParent": CGIndenter(CGGeneric(initParent), indentLevel=16).define(),
                 "initMembers": CGIndenter(memberInits, indentLevel=16).define(),
-                "insertMembers": CGIndenter(memberInserts, indentLevel=8).define(),
+                "insertMembers": CGIndenter(CGList(memberInserts), indentLevel=8).define(),
                 "preInitial": CGIndenter(CGGeneric(preInitial), indentLevel=8).define(),
                 "postInitial": CGIndenter(CGGeneric(postInitial), indentLevel=8).define(),
             })
