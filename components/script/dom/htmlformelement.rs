@@ -688,7 +688,7 @@ impl HTMLFormElement {
             LoadOrigin::Script(doc.origin().immutable().clone()),
             action_components,
             None,
-            Referrer::ReferrerUrl(target_document.url()),
+            target_window.upcast::<GlobalScope>().get_referrer(),
             target_document.get_referrer_policy(),
         );
 

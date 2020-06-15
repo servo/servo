@@ -324,7 +324,7 @@ impl<'a> StylesheetLoader<'a> {
             cors_setting,
             document.origin().immutable().clone(),
             self.elem.global().pipeline_id(),
-            Referrer::ReferrerUrl(document.url()),
+            self.elem.global().get_referrer(),
             referrer_policy,
             integrity_metadata,
         );

@@ -486,7 +486,7 @@ fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequ
     let origin = Origin::Origin(global.get_url().origin());
     let https_state = global.get_https_state();
     let pipeline_id = global.pipeline_id();
-    let referrer = NetTraitsRequestReferrer::ReferrerUrl(global.get_url());
+    let referrer = global.get_referrer();
     NetTraitsRequest::new(url, Some(origin), referrer, Some(pipeline_id), https_state)
 }
 

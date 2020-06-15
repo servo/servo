@@ -52,7 +52,7 @@ impl Tokenizer {
             pipeline_id: document.global().pipeline_id(),
             base_url: None,
             document_url: document.url(),
-            referrer: Referrer::ReferrerUrl(document.url()),
+            referrer: document.global().get_referrer(),
             referrer_policy: document.get_referrer_policy(),
             resource_threads: document.loader().resource_threads().clone(),
             // Initially we set prefetching to false, and only set it

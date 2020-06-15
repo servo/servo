@@ -2365,7 +2365,7 @@ impl GlobalScope {
             return Referrer::Client(url);
         } else {
             // Substep 3.2
-            return Referrer::ReferrerUrl(self.get_url());
+            return Referrer::Client(self.get_url());
         }
     }
 

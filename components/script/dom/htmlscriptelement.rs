@@ -348,7 +348,7 @@ fn fetch_a_classic_script(
         cors_setting,
         doc.origin().immutable().clone(),
         script.global().pipeline_id(),
-        Referrer::ReferrerUrl(doc.url()),
+        script.global().get_referrer(),
         doc.get_referrer_policy(),
         integrity_metadata,
     );
