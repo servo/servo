@@ -11,20 +11,31 @@ pub extern crate wgpu_types as wgt;
 pub mod identity;
 
 use arrayvec::ArrayVec;
+use euclid::default::Size2D;
 use identity::{IdentityRecyclerFactory, WebGPUMsg};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use smallvec::SmallVec;
+use std::collections::HashMap;
 use std::ffi::CString;
 use std::ptr;
+use std::slice;
+use std::sync::{Arc, Mutex};
+use webrender_traits::{
+    WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageHandlerType,
+    WebrenderImageSource,
+};
 use wgpu::{
     binding_model::{
         BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
     },
+    command::{BufferCopyView, TextureCopyView},
+    device::HostMap,
     id,
     instance::RequestAdapterOptions,
+    resource::{BufferMapAsyncStatus, BufferMapOperation},
 };
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -87,6 +98,7 @@ pub enum WebGPURequest {
         program_id: id::ShaderModuleId,
         entry_point: String,
     },
+    CreateContext(IpcSender<webrender_api::ExternalImageId>),
     CreatePipelineLayout {
         device_id: id::DeviceId,
         pipeline_layout_id: id::PipelineLayoutId,
@@ -122,6 +134,14 @@ pub enum WebGPURequest {
         program_id: id::ShaderModuleId,
         program: Vec<u32>,
     },
+    CreateSwapChain {
+        device_id: id::DeviceId,
+        buffer_id: id::BufferId,
+        external_id: u64,
+        sender: IpcSender<webrender_api::ImageKey>,
+        image_desc: webrender_api::ImageDescriptor,
+        image_data: webrender_api::ImageData,
+    },
     CreateTexture {
         device_id: id::DeviceId,
         texture_id: id::TextureId,
@@ -133,6 +153,10 @@ pub enum WebGPURequest {
         descriptor: wgt::TextureViewDescriptor<String>,
     },
     DestroyBuffer(id::BufferId),
+    DestroySwapChain {
+        external_id: u64,
+        image_key: webrender_api::ImageKey,
+    },
     DestroyTexture(id::TextureId),
     Exit(IpcSender<()>),
     RequestAdapter {
@@ -158,6 +182,12 @@ pub enum WebGPURequest {
         queue_id: id::QueueId,
         command_buffers: Vec<id::CommandBufferId>,
     },
+    SwapChainPresent {
+        external_id: u64,
+        texture_id: id::TextureId,
+        encoder_id: id::CommandEncoderId,
+        image_key: webrender_api::ImageKey,
+    },
     UnmapBuffer {
         device_id: id::DeviceId,
         buffer_id: id::BufferId,
@@ -169,7 +199,12 @@ pub enum WebGPURequest {
 pub struct WebGPU(pub IpcSender<WebGPURequest>);
 
 impl WebGPU {
-    pub fn new() -> Option<(Self, IpcReceiver<WebGPUMsg>)> {
+    pub fn new(
+        webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_document: webrender_api::DocumentId,
+        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+        wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
+    ) -> Option<(Self, IpcReceiver<WebGPUMsg>)> {
         if !pref!(dom.webgpu.enabled) {
             return None;
         }
@@ -199,7 +234,16 @@ impl WebGPU {
         if let Err(e) = std::thread::Builder::new()
             .name("WGPU".to_owned())
             .spawn(move || {
-                WGPU::new(receiver, sender_clone, script_sender).run();
+                WGPU::new(
+                    receiver,
+                    sender_clone,
+                    script_sender,
+                    webrender_api_sender,
+                    webrender_document,
+                    external_images,
+                    wgpu_image_map,
+                )
+                .run();
             })
         {
             warn!("Failed to spwan WGPU thread ({})", e);
@@ -224,6 +268,10 @@ struct WGPU {
     devices: Vec<WebGPUDevice>,
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
+    webrender_api: webrender_api::RenderApi,
+    webrender_document: webrender_api::DocumentId,
+    external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+    wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
 }
 
 impl WGPU {
@@ -231,6 +279,10 @@ impl WGPU {
         receiver: IpcReceiver<WebGPURequest>,
         sender: IpcSender<WebGPURequest>,
         script_sender: IpcSender<WebGPUMsg>,
+        webrender_api_sender: webrender_api::RenderApiSender,
+        webrender_document: webrender_api::DocumentId,
+        external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+        wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
     ) -> Self {
         let factory = IdentityRecyclerFactory {
             sender: script_sender.clone(),
@@ -243,6 +295,10 @@ impl WGPU {
             adapters: Vec::new(),
             devices: Vec::new(),
             _invalid_adapters: Vec::new(),
+            webrender_api: webrender_api_sender.create_api(),
+            webrender_document,
+            external_images,
+            wgpu_image_map,
         }
     }
 
@@ -322,6 +378,16 @@ impl WGPU {
                     let _ = gfx_select!(command_encoder_id =>
                         global.device_create_command_encoder(device_id, &Default::default(), command_encoder_id));
                 },
+                WebGPURequest::CreateContext(sender) => {
+                    let id = self
+                        .external_images
+                        .lock()
+                        .expect("Lock poisoned?")
+                        .next_id(WebrenderImageHandlerType::WebGPU);
+                    if let Err(e) = sender.send(id) {
+                        warn!("Failed to send ExternalImageId to new context ({})", e);
+                    };
+                },
                 WebGPURequest::CreateComputePipeline {
                     device_id,
                     compute_pipeline_id,
@@ -374,9 +440,10 @@ impl WGPU {
                 } => {
                     let global = &self.global;
                     let vertex_ep = std::ffi::CString::new(vertex_entry_point).unwrap();
+                    let frag_ep;
                     let frag_stage = match fragment_module {
                         Some(frag) => {
-                            let frag_ep =
+                            frag_ep =
                                 std::ffi::CString::new(fragment_entry_point.unwrap()).unwrap();
                             let frag_module = wgpu_core::pipeline::ProgrammableStageDescriptor {
                                 module: frag,
@@ -450,6 +517,55 @@ impl WGPU {
                     let _ = gfx_select!(program_id =>
                         global.device_create_shader_module(device_id, &descriptor, program_id));
                 },
+                WebGPURequest::CreateSwapChain {
+                    device_id,
+                    buffer_id,
+                    external_id,
+                    sender,
+                    image_desc,
+                    image_data,
+                } => {
+                    let height = image_desc.size.height;
+                    let width = image_desc.size.width;
+                    let buffer_stride =
+                        ((width * 4) as u32 | (wgt::COPY_BYTES_PER_ROW_ALIGNMENT - 1)) + 1;
+                    let _ = self.wgpu_image_map.lock().unwrap().insert(
+                        external_id,
+                        PresentationData {
+                            device_id,
+                            queue_id: device_id,
+                            data: vec![255; (buffer_stride * height as u32) as usize],
+                            size: Size2D::new(width, height),
+                            buffer_id,
+                            buffer_stride,
+                            image_desc,
+                            image_data: image_data.clone(),
+                        },
+                    );
+                    let buffer_size = (buffer_stride * height as u32) as wgt::BufferAddress;
+                    let global = &self.global;
+                    let buffer_desc = wgt::BufferDescriptor {
+                        label: ptr::null(),
+                        size: buffer_size,
+                        usage: wgt::BufferUsage::MAP_READ | wgt::BufferUsage::COPY_DST,
+                        mapped_at_creation: false,
+                    };
+                    let _ = gfx_select!(buffer_id => global.device_create_buffer(
+                        device_id,
+                        &buffer_desc,
+                        buffer_id
+                    ));
+
+                    let image_key = self.webrender_api.generate_image_key();
+                    if let Err(e) = sender.send(image_key) {
+                        warn!("Failed to send ImageKey ({})", e);
+                    }
+
+                    let mut txn = webrender_api::Transaction::new();
+                    txn.add_image(image_key, image_desc, image_data, None);
+                    self.webrender_api
+                        .send_transaction(self.webrender_document, txn);
+                },
                 WebGPURequest::CreateTexture {
                     device_id,
                     texture_id,
@@ -476,6 +592,23 @@ impl WGPU {
                 WebGPURequest::DestroyBuffer(buffer) => {
                     let global = &self.global;
                     gfx_select!(buffer => global.buffer_destroy(buffer));
+                },
+                WebGPURequest::DestroySwapChain {
+                    external_id,
+                    image_key,
+                } => {
+                    let data = self
+                        .wgpu_image_map
+                        .lock()
+                        .unwrap()
+                        .remove(&external_id)
+                        .unwrap();
+                    let global = &self.global;
+                    gfx_select!(data.buffer_id => global.buffer_destroy(data.buffer_id));
+                    let mut txn = webrender_api::Transaction::new();
+                    txn.delete_image(image_key);
+                    self.webrender_api
+                        .send_transaction(self.webrender_document, txn);
                 },
                 WebGPURequest::DestroyTexture(texture) => {
                     let global = &self.global;
@@ -588,6 +721,110 @@ impl WGPU {
                         &command_buffers
                     ));
                 },
+                WebGPURequest::SwapChainPresent {
+                    external_id,
+                    texture_id,
+                    encoder_id,
+                    image_key,
+                } => {
+                    let global = &self.global;
+                    let device_id;
+                    let queue_id;
+                    let size;
+                    let buffer_id;
+                    let buffer_stride;
+                    {
+                        if let Some(present_data) =
+                            self.wgpu_image_map.lock().unwrap().get_mut(&external_id)
+                        {
+                            size = present_data.size;
+                            device_id = present_data.device_id;
+                            queue_id = present_data.queue_id;
+                            buffer_id = present_data.buffer_id;
+                            buffer_stride = present_data.buffer_stride;
+                        } else {
+                            warn!("Data not found for ExternalImageId({:?})", external_id);
+                            continue;
+                        }
+                    }
+
+                    let buffer_size = (size.height as u32 * buffer_stride) as wgt::BufferAddress;
+                    let _ = gfx_select!(encoder_id => global.device_create_command_encoder(
+                        device_id,
+                        &wgt::CommandEncoderDescriptor::default(),
+                        encoder_id
+                    ));
+
+                    let buffer_cv = BufferCopyView {
+                        buffer: buffer_id,
+                        layout: wgt::TextureDataLayout {
+                            offset: 0,
+                            bytes_per_row: buffer_stride,
+                            rows_per_image: 0,
+                        },
+                    };
+                    let texture_cv = TextureCopyView {
+                        texture: texture_id,
+                        mip_level: 0,
+                        origin: wgt::Origin3d::ZERO,
+                    };
+                    let copy_size = wgt::Extent3d {
+                        width: size.width as u32,
+                        height: size.height as u32,
+                        depth: 1,
+                    };
+                    gfx_select!(encoder_id => global.command_encoder_copy_texture_to_buffer(
+                        encoder_id,
+                        &texture_cv,
+                        &buffer_cv,
+                        &copy_size
+                    ));
+                    let _ = gfx_select!(encoder_id => global.command_encoder_finish(
+                        encoder_id,
+                        &wgt::CommandBufferDescriptor::default()
+                    ));
+                    gfx_select!(queue_id => global.queue_submit(
+                        queue_id,
+                        &[encoder_id]
+                    ));
+                    extern "C" fn callback(status: BufferMapAsyncStatus, _user_data: *mut u8) {
+                        match status {
+                            BufferMapAsyncStatus::Success => {
+                                debug!("Buffer Mapped");
+                            },
+                            _ => warn!("Could not map buffer"),
+                        }
+                    }
+                    let map_op = BufferMapOperation {
+                        host: HostMap::Read,
+                        callback,
+                        user_data: ptr::null_mut(),
+                    };
+                    gfx_select!(buffer_id => global.buffer_map_async(buffer_id, 0..buffer_size, map_op));
+                    // TODO: Remove the blocking behaviour
+                    gfx_select!(device_id => global.device_poll(device_id, true));
+                    let buf_data = gfx_select!(buffer_id =>
+                        global.buffer_get_mapped_range(buffer_id, 0, wgt::BufferSize::WHOLE));
+                    if let Some(present_data) =
+                        self.wgpu_image_map.lock().unwrap().get_mut(&external_id)
+                    {
+                        present_data.data = unsafe {
+                            slice::from_raw_parts(buf_data, buffer_size as usize).to_vec()
+                        };
+                        let mut txn = webrender_api::Transaction::new();
+                        txn.update_image(
+                            image_key,
+                            present_data.image_desc,
+                            present_data.image_data.clone(),
+                            &webrender_api::DirtyRect::All,
+                        );
+                        self.webrender_api
+                            .send_transaction(self.webrender_document, txn);
+                    } else {
+                        warn!("Data not found for ExternalImageId({:?})", external_id);
+                    }
+                    gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
+                },
                 WebGPURequest::UnmapBuffer {
                     device_id,
                     buffer_id,
@@ -635,5 +872,54 @@ webgpu_resource!(WebGPUQueue, id::QueueId);
 webgpu_resource!(WebGPURenderPipeline, id::RenderPipelineId);
 webgpu_resource!(WebGPUSampler, id::SamplerId);
 webgpu_resource!(WebGPUShaderModule, id::ShaderModuleId);
+webgpu_resource!(WebGPUSwapChain, id::SwapChainId);
 webgpu_resource!(WebGPUTexture, id::TextureId);
 webgpu_resource!(WebGPUTextureView, id::TextureViewId);
+
+pub struct WGPUExternalImages {
+    pub images: Arc<Mutex<HashMap<u64, PresentationData>>>,
+    pub locked_ids: HashMap<u64, Vec<u8>>,
+}
+
+impl WGPUExternalImages {
+    pub fn new() -> Self {
+        Self {
+            images: Arc::new(Mutex::new(HashMap::new())),
+            locked_ids: HashMap::new(),
+        }
+    }
+}
+
+impl WebrenderExternalImageApi for WGPUExternalImages {
+    fn lock(&mut self, id: u64) -> (WebrenderImageSource, Size2D<i32>) {
+        let size;
+        let data;
+        if let Some(present_data) = self.images.lock().unwrap().get(&id) {
+            size = present_data.size;
+            data = present_data.data.clone();
+        } else {
+            size = Size2D::new(0, 0);
+            data = Vec::new();
+        }
+        let _ = self.locked_ids.insert(id, data);
+        (
+            WebrenderImageSource::Raw(self.locked_ids.get(&id).unwrap().as_slice()),
+            size,
+        )
+    }
+
+    fn unlock(&mut self, id: u64) {
+        let _ = self.locked_ids.remove(&id);
+    }
+}
+
+pub struct PresentationData {
+    device_id: id::DeviceId,
+    queue_id: id::QueueId,
+    pub data: Vec<u8>,
+    pub size: Size2D<i32>,
+    buffer_id: id::BufferId,
+    buffer_stride: u32,
+    image_desc: webrender_api::ImageDescriptor,
+    image_data: webrender_api::ImageData,
+}

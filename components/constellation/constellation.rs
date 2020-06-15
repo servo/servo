@@ -172,11 +172,12 @@ use std::marker::PhantomData;
 use std::mem::replace;
 use std::process;
 use std::rc::{Rc, Weak};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use style_traits::viewport::ViewportConstraints;
 use style_traits::CSSPixel;
-use webgpu::{WebGPU, WebGPURequest};
+use webgpu::{self, WebGPU, WebGPURequest};
+use webrender_traits::WebrenderExternalImageRegistry;
 
 type PendingApprovalNavigations = HashMap<PipelineId, (LoadData, HistoryEntryReplacement)>;
 
@@ -214,6 +215,18 @@ struct MessagePortInfo {
 
     /// The id of the entangled port, if any.
     entangled_with: Option<MessagePortId>,
+}
+
+/// Webrender related objects required by WebGPU threads
+struct WebrenderWGPU {
+    /// Webrender API.
+    webrender_api: webrender_api::RenderApi,
+
+    /// List of Webrender external images
+    webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+
+    /// WebGPU data that supplied to Webrender for rendering
+    wgpu_image_map: Arc<Mutex<HashMap<u64, webgpu::PresentationData>>>,
 }
 
 /// Servo supports tabs (referred to as browsers), so `Constellation` needs to
@@ -384,6 +397,9 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     /// A single WebRender document the constellation operates on.
     webrender_document: webrender_api::DocumentId,
 
+    /// Webrender related objects required by WebGPU threads
+    webrender_wgpu: WebrenderWGPU,
+
     /// A channel for content processes to send messages that will
     /// be relayed to the WebRender thread.
     webrender_api_ipc_sender: script_traits::WebrenderIpcSender,
@@ -533,6 +549,12 @@ pub struct InitialConstellationState {
     /// Webrender document ID.
     pub webrender_document: webrender_api::DocumentId,
 
+    /// Webrender API.
+    pub webrender_api_sender: webrender_api::RenderApiSender,
+
+    /// Webrender external images
+    pub webrender_external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
+
     /// Entry point to create and get channels to a WebGLThread.
     pub webgl_threads: Option<WebGLThreads>,
 
@@ -549,6 +571,8 @@ pub struct InitialConstellationState {
 
     /// User agent string to report in network requests.
     pub user_agent: Cow<'static, str>,
+
+    pub wgpu_image_map: Arc<Mutex<HashMap<u64, webgpu::PresentationData>>>,
 }
 
 /// Data needed for webdriver
@@ -834,6 +858,12 @@ where
                     }),
                 );
 
+                let webrender_wgpu = WebrenderWGPU {
+                    webrender_api: state.webrender_api_sender.create_api(),
+                    webrender_external_images: state.webrender_external_images,
+                    wgpu_image_map: state.wgpu_image_map,
+                };
+
                 let mut constellation: Constellation<Message, LTF, STF, SWF> = Constellation {
                     namespace_receiver,
                     namespace_sender,
@@ -889,6 +919,7 @@ where
                     webrender_image_api_sender: net_traits::WebrenderIpcSender::new(
                         webrender_image_ipc_sender,
                     ),
+                    webrender_wgpu,
                     shutting_down: false,
                     handled_warnings: VecDeque::new(),
                     random_pipeline_closure: random_pipeline_closure_probability.map(|prob| {
@@ -1899,12 +1930,16 @@ where
                     EmbedderMsg::MediaSessionEvent(event),
                 ));
             },
-            FromScriptMsg::RequestAdapter(sender, options, ids) => self
-                .handle_request_wgpu_adapter(
-                    source_pipeline_id,
-                    BrowsingContextId::from(source_top_ctx_id),
-                    FromScriptMsg::RequestAdapter(sender, options, ids),
-                ),
+            FromScriptMsg::RequestAdapter(sender, options, ids) => self.handle_wgpu_request(
+                source_pipeline_id,
+                BrowsingContextId::from(source_top_ctx_id),
+                FromScriptMsg::RequestAdapter(sender, options, ids),
+            ),
+            FromScriptMsg::GetWebGPUChan(sender) => self.handle_wgpu_request(
+                source_pipeline_id,
+                BrowsingContextId::from(source_top_ctx_id),
+                FromScriptMsg::GetWebGPUChan(sender),
+            ),
         }
     }
 
@@ -2072,7 +2107,7 @@ where
         }
     }
 
-    fn handle_request_wgpu_adapter(
+    fn handle_wgpu_request(
         &mut self,
         source_pipeline_id: PipelineId,
         browsing_context_id: BrowsingContextId,
@@ -2090,46 +2125,62 @@ where
             Some(host) => host,
             None => return warn!("Invalid host url"),
         };
-        match self
+        let browsing_context_group = if let Some(bcg) = self
             .browsing_context_group_set
             .get_mut(&browsing_context_group_id)
         {
-            Some(browsing_context_group) => {
-                let adapter_request =
-                    if let FromScriptMsg::RequestAdapter(sender, options, ids) = request {
-                        WebGPURequest::RequestAdapter {
-                            sender,
-                            options,
-                            ids,
-                        }
-                    } else {
-                        return warn!("Wrong message type in handle_request_wgpu_adapter");
-                    };
-                let send = match browsing_context_group.webgpus.entry(host) {
-                    Entry::Vacant(v) => v
-                        .insert(match WebGPU::new() {
-                            Some(webgpu) => {
-                                let msg = ConstellationControlMsg::SetWebGPUPort(webgpu.1);
-                                if let Err(e) = source_pipeline.event_loop.send(msg) {
-                                    warn!(
-                                        "Failed to send SetWebGPUPort to pipeline {} ({:?})",
-                                        source_pipeline_id, e
-                                    );
-                                }
-                                webgpu.0
-                            },
-                            None => return warn!("Failed to create new WebGPU thread"),
-                        })
-                        .0
-                        .send(adapter_request),
-                    Entry::Occupied(o) => o.get().0.send(adapter_request),
+            bcg
+        } else {
+            return warn!("Browsing context group not found");
+        };
+        let webgpu_chan = match browsing_context_group.webgpus.entry(host) {
+            Entry::Vacant(v) => v
+                .insert(
+                    match WebGPU::new(
+                        self.webrender_wgpu.webrender_api.create_sender(),
+                        self.webrender_document,
+                        self.webrender_wgpu.webrender_external_images.clone(),
+                        self.webrender_wgpu.wgpu_image_map.clone(),
+                    ) {
+                        Some(webgpu) => {
+                            let msg = ConstellationControlMsg::SetWebGPUPort(webgpu.1);
+                            if let Err(e) = source_pipeline.event_loop.send(msg) {
+                                warn!(
+                                    "Failed to send SetWebGPUPort to pipeline {} ({:?})",
+                                    source_pipeline_id, e
+                                );
+                            }
+                            webgpu.0
+                        },
+                        None => {
+                            return warn!("Failed to create new WebGPU thread");
+                        },
+                    },
+                )
+                .clone(),
+            Entry::Occupied(o) => o.get().clone(),
+        };
+        match request {
+            FromScriptMsg::RequestAdapter(sender, options, ids) => {
+                let adapter_request = WebGPURequest::RequestAdapter {
+                    sender,
+                    options,
+                    ids,
                 };
-                if send.is_err() {
+                if webgpu_chan.0.send(adapter_request).is_err() {
                     return warn!("Failed to send request adapter message on WebGPU channel");
                 }
             },
-            None => return warn!("Browsing context group not found"),
-        };
+            FromScriptMsg::GetWebGPUChan(sender) => {
+                if sender.send(webgpu_chan).is_err() {
+                    return warn!(
+                        "Failed to send WebGPU channel to Pipeline {:?}",
+                        source_pipeline_id
+                    );
+                }
+            },
+            _ => return warn!("Wrong message type in handle_wgpu_request"),
+        }
     }
 
     fn handle_request_from_layout(&mut self, message: FromLayoutMsg) {

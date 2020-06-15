@@ -12,11 +12,14 @@ path = "lib.rs"
 
 [dependencies]
 arrayvec = { version = "0.5.1", features = ["serde"] }
+euclid = "0.20"
 ipc-channel = "0.14"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
 serde = { version = "1.0", features = ["serde_derive"] }
 servo_config = { path = "../config" }
 smallvec = { version = "0.6", features = ["serde"] }
+webrender_api = { git = "https://github.com/servo/webrender" }
+webrender_traits = { path = "../webrender_traits" }
 wgpu-core = { version = "0.5.0", git = "https://github.com/gfx-rs/wgpu", features = ["replay", "trace"] }
 wgpu-types = { version = "0.5.0", git = "https://github.com/gfx-rs/wgpu", features = ["replay", "trace"] }

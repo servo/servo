@@ -17,7 +17,7 @@ use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::htmlcanvaselement::HTMLCanvasElement;
+use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::webgl_validations::tex_image_2d::{
     TexImage2DValidator, TexImage2DValidatorResult, TexStorageValidator, TexStorageValidatorResult,
 };
@@ -29,8 +29,7 @@ use crate::dom::webglprogram::WebGLProgram;
 use crate::dom::webglquery::WebGLQuery;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{
-    uniform_get, uniform_typed, LayoutCanvasWebGLRenderingContextHelpers, Operation, TexPixels,
-    VertexAttrib, WebGLRenderingContext,
+    uniform_get, uniform_typed, Operation, TexPixels, VertexAttrib, WebGLRenderingContext,
 };
 use crate::dom::webglsampler::{WebGLSampler, WebGLSamplerValue};
 use crate::dom::webglshader::WebGLShader;
@@ -4381,7 +4380,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
     }
 }
 
-impl LayoutCanvasWebGLRenderingContextHelpers for LayoutDom<'_, WebGL2RenderingContext> {
+impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGL2RenderingContext> {
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(self) -> HTMLCanvasDataSource {
         let this = &*self.unsafe_get();

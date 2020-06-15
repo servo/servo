@@ -20,7 +20,9 @@ use crate::media_thread::GLPlayerThread;
 use euclid::default::Size2D;
 use servo_media::player::context::{GlApi, GlContext, NativeDisplay, PlayerGLContext};
 use std::sync::{Arc, Mutex};
-use webrender_traits::{WebrenderExternalImageApi, WebrenderExternalImageRegistry};
+use webrender_traits::{
+    WebrenderExternalImageApi, WebrenderExternalImageRegistry, WebrenderImageSource,
+};
 
 /// These are the messages that the GLPlayer thread will forward to
 /// the video player which lives in htmlmediaelement
@@ -146,7 +148,7 @@ impl GLPlayerExternalImages {
 }
 
 impl WebrenderExternalImageApi for GLPlayerExternalImages {
-    fn lock(&mut self, id: u64) -> (u32, Size2D<i32>) {
+    fn lock(&mut self, id: u64) -> (WebrenderImageSource, Size2D<i32>) {
         // The GLPlayerMsgForward::Lock message inserts a fence in the
         // GLPlayer command queue.
         self.glplayer_channel
@@ -160,7 +162,7 @@ impl WebrenderExternalImageApi for GLPlayerExternalImages {
         // internal OpenGL subsystem.
         //self.webrender_gl
         //    .wait_sync(gl_sync as gl::GLsync, 0, gl::TIMEOUT_IGNORED);
-        (image_id, size)
+        (WebrenderImageSource::TextureHandle(image_id), size)
     }
 
     fn unlock(&mut self, id: u64) {
