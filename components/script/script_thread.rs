@@ -2504,9 +2504,7 @@ impl ScriptThread {
         let frame_element = doc.find_iframe(browsing_context_id);
 
         if let Some(ref frame_element) = frame_element {
-            doc.begin_focus_transaction();
-            doc.request_focus(frame_element.upcast());
-            doc.commit_focus_transaction(FocusType::Parent);
+            doc.request_focus(Some(frame_element.upcast()), FocusType::Parent);
         }
     }
 

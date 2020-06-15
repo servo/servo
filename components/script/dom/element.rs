@@ -1300,12 +1300,12 @@ impl Element {
         if self.is_actually_disabled() {
             return false;
         }
-        // TODO: Check whether the element is being rendered (i.e. not hidden).
         let node = self.upcast::<Node>();
         if node.get_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE) {
             return true;
         }
-        // https://html.spec.whatwg.org/multipage/#specially-focusable
+
+        // <a>, <input>, <select>, and <textrea> are inherently focusable.
         match node.type_id() {
             NodeTypeId::Element(ElementTypeId::HTMLElement(
                 HTMLElementTypeId::HTMLAnchorElement,
@@ -1831,6 +1831,67 @@ impl Element {
 
     pub fn get_name(&self) -> Option<Atom> {
         self.rare_data().as_ref()?.name_attribute.clone()
+    }
+
+    fn is_sequentially_focusable(&self) -> bool {
+        let element = self.upcast::<Element>();
+        let node = self.upcast::<Node>();
+        if !node.is_connected() {
+            return false;
+        }
+
+        if element.has_attribute(&local_name!("hidden")) {
+            return false;
+        }
+
+        if self.disabled_state() {
+            return false;
+        }
+
+        if element.has_attribute(&local_name!("tabindex")) {
+            return true;
+        }
+
+        match node.type_id() {
+            // <button>, <select>, <iframe>, and <textarea> are implicitly focusable.
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLButtonElement,
+            )) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLSelectElement,
+            )) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLIFrameElement,
+            )) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLTextAreaElement,
+            )) => true,
+
+            // Links that generate actual links are focusable.
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLLinkElement)) |
+            NodeTypeId::Element(ElementTypeId::HTMLElement(
+                HTMLElementTypeId::HTMLAnchorElement,
+            )) => element.has_attribute(&local_name!("href")),
+
+            //TODO focusable if editing host
+            //TODO focusable if "sorting interface th elements"
+            _ => {
+                // Draggable elements are focusable.
+                element.get_string_attribute(&local_name!("draggable")) == "true"
+            },
+        }
+    }
+
+    pub(crate) fn update_sequentially_focusable_status(&self) {
+        let node = self.upcast::<Node>();
+        let is_sequentially_focusable = self.is_sequentially_focusable();
+        node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, is_sequentially_focusable);
+
+        // https://html.spec.whatwg.org/multipage/#focus-fixup-rule
+        if !is_sequentially_focusable {
+            let document = document_from_node(self);
+            document.perform_focus_fixup_rule(self);
+        }
     }
 }
 
@@ -2751,6 +2812,9 @@ impl VirtualMethods for Element {
         let node = self.upcast::<Node>();
         let doc = node.owner_doc();
         match attr.local_name() {
+            &local_name!("tabindex") | &local_name!("draggable") | &local_name!("hidden") => {
+                self.update_sequentially_focusable_status()
+            },
             &local_name!("style") => {
                 // Modifying the `style` attribute might change style.
                 *self.style_attribute.borrow_mut() = match mutation {
@@ -2917,6 +2981,8 @@ impl VirtualMethods for Element {
             return;
         }
 
+        self.update_sequentially_focusable_status();
+
         if let Some(ref value) = *self.id_attribute.borrow() {
             if let Some(shadow_root) = self.upcast::<Node>().containing_shadow_root() {
                 shadow_root.register_element_id(self, value.clone());
@@ -2944,6 +3010,8 @@ impl VirtualMethods for Element {
         if !context.tree_connected {
             return;
         }
+
+        self.update_sequentially_focusable_status();
 
         let doc = document_from_node(self);
 

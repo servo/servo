@@ -28,7 +28,7 @@ use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{BindContext, Node, NodeFlags, ShadowIncluding};
+use crate::dom::node::{Node, ShadowIncluding};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -90,53 +90,6 @@ impl HTMLElement {
     fn is_body_or_frameset(&self) -> bool {
         let eventtarget = self.upcast::<EventTarget>();
         eventtarget.is::<HTMLBodyElement>() || eventtarget.is::<HTMLFrameSetElement>()
-    }
-
-    fn update_sequentially_focusable_status(&self) {
-        let element = self.upcast::<Element>();
-        let node = self.upcast::<Node>();
-        if element.has_attribute(&local_name!("tabindex")) {
-            node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, true);
-        } else {
-            match node.type_id() {
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLButtonElement,
-                )) |
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLSelectElement,
-                )) |
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLIFrameElement,
-                )) |
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLTextAreaElement,
-                )) => node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, true),
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLLinkElement,
-                )) |
-                NodeTypeId::Element(ElementTypeId::HTMLElement(
-                    HTMLElementTypeId::HTMLAnchorElement,
-                )) => {
-                    if element.has_attribute(&local_name!("href")) {
-                        node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, true);
-                    }
-                },
-                _ => {
-                    if let Some(attr) = element.get_attribute(&ns!(), &local_name!("draggable")) {
-                        let value = attr.value();
-                        let is_true = match *value {
-                            AttrValue::String(ref string) => string == "true",
-                            _ => false,
-                        };
-                        node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, is_true);
-                    } else {
-                        node.set_flag(NodeFlags::SEQUENTIALLY_FOCUSABLE, false);
-                    }
-                    //TODO set SEQUENTIALLY_FOCUSABLE flag if editing host
-                    //TODO set SEQUENTIALLY_FOCUSABLE flag if "sorting interface th elements"
-                },
-            }
-        }
     }
 }
 
@@ -411,9 +364,7 @@ impl HTMLElementMethods for HTMLElement {
         // TODO: Mark the element as locked for focus and run the focusing steps.
         // https://html.spec.whatwg.org/multipage/#focusing-steps
         let document = document_from_node(self);
-        document.begin_focus_transaction();
-        document.request_focus(self.upcast());
-        document.commit_focus_transaction(FocusType::Element);
+        document.request_focus(Some(self.upcast()), FocusType::Element);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-blur
@@ -424,9 +375,7 @@ impl HTMLElementMethods for HTMLElement {
         }
         // https://html.spec.whatwg.org/multipage/#unfocusing-steps
         let document = document_from_node(self);
-        document.begin_focus_transaction();
-        // If `request_focus` is not called, focus will be set to None.
-        document.commit_focus_transaction(FocusType::Element);
+        document.request_focus(None, FocusType::Element);
     }
 
     // https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent
@@ -857,13 +806,6 @@ impl VirtualMethods for HTMLElement {
             },
             _ => {},
         }
-    }
-
-    fn bind_to_tree(&self, context: &BindContext) {
-        if let Some(ref s) = self.super_type() {
-            s.bind_to_tree(context);
-        }
-        self.update_sequentially_focusable_status();
     }
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {

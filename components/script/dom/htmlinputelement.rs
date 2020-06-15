@@ -2291,6 +2291,8 @@ impl VirtualMethods for HTMLInputElement {
                     let read_write = !(self.ReadOnly() || el.disabled_state());
                     el.set_read_write_state(read_write);
                 }
+
+                el.update_sequentially_focusable_status();
             },
             &local_name!("checked") if !self.checked_changed.get() => {
                 let checked_state = match mutation {
@@ -2520,7 +2522,6 @@ impl VirtualMethods for HTMLInputElement {
 
             //TODO: set the editing position for text inputs
 
-            document_from_node(self).request_focus(self.upcast());
             if self.input_type().is_textual_or_password() &&
                 // Check if we display a placeholder. Layout doesn't know about this.
                 !self.textinput.borrow().is_empty()
