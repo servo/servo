@@ -723,7 +723,7 @@ where
                     max_assign_in_flow_outer_content_sizes_to.is_some() &&
                         !info.style.inline_size_is_length(),
                 );
-                let contents = IndependentFormattingContext::construct(
+                let context = IndependentFormattingContext::construct(
                     context,
                     info,
                     display_inside,
@@ -733,13 +733,13 @@ where
                 );
                 if let Some(to) = max_assign_in_flow_outer_content_sizes_to {
                     to.max_assign(&sizing::outer_inline(
-                        &contents.style,
+                        &context.style(),
                         not_actually_containing_block_writing_mode,
-                        || contents.content_sizes.expect_inline().clone(),
+                        || context.content_sizes(),
                     ))
                 }
                 (
-                    ArcRefCell::new(BlockLevelBox::Independent(contents)),
+                    ArcRefCell::new(BlockLevelBox::Independent(context)),
                     ContainsFloats::No,
                 )
             },

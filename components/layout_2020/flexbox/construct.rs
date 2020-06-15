@@ -204,7 +204,7 @@ where
 
         // https://drafts.csswg.org/css-flexbox/#order-modified-document-order
         children.sort_by_key(|child| match &*child.borrow() {
-            FlexLevelBox::FlexItem(item) => item.style.clone_order(),
+            FlexLevelBox::FlexItem(item) => item.style().clone_order(),
 
             // “Absolutely-positioned children of a flex container are treated
             //  as having order: 0 for the purpose of determining their painting order

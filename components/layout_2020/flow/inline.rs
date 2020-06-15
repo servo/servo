@@ -155,7 +155,7 @@ impl InlineFormattingContext {
         impl Computation<'_> {
             fn traverse(&mut self, inline_level_boxes: &[ArcRefCell<InlineLevelBox>]) {
                 for inline_level_box in inline_level_boxes {
-                    match &*inline_level_box.borrow() {
+                    match &mut *inline_level_box.borrow_mut() {
                         InlineLevelBox::InlineBox(inline_box) => {
                             let padding =
                                 inline_box.style.padding(self.containing_block_writing_mode);
@@ -201,9 +201,9 @@ impl InlineFormattingContext {
                         },
                         InlineLevelBox::Atomic(atomic) => {
                             let (outer, pc) = sizing::outer_inline_and_percentages(
-                                &atomic.style,
+                                &atomic.style(),
                                 self.containing_block_writing_mode,
-                                || atomic.content_sizes.expect_inline().clone(),
+                                || atomic.content_sizes(),
                             );
                             self.current_line.min_content += outer.min_content;
                             self.current_line.max_content += outer.max_content;
@@ -295,7 +295,7 @@ impl InlineFormattingContext {
                     InlineLevelBox::TextRun(run) => run.layout(layout_context, &mut ifc),
                     InlineLevelBox::Atomic(a) => layout_atomic(layout_context, &mut ifc, a),
                     InlineLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
-                        let style = AtomicRef::map(box_.borrow(), |box_| &box_.context.style);
+                        let style = AtomicRef::map(box_.borrow(), |box_| box_.context.style());
                         let initial_start_corner =
                             match Display::from(style.get_box().original_display) {
                                 Display::GeneratingBox(DisplayGeneratingBox::OutsideInside {
@@ -545,7 +545,8 @@ fn layout_atomic(
     ifc: &mut InlineFormattingContextState,
     atomic: &mut IndependentFormattingContext,
 ) {
-    let pbm = atomic.style.padding_border_margin(&ifc.containing_block);
+    let style = atomic.style();
+    let pbm = style.padding_border_margin(&ifc.containing_block);
     let margin = pbm.margin.auto_is(Length::zero);
     let pbm_sums = &(&pbm.padding + &pbm.border) + &margin;
     ifc.inline_position += pbm_sums.inline_start;
@@ -553,19 +554,24 @@ fn layout_atomic(
         block: pbm_sums.block_start,
         inline: ifc.inline_position - ifc.current_nesting_level.inline_start,
     };
-    if atomic.style.clone_position().is_relative() {
-        start_corner += &relative_adjustement(&atomic.style, ifc.containing_block)
+    if style.clone_position().is_relative() {
+        start_corner += &relative_adjustement(&style, ifc.containing_block)
     }
 
-    let fragment = match atomic.contents.as_replaced() {
-        Ok(replaced) => {
-            let size =
-                replaced.used_size_as_if_inline_element(ifc.containing_block, &atomic.style, &pbm);
-            let fragments = replaced.make_fragments(&atomic.style, size.clone());
+    let fragment = match atomic {
+        IndependentFormattingContext::Replaced(replaced) => {
+            let size = replaced.contents.used_size_as_if_inline_element(
+                ifc.containing_block,
+                &replaced.style,
+                &pbm,
+            );
+            let fragments = replaced
+                .contents
+                .make_fragments(&replaced.style, size.clone());
             let content_rect = Rect { start_corner, size };
             BoxFragment::new(
-                atomic.tag,
-                atomic.style.clone(),
+                replaced.tag,
+                replaced.style.clone(),
                 fragments,
                 content_rect,
                 pbm.padding,
@@ -574,12 +580,14 @@ fn layout_atomic(
                 CollapsedBlockMargins::zero(),
             )
         },
-        Err(non_replaced) => {
-            let box_size = atomic.style.content_box_size(&ifc.containing_block, &pbm);
-            let max_box_size = atomic
+        IndependentFormattingContext::NonReplaced(non_replaced) => {
+            let box_size = non_replaced
+                .style
+                .content_box_size(&ifc.containing_block, &pbm);
+            let max_box_size = non_replaced
                 .style
                 .content_max_box_size(&ifc.containing_block, &pbm);
-            let min_box_size = atomic
+            let min_box_size = non_replaced
                 .style
                 .content_min_box_size(&ifc.containing_block, &pbm)
                 .auto_is(Length::zero);
@@ -587,7 +595,7 @@ fn layout_atomic(
             // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
             let tentative_inline_size = box_size.inline.auto_is(|| {
                 let available_size = ifc.containing_block.inline_size - pbm_sums.inline_sum();
-                atomic.content_sizes.shrink_to_fit(available_size)
+                non_replaced.content_sizes.shrink_to_fit(available_size)
             });
 
             // https://drafts.csswg.org/css2/visudet.html#min-max-widths
@@ -599,7 +607,7 @@ fn layout_atomic(
             let containing_block_for_children = ContainingBlock {
                 inline_size,
                 block_size: box_size.block,
-                style: &atomic.style,
+                style: &non_replaced.style,
             };
             assert_eq!(
                 ifc.containing_block.style.writing_mode,
@@ -635,8 +643,8 @@ fn layout_atomic(
                 },
             };
             BoxFragment::new(
-                atomic.tag,
-                atomic.style.clone(),
+                non_replaced.tag,
+                non_replaced.style.clone(),
                 independent_layout.fragments,
                 content_rect,
                 pbm.padding,

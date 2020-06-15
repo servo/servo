@@ -124,7 +124,7 @@ impl AbsolutelyPositionedBox {
 
         let box_offsets = {
             let box_ = self_.borrow();
-            let box_offsets = box_.context.style.box_offsets(containing_block);
+            let box_offsets = box_.context.style().box_offsets(containing_block);
             Vec2 {
                 inline: absolute_box_offsets(
                     initial_start_corner.inline,
@@ -268,7 +268,7 @@ impl PositioningContext {
                 .absolutely_positioned_box
                 .borrow()
                 .context
-                .style
+                .style()
                 .clone_position();
             match position {
                 Position::Fixed => {}, // fall through
@@ -395,29 +395,30 @@ impl HoistedAbsolutelyPositionedBox {
     ) -> BoxFragment {
         let cbis = containing_block.size.inline;
         let cbbs = containing_block.size.block;
-        let absolutely_positioned_box = self.absolutely_positioned_box.borrow_mut();
-        let style = &absolutely_positioned_box.context.style;
-        let pbm = style.padding_border_margin(&containing_block.into());
+        let mut absolutely_positioned_box = self.absolutely_positioned_box.borrow_mut();
+        let pbm = absolutely_positioned_box
+            .context
+            .style()
+            .padding_border_margin(&containing_block.into());
 
-        let size;
-        let replaced_used_size;
-        match absolutely_positioned_box.context.contents.as_replaced() {
-            Ok(replaced) => {
+        let size = match &absolutely_positioned_box.context {
+            IndependentFormattingContext::Replaced(replaced) => {
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                 // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                let used_size =
-                    replaced.used_size_as_if_inline_element(&containing_block.into(), style, &pbm);
-                size = Vec2 {
+                let used_size = replaced.contents.used_size_as_if_inline_element(
+                    &containing_block.into(),
+                    &replaced.style,
+                    &pbm,
+                );
+                Vec2 {
                     inline: LengthOrAuto::LengthPercentage(used_size.inline),
                     block: LengthOrAuto::LengthPercentage(used_size.block),
-                };
-                replaced_used_size = Some(used_size);
+                }
             },
-            Err(_non_replaced) => {
-                size = style.content_box_size(&containing_block.into(), &pbm);
-                replaced_used_size = None;
-            },
-        }
+            IndependentFormattingContext::NonReplaced(non_replaced) => non_replaced
+                .style
+                .content_box_size(&containing_block.into(), &pbm),
+        };
 
         let inline_axis = solve_axis(
             cbis,
@@ -446,19 +447,22 @@ impl HoistedAbsolutelyPositionedBox {
             block_end: block_axis.margin_end,
         };
 
-        let mut positioning_context = PositioningContext::new_for_style(style).unwrap();
+        let mut positioning_context =
+            PositioningContext::new_for_style(absolutely_positioned_box.context.style()).unwrap();
         let mut new_fragment = {
-            let size;
+            let content_size;
             let fragments;
-            match absolutely_positioned_box.context.contents.as_replaced() {
-                Ok(replaced) => {
+            match &mut absolutely_positioned_box.context {
+                IndependentFormattingContext::Replaced(replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-replaced-height
-                    let style = &absolutely_positioned_box.context.style;
-                    size = replaced_used_size.unwrap();
-                    fragments = replaced.make_fragments(style, size.clone());
+                    let style = &replaced.style;
+                    content_size = size.auto_is(|| unreachable!());
+                    fragments = replaced
+                        .contents
+                        .make_fragments(style, content_size.clone());
                 },
-                Err(non_replaced) => {
+                IndependentFormattingContext::NonReplaced(non_replaced) => {
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
                     // https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-height
                     let inline_size = inline_axis.size.auto_is(|| {
@@ -468,16 +472,13 @@ impl HoistedAbsolutelyPositionedBox {
                         };
                         let available_size =
                             cbis - anchor - pbm.padding_border_sums.inline - margin.inline_sum();
-                        absolutely_positioned_box
-                            .context
-                            .content_sizes
-                            .shrink_to_fit(available_size)
+                        non_replaced.content_sizes.shrink_to_fit(available_size)
                     });
 
                     let containing_block_for_children = ContainingBlock {
                         inline_size,
                         block_size: block_axis.size,
-                        style,
+                        style: &non_replaced.style,
                     };
                     // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
                     assert_eq!(
@@ -493,7 +494,7 @@ impl HoistedAbsolutelyPositionedBox {
                         dummy_tree_rank,
                     );
 
-                    size = Vec2 {
+                    content_size = Vec2 {
                         inline: inline_size,
                         block: block_axis
                             .size
@@ -506,11 +507,15 @@ impl HoistedAbsolutelyPositionedBox {
             let pb = &pbm.padding + &pbm.border;
             let inline_start = match inline_axis.anchor {
                 Anchor::Start(start) => start + pb.inline_start + margin.inline_start,
-                Anchor::End(end) => cbis - end - pb.inline_end - margin.inline_end - size.inline,
+                Anchor::End(end) => {
+                    cbis - end - pb.inline_end - margin.inline_end - content_size.inline
+                },
             };
             let block_start = match block_axis.anchor {
                 Anchor::Start(start) => start + pb.block_start + margin.block_start,
-                Anchor::End(end) => cbbs - end - pb.block_end - margin.block_end - size.block,
+                Anchor::End(end) => {
+                    cbbs - end - pb.block_end - margin.block_end - content_size.block
+                },
             };
 
             let content_rect = Rect {
@@ -518,12 +523,12 @@ impl HoistedAbsolutelyPositionedBox {
                     inline: inline_start,
                     block: block_start,
                 },
-                size,
+                size: content_size,
             };
 
             BoxFragment::new(
-                absolutely_positioned_box.context.tag,
-                style.clone(),
+                absolutely_positioned_box.context.tag(),
+                absolutely_positioned_box.context.style().clone(),
                 fragments,
                 content_rect,
                 pbm.padding,

@@ -9,7 +9,7 @@ use crate::flow::BlockFormattingContext;
 use crate::fragments::{Fragment, Tag};
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
-use crate::sizing::{BoxContentSizes, ContentSizesRequest};
+use crate::sizing::{BoxContentSizes, ContentSizes, ContentSizesRequest};
 use crate::style_ext::DisplayInside;
 use crate::ContainingBlock;
 use servo_arc::Arc;
@@ -20,15 +20,36 @@ use style::values::specified::text::TextDecorationLine;
 
 /// https://drafts.csswg.org/css-display/#independent-formatting-context
 #[derive(Debug, Serialize)]
-pub(crate) struct IndependentFormattingContext {
+pub(crate) enum IndependentFormattingContext {
+    NonReplaced(NonReplacedFormattingContext),
+    Replaced(ReplacedFormattingContext),
+}
+
+#[derive(Debug, Serialize)]
+pub(crate) struct NonReplacedFormattingContext {
     pub tag: Tag,
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
-
     /// If it was requested during construction
     pub content_sizes: BoxContentSizes,
+    pub contents: NonReplacedFormattingContextContents,
+}
 
-    pub contents: IndependentFormattingContextContents,
+#[derive(Debug, Serialize)]
+pub(crate) struct ReplacedFormattingContext {
+    pub tag: Tag,
+    #[serde(skip_serializing)]
+    pub style: Arc<ComputedValues>,
+    pub contents: ReplacedContent,
+}
+
+// Private so that code outside of this module cannot match variants.
+// It should got through methods instead.
+#[derive(Debug, Serialize)]
+pub(crate) enum NonReplacedFormattingContextContents {
+    Flow(BlockFormattingContext),
+    Flex(FlexContainer),
+    // Other layout modes go here
 }
 
 pub(crate) struct IndependentLayout {
@@ -36,28 +57,6 @@ pub(crate) struct IndependentLayout {
 
     /// https://drafts.csswg.org/css2/visudet.html#root-height
     pub content_block_size: Length,
-}
-
-#[derive(Debug, Serialize)]
-pub(crate) struct IndependentFormattingContextContents(IndependentFormattingContextContentsKind);
-
-// Private so that code outside of this module cannot match variants.
-// It should got through methods instead.
-#[derive(Debug, Serialize)]
-enum IndependentFormattingContextContentsKind {
-    Flow(BlockFormattingContext),
-    Flex(FlexContainer),
-
-    // Not called FC in specs, but behaves close enough
-    Replaced(ReplacedContent),
-    // Other layout modes go here
-}
-
-pub(crate) struct NonReplacedIFC<'a>(NonReplacedIFCKind<'a>);
-
-enum NonReplacedIFCKind<'a> {
-    Flow(&'a BlockFormattingContext),
-    Flex(&'a FlexContainer),
 }
 
 impl IndependentFormattingContext {
@@ -79,14 +78,12 @@ impl IndependentFormattingContext {
                         content_sizes,
                         propagated_text_decoration_line,
                     );
-                    Self {
+                    Self::NonReplaced(NonReplacedFormattingContext {
                         tag: Tag::from_node_and_style_info(info),
                         style: Arc::clone(&info.style),
                         content_sizes,
-                        contents: IndependentFormattingContextContents(
-                            IndependentFormattingContextContentsKind::Flow(bfc),
-                        ),
-                    }
+                        contents: NonReplacedFormattingContextContents::Flow(bfc),
+                    })
                 },
                 DisplayInside::Flex => {
                     let (fc, content_sizes) = FlexContainer::construct(
@@ -96,28 +93,19 @@ impl IndependentFormattingContext {
                         content_sizes,
                         propagated_text_decoration_line,
                     );
-                    Self {
+                    Self::NonReplaced(NonReplacedFormattingContext {
                         tag: Tag::from_node_and_style_info(info),
                         style: Arc::clone(&info.style),
                         content_sizes,
-                        contents: IndependentFormattingContextContents(
-                            IndependentFormattingContextContentsKind::Flex(fc),
-                        ),
-                    }
+                        contents: NonReplacedFormattingContextContents::Flex(fc),
+                    })
                 },
             },
-            Err(replaced) => {
-                let content_sizes =
-                    content_sizes.compute(|| replaced.inline_content_sizes(&info.style));
-                Self {
-                    tag: Tag::from_node_and_style_info(info),
-                    style: Arc::clone(&info.style),
-                    content_sizes,
-                    contents: IndependentFormattingContextContents(
-                        IndependentFormattingContextContentsKind::Replaced(replaced),
-                    ),
-                }
-            },
+            Err(contents) => Self::Replaced(ReplacedFormattingContext {
+                tag: Tag::from_node_and_style_info(info),
+                style: Arc::clone(&info.style),
+                contents,
+            }),
         }
     }
 
@@ -134,31 +122,37 @@ impl IndependentFormattingContext {
             content_sizes,
             propagated_text_decoration_line,
         );
-        Self {
+        Self::NonReplaced(NonReplacedFormattingContext {
             tag: Tag::from_node_and_style_info(info),
             style: Arc::clone(&info.style),
             content_sizes,
-            contents: IndependentFormattingContextContents(
-                IndependentFormattingContextContentsKind::Flow(bfc),
-            ),
+            contents: NonReplacedFormattingContextContents::Flow(bfc),
+        })
+    }
+
+    pub fn style(&self) -> &Arc<ComputedValues> {
+        match self {
+            Self::NonReplaced(inner) => &inner.style,
+            Self::Replaced(inner) => &inner.style,
+        }
+    }
+
+    pub fn tag(&self) -> Tag {
+        match self {
+            Self::NonReplaced(inner) => inner.tag,
+            Self::Replaced(inner) => inner.tag,
+        }
+    }
+
+    pub fn content_sizes(&self) -> ContentSizes {
+        match self {
+            Self::NonReplaced(inner) => inner.content_sizes.expect_inline().clone(),
+            Self::Replaced(inner) => inner.contents.inline_content_sizes(&inner.style),
         }
     }
 }
 
-impl IndependentFormattingContextContents {
-    pub fn as_replaced(&self) -> Result<&ReplacedContent, NonReplacedIFC<'_>> {
-        use self::IndependentFormattingContextContentsKind as Contents;
-        use self::NonReplacedIFC as NR;
-        use self::NonReplacedIFCKind as Kind;
-        match &self.0 {
-            Contents::Replaced(r) => Ok(r),
-            Contents::Flow(f) => Err(NR(Kind::Flow(f))),
-            Contents::Flex(f) => Err(NR(Kind::Flex(f))),
-        }
-    }
-}
-
-impl NonReplacedIFC<'_> {
+impl NonReplacedFormattingContext {
     pub fn layout(
         &self,
         layout_context: &LayoutContext,
@@ -166,14 +160,14 @@ impl NonReplacedIFC<'_> {
         containing_block: &ContainingBlock,
         tree_rank: usize,
     ) -> IndependentLayout {
-        match &self.0 {
-            NonReplacedIFCKind::Flow(bfc) => bfc.layout(
+        match &self.contents {
+            NonReplacedFormattingContextContents::Flow(bfc) => bfc.layout(
                 layout_context,
                 positioning_context,
                 containing_block,
                 tree_rank,
             ),
-            NonReplacedIFCKind::Flex(fc) => fc.layout(
+            NonReplacedFormattingContextContents::Flex(fc) => fc.layout(
                 layout_context,
                 positioning_context,
                 containing_block,
