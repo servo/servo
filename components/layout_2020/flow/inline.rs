@@ -16,7 +16,7 @@ use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, HoistedAbsolutelyPositionedBox,
     PositioningContext,
 };
-use crate::sizing::ContentSizes;
+use crate::sizing::{self, ContentSizes};
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
 use crate::ContainingBlock;
 use app_units::Au;
@@ -200,9 +200,10 @@ impl InlineFormattingContext {
                             }
                         },
                         InlineLevelBox::Atomic(atomic) => {
-                            let (outer, pc) = atomic.content_sizes.outer_inline_and_percentages(
+                            let (outer, pc) = sizing::outer_inline_and_percentages(
                                 &atomic.style,
                                 self.containing_block_writing_mode,
+                                || atomic.content_sizes.expect_inline().clone(),
                             );
                             self.current_line.min_content += outer.min_content;
                             self.current_line.max_content += outer.max_content;

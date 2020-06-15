@@ -14,7 +14,7 @@ use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::Tag;
 use crate::positioned::AbsolutelyPositionedBox;
-use crate::sizing::{BoxContentSizes, ContentSizes, ContentSizesRequest};
+use crate::sizing::{self, BoxContentSizes, ContentSizes, ContentSizesRequest};
 use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
@@ -701,10 +701,11 @@ where
                     ),
                 );
                 if let Some(to) = max_assign_in_flow_outer_content_sizes_to {
-                    to.max_assign(
-                        &box_content_sizes
-                            .outer_inline(&info.style, not_actually_containing_block_writing_mode),
-                    )
+                    to.max_assign(&sizing::outer_inline(
+                        &info.style,
+                        not_actually_containing_block_writing_mode,
+                        || box_content_sizes.expect_inline().clone(),
+                    ))
                 }
                 let block_level_box = ArcRefCell::new(BlockLevelBox::SameFormattingContextBlock {
                     tag: Tag::from_node_and_style_info(info),
@@ -731,12 +732,11 @@ where
                     propagated_text_decoration_line,
                 );
                 if let Some(to) = max_assign_in_flow_outer_content_sizes_to {
-                    to.max_assign(
-                        &contents.content_sizes.outer_inline(
-                            &contents.style,
-                            not_actually_containing_block_writing_mode,
-                        ),
-                    )
+                    to.max_assign(&sizing::outer_inline(
+                        &contents.style,
+                        not_actually_containing_block_writing_mode,
+                        || contents.content_sizes.expect_inline().clone(),
+                    ))
                 }
                 (
                     ArcRefCell::new(BlockLevelBox::Independent(contents)),
