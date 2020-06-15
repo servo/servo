@@ -64,7 +64,7 @@ impl ContentSizes {
         }
     }
 
-    fn map(&self, f: impl Fn(Length) -> Length) -> Self {
+    pub fn map(&self, f: impl Fn(Length) -> Length) -> Self {
         Self {
             min_content: f(self.min_content),
             max_content: f(self.max_content),
@@ -98,93 +98,11 @@ pub(crate) enum BoxContentSizes {
 }
 
 impl BoxContentSizes {
-    fn expect_inline(&self) -> &ContentSizes {
+    pub fn expect_inline(&self) -> &ContentSizes {
         match self {
             Self::NoneWereRequested => panic!("Accessing content size that was not requested"),
             Self::Inline(s) => s,
         }
-    }
-
-    /// https://dbaron.org/css/intrinsic/#outer-intrinsic
-    pub fn outer_inline(
-        &self,
-        style: &ComputedValues,
-        containing_block_writing_mode: WritingMode,
-    ) -> ContentSizes {
-        let (mut outer, percentages) =
-            self.outer_inline_and_percentages(style, containing_block_writing_mode);
-        outer.adjust_for_pbm_percentages(percentages);
-        outer
-    }
-
-    pub(crate) fn outer_inline_and_percentages(
-        &self,
-        style: &ComputedValues,
-        containing_block_writing_mode: WritingMode,
-    ) -> (ContentSizes, Percentage) {
-        let padding = style.padding(containing_block_writing_mode);
-        let border = style.border_width(containing_block_writing_mode);
-        let margin = style.margin(containing_block_writing_mode);
-
-        let mut pbm_percentages = Percentage::zero();
-        let mut decompose = |x: &LengthPercentage| {
-            pbm_percentages += x.to_percentage().unwrap_or_else(Zero::zero);
-            x.to_length().unwrap_or_else(Zero::zero)
-        };
-        let pb_lengths =
-            border.inline_sum() + decompose(padding.inline_start) + decompose(padding.inline_end);
-        let mut m_lengths = Length::zero();
-        if let Some(m) = margin.inline_start.non_auto() {
-            m_lengths += decompose(m)
-        }
-        if let Some(m) = margin.inline_end.non_auto() {
-            m_lengths += decompose(m)
-        }
-
-        let box_sizing = style.get_position().box_sizing;
-        let inline_size = style
-            .box_size(containing_block_writing_mode)
-            .inline
-            .non_auto()
-            // Percentages for 'width' are treated as 'auto'
-            .and_then(|lp| lp.to_length());
-        let min_inline_size = style
-            .min_box_size(containing_block_writing_mode)
-            .inline
-            // Percentages for 'min-width' are treated as zero
-            .percentage_relative_to(Length::zero())
-            // FIXME: 'auto' is not zero in Flexbox
-            .auto_is(Length::zero);
-        let max_inline_size = style
-            .max_box_size(containing_block_writing_mode)
-            .inline
-            // Percentages for 'max-width' are treated as 'none'
-            .and_then(|lp| lp.to_length());
-        let clamp = |l: Length| l.clamp_between_extremums(min_inline_size, max_inline_size);
-
-        let border_box_sizes = match inline_size {
-            Some(non_auto) => {
-                let clamped = clamp(non_auto);
-                let border_box_size = match box_sizing {
-                    BoxSizing::ContentBox => clamped + pb_lengths,
-                    BoxSizing::BorderBox => clamped,
-                };
-                ContentSizes {
-                    min_content: border_box_size,
-                    max_content: border_box_size,
-                }
-            },
-            None => self.expect_inline().map(|content_box_size| {
-                match box_sizing {
-                    // Clamp to 'min-width' and 'max-width', which are sizing the…
-                    BoxSizing::ContentBox => clamp(content_box_size) + pb_lengths,
-                    BoxSizing::BorderBox => clamp(content_box_size + pb_lengths),
-                }
-            }),
-        };
-
-        let outer = border_box_sizes.map(|s| s + m_lengths);
-        (outer, pbm_percentages)
     }
 
     /// https://drafts.csswg.org/css2/visudet.html#shrink-to-fit-float
@@ -194,4 +112,85 @@ impl BoxContentSizes {
             .max(inline.min_content)
             .min(inline.max_content)
     }
+}
+
+pub(crate) fn outer_inline(
+    style: &ComputedValues,
+    containing_block_writing_mode: WritingMode,
+    get_content_size: impl FnOnce() -> ContentSizes,
+) -> ContentSizes {
+    let (mut outer, percentages) =
+        outer_inline_and_percentages(style, containing_block_writing_mode, get_content_size);
+    outer.adjust_for_pbm_percentages(percentages);
+    outer
+}
+
+pub(crate) fn outer_inline_and_percentages(
+    style: &ComputedValues,
+    containing_block_writing_mode: WritingMode,
+    get_content_size: impl FnOnce() -> ContentSizes,
+) -> (ContentSizes, Percentage) {
+    let padding = style.padding(containing_block_writing_mode);
+    let border = style.border_width(containing_block_writing_mode);
+    let margin = style.margin(containing_block_writing_mode);
+
+    let mut pbm_percentages = Percentage::zero();
+    let mut decompose = |x: &LengthPercentage| {
+        pbm_percentages += x.to_percentage().unwrap_or_else(Zero::zero);
+        x.to_length().unwrap_or_else(Zero::zero)
+    };
+    let pb_lengths =
+        border.inline_sum() + decompose(padding.inline_start) + decompose(padding.inline_end);
+    let mut m_lengths = Length::zero();
+    if let Some(m) = margin.inline_start.non_auto() {
+        m_lengths += decompose(m)
+    }
+    if let Some(m) = margin.inline_end.non_auto() {
+        m_lengths += decompose(m)
+    }
+
+    let box_sizing = style.get_position().box_sizing;
+    let inline_size = style
+        .box_size(containing_block_writing_mode)
+        .inline
+        .non_auto()
+        // Percentages for 'width' are treated as 'auto'
+        .and_then(|lp| lp.to_length());
+    let min_inline_size = style
+        .min_box_size(containing_block_writing_mode)
+        .inline
+        // Percentages for 'min-width' are treated as zero
+        .percentage_relative_to(Length::zero())
+        // FIXME: 'auto' is not zero in Flexbox
+        .auto_is(Length::zero);
+    let max_inline_size = style
+        .max_box_size(containing_block_writing_mode)
+        .inline
+        // Percentages for 'max-width' are treated as 'none'
+        .and_then(|lp| lp.to_length());
+    let clamp = |l: Length| l.clamp_between_extremums(min_inline_size, max_inline_size);
+
+    let border_box_sizes = match inline_size {
+        Some(non_auto) => {
+            let clamped = clamp(non_auto);
+            let border_box_size = match box_sizing {
+                BoxSizing::ContentBox => clamped + pb_lengths,
+                BoxSizing::BorderBox => clamped,
+            };
+            ContentSizes {
+                min_content: border_box_size,
+                max_content: border_box_size,
+            }
+        },
+        None => get_content_size().map(|content_box_size| {
+            match box_sizing {
+                // Clamp to 'min-width' and 'max-width', which are sizing the…
+                BoxSizing::ContentBox => clamp(content_box_size) + pb_lengths,
+                BoxSizing::BorderBox => clamp(content_box_size + pb_lengths),
+            }
+        }),
+    };
+
+    let outer = border_box_sizes.map(|s| s + m_lengths);
+    (outer, pbm_percentages)
 }
