@@ -198,10 +198,9 @@ impl WebSocket {
         let address = Trusted::new(&*ws);
 
         // Step 8.
-        let request = RequestBuilder::new(url_record)
+        let request = RequestBuilder::new(url_record, Referrer::NoReferrer)
             .origin(global.origin().immutable().clone())
-            .mode(RequestMode::WebSocket { protocols })
-            .referrer(Some(Referrer::NoReferrer));
+            .mode(RequestMode::WebSocket { protocols });
 
         let channels = FetchChannels::WebSocket {
             event_sender: resource_event_sender,

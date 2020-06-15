@@ -22,6 +22,7 @@ ipc-channel = "0.14"
 keyboard-types = "0.4.3"
 log = "0.4"
 msg = { path = "../msg" }
+net_traits = { path = "../net_traits" }
 pixels = { path = "../pixels" }
 script_traits = { path = "../script_traits" }
 serde = "1"

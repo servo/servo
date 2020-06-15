@@ -37,8 +37,12 @@ pub enum Origin {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum Referrer {
     NoReferrer,
-    /// Default referrer if nothing is specified
-    Client,
+    /// Contains the url that "client" would be resolved to. See
+    /// [https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer](https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer)
+    ///
+    /// If you are unsure you should probably use
+    /// [`GlobalScope::get_referrer`](https://doc.servo.org/script/dom/globalscope/struct.GlobalScope.html#method.get_referrer)
+    Client(ServoUrl),
     ReferrerUrl(ServoUrl),
 }
 
@@ -231,7 +235,7 @@ pub struct RequestBuilder {
     pub use_url_credentials: bool,
     pub origin: ImmutableOrigin,
     // XXXManishearth these should be part of the client object
-    pub referrer: Option<Referrer>,
+    pub referrer: Referrer,
     pub referrer_policy: Option<ReferrerPolicy>,
     pub pipeline_id: Option<PipelineId>,
     pub redirect_mode: RedirectMode,
@@ -249,7 +253,7 @@ pub struct RequestBuilder {
 }
 
 impl RequestBuilder {
-    pub fn new(url: ServoUrl) -> RequestBuilder {
+    pub fn new(url: ServoUrl, referrer: Referrer) -> RequestBuilder {
         RequestBuilder {
             method: Method::GET,
             url: url,
@@ -265,7 +269,7 @@ impl RequestBuilder {
             credentials_mode: CredentialsMode::Omit,
             use_url_credentials: false,
             origin: ImmutableOrigin::new_opaque(),
-            referrer: None,
+            referrer: referrer,
             referrer_policy: None,
             pipeline_id: None,
             redirect_mode: RedirectMode::Follow,
@@ -338,11 +342,6 @@ impl RequestBuilder {
         self
     }
 
-    pub fn referrer(mut self, referrer: Option<Referrer>) -> RequestBuilder {
-        self.referrer = referrer;
-        self
-    }
-
     pub fn referrer_policy(mut self, referrer_policy: Option<ReferrerPolicy>) -> RequestBuilder {
         self.referrer_policy = referrer_policy;
         self
@@ -377,6 +376,7 @@ impl RequestBuilder {
         let mut request = Request::new(
             self.url.clone(),
             Some(Origin::Origin(self.origin)),
+            self.referrer,
             self.pipeline_id,
             self.https_state,
         );
@@ -393,7 +393,6 @@ impl RequestBuilder {
         request.credentials_mode = self.credentials_mode;
         request.use_url_credentials = self.use_url_credentials;
         request.cache_mode = self.cache_mode;
-        request.referrer = self.referrer.unwrap_or(Referrer::Client);
         request.referrer_policy = self.referrer_policy;
         request.redirect_mode = self.redirect_mode;
         let mut url_list = self.url_list;
@@ -484,6 +483,7 @@ impl Request {
     pub fn new(
         url: ServoUrl,
         origin: Option<Origin>,
+        referrer: Referrer,
         pipeline_id: Option<PipelineId>,
         https_state: HttpsState,
     ) -> Request {
@@ -500,7 +500,7 @@ impl Request {
             initiator: Initiator::None,
             destination: Destination::None,
             origin: origin.unwrap_or(Origin::Client),
-            referrer: Referrer::Client,
+            referrer: referrer,
             referrer_policy: None,
             pipeline_id: pipeline_id,
             synchronous: false,
@@ -569,7 +569,8 @@ impl Request {
 impl Referrer {
     pub fn to_url(&self) -> Option<&ServoUrl> {
         match *self {
-            Referrer::NoReferrer | Referrer::Client => None,
+            Referrer::NoReferrer => None,
+            Referrer::Client(ref url) => Some(url),
             Referrer::ReferrerUrl(ref url) => Some(url),
         }
     }

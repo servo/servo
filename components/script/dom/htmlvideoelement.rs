@@ -189,7 +189,7 @@ impl HTMLVideoElement {
     ) {
         // Continuation of step 4.
         let document = document_from_node(self);
-        let request = RequestBuilder::new(poster_url.clone())
+        let request = RequestBuilder::new(poster_url.clone(), document.global().get_referrer())
             .destination(Destination::Image)
             .credentials_mode(CredentialsMode::Include)
             .use_url_credentials(true)

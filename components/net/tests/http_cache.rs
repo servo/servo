@@ -7,7 +7,7 @@ use http::header::{HeaderValue, EXPIRES};
 use http::StatusCode;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::http_cache::HttpCache;
-use net_traits::request::{Origin, Request};
+use net_traits::request::{Origin, Referrer, Request};
 use net_traits::response::{HttpsState, Response, ResponseBody};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
@@ -23,6 +23,7 @@ fn test_refreshing_resource_sets_done_chan_the_appropriate_value() {
     let request = Request::new(
         url.clone(),
         Some(Origin::Origin(url.clone().origin())),
+        Referrer::NoReferrer,
         Some(TEST_PIPELINE_ID),
         HttpsState::None,
     );

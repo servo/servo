@@ -126,6 +126,7 @@ impl TokenSink for PrefetchSink {
                     let request = image_fetch_request(
                         url,
                         self.origin.clone(),
+                        self.referrer.clone(),
                         self.pipeline_id,
                         self.get_cors_settings(tag, local_name!("crossorigin")),
                         self.get_referrer_policy(tag, local_name!("referrerpolicy")),

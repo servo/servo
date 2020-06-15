@@ -720,6 +720,8 @@ impl ModuleTree {
                 }
 
                 // Step 8.
+
+                let referrer = global.get_referrer();
                 for url in urls {
                     // https://html.spec.whatwg.org/multipage/#internal-module-script-graph-fetching-procedure
                     // Step 1.
@@ -731,7 +733,7 @@ impl ModuleTree {
                         url.clone(),
                         visited_urls.clone(),
                         destination.clone(),
-                        Referrer::Client,
+                        referrer.clone(),
                         ParserMetadata::NotParserInserted,
                         "".to_owned(), // integrity
                         credentials_mode.clone(),
@@ -1225,6 +1227,7 @@ pub fn fetch_external_module_script(
 ) {
     let mut visited_urls = HashSet::new();
     visited_urls.insert(url.clone());
+    let referrer = owner.global().get_referrer();
 
     // Step 1.
     fetch_single_module_script(
@@ -1232,7 +1235,7 @@ pub fn fetch_external_module_script(
         url,
         visited_urls,
         destination,
-        Referrer::Client,
+        referrer,
         ParserMetadata::NotParserInserted,
         integrity_metadata,
         credentials_mode,
@@ -1322,10 +1325,9 @@ pub fn fetch_single_module_script(
     };
 
     // Step 7-8.
-    let request = RequestBuilder::new(url.clone())
+    let request = RequestBuilder::new(url.clone(), referrer)
         .destination(destination.clone())
         .origin(global.origin().immutable().clone())
-        .referrer(Some(referrer))
         .parser_metadata(parser_metadata)
         .integrity_metadata(integrity_metadata.clone())
         .credentials_mode(credentials_mode)

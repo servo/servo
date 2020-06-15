@@ -6,7 +6,7 @@ use crate::fetch;
 use headers::{ContentType, HeaderMapExt};
 use hyper_serde::Serde;
 use mime::{self, Mime};
-use net_traits::request::{Origin, Request};
+use net_traits::request::{Origin, Referrer, Request};
 use net_traits::response::{HttpsState, ResponseBody};
 use net_traits::{FetchMetadata, FilteredMetadata, NetworkError};
 use servo_url::ServoUrl;
@@ -21,7 +21,13 @@ fn assert_parse(
 ) {
     let url = ServoUrl::parse(url).unwrap();
     let origin = Origin::Origin(url.origin());
-    let mut request = Request::new(url, Some(origin), None, HttpsState::None);
+    let mut request = Request::new(
+        url,
+        Some(origin),
+        Referrer::NoReferrer,
+        None,
+        HttpsState::None,
+    );
 
     let response = fetch(&mut request, None);
 

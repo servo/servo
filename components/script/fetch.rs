@@ -29,7 +29,7 @@ use ipc_channel::router::ROUTER;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, RequestBuilder, RequestMode,
 };
-use net_traits::request::{Request as NetTraitsRequest, ServiceWorkersMode};
+use net_traits::request::{Referrer, Request as NetTraitsRequest, ServiceWorkersMode};
 use net_traits::CoreResourceMsg::Fetch as NetTraitsFetch;
 use net_traits::{CoreResourceMsg, CoreResourceThread, FetchResponseMsg};
 use net_traits::{FetchChannels, FetchResponseListener, NetworkError};
@@ -117,7 +117,7 @@ fn request_init_from_request(request: NetTraitsRequest) -> RequestBuilder {
             .origin()
             .immutable()
             .clone(),
-        referrer: Some(request.referrer.clone()),
+        referrer: request.referrer.clone(),
         referrer_policy: request.referrer_policy,
         pipeline_id: request.pipeline_id,
         redirect_mode: request.redirect_mode,
@@ -357,8 +357,9 @@ pub(crate) fn create_a_potential_cors_request(
     destination: Destination,
     cors_setting: Option<CorsSettings>,
     same_origin_fallback: Option<bool>,
+    referrer: Referrer,
 ) -> RequestBuilder {
-    RequestBuilder::new(url)
+    RequestBuilder::new(url, referrer)
         // https://html.spec.whatwg.org/multipage/#create-a-potential-cors-request
         // Step 1
         .mode(match cors_setting {

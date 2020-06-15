@@ -136,7 +136,7 @@ use msg::constellation_msg::{
     TopLevelBrowsingContextId,
 };
 use net_traits::pub_domains::reg_host;
-use net_traits::request::RequestBuilder;
+use net_traits::request::{Referrer, RequestBuilder};
 use net_traits::storage_thread::{StorageThreadMsg, StorageType};
 use net_traits::{self, FetchResponseMsg, IpcSend, ResourceThreads};
 use profile_traits::mem;
@@ -1544,7 +1544,13 @@ where
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
             FromCompositorMsg::LoadUrl(top_level_browsing_context_id, url) => {
-                let load_data = LoadData::new(LoadOrigin::Constellation, url, None, None, None);
+                let load_data = LoadData::new(
+                    LoadOrigin::Constellation,
+                    url,
+                    None,
+                    Referrer::NoReferrer,
+                    None,
+                );
                 let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
                 let pipeline_id = match self.browsing_contexts.get(&ctx_id) {
                     Some(ctx) => ctx.pipeline_id,
@@ -2888,7 +2894,13 @@ where
         warn!("creating replacement pipeline for about:failure");
 
         let new_pipeline_id = PipelineId::new();
-        let load_data = LoadData::new(LoadOrigin::Constellation, failure_url, None, None, None);
+        let load_data = LoadData::new(
+            LoadOrigin::Constellation,
+            failure_url,
+            None,
+            Referrer::NoReferrer,
+            None,
+        );
         let sandbox = IFrameSandboxState::IFrameSandboxed;
         let is_private = false;
         self.new_pipeline(
@@ -2998,7 +3010,13 @@ where
         );
         self.embedder_proxy.send(msg);
         let browsing_context_id = BrowsingContextId::from(top_level_browsing_context_id);
-        let load_data = LoadData::new(LoadOrigin::Constellation, url, None, None, None);
+        let load_data = LoadData::new(
+            LoadOrigin::Constellation,
+            url,
+            None,
+            Referrer::NoReferrer,
+            None,
+        );
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
         let is_private = false;
         let is_visible = true;

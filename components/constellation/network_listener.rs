@@ -116,7 +116,8 @@ impl NetworkListener {
                         self.request_builder.referrer = metadata
                             .referrer
                             .clone()
-                            .map(|referrer_url| Referrer::ReferrerUrl(referrer_url));
+                            .map(|referrer_url| Referrer::ReferrerUrl(referrer_url))
+                            .unwrap_or(Referrer::NoReferrer);
                         self.request_builder.referrer_policy = metadata.referrer_policy;
 
                         let headers = if let Some(ref headers) = metadata.headers {

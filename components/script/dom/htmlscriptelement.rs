@@ -324,10 +324,9 @@ pub(crate) fn script_fetch_request(
     referrer_policy: Option<ReferrerPolicy>,
     integrity_metadata: String,
 ) -> RequestBuilder {
-    create_a_potential_cors_request(url, Destination::Script, cors_setting, None)
+    create_a_potential_cors_request(url, Destination::Script, cors_setting, None, referrer)
         .origin(origin)
         .pipeline_id(Some(pipeline_id))
-        .referrer(Some(referrer))
         .referrer_policy(referrer_policy)
         .integrity_metadata(integrity_metadata)
 }

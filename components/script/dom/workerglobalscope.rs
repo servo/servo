@@ -252,7 +252,7 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
         rooted!(in(self.runtime.borrow().as_ref().unwrap().cx()) let mut rval = UndefinedValue());
         for url in urls {
             let global_scope = self.upcast::<GlobalScope>();
-            let request = NetRequestInit::new(url.clone())
+            let request = NetRequestInit::new(url.clone(), global_scope.get_referrer())
                 .destination(Destination::Script)
                 .credentials_mode(CredentialsMode::Include)
                 .parser_metadata(ParserMetadata::NotParserInserted)

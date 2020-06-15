@@ -239,13 +239,7 @@ pub fn main_fetch(
     {
         let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer) {
             Referrer::NoReferrer => None,
-            Referrer::Client => {
-                // FIXME(#14507): We should never get this value here; it should
-                //                already have been handled in the script thread.
-                request.headers.remove(header::REFERER);
-                None
-            },
-            Referrer::ReferrerUrl(url) => {
+            Referrer::ReferrerUrl(url) | Referrer::Client(url) => {
                 request.headers.remove(header::REFERER);
                 let current_url = request.current_url();
                 determine_request_referrer(
