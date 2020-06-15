@@ -19,6 +19,7 @@ use crate::properties::{
     PropertyDeclarationId,
 };
 use crate::rule_tree::CascadeLevel;
+use crate::selector_parser::PseudoElement;
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::style_resolver::StyleResolverForElement;
 use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, KeyframesStepValue};
@@ -1138,7 +1139,39 @@ impl ElementAnimationSet {
 
 #[derive(Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 /// A key that is used to identify nodes in the `DocumentAnimationSet`.
-pub struct AnimationSetKey(pub OpaqueNode);
+pub struct AnimationSetKey {
+    /// The node for this `AnimationSetKey`.
+    pub node: OpaqueNode,
+    /// The pseudo element for this `AnimationSetKey`. If `None` this key will
+    /// refer to the main content for its node.
+    pub pseudo_element: Option<PseudoElement>,
+}
+
+impl AnimationSetKey {
+    /// Create a new key given a node and optional pseudo element.
+    pub fn new(node: OpaqueNode, pseudo_element: Option<PseudoElement>) -> Self {
+        AnimationSetKey {
+            node,
+            pseudo_element,
+        }
+    }
+
+    /// Create a new key for the main content of this node.
+    pub fn new_for_non_pseudo(node: OpaqueNode) -> Self {
+        AnimationSetKey {
+            node,
+            pseudo_element: None,
+        }
+    }
+
+    /// Create a new key for given node and pseudo element.
+    pub fn new_for_pseudo(node: OpaqueNode, pseudo_element: PseudoElement) -> Self {
+        AnimationSetKey {
+            node,
+            pseudo_element: Some(pseudo_element),
+        }
+    }
+}
 
 #[derive(Clone, Debug, Default, MallocSizeOf)]
 /// A set of animations for a document.
@@ -1154,8 +1187,7 @@ impl DocumentAnimationSet {
         self.sets
             .read()
             .get(key)
-            .map(|set| set.has_active_animation())
-            .unwrap_or(false)
+            .map_or(false, |set| set.has_active_animation())
     }
 
     /// Return whether or not the provided node has active CSS transitions.
@@ -1163,8 +1195,7 @@ impl DocumentAnimationSet {
         self.sets
             .read()
             .get(key)
-            .map(|set| set.has_active_transition())
-            .unwrap_or(false)
+            .map_or(false, |set| set.has_active_transition())
     }
 
     /// Return a locked PropertyDeclarationBlock with animation values for the given
@@ -1201,6 +1232,58 @@ impl DocumentAnimationSet {
                 let block = PropertyDeclarationBlock::from_animation_value_map(&map);
                 Arc::new(shared_lock.wrap(block))
             })
+    }
+
+    /// Get all the animation declarations for the given key, returning an empty
+    /// `AnimationAndTransitionDeclarations` if there are no animations.
+    pub(crate) fn get_all_declarations(
+        &self,
+        key: &AnimationSetKey,
+        time: f64,
+        shared_lock: &SharedRwLock,
+    ) -> AnimationAndTransitionDeclarations {
+        let sets = self.sets.read();
+        let set = match sets.get(key) {
+            Some(set) => set,
+            None => return Default::default(),
+        };
+
+        let animations = set.get_value_map_for_active_animations(time).map(|map| {
+            let block = PropertyDeclarationBlock::from_animation_value_map(&map);
+            Arc::new(shared_lock.wrap(block))
+        });
+        let transitions = set.get_value_map_for_active_transitions(time).map(|map| {
+            let block = PropertyDeclarationBlock::from_animation_value_map(&map);
+            Arc::new(shared_lock.wrap(block))
+        });
+        AnimationAndTransitionDeclarations {
+            animations,
+            transitions,
+        }
+    }
+
+    /// Cancel all animations for set at the given key.
+    pub(crate) fn cancel_all_animations_for_key(&self, key: &AnimationSetKey) {
+        if let Some(set) = self.sets.write().get_mut(key) {
+            set.cancel_all_animations();
+        }
+    }
+}
+
+/// A set of property declarations for a node, including animations and
+/// transitions.
+#[derive(Default)]
+pub struct AnimationAndTransitionDeclarations {
+    /// Declarations for animations.
+    pub animations: Option<Arc<Locked<PropertyDeclarationBlock>>>,
+    /// Declarations for transitions.
+    pub transitions: Option<Arc<Locked<PropertyDeclarationBlock>>>,
+}
+
+impl AnimationAndTransitionDeclarations {
+    /// Whether or not this `AnimationAndTransitionDeclarations` is empty.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.animations.is_none() && self.transitions.is_none()
     }
 }
 

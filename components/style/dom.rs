@@ -750,12 +750,23 @@ pub trait TElement:
     /// or are scheduled to do so in the future.
     fn has_animations(&self, context: &SharedStyleContext) -> bool;
 
-    /// Returns true if the element has a CSS animation.
-    fn has_css_animations(&self, context: &SharedStyleContext) -> bool;
+    /// Returns true if the element has a CSS animation. The `context` and `pseudo_element`
+    /// arguments are only used by Servo, since it stores animations globally and pseudo-elements
+    /// are not in the DOM.
+    fn has_css_animations(
+        &self,
+        context: &SharedStyleContext,
+        pseudo_element: Option<PseudoElement>,
+    ) -> bool;
 
     /// Returns true if the element has a CSS transition (including running transitions and
-    /// completed transitions).
-    fn has_css_transitions(&self, context: &SharedStyleContext) -> bool;
+    /// completed transitions). The `context` and `pseudo_element` arguments are only used
+    /// by Servo, since it stores animations globally and pseudo-elements are not in the DOM.
+    fn has_css_transitions(
+        &self,
+        context: &SharedStyleContext,
+        pseudo_element: Option<PseudoElement>,
+    ) -> bool;
 
     /// Returns true if the element has animation restyle hints.
     fn has_animation_restyle_hints(&self) -> bool {

@@ -19,6 +19,7 @@ use crate::dom::event::Event;
 use crate::dom::node::{from_untrusted_node_address, window_from_node, Node, NodeDamage};
 use crate::dom::transitionevent::TransitionEvent;
 use crate::dom::window::Window;
+use cssparser::ToCss;
 use fxhash::{FxHashMap, FxHashSet};
 use libc::c_void;
 use msg::constellation_msg::PipelineId;
@@ -29,6 +30,7 @@ use style::animation::{
     KeyframesIterationState, Transition,
 };
 use style::dom::OpaqueNode;
+use style::selector_parser::PseudoElement;
 
 /// The set of animations for a document.
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -66,7 +68,7 @@ impl Animations {
     pub(crate) fn mark_animating_nodes_as_dirty(&self) {
         let sets = self.sets.sets.read();
         let rooted_nodes = self.rooted_nodes.borrow();
-        for node in sets.keys().filter_map(|key| rooted_nodes.get(&key.0)) {
+        for node in sets.keys().filter_map(|key| rooted_nodes.get(&key.node)) {
             node.dirty(NodeDamage::NodeStyleDamaged);
         }
     }
@@ -287,7 +289,7 @@ impl Animations {
         let js_runtime = window.get_js_runtime().as_ref().unwrap().rt();
         let mut rooted_nodes = self.rooted_nodes.borrow_mut();
         for (key, set) in sets.iter() {
-            let opaque_node = key.0;
+            let opaque_node = key.node;
             if rooted_nodes.contains_key(&opaque_node) {
                 continue;
             }
@@ -309,7 +311,7 @@ impl Animations {
     // Unroot any nodes that we have rooted but are no longer tracking animations for.
     fn unroot_unused_nodes(&self, sets: &FxHashMap<AnimationSetKey, ElementAnimationSet>) {
         let pending_events = self.pending_events.borrow();
-        let nodes: FxHashSet<OpaqueNode> = sets.keys().map(|key| key.0).collect();
+        let nodes: FxHashSet<OpaqueNode> = sets.keys().map(|key| key.node).collect();
         self.rooted_nodes.borrow_mut().retain(|node, _| {
             nodes.contains(&node) || pending_events.iter().any(|event| event.node == *node)
         });
@@ -344,7 +346,8 @@ impl Animations {
             .push(TransitionOrAnimationEvent {
                 pipeline_id,
                 event_type,
-                node: key.0,
+                node: key.node,
+                pseudo_element: key.pseudo_element.clone(),
                 property_or_animation_name: transition
                     .property_animation
                     .property_id()
@@ -392,7 +395,8 @@ impl Animations {
             .push(TransitionOrAnimationEvent {
                 pipeline_id,
                 event_type,
-                node: key.0,
+                node: key.node,
+                pseudo_element: key.pseudo_element.clone(),
                 property_or_animation_name: animation.name.to_string(),
                 elapsed_time,
             });
@@ -429,9 +433,13 @@ impl Animations {
                 cancelable: false,
             };
 
-            // TODO: Handle pseudo-elements properly
             let property_or_animation_name =
                 DOMString::from(event.property_or_animation_name.clone());
+            let pseudo_element = event
+                .pseudo_element
+                .map_or_else(DOMString::new, |pseudo_element| {
+                    DOMString::from(pseudo_element.to_css_string())
+                });
             let elapsed_time = Finite::new(event.elapsed_time as f32).unwrap();
             let window = window_from_node(&*node);
 
@@ -440,7 +448,7 @@ impl Animations {
                     parent,
                     propertyName: property_or_animation_name,
                     elapsedTime: elapsed_time,
-                    pseudoElement: DOMString::new(),
+                    pseudoElement: pseudo_element,
                 };
                 TransitionEvent::new(&window, event_atom, &event_init)
                     .upcast::<Event>()
@@ -450,7 +458,7 @@ impl Animations {
                     parent,
                     animationName: property_or_animation_name,
                     elapsedTime: elapsed_time,
-                    pseudoElement: DOMString::new(),
+                    pseudoElement: pseudo_element,
                 };
                 AnimationEvent::new(&window, event_atom, &event_init)
                     .upcast::<Event>()
@@ -513,6 +521,8 @@ pub struct TransitionOrAnimationEvent {
     pub event_type: TransitionOrAnimationEventType,
     /// The address of the node which owns this transition.
     pub node: OpaqueNode,
+    /// The pseudo element for this transition or animation, if applicable.
+    pub pseudo_element: Option<PseudoElement>,
     /// The name of the property that is transitioning (in the case of a transition)
     /// or the name of the animation (in the case of an animation).
     pub property_or_animation_name: String,

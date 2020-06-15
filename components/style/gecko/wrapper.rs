@@ -1520,11 +1520,11 @@ impl<'le> TElement for GeckoElement<'le> {
         self.may_have_animations() && unsafe { Gecko_ElementHasAnimations(self.0) }
     }
 
-    fn has_css_animations(&self, _: &SharedStyleContext) -> bool {
+    fn has_css_animations(&self, _: &SharedStyleContext, _: Option<PseudoElement>) -> bool {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSAnimations(self.0) }
     }
 
-    fn has_css_transitions(&self, _: &SharedStyleContext) -> bool {
+    fn has_css_transitions(&self, _: &SharedStyleContext, _: Option<PseudoElement>) -> bool {
         self.may_have_animations() && unsafe { Gecko_ElementHasCSSTransitions(self.0) }
     }
 

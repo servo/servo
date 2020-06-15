@@ -38,6 +38,7 @@ use servo_arc::Arc;
 use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
+use style::selector_parser::PseudoElement;
 use style::values::computed::Length;
 use style_traits::CSSPixel;
 
@@ -449,9 +450,12 @@ impl FragmentTree {
 
     pub fn remove_nodes_in_fragment_tree_from_set(&self, set: &mut FxHashSet<AnimationSetKey>) {
         self.find(|fragment, _| {
-            if let Some(tag) = fragment.tag().as_ref() {
-                set.remove(&AnimationSetKey(tag.node()));
-            }
+            let (node, pseudo) = match fragment.tag()? {
+                Tag::Node(node) => (node, None),
+                Tag::BeforePseudo(node) => (node, Some(PseudoElement::Before)),
+                Tag::AfterPseudo(node) => (node, Some(PseudoElement::After)),
+            };
+            set.remove(&AnimationSetKey::new(node, pseudo));
             None::<()>
         });
     }
