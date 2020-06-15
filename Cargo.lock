@@ -2290,9 +2290,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-webrtc"
-version = "0.15.0"
+version = "0.15.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e64235af90676896b01f3cbe50808fefaf498057ca288ce4a31a89de81464e04"
+checksum = "1f433d1294266fb1d65e1dc2d4de365f7f4caf23cb72db3a3bd6904eeec88cf1"
 dependencies = [
  "glib",
  "glib-sys",
