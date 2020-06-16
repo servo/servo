@@ -109,7 +109,7 @@ use style::invalidation::element::restyle_hints::RestyleHint;
 use style::logical_geometry::LogicalPoint;
 use style::media_queries::{Device, MediaList, MediaType};
 use style::properties::PropertyId;
-use style::selector_parser::SnapshotMap;
+use style::selector_parser::{PseudoElement, SnapshotMap};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard, StylesheetGuards};
 use style::stylesheets::{
@@ -1651,7 +1651,19 @@ impl LayoutThread {
 
         fn traverse_flow(flow: &mut dyn Flow, invalid_nodes: &mut FxHashSet<AnimationSetKey>) {
             flow.mutate_fragments(&mut |fragment| {
-                invalid_nodes.remove(&AnimationSetKey(fragment.node));
+                // Ideally we'd only not cancel ::before and ::after animations if they
+                // were actually in the tree. At this point layout has lost information
+                // about whether or not they exist, but have had their fragments accumulated
+                // together.
+                invalid_nodes.remove(&AnimationSetKey::new_for_non_pseudo(fragment.node));
+                invalid_nodes.remove(&AnimationSetKey::new_for_pseudo(
+                    fragment.node,
+                    PseudoElement::Before,
+                ));
+                invalid_nodes.remove(&AnimationSetKey::new_for_pseudo(
+                    fragment.node,
+                    PseudoElement::After,
+                ));
             });
             for kid in flow.mut_base().children.iter_mut() {
                 traverse_flow(kid, invalid_nodes)

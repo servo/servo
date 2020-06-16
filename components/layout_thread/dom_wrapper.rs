@@ -476,7 +476,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         let node = self.as_node();
         let document = node.owner_doc();
         context.animations.get_animation_declarations(
-            &AnimationSetKey(node.opaque()),
+            &AnimationSetKey::new_for_non_pseudo(node.opaque()),
             context.current_time_for_animations,
             document.style_shared_lock(),
         )
@@ -489,7 +489,7 @@ impl<'le> TElement for ServoLayoutElement<'le> {
         let node = self.as_node();
         let document = node.owner_doc();
         context.animations.get_transition_declarations(
-            &AnimationSetKey(node.opaque()),
+            &AnimationSetKey::new_for_non_pseudo(node.opaque()),
             context.current_time_for_animations,
             document.style_shared_lock(),
         )
@@ -613,16 +613,26 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn has_animations(&self, context: &SharedStyleContext) -> bool {
-        return self.has_css_animations(context) || self.has_css_transitions(context);
+        // This is not used for pseudo elements currently so we can pass None.
+        return self.has_css_animations(context, /* pseudo_element = */ None) ||
+            self.has_css_transitions(context, /* pseudo_element = */ None);
     }
 
-    fn has_css_animations(&self, context: &SharedStyleContext) -> bool {
-        let key = AnimationSetKey(self.as_node().opaque());
+    fn has_css_animations(
+        &self,
+        context: &SharedStyleContext,
+        pseudo_element: Option<PseudoElement>,
+    ) -> bool {
+        let key = AnimationSetKey::new(self.as_node().opaque(), pseudo_element);
         context.animations.has_active_animations(&key)
     }
 
-    fn has_css_transitions(&self, context: &SharedStyleContext) -> bool {
-        let key = AnimationSetKey(self.as_node().opaque());
+    fn has_css_transitions(
+        &self,
+        context: &SharedStyleContext,
+        pseudo_element: Option<PseudoElement>,
+    ) -> bool {
+        let key = AnimationSetKey::new(self.as_node().opaque(), pseudo_element);
         context.animations.has_active_transitions(&key)
     }
 
