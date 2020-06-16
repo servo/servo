@@ -24,6 +24,8 @@ RUN \
         clang \
         llvm \
         llvm-dev \
+        # GStreamer
+        libpcre \
         #
         # OpenSSL
         libssl-dev \
