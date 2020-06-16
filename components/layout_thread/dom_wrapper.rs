@@ -72,6 +72,7 @@ use std::fmt::Debug;
 use std::hash::{Hash, Hasher};
 use std::sync::atomic::Ordering;
 use std::sync::Arc as StdArc;
+use style::animation::AnimationSetKey;
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::AttrValue;
 use style::context::SharedStyleContext;
@@ -474,20 +475,11 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     ) -> Option<Arc<StyleLocked<PropertyDeclarationBlock>>> {
         let node = self.as_node();
         let document = node.owner_doc();
-        context
-            .animation_states
-            .read()
-            .get(&node.opaque())
-            .and_then(|set| {
-                set.get_value_map_for_active_animations(context.current_time_for_animations)
-            })
-            .map(|map| {
-                Arc::new(
-                    document
-                        .style_shared_lock()
-                        .wrap(PropertyDeclarationBlock::from_animation_value_map(&map)),
-                )
-            })
+        context.animations.get_animation_declarations(
+            &AnimationSetKey(node.opaque()),
+            context.current_time_for_animations,
+            document.style_shared_lock(),
+        )
     }
 
     fn transition_rule(
@@ -496,20 +488,11 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     ) -> Option<Arc<StyleLocked<PropertyDeclarationBlock>>> {
         let node = self.as_node();
         let document = node.owner_doc();
-        context
-            .animation_states
-            .read()
-            .get(&node.opaque())
-            .and_then(|set| {
-                set.get_value_map_for_active_transitions(context.current_time_for_animations)
-            })
-            .map(|map| {
-                Arc::new(
-                    document
-                        .style_shared_lock()
-                        .wrap(PropertyDeclarationBlock::from_animation_value_map(&map)),
-                )
-            })
+        context.animations.get_transition_declarations(
+            &AnimationSetKey(node.opaque()),
+            context.current_time_for_animations,
+            document.style_shared_lock(),
+        )
     }
 
     fn state(&self) -> ElementState {
@@ -634,21 +617,13 @@ impl<'le> TElement for ServoLayoutElement<'le> {
     }
 
     fn has_css_animations(&self, context: &SharedStyleContext) -> bool {
-        context
-            .animation_states
-            .read()
-            .get(&self.as_node().opaque())
-            .map(|set| set.has_active_animation())
-            .unwrap_or(false)
+        let key = AnimationSetKey(self.as_node().opaque());
+        context.animations.has_active_animations(&key)
     }
 
     fn has_css_transitions(&self, context: &SharedStyleContext) -> bool {
-        context
-            .animation_states
-            .read()
-            .get(&self.as_node().opaque())
-            .map(|set| set.has_active_transition())
-            .unwrap_or(false)
+        let key = AnimationSetKey(self.as_node().opaque());
+        context.animations.has_active_transitions(&key)
     }
 
     #[inline]

@@ -27,7 +27,7 @@ use crossbeam_channel::{Receiver, Sender};
 use embedder_traits::resources::{self, Resource};
 use euclid::{default::Size2D as UntypedSize2D, Point2D, Rect, Scale, Size2D};
 use fnv::FnvHashMap;
-use fxhash::{FxHashMap, FxHashSet};
+use fxhash::FxHashMap;
 use gfx::font_cache_thread::FontCacheThread;
 use gfx::font_context;
 use gfx_traits::{node_id_from_scroll_id, Epoch};
@@ -81,11 +81,10 @@ use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread;
 use std::time::Duration;
-use style::animation::ElementAnimationSet;
+use style::animation::DocumentAnimationSet;
 use style::context::{
     QuirksMode, RegisteredSpeculativePainter, RegisteredSpeculativePainters, SharedStyleContext,
 };
-use style::dom::OpaqueNode;
 use style::dom::{TDocument, TElement, TNode};
 use style::driver;
 use style::error_reporting::RustLogReporter;
@@ -568,7 +567,7 @@ impl LayoutThread {
         snapshot_map: &'a SnapshotMap,
         origin: ImmutableOrigin,
         animation_timeline_value: f64,
-        animation_states: ServoArc<RwLock<FxHashMap<OpaqueNode, ElementAnimationSet>>>,
+        animations: &DocumentAnimationSet,
         stylesheets_changed: bool,
     ) -> LayoutContext<'a> {
         let traversal_flags = match stylesheets_changed {
@@ -584,7 +583,7 @@ impl LayoutThread {
                 options: GLOBAL_STYLE_DATA.options.clone(),
                 guards,
                 visited_styles_enabled: false,
-                animation_states,
+                animations: animations.clone(),
                 registered_speculative_painters: &self.registered_painters,
                 current_time_for_animations: animation_timeline_value,
                 traversal_flags,
@@ -1065,7 +1064,7 @@ impl LayoutThread {
             &map,
             origin,
             data.animation_timeline_value,
-            data.animations.clone(),
+            &data.animations,
             data.stylesheets_changed,
         );
 
@@ -1292,7 +1291,7 @@ impl LayoutThread {
         context: &mut LayoutContext,
     ) {
         Self::cancel_animations_for_nodes_not_in_fragment_tree(
-            &mut *(context.style_context.animation_states.write()),
+            &context.style_context.animations,
             &fragment_tree,
         );
 
@@ -1380,16 +1379,17 @@ impl LayoutThread {
     /// TODO(mrobinson): We should look into a way of doing this during flow tree construction.
     /// This also doesn't yet handles nodes that have been reparented.
     fn cancel_animations_for_nodes_not_in_fragment_tree(
-        animation_states: &mut FxHashMap<OpaqueNode, ElementAnimationSet>,
+        animations: &DocumentAnimationSet,
         root: &FragmentTree,
     ) {
         // Assume all nodes have been removed until proven otherwise.
-        let mut invalid_nodes: FxHashSet<OpaqueNode> = animation_states.keys().cloned().collect();
+        let mut animations = animations.sets.write();
+        let mut invalid_nodes = animations.keys().cloned().collect();
         root.remove_nodes_in_fragment_tree_from_set(&mut invalid_nodes);
 
         // Cancel animations for any nodes that are no longer in the fragment tree.
         for node in &invalid_nodes {
-            if let Some(state) = animation_states.get_mut(node) {
+            if let Some(state) = animations.get_mut(node) {
                 state.cancel_all_animations();
             }
         }

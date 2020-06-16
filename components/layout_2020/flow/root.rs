@@ -35,6 +35,7 @@ use gfx_traits::print_tree::PrintTree;
 use script_layout_interface::wrapper_traits::LayoutNode;
 use script_layout_interface::{LayoutElementType, LayoutNodeType};
 use servo_arc::Arc;
+use style::animation::AnimationSetKey;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::Length;
@@ -446,10 +447,10 @@ impl FragmentTree {
         })
     }
 
-    pub fn remove_nodes_in_fragment_tree_from_set(&self, set: &mut FxHashSet<OpaqueNode>) {
+    pub fn remove_nodes_in_fragment_tree_from_set(&self, set: &mut FxHashSet<AnimationSetKey>) {
         self.find(|fragment, _| {
             if let Some(tag) = fragment.tag().as_ref() {
-                set.remove(&tag.node());
+                set.remove(&AnimationSetKey(tag.node()));
             }
             None::<()>
         });

@@ -524,7 +524,7 @@ trait PrivateMatchMethods: TElement {
         old_values: &mut Option<Arc<ComputedValues>>,
         new_values: &mut Arc<ComputedValues>,
     ) -> bool {
-        use crate::animation::AnimationState;
+        use crate::animation::{AnimationSetKey, AnimationState};
 
         // We need to call this before accessing the `ElementAnimationSet` from the
         // map because this call will do a RwLock::read().
@@ -541,12 +541,13 @@ trait PrivateMatchMethods: TElement {
             after_change_style = self.after_change_style(context, new_values);
         }
 
-        let this_opaque = self.as_node().opaque();
+        let key = AnimationSetKey(self.as_node().opaque());
         let shared_context = context.shared;
         let mut animation_set = shared_context
-            .animation_states
+            .animations
+            .sets
             .write()
-            .remove(&this_opaque)
+            .remove(&key)
             .unwrap_or_default();
 
         // Starting animations is expensive, because we have to recalculate the style
@@ -571,7 +572,6 @@ trait PrivateMatchMethods: TElement {
         animation_set.update_transitions_for_new_style(
             might_need_transitions_update,
             &shared_context,
-            this_opaque,
             old_values.as_ref(),
             after_change_style.as_ref().unwrap_or(new_values),
         );
@@ -590,9 +590,10 @@ trait PrivateMatchMethods: TElement {
         if !animation_set.is_empty() {
             animation_set.dirty = false;
             shared_context
-                .animation_states
+                .animations
+                .sets
                 .write()
-                .insert(this_opaque, animation_set);
+                .insert(key, animation_set);
         }
 
         changed_animations
