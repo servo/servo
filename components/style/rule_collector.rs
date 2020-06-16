@@ -6,7 +6,7 @@
 
 use crate::applicable_declarations::{ApplicableDeclarationBlock, ApplicableDeclarationList};
 use crate::dom::{TElement, TNode, TShadowRoot};
-use crate::properties::{AnimationRules, PropertyDeclarationBlock};
+use crate::properties::{AnimationDeclarations, PropertyDeclarationBlock};
 use crate::rule_tree::{CascadeLevel, ShadowCascadeOrder};
 use crate::selector_map::SelectorMap;
 use crate::selector_parser::PseudoElement;
@@ -70,7 +70,7 @@ where
     pseudo_element: Option<&'a PseudoElement>,
     style_attribute: Option<ArcBorrow<'a, Locked<PropertyDeclarationBlock>>>,
     smil_override: Option<ArcBorrow<'a, Locked<PropertyDeclarationBlock>>>,
-    animation_rules: AnimationRules,
+    animation_declarations: AnimationDeclarations,
     rule_inclusion: RuleInclusion,
     rules: &'a mut ApplicableDeclarationList,
     context: &'a mut MatchingContext<'b, E::Impl>,
@@ -92,7 +92,7 @@ where
         pseudo_element: Option<&'a PseudoElement>,
         style_attribute: Option<ArcBorrow<'a, Locked<PropertyDeclarationBlock>>>,
         smil_override: Option<ArcBorrow<'a, Locked<PropertyDeclarationBlock>>>,
-        animation_rules: AnimationRules,
+        animation_declarations: AnimationDeclarations,
         rule_inclusion: RuleInclusion,
         rules: &'a mut ApplicableDeclarationList,
         context: &'a mut MatchingContext<'b, E::Impl>,
@@ -123,7 +123,7 @@ where
             pseudo_element,
             style_attribute,
             smil_override,
-            animation_rules,
+            animation_declarations,
             rule_inclusion,
             context,
             flags_setter,
@@ -450,7 +450,7 @@ where
         // The animations sheet (CSS animations, script-generated
         // animations, and CSS transitions that are no longer tied to CSS
         // markup).
-        if let Some(anim) = self.animation_rules.0.take() {
+        if let Some(anim) = self.animation_declarations.animations.take() {
             self.rules
                 .push(ApplicableDeclarationBlock::from_declarations(
                     anim,
@@ -460,7 +460,7 @@ where
 
         // The transitions sheet (CSS transitions that are tied to CSS
         // markup).
-        if let Some(anim) = self.animation_rules.1.take() {
+        if let Some(anim) = self.animation_declarations.transitions.take() {
             self.rules
                 .push(ApplicableDeclarationBlock::from_declarations(
                     anim,

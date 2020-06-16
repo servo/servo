@@ -15,7 +15,7 @@ use crate::invalidation::element::invalidation_map::InvalidationMap;
 use crate::invalidation::media_queries::{EffectiveMediaQueryResults, ToMediaListKey};
 use crate::media_queries::Device;
 use crate::properties::{self, CascadeMode, ComputedValues};
-use crate::properties::{AnimationRules, PropertyDeclarationBlock};
+use crate::properties::{AnimationDeclarations, PropertyDeclarationBlock};
 use crate::rule_cache::{RuleCache, RuleCacheConditions};
 use crate::rule_collector::{containing_shadow_ignoring_svg_use, RuleCollector};
 use crate::rule_tree::{CascadeLevel, RuleTree, StrongRuleNode, StyleSource};
@@ -974,7 +974,7 @@ impl Stylist {
             Some(&pseudo),
             None,
             None,
-            AnimationRules(None, None),
+            /* animation_declarations = */ Default::default(),
             rule_inclusion,
             &mut declarations,
             &mut matching_context,
@@ -1004,7 +1004,7 @@ impl Stylist {
                 Some(&pseudo),
                 None,
                 None,
-                AnimationRules(None, None),
+                /* animation_declarations = */ Default::default(),
                 rule_inclusion,
                 &mut declarations,
                 &mut matching_context,
@@ -1127,7 +1127,7 @@ impl Stylist {
         pseudo_element: Option<&PseudoElement>,
         style_attribute: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
         smil_override: Option<ArcBorrow<Locked<PropertyDeclarationBlock>>>,
-        animation_rules: AnimationRules,
+        animation_declarations: AnimationDeclarations,
         rule_inclusion: RuleInclusion,
         applicable_declarations: &mut ApplicableDeclarationList,
         context: &mut MatchingContext<E::Impl>,
@@ -1142,7 +1142,7 @@ impl Stylist {
             pseudo_element,
             style_attribute,
             smil_override,
-            animation_rules,
+            animation_declarations,
             rule_inclusion,
             applicable_declarations,
             context,
