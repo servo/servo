@@ -2217,9 +2217,9 @@ dependencies = [
 
 [[package]]
 name = "gstreamer-sdp"
-version = "0.15.0"
+version = "0.15.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "674df58b85cb077a357c581c29796fbeb5aa36e8362269807a11f938e5c7b973"
+checksum = "547b3b0eb9e01e13ab5cc066c817e2ab758f83790145f80f62d3c8e43c2966af"
 dependencies = [
  "glib",
  "glib-sys",
