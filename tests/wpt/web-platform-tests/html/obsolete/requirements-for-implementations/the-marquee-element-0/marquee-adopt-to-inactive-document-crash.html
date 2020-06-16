@@ -1,0 +1,9 @@
+<iframe id="i"></iframe>
+<script>
+var marquee = document.createElement("marquee");
+marquee.start();
+
+var doc = i.contentDocument;
+i.remove();
+doc.adoptNode(marquee);
+</script>

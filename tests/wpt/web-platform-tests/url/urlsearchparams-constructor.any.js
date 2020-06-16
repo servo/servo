@@ -56,6 +56,28 @@ test(function() {
     assert_false(params.has('c'), 'Search params object did not have the name "c"');
     assert_true(params.has(' c'), 'Search params object has name " c"');
     assert_true(params.has('møø'), 'Search params object has name "møø"');
+
+    params = new URLSearchParams('id=0&value=%');
+    assert_true(params != null, 'constructor returned non-null value.');
+    assert_true(params.has('id'), 'Search params object has name "id"');
+    assert_true(params.has('value'), 'Search params object has name "value"');
+    assert_equals(params.get('id'), '0');
+    assert_equals(params.get('value'), '%');
+
+    params = new URLSearchParams('b=%2sf%2a');
+    assert_true(params != null, 'constructor returned non-null value.');
+    assert_true(params.has('b'), 'Search params object has name "b"');
+    assert_equals(params.get('b'), '%2sf*');
+
+    params = new URLSearchParams('b=%2%2af%2a');
+    assert_true(params != null, 'constructor returned non-null value.');
+    assert_true(params.has('b'), 'Search params object has name "b"');
+    assert_equals(params.get('b'), '%2*f*');
+
+    params = new URLSearchParams('b=%%2a');
+    assert_true(params != null, 'constructor returned non-null value.');
+    assert_true(params.has('b'), 'Search params object has name "b"');
+    assert_equals(params.get('b'), '%*');
 }, 'URLSearchParams constructor, string.');
 
 test(function() {

@@ -1,2 +1,2 @@
 def main(request, response):
-    return [('Content-Type', request.GET['mime'])], ""
+    return [(b'Content-Type', request.GET[b'mime'])], u""
