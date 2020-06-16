@@ -1,0 +1,12 @@
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(function() {
+      let b = new TestBinding();
+      let dict = b.getDictionaryWithParent("parent", "child");
+      assert_equals(dict.parentStringMember, "parent");
+      assert_equals(dict.stringMember, "child");
+  });
+</script>

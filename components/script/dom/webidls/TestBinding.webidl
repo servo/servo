@@ -45,6 +45,14 @@ dictionary TestDictionary {
   DOMString? nonRequiredNullable2;
 };
 
+dictionary TestDictionaryParent {
+  DOMString parentStringMember;
+};
+
+dictionary TestDictionaryWithParent : TestDictionaryParent {
+  DOMString stringMember;
+};
+
 dictionary TestDictionaryDefaults {
   boolean booleanValue = false;
   byte byteValue = 7;
@@ -571,6 +579,8 @@ interface TestBinding {
 
   [Exposed=(Window)]
   readonly attribute boolean semiExposedBoolFromInterface;
+
+  TestDictionaryWithParent getDictionaryWithParent(DOMString parent, DOMString child);
 };
 
 [Exposed=(Window)]
