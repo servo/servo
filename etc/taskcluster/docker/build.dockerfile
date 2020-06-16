@@ -25,9 +25,6 @@ RUN \
         llvm \
         llvm-dev \
         #
-        # GStreamer
-        libgstreamer-plugins-bad1.0-dev \
-        #
         # OpenSSL
         libssl-dev \
         #
