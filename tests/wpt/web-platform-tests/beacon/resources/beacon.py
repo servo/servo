@@ -1,5 +1,6 @@
 import json
 
+from wptserve.utils import isomorphic_decode
 
 def main(request, response):
     """Helper handler for Beacon tests.
@@ -33,30 +34,30 @@ def main(request, response):
         id - the unique identifier of the test.
     """
 
-    id = request.GET.first("id")
-    command = request.GET.first("cmd").lower()
+    id = request.GET.first(b"id")
+    command = request.GET.first(b"cmd").lower()
 
     # Append CORS headers if needed.
-    if "origin" in request.GET:
-        response.headers.set("Access-Control-Allow-Origin",
-                             request.GET.first("origin"))
-    if "credentials" in request.GET:
-        response.headers.set("Access-Control-Allow-Credentials",
-                             request.GET.first("credentials"))
+    if b"origin" in request.GET:
+        response.headers.set(b"Access-Control-Allow-Origin",
+                             request.GET.first(b"origin"))
+    if b"credentials" in request.GET:
+        response.headers.set(b"Access-Control-Allow-Credentials",
+                             request.GET.first(b"credentials"))
 
     # Handle the 'store' and 'stat' commands.
-    if command == "store":
+    if command == b"store":
         error = None
 
         # Only store the actual POST requests, not any preflight/OPTIONS
         # requests we may get.
-        if request.method == "POST":
-            payload = ""
-            if "Content-Type" in request.headers and \
-               "form-data" in request.headers["Content-Type"]:
-                if "payload" in request.POST:
+        if request.method == u"POST":
+            payload = b""
+            if b"Content-Type" in request.headers and \
+               b"form-data" in request.headers[b"Content-Type"]:
+                if b"payload" in request.POST:
                     # The payload was sent as a FormData.
-                    payload = request.POST.first("payload")
+                    payload = request.POST.first(b"payload")
                 else:
                     # A FormData was sent with an empty payload.
                     pass
@@ -64,42 +65,42 @@ def main(request, response):
                 # The payload was sent as either a string, Blob, or BufferSource.
                 payload = request.body
 
-            payload_parts = filter(None, payload.split(":"))
+            payload_parts = list(filter(None, payload.split(b":")))
             if len(payload_parts) > 0:
                 payload_size = int(payload_parts[0])
 
                 # Confirm the payload size sent matches with the number of
                 # characters sent.
                 if payload_size != len(payload_parts[1]):
-                    error = "expected %d characters but got %d" % (
+                    error = u"expected %d characters but got %d" % (
                         payload_size, len(payload_parts[1]))
                 else:
                     # Confirm the payload contains the correct characters.
                     for i in range(0, payload_size):
-                        if payload_parts[1][i] != "*":
-                            error = "expected '*' at index %d but got '%s''" % (
-                                i, payload_parts[1][i])
+                        if payload_parts[1][i:i+1] != b"*":
+                            error = u"expected '*' at index %d but got '%s''" % (
+                                i, isomorphic_decode(payload_parts[1][i:i+1]))
                             break
 
             # Store the result in the stash so that it can be retrieved
             # later with a 'stat' command.
-            request.server.stash.put(id, {"error": error})
-        elif request.method == "OPTIONS":
+            request.server.stash.put(id, {u"error": error})
+        elif request.method == u"OPTIONS":
             # If we expect a preflight, then add the cors headers we expect,
             # otherwise log an error as we shouldn't send a preflight for all
             # requests.
-            if "preflightExpected" in request.GET:
-                response.headers.set("Access-Control-Allow-Headers",
-                                     "content-type")
-                response.headers.set("Access-Control-Allow-Methods", "POST")
+            if b"preflightExpected" in request.GET:
+                response.headers.set(b"Access-Control-Allow-Headers",
+                                     b"content-type")
+                response.headers.set(b"Access-Control-Allow-Methods", b"POST")
             else:
-                error = "Preflight not expected."
-                request.server.stash.put(id, {"error": error})
-    elif command == "stat":
+                error = u"Preflight not expected."
+                request.server.stash.put(id, {u"error": error})
+    elif command == b"stat":
         test_data = request.server.stash.take(id)
         results = [test_data] if test_data else []
 
-        response.headers.set("Content-Type", "text/plain")
+        response.headers.set(b"Content-Type", b"text/plain")
         response.content = json.dumps(results)
     else:
         response.status = 400  # BadRequest

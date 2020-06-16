@@ -392,8 +392,47 @@ timeout to use.
 
 In other cases it may be necessary to use a timeout (e.g., for a test
 that only passes if some event is *not* fired). In this case it is
-*not* permitted to use the standard `setTimeout` function. Instead one
-must use the `step_timeout` function:
+*not* permitted to use the standard `setTimeout` function.
+
+Instead, one of these functions can be used:
+
+* `step_wait` (returns a promise)
+* `step_wait_func` & `step_wait_func_done`
+* As a last resort, `step_timeout`
+
+### `step_wait`, `step_wait_func`, and `step_wait_func_done` ###
+
+These functions are preferred over `step_timeout` as they end when a condition or a timeout is reached, rather than just a timeout. This allows for setting a longer timeout while shortening the runtime of tests on faster machines.
+
+`step_wait(cond, description, timeout=3000, interval=100)` is useful inside `promise_test`, e.g.:
+
+```js
+promise_test(t => {
+  // …
+  await t.step_wait(() => frame.contentDocument === null, "Frame navigated to a cross-origin document");
+  // …
+}, "");
+```
+
+`step_wait_func(cond, func, description, timeout=3000, interval=100)` & `step_wait_func(cond, func, description, timeout=3000, interval=100)` are useful inside `async_test`:
+
+```js
+async_test(t => {
+  const popup = window.open("resources/coop-coep.py?coop=same-origin&coep=&navigate=about:blank");
+  t.add_cleanup(() => popup.close());
+  assert_equals(window, popup.opener);
+
+  popup.onload = t.step_func(() => {
+    assert_true(popup.location.href.endsWith("&navigate=about:blank"));
+    // Use step_wait_func_done as about:blank cannot message back.
+    t.step_wait_func_done(() => popup.location.href === "about:blank");
+  });
+}, "Navigating a popup to about:blank");
+```
+
+### `step_timeout` ###
+
+As a last resort one can use the `step_timeout` function:
 
 ```js
 async_test(function(t) {

@@ -1,3 +1,4 @@
+<!doctype html>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
@@ -17,8 +18,6 @@ promise_test(async t => {
   // The about:blank document can load.
   await iframe_loaded;
   assert_not_equals(iframe.contentDocument, null);
-
-  t.done();
 }, "about:blank can always be embedded by a 'require-corp' document");
 
 promise_test(async t => {
@@ -34,16 +33,16 @@ promise_test(async t => {
   assert_not_equals(iframe_B.contentDocument, null);
   iframe_B.contentDocument.body.appendChild(iframe_C);
 
-  t.step_timeout(() => {
-    // The document nested under about:blank must not load because it does not
-    // specify the Cross-Origin-Embedder-Policy: require-corp header.
-    // An error page must be displayed instead.
-    // See https://github.com/whatwg/html/issues/125 for why a timeout is used
-    // here. Long term all network error handling should be similar and have a
-    // reliable event.
-    assert_equals(iframe_C.contentDocument, null);
-    t.done();
-  }, 500);
+
+  // The document nested under about:blank must not load because it does not
+  // specify the Cross-Origin-Embedder-Policy: require-corp header.
+  // An error page must be displayed instead.
+  // See https://github.com/whatwg/html/issues/125 for why a timeout is used
+  // here. Long term all network error handling should be similar and have a
+  // reliable event.
+  assert_equals(iframe_C.contentWindow.location.href, "about:blank");
+  assert_not_equals(iframe_C.contentDocument, null);
+  await t.step_wait(() => iframe_C.contentDocument === null);
 }, "A(B(C)) A=require-corp, B=about:blank, C=no-require-corp => C can't load");
 
 </script>

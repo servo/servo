@@ -72,14 +72,15 @@ promise_test(async t => {
   assert_equals(animations[0].transitionProperty, 'left');
   assert_equals(animations[1].transitionProperty, 'top');
 
-  await waitForAnimationFrames(2);
-
+  // Add one more transition. As the previous call to getAnimations triggered a
+  // style change, the new animation is in a higher transition generation even
+  // though no frame was rendered for the previous transitions.
   div.style.opacity = '1'
   div.style.transition = 'all 100s';
   div.style.opacity = '0'
   animations = document.getAnimations();
   assert_equals(animations.length, 3,
-                'getAnimations returns two running CSS Transitions');
+                'getAnimations returns three running CSS Transitions');
   assert_equals(animations[0].transitionProperty, 'left', '1');
   assert_equals(animations[1].transitionProperty, 'top', '2');
   assert_equals(animations[2].transitionProperty, 'opacity', '3');

@@ -402,23 +402,28 @@ class Firefox(Browser):
         if dest is None:
             dest = os.getcwd()
 
+        path = None
         if channel == "nightly":
             path = self.install_geckodriver_nightly(dest)
-            if path is not None:
-                return path
-            else:
+            if path is None:
                 self.logger.warning("Nightly webdriver not found; falling back to release")
 
-        version = self._latest_geckodriver_version()
-        format = "zip" if uname[0] == "Windows" else "tar.gz"
-        self.logger.debug("Latest geckodriver release %s" % version)
-        url = ("https://github.com/mozilla/geckodriver/releases/download/%s/geckodriver-%s-%s.%s" %
-               (version, version, self.platform_string_geckodriver(), format))
-        if format == "zip":
-            unzip(get(url).raw, dest=dest)
-        else:
-            untar(get(url).raw, dest=dest)
-        return find_executable(os.path.join(dest, "geckodriver"))
+        if path is None:
+            version = self._latest_geckodriver_version()
+            format = "zip" if uname[0] == "Windows" else "tar.gz"
+            self.logger.debug("Latest geckodriver release %s" % version)
+            url = ("https://github.com/mozilla/geckodriver/releases/download/%s/geckodriver-%s-%s.%s" %
+                   (version, version, self.platform_string_geckodriver(), format))
+            if format == "zip":
+                unzip(get(url).raw, dest=dest)
+            else:
+                untar(get(url).raw, dest=dest)
+            path = find_executable(os.path.join(dest, "geckodriver"))
+
+        assert path is not None
+        self.logger.info("Installed %s" %
+                         subprocess.check_output([path, "--version"]).splitlines()[0])
+        return path
 
     def install_geckodriver_nightly(self, dest):
         self.logger.info("Attempting to install webdriver from nightly")
@@ -428,7 +433,7 @@ class Firefox(Browser):
         tc_platform = "%s%s" % (self.platform, platform_bits)
 
         archive_ext = ".zip" if uname[0] == "Windows" else ".tar.gz"
-        archive_name = "public/geckodriver%s" % archive_ext
+        archive_name = "public/build/geckodriver%s" % archive_ext
 
         try:
             resp = get_taskcluster_artifact(
