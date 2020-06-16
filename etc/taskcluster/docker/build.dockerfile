@@ -25,7 +25,7 @@ RUN \
         llvm \
         llvm-dev \
         # GStreamer
-        libpcre \
+        libpcre3 \
         #
         # OpenSSL
         libssl-dev \
