@@ -15,7 +15,7 @@ use crate::data::ElementData;
 use crate::element_state::ElementState;
 use crate::font_metrics::FontMetricsProvider;
 use crate::media_queries::Device;
-use crate::properties::{AnimationRules, ComputedValues, PropertyDeclarationBlock};
+use crate::properties::{AnimationDeclarations, ComputedValues, PropertyDeclarationBlock};
 use crate::selector_parser::{AttrValue, Lang, PseudoElement, SelectorImpl};
 use crate::shared_lock::{Locked, SharedRwLock};
 use crate::stylist::CascadeData;
@@ -479,12 +479,15 @@ pub trait TElement:
     /// Get the combined animation and transition rules.
     ///
     /// FIXME(emilio): Is this really useful?
-    fn animation_rules(&self, context: &SharedStyleContext) -> AnimationRules {
+    fn animation_declarations(&self, context: &SharedStyleContext) -> AnimationDeclarations {
         if !self.may_have_animations() {
-            return AnimationRules(None, None);
+            return Default::default();
         }
 
-        AnimationRules(self.animation_rule(context), self.transition_rule(context))
+        AnimationDeclarations {
+            animations: self.animation_rule(context),
+            transitions: self.transition_rule(context),
+        }
     }
 
     /// Get this element's animation rule.

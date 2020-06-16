@@ -28,21 +28,22 @@ use std::iter::{DoubleEndedIterator, Zip};
 use std::slice::Iter;
 use style_traits::{CssWriter, ParseError, ParsingMode, StyleParseErrorKind, ToCss};
 
-/// The animation rules.
-///
-/// The first one is for Animation cascade level, and the second one is for
-/// Transition cascade level.
-pub struct AnimationRules(
-    pub Option<Arc<Locked<PropertyDeclarationBlock>>>,
-    pub Option<Arc<Locked<PropertyDeclarationBlock>>>,
-);
+/// A set of property declarations including animations and transitions.
+#[derive(Default)]
+pub struct AnimationDeclarations {
+    /// Declarations for animations.
+    pub animations: Option<Arc<Locked<PropertyDeclarationBlock>>>,
+    /// Declarations for transitions.
+    pub transitions: Option<Arc<Locked<PropertyDeclarationBlock>>>,
+}
 
-impl AnimationRules {
-    /// Returns whether these animation rules represents an actual rule or not.
-    pub fn is_empty(&self) -> bool {
-        self.0.is_none() && self.1.is_none()
+impl AnimationDeclarations {
+    /// Whether or not this `AnimationDeclarations` is empty.
+    pub(crate) fn is_empty(&self) -> bool {
+        self.animations.is_none() && self.transitions.is_none()
     }
 }
+
 
 /// An enum describes how a declaration should update
 /// the declaration block.

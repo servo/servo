@@ -10,7 +10,7 @@ use crate::data::{EagerPseudoStyles, ElementStyles};
 use crate::dom::TElement;
 use crate::matching::MatchMethods;
 use crate::properties::longhands::display::computed_value::T as Display;
-use crate::properties::{AnimationRules, ComputedValues};
+use crate::properties::ComputedValues;
 use crate::rule_tree::StrongRuleNode;
 use crate::selector_parser::{PseudoElement, SelectorImpl};
 use crate::stylist::RuleInclusion;
@@ -473,7 +473,7 @@ where
                 implemented_pseudo.as_ref(),
                 self.element.style_attribute(),
                 self.element.smil_override(),
-                self.element.animation_rules(self.context.shared),
+                self.element.animation_declarations(self.context.shared),
                 self.rule_inclusion,
                 &mut applicable_declarations,
                 &mut matching_context,
@@ -552,7 +552,7 @@ where
             Some(pseudo_element),
             None,
             None,
-            AnimationRules(None, None),
+            /* animation_declarations = */ Default::default(),
             self.rule_inclusion,
             &mut applicable_declarations,
             &mut matching_context,
