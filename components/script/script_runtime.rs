@@ -205,7 +205,12 @@ unsafe extern "C" fn enqueue_promise_job(
     let mut result = false;
     wrap_panic(&mut || {
         let microtask_queue = &*(extra as *const MicrotaskQueue);
-        let global = GlobalScope::from_object(incumbent_global.get());
+        let global = if !incumbent_global.is_null() {
+            GlobalScope::from_object(incumbent_global.get())
+        } else {
+            let realm = AlreadyInRealm::assert_for_cx(cx);
+            GlobalScope::from_context(*cx, InRealm::in_realm(&realm))
+        };
         let pipeline = global.pipeline_id();
         let interaction = if promise.get().is_null() {
             PromiseUserInputEventHandlingState::DontCare
