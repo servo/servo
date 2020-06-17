@@ -1,4 +1,4 @@
-FROM ubuntu:bionic-20200403
+FROM ubuntu:eoan-20200608
 
 ENV \
     #
