@@ -116,28 +116,31 @@ impl Position {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        match input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
+        match input.try_parse(|i| PositionComponent::parse_quirky(context, i, allow_quirks)) {
             Ok(x_pos @ PositionComponent::Center) => {
                 if let Ok(y_pos) =
-                    input.try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
+                    input.try_parse(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
                 {
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let x_pos = input
-                    .try(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
+                    .try_parse(|i| PositionComponent::parse_quirky(context, i, allow_quirks))
                     .unwrap_or(x_pos);
                 let y_pos = PositionComponent::Center;
                 return Ok(Self::new(x_pos, y_pos));
             },
             Ok(PositionComponent::Side(x_keyword, lp)) => {
-                if input.try(|i| i.expect_ident_matching("center")).is_ok() {
+                if input
+                    .try_parse(|i| i.expect_ident_matching("center"))
+                    .is_ok()
+                {
                     let x_pos = PositionComponent::Side(x_keyword, lp);
                     let y_pos = PositionComponent::Center;
                     return Ok(Self::new(x_pos, y_pos));
                 }
-                if let Ok(y_keyword) = input.try(VerticalPositionKeyword::parse) {
+                if let Ok(y_keyword) = input.try_parse(VerticalPositionKeyword::parse) {
                     let y_lp = input
-                        .try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+                        .try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
                         .ok();
                     let x_pos = PositionComponent::Side(x_keyword, lp);
                     let y_pos = PositionComponent::Side(y_keyword, y_lp);
@@ -148,30 +151,30 @@ impl Position {
                 return Ok(Self::new(x_pos, y_pos));
             },
             Ok(x_pos @ PositionComponent::Length(_)) => {
-                if let Ok(y_keyword) = input.try(VerticalPositionKeyword::parse) {
+                if let Ok(y_keyword) = input.try_parse(VerticalPositionKeyword::parse) {
                     let y_pos = PositionComponent::Side(y_keyword, None);
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 if let Ok(y_lp) =
-                    input.try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+                    input.try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
                 {
                     let y_pos = PositionComponent::Length(y_lp);
                     return Ok(Self::new(x_pos, y_pos));
                 }
                 let y_pos = PositionComponent::Center;
-                let _ = input.try(|i| i.expect_ident_matching("center"));
+                let _ = input.try_parse(|i| i.expect_ident_matching("center"));
                 return Ok(Self::new(x_pos, y_pos));
             },
             Err(_) => {},
         }
         let y_keyword = VerticalPositionKeyword::parse(input)?;
-        let lp_and_x_pos: Result<_, ParseError> = input.try(|i| {
+        let lp_and_x_pos: Result<_, ParseError> = input.try_parse(|i| {
             let y_lp = i
-                .try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+                .try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
                 .ok();
-            if let Ok(x_keyword) = i.try(HorizontalPositionKeyword::parse) {
+            if let Ok(x_keyword) = i.try_parse(HorizontalPositionKeyword::parse) {
                 let x_lp = i
-                    .try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+                    .try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
                     .ok();
                 let x_pos = PositionComponent::Side(x_keyword, x_lp);
                 return Ok((y_lp, x_pos));
@@ -250,15 +253,20 @@ impl<S: Parse> PositionComponent<S> {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("center")).is_ok() {
+        if input
+            .try_parse(|i| i.expect_ident_matching("center"))
+            .is_ok()
+        {
             return Ok(PositionComponent::Center);
         }
-        if let Ok(lp) = input.try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks)) {
+        if let Ok(lp) =
+            input.try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+        {
             return Ok(PositionComponent::Length(lp));
         }
         let keyword = S::parse(context, input)?;
         let lp = input
-            .try(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
+            .try_parse(|i| LengthPercentage::parse_quirky(context, i, allow_quirks))
             .ok();
         Ok(PositionComponent::Side(keyword, lp))
     }
@@ -730,7 +738,7 @@ impl Parse for TemplateAreas {
     ) -> Result<Self, ParseError<'i>> {
         let mut strings = vec![];
         while let Ok(string) =
-            input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into()))
+            input.try_parse(|i| i.expect_string().map(|s| s.as_ref().to_owned().into()))
         {
             strings.push(string);
         }
@@ -889,10 +897,10 @@ impl Parse for AspectRatio {
         use crate::values::generics::position::PreferredRatio;
 
         let location = input.current_source_location();
-        let mut auto = input.try(|i| i.expect_ident_matching("auto"));
-        let ratio = input.try(|i| Ratio::parse(context, i));
+        let mut auto = input.try_parse(|i| i.expect_ident_matching("auto"));
+        let ratio = input.try_parse(|i| Ratio::parse(context, i));
         if auto.is_err() {
-            auto = input.try(|i| i.expect_ident_matching("auto"));
+            auto = input.try_parse(|i| i.expect_ident_matching("auto"));
         }
 
         if auto.is_err() && ratio.is_err() {

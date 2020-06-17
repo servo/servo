@@ -55,7 +55,7 @@ where
         Parse: Fn(&ParserContext, &mut Parser<'i, 't>) -> Result<T, ParseError<'i>>,
     {
         let first = parse(context, input)?;
-        let second = if let Ok(second) = input.try(|i| parse(context, i)) {
+        let second = if let Ok(second) = input.try_parse(|i| parse(context, i)) {
             second
         } else {
             // <first>
@@ -66,13 +66,13 @@ where
                 first,
             ));
         };
-        let third = if let Ok(third) = input.try(|i| parse(context, i)) {
+        let third = if let Ok(third) = input.try_parse(|i| parse(context, i)) {
             third
         } else {
             // <first> <second>
             return Ok(Self::new(first.clone(), second.clone(), first, second));
         };
-        let fourth = if let Ok(fourth) = input.try(|i| parse(context, i)) {
+        let fourth = if let Ok(fourth) = input.try_parse(|i| parse(context, i)) {
             fourth
         } else {
             // <first> <second> <third>

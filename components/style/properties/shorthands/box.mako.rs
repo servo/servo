@@ -31,7 +31,7 @@ ${helpers.two_properties_shorthand(
 macro_rules! try_parse_one {
     ($context: expr, $input: expr, $var: ident, $prop_module: ident) => {
         if $var.is_none() {
-            if let Ok(value) = $input.try(|i| {
+            if let Ok(value) = $input.try_parse(|i| {
                 $prop_module::single_value::parse($context, i)
             }) {
                 $var = Some(value);
@@ -85,12 +85,12 @@ macro_rules! try_parse_one {
                 // Must check 'transition-property' after 'transition-timing-function' since
                 // 'transition-property' accepts any keyword.
                 if property.is_none() {
-                    if let Ok(value) = input.try(|i| TransitionProperty::parse(context, i)) {
+                    if let Ok(value) = input.try_parse(|i| TransitionProperty::parse(context, i)) {
                         property = Some(Some(value));
                         continue;
                     }
 
-                    if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+                    if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
                         // 'none' is not a valid value for <single-transition-property>,
                         // so it's not acceptable in the function above.
                         property = Some(None);
@@ -389,13 +389,13 @@ ${helpers.two_properties_shorthand(
         let mut offset_rotate = None;
         loop {
             if offset_distance.is_none() {
-                if let Ok(value) = input.try(|i| LengthPercentage::parse(context, i)) {
+                if let Ok(value) = input.try_parse(|i| LengthPercentage::parse(context, i)) {
                     offset_distance = Some(value);
                 }
             }
 
             if offset_rotate.is_none() {
-                if let Ok(value) = input.try(|i| OffsetRotate::parse(context, i)) {
+                if let Ok(value) = input.try_parse(|i| OffsetRotate::parse(context, i)) {
                     offset_rotate = Some(value);
                     continue;
                 }
@@ -403,7 +403,7 @@ ${helpers.two_properties_shorthand(
             break;
         }
 
-        let offset_anchor = input.try(|i| {
+        let offset_anchor = input.try_parse(|i| {
             i.expect_delim('/')?;
             PositionOrAuto::parse(context, i)
         }).ok();
@@ -454,7 +454,7 @@ ${helpers.two_properties_shorthand(
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
-        let zoom = match input.try(|input| NumberOrPercentage::parse(context, input)) {
+        let zoom = match input.try_parse(|input| NumberOrPercentage::parse(context, input)) {
             Ok(number_or_percent) => number_or_percent.to_number(),
             Err(..) => {
                 input.expect_ident_matching("normal")?;

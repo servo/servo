@@ -59,7 +59,7 @@ impl<LengthPercentage> LengthPercentageOrAuto<LengthPercentage> {
             &mut Parser<'i, 't>,
         ) -> Result<LengthPercentage, ParseError<'i>>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(LengthPercentageOrAuto::Auto);
         }
 

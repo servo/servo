@@ -22,13 +22,13 @@
 
         loop {
             if color.is_none() {
-                if let Ok(value) = input.try(|input| text_emphasis_color::parse(context, input)) {
+                if let Ok(value) = input.try_parse(|input| text_emphasis_color::parse(context, input)) {
                     color = Some(value);
                     continue
                 }
             }
             if style.is_none() {
-                if let Ok(value) = input.try(|input| text_emphasis_style::parse(context, input)) {
+                if let Ok(value) = input.try_parse(|input| text_emphasis_style::parse(context, input)) {
                     style = Some(value);
                     continue
                 }
@@ -64,14 +64,14 @@
         let mut width = None;
         loop {
             if color.is_none() {
-                if let Ok(value) = input.try(|input| _webkit_text_stroke_color::parse(context, input)) {
+                if let Ok(value) = input.try_parse(|input| _webkit_text_stroke_color::parse(context, input)) {
                     color = Some(value);
                     continue
                 }
             }
 
             if width.is_none() {
-                if let Ok(value) = input.try(|input| _webkit_text_stroke_width::parse(context, input)) {
+                if let Ok(value) = input.try_parse(|input| _webkit_text_stroke_width::parse(context, input)) {
                     width = Some(value);
                     continue
                 }

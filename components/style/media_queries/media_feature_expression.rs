@@ -200,14 +200,14 @@ fn consume_operation_or_colon(input: &mut Parser) -> Result<Option<Operator>, ()
     Ok(Some(match first_delim {
         '=' => Operator::Equal,
         '>' => {
-            if input.try(|i| i.expect_delim('=')).is_ok() {
+            if input.try_parse(|i| i.expect_delim('=')).is_ok() {
                 Operator::GreaterThanEqual
             } else {
                 Operator::GreaterThan
             }
         },
         '<' => {
-            if input.try(|i| i.expect_delim('=')).is_ok() {
+            if input.try_parse(|i| i.expect_delim('=')).is_ok() {
                 Operator::LessThanEqual
             } else {
                 Operator::LessThan
@@ -314,7 +314,7 @@ impl MediaFeatureExpression {
             ));
         }
 
-        let operator = input.try(consume_operation_or_colon);
+        let operator = input.try_parse(consume_operation_or_colon);
         let operator = match operator {
             Err(..) => {
                 // If there's no colon, this is a media query of the

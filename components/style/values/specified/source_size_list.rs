@@ -87,7 +87,7 @@ impl Parse for SourceSizeOrLength {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(size) = input.try(|input| SourceSize::parse(context, input)) {
+        if let Ok(size) = input.try_parse(|input| SourceSize::parse(context, input)) {
             return Ok(SourceSizeOrLength::SourceSize(size));
         }
 

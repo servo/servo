@@ -358,7 +358,7 @@ pub enum GenericFontFamily {
 impl SingleFontFamily {
     /// Parse a font-family value.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        if let Ok(value) = input.try(|i| i.expect_string_cloned()) {
+        if let Ok(value) = input.try_parse(|i| i.expect_string_cloned()) {
             return Ok(SingleFontFamily::FamilyName(FamilyName {
                 name: Atom::from(&*value),
                 syntax: FontFamilyNameSyntax::Quoted,
@@ -393,7 +393,7 @@ impl SingleFontFamily {
             value.push(' ');
             value.push_str(&ident);
         }
-        while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
+        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
             serialize_quoted = serialize_quoted || ident.contains(' ');
             value.push(' ');
             value.push_str(&ident);

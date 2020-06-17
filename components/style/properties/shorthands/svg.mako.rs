@@ -55,18 +55,18 @@
             % endfor
             loop {
                 if image.is_none() {
-                    if let Ok(value) = input.try(|input| mask_image::single_value
+                    if let Ok(value) = input.try_parse(|input| mask_image::single_value
                                                                    ::parse(context, input)) {
                         image = Some(value);
                         continue
                     }
                 }
                 if position.is_none() {
-                    if let Ok(value) = input.try(|input| Position::parse(context, input)) {
+                    if let Ok(value) = input.try_parse(|input| Position::parse(context, input)) {
                         position = Some(value);
 
                         // Parse mask size, if applicable.
-                        size = input.try(|input| {
+                        size = input.try_parse(|input| {
                             input.expect_delim('/')?;
                             mask_size::single_value::parse(context, input)
                         }).ok();
@@ -76,7 +76,7 @@
                 }
                 % for name in "repeat origin clip composite mode".split():
                     if ${name}.is_none() {
-                        if let Ok(value) = input.try(|input| mask_${name}::single_value
+                        if let Ok(value) = input.try_parse(|input| mask_${name}::single_value
                                                                                ::parse(context, input)) {
                             ${name} = Some(value);
                             continue

@@ -35,7 +35,7 @@
             macro_rules! parse_component {
                 ($value:ident, $module:ident) => (
                     if $value.is_none() {
-                        if let Ok(value) = input.try(|input| $module::parse(context, input)) {
+                        if let Ok(value) = input.try_parse(|input| $module::parse(context, input)) {
                             $value = Some(value);
                             any = true;
                             continue;

@@ -63,7 +63,7 @@ impl<L> Size2D<L> {
     {
         let first = parse_one(context, input)?;
         let second = input
-            .try(|i| parse_one(context, i))
+            .try_parse(|i| parse_one(context, i))
             .unwrap_or_else(|_| first.clone());
         Ok(Self::new(first, second))
     }

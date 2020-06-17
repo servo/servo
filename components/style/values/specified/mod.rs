@@ -50,7 +50,7 @@ pub use self::effects::{BoxShadow, Filter, SimpleShadow};
 pub use self::flex::FlexBasis;
 pub use self::font::{FontFamily, FontLanguageOverride, FontStyle};
 pub use self::font::{FontFeatureSettings, FontVariantLigatures, FontVariantNumeric};
-pub use self::font::{FontSize, FontSizeAdjust, FontStretch, FontSynthesis, FontSizeKeyword};
+pub use self::font::{FontSize, FontSizeAdjust, FontSizeKeyword, FontStretch, FontSynthesis};
 pub use self::font::{FontVariantAlternates, FontWeight};
 pub use self::font::{FontVariantEastAsian, FontVariationSettings};
 pub use self::font::{MozScriptLevel, MozScriptMinSize, MozScriptSizeMultiplier, XLang, XTextZoom};
@@ -148,7 +148,7 @@ impl AngleOrPercentage {
         input: &mut Parser<'i, 't>,
         allow_unitless_zero: AllowUnitlessZeroAngle,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(per) = input.try(|i| Percentage::parse(context, i)) {
+        if let Ok(per) = input.try_parse(|i| Percentage::parse(context, i)) {
             return Ok(AngleOrPercentage::Percentage(per));
         }
 
@@ -431,7 +431,9 @@ impl NumberOrPercentage {
         input: &mut Parser<'i, 't>,
         type_: AllowedNumericType,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(per) = input.try(|i| Percentage::parse_with_clamping_mode(context, i, type_)) {
+        if let Ok(per) =
+            input.try_parse(|i| Percentage::parse_with_clamping_mode(context, i, type_))
+        {
             return Ok(NumberOrPercentage::Percentage(per));
         }
 
@@ -750,7 +752,7 @@ impl ClipRect {
             let bottom;
             let left;
 
-            if input.try(|input| input.expect_comma()).is_ok() {
+            if input.try_parse(|input| input.expect_comma()).is_ok() {
                 right = parse_argument(context, input, allow_quirks)?;
                 input.expect_comma()?;
                 bottom = parse_argument(context, input, allow_quirks)?;
@@ -782,7 +784,7 @@ impl ClipRectOrAuto {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(v) = input.try(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
+        if let Ok(v) = input.try_parse(|i| ClipRect::parse_quirky(context, i, allow_quirks)) {
             return Ok(generics::GenericClipRectOrAuto::Rect(v));
         }
         input.expect_ident_matching("auto")?;
@@ -866,8 +868,8 @@ impl Attr {
     ) -> Result<Attr, ParseError<'i>> {
         // Syntax is `[namespace? `|`]? ident`
         // no spaces allowed
-        let first = input.try(|i| i.expect_ident_cloned()).ok();
-        if let Ok(token) = input.try(|i| i.next_including_whitespace().map(|t| t.clone())) {
+        let first = input.try_parse(|i| i.expect_ident_cloned()).ok();
+        if let Ok(token) = input.try_parse(|i| i.next_including_whitespace().map(|t| t.clone())) {
             match token {
                 Token::Delim('|') => {
                     let location = input.current_source_location();

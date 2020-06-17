@@ -50,7 +50,7 @@ fn parse_counters<'i, 't>(
     default_value: i32,
 ) -> Result<Vec<CounterPair<Integer>>, ParseError<'i>> {
     if input
-        .try(|input| input.expect_ident_matching("none"))
+        .try_parse(|input| input.expect_ident_matching("none"))
         .is_ok()
     {
         return Ok(vec![]);
@@ -69,7 +69,7 @@ fn parse_counters<'i, 't>(
         };
 
         let value = input
-            .try(|input| Integer::parse(context, input))
+            .try_parse(|input| Integer::parse(context, input))
             .unwrap_or(Integer::new(default_value));
         counters.push(CounterPair { name, value });
     }
@@ -91,7 +91,7 @@ impl Content {
     #[cfg(feature = "servo")]
     fn parse_counter_style(_: &ParserContext, input: &mut Parser) -> ListStyleType {
         input
-            .try(|input| {
+            .try_parse(|input| {
                 input.expect_comma()?;
                 ListStyleType::parse(input)
             })
@@ -101,7 +101,7 @@ impl Content {
     #[cfg(feature = "gecko")]
     fn parse_counter_style(context: &ParserContext, input: &mut Parser) -> CounterStyle {
         input
-            .try(|input| {
+            .try_parse(|input| {
                 input.expect_comma()?;
                 CounterStyle::parse(context, input)
             })
@@ -119,13 +119,13 @@ impl Parse for Content {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if input
-            .try(|input| input.expect_ident_matching("normal"))
+            .try_parse(|input| input.expect_ident_matching("normal"))
             .is_ok()
         {
             return Ok(generics::Content::Normal);
         }
         if input
-            .try(|input| input.expect_ident_matching("none"))
+            .try_parse(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
             return Ok(generics::Content::None);
@@ -136,7 +136,7 @@ impl Parse for Content {
         loop {
             #[cfg(any(feature = "gecko", feature = "servo-layout-2020"))]
             {
-                if let Ok(url) = input.try(|i| SpecifiedImageUrl::parse(context, i)) {
+                if let Ok(url) = input.try_parse(|i| SpecifiedImageUrl::parse(context, i)) {
                     content.push(generics::ContentItem::Url(url));
                     continue;
                 }

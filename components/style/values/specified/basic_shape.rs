@@ -83,7 +83,7 @@ where
             return false; // already parsed this component
         }
 
-        *component = input.try(|i| U::parse(context, i)).ok();
+        *component = input.try_parse(|i| U::parse(context, i)).ok();
         component.is_some()
     }
 
@@ -112,17 +112,17 @@ impl Parse for ClipPath {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(ClipPath::None);
         }
 
         if is_clip_path_path_enabled(context) {
-            if let Ok(p) = input.try(|i| Path::parse(context, i)) {
+            if let Ok(p) = input.try_parse(|i| Path::parse(context, i)) {
                 return Ok(ClipPath::Path(p));
             }
         }
 
-        if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
+        if let Ok(url) = input.try_parse(|i| SpecifiedUrl::parse(context, i)) {
             return Ok(ClipPath::Url(url));
         }
 
@@ -138,11 +138,11 @@ impl Parse for ShapeOutside {
     ) -> Result<Self, ParseError<'i>> {
         // Need to parse this here so that `Image::parse_with_cors_anonymous`
         // doesn't parse it.
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(ShapeOutside::None);
         }
 
-        if let Ok(image) = input.try(|i| Image::parse_with_cors_anonymous(context, i)) {
+        if let Ok(image) = input.try_parse(|i| Image::parse_with_cors_anonymous(context, i)) {
             debug_assert_ne!(image, Image::None);
             return Ok(ShapeOutside::Image(image));
         }
@@ -189,7 +189,10 @@ impl InsetRect {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let rect = Rect::parse_with(context, input, LengthPercentage::parse)?;
-        let round = if input.try(|i| i.expect_ident_matching("round")).is_ok() {
+        let round = if input
+            .try_parse(|i| i.expect_ident_matching("round"))
+            .is_ok()
+        {
             BorderRadius::parse(context, input)?
         } else {
             BorderRadius::zero()
@@ -214,9 +217,9 @@ impl Circle {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let radius = input
-            .try(|i| ShapeRadius::parse(context, i))
+            .try_parse(|i| ShapeRadius::parse(context, i))
             .unwrap_or_default();
-        let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
+        let position = if input.try_parse(|i| i.expect_ident_matching("at")).is_ok() {
             Position::parse(context, input)?
         } else {
             Position::center()
@@ -242,14 +245,14 @@ impl Ellipse {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let (a, b) = input
-            .try(|i| -> Result<_, ParseError> {
+            .try_parse(|i| -> Result<_, ParseError> {
                 Ok((
                     ShapeRadius::parse(context, i)?,
                     ShapeRadius::parse(context, i)?,
                 ))
             })
             .unwrap_or_default();
-        let position = if input.try(|i| i.expect_ident_matching("at")).is_ok() {
+        let position = if input.try_parse(|i| i.expect_ident_matching("at")).is_ok() {
             Position::parse(context, input)?
         } else {
             Position::center()
@@ -280,7 +283,7 @@ impl Polygon {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let fill = input
-            .try(|i| -> Result<_, ParseError> {
+            .try_parse(|i| -> Result<_, ParseError> {
                 let fill = FillRule::parse(i)?;
                 i.expect_comma()?; // only eat the comma if there is something before it
                 Ok(fill)
@@ -317,7 +320,7 @@ impl Path {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let fill = input
-            .try(|i| -> Result<_, ParseError> {
+            .try_parse(|i| -> Result<_, ParseError> {
                 let fill = FillRule::parse(i)?;
                 i.expect_comma()?;
                 Ok(fill)

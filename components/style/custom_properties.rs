@@ -489,7 +489,7 @@ fn parse_var_function<'i, 't>(
     let name = parse_name(&name).map_err(|()| {
         input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name.clone()))
     })?;
-    if input.try(|input| input.expect_comma()).is_ok() {
+    if input.try_parse(|input| input.expect_comma()).is_ok() {
         parse_fallback(input)?;
     }
     if let Some(refs) = references {
@@ -505,7 +505,7 @@ fn parse_env_function<'i, 't>(
     // TODO(emilio): This should be <custom-ident> per spec, but no other
     // browser does that, see https://github.com/w3c/csswg-drafts/issues/3262.
     input.expect_ident()?;
-    if input.try(|input| input.expect_comma()).is_ok() {
+    if input.try_parse(|input| input.expect_comma()).is_ok() {
         parse_fallback(input)?;
     }
     if let Some(references) = references {

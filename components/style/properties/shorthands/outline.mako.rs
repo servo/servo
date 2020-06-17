@@ -24,21 +24,21 @@
         let mut any = false;
         loop {
             if color.is_none() {
-                if let Ok(value) = input.try(|i| specified::Color::parse(context, i)) {
+                if let Ok(value) = input.try_parse(|i| specified::Color::parse(context, i)) {
                     color = Some(value);
                     any = true;
                     continue
                 }
             }
             if style.is_none() {
-                if let Ok(value) = input.try(|input| outline_style::parse(context, input)) {
+                if let Ok(value) = input.try_parse(|input| outline_style::parse(context, input)) {
                     style = Some(value);
                     any = true;
                     continue
                 }
             }
             if width.is_none() {
-                if let Ok(value) = input.try(|input| outline_width::parse(context, input)) {
+                if let Ok(value) = input.try_parse(|input| outline_width::parse(context, input)) {
                     width = Some(value);
                     any = true;
                     continue
