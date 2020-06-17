@@ -130,7 +130,7 @@
                 </TextBox.KeyboardAccelerators>
             </TextBox>
             <StackPanel Orientation="Horizontal" Grid.Column="2">
-                <Button Style="{StaticResource NavigationBarButton}" x:Name="devtoolsButton" x:Uid="devtoolsButton" IsTabStop="true" Click="OnDevtoolsButtonClicked">
+                <Button Style="{StaticResource NavigationBarButton}" x:Name="devtoolsButton" IsEnabled="false" x:Uid="devtoolsButton" IsTabStop="true" Click="OnDevtoolsButtonClicked">
                     <Image Source="Assets/UI/devtools.png" Height="18"></Image>
                 </Button>
                 <ProgressRing x:Name="urlbarLoadingIndicator" Margin="10,0"/>
@@ -149,6 +149,12 @@
                     </Button>
                 </Grid>
             </muxc:TabView.TabStripFooter>
+            <muxc:TabViewItem x:Uid="devtoolsTabConsole" IsClosable="False">
+                <ScrollViewer x:Name="DevtoolsConsoleScrollViewer" VerticalScrollMode="Enabled" HorizontalScrollMode="Enabled">
+                    <RichTextBlock x:Name="DevtoolsConsoleOutput" FontSize="10" FontFamily="Consolas" LineHeight="14">
+                    </RichTextBlock>
+                </ScrollViewer>
+            </muxc:TabViewItem>
             <muxc:TabViewItem x:Uid="devtoolsTabServer" IsClosable="False">
                 <TextBlock x:Name="DevtoolsStatusMessage" Margin="10"></TextBlock>
             </muxc:TabViewItem>
