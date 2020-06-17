@@ -60,7 +60,7 @@ use js::rust::CompileOptionsWrapper;
 use js::rust::{Handle, HandleValue, IntoHandle};
 use mime::Mime;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
-use net_traits::request::{Referrer, RequestBuilder, RequestMode};
+use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{FetchMetadata, Metadata};
 use net_traits::{FetchResponseListener, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
@@ -721,7 +721,6 @@ impl ModuleTree {
 
                 // Step 8.
 
-                let referrer = global.get_referrer();
                 for url in urls {
                     // https://html.spec.whatwg.org/multipage/#internal-module-script-graph-fetching-procedure
                     // Step 1.
@@ -733,7 +732,6 @@ impl ModuleTree {
                         url.clone(),
                         visited_urls.clone(),
                         destination.clone(),
-                        referrer.clone(),
                         ParserMetadata::NotParserInserted,
                         "".to_owned(), // integrity
                         credentials_mode.clone(),
@@ -1227,7 +1225,6 @@ pub fn fetch_external_module_script(
 ) {
     let mut visited_urls = HashSet::new();
     visited_urls.insert(url.clone());
-    let referrer = owner.global().get_referrer();
 
     // Step 1.
     fetch_single_module_script(
@@ -1235,7 +1232,6 @@ pub fn fetch_external_module_script(
         url,
         visited_urls,
         destination,
-        referrer,
         ParserMetadata::NotParserInserted,
         integrity_metadata,
         credentials_mode,
@@ -1250,7 +1246,6 @@ pub fn fetch_single_module_script(
     url: ServoUrl,
     visited_urls: HashSet<ServoUrl>,
     destination: Destination,
-    referrer: Referrer,
     parser_metadata: ParserMetadata,
     integrity_metadata: String,
     credentials_mode: CredentialsMode,
@@ -1325,7 +1320,7 @@ pub fn fetch_single_module_script(
     };
 
     // Step 7-8.
-    let request = RequestBuilder::new(url.clone(), referrer)
+    let request = RequestBuilder::new(url.clone(), global.get_referrer())
         .destination(destination.clone())
         .origin(global.origin().immutable().clone())
         .parser_metadata(parser_metadata)

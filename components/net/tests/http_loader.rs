@@ -33,8 +33,8 @@ use net::http_loader::determine_request_referrer;
 use net::resource_thread::AuthCacheEntry;
 use net::test::replace_host_table;
 use net_traits::request::{
-    BodyChunkRequest, BodyChunkResponse, BodySource, CredentialsMode, Destination, RequestBody, Referrer
-    RequestBuilder, RequestMode,
+    BodyChunkRequest, BodyChunkResponse, BodySource, CredentialsMode, Destination, Referrer,
+    RequestBody, RequestBuilder, RequestMode,
 };
 use net_traits::response::{HttpsState, ResponseBody};
 use net_traits::{CookieSource, NetworkError, ReferrerPolicy};

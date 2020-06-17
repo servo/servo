@@ -160,7 +160,7 @@ pub struct XMLHttpRequest {
     fetch_time: Cell<i64>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
-    referrer_url: Option<ServoUrl>,
+    referrer: Referrer,
     referrer_policy: Option<ReferrerPolicy>,
     canceller: DomRefCell<FetchCanceller>,
 }
@@ -168,11 +168,11 @@ pub struct XMLHttpRequest {
 impl XMLHttpRequest {
     fn new_inherited(global: &GlobalScope) -> XMLHttpRequest {
         //TODO - update this when referrer policy implemented for workers
-        let (referrer_url, referrer_policy) = if let Some(window) = global.downcast::<Window>() {
+        let referrer_policy = if let Some(window) = global.downcast::<Window>() {
             let document = window.Document();
-            (Some(document.url()), document.get_referrer_policy())
+            document.get_referrer_policy()
         } else {
-            (None, None)
+            None
         };
 
         XMLHttpRequest {
@@ -206,7 +206,7 @@ impl XMLHttpRequest {
             fetch_time: Cell::new(0),
             generation_id: Cell::new(GenerationId(0)),
             response_status: Cell::new(Ok(())),
-            referrer_url: referrer_url,
+            referrer: global.get_referrer(),
             referrer_policy: referrer_policy,
             canceller: DomRefCell::new(Default::default()),
         }
@@ -681,10 +681,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
 
         let mut request = RequestBuilder::new(
             self.request_url.borrow().clone().unwrap(),
-            self.referrer_url
-                .clone()
-                .map(|url| Referrer::ReferrerUrl(url))
-                .unwrap_or_else(|| self.global().get_referrer()),
+            self.referrer.clone(),
         )
         .method(self.request_method.borrow().clone())
         .headers((*self.request_headers.borrow()).clone())
