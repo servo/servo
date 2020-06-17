@@ -101,7 +101,7 @@ pub struct FontSize {
     pub size: NonNegativeLength,
     /// If derived from a keyword, the keyword and additional transformations applied to it
     #[css(skip)]
-    pub keyword_info: Option<KeywordInfo>,
+    pub keyword_info: KeywordInfo,
 }
 
 impl FontWeight {
@@ -170,7 +170,7 @@ impl FontSize {
     pub fn medium() -> Self {
         Self {
             size: NonNegative(Length::new(specified::FONT_MEDIUM_PX as CSSFloat)),
-            keyword_info: Some(KeywordInfo::medium()),
+            keyword_info: KeywordInfo::medium(),
         }
     }
 }
@@ -187,7 +187,7 @@ impl ToAnimatedValue for FontSize {
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         FontSize {
             size: NonNegative(animated.clamp_to_non_negative()),
-            keyword_info: None,
+            keyword_info: KeywordInfo::none(),
         }
     }
 }

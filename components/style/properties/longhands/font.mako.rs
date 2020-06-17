@@ -362,6 +362,7 @@ ${helpers.predefined_type(
                 use crate::gecko_bindings::structs::{LookAndFeel_FontID, nsFont};
                 use std::mem;
                 use crate::values::computed::Percentage;
+                use crate::values::specified::font::KeywordInfo;
                 use crate::values::computed::font::{FontFamily, FontSize, FontStretch, FontStyle, FontFamilyList};
                 use crate::values::generics::NonNegative;
 
@@ -397,7 +398,7 @@ ${helpers.predefined_type(
                     },
                     font_size: FontSize {
                         size: NonNegative(cx.maybe_zoom_text(Au(system.size).into())),
-                        keyword_info: None
+                        keyword_info: KeywordInfo::none()
                     },
                     font_weight,
                     font_stretch,

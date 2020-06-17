@@ -854,12 +854,13 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
 
         let new_size = {
             let font = self.context.builder.get_font();
-            let new_size = match font.clone_font_size().keyword_info {
-                Some(info) => {
+            let info = font.clone_font_size().keyword_info;
+            let new_size = match info.kw {
+                specified::FontSizeKeyword::None => return,
+                _ => {
                     self.context.for_non_inherited_property = None;
                     specified::FontSize::Keyword(info).to_computed_value(self.context)
                 }
-                None => return,
             };
 
             if font.gecko().mScriptUnconstrainedSize == Au::from(new_size.size()).0 {

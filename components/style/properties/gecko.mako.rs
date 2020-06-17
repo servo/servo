@@ -942,62 +942,26 @@ fn static_assert() {
     }
 
     pub fn set_font_size(&mut self, v: FontSize) {
-        use crate::values::specified::font::KeywordSize;
-
         let size = Au::from(v.size());
         self.gecko.mScriptUnconstrainedSize = size.0;
 
         // These two may be changed from Cascade::fixup_font_stuff.
         self.gecko.mSize = size.0;
         self.gecko.mFont.size = size.0;
-
-        if let Some(info) = v.keyword_info {
-            self.gecko.mFontSizeKeyword = match info.kw {
-                KeywordSize::XXSmall => structs::StyleFontSize::Xxsmall,
-                KeywordSize::XSmall => structs::StyleFontSize::Xsmall,
-                KeywordSize::Small => structs::StyleFontSize::Small,
-                KeywordSize::Medium => structs::StyleFontSize::Medium,
-                KeywordSize::Large => structs::StyleFontSize::Large,
-                KeywordSize::XLarge => structs::StyleFontSize::Xxlarge,
-                KeywordSize::XXLarge => structs::StyleFontSize::Xxlarge,
-                KeywordSize::XXXLarge => structs::StyleFontSize::Xxxlarge,
-            };
-            self.gecko.mFontSizeFactor = info.factor;
-            self.gecko.mFontSizeOffset = info.offset.to_i32_au();
-        } else {
-            self.gecko.mFontSizeKeyword = structs::StyleFontSize::NoKeyword;
-            self.gecko.mFontSizeFactor = 1.;
-            self.gecko.mFontSizeOffset = 0;
-        }
+        self.gecko.mFontSizeKeyword = v.keyword_info.kw;
+        self.gecko.mFontSizeFactor = v.keyword_info.factor;
+        self.gecko.mFontSizeOffset = v.keyword_info.offset.to_i32_au();
     }
 
     pub fn clone_font_size(&self) -> FontSize {
-        use crate::values::specified::font::{KeywordInfo, KeywordSize};
-        let size = Au(self.gecko.mSize).into();
-        let kw = match self.gecko.mFontSizeKeyword {
-            structs::StyleFontSize::Xxsmall => KeywordSize::XXSmall,
-            structs::StyleFontSize::Xsmall => KeywordSize::XSmall,
-            structs::StyleFontSize::Small => KeywordSize::Small,
-            structs::StyleFontSize::Medium => KeywordSize::Medium,
-            structs::StyleFontSize::Large => KeywordSize::Large,
-            structs::StyleFontSize::Xlarge => KeywordSize::XLarge,
-            structs::StyleFontSize::Xxlarge => KeywordSize::XXLarge,
-            structs::StyleFontSize::Xxxlarge => KeywordSize::XXXLarge,
-            structs::StyleFontSize::NoKeyword => {
-                return FontSize {
-                    size,
-                    keyword_info: None,
-                }
-            }
-            _ => unreachable!("mFontSizeKeyword should be an absolute keyword or NO_KEYWORD")
-        };
+        use crate::values::specified::font::KeywordInfo;
         FontSize {
-            size,
-            keyword_info: Some(KeywordInfo {
-                kw,
+            size: Au(self.gecko.mSize).into(),
+            keyword_info: KeywordInfo {
+                kw: self.gecko.mFontSizeKeyword,
                 factor: self.gecko.mFontSizeFactor,
                 offset: Au(self.gecko.mFontSizeOffset).into()
-            })
+            }
         }
     }
 
