@@ -6,6 +6,7 @@ license = "MPL-2.0"
 publish = false
 
 build = "build.rs"
+edition = "2018"
 
 # https://github.com/rust-lang/cargo/issues/3544
 links = "servo_style_crate"

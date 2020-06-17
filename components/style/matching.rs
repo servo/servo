@@ -371,7 +371,7 @@ trait PrivateMatchMethods: TElement {
             // since we have no way to know whether the decendants
             // need to be traversed at the beginning of the animation-only
             // restyle).
-            let task = ::context::SequentialTask::process_post_animation(
+            let task = crate::context::SequentialTask::process_post_animation(
                 *self,
                 PostAnimationTasks::DISPLAY_CHANGED_FROM_NONE_FOR_SMIL,
             );
@@ -464,8 +464,11 @@ trait PrivateMatchMethods: TElement {
         }
 
         if !tasks.is_empty() {
-            let task =
-                ::context::SequentialTask::update_animations(*self, before_change_style, tasks);
+            let task = crate::context::SequentialTask::update_animations(
+                *self,
+                before_change_style,
+                tasks,
+            );
             context.thread_local.tasks.push(task);
         }
     }

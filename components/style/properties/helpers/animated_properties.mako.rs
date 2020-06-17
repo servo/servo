@@ -35,7 +35,7 @@ use void::{self, Void};
 #[allow(non_upper_case_globals)]
 impl From<nsCSSPropertyID> for TransitionProperty {
     fn from(property: nsCSSPropertyID) -> TransitionProperty {
-        use properties::ShorthandId;
+        use crate::properties::ShorthandId;
         match property {
             % for prop in data.longhands:
             ${prop.nscsspropertyid()} => {

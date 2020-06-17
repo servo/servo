@@ -816,7 +816,7 @@ pub trait TElement:
         Self: 'a,
         F: FnMut(&'a CascadeData, Self),
     {
-        use rule_collector::containing_shadow_ignoring_svg_use;
+        use crate::rule_collector::containing_shadow_ignoring_svg_use;
 
         let target = self.rule_hash_target();
         if !target.matches_user_and_author_rules() {

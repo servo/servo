@@ -4,7 +4,7 @@
 
 //! Helpers for different FFI pointer kinds that Gecko's FFI layer uses.
 
-use gecko_bindings::structs::root::mozilla::detail::CopyablePtr;
+use crate::gecko_bindings::structs::root::mozilla::detail::CopyablePtr;
 use servo_arc::{Arc, RawOffsetArc};
 use std::marker::PhantomData;
 use std::mem::{forget, transmute};
