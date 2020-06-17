@@ -1,10 +1,10 @@
 from time import sleep
 def main(request, response):
-  if "delay" in request.GET:
-    delay = int(request.GET["delay"])
+  if b"delay" in request.GET:
+    delay = int(request.GET[b"delay"])
     sleep(delay)
 
-  if "stylesNotMatchingEnvironment" in request.GET:
-    return 'h1 {color: brown;}'
+  if b"stylesNotMatchingEnvironment" in request.GET:
+    return u'h1 {color: brown;}'
   else:
-    return 'h1 {color: purple;}'
+    return u'h1 {color: purple;}'
