@@ -149,18 +149,17 @@ impl Parse for BoxShadow {
                 }
             }
             if lengths.is_none() {
-                let value = input.try::<_, _, ParseError>(|i| {
+                let value = input.try_parse::<_, _, ParseError>(|i| {
                     let horizontal = Length::parse(context, i)?;
                     let vertical = Length::parse(context, i)?;
-                    let (blur, spread) = match i
-                        .try::<_, _, ParseError>(|i| Length::parse_non_negative(context, i))
-                    {
-                        Ok(blur) => {
-                            let spread = i.try_parse(|i| Length::parse(context, i)).ok();
-                            (Some(blur.into()), spread)
-                        },
-                        Err(_) => (None, None),
-                    };
+                    let (blur, spread) =
+                        match i.try_parse(|i| Length::parse_non_negative(context, i)) {
+                            Ok(blur) => {
+                                let spread = i.try_parse(|i| Length::parse(context, i)).ok();
+                                (Some(blur.into()), spread)
+                            },
+                            Err(_) => (None, None),
+                        };
                     Ok((horizontal, vertical, blur, spread))
                 });
                 if let Ok(value) = value {
