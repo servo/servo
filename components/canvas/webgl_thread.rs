@@ -333,6 +333,14 @@ impl WebGLThread {
                         Ok(msg) => {
                             let exit = self.handle_msg(msg, &webgl_chan);
                             if exit {
+                                // Call remove_context functions in order to correctly delete WebRender image keys.
+                                let context_ids: Vec<WebGLContextId> = self.contexts.keys().map(|id| *id).collect();
+                                for id in context_ids {
+                                    self.remove_webgl_context(id);
+                                }
+
+                                // Block on shutting-down WebRender.
+                                self.webrender_api.shut_down(true);
                                 return;
                             }
                         }
@@ -1098,16 +1106,6 @@ impl WebGLThread {
             .unwrap_or(20);
 
         WebGLSLVersion { major, minor }
-    }
-}
-
-impl Drop for WebGLThread {
-    fn drop(&mut self) {
-        // Call remove_context functions in order to correctly delete WebRender image keys.
-        let context_ids: Vec<WebGLContextId> = self.contexts.keys().map(|id| *id).collect();
-        for id in context_ids {
-            self.remove_webgl_context(id);
-        }
     }
 }
 
