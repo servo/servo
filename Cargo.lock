@@ -219,13 +219,14 @@ dependencies = [
 
 [[package]]
 name = "backtrace"
-version = "0.3.48"
+version = "0.3.49"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0df2f85c8a2abbe3b7d7e748052fdd9b76a0458fdeb16ad4223f5eca78c7c130"
+checksum = "05100821de9e028f12ae3d189176b41ee198341eb8f369956407fea2f5cc666c"
 dependencies = [
  "addr2line",
  "cfg-if",
  "libc",
+ "miniz_oxide",
  "object",
  "rustc-demangle",
 ]
@@ -3767,9 +3768,9 @@ dependencies = [
 
 [[package]]
 name = "object"
-version = "0.19.0"
+version = "0.20.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9cbca9424c482ee628fa549d9c812e2cd22f1180b9222c9200fdfa6eb31aecb2"
+checksum = "1ab52be62400ca80aa00285d25253d7f7c437b7375c4de678f5405d3afe82ca5"
 
 [[package]]
 name = "once_cell"
