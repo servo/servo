@@ -93,7 +93,8 @@
       audit.define(
           {label: 'test1', description: 'Test value setter and setValueAtTime'},
           (task, should) => {
-            testWithAutomation(should, {prefix: ''}).then(() => task.done());
+            testWithAutomation(should, {prefix: '', threshold: 5.9605e-8})
+                .then(() => task.done());
           });
 
       audit.define(
@@ -168,7 +169,8 @@
           let expected = renderedBuffer.getChannelData(1);
 
           let match = should(actual, prefix + '.value setter output')
-                          .beEqualToArray(expected);
+                          .beCloseToArray(
+                              expected, {absoluteThreshold: options.threshold});
           should(
               match,
               prefix + '.value setter output matches setValueAtTime output')
@@ -177,7 +179,6 @@
       }
 
       audit.run();
-
     </script>
   </body>
 </html>

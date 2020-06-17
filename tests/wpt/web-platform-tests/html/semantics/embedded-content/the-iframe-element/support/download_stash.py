@@ -1,28 +1,28 @@
 import time
 
 def main(request, response):
-    token = request.GET["token"]
+    token = request.GET[b"token"]
     response.status = 200
-    response.headers.append("Content-Type", "text/html")
-    if "verify-token" in request.GET:
+    response.headers.append(b"Content-Type", b"text/html")
+    if b"verify-token" in request.GET:
       if request.server.stash.take(token):
-        return 'TOKEN_SET'
-      return 'TOKEN_NOT_SET'
+        return u'TOKEN_SET'
+      return u'TOKEN_NOT_SET'
 
-    if "finish-delay" not in request.GET:
+    if b"finish-delay" not in request.GET:
       # <a download>
       request.server.stash.put(token, True)
       return
 
     # navigation to download
-    response.headers.append("Content-Disposition", "attachment")
+    response.headers.append(b"Content-Disposition", b"attachment")
     response.write_status_headers()
-    finish_delay = float(request.GET["finish-delay"]) / 1E3
+    finish_delay = float(request.GET[b"finish-delay"]) / 1E3
     count = 10
     single_delay = finish_delay / count
     for i in range(count): # pylint: disable=unused-variable
         time.sleep(single_delay)
-        response.writer.write_content("\n")
+        response.writer.write_content(u"\n")
         if not response.writer.flush():
           return
     request.server.stash.put(token, True)

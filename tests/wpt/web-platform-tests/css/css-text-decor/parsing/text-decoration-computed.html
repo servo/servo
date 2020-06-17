@@ -32,7 +32,7 @@ test_computed_value("text-decoration", "underline dashed rgb(0, 255, 0)");
 
 // Add text-decoration-thickness in [css-text-decor-4].
 test_computed_value("text-decoration", "auto", currentColor);
-test_computed_value("text-decoration", "from-font", currentColor + " from-font");
-test_computed_value("text-decoration", "10px", currentColor + " 10px");
-test_computed_value("text-decoration", "underline red from-font", "underline rgb(255, 0, 0) from-font");
+test_computed_value("text-decoration", "from-font", "from-font " + currentColor);
+test_computed_value("text-decoration", "10px", "10px " + currentColor);
+test_computed_value("text-decoration", "underline red from-font", "underline from-font rgb(255, 0, 0)");
 </script>

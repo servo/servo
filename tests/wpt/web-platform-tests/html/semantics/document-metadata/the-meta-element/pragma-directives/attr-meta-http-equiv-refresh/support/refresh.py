@@ -1,4 +1,4 @@
 def main(request, response):
-    response.headers.set("Content-Type", "text/html")
-    response.headers.set("Refresh", request.GET.first("input"))
-    response.content = "<!doctype html>refresh.py\n"
+    response.headers.set(b"Content-Type", b"text/html")
+    response.headers.set(b"Refresh", request.GET.first(b"input"))
+    response.content = u"<!doctype html>refresh.py\n"

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>Input image type fallback content should respect display property.</title>
+<meta name="author" title="Yu Han" href="mailto:yuzhehan@chromium.org">
+<style>
+  div {
+    border:1px dashed blue;
+    line-height: 1em;
+    height: 100px;
+    width: 150px;
+  }
+  input {
+    font: 1em monospace;
+    line-height: 1em;
+  }
+</style>
+<div>
+  <input alt="This is a long ALT text which takes up few lines to display. And additional text to be inlined." type="image">
+</div>

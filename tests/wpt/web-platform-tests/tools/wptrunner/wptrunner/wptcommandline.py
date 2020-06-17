@@ -135,6 +135,8 @@ scheme host and port.""")
                                       help="URL prefix to exclude")
     test_selection_group.add_argument("--include-manifest", type=abs_path,
                                       help="Path to manifest listing tests to include")
+    test_selection_group.add_argument("--test-groups", dest="test_groups_file", type=abs_path,
+                                      help="Path to json file containing a mapping {group_name: [test_ids]}")
     test_selection_group.add_argument("--skip-timeout", action="store_true",
                                       help="Skip tests that are expected to time out")
     test_selection_group.add_argument("--skip-implementation-status",
@@ -503,6 +505,14 @@ def check_args(kwargs):
             kwargs["chunk_type"] = "dir_hash"
         else:
             kwargs["chunk_type"] = "none"
+
+    if kwargs["test_groups_file"] is not None:
+        if kwargs["run_by_dir"] is not False:
+            print("Can't pass --test-groups and --run-by-dir")
+            sys.exit(1)
+        if not os.path.exists(kwargs["test_groups_file"]):
+            print("--test-groups file %s not found" % kwargs["test_groups_file"])
+            sys.exit(1)
 
     if kwargs["processes"] is None:
         kwargs["processes"] = 1
