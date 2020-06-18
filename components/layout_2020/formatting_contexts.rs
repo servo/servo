@@ -9,13 +9,14 @@ use crate::flow::BlockFormattingContext;
 use crate::fragments::{Fragment, Tag};
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
-use crate::sizing::{BoxContentSizes, ContentSizes, ContentSizesRequest};
+use crate::sizing::{self, ContentSizes};
 use crate::style_ext::DisplayInside;
 use crate::ContainingBlock;
 use servo_arc::Arc;
 use std::convert::TryInto;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
-use style::values::computed::Length;
+use style::values::computed::{Length, Percentage};
 use style::values::specified::text::TextDecorationLine;
 
 /// https://drafts.csswg.org/css-display/#independent-formatting-context
@@ -31,7 +32,7 @@ pub(crate) struct NonReplacedFormattingContext {
     #[serde(skip_serializing)]
     pub style: Arc<ComputedValues>,
     /// If it was requested during construction
-    pub content_sizes: BoxContentSizes,
+    pub content_sizes: Option<ContentSizes>,
     pub contents: NonReplacedFormattingContextContents,
 }
 
@@ -65,41 +66,36 @@ impl IndependentFormattingContext {
         info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         display_inside: DisplayInside,
         contents: Contents,
-        content_sizes: ContentSizesRequest,
         propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
         match contents.try_into() {
-            Ok(non_replaced) => match display_inside {
-                DisplayInside::Flow | DisplayInside::FlowRoot => {
-                    let (bfc, content_sizes) = BlockFormattingContext::construct(
-                        context,
-                        info,
-                        non_replaced,
-                        content_sizes,
-                        propagated_text_decoration_line,
-                    );
-                    Self::NonReplaced(NonReplacedFormattingContext {
-                        tag: Tag::from_node_and_style_info(info),
-                        style: Arc::clone(&info.style),
-                        content_sizes,
-                        contents: NonReplacedFormattingContextContents::Flow(bfc),
-                    })
-                },
-                DisplayInside::Flex => {
-                    let (fc, content_sizes) = FlexContainer::construct(
-                        context,
-                        info,
-                        non_replaced,
-                        content_sizes,
-                        propagated_text_decoration_line,
-                    );
-                    Self::NonReplaced(NonReplacedFormattingContext {
-                        tag: Tag::from_node_and_style_info(info),
-                        style: Arc::clone(&info.style),
-                        content_sizes,
-                        contents: NonReplacedFormattingContextContents::Flex(fc),
-                    })
-                },
+            Ok(non_replaced) => {
+                let contents = match display_inside {
+                    DisplayInside::Flow | DisplayInside::FlowRoot => {
+                        NonReplacedFormattingContextContents::Flow(
+                            BlockFormattingContext::construct(
+                                context,
+                                info,
+                                non_replaced,
+                                propagated_text_decoration_line,
+                            ),
+                        )
+                    },
+                    DisplayInside::Flex => {
+                        NonReplacedFormattingContextContents::Flex(FlexContainer::construct(
+                            context,
+                            info,
+                            non_replaced,
+                            propagated_text_decoration_line,
+                        ))
+                    },
+                };
+                Self::NonReplaced(NonReplacedFormattingContext {
+                    tag: Tag::from_node_and_style_info(info),
+                    style: Arc::clone(&info.style),
+                    content_sizes: None,
+                    contents,
+                })
             },
             Err(contents) => Self::Replaced(ReplacedFormattingContext {
                 tag: Tag::from_node_and_style_info(info),
@@ -110,22 +106,16 @@ impl IndependentFormattingContext {
     }
 
     pub fn construct_for_text_runs<'dom>(
-        context: &LayoutContext,
         info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         runs: impl Iterator<Item = crate::flow::inline::TextRun>,
-        content_sizes: ContentSizesRequest,
         propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
-        let (bfc, content_sizes) = BlockFormattingContext::construct_for_text_runs(
-            context,
-            runs,
-            content_sizes,
-            propagated_text_decoration_line,
-        );
+        let bfc =
+            BlockFormattingContext::construct_for_text_runs(runs, propagated_text_decoration_line);
         Self::NonReplaced(NonReplacedFormattingContext {
             tag: Tag::from_node_and_style_info(info),
             style: Arc::clone(&info.style),
-            content_sizes,
+            content_sizes: None,
             contents: NonReplacedFormattingContextContents::Flow(bfc),
         })
     }
@@ -144,10 +134,40 @@ impl IndependentFormattingContext {
         }
     }
 
-    pub fn content_sizes(&self) -> ContentSizes {
+    pub fn outer_inline(
+        &mut self,
+        layout_context: &LayoutContext,
+        containing_block_writing_mode: WritingMode,
+    ) -> ContentSizes {
+        let (mut outer, percentages) =
+            self.outer_inline_and_percentages(layout_context, containing_block_writing_mode);
+        outer.adjust_for_pbm_percentages(percentages);
+        outer
+    }
+
+    pub fn outer_inline_and_percentages(
+        &mut self,
+        layout_context: &LayoutContext,
+        containing_block_writing_mode: WritingMode,
+    ) -> (ContentSizes, Percentage) {
         match self {
-            Self::NonReplaced(inner) => inner.content_sizes.expect_inline().clone(),
-            Self::Replaced(inner) => inner.contents.inline_content_sizes(&inner.style),
+            Self::NonReplaced(non_replaced) => {
+                let style = &non_replaced.style;
+                let content_sizes = &mut non_replaced.content_sizes;
+                let contents = &non_replaced.contents;
+                sizing::outer_inline_and_percentages(&style, containing_block_writing_mode, || {
+                    content_sizes
+                        .get_or_insert_with(|| {
+                            contents.inline_content_sizes(layout_context, style.writing_mode)
+                        })
+                        .clone()
+                })
+            },
+            Self::Replaced(replaced) => sizing::outer_inline_and_percentages(
+                &replaced.style,
+                containing_block_writing_mode,
+                || replaced.contents.inline_content_sizes(&replaced.style),
+            ),
         }
     }
 }
@@ -173,6 +193,29 @@ impl NonReplacedFormattingContext {
                 containing_block,
                 tree_rank,
             ),
+        }
+    }
+
+    pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
+        let writing_mode = self.style.writing_mode;
+        let contents = &self.contents;
+        self.content_sizes
+            .get_or_insert_with(|| contents.inline_content_sizes(layout_context, writing_mode))
+            .clone()
+    }
+}
+
+impl NonReplacedFormattingContextContents {
+    pub fn inline_content_sizes(
+        &self,
+        layout_context: &LayoutContext,
+        containing_block_writing_mode: WritingMode,
+    ) -> ContentSizes {
+        match self {
+            Self::Flow(inner) => inner
+                .contents
+                .inline_content_sizes(layout_context, containing_block_writing_mode),
+            Self::Flex(inner) => inner.inline_content_sizes(),
         }
     }
 }

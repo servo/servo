@@ -9,7 +9,6 @@ use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{BoxFragment, CollapsedBlockMargins, Fragment};
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::geom::{LengthOrAuto, LengthPercentageOrAuto};
-use crate::sizing::ContentSizesRequest;
 use crate::style_ext::{ComputedValuesExt, DisplayInside};
 use crate::{ContainingBlock, DefiniteContainingBlock};
 use rayon::iter::{IntoParallelRefMutIterator, ParallelExtend};
@@ -74,22 +73,12 @@ impl AbsolutelyPositionedBox {
         display_inside: DisplayInside,
         contents: Contents,
     ) -> Self {
-        // "Shrink-to-fit" in https://drafts.csswg.org/css2/visudet.html#abs-non-replaced-width
-        let content_sizes = ContentSizesRequest::inline_if(
-            // If inline-size is non-auto, that value is used without shrink-to-fit
-            !node_info.style.inline_size_is_length() &&
-            // If it is, then the only case where shrink-to-fit is *not* used is
-            // if both offsets are non-auto, leaving inline-size as the only variable
-            // in the constraint equation.
-            !node_info.style.inline_box_offsets_are_both_non_auto(),
-        );
         Self {
             context: IndependentFormattingContext::construct(
                 context,
                 node_info,
                 display_inside,
                 contents,
-                content_sizes,
                 // Text decorations are not propagated to any out-of-flow descendants.
                 TextDecorationLine::NONE,
             ),
@@ -472,7 +461,9 @@ impl HoistedAbsolutelyPositionedBox {
                         };
                         let available_size =
                             cbis - anchor - pbm.padding_border_sums.inline - margin.inline_sum();
-                        non_replaced.content_sizes.shrink_to_fit(available_size)
+                        non_replaced
+                            .inline_content_sizes(layout_context)
+                            .shrink_to_fit(available_size)
                     });
 
                     let containing_block_for_children = ContainingBlock {

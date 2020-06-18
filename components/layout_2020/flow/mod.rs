@@ -18,11 +18,13 @@ use crate::fragments::{
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::replaced::ReplacedContent;
+use crate::sizing::{self, ContentSizes};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
 use crate::ContainingBlock;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
+use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
@@ -130,6 +132,29 @@ impl BlockContainer {
                 containing_block,
                 tree_rank,
             ),
+        }
+    }
+
+    pub(super) fn inline_content_sizes(
+        &self,
+        layout_context: &LayoutContext,
+        containing_block_writing_mode: WritingMode,
+    ) -> ContentSizes {
+        match &self {
+            Self::BlockLevelBoxes(boxes) => {
+                let mut content_sizes = ContentSizes::zero();
+                for box_ in boxes {
+                    content_sizes.max_assign(
+                        &box_
+                            .borrow_mut()
+                            .inline_content_sizes(layout_context, containing_block_writing_mode),
+                    );
+                }
+                content_sizes
+            },
+            Self::InlineFormattingContext(context) => {
+                context.inline_content_sizes(layout_context, containing_block_writing_mode)
+            },
         }
     }
 }
@@ -347,6 +372,28 @@ impl BlockLevelBox {
                 Fragment::Anonymous(AnonymousFragment::no_op(
                     containing_block.style.writing_mode,
                 ))
+            },
+        }
+    }
+
+    fn inline_content_sizes(
+        &mut self,
+        layout_context: &LayoutContext,
+        containing_block_writing_mode: WritingMode,
+    ) -> ContentSizes {
+        match self {
+            Self::SameFormattingContextBlock {
+                style, contents, ..
+            } => sizing::outer_inline(style, containing_block_writing_mode, || {
+                contents.inline_content_sizes(layout_context, style.writing_mode)
+            }),
+            Self::Independent(independent) => {
+                independent.outer_inline(layout_context, containing_block_writing_mode)
+            },
+            BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => ContentSizes::zero(),
+            BlockLevelBox::OutOfFlowFloatBox(_box_) => {
+                // TODO: Actually implement that.
+                ContentSizes::zero()
             },
         }
     }

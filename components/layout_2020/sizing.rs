@@ -11,44 +11,6 @@ use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthPercentage, Percentage};
 use style::Zero;
 
-/// Which min/max-content values should be computed during box construction
-#[derive(Clone, Copy, Debug)]
-pub(crate) enum ContentSizesRequest {
-    Inline,
-    None,
-}
-
-impl ContentSizesRequest {
-    pub fn inline_if(condition: bool) -> Self {
-        if condition {
-            Self::Inline
-        } else {
-            Self::None
-        }
-    }
-
-    pub fn requests_inline(self) -> bool {
-        match self {
-            Self::Inline => true,
-            Self::None => false,
-        }
-    }
-
-    pub fn if_requests_inline<T>(self, f: impl FnOnce() -> T) -> Option<T> {
-        match self {
-            Self::Inline => Some(f()),
-            Self::None => None,
-        }
-    }
-
-    pub fn compute(self, compute_inline: impl FnOnce() -> ContentSizes) -> BoxContentSizes {
-        match self {
-            Self::Inline => BoxContentSizes::Inline(compute_inline()),
-            Self::None => BoxContentSizes::NoneWereRequested,
-        }
-    }
-}
-
 #[derive(Clone, Debug, Serialize)]
 pub(crate) struct ContentSizes {
     pub min_content: Length,
@@ -90,27 +52,10 @@ impl ContentSizes {
     }
 }
 
-/// Optional min/max-content for storage in the box tree
-#[derive(Debug, Serialize)]
-pub(crate) enum BoxContentSizes {
-    NoneWereRequested, // … during box construction
-    Inline(ContentSizes),
-}
-
-impl BoxContentSizes {
-    pub fn expect_inline(&self) -> &ContentSizes {
-        match self {
-            Self::NoneWereRequested => panic!("Accessing content size that was not requested"),
-            Self::Inline(s) => s,
-        }
-    }
-
+impl ContentSizes {
     /// https://drafts.csswg.org/css2/visudet.html#shrink-to-fit-float
-    pub(crate) fn shrink_to_fit(&self, available_size: Length) -> Length {
-        let inline = self.expect_inline();
-        available_size
-            .max(inline.min_content)
-            .min(inline.max_content)
+    pub fn shrink_to_fit(&self, available_size: Length) -> Length {
+        available_size.max(self.min_content).min(self.max_content)
     }
 }
 

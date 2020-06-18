@@ -14,14 +14,12 @@ use crate::flow::{BlockContainer, BlockFormattingContext, BlockLevelBox};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::Tag;
 use crate::positioned::AbsolutelyPositionedBox;
-use crate::sizing::{self, BoxContentSizes, ContentSizes, ContentSizesRequest};
-use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
+use crate::style_ext::{DisplayGeneratingBox, DisplayInside, DisplayOutside};
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
 use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
-use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextDecorationLine;
@@ -31,34 +29,24 @@ impl BlockFormattingContext {
         context: &LayoutContext,
         info: &NodeAndStyleInfo<Node>,
         contents: NonReplacedContents,
-        content_sizes: ContentSizesRequest,
         propagated_text_decoration_line: TextDecorationLine,
-    ) -> (Self, BoxContentSizes)
+    ) -> Self
     where
         Node: NodeExt<'dom>,
     {
-        let (contents, contains_floats, inline_content_sizes) = BlockContainer::construct(
-            context,
-            info,
-            contents,
-            content_sizes,
-            propagated_text_decoration_line,
-        );
-        // FIXME: add contribution to `inline_content_sizes` of floats in this formatting context
-        // https://dbaron.org/css/intrinsic/#intrinsic
+        let (contents, contains_floats) =
+            BlockContainer::construct(context, info, contents, propagated_text_decoration_line);
         let bfc = Self {
             contents,
             contains_floats: contains_floats == ContainsFloats::Yes,
         };
-        (bfc, inline_content_sizes)
+        bfc
     }
 
     pub fn construct_for_text_runs<'dom>(
-        context: &LayoutContext,
         runs: impl Iterator<Item = TextRun>,
-        content_sizes: ContentSizesRequest,
         text_decoration_line: TextDecorationLine,
-    ) -> (Self, BoxContentSizes) {
+    ) -> Self {
         // FIXME: do white space collapsing
         let inline_level_boxes = runs
             .map(|run| ArcRefCell::new(InlineLevelBox::TextRun(run)))
@@ -68,18 +56,12 @@ impl BlockFormattingContext {
             inline_level_boxes,
             text_decoration_line,
         };
-        // FIXME: this is the wrong writing mode
-        // but we plan to remove eager content size computation.
-        let not_actually_containing_block_writing_mode = WritingMode::empty();
-        let content_sizes = content_sizes.compute(|| {
-            ifc.inline_content_sizes(context, not_actually_containing_block_writing_mode)
-        });
         let contents = BlockContainer::InlineFormattingContext(ifc);
         let bfc = Self {
             contents,
             contains_floats: false,
         };
-        (bfc, content_sizes)
+        bfc
     }
 }
 
@@ -181,9 +163,8 @@ impl BlockContainer {
         context: &LayoutContext,
         info: &NodeAndStyleInfo<Node>,
         contents: NonReplacedContents,
-        content_sizes: ContentSizesRequest,
         propagated_text_decoration_line: TextDecorationLine,
-    ) -> (BlockContainer, ContainsFloats, BoxContentSizes)
+    ) -> (BlockContainer, ContainsFloats)
     where
         Node: NodeExt<'dom>,
     {
@@ -209,35 +190,22 @@ impl BlockContainer {
             .is_empty()
         {
             if builder.block_level_boxes.is_empty() {
-                // FIXME: this is the wrong writing mode
-                // but we plan to remove eager content size computation.
-                let not_actually_containing_block_writing_mode = info.style.writing_mode;
-                let content_sizes = content_sizes.compute(|| {
-                    builder
-                        .ongoing_inline_formatting_context
-                        .inline_content_sizes(context, not_actually_containing_block_writing_mode)
-                });
                 let container = BlockContainer::InlineFormattingContext(
                     builder.ongoing_inline_formatting_context,
                 );
-                return (container, builder.contains_floats, content_sizes);
+                return (container, builder.contains_floats);
             }
             builder.end_ongoing_inline_formatting_context();
         }
 
         struct Accumulator {
             contains_floats: ContainsFloats,
-            outer_content_sizes_of_children: ContentSizes,
         }
         let mut acc = Accumulator {
             contains_floats: builder.contains_floats,
-            outer_content_sizes_of_children: ContentSizes::zero(),
         };
         let mapfold = |acc: &mut Accumulator, creator: BlockLevelJob<'dom, _>| {
-            let (block_level_box, box_contains_floats) = creator.finish(
-                context,
-                content_sizes.if_requests_inline(|| &mut acc.outer_content_sizes_of_children),
-            );
+            let (block_level_box, box_contains_floats) = creator.finish(context);
             acc.contains_floats |= box_contains_floats;
             block_level_box
         };
@@ -250,14 +218,9 @@ impl BlockContainer {
                     mapfold,
                     || Accumulator {
                         contains_floats: ContainsFloats::No,
-                        outer_content_sizes_of_children: ContentSizes::zero(),
                     },
                     |left, right| {
                         left.contains_floats |= right.contains_floats;
-                        if content_sizes.requests_inline() {
-                            left.outer_content_sizes_of_children
-                                .max_assign(&right.outer_content_sizes_of_children)
-                        }
                     },
                 )
                 .collect()
@@ -270,12 +233,8 @@ impl BlockContainer {
         };
         let container = BlockContainer::BlockLevelBoxes(block_level_boxes);
 
-        let Accumulator {
-            contains_floats,
-            outer_content_sizes_of_children,
-        } = acc;
-        let content_sizes = content_sizes.compute(|| outer_content_sizes_of_children);
-        (container, contains_floats, content_sizes)
+        let Accumulator { contains_floats } = acc;
+        (container, contains_floats)
     }
 }
 
@@ -439,7 +398,6 @@ where
         display_inside: DisplayInside,
         contents: Contents,
     ) -> ArcRefCell<InlineLevelBox> {
-        let style = &info.style;
         let box_ = if display_inside == DisplayInside::Flow && !contents.is_replaced() {
             // We found un inline box.
             // Whatever happened before, all we need to do before recurring
@@ -464,14 +422,12 @@ where
             inline_box.last_fragment = true;
             ArcRefCell::new(InlineLevelBox::InlineBox(inline_box))
         } else {
-            let content_sizes = ContentSizesRequest::inline_if(!style.inline_size_is_length());
             ArcRefCell::new(InlineLevelBox::Atomic(
                 IndependentFormattingContext::construct(
                     self.context,
                     info,
                     display_inside,
                     contents,
-                    content_sizes,
                     // Text decorations are not propagated to atomic inline-level descendants.
                     TextDecorationLine::NONE,
                 ),
@@ -681,32 +637,11 @@ impl<'dom, Node> BlockLevelJob<'dom, Node>
 where
     Node: NodeExt<'dom>,
 {
-    fn finish(
-        self,
-        context: &LayoutContext,
-        max_assign_in_flow_outer_content_sizes_to: Option<&mut ContentSizes>,
-    ) -> (ArcRefCell<BlockLevelBox>, ContainsFloats) {
+    fn finish(self, context: &LayoutContext) -> (ArcRefCell<BlockLevelBox>, ContainsFloats) {
         let info = &self.info;
-        // FIXME: this is the wrong writing mode
-        // but we plan to remove eager content size computation.
-        let not_actually_containing_block_writing_mode = info.style.writing_mode;
         let (block_level_box, contains_floats) = match self.kind {
             BlockLevelCreator::SameFormattingContextBlock(contents) => {
-                let (contents, contains_floats, box_content_sizes) = contents.finish(
-                    context,
-                    info,
-                    ContentSizesRequest::inline_if(
-                        max_assign_in_flow_outer_content_sizes_to.is_some() &&
-                            !info.style.inline_size_is_length(),
-                    ),
-                );
-                if let Some(to) = max_assign_in_flow_outer_content_sizes_to {
-                    to.max_assign(&sizing::outer_inline(
-                        &info.style,
-                        not_actually_containing_block_writing_mode,
-                        || box_content_sizes.expect_inline().clone(),
-                    ))
-                }
+                let (contents, contains_floats) = contents.finish(context, info);
                 let block_level_box = ArcRefCell::new(BlockLevelBox::SameFormattingContextBlock {
                     tag: Tag::from_node_and_style_info(info),
                     contents,
@@ -719,25 +654,13 @@ where
                 contents,
                 propagated_text_decoration_line,
             } => {
-                let content_sizes = ContentSizesRequest::inline_if(
-                    max_assign_in_flow_outer_content_sizes_to.is_some() &&
-                        !info.style.inline_size_is_length(),
-                );
                 let context = IndependentFormattingContext::construct(
                     context,
                     info,
                     display_inside,
                     contents,
-                    content_sizes,
                     propagated_text_decoration_line,
                 );
-                if let Some(to) = max_assign_in_flow_outer_content_sizes_to {
-                    to.max_assign(&sizing::outer_inline(
-                        &context.style(),
-                        not_actually_containing_block_writing_mode,
-                        || context.content_sizes(),
-                    ))
-                }
                 (
                     ArcRefCell::new(BlockLevelBox::Independent(context)),
                     ContainsFloats::No,
@@ -775,35 +698,21 @@ impl IntermediateBlockContainer {
         self,
         context: &LayoutContext,
         info: &NodeAndStyleInfo<Node>,
-        content_sizes: ContentSizesRequest,
-    ) -> (BlockContainer, ContainsFloats, BoxContentSizes)
+    ) -> (BlockContainer, ContainsFloats)
     where
         Node: NodeExt<'dom>,
     {
         match self {
             IntermediateBlockContainer::Deferred(contents, propagated_text_decoration_line) => {
-                BlockContainer::construct(
-                    context,
-                    info,
-                    contents,
-                    content_sizes,
-                    propagated_text_decoration_line,
-                )
+                BlockContainer::construct(context, info, contents, propagated_text_decoration_line)
             },
             IntermediateBlockContainer::InlineFormattingContext(ifc) => {
-                // FIXME: this is the wrong writing mode
-                // but we plan to remove eager content size computation.
-                let not_actually_containing_block_writing_mode = info.style.writing_mode;
-                let content_sizes = content_sizes.compute(|| {
-                    ifc.inline_content_sizes(context, not_actually_containing_block_writing_mode)
-                });
                 // If that inline formatting context contained any float, those
                 // were already taken into account during the first phase of
                 // box construction.
                 (
                     BlockContainer::InlineFormattingContext(ifc),
                     ContainsFloats::No,
-                    content_sizes,
                 )
             },
         }

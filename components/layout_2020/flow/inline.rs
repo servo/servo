@@ -16,7 +16,7 @@ use crate::positioned::{
     relative_adjustement, AbsolutelyPositionedBox, HoistedAbsolutelyPositionedBox,
     PositioningContext,
 };
-use crate::sizing::{self, ContentSizes};
+use crate::sizing::ContentSizes;
 use crate::style_ext::{ComputedValuesExt, Display, DisplayGeneratingBox, DisplayOutside};
 use crate::ContainingBlock;
 use app_units::Au;
@@ -200,10 +200,9 @@ impl InlineFormattingContext {
                             }
                         },
                         InlineLevelBox::Atomic(atomic) => {
-                            let (outer, pc) = sizing::outer_inline_and_percentages(
-                                &atomic.style(),
+                            let (outer, pc) = atomic.outer_inline_and_percentages(
+                                self.layout_context,
                                 self.containing_block_writing_mode,
-                                || atomic.content_sizes(),
                             );
                             self.current_line.min_content += outer.min_content;
                             self.current_line.max_content += outer.max_content;
@@ -595,7 +594,9 @@ fn layout_atomic(
             // https://drafts.csswg.org/css2/visudet.html#inlineblock-width
             let tentative_inline_size = box_size.inline.auto_is(|| {
                 let available_size = ifc.containing_block.inline_size - pbm_sums.inline_sum();
-                non_replaced.content_sizes.shrink_to_fit(available_size)
+                non_replaced
+                    .inline_content_sizes(layout_context)
+                    .shrink_to_fit(available_size)
             });
 
             // https://drafts.csswg.org/css2/visudet.html#min-max-widths

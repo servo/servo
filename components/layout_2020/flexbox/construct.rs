@@ -12,7 +12,6 @@ use crate::element_data::LayoutBox;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::Tag;
 use crate::positioned::AbsolutelyPositionedBox;
-use crate::sizing::{BoxContentSizes, ContentSizes, ContentSizesRequest};
 use crate::style_ext::DisplayGeneratingBox;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use std::borrow::Cow;
@@ -23,9 +22,8 @@ impl FlexContainer {
         context: &LayoutContext,
         info: &NodeAndStyleInfo<impl NodeExt<'dom>>,
         contents: NonReplacedContents,
-        content_sizes: ContentSizesRequest,
         propagated_text_decoration_line: TextDecorationLine,
-    ) -> (Self, BoxContentSizes) {
+    ) -> Self {
         let text_decoration_line =
             propagated_text_decoration_line | info.style.clone_text_decoration_line();
         let mut builder = FlexContainerBuilder {
@@ -37,11 +35,7 @@ impl FlexContainer {
             has_text_runs: false,
         };
         contents.traverse(context, info, &mut builder);
-        let content_sizes = content_sizes.compute(|| {
-            // FIXME
-            ContentSizes::zero()
-        });
-        (builder.finish(), content_sizes)
+        builder.finish()
     }
 }
 
@@ -152,7 +146,6 @@ where
             .map(|job| match job {
                 FlexLevelJob::TextRuns(runs) => ArcRefCell::new(FlexLevelBox::FlexItem(
                     IndependentFormattingContext::construct_for_text_runs(
-                        self.context,
                         &self
                             .info
                             .new_replacing_style(anonymous_style.clone().unwrap()),
@@ -161,7 +154,6 @@ where
                             text: run.text.into(),
                             parent_style: run.info.style,
                         }),
-                        ContentSizesRequest::None, // FIXME: request sizes when we start using them
                         self.text_decoration_line,
                     ),
                 )),
@@ -191,7 +183,6 @@ where
                                 &info,
                                 display_inside,
                                 contents,
-                                ContentSizesRequest::None, // FIXME: request sizes when we start using them
                                 self.text_decoration_line,
                             ),
                         ))

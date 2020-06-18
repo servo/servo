@@ -5,6 +5,7 @@
 use crate::cell::ArcRefCell;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::positioned::AbsolutelyPositionedBox;
+use crate::sizing::ContentSizes;
 
 mod construct;
 mod layout;
@@ -18,4 +19,10 @@ pub(crate) struct FlexContainer {
 pub(crate) enum FlexLevelBox {
     FlexItem(IndependentFormattingContext),
     OutOfFlowAbsolutelyPositionedBox(ArcRefCell<AbsolutelyPositionedBox>),
+}
+
+impl FlexContainer {
+    pub fn inline_content_sizes(&self) -> ContentSizes {
+        unimplemented!()
+    }
 }
