@@ -63,7 +63,10 @@ impl<Value> Spacing<Value> {
     where
         F: FnOnce(&ParserContext, &mut Parser<'i, 't>) -> Result<Value, ParseError<'i>>,
     {
-        if input.try(|i| i.expect_ident_matching("normal")).is_ok() {
+        if input
+            .try_parse(|i| i.expect_ident_matching("normal"))
+            .is_ok()
+        {
             return Ok(Spacing::Normal);
         }
         parse(context, input).map(Spacing::Value)

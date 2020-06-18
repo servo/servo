@@ -7,13 +7,13 @@
 //! [images]: https://drafts.csswg.org/css-images/#image-values
 
 use crate::custom_properties;
+use crate::values::generics::position::PositionComponent;
 use crate::values::serialize_atom_identifier;
 use crate::Atom;
 use crate::Zero;
 use servo_arc::Arc;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
-use values::generics::position::PositionComponent;
 
 /// An `<image> | none` value.
 ///

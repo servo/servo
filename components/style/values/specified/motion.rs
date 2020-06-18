@@ -39,18 +39,20 @@ impl Parse for RayFunction<Angle> {
         let mut contain = false;
         loop {
             if angle.is_none() {
-                angle = input.try(|i| Angle::parse(context, i)).ok();
+                angle = input.try_parse(|i| Angle::parse(context, i)).ok();
             }
 
             if size.is_none() {
-                size = input.try(RaySize::parse).ok();
+                size = input.try_parse(RaySize::parse).ok();
                 if size.is_some() {
                     continue;
                 }
             }
 
             if !contain {
-                contain = input.try(|i| i.expect_ident_matching("contain")).is_ok();
+                contain = input
+                    .try_parse(|i| i.expect_ident_matching("contain"))
+                    .is_ok();
                 if contain {
                     continue;
                 }
@@ -76,7 +78,7 @@ impl Parse for OffsetPath {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         // Parse none.
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(OffsetPath::none());
         }
 
@@ -166,12 +168,12 @@ impl Parse for OffsetRotate {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let location = input.current_source_location();
-        let mut direction = input.try(OffsetRotateDirection::parse);
-        let angle = input.try(|i| Angle::parse(context, i));
+        let mut direction = input.try_parse(OffsetRotateDirection::parse);
+        let angle = input.try_parse(|i| Angle::parse(context, i));
         if direction.is_err() {
             // The direction and angle could be any order, so give it a change to parse
             // direction again.
-            direction = input.try(OffsetRotateDirection::parse);
+            direction = input.try_parse(OffsetRotateDirection::parse);
         }
 
         if direction.is_err() && angle.is_err() {

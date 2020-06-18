@@ -37,6 +37,7 @@ servo_arc = { path = "../servo_arc" }
 servo_config = { path = "../config" }
 sparkle = "0.1.25"
 style = { path = "../style" }
+style_traits = { path = "../style_traits" }
 # NOTE: the sm-angle feature only enables ANGLE on Windows, not other platforms!
 surfman = { version = "0.2", features = ["sm-angle", "sm-angle-default"] }
 surfman-chains = "0.3"

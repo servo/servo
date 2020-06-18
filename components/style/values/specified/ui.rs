@@ -27,7 +27,7 @@ impl Parse for Cursor {
     ) -> Result<Self, ParseError<'i>> {
         let mut images = vec![];
         loop {
-            match input.try(|input| CursorImage::parse(context, input)) {
+            match input.try_parse(|input| CursorImage::parse(context, input)) {
                 Ok(image) => images.push(image),
                 Err(_) => break,
             }
@@ -52,7 +52,7 @@ impl Parse for CursorImage {
         let mut hotspot_x = Number::zero();
         let mut hotspot_y = Number::zero();
 
-        if let Ok(x) = input.try(|input| Number::parse(context, input)) {
+        if let Ok(x) = input.try_parse(|input| Number::parse(context, input)) {
             has_hotspot = true;
             hotspot_x = x;
             hotspot_y = Number::parse(context, input)?;
@@ -136,7 +136,7 @@ impl Parse for ScrollbarColor {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(generics::ScrollbarColor::Auto);
         }
         Ok(generics::ScrollbarColor::Colors {

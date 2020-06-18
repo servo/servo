@@ -25,34 +25,20 @@
 
 #![deny(missing_docs)]
 
-extern crate app_units;
-extern crate arrayvec;
-extern crate atomic_refcell;
 #[macro_use]
 extern crate bitflags;
-#[allow(unused_extern_crates)]
-extern crate byteorder;
 #[macro_use]
 extern crate cssparser;
 #[macro_use]
 extern crate debug_unreachable;
 #[macro_use]
 extern crate derive_more;
-extern crate euclid;
-extern crate fallible;
-#[cfg(feature = "servo")]
-extern crate font_kit;
-extern crate fxhash;
 #[cfg(feature = "gecko")]
 #[macro_use]
 pub mod gecko_string_cache;
-extern crate hashglobe;
 #[cfg(feature = "servo")]
 #[macro_use]
 extern crate html5ever;
-extern crate indexmap;
-extern crate itertools;
-extern crate itoa;
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -62,48 +48,21 @@ extern crate malloc_size_of;
 #[macro_use]
 extern crate malloc_size_of_derive;
 #[cfg(feature = "gecko")]
-pub extern crate nsstring;
+pub use nsstring;
 #[cfg(feature = "gecko")]
 extern crate num_cpus;
 #[macro_use]
 extern crate num_derive;
-extern crate num_integer;
-extern crate num_traits;
-extern crate owning_ref;
-extern crate parking_lot;
-extern crate precomputed_hash;
-extern crate rayon;
-extern crate selectors;
 #[macro_use]
 extern crate serde;
-pub extern crate servo_arc;
+pub use servo_arc;
 #[cfg(feature = "servo")]
 #[macro_use]
 extern crate servo_atoms;
-#[cfg(feature = "servo")]
-extern crate servo_config;
-#[cfg(feature = "servo")]
-extern crate servo_url;
-extern crate smallbitvec;
-extern crate smallvec;
-#[cfg(feature = "gecko")]
-extern crate static_prefs;
-#[cfg(feature = "servo")]
-extern crate string_cache;
 #[macro_use]
 extern crate style_derive;
-extern crate style_traits;
-#[cfg(feature = "gecko")]
-extern crate thin_slice;
-extern crate time;
-extern crate to_shmem;
 #[macro_use]
 extern crate to_shmem_derive;
-extern crate uluru;
-extern crate unicode_bidi;
-#[allow(unused_extern_crates)]
-extern crate unicode_segmentation;
-extern crate void;
 
 #[macro_use]
 mod macros;

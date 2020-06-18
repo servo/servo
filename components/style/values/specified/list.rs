@@ -75,10 +75,10 @@ impl Parse for ListStyleType {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(style) = input.try(|i| CounterStyle::parse(context, i)) {
+        if let Ok(style) = input.try_parse(|i| CounterStyle::parse(context, i)) {
             return Ok(ListStyleType::CounterStyle(style));
         }
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(ListStyleType::None);
         }
         Ok(ListStyleType::String(
@@ -155,14 +155,14 @@ impl Parse for Quotes {
         input: &mut Parser<'i, 't>,
     ) -> Result<Quotes, ParseError<'i>> {
         if input
-            .try(|input| input.expect_ident_matching("auto"))
+            .try_parse(|input| input.expect_ident_matching("auto"))
             .is_ok()
         {
             return Ok(Quotes::Auto);
         }
 
         if input
-            .try(|input| input.expect_ident_matching("none"))
+            .try_parse(|input| input.expect_ident_matching("none"))
             .is_ok()
         {
             return Ok(Quotes::QuoteList(QuoteList::default()));

@@ -889,7 +889,8 @@ impl ElementAnimationSet {
         }
     }
 
-    pub(crate) fn apply_active_animations(
+    /// Apply all active animations.
+    pub fn apply_active_animations(
         &self,
         context: &SharedStyleContext,
         style: &mut Arc<ComputedValues>,
@@ -1237,7 +1238,7 @@ impl DocumentAnimationSet {
 
     /// Get all the animation declarations for the given key, returning an empty
     /// `AnimationDeclarations` if there are no animations.
-    pub(crate) fn get_all_declarations(
+    pub fn get_all_declarations(
         &self,
         key: &AnimationSetKey,
         time: f64,
@@ -1264,7 +1265,7 @@ impl DocumentAnimationSet {
     }
 
     /// Cancel all animations for set at the given key.
-    pub(crate) fn cancel_all_animations_for_key(&self, key: &AnimationSetKey) {
+    pub fn cancel_all_animations_for_key(&self, key: &AnimationSetKey) {
         if let Some(set) = self.sets.write().get_mut(key) {
             set.cancel_all_animations();
         }

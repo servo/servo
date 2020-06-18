@@ -101,13 +101,13 @@ impl Parse for CounterStyle {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(name) = input.try(|i| parse_counter_style_name(i)) {
+        if let Ok(name) = input.try_parse(|i| parse_counter_style_name(i)) {
             return Ok(CounterStyle::Name(name));
         }
         input.expect_function_matching("symbols")?;
         input.parse_nested_block(|input| {
             let symbols_type = input
-                .try(SymbolsType::parse)
+                .try_parse(SymbolsType::parse)
                 .unwrap_or(SymbolsType::Symbolic);
             let symbols = Symbols::parse(context, input)?;
             // There must be at least two symbols for alphabetic or

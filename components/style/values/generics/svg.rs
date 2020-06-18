@@ -129,7 +129,7 @@ impl<C: Parse, U: Parse> Parse for SVGPaint<C, U> {
             });
         }
         let fallback = input
-            .try(|i| SVGPaintFallback::parse(context, i))
+            .try_parse(|i| SVGPaintFallback::parse(context, i))
             .unwrap_or(SVGPaintFallback::Unset);
         Ok(SVGPaint { kind, fallback })
     }

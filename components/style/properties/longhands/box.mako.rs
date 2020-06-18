@@ -627,6 +627,21 @@ ${helpers.predefined_type(
     gecko_ffi_name="mAppearance",
 )}
 
+// A UA-sheet only property that is always set to the same value as
+// -moz-appearance.  Used to record telemetry for when author sheets
+// override the value of -moz-appearance; see
+// nsIFrame::RecordAppearanceTelemetry.
+${helpers.predefined_type(
+    "-moz-default-appearance",
+    "Appearance",
+    "computed::Appearance::None",
+    engines="gecko",
+    animation_value_type="none",
+    spec="Internal (not web-exposed)",
+    enabled_in="ua",
+    gecko_ffi_name="mDefaultAppearance",
+)}
+
 ${helpers.single_keyword(
     "-moz-orient",
     "inline block horizontal vertical",

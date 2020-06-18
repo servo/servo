@@ -1655,7 +1655,7 @@ impl UnparsedValue {
         let mut input = ParserInput::new(&css);
         let mut input = Parser::new(&mut input);
         input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
-        if let Ok(keyword) = input.try(CSSWideKeyword::parse) {
+        if let Ok(keyword) = input.try_parse(CSSWideKeyword::parse) {
             return PropertyDeclaration::css_wide_keyword(longhand_id, keyword);
         }
 
@@ -2111,7 +2111,8 @@ impl PropertyId {
 pub struct WideKeywordDeclaration {
     #[css(skip)]
     id: LonghandId,
-    keyword: CSSWideKeyword,
+    /// The CSS-wide keyword.
+    pub keyword: CSSWideKeyword,
 }
 
 /// An unparsed declaration that contains `var()` functions.
@@ -2380,7 +2381,7 @@ impl PropertyDeclaration {
                 // FIXME: fully implement https://github.com/w3c/csswg-drafts/issues/774
                 // before adding skip_whitespace here.
                 // This probably affects some test results.
-                let value = match input.try(CSSWideKeyword::parse) {
+                let value = match input.try_parse(CSSWideKeyword::parse) {
                     Ok(keyword) => CustomDeclarationValue::CSSWideKeyword(keyword),
                     Err(()) => CustomDeclarationValue::Value(
                         crate::custom_properties::SpecifiedValue::parse(input)?
@@ -2395,7 +2396,7 @@ impl PropertyDeclaration {
             PropertyId::LonghandAlias(id, _) |
             PropertyId::Longhand(id) => {
                 input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
-                input.try(CSSWideKeyword::parse).map(|keyword| {
+                input.try_parse(CSSWideKeyword::parse).map(|keyword| {
                     PropertyDeclaration::css_wide_keyword(id, keyword)
                 }).or_else(|()| {
                     input.look_for_var_or_env_functions();
@@ -2425,7 +2426,7 @@ impl PropertyDeclaration {
             PropertyId::ShorthandAlias(id, _) |
             PropertyId::Shorthand(id) => {
                 input.skip_whitespace();  // Unnecessary for correctness, but may help try() rewind less.
-                if let Ok(keyword) = input.try(CSSWideKeyword::parse) {
+                if let Ok(keyword) = input.try_parse(CSSWideKeyword::parse) {
                     if id == ShorthandId::All {
                         declarations.all_shorthand = AllShorthand::CSSWideKeyword(keyword)
                     } else {

@@ -22,12 +22,6 @@ use crate::values::specified::length::{FontBaseSize, NoCalcLength};
 use crate::values::CSSFloat;
 use crate::Atom;
 use cssparser::{serialize_identifier, CssStringWriter, Parser};
-#[cfg(feature = "servo")]
-use font_kit::family_name::FamilyName as FontKitFamilyName;
-#[cfg(feature = "servo")]
-use font_kit::properties::{
-    Stretch as FontKitFontStretch, Style as FontKitFontStyle, Weight as FontKitFontWeight,
-};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::fmt::{self, Write};
@@ -75,13 +69,6 @@ impl ToAnimatedValue for FontWeight {
     }
 }
 
-#[cfg(feature = "servo")]
-impl From<FontWeight> for FontKitFontWeight {
-    fn from(font_weight: FontWeight) -> Self {
-        FontKitFontWeight(font_weight.0)
-    }
-}
-
 #[derive(
     Animate,
     Clone,
@@ -101,7 +88,7 @@ pub struct FontSize {
     pub size: NonNegativeLength,
     /// If derived from a keyword, the keyword and additional transformations applied to it
     #[css(skip)]
-    pub keyword_info: Option<KeywordInfo>,
+    pub keyword_info: KeywordInfo,
 }
 
 impl FontWeight {
@@ -170,7 +157,7 @@ impl FontSize {
     pub fn medium() -> Self {
         Self {
             size: NonNegative(Length::new(specified::FONT_MEDIUM_PX as CSSFloat)),
-            keyword_info: Some(KeywordInfo::medium()),
+            keyword_info: KeywordInfo::medium(),
         }
     }
 }
@@ -187,7 +174,7 @@ impl ToAnimatedValue for FontSize {
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         FontSize {
             size: NonNegative(animated.clamp_to_non_negative()),
-            keyword_info: None,
+            keyword_info: KeywordInfo::none(),
         }
     }
 }
@@ -358,7 +345,7 @@ pub enum GenericFontFamily {
 impl SingleFontFamily {
     /// Parse a font-family value.
     pub fn parse<'i, 't>(input: &mut Parser<'i, 't>) -> Result<Self, ParseError<'i>> {
-        if let Ok(value) = input.try(|i| i.expect_string_cloned()) {
+        if let Ok(value) = input.try_parse(|i| i.expect_string_cloned()) {
             return Ok(SingleFontFamily::FamilyName(FamilyName {
                 name: Atom::from(&*value),
                 syntax: FontFamilyNameSyntax::Quoted,
@@ -393,7 +380,7 @@ impl SingleFontFamily {
             value.push(' ');
             value.push_str(&ident);
         }
-        while let Ok(ident) = input.try(|i| i.expect_ident_cloned()) {
+        while let Ok(ident) = input.try_parse(|i| i.expect_ident_cloned()) {
             serialize_quoted = serialize_quoted || ident.contains(' ');
             value.push(' ');
             value.push_str(&ident);
@@ -458,29 +445,19 @@ impl SingleFontFamily {
 }
 
 #[cfg(feature = "servo")]
-impl From<&SingleFontFamily> for FontKitFamilyName {
-    fn from(font_family: &SingleFontFamily) -> Self {
-        match font_family {
-            SingleFontFamily::FamilyName(family_name) => {
-                FontKitFamilyName::Title(family_name.to_css_string())
-            },
-            SingleFontFamily::Generic(GenericFontFamily::Serif) => FontKitFamilyName::Serif,
-            SingleFontFamily::Generic(GenericFontFamily::SansSerif) => FontKitFamilyName::SansSerif,
-            SingleFontFamily::Generic(GenericFontFamily::Monospace) => FontKitFamilyName::Monospace,
-            SingleFontFamily::Generic(GenericFontFamily::Fantasy) => FontKitFamilyName::Fantasy,
-            SingleFontFamily::Generic(GenericFontFamily::Cursive) => FontKitFamilyName::Cursive,
-            SingleFontFamily::Generic(family_name) => {
-                warn!("unsupported font family name: {:?}", family_name);
-                FontKitFamilyName::SansSerif
-            },
-        }
-    }
-}
-
 #[derive(
-    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
+    Clone,
+    Debug,
+    Deserialize,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
-#[cfg_attr(feature = "servo", derive(Serialize, Deserialize))]
 /// A list of SingleFontFamily
 pub struct FontFamilyList(Box<[SingleFontFamily]>);
 
@@ -965,17 +942,6 @@ impl ToCss for FontStyle {
     }
 }
 
-#[cfg(feature = "servo")]
-impl From<FontStyle> for FontKitFontStyle {
-    fn from(font_style: FontStyle) -> Self {
-        match font_style {
-            FontStyle::Normal => FontKitFontStyle::Normal,
-            FontStyle::Italic => FontKitFontStyle::Italic,
-            FontStyle::Oblique(_) => FontKitFontStyle::Oblique,
-        }
-    }
-}
-
 /// A value for the font-stretch property per:
 ///
 /// https://drafts.csswg.org/css-fonts-4/#propdef-font-stretch
@@ -995,13 +961,6 @@ impl FontStretch {
     #[inline]
     pub fn value(&self) -> CSSFloat {
         ((self.0).0).0
-    }
-}
-
-#[cfg(feature = "servo")]
-impl From<FontStretch> for FontKitFontStretch {
-    fn from(stretch: FontStretch) -> Self {
-        FontKitFontStretch(stretch.value())
     }
 }
 

@@ -52,11 +52,11 @@ impl Parse for TrackBreadth<LengthPercentage> {
         // NonNegativeLengthPercentage instead.
         //
         // Though it seems these cannot be animated so it's ~ok.
-        if let Ok(lp) = input.try(|i| LengthPercentage::parse_non_negative(context, i)) {
+        if let Ok(lp) = input.try_parse(|i| LengthPercentage::parse_non_negative(context, i)) {
             return Ok(TrackBreadth::Breadth(lp));
         }
 
-        if let Ok(f) = input.try(parse_flex) {
+        if let Ok(f) = input.try_parse(parse_flex) {
             return Ok(TrackBreadth::Fr(f));
         }
 
@@ -69,14 +69,17 @@ impl Parse for TrackSize<LengthPercentage> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(b) = input.try(|i| TrackBreadth::parse(context, i)) {
+        if let Ok(b) = input.try_parse(|i| TrackBreadth::parse(context, i)) {
             return Ok(TrackSize::Breadth(b));
         }
 
-        if input.try(|i| i.expect_function_matching("minmax")).is_ok() {
+        if input
+            .try_parse(|i| i.expect_function_matching("minmax"))
+            .is_ok()
+        {
             return input.parse_nested_block(|input| {
                 let inflexible_breadth =
-                    match input.try(|i| LengthPercentage::parse_non_negative(context, i)) {
+                    match input.try_parse(|i| LengthPercentage::parse_non_negative(context, i)) {
                         Ok(lp) => TrackBreadth::Breadth(lp),
                         Err(..) => TrackBreadth::parse_keyword(input)?,
                     };
@@ -119,7 +122,7 @@ pub fn parse_line_names<'i, 't>(
     input.expect_square_bracket_block()?;
     input.parse_nested_block(|input| {
         let mut values = vec![];
-        while let Ok((loc, ident)) = input.try(|i| -> Result<_, CssParseError<()>> {
+        while let Ok((loc, ident)) = input.try_parse(|i| -> Result<_, CssParseError<()>> {
             Ok((i.current_source_location(), i.expect_ident_cloned()?))
         }) {
             let ident = CustomIdent::from_ident(loc, &ident, &["span", "auto"])?;
@@ -150,7 +153,7 @@ impl TrackRepeat<LengthPercentage, Integer> {
         input: &mut Parser<'i, 't>,
     ) -> Result<(Self, RepeatType), ParseError<'i>> {
         input
-            .try(|i| i.expect_function_matching("repeat").map_err(|e| e.into()))
+            .try_parse(|i| i.expect_function_matching("repeat").map_err(|e| e.into()))
             .and_then(|_| {
                 input.parse_nested_block(|input| {
                     let count = RepeatCount::parse(context, input)?;
@@ -169,8 +172,8 @@ impl TrackRepeat<LengthPercentage, Integer> {
                     let mut current_names;
 
                     loop {
-                        current_names = input.try(parse_line_names).unwrap_or_default();
-                        if let Ok(track_size) = input.try(|i| TrackSize::parse(context, i)) {
+                        current_names = input.try_parse(parse_line_names).unwrap_or_default();
+                        if let Ok(track_size) = input.try_parse(|i| TrackSize::parse(context, i)) {
                             if !track_size.is_fixed() {
                                 if is_auto {
                                     // should be <fixed-size> for <auto-repeat>
@@ -224,8 +227,9 @@ impl Parse for TrackList<LengthPercentage, Integer> {
         // assume that everything is <fixed-size>. This flag is useful when we encounter <auto-repeat>
         let mut at_least_one_not_fixed = false;
         loop {
-            current_names.extend_from_slice(&mut input.try(parse_line_names).unwrap_or_default());
-            if let Ok(track_size) = input.try(|i| TrackSize::parse(context, i)) {
+            current_names
+                .extend_from_slice(&mut input.try_parse(parse_line_names).unwrap_or_default());
+            if let Ok(track_size) = input.try_parse(|i| TrackSize::parse(context, i)) {
                 if !track_size.is_fixed() {
                     at_least_one_not_fixed = true;
                     if auto_repeat_index.is_some() {
@@ -238,7 +242,7 @@ impl Parse for TrackList<LengthPercentage, Integer> {
                 names.push(vec.into());
                 values.push(TrackListValue::TrackSize(track_size));
             } else if let Ok((repeat, type_)) =
-                input.try(|i| TrackRepeat::parse_with_repeat_type(context, i))
+                input.try_parse(|i| TrackRepeat::parse_with_repeat_type(context, i))
             {
                 match type_ {
                     RepeatType::Normal => {
@@ -312,7 +316,7 @@ impl Parse for GridTemplateComponent<LengthPercentage, Integer> {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(GridTemplateComponent::None);
         }
 
@@ -327,12 +331,15 @@ impl GridTemplateComponent<LengthPercentage, Integer> {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         if allow_grid_template_subgrids() {
-            if let Ok(t) = input.try(|i| LineNameList::parse(context, i)) {
+            if let Ok(t) = input.try_parse(|i| LineNameList::parse(context, i)) {
                 return Ok(GridTemplateComponent::Subgrid(Box::new(t)));
             }
         }
         if allow_grid_template_masonry() {
-            if input.try(|i| i.expect_ident_matching("masonry")).is_ok() {
+            if input
+                .try_parse(|i| i.expect_ident_matching("masonry"))
+                .is_ok()
+            {
                 return Ok(GridTemplateComponent::Masonry);
             }
         }

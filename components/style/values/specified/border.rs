@@ -121,7 +121,8 @@ impl BorderSideWidth {
         input: &mut Parser<'i, 't>,
         allow_quirks: AllowQuirks,
     ) -> Result<Self, ParseError<'i>> {
-        if let Ok(length) = input.try(|i| NonNegativeLength::parse_quirky(context, i, allow_quirks))
+        if let Ok(length) =
+            input.try_parse(|i| NonNegativeLength::parse_quirky(context, i, allow_quirks))
         {
             return Ok(BorderSideWidth::Length(length));
         }
@@ -178,10 +179,10 @@ impl Parse for BorderImageSlice {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let mut fill = input.try(|i| i.expect_ident_matching("fill")).is_ok();
+        let mut fill = input.try_parse(|i| i.expect_ident_matching("fill")).is_ok();
         let offsets = Rect::parse_with(context, input, NonNegativeNumberOrPercentage::parse)?;
         if !fill {
-            fill = input.try(|i| i.expect_ident_matching("fill")).is_ok();
+            fill = input.try_parse(|i| i.expect_ident_matching("fill")).is_ok();
         }
         Ok(GenericBorderImageSlice { offsets, fill })
     }
@@ -193,7 +194,7 @@ impl Parse for BorderRadius {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let widths = Rect::parse_with(context, input, NonNegativeLengthPercentage::parse)?;
-        let heights = if input.try(|i| i.expect_delim('/')).is_ok() {
+        let heights = if input.try_parse(|i| i.expect_delim('/')).is_ok() {
             Rect::parse_with(context, input, NonNegativeLengthPercentage::parse)?
         } else {
             widths.clone()
@@ -301,7 +302,7 @@ impl Parse for BorderImageRepeat {
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
         let horizontal = BorderImageRepeatKeyword::parse(input)?;
-        let vertical = input.try(BorderImageRepeatKeyword::parse).ok();
+        let vertical = input.try_parse(BorderImageRepeatKeyword::parse).ok();
         Ok(BorderImageRepeat(
             horizontal,
             vertical.unwrap_or(horizontal),

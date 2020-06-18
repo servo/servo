@@ -1226,12 +1226,12 @@ impl Size {
     ) -> Result<Self, ParseError<'i>> {
         #[cfg(feature = "gecko")]
         {
-            if let Ok(l) = input.try(computed::ExtremumLength::parse) {
+            if let Ok(l) = input.try_parse(computed::ExtremumLength::parse) {
                 return Ok(GenericSize::ExtremumLength(l));
             }
         }
 
-        if input.try(|i| i.expect_ident_matching("auto")).is_ok() {
+        if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(GenericSize::Auto);
         }
 
@@ -1267,12 +1267,12 @@ impl MaxSize {
     ) -> Result<Self, ParseError<'i>> {
         #[cfg(feature = "gecko")]
         {
-            if let Ok(l) = input.try(computed::ExtremumLength::parse) {
+            if let Ok(l) = input.try_parse(computed::ExtremumLength::parse) {
                 return Ok(GenericMaxSize::ExtremumLength(l));
             }
         }
 
-        if input.try(|i| i.expect_ident_matching("none")).is_ok() {
+        if input.try_parse(|i| i.expect_ident_matching("none")).is_ok() {
             return Ok(GenericMaxSize::None);
         }
 

@@ -21,13 +21,13 @@
         let mut wrap = None;
         loop {
             if direction.is_none() {
-                if let Ok(value) = input.try(|input| flex_direction::parse(context, input)) {
+                if let Ok(value) = input.try_parse(|input| flex_direction::parse(context, input)) {
                     direction = Some(value);
                     continue
                 }
             }
             if wrap.is_none() {
-                if let Ok(value) = input.try(|input| flex_wrap::parse(context, input)) {
+                if let Ok(value) = input.try_parse(|input| flex_wrap::parse(context, input)) {
                     wrap = Some(value);
                     continue
                 }
@@ -61,7 +61,7 @@
         input: &mut Parser<'i, 't>,
     ) -> Result<(NonNegativeNumber, Option<NonNegativeNumber>),ParseError<'i>> {
         let grow = NonNegativeNumber::parse(context, input)?;
-        let shrink = input.try(|i| NonNegativeNumber::parse(context, i)).ok();
+        let shrink = input.try_parse(|i| NonNegativeNumber::parse(context, i)).ok();
         Ok((grow, shrink))
     }
 
@@ -73,7 +73,7 @@
         let mut shrink = None;
         let mut basis = None;
 
-        if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+        if input.try_parse(|input| input.expect_ident_matching("none")).is_ok() {
             return Ok(expanded! {
                 flex_grow: NonNegativeNumber::new(0.0),
                 flex_shrink: NonNegativeNumber::new(0.0),
@@ -82,14 +82,14 @@
         }
         loop {
             if grow.is_none() {
-                if let Ok((flex_grow, flex_shrink)) = input.try(|i| parse_flexibility(context, i)) {
+                if let Ok((flex_grow, flex_shrink)) = input.try_parse(|i| parse_flexibility(context, i)) {
                     grow = Some(flex_grow);
                     shrink = flex_shrink;
                     continue
                 }
             }
             if basis.is_none() {
-                if let Ok(value) = input.try(|input| FlexBasis::parse(context, input)) {
+                if let Ok(value) = input.try_parse(|input| FlexBasis::parse(context, input)) {
                     basis = Some(value);
                     continue
                 }
@@ -124,7 +124,7 @@
   pub fn parse_value<'i, 't>(context: &ParserContext, input: &mut Parser<'i, 't>)
                              -> Result<Longhands, ParseError<'i>> {
       let r_gap = row_gap::parse(context, input)?;
-      let c_gap = input.try(|input| column_gap::parse(context, input)).unwrap_or(r_gap.clone());
+      let c_gap = input.try_parse(|input| column_gap::parse(context, input)).unwrap_or(r_gap.clone());
 
       Ok(expanded! {
         row_gap: r_gap,
@@ -164,8 +164,8 @@
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
-        let start = input.try(|i| GridLine::parse(context, i))?;
-        let end = if input.try(|i| i.expect_delim('/')).is_ok() {
+        let start = input.try_parse(|i| GridLine::parse(context, i))?;
+        let end = if input.try_parse(|i| i.expect_delim('/')).is_ok() {
             GridLine::parse(context, input)?
         } else {
             let mut line = GridLine::auto();
@@ -226,12 +226,12 @@
             this
         }
 
-        let row_start = input.try(|i| GridLine::parse(context, i))?;
-        let (column_start, row_end, column_end) = if input.try(|i| i.expect_delim('/')).is_ok() {
+        let row_start = input.try_parse(|i| GridLine::parse(context, i))?;
+        let (column_start, row_end, column_end) = if input.try_parse(|i| i.expect_delim('/')).is_ok() {
             let column_start = GridLine::parse(context, input)?;
-            let (row_end, column_end) = if input.try(|i| i.expect_delim('/')).is_ok() {
+            let (row_end, column_end) = if input.try_parse(|i| i.expect_delim('/')).is_ok() {
                 let row_end = GridLine::parse(context, input)?;
-                let column_end = if input.try(|i| i.expect_delim('/')).is_ok() {
+                let column_end = if input.try_parse(|i| i.expect_delim('/')).is_ok() {
                     GridLine::parse(context, input)?
                 } else {        // grid-column-end has not been given
                     line_with_ident_from(&column_start)
@@ -324,8 +324,8 @@
         }
         %>
         % for keyword, rust_type in keywords.items():
-            if let Ok(x) = input.try(|i| {
-                if i.try(|i| i.expect_ident_matching("${keyword}")).is_ok() {
+            if let Ok(x) = input.try_parse(|i| {
+                if i.try_parse(|i| i.expect_ident_matching("${keyword}")).is_ok() {
                     if !i.is_exhausted() {
                         return Err(());
                     }
@@ -337,20 +337,20 @@
             }
         % endfor
 
-        let first_line_names = input.try(parse_line_names).unwrap_or_default();
-        if let Ok(string) = input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
+        let first_line_names = input.try_parse(parse_line_names).unwrap_or_default();
+        if let Ok(string) = input.try_parse(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
             let mut strings = vec![];
             let mut values = vec![];
             let mut line_names = vec![];
             line_names.push(first_line_names);
             strings.push(string);
             loop {
-                let size = input.try(|i| TrackSize::parse(context, i)).unwrap_or_default();
+                let size = input.try_parse(|i| TrackSize::parse(context, i)).unwrap_or_default();
                 values.push(TrackListValue::TrackSize(size));
-                let mut names = input.try(parse_line_names).unwrap_or_default();
-                let more_names = input.try(parse_line_names);
+                let mut names = input.try_parse(parse_line_names).unwrap_or_default();
+                let more_names = input.try_parse(parse_line_names);
 
-                match input.try(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
+                match input.try_parse(|i| i.expect_string().map(|s| s.as_ref().to_owned().into())) {
                     Ok(string) => {
                         strings.push(string);
                         if let Ok(v) = more_names {
@@ -387,7 +387,7 @@
                 auto_repeat_index: std::usize::MAX,
             };
 
-            let template_cols = if input.try(|i| i.expect_delim('/')).is_ok() {
+            let template_cols = if input.try_parse(|i| i.expect_delim('/')).is_ok() {
                 let value = GridTemplateComponent::parse_without_none(context, input)?;
                 if let GenericGridTemplateComponent::TrackList(ref list) = value {
                     if !list.is_explicit() {
@@ -572,13 +572,13 @@
             let mut dense = GridAutoFlow::empty();
 
             for _ in 0..2 {
-                if input.try(|i| i.expect_ident_matching("auto-flow")).is_ok() {
+                if input.try_parse(|i| i.expect_ident_matching("auto-flow")).is_ok() {
                     track = if is_row {
                         Some(GridAutoFlow::ROW)
                     } else {
                         Some(GridAutoFlow::COLUMN)
                     };
-                } else if input.try(|i| i.expect_ident_matching("dense")).is_ok() {
+                } else if input.try_parse(|i| i.expect_ident_matching("dense")).is_ok() {
                     dense = GridAutoFlow::DENSE
                 } else {
                     break
@@ -592,18 +592,18 @@
             }
         }
 
-        if let Ok((rows, cols, areas)) = input.try(|i| super::grid_template::parse_grid_template(context, i)) {
+        if let Ok((rows, cols, areas)) = input.try_parse(|i| super::grid_template::parse_grid_template(context, i)) {
             temp_rows = rows;
             temp_cols = cols;
             temp_areas = areas;
-        } else if let Ok(rows) = input.try(|i| GridTemplateComponent::parse(context, i)) {
+        } else if let Ok(rows) = input.try_parse(|i| GridTemplateComponent::parse(context, i)) {
             temp_rows = rows;
             input.expect_delim('/')?;
             flow = parse_auto_flow(input, false)?;
             auto_cols = grid_auto_columns::parse(context, input).unwrap_or_default();
         } else {
             flow = parse_auto_flow(input, true)?;
-            auto_rows = input.try(|i| grid_auto_rows::parse(context, i)).unwrap_or_default();
+            auto_rows = input.try_parse(|i| grid_auto_rows::parse(context, i)).unwrap_or_default();
             input.expect_delim('/')?;
             temp_cols = GridTemplateComponent::parse(context, input)?;
         }
@@ -710,7 +710,7 @@
         let align_content =
             ContentDistribution::parse(input, AxisDirection::Block)?;
 
-        let justify_content = input.try(|input| {
+        let justify_content = input.try_parse(|input| {
             ContentDistribution::parse(input, AxisDirection::Inline)
         });
 
@@ -763,7 +763,7 @@
         input: &mut Parser<'i, 't>,
     ) -> Result<Longhands, ParseError<'i>> {
         let align = SelfAlignment::parse(input, AxisDirection::Block)?;
-        let justify = input.try(|input| SelfAlignment::parse(input, AxisDirection::Inline));
+        let justify = input.try_parse(|input| SelfAlignment::parse(input, AxisDirection::Inline));
 
         let justify = match justify {
             Ok(v) => v,
@@ -812,7 +812,7 @@
     ) -> Result<Longhands, ParseError<'i>> {
         let align = AlignItems::parse(context, input)?;
         let justify =
-            input.try(|input| JustifyItems::parse(context, input))
+            input.try_parse(|input| JustifyItems::parse(context, input))
                  .unwrap_or_else(|_| JustifyItems::from(align));
 
         Ok(expanded! {

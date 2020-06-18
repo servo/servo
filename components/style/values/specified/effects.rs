@@ -141,7 +141,7 @@ impl Parse for BoxShadow {
         loop {
             if !inset {
                 if input
-                    .try(|input| input.expect_ident_matching("inset"))
+                    .try_parse(|input| input.expect_ident_matching("inset"))
                     .is_ok()
                 {
                     inset = true;
@@ -149,18 +149,17 @@ impl Parse for BoxShadow {
                 }
             }
             if lengths.is_none() {
-                let value = input.try::<_, _, ParseError>(|i| {
+                let value = input.try_parse::<_, _, ParseError>(|i| {
                     let horizontal = Length::parse(context, i)?;
                     let vertical = Length::parse(context, i)?;
-                    let (blur, spread) = match i
-                        .try::<_, _, ParseError>(|i| Length::parse_non_negative(context, i))
-                    {
-                        Ok(blur) => {
-                            let spread = i.try(|i| Length::parse(context, i)).ok();
-                            (Some(blur.into()), spread)
-                        },
-                        Err(_) => (None, None),
-                    };
+                    let (blur, spread) =
+                        match i.try_parse(|i| Length::parse_non_negative(context, i)) {
+                            Ok(blur) => {
+                                let spread = i.try_parse(|i| Length::parse(context, i)).ok();
+                                (Some(blur.into()), spread)
+                            },
+                            Err(_) => (None, None),
+                        };
                     Ok((horizontal, vertical, blur, spread))
                 });
                 if let Ok(value) = value {
@@ -169,7 +168,7 @@ impl Parse for BoxShadow {
                 }
             }
             if color.is_none() {
-                if let Ok(value) = input.try(|i| Color::parse(context, i)) {
+                if let Ok(value) = input.try_parse(|i| Color::parse(context, i)) {
                     color = Some(value);
                     continue;
                 }
@@ -226,7 +225,7 @@ impl Parse for Filter {
     ) -> Result<Self, ParseError<'i>> {
         #[cfg(feature = "gecko")]
         {
-            if let Ok(url) = input.try(|i| SpecifiedUrl::parse(context, i)) {
+            if let Ok(url) = input.try_parse(|i| SpecifiedUrl::parse(context, i)) {
                 return Ok(GenericFilter::Url(url));
             }
         }
@@ -242,22 +241,22 @@ impl Parse for Filter {
         input.parse_nested_block(|i| {
             match_ignore_ascii_case! { &*function,
                 "blur" => Ok(GenericFilter::Blur(
-                    i.try(|i| NonNegativeLength::parse(context, i))
+                    i.try_parse(|i| NonNegativeLength::parse(context, i))
                      .unwrap_or(Zero::zero()),
                 )),
                 "brightness" => Ok(GenericFilter::Brightness(
-                    i.try(|i| NonNegativeFactor::parse(context, i))
+                    i.try_parse(|i| NonNegativeFactor::parse(context, i))
                      .unwrap_or(NonNegativeFactor::one()),
                 )),
                 "contrast" => Ok(GenericFilter::Contrast(
-                    i.try(|i| NonNegativeFactor::parse(context, i))
+                    i.try_parse(|i| NonNegativeFactor::parse(context, i))
                      .unwrap_or(NonNegativeFactor::one()),
                 )),
                 "grayscale" => {
                     // Values of amount over 100% are allowed but UAs must clamp the values to 1.
                     // https://drafts.fxtf.org/filter-effects/#funcdef-filter-grayscale
                     Ok(GenericFilter::Grayscale(
-                        i.try(|i| ZeroToOneFactor::parse(context, i))
+                        i.try_parse(|i| ZeroToOneFactor::parse(context, i))
                          .unwrap_or(ZeroToOneFactor::one()),
                     ))
                 },
@@ -265,7 +264,7 @@ impl Parse for Filter {
                     // We allow unitless zero here, see:
                     // https://github.com/w3c/fxtf-drafts/issues/228
                     Ok(GenericFilter::HueRotate(
-                        i.try(|i| Angle::parse_with_unitless(context, i))
+                        i.try_parse(|i| Angle::parse_with_unitless(context, i))
                          .unwrap_or(Zero::zero()),
                     ))
                 },
@@ -273,7 +272,7 @@ impl Parse for Filter {
                     // Values of amount over 100% are allowed but UAs must clamp the values to 1.
                     // https://drafts.fxtf.org/filter-effects/#funcdef-filter-invert
                     Ok(GenericFilter::Invert(
-                        i.try(|i| ZeroToOneFactor::parse(context, i))
+                        i.try_parse(|i| ZeroToOneFactor::parse(context, i))
                          .unwrap_or(ZeroToOneFactor::one()),
                     ))
                 },
@@ -281,19 +280,19 @@ impl Parse for Filter {
                     // Values of amount over 100% are allowed but UAs must clamp the values to 1.
                     // https://drafts.fxtf.org/filter-effects/#funcdef-filter-opacity
                     Ok(GenericFilter::Opacity(
-                        i.try(|i| ZeroToOneFactor::parse(context, i))
+                        i.try_parse(|i| ZeroToOneFactor::parse(context, i))
                          .unwrap_or(ZeroToOneFactor::one()),
                     ))
                 },
                 "saturate" => Ok(GenericFilter::Saturate(
-                    i.try(|i| NonNegativeFactor::parse(context, i))
+                    i.try_parse(|i| NonNegativeFactor::parse(context, i))
                      .unwrap_or(NonNegativeFactor::one()),
                 )),
                 "sepia" => {
                     // Values of amount over 100% are allowed but UAs must clamp the values to 1.
                     // https://drafts.fxtf.org/filter-effects/#funcdef-filter-sepia
                     Ok(GenericFilter::Sepia(
-                        i.try(|i| ZeroToOneFactor::parse(context, i))
+                        i.try_parse(|i| ZeroToOneFactor::parse(context, i))
                          .unwrap_or(ZeroToOneFactor::one()),
                     ))
                 },
@@ -312,12 +311,14 @@ impl Parse for SimpleShadow {
         context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self, ParseError<'i>> {
-        let color = input.try(|i| Color::parse(context, i)).ok();
+        let color = input.try_parse(|i| Color::parse(context, i)).ok();
         let horizontal = Length::parse(context, input)?;
         let vertical = Length::parse(context, input)?;
-        let blur = input.try(|i| Length::parse_non_negative(context, i)).ok();
+        let blur = input
+            .try_parse(|i| Length::parse_non_negative(context, i))
+            .ok();
         let blur = blur.map(NonNegative::<Length>);
-        let color = color.or_else(|| input.try(|i| Color::parse(context, i)).ok());
+        let color = color.or_else(|| input.try_parse(|i| Color::parse(context, i)).ok());
 
         Ok(SimpleShadow {
             color,

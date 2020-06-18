@@ -6,6 +6,7 @@ license = "MPL-2.0"
 publish = false
 
 build = "build.rs"
+edition = "2018"
 
 # https://github.com/rust-lang/cargo/issues/3544
 links = "servo_style_crate"
@@ -39,7 +40,6 @@ derive_more = "0.99"
 encoding_rs = { version = "0.8", optional = true }
 euclid = "0.20"
 fallible = { path = "../fallible" }
-font-kit = "0.7"
 fxhash = "0.2"
 hashglobe = { path = "../hashglobe" }
 html5ever = { version = "0.25", optional = true }

@@ -87,7 +87,7 @@ macro_rules! computed_length_percentage_or_auto {
         /// Returns true if the computed value is absolute 0 or 0%.
         #[inline]
         pub fn is_definitely_zero(&self) -> bool {
-            use values::generics::length::LengthPercentageOrAuto::*;
+            use crate::values::generics::length::LengthPercentageOrAuto::*;
             match *self {
                 LengthPercentage(ref l) => l.is_definitely_zero(),
                 Auto => false,
@@ -102,7 +102,7 @@ pub type LengthPercentageOrAuto = generics::GenericLengthPercentageOrAuto<Length
 impl LengthPercentageOrAuto {
     /// Clamps the value to a non-negative value.
     pub fn clamp_to_non_negative(self) -> Self {
-        use values::generics::length::LengthPercentageOrAuto::*;
+        use crate::values::generics::length::LengthPercentageOrAuto::*;
         match self {
             LengthPercentage(l) => LengthPercentage(l.clamp_to_non_negative()),
             Auto => Auto,
@@ -111,7 +111,7 @@ impl LengthPercentageOrAuto {
 
     /// Convert to have a borrow inside the enum
     pub fn as_ref(&self) -> generics::GenericLengthPercentageOrAuto<&LengthPercentage> {
-        use values::generics::length::LengthPercentageOrAuto::*;
+        use crate::values::generics::length::LengthPercentageOrAuto::*;
         match *self {
             LengthPercentage(ref lp) => LengthPercentage(lp),
             Auto => Auto,
@@ -125,7 +125,7 @@ impl generics::GenericLengthPercentageOrAuto<&LengthPercentage> {
     /// Resolves the percentage.
     #[inline]
     pub fn percentage_relative_to(&self, basis: Length) -> LengthOrAuto {
-        use values::generics::length::LengthPercentageOrAuto::*;
+        use crate::values::generics::length::LengthPercentageOrAuto::*;
         match self {
             LengthPercentage(length_percentage) => {
                 LengthPercentage(length_percentage.percentage_relative_to(basis))
@@ -137,7 +137,7 @@ impl generics::GenericLengthPercentageOrAuto<&LengthPercentage> {
     /// Maybe resolves the percentage.
     #[inline]
     pub fn maybe_percentage_relative_to(&self, basis: Option<Length>) -> LengthOrAuto {
-        use values::generics::length::LengthPercentageOrAuto::*;
+        use crate::values::generics::length::LengthPercentageOrAuto::*;
         match self {
             LengthPercentage(length_percentage) => length_percentage
                 .maybe_percentage_relative_to(basis)

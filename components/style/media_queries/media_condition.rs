@@ -114,7 +114,7 @@ impl MediaCondition {
 
         // ParenthesisBlock.
         let first_condition = Self::parse_paren_block(context, input)?;
-        let operator = match input.try(Operator::parse) {
+        let operator = match input.try_parse(Operator::parse) {
             Ok(op) => op,
             Err(..) => return Ok(first_condition),
         };
@@ -133,7 +133,7 @@ impl MediaCondition {
         };
 
         loop {
-            if input.try(|i| i.expect_ident_matching(delim)).is_err() {
+            if input.try_parse(|i| i.expect_ident_matching(delim)).is_err() {
                 return Ok(MediaCondition::Operation(
                     conditions.into_boxed_slice(),
                     operator,
@@ -159,7 +159,7 @@ impl MediaCondition {
     ) -> Result<Self, ParseError<'i>> {
         input.parse_nested_block(|input| {
             // Base case.
-            if let Ok(inner) = input.try(|i| Self::parse(context, i)) {
+            if let Ok(inner) = input.try_parse(|i| Self::parse(context, i)) {
                 return Ok(MediaCondition::InParens(Box::new(inner)));
             }
             let expr = MediaFeatureExpression::parse_in_parenthesis_block(context, input)?;

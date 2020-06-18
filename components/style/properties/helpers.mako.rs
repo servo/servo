@@ -354,7 +354,7 @@
             use style_traits::Separator;
 
             % if allow_empty:
-            if input.try(|input| input.expect_ident_matching("none")).is_ok() {
+            if input.try_parse(|input| input.expect_ident_matching("none")).is_ok() {
                 return Ok(SpecifiedValue(Default::default()))
             }
             % endif
@@ -994,7 +994,7 @@
 
         let first = parse_one(context, input)?;
         let second =
-            input.try(|input| parse_one(context, input)).unwrap_or_else(|_| first.clone());
+            input.try_parse(|input| parse_one(context, input)).unwrap_or_else(|_| first.clone());
         Ok(expanded! {
             ${to_rust_ident(first_property)}: first,
             ${to_rust_ident(second_property)}: second,
