@@ -498,10 +498,12 @@ impl ToComputedValue for FontStretch {
     ToCss,
     ToResolvedValue,
     ToShmem,
+    Serialize,
+    Deserialize,
 )]
-#[cfg_attr(feature = "servo", derive(Serialize, Deserialize))]
 #[allow(missing_docs)]
-pub enum KeywordSize {
+#[repr(u8)]
+pub enum FontSizeKeyword {
     #[css(keyword = "xx-small")]
     XXSmall,
     XSmall,
@@ -794,6 +796,7 @@ impl FontSizeKeyword {
             FontSizeKeyword::XLarge => medium * 3.0 / 2.0,
             FontSizeKeyword::XXLarge => medium * 2.0,
             FontSizeKeyword::XXXLarge => medium * 3.0,
+            FontSizeKeyword::None => unreachable!(),
         })
     }
 

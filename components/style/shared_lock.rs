@@ -258,6 +258,8 @@ impl<T> Locked<T> {
 #[cfg(feature = "gecko")]
 impl<T: ToShmem> ToShmem for Locked<T> {
     fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> to_shmem::Result<Self> {
+        use std::mem::ManuallyDrop;
+
         let guard = self.shared_lock.read();
         Ok(ManuallyDrop::new(Locked {
             shared_lock: SharedRwLock::read_only(),
