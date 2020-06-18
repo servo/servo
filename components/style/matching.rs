@@ -421,11 +421,12 @@ trait PrivateMatchMethods: TElement {
             new_values,
             /* pseudo_element = */ None,
         ) {
-            let after_change_style = if self.has_css_transitions(context.shared, /* pseudo_element = */ None) {
-                self.after_change_style(context, new_values)
-            } else {
-                None
-            };
+            let after_change_style =
+                if self.has_css_transitions(context.shared, /* pseudo_element = */ None) {
+                    self.after_change_style(context, new_values)
+                } else {
+                    None
+                };
 
             // In order to avoid creating a SequentialTask for transitions which
             // may not be updated, we check it per property to make sure Gecko

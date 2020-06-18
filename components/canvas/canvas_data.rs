@@ -11,7 +11,7 @@ use euclid::{point2, vec2};
 use font_kit::family_name::FamilyName;
 use font_kit::font::Font;
 use font_kit::metrics::Metrics;
-use font_kit::properties::{Properties, Weight, Stretch, Style};
+use font_kit::properties::{Properties, Stretch, Style, Weight};
 use font_kit::source::SystemSource;
 use gfx::font::FontHandleMethods;
 use gfx::font_cache_thread::FontCacheThread;
@@ -1385,9 +1385,7 @@ fn to_font_kit_family(font_family: &font::SingleFontFamily) -> FamilyName {
             font::GenericFontFamily::Monospace => FamilyName::Monospace,
             font::GenericFontFamily::Fantasy => FamilyName::Fantasy,
             font::GenericFontFamily::Cursive => FamilyName::Cursive,
-            font::GenericFontFamily::None => {
-                unreachable!("Shouldn't appear in computed values")
-            },
+            font::GenericFontFamily::None => unreachable!("Shouldn't appear in computed values"),
         },
     }
 }
@@ -1411,7 +1409,7 @@ fn load_system_font_from_style(font_style: Option<&FontStyleStruct>) -> Font {
             font::FontStyle::Oblique(..) => {
                 // TODO: support oblique angle.
                 Style::Oblique
-            }
+            },
         })
         .weight(Weight(style.font_weight.0))
         .stretch(Stretch(style.font_stretch.value()));

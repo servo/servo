@@ -40,7 +40,7 @@ fn flexbox_enabled() -> bool {
         return servo_config::prefs::pref_map()
             .get("layout.flexbox.enabled")
             .as_bool()
-            .unwrap_or(false)
+            .unwrap_or(false);
     }
 
     true
