@@ -1,0 +1,87 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: containment added</title>
+<link rel="author" title="Rakina Zata Amni" href="mailto:rakina@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility visible does not add containment">
+<meta name="assert" content="content-visibility hidden adds containment">
+<meta name="assert" content="content-visibility auto adds containment">
+<meta name="assert" content="content-visibility auto visibility switches after rAF callbacks of the frame that produces the painted output">
+
+<style>
+.auto {
+  content-visibility: auto;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+<div id="container"></div>
+<div id="async_container"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+function setUp(container) {
+  container.style = "";
+  container.classList = "";
+  assert_equals(getComputedStyle(container).contain, "none");
+}
+
+test(() => {
+  setUp(container);
+  container.classList.add("hidden");
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+}, "content-visibility: hidden adds contain: size layout style;");
+
+async_test((t) => {
+  setUp(async_container);
+  async_container.classList.add("auto");
+  t.step(() => assert_equals(getComputedStyle(async_container).contain, "size layout style paint"));
+  // Considering this as frame 1:
+  // At frame 2, the container has size-containment, and intersection
+  //   observations will be delivered at the end of that frame.
+  // At frame 3, the container still has size-containment, because visiblility
+  //   switch happens after rAF-callbacks have run.
+  // At frame 4, the container is no longer size-contained since it is visible.
+  requestAnimationFrame(() => {
+    // Frame 2 checks:
+    t.step(() => assert_equals(getComputedStyle(async_container).contain, "size layout style paint"));
+
+    requestAnimationFrame(() => {
+      // Frame 3 checks:
+      t.step(() => assert_equals(getComputedStyle(async_container).contain, "size layout style paint"));
+
+      requestAnimationFrame(() => {
+        // Frame 4 checks:
+        t.step(() => assert_equals(getComputedStyle(async_container).contain, "layout style paint"));
+        t.done();
+      });
+    });
+  });
+}, "content-visibility: auto adds contain: size layout style paint;");
+
+test(() => {
+  setUp(container);
+  container.classList.add("auto");
+  container.style = "contain: style;";
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+  container.style = "contain: style layout;";
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+  container.style = "";
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+}, "content-visibility: auto adds contain: size layout style paint, can't be overridden");
+
+test(() => {
+  setUp(container);
+  container.classList.add("auto");
+  container.style = "contain: paint;";
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+  container.style = "contain: strict;";
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+  container.style = "contain: content;";
+  assert_equals(getComputedStyle(container).contain, "size layout style paint");
+}, "content-visibility keeps all containment even when shorthands are specified");
+</script>

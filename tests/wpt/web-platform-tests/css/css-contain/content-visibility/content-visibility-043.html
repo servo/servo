@@ -1,0 +1,40 @@
+<!doctype HTML>
+<html class="reftest-wait">
+<meta charset="utf8">
+<title>Content Visibility: scroll child into view, and adopt to a document</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="container-ref.html">
+<meta name="assert" content="scrollIntoView on a hidden subtree is a no-op">
+<meta name="assert" content="adopting an element in a hidden subtree works (no asserts / crashes)">
+
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+#container {
+  width: 150px;
+  height: 150px;
+  background: lightblue;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+<div id=container class=hidden>
+  Text.
+  <div id=child></div>
+</div>
+
+<script>
+function moveChild() {
+  child.scrollIntoView();
+  document.implementation.createDocument( "", null).adoptNode(child);
+  requestAnimationFrame(takeScreenshot);
+}
+
+async function runTest() {
+  requestAnimationFrame(moveChild);
+}
+
+window.onload = requestAnimationFrame(runTest);
+</script>

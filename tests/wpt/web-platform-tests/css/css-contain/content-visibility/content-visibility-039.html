@@ -1,0 +1,79 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Display Locking: measure forced SVG text</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility hidden svg descendant has correct layout">
+
+<style>
+#container {
+  width: 100px;
+  height: 100px;
+  background: lightgreen;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+
+<div id="parent"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async_test((t) => {
+  let length;
+  function measureForced() {
+    t.step(() => {
+      length = document.getElementById("text").getComputedTextLength();
+      assert_not_equals(length, 0, "forced");
+
+    });
+  }
+
+  function measureWhenVisible() {
+    t.step(() => {
+      const visible_length = document.getElementById("text").getComputedTextLength();
+      assert_not_equals(visible_length, 0, "when visible");
+      assert_equals(visible_length, length, "when visible");
+    });
+  }
+
+  function construct(container) {
+    container.innerHTML = `
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <style>
+          .t { font: 10px sans-serif; }
+        </style>
+        <text id="text" x="10" y="10" class="t">This is text</text>
+      </svg>
+    `;
+  }
+
+  async function runTest() {
+    const container = document.createElement("div");
+    container.id = "container";
+
+    document.getElementById("parent").appendChild(container);
+    container.classList.add("hidden");
+    requestAnimationFrame(() => {
+      construct(container);
+      measureForced();
+
+      container.classList.remove("hidden");
+      requestAnimationFrame(() => {
+        measureWhenVisible();
+        t.done();
+      });
+    });
+  }
+
+  window.onload = function() {
+    requestAnimationFrame(() => requestAnimationFrame(runTest));
+  };
+}, "Measure Forced SVG Text");
+</script>
+
+</html>

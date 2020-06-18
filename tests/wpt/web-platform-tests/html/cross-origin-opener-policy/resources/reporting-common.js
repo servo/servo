@@ -7,6 +7,19 @@ function wait(ms) {
   return new Promise(resolve => step_timeout(resolve, ms));
 }
 
+// Check whether a |report| is a "opener breakage" COOP report.
+function isCoopOpenerBreakageReport(report) {
+  if (report.type != "coop")
+    return false;
+
+  if (report.body["violation-type"] != "navigation-from-document" &&
+      report.body["violation-type"] != "navigation-to-document") {
+    return false;
+  }
+
+  return true;
+}
+
 async function pollReports(endpoint) {
   const res = await fetch(
       `resources/report.py?endpoint=${endpoint.name}`,
@@ -15,7 +28,8 @@ async function pollReports(endpoint) {
     return;
   }
   for (const report of await res.json()) {
-    endpoint.reports.push(report);
+    if (isCoopOpenerBreakageReport(report))
+      endpoint.reports.push(report);
   }
 }
 

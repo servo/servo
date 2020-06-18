@@ -7,26 +7,13 @@
 <div id="log"></div>
 
 <script type="module">
-import { insertIframe, sendWasmModule, setBothDocumentDomains } from "./resources/helpers.mjs";
+import { insertIframe, testSameAgentCluster } from "./resources/helpers.mjs";
 
-let frameWindow;
 promise_setup(async () => {
-  frameWindow = await insertIframe("{{hosts[][www]}}", "?1");
+  await insertIframe("{{hosts[][www]}}", "?1");
 });
 
 // All isolation requests are ignored, since this is over insecure HTTP.
 // So both end up in the site-keyed agent cluster.
-
-promise_test(async () => {
-  const whatHappened = await sendWasmModule(frameWindow);
-
-  assert_equals(whatHappened, "WebAssembly.Module message received");
-}, "message event must occur");
-
-promise_test(async () => {
-  await setBothDocumentDomains(frameWindow);
-
-  // Must not throw
-  frameWindow.document;
-}, "setting document.domain must give sync access");
+testSameAgentCluster([self, 0]);
 </script>

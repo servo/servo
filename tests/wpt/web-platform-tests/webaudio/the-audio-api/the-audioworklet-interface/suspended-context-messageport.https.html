@@ -3,13 +3,13 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
-const get_node_and_message = async (context) => {
+const get_node_and_message = (context) => {
   const node = new AudioWorkletNode(context, 'port-processor');
   return new Promise((resolve) => {
     node.port.onmessage = (event) => resolve({node: node, event: event});
   });
 };
-const ping_for_message = async (node) => {
+const ping_for_message = (node) => {
   return new Promise((resolve) => {
     node.port.onmessage = resolve;
     node.port.postMessage('ping');

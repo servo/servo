@@ -1,0 +1,24 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: hidden image (reference)</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+
+<style>
+div {
+  background: blue;
+}
+.myimg {
+  display: inline-block;
+  width: 400px;
+  height: 200px;
+  background: lightblue;
+  border: 1px solid black;
+}
+</style>
+
+<div>lorem ipsum</div>
+<div class="myimg"></div>
+<div class="myimg"></div>
+<div>consectetur adipiscing elit</div>

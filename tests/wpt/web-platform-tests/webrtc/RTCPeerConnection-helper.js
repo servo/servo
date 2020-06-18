@@ -190,117 +190,58 @@ function exchangeIceCandidates(pc1, pc2) {
   doExchange(pc2, pc1);
 }
 
-// Returns a promise that resolves when the |transport| gets a
-// 'statechange' event with the value |state|.
-// This should work for RTCSctpTransport, RTCDtlsTransport and RTCIceTransport.
-function waitForState(transport, state) {
-  return new Promise((resolve, reject) => {
-    if (transport.state == state) {
-      resolve();
-    }
-    const eventHandler = () => {
-      if (transport.state == state) {
-        transport.removeEventListener('statechange', eventHandler, false);
-        resolve();
-      }
-    };
-    transport.addEventListener('statechange', eventHandler, false);
-  });
+// Returns a promise that resolves when a |name| event is fired.
+function waitUntilEvent(obj, name) {
+  return new Promise(r => obj.addEventListener(name, r, {once: true}));
 }
 
+// Returns a promise that resolves when the |transport.state| is |state|
+// This should work for RTCSctpTransport, RTCDtlsTransport and RTCIceTransport.
+async function waitForState(transport, state) {
+  while (transport.state != state) {
+    await waitUntilEvent(transport, 'statechange');
+  }
+}
 
 // Returns a promise that resolves when |pc.iceConnectionState| is 'connected'
 // or 'completed'.
-function listenToIceConnected(pc) {
-  return new Promise((resolve) => {
-    function isConnected(pc) {
-      return pc.iceConnectionState == 'connected' ||
-            pc.iceConnectionState == 'completed';
-    }
-    if (isConnected(pc)) {
-      resolve();
-      return;
-    }
-    pc.addEventListener('iceconnectionstatechange', () => {
-      if (isConnected(pc))
-        resolve();
-    });
-  });
+async function listenToIceConnected(pc) {
+  await waitForIceStateChange(pc, ['connected', 'completed']);
 }
 
 // Returns a promise that resolves when |pc.iceConnectionState| is in one of the
 // wanted states.
-function waitForIceStateChange(pc, wantedStates) {
-  return new Promise((resolve) => {
-    if (wantedStates.includes(pc.iceConnectionState)) {
-      resolve();
-      return;
-    }
-    pc.addEventListener('iceconnectionstatechange', () => {
-      if (wantedStates.includes(pc.iceConnectionState))
-        resolve();
-    });
-  });
+async function waitForIceStateChange(pc, wantedStates) {
+  while (!wantedStates.includes(pc.iceConnectionState)) {
+    await waitUntilEvent(pc, 'iceconnectionstatechange');
+  }
 }
 
 // Returns a promise that resolves when |pc.connectionState| is 'connected'.
-function listenToConnected(pc) {
-  return new Promise((resolve) => {
-    if (pc.connectionState == 'connected') {
-      resolve();
-      return;
-    }
-    pc.onconnectionstatechange = () => {
-      if (pc.connectionState == 'connected')
-        resolve();
-    };
-  });
+async function listenToConnected(pc) {
+  while (pc.connectionState != 'connected') {
+    await waitUntilEvent(pc, 'connectionstatechange');
+  }
 }
 
 // Returns a promise that resolves when |pc.connectionState| is in one of the
 // wanted states.
-function waitForConnectionStateChange(pc, wantedStates) {
-  return new Promise((resolve) => {
-    if (wantedStates.includes(pc.connectionState)) {
-      resolve();
-      return;
-    }
-    pc.addEventListener('connectionstatechange', () => {
-      if (wantedStates.includes(pc.connectionState))
-        resolve();
-    });
-  });
-}
-
-// Returns a promise that resolves when |pc.connectionState| is in one of the
-// wanted states.
-function waitForConnectionStateChange(pc, wantedStates) {
-  return new Promise((resolve) => {
-    if (wantedStates.includes(pc.connectionState)) {
-      resolve();
-      return;
-    }
-    pc.addEventListener('connectionstatechange', () => {
-      if (wantedStates.includes(pc.connectionState))
-        resolve();
-    });
-  });
+async function waitForConnectionStateChange(pc, wantedStates) {
+  while (!wantedStates.includes(pc.connectionState)) {
+    await waitUntilEvent(pc, 'connectionstatechange');
+  }
 }
 
 // Resolves when RTP packets have been received.
-function listenForSSRCs(t, receiver) {
-  return new Promise((resolve) => {
-    function listen() {
-      const ssrcs = receiver.getSynchronizationSources();
-      assert_true(ssrcs != undefined);
-      if (ssrcs.length > 0) {
-        resolve(ssrcs);
-        return;
-      }
-      t.step_timeout(listen, 0);
-    };
-    listen();
-  });
+async function listenForSSRCs(t, receiver) {
+  while (true) {
+    const ssrcs = receiver.getSynchronizationSources();
+    assert_true(Array.isArray(ssrcs));
+    if (ssrcs.length > 0) {
+      return ssrcs;
+    }
+    await new Promise(r => t.step_timeout(r, 0));
+  }
 }
 
 // Helper function to create a pair of connected data channels.
@@ -365,28 +306,21 @@ async function waitForRtpAndRtcpStats(pc) {
 // Wait for a single message event and return
 // a promise that resolve when the event fires
 function awaitMessage(channel) {
+  const once = true;
   return new Promise((resolve, reject) => {
-    channel.addEventListener('message',
-      event => resolve(event.data),
-      { once: true });
-
-    channel.addEventListener('error', reject, { once: true });
+    channel.addEventListener('message', ({data}) => resolve(data), {once});
+    channel.addEventListener('error', reject, {once});
   });
 }
 
 // Helper to convert a blob to array buffer so that
 // we can read the content
-function blobToArrayBuffer(blob) {
+async function blobToArrayBuffer(blob) {
+  const reader = new FileReader();
+  reader.readAsArrayBuffer(blob);
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.addEventListener('load', () => {
-      resolve(reader.result);
-    });
-
-    reader.addEventListener('error', reject);
-
-    reader.readAsArrayBuffer(blob);
+    reader.addEventListener('load', () => resolve(reader.result), {once: true});
+    reader.addEventListener('error', () => reject(reader.error), {once: true});
   });
 }
 
@@ -495,30 +429,28 @@ function getVideoSignal(v) {
   if (v.videoWidth < 21 || v.videoHeight < 21) {
     return null;
   }
-  const canvas = new OffscreenCanvas(v.videoWidth, v.videoHeight);
-  let context = canvas.getContext('2d');
+  const canvas = document.createElement("canvas");
+  canvas.width = v.videoWidth;
+  canvas.height = v.videoHeight;
+  const context = canvas.getContext('2d');
   context.drawImage(v, 0, 0, v.videoWidth, v.videoHeight);
   // Extract pixel value at position 20, 20
-  let pixel = context.getImageData(20, 20, 1, 1);
+  const pixel = context.getImageData(20, 20, 1, 1);
   // Use luma reconstruction to get back original value according to
   // ITU-R rec BT.709
   return (pixel.data[0] * 0.21 + pixel.data[1] * 0.72 + pixel.data[2] * 0.07);
 }
 
-function detectSignal(t, v, value) {
-  return new Promise((resolve) => {
-    let check = () => {
-      const signal = getVideoSignal(v);
-      if (signal !== null && signal < value + 1 && signal > value - 1) {
-        resolve();
-      } else {
-        // We would like to wait for each new frame instead here,
-        // but there seems to be no such callback.
-        t.step_timeout(check, 100);
-      }
+async function detectSignal(t, v, value) {
+  while (true) {
+    const signal = getVideoSignal(v);
+    if (signal !== null && signal < value + 1 && signal > value - 1) {
+      return;
     }
-    check();
-  });
+    // We would like to wait for each new frame instead here,
+    // but there seems to be no such callback.
+    await new Promise(r => t.step_timeout(r, 100));
+  }
 }
 
 // Generate a MediaStream bearing the specified tracks.
@@ -652,14 +584,13 @@ class Resolver extends Promise {
   }
 }
 
-function addEventListenerPromise(t, target, type, listener) {
-  return new Promise((resolve, reject) => {
-    target.addEventListener(type, t.step_func(e => {
-      if (listener != undefined)
-        e = listener(e);
-      resolve(e);
-    }));
-  });
+function addEventListenerPromise(t, obj, type, listener) {
+  if (!listener) {
+    return waitUntilEvent(obj, type);
+  }
+  return new Promise(r => obj.addEventListener(type,
+                                               t.step_func(e => r(listener(e))),
+                                               {once: true}));
 }
 
 function createPeerConnectionWithCleanup(t) {

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Content Visibility: shadow dom</title>
+<link rel="author" title="Rakina Zata Amni" href="mailto:rakina@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="match" href="container-with-child-ref.html">
+<meta name="assert" content="content-visibility hidden can be used in a shadow DOM">
+
+<script src="/common/reftest-wait.js"></script>
+<script src="resources/utils.js"></script>
+
+<style>
+.hidden {
+  content-visibility: hidden;
+}
+.child {
+  width: 50px;
+  height: 50px;
+  background: lightgreen;
+}
+</style>
+<div id="host">
+  <div id="slotted">
+    Text.
+    <div class=child></div>
+  </div>
+</div>
+
+<script>
+async function runTest() {
+  // Set up hidden element within shadow root.
+  let shadowRoot = host.attachShadow({ mode: "open" });
+  let hidden = document.createElement("div");
+  shadowRoot.innerHTML = `
+    <style>
+    .container {
+      width: 150px;
+      height: 150px;
+      background: lightblue;
+    }
+    </style>`;
+  shadowRoot.appendChild(hidden);
+  hidden.innerHTML = "<slot></slot>";
+  hidden.getBoundingClientRect();
+  hidden.classList.add("container");
+  hidden.classList.add("hidden");
+  requestAnimationFrame(() => {
+    slotted.style = "display: none";
+    // Do a forced layout outside the hidden subtree.
+    host.getBoundingClientRect();
+
+    hidden.classList.remove("hidden");
+    slotted.style = "";
+    requestAnimationFrame(() => {
+      // Check that everything is painted as we expect.
+      takeScreenshot();
+    });
+  });
+}
+
+window.onload = runTest;
+</script>
+</html>

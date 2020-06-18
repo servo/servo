@@ -1,0 +1,23 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: hidden iframe (reference)</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+
+<style>
+div {
+  background: blue;
+}
+</style>
+
+<div>lorem ipsum</div>
+<iframe width=400 height=200 srcdoc='
+  <style>
+  div {
+    background: lightgreen;
+  }
+  </style>
+  <div>dolor sit amet</div>
+'></iframe>
+<div>consectetur adipiscing elit</div>

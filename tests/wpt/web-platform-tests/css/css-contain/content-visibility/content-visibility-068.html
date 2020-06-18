@@ -1,0 +1,98 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: off-screen focus</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility auto element remains non-skipped when elements in its subtree have focus.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body, html {
+  padding: 0;
+  margin: 0;
+}
+
+.spacer {
+  height: 3000px;
+  background: lightblue;
+}
+#container {
+  background: lightgreen;
+  contain-intrinsic-size: 50px 100px;
+  content-visibility: auto;
+}
+#focusable {
+  width: 10px;
+  height: 10px;
+}
+</style>
+
+<div class=spacer></div>
+<div id=container>
+  <div id=focusable tabindex=0></div>
+</div>
+<div class=spacer></div>
+
+<script>
+async_test((t) => {
+  // Initially container should be 3000px offscreen with contained height 100px.
+  function step1() {
+    const r = container.getBoundingClientRect();
+    t.step(() => {
+      assert_equals(r.y, 3000, "step1 offset");
+      assert_equals(r.height, 100, "step1 height");
+    });
+
+    focusable.focus();
+    requestAnimationFrame(step2);
+  }
+  // After focusing the subtree, the container should be somewhere closer than
+  // 3000px (scrolled into view) and the height should be 10px, since it no
+  // longer has containment.
+  function step2() {
+    const r = container.getBoundingClientRect();
+    t.step(() => {
+      assert_less_than(r.y, 3000, "step2 offset");
+      assert_equals(r.height, 10, "step2 height");
+    });
+    document.scrollingElement.scrollTop = 0;
+    requestAnimationFrame(step3);
+  }
+  // After scrolling the document back to the top, the container should be back
+  // at 3000px but because its subtree is still focused, it should have height
+  // 10px.
+  function step3() {
+    const r = container.getBoundingClientRect();
+    t.step(() => {
+      assert_equals(r.y, 3000, "step3 offset");
+      assert_equals(r.height, 10, "step3 height");
+    });
+    requestAnimationFrame(step4);
+  }
+  // This is a repeat of step3, to ensure that this is a stable state.
+  function step4() {
+    const r = container.getBoundingClientRect();
+    t.step(() => {
+      assert_equals(r.y, 3000, "step4 offset");
+      assert_equals(r.height, 10, "step4 height");
+    });
+    focusable.blur();
+    requestAnimationFrame(step5);
+  }
+  // After blurring the focused element, we should go back to the contained
+  // height of 100px.
+  function step5() {
+    const r = container.getBoundingClientRect();
+    t.step(() => {
+      assert_equals(r.y, 3000, "step5 offset");
+      assert_equals(r.height, 100, "step5 height");
+    });
+    t.done();
+  }
+  step1();
+});
+</script>
+</html>

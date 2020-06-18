@@ -75,25 +75,31 @@ interface FileSystemWritableFileStream : WritableStream {
   Promise<void> truncate(unsigned long long size);
 };
 
-enum ChooseFileSystemEntriesType { "open-file", "save-file", "open-directory" };
-
-dictionary ChooseFileSystemEntriesOptionsAccepts {
-  USVString description;
-  sequence<USVString> mimeTypes;
-  sequence<USVString> extensions;
+dictionary FilePickerAcceptType {
+    USVString description;
+    record<USVString, sequence<USVString>> accept;
 };
 
-dictionary ChooseFileSystemEntriesOptions {
-    ChooseFileSystemEntriesType type = "open-file";
-    boolean multiple = false;
-    sequence<ChooseFileSystemEntriesOptionsAccepts> accepts;
+dictionary FilePickerOptions {
+    sequence<FilePickerAcceptType> types;
     boolean excludeAcceptAllOption = false;
+};
+
+dictionary OpenFilePickerOptions : FilePickerOptions {
+    boolean multiple = false;
+};
+
+dictionary SaveFilePickerOptions : FilePickerOptions {
+};
+
+dictionary DirectoryPickerOptions {
 };
 
 [SecureContext]
 partial interface Window {
-    Promise<(FileSystemHandle or sequence<FileSystemHandle>)>
-        chooseFileSystemEntries(optional ChooseFileSystemEntriesOptions options = {});
+    Promise<sequence<FileSystemFileHandle>> showOpenFilePicker(optional OpenFilePickerOptions options = {});
+    Promise<FileSystemFileHandle> showSaveFilePicker(optional SaveFilePickerOptions options = {});
+    Promise<FileSystemDirectoryHandle> showDirectoryPicker(optional DirectoryPickerOptions options = {});
 };
 
 [SecureContext]

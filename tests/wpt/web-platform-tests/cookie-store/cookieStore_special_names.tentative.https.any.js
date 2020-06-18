@@ -19,9 +19,8 @@
     // contexts, the set() should fail even if the expiration date makes
     // the operation a no-op.
     await cookieStore.set(
-      `${prefix}cookie-name`, `secure-cookie-value`, {
-        expires: Date.now() - (24 * 60 * 60 * 1000)
-      });
+        { name: `${prefix}cookie-name`, value: `secure-cookie-value`,
+          expires: Date.now() - (24 * 60 * 60 * 1000)});
     assert_equals(await cookieStore.get(`${prefix}cookie-name`), null);
     try { await cookieStore.delete(`${prefix}cookie-name`); } catch (e) {}
   }, `cookieStore.set of expired ${prefix} cookie name on secure origin`);
@@ -37,19 +36,18 @@ promise_test(async testCase => {
   const currentUrl = new URL(self.location.href);
   const currentDomain = currentUrl.hostname;
   await promise_rejects_js(testCase, TypeError,
-      cookieStore.set('__Host-cookie-name', 'cookie-value', {
-        domain: currentDomain
-      }));
+      cookieStore.set({ name: '__Host-cookie-name', value: 'cookie-value',
+                        domain: currentDomain }));
 }, 'cookieStore.set with __Host- prefix and a domain option');
 
 promise_test(async testCase => {
-  await cookieStore.set('__Host-cookie-name', 'cookie-value', { path: "/" });
+  await cookieStore.set({ name: '__Host-cookie-name', value: 'cookie-value',
+                          path: "/" });
 
   assert_equals(
       (await cookieStore.get(`__Host-cookie-name`)).value, "cookie-value");
 
   await promise_rejects_js(testCase, TypeError,
-      cookieStore.set('__Host-cookie-name', 'cookie-value', {
-        path: "/path"
-      }));
+      cookieStore.set( { name: '__Host-cookie-name', value: 'cookie-value',
+                         path: "/path" }));
 }, 'cookieStore.set with __Host- prefix a path option');

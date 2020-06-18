@@ -1,0 +1,61 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Display Locking: style on hidden element & child</title>
+<link rel="author" title="Rakina Zata Amni" href="mailto:rakina@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="style is available for content-visibility hidden elements">
+
+<style>
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+<div id="container" class=hidden>
+  <div id="child">
+    <div id="grandchild"></div>
+  </div>
+</div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async_test((t) => {
+  async function runTest() {
+    let container = document.getElementById("container");
+    container.style = "color: blue;";
+    t.step(() => assert_equals(getComputedStyle(container).color, "rgb(0, 0, 255)", "container color changed to blue"));
+    t.step(() => assert_equals(getComputedStyle(child).color, "rgb(0, 0, 255)", "child inherits blue color"));
+    t.step(() => assert_equals(getComputedStyle(grandchild).color, "rgb(0, 0, 255)", "grandchild inherits blue color"));
+
+    child.style = "color: green;";
+    t.step(() => assert_equals(getComputedStyle(container).color, "rgb(0, 0, 255)", "container color is still blue"));
+    t.step(() => assert_equals(getComputedStyle(child).color, "rgb(0, 128, 0)", "child color changed to green"));
+    t.step(() => assert_equals(getComputedStyle(grandchild).color, "rgb(0, 128, 0)", "grandchild inherits green color"));
+
+    child.style = "";
+
+    // Commit container, lock child.
+    container.classList.remove("hidden");
+    child.classList.add("hidden");
+    requestAnimationFrame(() => {
+      // Update style outside of the hidden subtree.
+      container.style = "color: red;";
+      container.offsetTop;
+
+      // Inheritance works as usual through hidden boundaries.
+      t.step(() => assert_equals(getComputedStyle(grandchild).color, "rgb(255, 0, 0)", "grandchild inherits red color"));
+      t.step(() => assert_equals(getComputedStyle(child).color, "rgb(255, 0, 0)", "child inherits red color"));
+      t.step(() => assert_equals(getComputedStyle(container).color, "rgb(255, 0, 0)", "container color changed to red"));
+
+      t.done();
+    });
+  }
+
+  window.onload = function() {
+    requestAnimationFrame(() => requestAnimationFrame(runTest));
+  };
+}, "getComputedStyle gets up-to-date style");
+</script>
+

@@ -10,7 +10,7 @@ async function createFile(testCase, fileName) {
   const file = await nativeIO.open(fileName);
   testCase.add_cleanup(async () => {
     await file.close();
-    await nativeIO.delete('test_file');
+    await nativeIO.delete(fileName);
   });
 
   const writeSharedArrayBuffer = new SharedArrayBuffer(4);
