@@ -210,11 +210,11 @@
 
       function flatten_trace(trace_node) {
         const fragment_tree_root = Object.values(
-          trace_node.fragment_tree.children
+          trace_node.fragment_tree.root_fragments
         )[0];
         return {
           fragment_tree: create_fragment_tree(fragment_tree_root),
-          box_tree: box_tree_from_bfc(trace_node.box_tree)
+          box_tree: box_tree_from_bfc(trace_node.box_tree.root)
         };
       }
 
