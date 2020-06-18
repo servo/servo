@@ -133,7 +133,9 @@ void DevtoolsClient::HandleMessage(JsonObject obj) {
       // Ignore
       return;
     } else if (obj.GetNamedString(L"type") == L"tabNavigated") {
-      // Ignore
+      if (obj.HasKey(L"state") && obj.GetNamedString(L"state") == L"stop") {
+        mDelegate.ClearConsole();
+      }
       return;
     } else if (obj.GetNamedString(L"type") == L"networkEventUpdate") {
       // FIXME: log if there is a non-200 HTTP response

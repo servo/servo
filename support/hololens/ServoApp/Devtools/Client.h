@@ -51,6 +51,7 @@ private:
 class DevtoolsDelegate {
 public:
   virtual void OnDevtoolsMessage(DevtoolsMessageLevel, hstring, hstring) = 0;
+  virtual void ClearConsole() = 0;
   virtual void OnDevtoolsDetached() = 0;
 };
 

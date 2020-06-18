@@ -273,6 +273,11 @@ void BrowserPage::OnPrefererenceSearchboxEdited(
   }
 }
 
+void BrowserPage::ClearConsole() {
+  Dispatcher().RunAsync(CoreDispatcherPriority::Low,
+                        [=] { DevtoolsConsoleOutput().Blocks().Clear(); });
+}
+
 void BrowserPage::OnDevtoolsMessage(DevtoolsMessageLevel level, hstring source,
                                     hstring body) {
   Dispatcher().RunAsync(CoreDispatcherPriority::Low, [=] {

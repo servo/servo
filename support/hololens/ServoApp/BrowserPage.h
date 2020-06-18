@@ -44,6 +44,7 @@ public:
   void OnPrefererenceSearchboxEdited(IInspectable const &,
                                      Input::KeyRoutedEventArgs const &);
   void OnDevtoolsMessage(servo::DevtoolsMessageLevel, hstring, hstring);
+  void ClearConsole();
   void OnDevtoolsDetached();
 
 private:
