@@ -164,10 +164,10 @@ use tendril::{StrTendril, TendrilSink};
 use time::{Duration, Timespec, Tm};
 use uuid::Uuid;
 use webgpu::{
-    wgpu::command::RawPass, WebGPU, WebGPUAdapter, WebGPUBindGroup, WebGPUBindGroupLayout,
-    WebGPUBuffer, WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePipeline, WebGPUDevice,
-    WebGPUPipelineLayout, WebGPUQueue, WebGPURenderPipeline, WebGPUSampler, WebGPUShaderModule,
-    WebGPUTexture, WebGPUTextureView,
+    wgpu::command::RawPass, wgpu::id, WebGPU, WebGPUAdapter, WebGPUBindGroup,
+    WebGPUBindGroupLayout, WebGPUBuffer, WebGPUCommandBuffer, WebGPUCommandEncoder,
+    WebGPUComputePipeline, WebGPUDevice, WebGPUPipelineLayout, WebGPUQueue, WebGPURenderPipeline,
+    WebGPUSampler, WebGPUShaderModule, WebGPUTexture, WebGPUTextureView,
 };
 use webrender_api::{DocumentId, ExternalImageId, ImageKey};
 use webxr_api::SwapChainId as WebXRSwapChainId;
@@ -578,7 +578,7 @@ unsafe_no_jsmanaged_fields!(WebGPUContextId);
 unsafe_no_jsmanaged_fields!(WebGPUCommandBuffer);
 unsafe_no_jsmanaged_fields!(WebGPUCommandEncoder);
 unsafe_no_jsmanaged_fields!(WebGPUDevice);
-unsafe_no_jsmanaged_fields!(Option<RawPass>);
+unsafe_no_jsmanaged_fields!(Option<RawPass<id::CommandEncoderId>>);
 unsafe_no_jsmanaged_fields!(GPUBufferState);
 unsafe_no_jsmanaged_fields!(GPUCommandEncoderState);
 unsafe_no_jsmanaged_fields!(WebXRSwapChainId);

@@ -7,13 +7,12 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::GPULimits;
 use crate::dom::bindings::codegen::Bindings::GPUBindGroupBinding::{
-    GPUBindGroupDescriptor, GPUBindGroupEntry, GPUBindingResource, GPUBufferBindings,
+    GPUBindGroupDescriptor, GPUBindingResource, GPUBufferBindings,
 };
 use crate::dom::bindings::codegen::Bindings::GPUBindGroupLayoutBinding::{
     GPUBindGroupLayoutDescriptor, GPUBindGroupLayoutEntry, GPUBindingType,
 };
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUBufferDescriptor;
-use crate::dom::bindings::codegen::Bindings::GPUBufferUsageBinding::GPUBufferUsageConstants;
 use crate::dom::bindings::codegen::Bindings::GPUComputePipelineBinding::GPUComputePipelineDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::{
     GPUCommandEncoderDescriptor, GPUDeviceMethods,
@@ -32,7 +31,6 @@ use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
     GPUExtent3D, GPUExtent3DDict, GPUTextureComponentType, GPUTextureDescriptor,
     GPUTextureDimension, GPUTextureFormat,
 };
-use crate::dom::bindings::codegen::Bindings::GPUTextureUsageBinding::GPUTextureUsageConstants;
 use crate::dom::bindings::codegen::Bindings::GPUTextureViewBinding::GPUTextureViewDimension;
 use crate::dom::bindings::codegen::UnionTypes::Uint32ArrayOrString::{String, Uint32Array};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
@@ -53,19 +51,18 @@ use crate::dom::gpurenderpipeline::GPURenderPipeline;
 use crate::dom::gpusampler::GPUSampler;
 use crate::dom::gpushadermodule::GPUShaderModule;
 use crate::dom::gputexture::GPUTexture;
-use crate::dom::gputextureview::{GPUTextureView, TextureSubresource};
+use crate::dom::gputextureview::GPUTextureView;
 use crate::script_runtime::JSContext as SafeJSContext;
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, ObjectValue};
 use js::typedarray::{ArrayBuffer, CreateWith};
-use std::collections::{hash_map::Entry, HashMap, HashSet};
+use std::collections::{HashMap, HashSet};
+use std::num::NonZeroU64;
 use std::ptr::{self, NonNull};
-use webgpu::wgpu::binding_model::{
-    BindGroupEntry, BindGroupLayoutEntry, BindingResource, BindingType, BufferBinding,
-};
-use webgpu::{self, wgpu, wgt, WebGPU, WebGPURequest};
+use webgpu::wgpu::binding_model::BufferBinding;
+use webgpu::{self, wgpu, wgt, WebGPU, WebGPUBindings, WebGPURequest};
 
 #[dom_struct]
 pub struct GPUDevice {
@@ -165,11 +162,11 @@ impl GPUDevice {
         binding: &GPUBindGroupLayoutEntry,
     ) -> bool {
         let mut valid = if let Some(d) = binding.viewDimension {
-            texture_view.descriptor().dimension.unwrap() == d
+            texture_view.dimension() == d
         } else {
             false
         };
-        let view_component = get_component_from_format(texture_view.descriptor().format.unwrap());
+        let view_component = get_component_from_format(texture_view.format());
         valid &= if let Some(c) = binding.textureComponentType {
             view_component == c
         } else {
@@ -189,10 +186,11 @@ impl GPUDevice {
             },
             GPUBindingType::Readonly_storage_texture |
             GPUBindingType::Writeonly_storage_texture => {
-                match wgt::TextureUsage::from_bits(texture_view.texture().usage()) {
+                let v = match wgt::TextureUsage::from_bits(texture_view.texture().usage()) {
                     Some(u) => u.contains(wgt::TextureUsage::STORAGE),
                     None => false,
-                }
+                };
+                v && Some(texture_view.format()) == binding.storageTextureFormat
             },
             _ => false,
         };
@@ -227,9 +225,13 @@ impl GPUDevice {
             _ => false,
         };
         valid &= if let Some(s) = buffer_bind.size {
-            buffer_bind.offset + s <= buffer_bind.buffer.size() && buffer_bind.offset > 0
+            buffer_bind.offset + s <= buffer_bind.buffer.size() &&
+                buffer_bind.offset + s >= binding.minBufferBindingSize &&
+                buffer_bind.offset > 0 &&
+                buffer_bind.offset.checked_add(s).is_some()
         } else {
-            buffer_bind.offset > 0 && buffer_bind.offset < buffer_bind.buffer.size()
+            buffer_bind.offset < buffer_bind.buffer.size() &&
+                buffer_bind.buffer.size() - buffer_bind.offset >= binding.minBufferBindingSize
         };
         valid
     }
@@ -407,7 +409,14 @@ impl GPUDeviceMethods for GPUDevice {
                             bind.textureComponentType.is_none() &&
                             !bind.multisampled &&
                             bind.storageTextureFormat.is_none();
-                        BindingType::UniformBuffer
+                        wgt::BindingType::UniformBuffer {
+                            dynamic: bind.hasDynamicOffset,
+                            min_binding_size: if bind.minBufferBindingSize == 0 {
+                                None
+                            } else {
+                                Some(NonZeroU64::new(bind.minBufferBindingSize).unwrap())
+                            },
+                        }
                     },
                     GPUBindingType::Storage_buffer => {
                         if let Some(limit) = validation_map.get_mut(&visibility) {
@@ -421,7 +430,15 @@ impl GPUDeviceMethods for GPUDevice {
                             bind.textureComponentType.is_none() &&
                             !bind.multisampled &&
                             bind.storageTextureFormat.is_none();
-                        BindingType::StorageBuffer
+                        wgt::BindingType::StorageBuffer {
+                            dynamic: bind.hasDynamicOffset,
+                            min_binding_size: if bind.minBufferBindingSize == 0 {
+                                None
+                            } else {
+                                Some(NonZeroU64::new(bind.minBufferBindingSize).unwrap())
+                            },
+                            readonly: false,
+                        }
                     },
                     GPUBindingType::Readonly_storage_buffer => {
                         if let Some(limit) = validation_map.get_mut(&visibility) {
@@ -434,14 +451,46 @@ impl GPUDeviceMethods for GPUDevice {
                             bind.textureComponentType.is_none() &&
                             !bind.multisampled &&
                             bind.storageTextureFormat.is_none();
-                        BindingType::ReadonlyStorageBuffer
+                        wgt::BindingType::StorageBuffer {
+                            dynamic: bind.hasDynamicOffset,
+                            min_binding_size: if bind.minBufferBindingSize == 0 {
+                                None
+                            } else {
+                                Some(NonZeroU64::new(bind.minBufferBindingSize).unwrap())
+                            },
+                            readonly: true,
+                        }
                     },
                     GPUBindingType::Sampled_texture => {
                         if let Some(limit) = validation_map.get_mut(&visibility) {
                             limit.max_sampled_textures_per_shader_stage -= 1;
                         }
-                        valid &= !bind.hasDynamicOffset && bind.storageTextureFormat.is_none();
-                        BindingType::SampledTexture
+                        valid &= !bind.hasDynamicOffset &&
+                            bind.storageTextureFormat.is_none() &&
+                            bind.minBufferBindingSize == 0;
+                        wgt::BindingType::SampledTexture {
+                            dimension: bind
+                                .viewDimension
+                                .map_or(wgt::TextureViewDimension::D2, |v| {
+                                    convert_texture_view_dimension(v)
+                                }),
+                            component_type: if let Some(c) = bind.textureComponentType {
+                                match c {
+                                    GPUTextureComponentType::Float => {
+                                        wgt::TextureComponentType::Float
+                                    },
+                                    GPUTextureComponentType::Sint => {
+                                        wgt::TextureComponentType::Sint
+                                    },
+                                    GPUTextureComponentType::Uint => {
+                                        wgt::TextureComponentType::Uint
+                                    },
+                                }
+                            } else {
+                                wgt::TextureComponentType::Float
+                            },
+                            multisampled: bind.multisampled,
+                        }
                     },
                     GPUBindingType::Readonly_storage_texture => {
                         if let Some(limit) = validation_map.get_mut(&visibility) {
@@ -449,8 +498,22 @@ impl GPUDeviceMethods for GPUDevice {
                         }
                         valid &= !bind.hasDynamicOffset &&
                             bind.textureComponentType.is_none() &&
-                            !bind.multisampled;
-                        BindingType::ReadonlyStorageTexture
+                            !bind.multisampled &&
+                            bind.minBufferBindingSize == 0 &&
+                            bind.storageTextureFormat.is_some();
+                        wgt::BindingType::StorageTexture {
+                            dimension: bind
+                                .viewDimension
+                                .map_or(wgt::TextureViewDimension::D2, |v| {
+                                    convert_texture_view_dimension(v)
+                                }),
+                            format: bind
+                                .storageTextureFormat
+                                .map_or(wgt::TextureFormat::Bgra8UnormSrgb, |f| {
+                                    convert_texture_format(f)
+                                }),
+                            readonly: true,
+                        }
                     },
                     GPUBindingType::Writeonly_storage_texture => {
                         if let Some(limit) = validation_map.get_mut(&visibility) {
@@ -458,8 +521,22 @@ impl GPUDeviceMethods for GPUDevice {
                         }
                         valid &= !bind.hasDynamicOffset &&
                             bind.textureComponentType.is_none() &&
-                            !bind.multisampled;
-                        BindingType::WriteonlyStorageTexture
+                            !bind.multisampled &&
+                            bind.minBufferBindingSize == 0 &&
+                            bind.storageTextureFormat.is_some();
+                        wgt::BindingType::StorageTexture {
+                            dimension: bind
+                                .viewDimension
+                                .map_or(wgt::TextureViewDimension::D2, |v| {
+                                    convert_texture_view_dimension(v)
+                                }),
+                            format: bind
+                                .storageTextureFormat
+                                .map_or(wgt::TextureFormat::Bgra8UnormSrgb, |f| {
+                                    convert_texture_format(f)
+                                }),
+                            readonly: true,
+                        }
                     },
                     GPUBindingType::Sampler => {
                         if let Some(limit) = validation_map.get_mut(&visibility) {
@@ -469,8 +546,9 @@ impl GPUDeviceMethods for GPUDevice {
                             bind.viewDimension.is_none() &&
                             bind.textureComponentType.is_none() &&
                             !bind.multisampled &&
-                            bind.storageTextureFormat.is_none();
-                        BindingType::Sampler
+                            bind.storageTextureFormat.is_none() &&
+                            bind.minBufferBindingSize == 0;
+                        wgt::BindingType::Sampler { comparison: false }
                     },
                     GPUBindingType::Comparison_sampler => {
                         if let Some(limit) = validation_map.get_mut(&visibility) {
@@ -480,38 +558,15 @@ impl GPUDeviceMethods for GPUDevice {
                             bind.viewDimension.is_none() &&
                             bind.textureComponentType.is_none() &&
                             !bind.multisampled &&
-                            bind.storageTextureFormat.is_none();
-                        BindingType::ComparisonSampler
+                            bind.storageTextureFormat.is_none() &&
+                            bind.minBufferBindingSize == 0;
+                        wgt::BindingType::Sampler { comparison: true }
                     },
                 };
 
-                BindGroupLayoutEntry {
-                    binding: bind.binding,
-                    visibility,
-                    ty,
-                    has_dynamic_offset: bind.hasDynamicOffset,
-                    multisampled: bind.multisampled,
-                    texture_component_type: if let Some(c) = bind.textureComponentType {
-                        match c {
-                            GPUTextureComponentType::Float => wgt::TextureComponentType::Float,
-                            GPUTextureComponentType::Sint => wgt::TextureComponentType::Sint,
-                            GPUTextureComponentType::Uint => wgt::TextureComponentType::Uint,
-                        }
-                    } else {
-                        wgt::TextureComponentType::Float
-                    },
-                    storage_texture_format: match bind.storageTextureFormat {
-                        Some(s) => convert_texture_format(s),
-                        None => wgt::TextureFormat::Bgra8UnormSrgb,
-                    },
-                    view_dimension: bind
-                        .viewDimension
-                        .map_or(wgt::TextureViewDimension::D2, |v| {
-                            convert_texture_view_dimension(v)
-                        }),
-                }
+                wgt::BindGroupLayoutEntry::new(bind.binding, visibility, ty)
             })
-            .collect::<Vec<BindGroupLayoutEntry>>();
+            .collect::<Vec<_>>();
 
         // bindings are unique
         valid &= storeBindings.len() == entries.len();
@@ -539,7 +594,7 @@ impl GPUDeviceMethods for GPUDevice {
             .send(WebGPURequest::CreateBindGroupLayout {
                 device_id: self.device.0,
                 bind_group_layout_id,
-                entries: entries.clone(),
+                entries,
             })
             .expect("Failed to create WebGPU BindGroupLayout");
 
@@ -558,6 +613,7 @@ impl GPUDeviceMethods for GPUDevice {
                     viewDimension: bind.viewDimension,
                     textureComponentType: bind.textureComponentType,
                     storageTextureFormat: bind.storageTextureFormat,
+                    minBufferBindingSize: bind.minBufferBindingSize,
                 },
             );
         });
@@ -631,43 +687,13 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup
     fn CreateBindGroup(&self, descriptor: &GPUBindGroupDescriptor) -> DomRoot<GPUBindGroup> {
-        //let alignment: u64 = 256;
         let mut valid = descriptor.layout.is_valid() &&
             descriptor.layout.entries().len() == descriptor.entries.len();
 
-        /*valid &= descriptor.entries.iter().all(|bind| {
-            let buffer_size = bind.resource.buffer.size();
-            let resource_size = bind.resource.size.unwrap_or(buffer_size);
-            let length = bind.resource.offset.checked_add(resource_size);
-            let usage = wgt::BufferUsage::from_bits(bind.resource.buffer.usage()).unwrap();
-
-            length.is_some() &&
-            buffer_size >= length.unwrap() && // check buffer OOB
-            bind.resource.offset % alignment == 0 && // check alignment
-            bind.resource.offset < buffer_size && // on Vulkan offset must be less than size of buffer
-            descriptor.layout.entries().iter().any(|layout_bind| {
-                match layout_bind.type_ {
-                    GPUBindingType::Storage_buffer  => usage.contains(wgt::BufferUsage::STORAGE),
-                    // GPUBindingType::Readonly_storage_buffer  => BufferUsage::STORAGE_READ,
-                    GPUBindingType::Uniform_buffer => usage.contains(wgt::BufferUsage::UNIFORM),
-                    GPUBindingType::Sampler => bind.resource
-                    _ => unimplemented!(),
-                };
-                // binding must be present in layout
-                layout_bind.binding == bind.binding
-            })
-        });*/
         let mut bindings = HashSet::new();
-        let mut used_buffers = HashMap::new();
-        let mut used_textures = HashMap::new();
         valid &= descriptor.entries.iter().all(|bind| {
             bindings.insert(bind.binding);
-            if let Some(layout_bind) = descriptor
-                .layout
-                .entries()
-                .values()
-                .find(|lb| lb.binding == bind.binding)
-            {
+            if let Some(layout_bind) = descriptor.layout.entries().get(&bind.binding) {
                 match layout_bind.type_ {
                     GPUBindingType::Sampler => match bind.resource {
                         GPUBindingResource::GPUSampler(ref s) => s.is_valid() && !s.compare(),
@@ -677,86 +703,21 @@ impl GPUDeviceMethods for GPUDevice {
                         GPUBindingResource::GPUSampler(ref s) => s.is_valid() && s.compare(),
                         _ => false,
                     },
-                    GPUBindingType::Sampled_texture => match bind.resource {
+                    GPUBindingType::Sampled_texture |
+                    GPUBindingType::Readonly_storage_texture |
+                    GPUBindingType::Writeonly_storage_texture => match bind.resource {
                         GPUBindingResource::GPUTextureView(ref t) => {
-                            let desc = t.descriptor();
-                            for i in desc.baseMipLevel..desc.mipLevelCount {
-                                for j in desc.baseArrayLayer..desc.arrayLayerCount {
-                                    let subresource = TextureSubresource {
-                                        texture: DomRoot::from_ref(t.texture()),
-                                        mipmap_level: i,
-                                        array_layer: j,
-                                    };
-                                    match used_textures.entry(subresource) {
-                                        Entry::Vacant(v) => {
-                                            v.insert(GPUTextureUsageConstants::SAMPLED);
-                                        },
-                                        Entry::Occupied(mut o) => {
-                                            *o.get_mut() += GPUTextureUsageConstants::SAMPLED;
-                                        },
-                                    }
-                                }
-                            }
                             t.is_valid() && self.validate_texture_view_binding(t, layout_bind)
                         },
                         _ => false,
                     },
-                    GPUBindingType::Readonly_storage_texture |
-                    GPUBindingType::Writeonly_storage_texture => match bind.resource {
-                        GPUBindingResource::GPUTextureView(ref t) => {
-                            let desc = t.descriptor();
-                            for i in desc.baseMipLevel..desc.mipLevelCount {
-                                for j in desc.baseArrayLayer..desc.arrayLayerCount {
-                                    let subresource = TextureSubresource {
-                                        texture: DomRoot::from_ref(t.texture()),
-                                        mipmap_level: i,
-                                        array_layer: j,
-                                    };
-                                    match used_textures.entry(subresource) {
-                                        Entry::Vacant(v) => {
-                                            v.insert(GPUTextureUsageConstants::STORAGE);
-                                        },
-                                        Entry::Occupied(mut o) => {
-                                            *o.get_mut() += GPUTextureUsageConstants::STORAGE;
-                                        },
-                                    }
-                                }
-                            }
-                            t.is_valid() &&
-                                self.validate_texture_view_binding(t, layout_bind) &&
-                                t.descriptor().format == layout_bind.storageTextureFormat
-                        },
-                        _ => false,
-                    },
-                    GPUBindingType::Uniform_buffer => match bind.resource {
+                    GPUBindingType::Uniform_buffer |
+                    GPUBindingType::Storage_buffer |
+                    GPUBindingType::Readonly_storage_buffer => match bind.resource {
                         GPUBindingResource::GPUBufferBindings(ref b) => {
-                            match used_buffers.entry(DomRoot::from_ref(&*b.buffer)) {
-                                Entry::Vacant(v) => {
-                                    v.insert(GPUBufferUsageConstants::UNIFORM);
-                                },
-                                Entry::Occupied(mut o) => {
-                                    *o.get_mut() += GPUBufferUsageConstants::UNIFORM;
-                                },
-                            }
                             b.buffer.is_valid() && self.validate_buffer_binding(b, layout_bind)
                         },
                         _ => false,
-                    },
-                    GPUBindingType::Storage_buffer | GPUBindingType::Readonly_storage_buffer => {
-                        match bind.resource {
-                            GPUBindingResource::GPUBufferBindings(ref b) => {
-                                match used_buffers.entry(DomRoot::from_ref(&*b.buffer)) {
-                                    Entry::Vacant(v) => {
-                                        v.insert(GPUBufferUsageConstants::STORAGE);
-                                    },
-                                    Entry::Occupied(mut o) => {
-                                        *o.get_mut() += GPUBufferUsageConstants::STORAGE;
-                                    },
-                                }
-                                b.buffer.is_valid() && self.validate_buffer_binding(b, layout_bind)
-                            },
-                            _ => false,
-                        }
                     },
                 }
             } else {
@@ -769,25 +730,27 @@ impl GPUDeviceMethods for GPUDevice {
         let entries = descriptor
             .entries
             .iter()
-            .map(|bind| BindGroupEntry {
-                binding: bind.binding,
-                resource: match bind.resource {
-                    GPUBindingResource::GPUSampler(ref s) => BindingResource::Sampler(s.id().0),
-                    GPUBindingResource::GPUTextureView(ref t) => {
-                        BindingResource::TextureView(t.id().0)
+            .map(|bind| {
+                (
+                    bind.binding,
+                    match bind.resource {
+                        GPUBindingResource::GPUSampler(ref s) => WebGPUBindings::Sampler(s.id().0),
+                        GPUBindingResource::GPUTextureView(ref t) => {
+                            WebGPUBindings::TextureView(t.id().0)
+                        },
+                        GPUBindingResource::GPUBufferBindings(ref b) => {
+                            WebGPUBindings::Buffer(BufferBinding {
+                                buffer_id: b.buffer.id().0,
+                                offset: b.offset,
+                                size: if let Some(s) = b.size {
+                                    wgt::BufferSize(s)
+                                } else {
+                                    wgt::BufferSize::WHOLE
+                                },
+                            })
+                        },
                     },
-                    GPUBindingResource::GPUBufferBindings(ref b) => {
-                        BindingResource::Buffer(BufferBinding {
-                            buffer: b.buffer.id().0,
-                            offset: b.offset,
-                            size: if let Some(s) = b.size {
-                                wgt::BufferSize(s)
-                            } else {
-                                wgt::BufferSize::WHOLE
-                            },
-                        })
-                    },
-                },
+                )
             })
             .collect::<Vec<_>>();
 
@@ -806,39 +769,13 @@ impl GPUDeviceMethods for GPUDevice {
             })
             .expect("Failed to create WebGPU BindGroup");
 
-        let desc_entries = descriptor
-            .entries
-            .iter()
-            .map(|bind| GPUBindGroupEntry {
-                binding: bind.binding,
-                resource: match bind.resource {
-                    GPUBindingResource::GPUSampler(ref s) => {
-                        GPUBindingResource::GPUSampler(DomRoot::from_ref(&*s))
-                    },
-                    GPUBindingResource::GPUTextureView(ref t) => {
-                        GPUBindingResource::GPUTextureView(DomRoot::from_ref(&*t))
-                    },
-                    GPUBindingResource::GPUBufferBindings(ref b) => {
-                        GPUBindingResource::GPUBufferBindings(GPUBufferBindings {
-                            buffer: DomRoot::from_ref(&*b.buffer),
-                            offset: b.offset,
-                            size: b.size,
-                        })
-                    },
-                },
-            })
-            .collect::<Vec<_>>();
-
         let bind_group = webgpu::WebGPUBindGroup(bind_group_id);
         GPUBindGroup::new(
             &self.global(),
             bind_group,
             self.device,
             valid,
-            desc_entries,
             &*descriptor.layout,
-            used_buffers,
-            used_textures,
         )
     }
 
@@ -1003,6 +940,7 @@ impl GPUDeviceMethods for GPUDevice {
             lod_max_clamp: *descriptor.lodMaxClamp,
             compare: descriptor.compare.map(|c| convert_compare_function(c)),
             anisotropy_clamp: None,
+            ..Default::default()
         };
         self.channel
             .0
@@ -1015,14 +953,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         let sampler = webgpu::WebGPUSampler(sampler_id);
 
-        GPUSampler::new(
-            &self.global(),
-            self.channel.clone(),
-            self.device,
-            compare_enable,
-            sampler,
-            true,
-        )
+        GPUSampler::new(&self.global(), self.device, compare_enable, sampler, true)
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline

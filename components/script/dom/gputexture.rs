@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUObjectBaseBinding::GPUObjectDescriptorBase;
 use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
     GPUExtent3DDict, GPUTextureDimension, GPUTextureFormat, GPUTextureMethods,
 };
@@ -189,32 +188,7 @@ impl GPUTextureMethods for GPUTexture {
 
         let texture_view = WebGPUTextureView(texture_view_id);
 
-        let desc = GPUTextureViewDescriptor {
-            parent: GPUObjectDescriptorBase {
-                label: descriptor
-                    .parent
-                    .label
-                    .as_ref()
-                    .map(|l| l.as_ref().map(|u| u.clone())),
-            },
-            arrayLayerCount: if descriptor.arrayLayerCount == 0 {
-                self.texture_size.depth - descriptor.baseArrayLayer
-            } else {
-                descriptor.arrayLayerCount
-            },
-            aspect: descriptor.aspect,
-            baseArrayLayer: descriptor.baseArrayLayer,
-            baseMipLevel: descriptor.baseMipLevel,
-            dimension: Some(dimension),
-            format: Some(descriptor.format.unwrap_or(self.format)),
-            mipLevelCount: if descriptor.mipLevelCount == 0 {
-                self.mip_level_count - descriptor.baseMipLevel
-            } else {
-                descriptor.mipLevelCount
-            },
-        };
-
-        GPUTextureView::new(&self.global(), texture_view, &self, true, desc)
+        GPUTextureView::new(&self.global(), texture_view, &self, true, dimension, format)
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy

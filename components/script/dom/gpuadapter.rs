@@ -84,7 +84,9 @@ impl GPUAdapterMethods for GPUAdapter {
             extensions: wgt::Extensions::empty(),
             limits: wgt::Limits {
                 max_bind_groups: descriptor.limits.maxBindGroups,
+                ..Default::default()
             },
+            shader_validation: true,
         };
         let id = self
             .global()
