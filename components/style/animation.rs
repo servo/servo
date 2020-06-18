@@ -483,7 +483,7 @@ impl Animation {
 
         // Update the next iteration direction if applicable.
         // TODO(mrobinson): The duration might now be wrong for floating point iteration counts.
-        self.started_at += self.duration + self.delay;
+        self.started_at += self.duration;
         match self.direction {
             AnimationDirection::Alternate | AnimationDirection::AlternateReverse => {
                 self.current_direction = match self.current_direction {
