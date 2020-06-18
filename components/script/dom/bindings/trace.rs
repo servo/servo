@@ -43,6 +43,7 @@ use crate::dom::htmlimageelement::SourceSet;
 use crate::dom::htmlmediaelement::{HTMLMediaElementFetchContext, MediaFrameRenderer};
 use crate::dom::identityhub::Identities;
 use crate::script_runtime::StreamConsumer;
+use crate::script_thread::IncompleteParserContexts;
 use crate::task::TaskBox;
 use app_units::Au;
 use canvas_traits::canvas::{
@@ -183,6 +184,8 @@ pub unsafe trait JSTraceable {
 }
 
 unsafe_no_jsmanaged_fields!(Box<dyn TaskBox>, Box<dyn EventLoopWaker>);
+
+unsafe_no_jsmanaged_fields!(IncompleteParserContexts);
 
 unsafe_no_jsmanaged_fields!(MessagePortImpl);
 unsafe_no_jsmanaged_fields!(MessagePortId);

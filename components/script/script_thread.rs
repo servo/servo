@@ -500,7 +500,7 @@ impl<'a> Iterator for DocumentsIter<'a> {
 // which can trigger GC, and so we can end up tracing the script
 // thread during parsing. For this reason, we don't trace the
 // incomplete parser contexts during GC.
-type IncompleteParserContexts = Vec<(PipelineId, ParserContext)>;
+pub struct IncompleteParserContexts(RefCell<Vec<(PipelineId, ParserContext)>>);
 
 unsafe_no_jsmanaged_fields!(TaskQueue<MainThreadScriptMsg>);
 unsafe_no_jsmanaged_fields!(dyn BackgroundHangMonitorRegister);
@@ -518,7 +518,7 @@ pub struct ScriptThread {
     /// A list of data pertaining to loads that have not yet received a network response
     incomplete_loads: DomRefCell<Vec<InProgressLoad>>,
     /// A vector containing parser contexts which have not yet been fully processed
-    incomplete_parser_contexts: RefCell<IncompleteParserContexts>,
+    incomplete_parser_contexts: IncompleteParserContexts,
     /// Image cache for this script thread.
     image_cache: Arc<dyn ImageCache>,
     /// A handle to the resource thread. This is an `Arc` to avoid running out of file descriptors if
@@ -1257,7 +1257,7 @@ impl ScriptThread {
             documents: DomRefCell::new(Documents::new()),
             window_proxies: DomRefCell::new(HashMap::new()),
             incomplete_loads: DomRefCell::new(vec![]),
-            incomplete_parser_contexts: RefCell::new(vec![]),
+            incomplete_parser_contexts: IncompleteParserContexts(RefCell::new(vec![])),
 
             image_cache: state.image_cache.clone(),
             image_cache_channel: image_cache_channel,
@@ -3684,6 +3684,7 @@ impl ScriptThread {
 
         let context = ParserContext::new(id, load_data.url);
         self.incomplete_parser_contexts
+            .0
             .borrow_mut()
             .push((id, context));
 
@@ -3710,7 +3711,7 @@ impl ScriptThread {
             },
         };
 
-        let mut incomplete_parser_contexts = self.incomplete_parser_contexts.borrow_mut();
+        let mut incomplete_parser_contexts = self.incomplete_parser_contexts.0.borrow_mut();
         let parser = incomplete_parser_contexts
             .iter_mut()
             .find(|&&mut (pipeline_id, _)| pipeline_id == id);
@@ -3720,7 +3721,7 @@ impl ScriptThread {
     }
 
     fn handle_fetch_chunk(&self, id: PipelineId, chunk: Vec<u8>) {
-        let mut incomplete_parser_contexts = self.incomplete_parser_contexts.borrow_mut();
+        let mut incomplete_parser_contexts = self.incomplete_parser_contexts.0.borrow_mut();
         let parser = incomplete_parser_contexts
             .iter_mut()
             .find(|&&mut (pipeline_id, _)| pipeline_id == id);
@@ -3732,12 +3733,13 @@ impl ScriptThread {
     fn handle_fetch_eof(&self, id: PipelineId, eof: Result<ResourceFetchTiming, NetworkError>) {
         let idx = self
             .incomplete_parser_contexts
+            .0
             .borrow()
             .iter()
             .position(|&(pipeline_id, _)| pipeline_id == id);
 
         if let Some(idx) = idx {
-            let (_, mut ctxt) = self.incomplete_parser_contexts.borrow_mut().remove(idx);
+            let (_, mut ctxt) = self.incomplete_parser_contexts.0.borrow_mut().remove(idx);
             ctxt.process_response_eof(eof);
         }
     }
