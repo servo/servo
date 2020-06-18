@@ -301,8 +301,6 @@ impl RTCPeerConnection {
                     Some(channel_id),
                 );
 
-                self.register_data_channel(channel_id, &channel);
-
                 let event = RTCDataChannelEvent::new(
                     &self.global(),
                     atom!("datachannel"),
@@ -334,9 +332,9 @@ impl RTCPeerConnection {
             .data_channels
             .borrow_mut()
             .insert(id, Dom::from_ref(channel))
-            .is_none()
+            .is_some()
         {
-            debug_assert!(false, "Could not register data channel");
+            debug_assert!(false, "Data channel already registered");
         }
     }
 
