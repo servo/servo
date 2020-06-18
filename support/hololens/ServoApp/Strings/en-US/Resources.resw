@@ -111,6 +111,9 @@
   <data name="devtoolsTabServer.[using:Microsoft.UI.Xaml.Controls]TabViewItem.Header" xml:space="preserve">
     <value>Devtools Server</value>
   </data>
+  <data name="devtoolsTabConsole.[using:Microsoft.UI.Xaml.Controls]TabViewItem.Header" xml:space="preserve">
+    <value>Console</value>
+  </data>
   <data name="devtoolsTabPrefs.[using:Microsoft.UI.Xaml.Controls]TabViewItem.Header" xml:space="preserve">
     <value>Preferences</value>
   </data>

@@ -119,6 +119,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Devtools\Client.h" />
     <ClInclude Include="strutils.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="App.h">
@@ -913,6 +914,7 @@
     <Image Include="Assets\Wide310x150Logo.scale-400.png" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Devtools\Client.cpp" />
     <ClCompile Include="pch.cpp">
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>

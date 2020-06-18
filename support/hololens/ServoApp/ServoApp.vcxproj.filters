@@ -21,6 +21,9 @@
     <ClCompile Include="ServoControl\ServoControl.cpp">
       <Filter>ServoControl</Filter>
     </ClCompile>
+    <ClCompile Include="Devtools\Client.cpp">
+      <Filter>Devtools</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -37,6 +40,9 @@
     </ClInclude>
     <ClInclude Include="DefaultUrl.h" />
     <ClInclude Include="strutils.h" />
+    <ClInclude Include="Devtools\Client.h">
+      <Filter>Devtools</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
@@ -895,6 +901,9 @@
     </Filter>
     <Filter Include="Strings\fr-FR">
       <UniqueIdentifier>{b7d3273d-a27c-4176-87a1-3d5222b796b3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Devtools">
+      <UniqueIdentifier>{12da8b9d-c14a-4be1-8328-c4e729fdfd3b}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

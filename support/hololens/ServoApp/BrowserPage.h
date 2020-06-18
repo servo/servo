@@ -5,18 +5,20 @@
 #pragma once
 
 #include "BrowserPage.g.h"
-#include "ServoControl\ServoControl.h"
+#include "ServoControl/ServoControl.h"
+#include "Devtools/Client.h"
 
 namespace winrt::ServoApp::implementation {
 
 using namespace winrt::Windows;
+using namespace winrt::Windows::Data::Json;
 using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::UI::Xaml;
 
 static const hstring SERVO_SCHEME = L"fxr";
 static const hstring SERVO_SCHEME_SLASH_SLASH = L"fxr://";
 
-struct BrowserPage : BrowserPageT<BrowserPage> {
+struct BrowserPage : BrowserPageT<BrowserPage>, public servo::DevtoolsDelegate {
 public:
   BrowserPage();
 
@@ -41,6 +43,9 @@ public:
                                    RoutedEventArgs const &);
   void OnPrefererenceSearchboxEdited(IInspectable const &,
                                      Input::KeyRoutedEventArgs const &);
+  void OnDevtoolsMessage(servo::DevtoolsMessageLevel, hstring, hstring);
+  void ClearConsole();
+  void OnDevtoolsDetached();
 
 private:
   void UpdatePref(ServoApp::Pref, Controls::Control);
@@ -48,6 +53,7 @@ private:
   void BuildPrefList();
   DevtoolsStatus mDevtoolsStatus = DevtoolsStatus::Stopped;
   unsigned int mDevtoolsPort = 0;
+  std::unique_ptr<servo::DevtoolsClient> mDevtoolsClient;
 };
 } // namespace winrt::ServoApp::implementation
 

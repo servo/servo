@@ -7,11 +7,7 @@
 #include "BrowserPage.h"
 #include "BrowserPage.g.cpp"
 #include "DefaultUrl.h"
-
-#include "winrt/Microsoft.UI.Xaml.Controls.h"
-#include "winrt/Microsoft.UI.Xaml.XamlTypeInfo.h"
-#include "winrt/Windows.UI.Text.h"
-#include "winrt/Windows.UI.Xaml.Documents.h" // For Run.Text()
+#include "Devtools/Client.h"
 
 using namespace std::placeholders;
 using namespace winrt::Windows::Foundation;
@@ -21,7 +17,9 @@ using namespace winrt::Windows::UI::ViewManagement;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::ApplicationModel::Resources;
 using namespace winrt::Windows::UI::Notifications;
+using namespace winrt::Windows::Data::Json;
 using namespace winrt::Windows::Data::Xml::Dom;
+using namespace winrt::servo;
 
 namespace winrt::ServoApp::implementation {
 
@@ -46,6 +44,7 @@ void BrowserPage::BindServoEvents() {
     reloadButton().Visibility(Visibility::Collapsed);
     stopButton().IsEnabled(true);
     stopButton().Visibility(Visibility::Visible);
+    devtoolsButton().IsEnabled(true);
   });
   servoControl().OnLoadEnded([=] {
     urlbarLoadingIndicator().IsActive(false);
@@ -64,22 +63,20 @@ void BrowserPage::BindServoEvents() {
   urlTextbox().GotFocus(std::bind(&BrowserPage::OnURLFocused, this, _1));
   servoControl().OnMediaSessionMetadata(
       [=](hstring title, hstring artist, hstring album) {});
-  servoControl().OnMediaSessionPlaybackStateChange(
-      [=](const auto &, int state) {
-        if (state == servo::Servo::MediaSessionPlaybackState::None) {
-          mediaControls().Visibility(Visibility::Collapsed);
-          return;
-        }
-        mediaControls().Visibility(Visibility::Visible);
-        playButton().Visibility(
-            state == servo::Servo::MediaSessionPlaybackState::Paused
-                ? Visibility::Visible
-                : Visibility::Collapsed);
-        pauseButton().Visibility(
-            state == servo::Servo::MediaSessionPlaybackState::Paused
-                ? Visibility::Collapsed
-                : Visibility::Visible);
-      });
+  servoControl().OnMediaSessionPlaybackStateChange([=](const auto &,
+                                                       int state) {
+    if (state == Servo::MediaSessionPlaybackState::None) {
+      mediaControls().Visibility(Visibility::Collapsed);
+      return;
+    }
+    mediaControls().Visibility(Visibility::Visible);
+    playButton().Visibility(state == Servo::MediaSessionPlaybackState::Paused
+                                ? Visibility::Visible
+                                : Visibility::Collapsed);
+    pauseButton().Visibility(state == Servo::MediaSessionPlaybackState::Paused
+                                 ? Visibility::Collapsed
+                                 : Visibility::Visible);
+  });
   servoControl().OnDevtoolsStatusChanged(
       [=](DevtoolsStatus status, unsigned int port) {
         mDevtoolsStatus = status;
@@ -276,11 +273,54 @@ void BrowserPage::OnPrefererenceSearchboxEdited(
   }
 }
 
+void BrowserPage::ClearConsole() {
+  Dispatcher().RunAsync(CoreDispatcherPriority::Low,
+                        [=] { DevtoolsConsoleOutput().Blocks().Clear(); });
+}
+
+void BrowserPage::OnDevtoolsMessage(DevtoolsMessageLevel level, hstring source,
+                                    hstring body) {
+  Dispatcher().RunAsync(CoreDispatcherPriority::Low, [=] {
+    // Temporary text-based logs. Should use gridview.
+    auto paragraph = Documents::Paragraph();
+
+    auto run1 = Documents::Run();
+    if (level == DevtoolsMessageLevel::Warn) {
+      run1.Text(L"warn: ");
+    } else if (level == DevtoolsMessageLevel::Error) {
+      run1.Text(L"error: ");
+    } else if (level == DevtoolsMessageLevel::None) {
+      run1.Text(L"");
+    }
+    paragraph.Inlines().Append(run1);
+
+    auto run2 = Documents::Run();
+    run2.Text(body);
+    paragraph.Inlines().Append(run2);
+
+    auto run3 = Documents::Run();
+    run3.Text(L" " + source);
+    paragraph.Inlines().Append(run3);
+
+    DevtoolsConsoleOutput().Blocks().Append(paragraph);
+
+    // Scroll to last message
+    auto offset = DevtoolsConsoleScrollViewer().ExtentHeight();
+    DevtoolsConsoleScrollViewer().ChangeView(nullptr, offset, nullptr);
+  });
+}
+
+void BrowserPage::OnDevtoolsDetached() {}
+
 void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
                                           RoutedEventArgs const &) {
   if (toolbox().Visibility() == Visibility::Visible) {
     prefList().Children().Clear();
     toolbox().Visibility(Visibility::Collapsed);
+    DevtoolsConsoleOutput().Blocks().Clear();
+    if (mDevtoolsClient != nullptr) {
+      mDevtoolsClient->Stop();
+    }
     return;
   }
 
@@ -290,10 +330,16 @@ void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
 
   auto resourceLoader = ResourceLoader::GetForCurrentView();
   if (mDevtoolsStatus == DevtoolsStatus::Running) {
+    hstring port = to_hstring(mDevtoolsPort);
+    if (mDevtoolsClient == nullptr) {
+      DevtoolsDelegate *dd = static_cast<DevtoolsDelegate *>(this);
+      mDevtoolsClient =
+          std::make_unique<DevtoolsClient>(L"localhost", port, *dd);
+    }
+    mDevtoolsClient->Run();
     std::wstring message =
         resourceLoader.GetString(L"devtoolsStatus/Running").c_str();
-    std::wstring formatted =
-        format(message, std::to_wstring(mDevtoolsPort).c_str());
+    std::wstring formatted = format(message, port.c_str());
     DevtoolsStatusMessage().Text(formatted);
   } else if (mDevtoolsStatus == DevtoolsStatus::Failed) {
     DevtoolsStatusMessage().Text(
@@ -317,12 +363,12 @@ void BrowserPage::OnURLEdited(IInspectable const &,
 void BrowserPage::OnMediaControlsPlayClicked(IInspectable const &,
                                              RoutedEventArgs const &) {
   servoControl().SendMediaSessionAction(
-      static_cast<int32_t>(servo::Servo::MediaSessionActionType::Play));
+      static_cast<int32_t>(Servo::MediaSessionActionType::Play));
 }
 void BrowserPage::OnMediaControlsPauseClicked(IInspectable const &,
                                               RoutedEventArgs const &) {
   servoControl().SendMediaSessionAction(
-      static_cast<int32_t>(servo::Servo::MediaSessionActionType::Pause));
+      static_cast<int32_t>(Servo::MediaSessionActionType::Pause));
 }
 
 } // namespace winrt::ServoApp::implementation
