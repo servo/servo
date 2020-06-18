@@ -29,18 +29,6 @@ promise_test(async testCase => {
 }, 'cookieStore.set with name and value in options');
 
 promise_test(async testCase => {
-  await cookieStore.delete('cookie-name');
-
-  cookieStore.set('cookie-name', 'cookie-value', { name: 'wrong-cookie-name' });
-  testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
-  });
-  const cookie = await cookieStore.get('cookie-name');
-  assert_equals(cookie.name, 'cookie-name');
-  assert_equals(cookie.value, 'cookie-value');
-}, 'cookieStore.set with name in both positional arguments and options');
-
-promise_test(async testCase => {
   await promise_rejects_js(testCase, TypeError,
       cookieStore.set('', 'suspicious-value=resembles-name-and-value'));
 }, "cookieStore.set with empty name and an '=' in value");
@@ -57,54 +45,14 @@ promise_test(async testCase => {
 }, "cookieStore.set with normal name and an '=' in value");
 
 promise_test(async testCase => {
-  await cookieStore.delete('cookie-name');
-
-  cookieStore.set('cookie-name', 'cookie-value',
-                  { value: 'wrong-cookie-value' });
-  testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
-  });
-  const cookie = await cookieStore.get('cookie-name');
-  assert_equals(cookie.name, 'cookie-name');
-  assert_equals(cookie.value, 'cookie-value');
-}, 'cookieStore.set with value in both positional arguments and options');
-
-promise_test(async testCase => {
   const tenYears = 10 * 365 * 24 * 60 * 60 * 1000;
   const tenYearsFromNow = Date.now() + tenYears;
   await cookieStore.delete('cookie-name');
 
   await cookieStore.set(
-      'cookie-name', 'cookie-value', { expires: tenYearsFromNow });
-  testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
-  });
-  const cookie = await cookieStore.get('cookie-name');
-  assert_equals(cookie.name, 'cookie-name');
-  assert_equals(cookie.value, 'cookie-value');
-}, 'cookieStore.set with expires set to a future timestamp');
-
-promise_test(async testCase => {
-  const tenYears = 10 * 365 * 24 * 60 * 60 * 1000;
-  const tenYearsAgo = Date.now() - tenYears;
-  await cookieStore.delete('cookie-name');
-
-  await cookieStore.set(
-      'cookie-name', 'cookie-value', { expires: tenYearsAgo });
-  testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
-  });
-  const cookie = await cookieStore.get('cookie-name');
-  assert_equals(cookie, null);
-}, 'cookieStore.set with expires set to a past timestamp');
-
-promise_test(async testCase => {
-  const tenYears = 10 * 365 * 24 * 60 * 60 * 1000;
-  const tenYearsFromNow = Date.now() + tenYears;
-  await cookieStore.delete('cookie-name');
-
-  await cookieStore.set(
-      'cookie-name', 'cookie-value', { expires: new Date(tenYearsFromNow) });
+      { name: 'cookie-name',
+        value: 'cookie-value',
+        expires: new Date(tenYearsFromNow) });
   testCase.add_cleanup(async () => {
     await cookieStore.delete('cookie-name');
   });
@@ -119,7 +67,9 @@ promise_test(async testCase => {
   await cookieStore.delete('cookie-name');
 
   await cookieStore.set(
-      'cookie-name', 'cookie-value', { expires: new Date(tenYearsAgo) });
+      { name :'cookie-name',
+        value: 'cookie-value',
+        expires: new Date(tenYearsAgo) });
   testCase.add_cleanup(async () => {
     await cookieStore.delete('cookie-name');
   });
@@ -140,7 +90,7 @@ promise_test(async testCase => {
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie.name, 'cookie-name');
   assert_equals(cookie.value, 'cookie-value');
-}, 'cookieStore.set with name and value in options and expires in the future');
+}, 'cookieStore.set with expires set to a future timestamp');
 
 promise_test(async testCase => {
   const tenYears = 10 * 365 * 24 * 60 * 60 * 1000;
@@ -154,19 +104,21 @@ promise_test(async testCase => {
   });
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie, null);
-}, 'cookieStore.set with name and value in options and expires in the past');
+}, 'cookieStore.set with expires set to a past timestamp');
 
 promise_test(async testCase => {
   const currentUrl = new URL(self.location.href);
   const currentDomain = currentUrl.hostname;
 
   await promise_rejects_js(testCase, TypeError, cookieStore.set(
-      'cookie-name', 'cookie-value', { domain: `.${currentDomain}` }));
+      { name: 'cookie-name',
+        value: 'cookie-value',
+        domain: `.${currentDomain}` }));
 }, 'cookieStore.set domain starts with "."');
 
 promise_test(async testCase => {
   await promise_rejects_js(testCase, TypeError, cookieStore.set(
-      'cookie-name', 'cookie-value', { domain: 'example.com' }));
+      { name: 'cookie-name', value: 'cookie-value', domain: 'example.com' }));
 }, 'cookieStore.set with domain that is not equal current host');
 
 promise_test(async testCase => {
@@ -175,7 +127,7 @@ promise_test(async testCase => {
   await cookieStore.delete({ name: 'cookie-name', domain: currentDomain });
 
   await cookieStore.set(
-      'cookie-name', 'cookie-value', { domain: currentDomain });
+      { name: 'cookie-name', value: 'cookie-value', domain: currentDomain });
   testCase.add_cleanup(async () => {
     await cookieStore.delete({ name: 'cookie-name', domain: currentDomain });
   });
@@ -190,7 +142,7 @@ promise_test(async testCase => {
   const subDomain = `sub.${currentDomain}`;
 
   await promise_rejects_js(testCase, TypeError, cookieStore.set(
-      'cookie-name', 'cookie-value', { domain: subDomain }));
+      { name: 'cookie-name', value: 'cookie-value', domain: subDomain }));
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie, null);
 }, 'cookieStore.set with domain set to a subdomain of the current hostname');
@@ -203,7 +155,7 @@ promise_test(async testCase => {
   const domainSuffix = currentDomain.substr(1);
 
   await promise_rejects_js(testCase, TypeError, cookieStore.set(
-      'cookie-name', 'cookie-value', { domain: domainSuffix }));
+      { name: 'cookie-name', value: 'cookie-value', domain: domainSuffix }));
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie, null);
 }, 'cookieStore.set with domain set to a non-domain-matching suffix of the ' +
@@ -218,8 +170,8 @@ promise_test(async testCase => {
   testCase.add_cleanup(async () => {
     await cookieStore.delete('cookie-name');
   });
-  await cookieStore.set('cookie-name', 'cookie-value2',
-                        { domain: currentDomain });
+  await cookieStore.set(
+      { name: 'cookie-name', value: 'cookie-value2', domain: currentDomain });
   testCase.add_cleanup(async () => {
     await cookieStore.delete({ name: 'cookie-name', domain: currentDomain });
   });
@@ -243,7 +195,7 @@ promise_test(async testCase => {
   await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
 
   await cookieStore.set(
-      'cookie-name', 'cookie-value', { path: currentDirectory });
+      { name: 'cookie-name', value: 'cookie-value', path: currentDirectory });
   testCase.add_cleanup(async () => {
     await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
   });
@@ -262,7 +214,7 @@ promise_test(async testCase => {
   await cookieStore.delete({ name: 'cookie-name', path: subDirectory });
 
   await cookieStore.set(
-      'cookie-name', 'cookie-value', { path: subDirectory });
+      { name: 'cookie-name', value: 'cookie-value', path: subDirectory });
   testCase.add_cleanup(async () => {
     await cookieStore.delete({ name: 'cookie-name', path: subDirectory });
   });
@@ -277,7 +229,8 @@ promise_test(async testCase => {
   testCase.add_cleanup(async () => {
     await cookieStore.delete('cookie-name');
   });
-  await cookieStore.set('cookie-name', 'cookie-new-value', { path: '/' });
+  await cookieStore.set(
+      { name: 'cookie-name', value: 'cookie-new-value', path: '/' });
   testCase.add_cleanup(async () => {
     await cookieStore.delete({ name: 'cookie-name',  path: '/' });
   });
@@ -295,7 +248,7 @@ promise_test(async testCase => {
   await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
 
   await cookieStore.set(
-      'cookie-name', 'cookie-value', { path: currentDirectory });
+      { name: 'cookie-name', value: 'cookie-value', path: currentDirectory });
   testCase.add_cleanup(async () => {
     await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
   });
@@ -313,7 +266,7 @@ promise_test(async testCase => {
   const invalidPath = currentDirectory.substr(1);
 
   await promise_rejects_js(testCase, TypeError, cookieStore.set(
-      'cookie-name', 'cookie-value', { path: invalidPath }));
+      { name: 'cookie-name', value: 'cookie-value', path: invalidPath }));
 }, 'cookieStore.set with path that does not start with /');
 
 promise_test(async testCase => {

@@ -52,8 +52,8 @@ promise_test(async testCase => {
 promise_test(async testCase => {
   await cookieStore.delete('cookie-name');
 
-  await cookieStore.set('cookie-name', 'cookie-value',
-                        { expires: kTenYearsFromNow });
+  await cookieStore.set({ name: 'cookie-name', value: 'cookie-value',
+                          expires: kTenYearsFromNow });
   testCase.add_cleanup(async () => {
     await cookieStore.delete('cookie-name');
   });
@@ -73,27 +73,7 @@ promise_test(async testCase => {
   await cookieStore.delete('cookie-name');
 
   await cookieStore.set({ name: 'cookie-name', value: 'cookie-value',
-                          expires: kTenYearsFromNow });
-  testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
-  });
-  const cookie = await cookieStore.get('cookie-name');
-  assert_equals(cookie.name, 'cookie-name');
-  assert_equals(cookie.value, 'cookie-value');
-  assert_equals(cookie.domain, null);
-  assert_equals(cookie.path, '/');
-  assert_approx_equals(cookie.expires, kTenYearsFromNow, kOneDay);
-  assert_equals(cookie.secure, true);
-  assert_equals(cookie.sameSite, 'strict');
-  assert_array_equals(Object.keys(cookie).sort(), kCookieListItemKeys);
-}, 'CookieListItem - cookieStore.set with name and value in options and ' +
-   'expires set to a future timestamp');
-
-promise_test(async testCase => {
-  await cookieStore.delete('cookie-name');
-
-  await cookieStore.set('cookie-name', 'cookie-value',
-                        { expires: new Date(kTenYearsFromNow) });
+                          expires: new Date(kTenYearsFromNow) });
   testCase.add_cleanup(async () => {
     await cookieStore.delete('cookie-name');
   });
@@ -108,30 +88,10 @@ promise_test(async testCase => {
    'years in the future');
 
 promise_test(async testCase => {
-  await cookieStore.delete('cookie-name');
-
-  await cookieStore.set({ name: 'cookie-name', value: 'cookie-value',
-                          expires: new Date(kTenYearsFromNow) });
-  testCase.add_cleanup(async () => {
-    await cookieStore.delete('cookie-name');
-  });
-  const cookie = await cookieStore.get('cookie-name');
-  assert_equals(cookie.name, 'cookie-name');
-  assert_equals(cookie.value, 'cookie-value');
-  assert_equals(cookie.domain, null);
-  assert_equals(cookie.path, '/');
-  assert_approx_equals(cookie.expires, kTenYearsFromNow, kOneDay);
-  assert_equals(cookie.secure, true);
-  assert_equals(cookie.sameSite, 'strict');
-  assert_array_equals(Object.keys(cookie).sort(), kCookieListItemKeys);
-}, 'CookieListItem - cookieStore.set with name and value in options and ' +
-   'expires set to a future Date');
-
-promise_test(async testCase => {
   await cookieStore.delete({ name: 'cookie-name', domain: kCurrentHostname });
 
-  await cookieStore.set('cookie-name', 'cookie-value',
-                        { domain: kCurrentHostname });
+  await cookieStore.set({ name: 'cookie-name', value: 'cookie-value',
+                          domain: kCurrentHostname });
   testCase.add_cleanup(async () => {
     await cookieStore.delete({ name: 'cookie-name', domain: kCurrentHostname });
   });
@@ -153,8 +113,8 @@ promise_test(async testCase => {
       currentPath.substr(0, currentPath.lastIndexOf('/') + 1);
   await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
 
-  await cookieStore.set('cookie-name', 'cookie-value',
-                        { path: currentDirectory });
+  await cookieStore.set({ name: 'cookie-name', value: 'cookie-value',
+                          path: currentDirectory });
   testCase.add_cleanup(async () => {
     await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
   });
@@ -175,8 +135,8 @@ promise_test(async testCase => {
   const currentDirectory = currentPath.substr(0, currentPath.lastIndexOf('/'));
   await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
 
-  await cookieStore.set('cookie-name', 'cookie-value',
-                        { path: currentDirectory });
+  await cookieStore.set({ name: 'cookie-name', value: 'cookie-value',
+                          path: currentDirectory });
   testCase.add_cleanup(async () => {
     await cookieStore.delete({ name: 'cookie-name', path: currentDirectory });
   });
@@ -211,23 +171,4 @@ promise_test(async testCase => {
     assert_array_equals(Object.keys(cookie).sort(), kCookieListItemKeys);
   }, `CookieListItem - cookieStore.set with sameSite set to ${sameSiteValue}`);
 
-  promise_test(async testCase => {
-    await cookieStore.delete('cookie-name');
-
-    await cookieStore.set('cookie-name', 'cookie-value',
-                          { sameSite: sameSiteValue });
-    testCase.add_cleanup(async () => {
-      await cookieStore.delete('cookie-name');
-    });
-    const cookie = await cookieStore.get('cookie-name');
-    assert_equals(cookie.name, 'cookie-name');
-    assert_equals(cookie.value, 'cookie-value');
-    assert_equals(cookie.domain, null);
-    assert_equals(cookie.path, '/');
-    assert_equals(cookie.expires, null);
-    assert_equals(cookie.secure, true);
-    assert_equals(cookie.sameSite, sameSiteValue);
-    assert_array_equals(Object.keys(cookie).sort(), kCookieListItemKeys);
-  }, 'CookieListItem - cookieStore.set with positional name and value and ' +
-     `sameSite set to ${sameSiteValue}`);
 });

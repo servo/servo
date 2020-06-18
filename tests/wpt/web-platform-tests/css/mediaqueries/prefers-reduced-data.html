@@ -28,11 +28,14 @@ query_should_not_be_js_parseable("(prefers-reduced-data: reduced)");
 query_should_not_be_js_parseable("(prefers-reduced-data: no-preference/reduce)");
 
 test(() => {
-  // What this is saying is that 'no-preference' is not the default, so
-  // irregardless of the current OS settings, (prefers-reduced-data).matches
-  // should not be equivalent to (prefers-reduced-data: no-preference).matches.
+  // https://drafts.csswg.org/mediaqueries-5/#boolean-context
   let booleanContext = window.matchMedia("(prefers-reduced-data)");
   let noPreference = window.matchMedia("(prefers-reduced-data: no-preference)");
   assert_equals(booleanContext.matches, !noPreference.matches);
 }, "Check that no-preference evaluates to false in the boolean context");
+
+test(() => {
+  let invalid = window.matchMedia("(prefers-reduced-data: 10px)");
+  assert_equals(invalid.matches, false);
+}, "Check that invalid evaluates to false");
 </script>

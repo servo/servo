@@ -10,7 +10,7 @@ function createFileSync(testCase, fileName) {
   const file = nativeIO.openSync(fileName);
   testCase.add_cleanup(() => {
     file.close();
-    nativeIO.deleteSync('test_file');
+    nativeIO.deleteSync(fileName);
   });
 
   const writtenBytes = Uint8Array.from([64, 65, 66, 67]);

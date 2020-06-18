@@ -1,0 +1,107 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>Content Visibility: measure layout</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="content-visibility hidden element layout is correct">
+<meta name="assert" content="content-visibility hidden element's subtree layout is correct">
+
+<style>
+#container {
+  background: lightgreen;
+  contain: layout;
+}
+.hidden {
+  content-visibility: hidden;
+}
+#sizer {
+  width: 100px;
+  height: 100px;
+}
+.child {
+  width: 20px;
+  height: 20%;
+  background: cyan;
+}
+#spacer {
+  width: 150px;
+  height: 150px;
+  background: green;
+}
+</style>
+
+<div id="parent"></div>
+<div id="spacer"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+async_test((t) => {
+  function createChild(id) {
+    const child = document.createElement("div");
+    child.classList = "child";
+    child.id = id;
+    return child;
+  }
+
+  function measureForced() {
+    t.step(() => {
+      // Ensure children are laid out; this forces a layout if it wasn't done.
+      assert_equals(document.getElementById("0").offsetTop, 0, "0 forced");
+      assert_equals(document.getElementById("1").offsetTop, 20, "1 forced");
+      assert_equals(document.getElementById("2").offsetTop, 40, "2 forced");
+      // Both parent should be 0 height, since it's hidden. Both parent and spacers
+      // should have 8 offsetTop.
+      assert_equals(document.getElementById("parent").offsetTop, 8, "parent forced");
+      assert_equals(document.getElementById("spacer").offsetTop, 8, "spacer forced");
+    });
+  }
+
+  function measureWhenVisible() {
+    t.step(() => {
+      // Ensure children are still laid out.
+      assert_equals(document.getElementById("0").offsetTop, 0, "0 when visible");
+      assert_equals(document.getElementById("1").offsetTop, 20, "1 when visible");
+      assert_equals(document.getElementById("2").offsetTop, 40, "2 when visible");
+      // Now the parent should encompass a container, so spacer is pushed down.
+      assert_equals(document.getElementById("parent").offsetTop, 8, "parent when visible");
+      assert_equals(document.getElementById("spacer").offsetTop, 108, "spacer when visible");
+    });
+  }
+
+  function construct(container) {
+    const sizer = document.createElement("div");
+    sizer.id = "sizer";
+    container.appendChild(sizer);
+    sizer.appendChild(createChild("0"));
+    sizer.appendChild(createChild("1"));
+    sizer.appendChild(createChild("2"));
+  }
+
+  async function runTest() {
+    const container = document.createElement("div");
+    container.id = "container";
+
+    document.getElementById("parent").appendChild(container);
+    container.classList.add("hidden");
+    requestAnimationFrame(() => {
+      construct(container);
+      measureForced();
+
+      container.classList.remove("hidden");
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        measureWhenVisible();
+        t.done();
+      }));
+    });
+  }
+
+  window.onload = function() {
+    requestAnimationFrame(() => requestAnimationFrame(runTest));
+  };
+}, "Measure Forced Layout");
+</script>
+
+</html>
