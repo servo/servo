@@ -4,5 +4,15 @@ namespace ServoApp
     runtimeclass BrowserPage : Windows.UI.Xaml.Controls.Page
     {
         BrowserPage();
+        Windows.Foundation.Collections.IObservableVector<IInspectable> ConsoleLogs{ get; };
+    }
+
+    runtimeclass ConsoleLog
+    {
+        ConsoleLog(Windows.UI.Color fgColor, Windows.UI.Color bgColor, String body, String source);
+        Windows.UI.Xaml.Media.SolidColorBrush FgColor { get; };
+        Windows.UI.Xaml.Media.SolidColorBrush BgColor { get; };
+        String Body{ get; };
+        String Source{ get; };
     }
 }

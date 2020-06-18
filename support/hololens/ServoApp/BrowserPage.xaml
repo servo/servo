@@ -150,10 +150,34 @@
                 </Grid>
             </muxc:TabView.TabStripFooter>
             <muxc:TabViewItem x:Uid="devtoolsTabConsole" IsClosable="False">
-                <ScrollViewer x:Name="DevtoolsConsoleScrollViewer" VerticalScrollMode="Enabled" HorizontalScrollMode="Enabled">
-                    <RichTextBlock x:Name="DevtoolsConsoleOutput" FontSize="10" FontFamily="Consolas" LineHeight="14">
-                    </RichTextBlock>
-                </ScrollViewer>
+                <ListView ItemsSource="{x:Bind ConsoleLogs}">
+                    <ListView.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsStackPanel Orientation="Vertical" ItemsUpdatingScrollMode="KeepLastItemInView"/>
+                        </ItemsPanelTemplate>
+                    </ListView.ItemsPanel>
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="local:ConsoleLog">
+                            <Grid Background="{x:Bind BgColor}" Padding="2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Ellipse Width="8" Height="8" Fill="{x:Bind FgColor}" Grid.Column="0" Margin="10,0"/>
+                                <TextBlock FontSize="12" Text="{x:Bind Body}"  Grid.Column="1"/>
+                                <TextBlock FontSize="12" Text="{x:Bind Source}" Foreground="Gray" Grid.Column="2" Margin="10,0"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="Padding" Value="0"/>
+                            <Setter Property="MinHeight" Value="0"/>
+                            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                </ListView>
             </muxc:TabViewItem>
             <muxc:TabViewItem x:Uid="devtoolsTabServer" IsClosable="False">
                 <TextBlock x:Name="DevtoolsStatusMessage" Margin="10"></TextBlock>

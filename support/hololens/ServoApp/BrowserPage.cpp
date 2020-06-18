@@ -6,6 +6,7 @@
 #include "strutils.h"
 #include "BrowserPage.h"
 #include "BrowserPage.g.cpp"
+#include "ConsoleLog.g.cpp"
 #include "DefaultUrl.h"
 #include "Devtools/Client.h"
 
@@ -26,6 +27,7 @@ namespace winrt::ServoApp::implementation {
 BrowserPage::BrowserPage() {
   InitializeComponent();
   BindServoEvents();
+  mLogs = winrt::single_threaded_observable_vector<IInspectable>();
 }
 
 void BrowserPage::BindServoEvents() {
@@ -274,39 +276,22 @@ void BrowserPage::OnPrefererenceSearchboxEdited(
 }
 
 void BrowserPage::ClearConsole() {
-  Dispatcher().RunAsync(CoreDispatcherPriority::Low,
-                        [=] { DevtoolsConsoleOutput().Blocks().Clear(); });
+  Dispatcher().RunAsync(CoreDispatcherPriority::High, [=] { mLogs.Clear(); });
 }
 
 void BrowserPage::OnDevtoolsMessage(DevtoolsMessageLevel level, hstring source,
                                     hstring body) {
-  Dispatcher().RunAsync(CoreDispatcherPriority::Low, [=] {
-    // Temporary text-based logs. Should use gridview.
-    auto paragraph = Documents::Paragraph();
-
-    auto run1 = Documents::Run();
-    if (level == DevtoolsMessageLevel::Warn) {
-      run1.Text(L"warn: ");
-    } else if (level == DevtoolsMessageLevel::Error) {
-      run1.Text(L"error: ");
-    } else if (level == DevtoolsMessageLevel::None) {
-      run1.Text(L"");
+  Dispatcher().RunAsync(CoreDispatcherPriority::High, [=] {
+    auto fgColor = UI::Colors::White();
+    auto bgColor = UI::Colors::White();
+    if (level == servo::DevtoolsMessageLevel::Error) {
+      fgColor = UI::Colors::Red();
+      bgColor = UI::Colors::LightPink();
+    } else if (level == servo::DevtoolsMessageLevel::Warn) {
+      fgColor = UI::Colors::Orange();
+      bgColor = UI::Colors::LightYellow();
     }
-    paragraph.Inlines().Append(run1);
-
-    auto run2 = Documents::Run();
-    run2.Text(body);
-    paragraph.Inlines().Append(run2);
-
-    auto run3 = Documents::Run();
-    run3.Text(L" " + source);
-    paragraph.Inlines().Append(run3);
-
-    DevtoolsConsoleOutput().Blocks().Append(paragraph);
-
-    // Scroll to last message
-    auto offset = DevtoolsConsoleScrollViewer().ExtentHeight();
-    DevtoolsConsoleScrollViewer().ChangeView(nullptr, offset, nullptr);
+    mLogs.Append(make<ConsoleLog>(fgColor, bgColor, body, source));
   });
 }
 
@@ -317,7 +302,7 @@ void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
   if (toolbox().Visibility() == Visibility::Visible) {
     prefList().Children().Clear();
     toolbox().Visibility(Visibility::Collapsed);
-    DevtoolsConsoleOutput().Blocks().Clear();
+    ClearConsole();
     if (mDevtoolsClient != nullptr) {
       mDevtoolsClient->Stop();
     }
