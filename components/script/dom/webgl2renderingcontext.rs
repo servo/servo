@@ -29,7 +29,8 @@ use crate::dom::webglprogram::WebGLProgram;
 use crate::dom::webglquery::WebGLQuery;
 use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{
-    uniform_get, uniform_typed, Operation, TexPixels, VertexAttrib, WebGLRenderingContext,
+    uniform_get, uniform_typed, Operation, TexPixels, TexSource, VertexAttrib,
+    WebGLRenderingContext,
 };
 use crate::dom::webglsampler::{WebGLSampler, WebGLSamplerValue};
 use crate::dom::webglshader::WebGLShader;
@@ -2926,6 +2927,79 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         border: i32,
         format: u32,
         type_: u32,
+        pbo_offset: i64,
+    ) -> Fallible<()> {
+        let pixel_unpack_buffer = match self.bound_pixel_unpack_buffer.get() {
+            Some(pixel_unpack_buffer) => pixel_unpack_buffer,
+            None => return Ok(self.base.webgl_error(InvalidOperation)),
+        };
+
+        if let Some(tf_buffer) = self.bound_transform_feedback_buffer.get() {
+            if pixel_unpack_buffer == tf_buffer {
+                return Ok(self.base.webgl_error(InvalidOperation));
+            }
+        }
+
+        if pbo_offset < 0 || pbo_offset as usize > pixel_unpack_buffer.capacity() {
+            return Ok(self.base.webgl_error(InvalidValue));
+        }
+
+        let unpacking_alignment = self.base.texture_unpacking_alignment();
+
+        let validator = TexImage2DValidator::new(
+            &self.base,
+            target,
+            level,
+            internalformat as u32,
+            width,
+            height,
+            border,
+            format,
+            type_,
+        );
+
+        let TexImage2DValidatorResult {
+            texture,
+            target,
+            width,
+            height,
+            level,
+            border,
+            internal_format,
+            format,
+            data_type,
+        } = match validator.validate() {
+            Ok(result) => result,
+            Err(_) => return Ok(()),
+        };
+
+        self.base.tex_image_2d(
+            &texture,
+            target,
+            data_type,
+            internal_format,
+            format,
+            level,
+            border,
+            unpacking_alignment,
+            Size2D::new(width, height),
+            TexSource::BufferOffset(pbo_offset),
+        );
+
+        Ok(())
+    }
+
+    /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
+    fn TexImage2D___(
+        &self,
+        target: u32,
+        level: i32,
+        internalformat: i32,
+        width: i32,
+        height: i32,
+        border: i32,
+        format: u32,
+        type_: u32,
         source: ImageDataOrHTMLImageElementOrHTMLCanvasElementOrHTMLVideoElement,
     ) -> Fallible<()> {
         if self.bound_pixel_unpack_buffer.get().is_some() {
@@ -2975,7 +3049,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             level,
             border,
             unpacking_alignment,
-            pixels,
+            pixels.size(),
+            TexSource::Pixels(pixels),
         );
 
         Ok(())
@@ -2983,7 +3058,7 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
 
     /// https://www.khronos.org/registry/webgl/specs/latest/2.0/#3.7.6
     #[allow(unsafe_code)]
-    fn TexImage2D___(
+    fn TexImage2D____(
         &self,
         target: u32,
         level: i32,
@@ -3060,6 +3135,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             return Ok(self.base.webgl_error(InvalidOperation));
         }
 
+        let size = Size2D::new(width, height);
+
         self.base.tex_image_2d(
             &texture,
             target,
@@ -3069,7 +3146,8 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
             level,
             border,
             unpacking_alignment,
-            TexPixels::from_array(buff, Size2D::new(width, height)),
+            size,
+            TexSource::Pixels(TexPixels::from_array(buff, size)),
         );
 
         Ok(())

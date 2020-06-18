@@ -927,7 +927,7 @@ impl WebGLThread {
                     0,
                     gl::RGBA,
                     gl::UNSIGNED_BYTE,
-                    None,
+                    gl::TexImageSource::Pixels(None),
                 );
                 self.dom_outputs.insert(
                     pipeline_id,
@@ -1593,7 +1593,31 @@ impl WebGLImpl {
                     0,
                     format.as_gl_constant(),
                     effective_data_type,
-                    Some(&pixels),
+                    gl::TexImageSource::Pixels(Some(&pixels)),
+                );
+            },
+            WebGLCommand::TexImage2DPBO {
+                target,
+                level,
+                internal_format,
+                size,
+                format,
+                effective_data_type,
+                unpacking_alignment,
+                offset,
+            } => {
+                gl.pixel_store_i(gl::UNPACK_ALIGNMENT, unpacking_alignment as i32);
+
+                gl.tex_image_2d(
+                    target,
+                    level as i32,
+                    internal_format.as_gl_constant() as i32,
+                    size.width as i32,
+                    size.height as i32,
+                    0,
+                    format.as_gl_constant(),
+                    effective_data_type,
+                    gl::TexImageSource::BufferOffset(offset),
                 );
             },
             WebGLCommand::TexSubImage2D {

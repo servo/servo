@@ -613,12 +613,13 @@ impl WebGLRenderingContext {
             level,
             0,
             1,
-            TexPixels::new(
+            size,
+            TexSource::Pixels(TexPixels::new(
                 IpcSharedMemory::from_bytes(&pixels),
                 size,
                 PixelFormat::RGBA8,
                 true,
-            ),
+            )),
         );
 
         false
@@ -756,15 +757,16 @@ impl WebGLRenderingContext {
         level: u32,
         _border: u32,
         unpacking_alignment: u32,
-        pixels: TexPixels,
+        size: Size2D<u32>,
+        source: TexSource,
     ) {
         // TexImage2D depth is always equal to 1.
         handle_potential_webgl_error!(
             self,
             texture.initialize(
                 target,
-                pixels.size.width,
-                pixels.size.height,
+                size.width,
+                size.height,
                 1,
                 format,
                 level,
@@ -774,12 +776,6 @@ impl WebGLRenderingContext {
 
         let settings = self.texture_unpacking_settings.get();
         let dest_premultiplied = settings.contains(TextureUnpacking::PREMULTIPLY_ALPHA);
-
-        let alpha_treatment = match (pixels.premultiplied, dest_premultiplied) {
-            (true, false) => Some(AlphaTreatment::Unmultiply),
-            (false, true) => Some(AlphaTreatment::Premultiply),
-            _ => None,
-        };
 
         let y_axis_treatment = if settings.contains(TextureUnpacking::FLIP_Y_AXIS) {
             YAxisTreatment::Flipped
@@ -795,21 +791,43 @@ impl WebGLRenderingContext {
             .extension_manager
             .effective_type(data_type.as_gl_constant());
 
-        // TODO(emilio): convert colorspace if requested.
-        self.send_command(WebGLCommand::TexImage2D {
-            target: target.as_gl_constant(),
-            level,
-            internal_format,
-            size: pixels.size,
-            format,
-            data_type,
-            effective_data_type,
-            unpacking_alignment,
-            alpha_treatment,
-            y_axis_treatment,
-            pixel_format: pixels.pixel_format,
-            data: pixels.data.into(),
-        });
+        match source {
+            TexSource::Pixels(pixels) => {
+                let alpha_treatment = match (pixels.premultiplied, dest_premultiplied) {
+                    (true, false) => Some(AlphaTreatment::Unmultiply),
+                    (false, true) => Some(AlphaTreatment::Premultiply),
+                    _ => None,
+                };
+
+                // TODO(emilio): convert colorspace if requested.
+                self.send_command(WebGLCommand::TexImage2D {
+                    target: target.as_gl_constant(),
+                    level,
+                    internal_format,
+                    size,
+                    format,
+                    data_type,
+                    effective_data_type,
+                    unpacking_alignment,
+                    alpha_treatment,
+                    y_axis_treatment,
+                    pixel_format: pixels.pixel_format,
+                    data: pixels.data.into(),
+                });
+            },
+            TexSource::BufferOffset(offset) => {
+                self.send_command(WebGLCommand::TexImage2DPBO {
+                    target: target.as_gl_constant(),
+                    level,
+                    internal_format,
+                    size,
+                    format,
+                    effective_data_type,
+                    unpacking_alignment,
+                    offset,
+                });
+            },
+        }
 
         if let Some(fb) = self.bound_draw_framebuffer.get() {
             fb.invalidate_texture(&*texture);
@@ -839,9 +857,9 @@ impl WebGLRenderingContext {
         //   - x offset plus the width is greater than the texture width
         //   - y offset plus the height is greater than the texture height
         if xoffset < 0 ||
-            (xoffset as u32 + pixels.size.width) > image_info.width() ||
+            (xoffset as u32 + pixels.size().width) > image_info.width() ||
             yoffset < 0 ||
-            (yoffset as u32 + pixels.size.height) > image_info.height()
+            (yoffset as u32 + pixels.size().height) > image_info.height()
         {
             return self.webgl_error(InvalidValue);
         }
@@ -884,7 +902,7 @@ impl WebGLRenderingContext {
             level,
             xoffset,
             yoffset,
-            size: pixels.size,
+            size: pixels.size(),
             format,
             data_type,
             effective_data_type,
@@ -4319,6 +4337,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             return Ok(());
         }
 
+        let size = Size2D::new(width, height);
+
         self.tex_image_2d(
             &texture,
             target,
@@ -4328,7 +4348,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             level,
             border,
             unpacking_alignment,
-            TexPixels::from_array(buff, Size2D::new(width, height)),
+            size,
+            TexSource::Pixels(TexPixels::from_array(buff, size)),
         );
 
         Ok(())
@@ -4358,8 +4379,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             target,
             level,
             internal_format as u32,
-            pixels.size.width as i32,
-            pixels.size.height as i32,
+            pixels.size().width as i32,
+            pixels.size().height as i32,
             0,
             format,
             data_type,
@@ -4391,7 +4412,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             target,
             level,
             internal_format,
-            pixels.size,
+            pixels.size(),
             data_type,
         ) {
             // FIXME(nox): What is the spec for this? No error is emitted ever
@@ -4408,7 +4429,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             level,
             border,
             1,
-            pixels,
+            pixels.size(),
+            TexSource::Pixels(pixels),
         );
         Ok(())
     }
@@ -4568,8 +4590,8 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
             target,
             level,
             format,
-            pixels.size.width as i32,
-            pixels.size.height as i32,
+            pixels.size().width as i32,
+            pixels.size().height as i32,
             0,
             format,
             data_type,
@@ -4910,6 +4932,15 @@ impl TexPixels {
             premultiplied: false,
         }
     }
+
+    pub fn size(&self) -> Size2D<u32> {
+        self.size
+    }
+}
+
+pub enum TexSource {
+    Pixels(TexPixels),
+    BufferOffset(i64),
 }
 
 #[derive(JSTraceable)]
