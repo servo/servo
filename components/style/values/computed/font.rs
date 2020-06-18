@@ -477,10 +477,20 @@ impl From<&SingleFontFamily> for FontKitFamilyName {
     }
 }
 
+#[cfg(feature = "servo")]
 #[derive(
-    Clone, Debug, Eq, Hash, MallocSizeOf, PartialEq, ToComputedValue, ToResolvedValue, ToShmem,
+    Clone,
+    Debug,
+    Deserialize,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    Serialize,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
 )]
-#[cfg_attr(feature = "servo", derive(Serialize, Deserialize))]
 /// A list of SingleFontFamily
 pub struct FontFamilyList(Box<[SingleFontFamily]>);
 
