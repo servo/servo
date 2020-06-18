@@ -34,16 +34,17 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
         static_prefs::pref!("layout.css.xul-box-display-values.content.enabled")
 }
 
+#[cfg(not(feature = "servo-layout-2020"))]
 fn flexbox_enabled() -> bool {
-    #[cfg(feature = "servo-layout-2020")]
-    {
-        return servo_config::prefs::pref_map()
-            .get("layout.flexbox.enabled")
-            .as_bool()
-            .unwrap_or(false);
-    }
-
     true
+}
+
+#[cfg(feature = "servo-layout-2020")]
+fn flexbox_enabled() -> bool {
+    servo_config::prefs::pref_map()
+        .get("layout.flexbox.enabled")
+        .as_bool()
+        .unwrap_or(false)
 }
 
 /// Defines an element’s display type, which consists of
