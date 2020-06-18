@@ -567,6 +567,12 @@ impl<'le> GeckoElement<'le> {
         unsafe { self.0.mServoData.get().as_ref() }
     }
 
+    /// Returns whether any animation applies to this element.
+    #[inline]
+    pub fn has_any_animation(&self) -> bool {
+        self.may_have_animations() && unsafe { Gecko_ElementHasAnimations(self.0) }
+    }
+
     #[inline(always)]
     fn attrs(&self) -> &[structs::AttrArray_InternalAttr] {
         unsafe {
@@ -1235,11 +1241,11 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
-    fn animation_rule(&self) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
+    fn animation_rule(&self, _: &SharedStyleContext) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         get_animation_rule(self, CascadeLevel::Animations)
     }
 
-    fn transition_rule(&self) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
+    fn transition_rule(&self, _: &SharedStyleContext) -> Option<Arc<Locked<PropertyDeclarationBlock>>> {
         get_animation_rule(self, CascadeLevel::Transitions)
     }
 
@@ -1516,8 +1522,9 @@ impl<'le> TElement for GeckoElement<'le> {
         }
     }
 
-    fn has_animations(&self) -> bool {
-        self.may_have_animations() && unsafe { Gecko_ElementHasAnimations(self.0) }
+    #[inline]
+    fn has_animations(&self, _: &SharedStyleContext) -> bool {
+        self.has_any_animation()
     }
 
     fn has_css_animations(&self, _: &SharedStyleContext, _: Option<PseudoElement>) -> bool {
@@ -1529,7 +1536,8 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     // Detect if there are any changes that require us to update transitions.
-    // This is used as a more thoroughgoing check than the, cheaper
+    //
+    // This is used as a more thoroughgoing check than the cheaper
     // might_need_transitions_update check.
     //
     // The following logic shadows the logic used on the Gecko side
@@ -1543,12 +1551,6 @@ impl<'le> TElement for GeckoElement<'le> {
         after_change_style: &ComputedValues,
     ) -> bool {
         use crate::properties::LonghandIdSet;
-
-        debug_assert!(
-            self.might_need_transitions_update(Some(before_change_style), after_change_style),
-            "We should only call needs_transitions_update if \
-             might_need_transitions_update returns true"
-        );
 
         let after_change_box_style = after_change_style.get_box();
         let existing_transitions = self.css_transitions_info();

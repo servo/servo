@@ -884,18 +884,6 @@ pub trait TElement:
         doc_rules_apply
     }
 
-    /// Does a rough (and cheap) check for whether or not transitions might need to be updated that
-    /// will quickly return false for the common case of no transitions specified or running. If
-    /// this returns false, we definitely don't need to update transitions but if it returns true
-    /// we can perform the more thoroughgoing check, needs_transitions_update, to further
-    /// reduce the possibility of false positives.
-    #[cfg(feature = "gecko")]
-    fn might_need_transitions_update(
-        &self,
-        old_values: Option<&ComputedValues>,
-        new_values: &ComputedValues,
-    ) -> bool;
-
     /// Returns true if one of the transitions needs to be updated on this element. We check all
     /// the transition properties to make sure that updating transitions is necessary.
     /// This method should only be called if might_needs_transitions_update returns true when

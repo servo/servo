@@ -35,14 +35,15 @@ fn moz_box_display_values_enabled(context: &ParserContext) -> bool {
 }
 
 fn flexbox_enabled() -> bool {
-    if cfg!(feature = "servo-layout-2020") {
-        servo_config::prefs::pref_map()
+    #[cfg(feature = "servo-layout-2020")]
+    {
+        return servo_config::prefs::pref_map()
             .get("layout.flexbox.enabled")
             .as_bool()
             .unwrap_or(false)
-    } else {
-        true
     }
+
+    true
 }
 
 /// Defines an element’s display type, which consists of

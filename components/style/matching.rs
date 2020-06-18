@@ -391,6 +391,7 @@ trait PrivateMatchMethods: TElement {
         use crate::context::UpdateAnimationsTasks;
 
         let new_values = new_styles.primary_style_mut();
+        let old_values = &old_styles.primary;
         if context.shared.traversal_flags.for_animation_only() {
             self.handle_display_change_for_smil_if_needed(
                 context,
@@ -420,7 +421,7 @@ trait PrivateMatchMethods: TElement {
             new_values,
             /* pseudo_element = */ None,
         ) {
-            let after_change_style = if self.has_css_transitions(context.shared) {
+            let after_change_style = if self.has_css_transitions(context.shared, /* pseudo_element = */ None) {
                 self.after_change_style(context, new_values)
             } else {
                 None
@@ -453,7 +454,7 @@ trait PrivateMatchMethods: TElement {
             None
         };
 
-        if self.has_animations() {
+        if self.has_animations(&context.shared) {
             tasks.insert(UpdateAnimationsTasks::EFFECT_PROPERTIES);
             if important_rules_changed {
                 tasks.insert(UpdateAnimationsTasks::CASCADE_RESULTS);

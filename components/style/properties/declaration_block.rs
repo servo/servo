@@ -39,7 +39,7 @@ pub struct AnimationDeclarations {
 
 impl AnimationDeclarations {
     /// Whether or not this `AnimationDeclarations` is empty.
-    pub(crate) fn is_empty(&self) -> bool {
+    pub fn is_empty(&self) -> bool {
         self.animations.is_none() && self.transitions.is_none()
     }
 }
