@@ -4,8 +4,6 @@
 
 //! Parsing stylesheets from bytes (not `&str`).
 
-extern crate encoding_rs;
-
 use crate::context::QuirksMode;
 use crate::error_reporting::ParseErrorReporter;
 use crate::media_queries::MediaList;
