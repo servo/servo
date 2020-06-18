@@ -11,7 +11,7 @@ use euclid::{point2, vec2};
 use font_kit::family_name::FamilyName;
 use font_kit::font::Font;
 use font_kit::metrics::Metrics;
-use font_kit::properties::Properties;
+use font_kit::properties::{Properties, Weight, Stretch, Style};
 use font_kit::source::SystemSource;
 use gfx::font::FontHandleMethods;
 use gfx::font_cache_thread::FontCacheThread;
@@ -25,6 +25,8 @@ use std::marker::PhantomData;
 use std::mem;
 use std::sync::{Arc, Mutex};
 use style::properties::style_structs::Font as FontStyleStruct;
+use style::values::computed::font;
+use style_traits::values::ToCss;
 use webrender_api::units::RectExt as RectExt_;
 
 /// The canvas data stores a state machine for the current status of
@@ -1372,6 +1374,24 @@ impl RectExt for Rect<u32> {
     }
 }
 
+fn to_font_kit_family(font_family: &font::SingleFontFamily) -> FamilyName {
+    match font_family {
+        font::SingleFontFamily::FamilyName(family_name) => {
+            FamilyName::Title(family_name.to_css_string())
+        },
+        font::SingleFontFamily::Generic(generic) => match generic {
+            font::GenericFontFamily::Serif => FamilyName::Serif,
+            font::GenericFontFamily::SansSerif => FamilyName::SansSerif,
+            font::GenericFontFamily::Monospace => FamilyName::Monospace,
+            font::GenericFontFamily::Fantasy => FamilyName::Fantasy,
+            font::GenericFontFamily::Cursive => FamilyName::Cursive,
+            font::GenericFontFamily::None => {
+                unreachable!("Shouldn't appear in computed values")
+            },
+        },
+    }
+}
+
 fn load_system_font_from_style(font_style: Option<&FontStyleStruct>) -> Font {
     let mut properties = Properties::new();
     let style = match font_style {
@@ -1382,12 +1402,19 @@ fn load_system_font_from_style(font_style: Option<&FontStyleStruct>) -> Font {
         .font_family
         .families
         .iter()
-        .map(|family_name| family_name.into())
-        .collect::<Vec<FamilyName>>();
+        .map(to_font_kit_family)
+        .collect::<Vec<_>>();
     let properties = properties
-        .style(style.font_style.into())
-        .weight(style.font_weight.into())
-        .stretch(style.font_stretch.into());
+        .style(match style.font_style {
+            font::FontStyle::Normal => Style::Normal,
+            font::FontStyle::Italic => Style::Italic,
+            font::FontStyle::Oblique(..) => {
+                // TODO: support oblique angle.
+                Style::Oblique
+            }
+        })
+        .weight(Weight(style.font_weight.0))
+        .stretch(Stretch(style.font_stretch.value()));
     let font_handle = match SystemSource::new().select_best_match(&family_names, &properties) {
         Ok(handle) => handle,
         Err(e) => {

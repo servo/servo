@@ -22,12 +22,6 @@ use crate::values::specified::length::{FontBaseSize, NoCalcLength};
 use crate::values::CSSFloat;
 use crate::Atom;
 use cssparser::{serialize_identifier, CssStringWriter, Parser};
-#[cfg(feature = "servo")]
-use font_kit::family_name::FamilyName as FontKitFamilyName;
-#[cfg(feature = "servo")]
-use font_kit::properties::{
-    Stretch as FontKitFontStretch, Style as FontKitFontStyle, Weight as FontKitFontWeight,
-};
 #[cfg(feature = "gecko")]
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use std::fmt::{self, Write};
@@ -72,13 +66,6 @@ impl ToAnimatedValue for FontWeight {
     #[inline]
     fn from_animated_value(animated: Self::AnimatedValue) -> Self {
         FontWeight(animated.max(MIN_FONT_WEIGHT).min(MAX_FONT_WEIGHT))
-    }
-}
-
-#[cfg(feature = "servo")]
-impl From<FontWeight> for FontKitFontWeight {
-    fn from(font_weight: FontWeight) -> Self {
-        FontKitFontWeight(font_weight.0)
     }
 }
 
@@ -454,26 +441,6 @@ impl SingleFontFamily {
             name,
             syntax: family.mSyntax,
         })
-    }
-}
-
-#[cfg(feature = "servo")]
-impl From<&SingleFontFamily> for FontKitFamilyName {
-    fn from(font_family: &SingleFontFamily) -> Self {
-        match font_family {
-            SingleFontFamily::FamilyName(family_name) => {
-                FontKitFamilyName::Title(family_name.to_css_string())
-            },
-            SingleFontFamily::Generic(GenericFontFamily::Serif) => FontKitFamilyName::Serif,
-            SingleFontFamily::Generic(GenericFontFamily::SansSerif) => FontKitFamilyName::SansSerif,
-            SingleFontFamily::Generic(GenericFontFamily::Monospace) => FontKitFamilyName::Monospace,
-            SingleFontFamily::Generic(GenericFontFamily::Fantasy) => FontKitFamilyName::Fantasy,
-            SingleFontFamily::Generic(GenericFontFamily::Cursive) => FontKitFamilyName::Cursive,
-            SingleFontFamily::Generic(family_name) => {
-                warn!("unsupported font family name: {:?}", family_name);
-                FontKitFamilyName::SansSerif
-            },
-        }
     }
 }
 
@@ -975,17 +942,6 @@ impl ToCss for FontStyle {
     }
 }
 
-#[cfg(feature = "servo")]
-impl From<FontStyle> for FontKitFontStyle {
-    fn from(font_style: FontStyle) -> Self {
-        match font_style {
-            FontStyle::Normal => FontKitFontStyle::Normal,
-            FontStyle::Italic => FontKitFontStyle::Italic,
-            FontStyle::Oblique(_) => FontKitFontStyle::Oblique,
-        }
-    }
-}
-
 /// A value for the font-stretch property per:
 ///
 /// https://drafts.csswg.org/css-fonts-4/#propdef-font-stretch
@@ -1005,13 +961,6 @@ impl FontStretch {
     #[inline]
     pub fn value(&self) -> CSSFloat {
         ((self.0).0).0
-    }
-}
-
-#[cfg(feature = "servo")]
-impl From<FontStretch> for FontKitFontStretch {
-    fn from(stretch: FontStretch) -> Self {
-        FontKitFontStretch(stretch.value())
     }
 }
 
