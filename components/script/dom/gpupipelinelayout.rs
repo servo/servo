@@ -10,26 +10,20 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;
-use webgpu::{WebGPUBindGroupLayout, WebGPUPipelineLayout};
+use webgpu::WebGPUPipelineLayout;
 
 #[dom_struct]
 pub struct GPUPipelineLayout {
     reflector_: Reflector,
-    bind_group_layouts: Vec<WebGPUBindGroupLayout>,
     label: DomRefCell<Option<DOMString>>,
     pipeline_layout: WebGPUPipelineLayout,
     valid: Cell<bool>,
 }
 
 impl GPUPipelineLayout {
-    fn new_inherited(
-        bind_group_layouts: Vec<WebGPUBindGroupLayout>,
-        pipeline_layout: WebGPUPipelineLayout,
-        valid: bool,
-    ) -> Self {
+    fn new_inherited(pipeline_layout: WebGPUPipelineLayout, valid: bool) -> Self {
         Self {
             reflector_: Reflector::new(),
-            bind_group_layouts,
             label: DomRefCell::new(None),
             pipeline_layout,
             valid: Cell::new(valid),
@@ -38,16 +32,11 @@ impl GPUPipelineLayout {
 
     pub fn new(
         global: &GlobalScope,
-        bind_group_layouts: Vec<WebGPUBindGroupLayout>,
         pipeline_layout: WebGPUPipelineLayout,
         valid: bool,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUPipelineLayout::new_inherited(
-                bind_group_layouts,
-                pipeline_layout,
-                valid,
-            )),
+            Box::new(GPUPipelineLayout::new_inherited(pipeline_layout, valid)),
             global,
         )
     }

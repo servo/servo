@@ -3,10 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::GPUTextureFormat;
-use crate::dom::bindings::codegen::Bindings::GPUTextureViewBinding::{
-    GPUTextureViewDimension, GPUTextureViewMethods,
-};
+use crate::dom::bindings::codegen::Bindings::GPUTextureViewBinding::GPUTextureViewMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -23,8 +20,6 @@ pub struct GPUTextureView {
     texture_view: WebGPUTextureView,
     texture: Dom<GPUTexture>,
     valid: Cell<bool>,
-    dimension: GPUTextureViewDimension,
-    format: GPUTextureFormat,
 }
 
 impl GPUTextureView {
@@ -32,8 +27,6 @@ impl GPUTextureView {
         texture_view: WebGPUTextureView,
         texture: &GPUTexture,
         valid: bool,
-        dimension: GPUTextureViewDimension,
-        format: GPUTextureFormat,
     ) -> GPUTextureView {
         Self {
             reflector_: Reflector::new(),
@@ -41,8 +34,6 @@ impl GPUTextureView {
             label: DomRefCell::new(None),
             texture_view,
             valid: Cell::new(valid),
-            dimension,
-            format,
         }
     }
 
@@ -51,17 +42,9 @@ impl GPUTextureView {
         texture_view: WebGPUTextureView,
         texture: &GPUTexture,
         valid: bool,
-        dimension: GPUTextureViewDimension,
-        format: GPUTextureFormat,
     ) -> DomRoot<GPUTextureView> {
         reflect_dom_object(
-            Box::new(GPUTextureView::new_inherited(
-                texture_view,
-                texture,
-                valid,
-                dimension,
-                format,
-            )),
+            Box::new(GPUTextureView::new_inherited(texture_view, texture, valid)),
             global,
         )
     }
@@ -74,18 +57,6 @@ impl GPUTextureView {
 
     pub fn is_valid(&self) -> bool {
         self.valid.get()
-    }
-
-    pub fn dimension(&self) -> GPUTextureViewDimension {
-        self.dimension
-    }
-
-    pub fn format(&self) -> GPUTextureFormat {
-        self.format
-    }
-
-    pub fn texture(&self) -> &GPUTexture {
-        &*self.texture
     }
 }
 

@@ -107,14 +107,6 @@ impl GPUTexture {
     pub fn id(&self) -> WebGPUTexture {
         self.texture
     }
-
-    pub fn sample_count(&self) -> u32 {
-        self.sample_count
-    }
-
-    pub fn usage(&self) -> u32 {
-        self.texture_usage
-    }
 }
 
 impl GPUTextureMethods for GPUTexture {
@@ -188,7 +180,7 @@ impl GPUTextureMethods for GPUTexture {
 
         let texture_view = WebGPUTextureView(texture_view_id);
 
-        GPUTextureView::new(&self.global(), texture_view, &self, true, dimension, format)
+        GPUTextureView::new(&self.global(), texture_view, &self, self.valid.get())
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy

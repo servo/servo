@@ -66,10 +66,6 @@ impl GPUSampler {
     pub fn is_valid(&self) -> bool {
         self.valid.get()
     }
-
-    pub fn compare(&self) -> bool {
-        self.compare_enable
-    }
 }
 
 impl GPUSamplerMethods for GPUSampler {

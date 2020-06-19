@@ -10,6 +10,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
+use std::cell::Cell;
 use webgpu::WebGPUComputePipeline;
 
 #[dom_struct]
@@ -17,20 +18,26 @@ pub struct GPUComputePipeline {
     reflector_: Reflector,
     label: DomRefCell<Option<DOMString>>,
     compute_pipeline: WebGPUComputePipeline,
+    valid: Cell<bool>,
 }
 
 impl GPUComputePipeline {
-    fn new_inherited(compute_pipeline: WebGPUComputePipeline) -> Self {
+    fn new_inherited(compute_pipeline: WebGPUComputePipeline, valid: bool) -> Self {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
             compute_pipeline,
+            valid: Cell::new(valid),
         }
     }
 
-    pub fn new(global: &GlobalScope, compute_pipeline: WebGPUComputePipeline) -> DomRoot<Self> {
+    pub fn new(
+        global: &GlobalScope,
+        compute_pipeline: WebGPUComputePipeline,
+        valid: bool,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUComputePipeline::new_inherited(compute_pipeline)),
+            Box::new(GPUComputePipeline::new_inherited(compute_pipeline, valid)),
             global,
         )
     }
