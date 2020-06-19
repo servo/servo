@@ -33,9 +33,11 @@ impl ContentSizes {
         }
     }
 
-    pub fn max_assign(&mut self, other: &Self) {
-        self.min_content.max_assign(other.min_content);
-        self.max_content.max_assign(other.max_content);
+    pub fn max(self, other: Self) -> Self {
+        Self {
+            min_content: self.min_content.max(other.min_content),
+            max_content: self.max_content.max(other.max_content),
+        }
     }
 
     /// Relevant to outer intrinsic inline sizes, for percentages from padding and margin.
