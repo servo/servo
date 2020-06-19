@@ -387,9 +387,8 @@ impl BlockLevelBox {
             } => sizing::outer_inline(style, containing_block_writing_mode, || {
                 contents.inline_content_sizes(layout_context, style.writing_mode)
             }),
-            Self::Independent(independent) => {
-                independent.outer_inline(layout_context, containing_block_writing_mode)
-            },
+            Self::Independent(independent) => independent
+                .outer_inline_content_sizes(layout_context, containing_block_writing_mode),
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(_) => ContentSizes::zero(),
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {
                 // TODO: Actually implement that.

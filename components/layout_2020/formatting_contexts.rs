@@ -134,18 +134,20 @@ impl IndependentFormattingContext {
         }
     }
 
-    pub fn outer_inline(
+    pub fn outer_inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
         containing_block_writing_mode: WritingMode,
     ) -> ContentSizes {
-        let (mut outer, percentages) =
-            self.outer_inline_and_percentages(layout_context, containing_block_writing_mode);
+        let (mut outer, percentages) = self.outer_inline_content_sizes_and_percentages(
+            layout_context,
+            containing_block_writing_mode,
+        );
         outer.adjust_for_pbm_percentages(percentages);
         outer
     }
 
-    pub fn outer_inline_and_percentages(
+    pub fn outer_inline_content_sizes_and_percentages(
         &mut self,
         layout_context: &LayoutContext,
         containing_block_writing_mode: WritingMode,

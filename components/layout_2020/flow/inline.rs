@@ -200,7 +200,7 @@ impl InlineFormattingContext {
                             }
                         },
                         InlineLevelBox::Atomic(atomic) => {
-                            let (outer, pc) = atomic.outer_inline_and_percentages(
+                            let (outer, pc) = atomic.outer_inline_content_sizes_and_percentages(
                                 self.layout_context,
                                 self.containing_block_writing_mode,
                             );
