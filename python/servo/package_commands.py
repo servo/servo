@@ -644,7 +644,7 @@ class PackageCommands(CommandBase):
             package_hash_fileobj = io.BytesIO(package_hash)
             latest_hash_upload_key = '{}/servo-latest.{}.sha256'.format(nightly_dir, extension)
 
-            s3.upload_file(package, BUCKET, package_upload_key)
+            s3.upload_file(package, BUCKET, package_upload_key, ExtraArgs={'ContentType': 'text/plain'})
 
             copy_source = {
                 'Bucket': BUCKET,
