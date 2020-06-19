@@ -11248,6 +11248,10 @@
       []
      ]
     },
+    "websocket_disconnect_worker.js": [
+     "b8b61957913572b0b121b0aa77c2ec247235fcaa",
+     []
+    ],
     "worker_member_test.js": [
      "abca5cd280ac07914cb21ee4968ac4d27e7feb68",
      []
@@ -14586,6 +14590,13 @@
     },
     "websocket_connection_fail.html": [
      "95c56636d53407fd9f18cb089bdd05bad5b1a4d9",
+     [
+      null,
+      {}
+     ]
+    ],
+    "websocket_disconnect.html": [
+     "797342743a4bc69d6c8748d0f2dd6841566e6ca5",
      [
       null,
       {}

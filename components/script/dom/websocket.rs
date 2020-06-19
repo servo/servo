@@ -68,7 +68,7 @@ mod close_code {
     pub const TLS_FAILED: u16 = 1015;
 }
 
-pub fn close_the_websocket_connection(
+fn close_the_websocket_connection(
     address: Trusted<WebSocket>,
     task_source: &WebsocketTaskSource,
     canceller: &TaskCanceller,
@@ -81,12 +81,10 @@ pub fn close_the_websocket_connection(
         code: code,
         reason: Some(reason),
     };
-    task_source
-        .queue_with_canceller(close_task, &canceller)
-        .unwrap();
+    let _ = task_source.queue_with_canceller(close_task, &canceller);
 }
 
-pub fn fail_the_websocket_connection(
+fn fail_the_websocket_connection(
     address: Trusted<WebSocket>,
     task_source: &WebsocketTaskSource,
     canceller: &TaskCanceller,
@@ -97,9 +95,7 @@ pub fn fail_the_websocket_connection(
         code: Some(close_code::ABNORMAL),
         reason: None,
     };
-    task_source
-        .queue_with_canceller(close_task, &canceller)
-        .unwrap();
+    let _ = task_source.queue_with_canceller(close_task, &canceller);
 }
 
 #[dom_struct]
@@ -221,18 +217,14 @@ impl WebSocket {
                         address: address.clone(),
                         protocol_in_use,
                     };
-                    task_source
-                        .queue_with_canceller(open_thread, &canceller)
-                        .unwrap();
+                    let _ = task_source.queue_with_canceller(open_thread, &canceller);
                 },
                 WebSocketNetworkEvent::MessageReceived(message) => {
                     let message_thread = MessageReceivedTask {
                         address: address.clone(),
                         message: message,
                     };
-                    task_source
-                        .queue_with_canceller(message_thread, &canceller)
-                        .unwrap();
+                    let _ = task_source.queue_with_canceller(message_thread, &canceller);
                 },
                 WebSocketNetworkEvent::Fail => {
                     fail_the_websocket_connection(address.clone(), &task_source, &canceller);
