@@ -159,9 +159,7 @@ impl IndependentFormattingContext {
                 let contents = &non_replaced.contents;
                 sizing::outer_inline_and_percentages(&style, containing_block_writing_mode, || {
                     content_sizes
-                        .get_or_insert_with(|| {
-                            contents.inline_content_sizes(layout_context, style.writing_mode)
-                        })
+                        .get_or_insert_with(|| contents.inline_content_sizes(layout_context, style.writing_mode))
                         .clone()
                 })
             },
@@ -211,12 +209,12 @@ impl NonReplacedFormattingContextContents {
     pub fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
-        containing_block_writing_mode: WritingMode,
+        writing_mode: WritingMode,
     ) -> ContentSizes {
         match self {
             Self::Flow(inner) => inner
                 .contents
-                .inline_content_sizes(layout_context, containing_block_writing_mode),
+                .inline_content_sizes(layout_context, writing_mode),
             Self::Flex(inner) => inner.inline_content_sizes(),
         }
     }
