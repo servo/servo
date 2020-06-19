@@ -651,7 +651,9 @@ class PackageCommands(CommandBase):
                 'Key': package_upload_key,
             }
             s3.copy(copy_source, BUCKET, latest_upload_key)
-            s3.upload_fileobj(package_hash_fileobj, BUCKET, latest_hash_upload_key)
+            s3.upload_fileobj(
+                package_hash_fileobj, BUCKET, latest_hash_upload_key, ExtraArgs={'ContentType': 'text/plain'}
+            )
 
         def update_maven(directory):
             (aws_access_key, aws_secret_access_key) = get_s3_secret()
