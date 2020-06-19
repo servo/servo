@@ -60,7 +60,7 @@ use js::rust::CompileOptionsWrapper;
 use js::rust::{Handle, HandleValue, IntoHandle};
 use mime::Mime;
 use net_traits::request::{CredentialsMode, Destination, ParserMetadata};
-use net_traits::request::{Referrer, RequestBuilder, RequestMode};
+use net_traits::request::{RequestBuilder, RequestMode};
 use net_traits::{FetchMetadata, Metadata};
 use net_traits::{FetchResponseListener, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
@@ -720,6 +720,7 @@ impl ModuleTree {
                 }
 
                 // Step 8.
+
                 for url in urls {
                     // https://html.spec.whatwg.org/multipage/#internal-module-script-graph-fetching-procedure
                     // Step 1.
@@ -731,7 +732,6 @@ impl ModuleTree {
                         url.clone(),
                         visited_urls.clone(),
                         destination.clone(),
-                        Referrer::Client,
                         ParserMetadata::NotParserInserted,
                         "".to_owned(), // integrity
                         credentials_mode.clone(),
@@ -1232,7 +1232,6 @@ pub fn fetch_external_module_script(
         url,
         visited_urls,
         destination,
-        Referrer::Client,
         ParserMetadata::NotParserInserted,
         integrity_metadata,
         credentials_mode,
@@ -1247,7 +1246,6 @@ pub fn fetch_single_module_script(
     url: ServoUrl,
     visited_urls: HashSet<ServoUrl>,
     destination: Destination,
-    referrer: Referrer,
     parser_metadata: ParserMetadata,
     integrity_metadata: String,
     credentials_mode: CredentialsMode,
@@ -1322,10 +1320,9 @@ pub fn fetch_single_module_script(
     };
 
     // Step 7-8.
-    let request = RequestBuilder::new(url.clone())
+    let request = RequestBuilder::new(url.clone(), global.get_referrer())
         .destination(destination.clone())
         .origin(global.origin().immutable().clone())
-        .referrer(Some(referrer))
         .parser_metadata(parser_metadata)
         .integrity_metadata(integrity_metadata.clone())
         .credentials_mode(credentials_mode)

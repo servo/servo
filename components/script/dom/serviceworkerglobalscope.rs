@@ -309,18 +309,6 @@ impl ServiceWorkerGlobalScope {
                     pipeline_id,
                 } = worker_load_origin;
 
-                let referrer = referrer_url.map(|referrer_url| Referrer::ReferrerUrl(referrer_url));
-
-                let request = RequestBuilder::new(script_url.clone())
-                    .destination(Destination::ServiceWorker)
-                    .credentials_mode(CredentialsMode::Include)
-                    .parser_metadata(ParserMetadata::NotParserInserted)
-                    .use_url_credentials(true)
-                    .pipeline_id(Some(pipeline_id))
-                    .referrer(referrer)
-                    .referrer_policy(referrer_policy)
-                    .origin(origin);
-
                 // Service workers are time limited
                 // https://w3c.github.io/ServiceWorker/#service-worker-lifetime
                 let sw_lifetime_timeout = pref!(dom.serviceworker.timeout_seconds) as u64;
@@ -333,7 +321,7 @@ impl ServiceWorkerGlobalScope {
                 let resource_threads_sender = init.resource_threads.sender();
                 let global = ServiceWorkerGlobalScope::new(
                     init,
-                    script_url,
+                    script_url.clone(),
                     devtools_mpsc_port,
                     runtime,
                     own_sender,
@@ -343,6 +331,19 @@ impl ServiceWorkerGlobalScope {
                     scope_url,
                     control_receiver,
                 );
+
+                let referrer = referrer_url
+                    .map(|url| Referrer::ReferrerUrl(url))
+                    .unwrap_or_else(|| global.upcast::<GlobalScope>().get_referrer());
+
+                let request = RequestBuilder::new(script_url, referrer)
+                    .destination(Destination::ServiceWorker)
+                    .credentials_mode(CredentialsMode::Include)
+                    .parser_metadata(ParserMetadata::NotParserInserted)
+                    .use_url_credentials(true)
+                    .pipeline_id(Some(pipeline_id))
+                    .referrer_policy(referrer_policy)
+                    .origin(origin);
 
                 let (_url, source) =
                     match load_whole_resource(request, &resource_threads_sender, &*global.upcast())

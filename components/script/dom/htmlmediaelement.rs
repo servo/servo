@@ -77,7 +77,7 @@ use ipc_channel::router::ROUTER;
 use media::{glplayer_channel, GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::image::base::Image;
 use net_traits::image_cache::ImageResponse;
-use net_traits::request::{Destination, Referrer};
+use net_traits::request::Destination;
 use net_traits::{CoreResourceMsg, FetchChannels, FetchMetadata, FetchResponseListener, Metadata};
 use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 use script_layout_interface::HTMLMediaData;
@@ -846,12 +846,17 @@ impl HTMLMediaElement {
         };
 
         let cors_setting = cors_setting_for_element(self.upcast());
-        let request = create_a_potential_cors_request(url.clone(), destination, cors_setting, None)
-            .headers(headers)
-            .origin(document.origin().immutable().clone())
-            .pipeline_id(Some(self.global().pipeline_id()))
-            .referrer(Some(Referrer::ReferrerUrl(document.url())))
-            .referrer_policy(document.get_referrer_policy());
+        let request = create_a_potential_cors_request(
+            url.clone(),
+            destination,
+            cors_setting,
+            None,
+            self.global().get_referrer(),
+        )
+        .headers(headers)
+        .origin(document.origin().immutable().clone())
+        .pipeline_id(Some(self.global().pipeline_id()))
+        .referrer_policy(document.get_referrer_policy());
 
         let mut current_fetch_context = self.current_fetch_context.borrow_mut();
         if let Some(ref mut current_fetch_context) = *current_fetch_context {

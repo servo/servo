@@ -94,6 +94,7 @@ use net_traits::filemanager_thread::{
     FileManagerResult, FileManagerThreadMsg, ReadFileProgress, RelativePos,
 };
 use net_traits::image_cache::ImageCache;
+use net_traits::request::Referrer;
 use net_traits::response::HttpsState;
 use net_traits::{CoreResourceMsg, CoreResourceThread, IpcSend, ResourceThreads};
 use parking_lot::Mutex;
@@ -105,7 +106,7 @@ use script_traits::{
     ScriptToConstellationChan, TimerEvent,
 };
 use script_traits::{TimerEventId, TimerSchedulerMsg, TimerSource};
-use servo_url::{MutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
@@ -2329,6 +2330,43 @@ impl GlobalScope {
             return worklet.base_url();
         }
         unreachable!();
+    }
+
+    /// Determine the Referrer for a request whose Referrer is "client"
+    pub fn get_referrer(&self) -> Referrer {
+        // Step 3 of https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
+        if let Some(window) = self.downcast::<Window>() {
+            // Substep 3.1
+
+            // Substep 3.1.1
+            let mut document = window.Document();
+
+            // Substep 3.1.2
+            if let ImmutableOrigin::Opaque(_) = document.origin().immutable() {
+                return Referrer::NoReferrer;
+            }
+
+            let mut url = document.url();
+
+            // Substep 3.1.3
+            while url.as_str() == "about:srcdoc" {
+                document = document
+                    .browsing_context()
+                    .expect("iframe should have browsing context")
+                    .parent()
+                    .expect("iframes browsing_context should have parent")
+                    .document()
+                    .expect("iframes parent should have document");
+
+                url = document.url();
+            }
+
+            // Substep 3.1.4
+            return Referrer::Client(url);
+        } else {
+            // Substep 3.2
+            return Referrer::Client(self.get_url());
+        }
     }
 
     /// Extract a `Window`, panic if the global object is not a `Window`.

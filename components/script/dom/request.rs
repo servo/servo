@@ -180,7 +180,7 @@ impl Request {
             // Step 14.2 TODO: "Unset request's reload-navigation flag."
             // Step 14.3 TODO: "Unset request's history-navigation flag."
             // Step 14.4
-            request.referrer = NetTraitsRequestReferrer::Client;
+            request.referrer = global.get_referrer();
             // Step 14.5
             request.referrer_policy = None;
         }
@@ -206,7 +206,7 @@ impl Request {
                         parsed_referrer.path() == "client") ||
                         parsed_referrer.origin() != origin
                     {
-                        request.referrer = NetTraitsRequestReferrer::Client;
+                        request.referrer = global.get_referrer();
                     } else {
                         // Step 15.3.4
                         request.referrer = NetTraitsRequestReferrer::ReferrerUrl(parsed_referrer);
@@ -486,7 +486,8 @@ fn net_request_from_global(global: &GlobalScope, url: ServoUrl) -> NetTraitsRequ
     let origin = Origin::Origin(global.get_url().origin());
     let https_state = global.get_https_state();
     let pipeline_id = global.pipeline_id();
-    NetTraitsRequest::new(url, Some(origin), Some(pipeline_id), https_state)
+    let referrer = global.get_referrer();
+    NetTraitsRequest::new(url, Some(origin), referrer, Some(pipeline_id), https_state)
 }
 
 // https://fetch.spec.whatwg.org/#concept-method-normalize
@@ -567,7 +568,7 @@ impl RequestMethods for Request {
         let r = self.request.borrow();
         USVString(match r.referrer {
             NetTraitsRequestReferrer::NoReferrer => String::from(""),
-            NetTraitsRequestReferrer::Client => String::from("about:client"),
+            NetTraitsRequestReferrer::Client(_) => String::from("about:client"),
             NetTraitsRequestReferrer::ReferrerUrl(ref u) => {
                 let u_c = u.clone();
                 u_c.into_string()

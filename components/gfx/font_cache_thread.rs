@@ -14,7 +14,7 @@ use crate::platform::font_template::FontTemplateData;
 use app_units::Au;
 use gfx_traits::{FontData, WebrenderApi};
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
-use net_traits::request::{Destination, RequestBuilder};
+use net_traits::request::{Destination, Referrer, RequestBuilder};
 use net_traits::{fetch_async, CoreResourceThread, FetchResponseMsg};
 use servo_atoms::Atom;
 use servo_url::ServoUrl;
@@ -235,7 +235,10 @@ impl FontCache {
                     None => return,
                 };
 
-                let request = RequestBuilder::new(url.clone()).destination(Destination::Font);
+                // FIXME:
+                // This shouldn't use NoReferrer, but the current documents url
+                let request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
+                    .destination(Destination::Font);
 
                 let channel_to_self = self.channel_to_self.clone();
                 let bytes = Mutex::new(Vec::new());

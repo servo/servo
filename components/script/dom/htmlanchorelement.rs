@@ -650,7 +650,7 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
             Some(ref link_types) if link_types.Value().contains("noreferrer") => {
                 Referrer::NoReferrer
             },
-            _ => Referrer::Client,
+            _ => target_window.upcast::<GlobalScope>().get_referrer(),
         };
 
         // Step 14
@@ -659,7 +659,7 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
             Some(pipeline_id),
-            Some(referrer),
+            referrer,
             referrer_policy,
         );
         let target = Trusted::new(target_window);

@@ -110,7 +110,7 @@ pub fn fetch_image_for_layout(
         }),
     );
 
-    let request = FetchRequestInit::new(url)
+    let request = FetchRequestInit::new(url, document.global().get_referrer())
         .origin(document.origin().immutable().clone())
         .destination(Destination::Image)
         .pipeline_id(Some(document.global().pipeline_id()));

@@ -28,6 +28,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use keyboard_types::webdriver::send_keys;
 use msg::constellation_msg::{BrowsingContextId, TopLevelBrowsingContextId, TraversalDirection};
+use net_traits::request::Referrer;
 use pixels::PixelFormat;
 use script_traits::webdriver_msg::{LoadStatus, WebDriverCookieError, WebDriverFrameId};
 use script_traits::webdriver_msg::{
@@ -643,7 +644,7 @@ impl Handler {
 
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
 
-        let load_data = LoadData::new(LoadOrigin::WebDriver, url, None, None, None);
+        let load_data = LoadData::new(LoadOrigin::WebDriver, url, None, Referrer::NoReferrer, None);
         let cmd_msg = WebDriverCommandMsg::LoadUrl(
             top_level_browsing_context_id,
             load_data,

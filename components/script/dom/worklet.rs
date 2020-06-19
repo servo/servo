@@ -624,11 +624,14 @@ impl WorkletThread {
         // TODO: Fetch the script asynchronously?
         // TODO: Caching.
         let resource_fetcher = self.global_init.resource_threads.sender();
-        let request = RequestBuilder::new(script_url)
-            .destination(Destination::Script)
-            .mode(RequestMode::CorsMode)
-            .credentials_mode(credentials.into())
-            .origin(origin);
+        let request = RequestBuilder::new(
+            script_url,
+            global_scope.upcast::<GlobalScope>().get_referrer(),
+        )
+        .destination(Destination::Script)
+        .mode(RequestMode::CorsMode)
+        .credentials_mode(credentials.into())
+        .origin(origin);
 
         let script = load_whole_resource(
             request,

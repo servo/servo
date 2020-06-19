@@ -6405,6 +6405,7 @@ dependencies = [
  "keyboard-types",
  "log",
  "msg",
+ "net_traits",
  "pixels",
  "script_traits",
  "serde",

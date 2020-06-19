@@ -330,6 +330,7 @@ impl DedicatedWorkerGlobalScope {
         let top_level_browsing_context_id = TopLevelBrowsingContextId::installed();
         let current_global = GlobalScope::current().expect("No current global object");
         let origin = current_global.origin().immutable().clone();
+        let referrer = current_global.get_referrer();
         let parent = current_global.runtime_handle();
         let current_global_https_state = current_global.get_https_state();
 
@@ -351,16 +352,17 @@ impl DedicatedWorkerGlobalScope {
                     pipeline_id,
                 } = worker_load_origin;
 
-                let referrer = referrer_url.map(|referrer_url| Referrer::ReferrerUrl(referrer_url));
+                let referrer = referrer_url
+                    .map(|url| Referrer::ReferrerUrl(url))
+                    .unwrap_or(referrer);
 
-                let request = RequestBuilder::new(worker_url.clone())
+                let request = RequestBuilder::new(worker_url.clone(), referrer)
                     .destination(Destination::Worker)
                     .mode(RequestMode::SameOrigin)
                     .credentials_mode(CredentialsMode::CredentialsSameOrigin)
                     .parser_metadata(ParserMetadata::NotParserInserted)
                     .use_url_credentials(true)
                     .pipeline_id(Some(pipeline_id))
-                    .referrer(referrer)
                     .referrer_policy(referrer_policy)
                     .origin(origin);
 

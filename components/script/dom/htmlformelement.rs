@@ -688,7 +688,7 @@ impl HTMLFormElement {
             LoadOrigin::Script(doc.origin().immutable().clone()),
             action_components,
             None,
-            Some(Referrer::ReferrerUrl(target_document.url())),
+            target_window.upcast::<GlobalScope>().get_referrer(),
             target_document.get_referrer_policy(),
         );
 
@@ -840,13 +840,13 @@ impl HTMLFormElement {
             Some(ref link_types) if link_types.Value().contains("noreferrer") => {
                 Referrer::NoReferrer
             },
-            _ => Referrer::Client,
+            _ => target.upcast::<GlobalScope>().get_referrer(),
         };
 
         let referrer_policy = target.Document().get_referrer_policy();
         let pipeline_id = target.upcast::<GlobalScope>().pipeline_id();
         load_data.creator_pipeline_id = Some(pipeline_id);
-        load_data.referrer = Some(referrer);
+        load_data.referrer = referrer;
         load_data.referrer_policy = referrer_policy;
 
         // Step 4.

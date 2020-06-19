@@ -532,6 +532,7 @@ impl EventSource {
             Destination::None,
             Some(cors_attribute_state),
             Some(true),
+            global.get_referrer(),
         )
         .origin(global.origin().immutable().clone())
         .pipeline_id(Some(global.pipeline_id()));

@@ -50,7 +50,7 @@ impl Location {
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
             Some(pipeline_id),
-            Some(referrer),
+            referrer,
             referrer_policy,
         );
         // TODO: rethrow exceptions, set exceptions enabled flag.

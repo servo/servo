@@ -176,7 +176,7 @@ pub struct LoadData {
     /// The result of evaluating a javascript scheme url.
     pub js_eval_result: Option<JsEvalResult>,
     /// The referrer.
-    pub referrer: Option<Referrer>,
+    pub referrer: Referrer,
     /// The referrer policy.
     pub referrer_policy: Option<ReferrerPolicy>,
 
@@ -200,7 +200,7 @@ impl LoadData {
         load_origin: LoadOrigin,
         url: ServoUrl,
         creator_pipeline_id: Option<PipelineId>,
-        referrer: Option<Referrer>,
+        referrer: Referrer,
         referrer_policy: Option<ReferrerPolicy>,
     ) -> LoadData {
         LoadData {

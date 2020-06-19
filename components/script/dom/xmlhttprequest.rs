@@ -160,7 +160,7 @@ pub struct XMLHttpRequest {
     fetch_time: Cell<i64>,
     generation_id: Cell<GenerationId>,
     response_status: Cell<Result<(), ()>>,
-    referrer_url: Option<ServoUrl>,
+    referrer: Referrer,
     referrer_policy: Option<ReferrerPolicy>,
     canceller: DomRefCell<FetchCanceller>,
 }
@@ -168,11 +168,11 @@ pub struct XMLHttpRequest {
 impl XMLHttpRequest {
     fn new_inherited(global: &GlobalScope) -> XMLHttpRequest {
         //TODO - update this when referrer policy implemented for workers
-        let (referrer_url, referrer_policy) = if let Some(window) = global.downcast::<Window>() {
+        let referrer_policy = if let Some(window) = global.downcast::<Window>() {
             let document = window.Document();
-            (Some(document.url()), document.get_referrer_policy())
+            document.get_referrer_policy()
         } else {
-            (None, None)
+            None
         };
 
         XMLHttpRequest {
@@ -206,7 +206,7 @@ impl XMLHttpRequest {
             fetch_time: Cell::new(0),
             generation_id: Cell::new(GenerationId(0)),
             response_status: Cell::new(Ok(())),
-            referrer_url: referrer_url,
+            referrer: global.get_referrer(),
             referrer_policy: referrer_policy,
             canceller: DomRefCell::new(Default::default()),
         }
@@ -679,28 +679,26 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             None => None,
         };
 
-        let mut request = RequestBuilder::new(self.request_url.borrow().clone().unwrap())
-            .method(self.request_method.borrow().clone())
-            .headers((*self.request_headers.borrow()).clone())
-            .unsafe_request(true)
-            // XXXManishearth figure out how to avoid this clone
-            .body(extracted_or_serialized.map(|e| e.into_net_request_body().0))
-            // XXXManishearth actually "subresource", but it doesn't exist
-            // https://github.com/whatwg/xhr/issues/71
-            .destination(Destination::None)
-            .synchronous(self.sync.get())
-            .mode(RequestMode::CorsMode)
-            .use_cors_preflight(has_handlers)
-            .credentials_mode(credentials_mode)
-            .use_url_credentials(use_url_credentials)
-            .origin(self.global().origin().immutable().clone())
-            .referrer(
-                self.referrer_url
-                    .clone()
-                    .map(|referrer_url| Referrer::ReferrerUrl(referrer_url)),
-            )
-            .referrer_policy(self.referrer_policy.clone())
-            .pipeline_id(Some(self.global().pipeline_id()));
+        let mut request = RequestBuilder::new(
+            self.request_url.borrow().clone().unwrap(),
+            self.referrer.clone(),
+        )
+        .method(self.request_method.borrow().clone())
+        .headers((*self.request_headers.borrow()).clone())
+        .unsafe_request(true)
+        // XXXManishearth figure out how to avoid this clone
+        .body(extracted_or_serialized.map(|e| e.into_net_request_body().0))
+        // XXXManishearth actually "subresource", but it doesn't exist
+        // https://github.com/whatwg/xhr/issues/71
+        .destination(Destination::None)
+        .synchronous(self.sync.get())
+        .mode(RequestMode::CorsMode)
+        .use_cors_preflight(has_handlers)
+        .credentials_mode(credentials_mode)
+        .use_url_credentials(use_url_credentials)
+        .origin(self.global().origin().immutable().clone())
+        .referrer_policy(self.referrer_policy.clone())
+        .pipeline_id(Some(self.global().pipeline_id()));
 
         // step 4 (second half)
         match content_type {

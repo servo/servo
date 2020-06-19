@@ -305,7 +305,7 @@ impl WindowProxy {
                 LoadOrigin::Script(document.origin().immutable().clone()),
                 blank_url,
                 None,
-                Some(Referrer::ReferrerUrl(document.url().clone())),
+                document.global().get_referrer(),
                 document.get_referrer_policy(),
             );
             let load_info = AuxiliaryBrowsingContextLoadInfo {
@@ -506,7 +506,7 @@ impl WindowProxy {
             let referrer = if noreferrer {
                 Referrer::NoReferrer
             } else {
-                Referrer::Client
+                target_window.upcast::<GlobalScope>().get_referrer()
             };
             // Step 14.5
             let referrer_policy = target_document.get_referrer_policy();
@@ -515,7 +515,7 @@ impl WindowProxy {
                 LoadOrigin::Script(existing_document.origin().immutable().clone()),
                 url,
                 Some(pipeline_id),
-                Some(referrer),
+                referrer,
                 referrer_policy,
             );
             let replacement_flag = if new {

@@ -1141,7 +1141,8 @@ fn http_network_or_cache_fetch(
     // Step 5.9
     match http_request.referrer {
         Referrer::NoReferrer => (),
-        Referrer::ReferrerUrl(ref http_request_referrer) => {
+        Referrer::ReferrerUrl(ref http_request_referrer) |
+        Referrer::Client(ref http_request_referrer) => {
             if let Ok(referer) = http_request_referrer.to_string().parse::<Referer>() {
                 http_request.headers.typed_insert(referer);
             } else {
@@ -1150,12 +1151,6 @@ fn http_network_or_cache_fetch(
                 // https://github.com/servo/servo/issues/24175
                 error!("Failed to parse {} as referer", http_request_referrer);
             }
-        },
-        Referrer::Client =>
-        // it should be impossible for referrer to be anything else during fetching
-        // https://fetch.spec.whatwg.org/#concept-request-referrer
-        {
-            unreachable!()
         },
     };
 
@@ -1938,7 +1933,7 @@ fn cors_preflight_fetch(
     context: &FetchContext,
 ) -> Response {
     // Step 1
-    let mut preflight = RequestBuilder::new(request.current_url())
+    let mut preflight = RequestBuilder::new(request.current_url(), request.referrer.clone())
         .method(Method::OPTIONS)
         .origin(match &request.origin {
             Origin::Client => {
@@ -1949,7 +1944,6 @@ fn cors_preflight_fetch(
         .pipeline_id(request.pipeline_id)
         .initiator(request.initiator.clone())
         .destination(request.destination.clone())
-        .referrer(Some(request.referrer.clone()))
         .referrer_policy(request.referrer_policy)
         .build();
 

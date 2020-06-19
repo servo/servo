@@ -63,7 +63,7 @@ use net_traits::image_cache::{
     CorsStatus, ImageCache, ImageCacheResult, ImageOrMetadataAvailable, ImageResponse,
     PendingImageId, PendingImageResponse, UsePlaceholder,
 };
-use net_traits::request::{CorsSettings, Destination, Initiator, RequestBuilder};
+use net_traits::request::{CorsSettings, Destination, Initiator, Referrer, RequestBuilder};
 use net_traits::{FetchMetadata, FetchResponseListener, FetchResponseMsg, NetworkError};
 use net_traits::{ReferrerPolicy, ResourceFetchTiming, ResourceTimingType};
 use num_traits::ToPrimitive;
@@ -297,13 +297,14 @@ pub(crate) enum FromPictureOrSrcSet {
 pub(crate) fn image_fetch_request(
     img_url: ServoUrl,
     origin: ImmutableOrigin,
+    referrer: Referrer,
     pipeline_id: PipelineId,
     cors_setting: Option<CorsSettings>,
     referrer_policy: Option<ReferrerPolicy>,
     from_picture_or_srcset: FromPictureOrSrcSet,
 ) -> RequestBuilder {
     let mut request =
-        create_a_potential_cors_request(img_url, Destination::Image, cors_setting, None)
+        create_a_potential_cors_request(img_url, Destination::Image, cors_setting, None, referrer)
             .origin(origin)
             .pipeline_id(Some(pipeline_id))
             .referrer_policy(referrer_policy);
@@ -383,6 +384,7 @@ impl HTMLImageElement {
         let request = image_fetch_request(
             img_url.clone(),
             document.origin().immutable().clone(),
+            document.global().get_referrer(),
             document.global().pipeline_id(),
             cors_setting_for_element(self.upcast()),
             referrer_policy_for_element(self.upcast()),
