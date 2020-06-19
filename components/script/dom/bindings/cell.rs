@@ -75,8 +75,7 @@ impl<T> DomRefCell<T> {
     ///
     /// Panics if the value is currently mutably borrowed.
     pub fn borrow(&self) -> Ref<T> {
-        self.try_borrow()
-            .expect("DomRefCell<T> already mutably borrowed")
+        self.value.borrow()
     }
 
     /// Mutably borrows the wrapped value.
@@ -90,8 +89,7 @@ impl<T> DomRefCell<T> {
     ///
     /// Panics if the value is currently borrowed.
     pub fn borrow_mut(&self) -> RefMut<T> {
-        self.try_borrow_mut()
-            .expect("DomRefCell<T> already borrowed")
+        self.value.borrow_mut()
     }
 
     /// Attempts to immutably borrow the wrapped value.
