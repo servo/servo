@@ -26,6 +26,7 @@ public:
   void Run();
   void Stop();
   void Send(JsonObject);
+  void Evaluate(hstring);
 
 private:
   hstring mPort;
@@ -46,6 +47,8 @@ private:
   void HandlePageError(JsonObject);
   void HandleConsoleMessage(JsonObject);
   void HandleNonHandledMessage(JsonObject);
+  void HandleEvaluationResult(JsonObject);
+  std::optional<JsonValue> mConsoleActor;
 };
 
 class DevtoolsDelegate {

@@ -30,6 +30,7 @@ public:
   void OnStopButtonClicked(IInspectable const &, RoutedEventArgs const &);
   void OnHomeButtonClicked(IInspectable const &, RoutedEventArgs const &);
   void OnDevtoolsButtonClicked(IInspectable const &, RoutedEventArgs const &);
+  void OnJSInputEdited(IInspectable const &, Input::KeyRoutedEventArgs const &);
   void OnURLEdited(IInspectable const &, Input::KeyRoutedEventArgs const &);
   void OnURLFocused(IInspectable const &);
   void

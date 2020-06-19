@@ -335,6 +335,15 @@ void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
   }
 }
 
+void BrowserPage::OnJSInputEdited(IInspectable const &,
+                                  Input::KeyRoutedEventArgs const &e) {
+  if (e.Key() == Windows::System::VirtualKey::Enter) {
+    auto input = JSInput().Text();
+    JSInput().Text(L"");
+    mDevtoolsClient->Evaluate(input);
+  }
+}
+
 void BrowserPage::OnURLEdited(IInspectable const &,
                               Input::KeyRoutedEventArgs const &e) {
   if (e.Key() == Windows::System::VirtualKey::Enter) {

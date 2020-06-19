@@ -42,6 +42,16 @@ void DevtoolsClient::Run() {
   });
 }
 
+void DevtoolsClient::Evaluate(hstring code) {
+  if (!code.empty() && mConsoleActor.has_value()) {
+    JsonObject out;
+    out.Insert(L"to", *mConsoleActor);
+    out.Insert(L"type", JsonValue::CreateStringValue(L"evaluateJSAsync"));
+    out.Insert(L"text", JsonValue::CreateStringValue(code));
+    Send(out);
+  }
+}
+
 IAsyncAction DevtoolsClient::Loop() {
   auto cancellation = co_await winrt::get_cancellation_token();
   cancellation.callback([=] {
@@ -101,11 +111,12 @@ void DevtoolsClient::HandleMessage(JsonObject obj) {
       if (tab.HasKey(L"actor")) {
         // Attach to tab, and ask for cached messaged
         JsonObject msg1;
+        mConsoleActor = tab.GetNamedValue(L"consoleActor");
         msg1.Insert(L"to", tab.GetNamedValue(L"actor"));
         msg1.Insert(L"type", JsonValue::CreateStringValue(L"attach"));
         Send(msg1);
         JsonObject msg2;
-        msg2.Insert(L"to", tab.GetNamedValue(L"consoleActor"));
+        msg2.Insert(L"to", *mConsoleActor);
         msg2.Insert(L"type",
                     JsonValue::CreateStringValue(L"getCachedMessages"));
         JsonArray types;
@@ -116,6 +127,12 @@ void DevtoolsClient::HandleMessage(JsonObject obj) {
         return;
       }
     }
+  } else if (obj.HasKey(L"resultID")) {
+    // evaluateJSAsync response.
+    if (obj.GetNamedString(L"type", L"") == L"evaluationResult") {
+      HandleEvaluationResult(obj);
+    }
+    return;
   } else if (obj.HasKey(L"type")) { // Not from root
     if (obj.GetNamedString(L"type") == L"pageError") {
       // Got a page error
@@ -194,6 +211,29 @@ void DevtoolsClient::HandlePageError(JsonObject message) {
   auto body = message.GetNamedString(L"errorMessage", L"");
   auto level = ParseLevel(message);
   mDelegate.OnDevtoolsMessage(level, source, body);
+}
+
+void DevtoolsClient::HandleEvaluationResult(JsonObject message) {
+  auto level = DevtoolsMessageLevel::None;
+  hstring body = L"";
+  if (message.HasKey(L"result")) {
+    auto value = message.GetNamedValue(L"result");
+    if (value.ValueType() == JsonValueType::Object) {
+      auto type = value.GetObject().GetNamedString(L"type");
+      if (type == L"undefined") {
+        body = L"undefined";
+      } else {
+        body = L"<object>";
+      }
+    } else {
+      body = value.Stringify();
+    }
+  } else if (message.GetNamedValue(L"exception").ValueType() !=
+             JsonValueType::Null) {
+    level = DevtoolsMessageLevel::Error;
+    body = message.GetNamedString(L"exceptionMessage", L"");
+  }
+  mDelegate.OnDevtoolsMessage(level, L"", body);
 }
 
 void DevtoolsClient::HandleConsoleMessage(JsonObject message) {
