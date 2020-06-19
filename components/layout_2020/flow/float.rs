@@ -5,8 +5,7 @@
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NodeExt};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::sizing::ContentSizesRequest;
-use crate::style_ext::{ComputedValuesExt, DisplayInside};
+use crate::style_ext::DisplayInside;
 use style::values::specified::text::TextDecorationLine;
 
 #[derive(Debug, Serialize)]
@@ -32,14 +31,12 @@ impl FloatBox {
         display_inside: DisplayInside,
         contents: Contents,
     ) -> Self {
-        let content_sizes = ContentSizesRequest::inline_if(!info.style.inline_size_is_length());
         Self {
             contents: IndependentFormattingContext::construct(
                 context,
                 info,
                 display_inside,
                 contents,
-                content_sizes,
                 // Text decorations are not propagated to any out-of-flow descendants
                 TextDecorationLine::NONE,
             ),

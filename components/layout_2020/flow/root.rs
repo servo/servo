@@ -22,7 +22,6 @@ use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
-use crate::sizing::ContentSizesRequest;
 use crate::style_ext::ComputedValuesExt;
 use crate::style_ext::{Display, DisplayGeneratingBox, DisplayInside};
 use crate::wrapper::GetStyleAndLayoutData;
@@ -292,7 +291,6 @@ fn construct_for_root_element<'dom>(
                 &info,
                 display_inside,
                 contents,
-                ContentSizesRequest::None,
                 propagated_text_decoration_line,
             )),
         )

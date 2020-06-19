@@ -75,7 +75,7 @@ where
 {
     /// Resolves `auto` values by calling `f`.
     #[inline]
-    pub fn auto_is(&self, f: impl Fn() -> LengthPercentage) -> LengthPercentage {
+    pub fn auto_is(&self, f: impl FnOnce() -> LengthPercentage) -> LengthPercentage {
         match self {
             LengthPercentageOrAuto::LengthPercentage(length) => length.clone(),
             LengthPercentageOrAuto::Auto => f(),
