@@ -198,15 +198,10 @@ impl BlockContainer {
             builder.end_ongoing_inline_formatting_context();
         }
 
-        struct Accumulator {
-            contains_floats: ContainsFloats,
-        }
-        let mut acc = Accumulator {
-            contains_floats: builder.contains_floats,
-        };
-        let mapfold = |acc: &mut Accumulator, creator: BlockLevelJob<'dom, _>| {
+        let mut contains_floats = builder.contains_floats;
+        let mapfold = |contains_floats: &mut ContainsFloats, creator: BlockLevelJob<'dom, _>| {
             let (block_level_box, box_contains_floats) = creator.finish(context);
-            acc.contains_floats |= box_contains_floats;
+            *contains_floats |= box_contains_floats;
             block_level_box
         };
         let block_level_boxes = if context.use_rayon {
@@ -214,13 +209,11 @@ impl BlockContainer {
                 .block_level_boxes
                 .into_par_iter()
                 .mapfold_reduce_into(
-                    &mut acc,
+                    &mut contains_floats,
                     mapfold,
-                    || Accumulator {
-                        contains_floats: ContainsFloats::No,
-                    },
+                    || ContainsFloats::No,
                     |left, right| {
-                        left.contains_floats |= right.contains_floats;
+                        *left |= right;
                     },
                 )
                 .collect()
@@ -228,12 +221,11 @@ impl BlockContainer {
             builder
                 .block_level_boxes
                 .into_iter()
-                .map(|x| mapfold(&mut acc, x))
+                .map(|x| mapfold(&mut contains_floats, x))
                 .collect()
         };
         let container = BlockContainer::BlockLevelBoxes(block_level_boxes);
 
-        let Accumulator { contains_floats } = acc;
         (container, contains_floats)
     }
 }
