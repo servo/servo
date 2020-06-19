@@ -5614,9 +5614,9 @@ checksum = "1005da1169286262ef5d9d130bc120a447a99bdd6bb29a06a79ac4cd149a39dc"
 
 [[package]]
 name = "svg_fmt"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c666f0fed8e1e20e057af770af9077d72f3d5a33157b8537c1475dd8ffd6d32b"
+checksum = "8fb1df15f412ee2e9dfc1c504260fa695c1c3f10fe9f4a6ee2d2184d7d6450e2"
 
 [[package]]
 name = "sw-composite"
