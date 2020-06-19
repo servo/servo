@@ -1,0 +1,12 @@
+<script>
+let segments = getWindowSegments();
+
+parent.postMessage({
+    length: segments.length,
+    x: segments[0].x,
+    y: segments[0].y,
+    width: segments[0].width,
+    height: segments[0].height,
+    domain: document.domain,
+  }, "*");
+</script>

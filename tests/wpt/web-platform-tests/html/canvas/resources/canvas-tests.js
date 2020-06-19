@@ -144,6 +144,7 @@ function forEachCanvasSource(crossOriginUrl, sameOriginUrl, callback) {
         return new Promise((resolve, reject) => {
           const video = document.createElement("video");
           video.oncanplaythrough = () => resolve(video);
+          video.preload = "auto";
           video.onerror = reject;
           video.src = getVideoURI(crossOriginUrl + "/media/movie_300");
         });
@@ -156,6 +157,7 @@ function forEachCanvasSource(crossOriginUrl, sameOriginUrl, callback) {
         return new Promise((resolve, reject) => {
           const video = document.createElement("video");
           video.oncanplaythrough = () => resolve(video);
+          video.preload = "auto";
           video.onerror = reject;
           video.src = "/common/redirect.py?location=" + getVideoURI(crossOriginUrl + "/media/movie_300");
         });
@@ -168,6 +170,7 @@ function forEachCanvasSource(crossOriginUrl, sameOriginUrl, callback) {
         return new Promise((resolve, reject) => {
           const video = document.createElement("video");
           video.oncanplaythrough = () => resolve(video);
+          video.preload = "auto";
           video.onerror = reject;
           video.src = crossOriginUrl + "/common/redirect.py?location=" + getVideoURI(sameOriginUrl + "/media/movie_300");
         });

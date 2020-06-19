@@ -32,11 +32,11 @@ interface PictureInPictureWindow : EventTarget {
 };
 
 [Exposed=Window]
-interface EnterPictureInPictureEvent : Event {
-    constructor(DOMString type, EnterPictureInPictureEventInit eventInitDict);
+interface PictureInPictureEvent : Event {
+    constructor(DOMString type, PictureInPictureEventInit eventInitDict);
     [SameObject] readonly attribute PictureInPictureWindow pictureInPictureWindow;
 };
 
-dictionary EnterPictureInPictureEventInit : EventInit {
+dictionary PictureInPictureEventInit : EventInit {
     required PictureInPictureWindow pictureInPictureWindow;
 };

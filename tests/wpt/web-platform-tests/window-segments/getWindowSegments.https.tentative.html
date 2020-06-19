@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Window Segments: getWindowSegments() tentative</title>
+<!-- TODO: update link to W3C whenever specifications are ready -->
+<link rel="help" href="https://github.com/webscreens/window-segments/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+test(() => {
+  let segments = window.getWindowSegments();
+  assert_equals(segments.length, 1, "For a viewport not segmented, there must be a single window segment");
+  let segment = segments[0];
+  assert_equals(segment.x, 0, "A viewport with a single segment must have 0, 0 origin");
+  assert_equals(segment.y, 0, "A viewport with a single segment must have 0, 0 origin");
+  assert_equals(segment.width, window.innerWidth, "A viewport with a single segment must have a width in CSS pixels, matching window.innerWidth");
+  assert_equals(segment.height, window.innerHeight, "A viewport with a single segment must have a height in CSS pixels, matching window.innerHeight");
+}, "getWindowSegments() returns a single segment, equal to the layout viewport dimesions");
+</script>
+
