@@ -1,34 +1,36 @@
 import os
 from wptserve import pipes
 
+from wptserve.utils import isomorphic_decode
+
 def run_other(request, response, path):
     #This is a terrible hack
-    environ = {"__file__": path}
-    exec(compile(open(path, "r").read(), path, 'exec'), environ, environ)
-    rv = environ["main"](request, response)
+    environ = {u"__file__": path}
+    exec(compile(open(path, u"r").read(), path, u'exec'), environ, environ)
+    rv = environ[u"main"](request, response)
     return rv
 
 def main(request, response):
-    origin = request.GET.first("origin", request.headers["origin"])
-    credentials = request.GET.first("credentials", "true")
+    origin = request.GET.first(b"origin", request.headers[b"origin"])
+    credentials = request.GET.first(b"credentials", b"true")
 
-    response.headers.update([("Access-Control-Allow-Origin", origin),
-                             ("Access-Control-Allow-Credentials", credentials)])
+    response.headers.update([(b"Access-Control-Allow-Origin", origin),
+                             (b"Access-Control-Allow-Credentials", credentials)])
 
-    handler = request.GET.first('run')
-    if handler in ["status-reconnect",
-                   "message",
-                   "redirect",
-                   "cache-control"]:
-        if handler == "cache-control":
-            response.headers.set("Content-Type", "text/event-stream")
-            rv = open(os.path.join(request.doc_root, "eventsource", "resources", "cache-control.event_stream"), "r").read()
+    handler = request.GET.first(b'run')
+    if handler in [b"status-reconnect",
+                   b"message",
+                   b"redirect",
+                   b"cache-control"]:
+        if handler == b"cache-control":
+            response.headers.set(b"Content-Type", b"text/event-stream")
+            rv = open(os.path.join(request.doc_root, u"eventsource", u"resources", u"cache-control.event_stream"), u"r").read()
             response.content = rv
             pipes.sub(request, response)
             return
-        elif handler == "redirect":
-            return run_other(request, response, os.path.join(request.doc_root, "common", "redirect.py"))
+        elif handler == b"redirect":
+            return run_other(request, response, os.path.join(request.doc_root, u"common", u"redirect.py"))
         else:
-            return run_other(request, response, os.path.join(os.path.split(__file__)[0], handler + ".py"))
+            return run_other(request, response, os.path.join(os.path.split(isomorphic_decode(__file__))[0], isomorphic_decode(handler) + u".py"))
     else:
         return

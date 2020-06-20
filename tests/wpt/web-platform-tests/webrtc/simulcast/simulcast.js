@@ -98,7 +98,7 @@ async function negotiateSimulcastAndWaitForVideo(t, rids, pc1, pc2, codec) {
   t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
   const transceiver = pc1.addTransceiver(stream.getVideoTracks()[0], {
     streams: [stream],
-    sendEncodings: rids.map(rid => {rid}),
+    sendEncodings: rids.map(rid => ({rid})),
   });
   if (codec) {
     preferCodec(transceiver, codec.mimeType, codec.sdpFmtpLine);

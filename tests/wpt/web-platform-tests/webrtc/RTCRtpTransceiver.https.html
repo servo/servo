@@ -400,8 +400,9 @@
     const offer = await pc1.createOffer();
     await pc1.setLocalDescription(offer);
     // Remove track-id from msid
-    offer.sdp = offer.sdp.replace(/(a=msid:[^ \t]+).*\r\n/g, "$1\r\n");
-    assert_true(offer.sdp.includes(`a=msid:${stream.id}\r\n`));
+    // Fixate stream-id so that error message is consistent.
+    offer.sdp = offer.sdp.replace(/(a=msid:[^ \t]+).*\r\n/g,
+                                  "a=msid:fake-stream-id\r\n");
     await pc2.setRemoteDescription(offer);
     const answer = await pc2.createAnswer();
     await pc1.setRemoteDescription(answer);
@@ -1146,9 +1147,15 @@
 
     let gotUnmuteAudio2 = gotUnmuteEvent(pc2.getTransceivers()[0].receiver.track);
     let gotUnmuteVideo2 = gotUnmuteEvent(pc2.getTransceivers()[1].receiver.track);
+    // Jump out before waiting if a track is unmuted before RTP starts flowing.
+    assert_true(pc1.getTransceivers()[0].receiver.track.muted);
+    assert_true(pc1.getTransceivers()[1].receiver.track.muted);
+    assert_true(pc2.getTransceivers()[0].receiver.track.muted);
+    assert_true(pc2.getTransceivers()[1].receiver.track.muted);
 
     await iceConnected(pc1);
     await iceConnected(pc2);
+
 
     // Check that receive tracks are unmuted when RTP starts flowing
     await gotUnmuteAudio1;

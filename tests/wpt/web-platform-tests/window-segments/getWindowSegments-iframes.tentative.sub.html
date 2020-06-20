@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Window Segments: getWindowSegments() tentative</title>
+<!-- TODO: update link to W3C whenever specifications are ready -->
+<link rel="help" href="https://github.com/webscreens/window-segments/"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+iframe { zoom: 2; }
+</style>
+<script>
+"use strict";
+
+async_test((t) => {
+  let segments = window.getWindowSegments();
+  let responses = 0;
+  window.addEventListener("message", t.step_func((evt) => {
+    let desc = "Window segments of child frame for: " + evt.data.domain;
+    assert_equals(evt.data.length, segments.length,
+        desc + " must match in length.");
+    assert_equals(evt.data.x, segments[0].x, desc + " must match for x.");
+    assert_equals(evt.data.y, segments[0].y, desc + " must match for x.");
+    assert_equals(evt.data.width, segments[0].width,
+        desc + " must match for x.");
+    assert_equals(evt.data.height, segments[0].height,
+        desc + " must match for x.");
+
+    responses++;
+    if (responses == 2) {
+      t.done();
+    }
+  }));
+}, "Window segments of child frames (same or different domain) must match those of the main frame.");
+</script>
+
+
+<iframe src="http://{{domains[www1]}}:{{ports[http][0]}}/window-segments/post-window-segments-sub-frame.html"></iframe>
+<iframe src="post-window-segments-sub-frame.html"></iframe>
+
