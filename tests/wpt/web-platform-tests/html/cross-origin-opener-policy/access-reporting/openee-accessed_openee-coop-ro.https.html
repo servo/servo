@@ -16,28 +16,29 @@ const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
 const coep_header = '|header(Cross-Origin-Embedder-Policy,require-corp)';
 
 let operation = [
-//[type    , property      , operation                   ] ,
-  ["Call"  , "blur"        , w => w.blur()               ] ,
-  ["Call"  , "foo"         , w => w.foo()                ] ,
-  ["Call"  , "location"    , w => w.location()           ] ,
-  ["Call"  , "opener"      , w => w.opener()             ] ,
-  ["Call"  , "postMessage" , w => w.postMessage()        ] ,
-  ["Call"  , "window"      , w => w.window()             ] ,
-  ["Read"  , "blur"        , w => w.blur                 ] ,
-  ["Read"  , "foo"         , w => w.foo                  ] ,
-  ["Read"  , "location"    , w => w.location             ] ,
-  ["Read"  , "opener"      , w => w.opener               ] ,
-  ["Read"  , "postMessage" , w => w.postMessage          ] ,
-  ["Read"  , "window"      , w => w.window               ] ,
-  ["Write" , "blur"        , w => w.blur = "test"        ] ,
-  ["Write" , "foo"         , w => w.foo = "test"         ] ,
-  ["Write" , "location"    , w => w.location = "test"    ] ,
-  ["Write" , "opener"      , w => w.opener = "test"      ] ,
-  ["Write" , "postMessage" , w => w.postMessage = "test" ] ,
-  ["Write" , "window"      , w => w.window = "test"      ] ,
+//[property      , operation                 ] ,
+  ["blur"        , w => w.blur()             ] ,
+  ["close"       , w => w.close()            ] ,
+  ["closed"      , w => w.closed             ] ,
+  ["focus"       , w => w.focus()            ] ,
+  ["frames"      , w => w.frames             ] ,
+  ["indexed"     , w => w[0]                 ] ,
+  ["indexed"     , w => w[0] = ""            ] ,
+  ["length"      , w => w.length             ] ,
+  ["location"    , w => w.location           ] ,
+  ["location"    , w => w.location = "#"     ] ,
+  ["named"       , w => w["test"]            ] ,
+  ["named"       , w => w["test"] = ""       ] ,
+  ["opener"      , w => w.opener             ] ,
+  ["opener"      , w => w.opener = ""        ] ,
+  ["postMessage" , w => w.postMessage("")    ] ,
+  ["postMessage" , w => w.postMessage("", "")] ,
+  ["self"        , w => w.self               ] ,
+  ["top"         , w => w.top                ] ,
+  ["window"      , w => w.window             ] ,
 ];
 
-operation.forEach(([type, property, op]) => {
+operation.forEach(([property, op]) => {
   promise_test(async t => {
     const report_token = token();
     const executor_token = token();
@@ -59,7 +60,8 @@ operation.forEach(([type, property, op]) => {
 
     // 2. Skip the first report about the opener breakage.
     let report_1 = await receive(report_token);
-    assert_not_equals(report_1, "timeout");
+    assert_not_equals(report_1, "timeout",
+      "Receive navigation-to-document report");
     report_1 = JSON.parse(report_1);
     assert_equals(report_1.length, 1);
     assert_equals(report_1[0].type, "coop");
@@ -71,11 +73,11 @@ operation.forEach(([type, property, op]) => {
 
     // 4. A COOP access reports must be sent as a result of (3).
     let report_2 = await receive(report_token);
-    assert_not_equals(report_1, "timeout");
+    assert_not_equals(report_2, "timeout", "Receive access report");
     report_2 = JSON.parse(report_2);
     assert_equals(report_2.length, 1);
     assert_equals(report_2[0].type, "coop");
-    assert_equals(report_2[0].url, openee_url);
+    assert_equals(report_2[0].url, openee_url.replace(/"/g, '%22'));
     assert_equals(report_2[0].body["violation-type"], "access-to-coop-page");
     assert_equals(report_2[0].body["disposition"], "reporting");
     assert_equals(report_2[0].body["effective-policy"], "same-origin-plus-coep");
@@ -84,7 +86,7 @@ operation.forEach(([type, property, op]) => {
     assert_equals(report_2[0].body["lineno"], undefined);
     assert_equals(report_2[0].body["colno"], undefined);
     // TODO(arthursonzogni): Add check for report > body > blocked-window-url
-  }, `${type} ${property}`);
+  }, `${op}`);
 });
 
 </script>

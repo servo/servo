@@ -4,9 +4,12 @@
 'use strict';
 
 promise_test(async testCase => {
-  try {
-    let result = await performance.measureMemory();
-    checkMeasureMemory(result, {allowed: [window.location.href]});
+ try {
+    const result = await performance.measureMemory();
+    checkMeasureMemory(result, {
+      allowed: [window.location.href],
+      required: [window.location.href],
+    });
   } catch (error) {
     if (!(error instanceof DOMException)) {
       throw error;

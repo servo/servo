@@ -172,6 +172,7 @@ SET TIMEOUT: IndexedDB/*
 SET TIMEOUT: infrastructure/*
 SET TIMEOUT: intersection-observer/resources/*
 SET TIMEOUT: intersection-observer/target-in-different-window.html
+SET TIMEOUT: measure-memory/*
 SET TIMEOUT: media-source/mediasource-util.js
 SET TIMEOUT: media-source/URL-createObjectURL-revoke.html
 SET TIMEOUT: mixed-content/generic/sanity-checker.js
