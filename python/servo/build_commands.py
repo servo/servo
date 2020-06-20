@@ -320,7 +320,10 @@ class MachCommands(CommandBase):
             exitcode = process.wait()
             encoding = locale.getpreferredencoding()  # See https://stackoverflow.com/a/9228117
             if exitcode == 0:
-                os.environ.update(eval(stdout.decode(encoding)))
+                decoded = stdout.decode(encoding)
+                if decoded.startswith("environ("):
+                    decoded = decoded.strip()[8:-1]
+                os.environ.update(eval(decoded))
             else:
                 print("Failed to run vcvarsall. stderr:")
                 print(stderr.decode(encoding))

@@ -131,17 +131,17 @@ def archive_deterministically(dir_to_archive, dest_archive, prepend_path=None):
 
 
 def normalize_env(env):
-    # There is a bug in subprocess where it doesn't like unicode types in
+    # There is a bug in Py2 subprocess where it doesn't like unicode types in
     # environment variables. Here, ensure all unicode are converted to
-    # binary. utf-8 is our globally assumed default. If the caller doesn't
-    # want UTF-8, they shouldn't pass in a unicode instance.
+    # native string type. utf-8 is our globally assumed default. If the caller
+    # doesn't want UTF-8, they shouldn't pass in a unicode instance.
     normalized_env = {}
     for k, v in env.items():
         if isinstance(k, six.text_type):
-            k = k.encode('utf-8', 'strict')
+            k = six.ensure_str(k, 'utf-8', 'strict')
 
         if isinstance(v, six.text_type):
-            v = v.encode('utf-8', 'strict')
+            v = six.ensure_str(v, 'utf-8', 'strict')
 
         normalized_env[k] = v
 
