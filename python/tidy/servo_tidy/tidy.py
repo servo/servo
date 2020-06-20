@@ -1140,13 +1140,12 @@ def scan(only_changed_files=False, progress=True, stylo=False, no_wpt=False):
                              file_errors, dep_license_errors)
 
     error = None
+    colorama.init()
     for error in errors:
-        colorama.init()
         print("\r\033[94m{}\033[0m:\033[93m{}\033[0m: \033[91m{}\033[0m".format(*error))
 
     print()
     if error is None:
-        colorama.init()
         print("\033[92mtidy reported no errors.\033[0m")
 
     return int(error is not None)
