@@ -49,7 +49,7 @@ WEB_PLATFORM_TESTS_PATH = os.path.join("tests", "wpt", "web-platform-tests")
 SERVO_TESTS_PATH = os.path.join("tests", "wpt", "mozilla", "tests")
 
 CLANGFMT_CPP_DIRS = ["support/hololens/"]
-CLANGFMT_VERSION = "9"
+CLANGFMT_VERSION = "10"
 
 TEST_SUITES = OrderedDict([
     ("tidy", {"kwargs": {"all_files": False, "no_progress": False, "self_test": False,
@@ -763,7 +763,7 @@ class MachCommands(CommandBase):
 
 
 def setup_clangfmt(env):
-    cmd = "clang-format.exe" if sys.platform == "win32" else "clang-format"
+    cmd = "clang-format"
     try:
         version = check_output([cmd, "--version"], env=env, universal_newlines=True).rstrip()
         print(version)
