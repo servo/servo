@@ -396,7 +396,7 @@ impl Window {
             let flag = ignore_flags
                 .entry(task_source_name)
                 .or_insert(Default::default());
-            flag.store(true, Ordering::Relaxed);
+            flag.store(true, Ordering::SeqCst);
         }
     }
 
@@ -1428,7 +1428,7 @@ impl Window {
                 .entry(task_source_name)
                 .or_insert(Default::default());
             let cancelled = mem::replace(&mut *flag, Default::default());
-            cancelled.store(true, Ordering::Relaxed);
+            cancelled.store(true, Ordering::SeqCst);
         }
     }
 
@@ -1441,7 +1441,7 @@ impl Window {
             .entry(task_source_name)
             .or_insert(Default::default());
         let cancelled = mem::replace(&mut *flag, Default::default());
-        cancelled.store(true, Ordering::Relaxed);
+        cancelled.store(true, Ordering::SeqCst);
     }
 
     pub fn clear_js_runtime(&self) {
