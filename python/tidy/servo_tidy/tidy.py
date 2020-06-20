@@ -141,19 +141,14 @@ class FileList(object):
     def __init__(self, directory, only_changed_files=False, exclude_dirs=[], progress=True):
         self.directory = directory
         self.excluded = exclude_dirs
-        iterator = self._filter_excluded() if exclude_dirs else self._default_walk()
+        self.generator = self._filter_excluded() if exclude_dirs else self._default_walk()
         if only_changed_files:
             try:
                 # Fall back if git doesn't work
-                newiter = self._git_changed_files()
-                obj = next(newiter)
-                iterator = itertools.chain((obj,), newiter)
+                self.generator = self._git_changed_files()
             except subprocess.CalledProcessError:
                 pass
 
-        # Raise `StopIteration` if the iterator is empty
-        obj = next(iterator)
-        self.generator = itertools.chain((obj,), iterator)
         if progress:
             self.generator = progress_wrapper(self.generator)
 
@@ -198,7 +193,7 @@ def filter_file(file_name):
 def filter_files(start_dir, only_changed_files, progress):
     file_iter = FileList(start_dir, only_changed_files=only_changed_files,
                          exclude_dirs=config["ignore"]["directories"], progress=progress)
-    # always yield Cargo.lock so that the correctness of transitive dependacies is checked
+    # always yield Cargo.lock so that the correctness of transitive dependencies is checked
     yield "./Cargo.lock"
 
     for file_name in iter(file_iter):
@@ -226,7 +221,7 @@ def is_apache_licensed(header):
 def check_license(file_name, lines):
     if any(file_name.endswith(ext) for ext in (".yml", ".toml", ".lock", ".json", ".html")) or \
        config["skip-check-licenses"]:
-        raise StopIteration
+        return
 
     if lines[0].startswith(b"#!") and lines[1].strip():
         yield (1, "missing blank line after shebang")
@@ -264,7 +259,7 @@ def check_modeline(file_name, lines):
 def check_length(file_name, idx, line):
     if any(file_name.endswith(ext) for ext in (".yml", ".lock", ".json", ".html", ".toml")) or \
        config["skip-check-length"]:
-        raise StopIteration
+        return
 
     # Prefer shorter lines when shell scripting.
     max_length = 80 if file_name.endswith(".sh") else 120
@@ -330,7 +325,7 @@ def check_by_line(file_name, lines):
 
 def check_flake8(file_name, contents):
     if not file_name.endswith(".py"):
-        raise StopIteration
+        return
 
     ignore = {
         "W291",  # trailing whitespace; the standard tidy process will enforce no trailing whitespace
@@ -358,7 +353,7 @@ def check_lock(file_name, contents):
                     yield package["name"], package["version"], dependency
 
     if not file_name.endswith(".lock"):
-        raise StopIteration
+        return
 
     # Package names to be neglected (as named by cargo)
     exceptions = config["ignore"]["packages"]
@@ -432,11 +427,11 @@ def check_lock(file_name, contents):
 
 def check_toml(file_name, lines):
     if not file_name.endswith("Cargo.toml"):
-        raise StopIteration
+        return
     ok_licensed = False
     for idx, line in enumerate(map(lambda line: line.decode("utf-8"), lines)):
         if idx == 0 and "[workspace]" in line:
-            raise StopIteration
+            return
         line_without_comment, _, _ = line.partition("#")
         if line_without_comment.find("*") != -1:
             yield (idx + 1, "found asterisk instead of minimum version number")
@@ -448,7 +443,7 @@ def check_toml(file_name, lines):
 
 def check_shell(file_name, lines):
     if not file_name.endswith(".sh"):
-        raise StopIteration
+        return
 
     shebang = "#!/usr/bin/env bash"
     required_options = ["set -o errexit", "set -o nounset", "set -o pipefail"]
@@ -530,7 +525,7 @@ def check_rust(file_name, lines):
        file_name.endswith(".mako.rs") or \
        file_name.endswith(os.path.join("style", "build.rs")) or \
        file_name.endswith(os.path.join("unit", "style", "stylesheets.rs")):
-        raise StopIteration
+        return
 
     comment_depth = 0
     merged_lines = ''
@@ -745,11 +740,11 @@ def check_webidl_spec(file_name, contents):
     # }
 
     if not file_name.endswith(".webidl"):
-        raise StopIteration
+        return
 
     for i in WEBIDL_STANDARDS:
         if contents.find(i) != -1:
-            raise StopIteration
+            return
     yield (0, "No specification link found.")
 
 
@@ -792,7 +787,7 @@ class SafeYamlLoader(yaml.SafeLoader):
 
 def check_yaml(file_name, contents):
     if not file_name.endswith("buildbot_steps.yml"):
-        raise StopIteration
+        return
 
     # YAML specification doesn't explicitly disallow
     # duplicate keys, but they shouldn't be allowed in
@@ -840,7 +835,7 @@ def check_json_requirements(filename):
 
 def check_json(filename, contents):
     if not filename.endswith(".json"):
-        raise StopIteration
+        return
 
     try:
         json.loads(contents, object_pairs_hook=check_json_requirements(filename))
@@ -854,7 +849,7 @@ def check_json(filename, contents):
 
 def check_spec(file_name, lines):
     if SPEC_BASE_PATH not in file_name:
-        raise StopIteration
+        return
     file_name = os.path.relpath(os.path.splitext(file_name)[0], SPEC_BASE_PATH)
     patt = re.compile("^\s*\/\/.+")
 
@@ -1017,7 +1012,7 @@ We only expect files with {ext} extensions in {dir_name}'''.format(**details)
 def collect_errors_for_files(files_to_check, checking_functions, line_checking_functions, print_text=True):
     (has_element, files_to_check) = is_iter_empty(files_to_check)
     if not has_element:
-        raise StopIteration
+        return
     if print_text:
         print('\rChecking files for tidiness...')
 

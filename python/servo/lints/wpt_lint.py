@@ -33,11 +33,13 @@ class Lint(LintRunner):
 
         wpt_working_dir = os.path.abspath(os.path.join(WPT_PATH, "web-platform-tests"))
         for suite in SUITES:
-            files = self._get_wpt_files(suite)
+            files = list(self._get_wpt_files(suite))
+            if not files:
+                continue
             sys.path.insert(0, wpt_working_dir)
             from tools.lint import lint
             sys.path.remove(wpt_working_dir)
             file_dir = os.path.abspath(os.path.join(WPT_PATH, suite))
-            returncode = lint.lint(file_dir, list(files), output_format="json")
+            returncode = lint.lint(file_dir, files, output_format="json")
             if returncode:
                 yield ("WPT Lint Tool", "", "lint error(s) in Web Platform Tests: exit status %s" % returncode)
