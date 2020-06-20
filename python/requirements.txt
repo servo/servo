@@ -11,9 +11,9 @@ setuptools == 39.0
 toml == 0.9.2
 
 # For Python linting
-flake8 == 2.4.1
+flake8 == 3.8.3
 pep8 == 1.5.7
-pyflakes == 0.8.1
+pyflakes == 2.2.0
 
 # For buildbot checking
 voluptuous == 0.10.5

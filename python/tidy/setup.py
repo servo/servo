@@ -14,7 +14,7 @@ from setuptools import setup, find_packages
 VERSION = '0.3.0'
 
 install_requires = [
-    "flake8==2.4.1",
+    "flake8==3.8.3",
     "toml==0.9.2",
     "colorama==0.3.7",
     "voluptuous==0.11.5",
@@ -26,13 +26,13 @@ here = os.path.dirname(os.path.abspath(__file__))
 try:
     with open(os.path.join(here, 'README.rst')) as doc:
         readme = doc.read()
-except:
+except FileNotFoundError:
     readme = ''
 
 try:
     with open(os.path.join(here, 'HISTORY.rst')) as doc:
         history = doc.read()
-except:
+except FileNotFoundError:
     history = ''
 
 long_description = readme + '\n\n' + history
