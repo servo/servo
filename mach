@@ -36,7 +36,7 @@ def main(args):
 
 if __name__ == '__main__':
     sys.dont_write_bytecode = True
-    if sys.platform == 'win32':
+    if sys.platform == 'win32' and sys.version_info < (3, 4):
         # This is a complete hack to work around the fact that Windows
         # multiprocessing needs to import the original module (ie: this
         # file), but only works if it has a .py extension.
@@ -54,6 +54,12 @@ if __name__ == '__main__':
         #
         # See also: http://bugs.python.org/issue19946
         # And: https://bugzilla.mozilla.org/show_bug.cgi?id=914563
+        # XXX In Python 3.4 the multiprocessing module was re-written and the
+        # below code is no longer valid. The Python issue19946 also claims to
+        # be fixed in this version. It's not clear whether this hack is still
+        # needed in 3.4+ or not, but at least some basic mach commands appear
+        # to work without it. So skip it in 3.4+ until we determine it's still
+        # needed.
         import inspect
         from multiprocessing import forking
         global orig_command_line
