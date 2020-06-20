@@ -216,7 +216,7 @@ def is_linux():
 def append_to_path_env(string, env, name):
     variable = ""
     if name in env:
-        variable = env[name]
+        variable = six.ensure_str(env[name])
         if len(variable) > 0:
             variable += os.pathsep
     variable += string
