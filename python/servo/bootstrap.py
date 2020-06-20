@@ -271,7 +271,8 @@ def windows_msvc(context, force=False):
         cmake_path = find_executable("cmake")
         if cmake_path:
             cmake = subprocess.Popen([cmake_path, "--version"], stdout=PIPE)
-            cmake_version = cmake.stdout.read().splitlines()[0].replace("cmake version ", "")
+            cmake_version_output = six.ensure_str(cmake.stdout.read()).splitlines()[0]
+            cmake_version = cmake_version_output.replace("cmake version ", "")
             if LooseVersion(cmake_version) >= LooseVersion(version):
                 return True
         return False
