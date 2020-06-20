@@ -33,10 +33,11 @@ wpt = os.path.join(topdir, "tests", "wpt")
 def wpt_path(*args):
     return os.path.join(wpt, *args)
 
+
 CONFIG_FILE_PATH = os.path.join(".", "servo-tidy.toml")
 WPT_MANIFEST_PATH = wpt_path("include.ini")
 # regex source https://stackoverflow.com/questions/6883049/
-URL_REGEX = re.compile(b'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
+URL_REGEX = re.compile(br'https?://(?:[-\w.]|(?:%[\da-fA-F]{2}))+')
 
 # Import wptmanifest only when we do have wpt in tree, i.e. we're not
 # inside a Firefox checkout.
@@ -105,8 +106,8 @@ WEBIDL_STANDARDS = [
     b"//github.com/immersive-web/webxr-hands-input/",
     b"//gpuweb.github.io",
     # Not a URL
-    b"// This interface is entirely internal to Servo, and should not be" +
-    b" accessible to\n// web pages."
+    b"// This interface is entirely internal to Servo, and should not be"
+    + b" accessible to\n// web pages."
 ]
 
 
@@ -235,14 +236,14 @@ def check_license(file_name, lines):
     max_blank_lines = 2 if lines[0].startswith(b"#!") else 1
     license_block = []
 
-    for l in lines:
-        l = l.rstrip(b'\n')
-        if not l.strip():
+    for line in lines:
+        line = line.rstrip(b'\n')
+        if not line.strip():
             blank_lines += 1
             if blank_lines >= max_blank_lines:
                 break
             continue
-        line = uncomment(l)
+        line = uncomment(line)
         if line is not None:
             license_block.append(line)
 
@@ -257,7 +258,7 @@ def check_modeline(file_name, lines):
     for idx, line in enumerate(lines[:5]):
         if re.search(b'^.*[ \t](vi:|vim:|ex:)[ \t]', line):
             yield (idx + 1, "vi modeline present")
-        elif re.search(b'-\*-.*-\*-', line, re.IGNORECASE):
+        elif re.search(br'-\*-.*-\*-', line, re.IGNORECASE):
             yield (idx + 1, "emacs file variables present")
 
 
@@ -278,10 +279,10 @@ def contains_url(line):
 
 def is_unsplittable(file_name, line):
     return (
-        contains_url(line) or
-        file_name.endswith(".rs") and
-        line.startswith(b"use ") and
-        b"{" not in line
+        contains_url(line)
+        or file_name.endswith(".rs")
+        and line.startswith(b"use ")
+        and b"{" not in line
     )
 
 
@@ -334,6 +335,7 @@ def check_flake8(file_name, contents):
 
     ignore = {
         "W291",  # trailing whitespace; the standard tidy process will enforce no trailing whitespace
+        "W503",  # linebreak before binary operator; replaced by W504 - linebreak after binary operator
         "E501",  # 80 character line length; the standard tidy process will enforce line length
     }
 
@@ -485,7 +487,7 @@ def check_shell(file_name, lines):
         if " [ " in stripped or stripped.startswith("[ "):
             yield (idx + 1, "script should use `[[` instead of `[` for conditional testing")
 
-        for dollar in re.finditer('\$', stripped):
+        for dollar in re.finditer(r'\$', stripped):
             next_idx = dollar.end()
             if next_idx < len(stripped):
                 next_char = stripped[next_idx]
@@ -605,14 +607,15 @@ def check_rust(file_name, lines):
                 multi_line_string = True
 
         # get rid of comments
-        line = re.sub('//.*?$|/\*.*?$|^\*.*?$', '//', line)
+        line = re.sub(r'//.*?$|/\*.*?$|^\*.*?$', '//', line)
 
         # get rid of attributes that do not contain =
-        line = re.sub('^#[A-Za-z0-9\(\)\[\]_]*?$', '#[]', line)
+        line = re.sub(r'^#[A-Za-z0-9\(\)\[\]_]*?$', '#[]', line)
 
         # flag this line if it matches one of the following regular expressions
         # tuple format: (pattern, format_message, filter_function(match, line))
-        no_filter = lambda match, line: True
+        def no_filter(match, line):
+            return True
         regex_rules = [
             # There should not be any extra pointer dereferencing
             (r": &Vec<", "use &[T] instead of &Vec<T>", no_filter),
@@ -856,16 +859,16 @@ def check_spec(file_name, lines):
     if SPEC_BASE_PATH not in file_name:
         raise StopIteration
     file_name = os.path.relpath(os.path.splitext(file_name)[0], SPEC_BASE_PATH)
-    patt = re.compile("^\s*\/\/.+")
+    patt = re.compile(r"^\s*\/\/.+")
 
     # Pattern representing a line with a macro
-    macro_patt = re.compile("^\s*\S+!(.*)$")
+    macro_patt = re.compile(r"^\s*\S+!(.*)$")
 
     # Pattern representing a line with comment containing a spec link
-    link_patt = re.compile("^\s*///? (<https://.+>|https://.+)$")
+    link_patt = re.compile(r"^\s*///? (<https://.+>|https://.+)$")
 
     # Pattern representing a line with comment or attribute
-    comment_patt = re.compile("^\s*(///?.+|#\[.+\])$")
+    comment_patt = re.compile(r"^\s*(///?.+|#\[.+\])$")
 
     brace_count = 0
     in_impl = False
@@ -931,7 +934,7 @@ def check_config_file(config_file, print_text=True, no_wpt=False):
             continue
 
         # Check for invalid tables
-        if re.match("\[(.*?)\]", line.strip()):
+        if re.match(r"\[(.*?)\]", line.strip()):
             table_name = re.findall(r"\[(.*?)\]", line)[0].strip()
             if table_name not in ("configs", "blocked-packages", "ignore", "check_ext"):
                 yield config_file, idx + 1, "invalid config table [%s]" % table_name
@@ -961,10 +964,10 @@ def check_config_file(config_file, print_text=True, no_wpt=False):
         key = line.split("=")[0].strip()
 
         # Check for invalid keys inside [configs] and [ignore] table
-        if (current_table == "configs" and key not in config or
-                current_table == "ignore" and key not in config["ignore"] or
+        if (current_table == "configs" and key not in config
+                or current_table == "ignore" and key not in config["ignore"]
                 # Any key outside of tables
-                current_table == ""):
+                or current_table == ""):
             yield config_file, idx + 1, "invalid config key '%s'" % key
 
     # Parse config file

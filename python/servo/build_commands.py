@@ -46,7 +46,7 @@ def notify_linux(title, text):
         notify_obj = bus.get_object("org.freedesktop.Notifications", "/org/freedesktop/Notifications")
         method = notify_obj.get_dbus_method("Notify", "org.freedesktop.Notifications")
         method(title, 0, "", text, "", [], {"transient": True}, -1)
-    except:
+    except ImportError:
         raise Exception("Optional Python module 'dbus' is not installed.")
 
 
@@ -55,7 +55,7 @@ def notify_win(title, text):
         from servo.win32_toast import WindowsToast
         w = WindowsToast()
         w.balloon_tip(title, text)
-    except:
+    except WindowsError:
         from ctypes import Structure, windll, POINTER, sizeof
         from ctypes.wintypes import DWORD, HANDLE, WINFUNCTYPE, BOOL, UINT
 
@@ -920,7 +920,7 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
     for gst_lib in gst_dlls:
         try:
             shutil.copy(path.join(gst_root, "bin", gst_lib), servo_exe_dir)
-        except:
+        except FileNotFoundError:
             missing += [str(gst_lib)]
 
     for gst_lib in missing:
@@ -976,7 +976,7 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
     for gst_lib in gst_dlls:
         try:
             shutil.copy(path.join(gst_plugin_path, gst_lib), servo_exe_dir)
-        except:
+        except FileNotFoundError:
             missing += [str(gst_lib)]
 
     for gst_lib in missing:
