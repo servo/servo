@@ -10,15 +10,14 @@
 """
 Created on Mon Mar 26 20:08:25 2018
 @author: Pranshu Sinha, Abhay Soni, Aayushi Agrawal
-"""
 
-"""
 The below program is intended to test rendering mismatches in servo by taking screenshots of rendered html files.
 Here is the breakdown of how our code works:
 *   A session is started on localhost:7002
 *   The randomly generated webpage's (html files) data is sent as JSON to this session
 *   Using curl request, we load the html files for this session ID based on the session we just created.
 """
+
 import os
 import json
 import requests
@@ -72,7 +71,7 @@ def render_html_files(num_of_files, url, file_url, json_string, headers, cwd):
             image_file.write(base64.decodebytes(image_data_encoded.encode('utf-8')))
         print("################################")
         print("The screenshot is stored in the location: {0}/screenshots/"
-              + " with filename: output_image_{1}.png".format(cwd, str(x)))
+              " with filename: output_image_{1}.png".format(cwd, str(x)))
         print("################################")
 
 
@@ -123,6 +122,7 @@ def main(argv):  # take inputs from command line by considering the options para
 
     # Render each HTML file and take a screenshot
     render_html_files(num_of_files, url, file_url, json_string, headers, cwd)
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 8:

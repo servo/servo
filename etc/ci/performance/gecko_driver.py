@@ -31,44 +31,44 @@ def create_gecko_session():
 
 
 def generate_placeholder(testcase):
-        # We need to still include the failed tests, otherwise Treeherder will
-        # consider the result to be a new test series, and thus a new graph. So we
-        # use a placeholder with values = -1 to make Treeherder happy, and still be
-        # able to identify failed tests (successful tests have time >=0).
+    # We need to still include the failed tests, otherwise Treeherder will
+    # consider the result to be a new test series, and thus a new graph. So we
+    # use a placeholder with values = -1 to make Treeherder happy, and still be
+    # able to identify failed tests (successful tests have time >=0).
 
-        timings = {
-            "testcase": testcase,
-            "title": ""
-        }
+    timings = {
+        "testcase": testcase,
+        "title": ""
+    }
 
-        timing_names = [
-            "navigationStart",
-            "unloadEventStart",
-            "domLoading",
-            "fetchStart",
-            "responseStart",
-            "loadEventEnd",
-            "connectStart",
-            "domainLookupStart",
-            "redirectStart",
-            "domContentLoadedEventEnd",
-            "requestStart",
-            "secureConnectionStart",
-            "connectEnd",
-            "loadEventStart",
-            "domInteractive",
-            "domContentLoadedEventStart",
-            "redirectEnd",
-            "domainLookupEnd",
-            "unloadEventEnd",
-            "responseEnd",
-            "domComplete",
-        ]
+    timing_names = [
+        "navigationStart",
+        "unloadEventStart",
+        "domLoading",
+        "fetchStart",
+        "responseStart",
+        "loadEventEnd",
+        "connectStart",
+        "domainLookupStart",
+        "redirectStart",
+        "domContentLoadedEventEnd",
+        "requestStart",
+        "secureConnectionStart",
+        "connectEnd",
+        "loadEventStart",
+        "domInteractive",
+        "domContentLoadedEventStart",
+        "redirectEnd",
+        "domainLookupEnd",
+        "unloadEventEnd",
+        "responseEnd",
+        "domComplete",
+    ]
 
-        for name in timing_names:
-            timings[name] = 0 if name == "navigationStart" else -1
+    for name in timing_names:
+        timings[name] = 0 if name == "navigationStart" else -1
 
-        return [timings]
+    return [timings]
 
 
 def run_gecko_test(testcase, url, date, timeout, is_async):
@@ -91,7 +91,7 @@ def run_gecko_test(testcase, url, date, timeout, is_async):
                     "return JSON.stringify(performance.timing)"
                 )
             ))
-        except:
+        except Exception:
             # We need to return a timing object no matter what happened.
             # See the comment in generate_placeholder() for explanation
             print("Failed to get a valid timing measurement.")

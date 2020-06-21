@@ -13,11 +13,9 @@
 python3 -m coverage run $0
 python3 -m coverage report -m --fail-under 100
 exit
-'''
 
-"""
 Run the decision task with fake Taskcluster APIs, to catch Python errors before pushing.
-"""
+'''
 
 import os
 import sys
@@ -47,7 +45,7 @@ os.environ["GIT_REF"] = "refs/heads/auto"
 os.environ["TASKCLUSTER_ROOT_URL"] = "https://community-tc.services.mozilla.com"
 os.environ["TASKCLUSTER_PROXY_URL"] = "http://taskcluster"
 os.environ["NEW_AMI_WORKER_TYPE"] = "-"
-import decision_task
+import decision_task  # noqa: E402
 decision_task.decisionlib.subprocess = MagicMock()
 
 print("\n# Push:")

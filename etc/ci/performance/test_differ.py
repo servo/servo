@@ -29,6 +29,7 @@ def load_data(filename):
             results[key] = round(totals[key] / counts[key])
         return results
 
+
 data1 = load_data(args.file1)
 data2 = load_data(args.file2)
 keys = set(data1.keys()).union(data2.keys())

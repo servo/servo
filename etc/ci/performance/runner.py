@@ -116,7 +116,7 @@ def parse_log(log, testcase, url, date):
         for line in block:
             try:
                 (_, key, value) = line.split(",")
-            except:
+            except ValueError:
                 print("[DEBUG] failed to parse the following line:")
                 print(line)
                 print('[DEBUG] log:')
@@ -133,10 +133,10 @@ def parse_log(log, testcase, url, date):
         return timing
 
     def valid_timing(timing, url=None):
-        if (timing is None or
-                testcase is None or
-                timing.get('title') == 'Error loading page' or
-                timing.get('testcase') != url):
+        if (timing is None
+                or testcase is None
+                or timing.get('title') == 'Error loading page'
+                or timing.get('testcase') != url):
             return False
         else:
             return True

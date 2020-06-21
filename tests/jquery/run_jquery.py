@@ -183,7 +183,7 @@ def run_http_server():
                 self.send_header("Last-Modified", self.date_time_string(fs.st_mtime))
                 self.end_headers()
                 return f
-            except:
+            except IOError:
                 f.close()
                 raise
 
@@ -194,6 +194,7 @@ def run_http_server():
     while True:
         sys.stdout.flush()
         server.handle_request()
+
 
 if __name__ == '__main__':
     if len(sys.argv) == 4:

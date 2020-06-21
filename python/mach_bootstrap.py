@@ -155,7 +155,6 @@ def wptserve_path(is_firefox, topdir, *paths):
 
 def _activate_virtualenv(topdir, is_firefox):
     virtualenv_path = os.path.join(topdir, "python", "_virtualenv%d.%d" % (sys.version_info[0], sys.version_info[1]))
-    check_exec_path = lambda path: path.startswith(virtualenv_path)
     python = sys.executable   # If there was no python, mach wouldn't have run at all!
     if not python:
         sys.exit('Failed to find python executable for starting virtualenv.')
@@ -177,7 +176,8 @@ def _activate_virtualenv(topdir, is_firefox):
 
     exec(compile(open(activate_path).read(), activate_path, 'exec'), dict(__file__=activate_path))
 
-    python = _get_exec_path(PYTHON_NAMES, is_valid_path=check_exec_path)
+    python = _get_exec_path(PYTHON_NAMES,
+                            is_valid_path=lambda path: path.startswith(virtualenv_path))
     if not python:
         sys.exit("Python executable in virtualenv failed to activate.")
 

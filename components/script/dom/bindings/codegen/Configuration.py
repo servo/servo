@@ -63,7 +63,8 @@ class Configuration:
                           c.isCallback() and not c.isInterface()]
 
         # Keep the descriptor list sorted for determinism.
-        cmp = lambda x, y: (x > y) - (x < y)
+        def cmp(x, y):
+            return (x > y) - (x < y)
         self.descriptors.sort(key=functools.cmp_to_key(lambda x, y: cmp(x.name, y.name)))
 
     def getInterface(self, ifname):
@@ -74,25 +75,35 @@ class Configuration:
         curr = self.descriptors
         for key, val in filters.iteritems():
             if key == 'webIDLFile':
-                getter = lambda x: x.interface.filename()
+                def getter(x):
+                    return x.interface.filename()
             elif key == 'hasInterfaceObject':
-                getter = lambda x: x.interface.hasInterfaceObject()
+                def getter(x):
+                    return x.interface.hasInterfaceObject()
             elif key == 'isCallback':
-                getter = lambda x: x.interface.isCallback()
+                def getter(x):
+                    return x.interface.isCallback()
             elif key == 'isNamespace':
-                getter = lambda x: x.interface.isNamespace()
+                def getter(x):
+                    return x.interface.isNamespace()
             elif key == 'isJSImplemented':
-                getter = lambda x: x.interface.isJSImplemented()
+                def getter(x):
+                    return x.interface.isJSImplemented()
             elif key == 'isGlobal':
-                getter = lambda x: x.isGlobal()
+                def getter(x):
+                    return x.isGlobal()
             elif key == 'isInline':
-                getter = lambda x: x.interface.getExtendedAttribute('Inline') is not None
+                def getter(x):
+                    return x.interface.getExtendedAttribute('Inline') is not None
             elif key == 'isExposedConditionally':
-                getter = lambda x: x.interface.isExposedConditionally()
+                def getter(x):
+                    return x.interface.isExposedConditionally()
             elif key == 'isIteratorInterface':
-                getter = lambda x: x.interface.isIteratorInterface()
+                def getter(x):
+                    return x.interface.isIteratorInterface()
             else:
-                getter = lambda x: getattr(x, key)
+                def getter(x):
+                    return getattr(x, key)
             curr = filter(lambda x: getter(x) == val, curr)
         return curr
 
@@ -125,8 +136,8 @@ class Configuration:
 
         # We should have exactly one result.
         if len(descriptors) != 1:
-            raise NoSuchDescriptorError("For " + interfaceName + " found " +
-                                        str(len(descriptors)) + " matches")
+            raise NoSuchDescriptorError("For " + interfaceName + " found "
+                                        + str(len(descriptors)) + " matches")
         return descriptors[0]
 
     def getDescriptorProvider(self):
@@ -157,10 +168,10 @@ class DescriptorProvider:
 
 
 def MemberIsUnforgeable(member, descriptor):
-    return ((member.isAttr() or member.isMethod()) and
-            not member.isStatic() and
-            (member.isUnforgeable() or
-             bool(descriptor.interface.getExtendedAttribute("Unforgeable"))))
+    return ((member.isAttr() or member.isMethod())
+            and not member.isStatic()
+            and (member.isUnforgeable()
+                 or bool(descriptor.interface.getExtendedAttribute("Unforgeable"))))
 
 
 class Descriptor(DescriptorProvider):
@@ -228,14 +239,14 @@ class Descriptor(DescriptorProvider):
 
         # If we're concrete, we need to crawl our ancestor interfaces and mark
         # them as having a concrete descendant.
-        self.concrete = (not self.interface.isCallback() and
-                         not self.interface.isNamespace() and
-                         not self.interface.getExtendedAttribute("Abstract") and
-                         not self.interface.getExtendedAttribute("Inline") and
-                         not spiderMonkeyInterface)
-        self.hasUnforgeableMembers = (self.concrete and
-                                      any(MemberIsUnforgeable(m, self) for m in
-                                          self.interface.members))
+        self.concrete = (not self.interface.isCallback()
+                         and not self.interface.isNamespace()
+                         and not self.interface.getExtendedAttribute("Abstract")
+                         and not self.interface.getExtendedAttribute("Inline")
+                         and not spiderMonkeyInterface)
+        self.hasUnforgeableMembers = (self.concrete
+                                      and any(MemberIsUnforgeable(m, self) for m in
+                                              self.interface.members))
 
         self.operations = {
             'IndexedGetter': None,
@@ -391,8 +402,8 @@ class Descriptor(DescriptorProvider):
         return None
 
     def hasDescendants(self):
-        return (self.interface.getUserData("hasConcreteDescendant", False) or
-                self.interface.getUserData("hasProxyDescendant", False))
+        return (self.interface.getUserData("hasConcreteDescendant", False)
+                or self.interface.getUserData("hasProxyDescendant", False))
 
     def hasHTMLConstructor(self):
         ctor = self.interface.ctor()
@@ -402,8 +413,8 @@ class Descriptor(DescriptorProvider):
         assert self.interface.hasInterfaceObject()
         if self.interface.getExtendedAttribute("Inline"):
             return False
-        return (self.interface.isCallback() or self.interface.isNamespace() or
-                self.hasDescendants() or self.hasHTMLConstructor())
+        return (self.interface.isCallback() or self.interface.isNamespace()
+                or self.hasDescendants() or self.hasHTMLConstructor())
 
     def shouldCacheConstructor(self):
         return self.hasDescendants() or self.hasHTMLConstructor()
@@ -416,8 +427,8 @@ class Descriptor(DescriptorProvider):
         Returns true if this is the primary interface for a global object
         of some sort.
         """
-        return bool(self.interface.getExtendedAttribute("Global") or
-                    self.interface.getExtendedAttribute("PrimaryGlobal"))
+        return bool(self.interface.getExtendedAttribute("Global")
+                    or self.interface.getExtendedAttribute("PrimaryGlobal"))
 
 
 # Some utility methods
@@ -428,8 +439,8 @@ def MakeNativeName(name):
 
 
 def getModuleFromObject(object):
-    return ('crate::dom::bindings::codegen::Bindings::' +
-            os.path.basename(object.location.filename()).split('.webidl')[0] + 'Binding')
+    return ('crate::dom::bindings::codegen::Bindings::'
+            + os.path.basename(object.location.filename()).split('.webidl')[0] + 'Binding')
 
 
 def getTypesFromDescriptor(descriptor):

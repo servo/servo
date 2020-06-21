@@ -19,8 +19,8 @@ from runner import format_result_summary
 
 
 def geometric_mean(iterable):
-        filtered = list(filter(lambda x: x > 0, iterable))
-        return (reduce(operator.mul, filtered)) ** (1.0 / len(filtered))
+    filtered = list(filter(lambda x: x > 0, iterable))
+    return (reduce(operator.mul, filtered)) ** (1.0 / len(filtered))
 
 
 def format_testcase_name(name):

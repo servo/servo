@@ -14,8 +14,8 @@ def test_format_testcase_name():
            'http://localhost:8000/page_load_test/163.com/p.mail.163.com/'
            'mailinfo/shownewmsg_www_1222.htm.html')))
     assert(('1234567890223456789032345678904234567890'
-            '5234567890623456789072345678908234567890') ==
-           submit_to_perfherder.format_testcase_name((
+            '5234567890623456789072345678908234567890')
+           == submit_to_perfherder.format_testcase_name((
                '1234567890223456789032345678904234567890'
                '52345678906234567890723456789082345678909234567890')))
     assert('news.ycombinator.com' == submit_to_perfherder.format_testcase_name(

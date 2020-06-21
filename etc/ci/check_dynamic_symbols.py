@@ -14,7 +14,7 @@ import re
 import subprocess
 import sys
 
-symbol_regex = re.compile(b"D  \*UND\*\t(.*) (.*)$")
+symbol_regex = re.compile(br"D  \*UND\*\t(.*) (.*)$")
 allowed_symbols = frozenset([
     b'unshare',
     b'malloc_usable_size',

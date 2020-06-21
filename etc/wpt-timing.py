@@ -51,6 +51,7 @@ def process_log(data):
 
     return test_results
 
+
 test_results = {
     "SKIP": [],
     "OK": [],
