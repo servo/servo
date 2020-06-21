@@ -6771,8 +6771,8 @@ class CGRegisterProxyHandlers(CGThing):
         self.root = CGList([
             CGGeneric(
                 "#[allow(non_upper_case_globals)]\n"
-                "pub mod proxy_handlers {\n"
-                "".join(
+                + "pub mod proxy_handlers {\n"
+                + "".join(
                     "    pub static %s: std::sync::atomic::AtomicPtr<libc::c_void> =\n"
                     "        std::sync::atomic::AtomicPtr::new(std::ptr::null_mut());\n"
                     % desc.name
