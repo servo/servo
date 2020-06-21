@@ -93,8 +93,8 @@ class MachCommands(CommandBase):
         help='Updates the selected package')
     @CommandArgument(
         '--all-packages', '-a', action='store_true',
-        help='Updates all packages. NOTE! This is very likely to break your ' +
-             'working copy, making it impossible to build servo. Only do ' +
+        help='Updates all packages. NOTE! This is very likely to break your '
+             'working copy, making it impossible to build servo. Only do '
              'this if you really know what you are doing.')
     @CommandArgument(
         '--dry-run', '-d', action='store_true',

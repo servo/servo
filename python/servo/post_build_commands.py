@@ -161,8 +161,8 @@ class PostBuildCommands(CommandBase):
                     command = rustCommand
 
             # Prepend the debugger args.
-            args = ([command] + self.debuggerInfo.args +
-                    args + params)
+            args = ([command] + self.debuggerInfo.args
+                    + args + params)
         else:
             args = args + params
 
@@ -208,8 +208,8 @@ class PostBuildCommands(CommandBase):
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
-        servo_cmd = [bin or self.get_nightly_binary_path(nightly) or
-                     self.get_binary_path(release, dev)] + params
+        servo_cmd = [bin or self.get_nightly_binary_path(nightly)
+                     or self.get_binary_path(release, dev)] + params
         rr_cmd = ['rr', '--fatal-errors', 'record']
         try:
             check_call(rr_cmd + servo_cmd)

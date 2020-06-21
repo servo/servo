@@ -244,7 +244,7 @@ class MachCommands(CommandBase):
 
             with open(path.join(preload_path, preload_filename), 'w') as fd:
                 json.dump(entries, fd, indent=4)
-        except ValueError as e:
+        except ValueError:
             print("Unable to parse chromium HSTS preload list, has the format changed?")
             sys.exit(1)
 
@@ -262,8 +262,8 @@ class MachCommands(CommandBase):
             print("Unable to download the public suffix list; are you connected to the internet?")
             sys.exit(1)
 
-        lines = [l.strip() for l in content.decode("utf8").split("\n")]
-        suffixes = [l for l in lines if not l.startswith("//") and not l == ""]
+        lines = [line.strip() for line in content.decode("utf8").split("\n")]
+        suffixes = [line for line in lines if not line.startswith("//") and not line == ""]
 
         with open(dst_filename, "wb") as fo:
             for suffix in suffixes:
@@ -475,7 +475,7 @@ class MachCommands(CommandBase):
                                     if os.path.exists(crate_path):
                                         try:
                                             delete(crate_path)
-                                        except:
+                                        except (FileNotFoundError, PermissionError):
                                             print(traceback.format_exc())
                                             print("Delete %s failed!" % crate_path)
                             else:

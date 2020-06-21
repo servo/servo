@@ -5,15 +5,13 @@
 import os
 import sys
 from wptrunner import wptcommandline
+from update import updatecommandline
 
 here = os.path.split(__file__)[0]
 
 
 def wpt_path(*args):
     return os.path.join(here, *args)
-
-# Imports
-from update import updatecommandline
 
 
 def update_tests(**kwargs):
@@ -44,6 +42,7 @@ def main():
     parser = wptcommandline.create_parser()
     kwargs = vars(parser.parse_args())
     return update_tests(**kwargs)
+
 
 if __name__ == "__main__":
     sys.exit(0 if main() else 1)

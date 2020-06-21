@@ -134,10 +134,10 @@ def PowerParser(OutputDir, LayoutThreads):
 
         TotalPower = PowerGen / float(ExperimentNum - 1)
         TotalTime = TimeGen / float(ExperimentNum - 1)
-        ResultFile.write(str(layoutT) + " , " + str(TotalPower) + " , " +
-                         str(MaxPower) + " , " + str(MinPower) + " , " +
-                         str(TotalTime) + " , " + str(MaxTime) + " , " +
-                         str(MinTime) + "\n")
+        ResultFile.write(str(layoutT) + " , " + str(TotalPower) + " , "
+                         + str(MaxPower) + " , " + str(MinPower) + " , "
+                         + str(TotalTime) + " , " + str(MaxTime) + " , "
+                         + str(MinTime) + "\n")
     ResultFile.close()
     Opener = ResultFile = open(ResultTable, "r")
     for line in Opener:
@@ -179,6 +179,7 @@ def main():
 
     PowerCollector(OutputDir, Benchmarks, LayoutThreads, Renderer)
     PowerParser(OutputDir, LayoutThreads)
+
 
 if __name__ == "__main__":
     main()

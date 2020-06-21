@@ -117,8 +117,8 @@ class MachCommands(CommandBase):
                      help="Optionally select test based on "
                           "test file directory")
     @CommandArgument('--render-mode', '-rm', default=DEFAULT_RENDER_MODE,
-                     help="The render mode to be used on all tests. " +
-                          HELP_RENDER_MODE)
+                     help="The render mode to be used on all tests. "
+                          + HELP_RENDER_MODE)
     @CommandArgument('--release', default=False, action="store_true",
                      help="Run with a release build of servo")
     @CommandArgument('--tidy-all', default=False, action="store_true",

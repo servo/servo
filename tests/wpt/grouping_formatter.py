@@ -75,8 +75,8 @@ class ServoFormatter(base.BaseFormatter):
     def text_to_erase_display(self):
         if not self.interactive or not self.current_display:
             return ""
-        return ((self.move_up + self.clear_eol) *
-                self.current_display.count('\n'))
+        return ((self.move_up + self.clear_eol)
+                * self.current_display.count('\n'))
 
     def generate_output(self, text=None, new_display=None, unexpected_in_test=None):
         if not self.interactive:

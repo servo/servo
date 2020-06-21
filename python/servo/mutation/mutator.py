@@ -138,8 +138,8 @@ class DuplicateLine(Strategy):
         plus_equals_statement = r".+?\s\+\=\s.*"
         minus_equals_statement = r".+?\s\-\=\s.*"
         self._replace_strategy = {
-            'regex': (append_statement + '|' + remove_statement + '|' + push_statement +
-                      '|' + pop_statement + '|' + plus_equals_statement + '|' + minus_equals_statement),
+            'regex': (append_statement + '|' + remove_statement + '|' + push_statement
+                      + '|' + pop_statement + '|' + plus_equals_statement + '|' + minus_equals_statement),
             'replaceString': r"\g<0>\n\g<0>",
         }
 
