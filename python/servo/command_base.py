@@ -537,7 +537,7 @@ class CommandBase(object):
         try:
             if check_gstreamer_lib():
                 return False
-        except (FileNotFoundError, WindowsError):
+        except Exception:
             # Some systems don't have pkg-config; we can't probe in this case
             # and must hope for the best
             return False

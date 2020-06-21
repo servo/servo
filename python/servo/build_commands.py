@@ -920,7 +920,7 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
     for gst_lib in gst_dlls:
         try:
             shutil.copy(path.join(gst_root, "bin", gst_lib), servo_exe_dir)
-        except FileNotFoundError:
+        except Exception:
             missing += [str(gst_lib)]
 
     for gst_lib in missing:
@@ -976,7 +976,7 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
     for gst_lib in gst_dlls:
         try:
             shutil.copy(path.join(gst_plugin_path, gst_lib), servo_exe_dir)
-        except FileNotFoundError:
+        except Exception:
             missing += [str(gst_lib)]
 
     for gst_lib in missing:

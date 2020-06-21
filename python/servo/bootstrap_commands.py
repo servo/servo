@@ -475,7 +475,7 @@ class MachCommands(CommandBase):
                                     if os.path.exists(crate_path):
                                         try:
                                             delete(crate_path)
-                                        except (FileNotFoundError, PermissionError):
+                                        except Exception:
                                             print(traceback.format_exc())
                                             print("Delete %s failed!" % crate_path)
                             else:

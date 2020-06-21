@@ -26,13 +26,13 @@ here = os.path.dirname(os.path.abspath(__file__))
 try:
     with open(os.path.join(here, 'README.rst')) as doc:
         readme = doc.read()
-except FileNotFoundError:
+except Exception:
     readme = ''
 
 try:
     with open(os.path.join(here, 'HISTORY.rst')) as doc:
         history = doc.read()
-except FileNotFoundError:
+except Exception:
     history = ''
 
 long_description = readme + '\n\n' + history
