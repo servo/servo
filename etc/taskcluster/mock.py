@@ -20,7 +20,6 @@ Run the decision task with fake Taskcluster APIs, to catch Python errors before 
 import os
 import sys
 from unittest.mock import MagicMock
-import decision_task
 
 
 class TaskclusterRestFailure(Exception):
@@ -39,14 +38,13 @@ class Index:
 stringDate = str
 slugId = b"<new id>".lower
 sys.exit = Queue = fromNow = MagicMock()
-sys.modules["taskcluster"] = sys.modules[__name__]
 sys.dont_write_bytecode = True
 os.environ.update(**{k: k for k in "TASK_ID TASK_OWNER TASK_SOURCE GIT_URL GIT_SHA".split()})
 os.environ["GIT_REF"] = "refs/heads/auto"
 os.environ["TASKCLUSTER_ROOT_URL"] = "https://community-tc.services.mozilla.com"
 os.environ["TASKCLUSTER_PROXY_URL"] = "http://taskcluster"
 os.environ["NEW_AMI_WORKER_TYPE"] = "-"
-
+import decision_task  # noqa: E402
 decision_task.decisionlib.subprocess = MagicMock()
 
 print("\n# Push:")
