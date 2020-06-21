@@ -143,12 +143,7 @@ class FileList(object):
         self.excluded = exclude_dirs
         self.generator = self._filter_excluded() if exclude_dirs else self._default_walk()
         if only_changed_files:
-            try:
-                # Fall back if git doesn't work
-                self.generator = self._git_changed_files()
-            except subprocess.CalledProcessError:
-                pass
-
+            self.generator = self._git_changed_files()
         if progress:
             self.generator = progress_wrapper(self.generator)
 
@@ -160,6 +155,9 @@ class FileList(object):
     def _git_changed_files(self):
         args = ["git", "log", "-n1", "--merges", "--format=%H"]
         last_merge = subprocess.check_output(args, universal_newlines=True).strip()
+        if not last_merge:
+            return
+
         args = ["git", "diff", "--name-only", last_merge, self.directory]
         file_list = normilize_paths(subprocess.check_output(args, universal_newlines=True).splitlines())
 
