@@ -29,7 +29,7 @@ use webrender_traits::{
 };
 use wgpu::{
     binding_model::{BindGroupDescriptor, BindGroupEntry, BindingResource, BufferBinding},
-    command::{BufferCopyView, TextureCopyView},
+    command::{BufferCopyView, ComputePass, RenderPass, TextureCopyView},
     device::HostMap,
     id,
     instance::RequestAdapterOptions,
@@ -48,12 +48,20 @@ pub enum WebGPUResponse {
         queue_id: WebGPUQueue,
         _descriptor: wgt::DeviceDescriptor,
     },
+    BufferMapAsync(Vec<u8>),
 }
 
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPURequest {
+    BufferMapAsync {
+        sender: IpcSender<WebGPUResponseResult>,
+        buffer_id: id::BufferId,
+        host_map: HostMap,
+        map_range: std::ops::Range<u64>,
+    },
+    BufferMapComplete(id::BufferId),
     CommandEncoderFinish {
         command_encoder_id: id::CommandEncoderId,
         // TODO(zakorgy): Serialize CommandBufferDescriptor in wgpu-core
@@ -170,11 +178,11 @@ pub enum WebGPURequest {
     },
     RunComputePass {
         command_encoder_id: id::CommandEncoderId,
-        pass_data: Vec<u8>,
+        compute_pass: ComputePass,
     },
     RunRenderPass {
         command_encoder_id: id::CommandEncoderId,
-        pass_data: Vec<u8>,
+        render_pass: RenderPass,
     },
     Submit {
         queue_id: id::QueueId,
@@ -190,6 +198,7 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         buffer_id: id::BufferId,
         array_buffer: Vec<u8>,
+        mapped_at_creation: bool,
     },
 }
 
@@ -198,6 +207,13 @@ pub enum WebGPUBindings {
     Buffer(BufferBinding),
     Sampler(id::SamplerId),
     TextureView(id::TextureViewId),
+}
+
+struct BufferMapInfo<'a> {
+    buffer_id: id::BufferId,
+    sender: IpcSender<WebGPUResponseResult>,
+    global: &'a wgpu::hub::Global<IdentityRecyclerFactory>,
+    size: usize,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -264,7 +280,7 @@ impl WebGPU {
     }
 }
 
-struct WGPU {
+struct WGPU<'a> {
     receiver: IpcReceiver<WebGPURequest>,
     sender: IpcSender<WebGPURequest>,
     script_sender: IpcSender<WebGPUMsg>,
@@ -273,13 +289,15 @@ struct WGPU {
     devices: Vec<WebGPUDevice>,
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
+    // Buffers with pending mapping
+    buffer_maps: HashMap<id::BufferId, BufferMapInfo<'a>>,
     webrender_api: webrender_api::RenderApi,
     webrender_document: webrender_api::DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
     wgpu_image_map: Arc<Mutex<HashMap<u64, PresentationData>>>,
 }
 
-impl WGPU {
+impl<'a> WGPU<'a> {
     fn new(
         receiver: IpcReceiver<WebGPURequest>,
         sender: IpcSender<WebGPURequest>,
@@ -296,10 +314,11 @@ impl WGPU {
             receiver,
             sender,
             script_sender,
-            global: wgpu::hub::Global::new("wgpu-core", factory),
+            global: wgpu::hub::Global::new("wgpu-core", factory, wgt::BackendBit::PRIMARY),
             adapters: Vec::new(),
             devices: Vec::new(),
             _invalid_adapters: Vec::new(),
+            buffer_maps: HashMap::new(),
             webrender_api: webrender_api_sender.create_api(),
             webrender_document,
             external_images,
@@ -307,9 +326,57 @@ impl WGPU {
         }
     }
 
-    fn run(mut self) {
+    fn run(&'a mut self) {
         while let Ok(msg) = self.receiver.recv() {
+            self.devices.iter().for_each(|device| {
+                let global = &self.global;
+                let device_id = device.0;
+                gfx_select!(device_id => global.device_poll(device_id, false));
+            });
             match msg {
+                WebGPURequest::BufferMapAsync {
+                    sender,
+                    buffer_id,
+                    host_map,
+                    map_range,
+                } => {
+                    let map_info = BufferMapInfo {
+                        buffer_id,
+                        sender,
+                        global: &self.global,
+                        size: (map_range.end - map_range.start) as usize,
+                    };
+                    self.buffer_maps.insert(buffer_id, map_info);
+
+                    unsafe extern "C" fn callback(status: BufferMapAsyncStatus, userdata: *mut u8) {
+                        let info = (userdata as *mut BufferMapInfo).as_ref().unwrap();
+                        match status {
+                            BufferMapAsyncStatus::Success => {
+                                let global = info.global;
+                                let data_pt = gfx_select!(info.buffer_id =>
+                                    global.buffer_get_mapped_range(info.buffer_id, 0, None));
+                                let data = slice::from_raw_parts(data_pt, info.size).to_vec();
+                                if let Err(e) =
+                                    info.sender.send(Ok(WebGPUResponse::BufferMapAsync(data)))
+                                {
+                                    warn!("Could not send BufferMapAsync Response ({})", e);
+                                }
+                            },
+                            _ => warn!("Could not map buffer({:?})", info.buffer_id),
+                        }
+                    }
+
+                    let operation = BufferMapOperation {
+                        host: host_map,
+                        callback,
+                        user_data: convert_to_pointer(self.buffer_maps.get(&buffer_id).unwrap()),
+                    };
+                    let global = &self.global;
+                    gfx_select!(buffer_id => global.buffer_map_async(buffer_id, map_range, operation));
+                },
+                WebGPURequest::BufferMapComplete(buffer_id) => {
+                    self.buffer_maps.remove(&buffer_id);
+                },
                 WebGPURequest::CommandEncoderFinish { command_encoder_id } => {
                     let global = &self.global;
                     let _ = gfx_select!(command_encoder_id => global.command_encoder_finish(
@@ -526,14 +593,9 @@ impl WGPU {
                     program,
                 } => {
                     let global = &self.global;
-                    let descriptor = wgpu_core::pipeline::ShaderModuleDescriptor {
-                        code: wgpu_core::U32Array {
-                            bytes: program.as_ptr(),
-                            length: program.len(),
-                        },
-                    };
+                    let source = wgpu_core::pipeline::ShaderModuleSource::SpirV(&program);
                     let _ = gfx_select!(program_id =>
-                        global.device_create_shader_module(device_id, &descriptor, program_id));
+                        global.device_create_shader_module(device_id, source, program_id));
                 },
                 WebGPURequest::CreateSwapChain {
                     device_id,
@@ -636,7 +698,6 @@ impl WGPU {
                     if let Err(e) = self.script_sender.send(WebGPUMsg::Exit) {
                         warn!("Failed to send WebGPUMsg::Exit to script ({})", e);
                     }
-                    drop(self.global);
                     if let Err(e) = sender.send(()) {
                         warn!("Failed to send response to WebGPURequest::Exit ({})", e)
                     }
@@ -712,22 +773,22 @@ impl WGPU {
                 },
                 WebGPURequest::RunComputePass {
                     command_encoder_id,
-                    pass_data,
+                    compute_pass,
                 } => {
                     let global = &self.global;
                     gfx_select!(command_encoder_id => global.command_encoder_run_compute_pass(
                         command_encoder_id,
-                        &pass_data
+                        &compute_pass
                     ));
                 },
                 WebGPURequest::RunRenderPass {
                     command_encoder_id,
-                    pass_data,
+                    render_pass,
                 } => {
                     let global = &self.global;
                     gfx_select!(command_encoder_id => global.command_encoder_run_render_pass(
                         command_encoder_id,
-                        &pass_data
+                        &render_pass
                     ));
                 },
                 WebGPURequest::Submit {
@@ -824,7 +885,7 @@ impl WGPU {
                     // TODO: Remove the blocking behaviour
                     gfx_select!(device_id => global.device_poll(device_id, true));
                     let buf_data = gfx_select!(buffer_id =>
-                        global.buffer_get_mapped_range(buffer_id, 0, wgt::BufferSize::WHOLE));
+                        global.buffer_get_mapped_range(buffer_id, 0, None));
                     if let Some(present_data) =
                         self.wgpu_image_map.lock().unwrap().get_mut(&external_id)
                     {
@@ -849,19 +910,32 @@ impl WGPU {
                     device_id,
                     buffer_id,
                     array_buffer,
+                    mapped_at_creation,
                 } => {
                     let global = &self.global;
-
-                    gfx_select!(buffer_id => global.device_set_buffer_sub_data(
-                        device_id,
-                        buffer_id,
-                        0,
-                        array_buffer.as_slice()
-                    ));
+                    if mapped_at_creation {
+                        gfx_select!(device_id => global.queue_write_buffer(
+                            device_id,
+                            buffer_id,
+                            0,
+                            array_buffer.as_slice()
+                        ));
+                    } else {
+                        gfx_select!(buffer_id => global.device_set_buffer_sub_data(
+                            device_id,
+                            buffer_id,
+                            0,
+                            array_buffer.as_slice()
+                        ));
+                    }
                 },
             }
         }
     }
+}
+
+fn convert_to_pointer<T: Sized>(obj: &T) -> *mut u8 {
+    (obj as *const T) as *mut u8
 }
 
 macro_rules! webgpu_resource {

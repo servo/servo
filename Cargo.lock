@@ -1865,8 +1865,7 @@ dependencies = [
 [[package]]
 name = "gfx-descriptor"
 version = "0.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bf35f5d66d1bc56e63e68d7528441453f25992bd954b84309d23c659df2c5da"
+source = "git+https://github.com/gfx-rs/gfx-extras?rev=0f7dac1b05813948fa0e5999c4fe6473f0c98f9b#0f7dac1b05813948fa0e5999c4fe6473f0c98f9b"
 dependencies = [
  "fxhash",
  "gfx-hal",
@@ -1886,7 +1885,7 @@ dependencies = [
 [[package]]
 name = "gfx-memory"
 version = "0.1.3"
-source = "git+https://github.com/gfx-rs/gfx-extras?rev=438353c3f75368c12024ad2fc03cbeb15f351fd9#438353c3f75368c12024ad2fc03cbeb15f351fd9"
+source = "git+https://github.com/gfx-rs/gfx-extras?rev=0f7dac1b05813948fa0e5999c4fe6473f0c98f9b#0f7dac1b05813948fa0e5999c4fe6473f0c98f9b"
 dependencies = [
  "fxhash",
  "gfx-hal",
@@ -3527,7 +3526,7 @@ checksum = "0419348c027fa7be448d2ae7ea0e4e04c2334c31dc4e74ab29f00a2a7ca69204"
 [[package]]
 name = "naga"
 version = "0.1.0"
-source = "git+https://github.com/gfx-rs/naga?rev=bce6358eb1026c13d2f1c6d365af37afe8869a86#bce6358eb1026c13d2f1c6d365af37afe8869a86"
+source = "git+https://github.com/gfx-rs/naga?rev=a9228d2aed38c71388489a95817238ff98198fa3#a9228d2aed38c71388489a95817238ff98198fa3"
 dependencies = [
  "bitflags",
  "fxhash",
@@ -3955,35 +3954,13 @@ version = "0.2.0"
 source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
 dependencies = [
  "euclid",
- "peek-poke-derive 0.2.1 (git+https://github.com/servo/webrender)",
-]
-
-[[package]]
-name = "peek-poke"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d93fd6a575ebf1ac2668d08443c97a22872cfb463fd8b7ddd141e9f6be59af2f"
-dependencies = [
- "peek-poke-derive 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "peek-poke-derive",
 ]
 
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
 source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
-dependencies = [
- "proc-macro2 1.0.17",
- "quote 1.0.2",
- "syn",
- "synstructure",
- "unicode-xid 0.2.0",
-]
-
-[[package]]
-name = "peek-poke-derive"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6fb44a25c5bba983be0fc8592dfaf3e6d0935ce8be0c6b15b2a39507af34a926"
 dependencies = [
  "proc-macro2 1.0.17",
  "quote 1.0.2",
@@ -6015,6 +5992,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "tracing"
+version = "0.1.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a41f40ed0e162c911ac6fcb53ecdc8134c46905fdbbae8c50add462a538b495f"
+dependencies = [
+ "cfg-if",
+ "tracing-core",
+]
+
+[[package]]
+name = "tracing-core"
+version = "0.1.10"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0aa83a9a47081cd522c09c81b31aec2c9273424976f922ad61c053b58350b715"
+dependencies = [
+ "lazy_static",
+]
+
+[[package]]
 name = "tracy-rs"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6493,7 +6489,7 @@ dependencies = [
  "derive_more",
  "euclid",
  "malloc_size_of_derive",
- "peek-poke 0.2.0 (git+https://github.com/servo/webrender)",
+ "peek-poke",
  "serde",
  "serde_bytes",
  "serde_derive",
@@ -6566,7 +6562,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "0.5.0"
-source = "git+https://github.com/gfx-rs/wgpu#fc2dd481b2713cd0eda6ffa540faeaf7418fd051"
+source = "git+https://github.com/gfx-rs/wgpu#177a0b39acde46f86fc46e3e63be16283a2da399"
 dependencies = [
  "arrayvec 0.5.1",
  "bitflags",
@@ -6583,11 +6579,11 @@ dependencies = [
  "log",
  "naga",
  "parking_lot 0.10.2",
- "peek-poke 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "ron",
  "serde",
  "smallvec 1.3.0",
  "spirv_headers",
+ "tracing",
  "vec_map",
  "wgpu-types",
 ]
@@ -6595,10 +6591,9 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "0.5.0"
-source = "git+https://github.com/gfx-rs/wgpu#fc2dd481b2713cd0eda6ffa540faeaf7418fd051"
+source = "git+https://github.com/gfx-rs/wgpu#177a0b39acde46f86fc46e3e63be16283a2da399"
 dependencies = [
  "bitflags",
- "peek-poke 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
 ]
 

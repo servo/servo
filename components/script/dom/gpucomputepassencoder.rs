@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![allow(unsafe_code)]
-
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUComputePassEncoderBinding::GPUComputePassEncoderMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
@@ -11,18 +9,12 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgroup::GPUBindGroup;
+use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandencoder::{GPUCommandEncoder, GPUCommandEncoderState};
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
 use dom_struct::dom_struct;
 use webgpu::{
-    wgpu::command::{
-        compute_ffi::{
-            wgpu_compute_pass_dispatch, wgpu_compute_pass_set_bind_group,
-            wgpu_compute_pass_set_pipeline,
-        },
-        RawPass,
-    },
-    wgpu::id,
+    wgpu::command::{compute_ffi as wgpu_comp, ComputePass},
     WebGPU, WebGPURequest,
 };
 
@@ -33,7 +25,7 @@ pub struct GPUComputePassEncoder {
     channel: WebGPU,
     label: DomRefCell<Option<DOMString>>,
     #[ignore_malloc_size_of = "defined in wgpu-core"]
-    raw_pass: DomRefCell<Option<RawPass<id::CommandEncoderId>>>,
+    compute_pass: DomRefCell<Option<ComputePass>>,
     command_encoder: Dom<GPUCommandEncoder>,
 }
 
@@ -43,7 +35,7 @@ impl GPUComputePassEncoder {
             channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
-            raw_pass: DomRefCell::new(Some(unsafe { RawPass::new_compute(parent.id().0) })),
+            compute_pass: DomRefCell::new(Some(ComputePass::new(parent.id().0))),
             command_encoder: Dom::from_ref(parent),
         }
     }
@@ -69,21 +61,30 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-dispatch
     fn Dispatch(&self, x: u32, y: u32, z: u32) {
-        if let Some(raw_pass) = self.raw_pass.borrow_mut().as_mut() {
-            unsafe { wgpu_compute_pass_dispatch(raw_pass, x, y, z) };
+        if let Some(compute_pass) = self.compute_pass.borrow_mut().as_mut() {
+            wgpu_comp::wgpu_compute_pass_dispatch(compute_pass, x, y, z);
+        }
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-dispatchindirect
+    fn DispatchIndirect(&self, indirect_buffer: &GPUBuffer, indirect_offset: u64) {
+        if let Some(compute_pass) = self.compute_pass.borrow_mut().as_mut() {
+            wgpu_comp::wgpu_compute_pass_dispatch_indirect(
+                compute_pass,
+                indirect_buffer.id().0,
+                indirect_offset,
+            );
         }
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-endpass
     fn EndPass(&self) {
-        if let Some(raw_pass) = self.raw_pass.borrow_mut().take() {
-            let (pass_data, command_encoder_id) = unsafe { raw_pass.finish_compute() };
-
+        if let Some(compute_pass) = self.compute_pass.borrow_mut().take() {
             self.channel
                 .0
                 .send(WebGPURequest::RunComputePass {
-                    command_encoder_id,
-                    pass_data,
+                    command_encoder_id: self.command_encoder.id().0,
+                    compute_pass,
                 })
                 .unwrap();
 
@@ -95,11 +96,12 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup
+    #[allow(unsafe_code)]
     fn SetBindGroup(&self, index: u32, bind_group: &GPUBindGroup, dynamic_offsets: Vec<u32>) {
-        if let Some(raw_pass) = self.raw_pass.borrow_mut().as_mut() {
+        if let Some(compute_pass) = self.compute_pass.borrow_mut().as_mut() {
             unsafe {
-                wgpu_compute_pass_set_bind_group(
-                    raw_pass,
+                wgpu_comp::wgpu_compute_pass_set_bind_group(
+                    compute_pass,
                     index,
                     bind_group.id().0,
                     dynamic_offsets.as_ptr(),
@@ -111,8 +113,8 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucomputepassencoder-setpipeline
     fn SetPipeline(&self, pipeline: &GPUComputePipeline) {
-        if let Some(raw_pass) = self.raw_pass.borrow_mut().as_mut() {
-            unsafe { wgpu_compute_pass_set_pipeline(raw_pass, pipeline.id().0) };
+        if let Some(compute_pass) = self.compute_pass.borrow_mut().as_mut() {
+            wgpu_comp::wgpu_compute_pass_set_pipeline(compute_pass, pipeline.id().0);
         }
     }
 }

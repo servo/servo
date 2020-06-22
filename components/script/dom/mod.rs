@@ -332,6 +332,7 @@ pub mod gpucommandencoder;
 pub mod gpucomputepassencoder;
 pub mod gpucomputepipeline;
 pub mod gpudevice;
+pub mod gpumapmode;
 pub mod gpupipelinelayout;
 pub mod gpuqueue;
 pub mod gpurenderpassencoder;

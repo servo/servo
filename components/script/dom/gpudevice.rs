@@ -54,10 +54,9 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
-use js::jsval::{JSVal, ObjectValue};
+use js::rust::MutableHandle;
 use js::typedarray::{ArrayBuffer, CreateWith};
-use std::num::NonZeroU64;
-use std::ptr::{self, NonNull};
+use std::ptr::NonNull;
 use webgpu::wgpu::binding_model::BufferBinding;
 use webgpu::{self, wgt, WebGPU, WebGPUBindings, WebGPURequest};
 
@@ -120,38 +119,6 @@ impl GPUDevice {
     pub fn id(&self) -> webgpu::WebGPUDevice {
         self.device
     }
-
-    fn validate_buffer_descriptor(
-        &self,
-        descriptor: &GPUBufferDescriptor,
-        mapped_at_creation: bool,
-    ) -> (bool, wgt::BufferDescriptor<std::string::String>) {
-        // TODO: Record a validation error in the current scope if the descriptor is invalid.
-        let wgpu_usage = wgt::BufferUsage::from_bits(descriptor.usage);
-        let valid = wgpu_usage.is_some() && descriptor.size > 0;
-
-        if valid {
-            (
-                true,
-                wgt::BufferDescriptor {
-                    size: descriptor.size,
-                    usage: wgpu_usage.unwrap(),
-                    mapped_at_creation,
-                    label: Default::default(),
-                },
-            )
-        } else {
-            (
-                false,
-                wgt::BufferDescriptor {
-                    size: 0,
-                    usage: wgt::BufferUsage::empty(),
-                    mapped_at_creation,
-                    label: Default::default(),
-                },
-            )
-        }
-    }
 }
 
 impl GPUDeviceMethods for GPUDevice {
@@ -187,7 +154,15 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
     fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> DomRoot<GPUBuffer> {
-        let (valid, wgpu_descriptor) = self.validate_buffer_descriptor(descriptor, false);
+        let wgpu_descriptor = wgt::BufferDescriptor {
+            label: Default::default(),
+            size: descriptor.size,
+            usage: match wgt::BufferUsage::from_bits(descriptor.usage) {
+                Some(u) => u,
+                None => wgt::BufferUsage::empty(),
+            },
+            mapped_at_creation: descriptor.mappedAtCreation,
+        };
         let id = self
             .global()
             .wgpu_id_hub()
@@ -203,68 +178,36 @@ impl GPUDeviceMethods for GPUDevice {
             .expect("Failed to create WebGPU buffer");
 
         let buffer = webgpu::WebGPUBuffer(id);
+        let mapping = RootedTraceableBox::new(Heap::default());
+        let state;
+        let mapping_range;
+        if descriptor.mappedAtCreation {
+            unsafe {
+                assert!(ArrayBuffer::create(
+                    *self.global().get_cx(),
+                    CreateWith::Length(descriptor.size as u32),
+                    MutableHandle::from_raw(mapping.handle_mut()),
+                )
+                .is_ok());
+            }
+            state = GPUBufferState::MappedAtCreation;
+            mapping_range = (0, descriptor.size);
+        } else {
+            state = GPUBufferState::Unmapped;
+            mapping_range = (0, 0);
+        }
 
         GPUBuffer::new(
             &self.global(),
             self.channel.clone(),
             buffer,
             self.device,
-            GPUBufferState::Unmapped,
+            state,
             descriptor.size,
-            descriptor.usage,
-            valid,
-            RootedTraceableBox::new(Heap::default()),
+            true,
+            mapping,
+            mapping_range,
         )
-    }
-
-    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffermapped
-    fn CreateBufferMapped(
-        &self,
-        cx: SafeJSContext,
-        descriptor: &GPUBufferDescriptor,
-    ) -> Vec<JSVal> {
-        let (valid, wgpu_descriptor) = self.validate_buffer_descriptor(descriptor, true);
-        let buffer_id = self
-            .global()
-            .wgpu_id_hub()
-            .lock()
-            .create_buffer_id(self.device.0.backend());
-        self.channel
-            .0
-            .send(WebGPURequest::CreateBuffer {
-                device_id: self.device.0,
-                buffer_id,
-                descriptor: wgpu_descriptor.clone(),
-            })
-            .expect("Failed to create WebGPU buffer");
-
-        rooted!(in(*cx) let mut js_array_buffer = ptr::null_mut::<JSObject>());
-        unsafe {
-            assert!(ArrayBuffer::create(
-                *cx,
-                CreateWith::Length(descriptor.size as u32),
-                js_array_buffer.handle_mut(),
-            )
-            .is_ok());
-        }
-
-        let buffer = webgpu::WebGPUBuffer(buffer_id);
-        let buff = GPUBuffer::new(
-            &self.global(),
-            self.channel.clone(),
-            buffer,
-            self.device,
-            GPUBufferState::MappedForWriting,
-            wgpu_descriptor.size,
-            wgpu_descriptor.usage.bits(),
-            valid,
-            RootedTraceableBox::from_box(Heap::boxed(js_array_buffer.get())),
-        );
-
-        vec![
-            ObjectValue(buff.reflector().get_jsobject().get()),
-            ObjectValue(js_array_buffer.get()),
-        ]
     }
 
     /// https://gpuweb.github.io/gpuweb/#GPUDevice-createBindGroupLayout
@@ -284,28 +227,16 @@ impl GPUDeviceMethods for GPUDevice {
                 let ty = match bind.type_ {
                     GPUBindingType::Uniform_buffer => wgt::BindingType::UniformBuffer {
                         dynamic: bind.hasDynamicOffset,
-                        min_binding_size: if bind.minBufferBindingSize == 0 {
-                            None
-                        } else {
-                            Some(NonZeroU64::new(bind.minBufferBindingSize).unwrap())
-                        },
+                        min_binding_size: wgt::BufferSize::new(bind.minBufferBindingSize),
                     },
                     GPUBindingType::Storage_buffer => wgt::BindingType::StorageBuffer {
                         dynamic: bind.hasDynamicOffset,
-                        min_binding_size: if bind.minBufferBindingSize == 0 {
-                            None
-                        } else {
-                            Some(NonZeroU64::new(bind.minBufferBindingSize).unwrap())
-                        },
+                        min_binding_size: wgt::BufferSize::new(bind.minBufferBindingSize),
                         readonly: false,
                     },
                     GPUBindingType::Readonly_storage_buffer => wgt::BindingType::StorageBuffer {
                         dynamic: bind.hasDynamicOffset,
-                        min_binding_size: if bind.minBufferBindingSize == 0 {
-                            None
-                        } else {
-                            Some(NonZeroU64::new(bind.minBufferBindingSize).unwrap())
-                        },
+                        min_binding_size: wgt::BufferSize::new(bind.minBufferBindingSize),
                         readonly: true,
                     },
                     GPUBindingType::Sampled_texture => wgt::BindingType::SampledTexture {
@@ -433,11 +364,7 @@ impl GPUDeviceMethods for GPUDevice {
                             WebGPUBindings::Buffer(BufferBinding {
                                 buffer_id: b.buffer.id().0,
                                 offset: b.offset,
-                                size: if let Some(s) = b.size {
-                                    wgt::BufferSize(s)
-                                } else {
-                                    wgt::BufferSize::WHOLE
-                                },
+                                size: wgt::BufferSize::new(b.size.unwrap_or(0)),
                             })
                         },
                     },
