@@ -1505,7 +1505,7 @@ impl Handler {
             .iter()
             .map(webdriver_value_to_js_argument)
             .collect();
-        args_string.push("window.webdriverCallback".to_string());
+        args_string.push("resolve".to_string());
 
         let timeout_script = if let Some(script_timeout) = self.session()?.script_timeout {
             format!("setTimeout(webdriverTimeout, {});", script_timeout)
@@ -1513,7 +1513,17 @@ impl Handler {
             "".into()
         };
         let script = format!(
-            "{} (function() {{ {}\n }})({})",
+            r#"(function() {{
+              let webdriverPromise = new Promise(function(resolve, reject) {{
+                  {}
+                  (async function() {{
+                    {}
+                  }})({})
+                    .then((v) => {{}}, (err) => reject(err))
+              }})
+              .then((v) => window.webdriverCallback(v), (r) => window.webdriverException(r))
+              .catch((r) => window.webdriverException(r));
+            }})();"#,
             timeout_script,
             func_body,
             args_string.join(", "),
@@ -1541,15 +1551,21 @@ impl Handler {
                 ErrorStatus::NoSuchWindow,
                 "Pipeline id not found in browsing context",
             )),
-            Err(WebDriverJSError::JSError) => Err(WebDriverError::new(
+            Err(WebDriverJSError::JSException(_e)) => Err(WebDriverError::new(
                 ErrorStatus::JavascriptError,
                 "JS evaluation raised an exception",
+            )),
+            Err(WebDriverJSError::JSError) => Err(WebDriverError::new(
+                ErrorStatus::JavascriptError,
+                "JS evaluation raised an unknown exception",
             )),
             Err(WebDriverJSError::StaleElementReference) => Err(WebDriverError::new(
                 ErrorStatus::StaleElementReference,
                 "Stale element",
             )),
-            Err(WebDriverJSError::Timeout) => Err(WebDriverError::new(ErrorStatus::Timeout, "")),
+            Err(WebDriverJSError::Timeout) => {
+                Err(WebDriverError::new(ErrorStatus::ScriptTimeout, ""))
+            },
             Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
                 ErrorStatus::UnsupportedOperation,
                 "Unsupported return type",

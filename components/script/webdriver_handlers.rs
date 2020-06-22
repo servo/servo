@@ -377,14 +377,17 @@ pub(crate) fn handle_execute_script(
                 let cx = window.get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
                 let global = window.as_global_scope();
-                global.evaluate_js_on_global_with_result(
+                if global.evaluate_js_on_global_with_result(
                     &eval,
                     rval.handle_mut(),
                     ScriptFetchOptions::default_classic_script(global),
                     global.api_base_url(),
                     can_gc,
-                );
-                jsval_to_webdriver(*cx, global, rval.handle())
+                ) {
+                    jsval_to_webdriver(*cx, global, rval.handle())
+                } else {
+                    Err(WebDriverJSError::JSError)
+                }
             };
 
             reply.send(result).unwrap();
@@ -406,17 +409,22 @@ pub(crate) fn handle_execute_async_script(
     match window {
         Some(window) => {
             let cx = window.get_cx();
+            let reply_sender = reply.clone();
             window.set_webdriver_script_chan(Some(reply));
             rooted!(in(*cx) let mut rval = UndefinedValue());
 
             let global_scope = window.as_global_scope();
-            global_scope.evaluate_js_on_global_with_result(
+            if !global_scope.evaluate_js_on_global_with_result(
                 &eval,
                 rval.handle_mut(),
                 ScriptFetchOptions::default_classic_script(global_scope),
                 global_scope.api_base_url(),
                 can_gc,
-            );
+            ) {
+                reply_sender
+                    .send(Err(WebDriverJSError::JSError))
+                    .unwrap();
+            }
         },
         None => {
             reply
