@@ -24,12 +24,13 @@ enum GPUExtensionName {
 };
 
 dictionary GPULimits {
-    unsigned long maxBindGroups = 4;
-    unsigned long maxDynamicUniformBuffersPerPipelineLayout = 8;
-    unsigned long maxDynamicStorageBuffersPerPipelineLayout = 4;
-    unsigned long maxSampledTexturesPerShaderStage = 16;
-    unsigned long maxSamplersPerShaderStage = 16;
-    unsigned long maxStorageBuffersPerShaderStage = 4;
-    unsigned long maxStorageTexturesPerShaderStage = 4;
-    unsigned long maxUniformBuffersPerShaderStage = 12;
+    GPUSize32 maxBindGroups = 4;
+    GPUSize32 maxDynamicUniformBuffersPerPipelineLayout = 8;
+    GPUSize32 maxDynamicStorageBuffersPerPipelineLayout = 4;
+    GPUSize32 maxSampledTexturesPerShaderStage = 16;
+    GPUSize32 maxSamplersPerShaderStage = 16;
+    GPUSize32 maxStorageBuffersPerShaderStage = 4;
+    GPUSize32 maxStorageTexturesPerShaderStage = 4;
+    GPUSize32 maxUniformBuffersPerShaderStage = 12;
+    GPUSize32 maxUniformBufferBindingSize = 16384;
 };

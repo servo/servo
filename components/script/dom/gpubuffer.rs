@@ -110,7 +110,7 @@ impl GPUBuffer {
         self.state.borrow()
     }
 
-    pub fn valid(&self) -> bool {
+    pub fn is_valid(&self) -> bool {
         self.valid.get()
     }
 }

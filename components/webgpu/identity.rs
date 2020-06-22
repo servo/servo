@@ -8,8 +8,8 @@ use wgpu::{
     hub::{GlobalIdentityHandlerFactory, IdentityHandler, IdentityHandlerFactory},
     id::{
         AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, ComputePipelineId,
-        DeviceId, PipelineLayoutId, RenderPipelineId, SamplerId, ShaderModuleId, SurfaceId,
-        SwapChainId, TextureId, TextureViewId, TypedId,
+        DeviceId, PipelineLayoutId, RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId,
+        SurfaceId, SwapChainId, TextureId, TextureViewId, TypedId,
     },
 };
 use wgt::Backend;
@@ -31,6 +31,7 @@ pub enum WebGPUMsg {
     FreeSampler(SamplerId),
     FreeSurface(SurfaceId),
     FreeShaderModule(ShaderModuleId),
+    FreeRenderBundle(RenderBundleId),
     Exit,
 }
 
@@ -73,6 +74,7 @@ impl_identity_handler!(BufferId, "buffer", WebGPUMsg::FreeBuffer);
 impl_identity_handler!(BindGroupId, "bind_group", WebGPUMsg::FreeBindGroup);
 impl_identity_handler!(SwapChainId, "swap_chain", WebGPUMsg::FreeSwapChain);
 impl_identity_handler!(ShaderModuleId, "shader_module", WebGPUMsg::FreeShaderModule);
+impl_identity_handler!(RenderBundleId, "render_bundle", WebGPUMsg::FreeRenderBundle);
 impl_identity_handler!(
     RenderPipelineId,
     "render_pipeline",

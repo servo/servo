@@ -5,27 +5,32 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUTextureViewBinding::GPUTextureViewMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::gputexture::GPUTexture;
 use dom_struct::dom_struct;
 use std::cell::Cell;
-use webgpu::{WebGPUDevice, WebGPUTextureView};
+use webgpu::WebGPUTextureView;
 
 #[dom_struct]
 pub struct GPUTextureView {
     reflector_: Reflector,
     label: DomRefCell<Option<DOMString>>,
     texture_view: WebGPUTextureView,
-    device: WebGPUDevice,
+    texture: Dom<GPUTexture>,
     valid: Cell<bool>,
 }
 
 impl GPUTextureView {
-    fn new_inherited(texture_view: WebGPUTextureView, device: WebGPUDevice, valid: bool) -> Self {
+    fn new_inherited(
+        texture_view: WebGPUTextureView,
+        texture: &GPUTexture,
+        valid: bool,
+    ) -> GPUTextureView {
         Self {
             reflector_: Reflector::new(),
-            device,
+            texture: Dom::from_ref(texture),
             label: DomRefCell::new(None),
             texture_view,
             valid: Cell::new(valid),
@@ -35,11 +40,11 @@ impl GPUTextureView {
     pub fn new(
         global: &GlobalScope,
         texture_view: WebGPUTextureView,
-        device: WebGPUDevice,
+        texture: &GPUTexture,
         valid: bool,
-    ) -> DomRoot<Self> {
+    ) -> DomRoot<GPUTextureView> {
         reflect_dom_object(
-            Box::new(GPUTextureView::new_inherited(texture_view, device, valid)),
+            Box::new(GPUTextureView::new_inherited(texture_view, texture, valid)),
             global,
         )
     }
@@ -48,6 +53,10 @@ impl GPUTextureView {
 impl GPUTextureView {
     pub fn id(&self) -> WebGPUTextureView {
         self.texture_view
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.valid.get()
     }
 }
 

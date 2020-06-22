@@ -28,9 +28,7 @@ use webrender_traits::{
     WebrenderImageSource,
 };
 use wgpu::{
-    binding_model::{
-        BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindGroupLayoutEntry,
-    },
+    binding_model::{BindGroupDescriptor, BindGroupEntry, BindingResource, BufferBinding},
     command::{BufferCopyView, TextureCopyView},
     device::HostMap,
     id,
@@ -73,12 +71,12 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         bind_group_id: id::BindGroupId,
         bind_group_layout_id: id::BindGroupLayoutId,
-        bindings: Vec<BindGroupEntry>,
+        entries: Vec<(u32, WebGPUBindings)>,
     },
     CreateBindGroupLayout {
         device_id: id::DeviceId,
         bind_group_layout_id: id::BindGroupLayoutId,
-        bindings: Vec<BindGroupLayoutEntry>,
+        entries: Vec<wgt::BindGroupLayoutEntry>,
     },
     CreateBuffer {
         device_id: id::DeviceId,
@@ -193,6 +191,13 @@ pub enum WebGPURequest {
         buffer_id: id::BufferId,
         array_buffer: Vec<u8>,
     },
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum WebGPUBindings {
+    Buffer(BufferBinding),
+    Sampler(id::SamplerId),
+    TextureView(id::TextureViewId),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -334,14 +339,27 @@ impl WGPU {
                     device_id,
                     bind_group_id,
                     bind_group_layout_id,
-                    bindings,
+                    mut entries,
                 } => {
                     let global = &self.global;
+                    let bindings = entries
+                        .drain(..)
+                        .map(|(bind, res)| {
+                            let resource = match res {
+                                WebGPUBindings::Sampler(s) => BindingResource::Sampler(s),
+                                WebGPUBindings::TextureView(t) => BindingResource::TextureView(t),
+                                WebGPUBindings::Buffer(b) => BindingResource::Buffer(b),
+                            };
+                            BindGroupEntry {
+                                binding: bind,
+                                resource,
+                            }
+                        })
+                        .collect::<Vec<_>>();
                     let descriptor = BindGroupDescriptor {
+                        label: None,
                         layout: bind_group_layout_id,
-                        entries: bindings.as_ptr(),
-                        entries_length: bindings.len(),
-                        label: ptr::null(),
+                        bindings: bindings.as_slice(),
                     };
                     let _ = gfx_select!(bind_group_id =>
                         global.device_create_bind_group(device_id, &descriptor, bind_group_id));
@@ -349,13 +367,12 @@ impl WGPU {
                 WebGPURequest::CreateBindGroupLayout {
                     device_id,
                     bind_group_layout_id,
-                    bindings,
+                    entries,
                 } => {
                     let global = &self.global;
-                    let descriptor = BindGroupLayoutDescriptor {
-                        entries: bindings.as_ptr(),
-                        entries_length: bindings.len(),
-                        label: ptr::null(),
+                    let descriptor = wgt::BindGroupLayoutDescriptor {
+                        bindings: entries.as_slice(),
+                        label: None,
                     };
                     let _ = gfx_select!(bind_group_layout_id =>
                         global.device_create_bind_group_layout(device_id, &descriptor, bind_group_layout_id));
@@ -375,18 +392,9 @@ impl WGPU {
                     command_encoder_id,
                 } => {
                     let global = &self.global;
+                    let desc = wgt::CommandEncoderDescriptor { label: ptr::null() };
                     let _ = gfx_select!(command_encoder_id =>
-                        global.device_create_command_encoder(device_id, &Default::default(), command_encoder_id));
-                },
-                WebGPURequest::CreateContext(sender) => {
-                    let id = self
-                        .external_images
-                        .lock()
-                        .expect("Lock poisoned?")
-                        .next_id(WebrenderImageHandlerType::WebGPU);
-                    if let Err(e) = sender.send(id) {
-                        warn!("Failed to send ExternalImageId to new context ({})", e);
-                    };
+                        global.device_create_command_encoder(device_id, &desc, command_encoder_id));
                 },
                 WebGPURequest::CreateComputePipeline {
                     device_id,
@@ -406,6 +414,16 @@ impl WGPU {
                     };
                     let _ = gfx_select!(compute_pipeline_id =>
                         global.device_create_compute_pipeline(device_id, &descriptor, compute_pipeline_id));
+                },
+                WebGPURequest::CreateContext(sender) => {
+                    let id = self
+                        .external_images
+                        .lock()
+                        .expect("Lock poisoned?")
+                        .next_id(WebrenderImageHandlerType::WebGPU);
+                    if let Err(e) = sender.send(id) {
+                        warn!("Failed to send ExternalImageId to new context ({})", e);
+                    };
                 },
                 WebGPURequest::CreatePipelineLayout {
                     device_id,
@@ -631,6 +649,7 @@ impl WGPU {
                 } => {
                     let adapter_id = match self.global.pick_adapter(
                         &options,
+                        wgt::UnsafeExtensions::disallow(),
                         wgpu::instance::AdapterInputs::IdSet(&ids, |id| id.backend()),
                     ) {
                         Some(id) => id,
@@ -749,9 +768,10 @@ impl WGPU {
                     }
 
                     let buffer_size = (size.height as u32 * buffer_stride) as wgt::BufferAddress;
+                    let comm_desc = wgt::CommandEncoderDescriptor { label: ptr::null() };
                     let _ = gfx_select!(encoder_id => global.device_create_command_encoder(
                         device_id,
-                        &wgt::CommandEncoderDescriptor::default(),
+                        &comm_desc,
                         encoder_id
                     ));
 

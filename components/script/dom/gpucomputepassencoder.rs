@@ -22,6 +22,7 @@ use webgpu::{
         },
         RawPass,
     },
+    wgpu::id,
     WebGPU, WebGPURequest,
 };
 
@@ -32,7 +33,7 @@ pub struct GPUComputePassEncoder {
     channel: WebGPU,
     label: DomRefCell<Option<DOMString>>,
     #[ignore_malloc_size_of = "defined in wgpu-core"]
-    raw_pass: DomRefCell<Option<RawPass>>,
+    raw_pass: DomRefCell<Option<RawPass<id::CommandEncoderId>>>,
     command_encoder: Dom<GPUCommandEncoder>,
 }
 

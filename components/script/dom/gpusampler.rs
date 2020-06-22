@@ -10,13 +10,11 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
 use std::cell::Cell;
-use webgpu::{WebGPU, WebGPUDevice, WebGPUSampler};
+use webgpu::{WebGPUDevice, WebGPUSampler};
 
 #[dom_struct]
 pub struct GPUSampler {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "channels are hard"]
-    channel: WebGPU,
     label: DomRefCell<Option<DOMString>>,
     device: WebGPUDevice,
     compare_enable: bool,
@@ -26,7 +24,6 @@ pub struct GPUSampler {
 
 impl GPUSampler {
     fn new_inherited(
-        channel: WebGPU,
         device: WebGPUDevice,
         compare_enable: bool,
         sampler: WebGPUSampler,
@@ -34,7 +31,6 @@ impl GPUSampler {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            channel,
             label: DomRefCell::new(None),
             valid: Cell::new(valid),
             device,
@@ -45,7 +41,6 @@ impl GPUSampler {
 
     pub fn new(
         global: &GlobalScope,
-        channel: WebGPU,
         device: WebGPUDevice,
         compare_enable: bool,
         sampler: WebGPUSampler,
@@ -53,7 +48,6 @@ impl GPUSampler {
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUSampler::new_inherited(
-                channel,
                 device,
                 compare_enable,
                 sampler,
@@ -61,6 +55,16 @@ impl GPUSampler {
             )),
             global,
         )
+    }
+}
+
+impl GPUSampler {
+    pub fn id(&self) -> WebGPUSampler {
+        self.sampler
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.valid.get()
     }
 }
 

@@ -19,6 +19,7 @@ use crate::dom::gpurenderpipeline::GPURenderPipeline;
 use dom_struct::dom_struct;
 use webgpu::{
     wgpu::command::{render_ffi as wgpu_render, RawPass},
+    wgpu::id,
     wgt, WebGPU, WebGPURequest,
 };
 
@@ -29,12 +30,16 @@ pub struct GPURenderPassEncoder {
     channel: WebGPU,
     label: DomRefCell<Option<DOMString>>,
     #[ignore_malloc_size_of = "defined in wgpu-core"]
-    raw_pass: DomRefCell<Option<RawPass>>,
+    raw_pass: DomRefCell<Option<RawPass<id::CommandEncoderId>>>,
     command_encoder: Dom<GPUCommandEncoder>,
 }
 
 impl GPURenderPassEncoder {
-    fn new_inherited(channel: WebGPU, raw_pass: RawPass, parent: &GPUCommandEncoder) -> Self {
+    fn new_inherited(
+        channel: WebGPU,
+        raw_pass: RawPass<id::CommandEncoderId>,
+        parent: &GPUCommandEncoder,
+    ) -> Self {
         Self {
             channel,
             reflector_: Reflector::new(),
@@ -47,7 +52,7 @@ impl GPURenderPassEncoder {
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,
-        raw_pass: RawPass,
+        raw_pass: RawPass<id::CommandEncoderId>,
         parent: &GPUCommandEncoder,
     ) -> DomRoot<Self> {
         reflect_dom_object(

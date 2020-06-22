@@ -5,34 +5,52 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUBindGroupBinding::GPUBindGroupMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 use dom_struct::dom_struct;
 use std::cell::Cell;
-use webgpu::WebGPUBindGroup;
+use webgpu::{WebGPUBindGroup, WebGPUDevice};
 
 #[dom_struct]
 pub struct GPUBindGroup {
     reflector_: Reflector,
     label: DomRefCell<Option<DOMString>>,
     bind_group: WebGPUBindGroup,
+    device: WebGPUDevice,
+    layout: Dom<GPUBindGroupLayout>,
     valid: Cell<bool>,
 }
 
 impl GPUBindGroup {
-    fn new_inherited(bind_group: WebGPUBindGroup, valid: bool) -> Self {
+    fn new_inherited(
+        bind_group: WebGPUBindGroup,
+        device: WebGPUDevice,
+        valid: bool,
+        layout: &GPUBindGroupLayout,
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
             bind_group,
+            device,
             valid: Cell::new(valid),
+            layout: Dom::from_ref(layout),
         }
     }
 
-    pub fn new(global: &GlobalScope, bind_group: WebGPUBindGroup, valid: bool) -> DomRoot<Self> {
+    pub fn new(
+        global: &GlobalScope,
+        bind_group: WebGPUBindGroup,
+        device: WebGPUDevice,
+        valid: bool,
+        layout: &GPUBindGroupLayout,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUBindGroup::new_inherited(bind_group, valid)),
+            Box::new(GPUBindGroup::new_inherited(
+                bind_group, device, valid, layout,
+            )),
             global,
         )
     }
