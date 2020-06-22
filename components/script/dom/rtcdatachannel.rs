@@ -30,6 +30,7 @@ use script_traits::serializable::BlobImpl;
 use servo_media::webrtc::{
     DataChannelId, DataChannelInit, DataChannelMessage, DataChannelState, WebRtcError,
 };
+use std::cell::Cell;
 use std::ptr;
 
 #[dom_struct]
@@ -45,7 +46,7 @@ pub struct RTCDataChannel {
     protocol: USVString,
     negotiated: bool,
     id: Option<u16>,
-    ready_state: DomRefCell<RTCDataChannelState>,
+    ready_state: Cell<RTCDataChannelState>,
     binary_type: DomRefCell<DOMString>,
 }
 
@@ -80,7 +81,7 @@ impl RTCDataChannel {
             protocol: options.protocol.clone(),
             negotiated: options.negotiated,
             id: options.id,
-            ready_state: DomRefCell::new(RTCDataChannelState::Connecting),
+            ready_state: Cell::new(RTCDataChannelState::Connecting),
             binary_type: DomRefCell::new(DOMString::from("blob")),
         };
 
@@ -209,11 +210,11 @@ impl RTCDataChannel {
             },
             _ => {},
         };
-        *self.ready_state.borrow_mut() = state.into();
+        self.ready_state.set(state.into());
     }
 
     fn send(&self, source: &SendSource) -> Fallible<()> {
-        if *self.ready_state.borrow() != RTCDataChannelState::Open {
+        if self.ready_state.get() != RTCDataChannelState::Open {
             return Err(Error::InvalidState);
         }
 
@@ -304,7 +305,7 @@ impl RTCDataChannelMethods for RTCDataChannel {
 
     // https://www.w3.org/TR/webrtc/#dom-datachannel-readystate
     fn ReadyState(&self) -> RTCDataChannelState {
-        *self.ready_state.borrow()
+        self.ready_state.get()
     }
 
     // XXX We need a way to know when the underlying data transport
