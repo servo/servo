@@ -57,6 +57,7 @@ private:
   void BuildPrefList();
   DevtoolsStatus mDevtoolsStatus = DevtoolsStatus::Stopped;
   unsigned int mDevtoolsPort = 0;
+  hstring mDevtoolsToken;
   std::unique_ptr<servo::DevtoolsClient> mDevtoolsClient;
   Collections::IObservableVector<IInspectable> mLogs;
 };

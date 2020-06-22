@@ -571,11 +571,11 @@ std::optional<hstring> ServoControl::OnServoPromptInput(winrt::hstring message,
   return string;
 }
 
-void ServoControl::OnServoDevtoolsStarted(bool success,
-                                          const unsigned int port) {
+void ServoControl::OnServoDevtoolsStarted(bool success, const unsigned int port,
+                                          hstring token) {
   RunOnUIThread([=] {
     auto status = success ? DevtoolsStatus::Running : DevtoolsStatus::Failed;
-    mOnDevtoolsStatusChangedEvent(status, port);
+    mOnDevtoolsStatusChangedEvent(status, port, token);
   });
 }
 

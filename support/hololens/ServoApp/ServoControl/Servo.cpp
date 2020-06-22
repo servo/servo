@@ -83,9 +83,9 @@ void show_context_menu(const char *title, const char *const *items_list,
 }
 
 void on_devtools_started(Servo::DevtoolsServerState result,
-                         const unsigned int port) {
-  sServo->Delegate().OnServoDevtoolsStarted(
-      result == Servo::DevtoolsServerState::Started, port);
+                         const unsigned int port, const char *token) {
+  auto state = result == Servo::DevtoolsServerState::Started;
+  sServo->Delegate().OnServoDevtoolsStarted(state, port, char2hstring(token));
 }
 
 void on_log_output(const char *buffer, uint32_t buffer_length) {

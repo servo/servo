@@ -515,7 +515,7 @@ where
                     debug!("MediaSessionEvent received");
                     // TODO(ferjm): MediaSession support for winit based browsers.
                 },
-                EmbedderMsg::OnDevtoolsStarted(port) => {
+                EmbedderMsg::OnDevtoolsStarted(port, _token) => {
                     match port {
                         Ok(p) => info!("Devtools Server running on port {}", p),
                         Err(()) => error!("Error running devtools server"),

@@ -207,8 +207,8 @@ pub enum EmbedderMsg {
     /// Notifies the embedder about media session events
     /// (i.e. when there is metadata for the active media session, playback state changes...).
     MediaSessionEvent(MediaSessionEvent),
-    /// Report the status of Devtools Server
-    OnDevtoolsStarted(Result<u16, ()>),
+    /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
+    OnDevtoolsStarted(Result<u16, ()>, String),
 }
 
 impl Debug for EmbedderMsg {

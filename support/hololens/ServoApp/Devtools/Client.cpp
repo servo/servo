@@ -31,6 +31,11 @@ void DevtoolsClient::Run() {
   connecting.Completed([=](const auto &, const auto &) {
     mDataReader = DataReader(socket.InputStream());
     mDataWriter = DataWriter(socket.OutputStream());
+
+    JsonObject out;
+    out.Insert(L"auth_token", JsonValue::CreateStringValue(mToken));
+    Send(out);
+
     mReceiveOp = {Loop()};
     mReceiveOp->Completed([=](const auto &, const auto &) {
       mReceiveOp = {};

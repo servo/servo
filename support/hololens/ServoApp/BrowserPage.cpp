@@ -80,9 +80,10 @@ void BrowserPage::BindServoEvents() {
                                  : Visibility::Visible);
   });
   servoControl().OnDevtoolsStatusChanged(
-      [=](DevtoolsStatus status, unsigned int port) {
+      [=](DevtoolsStatus status, unsigned int port, hstring token) {
         mDevtoolsStatus = status;
         mDevtoolsPort = port;
+        mDevtoolsToken = token;
       });
   Window::Current().VisibilityChanged(
       [=](const auto &, const VisibilityChangedEventArgs &args) {
@@ -318,8 +319,8 @@ void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
     hstring port = to_hstring(mDevtoolsPort);
     if (mDevtoolsClient == nullptr) {
       DevtoolsDelegate *dd = static_cast<DevtoolsDelegate *>(this);
-      mDevtoolsClient =
-          std::make_unique<DevtoolsClient>(L"localhost", port, *dd);
+      mDevtoolsClient = std::make_unique<DevtoolsClient>(L"localhost", port,
+                                                         mDevtoolsToken, *dd);
     }
     mDevtoolsClient->Run();
     std::wstring message =
