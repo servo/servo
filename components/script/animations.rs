@@ -99,6 +99,27 @@ impl Animations {
         self.unroot_unused_nodes(&sets);
     }
 
+    /// Cancel animations for the given node, if any exist.
+    pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
+        let mut animations = self.sets.sets.write();
+        let mut cancel_animations_for = |key| {
+            animations.get_mut(&key).map(|set| {
+                set.cancel_all_animations();
+            });
+        };
+
+        let opaque_node = node.to_opaque();
+        cancel_animations_for(AnimationSetKey::new_for_non_pseudo(opaque_node));
+        cancel_animations_for(AnimationSetKey::new_for_pseudo(
+            opaque_node,
+            PseudoElement::Before,
+        ));
+        cancel_animations_for(AnimationSetKey::new_for_pseudo(
+            opaque_node,
+            PseudoElement::After,
+        ));
+    }
+
     /// Processes any new animations that were discovered after reflow. Collect messages
     /// that trigger events for any animations that changed state.
     pub(crate) fn do_post_reflow_update(&self, window: &Window, now: f64) {

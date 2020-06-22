@@ -281,6 +281,11 @@ impl Node {
         }
     }
 
+    pub fn clean_up_layout_data(&self) {
+        self.owner_doc().cancel_animations_for_node(self);
+        self.style_and_layout_data.borrow_mut().take();
+    }
+
     /// Clean up flags and unbind from tree.
     pub fn complete_remove_subtree(root: &Node, context: &UnbindContext) {
         for node in root.traverse_preorder(ShadowIncluding::Yes) {
@@ -295,6 +300,8 @@ impl Node {
             );
         }
         for node in root.traverse_preorder(ShadowIncluding::Yes) {
+            node.clean_up_layout_data();
+
             // This needs to be in its own loop, because unbind_from_tree may
             // rely on the state of IS_IN_DOC of the context node's descendants,
             // e.g. when removing a <form>.

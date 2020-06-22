@@ -3861,6 +3861,10 @@ impl Document {
             .borrow()
             .do_post_reflow_update(&self.window, self.current_animation_timeline_value());
     }
+
+    pub(crate) fn cancel_animations_for_node(&self, node: &Node) {
+        self.animations.borrow().cancel_animations_for_node(node);
+    }
 }
 
 impl Element {
