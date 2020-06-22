@@ -470,19 +470,27 @@ impl Animation {
             return false;
         }
 
+        if self.on_last_iteration() {
+            return false;
+        }
+
+        self.iterate();
+        true
+    }
+
+    fn iterate(&mut self) {
+        debug_assert!(!self.on_last_iteration());
+
         if let KeyframesIterationState::Finite(ref mut current, max) = self.iteration_state {
-            // If we are already on the final iteration, just exit now. This prevents
-            // us from updating the direction, which might be needed for the correct
-            // handling of animation-fill-mode and also firing animationiteration events
-            // at the end of animations.
             *current = (*current + 1.).min(max);
-            if *current == max {
-                return false;
-            }
+        }
+
+        if let AnimationState::Paused(ref mut progress) = self.state {
+            debug_assert!(*progress > 1.);
+            *progress -= 1.;
         }
 
         // Update the next iteration direction if applicable.
-        // TODO(mrobinson): The duration might now be wrong for floating point iteration counts.
         self.started_at += self.duration;
         match self.direction {
             AnimationDirection::Alternate | AnimationDirection::AlternateReverse => {
@@ -494,36 +502,55 @@ impl Animation {
             },
             _ => {},
         }
-
-        true
     }
 
+    /// A number (> 0 and <= 1) which represents the fraction of a full iteration
+    /// that the current iteration of the animation lasts. This will be less than 1
+    /// if the current iteration is the fractional remainder of a non-integral
+    /// iteration count.
+    pub fn current_iteration_end_progress(&self) -> f64 {
+        match self.iteration_state {
+            KeyframesIterationState::Finite(current, max) => (max - current).min(1.),
+            KeyframesIterationState::Infinite(_) => 1.,
+        }
+    }
+
+    /// The duration of the current iteration of this animation which may be less
+    /// than the animation duration if it has a non-integral iteration count.
+    pub fn current_iteration_duration(&self) -> f64 {
+        self.current_iteration_end_progress() * self.duration
+    }
+
+    /// Whether or not the current iteration is over. Note that this method assumes that
+    /// the animation is still running.
     fn iteration_over(&self, time: f64) -> bool {
-        time > (self.started_at + self.duration)
+        time > (self.started_at + self.current_iteration_duration())
+    }
+
+    /// Assuming this animation is running, whether or not it is on the last iteration.
+    fn on_last_iteration(&self) -> bool {
+        match self.iteration_state {
+            KeyframesIterationState::Finite(current, max) => current >= (max - 1.),
+            KeyframesIterationState::Infinite(_) => false,
+        }
     }
 
     /// Whether or not this animation has finished at the provided time. This does
     /// not take into account canceling i.e. when an animation or transition is
     /// canceled due to changes in the style.
     pub fn has_ended(&self, time: f64) -> bool {
-        match self.state {
-            AnimationState::Running => {},
-            AnimationState::Finished => return true,
-            AnimationState::Pending | AnimationState::Canceled | AnimationState::Paused(_) => {
-                return false
-            },
-        }
-
-        if !self.iteration_over(time) {
+        if !self.on_last_iteration() {
             return false;
         }
 
-        // If we have a limited number of iterations and we cannot advance to another
-        // iteration, then we have ended.
-        return match self.iteration_state {
-            KeyframesIterationState::Finite(current, max) => max == current,
-            KeyframesIterationState::Infinite(..) => false,
+        let progress = match self.state {
+            AnimationState::Finished => return true,
+            AnimationState::Paused(progress) => progress,
+            AnimationState::Running => (time - self.started_at) / self.duration,
+            AnimationState::Pending | AnimationState::Canceled => return false,
         };
+
+        progress >= self.current_iteration_end_progress()
     }
 
     /// Updates the appropiate state from other animation.
@@ -601,38 +628,36 @@ impl Animation {
     /// Fill in an `AnimationValueMap` with values calculated from this animation at
     /// the given time value.
     fn get_property_declaration_at_time(&self, now: f64, map: &mut AnimationValueMap) {
-        let duration = self.duration;
-        let started_at = self.started_at;
+        debug_assert!(!self.computed_steps.is_empty());
 
-        let now = match self.state {
-            AnimationState::Running | AnimationState::Pending | AnimationState::Finished => now,
-            AnimationState::Paused(progress) => started_at + duration * progress,
+        let total_progress = match self.state {
+            AnimationState::Running | AnimationState::Pending | AnimationState::Finished => {
+                (now - self.started_at) / self.duration
+            },
+            AnimationState::Paused(progress) => progress,
             AnimationState::Canceled => return,
         };
 
-        debug_assert!(!self.computed_steps.is_empty());
-
-        let mut total_progress = (now - started_at) / duration;
         if total_progress < 0. &&
             self.fill_mode != AnimationFillMode::Backwards &&
             self.fill_mode != AnimationFillMode::Both
         {
             return;
         }
-
-        if total_progress > 1. &&
+        if self.has_ended(now) &&
             self.fill_mode != AnimationFillMode::Forwards &&
             self.fill_mode != AnimationFillMode::Both
         {
             return;
         }
-        total_progress = total_progress.min(1.0).max(0.0);
+        let total_progress = total_progress
+            .min(self.current_iteration_end_progress())
+            .max(0.0);
 
         // Get the indices of the previous (from) keyframe and the next (to) keyframe.
         let next_keyframe_index;
         let prev_keyframe_index;
         let num_steps = self.computed_steps.len();
-        debug_assert!(num_steps > 0);
         match self.current_direction {
             AnimationDirection::Normal => {
                 next_keyframe_index = self
@@ -674,45 +699,43 @@ impl Animation {
             None => return,
         };
 
+        // If we only need to take into account one keyframe, then exit early
+        // in order to avoid doing more work.
         let mut add_declarations_to_map = |keyframe: &ComputedKeyframe| {
             for value in keyframe.values.iter() {
                 map.insert(value.id(), value.clone());
             }
         };
-
         if total_progress <= 0.0 {
             add_declarations_to_map(&prev_keyframe);
             return;
         }
-
         if total_progress >= 1.0 {
             add_declarations_to_map(&next_keyframe);
             return;
         }
 
-        let relative_timespan =
-            (next_keyframe.start_percentage - prev_keyframe.start_percentage).abs();
-        let relative_duration = relative_timespan as f64 * duration;
-        let last_keyframe_ended_at = match self.current_direction {
-            AnimationDirection::Normal => {
-                self.started_at + (duration * prev_keyframe.start_percentage as f64)
-            },
-            AnimationDirection::Reverse => {
-                self.started_at + (duration * (1. - prev_keyframe.start_percentage as f64))
-            },
+        let percentage_between_keyframes =
+            (next_keyframe.start_percentage - prev_keyframe.start_percentage).abs() as f64;
+        let duration_between_keyframes = percentage_between_keyframes * self.duration;
+        let direction_aware_prev_keyframe_start_percentage = match self.current_direction {
+            AnimationDirection::Normal => prev_keyframe.start_percentage as f64,
+            AnimationDirection::Reverse => 1. - prev_keyframe.start_percentage as f64,
             _ => unreachable!(),
         };
+        let progress_between_keyframes = (total_progress -
+            direction_aware_prev_keyframe_start_percentage) /
+            percentage_between_keyframes;
 
-        let relative_progress = (now - last_keyframe_ended_at) / relative_duration;
         for (from, to) in prev_keyframe.values.iter().zip(next_keyframe.values.iter()) {
             let animation = PropertyAnimation {
                 from: from.clone(),
                 to: to.clone(),
                 timing_function: prev_keyframe.timing_function,
-                duration: relative_duration as f64,
+                duration: duration_between_keyframes as f64,
             };
 
-            if let Ok(value) = animation.calculate_value(relative_progress) {
+            if let Ok(value) = animation.calculate_value(progress_between_keyframes) {
                 map.insert(value.id(), value);
             }
         }
@@ -1319,7 +1342,7 @@ pub fn maybe_start_animations<E>(
         };
 
         debug!("maybe_start_animations: name={}", name);
-        let duration = box_style.animation_duration_mod(i).seconds();
+        let duration = box_style.animation_duration_mod(i).seconds() as f64;
         if duration == 0. {
             continue;
         }
@@ -1339,8 +1362,11 @@ pub fn maybe_start_animations<E>(
             continue;
         }
 
+        // NB: This delay may be negative, meaning that the animation may be created
+        // in a state where we have advanced one or more iterations or even that the
+        // animation begins in a finished state.
         let delay = box_style.animation_delay_mod(i).seconds();
-        let animation_start = context.current_time_for_animations + delay as f64;
+
         let iteration_state = match box_style.animation_iteration_count_mod(i) {
             AnimationIterationCount::Infinite => KeyframesIterationState::Infinite(0.0),
             AnimationIterationCount::Number(n) => KeyframesIterationState::Finite(0.0, n.into()),
@@ -1357,8 +1383,11 @@ pub fn maybe_start_animations<E>(
             },
         };
 
+        let now = context.current_time_for_animations;
+        let started_at = now + delay as f64;
+        let mut starting_progress = (now - started_at) / duration;
         let state = match box_style.animation_play_state_mod(i) {
-            AnimationPlayState::Paused => AnimationState::Paused(0.),
+            AnimationPlayState::Paused => AnimationState::Paused(starting_progress),
             AnimationPlayState::Running => AnimationState::Pending,
         };
 
@@ -1371,12 +1400,12 @@ pub fn maybe_start_animations<E>(
             resolver,
         );
 
-        let new_animation = Animation {
+        let mut new_animation = Animation {
             name: name.clone(),
             properties_changed: keyframe_animation.properties_changed,
             computed_steps,
-            started_at: animation_start,
-            duration: duration as f64,
+            started_at,
+            duration,
             fill_mode: box_style.animation_fill_mode_mod(i),
             delay: delay as f64,
             iteration_state,
@@ -1386,6 +1415,13 @@ pub fn maybe_start_animations<E>(
             cascade_style: new_style.clone(),
             is_new: true,
         };
+
+        // If we started with a negative delay, make sure we iterate the animation if
+        // the delay moves us past the first iteration.
+        while starting_progress > 1. && !new_animation.on_last_iteration() {
+            new_animation.iterate();
+            starting_progress -= 1.;
+        }
 
         animation_state.dirty = true;
 

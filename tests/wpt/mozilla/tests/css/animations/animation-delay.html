@@ -31,6 +31,7 @@ test(function() {
   element.style.animationIterationCount = 1;
   element.style.animationName = "width-animation";
   element.style.animationTimingFunction = "linear";
+  element.style.animationFillMode = "forwards";
 
   document.body.appendChild(element);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "50px");
@@ -48,7 +49,7 @@ test(function() {
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
 
   testBinding.advanceClock(500);
-  assert_equals(getComputedStyle(element).getPropertyValue("width"), "50px");
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
 }, "animation-delay should function correctly");
 
 test(function() {
@@ -61,6 +62,7 @@ test(function() {
   element.style.animationIterationCount = 2;
   element.style.animationName = "width-animation";
   element.style.animationTimingFunction = "linear";
+  element.style.animationFillMode = "forwards";
 
   document.body.appendChild(element);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "50px");
@@ -85,7 +87,7 @@ test(function() {
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
 
   testBinding.advanceClock(500);
-  assert_equals(getComputedStyle(element).getPropertyValue("width"), "50px");
+  assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
 }, "animation-delay should function correctly with multiple iterations");
 
 </script>
