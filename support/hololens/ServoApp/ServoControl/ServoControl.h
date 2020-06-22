@@ -185,7 +185,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   virtual servo::Servo::PromptResult OnServoPromptYesNo(winrt::hstring, bool);
   virtual std::optional<hstring> OnServoPromptInput(winrt::hstring,
                                                     winrt::hstring, bool);
-  virtual void OnServoDevtoolsStarted(bool, const unsigned int);
+  virtual void OnServoDevtoolsStarted(bool, const unsigned int, winrt::hstring);
 
   DevtoolsStatus GetDevtoolsStatus();
 

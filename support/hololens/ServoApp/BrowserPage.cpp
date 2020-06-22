@@ -80,9 +80,10 @@ void BrowserPage::BindServoEvents() {
                                  : Visibility::Visible);
   });
   servoControl().OnDevtoolsStatusChanged(
-      [=](DevtoolsStatus status, unsigned int port) {
+      [=](DevtoolsStatus status, unsigned int port, hstring token) {
         mDevtoolsStatus = status;
         mDevtoolsPort = port;
+        mDevtoolsToken = token;
       });
   Window::Current().VisibilityChanged(
       [=](const auto &, const VisibilityChangedEventArgs &args) {
@@ -318,20 +319,20 @@ void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
     hstring port = to_hstring(mDevtoolsPort);
     if (mDevtoolsClient == nullptr) {
       DevtoolsDelegate *dd = static_cast<DevtoolsDelegate *>(this);
-      mDevtoolsClient =
-          std::make_unique<DevtoolsClient>(L"localhost", port, *dd);
+      mDevtoolsClient = std::make_unique<DevtoolsClient>(L"localhost", port,
+                                                         mDevtoolsToken, *dd);
     }
     mDevtoolsClient->Run();
     std::wstring message =
         resourceLoader.GetString(L"devtoolsStatus/Running").c_str();
-    std::wstring formatted = format(message, port.c_str());
-    DevtoolsStatusMessage().Text(formatted);
+    hstring formatted{format(message, port.c_str())};
+    OnDevtoolsMessage(servo::DevtoolsMessageLevel::None, L"", formatted);
   } else if (mDevtoolsStatus == DevtoolsStatus::Failed) {
-    DevtoolsStatusMessage().Text(
-        resourceLoader.GetString(L"devtoolsStatus/Failed"));
+    auto body = resourceLoader.GetString(L"devtoolsStatus/Failed");
+    OnDevtoolsMessage(servo::DevtoolsMessageLevel::Error, L"", body);
   } else if (mDevtoolsStatus == DevtoolsStatus::Stopped) {
-    DevtoolsStatusMessage().Text(
-        resourceLoader.GetString(L"devtoolsStatus/Stopped"));
+    auto body = resourceLoader.GetString(L"devtoolsStatus/Stopped");
+    OnDevtoolsMessage(servo::DevtoolsMessageLevel::None, L"", body);
   }
 }
 

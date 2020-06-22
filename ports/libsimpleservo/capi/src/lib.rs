@@ -227,7 +227,8 @@ pub struct CHostCallbacks {
         default: *const c_char,
         trusted: bool,
     ) -> *const c_char,
-    pub on_devtools_started: extern "C" fn(result: CDevtoolsServerState, port: c_uint),
+    pub on_devtools_started:
+        extern "C" fn(result: CDevtoolsServerState, port: c_uint, token: *const c_char),
     pub show_context_menu:
         extern "C" fn(title: *const c_char, items_list: *const *const c_char, items_size: u32),
     pub on_log_output: extern "C" fn(buffer: *const c_char, buffer_length: u32),
@@ -883,15 +884,20 @@ impl HostTrait for HostCallbacks {
         Some(contents_str.to_owned())
     }
 
-    fn on_devtools_started(&self, port: Result<u16, ()>) {
+    fn on_devtools_started(&self, port: Result<u16, ()>, token: String) {
+        let token = CString::new(token).expect("Can't create string");
         match port {
             Ok(p) => {
                 info!("Devtools Server running on port {}", p);
-                (self.0.on_devtools_started)(CDevtoolsServerState::Started, p.into());
+                (self.0.on_devtools_started)(
+                    CDevtoolsServerState::Started,
+                    p.into(),
+                    token.as_ptr(),
+                );
             },
             Err(()) => {
                 error!("Error running devtools server");
-                (self.0.on_devtools_started)(CDevtoolsServerState::Error, 0);
+                (self.0.on_devtools_started)(CDevtoolsServerState::Error, 0, token.as_ptr());
             },
         }
     }

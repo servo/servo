@@ -39,9 +39,11 @@ use devtools_traits::{PageError, ScriptToDevtoolsControlMsg, WorkerId};
 use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptDefinition, PromptOrigin, PromptResult};
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
+use servo_rand::RngCore;
 use std::borrow::ToOwned;
 use std::collections::hash_map::Entry::{Occupied, Vacant};
 use std::collections::HashMap;
+use std::io::Read;
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -137,8 +139,11 @@ fn run_server(
             .map(|port| (l, port))
     });
 
+    // A token shared with the embedder to bypass permission prompt.
+    let token = format!("{:X}", servo_rand::ServoRng::new().next_u32());
+
     let port = bound.as_ref().map(|(_, port)| *port).ok_or(());
-    embedder.send((None, EmbedderMsg::OnDevtoolsStarted(port)));
+    embedder.send((None, EmbedderMsg::OnDevtoolsStarted(port, token.clone())));
 
     let listener = match bound {
         Some((l, _)) => l,
@@ -563,20 +568,14 @@ fn run_server(
         .spawn(move || {
             // accept connections and process them, spawning a new thread for each one
             for stream in listener.incoming() {
-                // Prompt user for permission
-                let (embedder_sender, receiver) =
-                    ipc::channel().expect("Failed to create IPC channel!");
-                let message = "Accept incoming devtools connection?".to_owned();
-                let prompt = PromptDefinition::YesNo(message, embedder_sender);
-                let msg = EmbedderMsg::Prompt(prompt, PromptOrigin::Trusted);
-                embedder.send((None, msg));
-                if receiver.recv().unwrap() != PromptResult::Primary {
+                let mut stream = stream.expect("Can't retrieve stream");
+                if !allow_devtools_client(&mut stream, &embedder, &token) {
                     continue;
-                }
+                };
                 // connection succeeded and accepted
                 sender
                     .send(DevtoolsControlMsg::FromChrome(
-                        ChromeToDevtoolsControlMsg::AddClient(stream.unwrap()),
+                        ChromeToDevtoolsControlMsg::AddClient(stream),
                     ))
                     .unwrap();
             }
@@ -703,4 +702,34 @@ fn run_server(
     for connection in &mut accepted_connections {
         let _ = connection.shutdown(Shutdown::Both);
     }
+}
+
+fn allow_devtools_client(stream: &mut TcpStream, embedder: &EmbedderProxy, token: &str) -> bool {
+    // By-pass prompt if we receive a valid token.
+    let token = format!("25:{{\"auth_token\":\"{}\"}}", token);
+    let mut buf = [0; 28];
+    let timeout = std::time::Duration::from_millis(500);
+    // This will read but not consume the bytes from the stream.
+    stream.set_read_timeout(Some(timeout)).unwrap();
+    let peek = stream.peek(&mut buf);
+    stream.set_read_timeout(None).unwrap();
+    if let Ok(len) = peek {
+        if len == buf.len() {
+            if let Ok(s) = std::str::from_utf8(&buf) {
+                if s == token {
+                    // Consume the message as it was relevant to us.
+                    let _ = stream.read_exact(&mut buf);
+                    return true;
+                }
+            }
+        }
+    };
+
+    // No token found. Prompt user
+    let (embedder_sender, receiver) = ipc::channel().expect("Failed to create IPC channel!");
+    let message = "Accept incoming devtools connection?".to_owned();
+    let prompt = PromptDefinition::YesNo(message, embedder_sender);
+    let msg = EmbedderMsg::Prompt(prompt, PromptOrigin::Trusted);
+    embedder.send((None, msg));
+    receiver.recv().unwrap() == PromptResult::Primary
 }

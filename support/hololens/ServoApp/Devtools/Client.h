@@ -19,8 +19,9 @@ enum DevtoolsMessageLevel { Error, Warn, None };
 class DevtoolsClient {
 
 public:
-  DevtoolsClient(hstring hostname, hstring port, DevtoolsDelegate &d)
-      : mDelegate(d), mHostname(hostname), mPort(port){};
+  DevtoolsClient(hstring hostname, hstring port, hstring token,
+                 DevtoolsDelegate &d)
+      : mDelegate(d), mHostname(hostname), mToken(token), mPort(port){};
 
   ~DevtoolsClient() { Stop(); }
   void Run();
@@ -30,6 +31,7 @@ public:
 
 private:
   hstring mPort;
+  hstring mToken;
   hstring mHostname;
   DevtoolsDelegate &mDelegate;
   std::optional<DataReader> mDataReader;

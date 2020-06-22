@@ -3,7 +3,7 @@ namespace ServoApp {
   delegate void EventDelegate();
   delegate void HistoryChangedDelegate(Boolean back, Boolean forward);
   delegate void MediaSessionMetadataDelegate(String title, String artist, String album);
-  delegate void DevtoolsStatusChangedDelegate(DevtoolsStatus status, UInt32 port);
+  delegate void DevtoolsStatusChangedDelegate(DevtoolsStatus status, UInt32 port, String token);
 
   enum DevtoolsStatus {
     Running = 0,

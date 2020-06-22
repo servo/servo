@@ -108,7 +108,7 @@ public:
   virtual bool OnServoAllowNavigation(hstring) = 0;
   virtual void OnServoAnimatingChanged(bool) = 0;
   virtual void OnServoIMEStateChanged(bool) = 0;
-  virtual void OnServoDevtoolsStarted(bool, const unsigned int) = 0;
+  virtual void OnServoDevtoolsStarted(bool, const unsigned int, hstring) = 0;
   virtual void OnServoMediaSessionMetadata(hstring, hstring, hstring) = 0;
   virtual void OnServoMediaSessionPlaybackStateChange(int) = 0;
   virtual void OnServoPromptAlert(hstring, bool) = 0;

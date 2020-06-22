@@ -146,7 +146,7 @@ pub trait HostTrait {
     /// Called when the media session position state is set.
     fn on_media_session_set_position_state(&self, duration: f64, position: f64, playback_rate: f64);
     /// Called when devtools server is started
-    fn on_devtools_started(&self, port: Result<u16, ()>);
+    fn on_devtools_started(&self, port: Result<u16, ()>, token: String);
 }
 
 pub struct ServoGlue {
@@ -751,8 +751,10 @@ impl ServoGlue {
                             ),
                     };
                 },
-                EmbedderMsg::OnDevtoolsStarted(port) => {
-                    self.callbacks.host_callbacks.on_devtools_started(port);
+                EmbedderMsg::OnDevtoolsStarted(port, token) => {
+                    self.callbacks
+                        .host_callbacks
+                        .on_devtools_started(port, token);
                 },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
