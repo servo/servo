@@ -325,14 +325,14 @@ void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
     mDevtoolsClient->Run();
     std::wstring message =
         resourceLoader.GetString(L"devtoolsStatus/Running").c_str();
-    std::wstring formatted = format(message, port.c_str());
-    DevtoolsStatusMessage().Text(formatted);
+    hstring formatted{format(message, port.c_str())};
+    OnDevtoolsMessage(servo::DevtoolsMessageLevel::None, L"", formatted);
   } else if (mDevtoolsStatus == DevtoolsStatus::Failed) {
-    DevtoolsStatusMessage().Text(
-        resourceLoader.GetString(L"devtoolsStatus/Failed"));
+    auto body = resourceLoader.GetString(L"devtoolsStatus/Failed");
+    OnDevtoolsMessage(servo::DevtoolsMessageLevel::Error, L"", body);
   } else if (mDevtoolsStatus == DevtoolsStatus::Stopped) {
-    DevtoolsStatusMessage().Text(
-        resourceLoader.GetString(L"devtoolsStatus/Stopped"));
+    auto body = resourceLoader.GetString(L"devtoolsStatus/Stopped");
+    OnDevtoolsMessage(servo::DevtoolsMessageLevel::None, L"", body);
   }
 }
 

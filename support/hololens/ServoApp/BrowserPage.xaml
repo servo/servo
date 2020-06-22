@@ -186,9 +186,6 @@
                     <TextBox MinHeight="12" FontFamily="Consolas" FontSize="12" Grid.Row="1" IsTabStop="true" x:Name="JSInput" VerticalAlignment="Center" KeyUp="OnJSInputEdited" IsSpellCheckEnabled="False"/>
                 </Grid>
             </muxc:TabViewItem>
-            <muxc:TabViewItem x:Uid="devtoolsTabServer" IsClosable="False">
-                <TextBlock x:Name="DevtoolsStatusMessage" Margin="10"></TextBlock>
-            </muxc:TabViewItem>
             <muxc:TabViewItem x:Uid="devtoolsTabPrefs" IsClosable="False">
                 <Grid VerticalAlignment="Stretch">
                     <Grid.RowDefinitions>

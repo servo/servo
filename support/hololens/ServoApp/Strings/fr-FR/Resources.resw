@@ -104,9 +104,6 @@
   <data name="urlTextbox.PlaceholderText" xml:space="preserve">
     <value>Saisir une adresse</value>
   </data>
-  <data name="devtoolsTabServer.[using:Microsoft.UI.Xaml.Controls]TabViewItem.Header" xml:space="preserve">
-    <value>Serveur DevTools</value>
-  </data>
   <data name="devtoolsTabPrefs.[using:Microsoft.UI.Xaml.Controls]TabViewItem.Header" xml:space="preserve">
     <value>Préférences</value>
   </data>

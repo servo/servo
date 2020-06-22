@@ -108,9 +108,6 @@
   <data name="urlTextbox.PlaceholderText" xml:space="preserve">
     <value>Type a URL</value>
   </data>
-  <data name="devtoolsTabServer.[using:Microsoft.UI.Xaml.Controls]TabViewItem.Header" xml:space="preserve">
-    <value>Devtools Server</value>
-  </data>
   <data name="devtoolsTabConsole.[using:Microsoft.UI.Xaml.Controls]TabViewItem.Header" xml:space="preserve">
     <value>Console</value>
   </data>
