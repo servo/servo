@@ -35,7 +35,7 @@ use crate::dom::rtcpeerconnectioniceevent::RTCPeerConnectionIceEvent;
 use crate::dom::rtcsessiondescription::RTCSessionDescription;
 use crate::dom::rtctrackevent::RTCTrackEvent;
 use crate::dom::window::Window;
-use crate::realms::InRealm;
+use crate::realms::{enter_realm, InRealm};
 use crate::task::TaskCanceller;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
@@ -161,6 +161,8 @@ impl WebRtcSignaller for RTCSignaller {
         let _ = self.task_source.queue_with_canceller(
             task!(on_data_channel_event: move || {
                 let this = this.root();
+                let global = this.global();
+                let _ac = enter_realm(&*global);
                 this.on_data_channel_event(channel, event);
             }),
             &self.canceller,
@@ -314,7 +316,10 @@ impl RTCPeerConnection {
                 let channel = if let Some(channel) = self.data_channels.borrow().get(&channel_id) {
                     DomRoot::from_ref(&**channel)
                 } else {
-                    debug_assert!(false, "Got an event for an unregistered data channel");
+                    warn!(
+                        "Got an event for an unregistered data channel {:?}",
+                        channel_id
+                    );
                     return;
                 };
 
@@ -337,7 +342,7 @@ impl RTCPeerConnection {
             .insert(id, Dom::from_ref(channel))
             .is_some()
         {
-            debug_assert!(false, "Data channel already registered");
+            warn!("Data channel already registered {:?}", id);
         }
     }
 

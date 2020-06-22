@@ -85,8 +85,6 @@ impl RTCDataChannel {
             binary_type: DomRefCell::new(DOMString::from("blob")),
         };
 
-        peer_connection.register_data_channel(servo_media_id, &channel);
-
         channel
     }
 
@@ -106,6 +104,8 @@ impl RTCDataChannel {
             )),
             global,
         );
+
+        peer_connection.register_data_channel(rtc_data_channel.servo_media_id, &*rtc_data_channel);
 
         rtc_data_channel
     }
