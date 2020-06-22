@@ -1317,10 +1317,6 @@ where
                 "no replacement"
             },
         );
-        self.handle_load_start_msg(
-            change.top_level_browsing_context_id,
-            change.browsing_context_id,
-        );
         self.pending_changes.push(change);
     }
 
@@ -3626,18 +3622,6 @@ where
         }
     }
 
-    fn handle_load_start_msg(
-        &mut self,
-        top_level_browsing_context_id: TopLevelBrowsingContextId,
-        browsing_context_id: BrowsingContextId,
-    ) {
-        if browsing_context_id == top_level_browsing_context_id {
-            // Notify embedder top level document started loading.
-            self.embedder_proxy
-                .send((Some(top_level_browsing_context_id), EmbedderMsg::LoadStart));
-        }
-    }
-
     fn handle_load_complete_msg(
         &mut self,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
@@ -3680,10 +3664,6 @@ where
                 // Notify embedder and compositor top level document finished loading.
                 self.compositor_proxy
                     .send(ToCompositorMsg::LoadComplete(top_level_browsing_context_id));
-                self.embedder_proxy.send((
-                    Some(top_level_browsing_context_id),
-                    EmbedderMsg::LoadComplete,
-                ));
             }
         } else {
             self.handle_subframe_loaded(pipeline_id);

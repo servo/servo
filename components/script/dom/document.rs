@@ -997,9 +997,15 @@ impl Document {
     pub fn set_ready_state(&self, state: DocumentReadyState) {
         match state {
             DocumentReadyState::Loading => {
+                if self.window().is_top_level() {
+                    self.send_to_embedder(EmbedderMsg::LoadStart);
+                }
                 update_with_current_time_ms(&self.dom_loading);
             },
             DocumentReadyState::Complete => {
+                if self.window().is_top_level() {
+                    self.send_to_embedder(EmbedderMsg::LoadComplete);
+                }
                 update_with_current_time_ms(&self.dom_complete);
             },
             DocumentReadyState::Interactive => update_with_current_time_ms(&self.dom_interactive),
