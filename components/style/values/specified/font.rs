@@ -787,13 +787,13 @@ impl ToComputedValue for FontSizeAdjust {
 const LARGER_FONT_SIZE_RATIO: f32 = 1.2;
 
 /// The default font size.
-pub const FONT_MEDIUM_PX: i32 = 16;
+pub const FONT_MEDIUM_PX: f32 = 16.0;
 
 impl FontSizeKeyword {
     #[inline]
     #[cfg(feature = "servo")]
     fn to_length(&self, _: &Context) -> NonNegativeLength {
-        let medium = Length::new(FONT_MEDIUM_PX as f32);
+        let medium = Length::new(FONT_MEDIUM_PX);
         // https://drafts.csswg.org/css-fonts-3/#font-size-prop
         NonNegative(match *self {
             FontSizeKeyword::XXSmall => medium * 3.0 / 5.0,

@@ -17,7 +17,7 @@ use app_units::Au;
 use cssparser::RGBA;
 use euclid::default::Size2D as UntypedSize2D;
 use euclid::{Scale, SideOffsets2D, Size2D};
-use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use style_traits::viewport::ViewportConstraints;
 use style_traits::{CSSPixel, DevicePixel};
 
@@ -43,7 +43,7 @@ pub struct Device {
     /// the parent to compute everything else. So it is correct to just use
     /// a relaxed atomic here.
     #[ignore_malloc_size_of = "Pure stack type"]
-    root_font_size: AtomicIsize,
+    root_font_size: AtomicU32,
     /// Whether any styles computed in the document relied on the root font-size
     /// by using rem units.
     #[ignore_malloc_size_of = "Pure stack type"]
@@ -68,7 +68,7 @@ impl Device {
             viewport_size,
             device_pixel_ratio,
             // FIXME(bz): Seems dubious?
-            root_font_size: AtomicIsize::new(Au::from_px(FONT_MEDIUM_PX).0 as isize),
+            root_font_size: AtomicU32::new(FONT_MEDIUM_PX.to_bits()),
             used_root_font_size: AtomicBool::new(false),
             used_viewport_units: AtomicBool::new(false),
             environment: CssEnvironment,
@@ -90,15 +90,15 @@ impl Device {
     }
 
     /// Get the font size of the root element (for rem)
-    pub fn root_font_size(&self) -> Au {
+    pub fn root_font_size(&self) -> CSSPixelLength {
         self.used_root_font_size.store(true, Ordering::Relaxed);
-        Au::new(self.root_font_size.load(Ordering::Relaxed) as i32)
+        CSSPixelLength::new(f32::from_bits(self.root_font_size.load(Ordering::Relaxed)))
     }
 
     /// Set the font size of the root element (for rem)
-    pub fn set_root_font_size(&self, size: Au) {
+    pub fn set_root_font_size(&self, size: CSSPixelLength) {
         self.root_font_size
-            .store(size.0 as isize, Ordering::Relaxed)
+            .store(size.px().to_bits(), Ordering::Relaxed)
     }
 
     /// Sets the body text color for the "inherit color from body" quirk.

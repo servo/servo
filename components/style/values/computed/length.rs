@@ -224,6 +224,12 @@ impl CSSPixelLength {
         CSSPixelLength(px)
     }
 
+    /// Scale the length by a given amount.
+    #[inline]
+    pub fn scale_by(self, scale: CSSFloat) -> Self {
+        CSSPixelLength(self.0 * scale)
+    }
+
     /// Return the containing pixel value.
     #[inline]
     pub fn px(self) -> CSSFloat {

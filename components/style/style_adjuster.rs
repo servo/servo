@@ -12,7 +12,6 @@ use crate::properties::longhands::float::computed_value::T as Float;
 use crate::properties::longhands::overflow_x::computed_value::T as Overflow;
 use crate::properties::longhands::position::computed_value::T as Position;
 use crate::properties::{self, ComputedValues, StyleBuilder};
-use app_units::Au;
 
 /// A struct that implements all the adjustment methods.
 ///
@@ -414,7 +413,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
             .none_or_hidden() &&
             self.style.get_outline().outline_has_nonzero_width()
         {
-            self.style.mutate_outline().set_outline_width(Au(0).into());
+            self.style
+                .mutate_outline()
+                .set_outline_width(crate::Zero::zero());
         }
     }
 

@@ -845,7 +845,6 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
     fn recompute_keyword_font_size_if_needed(&mut self) {
         use crate::values::computed::ToComputedValue;
         use crate::values::specified;
-        use app_units::Au;
 
         if !self.seen.contains(LonghandId::XLang) &&
            !self.seen.contains(LonghandId::FontFamily) {
@@ -863,7 +862,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 }
             };
 
-            if font.gecko().mScriptUnconstrainedSize == Au::from(new_size.size()).0 {
+            if font.gecko().mScriptUnconstrainedSize == new_size.size {
                 return;
             }
 
@@ -878,6 +877,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
     #[cfg(feature = "gecko")]
     fn constrain_font_size_if_needed(&mut self) {
         use crate::gecko_bindings::bindings;
+        use crate::values::generics::NonNegative;
 
         if !self.seen.contains(LonghandId::XLang) &&
            !self.seen.contains(LonghandId::FontFamily) &&
@@ -896,11 +896,11 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 )
             };
 
-            if font.mFont.size >= min_font_size {
+            if font.mFont.size.0 >= min_font_size {
                 return;
             }
 
-            min_font_size
+            NonNegative(min_font_size)
         };
 
         builder.mutate_font().gecko_mut().mFont.size = min_font_size;
@@ -942,8 +942,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
     /// not clear to me. For now just pretend those don't exist here.
     #[cfg(feature = "gecko")]
     fn handle_mathml_scriptlevel_if_needed(&mut self) {
-        use app_units::Au;
-        use std::cmp;
+        use crate::values::generics::NonNegative;
 
         if !self.seen.contains(LonghandId::MozScriptLevel) &&
            !self.seen.contains(LonghandId::MozScriptMinSize) &&
@@ -968,14 +967,14 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 return;
             }
 
-            let mut min = Au(parent_font.mScriptMinSize);
+            let mut min = parent_font.mScriptMinSize;
             if font.mAllowZoomAndMinSize {
                 min = builder.device.zoom_text(min);
             }
 
             let scale = (parent_font.mScriptSizeMultiplier as f32).powi(delta as i32);
-            let parent_size = Au(parent_font.mSize);
-            let parent_unconstrained_size = Au(parent_font.mScriptUnconstrainedSize);
+            let parent_size = parent_font.mSize.0;
+            let parent_unconstrained_size = parent_font.mScriptUnconstrainedSize.0;
             let new_size = parent_size.scale_by(scale);
             let new_unconstrained_size = parent_unconstrained_size.scale_by(scale);
 
@@ -987,7 +986,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 if parent_size <= min {
                     (parent_size, new_unconstrained_size)
                 } else {
-                    (cmp::max(min, new_size), new_unconstrained_size)
+                    (min.max(new_size), new_unconstrained_size)
                 }
             } else {
                 // If the new unconstrained size is larger than the min size,
@@ -996,15 +995,15 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 // However, if the new size is even larger (perhaps due to usage
                 // of em units), use that instead.
                 (
-                    cmp::min(new_size, cmp::max(new_unconstrained_size, min)),
+                    new_size.min(new_unconstrained_size.max(min)),
                     new_unconstrained_size
                 )
             }
         };
         let font = builder.mutate_font().gecko_mut();
-        font.mFont.size = new_size.0;
-        font.mSize = new_size.0;
-        font.mScriptUnconstrainedSize = new_unconstrained_size.0;
+        font.mFont.size = NonNegative(new_size);
+        font.mSize = NonNegative(new_size);
+        font.mScriptUnconstrainedSize = NonNegative(new_unconstrained_size);
     }
 
     /// Various properties affect how font-size and font-family are computed.
