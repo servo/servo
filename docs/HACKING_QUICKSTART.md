@@ -119,14 +119,14 @@ Both information can be found using, in this example, `/mach cargo pkgid mozjs_s
 If the output is in the format `https://github.com/servo/mozjs#mozjs_sys:0.0.0`, you are dealing with a git dependency and you will have to edit the `~/my-projects/servo/Cargo.toml` file and add at the bottom:
 
 ``` toml
-[replace]
+[patch]
 "https://github.com/servo/mozjs#mozjs_sys:0.0.0" = { path = '../mozjs' }
 ```
 
 If the output is in the format `https://github.com/rust-lang/crates.io-index#mozjs_sys#0.0.0`, you are dealing with a crates.io dependency and you will have to edit the `~/my-projects/servo/Cargo.toml` in the following way:
 
 ``` toml
-[replace]
+[patch]
 "mozjs_sys:0.0.0" = { path = '../mozjs' }
 ```
 
