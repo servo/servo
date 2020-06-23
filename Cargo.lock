@@ -119,9 +119,9 @@ dependencies = [
 
 [[package]]
 name = "approx"
-version = "0.3.0"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f71f10b5c4946a64aad7b8cf65e3406cd3da22fc448595991d22423cf6db67b4"
+checksum = "f0e60b75072ecd4168020818c0107f2857bb6c4e64252d8d3983f6263b40a5c3"
 dependencies = [
  "num-traits",
 ]
