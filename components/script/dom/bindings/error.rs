@@ -23,6 +23,8 @@ use js::jsapi::ExceptionStackBehavior;
 use js::jsapi::JSContext;
 use js::jsapi::JS_ClearPendingException;
 use js::jsapi::JS_IsExceptionPending;
+#[cfg(feature = "js_backtrace")]
+use js::jsapi::StackFormat as JSStackFormat;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_ErrorFromException;
 use js::rust::wrappers::JS_GetPendingException;
@@ -108,9 +110,9 @@ pub type ErrorResult = Fallible<()>;
 /// Set a pending exception for the given `result` on `cx`.
 pub fn throw_dom_exception(cx: SafeJSContext, global: &GlobalScope, result: Error) {
     #[cfg(feature = "js_backtrace")]
-    {
+    unsafe {
         capture_stack!(in(*cx) let stack);
-        let js_stack = stack.and_then(|s| s.as_string(None));
+        let js_stack = stack.and_then(|s| s.as_string(None, JSStackFormat::Default));
         let rust_stack = Backtrace::new();
         LAST_EXCEPTION_BACKTRACE.with(|backtrace| {
             *backtrace.borrow_mut() = Some((js_stack, format!("{:?}", rust_stack)));
