@@ -78,6 +78,7 @@ struct FlexLine<'a> {
 struct FlexItemLayoutResult {
     hypothetical_cross_size: Length,
     fragments: Vec<Fragment>,
+    positioning_context: PositioningContext,
 }
 
 /// Return type of `FlexLine::layout`
@@ -629,7 +630,7 @@ impl FlexLine<'_> {
             .iter_mut()
             .zip(item_layout_results)
             .zip(&item_used_main_sizes)
-            .map(|((item, item_result), &used_main_size)| {
+            .map(|((item, mut item_result), &used_main_size)| {
                 let has_stretch_auto = true; // FIXME: use the property
                 let cross_size = if has_stretch_auto &&
                     item.content_box_size.cross.is_auto() &&
@@ -642,13 +643,16 @@ impl FlexLine<'_> {
                 } else {
                     item_result.hypothetical_cross_size
                 };
-                let fragments = if has_stretch_auto {
-                    item.layout(used_main_size, flex_context, Some(cross_size))
-                        .fragments
-                } else {
-                    item_result.fragments
-                };
-                (cross_size, fragments)
+                if has_stretch_auto {
+                    // “If the flex item has `align-self: stretch`, redo layout for its contents,
+                    //  treating this used size as its definite cross size
+                    //  so that percentage-sized children can be resolved.”
+                    item_result = item.layout(used_main_size, flex_context, Some(cross_size));
+                }
+                flex_context
+                    .positioning_context
+                    .append(item_result.positioning_context);
+                (cross_size, item_result.fragments)
             })
             .unzip();
 
@@ -895,6 +899,11 @@ impl<'a> FlexItem<'a> {
         flex_context: &mut FlexContext,
         used_cross_size_override: Option<Length>,
     ) -> FlexItemLayoutResult {
+        let mut positioning_context = PositioningContext::new_for_rayon(
+            flex_context
+                .positioning_context
+                .collects_for_nearest_positioned_ancestor(),
+        );
         match flex_context.flex_axis {
             FlexAxis::Row => {
                 // The main axis is the container’s inline axis
@@ -922,6 +931,7 @@ impl<'a> FlexItem<'a> {
                         FlexItemLayoutResult {
                             hypothetical_cross_size: cross_size,
                             fragments,
+                            positioning_context,
                         }
                     },
                     IndependentFormattingContext::NonReplaced(non_replaced) => {
@@ -939,13 +949,14 @@ impl<'a> FlexItem<'a> {
                             content_block_size,
                         } = non_replaced.layout(
                             flex_context.layout_context,
-                            flex_context.positioning_context,
+                            &mut positioning_context,
                             &item_as_containing_block,
                             self.tree_rank,
                         );
                         FlexItemLayoutResult {
                             hypothetical_cross_size: content_block_size,
                             fragments,
+                            positioning_context,
                         }
                     },
                 }
