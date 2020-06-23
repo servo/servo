@@ -37,7 +37,7 @@ use crate::task::TaskBox;
 use crate::task_source::TaskSourceName;
 use encoding_rs::UTF_8;
 use hyper_serde::Serde;
-use indexmap::{IndexMap, IndexSet};
+use indexmap::IndexSet;
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::Handle as RawHandle;
@@ -65,7 +65,7 @@ use net_traits::{FetchMetadata, Metadata};
 use net_traits::{FetchResponseListener, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::ffi;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -257,64 +257,51 @@ impl ModuleTree {
         self.incomplete_fetch_urls.borrow_mut().remove(&dependency);
     }
 
-    /// Find circular dependencies in non-recursive way
-    ///
-    /// This function is basically referred to
-    /// [this blog post](https://breakingcode.wordpress.com/2013/03/11/an-example-dependency-resolution-algorithm-in-python/).
-    ///
-    /// The only difference is, in that blog post, its algorithm will throw errors while finding circular
-    /// dependencies; however, in our use case, we'd like to find circular dependencies so we will just
-    /// return it.
-    pub fn find_circular_dependencies(&self, global: &GlobalScope) -> IndexSet<ServoUrl> {
-        let module_map = global.get_module_map().borrow();
+    /// recursively checks if all of the transitive descendants are
+    /// in the FetchingDescendants or later status
+    fn recursive_check_descendants(
+        module_tree: &ModuleTree,
+        module_map: &HashMap<ServoUrl, Rc<ModuleTree>>,
+        discovered_urls: &mut HashSet<ServoUrl>,
+    ) -> bool {
+        discovered_urls.insert(module_tree.url.clone());
 
-        // A map for checking dependencies and using the module url as key
-        let mut module_deps: IndexMap<ServoUrl, IndexSet<ServoUrl>> = module_map
-            .iter()
-            .map(|(module_url, module)| {
-                (module_url.clone(), module.descendant_urls.borrow().clone())
-            })
-            .collect();
+        let descendant_urls = module_tree.descendant_urls.borrow();
 
-        while module_deps.len() != 0 {
-            // Get all dependencies with no dependencies
-            let ready: IndexSet<ServoUrl> = module_deps
-                .iter()
-                .filter_map(|(module_url, descendant_urls)| {
-                    if descendant_urls.len() == 0 {
-                        Some(module_url.clone())
-                    } else {
-                        None
+        for descendant_url in descendant_urls.iter() {
+            match module_map.get(&descendant_url.clone()) {
+                None => return false,
+                Some(descendant_module) => {
+                    if discovered_urls.contains(&descendant_module.url) {
+                        continue;
                     }
-                })
-                .collect();
 
-            // If there's no ready module but we're still in the loop,
-            // it means we find circular modules, then we can return them.
-            if ready.len() == 0 {
-                return module_deps
-                    .iter()
-                    .map(|(url, _)| url.clone())
-                    .collect::<IndexSet<ServoUrl>>();
-            }
+                    let descendant_status = descendant_module.get_status();
+                    if descendant_status < ModuleStatus::FetchingDescendants {
+                        return false;
+                    }
 
-            // Remove ready modules from the dependency map
-            for module_url in ready.iter() {
-                module_deps.remove(&module_url.clone());
-            }
+                    let all_ready_descendants = ModuleTree::recursive_check_descendants(
+                        &descendant_module,
+                        module_map,
+                        discovered_urls,
+                    );
 
-            // Also make sure to remove the ready modules from the
-            // remaining module dependencies as well
-            for (_, deps) in module_deps.iter_mut() {
-                *deps = deps
-                    .difference(&ready)
-                    .into_iter()
-                    .cloned()
-                    .collect::<IndexSet<ServoUrl>>();
+                    if !all_ready_descendants {
+                        return false;
+                    }
+                },
             }
         }
 
-        IndexSet::new()
+        return true;
+    }
+
+    fn has_all_ready_descendants(&self, global: &GlobalScope) -> bool {
+        let module_map = global.get_module_map().borrow();
+        let mut discovered_urls = HashSet::new();
+
+        return ModuleTree::recursive_check_descendants(&self, &module_map, &mut discovered_urls);
     }
 
     // We just leverage the power of Promise to run the task for `finish` the owner.
@@ -751,35 +738,8 @@ impl ModuleTree {
     /// step 4-7.
     fn advance_finished_and_link(&self, global: &GlobalScope) {
         {
-            let descendant_urls = self.descendant_urls.borrow();
-
-            // Check if there's any dependencies under fetching.
-            //
-            // We can't only check `incomplete fetches` here because...
-            //
-            // For example, module `A` has descendants `B`, `C`
-            // while `A` has added them to incomplete fetches, it's possible
-            // `B` has finished but `C` is not yet fired its fetch; in this case,
-            // `incomplete fetches` will be `zero` but the module is actually not ready
-            // to finish. Thus, we need to check dependencies directly instead of
-            // incomplete fetches here.
-            if !is_all_dependencies_ready(&descendant_urls, &global) {
-                // When we found the `incomplete fetches` is bigger than zero,
-                // we will need to check if there's any circular dependency.
-                //
-                // If there's no circular dependencies but there are incomplete fetches,
-                // it means it needs to wait for finish.
-                //
-                // Or, if there are circular dependencies, then we need to confirm
-                // no circular dependencies are fetching.
-                //
-                // if there's any circular dependencies and they all proceeds to status
-                // higher than `FetchingDescendants`, then it means we can proceed to finish.
-                let circular_deps = self.find_circular_dependencies(&global);
-
-                if circular_deps.len() == 0 || !is_all_dependencies_ready(&circular_deps, &global) {
-                    return;
-                }
+            if !self.has_all_ready_descendants(&global) {
+                return;
             }
         }
 
@@ -836,29 +796,6 @@ impl ModuleTree {
             promise.resolve_native(&());
         }
     }
-}
-
-// Iterate the given dependency urls to see if it and its descendants are fetching or not.
-// When a module status is `FetchingDescendants`, it's possible that the module is a circular
-// module so we will also check its descendants.
-fn is_all_dependencies_ready(dependencies: &IndexSet<ServoUrl>, global: &GlobalScope) -> bool {
-    dependencies.iter().all(|dep| {
-        let module_map = global.get_module_map().borrow();
-        match module_map.get(&dep) {
-            Some(module) => {
-                let module_descendants = module.get_descendant_urls().borrow();
-
-                module.get_status() >= ModuleStatus::FetchingDescendants &&
-                    module_descendants.iter().all(|descendant_url| {
-                        match module_map.get(&descendant_url) {
-                            Some(m) => m.get_status() >= ModuleStatus::FetchingDescendants,
-                            None => false,
-                        }
-                    })
-            },
-            None => false,
-        }
-    })
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
