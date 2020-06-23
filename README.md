@@ -38,16 +38,6 @@ curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none
 See also [Other installation methods](
 https://github.com/rust-lang-nursery/rustup.rs/#other-installation-methods)
 
-### Clone project
-
-```sh
-# using https
-git clone https://github.com/servo/servo.git
-
-# using ssh
-git@github.com:servo/servo.git
-```
-
 ### Other dependencies
 
 Please select your operating system:
