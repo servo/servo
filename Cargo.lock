@@ -1906,9 +1906,9 @@ dependencies = [
 
 [[package]]
 name = "gif"
-version = "0.10.0"
+version = "0.10.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff3414b424657317e708489d2857d9575f4403698428b040b609b9d1c1a84a2c"
+checksum = "471d90201b3b223f3451cd4ad53e34295f16a1df17b1edf3736d47761c3981af"
 dependencies = [
  "color_quant",
  "lzw",
