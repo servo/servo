@@ -111,6 +111,18 @@ You may need to include other directories on the plugin search path, e.g. Servo'
 GST_PLUGIN_PATH=$PWD/target/gstplugins/:$PWD/support/linux/gstreamer/gst/lib
 ```
 
+If you get complaints `could not get/set settings from/on resource.` right after finding a GL context then try `tee`-ing to `glimagesink` and `gldownload`:
+```
+LD_PRELOAD=$PWD/target/gstplugins/libgstservoplugin.so \
+GST_PLUGIN_PATH=target/gstplugins \
+  gst-launch-1.0 servowebsrc \
+    ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
+    !  tee name=t \
+ t. ! queue ! glimagesink 
+ t. ! queue ! glcolorconvert ! gldownload ! theoraenc ! oggmux ! filesink location=test.ogg
+```
+
+
 Under X11 you may get complaints about X11 threads not being initialized:
 ```
 GST_GL_XINITTHREADS=1
