@@ -1,2 +1,2 @@
 def main(request, response):
-    return "id:%s;value:%s;" % (request.POST.first("id"), request.POST.first("value"))
+    return b"id:%s;value:%s;" % (request.POST.first(b"id"), request.POST.first(b"value"))

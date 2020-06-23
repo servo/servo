@@ -1,23 +1,25 @@
 import time
 
-def main(request, response):
-    headers = [("Access-Control-Allow-Origin", "*"),
-               ("Access-Control-Allow-Credentials", "true"),
-               ("Access-Control-Allow-Methods", "GET, POST, PUT, FOO"),
-               ("Access-Control-Allow-Headers", "x-test, x-foo"),
-               ("Access-Control-Expose-Headers", "x-request-method, x-request-content-type, x-request-query, x-request-content-length, x-request-data")]
+from wptserve.utils import isomorphic_encode
 
-    if "delay" in request.GET:
-        delay = int(request.GET.first("delay"))
+def main(request, response):
+    headers = [(b"Access-Control-Allow-Origin", b"*"),
+               (b"Access-Control-Allow-Credentials", b"true"),
+               (b"Access-Control-Allow-Methods", b"GET, POST, PUT, FOO"),
+               (b"Access-Control-Allow-Headers", b"x-test, x-foo"),
+               (b"Access-Control-Expose-Headers", b"x-request-method, x-request-content-type, x-request-query, x-request-content-length, x-request-data")]
+
+    if b"delay" in request.GET:
+        delay = int(request.GET.first(b"delay"))
         time.sleep(delay)
 
-    if "safelist_content_type" in request.GET:
-        headers.append(("Access-Control-Allow-Headers", "content-type"))
+    if b"safelist_content_type" in request.GET:
+        headers.append((b"Access-Control-Allow-Headers", b"content-type"))
 
-    headers.append(("X-Request-Method", request.method))
-    headers.append(("X-Request-Query", request.url_parts.query if request.url_parts.query else "NO"))
-    headers.append(("X-Request-Content-Length", request.headers.get("Content-Length", "NO")))
-    headers.append(("X-Request-Content-Type", request.headers.get("Content-Type", "NO")))
-    headers.append(("X-Request-Data", request.body))
+    headers.append((b"X-Request-Method", isomorphic_encode(request.method)))
+    headers.append((b"X-Request-Query", isomorphic_encode(request.url_parts.query) if request.url_parts.query else b"NO"))
+    headers.append((b"X-Request-Content-Length", request.headers.get(b"Content-Length", b"NO")))
+    headers.append((b"X-Request-Content-Type", request.headers.get(b"Content-Type", b"NO")))
+    headers.append((b"X-Request-Data", request.body))
 
-    return headers, "Test"
+    return headers, b"Test"

@@ -1,14 +1,16 @@
+from wptserve.utils import isomorphic_decode
+
 def main(request, response):
-    response.headers.set("Cache-Control", "no-store")
+    response.headers.set(b"Cache-Control", b"no-store")
 
     # This should be a simple request; deny preflight
-    if request.method != "POST":
+    if request.method != u"POST":
         response.status = 400
         return
 
-    response.headers.set("Access-Control-Allow-Credentials", "true")
-    response.headers.set("Access-Control-Allow-Origin", request.headers.get("origin"))
+    response.headers.set(b"Access-Control-Allow-Credentials", b"true")
+    response.headers.set(b"Access-Control-Allow-Origin", request.headers.get(b"origin"))
 
-    for header in ["Accept", "Accept-Language", "Content-Language", "Content-Type"]:
+    for header in [b"Accept", b"Accept-Language", b"Content-Language", b"Content-Type"]:
         value = request.headers.get(header)
-        response.content += header + ": " + (value if value else "<None>") + '\n'
+        response.content += isomorphic_decode(header) + u": " + (isomorphic_decode(value) if value else u"<None>") + u'\n'

@@ -461,13 +461,16 @@ class GroupFileTestSource(TestSource):
     def make_queue(cls, tests, **kwargs):
         tests_by_group = cls.tests_by_group(tests, **kwargs)
 
+        ids_to_tests = {test.id: test for test in tests}
+
         test_queue = Queue()
 
-        for group_name, tests in iteritems(tests_by_group):
+        for group_name, test_ids in iteritems(tests_by_group):
             group_metadata = {"scope": group_name}
             group = deque()
 
-            for test in tests:
+            for test_id in test_ids:
+                test = ids_to_tests[test_id]
                 group.append(test)
                 test.update_metadata(group_metadata)
 
@@ -487,6 +490,6 @@ class GroupFileTestSource(TestSource):
             except KeyError:
                 logger.error("%s is missing from test groups file" % test.id)
                 raise
-            tests_by_group[group].append(test)
+            tests_by_group[group].append(test.id)
 
         return tests_by_group

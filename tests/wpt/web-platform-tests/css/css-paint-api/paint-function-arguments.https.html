@@ -36,7 +36,7 @@ registerPaint('box', class {
     static get inputArguments() { return ['<color>', '<length>']; }
     paint(ctx, geom, properties, args) {
         ctx.fillStyle = args[0].toString();
-        let size = args[1].toString();
+        let size = parseInt(args[1].toString());
         ctx.fillRect(40, 40, size, size);
     }
 });

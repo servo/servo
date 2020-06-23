@@ -1,20 +1,26 @@
 import json
 
-def main(request, response):
-    if "origin" in request.GET:
-        response.headers.set("Access-Control-Allow-Origin", request.GET["origin"])
-    elif "origins" in request.GET:
-        for origin in request.GET["origins"].split(','):
-            response.headers.set("Access-Control-Allow-Origin", request.GET["origin"])
+from wptserve.utils import isomorphic_decode
 
-    if "headers" in request.GET:
-        response.headers.set("Access-Control-Allow-Headers", request.GET["headers"])
-    if "methods" in request.GET:
-        response.headers.set("Access-Control-Allow-Methods", request.GET["methods"])
+def main(request, response):
+    if b"origin" in request.GET:
+        response.headers.set(b"Access-Control-Allow-Origin", request.GET[b"origin"])
+    elif b"origins" in request.GET:
+        for origin in request.GET[b"origins"].split(b','):
+            response.headers.set(b"Access-Control-Allow-Origin", request.GET[b"origin"])
+
+    if b"headers" in request.GET:
+        response.headers.set(b"Access-Control-Allow-Headers", request.GET[b"headers"])
+    if b"methods" in request.GET:
+        response.headers.set(b"Access-Control-Allow-Methods", request.GET[b"methods"])
 
     headers = dict(request.headers)
 
     for header in headers:
         headers[header] = headers[header][0]
 
-    return json.dumps(headers)
+    str_headers = {}
+    for key, val in headers.items():
+        str_headers[isomorphic_decode(key)] = isomorphic_decode(val)
+
+    return json.dumps(str_headers)

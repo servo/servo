@@ -191,3 +191,21 @@ dictionary CredentialPropertiesOutput {
 partial dictionary AuthenticationExtensionsClientOutputs {
     CredentialPropertiesOutput credProps;
 };
+
+partial dictionary AuthenticationExtensionsClientInputs {
+    AuthenticationExtensionsLargeBlobInputs largeBlob;
+};
+
+dictionary AuthenticationExtensionsLargeBlobInputs {
+    boolean read;
+    ArrayBuffer write;
+};
+
+partial dictionary AuthenticationExtensionsClientOutputs {
+    AuthenticationExtensionsLargeBlobOutputs largeBlob;
+};
+
+dictionary AuthenticationExtensionsLargeBlobOutputs {
+    ArrayBuffer blob;
+    boolean written;
+};

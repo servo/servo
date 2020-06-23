@@ -66,6 +66,7 @@ promise_test(async testCase => {
     iframes['same-origin-3'].src,
     iframes['same-origin-4'].src,
     iframes['cross-origin-5'].src,
+    iframes['same-origin-8'].sec,
     windows['same-origin-7'].location.href,
     windows['same-origin-12'].location.href,
   ];
@@ -89,11 +90,17 @@ promise_test(async testCase => {
   // 2) By closing the window:
   windows['cross-origin-9'].close();
 
+  await waitForMessage('cross-site-1');
+  await waitForMessage('same-origin-3');
+  await waitForMessage('same-origin-7');
+
   try {
     const result = await performance.measureMemory();
     checkMeasureMemory(result, {
       allowed: allowed.concat([
         iframes['cross-site-1'].src,
+        iframes['same-origin-3'].contentWindow.location.href,
+        windows['same-origin-7'].location.href,
       ]),
       required: [
         window.location.href,

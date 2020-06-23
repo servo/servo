@@ -2597,25 +2597,67 @@ IdlInterface.prototype.test_member_iterable = function(member)
     {
         var isPairIterator = member.idlType.length === 2;
         var proto = this.get_interface_object().prototype;
-        var descriptor = Object.getOwnPropertyDescriptor(proto, Symbol.iterator);
+        var iteratorDesc = Object.getOwnPropertyDescriptor(proto, Symbol.iterator);
 
-        assert_true(descriptor.writable, "@@iterator property should be writable");
-        assert_true(descriptor.configurable, "@@iterator property should be configurable");
-        assert_false(descriptor.enumerable, "@@iterator property should not be enumerable");
-        assert_equals(typeof descriptor.value, "function", "@@iterator property should be a function");
-        assert_equals(descriptor.value.length, 0, "@@iterator function object length should be 0");
-        assert_equals(descriptor.value.name, isPairIterator ? "entries" : "values", "@@iterator function object should have the right name");
+        assert_true(iteratorDesc.writable, "@@iterator property should be writable");
+        assert_true(iteratorDesc.configurable, "@@iterator property should be configurable");
+        assert_false(iteratorDesc.enumerable, "@@iterator property should not be enumerable");
+        assert_equals(typeof iteratorDesc.value, "function", "@@iterator property should be a function");
+        assert_equals(iteratorDesc.value.length, 0, "@@iterator function object length should be 0");
+        assert_equals(iteratorDesc.value.name, isPairIterator ? "entries" : "values", "@@iterator function object should have the right name");
 
         if (isPairIterator) {
             assert_equals(proto["entries"], proto[Symbol.iterator], "entries method should be the same as @@iterator method");
+            [
+                ["entries", 0],
+                ["keys", 0],
+                ["values", 0],
+                ["forEach", 1]
+            ].forEach(([property, length]) => {
+                var desc = Object.getOwnPropertyDescriptor(proto, property);
+                assert_equals(typeof desc.value, "function", property + " property should be a function");
+                assert_equals(desc.value.length, length, property + " function object length should be " + length);
+                assert_equals(desc.value.name, property, property + " function object should have the right name");
+            });
         } else {
             assert_equals(proto[Symbol.iterator], Array.prototype[Symbol.iterator], "@@iterator method should be the same as Array prototype's");
-            ["entries", "keys", "values", "forEach", Symbol.iterator].forEach(function(property) {
+            ["entries", "keys", "values", "forEach", Symbol.iterator].forEach(property => {
                 var propertyName = property === Symbol.iterator ? "@@iterator" : property;
                 assert_equals(proto[property], Array.prototype[property], propertyName + " method should be the same as Array prototype's");
-            }.bind(this));
+            });
         }
     }.bind(this), this.name + " interface: iterable<" + member.idlType.map(function(t) { return t.idlType; }).join(", ") + ">");
+};
+
+IdlInterface.prototype.test_member_async_iterable = function(member)
+{
+    subsetTestByKey(this.name, test, function()
+    {
+        var isPairIterator = member.idlType.length === 2;
+        var proto = this.get_interface_object().prototype;
+        var iteratorDesc = Object.getOwnPropertyDescriptor(proto, Symbol.asyncIterator);
+
+        assert_true(iteratorDesc.writable, "@@asyncIterator property should be writable");
+        assert_true(iteratorDesc.configurable, "@@asyncIterator property should be configurable");
+        assert_false(iteratorDesc.enumerable, "@@asyncIterator property should not be enumerable");
+        assert_equals(typeof iteratorDesc.value, "function", "@@asyncIterator property should be a function");
+        assert_equals(iteratorDesc.value.length, 0, "@@asyncIterator function object length should be 0");
+        assert_equals(iteratorDesc.value.name, isPairIterator ? "entries" : "values", "@@asyncIterator function object should have the right name");
+
+        if (isPairIterator) {
+            assert_equals(proto["entries"], proto[Symbol.asyncIterator], "entries method should be the same as @@asyncIterator method");
+            ["entries", "keys", "values"].forEach(property => {
+                var desc = Object.getOwnPropertyDescriptor(proto, property);
+                assert_equals(typeof desc.value, "function", property + " property should be a function");
+                assert_equals(desc.value.length, 0, property + " function object length should be 0");
+                assert_equals(desc.value.name, property, property + " function object should have the right name");
+            });
+        } else {
+            assert_equals(proto["values"], proto[Symbol.asyncIterator], "values method should be the same as @@asyncIterator method");
+            assert_false("entries" in proto, "should not have an entries method");
+            assert_false("keys" in proto, "should not have a keys method");
+        }
+    }.bind(this), this.name + " interface: async iterable<" + member.idlType.map(function(t) { return t.idlType; }).join(", ") + ">");
 };
 
 IdlInterface.prototype.test_member_stringifier = function(member)
@@ -2734,7 +2776,11 @@ IdlInterface.prototype.test_members = function()
             break;
 
         case "iterable":
-            this.test_member_iterable(member);
+            if (member.async) {
+                this.test_member_async_iterable(member);
+            } else {
+                this.test_member_iterable(member);
+            }
             break;
         default:
             // TODO: check more member types.
