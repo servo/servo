@@ -64,18 +64,19 @@ private:
 
 struct ConsoleLog : ConsoleLogT<ConsoleLog> {
 public:
-  ConsoleLog(Windows::UI::Color fg, Windows::UI::Color bg, hstring b, hstring s)
+  ConsoleLog(Windows::UI::Color dot, Windows::UI::Color bg, hstring b,
+             hstring s)
       : mSource(s), mBody(b) {
-    mFgColor = UI::Xaml::Media::SolidColorBrush(fg);
+    mDotColor = UI::Xaml::Media::SolidColorBrush(dot);
     mBgColor = UI::Xaml::Media::SolidColorBrush(bg);
   };
-  SolidColorBrush FgColor() { return mFgColor; };
+  SolidColorBrush DotColor() { return mDotColor; };
   SolidColorBrush BgColor() { return mBgColor; };
   hstring Source() { return mSource; };
   hstring Body() { return mBody; };
 
 private:
-  SolidColorBrush mFgColor;
+  SolidColorBrush mDotColor;
   SolidColorBrush mBgColor;
   hstring mSource;
   hstring mBody;

@@ -155,7 +155,7 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <ListView ItemsSource="{x:Bind ConsoleLogs}">
+                    <ListView ItemsSource="{x:Bind ConsoleLogs}" Background="White">
                         <ListView.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <ItemsStackPanel Orientation="Vertical" ItemsUpdatingScrollMode="KeepLastItemInView"/>
@@ -169,8 +169,8 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <Ellipse Width="8" Height="8" Fill="{x:Bind FgColor}" Grid.Column="0" Margin="10,0"/>
-                                    <TextBlock FontFamily="Consolas" FontSize="12" Text="{x:Bind Body}"  Grid.Column="1"/>
+                                    <Ellipse Width="8" Height="8" Fill="{x:Bind DotColor}" Grid.Column="0" Margin="10,0"/>
+                                    <TextBlock FontFamily="Consolas" FontSize="12" Text="{x:Bind Body}" Foreground="Black" Grid.Column="1"/>
                                     <TextBlock FontFamily="Consolas" FontSize="12" Text="{x:Bind Source}" Foreground="Gray" Grid.Column="2" Margin="10,0"/>
                                 </Grid>
                             </DataTemplate>

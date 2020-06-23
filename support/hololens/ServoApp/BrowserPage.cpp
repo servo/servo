@@ -283,16 +283,16 @@ void BrowserPage::ClearConsole() {
 void BrowserPage::OnDevtoolsMessage(DevtoolsMessageLevel level, hstring source,
                                     hstring body) {
   Dispatcher().RunAsync(CoreDispatcherPriority::High, [=] {
-    auto fgColor = UI::Colors::White();
-    auto bgColor = UI::Colors::White();
+    auto dotColor = UI::Colors::Transparent();
+    auto bgColor = UI::Colors::Transparent();
     if (level == servo::DevtoolsMessageLevel::Error) {
-      fgColor = UI::Colors::Red();
+      dotColor = UI::Colors::Red();
       bgColor = UI::Colors::LightPink();
     } else if (level == servo::DevtoolsMessageLevel::Warn) {
-      fgColor = UI::Colors::Orange();
+      dotColor = UI::Colors::Orange();
       bgColor = UI::Colors::LightYellow();
     }
-    mLogs.Append(make<ConsoleLog>(fgColor, bgColor, body, source));
+    mLogs.Append(make<ConsoleLog>(dotColor, bgColor, body, source));
   });
 }
 

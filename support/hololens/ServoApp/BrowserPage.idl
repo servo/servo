@@ -9,8 +9,8 @@ namespace ServoApp
 
     runtimeclass ConsoleLog
     {
-        ConsoleLog(Windows.UI.Color fgColor, Windows.UI.Color bgColor, String body, String source);
-        Windows.UI.Xaml.Media.SolidColorBrush FgColor { get; };
+        ConsoleLog(Windows.UI.Color dotColor, Windows.UI.Color bgColor, String body, String source);
+        Windows.UI.Xaml.Media.SolidColorBrush DotColor { get; };
         Windows.UI.Xaml.Media.SolidColorBrush BgColor { get; };
         String Body{ get; };
         String Source{ get; };
