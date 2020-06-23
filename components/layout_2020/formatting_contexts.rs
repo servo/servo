@@ -134,6 +134,15 @@ impl IndependentFormattingContext {
         }
     }
 
+    pub fn inline_content_sizes(&mut self, layout_context: &LayoutContext) -> ContentSizes {
+        match self {
+            Self::NonReplaced(inner) => inner
+                .contents
+                .inline_content_sizes(layout_context, inner.style.writing_mode),
+            Self::Replaced(inner) => inner.contents.inline_content_sizes(&inner.style),
+        }
+    }
+
     pub fn outer_inline_content_sizes(
         &mut self,
         layout_context: &LayoutContext,
@@ -211,12 +220,12 @@ impl NonReplacedFormattingContextContents {
     pub fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
-        containing_block_writing_mode: WritingMode,
+        writing_mode: WritingMode,
     ) -> ContentSizes {
         match self {
             Self::Flow(inner) => inner
                 .contents
-                .inline_content_sizes(layout_context, containing_block_writing_mode),
+                .inline_content_sizes(layout_context, writing_mode),
             Self::Flex(inner) => inner.inline_content_sizes(),
         }
     }

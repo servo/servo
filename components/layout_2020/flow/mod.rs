@@ -138,18 +138,18 @@ impl BlockContainer {
     pub(super) fn inline_content_sizes(
         &self,
         layout_context: &LayoutContext,
-        containing_block_writing_mode: WritingMode,
+        writing_mode: WritingMode,
     ) -> ContentSizes {
         match &self {
             Self::BlockLevelBoxes(boxes) => boxes
                 .par_iter()
                 .map(|box_| {
                     box_.borrow_mut()
-                        .inline_content_sizes(layout_context, containing_block_writing_mode)
+                        .inline_content_sizes(layout_context, writing_mode)
                 })
                 .reduce(ContentSizes::zero, ContentSizes::max),
             Self::InlineFormattingContext(context) => {
-                context.inline_content_sizes(layout_context, containing_block_writing_mode)
+                context.inline_content_sizes(layout_context, writing_mode)
             },
         }
     }
