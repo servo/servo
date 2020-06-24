@@ -6,7 +6,6 @@
 //! https://drafts.csswg.org/css-easing/#timing-functions
 
 use crate::parser::ParserContext;
-use crate::values::CSSFloat;
 
 /// A generic easing function.
 #[derive(
@@ -116,20 +115,5 @@ impl<Integer, Number> TimingFunction<Integer, Number> {
     #[inline]
     pub fn ease() -> Self {
         TimingFunction::Keyword(TimingKeyword::Ease)
-    }
-}
-
-impl TimingKeyword {
-    /// Returns the keyword as a quadruplet of Bezier point coordinates
-    /// `(x1, y1, x2, y2)`.
-    #[inline]
-    pub fn to_bezier(self) -> (CSSFloat, CSSFloat, CSSFloat, CSSFloat) {
-        match self {
-            TimingKeyword::Linear => (0., 0., 1., 1.),
-            TimingKeyword::Ease => (0.25, 0.1, 0.25, 1.),
-            TimingKeyword::EaseIn => (0.42, 0., 1., 1.),
-            TimingKeyword::EaseOut => (0., 0., 0.58, 1.),
-            TimingKeyword::EaseInOut => (0.42, 0., 0.58, 1.),
-        }
     }
 }

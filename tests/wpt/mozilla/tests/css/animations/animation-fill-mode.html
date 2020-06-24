@@ -48,8 +48,9 @@ function runThroughAnimation(testBinding, element, waitForDelay = true) {
   testBinding.advanceClock(500);
   assert_equals(getComputedStyle(element).getPropertyValue("width"), "250px");
 
+  // After advancing another 500 milliseconds the animation should finished and
+  // width value will depend on the value of `animation-fill-mode`.
   testBinding.advanceClock(500);
-  assert_equals(getComputedStyle(element).getPropertyValue("width"), "500px");
 }
 
 test(function() {

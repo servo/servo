@@ -386,7 +386,7 @@ impl Animations {
         now: f64,
         pipeline_id: PipelineId,
     ) {
-        let num_iterations = match animation.iteration_state {
+        let iteration_index = match animation.iteration_state {
             KeyframesIterationState::Finite(current, _) |
             KeyframesIterationState::Infinite(current) => current,
         };
@@ -402,10 +402,14 @@ impl Animations {
             TransitionOrAnimationEventType::AnimationStart => {
                 (-animation.delay).max(0.).min(active_duration)
             },
-            TransitionOrAnimationEventType::AnimationIteration |
-            TransitionOrAnimationEventType::AnimationEnd => num_iterations * animation.duration,
+            TransitionOrAnimationEventType::AnimationIteration => {
+                iteration_index * animation.duration
+            },
+            TransitionOrAnimationEventType::AnimationEnd => {
+                (iteration_index * animation.duration) + animation.current_iteration_duration()
+            },
             TransitionOrAnimationEventType::AnimationCancel => {
-                (num_iterations * animation.duration) + (now - animation.started_at).max(0.)
+                (iteration_index * animation.duration) + (now - animation.started_at).max(0.)
             },
             _ => unreachable!(),
         }
