@@ -27,7 +27,9 @@ use crate::stylesheets::keyframes_rule::{KeyframesAnimation, KeyframesStep, Keyf
 use crate::values::animated::{Animate, Procedure};
 use crate::values::computed::{Time, TimingFunction};
 use crate::values::generics::box_::AnimationIterationCount;
-use crate::values::generics::easing::{StepPosition, TimingFunction as GenericTimingFunction};
+use crate::values::generics::easing::{
+    StepPosition, TimingFunction as GenericTimingFunction, TimingKeyword,
+};
 use crate::Atom;
 use fxhash::FxHashMap;
 use parking_lot::RwLock;
@@ -125,8 +127,14 @@ impl PropertyAnimation {
                 (current_step as f64) / (jumps as f64)
             },
             GenericTimingFunction::Keyword(keyword) => {
-                let (x1, x2, y1, y2) = keyword.to_bezier();
-                Bezier::new(x1, x2, y1, y2).solve(progress, epsilon)
+                let bezier = match keyword {
+                    TimingKeyword::Linear => return progress,
+                    TimingKeyword::Ease => Bezier::new(0.25, 0.1, 0.25, 1.),
+                    TimingKeyword::EaseIn => Bezier::new(0.42, 0., 1., 1.),
+                    TimingKeyword::EaseOut => Bezier::new(0., 0., 0.58, 1.),
+                    TimingKeyword::EaseInOut => Bezier::new(0.42, 0., 0.58, 1.),
+                };
+                bezier.solve(progress, epsilon)
             },
         }
     }
