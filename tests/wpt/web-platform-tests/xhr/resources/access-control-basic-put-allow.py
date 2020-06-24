@@ -1,20 +1,22 @@
-def main(request, response):
-    if request.method == "OPTIONS":
-        response.headers.set("Content-Type", "text/plain")
-        response.headers.set("Access-Control-Allow-Credentials", "true")
-        response.headers.set("Access-Control-Allow-Methods", "PUT")
-        response.headers.set("Access-Control-Allow-Origin", request.headers.get("origin"))
+from wptserve.utils import isomorphic_encode
 
-    elif request.method == "PUT":
-        response.headers.set("Content-Type", "text/plain")
-        response.headers.set("Access-Control-Allow-Credentials", "true")
-        response.headers.set("Access-Control-Allow-Origin", request.headers.get("origin"))
-        response.content = "PASS: Cross-domain access allowed."
+def main(request, response):
+    if request.method == u"OPTIONS":
+        response.headers.set(b"Content-Type", b"text/plain")
+        response.headers.set(b"Access-Control-Allow-Credentials", b"true")
+        response.headers.set(b"Access-Control-Allow-Methods", b"PUT")
+        response.headers.set(b"Access-Control-Allow-Origin", request.headers.get(b"origin"))
+
+    elif request.method == u"PUT":
+        response.headers.set(b"Content-Type", b"text/plain")
+        response.headers.set(b"Access-Control-Allow-Credentials", b"true")
+        response.headers.set(b"Access-Control-Allow-Origin", request.headers.get(b"origin"))
+        response.content = b"PASS: Cross-domain access allowed."
         try:
-            response.content += "\n" + request.body
+            response.content += b"\n" + request.body
         except:
-            response.content += "Could not read in content."
+            response.content += b"Could not read in content."
 
     else:
-        response.headers.set("Content-Type", "text/plain")
-        response.content = "Wrong method: " + request.method
+        response.headers.set(b"Content-Type", b"text/plain")
+        response.content = b"Wrong method: " + isomorphic_encode(request.method)

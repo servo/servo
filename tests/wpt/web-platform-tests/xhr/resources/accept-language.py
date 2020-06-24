@@ -1,3 +1,3 @@
 def main(request, response):
-    return [("Content-Type", "text/plain"),
-            request.headers.get("Accept-Language", "NO")]
+    return [(b"Content-Type", b"text/plain"),
+            request.headers.get(b"Accept-Language", b"NO")]

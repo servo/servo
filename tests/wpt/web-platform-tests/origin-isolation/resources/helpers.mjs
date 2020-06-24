@@ -83,6 +83,9 @@ export function testSameAgentCluster(testFrames, testLabelPrefix) {
 
       // Must not throw
       frameWindow.document;
+
+      // Must not throw
+      frameWindow.location.href;
     }, `${prefix}setting document.domain must give sync access`);
   } else {
     // Between the two children at the index given by testFrames[0] and
@@ -90,14 +93,15 @@ export function testSameAgentCluster(testFrames, testLabelPrefix) {
 
     promise_test(async () => {
       const whatHappened = await sendWasmModuleBetween(testFrames);
-
       assert_equals(whatHappened, "WebAssembly.Module message received");
     }, `${prefix}message event must occur`);
 
     promise_test(async () => {
-      const whatHappened = await accessDocumentBetween(testFrames);
+      const whatHappened1 = await accessDocumentBetween(testFrames);
+      assert_equals(whatHappened1, "accessed document successfully");
 
-      assert_equals(whatHappened, "accessed document successfully");
+      const whatHappened2 = await accessLocationHrefBetween(testFrames);
+      assert_equals(whatHappened2, "accessed location.href successfully");
     }, `${prefix}setting document.domain must give sync access`);
   }
 }
@@ -131,6 +135,9 @@ export function testDifferentAgentClusters(testFrames, testLabelPrefix) {
       assert_throws_dom("SecurityError", DOMException, () => {
         frameWindow.document;
       });
+      assert_throws_dom("SecurityError", DOMException, () => {
+        frameWindow.location.href;
+      });
     }, `${prefix}setting document.domain must not give sync access`);
   } else {
     // Between the two children at the index given by testFrames[0] and
@@ -138,14 +145,15 @@ export function testDifferentAgentClusters(testFrames, testLabelPrefix) {
 
     promise_test(async () => {
       const whatHappened = await sendWasmModuleBetween(testFrames);
-
       assert_equals(whatHappened, "messageerror");
     }, `${prefix}messageerror event must occur`);
 
     promise_test(async () => {
-      const whatHappened = await accessDocumentBetween(testFrames);
+      const whatHappened1 = await accessDocumentBetween(testFrames);
+      assert_equals(whatHappened1, "SecurityError");
 
-      assert_equals(whatHappened, "SecurityError");
+      const whatHappened2 = await accessLocationHrefBetween(testFrames);
+      assert_equals(whatHappened2, "SecurityError");
     }, `${prefix}setting document.domain must not give sync access`);
   }
 }
@@ -212,6 +220,14 @@ async function accessDocumentBetween(testFrames) {
   const indexIntoParentFrameOfDestination = testFrames[1];
 
   sourceFrame.postMessage({ command: "access document", indexIntoParentFrameOfDestination }, "*");
+  return waitForMessage(sourceFrame);
+}
+
+async function accessLocationHrefBetween(testFrames) {
+  const sourceFrame = frames[testFrames[0]];
+  const indexIntoParentFrameOfDestination = testFrames[1];
+
+  sourceFrame.postMessage({ command: "access location.href", indexIntoParentFrameOfDestination }, "*");
   return waitForMessage(sourceFrame);
 }
 

@@ -1,0 +1,26 @@
+<!doctype html>
+<title>Animating 'stop-color' from 'currentcolor'</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <linearGradient id="lg" style="color: green">
+    <stop stop-color="red">
+      <animate attributeName="stop-color" from="currentcolor" to="green" dur="10s" fill="freeze"/>
+    </stop>
+  </linearGradient>
+  <rect width="100" height="100" fill="url(#lg)"/>
+</svg>
+<script>
+  async_test(t => {
+    let svg = document.querySelector("svg");
+    svg.pauseAnimations();
+    svg.setCurrentTime(5);
+    onload = t.step_func(() => {
+      requestAnimationFrame(t.step_func_done(() => {
+        let stop = document.querySelector("stop");
+        assert_equals(getComputedStyle(stop).getPropertyValue("stop-color"),
+                      "rgb(0, 128, 0)");
+      }));
+    });
+  });
+</script>

@@ -1,5 +1,5 @@
 def main(request, response):
-    response.headers.set("Cache-Control", "no-store")
-    response.headers.set("Content-Type", "text/plain")
+    response.headers.set(b"Cache-Control", b"no-store")
+    response.headers.set(b"Content-Type", b"text/plain")
 
-    response.text = "FAIL: Cross-domain access allowed."
+    response.text = b"FAIL: Cross-domain access allowed."

@@ -1,17 +1,17 @@
 def main(request, response):
-    response.headers.set("Cache-Control", "no-store")
-    response.headers.set("Access-Control-Allow-Origin", request.headers.get("origin"))
-    response.headers.set("Access-Control-Allow-Credentials", "true")
-    uid = request.GET.first("uid", None)
+    response.headers.set(b"Cache-Control", b"no-store")
+    response.headers.set(b"Access-Control-Allow-Origin", request.headers.get(b"origin"))
+    response.headers.set(b"Access-Control-Allow-Credentials", b"true")
+    uid = request.GET.first(b"uid", None)
 
-    if request.method == "OPTIONS":
-        response.headers.set("Access-Control-Allow-Methods", "PUT")
+    if request.method == u"OPTIONS":
+        response.headers.set(b"Access-Control-Allow-Methods", b"PUT")
     else:
         username = request.auth.username
         password = request.auth.password
         if (not username) or (username != uid):
-            response.headers.set("WWW-Authenticate", "Basic realm='Test Realm/Cross Origin'")
+            response.headers.set(b"WWW-Authenticate", b"Basic realm='Test Realm/Cross Origin'")
             response.status = 401
-            response.content = "Authentication cancelled"
+            response.content = b"Authentication cancelled"
         else:
-            response.content = "User: " + username + ", Password: " + password
+            response.content = b"User: " + username + b", Password: " + password

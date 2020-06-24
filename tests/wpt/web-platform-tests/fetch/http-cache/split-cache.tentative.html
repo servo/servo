@@ -2,7 +2,7 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>HTTP Cache - Partioning by top-level origin</title>
+  <title>HTTP Cache - Partioning by site</title>
   <meta name="help" href="https://fetch.spec.whatwg.org/#http-cache-partitions">
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
@@ -15,19 +15,18 @@
 const host = get_host_info();
 
 // We run this entire test four times, varying the following two booleans:
-// - is_same_origin_test, which controls whether the popup is same-origin.
+// - is_cross_site_test, which controls whether the popup is cross-site.
 // - load_resource_in_iframe, which controls whether the popup loads the
-//     resource in an iframe or the mainframe. Note that the iframe is always
-//     same-origin to the opener.
-function performFullTest(is_same_origin_test, load_resource_in_iframe) {
-  const POPUP_HTTP_ORIGIN = is_same_origin_test ? host.HTTP_ORIGIN : host.HTTP_NOTSAMESITE_ORIGIN
+//     resource in an iframe or the top-level frame. Note that the iframe is
+//     always same-site to the opener.
+function performFullTest(is_cross_site_test, load_resource_in_iframe, name) {
+  const POPUP_HTTP_ORIGIN = is_cross_site_test ? host.HTTP_NOTSAMESITE_ORIGIN : host.HTTP_ORIGIN
   const LOCAL_HTTP_ORIGIN = host.HTTP_ORIGIN
 
   const popupBaseURL = POPUP_HTTP_ORIGIN + window.location.pathname.replace(/\/[^\/]*$/, '/') ;
   const localBaseURL = LOCAL_HTTP_ORIGIN + window.location.pathname.replace(/\/[^\/]*$/, '/') ;
 
   var test = {
-    name: "HTTP Cache is partitioned by top-frame origin",
     requests: [
       {
         response_headers: [
@@ -45,10 +44,10 @@ function performFullTest(is_same_origin_test, load_resource_in_iframe) {
         // If the popup's request was a cache hit, we would only expect 2
         // requests to the server. If it was a cache miss, we would expect 3.
         // load_resource_in_iframe does not affect the expectation as, even
-        // though the iframe (if present) is same-origin, we expect a cache miss
-        // when the popup's mainframe is a different origin.
+        // though the iframe (if present) is same-site, we expect a cache miss
+        // when the popup's top-level frame is a different site.
         expected_response_headers: [
-          ["server-request-count", is_same_origin_test ? "2" : "3"]
+          ["server-request-count", is_cross_site_test ? "3" : "2"]
         ],
         base_url: localBaseURL
       }
@@ -69,8 +68,8 @@ function performFullTest(is_same_origin_test, load_resource_in_iframe) {
   function popup_fetch() {
     return new Promise(function(resolve, reject) {
       var relativeUrl = load_resource_in_iframe
-          ? "resources/split-origin-popup-with-iframe.html"
-          : "resources/split-origin-popup.html";
+          ? "resources/split-cache-popup-with-iframe.html"
+          : "resources/split-cache-popup.html";
       var win = window.open(popupBaseURL + relativeUrl);
 
       // Post a message to initiate the popup's request and give the necessary
@@ -118,13 +117,26 @@ function performFullTest(is_same_origin_test, load_resource_in_iframe) {
       })
   }
 
-  promise_test(() => local_fetch().then(popup_fetch).then(local_fetch2).then(check_server_info))
+  promise_test(() => {
+    return local_fetch()
+      .then(popup_fetch)
+      .then(local_fetch2)
+      .then(check_server_info)
+  }, name)
 }
 
-performFullTest(true, true);
-performFullTest(false, true);
-performFullTest(true, false);
-performFullTest(false, false);
+performFullTest(
+  false /* is_cross_site_test */, false /* load_resource_in_iframe */,
+  "HTTP cache is shared between same-site top-level frames");
+performFullTest(
+  true /* is_cross_site_test */, false /* load_resource_in_iframe */,
+  "HTTP cache is not shared between cross-site top-level frames");
+performFullTest(
+  false /* is_cross_site_test */, true /* load_resource_in_iframe */,
+  "HTTP cache is shared between same-site frames with same-site top-level frames");
+performFullTest(
+  true /* is_cross_site_test */, true /* load_resource_in_iframe */,
+  "HTTP cache is not shared between same-site frames with cross-site top-level frames");
 </script>
 </body>
 </html>

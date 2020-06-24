@@ -6971,5 +6971,20 @@
     "input": "file://xn--/p",
     "base": "about:blank",
     "failure": true
+  },
+  "https://bugzilla.mozilla.org/show_bug.cgi?id=1647058",
+  {
+    "input": "#link",
+    "base": "https://example.org/##link",
+    "href": "https://example.org/#link",
+    "protocol": "https:",
+    "username": "",
+    "password": "",
+    "host": "example.org",
+    "hostname": "example.org",
+    "port": "",
+    "pathname": "/",
+    "search": "",
+    "hash": "#link"
   }
 ]

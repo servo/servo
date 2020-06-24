@@ -9,7 +9,7 @@ def main(request, response):
     content = request.method
 
     response.add_required_headers = False
-    response.writer.write('''HTTP/1.1 200 OK
+    response.writer.write(u'''HTTP/1.1 200 OK
 Content-type: text/plain
 Content-Length: {}
 

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- This behavior is not explicitly specified. -->
+
+<iframe id=frameid name=framename></iframe>
+<form id=formid target=framename action="resources/form.html"></form>
+
+<script>
+async_test(t => {
+  frameid.src = 'resources/jsurl-form-submit-iframe.html';
+
+  frameid.onload = t.step_func(() => {
+    assert_equals(
+      frameid.contentDocument.location.pathname,
+      '/html/semantics/forms/form-submission-0/resources/jsurl-form-submit-iframe.html');
+
+    frameid.onload = t.step_func_done(() => {
+      assert_equals(
+        frameid.contentDocument.location.pathname,
+        '/html/semantics/forms/form-submission-0/resources/form.html');
+    });
+
+    frameid.contentDocument.getElementById('anchorid').click();
+  });
+
+}, `Verifies that form submissions scheduled inside javascript: urls take precedence over the javascript: url's return value.`);
+</script>

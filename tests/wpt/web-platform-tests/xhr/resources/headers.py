@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 def main(request, response):
-    response.headers.set("Content-Type", "text/plain")
-    response.headers.set("X-Custom-Header", "test")
-    response.headers.set("Set-Cookie", "test")
-    response.headers.set("Set-Cookie2", "test")
-    response.headers.set("X-Custom-Header-Empty", "")
-    response.headers.set("X-Custom-Header-Comma", "1")
-    response.headers.append("X-Custom-Header-Comma", "2")
-    response.headers.set("X-Custom-Header-Bytes", "…")
-    return "TEST"
+    response.headers.set(b"Content-Type", b"text/plain")
+    response.headers.set(b"X-Custom-Header", b"test")
+    response.headers.set(b"Set-Cookie", b"test")
+    response.headers.set(b"Set-Cookie2", b"test")
+    response.headers.set(b"X-Custom-Header-Empty", b"")
+    response.headers.set(b"X-Custom-Header-Comma", b"1")
+    response.headers.append(b"X-Custom-Header-Comma", b"2")
+    response.headers.set(b"X-Custom-Header-Bytes", u"…".encode("utf-8"))
+    return b"TEST"
