@@ -56,7 +56,10 @@ Xcode version 10.2 or above is recommended.
 
 ##### On macOS (Homebrew)
 
+NOTE: run these steps after you've cloned the project locally.
+
 ``` sh
+cd servo 
 brew bundle install --file=etc/taskcluster/macos/Brewfile
 brew bundle install --file=etc/taskcluster/macos/Brewfile-build
 pip install virtualenv
