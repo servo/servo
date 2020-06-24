@@ -218,6 +218,13 @@ impl OneshotTimers {
         }
 
         for timer in timers_to_run {
+            // Since timers can be coalesced together inside a task,
+            // this loop can keep running, including after an interrupt of the JS,
+            // and prevent a clean-shutdown of a JS-running thread.
+            // This check prevents such a situation.
+            if !global.can_continue_running() {
+                return;
+            }
             let callback = timer.callback;
             callback.invoke(global, &self.js_timers);
         }

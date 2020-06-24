@@ -63,7 +63,9 @@ use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::realms::enter_realm;
-use crate::script_runtime::{get_reports, new_rt_and_cx, JSContext, Runtime, ScriptPort};
+use crate::script_runtime::{
+    get_reports, new_rt_and_cx, ContextForRequestInterrupt, JSContext, Runtime, ScriptPort,
+};
 use crate::script_runtime::{CommonScriptMsg, ScriptChan, ScriptThreadEventCategory};
 use crate::task_manager::TaskManager;
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -97,14 +99,17 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::GetWindowProxyClass;
 use js::jsapi::JS_SetWrapObjectCallbacks;
-use js::jsapi::{JSTracer, SetWindowProxyClass};
+use js::jsapi::{
+    JSContext as UnsafeJSContext, JSTracer, JS_AddInterruptCallback, SetWindowProxyClass,
+};
 use js::jsval::UndefinedValue;
 use js::rust::ParentRuntime;
 use media::WindowGLContext;
 use metrics::{PaintTimeMetrics, MAX_TASK_NS};
 use mime::{self, Mime};
 use msg::constellation_msg::{
-    BackgroundHangMonitor, BackgroundHangMonitorRegister, ScriptHangAnnotation,
+    BackgroundHangMonitor, BackgroundHangMonitorExitSignal, BackgroundHangMonitorRegister,
+    ScriptHangAnnotation,
 };
 use msg::constellation_msg::{BrowsingContextId, HistoryStateId, PipelineId};
 use msg::constellation_msg::{HangAnnotation, MonitoredComponentId, MonitoredComponentType};
@@ -149,7 +154,7 @@ use std::option::Option;
 use std::ptr;
 use std::rc::Rc;
 use std::result::Result;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, SystemTime};
@@ -531,9 +536,11 @@ pub struct ScriptThread {
     task_queue: TaskQueue<MainThreadScriptMsg>,
 
     /// A handle to register associated layout threads for hang-monitoring.
-    background_hang_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
+    background_hang_monitor_register: Box<dyn BackgroundHangMonitorRegister>,
     /// The dedicated means of communication with the background-hang-monitor for this script-thread.
-    background_hang_monitor: Option<Box<dyn BackgroundHangMonitor>>,
+    background_hang_monitor: Box<dyn BackgroundHangMonitor>,
+    /// A flag set to `true` by the BHM on exit, and checked from within the interrupt handler.
+    closing: Arc<AtomicBool>,
 
     /// A channel to hand out to script thread-based entities that need to be able to enqueue
     /// events in the event queue.
@@ -686,6 +693,27 @@ pub struct ScriptThread {
     webgpu_port: RefCell<Option<Receiver<WebGPUMsg>>>,
 }
 
+struct BHMExitSignal {
+    closing: Arc<AtomicBool>,
+    js_context: ContextForRequestInterrupt,
+}
+
+impl BackgroundHangMonitorExitSignal for BHMExitSignal {
+    fn signal_to_exit(&self) {
+        self.closing.store(true, Ordering::SeqCst);
+        self.js_context.request_interrupt();
+    }
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn interrupt_callback(_cx: *mut UnsafeJSContext) -> bool {
+    let res = ScriptThread::can_continue_running();
+    if !res {
+        ScriptThread::prepare_for_shutdown();
+    }
+    res
+}
+
 /// In the event of thread panic, all data on the stack runs its destructor. However, there
 /// are no reachable, owning pointers to the DOM memory, so it never gets freed by default
 /// when the script thread fails. The ScriptMemoryFailsafe uses the destructor bomb pattern
@@ -818,6 +846,20 @@ impl ScriptThread {
         })
     }
 
+    pub fn can_continue_running() -> bool {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.can_continue_running_inner()
+        })
+    }
+
+    pub fn prepare_for_shutdown() {
+        SCRIPT_THREAD_ROOT.with(|root| {
+            let script_thread = unsafe { &*root.get().unwrap() };
+            script_thread.prepare_for_shutdown_inner();
+        })
+    }
+
     pub fn set_mutation_observer_microtask_queued(value: bool) {
         SCRIPT_THREAD_ROOT.with(|root| {
             let script_thread = unsafe { &*root.get().unwrap() };
@@ -876,13 +918,22 @@ impl ScriptThread {
         })
     }
 
-    pub fn process_event(msg: CommonScriptMsg) {
+    /// Process a single event as if it were the next event
+    /// in the queue for this window event-loop.
+    /// Returns a boolean indicating whether further events should be processed.
+    pub fn process_event(msg: CommonScriptMsg) -> bool {
         SCRIPT_THREAD_ROOT.with(|root| {
             if let Some(script_thread) = root.get() {
                 let script_thread = unsafe { &*script_thread };
-                script_thread.handle_msg_from_script(MainThreadScriptMsg::Common(msg));
+                if !script_thread.can_continue_running_inner() {
+                    return false;
+                } else {
+                    script_thread.handle_msg_from_script(MainThreadScriptMsg::Common(msg));
+                    return true;
+                }
             }
-        });
+            false
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#await-a-stable-state
@@ -1231,6 +1282,7 @@ impl ScriptThread {
         unsafe {
             JS_SetWrapObjectCallbacks(cx, &WRAP_CALLBACKS);
             SetWindowProxyClass(cx, GetWindowProxyClass());
+            JS_AddInterruptCallback(cx, Some(interrupt_callback));
         }
 
         // Ask the router to proxy IPC messages from the devtools to us.
@@ -1242,13 +1294,18 @@ impl ScriptThread {
 
         let task_queue = TaskQueue::new(port, chan.clone());
 
-        let background_hang_monitor = state.background_hang_monitor_register.clone().map(|bhm| {
-            bhm.register_component(
-                MonitoredComponentId(state.id.clone(), MonitoredComponentType::Script),
-                Duration::from_millis(1000),
-                Duration::from_millis(5000),
-            )
-        });
+        let closing = Arc::new(AtomicBool::new(false));
+        let background_hang_monitor_exit_signal = BHMExitSignal {
+            closing: closing.clone(),
+            js_context: ContextForRequestInterrupt::new(cx),
+        };
+
+        let background_hang_monitor = state.background_hang_monitor_register.register_component(
+            MonitoredComponentId(state.id.clone(), MonitoredComponentType::Script),
+            Duration::from_millis(1000),
+            Duration::from_millis(5000),
+            Some(Box::new(background_hang_monitor_exit_signal)),
+        );
 
         // Ask the router to proxy IPC messages from the control port to us.
         let control_port = ROUTER.route_ipc_receiver_to_new_crossbeam_receiver(state.control_port);
@@ -1270,6 +1327,7 @@ impl ScriptThread {
 
             background_hang_monitor_register: state.background_hang_monitor_register,
             background_hang_monitor,
+            closing,
 
             chan: MainThreadScriptChan(chan.clone()),
             dom_manipulation_task_sender: boxed_script_sender.clone(),
@@ -1349,6 +1407,23 @@ impl ScriptThread {
         unsafe { JSContext::from_ptr(self.js_runtime.cx()) }
     }
 
+    /// Check if we are closing.
+    fn can_continue_running_inner(&self) -> bool {
+        if self.closing.load(Ordering::SeqCst) {
+            return false;
+        }
+        true
+    }
+
+    /// We are closing, ensure no script can run and potentially hang.
+    fn prepare_for_shutdown_inner(&self) {
+        let docs = self.documents.borrow();
+        for (_, document) in docs.iter() {
+            let window = document.window();
+            window.ignore_all_tasks();
+        }
+    }
+
     /// Starts the script thread. After calling this method, the script thread will loop receiving
     /// messages on its port.
     pub fn start(&self) {
@@ -1386,9 +1461,7 @@ impl ScriptThread {
         let mut sequential = vec![];
 
         // Notify the background-hang-monitor we are waiting for an event.
-        self.background_hang_monitor
-            .as_ref()
-            .map(|bhm| bhm.notify_wait());
+        self.background_hang_monitor.notify_wait();
 
         // Receive at least one message so we don't spinloop.
         debug!("Waiting for event.");
@@ -1530,6 +1603,24 @@ impl ScriptThread {
             let category = self.categorize_msg(&msg);
             let pipeline_id = self.message_to_pipeline(&msg);
 
+            if self.closing.load(Ordering::SeqCst) {
+                // If we've received the closed signal from the BHM, only handle exit messages.
+                match msg {
+                    FromConstellation(ConstellationControlMsg::ExitScriptThread) => {
+                        self.handle_exit_script_thread_msg();
+                        return false;
+                    },
+                    FromConstellation(ConstellationControlMsg::ExitPipeline(
+                        pipeline_id,
+                        discard_browsing_context,
+                    )) => {
+                        self.handle_exit_pipeline_msg(pipeline_id, discard_browsing_context);
+                    },
+                    _ => {},
+                }
+                continue;
+            }
+
             let result = self.profile_event(category, pipeline_id, move || {
                 match msg {
                     FromConstellation(ConstellationControlMsg::ExitScriptThread) => {
@@ -1546,12 +1637,12 @@ impl ScriptThread {
                 None
             });
 
-            // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
-            self.perform_a_microtask_checkpoint();
-
             if let Some(retval) = result {
                 return retval;
             }
+
+            // https://html.spec.whatwg.org/multipage/#event-loop-processing-model step 6
+            self.perform_a_microtask_checkpoint();
         }
 
         {
@@ -1665,8 +1756,7 @@ impl ScriptThread {
             ScriptThreadEventCategory::WebGPUMsg => ScriptHangAnnotation::WebGPUMsg,
         };
         self.background_hang_monitor
-            .as_ref()
-            .map(|bhm| bhm.notify_activity(HangAnnotation::Script(hang_annotation)));
+            .notify_activity(HangAnnotation::Script(hang_annotation));
     }
 
     fn message_to_pipeline(&self, msg: &MixedMessage) -> Option<PipelineId> {
@@ -2855,9 +2945,7 @@ impl ScriptThread {
             self.handle_exit_pipeline_msg(pipeline_id, DiscardBrowsingContext::Yes);
         }
 
-        self.background_hang_monitor
-            .as_ref()
-            .map(|bhm| bhm.unregister());
+        self.background_hang_monitor.unregister();
 
         // If we're in multiprocess mode, shut-down the IPC router for this process.
         if opts::multiprocess() {
@@ -3867,18 +3955,21 @@ impl ScriptThread {
     }
 
     fn perform_a_microtask_checkpoint(&self) {
-        let globals = self
-            .documents
-            .borrow()
-            .iter()
-            .map(|(_id, document)| document.global())
-            .collect();
+        // Only perform the checkpoint if we're not shutting down.
+        if self.can_continue_running_inner() {
+            let globals = self
+                .documents
+                .borrow()
+                .iter()
+                .map(|(_id, document)| document.global())
+                .collect();
 
-        self.microtask_queue.checkpoint(
-            self.get_cx(),
-            |id| self.documents.borrow().find_global(id),
-            globals,
-        )
+            self.microtask_queue.checkpoint(
+                self.get_cx(),
+                |id| self.documents.borrow().find_global(id),
+                globals,
+            )
+        }
     }
 }
 

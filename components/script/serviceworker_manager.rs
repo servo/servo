@@ -12,6 +12,7 @@ use crate::dom::serviceworkerglobalscope::{
     ServiceWorkerControlMsg, ServiceWorkerGlobalScope, ServiceWorkerScriptMsg,
 };
 use crate::dom::serviceworkerregistration::longest_prefix_match;
+use crate::script_runtime::ContextForRequestInterrupt;
 use crossbeam_channel::{unbounded, Receiver, RecvError, Sender};
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -26,6 +27,8 @@ use servo_config::pref;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 
 enum Message {
@@ -93,6 +96,15 @@ impl Drop for ServiceWorkerRegistration {
             warn!("Failed to send exit message to service worker scope.");
         }
 
+        self.closing
+            .take()
+            .expect("No close flag for worker")
+            .store(true, Ordering::SeqCst);
+        self.context
+            .take()
+            .expect("No context to request interrupt.")
+            .request_interrupt();
+
         // TODO: Step 1, 2 and 3.
         if self
             .join_handle
@@ -121,6 +133,10 @@ struct ServiceWorkerRegistration {
     control_sender: Option<Sender<ServiceWorkerControlMsg>>,
     /// A handle to join on the worker thread.
     join_handle: Option<JoinHandle<()>>,
+    /// A context to request an interrupt.
+    context: Option<ContextForRequestInterrupt>,
+    /// The closing flag for the worker.
+    closing: Option<Arc<AtomicBool>>,
 }
 
 impl ServiceWorkerRegistration {
@@ -132,6 +148,8 @@ impl ServiceWorkerRegistration {
             installing_worker: None,
             join_handle: None,
             control_sender: None,
+            context: None,
+            closing: None,
         }
     }
 
@@ -139,12 +157,20 @@ impl ServiceWorkerRegistration {
         &mut self,
         join_handle: JoinHandle<()>,
         control_sender: Sender<ServiceWorkerControlMsg>,
+        context: ContextForRequestInterrupt,
+        closing: Arc<AtomicBool>,
     ) {
         assert!(self.join_handle.is_none());
         self.join_handle = Some(join_handle);
 
         assert!(self.control_sender.is_none());
         self.control_sender = Some(control_sender);
+
+        assert!(self.context.is_none());
+        self.context = Some(context);
+
+        assert!(self.closing.is_none());
+        self.closing = Some(closing);
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-newest-worker>
@@ -378,11 +404,11 @@ impl ServiceWorkerManager {
 
             // Very roughly steps 5 to 18.
             // TODO: implement all steps precisely.
-            let (new_worker, join_handle, control_sender) =
+            let (new_worker, join_handle, control_sender, context, closing) =
                 update_serviceworker(self.own_sender.clone(), job.scope_url.clone(), scope_things);
 
             // Since we've just started the worker thread, ensure we can shut it down later.
-            registration.note_worker_thread(join_handle, control_sender);
+            registration.note_worker_thread(join_handle, control_sender, context, closing);
 
             // Step 19, run Install.
 
@@ -422,12 +448,16 @@ fn update_serviceworker(
     ServiceWorker,
     JoinHandle<()>,
     Sender<ServiceWorkerControlMsg>,
+    ContextForRequestInterrupt,
+    Arc<AtomicBool>,
 ) {
     let (sender, receiver) = unbounded();
     let (_devtools_sender, devtools_receiver) = ipc::channel().unwrap();
     let worker_id = ServiceWorkerId::new();
 
     let (control_sender, control_receiver) = unbounded();
+    let (context_sender, context_receiver) = unbounded();
+    let closing = Arc::new(AtomicBool::new(false));
 
     let join_handle = ServiceWorkerGlobalScope::run_serviceworker_scope(
         scope_things.clone(),
@@ -437,12 +467,20 @@ fn update_serviceworker(
         own_sender,
         scope_url.clone(),
         control_receiver,
+        context_sender,
+        closing.clone(),
     );
+
+    let context = context_receiver
+        .recv()
+        .expect("Couldn't receive a context for worker.");
 
     (
         ServiceWorker::new(scope_things.script_url, sender, worker_id),
         join_handle,
         control_sender,
+        context,
+        closing,
     )
 }
 

@@ -1544,7 +1544,10 @@ impl XMLHttpRequest {
 
         if let Some(script_port) = script_port {
             loop {
-                global.process_event(script_port.recv().unwrap());
+                if !global.process_event(script_port.recv().unwrap()) {
+                    // We're exiting.
+                    return Err(Error::Abort);
+                }
                 let context = context.lock().unwrap();
                 let sync_status = context.sync_status.borrow();
                 if let Some(ref status) = *sync_status {

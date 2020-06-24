@@ -679,6 +679,7 @@ pub trait BackgroundHangMonitorRegister: BackgroundHangMonitorClone + Send {
         component: MonitoredComponentId,
         transient_hang_timeout: Duration,
         permanent_hang_timeout: Duration,
+        exit_signal: Option<Box<dyn BackgroundHangMonitorExitSignal>>,
     ) -> Box<dyn BackgroundHangMonitor>;
 }
 
@@ -702,10 +703,21 @@ pub trait BackgroundHangMonitor {
     fn unregister(&self);
 }
 
+/// A means for the BHM to signal a monitored component to exit.
+/// Useful when the component is hanging, and cannot be notified via the usual way.
+/// The component should implement this in a way allowing for the signal to be received when hanging,
+/// if at all.
+pub trait BackgroundHangMonitorExitSignal: Send {
+    /// Called by the BHM, to notify the monitored component to exit.
+    fn signal_to_exit(&self);
+}
+
 /// Messages to control the sampling profiler.
 #[derive(Deserialize, Serialize)]
-pub enum SamplerControlMsg {
+pub enum BackgroundHangMonitorControlMsg {
     /// Enable the sampler, with a given sampling rate and max total sampling duration.
-    Enable(Duration, Duration),
-    Disable,
+    EnableSampler(Duration, Duration),
+    DisableSampler,
+    /// Exit, and propagate the signal to monitored components.
+    Exit(IpcSender<()>),
 }

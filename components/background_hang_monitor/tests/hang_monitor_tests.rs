@@ -9,8 +9,13 @@ use background_hang_monitor::HangMonitorRegister;
 use ipc_channel::ipc;
 use msg::constellation_msg::ScriptHangAnnotation;
 use msg::constellation_msg::TEST_PIPELINE_ID;
-use msg::constellation_msg::{HangAlert, HangAnnotation, HangMonitorAlert};
+use msg::constellation_msg::{
+    BackgroundHangMonitorControlMsg, BackgroundHangMonitorExitSignal, HangAlert, HangAnnotation,
+    HangMonitorAlert,
+};
 use msg::constellation_msg::{MonitoredComponentId, MonitoredComponentType};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
@@ -27,12 +32,16 @@ fn test_hang_monitoring() {
         ipc::channel().expect("ipc channel failure");
     let (_sampler_sender, sampler_receiver) = ipc::channel().expect("ipc channel failure");
 
-    let background_hang_monitor_register =
-        HangMonitorRegister::init(background_hang_monitor_ipc_sender.clone(), sampler_receiver);
+    let background_hang_monitor_register = HangMonitorRegister::init(
+        background_hang_monitor_ipc_sender.clone(),
+        sampler_receiver,
+        true,
+    );
     let background_hang_monitor = background_hang_monitor_register.register_component(
         MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script),
         Duration::from_millis(10),
         Duration::from_millis(1000),
+        None,
     );
 
     // Start an activity.
@@ -125,12 +134,16 @@ fn test_hang_monitoring_unregister() {
         ipc::channel().expect("ipc channel failure");
     let (_sampler_sender, sampler_receiver) = ipc::channel().expect("ipc channel failure");
 
-    let background_hang_monitor_register =
-        HangMonitorRegister::init(background_hang_monitor_ipc_sender.clone(), sampler_receiver);
+    let background_hang_monitor_register = HangMonitorRegister::init(
+        background_hang_monitor_ipc_sender.clone(),
+        sampler_receiver,
+        true,
+    );
     let background_hang_monitor = background_hang_monitor_register.register_component(
         MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script),
         Duration::from_millis(10),
         Duration::from_millis(1000),
+        None,
     );
 
     // Start an activity.
@@ -145,4 +158,51 @@ fn test_hang_monitoring_unregister() {
 
     // No new alert yet
     assert!(background_hang_monitor_receiver.try_recv().is_err());
+}
+
+#[test]
+fn test_hang_monitoring_exit_signal() {
+    let _lock = SERIAL.lock().unwrap();
+
+    let (background_hang_monitor_ipc_sender, _background_hang_monitor_receiver) =
+        ipc::channel().expect("ipc channel failure");
+    let (control_sender, control_receiver) = ipc::channel().expect("ipc channel failure");
+
+    struct BHMExitSignal {
+        closing: Arc<AtomicBool>,
+    }
+
+    impl BackgroundHangMonitorExitSignal for BHMExitSignal {
+        fn signal_to_exit(&self) {
+            self.closing.store(true, Ordering::SeqCst);
+        }
+    }
+
+    let closing = Arc::new(AtomicBool::new(false));
+    let signal = BHMExitSignal {
+        closing: closing.clone(),
+    };
+
+    // Init a worker, without active monitoring.
+    let background_hang_monitor_register = HangMonitorRegister::init(
+        background_hang_monitor_ipc_sender.clone(),
+        control_receiver,
+        false,
+    );
+    let _background_hang_monitor = background_hang_monitor_register.register_component(
+        MonitoredComponentId(TEST_PIPELINE_ID, MonitoredComponentType::Script),
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+        Some(Box::new(signal)),
+    );
+
+    let (exit_sender, exit_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+    // Send the exit message.
+    let _ = control_sender.send(BackgroundHangMonitorControlMsg::Exit(exit_sender));
+
+    // Assert we receive a confirmation back.
+    assert!(exit_receiver.recv().is_ok());
+
+    // Assert we get the exit signal.
+    while !closing.load(Ordering::SeqCst) {}
 }
