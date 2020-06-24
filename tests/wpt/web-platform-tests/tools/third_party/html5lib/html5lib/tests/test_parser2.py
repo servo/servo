@@ -1,12 +1,12 @@
 from __future__ import absolute_import, division, unicode_literals
 
-from six import PY2, text_type, unichr
+from six import PY2, text_type
 
 import io
 
 from . import support  # noqa
 
-from html5lib.constants import namespaces, tokenTypes
+from html5lib.constants import namespaces
 from html5lib import parse, parseFragment, HTMLParser
 
 
@@ -51,42 +51,6 @@ def test_namespace_html_elements_1_etree():
 
 def test_unicode_file():
     assert parse(io.StringIO("a")) is not None
-
-
-def test_maintain_attribute_order():
-    # This is here because we impl it in parser and not tokenizer
-    p = HTMLParser()
-    # generate loads to maximize the chance a hash-based mutation will occur
-    attrs = [(unichr(x), i) for i, x in enumerate(range(ord('a'), ord('z')))]
-    token = {'name': 'html',
-             'selfClosing': False,
-             'selfClosingAcknowledged': False,
-             'type': tokenTypes["StartTag"],
-             'data': attrs}
-    out = p.normalizeToken(token)
-    attr_order = list(out["data"].keys())
-    assert attr_order == [x for x, i in attrs]
-
-
-def test_duplicate_attribute():
-    # This is here because we impl it in parser and not tokenizer
-    doc = parse('<p class=a class=b>')
-    el = doc[1][0]
-    assert el.get("class") == "a"
-
-
-def test_maintain_duplicate_attribute_order():
-    # This is here because we impl it in parser and not tokenizer
-    p = HTMLParser()
-    attrs = [(unichr(x), i) for i, x in enumerate(range(ord('a'), ord('z')))]
-    token = {'name': 'html',
-             'selfClosing': False,
-             'selfClosingAcknowledged': False,
-             'type': tokenTypes["StartTag"],
-             'data': attrs + [('a', len(attrs))]}
-    out = p.normalizeToken(token)
-    attr_order = list(out["data"].keys())
-    assert attr_order == [x for x, i in attrs]
 
 
 def test_debug_log():

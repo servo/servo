@@ -75,7 +75,15 @@ def test_parser_args_raises(kwargs):
     assert exc_info.value.args[0].startswith("Cannot set an encoding with a unicode input")
 
 
-def runParserEncodingTest(data, encoding):
+def param_encoding():
+    for filename in get_data_files("encoding"):
+        tests = _TestData(filename, b"data", encoding=None)
+        for test in tests:
+            yield test[b'data'], test[b'encoding']
+
+
+@pytest.mark.parametrize("data, encoding", param_encoding())
+def test_parser_encoding(data, encoding):
     p = HTMLParser()
     assert p.documentEncoding is None
     p.parse(data, useChardet=False)
@@ -84,7 +92,8 @@ def runParserEncodingTest(data, encoding):
     assert encoding == p.documentEncoding, errorMessage(data, encoding, p.documentEncoding)
 
 
-def runPreScanEncodingTest(data, encoding):
+@pytest.mark.parametrize("data, encoding", param_encoding())
+def test_prescan_encoding(data, encoding):
     stream = _inputstream.HTMLBinaryInputStream(data, useChardet=False)
     encoding = encoding.lower().decode("ascii")
 
@@ -93,14 +102,6 @@ def runPreScanEncodingTest(data, encoding):
         return
 
     assert encoding == stream.charEncoding[0].name, errorMessage(data, encoding, stream.charEncoding[0].name)
-
-
-def test_encoding():
-    for filename in get_data_files("encoding"):
-        tests = _TestData(filename, b"data", encoding=None)
-        for test in tests:
-            yield (runParserEncodingTest, test[b'data'], test[b'encoding'])
-            yield (runPreScanEncodingTest, test[b'data'], test[b'encoding'])
 
 
 # pylint:disable=wrong-import-position

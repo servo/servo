@@ -28,10 +28,10 @@ def test_errorMessage():
 
     # Assertions!
     if six.PY2:
-        assert b"Input:\n1\nExpected:\n2\nRecieved\n3\n" == r
+        assert b"Input:\n1\nExpected:\n2\nReceived\n3\n" == r
     else:
         assert six.PY3
-        assert "Input:\n1\nExpected:\n2\nRecieved\n3\n" == r
+        assert "Input:\n1\nExpected:\n2\nReceived\n3\n" == r
 
     assert input.__repr__.call_count == 1
     assert expected.__repr__.call_count == 1

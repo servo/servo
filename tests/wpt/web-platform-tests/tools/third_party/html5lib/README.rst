@@ -1,8 +1,9 @@
 html5lib
 ========
 
-.. image:: https://travis-ci.org/html5lib/html5lib-python.png?branch=master
-  :target: https://travis-ci.org/html5lib/html5lib-python
+.. image:: https://travis-ci.org/html5lib/html5lib-python.svg?branch=master
+    :target: https://travis-ci.org/html5lib/html5lib-python
+
 
 html5lib is a pure-python library for parsing HTML. It is designed to
 conform to the WHATWG HTML specification, as is implemented by all major
@@ -90,22 +91,21 @@ More documentation is available at https://html5lib.readthedocs.io/.
 Installation
 ------------
 
-html5lib works on CPython 2.7+, CPython 3.3+ and PyPy.  To install it,
-use:
+html5lib works on CPython 2.7+, CPython 3.5+ and PyPy. To install:
 
 .. code-block:: bash
 
     $ pip install html5lib
 
+The goal is to support a (non-strict) superset of the versions that `pip
+supports
+<https://pip.pypa.io/en/stable/installing/#python-and-os-compatibility>`_.
 
 Optional Dependencies
 ---------------------
 
 The following third-party libraries may be used for additional
 functionality:
-
-- ``datrie`` can be used under CPython to improve parsing performance
-  (though in almost all cases the improvement is marginal);
 
 - ``lxml`` is supported as a tree format (for both building and
   walking) under CPython (but *not* PyPy where it is known to cause

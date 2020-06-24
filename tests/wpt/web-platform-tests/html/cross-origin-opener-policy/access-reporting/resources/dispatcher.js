@@ -30,6 +30,20 @@ const receive = async function(uuid) {
   return "timeout";
 }
 
+const receiveReport = async function(uuid, type) {
+  while(true) {
+    let reports = await receive(uuid);
+    if (reports == "timeout")
+      return "timeout";
+    reports = JSON.parse(reports);
+
+    for(report of reports) {
+      if (report?.["body"]?.["violation-type"] == type)
+        return report;
+    }
+  }
+}
+
 // Build a set of headers to tests the reporting API. This defines a set of
 // matching 'Report-To', 'Cross-Origin-Opener-Policy' and
 // 'Cross-Origin-Opener-Policy-Report-Only' headers.

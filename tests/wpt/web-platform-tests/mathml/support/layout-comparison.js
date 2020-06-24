@@ -37,6 +37,13 @@ function compareSize(element, reference, epsilon) {
     }
 }
 
+function childrenHaveEmptyBoundingClientRects(element) {
+    Array.from(element.children).forEach(child => {
+        var childBox = child.getBoundingClientRect();
+        assert_true(childBox.left == 0 && childBox.right == 0 && childBox.top == 0 && childBox.bottom == 0);
+    })
+}
+
 function participateToParentLayout(child) {
     var style = window.getComputedStyle(child);
     return style.getPropertyValue("display") !== "none" &&

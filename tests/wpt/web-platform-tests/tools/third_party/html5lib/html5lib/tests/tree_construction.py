@@ -57,8 +57,6 @@ class TreeConstructionTest(pytest.Collector):
             item.add_marker(pytest.mark.parser)
             if namespaceHTMLElements:
                 item.add_marker(pytest.mark.namespaced)
-            if treeAPIs is None:
-                item.add_marker(pytest.mark.skipif(True, reason="Treebuilder not loaded"))
             yield item
 
     def _getTreeWalkerTests(self, treeName, treeAPIs):
@@ -69,13 +67,12 @@ class TreeConstructionTest(pytest.Collector):
                               treeAPIs)
         item.add_marker(getattr(pytest.mark, treeName))
         item.add_marker(pytest.mark.treewalker)
-        if treeAPIs is None:
-            item.add_marker(pytest.mark.skipif(True, reason="Treebuilder not loaded"))
         yield item
 
 
 def convertTreeDump(data):
     return "\n".join(convert(3)(data).split("\n")[1:])
+
 
 namespaceExpected = re.compile(r"^(\s*)<(\S+)>", re.M).sub
 
@@ -83,12 +80,14 @@ namespaceExpected = re.compile(r"^(\s*)<(\S+)>", re.M).sub
 class ParserTest(pytest.Item):
     def __init__(self, name, parent, test, treeClass, namespaceHTMLElements):
         super(ParserTest, self).__init__(name, parent)
-        self.obj = lambda: 1  # this is to hack around skipif needing a function!
         self.test = test
         self.treeClass = treeClass
         self.namespaceHTMLElements = namespaceHTMLElements
 
     def runtest(self):
+        if self.treeClass is None:
+            pytest.skip("Treebuilder not loaded")
+
         p = html5parser.HTMLParser(tree=self.treeClass,
                                    namespaceHTMLElements=self.namespaceHTMLElements)
 
@@ -146,11 +145,13 @@ class ParserTest(pytest.Item):
 class TreeWalkerTest(pytest.Item):
     def __init__(self, name, parent, test, treeAPIs):
         super(TreeWalkerTest, self).__init__(name, parent)
-        self.obj = lambda: 1  # this is to hack around skipif needing a function!
         self.test = test
         self.treeAPIs = treeAPIs
 
     def runtest(self):
+        if self.treeAPIs is None:
+            pytest.skip("Treebuilder not loaded")
+
         p = html5parser.HTMLParser(tree=self.treeAPIs["builder"])
 
         input = self.test['data']

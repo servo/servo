@@ -47,7 +47,13 @@
               let reference = document.getElementById(`${element.getAttribute("data-reference")}`);
               forceNumberOfChildren(element, reference.children.length);
               const epsilon = 1;
-              compareLayout(element, reference, epsilon);
+              if (element.tagName == "mspace") {
+                  compareSize(element, reference, epsilon);
+                  childrenHaveEmptyBoundingClientRects(element);
+                  childrenHaveEmptyBoundingClientRects(reference);
+              } else {
+                  compareLayout(element, reference, epsilon);
+              }
           }, `${element.getAttribute("data-title")}`);
       });
       done();

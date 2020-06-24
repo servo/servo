@@ -175,6 +175,10 @@ testText("<canvas>abc", "", "<canvas> contents ignored");
 testText("<canvas><div id='target'>abc", "abc", "<canvas><div id='target'> contents ok for element not being rendered");
 testText("<img alt='abc'>", "", "<img> alt text ignored");
 testText("<img src='about:blank' class='poke'>", "", "<img> contents ignored");
+testText("<div><svg><text>abc</text></svg></div>", "abc", "<svg> text contents preserved");
+testText("<div><svg><defs><text>abc</text></defs></svg></div>", "", "<svg><defs> text contents ignored");
+testText("<div><svg><stop>abc</stop></svg></div>", "", "<svg> non-rendered text ignored");
+testText("<svg><foreignObject><span id='target'>abc</span></foreignObject></svg>", "abc", "<foreignObject> contents preserved");
 
 /**** <select>, <optgroup> & <option> ****/
 

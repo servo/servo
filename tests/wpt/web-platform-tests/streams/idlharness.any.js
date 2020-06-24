@@ -28,16 +28,20 @@ idl_test(
     } catch {}
 
     try {
+      let resolvePullCalledPromise;
+      const pullCalledPromise = new Promise(resolve => {
+        resolvePullCalledPromise = resolve;
+      });
       const stream = new ReadableStream({
-        pull() {
-          self.readableStreamByobRequest = controller.byobRequest;
+        pull(c) {
+          self.readableStreamByobRequest = c.byobRequest;
+          resolvePullCalledPromise();
         },
         type: 'bytes'
       });
-
       const reader = stream.getReader({ mode: 'byob' });
-
-      await reader.read(new Uint8Array(1));
+      reader.read(new Uint8Array(1));
+      await pullCalledPromise;
     } catch {}
 
     try {
@@ -59,7 +63,7 @@ idl_test(
     idl_array.add_objects({
       ReadableStream: ["new ReadableStream()"],
       ReadableStreamDefaultReader: ["(new ReadableStream()).getReader()"],
-      ReadableStreamBYOBReader: ["(new ReadableStream({ type: 'bytes' })).getReader('byob')"],
+      ReadableStreamBYOBReader: ["(new ReadableStream({ type: 'bytes' })).getReader({ mode: 'byob' })"],
       ReadableStreamDefaultController: ["self.readableStreamDefaultController"],
       ReadableByteStreamController: ["self.readableByteStreamController"],
       ReadableStreamBYOBRequest: ["self.readableStreamByobRequest"],
