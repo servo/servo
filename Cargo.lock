@@ -1147,6 +1147,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "deflate"
+version = "0.8.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e7e5d2a2273fed52a7f947ee55b092c4057025d7a3e04e5ecdbd25d6c3fb1bd7"
+dependencies = [
+ "adler32",
+ "byteorder",
+]
+
+[[package]]
 name = "deny_public_fields"
 version = "0.0.1"
 dependencies = [
@@ -2052,7 +2062,7 @@ dependencies = [
  "lazy_static",
  "libc",
  "muldiv",
- "num-rational",
+ "num-rational 0.2.4",
  "paste",
 ]
 
@@ -2574,18 +2584,18 @@ dependencies = [
 
 [[package]]
 name = "image"
-version = "0.23.0"
+version = "0.23.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef4e336ec01a678e7ab692914c641181528e8656451e6252f8f9e33728882eaf"
+checksum = "b5b0553fec6407d63fe2975b794dfb099f3f790bdc958823851af37b26404ab4"
 dependencies = [
  "bytemuck",
  "byteorder",
  "gif",
  "jpeg-decoder",
  "num-iter",
- "num-rational",
+ "num-rational 0.3.0",
  "num-traits",
- "png",
+ "png 0.16.5",
  "scoped_threadpool",
  "tiff",
 ]
@@ -3711,6 +3721,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "num-rational"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5b4d7360f362cfb50dde8143501e6940b22f644be75a4cc90b2d81968908138"
+dependencies = [
+ "autocfg",
+ "num-integer",
+ "num-traits",
+]
+
+[[package]]
 name = "num-traits"
 version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4129,8 +4150,20 @@ checksum = "ef859a23054bbfee7811284275ae522f0434a3c8e7f4b74bd4a35ae7e1c4a283"
 dependencies = [
  "bitflags",
  "crc32fast",
- "deflate",
+ "deflate 0.7.20",
  "inflate",
+]
+
+[[package]]
+name = "png"
+version = "0.16.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "34ccdd66f6fe4b2433b07e4728e9a013e43233120427046e93ceb709c3a439bf"
+dependencies = [
+ "bitflags",
+ "crc32fast",
+ "deflate 0.8.4",
+ "miniz_oxide",
 ]
 
 [[package]]
@@ -4335,7 +4368,7 @@ dependencies = [
  "font-kit",
  "lyon_geom 0.15.0",
  "pathfinder_geometry",
- "png",
+ "png 0.15.3",
  "sw-composite",
  "typed-arena",
 ]
@@ -5739,9 +5772,9 @@ dependencies = [
 
 [[package]]
 name = "tiff"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "002351e428db1eb1d8656d4ca61947c3519ac3191e1c804d4600cd32093b77ad"
+checksum = "3f3b8a87c4da944c3f27e5943289171ac71a6150a79ff6bacfff06d159dfff2f"
 dependencies = [
  "byteorder",
  "lzw",
