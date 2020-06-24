@@ -21,8 +21,13 @@ components:
     vars:
       test-type: reftest
 
-  wpt-wdspec:
+  wpt-print-reftest:
     chunks: 1
+    vars:
+      test-type: print-reftest
+
+  wpt-wdspec:
+    chunks: 2
     vars:
       test-type: wdspec
 
@@ -130,6 +135,8 @@ tasks:
             suite: testharness
         - vars:
             suite: reftest
+        - vars:
+            suite: print-reftest
         - vars:
             suite: wdspec
         - vars:

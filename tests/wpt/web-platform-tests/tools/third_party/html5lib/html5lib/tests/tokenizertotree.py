@@ -64,5 +64,6 @@ def make_test(test_data):
     rv.append("")
     return "\n".join(rv)
 
+
 if __name__ == "__main__":
     main(sys.argv[1])

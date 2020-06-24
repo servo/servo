@@ -375,7 +375,7 @@
                     "-//W3C//DTD HTML 4.01//EN"
                 ]
             ],
-            "description": "HTML 4.01 DOCTYPE without system identifer"
+            "description": "HTML 4.01 DOCTYPE without system identifier"
         },
         {
             "expected": [
@@ -389,7 +389,7 @@
                     "http://www.ibm.com/data/dtd/v11/ibmxhtml1-transitional.dtd"
                 ]
             ],
-            "description": "IBM DOCTYPE without public identifer"
+            "description": "IBM DOCTYPE without public identifier"
         }
     ]
 }

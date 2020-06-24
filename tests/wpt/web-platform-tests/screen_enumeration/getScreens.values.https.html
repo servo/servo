@@ -17,7 +17,8 @@ screen_enumeration_test(async (t, mockScreenEnum) => {
                              1.0);
 
   mockScreenEnum.addDisplay(display1);
-  mockScreenEnum.setIds(mockScreenEnum.displays_[0].id, mockScreenEnum.displays_[0].id);
+  mockScreenEnum.setPrimaryId(mockScreenEnum.displays_[0].id);
+  mockScreenEnum.setInternalId(mockScreenEnum.displays_[0].id);
   mockScreenEnum.setSuccess(true);
 
   // Grant window-placement permissions for testdriver.
@@ -61,7 +62,8 @@ screen_enumeration_test(async (t, mockScreenEnum) => {
   mockScreenEnum.addDisplay(display1);
   mockScreenEnum.addDisplay(display2);
   mockScreenEnum.addDisplay(display3);
-  mockScreenEnum.setIds(mockScreenEnum.displays_[0].id, mockScreenEnum.displays_[0].id);
+  mockScreenEnum.setPrimaryId(mockScreenEnum.displays_[0].id);
+  mockScreenEnum.setInternalId(mockScreenEnum.displays_[0].id);
   mockScreenEnum.setSuccess(true);
 
   // Grant window-placement permissions for testdriver.

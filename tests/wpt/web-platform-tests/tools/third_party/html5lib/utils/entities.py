@@ -8,10 +8,10 @@ def parse(path="html5ents.xml"):
 
 
 def entity_table(tree):
-    return dict((entity_name("".join(tr[0].xpath(".//text()"))),
-                 entity_characters(tr[1].text))
-                for tr in tree.xpath("//h:tbody/h:tr",
-                                     namespaces={"h": "http://www.w3.org/1999/xhtml"}))
+    return {entity_name("".join(tr[0].xpath(".//text()"))):
+            entity_characters(tr[1].text)
+            for tr in tree.xpath("//h:tbody/h:tr",
+                                 namespaces={"h": "http://www.w3.org/1999/xhtml"})}
 
 
 def entity_name(inp):
@@ -95,6 +95,7 @@ def main():
     json.dump(tests_json, open("namedEntities.test", "w"), indent=4)
     code = make_entities_code(entities)
     open("entities_constants.py", "w").write(code)
+
 
 if __name__ == "__main__":
     main()

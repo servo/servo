@@ -4,7 +4,7 @@ Credits
 ``html5lib`` is written and maintained by:
 
 - James Graham
-- Geoffrey Sneddon
+- Sam Sneddon
 - Łukasz Langa
 - Will Kahn-Greene
 

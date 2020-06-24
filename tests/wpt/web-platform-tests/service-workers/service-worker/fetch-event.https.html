@@ -3,6 +3,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
 <script src="resources/test-helpers.sub.js"></script>
 <body>
 <script>
@@ -421,6 +422,32 @@ promise_test(t => {
           assert_equals(response_text, 'i am the request body');
         });
   }, 'FetchEvent#body is a string');
+
+// Test that the service worker can read FetchEvent#body when it is made from
+// a ReadableStream. It responds with request body it read.
+promise_test(async t => {
+    const rs = new ReadableStream({start(c) {
+      c.enqueue('i a');
+      c.enqueue('m the request');
+      step_timeout(t.step_func(() => {
+        c.enqueue(' body');
+        c.close();
+      }, 10));
+    }});
+
+    // Set page_url to "?ignore" so the service worker falls back to network
+    // for the main resource request, and add a suffix to avoid colliding
+    // with other tests.
+    const page_url = `resources/simple.html?ignore&id=${token()}`;
+
+    const frame = await with_iframe(page_url);
+    t.add_cleanup(() => { frame.remove(); });
+    const res = await frame.contentWindow.fetch('simple.html?request-body', {
+      method: 'POST',
+      body: rs.pipeThrough(new TextEncoderStream())
+    });
+    assert_equals(await res.text(), 'i am the request body');
+  }, 'FetchEvent#body is a ReadableStream');
 
 // Test that the request body is sent to network upon network fallback,
 // for a string body.

@@ -1,31 +1,22 @@
 from __future__ import absolute_import, division, unicode_literals
 
+import pytest
+
 from html5lib import constants, parseFragment, serialize
 from html5lib.filters import sanitizer
 
 
-def runSanitizerTest(_, expected, input):
-    parsed = parseFragment(expected)
-    expected = serialize(parsed,
-                         omit_optional_tags=False,
-                         use_trailing_solidus=True,
-                         space_before_trailing_solidus=False,
-                         quote_attr_values="always",
-                         quote_char='"',
-                         alphabetical_attributes=True)
-    assert expected == sanitize_html(input)
-
-
 def sanitize_html(stream):
     parsed = parseFragment(stream)
-    serialized = serialize(parsed,
-                           sanitize=True,
-                           omit_optional_tags=False,
-                           use_trailing_solidus=True,
-                           space_before_trailing_solidus=False,
-                           quote_attr_values="always",
-                           quote_char='"',
-                           alphabetical_attributes=True)
+    with pytest.deprecated_call():
+        serialized = serialize(parsed,
+                               sanitize=True,
+                               omit_optional_tags=False,
+                               use_trailing_solidus=True,
+                               space_before_trailing_solidus=False,
+                               quote_attr_values="always",
+                               quote_char='"',
+                               alphabetical_attributes=True)
     return serialized
 
 
@@ -59,7 +50,7 @@ def test_data_uri_disallowed_type():
     assert expected == sanitized
 
 
-def test_sanitizer():
+def param_sanitizer():
     for ns, tag_name in sanitizer.allowed_elements:
         if ns != constants.namespaces["html"]:
             continue
@@ -67,19 +58,19 @@ def test_sanitizer():
                         'tfoot', 'th', 'thead', 'tr', 'select']:
             continue  # TODO
         if tag_name == 'image':
-            yield (runSanitizerTest, "test_should_allow_%s_tag" % tag_name,
+            yield ("test_should_allow_%s_tag" % tag_name,
                    "<img title=\"1\"/>foo &lt;bad&gt;bar&lt;/bad&gt; baz",
                    "<%s title='1'>foo <bad>bar</bad> baz</%s>" % (tag_name, tag_name))
         elif tag_name == 'br':
-            yield (runSanitizerTest, "test_should_allow_%s_tag" % tag_name,
+            yield ("test_should_allow_%s_tag" % tag_name,
                    "<br title=\"1\"/>foo &lt;bad&gt;bar&lt;/bad&gt; baz<br/>",
                    "<%s title='1'>foo <bad>bar</bad> baz</%s>" % (tag_name, tag_name))
         elif tag_name in constants.voidElements:
-            yield (runSanitizerTest, "test_should_allow_%s_tag" % tag_name,
+            yield ("test_should_allow_%s_tag" % tag_name,
                    "<%s title=\"1\"/>foo &lt;bad&gt;bar&lt;/bad&gt; baz" % tag_name,
                    "<%s title='1'>foo <bad>bar</bad> baz</%s>" % (tag_name, tag_name))
         else:
-            yield (runSanitizerTest, "test_should_allow_%s_tag" % tag_name,
+            yield ("test_should_allow_%s_tag" % tag_name,
                    "<%s title=\"1\">foo &lt;bad&gt;bar&lt;/bad&gt; baz</%s>" % (tag_name, tag_name),
                    "<%s title='1'>foo <bad>bar</bad> baz</%s>" % (tag_name, tag_name))
 
@@ -93,7 +84,7 @@ def test_sanitizer():
         attribute_value = 'foo'
         if attribute_name in sanitizer.attr_val_is_uri:
             attribute_value = '%s://sub.domain.tld/path/object.ext' % sanitizer.allowed_protocols[0]
-        yield (runSanitizerTest, "test_should_allow_%s_attribute" % attribute_name,
+        yield ("test_should_allow_%s_attribute" % attribute_name,
                "<p %s=\"%s\">foo &lt;bad&gt;bar&lt;/bad&gt; baz</p>" % (attribute_name, attribute_value),
                "<p %s='%s'>foo <bad>bar</bad> baz</p>" % (attribute_name, attribute_value))
 
@@ -101,7 +92,7 @@ def test_sanitizer():
         rest_of_uri = '//sub.domain.tld/path/object.ext'
         if protocol == 'data':
             rest_of_uri = 'image/png;base64,aGVsbG8gd29ybGQ='
-        yield (runSanitizerTest, "test_should_allow_uppercase_%s_uris" % protocol,
+        yield ("test_should_allow_uppercase_%s_uris" % protocol,
                "<img src=\"%s:%s\">foo</a>" % (protocol, rest_of_uri),
                """<img src="%s:%s">foo</a>""" % (protocol, rest_of_uri))
 
@@ -110,9 +101,24 @@ def test_sanitizer():
         if protocol == 'data':
             rest_of_uri = 'image/png;base64,aGVsbG8gd29ybGQ='
         protocol = protocol.upper()
-        yield (runSanitizerTest, "test_should_allow_uppercase_%s_uris" % protocol,
+        yield ("test_should_allow_uppercase_%s_uris" % protocol,
                "<img src=\"%s:%s\">foo</a>" % (protocol, rest_of_uri),
                """<img src="%s:%s">foo</a>""" % (protocol, rest_of_uri))
+
+
+@pytest.mark.parametrize("expected, input",
+                         (pytest.param(expected, input, id=id)
+                          for id, expected, input in param_sanitizer()))
+def test_sanitizer(expected, input):
+    parsed = parseFragment(expected)
+    expected = serialize(parsed,
+                         omit_optional_tags=False,
+                         use_trailing_solidus=True,
+                         space_before_trailing_solidus=False,
+                         quote_attr_values="always",
+                         quote_char='"',
+                         alphabetical_attributes=True)
+    assert expected == sanitize_html(input)
 
 
 def test_lowercase_color_codes_in_style():

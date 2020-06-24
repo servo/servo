@@ -3,7 +3,7 @@
   'use strict'
 
   // Sends two messages to its creator:
-  // (1) The result of chooseFileSystemEntries().
+  // (1) The result of showDirectoryPicker().
   // (2) The result of getOriginPrivateDirectory().
 
   function post_message(data) {
@@ -16,14 +16,14 @@
   }
 
   try {
-    window.chooseFileSystemEntries({ type: 'open-directory' })
+    window.showDirectoryPicker()
       .then(() => {
-        post_message('chooseFileSystemEntries(): FULFILLED');
+        post_message('showDirectoryPicker(): FULFILLED');
       }).catch(error => {
-        post_message(`chooseFileSystemEntries(): REJECTED: ${error.name}`);
+        post_message(`showDirectoryPicker(): REJECTED: ${error.name}`);
       });
   } catch (error) {
-    post_message(`chooseFileSystemEntries(): EXCEPTION: ${error.name}`);
+    post_message(`showDirectoryPicker(): EXCEPTION: ${error.name}`);
   }
 
   try {

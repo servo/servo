@@ -20,8 +20,11 @@ var ScreenEnumerationTest = (() => {
       this.success_ = false;
     }
 
-    setIds(internalId, primaryId) {
+    setInternalId(internalId) {
       this.internalId_ = internalId;
+    }
+
+    setPrimaryId(primaryId) {
       this.primaryId_ = primaryId;
     }
 

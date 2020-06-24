@@ -308,9 +308,11 @@ def test_invalid_codepoints(inp, num):
                           ("'\\uD800\\uD800\\uD800'", 3),
                           ("'a\\uD800a\\uD800a\\uD800a'", 3),
                           ("'\\uDFFF\\uDBFF'", 2),
-                          pytest.mark.skipif(sys.maxunicode == 0xFFFF,
-                                             ("'\\uDBFF\\uDFFF'", 2),
-                                             reason="narrow Python")])
+                          pytest.param(
+                              "'\\uDBFF\\uDFFF'", 2,
+                              marks=pytest.mark.skipif(
+                                  sys.maxunicode == 0xFFFF,
+                                  reason="narrow Python"))])
 def test_invalid_codepoints_surrogates(inp, num):
     inp = eval(inp)  # pylint:disable=eval-used
     fp = StringIO(inp)

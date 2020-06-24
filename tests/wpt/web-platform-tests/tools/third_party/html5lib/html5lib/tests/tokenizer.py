@@ -28,7 +28,7 @@ class TokenizerTestParser(object):
             tokenizer.currentToken = {"type": "startTag",
                                       "name": self._lastStartTag}
 
-        types = dict((v, k) for k, v in constants.tokenTypes.items())
+        types = {v: k for k, v in constants.tokenTypes.items()}
         for token in tokenizer:
             getattr(self, 'process%s' % types[token["type"]])(token)
 
@@ -40,7 +40,7 @@ class TokenizerTestParser(object):
 
     def processStartTag(self, token):
         self.outputTokens.append(["StartTag", token["name"],
-                                  dict(token["data"][::-1]), token["selfClosing"]])
+                                  token["data"], token["selfClosing"]])
 
     def processEmptyTag(self, token):
         if token["name"] not in constants.voidElements:
@@ -175,6 +175,7 @@ def unescape(test):
 
 def _doCapitalize(match):
     return match.group(1).upper()
+
 
 _capitalizeRe = re.compile(r"\W+(\w)").sub
 

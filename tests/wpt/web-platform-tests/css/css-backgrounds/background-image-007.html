@@ -1,31 +1,43 @@
 <!DOCTYPE html>
-<title>CSS Backgrounds: background-image :first-letter layered images</title>
-<link rel="author" title="Justin Hill" href="http://www.justin-hill.com">
-<link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-image">
-<link rel="match" href="reference/background-image-001-ref.html">
-<meta name="assert" content="Test checks that background-image displays multiple images in correct order on :first-letter selector.">
-<style>
-    .container {
-      top:50px;
-      left:50px;
-      width: 100px;
-      height: 100px;
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds and Borders Test: ::first-letter with multiple background images</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="author" title="Justin Hill" href="http://www.justin-hill.com">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#the-background-image">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#first-letter-styling">
+  <link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+  <!--
+
+  More information:
+
+  https://github.com/web-platform-tests/wpt/issues/22261
+
+  -->
+
+  <meta name="assert" content="This test checks that 'background-image' applies to ::first-letter pseudo-element and that, in case of multiple background images, the first specified one must be on top (closest to the user).">
+
+  <style>
+  div
+    {
+      color: transparent;
+      /* So that background shines through both "A" and "Z" glyphs */
+      line-height: 1;
     }
 
-    .container p:first-letter {
-      width:100px;
-      height:100px;
-      color:transparent;
-      font-size: 50px;
-      background-image: url("support/green.png"), url("support/red.png");
+  div::first-letter
+    {
       background-color: red;
-      display: block;
-      margin: 0px;
+      background-image: url("support/1x1-green.png"), url("../support/60x60-red.png");
+      font-family: Ahem;
+      font-size: 100px;
     }
-</style>
-<body>
-    <p> Test passes if green image shows and no red visable.</p>
-    <div class="container">
-      <p>x</p>
-    </div>
-</body>
+  </style>
+
+  <p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+  <div>AZ</div>

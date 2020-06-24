@@ -12,7 +12,7 @@ info = {
     "maxsize": sys.maxsize
 }
 
-search_modules = ["chardet", "datrie", "genshi", "html5lib", "lxml", "six"]
+search_modules = ["chardet", "genshi", "html5lib", "lxml", "six"]
 found_modules = []
 
 for m in search_modules:

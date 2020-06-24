@@ -15,7 +15,7 @@
   function generateMathForTag(tag, childCount) {
       let math = FragmentHelper.createElement("math");
       let element = FragmentHelper.createElement(tag);
-      // Add the children with sizes of different sizes at odd positions and OOF
+      // Add the children with different sizes at odd positions and OOF
       // mrow at even position.
       for (let i = 0; i < childCount; i++) {
           if (i % 2) {
@@ -80,10 +80,17 @@
                   container.getBoundingClientRect();
 
                   let appendCount = appendChildrenTag.children.length;
-                  compareLayout(appendChildrenTag, referenceDiv.children[appendCount].firstElementChild, epsilon, `appending ${appendCount}-th child`);
-
                   let removeCount = removeChildrenTag.children.length;
-                  compareLayout(removeChildrenTag, referenceDiv.children[removeCount].firstElementChild, epsilon, `removing ${appendCount + 1}-th child`);
+                  if (tag == "mspace") {
+                      compareSize(appendChildrenTag, referenceDiv.children[appendCount].firstElementChild, epsilon);
+                      childrenHaveEmptyBoundingClientRects(appendChildrenTag);
+                      childrenHaveEmptyBoundingClientRects(referenceDiv.children[appendCount].firstElementChild);
+                      childrenHaveEmptyBoundingClientRects(removeChildrenTag);
+                      childrenHaveEmptyBoundingClientRects(referenceDiv.children[removeCount].firstElementChild);
+                  } else {
+                      compareLayout(appendChildrenTag, referenceDiv.children[appendCount].firstElementChild, epsilon, `appending ${appendCount}-th child`);
+                      compareLayout(removeChildrenTag, referenceDiv.children[removeCount].firstElementChild, epsilon, `removing ${appendCount + 1}-th child`);
+                  }
               }
 
               // Hide back the div after successful testing.
