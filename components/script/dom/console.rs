@@ -52,88 +52,83 @@ where
     f()
 }
 
+fn console_messages(global: &GlobalScope, messages: &[DOMString], level: LogLevel) {
+    console_message(global, DOMString::from(messages.join(" ")), level)
+}
+
+fn console_message(global: &GlobalScope, message: DOMString, level: LogLevel) {
+    with_stderr_lock(move || {
+        let prefix = global.current_group_label().unwrap_or_default();
+        let message = DOMString::from(format!("{}{}", prefix, message));
+        println!("{}", message);
+        Console::send_to_devtools(global, level, message);
+    })
+}
+
 #[allow(non_snake_case)]
 impl Console {
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/log
     pub fn Log(global: &GlobalScope, messages: Vec<DOMString>) {
-        with_stderr_lock(move || {
-            for message in messages {
-                println!("{}", message);
-                Self::send_to_devtools(global, LogLevel::Log, message);
-            }
-        })
+        console_messages(global, &messages, LogLevel::Log)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
     pub fn Debug(global: &GlobalScope, messages: Vec<DOMString>) {
-        with_stderr_lock(move || {
-            for message in messages {
-                println!("{}", message);
-                Self::send_to_devtools(global, LogLevel::Debug, message);
-            }
-        })
+        console_messages(global, &messages, LogLevel::Debug)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/info
     pub fn Info(global: &GlobalScope, messages: Vec<DOMString>) {
-        with_stderr_lock(move || {
-            for message in messages {
-                println!("{}", message);
-                Self::send_to_devtools(global, LogLevel::Info, message);
-            }
-        })
+        console_messages(global, &messages, LogLevel::Info)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/warn
     pub fn Warn(global: &GlobalScope, messages: Vec<DOMString>) {
-        with_stderr_lock(move || {
-            for message in messages {
-                println!("{}", message);
-                Self::send_to_devtools(global, LogLevel::Warn, message);
-            }
-        })
+        console_messages(global, &messages, LogLevel::Warn)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/error
     pub fn Error(global: &GlobalScope, messages: Vec<DOMString>) {
-        with_stderr_lock(move || {
-            for message in messages {
-                println!("{}", message);
-                Self::send_to_devtools(global, LogLevel::Error, message);
-            }
-        })
+        console_messages(global, &messages, LogLevel::Error)
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/assert
     pub fn Assert(global: &GlobalScope, condition: bool, message: Option<DOMString>) {
-        with_stderr_lock(move || {
-            if !condition {
-                let message = message.unwrap_or_else(|| DOMString::from("no message"));
-                println!("Assertion failed: {}", message);
-                Self::send_to_devtools(global, LogLevel::Error, message);
-            }
-        })
+        if !condition {
+            let message = message.unwrap_or_else(|| DOMString::from("no message"));
+            let message = DOMString::from(format!("Assertion failed: {}", message));
+            console_message(global, message, LogLevel::Error)
+        };
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/time
     pub fn Time(global: &GlobalScope, label: DOMString) {
-        with_stderr_lock(move || {
-            if let Ok(()) = global.time(label.clone()) {
-                let message = DOMString::from(format!("{}: timer started", label));
-                println!("{}", message);
-                Self::send_to_devtools(global, LogLevel::Log, message);
-            }
-        })
+        if let Ok(()) = global.time(label.clone()) {
+            let message = DOMString::from(format!("{}: timer started", label));
+            console_message(global, message, LogLevel::Log);
+        }
     }
 
     // https://developer.mozilla.org/en-US/docs/Web/API/Console/timeEnd
     pub fn TimeEnd(global: &GlobalScope, label: DOMString) {
-        with_stderr_lock(move || {
-            if let Ok(delta) = global.time_end(&label) {
-                let message = DOMString::from(format!("{}: {}ms", label, delta));
-                println!("{}", message);
-                Self::send_to_devtools(global, LogLevel::Log, message);
-            };
-        })
+        if let Ok(delta) = global.time_end(&label) {
+            let message = DOMString::from(format!("{}: {}ms", label, delta));
+            console_message(global, message, LogLevel::Log);
+        }
+    }
+
+    // https://console.spec.whatwg.org/#group
+    pub fn Group(global: &GlobalScope, messages: Vec<DOMString>) {
+        global.push_console_group(DOMString::from(messages.join(" ")));
+    }
+
+    // https://console.spec.whatwg.org/#groupcollapsed
+    pub fn GroupCollapsed(global: &GlobalScope, messages: Vec<DOMString>) {
+        global.push_console_group(DOMString::from(messages.join(" ")));
+    }
+
+    // https://console.spec.whatwg.org/#groupend
+    pub fn GroupEnd(global: &GlobalScope) {
+        global.pop_console_group();
     }
 }

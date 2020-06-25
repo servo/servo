@@ -289,6 +289,9 @@ pub struct GlobalScope {
 
     /// currect https state (from previous request)
     https_state: Cell<HttpsState>,
+
+    /// The stack of active group labels for the Console APIs.
+    console_group_stack: DomRefCell<Vec<DOMString>>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -738,6 +741,7 @@ impl GlobalScope {
             gpu_id_hub,
             frozen_supported_performance_entry_types: DomRefCell::new(Default::default()),
             https_state: Cell::new(HttpsState::None),
+            console_group_stack: DomRefCell::new(Vec::new()),
         }
     }
 
@@ -2907,6 +2911,21 @@ impl GlobalScope {
 
     pub fn wgpu_id_hub(&self) -> Arc<Mutex<Identities>> {
         self.gpu_id_hub.clone()
+    }
+
+    pub(crate) fn current_group_label(&self) -> Option<DOMString> {
+        self.console_group_stack
+            .borrow()
+            .last()
+            .map(|label| DOMString::from(format!("[{}]", label)))
+    }
+
+    pub(crate) fn push_console_group(&self, group: DOMString) {
+        self.console_group_stack.borrow_mut().push(group);
+    }
+
+    pub(crate) fn pop_console_group(&self) {
+        let _ = self.console_group_stack.borrow_mut().pop();
     }
 }
 
