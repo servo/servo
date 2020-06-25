@@ -8,6 +8,7 @@
 <script src=/common/get-host-info.sub.js></script>
 <script src="/common/utils.js"></script>
 <script src="./resources/dispatcher.js"></script>
+<script src="./resources/try-access.js"></script>
 <script>
 
 const directory = "/html/cross-origin-opener-policy/access-reporting";
@@ -15,60 +16,33 @@ const executor_path = directory + "/resources/executor.html?pipe=";
 const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
 const coep_header = '|header(Cross-Origin-Embedder-Policy,require-corp)';
 
-let operation = [
-//[property      , operation                   ] ,
-  ["blur"        , 'opener.blur()'             ] ,
-  ["close"       , 'opener.close()'            ] ,
-  ["closed"      , 'opener.closed'             ] ,
-  ["focus"       , 'opener.focus()'            ] ,
-  ["frames"      , 'opener.frames'             ] ,
-  ["indexed"     , 'opener[0]'                 ] ,
-  ["indexed"     , 'opener[0] = ""'            ] ,
-  ["length"      , 'opener.length'             ] ,
-  ["location"    , 'opener.location'           ] ,
-  ["location"    , 'opener.location = "#"'     ] ,
-  ["named"       , 'opener["test"]'            ] ,
-  ["named"       , 'opener["test"] = ""'       ] ,
-  ["opener"      , 'opener.opener'             ] ,
-  ["opener"      , 'opener.opener = ""'        ] ,
-  ["postMessage" , 'opener.postMessage("")'    ] ,
-  ["postMessage" , 'opener.postMessage("", "")'] ,
-  ["self"        , 'opener.self'               ] ,
-  ["top"         , 'opener.top'                ] ,
-  ["window"      , 'opener.window'             ] ,
-];
+promise_test(async t => {
+  const report_token = token();
+  const executor_token = token();
+  const callback_token = token();
 
-operation.forEach(([property, op]) => {
-  promise_test(async t => {
-    const report_token = token();
-    const executor_token = token();
-    const callback_token = token();
+  const reportTo = reportToHeaders(report_token);
+  const openee_url = cross_origin + executor_path +
+    reportTo.header + reportTo.coopSameOriginHeader + coep_header +
+    `&uuid=${executor_token}`;
+  const openee = window.open(openee_url);
+  t.add_cleanup(() => send(executor_token, "window.close()"));
 
-    const reportTo = reportToHeaders(report_token);
-    const openee_url = cross_origin + executor_path +
-      reportTo.header + reportTo.coopSameOriginHeader + coep_header +
-      `&uuid=${executor_token}`;
-    const openee = window.open(openee_url);
-    t.add_cleanup(() => send(executor_token, "window.close()"));
+  // 1. Try to access the opener. A report is sent, because of COOP+COEP.
+  send(executor_token, `
+    tryAccess(opener);
+  `);
 
-    // 2. Try to access the opener. A report is sent, because of COOP+COEP.
-    send(executor_token, `
-      try {${op}} catch(e) {}
-    `);
-
-    // 3. Check a report is sent to the openee.
-    let report = await receiveReport(report_token, "access-from-coop-page")
-    assert_not_equals(report, "timeout", "Report not received");
-    assert_equals(report.type, "coop");
-    assert_equals(report.url, openee_url.replace(/"/g, '%22'));
-    assert_equals(report.body["violation-type"], "access-from-coop-page");
-    assert_equals(report.body["disposition"], "enforce");
-    assert_equals(report.body["effective-policy"], "same-origin-plus-coep");
-    assert_equals(report.body["property"], property);
-    assert_equals(report.body["source-file"], undefined);
-    assert_equals(report.body["lineno"], undefined);
-    assert_equals(report.body["colno"], undefined);
-  }, `${op}`);
-});
+  // 2. Check a report is sent to the openee.
+  let report = await receiveReport(report_token, "access-from-coop-page")
+  assert_not_equals(report, "timeout", "Report not received");
+  assert_equals(report.type, "coop");
+  assert_equals(report.url, openee_url.replace(/"/g, '%22'));
+  assert_equals(report.body["violation-type"], "access-from-coop-page");
+  assert_equals(report.body["disposition"], "enforce");
+  assert_equals(report.body["effective-policy"], "same-origin-plus-coep");
+  assert_equals(report.body["property"], "blur");
+  assert_source_location_found(report);
+}, "Openee (COOP+COEP) accesses opener. Report to openee");
 
 </script>

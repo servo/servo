@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<h1>I'll report to my parent when I'm unloaded</h1>
+
+<script>
+  window.onbeforeunload = e => {
+    parent.postMessage('unloading', '*');
+  };
+</script>

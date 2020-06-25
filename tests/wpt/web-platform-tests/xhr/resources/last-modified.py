@@ -1,7 +1,9 @@
+from wptserve.utils import isomorphic_decode, isomorphic_encode
+
 def main(request, response):
     import datetime, os
-    srcpath = os.path.join(os.path.dirname(__file__), "well-formed.xml")
+    srcpath = os.path.join(os.path.dirname(isomorphic_decode(__file__)), u"well-formed.xml")
     srcmoddt = datetime.datetime.fromtimestamp(os.path.getmtime(srcpath))
-    response.headers.set("Last-Modified", srcmoddt.strftime("%a, %d %b %Y %H:%M:%S GMT"))
-    response.headers.set("Content-Type", "application/xml")
-    return open(srcpath, "r").read()
+    response.headers.set(b"Last-Modified", isomorphic_encode(srcmoddt.strftime(u"%a, %d %b %Y %H:%M:%S GMT")))
+    response.headers.set(b"Content-Type", b"application/xml")
+    return open(srcpath, u"r").read()

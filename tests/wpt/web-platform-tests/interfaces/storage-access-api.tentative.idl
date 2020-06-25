@@ -1,6 +1,0 @@
-// https://github.com/whatwg/html/issues/3338
-
-partial interface Document {
-  Promise<bool> hasStorageAccess();
-  Promise<void> requestStorageAccess();
-};

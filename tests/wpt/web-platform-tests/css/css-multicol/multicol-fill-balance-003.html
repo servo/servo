@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mstensho@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-multicol-1/#cf" title="7.1. column-fill">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; column-fill:auto; column-gap:0; height:200px; width:100px;">
+  <div style="columns:2; column-gap:0; background:red;">
+    <div style="height:600px;">
+      <div style="height:100px; background:green;"></div>
+      <div style="height:100px; background:white;"></div>
+      <div style="height:100px; background:green;"></div>
+      <div style="height:100px; background:white;"></div>
+      <div style="height:200px; background:green;"></div>
+    </div>
+  </div>
+</div>

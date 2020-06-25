@@ -8,6 +8,7 @@
 <script src=/common/get-host-info.sub.js></script>
 <script src="/common/utils.js"></script>
 <script src="./resources/dispatcher.js"></script>
+<script src="./resources/try-access.js"></script>
 <script>
 
 const directory = "/html/cross-origin-opener-policy/access-reporting";
@@ -39,7 +40,7 @@ promise_test(async t => {
 
   // 2. The opener opens it openee.
   send(opener_token, `
-    let openee = window.open("${openee_url}");
+    openee = window.open("${openee_url}");
     send("${this_window_token}", "ACK 1");
   `);
   assert_equals("ACK 1", await receive(this_window_token));
@@ -53,7 +54,7 @@ promise_test(async t => {
 
   // 4. The opener tries to access its openee.
   send(opener_token, `
-    try {openee.blur()} catch(e) {}
+    tryAccess(openee);
   `);
 
   // 5. Check a report sent to the opener.
@@ -65,10 +66,8 @@ promise_test(async t => {
   assert_equals(report.body["disposition"], "enforce");
   assert_equals(report.body["effective-policy"], "same-origin-plus-coep");
   assert_equals(report.body["property"], "blur");
-  assert_equals(report.body["source-file"], undefined);
-  assert_equals(report.body["lineno"], undefined);
-  assert_equals(report.body["colno"], undefined);
+  assert_source_location_found(report);
   // TODO(arthursonzogni): Check the window-blocked-url.
-}, "Opener (COOP+COEP) access cross origin openee");
+}, "Opener (COOP+COEP) accesses openee. Report to opener");
 
 </script>

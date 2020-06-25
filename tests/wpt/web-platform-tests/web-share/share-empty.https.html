@@ -1,34 +1,49 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset="utf-8">
+    <meta charset="utf-8" />
     <title>WebShare Test: Share no known fields</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="resources/manual-helper.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/testdriver.js"></script>
   </head>
   <body>
     <script>
-        promise_test(t => {
+      promise_test(async t => {
+        await test_driver.bless("web share", () => {
           return promise_rejects_js(t, TypeError, navigator.share());
-        }, 'share with no arguments (same as empty dictionary)');
+        });
+      }, "share with no arguments (same as empty dictionary)");
 
-        promise_test(t => {
+      promise_test(async t => {
+        await test_driver.bless("web share", () => {
           return promise_rejects_js(t, TypeError, navigator.share({}));
-        }, 'share with an empty dictionary');
+        });
+      }, "share with an empty dictionary");
 
-        promise_test(t => {
+      promise_test(async t => {
+        await test_driver.bless("web share", () => {
           return promise_rejects_js(t, TypeError, navigator.share(undefined));
-        }, 'share with a undefined argument (same as empty dictionary)');
+        });
+      }, "share with a undefined argument (same as empty dictionary)");
 
-        promise_test(t => {
+      promise_test(async t => {
+        await test_driver.bless("web share", () => {
           return promise_rejects_js(t, TypeError, navigator.share(null));
-        }, 'share with a null argument (same as empty dictionary)');
+        });
+      }, "share with a null argument (same as empty dictionary)");
 
-        promise_test(t => {
-          return promise_rejects_js(t,
-              TypeError, navigator.share({unused: 'unexpected field'}));
-        }, 'share with a dictionary containing only surplus fields');
+      promise_test(async t => {
+        await test_driver.bless("web share", () => {
+          return promise_rejects_js(
+            t,
+            TypeError,
+            navigator.share({ unused: "unexpected field" })
+          );
+        });
+      }, "share with a dictionary containing only surplus fields");
     </script>
   </body>
 </html>
