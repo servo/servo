@@ -117,7 +117,7 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     capabilities = {}
     if test_type == "testharness":
         capabilities["pageLoadStrategy"] = "eager"
-    if test_type == "reftest":
+    if test_type in ("reftest", "print-reftest"):
         executor_kwargs["reftest_internal"] = kwargs["reftest_internal"]
         executor_kwargs["reftest_screenshot"] = kwargs["reftest_screenshot"]
     if test_type == "wdspec":
@@ -592,8 +592,11 @@ class ProfileCreator(object):
         if self.enable_fission:
             profile.set_preferences({"fission.autostart": True})
 
-        if self.test_type == "reftest":
+        if self.test_type in ("reftest", "print-reftest"):
             profile.set_preferences({"layout.interruptible-reflow.enabled": False})
+
+        if self.test_type == "print-reftest":
+            profile.set_preferences({"print.always_print_silent": True})
 
         # Bug 1262954: winxp + e10s, disable hwaccel
         if (self.e10s and platform.system() in ("Windows", "Microsoft") and

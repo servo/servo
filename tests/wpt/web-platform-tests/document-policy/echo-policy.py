@@ -4,25 +4,27 @@
 # policy.)
 import json
 
+from wptserve.utils import isomorphic_decode
+
 def main(request, response):
     msg = {}
-    headers = [('Content-Type', 'text/html')]
+    headers = [(b'Content-Type', b'text/html')]
 
-    srdp = request.headers.get('Sec-Required-Document-Policy')
+    srdp = request.headers.get(b'Sec-Required-Document-Policy')
     if srdp:
-      msg['requiredPolicy'] = srdp
-      headers.append(('Document-Policy', srdp))
+      msg[u'requiredPolicy'] = isomorphic_decode(srdp)
+      headers.append((b'Document-Policy', srdp))
 
-    frameId = request.GET.first('id',None)
+    frameId = request.GET.first(b'id',None)
     if frameId:
-      msg['id'] = frameId
+      msg[u'id'] = isomorphic_decode(frameId)
 
-    content = """<!DOCTYPE html>
+    content = u"""<!DOCTYPE html>
 <script>
 top.postMessage(%s, "*");
 </script>
 %s
-""" % (json.dumps(msg), srdp)
+""" % (json.dumps(msg), isomorphic_decode(srdp) if srdp != None else srdp)
 
-    return (200, 'OK'), headers, content
+    return (200, u'OK'), headers, content
 

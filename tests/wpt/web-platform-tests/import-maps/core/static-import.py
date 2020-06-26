@@ -1,5 +1,7 @@
+from wptserve.utils import isomorphic_decode
+
 def main(request, response):
     return (
-        (('Content-Type', 'text/javascript'),),
-        'import "{}";\n'.format(request.GET.first('url'))
+        ((b'Content-Type', b'text/javascript'),),
+        u'import "{}";\n'.format(isomorphic_decode(request.GET.first(b'url')))
     )

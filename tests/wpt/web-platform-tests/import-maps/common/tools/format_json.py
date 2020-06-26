@@ -15,10 +15,10 @@ def main():
         print filename
         try:
             spec = json.load(
-                open(filename, 'r'), object_pairs_hook=collections.OrderedDict)
-            with open(filename, 'w') as f:
-                f.write(json.dumps(spec, indent=2, separators=(',', ': ')))
-                f.write('\n')
+                open(filename, u'r'), object_pairs_hook=collections.OrderedDict)
+            with open(filename, u'w') as f:
+                f.write(json.dumps(spec, indent=2, separators=(u',', u': ')))
+                f.write(u'\n')
         except:
             traceback.print_exc()
 

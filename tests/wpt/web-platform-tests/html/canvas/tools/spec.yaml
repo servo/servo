@@ -269,6 +269,8 @@ assertions:
 
   - id: 2d.pattern.modify
     text: "Modifying this image after calling the createPattern() method *must* not affect the pattern<^>."
+  - id: 2d.pattern.transform
+    text: "The setTransform(transform) method, when invoked, must run these steps:"
   - id: 2d.pattern.missing
     text: "If the empty string is specified, repeat *must* be assumed<^>."
   - id: 2d.pattern.unrecognised
