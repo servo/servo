@@ -191,10 +191,10 @@ impl GPUDeviceMethods for GPUDevice {
                 .is_ok());
             }
             state = GPUBufferState::MappedAtCreation;
-            mapping_range = (0, descriptor.size);
+            mapping_range = 0..descriptor.size;
         } else {
             state = GPUBufferState::Unmapped;
-            mapping_range = (0, 0);
+            mapping_range = 0..0;
         }
 
         GPUBuffer::new(
@@ -364,7 +364,7 @@ impl GPUDeviceMethods for GPUDevice {
                             WebGPUBindings::Buffer(BufferBinding {
                                 buffer_id: b.buffer.id().0,
                                 offset: b.offset,
-                                size: wgt::BufferSize::new(b.size.unwrap_or(0)),
+                                size: b.size.and_then(wgt::BufferSize::new),
                             })
                         },
                     },

@@ -135,7 +135,7 @@ use std::borrow::Cow;
 use std::cell::{Cell, RefCell, UnsafeCell};
 use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use std::hash::{BuildHasher, Hash};
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Range};
 use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
@@ -586,6 +586,7 @@ unsafe_no_jsmanaged_fields!(Option<RenderPass>);
 unsafe_no_jsmanaged_fields!(Option<ComputePass>);
 unsafe_no_jsmanaged_fields!(GPUBufferState);
 unsafe_no_jsmanaged_fields!(GPUCommandEncoderState);
+unsafe_no_jsmanaged_fields!(Range<u64>);
 unsafe_no_jsmanaged_fields!(WebXRSwapChainId);
 unsafe_no_jsmanaged_fields!(MediaList);
 unsafe_no_jsmanaged_fields!(

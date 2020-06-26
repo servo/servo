@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUBufferMethods;
+use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::{GPUBufferMethods, GPUSize64};
 use crate::dom::bindings::codegen::Bindings::GPUMapModeBinding::GPUMapModeConstants;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::DomObject;
@@ -22,6 +22,7 @@ use js::rust::jsapi_wrapped::{DetachArrayBuffer, IsPromiseObject, RejectPromise}
 use js::rust::MutableHandle;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use std::cell::Cell;
+use std::ops::Range;
 use std::ptr;
 use std::rc::Rc;
 use webgpu::{
@@ -50,8 +51,8 @@ pub struct GPUBuffer {
     valid: Cell<bool>,
     #[ignore_malloc_size_of = "defined in mozjs"]
     mapping: RootedTraceableBox<Heap<*mut JSObject>>,
-    mapping_range: (u64, u64),
-    size: u64,
+    mapping_range: DomRefCell<Range<u64>>,
+    size: GPUSize64,
     map_mode: Cell<Option<u32>>,
 }
 
@@ -61,10 +62,10 @@ impl GPUBuffer {
         buffer: WebGPUBuffer,
         device: WebGPUDevice,
         state: GPUBufferState,
-        size: u64,
+        size: GPUSize64,
         valid: bool,
         mapping: RootedTraceableBox<Heap<*mut JSObject>>,
-        mapping_range: (u64, u64),
+        mapping_range: Range<u64>,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -76,7 +77,7 @@ impl GPUBuffer {
             buffer,
             mapping,
             size,
-            mapping_range,
+            mapping_range: DomRefCell::new(mapping_range),
             map_mode: Cell::new(None),
         }
     }
@@ -88,10 +89,10 @@ impl GPUBuffer {
         buffer: WebGPUBuffer,
         device: WebGPUDevice,
         state: GPUBufferState,
-        size: u64,
+        size: GPUSize64,
         valid: bool,
         mapping: RootedTraceableBox<Heap<*mut JSObject>>,
-        mapping_range: (u64, u64),
+        mapping_range: Range<u64>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBuffer::new_inherited(
@@ -186,6 +187,7 @@ impl GPUBufferMethods for GPUBuffer {
         // Step 4
         self.state.set(GPUBufferState::Unmapped);
         self.map_mode.set(None);
+        *self.mapping_range.borrow_mut() = 0..0;
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
@@ -217,17 +219,16 @@ impl GPUBufferMethods for GPUBuffer {
         let map_range = if size == 0 {
             offset..self.size
         } else {
-            offset..size
+            if offset + size > self.size {
+                warn!("Requested mapping size is greated than buffer size");
+                promise.reject_error(Error::Abort);
+                return promise;
+            }
+            offset..offset + size
         };
         let host_map = match mode {
-            GPUMapModeConstants::READ => {
-                self.map_mode.set(Some(mode));
-                HostMap::Read
-            },
-            GPUMapModeConstants::WRITE => {
-                self.map_mode.set(Some(mode));
-                HostMap::Write
-            },
+            GPUMapModeConstants::READ => HostMap::Read,
+            GPUMapModeConstants::WRITE => HostMap::Write,
             _ => {
                 promise.reject_error(Error::Abort);
                 return promise;
@@ -238,15 +239,13 @@ impl GPUBufferMethods for GPUBuffer {
             return promise;
         }
         self.mapping.set(*promise.promise_obj());
-        self.state.set(GPUBufferState::MappingPending);
 
         let sender = response_async(&promise, self);
-
         if let Err(e) = self.channel.0.send(WebGPURequest::BufferMapAsync {
             sender,
             buffer_id: self.buffer.0,
             host_map,
-            map_range,
+            map_range: map_range.clone(),
         }) {
             warn!(
                 "Failed to send BufferMapAsync ({:?}) ({})",
@@ -256,6 +255,9 @@ impl GPUBufferMethods for GPUBuffer {
             return promise;
         }
 
+        self.state.set(GPUBufferState::MappingPending);
+        self.map_mode.set(Some(mode));
+        *self.mapping_range.borrow_mut() = map_range;
         promise
     }
 
@@ -275,19 +277,23 @@ impl AsyncWGPUListener for GPUBuffer {
     fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
         match response {
             WebGPUResponse::BufferMapAsync(bytes) => {
-                if unsafe {
+                match unsafe {
                     ArrayBuffer::create(
                         *self.global().get_cx(),
                         CreateWith::Slice(&bytes),
                         MutableHandle::from_raw(self.mapping.handle_mut()),
                     )
-                }
-                .is_err()
-                {
-                    promise.reject_error(Error::Operation);
+                } {
+                    Ok(_) => promise.resolve_native(&()),
+                    Err(()) => {
+                        warn!(
+                            "Failed to create ArrayBuffer for buffer({:?})",
+                            self.buffer.0
+                        );
+                        promise.reject_error(Error::Operation);
+                    },
                 }
                 self.state.set(GPUBufferState::Mapped);
-                promise.resolve_native(&());
             },
             _ => {
                 warn!("Wrong WebGPUResponse received");
