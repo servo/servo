@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<head>
+  <title>Iframes with loading='lazy' can be lazy loaded multiple times</title>
+  <link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/urls-and-fetching.html#lazy-loading-attributes">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<body>
+  <!-- This is used to represent the top of the viewport, so we can scroll the
+       below-viewport iframe out-of-view later in the test -->
+  <div id="top_div"></div>
+  <div style="height:1000vh;"></div>
+  <iframe id="below_viewport" loading="lazy" src="resources/unload-reporter.html?first"></iframe>
+
+<script>
+  const t = async_test();
+  const iframe = document.querySelector('#below_viewport');
+  const top_div = document.querySelector('#top_div');
+
+  let has_window_load_fired = false;
+  let iframe_being_unloaded = false;
+
+  // This should be triggered first.
+  window.addEventListener('load', t.step_func(() => {
+    has_window_load_fired = true;
+    // Scroll the loading=lazy below-viewport iframe into view, so that it loads.
+    iframe.scrollIntoView();
+  }));
+
+  window.addEventListener('message', t.step_func(msg => {
+    if (msg.data === 'unloading')
+      iframe_being_unloaded = true;
+  }));
+
+  iframe.onload = t.step_func(() => {
+    assert_true(has_window_load_fired,
+                "The loading=lazy below-viewport iframe should not block the " +
+                "window load event");
+    changeIframeSourceAndScrollToTop();
+  });
+
+  function changeIframeSourceAndScrollToTop() {
+    top_div.scrollIntoView();
+
+    // Lazily load a "different" iframe.
+    iframe.src = 'resources/unload-reporter.html?second';
+    iframe.onload =
+      t.unreached_func("The loading=lazy below-viewport iframe should lazily " +
+                       "load its second resource, and not load it eagerly " +
+                       "when the `src` attribute is changed");
+
+    // In 1s, scroll the iframe *back* into view, and record that it loads
+    // successfully.
+    t.step_timeout(() => {
+      assert_false(iframe_being_unloaded,
+                   "The iframe's old resource is not eagerly unloaded");
+
+      iframe.onload = t.step_func_done(() => {
+        assert_true(iframe_being_unloaded,
+                    "The iframe's old resources was unloaded correctly");
+      });
+
+      iframe.scrollIntoView();
+    }, 1000);
+  }
+</script>
+</body>

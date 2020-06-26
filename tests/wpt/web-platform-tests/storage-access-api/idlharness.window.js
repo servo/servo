@@ -4,7 +4,7 @@
 'use strict';
 
 idl_test(
-  ['storage-access-api.tentative'],
+  ['storage-access'],
   ['dom'],
   idl_array => {
     idl_array.add_objects({
