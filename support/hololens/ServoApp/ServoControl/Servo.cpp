@@ -5,6 +5,8 @@
 
 namespace winrt::servo {
 
+using namespace Windows::Storage;
+
 void on_load_started() { sServo->Delegate().OnServoLoadStarted(); }
 
 void on_load_ended() { sServo->Delegate().OnServoLoadEnded(); }
@@ -125,23 +127,21 @@ const char *prompt_input(const char *message, const char *default,
   }
 }
 
-Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
+Servo::Servo(hstring args, GLsizei width, GLsizei height,
              EGLNativeWindowType eglNativeWindow, float dpi,
              ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
-  Windows::Storage::ApplicationDataContainer localSettings =
-      Windows::Storage::ApplicationData::Current().LocalSettings();
+  ApplicationDataContainer localSettings =
+      ApplicationData::Current().LocalSettings();
   if (!localSettings.Containers().HasKey(L"servoUserPrefs")) {
-    Windows::Storage::ApplicationDataContainer container =
-        localSettings.CreateContainer(
-            L"servoUserPrefs",
-            Windows::Storage::ApplicationDataCreateDisposition::Always);
+    ApplicationDataContainer container = localSettings.CreateContainer(
+        L"servoUserPrefs", ApplicationDataCreateDisposition::Always);
   }
 
   auto prefs = localSettings.Containers().Lookup(L"servoUserPrefs");
 
   if (!prefs.Values().HasKey(L"shell.homepage")) {
-    prefs.Values().Insert(L"shell.homepage", box_value(DEFAULT_URL));
+    prefs.Values().Insert(L"shell.homepage", box_value(DEFAULT_URL_PROD));
   }
 
   if (!prefs.Values().HasKey(L"dom.webxr.enabled")) {
@@ -151,35 +151,42 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
   std::vector<capi::CPref> cprefs;
 
   for (auto pref : prefs.Values()) {
+
     auto key = *hstring2char(pref.Key());
     auto value = pref.Value();
+
     auto type = value.as<Windows::Foundation::IPropertyValue>().Type();
-    capi::CPref pref;
-    pref.key = key;
-    pref.pref_type = capi::CPrefType::Missing;
-    pref.value = NULL;
+    capi::CPref cpref;
+    cpref.key = key;
+    cpref.pref_type = capi::CPrefType::Missing;
+    cpref.value = NULL;
     if (type == Windows::Foundation::PropertyType::Boolean) {
-      pref.pref_type = capi::CPrefType::Bool;
+      cpref.pref_type = capi::CPrefType::Bool;
       auto val = unbox_value<bool>(value);
-      pref.value = &val;
+      cpref.value = &val;
     } else if (type == Windows::Foundation::PropertyType::String) {
-      pref.pref_type = capi::CPrefType::Str;
-      pref.value = *hstring2char(unbox_value<hstring>(value));
+      cpref.pref_type = capi::CPrefType::Str;
+      cpref.value = *hstring2char(unbox_value<hstring>(value));
+#ifdef OVERRIDE_DEFAULT_URL
+      if (pref.Key() == L"shell.homepage") {
+        cpref.value = OVERRIDE_DEFAULT_URL;
+      }
+#endif
     } else if (type == Windows::Foundation::PropertyType::Int64) {
-      pref.pref_type = capi::CPrefType::Int;
+      cpref.pref_type = capi::CPrefType::Int;
       auto val = unbox_value<int64_t>(value);
-      pref.value = &val;
+      cpref.value = &val;
     } else if (type == Windows::Foundation::PropertyType::Double) {
-      pref.pref_type = capi::CPrefType::Float;
+      cpref.pref_type = capi::CPrefType::Float;
       auto val = unbox_value<double>(value);
-      pref.value = &val;
+      cpref.value = &val;
     } else if (type == Windows::Foundation::PropertyType::Empty) {
-      pref.pref_type = capi::CPrefType::Missing;
+      cpref.pref_type = capi::CPrefType::Missing;
     } else {
       log(L"skipping pref %s. Unknown type", key);
       continue;
     }
-    cprefs.push_back(pref);
+    cprefs.push_back(cpref);
   }
 
   capi::CPrefList prefsList = {cprefs.size(), cprefs.data()};
@@ -222,7 +229,7 @@ Servo::Servo(hstring url, hstring args, GLsizei width, GLsizei height,
   bool logToFile = true;
 #endif
   if (logToFile) {
-    auto current = winrt::Windows::Storage::ApplicationData::Current();
+    auto current = ApplicationData::Current();
     auto filePath =
         std::wstring(current.LocalFolder().Path()) + L"\\stdout.txt";
     sLogHandle =
@@ -315,9 +322,16 @@ Servo::PrefTuple Servo::ResetPref(hstring key) {
   return updatedPref;
 }
 
+void Servo::GoHome() {
+  ApplicationDataContainer localSettings =
+      ApplicationData::Current().LocalSettings();
+  auto prefs = localSettings.Containers().Lookup(L"servoUserPrefs");
+  auto home = unbox_value<hstring>(prefs.Values().Lookup(L"shell.homepage"));
+  LoadUri(home);
+}
+
 void Servo::SaveUserPref(PrefTuple pref) {
-  auto localSettings =
-      Windows::Storage::ApplicationData::Current().LocalSettings();
+  auto localSettings = ApplicationData::Current().LocalSettings();
   auto values = localSettings.Containers().Lookup(L"servoUserPrefs").Values();
   auto [key, val, isDefault] = pref;
   if (isDefault) {

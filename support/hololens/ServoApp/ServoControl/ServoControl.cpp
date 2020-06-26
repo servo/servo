@@ -270,6 +270,9 @@ void ServoControl::ChangeVisibility(bool visible) {
 void ServoControl::Stop() {
   RunOnGLThread([=] { mServo->Stop(); });
 }
+void ServoControl::GoHome() {
+  RunOnGLThread([=] { mServo->GoHome(); });
+}
 hstring ServoControl::LoadURIOrSearch(hstring input) {
   // Initial input is valid
   if (mServo->IsUriValid(input)) {
@@ -306,9 +309,7 @@ void ServoControl::SendMediaSessionAction(int32_t action) {
 }
 
 void ServoControl::TryLoadUri(hstring input) {
-  if (!mLooping) {
-    mInitialURL = input;
-  } else {
+  if (mLooping) {
     RunOnGLThread([=] {
       if (!mServo->LoadUri(input)) {
         RunOnUIThread([=] {
@@ -336,8 +337,8 @@ void ServoControl::Loop() {
     log(L"Entering loop");
     ServoDelegate *sd = static_cast<ServoDelegate *>(this);
     EGLNativeWindowType win = GetNativeWindow();
-    mServo = std::make_unique<Servo>(mInitialURL, mArgs, mPanelWidth,
-                                     mPanelHeight, win, mDPI, *sd);
+    mServo = std::make_unique<Servo>(mArgs, mPanelWidth, mPanelHeight, win,
+                                     mDPI, *sd);
   } else {
     // FIXME: this will fail since create_task didn't pick the thread
     // where Servo was running initially.

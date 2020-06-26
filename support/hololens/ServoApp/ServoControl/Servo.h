@@ -26,8 +26,7 @@ class ServoDelegate;
 
 class Servo {
 public:
-  Servo(hstring, hstring, GLsizei, GLsizei, EGLNativeWindowType, float,
-        ServoDelegate &);
+  Servo(hstring, GLsizei, GLsizei, EGLNativeWindowType, float, ServoDelegate &);
   ~Servo();
   ServoDelegate &Delegate() { return mDelegate; }
 
@@ -69,6 +68,7 @@ public:
   bool LoadUri(hstring uri) { return load_uri(*hstring2char(uri)); }
   void ChangeVisibility(bool visible) { change_visibility(visible); }
   bool IsUriValid(hstring uri) { return is_uri_valid(*hstring2char(uri)); }
+  void GoHome();
   void Scroll(float dx, float dy, float x, float y) {
     scroll((int32_t)dx, (int32_t)dy, (int32_t)x, (int32_t)y);
   }

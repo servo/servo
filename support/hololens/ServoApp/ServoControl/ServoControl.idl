@@ -26,6 +26,7 @@ namespace ServoApp {
       void Reload();
       void Stop();
       String LoadURIOrSearch(String url);
+      void GoHome();
       void SetTransientMode(Boolean transient);
       void SetArgs(String args);
       void Shutdown();
