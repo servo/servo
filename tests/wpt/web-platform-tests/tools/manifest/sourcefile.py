@@ -414,7 +414,8 @@ class SourceFile(object):
     @property
     def name_is_crashtest(self):
         # type: () -> bool
-        return self.type_flag == "crash" or "crashtests" in self.dir_path.split(os.path.sep)
+        return (self.markup_type is not None and
+                (self.type_flag == "crash" or "crashtests" in self.dir_path.split(os.path.sep)))
 
     @property
     def name_is_tentative(self):
@@ -428,7 +429,8 @@ class SourceFile(object):
     @property
     def name_is_print_reftest(self):
         # type: () -> bool
-        return self.type_flag == "print" or "print" in self.dir_path.split(os.path.sep)
+        return (self.markup_type is not None and
+                (self.type_flag == "print" or "print" in self.dir_path.split(os.path.sep)))
 
     @property
     def markup_type(self):
@@ -552,6 +554,29 @@ class SourceFile(object):
 
         return self.dpi_nodes[0].attrib.get("content", None)
 
+    def parse_ref_keyed_meta(self, node):
+        # type: (ElementTree.Element) -> Tuple[Optional[Tuple[Text, Text, Text]], Text]
+        item = node.attrib.get(u"content", u"")  # type: Text
+
+        parts = item.rsplit(u":", 1)
+        if len(parts) == 1:
+            key = None  # type: Optional[Tuple[Text, Text, Text]]
+            value = parts[0]
+        else:
+            key_part = urljoin(self.url, parts[0])
+            reftype = None
+            for ref in self.references:  # type: Tuple[Text, Text]
+                if ref[0] == key_part:
+                    reftype = ref[1]
+                    break
+            if reftype not in (u"==", u"!="):
+                raise ValueError("Key %s doesn't correspond to a reference" % key_part)
+            key = (self.url, key_part, reftype)
+            value = parts[1]
+
+        return key, value
+
+
     @cached_property
     def fuzzy_nodes(self):
         # type: () -> List[ElementTree.Element]
@@ -559,6 +584,7 @@ class SourceFile(object):
         specify reftest fuzziness"""
         assert self.root is not None
         return self.root.findall(".//{http://www.w3.org/1999/xhtml}meta[@name='fuzzy']")
+
 
     @cached_property
     def fuzzy(self):
@@ -573,26 +599,10 @@ class SourceFile(object):
         args = [u"maxDifference", u"totalPixels"]
 
         for node in self.fuzzy_nodes:
-            item = node.attrib.get(u"content", u"")  # type: Text
-
-            parts = item.rsplit(u":", 1)
-            if len(parts) == 1:
-                key = None  # type: Optional[Tuple[Text, Text, Text]]
-                value = parts[0]
-            else:
-                key_part = urljoin(self.url, parts[0])
-                reftype = None
-                for ref in self.references:  # type: Tuple[Text, Text]
-                    if ref[0] == key_part:
-                        reftype = ref[1]
-                        break
-                if reftype not in (u"==", u"!="):
-                    raise ValueError("Fuzzy key %s doesn't correspond to a references" % key_part)
-                key = (self.url, key_part, reftype)
-                value = parts[1]
+            key, value = self.parse_ref_keyed_meta(node)
             ranges = value.split(u";")
             if len(ranges) != 2:
-                raise ValueError("Malformed fuzzy value %s" % item)
+                raise ValueError("Malformed fuzzy value %s" % value)
             arg_values = {}  # type: Dict[Text, List[int]]
             positional_args = deque()  # type: Deque[List[int]]
             for range_str_value in ranges:  # type: Text
@@ -626,6 +636,48 @@ class SourceFile(object):
                     arg_value = positional_args.popleft()
                 rv[key].append(arg_value)
             assert len(arg_values) == 0 and len(positional_args) == 0
+        return rv
+
+    @cached_property
+    def page_ranges_nodes(self):
+        # type: () -> List[ElementTree.Element]
+        """List of ElementTree Elements corresponding to nodes in a test that
+        specify print-reftest """
+        assert self.root is not None
+        return self.root.findall(".//{http://www.w3.org/1999/xhtml}meta[@name='reftest-pages']")
+
+    @cached_property
+    def page_ranges(self):
+        # type: () -> Dict[Text, List[List[Optional[int]]]]
+        """List of ElementTree Elements corresponding to nodes in a test that
+        specify print-reftest page ranges"""
+        rv = {}  # type: Dict[Text, List[List[Optional[int]]]]
+        for node in self.page_ranges_nodes:
+            key_data, value = self.parse_ref_keyed_meta(node)
+            # Just key by url
+            if key_data is None:
+                key = self.url
+            else:
+                key = key_data[1]
+            if key in rv:
+                raise ValueError("Duplicate page-ranges value")
+            rv[key] = []
+            for range_str in value.split(","):
+                range_str = range_str.strip()
+                if "-" in range_str:
+                    range_parts_str = [item.strip() for item in range_str.split("-")]
+                    try:
+                        range_parts = [int(item) if item else None for item in range_parts_str]
+                    except ValueError:
+                        raise ValueError("Malformed page-range value %s" % range_str)
+                    if any(item == 0 for item in range_parts):
+                        raise ValueError("Malformed page-range value %s" % range_str)
+                else:
+                    try:
+                        range_parts = [int(range_str)]
+                    except ValueError:
+                        raise ValueError("Malformed page-range value %s" % range_str)
+                rv[key].append(range_parts)
         return rv
 
     @cached_property
@@ -908,6 +960,7 @@ class SourceFile(object):
                     timeout=self.timeout,
                     viewport_size=self.viewport_size,
                     fuzzy=self.fuzzy,
+                    page_ranges=self.page_ranges,
                 )]
 
         elif self.name_is_multi_global:

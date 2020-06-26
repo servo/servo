@@ -17,6 +17,7 @@
     assert_array_equals(
       document.featurePolicy.getAllowlistForFeature('fullscreen'),
       []);
+    assert_false(document.fullscreenEnabled, "fullscreenEnabled should reflect feature policy properly");
   }, header_policy + ' -- test allowlist is []');
 
   // Test that fullscreen is disallowed on all subframes.

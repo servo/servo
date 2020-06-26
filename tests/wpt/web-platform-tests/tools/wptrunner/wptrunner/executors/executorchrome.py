@@ -31,11 +31,6 @@ class ChromeDriverPrintProtocolPart(PrintProtocolPart):
         self.runner_handle = self.webdriver.window_handle
 
     def render_as_pdf(self, width, height):
-        page_ranges = self.webdriver.execute_script(
-            """
-let elem = document.querySelector("meta[name=reftest-pages]");
-return elem ? elem.content : null;
-""")
         margin = 0.5
         body = {
             "cmd": "Page.printToPDF",
@@ -51,8 +46,7 @@ return elem ? elem.content : null;
                 "printBackground": True,
             }
         }
-        return (self.webdriver.send_session_command("POST", "goog/cdp/execute", body=body)["data"],
-                page_ranges)
+        return self.webdriver.send_session_command("POST", "goog/cdp/execute", body=body)["data"]
 
     def pdf_to_png(self, pdf_base64, ranges):
         handle = self.webdriver.window_handle
@@ -82,7 +76,7 @@ class ChromeDriverPrintRefTestExecutor(WebDriverRefTestExecutor):
         with open(os.path.join(here, "reftest.js")) as f:
             self.script = f.read()
 
-    def screenshot(self, test, viewport_size, dpi):
+    def screenshot(self, test, viewport_size, dpi, page_ranges):
         # https://github.com/web-platform-tests/wpt/issues/7140
         assert dpi is None
 
@@ -92,6 +86,7 @@ class ChromeDriverPrintRefTestExecutor(WebDriverRefTestExecutor):
             self.has_window = True
 
         self.viewport_size = viewport_size
+        self.page_ranges = page_ranges.get(test.url)
         timeout = self.timeout_multiplier * test.timeout if self.debug_info is None else None
 
         test_url = self.test_url(test)
@@ -108,8 +103,8 @@ class ChromeDriverPrintRefTestExecutor(WebDriverRefTestExecutor):
 
         protocol.base.execute_script(self.wait_script, asynchronous=True)
 
-        pdf, page_ranges = protocol.pdf_print.render_as_pdf(*self.viewport_size)
-        screenshots = protocol.pdf_print.pdf_to_png(pdf, page_ranges)
+        pdf = protocol.pdf_print.render_as_pdf(*self.viewport_size)
+        screenshots = protocol.pdf_print.pdf_to_png(pdf, self.page_ranges)
         for i, screenshot in enumerate(screenshots):
             # strip off the data:img/png, part of the url
             if screenshot.startswith("data:image/png;base64,"):

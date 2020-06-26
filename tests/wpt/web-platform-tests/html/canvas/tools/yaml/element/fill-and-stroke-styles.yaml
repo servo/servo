@@ -1284,6 +1284,60 @@
     @assert pixel 98,48 == 0,255,0,255;
   expected: green
 
+- name: 2d.pattern.transform.identity
+  testing:
+  - 2d.pattern.transform
+  code: |
+    var canvas2 = document.createElement('canvas');
+    canvas2.width = 100;
+    canvas2.height = 50;
+    var pattern = ctx.createPattern(canvas2, 'no-repeat');
+    pattern.setTransform(new DOMMatrix());
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.pattern.transform.infinity
+  testing:
+  - 2d.pattern.transform
+  code: |
+    var canvas2 = document.createElement('canvas');
+    canvas2.width = 100;
+    canvas2.height = 50;
+    var pattern = ctx.createPattern(canvas2, 'no-repeat');
+    pattern.setTransform({a: Infinity});
+
+    ctx.fillStyle = '#0f0';
+    ctx.fillRect(0, 0, 100, 50);
+    ctx.fillStyle = '#f00';
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, 100, 50);
+
+    @assert pixel 1,1 == 0,255,0,255;
+    @assert pixel 98,1 == 0,255,0,255;
+    @assert pixel 1,48 == 0,255,0,255;
+    @assert pixel 98,48 == 0,255,0,255;
+  expected: green
+
+- name: 2d.pattern.transform.invalid
+  testing:
+  - 2d.pattern.transform
+  code: |
+    var canvas2 = document.createElement('canvas');
+    canvas2.width = 100;
+    canvas2.height = 50;
+    var pattern = ctx.createPattern(canvas2, 'no-repeat');
+    @assert throws TypeError pattern.setTransform({a: 1, m11: 2});
+
 - name: 2d.pattern.image.undefined
   testing:
   - 2d.pattern.IDL

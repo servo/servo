@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+
+  <meta charset="UTF-8">
+
+  <title>CSS Box-shadow Test: an HTML &lt;table&gt; with 'border-collapse: collapse'</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-backgrounds-3/#shadow-layers">
+  <link rel="match" href="reference/box-shadow-table-border-collapse-001-ref.html">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+
+  <!--
+
+  created: 2017
+  modified: May 23rd 2020
+
+  Bug 1050297: Box-shadow of a table disappears when its border-collapse is set to collapse
+  https://connect.microsoft.com/IE/Feedback/Details/1050297
+
+  Sky6t user page at wikipedia
+  https://en.wikipedia.org/wiki/User:Sky6t/sandbox#Tables
+
+  -->
+
+  <meta content="" name="flags">
+  <meta content="This test checks that 'box-shadow' applies to table element with 'border-collapse' set to 'collapse' as long as row borders do not have different border thicknesses. In this test, the left border of both table rows have the same thickness (30px) and the right border of both table rows have the same thickness (30px)." name="assert">
+
+  <style>
+  table
+    {
+      border: red solid 29px;
+      border-collapse: collapse;
+      box-shadow: 20px 20px darkgray;
+      color: orange;
+      font-family: Ahem;
+      font-size: 50px;
+      line-height: 1;
+      table-layout: fixed;
+      width: 160px;
+    }
+
+  tr
+    {
+      border-color: blue;
+      border-style: solid;
+    }
+
+  tr#top-row
+    {
+
+      border-width: 30px 30px 0px;
+    }
+
+  tr#bottom-row
+    {
+      border-width: 0px 30px 30px;
+    }
+
+  td
+    {
+      padding: 0;
+    }
+  </style>
+
+  <p>Test passes if there is a filled orange square with a thick blue border and if such square has a gray outer shadow at its bottom and at its right side.
+
+  <table>
+
+    <tr id="top-row"><td>1<td>2
+
+    <tr id="bottom-row"><td>3<td>4
+
+  </table>
