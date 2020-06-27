@@ -6,8 +6,8 @@ def main(request, response):
     # |query| should be a request parameter indicating the request would like
     # to know how many times the server has seen the request (with the
     # same token).
-    token = request.GET.first("token", None)
-    is_query = request.GET.first("query", None) is not None
+    token = request.GET.first(b"token", None)
+    is_query = request.GET.first(b"query", None) is not None
     with request.server.stash.lock:
       value = request.server.stash.take(token)
       count = 0
@@ -21,5 +21,5 @@ def main(request, response):
 
     headers = []
     if is_query:
-      headers = [("Count", count)]
-    return (200, headers, "")
+      headers = [(b"Count", count)]
+    return (200, headers, b"")

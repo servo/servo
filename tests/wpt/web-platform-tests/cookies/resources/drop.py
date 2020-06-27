@@ -5,11 +5,10 @@ def main(request, response):
     headers = setNoCacheAndCORSHeaders(request, response)
     try:
         # Expire the named cookie, and return a JSON-encoded success code.
-        name = readParameter(request, paramName="name", requireValue=True)
+        name = readParameter(request, paramName=u"name", requireValue=True)
         scheme = request.url_parts.scheme
-        headers.append(makeDropCookie(name,  "https" == scheme))
-        return headers, '{"success": true}'
+        headers.append(makeDropCookie(name, u"https" == scheme))
+        return headers, b'{"success": true}'
     except:
-        return 500, headers, '{"error" : "Empty or missing name parameter."}'
-
+        return 500, headers, b'{"error" : "Empty or missing name parameter."}'
 

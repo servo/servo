@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>Parent is isolated, child1 is not isolated, child1 navigates to a different site, child2 gets inserted and is isolated, child1 navigates back</title>
+<title>A non-isolated child at a given origin causes future children to also be non-isolated even after the iframe is removed</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
@@ -11,6 +11,7 @@ import {
   insertIframe,
   testSameAgentCluster,
   testDifferentAgentClusters,
+  testOriginIsolationRestricted
 } from "./resources/helpers.mjs";
 
 let frame1;
@@ -22,6 +23,8 @@ promise_setup(async () => {
 // as is the child's non-request. So the parent ends up in the origin-keyed
 // agent cluster and the child ends up in the site-keyed one.
 testDifferentAgentClusters([self, 0], "Before");
+testOriginIsolationRestricted(self, true, "parent");
+testOriginIsolationRestricted(0, false, "child1");
 
 promise_test(async () => {
   frame1.remove();
@@ -37,4 +40,7 @@ testDifferentAgentClusters([self, 0], "Parent to child2");
 testDifferentAgentClusters([self, 1], "Parent to child3");
 testSameAgentCluster([0, 1], "child2 to child3");
 testSameAgentCluster([1, 0], "child3 to child2");
+
+testOriginIsolationRestricted(0, false, "child2");
+testOriginIsolationRestricted(1, false, "child3");
 </script>

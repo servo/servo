@@ -2,68 +2,70 @@ import time
 
 from six.moves.urllib.parse import urlencode, urlparse
 
+from wptserve.utils import isomorphic_decode, isomorphic_encode
+
 def main(request, response):
-    stashed_data = {'count': 0, 'preflight': "0"}
+    stashed_data = {b'count': 0, b'preflight': b"0"}
     status = 302
-    headers = [("Content-Type", "text/plain"),
-               ("Cache-Control", "no-cache"),
-               ("Pragma", "no-cache")]
-    if "Origin" in request.headers:
-        headers.append(("Access-Control-Allow-Origin", request.headers.get("Origin", "")))
-        headers.append(("Access-Control-Allow-Credentials", "true"))
+    headers = [(b"Content-Type", b"text/plain"),
+               (b"Cache-Control", b"no-cache"),
+               (b"Pragma", b"no-cache")]
+    if b"Origin" in request.headers:
+        headers.append((b"Access-Control-Allow-Origin", request.headers.get(b"Origin", b"")))
+        headers.append((b"Access-Control-Allow-Credentials", b"true"))
     else:
-        headers.append(("Access-Control-Allow-Origin", "*"))
+        headers.append((b"Access-Control-Allow-Origin", b"*"))
 
     token = None
-    if "token" in request.GET:
-        token = request.GET.first("token")
+    if b"token" in request.GET:
+        token = request.GET.first(b"token")
         data = request.server.stash.take(token)
         if data:
             stashed_data = data
 
-    if request.method == "OPTIONS":
-        if "allow_headers" in request.GET:
-            headers.append(("Access-Control-Allow-Headers", request.GET['allow_headers']))
-        stashed_data['preflight'] = "1"
+    if request.method == u"OPTIONS":
+        if b"allow_headers" in request.GET:
+            headers.append((b"Access-Control-Allow-Headers", request.GET[b'allow_headers']))
+        stashed_data[b'preflight'] = b"1"
         #Preflight is not redirected: return 200
-        if not "redirect_preflight" in request.GET:
+        if not b"redirect_preflight" in request.GET:
             if token:
-                request.server.stash.put(request.GET.first("token"), stashed_data)
-            return 200, headers, ""
+                request.server.stash.put(request.GET.first(b"token"), stashed_data)
+            return 200, headers, u""
 
-    if "redirect_status" in request.GET:
-        status = int(request.GET['redirect_status'])
+    if b"redirect_status" in request.GET:
+        status = int(request.GET[b'redirect_status'])
 
-    stashed_data['count'] += 1
+    stashed_data[b'count'] += 1
 
-    if "location" in request.GET:
-        url = request.GET['location']
-        if "simple" not in request.GET:
+    if b"location" in request.GET:
+        url = isomorphic_decode(request.GET[b'location'])
+        if b"simple" not in request.GET:
             scheme = urlparse(url).scheme
-            if scheme == "" or scheme == "http" or scheme == "https":
-                url += "&" if '?' in url else "?"
+            if scheme == u"" or scheme == u"http" or scheme == u"https":
+                url += u"&" if u'?' in url else u"?"
                 #keep url parameters in location
                 url_parameters = {}
                 for item in request.GET.items():
-                    url_parameters[item[0]] = item[1][0]
+                    url_parameters[isomorphic_decode(item[0])] = isomorphic_decode(item[1][0])
                 url += urlencode(url_parameters)
                 #make sure location changes during redirection loop
-                url += "&count=" + str(stashed_data['count'])
-        headers.append(("Location", url))
+                url += u"&count=" + str(stashed_data[b'count'])
+        headers.append((b"Location", isomorphic_encode(url)))
 
-    if "redirect_referrerpolicy" in request.GET:
-        headers.append(("Referrer-Policy", request.GET['redirect_referrerpolicy']))
+    if b"redirect_referrerpolicy" in request.GET:
+        headers.append((b"Referrer-Policy", request.GET[b'redirect_referrerpolicy']))
 
-    if "delay" in request.GET:
-        time.sleep(float(request.GET.first("delay", 0)) / 1E3)
+    if b"delay" in request.GET:
+        time.sleep(float(request.GET.first(b"delay", 0)) / 1E3)
 
     if token:
-        request.server.stash.put(request.GET.first("token"), stashed_data)
-        if "max_count" in request.GET:
-            max_count = int(request.GET['max_count'])
+        request.server.stash.put(request.GET.first(b"token"), stashed_data)
+        if b"max_count" in request.GET:
+            max_count = int(request.GET[b'max_count'])
             #stop redirecting and return count
-            if stashed_data['count'] > max_count:
+            if stashed_data[b'count'] > max_count:
                 # -1 because the last is not a redirection
-                return str(stashed_data['count'] - 1)
+                return str(stashed_data[b'count'] - 1)
 
-    return status, headers, ""
+    return status, headers, u""

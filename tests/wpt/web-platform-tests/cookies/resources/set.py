@@ -1,5 +1,7 @@
 import helpers
-import urllib
+from six.moves.urllib.parse import unquote
+
+from wptserve.utils import isomorphic_encode
 
 def main(request, response):
     """Respond to `/cookie/set?{cookie}` by echoing `{cookie}` as a `Set-Cookie` header."""
@@ -7,7 +9,7 @@ def main(request, response):
 
     # Cookies may require whitespace (e.g. in the `Expires` attribute), so the
     # query string should be decoded.
-    cookie = urllib.unquote(request.url_parts.query)
-    headers.append(("Set-Cookie", cookie))
+    cookie = unquote(request.url_parts.query)
+    headers.append((b"Set-Cookie", isomorphic_encode(cookie)))
 
-    return headers, '{"success": true}'
+    return headers, b'{"success": true}'

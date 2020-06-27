@@ -1,5 +1,5 @@
 def main(request, response):
     response.status = 302
-    location = request.GET.first("location")
-    response.headers.set("Location", location)
-    response.headers.set("Access-Control-Allow-Origin", "*")
+    location = request.GET.first(b"location")
+    response.headers.set(b"Location", location)
+    response.headers.set(b"Access-Control-Allow-Origin", b"*")

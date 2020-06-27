@@ -69,8 +69,8 @@ async function observeReports(global) {
   });
   observer.observe();
 
-  // Wait 3000ms for reports to settle.
-  await new Promise(r => step_timeout(r, 3000));
+  // Wait 5000ms for reports to settle.
+  await new Promise(r => step_timeout(r, 5000));
   return reports;
 }
 

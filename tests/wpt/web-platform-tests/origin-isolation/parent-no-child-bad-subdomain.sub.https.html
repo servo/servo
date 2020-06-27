@@ -7,7 +7,11 @@
 <div id="log"></div>
 
 <script type="module">
-import { insertIframe, testSameAgentCluster } from "./resources/helpers.mjs";
+import {
+  insertIframe,
+  testSameAgentCluster,
+  testOriginIsolationRestricted
+} from "./resources/helpers.mjs";
 
 let frameIndex = 0;
 for (const badValue of ["", "?0", "true", "\"?1\"", "1", "?2", "(?1)"]) {
@@ -17,6 +21,7 @@ for (const badValue of ["", "?0", "true", "\"?1\"", "1", "?2", "(?1)"]) {
 
   // Since the header values are bad there should be no isolation
   testSameAgentCluster([self, frameIndex], `"${badValue}"`);
+  testOriginIsolationRestricted(frameIndex, false, `"${badValue}"`);
   ++frameIndex;
 }
 </script>

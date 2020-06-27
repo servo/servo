@@ -7,14 +7,14 @@ def main(request, response):
        since it will otherwise be interpreted relative to where this file is
        served.
     """
-    test_file = request.GET.first("test")
+    test_file = request.GET.first(b"test")
 
-    expected_ids = request.GET.first("expectedIds")
+    expected_ids = request.GET.first(b"expectedIds")
 
-    response.headers.set("Origin-Policy", "allowed=(latest)")
-    response.headers.set("Content-Type", "text/html")
+    response.headers.set(b"Origin-Policy", b"allowed=(latest)")
+    response.headers.set(b"Content-Type", b"text/html")
 
-    ret_val = """
+    ret_val = b"""
     <!DOCTYPE html>
     <meta charset="utf-8">
     <title>Origin policy subframe</title>
@@ -26,8 +26,8 @@ def main(request, response):
     <script type="module" src="%s"></script>
   """ % test_file
 
-    if expected_ids != "undefined":
-      ret_val += """
+    if expected_ids != b"undefined":
+      ret_val += b"""
       <script type="module">
         test(() => {
           assert_array_equals(originPolicyIds, %s);
