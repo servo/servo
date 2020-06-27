@@ -51,7 +51,7 @@ impl GPUQueueMethods for GPUQueue {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuqueue-submit
     fn Submit(&self, command_buffers: Vec<DomRoot<GPUCommandBuffer>>) {
         let valid = command_buffers.iter().all(|cb| {
-            cb.buffers().iter().all(|b| match *b.state() {
+            cb.buffers().iter().all(|b| match b.state() {
                 GPUBufferState::Unmapped => true,
                 _ => false,
             })
