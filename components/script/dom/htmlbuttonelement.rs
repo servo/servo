@@ -77,6 +77,11 @@ impl HTMLButtonElement {
             document,
         )
     }
+
+    #[inline]
+    pub fn is_submit_button(&self) -> bool {
+        self.button_type.get() == ButtonType::Submit
+    }
 }
 
 impl HTMLButtonElementMethods for HTMLButtonElement {
