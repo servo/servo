@@ -54,9 +54,8 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
-use js::rust::MutableHandle;
 use js::typedarray::{ArrayBuffer, CreateWith};
-use std::ptr::NonNull;
+use std::ptr::{self, NonNull};
 use webgpu::wgpu::binding_model::BufferBinding;
 use webgpu::{self, wgt, WebGPU, WebGPUBindings, WebGPURequest};
 
@@ -182,14 +181,17 @@ impl GPUDeviceMethods for GPUDevice {
         let state;
         let mapping_range;
         if descriptor.mappedAtCreation {
+            let cx = self.global().get_cx();
+            rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
             unsafe {
                 assert!(ArrayBuffer::create(
-                    *self.global().get_cx(),
+                    *cx,
                     CreateWith::Length(descriptor.size as u32),
-                    MutableHandle::from_raw(mapping.handle_mut()),
+                    array_buffer.handle_mut(),
                 )
                 .is_ok());
             }
+            mapping.set(array_buffer.get());
             state = GPUBufferState::MappedAtCreation;
             mapping_range = 0..descriptor.size;
         } else {

@@ -19,7 +19,6 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
 use js::rust::jsapi_wrapped::{DetachArrayBuffer, IsPromiseObject, RejectPromise};
-use js::rust::MutableHandle;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use std::cell::Cell;
 use std::ops::Range;
@@ -277,12 +276,10 @@ impl AsyncWGPUListener for GPUBuffer {
     fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
         match response {
             WebGPUResponse::BufferMapAsync(bytes) => {
+                let cx = self.global().get_cx();
+                rooted!(in(*cx) let mut array_buffer = ptr::null_mut::<JSObject>());
                 match unsafe {
-                    ArrayBuffer::create(
-                        *self.global().get_cx(),
-                        CreateWith::Slice(&bytes),
-                        MutableHandle::from_raw(self.mapping.handle_mut()),
-                    )
+                    ArrayBuffer::create(*cx, CreateWith::Slice(&bytes), array_buffer.handle_mut())
                 } {
                     Ok(_) => promise.resolve_native(&()),
                     Err(()) => {
@@ -293,6 +290,7 @@ impl AsyncWGPUListener for GPUBuffer {
                         promise.reject_error(Error::Operation);
                     },
                 }
+                self.mapping.set(array_buffer.get());
                 self.state.set(GPUBufferState::Mapped);
             },
             _ => {
