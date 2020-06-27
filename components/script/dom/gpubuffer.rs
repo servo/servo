@@ -146,17 +146,17 @@ impl GPUBufferMethods for GPUBuffer {
                 match ArrayBuffer::from(self.mapping.get()) {
                     Ok(array_buffer) => {
                         // Step 3.2
-                        if Some(GPUMapModeConstants::READ) != self.map_mode.get() {
-                            self.channel
-                                .0
-                                .send(WebGPURequest::UnmapBuffer {
-                                    device_id: self.device.0,
-                                    buffer_id: self.id().0,
-                                    array_buffer: array_buffer.to_vec(),
-                                    mapped_at_creation: self.map_mode.get() == None,
-                                })
-                                .unwrap();
-                        }
+                        self.channel
+                            .0
+                            .send(WebGPURequest::UnmapBuffer {
+                                buffer_id: self.id().0,
+                                array_buffer: array_buffer.to_vec(),
+                                is_map_read: self.map_mode.get() == Some(GPUMapModeConstants::READ),
+                                offset: self.mapping_range.borrow().start,
+                                size: self.mapping_range.borrow().end -
+                                    self.mapping_range.borrow().start,
+                            })
+                            .unwrap();
                         // Step 3.3
                         unsafe {
                             DetachArrayBuffer(*cx, self.mapping.handle());

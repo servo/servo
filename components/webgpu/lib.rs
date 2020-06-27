@@ -198,10 +198,11 @@ pub enum WebGPURequest {
         image_key: webrender_api::ImageKey,
     },
     UnmapBuffer {
-        device_id: id::DeviceId,
         buffer_id: id::BufferId,
         array_buffer: Vec<u8>,
-        mapped_at_creation: bool,
+        is_map_read: bool,
+        offset: u64,
+        size: u64,
     },
 }
 
@@ -931,27 +932,23 @@ impl<'a> WGPU<'a> {
                         gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
                     },
                     WebGPURequest::UnmapBuffer {
-                        device_id,
                         buffer_id,
                         array_buffer,
-                        mapped_at_creation,
+                        is_map_read,
+                        offset,
+                        size,
                     } => {
                         let global = &self.global;
-                        if mapped_at_creation {
-                            gfx_select!(device_id => global.queue_write_buffer(
-                                device_id,
+                        if !is_map_read {
+                            let map_ptr = gfx_select!(buffer_id => global.buffer_get_mapped_range(
                                 buffer_id,
-                                0,
-                                array_buffer.as_slice()
+                                offset,
+                                wgt::BufferSize::new(size)
                             ));
-                        } else {
-                            gfx_select!(buffer_id => global.device_set_buffer_sub_data(
-                                device_id,
-                                buffer_id,
-                                0,
-                                array_buffer.as_slice()
-                            ));
+                            unsafe { slice::from_raw_parts_mut(map_ptr, size as usize) }
+                                .copy_from_slice(&array_buffer);
                         }
+                        gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
                     },
                 }
             }
