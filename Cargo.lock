@@ -6613,8 +6613,9 @@ dependencies = [
 
 [[package]]
 name = "winapi"
-version = "0.3.8"
-source = "git+https://github.com/servo/winapi-rs?branch=patch-1#f85c3541bbb331fea8918ac070accfb4ab613e7b"
+version = "0.3.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419"
 dependencies = [
  "winapi-i686-pc-windows-gnu",
  "winapi-x86_64-pc-windows-gnu",
@@ -6623,7 +6624,8 @@ dependencies = [
 [[package]]
 name = "winapi-i686-pc-windows-gnu"
 version = "0.4.0"
-source = "git+https://github.com/servo/winapi-rs?branch=patch-1#f85c3541bbb331fea8918ac070accfb4ab613e7b"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac3b87c63620426dd9b991e5ce0329eff545bccbbb34f3be09ff6fb6ab51b7b6"
 
 [[package]]
 name = "winapi-util"
@@ -6637,7 +6639,8 @@ dependencies = [
 [[package]]
 name = "winapi-x86_64-pc-windows-gnu"
 version = "0.4.0"
-source = "git+https://github.com/servo/winapi-rs?branch=patch-1#f85c3541bbb331fea8918ac070accfb4ab613e7b"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
 name = "winit"
