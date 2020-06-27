@@ -8,15 +8,15 @@ def main(request, response):
     location - The resource to redirect to.
     """
     status = 302
-    if "status" in request.GET:
+    if b"status" in request.GET:
         try:
-            status = int(request.GET.first("status"))
+            status = int(request.GET.first(b"status"))
         except ValueError:
             pass
     headers = setNoCacheAndCORSHeaders(request, response)
 
-    location = request.GET.first("location")
+    location = request.GET.first(b"location")
 
-    headers.append(("Location", location))
+    headers.append((b"Location", location))
 
-    return status, headers, ""
+    return status, headers, b""

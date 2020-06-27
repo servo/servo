@@ -1,5 +1,7 @@
 from helpers import makeCookieHeader, setNoCacheAndCORSHeaders
 
+from wptserve.utils import isomorphic_encode
+
 def main(request, response):
     """Respond to `/cookie/set/samesite?{value}` by setting four cookies:
     1. `samesite_strict={value};SameSite=Strict;path=/`
@@ -8,16 +10,16 @@ def main(request, response):
     4. `samesite_unspecified={value};path=/`
     Then navigate to a page that will post a message back to the opener with the set cookies"""
     headers = setNoCacheAndCORSHeaders(request, response)
-    value = request.url_parts.query
+    value = isomorphic_encode(request.url_parts.query)
 
-    headers.append(("Content-Type", "text/html; charset=utf-8"))
-    headers.append(makeCookieHeader("samesite_strict", value, {"SameSite":"Strict","path":"/"}))
-    headers.append(makeCookieHeader("samesite_lax", value, {"SameSite":"Lax","path":"/"}))
+    headers.append((b"Content-Type", b"text/html; charset=utf-8"))
+    headers.append(makeCookieHeader(b"samesite_strict", value, {b"SameSite":b"Strict", b"path":b"/"}))
+    headers.append(makeCookieHeader(b"samesite_lax", value, {b"SameSite":b"Lax", b"path":b"/"}))
     # SameSite=None cookies must be Secure.
-    headers.append(makeCookieHeader("samesite_none", value, {"SameSite":"None", "path":"/", "Secure": ""}))
-    headers.append(makeCookieHeader("samesite_unspecified", value, {"path":"/"}))
+    headers.append(makeCookieHeader(b"samesite_none", value, {b"SameSite":b"None", b"path":b"/", b"Secure": b""}))
+    headers.append(makeCookieHeader(b"samesite_unspecified", value, {b"path":b"/"}))
 
-    document = """
+    document = b"""
 <!DOCTYPE html>
 <script>
   // A same-site navigation, which should attach all cookies including SameSite ones.

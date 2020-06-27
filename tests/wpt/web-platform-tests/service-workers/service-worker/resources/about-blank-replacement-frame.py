@@ -1,11 +1,11 @@
 def main(request, response):
-  if 'nested' in request.GET:
+  if b'nested' in request.GET:
     return (
-      [('Content-Type', 'text/html')],
-      'failed: nested frame was not intercepted by the service worker'
+      [(b'Content-Type', b'text/html')],
+      b'failed: nested frame was not intercepted by the service worker'
     )
 
-  return ([('Content-Type', 'text/html')], """
+  return ([(b'Content-Type', b'text/html')], b"""
 <!doctype html>
 <html>
 <body>

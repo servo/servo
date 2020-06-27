@@ -11,7 +11,8 @@ import {
   insertIframe,
   setBothDocumentDomains,
   testSameAgentCluster,
-  testDifferentAgentClusters
+  testDifferentAgentClusters,
+  testOriginIsolationRestricted
 } from "./resources/helpers.mjs";
 
 promise_setup(async () => {
@@ -24,6 +25,10 @@ promise_setup(async () => {
 testSameAgentCluster([self, 0], "parent to about:blank");
 testDifferentAgentClusters([0, 1], "about:blank to child2");
 testDifferentAgentClusters([1, 0], "child2 to about:blank");
+
+testOriginIsolationRestricted(self, true, "parent");
+testOriginIsolationRestricted(0, true, "about:blank");
+testOriginIsolationRestricted(1, false, "child2");
 
 async function insertAboutBlankIframe() {
   const iframe = document.createElement("iframe");

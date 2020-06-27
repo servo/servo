@@ -7,7 +7,11 @@
 <div id="log"></div>
 
 <script type="module">
-import { insertIframe, testSameAgentCluster } from "./resources/helpers.mjs";
+import {
+  insertIframe,
+  testSameAgentCluster,
+  testOriginIsolationRestricted
+} from "./resources/helpers.mjs";
 
 promise_setup(async () => {
   await insertIframe("{{hosts[][]}}");
@@ -16,4 +20,7 @@ promise_setup(async () => {
 // Since they're same-origin, and the parent loaded with isolation, the
 // child's non-request for isolation gets ignored, and both end up origin-keyed.
 testSameAgentCluster([self, 0]);
+
+testOriginIsolationRestricted(self, true, "parent");
+testOriginIsolationRestricted(0, true, "child");
 </script>

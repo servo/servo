@@ -1,17 +1,17 @@
-ETAG = '"123abc"'
-CONTENT_TYPE = "text/plain"
-CONTENT = "lorem ipsum dolor sit amet"
+ETAG = b'"123abc"'
+CONTENT_TYPE = b"text/plain"
+CONTENT = u"lorem ipsum dolor sit amet"
 
 def main(request, response):
     # let caching kick in if possible (conditional GET)
-    etag = request.headers.get("If-None-Match", None)
+    etag = request.headers.get(b"If-None-Match", None)
     if etag == ETAG:
-        response.headers.set("X-HTTP-STATUS", 304)
-        response.status = (304, "Not Modified")
-        return ""
+        response.headers.set(b"X-HTTP-STATUS", 304)
+        response.status = (304, b"Not Modified")
+        return u""
 
     # cache miss, so respond with the actual content
-    response.status = (200, "OK")
-    response.headers.set("ETag", ETAG)
-    response.headers.set("Content-Type", CONTENT_TYPE)
+    response.status = (200, b"OK")
+    response.headers.set(b"ETag", ETAG)
+    response.headers.set(b"Content-Type", CONTENT_TYPE)
     return CONTENT

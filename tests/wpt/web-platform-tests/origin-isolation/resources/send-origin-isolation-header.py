@@ -5,13 +5,13 @@ def main(request, response):
     to the parent. See ./helpers.mjs for how these handlers are used.
     """
 
-    if "header" in request.GET:
-      header = request.GET.first("header")
-      response.headers.set("Origin-Isolation", header)
+    if b"header" in request.GET:
+      header = request.GET.first(b"header")
+      response.headers.set(b"Origin-Isolation", header)
 
-    response.headers.set("Content-Type", "text/html")
+    response.headers.set(b"Content-Type", b"text/html")
 
-    return """
+    return u"""
     <!DOCTYPE html>
     <meta charset="utf-8">
     <title>Helper page for origin isolation tests</title>

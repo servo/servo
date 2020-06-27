@@ -6,8 +6,8 @@ def main(request, response):
     headers = setNoCacheAndCORSHeaders(request, response)
 
     # Expire the cookies, and return a JSON-encoded success code.
-    headers.append(makeDropCookie("samesite_strict", False))
-    headers.append(makeDropCookie("samesite_lax", False))
-    headers.append(makeDropCookie("samesite_none", False))
-    headers.append(makeDropCookie("samesite_unspecified", False))
-    return headers, '{"success": true}'
+    headers.append(makeDropCookie(b"samesite_strict", False))
+    headers.append(makeDropCookie(b"samesite_lax", False))
+    headers.append(makeDropCookie(b"samesite_none", False))
+    headers.append(makeDropCookie(b"samesite_unspecified", False))
+    return headers, b'{"success": true}'

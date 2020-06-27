@@ -16,4 +16,9 @@ promise_setup(async () => {
 // All isolation requests are ignored, since this is over insecure HTTP.
 // So both end up in the site-keyed agent cluster.
 testSameAgentCluster([self, 0]);
+
+// Has to be promise_test because we used promise_setup().
+promise_test(async () => {
+  assert_false("originIsolationRestricted" in window);
+}, "The getter must not exist");
 </script>

@@ -30,6 +30,8 @@ window.onmessage = async (e) => {
     } catch (e) {
       parent.postMessage(e.name, "*");
     }
+  } else if (e.data.command === "get originIsolationRestricted") {
+    parent.postMessage(self.originIsolationRestricted, "*");
   }
 
   // We could also receive e.data === "WebAssembly.Module message received",

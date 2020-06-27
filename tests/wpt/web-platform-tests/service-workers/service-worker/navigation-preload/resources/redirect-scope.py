@@ -1,37 +1,37 @@
 def main(request, response):
-    if "base" in request.GET:
-        return [("Content-Type", "text/html")], "OK"
-    type = request.GET.first("type")
+    if b"base" in request.GET:
+        return [(b"Content-Type", b"text/html")], b"OK"
+    type = request.GET.first(b"type")
 
-    if type == "normal":
+    if type == b"normal":
         response.status = 302
-        response.headers.append("Location", "redirect-redirected.html")
-        response.headers.append("Custom-Header", "hello")
-        return ""
+        response.headers.append(b"Location", b"redirect-redirected.html")
+        response.headers.append(b"Custom-Header", b"hello")
+        return b""
 
-    if type == "no-location":
+    if type == b"no-location":
         response.status = 302
-        response.headers.append("Custom-Header", "hello")
-        return ""
+        response.headers.append(b"Custom-Header", b"hello")
+        return b""
 
-    if type == "no-location-with-body":
+    if type == b"no-location-with-body":
         response.status = 302
-        response.headers.append("Content-Type", "text/html")
-        response.headers.append("Custom-Header", "hello")
-        return "<body>BODY</body>"
+        response.headers.append(b"Content-Type", b"text/html")
+        response.headers.append(b"Custom-Header", b"hello")
+        return b"<body>BODY</body>"
 
-    if type == "redirect-to-scope":
+    if type == b"redirect-to-scope":
         response.status = 302
-        response.headers.append("Location",
-                                "redirect-scope.py?type=redirect-to-scope2")
-        return ""
-    if type == "redirect-to-scope2":
+        response.headers.append(b"Location",
+                                b"redirect-scope.py?type=redirect-to-scope2")
+        return b""
+    if type == b"redirect-to-scope2":
         response.status = 302
-        response.headers.append("Location",
-                                "redirect-scope.py?type=redirect-to-scope3")
-        return ""
-    if type == "redirect-to-scope3":
+        response.headers.append(b"Location",
+                                b"redirect-scope.py?type=redirect-to-scope3")
+        return b""
+    if type == b"redirect-to-scope3":
         response.status = 302
-        response.headers.append("Location", "redirect-redirected.html")
-        response.headers.append("Custom-Header", "hello")
-        return ""
+        response.headers.append(b"Location", b"redirect-redirected.html")
+        response.headers.append(b"Custom-Header", b"hello")
+        return b""

@@ -7,7 +7,11 @@
 <div id="log"></div>
 
 <script type="module">
-import { insertIframe, testDifferentAgentClusters } from "./resources/helpers.mjs";
+import {
+  insertIframe,
+  testDifferentAgentClusters,
+  testOriginIsolationRestricted
+} from "./resources/helpers.mjs";
 
 promise_setup(async () => {
   await insertIframe("{{hosts[][www]}}", "?1");
@@ -17,4 +21,7 @@ promise_setup(async () => {
 // cluster (the base domain's origin), and the child ends up in a different
 // origin-keyed agent cluster (the www subdomain's origin).
 testDifferentAgentClusters([self, 0]);
+
+testOriginIsolationRestricted(self, true, "parent");
+testOriginIsolationRestricted(0, true, "child");
 </script>
