@@ -30,5 +30,3 @@ opt-level = 3
 mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
 surfman = { git = "https://github.com/servo/surfman" }
 surfman-chains = { git = "https://github.com/asajeffrey/surfman-chains" }
-# https://github.com/retep998/winapi-rs/pull/816
-winapi = { git = "https://github.com/servo/winapi-rs", branch = "patch-1" }
