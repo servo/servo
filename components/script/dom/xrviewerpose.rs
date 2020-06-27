@@ -105,6 +105,49 @@ impl XRViewerPose {
                     &to_base,
                 ));
             },
+            Views::Cubemap(front, left, right, top, bottom, back) => {
+                views.push(XRView::new(
+                    global,
+                    session,
+                    &front,
+                    XREye::None,
+                    0,
+                    &to_base,
+                ));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    &left,
+                    XREye::None,
+                    1,
+                    &to_base,
+                ));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    &right,
+                    XREye::None,
+                    2,
+                    &to_base,
+                ));
+                views.push(XRView::new(global, session, &top, XREye::None, 3, &to_base));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    &bottom,
+                    XREye::None,
+                    4,
+                    &to_base,
+                ));
+                views.push(XRView::new(
+                    global,
+                    session,
+                    &back,
+                    XREye::None,
+                    5,
+                    &to_base,
+                ));
+            },
         };
         let transform: RigidTransform3D<f32, Viewer, BaseSpace> =
             to_base.pre_transform(&viewer_pose.transform);

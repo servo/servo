@@ -272,6 +272,8 @@ mod gen {
                         left_right: bool,
                         #[serde(rename = "dom.webxr.glwindow.red-cyan")]
                         red_cyan: bool,
+                        spherical: bool,
+                        cubemap: bool,
                     },
                     hands: {
                         #[serde(default)]
