@@ -5,7 +5,7 @@
 use crate::data_loader::decode;
 use crate::fetch::cors_cache::CorsCache;
 use crate::filemanager_thread::{FileManager, FILE_CHUNK_SIZE};
-use crate::http_loader::{determine_request_referrer, http_fetch, HttpState};
+use crate::http_loader::{determine_requests_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
 use crate::subresource_integrity::is_response_integrity_valid;
 use content_security_policy as csp;
@@ -236,25 +236,19 @@ pub fn main_fetch(
         .or(Some(ReferrerPolicy::NoReferrerWhenDowngrade));
 
     // Step 8.
-    {
-        let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer) {
-            Referrer::NoReferrer => None,
-            Referrer::ReferrerUrl(url) | Referrer::Client(url) => {
-                request.headers.remove(header::REFERER);
-                let current_url = request.current_url();
-                determine_request_referrer(
-                    &mut request.headers,
-                    request.referrer_policy.unwrap(),
-                    url,
-                    current_url,
-                    request.https_state,
-                )
-            },
-        };
-        if let Some(referrer_url) = referrer_url {
-            request.referrer = Referrer::ReferrerUrl(referrer_url);
-        }
-    }
+    assert!(request.referrer_policy.is_some());
+    let referrer_url = match mem::replace(&mut request.referrer, Referrer::NoReferrer) {
+        Referrer::NoReferrer => None,
+        Referrer::ReferrerUrl(referrer_source) | Referrer::Client(referrer_source) => {
+            request.headers.remove(header::REFERER);
+            determine_requests_referrer(
+                request.referrer_policy.unwrap(),
+                referrer_source,
+                request.current_url(),
+            )
+        },
+    };
+    request.referrer = referrer_url.map_or(Referrer::NoReferrer, |url| Referrer::ReferrerUrl(url));
 
     // Step 9.
     // TODO: handle FTP URLs.

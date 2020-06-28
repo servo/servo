@@ -180,43 +180,40 @@ pub fn set_default_accept_language(headers: &mut HeaderMap) {
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-state-no-referrer-when-downgrade>
-fn no_referrer_when_downgrade_header(
-    referrer_url: ServoUrl,
-    url: ServoUrl,
-    https_state: HttpsState,
-) -> Option<ServoUrl> {
-    if https_state == HttpsState::Modern && !url.is_origin_trustworthy() {
+fn no_referrer_when_downgrade(referrer_url: ServoUrl, current_url: ServoUrl) -> Option<ServoUrl> {
+    // Step 1
+    if referrer_url.is_potentially_trustworthy() && !current_url.is_potentially_trustworthy() {
         return None;
     }
-    return strip_url(referrer_url, false);
+    // Step 2
+    return strip_url_for_use_as_referrer(referrer_url, false);
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin>
-fn strict_origin(
-    referrer_url: ServoUrl,
-    url: ServoUrl,
-    https_state: HttpsState,
-) -> Option<ServoUrl> {
-    if https_state == HttpsState::Modern && !url.is_origin_trustworthy() {
+fn strict_origin(referrer_url: ServoUrl, current_url: ServoUrl) -> Option<ServoUrl> {
+    // Step 1
+    if referrer_url.is_potentially_trustworthy() && !current_url.is_potentially_trustworthy() {
         return None;
     }
-    strip_url(referrer_url, true)
+    // Step 2
+    strip_url_for_use_as_referrer(referrer_url, true)
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-strict-origin-when-cross-origin>
 fn strict_origin_when_cross_origin(
     referrer_url: ServoUrl,
-    url: ServoUrl,
-    https_state: HttpsState,
+    current_url: ServoUrl,
 ) -> Option<ServoUrl> {
-    let same_origin = referrer_url.origin() == url.origin();
-    if same_origin {
-        return strip_url(referrer_url, false);
+    // Step 1
+    if referrer_url.origin() == current_url.origin() {
+        return strip_url_for_use_as_referrer(referrer_url, false);
     }
-    if https_state == HttpsState::Modern && !url.is_origin_trustworthy() {
+    // Step 2
+    if referrer_url.is_potentially_trustworthy() && !current_url.is_potentially_trustworthy() {
         return None;
     }
-    strip_url(referrer_url, true)
+    // Step 3
+    strip_url_for_use_as_referrer(referrer_url, true)
 }
 
 /// https://html.spec.whatwg.org/multipage/#schemelessly-same-site
@@ -242,56 +239,70 @@ fn is_schemelessy_same_site(site_a: &ImmutableOrigin, site_b: &ImmutableOrigin) 
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#strip-url>
-fn strip_url(mut referrer_url: ServoUrl, origin_only: bool) -> Option<ServoUrl> {
+fn strip_url_for_use_as_referrer(mut url: ServoUrl, origin_only: bool) -> Option<ServoUrl> {
     const MAX_REFERRER_URL_LENGTH: usize = 4096;
-    if referrer_url.scheme() == "https" || referrer_url.scheme() == "http" {
-        {
-            let referrer = referrer_url.as_mut_url();
-            referrer.set_username("").unwrap();
-            referrer.set_password(None).unwrap();
-            referrer.set_fragment(None);
-            // Limit `referer` header's value to 4k <https://github.com/w3c/webappsec-referrer-policy/pull/122>
-            if origin_only || referrer.as_str().len() > MAX_REFERRER_URL_LENGTH {
-                referrer.set_path("");
-                referrer.set_query(None);
-            }
-        }
-        return Some(referrer_url);
+    // Step 2
+    if url.is_local_scheme() {
+        return None;
     }
-    return None;
+    // Step 3-6
+    {
+        let url = url.as_mut_url();
+        url.set_username("").unwrap();
+        url.set_password(None).unwrap();
+        url.set_fragment(None);
+        // Note: The result of serializing referrer url should not be
+        // greater than 4096 as specified in Step 6 of
+        // https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer
+        if origin_only || url.as_str().len() > MAX_REFERRER_URL_LENGTH {
+            url.set_path("");
+            url.set_query(None);
+        }
+    }
+    // Step 7
+    Some(url)
+}
+
+/// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-same-origin>
+fn same_origin(referrer_url: ServoUrl, current_url: ServoUrl) -> Option<ServoUrl> {
+    // Step 1
+    if referrer_url.origin() == current_url.origin() {
+        return strip_url_for_use_as_referrer(referrer_url, false);
+    }
+    // Step 2
+    None
+}
+
+/// <https://w3c.github.io/webappsec-referrer-policy/#referrer-policy-origin-when-cross-origin>
+fn origin_when_cross_origin(referrer_url: ServoUrl, current_url: ServoUrl) -> Option<ServoUrl> {
+    // Step 1
+    if referrer_url.origin() == current_url.origin() {
+        return strip_url_for_use_as_referrer(referrer_url, false);
+    }
+    // Step 2
+    strip_url_for_use_as_referrer(referrer_url, true)
 }
 
 /// <https://w3c.github.io/webappsec-referrer-policy/#determine-requests-referrer>
-/// Steps 4-6.
-pub fn determine_request_referrer(
-    headers: &mut HeaderMap,
+pub fn determine_requests_referrer(
     referrer_policy: ReferrerPolicy,
     referrer_source: ServoUrl,
     current_url: ServoUrl,
-    https_state: HttpsState,
 ) -> Option<ServoUrl> {
-    assert!(!headers.contains_key(header::REFERER));
-    // FIXME(#14505): this does not seem to be the correct way of checking for
-    //                same-origin requests.
-    let cross_origin = referrer_source.origin() != current_url.origin();
     match referrer_policy {
         ReferrerPolicy::NoReferrer => None,
-        ReferrerPolicy::Origin => strip_url(referrer_source, true),
-        ReferrerPolicy::SameOrigin => {
-            if cross_origin {
-                None
-            } else {
-                strip_url(referrer_source, false)
-            }
-        },
-        ReferrerPolicy::UnsafeUrl => strip_url(referrer_source, false),
-        ReferrerPolicy::OriginWhenCrossOrigin => strip_url(referrer_source, cross_origin),
-        ReferrerPolicy::StrictOrigin => strict_origin(referrer_source, current_url, https_state),
+        ReferrerPolicy::Origin => strip_url_for_use_as_referrer(referrer_source, true),
+        ReferrerPolicy::UnsafeUrl => strip_url_for_use_as_referrer(referrer_source, false),
+        ReferrerPolicy::StrictOrigin => strict_origin(referrer_source, current_url),
         ReferrerPolicy::StrictOriginWhenCrossOrigin => {
-            strict_origin_when_cross_origin(referrer_source, current_url, https_state)
+            strict_origin_when_cross_origin(referrer_source, current_url)
+        },
+        ReferrerPolicy::SameOrigin => same_origin(referrer_source, current_url),
+        ReferrerPolicy::OriginWhenCrossOrigin => {
+            origin_when_cross_origin(referrer_source, current_url)
         },
         ReferrerPolicy::NoReferrerWhenDowngrade => {
-            no_referrer_when_downgrade_header(referrer_source, current_url, https_state)
+            no_referrer_when_downgrade(referrer_source, current_url)
         },
     }
 }
