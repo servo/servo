@@ -60,8 +60,8 @@ use canvas_traits::webgl::{
     webgl_channel, AlphaTreatment, DOMToTextureCommand, GLContextAttributes, GLLimits, GlType,
     Parameter, SizedDataType, TexDataType, TexFormat, TexParameter, WebGLChan, WebGLCommand,
     WebGLCommandBacktrace, WebGLContextId, WebGLError, WebGLFramebufferBindingRequest, WebGLMsg,
-    WebGLMsgSender, WebGLOpaqueFramebufferId, WebGLProgramId, WebGLResult, WebGLSLVersion,
-    WebGLSendResult, WebGLSender, WebGLVersion, YAxisTreatment,
+    WebGLMsgSender, WebGLProgramId, WebGLResult, WebGLSLVersion, WebGLSendResult, WebGLSender,
+    WebGLVersion, YAxisTreatment,
 };
 use dom_struct::dom_struct;
 use embedder_traits::EventLoopWaker;
@@ -84,8 +84,6 @@ use std::cell::Cell;
 use std::cmp;
 use std::ptr::{self, NonNull};
 use std::rc::Rc;
-use webxr_api::SessionId;
-use webxr_api::SwapChainId as WebXRSwapChainId;
 
 // From the GLES 2.0.25 spec, page 85:
 //
@@ -404,10 +402,6 @@ impl WebGLRenderingContext {
         let _ = self
             .webgl_sender
             .send(command, capture_webgl_backtrace(self));
-    }
-
-    pub fn swap_buffers(&self, id: Option<WebGLOpaqueFramebufferId>) {
-        let _ = self.webgl_sender.send_swap_buffers(id);
     }
 
     pub fn webgl_error(&self, err: WebGLError) {
@@ -5001,19 +4995,6 @@ impl WebGLMessageSender {
 
     pub fn send(&self, msg: WebGLCommand, backtrace: WebGLCommandBacktrace) -> WebGLSendResult {
         self.wake_after_send(|| self.sender.send(msg, backtrace))
-    }
-
-    pub fn send_swap_buffers(&self, id: Option<WebGLOpaqueFramebufferId>) -> WebGLSendResult {
-        self.wake_after_send(|| self.sender.send_swap_buffers(id))
-    }
-
-    pub fn send_create_webxr_swap_chain(
-        &self,
-        size: Size2D<i32>,
-        sender: WebGLSender<Option<WebXRSwapChainId>>,
-        id: SessionId,
-    ) -> WebGLSendResult {
-        self.wake_after_send(|| self.sender.send_create_webxr_swap_chain(size, sender, id))
     }
 
     pub fn send_resize(

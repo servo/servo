@@ -16,6 +16,7 @@ use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
 use crate::dom::xrwebglsubimage::XRWebGLSubImage;
+use canvas_traits::webgl::WebGLContextId;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -49,6 +50,19 @@ impl WebGLRenderingContextOrWebGL2RenderingContext {
             ) => WebGLRenderingContextOrWebGL2RenderingContext::WebGL2RenderingContext(
                 Dom::from_ref(context),
             ),
+        }
+    }
+}
+
+impl RootedWebGLRenderingContextOrWebGL2RenderingContext {
+    pub(crate) fn context_id(&self) -> WebGLContextId {
+        match self {
+            RootedWebGLRenderingContextOrWebGL2RenderingContext::WebGLRenderingContext(
+                ref context,
+            ) => context.context_id(),
+            RootedWebGLRenderingContextOrWebGL2RenderingContext::WebGL2RenderingContext(
+                ref context,
+            ) => context.base_context().context_id(),
         }
     }
 }

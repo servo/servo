@@ -20,6 +20,8 @@ use crate::dom::xrviewerpose::XRViewerPose;
 use dom_struct::dom_struct;
 use std::cell::Cell;
 use webxr_api::Frame;
+use webxr_api::LayerId;
+use webxr_api::SubImages;
 
 #[dom_struct]
 pub struct XRFrame {
@@ -58,6 +60,14 @@ impl XRFrame {
 
     pub fn get_pose(&self, space: &XRSpace) -> Option<ApiPose> {
         space.get_pose(&self.data)
+    }
+
+    pub fn get_sub_images(&self, layer_id: LayerId) -> Option<&SubImages> {
+        self.data
+            .sub_images
+            .iter()
+            .filter(|sub_images| sub_images.layer_id == layer_id)
+            .next()
     }
 }
 

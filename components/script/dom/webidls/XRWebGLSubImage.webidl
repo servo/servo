@@ -5,7 +5,9 @@
 // https://immersive-web.github.io/layers/#xrwebglsubimagetype
 [SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
 interface XRWebGLSubImage : XRSubImage {
-  readonly attribute WebGLTexture colorTexture;
-  readonly attribute WebGLTexture? depthStencilTexture;
+  [SameObject] readonly attribute WebGLTexture colorTexture;
+  [SameObject] readonly attribute WebGLTexture? depthStencilTexture;
   readonly attribute unsigned long? imageIndex;
+  readonly attribute unsigned long textureWidth;
+  readonly attribute unsigned long textureHeight;
 };

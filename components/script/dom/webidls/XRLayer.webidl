@@ -5,9 +5,6 @@
 // https://immersive-web.github.io/layers/#xrlayertype
 [SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
 interface XRLayer {
-  readonly attribute unsigned long pixelWidth;
-  readonly attribute unsigned long pixelHeight;
-
 //  attribute boolean blendTextureSourceAlpha;
 //  attribute boolean chromaticAberrationCorrection;
 

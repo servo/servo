@@ -14,14 +14,13 @@ use crate::dom::webglrenderbuffer::WebGLRenderbuffer;
 use crate::dom::webglrenderingcontext::{Operation, WebGLRenderingContext};
 use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::xrsession::XRSession;
+use canvas_traits::webgl::WebGLFramebufferId;
 use canvas_traits::webgl::{webgl_channel, WebGLError, WebGLResult, WebGLVersion};
 use canvas_traits::webgl::{WebGLCommand, WebGLFramebufferBindingRequest};
-use canvas_traits::webgl::{WebGLFramebufferId, WebGLOpaqueFramebufferId};
 use canvas_traits::webgl::{WebGLRenderbufferId, WebGLTextureId};
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use std::cell::Cell;
-use webxr_api::SwapChainId as WebXRSwapChainId;
 use webxr_api::Viewport;
 
 pub enum CompleteForRendering {
@@ -134,7 +133,7 @@ impl WebGLFramebuffer {
         let (sender, receiver) = webgl_channel().unwrap();
         context.send_command(WebGLCommand::CreateFramebuffer(sender));
         let id = receiver.recv().unwrap()?;
-        let framebuffer = WebGLFramebuffer::new(context, WebGLFramebufferId::Transparent(id));
+        let framebuffer = WebGLFramebuffer::new(context, id);
         Some(framebuffer)
     }
 
@@ -144,25 +143,16 @@ impl WebGLFramebuffer {
         session: &XRSession,
         context: &XRWebGLRenderingContext,
         size: Size2D<i32, Viewport>,
-    ) -> Option<(WebXRSwapChainId, DomRoot<Self>)> {
-        let (sender, receiver) = webgl_channel().unwrap();
+    ) -> Option<DomRoot<Self>> {
         let context = match context {
             XRWebGLRenderingContext::WebGLRenderingContext(ref ctx) => DomRoot::from_ref(&**ctx),
             XRWebGLRenderingContext::WebGL2RenderingContext(ref ctx) => ctx.base_context(),
         };
-        let _ = context.webgl_sender().send_create_webxr_swap_chain(
-            size.to_untyped(),
-            sender,
-            session.session_id(),
-        );
-        let swap_chain_id = receiver.recv().unwrap()?;
-        let framebuffer_id =
-            WebGLFramebufferId::Opaque(WebGLOpaqueFramebufferId::WebXR(swap_chain_id));
-        let framebuffer = WebGLFramebuffer::new(&*context, framebuffer_id);
+        let framebuffer = Self::maybe_new(&*context)?;
         framebuffer.size.set(Some((size.width, size.height)));
         framebuffer.status.set(constants::FRAMEBUFFER_COMPLETE);
         framebuffer.xr_session.set(Some(session));
-        Some((swap_chain_id, framebuffer))
+        Some(framebuffer)
     }
 
     pub fn new(context: &WebGLRenderingContext, id: WebGLFramebufferId) -> DomRoot<Self> {
@@ -655,7 +645,57 @@ impl WebGLFramebuffer {
         // Opaque framebuffers cannot have their attachments changed
         // https://immersive-web.github.io/webxr/#opaque-framebuffer
         self.validate_transparent()?;
+        if let Some(texture) = texture {
+            //     "If texture is not zero, then texture must either
+            //      name an existing texture object with an target of
+            //      textarget, or texture must name an existing cube
+            //      map texture and textarget must be one of:
+            //      TEXTURE_CUBE_MAP_POSITIVE_X,
+            //      TEXTURE_CUBE_MAP_POSITIVE_Y,
+            //      TEXTURE_CUBE_MAP_POSITIVE_Z,
+            //      TEXTURE_CUBE_MAP_NEGATIVE_X,
+            //      TEXTURE_CUBE_MAP_NEGATIVE_Y, or
+            //      TEXTURE_CUBE_MAP_NEGATIVE_Z. Otherwise,
+            //      INVALID_OPERATION is generated."
+            let is_cube = match textarget {
+                constants::TEXTURE_2D => false,
 
+                constants::TEXTURE_CUBE_MAP_POSITIVE_X => true,
+                constants::TEXTURE_CUBE_MAP_POSITIVE_Y => true,
+                constants::TEXTURE_CUBE_MAP_POSITIVE_Z => true,
+                constants::TEXTURE_CUBE_MAP_NEGATIVE_X => true,
+                constants::TEXTURE_CUBE_MAP_NEGATIVE_Y => true,
+                constants::TEXTURE_CUBE_MAP_NEGATIVE_Z => true,
+
+                _ => return Err(WebGLError::InvalidEnum),
+            };
+
+            match texture.target() {
+                Some(constants::TEXTURE_CUBE_MAP) if is_cube => {},
+                Some(_) if !is_cube => {},
+                _ => return Err(WebGLError::InvalidOperation),
+            }
+
+            let context = self.upcast::<WebGLObject>().context();
+            let max_tex_size = if is_cube {
+                context.limits().max_cube_map_tex_size
+            } else {
+                context.limits().max_tex_size
+            };
+            if level < 0 || level as u32 > log2(max_tex_size) {
+                return Err(WebGLError::InvalidValue);
+            }
+        }
+        self.texture2d_even_if_opaque(attachment, textarget, texture, level)
+    }
+
+    pub fn texture2d_even_if_opaque(
+        &self,
+        attachment: u32,
+        textarget: u32,
+        texture: Option<&WebGLTexture>,
+        level: i32,
+    ) -> WebGLResult<()> {
         let binding = self
             .attachment_binding(attachment)
             .ok_or(WebGLError::InvalidEnum)?;
@@ -664,46 +704,6 @@ impl WebGLFramebuffer {
             // Note, from the GLES 2.0.25 spec, page 113:
             //      "If texture is zero, then textarget and level are ignored."
             Some(texture) => {
-                //     "If texture is not zero, then texture must either
-                //      name an existing texture object with an target of
-                //      textarget, or texture must name an existing cube
-                //      map texture and textarget must be one of:
-                //      TEXTURE_CUBE_MAP_POSITIVE_X,
-                //      TEXTURE_CUBE_MAP_POSITIVE_Y,
-                //      TEXTURE_CUBE_MAP_POSITIVE_Z,
-                //      TEXTURE_CUBE_MAP_NEGATIVE_X,
-                //      TEXTURE_CUBE_MAP_NEGATIVE_Y, or
-                //      TEXTURE_CUBE_MAP_NEGATIVE_Z. Otherwise,
-                //      INVALID_OPERATION is generated."
-                let is_cube = match textarget {
-                    constants::TEXTURE_2D => false,
-
-                    constants::TEXTURE_CUBE_MAP_POSITIVE_X => true,
-                    constants::TEXTURE_CUBE_MAP_POSITIVE_Y => true,
-                    constants::TEXTURE_CUBE_MAP_POSITIVE_Z => true,
-                    constants::TEXTURE_CUBE_MAP_NEGATIVE_X => true,
-                    constants::TEXTURE_CUBE_MAP_NEGATIVE_Y => true,
-                    constants::TEXTURE_CUBE_MAP_NEGATIVE_Z => true,
-
-                    _ => return Err(WebGLError::InvalidEnum),
-                };
-
-                match texture.target() {
-                    Some(constants::TEXTURE_CUBE_MAP) if is_cube => {},
-                    Some(_) if !is_cube => {},
-                    _ => return Err(WebGLError::InvalidOperation),
-                }
-
-                let context = self.upcast::<WebGLObject>().context();
-                let max_tex_size = if is_cube {
-                    context.limits().max_cube_map_tex_size
-                } else {
-                    context.limits().max_tex_size
-                };
-                if level < 0 || level as u32 > log2(max_tex_size) {
-                    return Err(WebGLError::InvalidValue);
-                }
-
                 *binding.borrow_mut() = Some(WebGLFramebufferAttachment::Texture {
                     texture: Dom::from_ref(texture),
                     level: level,

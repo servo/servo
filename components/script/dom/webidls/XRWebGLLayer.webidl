@@ -12,7 +12,8 @@ dictionary XRWebGLLayerInit {
   boolean depth = true;
   boolean stencil = false;
   boolean alpha = true;
-  // double framebufferScaleFactor = 1.0;
+  boolean ignoreDepthValues = false;
+  double framebufferScaleFactor = 1.0;
 };
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]

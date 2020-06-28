@@ -8,6 +8,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::xrsubimage::XRSubImage;
 use dom_struct::dom_struct;
+use euclid::Size2D;
+use webxr_api::Viewport;
 
 #[dom_struct]
 pub struct XRWebGLSubImage {
@@ -15,6 +17,7 @@ pub struct XRWebGLSubImage {
     color_texture: Dom<WebGLTexture>,
     depth_stencil_texture: Option<Dom<WebGLTexture>>,
     image_index: Option<u32>,
+    size: Size2D<u32, Viewport>,
 }
 
 impl XRWebGLSubImageMethods for XRWebGLSubImage {
@@ -31,5 +34,15 @@ impl XRWebGLSubImageMethods for XRWebGLSubImage {
     /// https://immersive-web.github.io/layers/#dom-xrwebglsubimage-imageindex
     fn GetImageIndex(&self) -> Option<u32> {
         self.image_index
+    }
+
+    /// https://immersive-web.github.io/layers/#dom-xrwebglsubimage-texturewidth
+    fn TextureWidth(&self) -> u32 {
+        self.size.width
+    }
+
+    /// https://immersive-web.github.io/layers/#dom-xrwebglsubimage-textureheight
+    fn TextureHeight(&self) -> u32 {
+        self.size.height
     }
 }
