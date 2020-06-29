@@ -144,24 +144,6 @@
     <Image Include="Assets\Square44x44Logo.altform-unplated_targetsize-256.png">
       <Filter>Assets</Filter>
     </Image>
-    <Image Include="Assets\UI\back.png">
-      <Filter>Assets\UI</Filter>
-    </Image>
-    <Image Include="Assets\UI\forward.png">
-      <Filter>Assets\UI</Filter>
-    </Image>
-    <Image Include="Assets\UI\reload.png">
-      <Filter>Assets\UI</Filter>
-    </Image>
-    <Image Include="Assets\UI\cross.png">
-      <Filter>Assets\UI</Filter>
-    </Image>
-    <Image Include="Assets\UI\home.png">
-      <Filter>Assets\UI</Filter>
-    </Image>
-    <Image Include="Assets\UI\devtools.png">
-      <Filter>Assets\UI</Filter>
-    </Image>
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest" />
@@ -889,9 +871,6 @@
     </Filter>
     <Filter Include="ServoControl">
       <UniqueIdentifier>{d21a959c-19d1-4a54-b942-692c27e5b3a6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Assets\UI">
-      <UniqueIdentifier>{d49fe329-5e22-4470-8310-5b925419e6f8}</UniqueIdentifier>
     </Filter>
     <Filter Include="Strings">
       <UniqueIdentifier>{49e23631-d899-4caf-bf7b-30776fee4d09}</UniqueIdentifier>

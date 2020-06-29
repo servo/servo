@@ -97,31 +97,31 @@
             </Grid.ColumnDefinitions>
             <StackPanel Orientation="Horizontal" Grid.Column="0">
                 <Button Style="{StaticResource NavigationBarButton}" x:Uid="backButton" x:Name="backButton" IsTabStop="true" IsEnabled="false" Click="OnBackButtonClicked">
-                    <Image Source="Assets/UI/back.png" Height="18"></Image>
+                    <SymbolIcon Symbol="Back"/>
                     <Button.KeyboardAccelerators>
                         <KeyboardAccelerator Key="Left" Modifiers="Menu" />
                     </Button.KeyboardAccelerators>
                 </Button>
                 <Button Style="{StaticResource NavigationBarButton}" x:Uid="forwardButton" x:Name="forwardButton" IsTabStop="true" IsEnabled="false" Click="OnForwardButtonClicked">
-                    <Image Source="Assets/UI/forward.png" Height="18"></Image>
+                    <SymbolIcon Symbol="Forward"/>
                     <Button.KeyboardAccelerators>
                         <KeyboardAccelerator Key="Right" Modifiers="Menu" />
                     </Button.KeyboardAccelerators>
                 </Button>
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="reloadButton" x:Uid="reloadButton" IsTabStop="true" IsEnabled="false" Visibility="Visible" Click="OnReloadButtonClicked">
-                    <Image Source="Assets/UI/reload.png" Height="18"></Image>
+                    <SymbolIcon Symbol="Refresh"/>
                     <Button.KeyboardAccelerators>
                         <KeyboardAccelerator Key="R" Modifiers="Control" />
                     </Button.KeyboardAccelerators>
                 </Button>
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="stopButton" x:Uid="stopButton" IsTabStop="true" IsEnabled="false" Visibility="Collapsed" Click="OnStopButtonClicked">
-                    <Image Source="Assets/UI/cross.png" Height="18"></Image>
+                    <SymbolIcon Symbol="Cancel"/>
                     <Button.KeyboardAccelerators>
                         <KeyboardAccelerator Key="Escape" Modifiers="None" />
                     </Button.KeyboardAccelerators>
                 </Button>
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="homeButton" x:Uid="homeButton" IsTabStop="true" Click="OnHomeButtonClicked">
-                    <Image Source="Assets/UI/home.png" Height="18"></Image>
+                    <SymbolIcon Symbol="Home"/>
                 </Button>
             </StackPanel>
             <TextBox x:Uid="urlTextbox" Text="" IsTabStop="true" InputScope="Url" x:Name="urlTextbox" VerticalAlignment="Center" Grid.Column="1" KeyUp="OnURLEdited" IsSpellCheckEnabled="False" Margin="3,0" KeyboardAcceleratorPlacementMode="Hidden">
@@ -131,7 +131,8 @@
             </TextBox>
             <StackPanel Orientation="Horizontal" Grid.Column="2">
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="devtoolsButton" IsEnabled="false" x:Uid="devtoolsButton" IsTabStop="true" Click="OnDevtoolsButtonClicked">
-                    <Image Source="Assets/UI/devtools.png" Height="18"></Image>
+                    <!-- EC7A is the "DeveloperTools" symbol, not exported in the symbol list for some reason -->
+                    <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEC7A;"/>
                 </Button>
                 <ProgressRing x:Name="urlbarLoadingIndicator" Margin="10,0"/>
             </StackPanel>
@@ -145,7 +146,7 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <Button Grid.Column="1" Style="{StaticResource NavigationBarButton}" x:Name="toolboxCloseButton" IsTabStop="true" Click="OnDevtoolsButtonClicked">
-                        <Image Source="Assets/UI/cross.png" Height="18"></Image>
+                        <SymbolIcon Symbol="Cancel"/>
                     </Button>
                 </Grid>
             </muxc:TabView.TabStripFooter>
@@ -155,7 +156,7 @@
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <ListView ItemsSource="{x:Bind ConsoleLogs}" Background="White">
+                    <ListView ItemsSource="{x:Bind ConsoleLogs}">
                         <ListView.ItemsPanel>
                             <ItemsPanelTemplate>
                                 <ItemsStackPanel Orientation="Vertical" ItemsUpdatingScrollMode="KeepLastItemInView"/>
@@ -163,15 +164,15 @@
                         </ListView.ItemsPanel>
                         <ListView.ItemTemplate>
                             <DataTemplate x:DataType="local:ConsoleLog">
-                                <Grid Background="{x:Bind BgColor}" Padding="2">
+                                <Grid Padding="2">
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <Ellipse Width="8" Height="8" Fill="{x:Bind DotColor}" Grid.Column="0" Margin="10,0"/>
-                                    <TextBlock FontFamily="Consolas" FontSize="12" Text="{x:Bind Body}" Foreground="Black" Grid.Column="1"/>
-                                    <TextBlock FontFamily="Consolas" FontSize="12" Text="{x:Bind Source}" Foreground="Gray" Grid.Column="2" Margin="10,0"/>
+                                    <FontIcon FontSize="12" FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="{x:Bind Glyph}" Foreground="{x:Bind GlyphColor}" Grid.Column="0" MinWidth="22"/>
+                                    <TextBlock FontFamily="Consolas" FontSize="12" Text="{x:Bind Body}" Grid.Column="1"/>
+                                    <TextBlock FontFamily="Consolas" FontSize="12" Text="{x:Bind Source}" Grid.Column="2" Margin="10,0"  Style="{ThemeResource BodyTextBlockStyle}" Foreground="{ThemeResource SystemBaseMediumColor}"/>
                                 </Grid>
                             </DataTemplate>
                         </ListView.ItemTemplate>

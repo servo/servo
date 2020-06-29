@@ -283,16 +283,16 @@ void BrowserPage::ClearConsole() {
 void BrowserPage::OnDevtoolsMessage(DevtoolsMessageLevel level, hstring source,
                                     hstring body) {
   Dispatcher().RunAsync(CoreDispatcherPriority::High, [=] {
-    auto dotColor = UI::Colors::Transparent();
-    auto bgColor = UI::Colors::Transparent();
+    auto glyphColor = UI::Colors::Transparent();
+    auto glyph = L"";
     if (level == servo::DevtoolsMessageLevel::Error) {
-      dotColor = UI::Colors::Red();
-      bgColor = UI::Colors::LightPink();
+      glyphColor = UI::Colors::Red();
+      glyph = L"\xEA39"; // ErrorBadge
     } else if (level == servo::DevtoolsMessageLevel::Warn) {
-      dotColor = UI::Colors::Orange();
-      bgColor = UI::Colors::LightYellow();
+      glyphColor = UI::Colors::Orange();
+      glyph = L"\xE7BA"; // Warning
     }
-    mLogs.Append(make<ConsoleLog>(dotColor, bgColor, body, source));
+    mLogs.Append(make<ConsoleLog>(glyphColor, glyph, body, source));
   });
 }
 
