@@ -3807,8 +3807,8 @@ dependencies = [
 
 [[package]]
 name = "openxr"
-version = "0.12.1"
-source = "git+https://github.com/servo/openxrs.git?branch=xr-msft#fd761bf95d62c26709f8589bd82b495cd8276c8f"
+version = "0.12.2"
+source = "git+https://github.com/servo/openxrs.git?branch=secondary-views-2#87c0186c88f6e2bc22dbbe0bf5c02afc60fc37ef"
 dependencies = [
  "libc",
  "libloading 0.6.1",
@@ -3818,8 +3818,8 @@ dependencies = [
 
 [[package]]
 name = "openxr-sys"
-version = "0.8.1"
-source = "git+https://github.com/servo/openxrs.git?branch=xr-msft#fd761bf95d62c26709f8589bd82b495cd8276c8f"
+version = "0.8.2"
+source = "git+https://github.com/servo/openxrs.git?branch=secondary-views-2#87c0186c88f6e2bc22dbbe0bf5c02afc60fc37ef"
 dependencies = [
  "libc",
  "winapi",
@@ -6520,7 +6520,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#e507076cc6f55ea6daa58c3ecbb1867847854722"
+source = "git+https://github.com/servo/webxr#a17324853a9a0674a9044aed2518ecef020c758d"
 dependencies = [
  "android_injected_glue",
  "bindgen",
@@ -6543,7 +6543,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#e507076cc6f55ea6daa58c3ecbb1867847854722"
+source = "git+https://github.com/servo/webxr#a17324853a9a0674a9044aed2518ecef020c758d"
 dependencies = [
  "euclid",
  "ipc-channel",
