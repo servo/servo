@@ -5170,9 +5170,9 @@ dependencies = [
 
 [[package]]
 name = "shellwords"
-version = "1.0.0"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "685f0e9b0efe23d26e60a780d8dcd3ac95e90975814de9bc6f48e5d609b5d0f5"
+checksum = "89e515aa4699a88148ed5ef96413ceef0048ce95b43fbc955a33bde0a70fcae6"
 dependencies = [
  "lazy_static",
  "regex",
