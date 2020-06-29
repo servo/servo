@@ -27,7 +27,7 @@ opt-level = 3
 #     <crate> = { path = "/path/to/local/checkout" }
 
 # This is here to dedupe winapi since mio 0.6 is still using winapi 0.2.
-mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
+mio = { git = "https://github.com/servo/mio.git", branch = "servo-mio-0.6.22" }
 
 # https://github.com/servo/servo/issues/27039#issuecomment-654400150
 [patch."https://github.com/servo/webrender"]
