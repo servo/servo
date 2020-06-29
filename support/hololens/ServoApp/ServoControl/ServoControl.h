@@ -3,7 +3,6 @@
 #include "Pref.g.h"
 #include "OpenGLES.h"
 #include "Servo.h"
-#include "DefaultUrl.h"
 
 using namespace winrt::Windows::Foundation::Collections;
 
@@ -49,6 +48,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   void ChangeVisibility(bool);
   void Shutdown();
   hstring LoadURIOrSearch(hstring);
+  void GoHome();
   void SendMediaSessionAction(int32_t);
 
   ServoApp::Pref SetBoolPref(hstring aKey, bool aVal) {
@@ -214,7 +214,6 @@ private:
   int mPanelHeight = 0;
   int mPanelWidth = 0;
   float mDPI = 1;
-  hstring mInitialURL = DEFAULT_URL;
   hstring mCurrentUrl = L"";
   bool mTransient = false;
 

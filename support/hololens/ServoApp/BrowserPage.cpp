@@ -7,7 +7,6 @@
 #include "BrowserPage.h"
 #include "BrowserPage.g.cpp"
 #include "ConsoleLog.g.cpp"
-#include "DefaultUrl.h"
 #include "Devtools/Client.h"
 
 using namespace std::placeholders;
@@ -148,7 +147,7 @@ void BrowserPage::OnStopButtonClicked(IInspectable const &,
 
 void BrowserPage::OnHomeButtonClicked(IInspectable const &,
                                       RoutedEventArgs const &) {
-  servoControl().LoadURIOrSearch(DEFAULT_URL);
+  servoControl().GoHome();
 }
 
 // Given a pref, update its associated UI control.
