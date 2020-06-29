@@ -5224,6 +5224,7 @@ dependencies = [
  "backtrace",
  "cbindgen",
  "env_logger",
+ "keyboard-types",
  "lazy_static",
  "libc",
  "log",
