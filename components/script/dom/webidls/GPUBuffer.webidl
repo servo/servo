@@ -6,7 +6,7 @@
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUBuffer {
     Promise<void> mapAsync(GPUMapModeFlags mode, optional GPUSize64 offset = 0, optional GPUSize64 size = 0);
-    //ArrayBuffer getMappedRange(optional GPUSize64 offset = 0, optional GPUSize64 size = 0);
+    [Throws] ArrayBuffer getMappedRange(optional GPUSize64 offset = 0, optional GPUSize64 size = 0);
     void unmap();
 
     void destroy();
