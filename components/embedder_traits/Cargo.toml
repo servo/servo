@@ -13,7 +13,7 @@ path = "lib.rs"
 [dependencies]
 crossbeam-channel = "0.4"
 ipc-channel = "0.14"
-keyboard-types = "0.4.3"
+keyboard-types = "0.5"
 lazy_static = "1"
 log = "0.4"
 msg = { path = "../msg" }
