@@ -720,30 +720,33 @@ pub extern "C" fn click(x: f32, y: f32) {
 
 #[no_mangle]
 pub extern "C" fn key_down(name: *const c_char) {
-    catch_any_panic(|| {
-        debug!("key_down");
-        let name = unsafe { CStr::from_ptr(name) };
-        let key = Key::from_str(&name.to_str().expect("Can't read string"));
-        if let Ok(key) = key {
-            call(|s| s.key_down(key));
-        } else {
-            warn!("Received unknown keys");
-        }
-    })
+    debug!("key_up");
+    key_event(name, false);
 }
 
 #[no_mangle]
 pub extern "C" fn key_up(name: *const c_char) {
+    debug!("key_up");
+    key_event(name, true);
+}
+
+fn key_event(name: *const c_char, up: bool) {
     catch_any_panic(|| {
-        debug!("key_up");
         let name = unsafe { CStr::from_ptr(name) };
-        let key = Key::from_str(&name.to_str().expect("Can't read string"));
+        let name = match name.to_str() {
+            Ok(name) => name,
+            Err(..) => {
+                warn!("Couldn't not read str");
+                return;
+            },
+        };
+        let key = Key::from_str(&name);
         if let Ok(key) = key {
-            call(|s| s.key_up(key));
+            call(|s| if up { s.key_up(key) } else { s.key_down(key) });
         } else {
             warn!("Received unknown keys");
         }
-    })
+    });
 }
 
 #[no_mangle]

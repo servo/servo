@@ -63,6 +63,8 @@ public:
   void TouchMove(float x, float y, int32_t id) { touch_move(x, y, id); }
   void TouchCancel(float x, float y, int32_t id) { touch_cancel(x, y, id); }
   void MouseMove(float x, float y) { mouse_move(x, y); }
+  void KeyDown(const char *k) { key_down(k); }
+  void KeyUp(const char *k) { key_up(k); }
 
   void Reload() { reload(); }
   void Stop() { stop(); }

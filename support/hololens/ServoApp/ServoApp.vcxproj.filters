@@ -43,6 +43,9 @@
     <ClInclude Include="Devtools\Client.h">
       <Filter>Devtools</Filter>
     </ClInclude>
+    <ClInclude Include="ServoControl\Keys.h">
+      <Filter>ServoControl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
