@@ -218,11 +218,17 @@ fn consume_operation_or_colon(input: &mut Parser) -> Result<Option<Operator>, ()
 }
 
 #[allow(unused_variables)]
-fn disabled_by_pref(feature: &Atom) -> bool {
+fn disabled_by_pref(feature: &Atom, context: &ParserContext) -> bool {
     #[cfg(feature = "gecko")]
     {
         if *feature == atom!("-moz-touch-enabled") {
             return !static_prefs::pref!("layout.css.moz-touch-enabled.enabled");
+        }
+        // prefers-contrast is always enabled in the ua and chrome. On
+        // the web it is hidden behind a preference.
+        if *feature == atom!("prefers-contrast") {
+            return !context.in_ua_or_chrome_sheet() &&
+                !static_prefs::pref!("layout.css.prefers-contrast.enabled");
         }
     }
     false
@@ -305,7 +311,7 @@ impl MediaFeatureExpression {
             },
         };
 
-        if disabled_by_pref(&feature.name) ||
+        if disabled_by_pref(&feature.name, context) ||
             !requirements.contains(feature.requirements) ||
             (range.is_some() && !feature.allows_ranges())
         {

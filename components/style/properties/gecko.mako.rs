@@ -2089,7 +2089,9 @@ pub fn assert_initial_values_match(data: &PerDocumentStyleData) {
         let data = data.borrow();
         let cv = data.stylist.device().default_computed_values();
         <%
-            # Skip properties with initial values that change at computed value time.
+            # Skip properties with initial values that change at computed
+            # value time, or whose initial value depends on the document
+            # / other prefs.
             SKIPPED = [
                 "border-top-width",
                 "border-bottom-width",
@@ -2098,6 +2100,7 @@ pub fn assert_initial_values_match(data: &PerDocumentStyleData) {
                 "font-family",
                 "font-size",
                 "outline-width",
+                "color",
             ]
             TO_TEST = [p for p in data.longhands if p.enabled_in != "" and not p.logical and not p.name in SKIPPED]
         %>
