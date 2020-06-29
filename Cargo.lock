@@ -1875,9 +1875,9 @@ dependencies = [
 
 [[package]]
 name = "gfx-hal"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f13e8fd6aaa8f50146b9519999432e097da43466749d8863c53409322c705339"
+checksum = "a18534b23d4c262916231511309bc1f307c74cda8dcb68b93a10ca213a22814b"
 dependencies = [
  "bitflags",
  "raw-window-handle",
