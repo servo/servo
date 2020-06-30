@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::RTCDataChannelInit;
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandidateInit;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCPeerConnectionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
@@ -19,19 +20,22 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::reflect_dom_object;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::str::USVString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
+use crate::dom::rtcdatachannel::RTCDataChannel;
+use crate::dom::rtcdatachannelevent::RTCDataChannelEvent;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::rtcpeerconnectioniceevent::RTCPeerConnectionIceEvent;
 use crate::dom::rtcsessiondescription::RTCSessionDescription;
 use crate::dom::rtctrackevent::RTCTrackEvent;
 use crate::dom::window::Window;
-use crate::realms::InRealm;
+use crate::realms::{enter_realm, InRealm};
 use crate::task::TaskCanceller;
 use crate::task_source::networking::NetworkingTaskSource;
 use crate::task_source::TaskSource;
@@ -40,12 +44,14 @@ use dom_struct::dom_struct;
 use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
 use servo_media::webrtc::{
-    BundlePolicy, GatheringState, IceCandidate, IceConnectionState, SdpType, SessionDescription,
-    SignalingState, WebRtcController, WebRtcSignaller,
+    BundlePolicy, DataChannelEvent, DataChannelId, DataChannelState, GatheringState, IceCandidate,
+    IceConnectionState, SdpType, SessionDescription, SignalingState, WebRtcController,
+    WebRtcSignaller,
 };
 use servo_media::ServoMedia;
 
 use std::cell::Cell;
+use std::collections::HashMap;
 use std::rc::Rc;
 
 #[dom_struct]
@@ -66,6 +72,8 @@ pub struct RTCPeerConnection {
     gathering_state: Cell<RTCIceGatheringState>,
     ice_connection_state: Cell<RTCIceConnectionState>,
     signaling_state: Cell<RTCSignalingState>,
+    #[ignore_malloc_size_of = "defined in servo-media"]
+    data_channels: DomRefCell<HashMap<DataChannelId, Dom<RTCDataChannel>>>,
 }
 
 struct RTCSignaller {
@@ -142,6 +150,25 @@ impl WebRtcSignaller for RTCSignaller {
         );
     }
 
+    fn on_data_channel_event(
+        &self,
+        channel: DataChannelId,
+        event: DataChannelEvent,
+        _: &WebRtcController,
+    ) {
+        // XXX(ferjm) get label and options from channel properties.
+        let this = self.trusted.clone();
+        let _ = self.task_source.queue_with_canceller(
+            task!(on_data_channel_event: move || {
+                let this = this.root();
+                let global = this.global();
+                let _ac = enter_realm(&*global);
+                this.on_data_channel_event(channel, event);
+            }),
+            &self.canceller,
+        );
+    }
+
     fn close(&self) {
         // do nothing
     }
@@ -161,6 +188,7 @@ impl RTCPeerConnection {
             gathering_state: Cell::new(RTCIceGatheringState::New),
             ice_connection_state: Cell::new(RTCIceConnectionState::New),
             signaling_state: Cell::new(RTCSignalingState::Stable),
+            data_channels: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -197,6 +225,10 @@ impl RTCPeerConnection {
         config: &RTCConfiguration,
     ) -> Fallible<DomRoot<RTCPeerConnection>> {
         Ok(RTCPeerConnection::new(&window.global(), config))
+    }
+
+    pub fn get_webrtc_controller(&self) -> &DomRefCell<Option<WebRtcController>> {
+        &self.controller
     }
 
     fn make_signaller(&self) -> Box<dyn WebRtcSignaller> {
@@ -254,6 +286,68 @@ impl RTCPeerConnection {
         let track = MediaStreamTrack::new(&self.global(), id, ty);
         let event = RTCTrackEvent::new(&self.global(), atom!("track"), false, false, &track);
         event.upcast::<Event>().fire(self.upcast());
+    }
+
+    fn on_data_channel_event(&self, channel_id: DataChannelId, event: DataChannelEvent) {
+        if self.closed.get() {
+            return;
+        }
+
+        match event {
+            DataChannelEvent::NewChannel => {
+                let channel = RTCDataChannel::new(
+                    &self.global(),
+                    &self,
+                    USVString::from("".to_owned()),
+                    &RTCDataChannelInit::empty(),
+                    Some(channel_id),
+                );
+
+                let event = RTCDataChannelEvent::new(
+                    &self.global(),
+                    atom!("datachannel"),
+                    false,
+                    false,
+                    &channel,
+                );
+                event.upcast::<Event>().fire(self.upcast());
+            },
+            _ => {
+                let channel = if let Some(channel) = self.data_channels.borrow().get(&channel_id) {
+                    DomRoot::from_ref(&**channel)
+                } else {
+                    warn!(
+                        "Got an event for an unregistered data channel {:?}",
+                        channel_id
+                    );
+                    return;
+                };
+
+                match event {
+                    DataChannelEvent::Open => channel.on_open(),
+                    DataChannelEvent::Close => channel.on_close(),
+                    DataChannelEvent::Error(error) => channel.on_error(error),
+                    DataChannelEvent::OnMessage(message) => channel.on_message(message),
+                    DataChannelEvent::StateChange(state) => channel.on_state_change(state),
+                    DataChannelEvent::NewChannel => unreachable!(),
+                }
+            },
+        };
+    }
+
+    pub fn register_data_channel(&self, id: DataChannelId, channel: &RTCDataChannel) {
+        if self
+            .data_channels
+            .borrow_mut()
+            .insert(id, Dom::from_ref(channel))
+            .is_some()
+        {
+            warn!("Data channel already registered {:?}", id);
+        }
+    }
+
+    pub fn unregister_data_channel(&self, id: &DataChannelId) {
+        self.data_channels.borrow_mut().remove(&id);
     }
 
     /// https://www.w3.org/TR/webrtc/#update-ice-gathering-state
@@ -448,6 +542,9 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         SetOnsignalingstatechange
     );
 
+    // https://www.w3.org/TR/webrtc/#dom-rtcpeerconnection-ondatachannel
+    event_handler!(datachannel, GetOndatachannel, SetOndatachannel);
+
     /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addicecandidate
     fn AddIceCandidate(&self, candidate: &RTCIceCandidateInit, comp: InRealm) -> Rc<Promise> {
         let p = Promise::new_in_current_realm(&self.global(), comp);
@@ -624,14 +721,28 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         // Step 5 handled by backend
         self.controller.borrow_mut().as_ref().unwrap().quit();
 
-        // Step 6-10
-        // (no current support for data channels, transports, etc)
+        // Step 6
+        for (_, val) in self.data_channels.borrow().iter() {
+            val.on_state_change(DataChannelState::Closed);
+        }
+
+        // Step 7-10
+        // (no current support for transports, etc)
 
         // Step 11
         self.ice_connection_state.set(RTCIceConnectionState::Closed);
 
         // Step 11
         // (no current support for connection state)
+    }
+
+    /// https://www.w3.org/TR/webrtc/#dom-peerconnection-createdatachannel
+    fn CreateDataChannel(
+        &self,
+        label: USVString,
+        init: &RTCDataChannelInit,
+    ) -> DomRoot<RTCDataChannel> {
+        RTCDataChannel::new(&self.global(), &self, label, init, None)
     }
 }
 

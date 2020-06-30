@@ -16,6 +16,7 @@ characteristicvaluechanged
 checkbox
 click
 close
+closing
 color
 complete
 compositionend
@@ -23,6 +24,7 @@ compositionstart
 compositionupdate
 controllerchange
 cursive
+datachannel
 date
 datetime-local
 dir

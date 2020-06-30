@@ -272,7 +272,9 @@ class PostBuildCommands(CommandBase):
 
         features += self.pick_media_stack(media_stack, target)
 
-        returncode = self.run_cargo_build_like_command("doc", params, features=features, **kwargs)
+        env = self.build_env(target=target, is_build=True, features=features)
+
+        returncode = self.run_cargo_build_like_command("doc", params, features=features, env=env, **kwargs)
         if returncode:
             return returncode
 
