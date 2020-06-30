@@ -12,7 +12,7 @@ fn main() {
     #[cfg(windows)]
     {
         let mut res = winres::WindowsResource::new();
-        res.set_icon("../../resources/Servo.ico");
+        res.set_icon("../../resources/servo.ico");
         res.set_manifest_file("platform/windows/servo.exe.manifest");
         res.compile().unwrap();
     }

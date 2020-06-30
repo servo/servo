@@ -739,7 +739,7 @@ class MachCommands(CommandBase):
                 # like Instruments.app.
                 try:
                     import Cocoa
-                    icon_path = path.join(self.get_top_dir(), "resources", "servo.png")
+                    icon_path = path.join(self.get_top_dir(), "resources", "servo_1024.png")
                     icon = Cocoa.NSImage.alloc().initWithContentsOfFile_(icon_path)
                     if icon is not None:
                         Cocoa.NSWorkspace.sharedWorkspace().setIcon_forFile_options_(icon,
