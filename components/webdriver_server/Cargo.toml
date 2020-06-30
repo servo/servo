@@ -19,7 +19,7 @@ euclid = "0.20"
 hyper = "0.12"
 image = "0.23"
 ipc-channel = "0.14"
-keyboard-types = "0.4.3"
+keyboard-types = "0.5"
 log = "0.4"
 msg = { path = "../msg" }
 net_traits = { path = "../net_traits" }

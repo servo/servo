@@ -64,7 +64,7 @@ ipc-channel = "0.14"
 itertools = "0.8"
 js = { package = "mozjs", git = "https://github.com/servo/rust-mozjs" }
 jstraceable_derive = { path = "../jstraceable_derive" }
-keyboard-types = "0.4.4"
+keyboard-types = "0.5"
 lazy_static = "1"
 libc = "0.2"
 log = "0.4"

@@ -2736,9 +2736,9 @@ dependencies = [
 
 [[package]]
 name = "keyboard-types"
-version = "0.4.4"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53b536dc22c0dabb295e85dbd0c062023885b12b8db24e1d86833f4e50ea7959"
+checksum = "a989afac88279b0482f402d234b5fbd405bf1ad051308595b58de4e6de22346b"
 dependencies = [
  "bitflags",
  "serde",
@@ -5224,6 +5224,7 @@ dependencies = [
  "backtrace",
  "cbindgen",
  "env_logger",
+ "keyboard-types",
  "lazy_static",
  "libc",
  "log",

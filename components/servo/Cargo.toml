@@ -57,7 +57,7 @@ gfx_traits = { path = "../gfx_traits" }
 gleam = "0.11"
 gstreamer = { version = "0.15", optional = true }
 ipc-channel = "0.14"
-keyboard-types = "0.4"
+keyboard-types = "0.5"
 layout_thread_2013 = { path = "../layout_thread", optional = true }
 layout_thread_2020 = { path = "../layout_thread_2020", optional = true }
 log = "0.4"

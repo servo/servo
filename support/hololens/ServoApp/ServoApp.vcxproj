@@ -120,6 +120,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="Devtools\Client.h" />
+    <ClInclude Include="ServoControl\Keys.h" />
     <ClInclude Include="strutils.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="App.h">

@@ -264,6 +264,7 @@ private:
   void RunOnGLThread(std::function<void()>);
 
   void TryLoadUri(hstring);
+  void InitializeTextController();
 
   std::unique_ptr<servo::Servo> mServo;
   PropertySet mNativeWindowProperties;
@@ -277,6 +278,9 @@ private:
   hstring mArgs;
   std::optional<servo::Servo::MouseButton> mPressedMouseButton = {};
   std::unique_ptr<L10NStrings> mL10NStrings = nullptr;
+
+  std::optional<Windows::UI::Text::Core::CoreTextEditContext> mEditContext;
+  std::optional<Windows::UI::ViewManagement::InputPane> mInputPane;
 };
 } // namespace winrt::ServoApp::implementation
 

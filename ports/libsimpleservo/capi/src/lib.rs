@@ -16,6 +16,7 @@ mod vslogger;
 use backtrace::Backtrace;
 #[cfg(not(target_os = "windows"))]
 use env_logger;
+use keyboard_types::Key;
 use log::LevelFilter;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
@@ -714,6 +715,37 @@ pub extern "C" fn click(x: f32, y: f32) {
     catch_any_panic(|| {
         debug!("click");
         call(|s| s.click(x, y));
+    });
+}
+
+#[no_mangle]
+pub extern "C" fn key_down(name: *const c_char) {
+    debug!("key_up");
+    key_event(name, false);
+}
+
+#[no_mangle]
+pub extern "C" fn key_up(name: *const c_char) {
+    debug!("key_up");
+    key_event(name, true);
+}
+
+fn key_event(name: *const c_char, up: bool) {
+    catch_any_panic(|| {
+        let name = unsafe { CStr::from_ptr(name) };
+        let name = match name.to_str() {
+            Ok(name) => name,
+            Err(..) => {
+                warn!("Couldn't not read str");
+                return;
+            },
+        };
+        let key = Key::from_str(&name);
+        if let Ok(key) = key {
+            call(|s| if up { s.key_up(key) } else { s.key_down(key) });
+        } else {
+            warn!("Received unknown keys");
+        }
     });
 }
 
