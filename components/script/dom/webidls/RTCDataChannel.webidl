@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/webrtc-pc/#dom-rtcdatachannel
 
- [Exposed=Window]
+[Exposed=Window, Pref="dom.webrtc.enabled"]
 interface RTCDataChannel : EventTarget {
   readonly attribute USVString label;
   readonly attribute boolean ordered;

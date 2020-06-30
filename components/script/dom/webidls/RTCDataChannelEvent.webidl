@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/webrtc-pc/#dom-rtcdatachannelevent
 
- [Exposed=Window]
+[Exposed=Window, Pref="dom.webrtc.enabled"]
 interface RTCDataChannelEvent : Event {
   constructor(DOMString type, RTCDataChannelEventInit eventInitDict);
   readonly attribute RTCDataChannel channel;

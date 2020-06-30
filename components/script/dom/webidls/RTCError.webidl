@@ -4,7 +4,7 @@
 
 // https://w3c.github.io/webrtc-pc/#dom-rtcerror
 
-[Exposed=Window]
+[Exposed=Window, Pref="dom.webrtc.enabled"]
 interface RTCError : DOMException {
   constructor(RTCErrorInit init, optional DOMString message = "");
   readonly attribute RTCErrorDetailType errorDetail;
