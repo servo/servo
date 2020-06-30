@@ -25,7 +25,8 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::{
-    new_rt_and_cx, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan,
+    new_rt_and_cx, CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext,
+    Runtime, ScriptChan,
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::TaskSourceName;
@@ -44,6 +45,7 @@ use script_traits::{ScopeThings, ServiceWorkerMsg, WorkerGlobalScopeInit, Worker
 use servo_config::pref;
 use servo_rand::random;
 use servo_url::ServoUrl;
+use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
@@ -225,6 +227,7 @@ impl ServiceWorkerGlobalScope {
         swmanager_sender: IpcSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
+        closing: Arc<AtomicBool>,
     ) -> ServiceWorkerGlobalScope {
         ServiceWorkerGlobalScope {
             workerglobalscope: WorkerGlobalScope::new_inherited(
@@ -234,7 +237,7 @@ impl ServiceWorkerGlobalScope {
                 worker_url,
                 runtime,
                 from_devtools_receiver,
-                None,
+                closing,
                 Arc::new(Mutex::new(Identities::new())),
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
@@ -258,6 +261,7 @@ impl ServiceWorkerGlobalScope {
         swmanager_sender: IpcSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
+        closing: Arc<AtomicBool>,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
         let cx = runtime.cx();
         let scope = Box::new(ServiceWorkerGlobalScope::new_inherited(
@@ -271,6 +275,7 @@ impl ServiceWorkerGlobalScope {
             swmanager_sender,
             scope_url,
             control_receiver,
+            closing,
         ));
         unsafe { ServiceWorkerGlobalScopeBinding::Wrap(SafeJSContext::from_ptr(cx), scope) }
     }
@@ -285,6 +290,8 @@ impl ServiceWorkerGlobalScope {
         swmanager_sender: IpcSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
+        context_sender: Sender<ContextForRequestInterrupt>,
+        closing: Arc<AtomicBool>,
     ) -> JoinHandle<()> {
         let ScopeThings {
             script_url,
@@ -300,6 +307,8 @@ impl ServiceWorkerGlobalScope {
             .spawn(move || {
                 thread_state::initialize(ThreadState::SCRIPT | ThreadState::IN_WORKER);
                 let runtime = new_rt_and_cx(None);
+                let _ = context_sender.send(ContextForRequestInterrupt::new(runtime.cx()));
+
                 let roots = RootCollection::new();
                 let _stack_roots = ThreadLocalStackRoots::new(&roots);
 
@@ -330,6 +339,7 @@ impl ServiceWorkerGlobalScope {
                     swmanager_sender,
                     scope_url,
                     control_receiver,
+                    closing,
                 );
 
                 let referrer = referrer_url

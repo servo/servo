@@ -1063,11 +1063,7 @@ pub fn run_content_process(token: String) {
 
             set_logger(content.script_to_constellation_chan().clone());
 
-            let background_hang_monitor_register = if opts::get().background_hang_monitor {
-                content.register_with_background_hang_monitor()
-            } else {
-                None
-            };
+            let background_hang_monitor_register = content.register_with_background_hang_monitor();
 
             content.start_all::<script_layout_interface::message::Msg,
                                              layout_thread::LayoutThread,

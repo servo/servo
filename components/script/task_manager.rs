@@ -182,7 +182,7 @@ impl TaskManager {
         let mut flags = self.task_cancellers.borrow_mut();
         let cancel_flag = flags.entry(name).or_insert(Default::default());
         TaskCanceller {
-            cancelled: Some(cancel_flag.clone()),
+            cancelled: cancel_flag.clone(),
         }
     }
 }

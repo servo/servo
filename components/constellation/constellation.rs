@@ -126,7 +126,9 @@ use keyboard_types::KeyboardEvent;
 use layout_traits::LayoutThreadFactory;
 use log::{Level, LevelFilter, Log, Metadata, Record};
 use media::{GLPlayerThreads, WindowGLContext};
-use msg::constellation_msg::{BackgroundHangMonitorRegister, HangMonitorAlert, SamplerControlMsg};
+use msg::constellation_msg::{
+    BackgroundHangMonitorControlMsg, BackgroundHangMonitorRegister, HangMonitorAlert,
+};
 use msg::constellation_msg::{
     BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineNamespace,
     PipelineNamespaceId, PipelineNamespaceRequest, TraversalDirection,
@@ -294,16 +296,18 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     /// None when in multiprocess mode.
     background_monitor_register: Option<Box<dyn BackgroundHangMonitorRegister>>,
 
-    /// Channels to control all sampling profilers.
-    sampling_profiler_control: Vec<IpcSender<SamplerControlMsg>>,
+    /// Channels to control all background-hang monitors.
+    /// TODO: store them on the relevant BrowsingContextGroup,
+    /// so that they could be controlled on a "per-tab/event-loop" basis.
+    background_monitor_control_senders: Vec<IpcSender<BackgroundHangMonitorControlMsg>>,
 
     /// A channel for the background hang monitor to send messages
     /// to the constellation.
-    background_hang_monitor_sender: Option<IpcSender<HangMonitorAlert>>,
+    background_hang_monitor_sender: IpcSender<HangMonitorAlert>,
 
     /// A channel for the constellation to receiver messages
     /// from the background hang monitor.
-    background_hang_monitor_receiver: Option<Receiver<Result<HangMonitorAlert, IpcError>>>,
+    background_hang_monitor_receiver: Receiver<Result<HangMonitorAlert, IpcError>>,
 
     /// An IPC channel for layout threads to send messages to the constellation.
     /// This is the layout threads' view of `layout_receiver`.
@@ -783,42 +787,28 @@ where
                     ipc_scheduler_receiver,
                 );
 
-                let (background_hang_monitor_sender, background_hang_monitor_receiver) =
-                    if opts::get().background_hang_monitor {
-                        let (bhm_sender, ipc_bhm_receiver) =
-                            ipc::channel().expect("ipc channel failure");
-                        (
-                            Some(bhm_sender),
-                            Some(route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(
-                                ipc_bhm_receiver,
-                            )),
-                        )
-                    } else {
-                        (None, None)
-                    };
+                let (background_hang_monitor_sender, ipc_bhm_receiver) =
+                    ipc::channel().expect("ipc channel failure");
+                let background_hang_monitor_receiver =
+                    route_ipc_receiver_to_new_mpsc_receiver_preserving_errors(ipc_bhm_receiver);
 
                 // If we are in multiprocess mode,
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
-                let (background_monitor_register, sampler_chan) =
-                    if opts::multiprocess() || !opts::get().background_hang_monitor {
-                        (None, vec![])
-                    } else {
-                        let (sampling_profiler_control, sampling_profiler_port) =
-                            ipc::channel().expect("ipc channel failure");
-                        if let Some(bhm_sender) = background_hang_monitor_sender.clone() {
-                            (
-                                Some(HangMonitorRegister::init(
-                                    bhm_sender,
-                                    sampling_profiler_port,
-                                )),
-                                vec![sampling_profiler_control],
-                            )
-                        } else {
-                            warn!("No BHM sender found in BHM mode.");
-                            (None, vec![])
-                        }
-                    };
+                let (background_monitor_register, bhm_control_chans) = if opts::multiprocess() {
+                    (None, vec![])
+                } else {
+                    let (bhm_control_chan, bhm_control_port) =
+                        ipc::channel().expect("ipc channel failure");
+                    (
+                        Some(HangMonitorRegister::init(
+                            background_hang_monitor_sender.clone(),
+                            bhm_control_port,
+                            opts::get().background_hang_monitor,
+                        )),
+                        vec![bhm_control_chan],
+                    )
+                };
 
                 let (ipc_layout_sender, ipc_layout_receiver) =
                     ipc::channel().expect("ipc channel failure");
@@ -871,7 +861,7 @@ where
                     background_hang_monitor_sender,
                     background_hang_monitor_receiver,
                     background_monitor_register,
-                    sampling_profiler_control: sampler_chan,
+                    background_monitor_control_senders: bhm_control_chans,
                     layout_sender: ipc_layout_sender,
                     script_receiver: script_receiver,
                     compositor_receiver: compositor_receiver,
@@ -1197,8 +1187,8 @@ where
             Err(e) => return self.handle_send_error(pipeline_id, e),
         };
 
-        if let Some(sampler_chan) = pipeline.sampler_control_chan {
-            self.sampling_profiler_control.push(sampler_chan);
+        if let Some(chan) = pipeline.bhm_control_chan {
+            self.background_monitor_control_senders.push(chan);
         }
 
         if let Some(host) = host {
@@ -1359,7 +1349,7 @@ where
             recv(self.script_receiver) -> msg => {
                 msg.expect("Unexpected script channel panic in constellation").map(Request::Script)
             }
-            recv(self.background_hang_monitor_receiver.as_ref().unwrap_or(&never())) -> msg => {
+            recv(self.background_hang_monitor_receiver) -> msg => {
                 msg.expect("Unexpected BHM channel panic in constellation").map(Request::BackgroundHangMonitor)
             }
             recv(self.compositor_receiver) -> msg => {
@@ -1625,15 +1615,18 @@ where
             },
             FromCompositorMsg::SetCursor(cursor) => self.handle_set_cursor_msg(cursor),
             FromCompositorMsg::EnableProfiler(rate, max_duration) => {
-                for chan in &self.sampling_profiler_control {
-                    if let Err(e) = chan.send(SamplerControlMsg::Enable(rate, max_duration)) {
+                for chan in &self.background_monitor_control_senders {
+                    if let Err(e) = chan.send(BackgroundHangMonitorControlMsg::EnableSampler(
+                        rate,
+                        max_duration,
+                    )) {
                         warn!("error communicating with sampling profiler: {}", e);
                     }
                 }
             },
             FromCompositorMsg::DisableProfiler => {
-                for chan in &self.sampling_profiler_control {
-                    if let Err(e) = chan.send(SamplerControlMsg::Disable) {
+                for chan in &self.background_monitor_control_senders {
+                    if let Err(e) = chan.send(BackgroundHangMonitorControlMsg::DisableSampler) {
                         warn!("error communicating with sampling profiler: {}", e);
                     }
                 }
@@ -2653,6 +2646,22 @@ where
         self.shutting_down = true;
 
         self.mem_profiler_chan.send(mem::ProfilerMsg::Exit);
+
+        // Tell all BHMs to exit,
+        // and to ensure their monitored components exit
+        // even when currently hanging(on JS or sync XHR).
+        // This must be done before starting the process of closing all pipelines.
+        for chan in &self.background_monitor_control_senders {
+            let (exit_sender, exit_receiver) =
+                ipc::channel().expect("Failed to create IPC channel!");
+            if let Err(e) = chan.send(BackgroundHangMonitorControlMsg::Exit(exit_sender)) {
+                warn!("error communicating with bhm: {}", e);
+                continue;
+            }
+            if exit_receiver.recv().is_err() {
+                warn!("Failed to receive exit confirmation from BHM.");
+            }
+        }
 
         // Close the top-level browsing contexts
         let browsing_context_ids: Vec<BrowsingContextId> = self

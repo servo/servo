@@ -52,7 +52,10 @@ use js::jsapi::{BuildIdCharVector, DisableIncrementalGC, GCDescription, GCProgre
 use js::jsapi::{Dispatchable as JSRunnable, Dispatchable_MaybeShuttingDown};
 use js::jsapi::{HandleObject, Heap, JobQueue};
 use js::jsapi::{JSContext as RawJSContext, JSTracer, SetDOMCallbacks, SetGCSliceCallback};
-use js::jsapi::{JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_SetGCCallback};
+use js::jsapi::{
+    JSGCInvocationKind, JSGCStatus, JS_AddExtraGCRootsTracer, JS_RequestInterruptCallback,
+    JS_SetGCCallback,
+};
 use js::jsapi::{JSGCMode, JSGCParamKey, JS_SetGCParameter, JS_SetGlobalJitCompilerOption};
 use js::jsapi::{
     JSJitCompilerOption, JS_SetOffthreadIonCompilationEnabled, JS_SetParallelParsingEnabled,
@@ -844,6 +847,34 @@ unsafe fn set_gc_zeal_options(cx: *mut RawJSContext) {
 #[allow(unsafe_code)]
 #[cfg(not(feature = "debugmozjs"))]
 unsafe fn set_gc_zeal_options(_: *mut RawJSContext) {}
+
+#[repr(transparent)]
+/// A wrapper around a JSContext that is Send,
+/// enabling an interrupt to be requested
+/// from a thread other than the one running JS using that context.
+pub struct ContextForRequestInterrupt(*mut RawJSContext);
+
+impl ContextForRequestInterrupt {
+    pub fn new(context: *mut RawJSContext) -> ContextForRequestInterrupt {
+        ContextForRequestInterrupt(context)
+    }
+
+    #[allow(unsafe_code)]
+    /// Can be called from any thread, to request the callback set by
+    /// JS_AddInterruptCallback to be called
+    /// on the thread where that context is running.
+    pub fn request_interrupt(&self) {
+        unsafe {
+            JS_RequestInterruptCallback(self.0);
+        }
+    }
+}
+
+#[allow(unsafe_code)]
+/// It is safe to call `JS_RequestInterruptCallback(cx)` from any thread.
+/// See the docs for the corresponding `requestInterrupt` method,
+/// at `mozjs/js/src/vm/JSContext.h`.
+unsafe impl Send for ContextForRequestInterrupt {}
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]

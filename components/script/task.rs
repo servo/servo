@@ -69,7 +69,7 @@ impl fmt::Debug for dyn TaskBox {
 /// Encapsulated state required to create cancellable tasks from non-script threads.
 #[derive(Clone)]
 pub struct TaskCanceller {
-    pub cancelled: Option<Arc<AtomicBool>>,
+    pub cancelled: Arc<AtomicBool>,
 }
 
 impl TaskCanceller {
@@ -88,7 +88,7 @@ impl TaskCanceller {
 
 /// A task that can be cancelled by toggling a shared flag.
 pub struct CancellableTask<T: TaskOnce> {
-    cancelled: Option<Arc<AtomicBool>>,
+    cancelled: Arc<AtomicBool>,
     inner: T,
 }
 
@@ -97,9 +97,7 @@ where
     T: TaskOnce,
 {
     fn is_cancelled(&self) -> bool {
-        self.cancelled
-            .as_ref()
-            .map_or(false, |cancelled| cancelled.load(Ordering::SeqCst))
+        self.cancelled.load(Ordering::SeqCst)
     }
 }
 

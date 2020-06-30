@@ -147,4 +147,8 @@ impl MicrotaskQueue {
     pub fn empty(&self) -> bool {
         self.microtask_queue.borrow().is_empty()
     }
+
+    pub fn clear(&self) {
+        self.microtask_queue.borrow_mut().clear();
+    }
 }

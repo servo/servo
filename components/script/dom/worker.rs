@@ -125,6 +125,7 @@ impl Worker {
         let init = prepare_workerscope_init(global, Some(devtools_sender), Some(worker_id));
 
         let (control_sender, control_receiver) = unbounded();
+        let (context_sender, context_receiver) = unbounded();
 
         let join_handle = DedicatedWorkerGlobalScope::run_worker_scope(
             init,
@@ -142,9 +143,14 @@ impl Worker {
             browsing_context,
             global.wgpu_id_hub(),
             control_receiver,
+            context_sender,
         );
 
-        global.track_worker(closing, join_handle, control_sender);
+        let context = context_receiver
+            .recv()
+            .expect("Couldn't receive a context for worker.");
+
+        global.track_worker(closing, join_handle, control_sender, context);
 
         Ok(worker)
     }

@@ -52,7 +52,9 @@ use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_module::ModuleTree;
-use crate::script_runtime::{CommonScriptMsg, JSContext as SafeJSContext, ScriptChan, ScriptPort};
+use crate::script_runtime::{
+    CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext, ScriptChan, ScriptPort,
+};
 use crate::script_thread::{MainThreadScriptChan, ScriptThread};
 use crate::task::TaskCanceller;
 use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
@@ -130,6 +132,8 @@ pub struct AutoCloseWorker {
     /// A sender of control messages,
     /// currently only used to signal shutdown.
     control_sender: Sender<DedicatedWorkerControlMsg>,
+    /// The context to request an interrupt on the worker thread.
+    context: ContextForRequestInterrupt,
 }
 
 impl Drop for AutoCloseWorker {
@@ -145,6 +149,8 @@ impl Drop for AutoCloseWorker {
         {
             warn!("Couldn't send an exit message to a dedicated worker.");
         }
+
+        self.context.request_interrupt();
 
         // TODO: step 2 and 3.
         // Step 4 is unnecessary since we don't use actual ports for dedicated workers.
@@ -2049,6 +2055,7 @@ impl GlobalScope {
         closing: Arc<AtomicBool>,
         join_handle: JoinHandle<()>,
         control_sender: Sender<DedicatedWorkerControlMsg>,
+        context: ContextForRequestInterrupt,
     ) {
         self.list_auto_close_worker
             .borrow_mut()
@@ -2056,6 +2063,7 @@ impl GlobalScope {
                 closing,
                 join_handle: Some(join_handle),
                 control_sender: control_sender,
+                context,
             });
     }
 
@@ -2713,6 +2721,20 @@ impl GlobalScope {
         unreachable!();
     }
 
+    /// Returns a boolean indicating whether the event-loop
+    /// where this global is running on can continue running JS.
+    pub fn can_continue_running(&self) -> bool {
+        if self.downcast::<Window>().is_some() {
+            return ScriptThread::can_continue_running();
+        }
+        if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
+            return !worker.is_closing();
+        }
+
+        // TODO: plug worklets into this.
+        true
+    }
+
     /// Returns the task canceller of this global to ensure that everything is
     /// properly cancelled when the global scope is destroyed.
     pub fn task_canceller(&self, name: TaskSourceName) -> TaskCanceller {
@@ -2730,11 +2752,14 @@ impl GlobalScope {
 
     /// Perform a microtask checkpoint.
     pub fn perform_a_microtask_checkpoint(&self) {
-        self.microtask_queue.checkpoint(
-            self.get_cx(),
-            |_| Some(DomRoot::from_ref(self)),
-            vec![DomRoot::from_ref(self)],
-        );
+        // Only perform the checkpoint if we're not shutting down.
+        if self.can_continue_running() {
+            self.microtask_queue.checkpoint(
+                self.get_cx(),
+                |_| Some(DomRoot::from_ref(self)),
+                vec![DomRoot::from_ref(self)],
+            );
+        }
     }
 
     /// Enqueue a microtask for subsequent execution.
@@ -2761,8 +2786,9 @@ impl GlobalScope {
     }
 
     /// Process a single event as if it were the next event
-    /// in the thread queue for this global scope.
-    pub fn process_event(&self, msg: CommonScriptMsg) {
+    /// in the queue for the event-loop where this global scope is running on.
+    /// Returns a boolean indicating whether further events should be processed.
+    pub fn process_event(&self, msg: CommonScriptMsg) -> bool {
         if self.is::<Window>() {
             return ScriptThread::process_event(msg);
         }

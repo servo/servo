@@ -98,7 +98,7 @@ pub struct WorkerGlobalScope {
     worker_id: WorkerId,
     worker_url: DomRefCell<ServoUrl>,
     #[ignore_malloc_size_of = "Arc"]
-    closing: Option<Arc<AtomicBool>>,
+    closing: Arc<AtomicBool>,
     #[ignore_malloc_size_of = "Defined in js"]
     runtime: DomRefCell<Option<Runtime>>,
     location: MutNullableDom<WorkerLocation>,
@@ -126,7 +126,7 @@ impl WorkerGlobalScope {
         worker_url: ServoUrl,
         runtime: Runtime,
         from_devtools_receiver: Receiver<DevtoolScriptControlMsg>,
-        closing: Option<Arc<AtomicBool>>,
+        closing: Arc<AtomicBool>,
         gpu_id_hub: Arc<Mutex<Identities>>,
     ) -> Self {
         // Install a pipeline-namespace in the current thread.
@@ -193,11 +193,7 @@ impl WorkerGlobalScope {
     }
 
     pub fn is_closing(&self) -> bool {
-        if let Some(ref closing) = self.closing {
-            closing.load(Ordering::SeqCst)
-        } else {
-            false
-        }
+        self.closing.load(Ordering::SeqCst)
     }
 
     pub fn get_url(&self) -> Ref<ServoUrl> {
@@ -494,7 +490,13 @@ impl WorkerGlobalScope {
         }
     }
 
-    pub fn process_event(&self, msg: CommonScriptMsg) {
+    /// Process a single event as if it were the next event
+    /// in the queue for this worker event-loop.
+    /// Returns a boolean indicating whether further events should be processed.
+    pub fn process_event(&self, msg: CommonScriptMsg) -> bool {
+        if self.is_closing() {
+            return false;
+        }
         match msg {
             CommonScriptMsg::Task(_, task, _, _) => task.run_box(),
             CommonScriptMsg::CollectReports(reports_chan) => {
@@ -504,11 +506,10 @@ impl WorkerGlobalScope {
                 reports_chan.send(reports);
             },
         }
+        true
     }
 
     pub fn close(&self) {
-        if let Some(ref closing) = self.closing {
-            closing.store(true, Ordering::SeqCst);
-        }
+        self.closing.store(true, Ordering::SeqCst);
     }
 }

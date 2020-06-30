@@ -30,7 +30,8 @@ use crate::fetch::load_whole_resource;
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_runtime::ScriptThreadEventCategory::WorkerEvent;
 use crate::script_runtime::{
-    new_child_runtime, CommonScriptMsg, JSContext as SafeJSContext, Runtime, ScriptChan, ScriptPort,
+    new_child_runtime, CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext,
+    Runtime, ScriptChan, ScriptPort,
 };
 use crate::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::task_source::networking::NetworkingTaskSource;
@@ -256,7 +257,7 @@ impl DedicatedWorkerGlobalScope {
                 worker_url,
                 runtime,
                 from_devtools_receiver,
-                Some(closing),
+                closing,
                 gpu_id_hub,
             ),
             task_queue: TaskQueue::new(receiver, own_sender.clone()),
@@ -324,6 +325,7 @@ impl DedicatedWorkerGlobalScope {
         browsing_context: Option<BrowsingContextId>,
         gpu_id_hub: Arc<Mutex<Identities>>,
         control_receiver: Receiver<DedicatedWorkerControlMsg>,
+        context_sender: Sender<ContextForRequestInterrupt>,
     ) -> JoinHandle<()> {
         let serialized_worker_url = worker_url.to_string();
         let name = format!("WebWorker for {}", serialized_worker_url);
@@ -376,6 +378,8 @@ impl DedicatedWorkerGlobalScope {
                     );
                     new_child_runtime(parent, Some(task_source))
                 };
+
+                let _ = context_sender.send(ContextForRequestInterrupt::new(runtime.cx()));
 
                 let (devtools_mpsc_chan, devtools_mpsc_port) = unbounded();
                 ROUTER.route_ipc_receiver_to_crossbeam_sender(
