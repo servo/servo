@@ -1,0 +1,221 @@
+<meta name=timeout content=long>
+<title>reporting same origin with report-to</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/common.js"></script>
+<script src="../resources/dispatcher.js"></script>
+<script src="../resources/reporting-common.js"></script>
+
+<script>
+
+let tests = [
+  // popup origin, popup COOP, popup COEP, popup COOP report only, popup COEP report only, expected reports
+
+  // Open a popup on a same-origin page, with a compatible COOP.
+  // This is a sanity check that no report are produced.
+  [
+    SAME_ORIGIN,
+    `same-origin; report-to="${popupReportEndpoint.name}"`,
+    "",
+    "",
+    "",
+    []
+  ],
+  // Open a cross-origin popup with a same-origin COOP. Produces two
+  // reports (one from and one to). The from report has an effective-policy of
+  // same-origin (corresponding to the current document), both pages being
+  // cross origin, the next/pervious document urls are not available and the
+  // initial document url/referrer are used instead.
+  [
+    CROSS_ORIGIN,
+    `same-origin; report-to="${popupReportEndpoint.name}"`,
+    "",
+    "",
+    "",
+    [
+      {
+        "endpoint": reportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": `${location.href}`,
+            "effective-policy": "same-origin",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/, // initial navigation URL (equal to the next document url in that case)
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      },
+      {
+        "endpoint": popupReportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": /uuid=EXECUTOR_UUID$/,
+            "effective-policy": "same-origin",
+            "navigation-uri": '', // referrer (empty due to the Referrer Policy)
+            "violation-type": "navigation-to-document"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
+  // Open a same-origin popup with a unsafe-none COOP and no COEP. COOP switches
+  // the browsing context group and hence produces two reports (one from and one
+  // to). This test verifies that unsafe-none properly sends report.
+  [
+    SAME_ORIGIN,
+    `unsafe-none; report-to="${popupReportEndpoint.name}"`,
+    "",
+    "",
+    "",
+    [
+      {
+        "endpoint": reportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": `${location.href}`,
+            "effective-policy": "same-origin",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/,
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      },
+      {
+        "endpoint": popupReportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": /uuid=EXECUTOR_UUID$/,
+            "effective-policy": "unsafe-none",
+            "navigation-uri": `${location.href}`,
+            "violation-type": "navigation-to-document"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
+  // Open a same-origin popup with a same-origin COOP and COEP. The difference
+  // of COEP values leads to the browsing context group switch and produces two
+  // reports. This verifies that the navigation-to-document report has an
+  // effective-policy of same-origin-plus-coep.
+  [
+    SAME_ORIGIN,
+    `same-origin; report-to="${popupReportEndpoint.name}"`,
+    "require-corp",
+    "",
+    "",
+    [
+      {
+        "endpoint": reportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": `${location.href}`,
+            "effective-policy": "same-origin",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/, // Next document URL
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      },
+      {
+        "endpoint": popupReportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": /uuid=EXECUTOR_UUID$/,
+            "effective-policy": "same-origin-plus-coep",
+            "navigation-uri": `${location.href}`, // Previous document URL
+            "violation-type": "navigation-to-document"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
+  // Open a cross-origin popup with no COOP (but reporting) and no COEP.
+  // Produces two reports. The pages being cross origin, the next/pervious
+  // document urls are not available and the initial document url/referrer are
+  // used instead.
+  [
+    CROSS_ORIGIN,
+    `unsafe-none; report-to="${popupReportEndpoint.name}"`,
+    "",
+    "",
+    "",
+    [
+      {
+        "endpoint": reportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": `${location.href}`,
+            "effective-policy": "same-origin",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/, // initial navigation URL
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      },
+      {
+        "endpoint": popupReportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": /uuid=EXECUTOR_UUID$/,
+            "effective-policy": "unsafe-none",
+            "navigation-uri": '', // referrer, as per the no-referrer policy.
+            "violation-type": "navigation-to-document"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
+  // Open a same-origin popup with no COOP (without reporting) and no COEP.
+  // Produces one report to this page (opener) endpoint.
+  // This verifies that the navigated-to-document's COOP report values do not
+  // impact the navigated-from-document's COOP.
+  [
+    SAME_ORIGIN,
+    "unsafe-none",
+    "",
+    "",
+    "",
+    [
+      {
+        "endpoint": reportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": `${location.href}`,
+            "effective-policy": "same-origin",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/,
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      }
+    ]
+  ]
+];
+
+runNavigationReportingTests(document.title, tests);
+
+</script>

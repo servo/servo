@@ -1,0 +1,72 @@
+<title> Check the "report > body > property" is properly populated.</title>
+<meta name=timeout content=long>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/dispatcher.js"></script>
+<script>
+
+const directory = "/html/cross-origin-opener-policy/access-reporting";
+const executor_path = directory + "/resources/executor.html?pipe=";
+const coep_header = '|header(Cross-Origin-Embedder-Policy,require-corp)';
+
+let origin = [
+  ["cross-origin" , get_host_info().HTTPS_REMOTE_ORIGIN ] ,
+  ["same-site"  , get_host_info().HTTPS_ORIGIN        ] ,
+];
+
+let property= [
+  ["blur"        , w => w.blur()             ] ,
+  ["close"       , w => w.close()            ] ,
+  ["closed"      , w => w.closed             ] ,
+  ["focus"       , w => w.focus()            ] ,
+  ["frames"      , w => w.frames             ] ,
+  ["indexed"     , w => w[0]                 ] ,
+  ["indexed"     , w => w[0] = ""            ] ,
+  ["length"      , w => w.length             ] ,
+  ["location"    , w => w.location           ] ,
+  ["location"    , w => w.location = "#"     ] ,
+  ["named"       , w => w["test"]            ] ,
+  ["named"       , w => w["test"] = ""       ] ,
+  ["opener"      , w => w.opener             ] ,
+  ["opener"      , w => w.opener = ""        ] ,
+  ["postMessage" , w => w.postMessage("")    ] ,
+  ["postMessage" , w => w.postMessage("", "")] ,
+  ["self"        , w => w.self               ] ,
+  ["top"         , w => w.top                ] ,
+  ["window"      , w => w.window             ] ,
+];
+
+origin.forEach(([origin_name, origin]) => {
+  property.forEach(([property, op]) =>  {
+    promise_test(async t => {
+      const report_token = token();
+      const executor_token = token();
+      const callback_token = token();
+
+      const reportTo = reportToHeaders(report_token);
+      const openee_url = origin+ executor_path +
+        reportTo.header + reportTo.coopSameOriginHeader + coep_header +
+        `&uuid=${executor_token}`;
+      const openee = window.open(openee_url);
+      t.add_cleanup(() => send(executor_token, "window.close()"))
+
+      // 1. Make sure the new document to be loaded.
+      send(executor_token, `send("${callback_token}", "Ready");`);
+      let reply = await receive(callback_token);
+      assert_equals(reply, "Ready");
+
+      // 2. Try to access the openee. This shouldn't work because of COOP+COEP.
+      try {op(openee)} catch(e) {}
+
+      // 3. Check a reports is sent to the opener.
+      let report = await receiveReport(report_token, "access-to-coop-page")
+      assert_not_equals(report, "timeout", "Report not received");
+      assert_equals(report.body["property"], property);
+
+    }, `${origin_name} > ${op}`);
+  })
+});
+
+</script>

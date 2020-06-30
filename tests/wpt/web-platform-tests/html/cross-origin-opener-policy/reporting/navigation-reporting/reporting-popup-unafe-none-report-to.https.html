@@ -1,0 +1,128 @@
+<meta name=timeout content=long>
+<title>reporting same origin with report-to</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/common.js"></script>
+<script src="../resources/dispatcher.js"></script>
+<script src="../resources/reporting-common.js"></script>
+
+<script>
+
+let tests = [
+  // popup origin, popup COOP, popup COEP, popup COOP report only, popup COEP report only, expected reports
+
+  // Open a same-origin popup with a same-origin COOP with reporting and no COEP.
+  // COOP switches the browsing context group and hence produces two reports
+  // (one from and one to). This test verifies that unsafe-none (from the opener)
+  // properly sends a report.
+  [
+    SAME_ORIGIN,
+    `same-origin; report-to="${popupReportEndpoint.name}"`,
+    "",
+    "",
+    "",
+    [
+      {
+        "endpoint": reportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": `${location.href}`,
+            "effective-policy": "unsafe-none",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/, // next document URL
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      },
+      {
+        "endpoint": popupReportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": /uuid=EXECUTOR_UUID$/,
+            "effective-policy": "same-origin",
+            "navigation-uri": `${location.href}`, // previous document url
+            "violation-type": "navigation-to-document"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
+  // Open a same-origin popup with a same-origin COOP (no reporting)and no COEP.
+  // COOP switches the browsing context group and hence produces one report for
+  // the navigated from document (this page, the opener). This test differs with
+  // the previous one as it assert that the navigated to document's COOP reporting
+  // values do not interfere.
+  [
+    SAME_ORIGIN,
+    `same-origin`,
+    "",
+    "",
+    "",
+    [
+      {
+        "endpoint": reportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": `${location.href}`,
+            "effective-policy": "unsafe-none",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/, // next document URL
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
+  // Open a cross-origin popup with a same-origin COOP and no COEP. COOP switches
+  // the browsing context group and hence produces two reports.
+  [
+    CROSS_ORIGIN,
+    `same-origin; report-to="${popupReportEndpoint.name}"`,
+    "",
+    "",
+    "",
+    [
+      {
+        "endpoint": reportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": `${location.href}`,
+            "effective-policy": "unsafe-none",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/, // initial navigation url
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      },
+      {
+        "endpoint": popupReportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": /uuid=EXECUTOR_UUID$/,
+            "effective-policy": "same-origin",
+            "navigation-uri": `${location.href}`, // referrer
+            "violation-type": "navigation-to-document"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ]
+];
+
+runNavigationReportingTests(document.title, tests);
+
+</script>

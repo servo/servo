@@ -172,6 +172,24 @@ test(function()
     assert_node(walker.currentNode, { type: Element, id: 'root' });
 }, 'Testing with filter object that throws');
 
+test(() =>
+{
+    let thisValue, nodeArgID;
+    const filter = {
+        acceptNode(node) {
+            thisValue = this;
+            nodeArgID = node.id;
+            return NodeFilter.FILTER_ACCEPT;
+        },
+    };
+
+    const walker = document.createTreeWalker(testElement, NodeFilter.SHOW_ELEMENT, filter);
+    walker.nextNode();
+
+    assert_equals(thisValue, filter);
+    assert_equals(nodeArgID, 'A1');
+}, 'Testing with filter object: this value and `node` argument');
+
 </script>
 </body>
 </html>

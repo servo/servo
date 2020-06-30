@@ -27,7 +27,6 @@ async_test(t => {
   t.add_cleanup(() => frame.remove());
   const bc = new BroadcastChannel(token());
   bc.onmessage = t.step_func((event) => {
-    assert_not_equals(frame.contentDocument, null);
     let payload = event.data;
     assert_equals(payload, "loaded");
     t.step_wait_func_done(() => frame.contentDocument === null);
