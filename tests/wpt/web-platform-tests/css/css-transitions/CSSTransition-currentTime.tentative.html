@@ -112,26 +112,25 @@ test(t => {
 
   div.style.left = '0px';
   getComputedStyle(div).transitionProperty;
-  div.style.transition = 'left 100s';
+  div.style.transition = 'left 100s ease-in';
   div.style.left = '100px';
 
   const transition = div.getAnimations()[0];
 
-  // Seek to the middle and get the portion.
-  //
-  // We deliberately DON'T set transition-timing-function to linear so that we
-  // can test that it is applied correctly.
+  // Seek to the middle. Note, this is not equivalent to 50% progress since the
+  // timing-function is non-linear.
   transition.currentTime = 50 * MS_PER_SEC;
   const portion = transition.effect.getComputedTiming().progress;
 
-  // Reverse transition
+  // Reverse the transition.
   div.style.left = '0px';
   const reversedTransition = div.getAnimations()[0];
 
-  // If the transition reversing behavior does not advange the previous transition
-  // to the time set by currentTime, start and end values will both be 0px and
-  // no transition will be produced.
-  assert_not_equals(reversedTransition, undefined, "A reversed transition is produced");
+  // If the transition reversing behavior does not advance the previous
+  // transition to the time set by currentTime, start and end values will both
+  // be 0px and no transition will be produced.
+  assert_not_equals(reversedTransition, undefined,
+                    "A reversed transition is produced");
 
   const expectedDuration = 100 * MS_PER_SEC * portion;
   assert_approx_equals(
@@ -140,6 +139,7 @@ test(t => {
     1,
     "The reversed transition has correctly reduced duration"
   );
-}, "Transition reversing behavior respects currentTime and uses the transition's current position.");
+}, "Transition reversing behavior respects currentTime and uses the " +
+   "transition's current position.");
 
 </script>

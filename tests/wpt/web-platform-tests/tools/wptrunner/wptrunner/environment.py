@@ -128,7 +128,7 @@ class TestEnvironment(object):
 
         ports = {
             "http": [8000, 8001],
-            "https": [8443],
+            "https": [8443, 8444],
             "ws": [8888],
             "wss": [8889],
             "h2": [9000],

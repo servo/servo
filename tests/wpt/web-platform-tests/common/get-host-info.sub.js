@@ -7,6 +7,7 @@ function get_host_info() {
   var HTTP_PORT = '{{ports[http][0]}}';
   var HTTP_PORT2 = '{{ports[http][1]}}';
   var HTTPS_PORT = '{{ports[https][0]}}';
+  var HTTPS_PORT2 = '{{ports[https][1]}}';
   var PROTOCOL = self.location.protocol;
   var IS_HTTPS = (PROTOCOL == "https:");
   var HTTP_PORT_ELIDED = HTTP_PORT == "80" ? "" : (":" + HTTP_PORT);

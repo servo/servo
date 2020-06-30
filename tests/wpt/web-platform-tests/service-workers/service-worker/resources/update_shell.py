@@ -7,24 +7,27 @@
 # This registers worker.js as a service worker, and every update check
 # will return a new response.
 import os
-import sys
 import time
+
+from six import PY3
+
+from wptserve.utils import isomorphic_encode
 
 def main(request, response):
   # Set no-cache to ensure the user agent finds a new version for each update.
-  headers = [('Cache-Control', 'no-cache, must-revalidate'),
-             ('Pragma', 'no-cache'),
-             ('Content-Type', 'application/javascript')]
+  headers = [(b'Cache-Control', b'no-cache, must-revalidate'),
+             (b'Pragma', b'no-cache'),
+             (b'Content-Type', b'application/javascript')]
 
   # Return a different script for each access.  Use .time() and .clock() for
   # best time resolution across different platforms.
-  timestamp = '// %s %s' % (time.time(), time.clock())
-  body = timestamp + '\n'
+  timestamp = u'// %s %s' % (time.time(), time.perf_counter() if PY3 else time.clock())
+  body = isomorphic_encode(timestamp) + b'\n'
 
   # Inject the file into the response.
-  if 'filename' in request.GET:
-    path = os.path.join(os.path.dirname(__file__),
-                        request.GET['filename'])
+  if b'filename' in request.GET:
+    path = os.path.join(os.path.dirname(isomorphic_encode(__file__)),
+                        request.GET[b'filename'])
     with open(path, 'rb') as f:
       body += f.read()
 

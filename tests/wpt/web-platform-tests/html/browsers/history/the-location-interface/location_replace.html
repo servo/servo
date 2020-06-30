@@ -15,6 +15,12 @@
       assert_equals((href + "#x"), location.href, "location href");
 
     }, "location replace");
+
+    test(function () {
+      var href = location.href;
+      assert_throws_dom('SYNTAX_ERR', function() { location.replace("//"); });
+      assert_equals(location.href, href);
+    }, "URL that fails to parse");
     </script>
   </body>
 </html>

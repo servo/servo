@@ -108,5 +108,5 @@ partial interface WorkerNavigator {
 [Exposed=(Window, Worker)]
 interface MediaCapabilities {
   [NewObject] Promise<MediaCapabilitiesDecodingInfo> decodingInfo(MediaDecodingConfiguration configuration);
-  [NewObject] Promise<MediaCapabilitiesInfo> encodingInfo(MediaEncodingConfiguration configuration);
+  [NewObject] Promise<MediaCapabilitiesEncodingInfo> encodingInfo(MediaEncodingConfiguration configuration);
 };

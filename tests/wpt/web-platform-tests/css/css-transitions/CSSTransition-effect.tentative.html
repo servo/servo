@@ -90,7 +90,7 @@ promise_test(async t => {
   const new_transition = div.getAnimations()[0];
   await new_transition.ready;
 
-  assert_equals(getComputedStyle(div).left, '0px');
+  assert_equals(getComputedStyle(div).left, '100px');
 }, 'After setting a transition\'s effect to null, a new transition can be started');
 
 // This is a regression test for https://crbug.com/992668, where Chromium would

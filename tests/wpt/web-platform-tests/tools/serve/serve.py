@@ -514,7 +514,7 @@ def make_hosts_file(config, host):
 def start_servers(host, ports, paths, routes, bind_address, config, **kwargs):
     servers = defaultdict(list)
     for scheme, ports in ports.items():
-        assert len(ports) == {"http": 2}.get(scheme, 1)
+        assert len(ports) == {"http": 2, "https": 2}.get(scheme, 1)
 
         # If trying to start HTTP/2.0 server, check compatibility
         if scheme == 'h2' and not http2_compatible():
@@ -822,7 +822,7 @@ class ConfigBuilder(config.ConfigBuilder):
         "server_host": None,
         "ports": {
             "http": [8000, "auto"],
-            "https": [8443],
+            "https": [8443, 8444],
             "ws": ["auto"],
             "wss": ["auto"],
         },

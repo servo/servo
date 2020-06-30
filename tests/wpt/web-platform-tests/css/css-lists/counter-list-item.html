@@ -1,0 +1,89 @@
+<!DOCTYPE HTML>
+<link rel="help" href="https://drafts.csswg.org/css-lists/#list-item-counter">
+<link rel="match" href="counter-list-item-ref.html">
+
+<style>
+li:before {
+    content: counter(list-item) " ";
+}
+li:after {
+    content: " " counter(list-item);
+}
+</style>
+
+<h2>Test counter(list-item), using generated content</h2>
+
+<div style="float: left; width: 200px">
+
+Ordered lists
+
+<ol>
+    <li>a</li>
+    <li>b</li>
+    <li>c</li>
+</ol>
+
+<ol start="30">
+    <li>a</li>
+    <li>b</li>
+    <li>c</li>
+</ol>
+
+<ol>
+    <li>a</li>
+    <li>b</li>
+    <li value="30">c</li>
+    <li>d</li>
+    <li value="35">e</li>
+    <li>f</li>
+</ol>
+
+</div>
+
+<div style="float: left; width: 200px">
+
+Reversed ordered lists
+
+<ol reversed>
+    <li>a</li>
+    <li>b</li>
+    <li>c</li>
+</ol>
+
+<ol start="30" reversed>
+    <li>a</li>
+    <li>b</li>
+    <li>c</li>
+</ol>
+
+<ol reversed>
+    <li>a</li>
+    <li>b</li>
+    <li value="30">c</li>
+    <li>d</li>
+    <li value="35">e</li>
+    <li>f</li>
+</ol>
+
+</div>
+
+<div style="float: left; width: 200px">
+
+Unordered lists
+
+<ul>
+    <li>a</li>
+    <li>b</li>
+    <li>c</li>
+</ul>
+
+<ul>
+    <li>a</li>
+    <li>b</li>
+    <li value="30">c</li>
+    <li>d</li>
+    <li value="35">e</li>
+    <li>f</li>
+</ul>
+
+</div>
