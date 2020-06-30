@@ -315,7 +315,7 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
         let cx = self.cx;
 
         let require_rooted = |cx: &LateContext, in_new_function: bool, subexpr: &hir::Expr| {
-            let ty = cx.tables.expr_ty(&subexpr);
+            let ty = cx.tables().expr_ty(&subexpr);
             if is_unrooted_ty(&self.symbols, cx, ty, in_new_function) {
                 cx.lint(UNROOTED_MUST_ROOT, |lint| {
                     lint.build(&format!("Expression of type {:?} must be rooted", ty))
@@ -357,7 +357,7 @@ impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
         match pat.kind {
             hir::PatKind::Binding(hir::BindingAnnotation::Unannotated, ..) |
             hir::PatKind::Binding(hir::BindingAnnotation::Mutable, ..) => {
-                let ty = cx.tables.pat_ty(pat);
+                let ty = cx.tables().pat_ty(pat);
                 if is_unrooted_ty(&self.symbols, cx, ty, self.in_new_function) {
                     cx.lint(UNROOTED_MUST_ROOT, |lint| {
                         lint.build(&format!("Expression of type {:?} must be rooted", ty))
