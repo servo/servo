@@ -162,6 +162,25 @@ impl From<ReferrerPolicyHeader> for ReferrerPolicy {
     }
 }
 
+impl From<ReferrerPolicy> for ReferrerPolicyHeader {
+    fn from(referrer_policy: ReferrerPolicy) -> Self {
+        match referrer_policy {
+            ReferrerPolicy::NoReferrer => ReferrerPolicyHeader::NO_REFERRER,
+            ReferrerPolicy::NoReferrerWhenDowngrade => {
+                ReferrerPolicyHeader::NO_REFERRER_WHEN_DOWNGRADE
+            },
+            ReferrerPolicy::SameOrigin => ReferrerPolicyHeader::SAME_ORIGIN,
+            ReferrerPolicy::Origin => ReferrerPolicyHeader::ORIGIN,
+            ReferrerPolicy::OriginWhenCrossOrigin => ReferrerPolicyHeader::ORIGIN_WHEN_CROSS_ORIGIN,
+            ReferrerPolicy::UnsafeUrl => ReferrerPolicyHeader::UNSAFE_URL,
+            ReferrerPolicy::StrictOrigin => ReferrerPolicyHeader::STRICT_ORIGIN,
+            ReferrerPolicy::StrictOriginWhenCrossOrigin => {
+                ReferrerPolicyHeader::STRICT_ORIGIN_WHEN_CROSS_ORIGIN
+            },
+        }
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub enum FetchResponseMsg {
     // todo: should have fields for transmitted/total bytes
@@ -693,6 +712,21 @@ impl Metadata {
                 self.charset = Some(charset.to_string());
             }
             self.content_type = Some(Serde(ContentType::from(mime.clone())));
+        }
+    }
+
+    /// Set the referrer policy associated with the loaded resource.
+    pub fn set_referrer_policy(&mut self, referrer_policy: Option<ReferrerPolicy>) {
+        if self.headers.is_none() {
+            self.headers = Some(Serde(HeaderMap::new()));
+        }
+
+        self.referrer_policy = referrer_policy;
+        if let Some(referrer_policy) = referrer_policy {
+            self.headers
+                .as_mut()
+                .unwrap()
+                .typed_insert::<ReferrerPolicyHeader>(referrer_policy.into());
         }
     }
 }
