@@ -1,25 +1,25 @@
 def main(request, response):
-    if 'Status' in request.GET:
-        status = int(request.GET["Status"])
+    if b'Status' in request.GET:
+        status = int(request.GET[b"Status"])
     else:
         status = 302
 
     headers = []
 
-    url = request.GET['Redirect']
-    headers.append(("Location", url))
+    url = request.GET[b'Redirect']
+    headers.append((b"Location", url))
 
-    if "ACAOrigin" in request.GET:
-        for item in request.GET["ACAOrigin"].split(","):
-            headers.append(("Access-Control-Allow-Origin", item))
+    if b"ACAOrigin" in request.GET:
+        for item in request.GET[b"ACAOrigin"].split(b","):
+            headers.append((b"Access-Control-Allow-Origin", item))
 
-    for suffix in ["Headers", "Methods", "Credentials"]:
-        query = "ACA%s" % suffix
-        header = "Access-Control-Allow-%s" % suffix
+    for suffix in [b"Headers", b"Methods", b"Credentials"]:
+        query = b"ACA%s" % suffix
+        header = b"Access-Control-Allow-%s" % suffix
         if query in request.GET:
             headers.append((header, request.GET[query]))
 
-    if "ACEHeaders" in request.GET:
-        headers.append(("Access-Control-Expose-Headers", request.GET["ACEHeaders"]))
+    if b"ACEHeaders" in request.GET:
+        headers.append((b"Access-Control-Expose-Headers", request.GET[b"ACEHeaders"]))
 
-    return status, headers, ""
+    return status, headers, b""

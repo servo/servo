@@ -1,5 +1,5 @@
 def main(request, response):
     headers = []
-    headers.append(("Access-Control-Allow-Origin", "*"))
+    headers.append((b"Access-Control-Allow-Origin", b"*"))
 
-    return headers, "{ \"result\": \"success\" }"
+    return headers, b"{ \"result\": \"success\" }"

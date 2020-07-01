@@ -1,8 +1,8 @@
 import time
 def main(request, response):
     time.sleep(1)
-    headers = [("Content-Type", "text/html")]
-    return headers, '''
+    headers = [(b"Content-Type", b"text/html")]
+    return headers, u'''
 <!DOCTYPE html>
 <head>
 </head>

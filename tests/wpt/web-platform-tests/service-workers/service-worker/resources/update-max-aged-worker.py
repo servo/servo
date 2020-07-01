@@ -1,14 +1,16 @@
 import time
 import json
 
+from wptserve.utils import isomorphic_decode, isomorphic_encode
+
 def main(request, response):
-    headers = [('Content-Type', 'application/javascript'),
-               ('Cache-Control', 'max-age=86400'),
-               ('Last-Modified', time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime()))]
+    headers = [(b'Content-Type', b'application/javascript'),
+               (b'Cache-Control', b'max-age=86400'),
+               (b'Last-Modified', isomorphic_encode(time.strftime(u"%a, %d %b %Y %H:%M:%S GMT", time.gmtime())))]
 
-    test = request.GET['test']
+    test = request.GET[b'test']
 
-    body = '''
+    body = u'''
         const mainTime = {time:8f};
         const testName = {test};
         importScripts('update-max-aged-worker-imported-script.py');
@@ -22,7 +24,7 @@ def main(request, response):
         }});
     '''.format(
         time=time.time(),
-        test=json.dumps(test)
+        test=json.dumps(isomorphic_decode(test))
     )
 
     return headers, body

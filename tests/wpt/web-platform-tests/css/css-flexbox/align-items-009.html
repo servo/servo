@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1100203">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+#target {
+  font: 100px/1 'Ahem';
+  color: green;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 200px;
+
+  position: relative;
+  left: -50px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="target">X</div>
