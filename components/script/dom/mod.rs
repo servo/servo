@@ -435,6 +435,7 @@ pub mod mediaquerylist;
 pub mod mediaquerylistevent;
 pub mod mediasession;
 pub mod mediastream;
+pub mod mediastreamaudiodestinationnode;
 pub mod mediastreamtrack;
 pub mod messagechannel;
 pub mod messageevent;
