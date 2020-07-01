@@ -4,7 +4,7 @@
 
 #![allow(unsafe_code)]
 
-use crate::dom::bindings::cell::{DomRefCell, RefCell};
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUBindGroupBinding::{
     GPUBindGroupDescriptor, GPUBindingResource,
 };
@@ -41,7 +41,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuadapter::GPUAdapter;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
-use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
+use crate::dom::gpubuffer::{GPUBuffer, GPUBufferMapInfo, GPUBufferState};
 use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
@@ -54,6 +54,7 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
+use std::cell::RefCell;
 use std::ptr::NonNull;
 use std::rc::Rc;
 use webgpu::wgpu::binding_model::BufferBinding;
@@ -177,18 +178,21 @@ impl GPUDeviceMethods for GPUDevice {
             .expect("Failed to create WebGPU buffer");
 
         let buffer = webgpu::WebGPUBuffer(id);
-        let mapping;
+        let map_info;
         let state;
-        let mapping_range;
         if descriptor.mappedAtCreation {
             let buf_data = vec![0u8; descriptor.size as usize];
-            mapping = Rc::new(RefCell::new(Some(buf_data)));
+            map_info = DomRefCell::new(Some(GPUBufferMapInfo {
+                mapping: Rc::new(RefCell::new(buf_data)),
+                mapping_range: 0..descriptor.size,
+                mapped_ranges: Vec::new(),
+                js_buffers: Vec::new(),
+                map_mode: None,
+            }));
             state = GPUBufferState::MappedAtCreation;
-            mapping_range = 0..descriptor.size;
         } else {
-            mapping = Rc::new(RefCell::new(None));
+            map_info = DomRefCell::new(None);
             state = GPUBufferState::Unmapped;
-            mapping_range = 0..0;
         }
 
         GPUBuffer::new(
@@ -199,8 +203,7 @@ impl GPUDeviceMethods for GPUDevice {
             state,
             descriptor.size,
             true,
-            mapping,
-            mapping_range,
+            map_info,
         )
     }
 

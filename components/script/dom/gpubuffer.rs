@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::{DomRefCell, RefCell};
+use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::{GPUBufferMethods, GPUSize64};
 use crate::dom::bindings::codegen::Bindings::GPUMapModeBinding::GPUMapModeConstants;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -19,7 +19,7 @@ use dom_struct::dom_struct;
 use js::jsapi::DetachArrayBuffer;
 use js::jsapi::NewExternalArrayBuffer;
 use js::jsapi::{Heap, JSObject};
-use std::cell::Cell;
+use std::cell::{Cell, RefCell};
 use std::ffi::c_void;
 use std::ops::Range;
 use std::ptr::NonNull;
@@ -41,6 +41,17 @@ pub enum GPUBufferState {
     Destroyed,
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+pub struct GPUBufferMapInfo {
+    #[ignore_malloc_size_of = "Rc"]
+    pub mapping: Rc<RefCell<Vec<u8>>>,
+    pub mapping_range: Range<u64>,
+    pub mapped_ranges: Vec<Range<u64>>,
+    #[ignore_malloc_size_of = "defined in mozjs"]
+    pub js_buffers: Vec<Box<Heap<*mut JSObject>>>,
+    pub map_mode: Option<u32>,
+}
+
 #[dom_struct]
 pub struct GPUBuffer {
     reflector_: Reflector,
@@ -51,16 +62,10 @@ pub struct GPUBuffer {
     buffer: WebGPUBuffer,
     device: WebGPUDevice,
     valid: Cell<bool>,
-    #[ignore_malloc_size_of = "defined in mozjs"]
-    mapping: Rc<RefCell<Option<Vec<u8>>>>,
-    mapping_range: DomRefCell<Option<Range<u64>>>,
-    mapped_ranges: DomRefCell<Option<Vec<Range<u64>>>>,
-    #[ignore_malloc_size_of = "defined in mozjs"]
-    js_buffers: DomRefCell<Option<Vec<Box<Heap<*mut JSObject>>>>>,
-    #[ignore_malloc_size_of = "defined in mozjs"]
-    map_promise: DomRefCell<Option<Rc<Promise>>>,
     size: GPUSize64,
-    map_mode: Cell<Option<u32>>,
+    #[ignore_malloc_size_of = "promises are hard"]
+    map_promise: DomRefCell<Option<Rc<Promise>>>,
+    map_info: DomRefCell<Option<GPUBufferMapInfo>>,
 }
 
 impl GPUBuffer {
@@ -71,8 +76,7 @@ impl GPUBuffer {
         state: GPUBufferState,
         size: GPUSize64,
         valid: bool,
-        mapping: Rc<RefCell<Option<Vec<u8>>>>,
-        mapping_range: Range<u64>,
+        map_info: DomRefCell<Option<GPUBufferMapInfo>>,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -82,13 +86,9 @@ impl GPUBuffer {
             valid: Cell::new(valid),
             device,
             buffer,
-            mapping,
-            mapped_ranges: DomRefCell::new(None),
-            js_buffers: DomRefCell::new(None),
             map_promise: DomRefCell::new(None),
             size,
-            mapping_range: DomRefCell::new(Some(mapping_range)),
-            map_mode: Cell::new(None),
+            map_info,
         }
     }
 
@@ -101,19 +101,11 @@ impl GPUBuffer {
         state: GPUBufferState,
         size: GPUSize64,
         valid: bool,
-        mapping: Rc<RefCell<Option<Vec<u8>>>>,
-        mapping_range: Range<u64>,
+        map_info: DomRefCell<Option<GPUBufferMapInfo>>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBuffer::new_inherited(
-                channel,
-                buffer,
-                device,
-                state,
-                size,
-                valid,
-                mapping,
-                mapping_range,
+                channel, buffer, device, state, size, valid, map_info,
             )),
             global,
         )
@@ -153,23 +145,22 @@ impl GPUBufferMethods for GPUBuffer {
             },
             // Step 3
             GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => {
+                let mut info = self.map_info.borrow_mut();
+                let m_info = info.as_mut().unwrap();
+                let m_range = m_info.mapping_range.clone();
                 if let Err(e) = self.channel.0.send(WebGPURequest::UnmapBuffer {
                     buffer_id: self.id().0,
-                    array_buffer: self.mapping.borrow().as_ref().unwrap().clone(),
-                    is_map_read: self.map_mode.get() == Some(GPUMapModeConstants::READ),
-                    offset: self.mapping_range.borrow().as_ref().unwrap().start,
-                    size: self.mapping_range.borrow().as_ref().unwrap().end -
-                        self.mapping_range.borrow().as_ref().unwrap().start,
+                    array_buffer: m_info.mapping.borrow().clone(),
+                    is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
+                    offset: m_range.start,
+                    size: m_range.end - m_range.start,
                 }) {
                     warn!("Failed to send Buffer unmap ({:?}) ({})", self.buffer.0, e);
                 }
                 // Step 3.3
-                let mut bufs = self.js_buffers.borrow_mut().take().unwrap();
-                bufs.drain(..).for_each(|obj| unsafe {
+                m_info.js_buffers.drain(..).for_each(|obj| unsafe {
                     DetachArrayBuffer(*cx, obj.handle());
                 });
-                *self.mapped_ranges.borrow_mut() = None;
-                *self.mapping.borrow_mut() = None;
             },
             // Step 2
             GPUBufferState::MappingPending => {
@@ -179,8 +170,7 @@ impl GPUBufferMethods for GPUBuffer {
         };
         // Step 4
         self.state.set(GPUBufferState::Unmapped);
-        self.map_mode.set(None);
-        *self.mapping_range.borrow_mut() = None;
+        *self.map_info.borrow_mut() = None;
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpubuffer-destroy
@@ -254,8 +244,13 @@ impl GPUBufferMethods for GPUBuffer {
         }
 
         self.state.set(GPUBufferState::MappingPending);
-        self.map_mode.set(Some(mode));
-        *self.mapping_range.borrow_mut() = Some(map_range);
+        *self.map_info.borrow_mut() = Some(GPUBufferMapInfo {
+            mapping: Rc::new(RefCell::new(Vec::with_capacity(0))),
+            mapping_range: map_range,
+            mapped_ranges: Vec::new(),
+            js_buffers: Vec::new(),
+            map_mode: Some(mode),
+        });
         *self.map_promise.borrow_mut() = Some(promise.clone());
         promise
     }
@@ -268,28 +263,22 @@ impl GPUBufferMethods for GPUBuffer {
         offset: GPUSize64,
         size: GPUSize64,
     ) -> Fallible<NonNull<JSObject>> {
-        if self.mapped_ranges.borrow().is_none() {
-            *self.mapped_ranges.borrow_mut() = Some(Vec::new());
-        }
-        if self.js_buffers.borrow().is_none() {
-            *self.js_buffers.borrow_mut() = Some(Vec::new());
-        }
-        let act_size = if size == 0 { self.size - offset } else { size };
+        let m_end = if size == 0 { self.size } else { offset + size };
+        let mut info = self.map_info.borrow_mut();
+        let m_info = info.as_mut().unwrap();
+
         let mut valid = match self.state.get() {
             GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => true,
             _ => false,
         };
         valid &= offset % RANGE_OFFSET_ALIGN_MASK == 0 &&
-            act_size % RANGE_SIZE_ALIGN_MASK == 0 &&
-            offset >= self.mapping_range.borrow().as_ref().unwrap().start &&
-            offset + act_size <= self.mapping_range.borrow().as_ref().unwrap().end;
-        valid &= self
+            (m_end - offset) % RANGE_SIZE_ALIGN_MASK == 0 &&
+            offset >= m_info.mapping_range.start &&
+            m_end <= m_info.mapping_range.end;
+        valid &= m_info
             .mapped_ranges
-            .borrow()
-            .as_ref()
-            .unwrap()
             .iter()
-            .all(|range| range.start > offset + act_size || range.end < offset);
+            .all(|range| range.start >= m_end || range.end <= offset);
         if !valid {
             return Err(Error::Operation);
         }
@@ -301,22 +290,15 @@ impl GPUBufferMethods for GPUBuffer {
         let array_buffer = unsafe {
             NewExternalArrayBuffer(
                 *cx,
-                act_size as usize,
-                self.mapping.borrow_mut().as_mut().unwrap()
-                    [offset as usize..(offset + act_size) as usize]
-                    .as_mut_ptr() as _,
+                (m_end - offset) as usize,
+                m_info.mapping.borrow_mut()[offset as usize..m_end as usize].as_mut_ptr() as _,
                 Some(free_func),
-                Rc::into_raw(self.mapping.clone()) as _,
+                Rc::into_raw(m_info.mapping.clone()) as _,
             )
         };
-        self.mapped_ranges
-            .borrow_mut()
-            .as_mut()
-            .map(|v| v.push(offset..offset + act_size));
-        self.js_buffers
-            .borrow_mut()
-            .as_mut()
-            .map(|a| a.push(Heap::boxed(array_buffer)));
+
+        m_info.mapped_ranges.push(offset..m_end);
+        m_info.js_buffers.push(Heap::boxed(array_buffer));
 
         Ok(NonNull::new(array_buffer).unwrap())
     }
@@ -337,7 +319,13 @@ impl AsyncWGPUListener for GPUBuffer {
     fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
         match response {
             WebGPUResponse::BufferMapAsync(bytes) => {
-                *self.mapping.borrow_mut() = Some(bytes);
+                *self
+                    .map_info
+                    .borrow_mut()
+                    .as_mut()
+                    .unwrap()
+                    .mapping
+                    .borrow_mut() = bytes;
                 promise.resolve_native(&());
                 self.state.set(GPUBufferState::Mapped);
             },
