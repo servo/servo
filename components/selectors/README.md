@@ -7,7 +7,7 @@ rust-selectors
 * [crates.io](https://crates.io/crates/selectors)
 
 CSS Selectors library for Rust.
-Includes parsing and serilization of selectors,
+Includes parsing and serialization of selectors,
 as well as matching against a generic tree of elements.
 Pseudo-elements and most pseudo-classes are generic as well.
 
