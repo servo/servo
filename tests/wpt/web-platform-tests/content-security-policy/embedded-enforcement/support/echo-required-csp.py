@@ -1,30 +1,36 @@
 import json
+
+from wptserve.utils import isomorphic_decode
+
 def main(request, response):
     message = {}
 
-    header = request.headers.get("Test-Header-Injection");
-    message['test_header_injection'] = header if header else None
+    header = request.headers.get(b"Test-Header-Injection");
+    message[u'test_header_injection'] = isomorphic_decode(header) if header else None
 
-    header = request.headers.get("Sec-Required-CSP");
-    message['required_csp'] = header if header else None
+    header = request.headers.get(b"Sec-Required-CSP");
+    message[u'required_csp'] = isomorphic_decode(header) if header else None
 
-    second_level_iframe_code = ""
-    if "include_second_level_iframe" in request.GET:
-       if "second_level_iframe_csp" in request.GET and request.GET["second_level_iframe_csp"] != "":
-         second_level_iframe_code = '''<script>
+    header = request.headers.get(b"Sec-Required-CSP");
+    message[u'required_csp'] = isomorphic_decode(header) if header else None
+
+    second_level_iframe_code = u""
+    if b"include_second_level_iframe" in request.GET:
+       if b"second_level_iframe_csp" in request.GET and request.GET[b"second_level_iframe_csp"] != b"":
+         second_level_iframe_code = u'''<script>
             var i2 = document.createElement('iframe');
             i2.src = 'echo-required-csp.py';
             i2.csp = "{0}";
             document.body.appendChild(i2);
-            </script>'''.format(request.GET["second_level_iframe_csp"])
+            </script>'''.format(isomorphic_decode(request.GET[b"second_level_iframe_csp"]))
        else:
-         second_level_iframe_code = '''<script>
+         second_level_iframe_code = u'''<script>
             var i2 = document.createElement('iframe');
             i2.src = 'echo-required-csp.py';
             document.body.appendChild(i2);
             </script>'''
 
-    return [("Content-Type", "text/html"), ("Allow-CSP-From", "*")], '''
+    return [(b"Content-Type", b"text/html"), (b"Allow-CSP-From", b"*")], u'''
 <!DOCTYPE html>
 <html>
 <head>

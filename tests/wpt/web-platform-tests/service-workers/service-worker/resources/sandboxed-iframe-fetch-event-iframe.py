@@ -1,16 +1,18 @@
 import os.path
 
+from wptserve.utils import isomorphic_decode
+
 def main(request, response):
-  header = [('Content-Type', 'text/html')]
-  if 'test' in request.GET:
-    with open(os.path.join(os.path.dirname(__file__),'blank.html'), 'r') as f:
+  header = [(b'Content-Type', b'text/html')]
+  if b'test' in request.GET:
+    with open(os.path.join(os.path.dirname(isomorphic_decode(__file__)), u'blank.html'), u'r') as f:
       body = f.read()
     return (header, body)
 
-  if 'sandbox' in request.GET:
-    header.append(('Content-Security-Policy',
-                   'sandbox %s' % request.GET['sandbox']))
-  with open(os.path.join(os.path.dirname(__file__),
-                         'sandboxed-iframe-fetch-event-iframe.html'), 'r') as f:
+  if b'sandbox' in request.GET:
+    header.append((b'Content-Security-Policy',
+                   b'sandbox %s' % request.GET[b'sandbox']))
+  with open(os.path.join(os.path.dirname(isomorphic_decode(__file__)),
+                         u'sandboxed-iframe-fetch-event-iframe.html'), u'r') as f:
     body = f.read()
   return (header, body)

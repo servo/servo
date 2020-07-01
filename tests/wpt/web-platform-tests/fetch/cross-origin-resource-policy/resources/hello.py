@@ -1,6 +1,6 @@
 def main(request, response):
-    headers = [("Cross-Origin-Resource-Policy", request.GET['corp'])]
-    if 'origin' in request.headers:
-        headers.append(('Access-Control-Allow-Origin', request.headers['origin']))
+    headers = [(b"Cross-Origin-Resource-Policy", request.GET[b'corp'])]
+    if b'origin' in request.headers:
+        headers.append((b'Access-Control-Allow-Origin', request.headers[b'origin']))
 
-    return 200, headers, "hello"
+    return 200, headers, b"hello"

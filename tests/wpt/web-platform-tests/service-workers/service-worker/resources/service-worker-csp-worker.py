@@ -1,4 +1,4 @@
-bodyDefault = '''
+bodyDefault = b'''
 importScripts('worker-testharness.js');
 importScripts('test-helpers.sub.js');
 importScripts('/common/get-host-info.sub.js');
@@ -53,7 +53,7 @@ async_test(function(t) {
       .catch(unreached_rejection(t));
   }, 'Redirected fetch test for default-src');'''
 
-bodyScript = '''
+bodyScript = b'''
 importScripts('worker-testharness.js');
 importScripts('test-helpers.sub.js');
 importScripts('/common/get-host-info.sub.js');
@@ -108,7 +108,7 @@ async_test(function(t) {
       .catch(unreached_rejection(t));
   }, 'Redirected fetch test for script-src');'''
 
-bodyConnect = '''
+bodyConnect = b'''
 importScripts('worker-testharness.js');
 importScripts('test-helpers.sub.js');
 importScripts('/common/get-host-info.sub.js');
@@ -168,16 +168,16 @@ async_test(function(t) {
 
 def main(request, response):
     headers = []
-    headers.append(('Content-Type', 'application/javascript'))
-    directive = request.GET['directive']
-    body = 'ERROR: Unknown directive'
-    if directive == 'default':
-        headers.append(('Content-Security-Policy', "default-src 'self'"))
+    headers.append((b'Content-Type', b'application/javascript'))
+    directive = request.GET[b'directive']
+    body = b'ERROR: Unknown directive'
+    if directive == b'default':
+        headers.append((b'Content-Security-Policy', b"default-src 'self'"))
         body = bodyDefault
-    elif directive == 'script':
-        headers.append(('Content-Security-Policy', "script-src 'self'"))
+    elif directive == b'script':
+        headers.append((b'Content-Security-Policy', b"script-src 'self'"))
         body = bodyScript
-    elif directive == 'connect':
-        headers.append(('Content-Security-Policy', "connect-src 'self'"))
+    elif directive == b'connect':
+        headers.append((b'Content-Security-Policy', b"connect-src 'self'"))
         body = bodyConnect
     return headers, body
