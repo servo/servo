@@ -2769,13 +2769,6 @@ where
             warn!("Exit Canvas Paint thread failed ({})", e);
         }
 
-        if let Some(webgl_threads) = self.webgl_threads.as_ref() {
-            debug!("Exiting WebGL thread.");
-            if let Err(e) = webgl_threads.exit() {
-                warn!("Exit WebGL Thread failed ({})", e);
-            }
-        }
-
         debug!("Exiting WebGPU threads.");
         let receivers = self
             .browsing_context_group_set
@@ -2797,6 +2790,13 @@ where
         for receiver in receivers {
             if let Err(e) = receiver.recv() {
                 warn!("Failed to receive exit response from WebGPU ({:?})", e);
+            }
+        }
+
+        if let Some(webgl_threads) = self.webgl_threads.as_ref() {
+            debug!("Exiting WebGL thread.");
+            if let Err(e) = webgl_threads.exit() {
+                warn!("Exit WebGL Thread failed ({})", e);
             }
         }
 
