@@ -8,10 +8,12 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
+use crate::dom::bindings::codegen::Bindings::MediaStreamAudioDestinationNodeBinding::MediaStreamAudioDestinationNodeMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::reflector::reflect_dom_object;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
+use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::mediastream::MediaStream;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
 use servo_media::audio::node::AudioNodeInit;
@@ -21,6 +23,7 @@ use servo_media::ServoMedia;
 #[dom_struct]
 pub struct MediaStreamAudioDestinationNode {
     node: AudioNode,
+    stream: Dom<MediaStream>,
 }
 
 impl MediaStreamAudioDestinationNode {
@@ -30,7 +33,8 @@ impl MediaStreamAudioDestinationNode {
         options: &AudioNodeOptions,
     ) -> Fallible<MediaStreamAudioDestinationNode> {
         let media = ServoMedia::get().unwrap();
-        let (socket, _id) = media.create_stream_and_socket(MediaStreamType::Audio);
+        let (socket, id) = media.create_stream_and_socket(MediaStreamType::Audio);
+        let stream = MediaStream::new_single(&context.global(), id, MediaStreamType::Audio);
         let node_options = options.unwrap_or(
             2,
             ChannelCountMode::Explicit,
@@ -43,7 +47,10 @@ impl MediaStreamAudioDestinationNode {
             1, // inputs
             0, // outputs
         )?;
-        Ok(MediaStreamAudioDestinationNode { node })
+        Ok(MediaStreamAudioDestinationNode {
+            node,
+            stream: Dom::from_ref(&stream),
+        })
     }
 
     #[allow(unrooted_must_root)]
@@ -63,5 +70,12 @@ impl MediaStreamAudioDestinationNode {
         options: &AudioNodeOptions,
     ) -> Fallible<DomRoot<MediaStreamAudioDestinationNode>> {
         MediaStreamAudioDestinationNode::new(window, context, options)
+    }
+}
+
+impl MediaStreamAudioDestinationNodeMethods for MediaStreamAudioDestinationNode {
+    /// https://webaudio.github.io/web-audio-api/#dom-mediastreamaudiodestinationnode-stream
+    fn Stream(&self) -> DomRoot<MediaStream> {
+        DomRoot::from_ref(&self.stream)
     }
 }

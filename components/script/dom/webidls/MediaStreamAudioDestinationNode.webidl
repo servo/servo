@@ -9,5 +9,5 @@
 [Exposed=Window]
 interface MediaStreamAudioDestinationNode : AudioNode {
   [Throws] constructor (AudioContext context, optional AudioNodeOptions options = {});
-  // readonly attribute MediaStream stream;
+  readonly attribute MediaStream stream;
 };
