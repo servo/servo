@@ -13,6 +13,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::window::Window;
 use dom_struct::dom_struct;
+use servo_media::streams::registry::MediaStreamId;
 use servo_media::streams::MediaStreamType;
 
 #[dom_struct]
@@ -32,6 +33,17 @@ impl MediaStream {
 
     pub fn new(global: &GlobalScope) -> DomRoot<MediaStream> {
         reflect_dom_object(Box::new(MediaStream::new_inherited()), global)
+    }
+
+    pub fn new_single(
+        global: &GlobalScope,
+        id: MediaStreamId,
+        ty: MediaStreamType,
+    ) -> DomRoot<MediaStream> {
+        let this = Self::new(global);
+        let track = MediaStreamTrack::new(global, id, ty);
+        this.AddTrack(&track);
+        this
     }
 
     pub fn Constructor(global: &Window) -> Fallible<DomRoot<MediaStream>> {
