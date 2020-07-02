@@ -405,6 +405,12 @@ impl HTMLInputElement {
         self.input_type.get()
     }
 
+    #[inline]
+    pub fn is_submit_button(&self) -> bool {
+        let input_type = self.input_type.get();
+        input_type == InputType::Submit || input_type == InputType::Image
+    }
+
     pub fn disable_sanitization(&self) {
         self.sanitization_flag.set(false);
     }
