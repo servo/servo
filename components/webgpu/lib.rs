@@ -13,7 +13,7 @@ pub mod identity;
 use arrayvec::ArrayVec;
 use euclid::default::Size2D;
 use identity::{IdentityRecyclerFactory, WebGPUMsg};
-use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{self, IpcReceiver, IpcSender, IpcSharedMemory};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
@@ -51,7 +51,7 @@ pub enum WebGPUResponse {
         queue_id: WebGPUQueue,
         _descriptor: wgt::DeviceDescriptor,
     },
-    BufferMapAsync(Vec<u8>),
+    BufferMapAsync(IpcSharedMemory),
 }
 
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
@@ -145,7 +145,7 @@ pub enum WebGPURequest {
     },
     CreateSwapChain {
         device_id: id::DeviceId,
-        buffer_id: id::BufferId,
+        buffer_ids: ArrayVec<[id::BufferId; 5]>,
         external_id: u64,
         sender: IpcSender<webrender_api::ImageKey>,
         image_desc: webrender_api::ImageDescriptor,
@@ -195,14 +195,18 @@ pub enum WebGPURequest {
         external_id: u64,
         texture_id: id::TextureId,
         encoder_id: id::CommandEncoderId,
-        image_key: webrender_api::ImageKey,
     },
     UnmapBuffer {
         buffer_id: id::BufferId,
-        array_buffer: Vec<u8>,
+        array_buffer: IpcSharedMemory,
         is_map_read: bool,
         offset: u64,
         size: u64,
+    },
+    UpdateWebRenderData {
+        buffer_id: id::BufferId,
+        external_id: u64,
+        buffer_size: usize,
     },
 }
 
@@ -213,11 +217,12 @@ pub enum WebGPUBindings {
     TextureView(id::TextureViewId),
 }
 
-struct BufferMapInfo<'a> {
+struct BufferMapInfo<'a, T> {
     buffer_id: id::BufferId,
-    sender: IpcSender<WebGPUResponseResult>,
+    sender: IpcSender<T>,
     global: &'a wgpu::hub::Global<IdentityRecyclerFactory>,
     size: usize,
+    external_id: Option<u64>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -294,7 +299,9 @@ struct WGPU<'a> {
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
     // Buffers with pending mapping
-    buffer_maps: HashMap<id::BufferId, BufferMapInfo<'a>>,
+    buffer_maps: HashMap<id::BufferId, BufferMapInfo<'a, WebGPUResponseResult>>,
+    // Presentation Buffers with pending mapping
+    present_buffer_maps: HashMap<id::BufferId, BufferMapInfo<'a, WebGPURequest>>,
     webrender_api: webrender_api::RenderApi,
     webrender_document: webrender_api::DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -324,6 +331,7 @@ impl<'a> WGPU<'a> {
             devices: Vec::new(),
             _invalid_adapters: Vec::new(),
             buffer_maps: HashMap::new(),
+            present_buffer_maps: HashMap::new(),
             webrender_api: webrender_api_sender.create_api(),
             webrender_document,
             external_images,
@@ -351,6 +359,7 @@ impl<'a> WGPU<'a> {
                             sender,
                             global: &self.global,
                             size: (map_range.end - map_range.start) as usize,
+                            external_id: None,
                         };
                         self.buffer_maps.insert(buffer_id, map_info);
 
@@ -359,16 +368,19 @@ impl<'a> WGPU<'a> {
                             userdata: *mut u8,
                         ) {
                             let nonnull_info =
-                                NonNull::new(userdata as *mut BufferMapInfo).unwrap();
+                                NonNull::new(userdata as *mut BufferMapInfo<WebGPUResponseResult>)
+                                    .unwrap();
                             let info = nonnull_info.as_ref();
                             match status {
                                 BufferMapAsyncStatus::Success => {
                                     let global = &info.global;
                                     let data_pt = gfx_select!(info.buffer_id =>
                                         global.buffer_get_mapped_range(info.buffer_id, 0, None));
-                                    let data = slice::from_raw_parts(data_pt, info.size).to_vec();
+                                    let data = slice::from_raw_parts(data_pt, info.size);
                                     if let Err(e) =
-                                        info.sender.send(Ok(WebGPUResponse::BufferMapAsync(data)))
+                                        info.sender.send(Ok(WebGPUResponse::BufferMapAsync(
+                                            IpcSharedMemory::from_bytes(data),
+                                        )))
                                     {
                                         warn!("Could not send BufferMapAsync Response ({})", e);
                                     }
@@ -620,7 +632,7 @@ impl<'a> WGPU<'a> {
                     },
                     WebGPURequest::CreateSwapChain {
                         device_id,
-                        buffer_id,
+                        buffer_ids,
                         external_id,
                         sender,
                         image_desc,
@@ -630,6 +642,10 @@ impl<'a> WGPU<'a> {
                         let width = image_desc.size.width;
                         let buffer_stride =
                             ((width * 4) as u32 | (wgt::COPY_BYTES_PER_ROW_ALIGNMENT - 1)) + 1;
+                        let image_key = self.webrender_api.generate_image_key();
+                        if let Err(e) = sender.send(image_key) {
+                            warn!("Failed to send ImageKey ({})", e);
+                        }
                         let _ = self.wgpu_image_map.lock().unwrap().insert(
                             external_id,
                             PresentationData {
@@ -637,30 +653,15 @@ impl<'a> WGPU<'a> {
                                 queue_id: device_id,
                                 data: vec![255; (buffer_stride * height as u32) as usize],
                                 size: Size2D::new(width, height),
-                                buffer_id,
+                                unassigned_buffer_ids: buffer_ids,
+                                available_buffer_ids: ArrayVec::<[id::BufferId; 5]>::new(),
+                                queued_buffer_ids: ArrayVec::<[id::BufferId; 5]>::new(),
                                 buffer_stride,
+                                image_key,
                                 image_desc,
                                 image_data: image_data.clone(),
                             },
                         );
-                        let buffer_size = (buffer_stride * height as u32) as wgt::BufferAddress;
-                        let global = &self.global;
-                        let buffer_desc = wgt::BufferDescriptor {
-                            label: ptr::null(),
-                            size: buffer_size,
-                            usage: wgt::BufferUsage::MAP_READ | wgt::BufferUsage::COPY_DST,
-                            mapped_at_creation: false,
-                        };
-                        let _ = gfx_select!(buffer_id => global.device_create_buffer(
-                            device_id,
-                            &buffer_desc,
-                            buffer_id
-                        ));
-
-                        let image_key = self.webrender_api.generate_image_key();
-                        if let Err(e) = sender.send(image_key) {
-                            warn!("Failed to send ImageKey ({})", e);
-                        }
 
                         let mut txn = webrender_api::Transaction::new();
                         txn.add_image(image_key, image_desc, image_data, None);
@@ -708,7 +709,17 @@ impl<'a> WGPU<'a> {
                             .remove(&external_id)
                             .unwrap();
                         let global = &self.global;
-                        gfx_select!(data.buffer_id => global.buffer_destroy(data.buffer_id));
+                        for b_id in data.available_buffer_ids.iter() {
+                            gfx_select!(b_id => global.buffer_destroy(*b_id));
+                        }
+                        for b_id in data.queued_buffer_ids.iter() {
+                            gfx_select!(b_id => global.buffer_destroy(*b_id));
+                        }
+                        for b_id in data.unassigned_buffer_ids.iter() {
+                            if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(*b_id)) {
+                                warn!("Unable to send FreeBuffer({:?}) ({:?})", *b_id, e);
+                            };
+                        }
                         let mut txn = webrender_api::Transaction::new();
                         txn.delete_image(image_key);
                         self.webrender_api
@@ -829,7 +840,6 @@ impl<'a> WGPU<'a> {
                         external_id,
                         texture_id,
                         encoder_id,
-                        image_key,
                     } => {
                         let global = &self.global;
                         let device_id;
@@ -844,8 +854,36 @@ impl<'a> WGPU<'a> {
                                 size = present_data.size;
                                 device_id = present_data.device_id;
                                 queue_id = present_data.queue_id;
-                                buffer_id = present_data.buffer_id;
                                 buffer_stride = present_data.buffer_stride;
+                                buffer_id = if let Some(b_id) =
+                                    present_data.available_buffer_ids.pop()
+                                {
+                                    b_id
+                                } else if let Some(b_id) = present_data.unassigned_buffer_ids.pop()
+                                {
+                                    let buffer_size =
+                                        (buffer_stride * size.height as u32) as wgt::BufferAddress;
+                                    let buffer_desc = wgt::BufferDescriptor {
+                                        label: ptr::null(),
+                                        size: buffer_size,
+                                        usage: wgt::BufferUsage::MAP_READ |
+                                            wgt::BufferUsage::COPY_DST,
+                                        mapped_at_creation: false,
+                                    };
+                                    let _ = gfx_select!(b_id => global.device_create_buffer(
+                                        device_id,
+                                        &buffer_desc,
+                                        b_id
+                                    ));
+                                    b_id
+                                } else {
+                                    warn!(
+                                        "No staging buffer available for ExternalImageId({:?})",
+                                        external_id
+                                    );
+                                    continue;
+                                };
+                                present_data.queued_buffer_ids.push(buffer_id);
                             } else {
                                 warn!("Data not found for ExternalImageId({:?})", external_id);
                                 continue;
@@ -893,43 +931,46 @@ impl<'a> WGPU<'a> {
                             queue_id,
                             &[encoder_id]
                         ));
-                        extern "C" fn callback(status: BufferMapAsyncStatus, _user_data: *mut u8) {
+
+                        let map_info = BufferMapInfo {
+                            buffer_id,
+                            sender: self.sender.clone(),
+                            global: &self.global,
+                            size: buffer_size as usize,
+                            external_id: Some(external_id),
+                        };
+                        self.present_buffer_maps.insert(buffer_id, map_info);
+                        unsafe extern "C" fn callback(
+                            status: BufferMapAsyncStatus,
+                            userdata: *mut u8,
+                        ) {
+                            let nonnull_info =
+                                NonNull::new(userdata as *mut BufferMapInfo<WebGPURequest>)
+                                    .unwrap();
+                            let info = nonnull_info.as_ref();
                             match status {
                                 BufferMapAsyncStatus::Success => {
-                                    debug!("Buffer Mapped");
+                                    if let Err(e) =
+                                        info.sender.send(WebGPURequest::UpdateWebRenderData {
+                                            buffer_id: info.buffer_id,
+                                            buffer_size: info.size,
+                                            external_id: info.external_id.unwrap(),
+                                        })
+                                    {
+                                        warn!("Could not send UpdateWebRenderData ({})", e);
+                                    }
                                 },
-                                _ => warn!("Could not map buffer"),
+                                _ => error!("Could not map buffer({:?})", info.buffer_id),
                             }
                         }
                         let map_op = BufferMapOperation {
                             host: HostMap::Read,
                             callback,
-                            user_data: ptr::null_mut(),
+                            user_data: convert_to_pointer(
+                                self.present_buffer_maps.get(&buffer_id).unwrap(),
+                            ),
                         };
                         gfx_select!(buffer_id => global.buffer_map_async(buffer_id, 0..buffer_size, map_op));
-                        // TODO: Remove the blocking behaviour
-                        gfx_select!(device_id => global.device_poll(device_id, true));
-                        let buf_data = gfx_select!(buffer_id =>
-                        global.buffer_get_mapped_range(buffer_id, 0, None));
-                        if let Some(present_data) =
-                            self.wgpu_image_map.lock().unwrap().get_mut(&external_id)
-                        {
-                            present_data.data = unsafe {
-                                slice::from_raw_parts(buf_data, buffer_size as usize).to_vec()
-                            };
-                            let mut txn = webrender_api::Transaction::new();
-                            txn.update_image(
-                                image_key,
-                                present_data.image_desc,
-                                present_data.image_data.clone(),
-                                &webrender_api::DirtyRect::All,
-                            );
-                            self.webrender_api
-                                .send_transaction(self.webrender_document, txn);
-                        } else {
-                            warn!("Data not found for ExternalImageId({:?})", external_id);
-                        }
-                        gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
                     },
                     WebGPURequest::UnmapBuffer {
                         buffer_id,
@@ -949,6 +990,38 @@ impl<'a> WGPU<'a> {
                                 .copy_from_slice(&array_buffer);
                         }
                         gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
+                    },
+                    WebGPURequest::UpdateWebRenderData {
+                        buffer_id,
+                        buffer_size,
+                        external_id,
+                    } => {
+                        let global = &self.global;
+                        let data_pt = gfx_select!(buffer_id =>
+                            global.buffer_get_mapped_range(buffer_id, 0, None));
+                        let data = unsafe { slice::from_raw_parts(data_pt, buffer_size) }.to_vec();
+                        if let Some(present_data) =
+                            self.wgpu_image_map.lock().unwrap().get_mut(&external_id)
+                        {
+                            present_data.data = data;
+                            let mut txn = webrender_api::Transaction::new();
+                            txn.update_image(
+                                present_data.image_key,
+                                present_data.image_desc,
+                                present_data.image_data.clone(),
+                                &webrender_api::DirtyRect::All,
+                            );
+                            self.webrender_api
+                                .send_transaction(self.webrender_document, txn);
+                            present_data
+                                .queued_buffer_ids
+                                .retain(|b_id| *b_id != buffer_id);
+                            present_data.available_buffer_ids.push(buffer_id);
+                        } else {
+                            warn!("Data not found for ExternalImageId({:?})", external_id);
+                        }
+                        gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
+                        self.present_buffer_maps.remove(&buffer_id);
                     },
                 }
             }
@@ -1034,8 +1107,11 @@ pub struct PresentationData {
     queue_id: id::QueueId,
     pub data: Vec<u8>,
     pub size: Size2D<i32>,
-    buffer_id: id::BufferId,
+    unassigned_buffer_ids: ArrayVec<[id::BufferId; 5]>,
+    available_buffer_ids: ArrayVec<[id::BufferId; 5]>,
+    queued_buffer_ids: ArrayVec<[id::BufferId; 5]>,
     buffer_stride: u32,
+    image_key: webrender_api::ImageKey,
     image_desc: webrender_api::ImageDescriptor,
     image_data: webrender_api::ImageData,
 }
