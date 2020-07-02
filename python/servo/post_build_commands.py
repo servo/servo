@@ -79,6 +79,7 @@ class PostBuildCommands(CommandBase):
         help="Command-line arguments to be passed through to Servo")
     def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None,
             headless=False, software=False, bin=None, emulator=False, usb=False, nightly=None):
+        self.set_run_env(android is not None)
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
 
