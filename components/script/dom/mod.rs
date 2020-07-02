@@ -425,6 +425,7 @@ pub mod imagedata;
 pub mod inputevent;
 pub mod keyboardevent;
 pub mod location;
+pub mod mediadeviceinfo;
 pub mod mediadevices;
 pub mod mediaelementaudiosourcenode;
 pub mod mediaerror;

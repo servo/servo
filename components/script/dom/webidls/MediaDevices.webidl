@@ -8,7 +8,7 @@
 SecureContext, Pref="dom.webrtc.enabled"]
 interface MediaDevices : EventTarget {
     //                attribute EventHandler ondevicechange;
-    // Promise<sequence<MediaDeviceInfo>> enumerateDevices();
+    Promise<sequence<MediaDeviceInfo>> enumerateDevices();
 };
 
 partial interface Navigator {

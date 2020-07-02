@@ -12,10 +12,11 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::mediadeviceinfo::MediaDeviceInfo;
 use crate::dom::mediastream::MediaStream;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::promise::Promise;
-use crate::realms::InRealm;
+use crate::realms::{AlreadyInRealm, InRealm};
 use dom_struct::dom_struct;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
 use servo_media::streams::MediaStreamType;
@@ -60,6 +61,43 @@ impl MediaDevicesMethods for MediaDevices {
         }
 
         p.resolve_native(&stream);
+        p
+    }
+
+    /// https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices
+    fn EnumerateDevices(&self) -> Rc<Promise> {
+        // Step 1.
+        let global = self.global();
+        let in_realm_proof = AlreadyInRealm::assert(&global);
+        let p = Promise::new_in_current_realm(&global, InRealm::Already(&in_realm_proof));
+
+        // Step 2.
+        // XXX These steps should be run in parallel.
+        // XXX Steps 2.1 - 2.4
+
+        // Step 2.5
+        let media = ServoMedia::get().unwrap();
+        let device_monitor = media.get_device_monitor();
+        let result_list = match device_monitor.enumerate_devices() {
+            Ok(devices) => devices
+                .iter()
+                .map(|device| {
+                    // XXX The media backend has no way to group devices yet.
+                    MediaDeviceInfo::new(
+                        &self.global(),
+                        &device.device_id,
+                        device.kind.into(),
+                        &device.label,
+                        "",
+                    )
+                })
+                .collect(),
+            Err(_) => Vec::new(),
+        };
+
+        p.resolve_native(&result_list);
+
+        // Step 3.
         p
     }
 }
