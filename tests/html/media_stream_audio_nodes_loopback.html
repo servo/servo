@@ -1,0 +1,12 @@
+<script type="text/javascript">
+let a1 = new AudioContext();
+let osc1 = a1.createOscillator();
+let dest1 = a1.createMediaStreamDestination();
+osc1.connect(dest1);
+osc1.start(0);
+
+let a2 = new AudioContext();
+let source2 = a2.createMediaStreamSource(dest1.stream);
+source2.connect(a2.destination);
+
+</script>
