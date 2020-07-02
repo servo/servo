@@ -27,10 +27,9 @@ impl MediaStreamAudioSourceNode {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(
         context: &AudioContext,
-        options: &MediaStreamAudioSourceOptions,
+        stream: &MediaStream,
     ) -> Fallible<MediaStreamAudioSourceNode> {
-        let track = options
-            .mediaStream
+        let track = stream
             .get_tracks()
             .iter()
             .find(|t| t.ty() == MediaStreamType::Audio)
@@ -45,7 +44,7 @@ impl MediaStreamAudioSourceNode {
         )?;
         Ok(MediaStreamAudioSourceNode {
             node,
-            stream: Dom::from_ref(&options.mediaStream),
+            stream: Dom::from_ref(&stream),
         })
     }
 
@@ -53,9 +52,9 @@ impl MediaStreamAudioSourceNode {
     pub fn new(
         window: &Window,
         context: &AudioContext,
-        options: &MediaStreamAudioSourceOptions,
+        stream: &MediaStream,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        let node = MediaStreamAudioSourceNode::new_inherited(context, options)?;
+        let node = MediaStreamAudioSourceNode::new_inherited(context, stream)?;
         Ok(reflect_dom_object(Box::new(node), window))
     }
 
@@ -65,7 +64,7 @@ impl MediaStreamAudioSourceNode {
         context: &AudioContext,
         options: &MediaStreamAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        MediaStreamAudioSourceNode::new(window, context, options)
+        MediaStreamAudioSourceNode::new(window, context, &options.mediaStream)
     }
 }
 

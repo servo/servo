@@ -24,11 +24,10 @@ impl MediaStreamTrackAudioSourceNode {
     #[allow(unrooted_must_root)]
     pub fn new_inherited(
         context: &AudioContext,
-        options: &MediaStreamTrackAudioSourceOptions,
+        track: &MediaStreamTrack,
     ) -> Fallible<MediaStreamTrackAudioSourceNode> {
-        let track = options.mediaStreamTrack.id();
         let node = AudioNode::new_inherited(
-            AudioNodeInit::MediaStreamSourceNode(track),
+            AudioNodeInit::MediaStreamSourceNode(track.id()),
             &context.upcast(),
             Default::default(),
             0, // inputs
@@ -36,7 +35,7 @@ impl MediaStreamTrackAudioSourceNode {
         )?;
         Ok(MediaStreamTrackAudioSourceNode {
             node,
-            track: Dom::from_ref(&options.mediaStreamTrack),
+            track: Dom::from_ref(&track),
         })
     }
 
@@ -44,9 +43,9 @@ impl MediaStreamTrackAudioSourceNode {
     pub fn new(
         window: &Window,
         context: &AudioContext,
-        options: &MediaStreamTrackAudioSourceOptions,
+        track: &MediaStreamTrack,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
-        let node = MediaStreamTrackAudioSourceNode::new_inherited(context, options)?;
+        let node = MediaStreamTrackAudioSourceNode::new_inherited(context, track)?;
         Ok(reflect_dom_object(Box::new(node), window))
     }
 
@@ -56,6 +55,6 @@ impl MediaStreamTrackAudioSourceNode {
         context: &AudioContext,
         options: &MediaStreamTrackAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
-        MediaStreamTrackAudioSourceNode::new(window, context, options)
+        MediaStreamTrackAudioSourceNode::new(window, context, &options.mediaStreamTrack)
     }
 }

@@ -9,6 +9,7 @@ use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
 use crate::dom::bindings::codegen::Bindings::AudioContextBinding::{
     AudioContextOptions, AudioTimestamp,
 };
+use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::AudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::AudioContextState;
 use crate::dom::bindings::codegen::Bindings::BaseAudioContextBinding::BaseAudioContextBinding::BaseAudioContextMethods;
 use crate::dom::bindings::codegen::UnionTypes::AudioContextLatencyCategoryOrDouble;
@@ -20,6 +21,11 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediaelementaudiosourcenode::MediaElementAudioSourceNode;
+use crate::dom::mediastream::MediaStream;
+use crate::dom::mediastreamaudiodestinationnode::MediaStreamAudioDestinationNode;
+use crate::dom::mediastreamaudiosourcenode::MediaStreamAudioSourceNode;
+use crate::dom::mediastreamtrack::MediaStreamTrack;
+use crate::dom::mediastreamtrackaudiosourcenode::MediaStreamTrackAudioSourceNode;
 use crate::dom::promise::Promise;
 use crate::dom::window::Window;
 use crate::realms::InRealm;
@@ -253,6 +259,33 @@ impl AudioContextMethods for AudioContext {
         let global = self.global();
         let window = global.as_window();
         MediaElementAudioSourceNode::new(window, self, media_element)
+    }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamsource
+    fn CreateMediaStreamSource(
+        &self,
+        stream: &MediaStream,
+    ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
+        let global = self.global();
+        let window = global.as_window();
+        MediaStreamAudioSourceNode::new(window, self, stream)
+    }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamtracksource
+    fn CreateMediaStreamTrackSource(
+        &self,
+        track: &MediaStreamTrack,
+    ) -> Fallible<DomRoot<MediaStreamTrackAudioSourceNode>> {
+        let global = self.global();
+        let window = global.as_window();
+        MediaStreamTrackAudioSourceNode::new(window, self, track)
+    }
+
+    /// https://webaudio.github.io/web-audio-api/#dom-audiocontext-createmediastreamdestination
+    fn CreateMediaStreamDestination(&self) -> Fallible<DomRoot<MediaStreamAudioDestinationNode>> {
+        let global = self.global();
+        let window = global.as_window();
+        MediaStreamAudioDestinationNode::new(window, self, &AudioNodeOptions::empty())
     }
 }
 
