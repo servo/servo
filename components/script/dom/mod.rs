@@ -438,6 +438,7 @@ pub mod mediastream;
 pub mod mediastreamaudiodestinationnode;
 pub mod mediastreamaudiosourcenode;
 pub mod mediastreamtrack;
+pub mod mediastreamtrackaudiosourcenode;
 pub mod messagechannel;
 pub mod messageevent;
 pub mod messageport;
