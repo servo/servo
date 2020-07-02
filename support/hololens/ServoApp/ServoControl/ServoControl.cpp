@@ -94,26 +94,37 @@ void ServoControl::InitializeTextController() {
   auto manager = CoreTextServicesManager::GetForCurrentView();
   mEditContext = manager.CreateEditContext();
   mEditContext->InputPaneDisplayPolicy(CoreTextInputPaneDisplayPolicy::Manual);
-  mEditContext->InputScope(CoreTextInputScope::Text);
+
   mEditContext->TextRequested([=](const auto &, const auto &e) {
-    e.Request().Text(L"");
-    CoreTextRange sel;
-    sel.StartCaretPosition = 0;
-    sel.EndCaretPosition = 0;
-    e.Request().Range() = sel;
+    e.Request().Text(*mFocusedInputText);
+  });
+
+  mEditContext->SelectionRequested([=](const auto &, const auto &) {});
+
+  mEditContext->LayoutRequested([=](const auto &, const auto &e) {
+    // Necessary to show the preview
+    e.Request().LayoutBounds().TextBounds(*mFocusedInputRect);
+    e.Request().LayoutBounds().ControlBounds(*mFocusedInputRect);
   });
 
   mEditContext->TextUpdating([=](const auto &, const auto &e) {
     RunOnGLThread([=] {
-      auto keystr = *hstring2char((e.Text()));
-      mServo->KeyDown(keystr);
+      auto text = *hstring2char(e.Text());
+      size_t size = strlen(text);
+      for (int i = 0; i < size; i++) {
+        char letter[2];
+        memcpy(letter, &text[i], 1);
+        letter[1] = '\0';
+        mServo->KeyDown(letter);
+        mServo->KeyUp(letter);
+      }
     });
+    e.Result(CoreTextTextUpdatingResult::Succeeded);
   });
-
-  mEditContext->SelectionRequested([](const auto &, const auto &) {});
 
   GotFocus(
       [=](const auto &, const auto &) { mEditContext->NotifyFocusEnter(); });
+
   LostFocus(
       [=](const auto &, const auto &) { mEditContext->NotifyFocusLeave(); });
 
@@ -126,6 +137,7 @@ void ServoControl::InitializeTextController() {
       });
     }
   });
+
   PreviewKeyUp([=](const auto &, const auto &e) {
     auto keystr = KeyToString(e.Key());
     if (keystr.has_value()) {
@@ -489,13 +501,24 @@ void ServoControl::OnServoAnimatingChanged(bool animating) {
   WakeConditionVariable(&mGLCondVar);
 }
 
-void ServoControl::OnServoIMEStateChanged(bool focused) {
+void ServoControl::OnServoIMEHide() {
+  RunOnUIThread([=] { mInputPane->TryHide(); });
+}
+
+void ServoControl::OnServoIMEShow(hstring text, int32_t x, int32_t y,
+                                  int32_t width, int32_t height) {
   RunOnUIThread([=] {
-    if (focused) {
-      mInputPane->TryShow();
-    } else {
-      mInputPane->TryHide();
-    }
+    mEditContext->NotifyFocusEnter();
+    // FIXME: The simpleservo on_ime_show callback comes with a input method
+    // type parameter that could be used to set the input scope here.
+    mEditContext->InputScope(CoreTextInputScope::Text);
+    // offset of the Servo SwapChainPanel.
+    auto transform = Panel().TransformToVisual(Window::Current().Content());
+    auto offset = transform.TransformPoint(Point(0, 0));
+    mFocusedInputRect =
+        Rect(x + offset.X, y + offset.Y, (float)width, (float)height);
+    mFocusedInputText = text;
+    mInputPane->TryShow();
   });
 }
 

@@ -11,7 +11,9 @@ pub use servo::config::prefs::{add_user_prefs, PrefValue};
 pub use servo::embedder_traits::{
     ContextMenuResult, MediaSessionPlaybackState, PermissionPrompt, PermissionRequest, PromptResult,
 };
+pub use servo::msg::constellation_msg::InputMethodType;
 pub use servo::script_traits::{MediaSessionActionType, MouseButton};
+pub use servo::webrender_api::units::DeviceIntRect;
 
 use getopts::Options;
 use ipc_channel::ipc::IpcSender;
@@ -133,7 +135,9 @@ pub trait HostTrait {
     /// Servo finished shutting down.
     fn on_shutdown_complete(&self);
     /// A text input is focused.
-    fn on_ime_state_changed(&self, show: bool);
+    fn on_ime_show(&self, input_type: InputMethodType, text: Option<String>, bounds: DeviceIntRect);
+    /// Input lost focus
+    fn on_ime_hide(&self);
     /// Gets sytem clipboard contents.
     fn get_clipboard_contents(&self) -> Option<String>;
     /// Sets system clipboard contents.
@@ -721,11 +725,13 @@ impl ServoGlue {
 
                     let _ = sender.send(result);
                 },
-                EmbedderMsg::ShowIME(..) => {
-                    self.callbacks.host_callbacks.on_ime_state_changed(true);
+                EmbedderMsg::ShowIME(kind, text, bounds) => {
+                    self.callbacks
+                        .host_callbacks
+                        .on_ime_show(kind, text, bounds);
                 },
                 EmbedderMsg::HideIME => {
-                    self.callbacks.host_callbacks.on_ime_state_changed(false);
+                    self.callbacks.host_callbacks.on_ime_hide();
                 },
                 EmbedderMsg::MediaSessionEvent(event) => {
                     match event {

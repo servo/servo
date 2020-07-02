@@ -14,10 +14,11 @@ use jni::sys::{jboolean, jfloat, jint, jstring, JNI_TRUE};
 use jni::{errors, JNIEnv, JavaVM};
 use libc::{dup2, pipe, read};
 use log::Level;
+use simpleservo::{self, deinit, gl_glue, MouseButton, ServoGlue, SERVO};
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
-    Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionPlaybackState, PromptResult,
-    VRInitOptions,
+    Coordinates, DeviceIntRect, EventLoopWaker, HostTrait, InitOptions, InputMethodType,
+    MediaSessionPlaybackState, PromptResult, VRInitOptions,
 };
 use std::os::raw::{c_char, c_int, c_void};
 use std::ptr::{null, null_mut};
@@ -529,7 +530,8 @@ impl HostTrait for HostCallbacks {
         .unwrap();
     }
 
-    fn on_ime_state_changed(&self, _show: bool) {}
+    fn on_ime_show(&self, _type: InputEncoding, _text: Option<String>, _rect: DeviceIntRect) {}
+    fn on_ime_hide(&self) {}
 
     fn get_clipboard_contents(&self) -> Option<String> {
         None

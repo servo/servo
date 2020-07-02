@@ -173,7 +173,8 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   virtual void OnServoURLChanged(winrt::hstring);
   virtual bool OnServoAllowNavigation(winrt::hstring);
   virtual void OnServoAnimatingChanged(bool);
-  virtual void OnServoIMEStateChanged(bool);
+  virtual void OnServoIMEHide();
+  virtual void OnServoIMEShow(hstring text, int32_t, int32_t, int32_t, int32_t);
   virtual void OnServoMediaSessionMetadata(winrt::hstring, winrt::hstring,
                                            winrt::hstring);
   virtual void OnServoMediaSessionPlaybackStateChange(int);
@@ -281,6 +282,9 @@ private:
 
   std::optional<Windows::UI::Text::Core::CoreTextEditContext> mEditContext;
   std::optional<Windows::UI::ViewManagement::InputPane> mInputPane;
+
+  std::optional<Windows::Foundation::Rect> mFocusedInputRect;
+  std::optional<hstring> mFocusedInputText;
 };
 } // namespace winrt::ServoApp::implementation
 
