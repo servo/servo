@@ -799,10 +799,10 @@ impl Document {
         self.quirks_mode.set(mode);
 
         if mode == QuirksMode::Quirks {
-            self.window
-                .layout_chan()
-                .send(Msg::SetQuirksMode(mode))
-                .unwrap();
+            match self.window.layout_chan() {
+                Some(chan) => chan.send(Msg::SetQuirksMode(mode)).unwrap(),
+                None => warn!("Layout channel unavailable"),
+            }
         }
     }
 
@@ -3703,13 +3703,15 @@ impl Document {
             })
             .cloned();
 
-        self.window
-            .layout_chan()
-            .send(Msg::AddStylesheet(
-                sheet.clone(),
-                insertion_point.as_ref().map(|s| s.sheet.clone()),
-            ))
-            .unwrap();
+        match self.window.layout_chan() {
+            Some(chan) => chan
+                .send(Msg::AddStylesheet(
+                    sheet.clone(),
+                    insertion_point.as_ref().map(|s| s.sheet.clone()),
+                ))
+                .unwrap(),
+            None => return warn!("Layout channel unavailable"),
+        }
 
         DocumentOrShadowRoot::add_stylesheet(
             owner,
@@ -3723,10 +3725,10 @@ impl Document {
     /// Remove a stylesheet owned by `owner` from the list of document sheets.
     #[allow(unrooted_must_root)] // Owner needs to be rooted already necessarily.
     pub fn remove_stylesheet(&self, owner: &Element, s: &Arc<Stylesheet>) {
-        self.window
-            .layout_chan()
-            .send(Msg::RemoveStylesheet(s.clone()))
-            .unwrap();
+        match self.window.layout_chan() {
+            Some(chan) => chan.send(Msg::RemoveStylesheet(s.clone())).unwrap(),
+            None => return warn!("Layout channel unavailable"),
+        }
 
         DocumentOrShadowRoot::remove_stylesheet(
             owner,
