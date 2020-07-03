@@ -1847,14 +1847,6 @@ pub enum Appearance {
     Count,
 }
 
-impl Appearance {
-    /// Returns whether we're the `none` value.
-    #[inline]
-    pub fn is_none(self) -> bool {
-        self == Appearance::None
-    }
-}
-
 /// A kind of break between two boxes.
 ///
 /// https://drafts.csswg.org/css-break/#break-between
