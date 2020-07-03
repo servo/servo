@@ -164,11 +164,11 @@ checksum = "eab1c04a571841102f5345a8fc0f6bb3d31c315dec879b5c6e42e40ce7ffa34e"
 
 [[package]]
 name = "ash"
-version = "0.30.0"
+version = "0.31.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69daec0742947f33a85931fa3cb0ce5f07929159dcbd1f0cbb5b2912e2978509"
+checksum = "c69a8137596e84c22d57f3da1b5de1d4230b1742a710091c85f4d7ce50f00f38"
 dependencies = [
- "libloading 0.5.2",
+ "libloading 0.6.1",
 ]
 
 [[package]]
@@ -1791,9 +1791,9 @@ dependencies = [
 
 [[package]]
 name = "gfx-backend-dx12"
-version = "0.5.7"
+version = "0.5.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6e1a979a793023717bcaa7511c8cbb449bab550c093737c98674a659a2bbaf73"
+checksum = "05218b5c94539f22ac7d6feb4b2482431b89f6cc897132494701ac48619218d7"
 dependencies = [
  "bitflags",
  "d3d12",
@@ -1846,9 +1846,9 @@ dependencies = [
 
 [[package]]
 name = "gfx-backend-vulkan"
-version = "0.5.8"
+version = "0.5.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04af900c2597587b35e801e9d3f91fd8078cc06067421a22caa640ad2b1bc53e"
+checksum = "5f2e8bb53e5bea0bfec7035462a75717cd04d733963a225c816339a671ef108b"
 dependencies = [
  "arrayvec 0.5.1",
  "ash",
@@ -1866,7 +1866,7 @@ dependencies = [
 [[package]]
 name = "gfx-descriptor"
 version = "0.1.0"
-source = "git+https://github.com/gfx-rs/gfx-extras?rev=0f7dac1b05813948fa0e5999c4fe6473f0c98f9b#0f7dac1b05813948fa0e5999c4fe6473f0c98f9b"
+source = "git+https://github.com/gfx-rs/gfx-extras?rev=6387d81773e29be2220cb15186ceb875ed88303b#6387d81773e29be2220cb15186ceb875ed88303b"
 dependencies = [
  "fxhash",
  "gfx-hal",
@@ -1875,9 +1875,9 @@ dependencies = [
 
 [[package]]
 name = "gfx-hal"
-version = "0.5.2"
+version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f13e8fd6aaa8f50146b9519999432e097da43466749d8863c53409322c705339"
+checksum = "a18534b23d4c262916231511309bc1f307c74cda8dcb68b93a10ca213a22814b"
 dependencies = [
  "bitflags",
  "raw-window-handle",
@@ -1886,7 +1886,7 @@ dependencies = [
 [[package]]
 name = "gfx-memory"
 version = "0.1.3"
-source = "git+https://github.com/gfx-rs/gfx-extras?rev=0f7dac1b05813948fa0e5999c4fe6473f0c98f9b#0f7dac1b05813948fa0e5999c4fe6473f0c98f9b"
+source = "git+https://github.com/gfx-rs/gfx-extras?rev=6387d81773e29be2220cb15186ceb875ed88303b#6387d81773e29be2220cb15186ceb875ed88303b"
 dependencies = [
  "fxhash",
  "gfx-hal",
@@ -6571,7 +6571,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "0.5.0"
-source = "git+https://github.com/gfx-rs/wgpu#177a0b39acde46f86fc46e3e63be16283a2da399"
+source = "git+https://github.com/gfx-rs/wgpu#349c02104948fea7aee38c3e7dc197427b1f2414"
 dependencies = [
  "arrayvec 0.5.1",
  "bitflags",
@@ -6600,7 +6600,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "0.5.0"
-source = "git+https://github.com/gfx-rs/wgpu#177a0b39acde46f86fc46e3e63be16283a2da399"
+source = "git+https://github.com/gfx-rs/wgpu#349c02104948fea7aee38c3e7dc197427b1f2414"
 dependencies = [
  "bitflags",
  "serde",

@@ -745,7 +745,7 @@ impl<'a> WGPU<'a> {
                     } => {
                         let adapter_id = match self.global.pick_adapter(
                             &options,
-                            wgt::UnsafeExtensions::disallow(),
+                            wgt::UnsafeFeatures::disallow(),
                             wgpu::instance::AdapterInputs::IdSet(&ids, |id| id.backend()),
                         ) {
                             Some(id) => id,
