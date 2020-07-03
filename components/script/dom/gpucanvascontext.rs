@@ -18,12 +18,13 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpuswapchain::GPUSwapChain;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
+use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use ipc_channel::ipc;
 use script_layout_interface::HTMLCanvasDataSource;
 use std::cell::Cell;
-use webgpu::{wgt, WebGPU, WebGPURequest};
+use webgpu::{wgpu::id, wgt, WebGPU, WebGPURequest};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct WebGPUContextId(pub u64);
@@ -91,7 +92,6 @@ impl GPUCanvasContext {
             external_id: self.context_id.0,
             texture_id,
             encoder_id,
-            image_key: self.webrender_image.get().unwrap(),
         }) {
             warn!(
                 "Failed to send UpdateWebrenderData({:?}) ({})",
@@ -130,11 +130,15 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         }
         *self.swap_chain.borrow_mut() = None;
 
-        let buffer_id = self
-            .global()
-            .wgpu_id_hub()
-            .lock()
-            .create_buffer_id(descriptor.device.id().0.backend());
+        let mut buffer_ids = ArrayVec::<[id::BufferId; 5]>::new();
+        for _ in 0..5 {
+            buffer_ids.push(
+                self.global()
+                    .wgpu_id_hub()
+                    .lock()
+                    .create_buffer_id(descriptor.device.id().0.backend()),
+            );
+        }
 
         let image_desc = webrender_api::ImageDescriptor {
             format: match descriptor.format {
@@ -166,7 +170,7 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
             .0
             .send(WebGPURequest::CreateSwapChain {
                 device_id: descriptor.device.id().0,
-                buffer_id,
+                buffer_ids,
                 external_id: self.context_id.0,
                 sender,
                 image_desc,

@@ -16,6 +16,7 @@ use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
+use ipc_channel::ipc::IpcSharedMemory;
 use js::jsapi::DetachArrayBuffer;
 use js::jsapi::NewExternalArrayBuffer;
 use js::jsapi::{Heap, JSObject};
@@ -150,7 +151,7 @@ impl GPUBufferMethods for GPUBuffer {
                 let m_range = m_info.mapping_range.clone();
                 if let Err(e) = self.channel.0.send(WebGPURequest::UnmapBuffer {
                     buffer_id: self.id().0,
-                    array_buffer: m_info.mapping.borrow().clone(),
+                    array_buffer: IpcSharedMemory::from_bytes(m_info.mapping.borrow().as_slice()),
                     is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
                     offset: m_range.start,
                     size: m_range.end - m_range.start,
@@ -325,7 +326,7 @@ impl AsyncWGPUListener for GPUBuffer {
                     .as_mut()
                     .unwrap()
                     .mapping
-                    .borrow_mut() = bytes;
+                    .borrow_mut() = bytes.to_vec();
                 promise.resolve_native(&());
                 self.state.set(GPUBufferState::Mapped);
             },
