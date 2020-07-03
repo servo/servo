@@ -16,10 +16,6 @@ function assert_iter_result(iterResult, value, done, message) {
 }
 
 test(() => {
-  assert_equals(ReadableStream.prototype[Symbol.asyncIterator], ReadableStream.prototype.values);
-}, '@@asyncIterator() method is === to values() method');
-
-test(() => {
   const s = new ReadableStream();
   const it = s.values();
   const proto = Object.getPrototypeOf(it);

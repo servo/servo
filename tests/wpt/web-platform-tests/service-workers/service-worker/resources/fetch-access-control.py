@@ -1,108 +1,109 @@
 import base64
 import json
 import os
-import sys
+
+from wptserve.utils import isomorphic_decode, isomorphic_encode
 
 def main(request, response):
     headers = []
-    headers.append(('X-ServiceWorker-ServerHeader', 'SetInTheServer'))
+    headers.append((b'X-ServiceWorker-ServerHeader', b'SetInTheServer'))
 
-    if "ACAOrigin" in request.GET:
-        for item in request.GET["ACAOrigin"].split(","):
-            headers.append(("Access-Control-Allow-Origin", item))
+    if b"ACAOrigin" in request.GET:
+        for item in request.GET[b"ACAOrigin"].split(b","):
+            headers.append((b"Access-Control-Allow-Origin", item))
 
-    for suffix in ["Headers", "Methods", "Credentials"]:
-        query = "ACA%s" % suffix
-        header = "Access-Control-Allow-%s" % suffix
+    for suffix in [b"Headers", b"Methods", b"Credentials"]:
+        query = b"ACA%s" % suffix
+        header = b"Access-Control-Allow-%s" % suffix
         if query in request.GET:
             headers.append((header, request.GET[query]))
 
-    if "ACEHeaders" in request.GET:
-        headers.append(("Access-Control-Expose-Headers", request.GET["ACEHeaders"]))
+    if b"ACEHeaders" in request.GET:
+        headers.append((b"Access-Control-Expose-Headers", request.GET[b"ACEHeaders"]))
 
-    if ("Auth" in request.GET and not request.auth.username) or "AuthFail" in request.GET:
+    if (b"Auth" in request.GET and not request.auth.username) or b"AuthFail" in request.GET:
         status = 401
-        headers.append(('WWW-Authenticate', 'Basic realm="Restricted"'))
-        body = 'Authentication canceled'
+        headers.append((b'WWW-Authenticate', b'Basic realm="Restricted"'))
+        body = b'Authentication canceled'
         return status, headers, body
 
-    if "PNGIMAGE" in request.GET:
-        headers.append(("Content-Type", "image/png"))
-        body = base64.decodestring("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1B"
-                                   "AACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAhSURBVDhPY3wro/KfgQLABKXJBqMG"
-                                   "jBoAAqMGDLwBDAwAEsoCTFWunmQAAAAASUVORK5CYII=")
+    if b"PNGIMAGE" in request.GET:
+        headers.append((b"Content-Type", b"image/png"))
+        body = base64.decodestring(b"iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAAXNSR0IArs4c6QAAAARnQU1B"
+                                   b"AACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAhSURBVDhPY3wro/KfgQLABKXJBqMG"
+                                   b"jBoAAqMGDLwBDAwAEsoCTFWunmQAAAAASUVORK5CYII=")
         return headers, body
 
-    if "VIDEO" in request.GET:
-        headers.append(("Content-Type", "video/webm"))
-        body = open(os.path.join(request.doc_root, "media", "movie_5.ogv"), "rb").read()
+    if b"VIDEO" in request.GET:
+        headers.append((b"Content-Type", b"video/webm"))
+        body = open(os.path.join(request.doc_root, u"media", u"movie_5.ogv"), "rb").read()
         length = len(body)
         # If "PartialContent" is specified, the requestor wants to test range
         # requests. For the initial request, respond with "206 Partial Content"
         # and don't send the entire content. Then expect subsequent requests to
         # have a "Range" header with a byte range. Respond with that range.
-        if "PartialContent" in request.GET:
+        if b"PartialContent" in request.GET:
           if length < 1:
-            return 500, headers, "file is too small for range requests"
+            return 500, headers, b"file is too small for range requests"
           start = 0
           end = length - 1
-          if "Range" in request.headers:
-            range_header = request.headers["Range"]
-            prefix = "bytes="
-            split_header = range_header[len(prefix):].split("-")
+          if b"Range" in request.headers:
+            range_header = request.headers[b"Range"]
+            prefix = b"bytes="
+            split_header = range_header[len(prefix):].split(b"-")
             # The first request might be "bytes=0-". We want to force a range
             # request, so just return the first byte.
-            if split_header[0] == "0" and split_header[1] == "":
+            if split_header[0] == b"0" and split_header[1] == b"":
               end = start
             # Otherwise, it is a range request. Respect the values sent.
-            if split_header[0] != "":
+            if split_header[0] != b"":
               start = int(split_header[0])
-            if split_header[1] != "":
+            if split_header[1] != b"":
               end = int(split_header[1])
           else:
             # The request doesn't have a range. Force a range request by
             # returning the first byte.
             end = start
 
-          headers.append(("Accept-Ranges", "bytes"))
-          headers.append(("Content-Length", str(end -start + 1)))
-          headers.append(("Content-Range", "bytes %d-%d/%d" % (start, end, length)))
+          headers.append((b"Accept-Ranges", b"bytes"))
+          headers.append((b"Content-Length", isomorphic_encode(str(end -start + 1))))
+          headers.append((b"Content-Range", b"bytes %d-%d/%d" % (start, end, length)))
           chunk = body[start:(end + 1)]
           return 206, headers, chunk
         return headers, body
 
-    username = request.auth.username if request.auth.username else "undefined"
-    password = request.auth.password if request.auth.username else "undefined"
-    cookie = request.cookies['cookie'].value if 'cookie' in request.cookies else "undefined"
+    username = request.auth.username if request.auth.username else b"undefined"
+    password = request.auth.password if request.auth.username else b"undefined"
+    cookie = request.cookies[b'cookie'].value if b'cookie' in request.cookies else b"undefined"
 
     files = []
-    for key, values in request.POST.iteritems():
+    for key, values in request.POST.items():
         assert len(values) == 1
         value = values[0]
-        if not hasattr(value, "file"):
+        if not hasattr(value, u"file"):
             continue
         data = value.file.read()
-        files.append({"key": key,
-                      "name": value.file.name,
-                      "type": value.type,
-                      "error": 0, #TODO,
-                      "size": len(data),
-                      "content": data})
+        files.append({u"key": isomorphic_decode(key),
+                      u"name": value.file.name,
+                      u"type": value.type,
+                      u"error": 0, #TODO,
+                      u"size": len(data),
+                      u"content": data})
 
-    get_data = {key:request.GET[key] for key,value in request.GET.iteritems()}
-    post_data = {key:request.POST[key] for key,value in request.POST.iteritems()
-                 if not hasattr(request.POST[key], "file")}
-    headers_data = {key:request.headers[key] for key,value in request.headers.iteritems()}
+    get_data = {isomorphic_decode(key):isomorphic_decode(request.GET[key]) for key, value in request.GET.items()}
+    post_data = {isomorphic_decode(key):isomorphic_decode(request.POST[key]) for key, value in request.POST.items()
+                 if not hasattr(request.POST[key], u"file")}
+    headers_data = {isomorphic_decode(key):isomorphic_decode(request.headers[key]) for key, value in request.headers.items()}
 
-    data = {"jsonpResult": "success",
-            "method": request.method,
-            "headers": headers_data,
-            "body": request.body,
-            "files": files,
-            "GET": get_data,
-            "POST": post_data,
-            "username": username,
-            "password": password,
-            "cookie": cookie}
+    data = {u"jsonpResult": u"success",
+            u"method": request.method,
+            u"headers": headers_data,
+            u"body": isomorphic_decode(request.body),
+            u"files": files,
+            u"GET": get_data,
+            u"POST": post_data,
+            u"username": isomorphic_decode(username),
+            u"password": isomorphic_decode(password),
+            u"cookie": isomorphic_decode(cookie)}
 
-    return headers, "report( %s )" % json.dumps(data)
+    return headers, u"report( %s )" % json.dumps(data)

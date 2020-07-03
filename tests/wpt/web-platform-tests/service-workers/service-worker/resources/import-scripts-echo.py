@@ -1,6 +1,6 @@
 def main(req, res):
     return ([
-        ('Cache-Control', 'no-cache, must-revalidate'),
-        ('Pragma', 'no-cache'),
-        ('Content-Type', 'application/javascript')],
-      'echo_output = "%s";\n' % req.GET['msg'])
+        (b'Cache-Control', b'no-cache, must-revalidate'),
+        (b'Pragma', b'no-cache'),
+        (b'Content-Type', b'application/javascript')],
+      b'echo_output = "%s";\n' % req.GET[b'msg'])
