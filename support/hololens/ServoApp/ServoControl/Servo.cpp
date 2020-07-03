@@ -221,30 +221,20 @@ Servo::Servo(hstring args, GLsizei width, GLsizei height,
 
   sServo = this; // FIXME;
 
-#ifndef _DEBUG
-  char buffer[1024];
-  bool logToFile = GetEnvironmentVariableA("FirefoxRealityLogStdout", buffer,
-                                           sizeof(buffer)) != 0;
-#else
-  bool logToFile = true;
-#endif
-  if (logToFile) {
-    auto current = ApplicationData::Current();
-    auto filePath =
-        std::wstring(current.LocalFolder().Path()) + L"\\stdout.txt";
-    sLogHandle =
-        CreateFile2(filePath.c_str(), GENERIC_WRITE, 0, CREATE_ALWAYS, nullptr);
-    if (sLogHandle == INVALID_HANDLE_VALUE) {
-      throw std::runtime_error("Failed to open the log file: error code " +
-                               std::to_string(GetLastError()));
-    }
+  auto current = ApplicationData::Current();
+  auto filePath = std::wstring(current.LocalFolder().Path()) + L"\\stdout.txt";
+  sLogHandle =
+      CreateFile2(filePath.c_str(), GENERIC_WRITE, 0, CREATE_ALWAYS, nullptr);
+  if (sLogHandle == INVALID_HANDLE_VALUE) {
+    throw std::runtime_error("Failed to open the log file: error code " +
+                             std::to_string(GetLastError()));
+  }
 
-    if (SetFilePointer(sLogHandle, 0, nullptr, FILE_END) ==
-        INVALID_SET_FILE_POINTER) {
-      throw std::runtime_error(
-          "Failed to set file pointer to the end of file: error code " +
-          std::to_string(GetLastError()));
-    }
+  if (SetFilePointer(sLogHandle, 0, nullptr, FILE_END) ==
+      INVALID_SET_FILE_POINTER) {
+    throw std::runtime_error(
+        "Failed to set file pointer to the end of file: error code " +
+        std::to_string(GetLastError()));
   }
 
   capi::CHostCallbacks c;
