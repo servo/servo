@@ -248,8 +248,8 @@ fn strip_url_for_use_as_referrer(mut url: ServoUrl, origin_only: bool) -> Option
     // Step 3-6
     {
         let url = url.as_mut_url();
-        url.set_username("").unwrap();
-        url.set_password(None).unwrap();
+        let _ = url.set_username("");
+        let _ = url.set_password(None);
         url.set_fragment(None);
         // Note: The result of serializing referrer url should not be
         // greater than 4096 as specified in Step 6 of
