@@ -23,3 +23,7 @@ partial interface XRSession {
   // Attributes
   readonly attribute XRInteractionMode interactionMode;
 };
+
+partial interface XRView {
+  readonly attribute boolean isFirstPersonObserver;
+};
