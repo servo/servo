@@ -4,8 +4,7 @@
 
 // https://w3c.github.io/mediacapture-main/#dom-mediastream
 
-[Exposed=Window,
- Pref="dom.webrtc.enabled"]
+[Exposed=Window]
 interface MediaStream : EventTarget {
     [Throws] constructor();
     [Throws] constructor(MediaStream stream);
