@@ -29,14 +29,14 @@ use ipc_channel::router::ROUTER;
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use net::cookie::Cookie;
 use net::cookie_storage::CookieStorage;
-use net::http_loader::determine_request_referrer;
+use net::http_loader::determine_requests_referrer;
 use net::resource_thread::AuthCacheEntry;
 use net::test::replace_host_table;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource, CredentialsMode, Destination, Referrer,
     RequestBody, RequestBuilder, RequestMode,
 };
-use net_traits::response::{HttpsState, ResponseBody};
+use net_traits::response::ResponseBody;
 use net_traits::{CookieSource, NetworkError, ReferrerPolicy};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use std::collections::HashMap;
@@ -1447,22 +1447,13 @@ fn test_origin_set() {
 }
 
 #[test]
-fn test_determine_request_referrer_shorter_than_4k() {
-    let mut headers = HeaderMap::new();
-
-    let referrer_source =
-        ServoUrl::parse("http://username:password@example.com/such/short/referer?query#fragment")
-            .unwrap();
-
+fn test_determine_requests_referrer_shorter_than_4k() {
+    let url_str = "http://username:password@example.com/such/short/referer?query#fragment";
+    let referrer_source = ServoUrl::parse(url_str).unwrap();
     let current_url = ServoUrl::parse("http://example.com/current/url").unwrap();
+    let referrer_policy = ReferrerPolicy::UnsafeUrl;
 
-    let referer = determine_request_referrer(
-        &mut headers,
-        ReferrerPolicy::UnsafeUrl,
-        referrer_source,
-        current_url,
-        HttpsState::None,
-    );
+    let referer = determine_requests_referrer(referrer_policy, referrer_source, current_url);
 
     assert_eq!(
         referer.unwrap().as_str(),
@@ -1471,23 +1462,16 @@ fn test_determine_request_referrer_shorter_than_4k() {
 }
 
 #[test]
-fn test_determine_request_referrer_longer_than_4k() {
+fn test_determine_requests_referrer_longer_than_4k() {
     let long_url_str = format!(
         "http://username:password@example.com/such/{}/referer?query#fragment",
         "long".repeat(1024)
     );
-
-    let mut headers = HeaderMap::new();
     let referrer_source = ServoUrl::parse(&long_url_str).unwrap();
     let current_url = ServoUrl::parse("http://example.com/current/url").unwrap();
+    let referrer_policy = ReferrerPolicy::UnsafeUrl;
 
-    let referer = determine_request_referrer(
-        &mut headers,
-        ReferrerPolicy::UnsafeUrl,
-        referrer_source,
-        current_url,
-        HttpsState::None,
-    );
+    let referer = determine_requests_referrer(referrer_policy, referrer_source, current_url);
 
     assert_eq!(referer.unwrap().as_str(), "http://example.com/");
 }

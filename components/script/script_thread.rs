@@ -2502,7 +2502,7 @@ impl ScriptThread {
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load, load_data.js_eval_result);
         } else if load_data.url.as_str() == "about:srcdoc" {
-            self.page_load_about_srcdoc(new_load, load_data.srcdoc);
+            self.page_load_about_srcdoc(new_load, load_data);
         } else {
             self.pre_page_load(new_load, load_data);
         }
@@ -3865,7 +3865,7 @@ impl ScriptThread {
     }
 
     /// Synchronously parse a srcdoc document from a giving HTML string.
-    fn page_load_about_srcdoc(&self, incomplete: InProgressLoad, src_doc: String) {
+    fn page_load_about_srcdoc(&self, incomplete: InProgressLoad, load_data: LoadData) {
         let id = incomplete.pipeline_id;
 
         self.incomplete_loads.borrow_mut().push(incomplete);
@@ -3875,8 +3875,9 @@ impl ScriptThread {
 
         let mut meta = Metadata::default(url);
         meta.set_content_type(Some(&mime::TEXT_HTML));
+        meta.set_referrer_policy(load_data.referrer_policy);
 
-        let chunk = src_doc.into_bytes();
+        let chunk = load_data.srcdoc.into_bytes();
 
         context.process_response(Ok(FetchMetadata::Unfiltered(meta)));
         context.process_response_chunk(chunk);

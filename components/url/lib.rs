@@ -97,6 +97,12 @@ impl ServoUrl {
         scheme == "https" || scheme == "wss"
     }
 
+    /// <https://fetch.spec.whatwg.org/#local-scheme>
+    pub fn is_local_scheme(&self) -> bool {
+        let scheme = self.scheme();
+        scheme == "about" || scheme == "blob" || scheme == "data"
+    }
+
     pub fn is_chrome(&self) -> bool {
         self.scheme() == "chrome"
     }
@@ -169,7 +175,21 @@ impl ServoUrl {
         Ok(Self::from_url(Url::from_file_path(path)?))
     }
 
-    // https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy
+    /// <https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-url>
+    pub fn is_potentially_trustworthy(&self) -> bool {
+        // Step 1
+        if self.as_str() == "about:blank" || self.as_str() == "about:srcdoc" {
+            return true;
+        }
+        // Step 2
+        if self.scheme() == "data" {
+            return true;
+        }
+        // Step 3
+        self.is_origin_trustworthy()
+    }
+
+    /// <https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy>
     pub fn is_origin_trustworthy(&self) -> bool {
         // Step 1
         if !self.origin().is_tuple() {
