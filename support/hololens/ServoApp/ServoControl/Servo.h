@@ -109,7 +109,9 @@ public:
   virtual void OnServoURLChanged(hstring) = 0;
   virtual bool OnServoAllowNavigation(hstring) = 0;
   virtual void OnServoAnimatingChanged(bool) = 0;
-  virtual void OnServoIMEStateChanged(bool) = 0;
+  virtual void OnServoIMEShow(hstring text, int32_t x, int32_t y, int32_t width,
+                              int32_t height) = 0;
+  virtual void OnServoIMEHide() = 0;
   virtual void OnServoDevtoolsStarted(bool, const unsigned int, hstring) = 0;
   virtual void OnServoMediaSessionMetadata(hstring, hstring, hstring) = 0;
   virtual void OnServoMediaSessionPlaybackStateChange(int) = 0;

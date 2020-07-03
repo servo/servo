@@ -43,9 +43,16 @@ void on_panic(const char *backtrace) {
   throw hresult_error(E_FAIL, char2hstring(backtrace));
 }
 
-void on_ime_state_changed(bool aShow) {
-  sServo->Delegate().OnServoIMEStateChanged(aShow);
+void on_ime_show(const char *text, int32_t x, int32_t y, int32_t width,
+                 int32_t height) {
+  hstring htext = L"";
+  if (text != nullptr) {
+    htext = char2hstring(text);
+  }
+  sServo->Delegate().OnServoIMEShow(htext, x, y, width, height);
 }
+
+void on_ime_hide() { sServo->Delegate().OnServoIMEHide(); }
 
 void set_clipboard_contents(const char *) {
   // FIXME
@@ -246,7 +253,8 @@ Servo::Servo(hstring args, GLsizei width, GLsizei height,
   c.on_animating_changed = &on_animating_changed;
   c.on_shutdown_complete = &on_shutdown_complete;
   c.on_allow_navigation = &on_allow_navigation;
-  c.on_ime_state_changed = &on_ime_state_changed;
+  c.on_ime_show = &on_ime_show;
+  c.on_ime_hide = &on_ime_hide;
   c.get_clipboard_contents = &get_clipboard_contents;
   c.set_clipboard_contents = &set_clipboard_contents;
   c.on_media_session_metadata = &on_media_session_metadata;

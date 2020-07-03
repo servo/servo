@@ -20,8 +20,8 @@ use keyboard_types::Key;
 use log::LevelFilter;
 use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
-    ContextMenuResult, Coordinates, EventLoopWaker, HostTrait, InitOptions, MediaSessionActionType,
-    MediaSessionPlaybackState, MouseButton, PromptResult,
+    ContextMenuResult, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait, InitOptions,
+    InputMethodType, MediaSessionActionType, MediaSessionPlaybackState, MouseButton, PromptResult,
 };
 use std::ffi::{CStr, CString};
 #[cfg(target_os = "windows")]
@@ -212,7 +212,8 @@ pub struct CHostCallbacks {
     pub on_history_changed: extern "C" fn(can_go_back: bool, can_go_forward: bool),
     pub on_animating_changed: extern "C" fn(animating: bool),
     pub on_shutdown_complete: extern "C" fn(),
-    pub on_ime_state_changed: extern "C" fn(show: bool),
+    pub on_ime_show: extern "C" fn(text: *const c_char, x: i32, y: i32, width: i32, height: i32),
+    pub on_ime_hide: extern "C" fn(),
     pub get_clipboard_contents: extern "C" fn() -> *const c_char,
     pub set_clipboard_contents: extern "C" fn(contents: *const c_char),
     pub on_media_session_metadata:
@@ -834,9 +835,30 @@ impl HostTrait for HostCallbacks {
         (self.0.on_shutdown_complete)();
     }
 
-    fn on_ime_state_changed(&self, show: bool) {
-        debug!("on_ime_state_changed");
-        (self.0.on_ime_state_changed)(show);
+    fn on_ime_show(
+        &self,
+        _input_type: InputMethodType,
+        text: Option<String>,
+        bounds: DeviceIntRect,
+    ) {
+        debug!("on_ime_show");
+        let text = text.and_then(|s| CString::new(s).ok());
+        let text_ptr = text
+            .as_ref()
+            .map(|cstr| cstr.as_ptr())
+            .unwrap_or(std::ptr::null());
+        (self.0.on_ime_show)(
+            text_ptr,
+            bounds.origin.x,
+            bounds.origin.y,
+            bounds.size.width,
+            bounds.size.height,
+        );
+    }
+
+    fn on_ime_hide(&self) {
+        debug!("on_ime_hide");
+        (self.0.on_ime_hide)();
     }
 
     fn get_clipboard_contents(&self) -> Option<String> {

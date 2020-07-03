@@ -498,7 +498,7 @@ where
                     let permission_state = prompt_user(prompt);
                     let _ = sender.send(permission_state);
                 }
-                EmbedderMsg::ShowIME(_kind) => {
+                EmbedderMsg::ShowIME(_kind, _text, _rect) => {
                     debug!("ShowIME received");
                 },
                 EmbedderMsg::HideIME => {

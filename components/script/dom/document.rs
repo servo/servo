@@ -15,6 +15,8 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
+use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
@@ -67,7 +69,9 @@ use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmliframeelement::HTMLIFrameElement;
 use crate::dom::htmlimageelement::HTMLImageElement;
+use crate::dom::htmlinputelement::HTMLInputElement;
 use crate::dom::htmlscriptelement::{HTMLScriptElement, ScriptResult};
+use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::htmltitleelement::HTMLTitleElement;
 use crate::dom::keyboardevent::KeyboardEvent;
 use crate::dom::location::Location;
@@ -113,7 +117,7 @@ use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
 use embedder_traits::EmbedderMsg;
 use encoding_rs::{Encoding, UTF_8};
-use euclid::default::Point2D;
+use euclid::default::{Point2D, Rect, Size2D};
 use html5ever::{LocalName, Namespace, QualName};
 use hyper_serde::Serde;
 use ipc_channel::ipc::{self, IpcSender};
@@ -168,6 +172,7 @@ use style::stylesheet_set::DocumentStylesheetSet;
 use style::stylesheets::{Origin, OriginSet, Stylesheet};
 use url::Host;
 use uuid::Uuid;
+use webrender_api::units::DeviceIntRect;
 
 /// The number of times we are allowed to see spurious `requestAnimationFrame()` calls before
 /// falling back to fake ones.
@@ -1105,7 +1110,23 @@ impl Document {
 
             // Notify the embedder to display an input method.
             if let Some(kind) = elem.input_method_type() {
-                self.send_to_embedder(EmbedderMsg::ShowIME(kind));
+                let rect = elem.upcast::<Node>().bounding_content_box_or_zero();
+                let rect = Rect::new(
+                    Point2D::new(rect.origin.x.to_px(), rect.origin.y.to_px()),
+                    Size2D::new(rect.size.width.to_px(), rect.size.height.to_px()),
+                );
+                let text = if let Some(input) = elem.downcast::<HTMLInputElement>() {
+                    Some((&input.Value()).to_string())
+                } else if let Some(textarea) = elem.downcast::<HTMLTextAreaElement>() {
+                    Some((&textarea.Value()).to_string())
+                } else {
+                    None
+                };
+                self.send_to_embedder(EmbedderMsg::ShowIME(
+                    kind,
+                    text,
+                    DeviceIntRect::from_untyped(&rect),
+                ));
             }
         }
     }

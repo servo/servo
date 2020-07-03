@@ -14,10 +14,11 @@ use rust_webvr::api::MagicLeapVRService;
 use servo::euclid::Scale;
 use servo::keyboard_types::Key;
 use servo::servo_url::ServoUrl;
-use servo::webrender_api::units::{DevicePixel, DevicePoint, LayoutPixel};
+use servo::webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, LayoutPixel};
 use simpleservo::{self, deinit, gl_glue, MouseButton, ServoGlue, SERVO};
 use simpleservo::{
-    Coordinates, EventLoopWaker, HostTrait, InitOptions, PromptResult, VRInitOptions,
+    Coordinates, EventLoopWaker, HostTrait, InitOptions, InputMethodType, PromptResult,
+    VRInitOptions,
 };
 use smallvec::SmallVec;
 use std::cell::Cell;
@@ -412,9 +413,20 @@ impl HostTrait for HostCallbacks {
         self.shut_down_complete.set(true);
     }
 
-    fn on_ime_state_changed(&self, show: bool) {
+    fn on_ime_show(
+        &self,
+        _input_type: InputMethodType,
+        _text: Option<String>,
+        _bounds: DeviceIntRect,
+    ) {
         if let Some(keyboard) = self.keyboard.0 {
-            keyboard(self.app, show)
+            keyboard(self.app, true)
+        }
+    }
+
+    fn on_ime_hide(&self) {
+        if let Some(keyboard) = self.keyboard.0 {
+            keyboard(self.app, false)
         }
     }
 
