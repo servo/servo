@@ -7,12 +7,25 @@
 interface GPUQueue {
     void submit(sequence<GPUCommandBuffer> commandBuffers);
 
-    // GPUFence createFence(optional GPUFenceDescriptor descriptor = {});
-    // void signal(GPUFence fence, unsigned long long signalValue);
+    //GPUFence createFence(optional GPUFenceDescriptor descriptor = {});
+    //void signal(GPUFence fence, GPUFenceValue signalValue);
 
-    // void copyImageBitmapToTexture(
-    //     GPUImageBitmapCopyView source,
-    //     GPUTextureCopyView destination,
-    //     GPUExtent3D copySize);
+    [Throws] void writeBuffer(
+        GPUBuffer buffer,
+        GPUSize64 bufferOffset,
+        /*[AllowShared]*/ ArrayBuffer data,
+        optional GPUSize64 dataOffset = 0,
+        optional GPUSize64 size);
+
+    [Throws] void writeTexture(
+      GPUTextureCopyView destination,
+      /*[AllowShared]*/ ArrayBuffer data,
+      GPUTextureDataLayout dataLayout,
+      GPUExtent3D size);
+
+    //void copyImageBitmapToTexture(
+    //    GPUImageBitmapCopyView source,
+    //    GPUTextureCopyView destination,
+    //    GPUExtent3D copySize);
 };
 GPUQueue includes GPUObjectBase;

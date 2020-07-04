@@ -107,6 +107,10 @@ impl GPUTexture {
     pub fn id(&self) -> WebGPUTexture {
         self.texture
     }
+
+    pub fn is_valid(&self) -> bool {
+        self.valid.get()
+    }
 }
 
 impl GPUTextureMethods for GPUTexture {

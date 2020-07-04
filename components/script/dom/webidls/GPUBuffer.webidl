@@ -20,5 +20,3 @@ dictionary GPUBufferDescriptor : GPUObjectDescriptorBase {
 };
 
 typedef unsigned long long GPUSize64;
-
-typedef sequence<any> GPUMappedBuffer;
