@@ -187,11 +187,8 @@ pub enum ScriptMsg {
         IpcSender<Option<TopLevelBrowsingContextId>>,
     ),
     /// Get the browsing context id of the browsing context in which pipeline is
-    /// embedded and the parent pipeline id of that browsing context.
-    GetBrowsingContextInfo(
-        PipelineId,
-        IpcSender<Option<(BrowsingContextId, Option<PipelineId>)>>,
-    ),
+    /// embedded.
+    GetBrowsingContextInfo(PipelineId, IpcSender<Option<BrowsingContextId>>),
     /// Get the nth child browsing context ID for a given browsing context, sorted in tree order.
     GetChildBrowsingContextId(
         BrowsingContextId,

@@ -1951,15 +1951,19 @@ impl ScriptThread {
             ),
             ConstellationControlMsg::PostMessage {
                 target: target_pipeline_id,
+                source_parent,
                 source: source_pipeline_id,
                 source_browsing_context,
+                source_top_level_browsing_context,
                 target_origin: origin,
                 source_origin,
                 data,
             } => self.handle_post_message_msg(
                 target_pipeline_id,
+                source_parent,
                 source_pipeline_id,
                 source_browsing_context,
+                source_top_level_browsing_context,
                 origin,
                 source_origin,
                 data,
@@ -2605,8 +2609,10 @@ impl ScriptThread {
     fn handle_post_message_msg(
         &self,
         pipeline_id: PipelineId,
+        source_parent: Option<BrowsingContextId>,
         source_pipeline_id: PipelineId,
-        source_browsing_context: TopLevelBrowsingContextId,
+        source_browsing_context: BrowsingContextId,
+        source_top_level_browsing_context: TopLevelBrowsingContextId,
         origin: Option<ImmutableOrigin>,
         source_origin: ImmutableOrigin,
         data: StructuredSerializedData,
@@ -2615,12 +2621,11 @@ impl ScriptThread {
         match window {
             None => return warn!("postMessage after target pipeline {} closed.", pipeline_id),
             Some(window) => {
-                // FIXME: synchronously talks to constellation.
-                // send the required info as part of postmessage instead.
                 let source = match self.remote_window_proxy(
                     &*window.global(),
+                    source_top_level_browsing_context,
                     source_browsing_context,
-                    source_pipeline_id,
+                    source_parent,
                     None,
                 ) {
                     None => {
@@ -3043,20 +3048,6 @@ impl ScriptThread {
         }
     }
 
-    fn ask_constellation_for_browsing_context_info(
-        &self,
-        pipeline_id: PipelineId,
-    ) -> Option<(BrowsingContextId, Option<PipelineId>)> {
-        let (result_sender, result_receiver) = ipc::channel().unwrap();
-        let msg = ScriptMsg::GetBrowsingContextInfo(pipeline_id, result_sender);
-        self.script_sender
-            .send((pipeline_id, msg))
-            .expect("Failed to send to constellation.");
-        result_receiver
-            .recv()
-            .expect("Failed to get browsing context info from constellation.")
-    }
-
     fn ask_constellation_for_top_level_info(
         &self,
         sender_pipeline: PipelineId,
@@ -3082,20 +3073,20 @@ impl ScriptThread {
         &self,
         global_to_clone: &GlobalScope,
         top_level_browsing_context_id: TopLevelBrowsingContextId,
-        pipeline_id: PipelineId,
+        browsing_context_id: BrowsingContextId,
+        parent: Option<BrowsingContextId>,
         opener: Option<BrowsingContextId>,
     ) -> Option<DomRoot<WindowProxy>> {
-        let (browsing_context_id, parent_pipeline_id) =
-            self.ask_constellation_for_browsing_context_info(pipeline_id)?;
         if let Some(window_proxy) = self.window_proxies.borrow().get(&browsing_context_id) {
             return Some(DomRoot::from_ref(window_proxy));
         }
 
-        let parent_browsing_context = parent_pipeline_id.and_then(|parent_id| {
+        let parent_browsing_context = parent.and_then(|parent_bc| {
             self.remote_window_proxy(
                 global_to_clone,
                 top_level_browsing_context_id,
-                parent_id,
+                parent_bc,
+                None,
                 opener,
             )
         });
@@ -3147,12 +3138,24 @@ impl ScriptThread {
         });
         let parent_browsing_context = match (parent_info, iframe.as_ref()) {
             (_, Some(iframe)) => Some(window_from_node(&**iframe).window_proxy()),
-            (Some(parent_id), _) => self.remote_window_proxy(
-                window.upcast(),
-                top_level_browsing_context_id,
-                parent_id,
-                opener,
-            ),
+            (Some(parent_id), _) => {
+                let (result_sender, result_receiver) = ipc::channel().unwrap();
+                let msg = ScriptMsg::GetBrowsingContextInfo(parent_id, result_sender);
+                self.script_sender
+                    .send((parent_id, msg))
+                    .expect("Failed to send to constellation.");
+                let browsing_context_id = result_receiver
+                    .recv()
+                    .expect("Failed to get reply from the constellation.")
+                    .expect("Failed to get browsing context info from constellation.");
+                self.remote_window_proxy(
+                    window.upcast(),
+                    top_level_browsing_context_id,
+                    browsing_context_id,
+                    None,
+                    opener,
+                )
+            },
             _ => None,
         };
 

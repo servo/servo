@@ -1845,8 +1845,7 @@ where
                 let result = self
                     .pipelines
                     .get(&pipeline_id)
-                    .and_then(|pipeline| self.browsing_contexts.get(&pipeline.browsing_context_id))
-                    .map(|ctx| (ctx.id, ctx.parent_pipeline_id));
+                    .map(|pipeline| pipeline.browsing_context_id);
                 if let Err(e) = sender.send(result) {
                     warn!(
                         "Sending reply to get browsing context info failed ({:?}).",
@@ -4149,14 +4148,29 @@ where
             },
             Some(browsing_context) => browsing_context.pipeline_id,
         };
-        let source_browsing_context = match self.pipelines.get(&source_pipeline) {
-            Some(pipeline) => pipeline.top_level_browsing_context_id,
-            None => return warn!("PostMessage from closed pipeline {:?}", source_pipeline),
-        };
+
+        let (source_top_level_browsing_context_id, source_browsing_context_id) =
+            match self.pipelines.get(&source_pipeline) {
+                Some(pipeline) => (
+                    pipeline.top_level_browsing_context_id,
+                    pipeline.browsing_context_id,
+                ),
+                None => return warn!("PostMessage from closed pipeline {:?}", source_pipeline),
+            };
+
+        let source_parent = self
+            .browsing_contexts
+            .get(&source_browsing_context_id)
+            .and_then(|bc| bc.parent_pipeline_id)
+            .and_then(|parent_id| self.pipelines.get(&parent_id))
+            .map(|pipeline| pipeline.browsing_context_id);
+
         let msg = ConstellationControlMsg::PostMessage {
             target: pipeline_id,
+            source_parent,
             source: source_pipeline,
-            source_browsing_context: source_browsing_context,
+            source_browsing_context: source_browsing_context_id,
+            source_top_level_browsing_context: source_top_level_browsing_context_id,
             target_origin: origin,
             source_origin,
             data,

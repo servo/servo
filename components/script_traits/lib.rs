@@ -340,10 +340,14 @@ pub enum ConstellationControlMsg {
     PostMessage {
         /// The target of the message.
         target: PipelineId,
+        /// The parent browsing-context of the source, if any.
+        source_parent: Option<BrowsingContextId>,
         /// The source of the message.
         source: PipelineId,
+        /// The browsing context associated with the source pipeline.
+        source_browsing_context: BrowsingContextId,
         /// The top level browsing context associated with the source pipeline.
-        source_browsing_context: TopLevelBrowsingContextId,
+        source_top_level_browsing_context: TopLevelBrowsingContextId,
         /// The expected origin of the target.
         target_origin: Option<ImmutableOrigin>,
         /// The source origin of the message.
