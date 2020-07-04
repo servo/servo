@@ -368,7 +368,8 @@ class BrowserInstance(object):
 
     def stop(self, force=False, skip_marionette=False):
         """Stop Firefox"""
-        if self.runner is not None and self.runner.is_running():
+        is_running = self.runner is not None and self.runner.is_running()
+        if is_running:
             self.logger.debug("Stopping Firefox %s" % self.pid())
             shutdown_methods = [(True, lambda: self.runner.wait(self.shutdown_timeout)),
                                 (False, lambda: self.runner.stop(signal.SIGTERM)),
@@ -387,8 +388,12 @@ class BrowserInstance(object):
             except OSError:
                 # This can happen on Windows if the process is already dead
                 pass
+        elif self.runner:
+            # The browser was already stopped, which we assume was a crash
+            # TODO: Should we check the exit code here?
+            clean = False
         if not skip_marionette:
-            self.output_handler.after_stop()
+            self.output_handler.after_stop(clean_shutdown=clean)
 
     def pid(self):
         if self.runner.process_handler is None:
@@ -472,22 +477,26 @@ class OutputHandler(object):
             self.__call__(line)
         self.line_buffer = []
 
-    def after_stop(self):
+    def after_stop(self, clean_shutdown=True):
         self.logger.info("PROCESS LEAKS %s" % self.instance.leak_report_file)
         if self.lsan_handler:
             self.lsan_handler.process()
         if self.instance.leak_report_file is not None:
-            # We have to ignore missing leaks in the tab because it can happen that the
-            # content process crashed and in that case we don't want the test to fail.
-            # Ideally we would record which content process crashed and just skip those.
-            mozleak.process_leak_log(
-                self.instance.leak_report_file,
-                leak_thresholds=self.mozleak_thresholds,
-                ignore_missing_leaks=["tab", "gmplugin"],
-                log=self.logger,
-                stack_fixer=self.stack_fixer,
-                scope=self.group_metadata.get("scope"),
-                allowed=self.mozleak_allowed)
+            if not clean_shutdown:
+                # If we didn't get a clean shutdown there probably isn't a leak report file
+                self.logger.warning("Firefox didn't exit cleanly, not processing leak logs")
+            else:
+                # We have to ignore missing leaks in the tab because it can happen that the
+                # content process crashed and in that case we don't want the test to fail.
+                # Ideally we would record which content process crashed and just skip those.
+                mozleak.process_leak_log(
+                    self.instance.leak_report_file,
+                    leak_thresholds=self.mozleak_thresholds,
+                    ignore_missing_leaks=["tab", "gmplugin"],
+                    log=self.logger,
+                    stack_fixer=self.stack_fixer,
+                    scope=self.group_metadata.get("scope"),
+                    allowed=self.mozleak_allowed)
 
     def __call__(self, line):
         """Write a line of output from the firefox process to the log"""
