@@ -673,8 +673,6 @@ impl HTMLFormElement {
             // Step 6.3
             if !submitter.no_validate(self) {
                 if self.interactive_validation().is_err() {
-                    // TODO: Implement event handlers on all form control elements
-                    self.upcast::<EventTarget>().fire_event(atom!("invalid"));
                     self.firing_submission_events.set(false);
                     return;
                 }
