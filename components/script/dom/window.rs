@@ -224,6 +224,9 @@ pub struct Window {
     js_runtime: DomRefCell<Option<Rc<Runtime>>>,
 
     /// A handle for communicating messages to the layout thread.
+    ///
+    /// This channel shouldn't be accessed directly, but through `Window::layout_chan()`,
+    /// which returns `None` if there's no layout thread anymore.
     #[ignore_malloc_size_of = "channels are hard"]
     layout_chan: Sender<Msg>,
 
@@ -1553,12 +1556,15 @@ impl Window {
         // TODO Step 1
         // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
         // properly process ScrollBehavior here.
-        self.layout_chan
-            .send(Msg::UpdateScrollStateFromScript(ScrollState {
-                scroll_id,
-                scroll_offset: Vector2D::new(-x, -y),
-            }))
-            .unwrap();
+        match self.layout_chan() {
+            Some(chan) => chan
+                .send(Msg::UpdateScrollStateFromScript(ScrollState {
+                    scroll_id,
+                    scroll_offset: Vector2D::new(-x, -y),
+                }))
+                .unwrap(),
+            None => warn!("Layout channel unavailable"),
+        }
     }
 
     pub fn update_viewport_for_scroll(&self, x: f32, y: f32) {
@@ -1696,9 +1702,12 @@ impl Window {
             animations: document.animations().sets.clone(),
         };
 
-        self.layout_chan
-            .send(Msg::Reflow(reflow))
-            .expect("Layout thread disconnected.");
+        match self.layout_chan() {
+            Some(layout_chan) => layout_chan
+                .send(Msg::Reflow(reflow))
+                .expect("Layout thread disconnected"),
+            None => return false,
+        };
 
         debug!("script: layout forked");
 
@@ -2102,8 +2111,12 @@ impl Window {
         self.Document().url()
     }
 
-    pub fn layout_chan(&self) -> &Sender<Msg> {
-        &self.layout_chan
+    pub fn layout_chan(&self) -> Option<&Sender<Msg>> {
+        if self.is_alive() {
+            Some(&self.layout_chan)
+        } else {
+            None
+        }
     }
 
     pub fn windowproxy_handler(&self) -> WindowProxyHandler {

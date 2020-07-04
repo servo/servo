@@ -1172,9 +1172,13 @@ impl ScriptThread {
                 );
             },
         };
-        let _ = window
-            .layout_chan()
-            .send(Msg::RegisterPaint(name, properties, painter));
+
+        match window.layout_chan() {
+            Some(chan) => chan
+                .send(Msg::RegisterPaint(name, properties, painter))
+                .unwrap(),
+            None => warn!("Layout channel unavailable"),
+        }
     }
 
     pub fn push_new_element_queue() {
@@ -2467,12 +2471,12 @@ impl ScriptThread {
         });
 
         // Pick a layout thread, any layout thread
-        let current_layout_chan = self
+        let current_layout_chan: Option<Sender<Msg>> = self
             .documents
             .borrow()
             .iter()
             .next()
-            .map(|(_, document)| document.window().layout_chan().clone())
+            .and_then(|(_, document)| document.window().layout_chan().cloned())
             .or_else(|| {
                 self.incomplete_loads
                     .borrow()
@@ -2879,7 +2883,10 @@ impl ScriptThread {
             let load = self.incomplete_loads.borrow_mut().remove(idx);
             load.layout_chan.clone()
         } else if let Some(ref document) = document {
-            document.window().layout_chan().clone()
+            match document.window().layout_chan() {
+                Some(chan) => chan.clone(),
+                None => return warn!("Layout channel unavailable"),
+            }
         } else {
             return warn!("Exiting nonexistant pipeline {}.", id);
         };
