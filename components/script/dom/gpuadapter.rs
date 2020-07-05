@@ -81,7 +81,7 @@ impl GPUAdapterMethods for GPUAdapter {
         let promise = Promise::new_in_current_realm(&self.global(), comp);
         let sender = response_async(&promise, self);
         let desc = wgt::DeviceDescriptor {
-            extensions: wgt::Extensions::empty(),
+            features: wgt::Features::empty(),
             limits: wgt::Limits {
                 max_bind_groups: descriptor.limits.maxBindGroups,
                 ..Default::default()

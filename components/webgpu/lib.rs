@@ -208,6 +208,19 @@ pub enum WebGPURequest {
         external_id: u64,
         buffer_size: usize,
     },
+    WriteBuffer {
+        queue_id: id::QueueId,
+        buffer_id: id::BufferId,
+        buffer_offset: u64,
+        data: IpcSharedMemory,
+    },
+    WriteTexture {
+        queue_id: id::QueueId,
+        texture_cv: TextureCopyView,
+        data_layout: wgt::TextureDataLayout,
+        size: wgt::Extent3d,
+        data: IpcSharedMemory,
+    },
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -745,7 +758,7 @@ impl<'a> WGPU<'a> {
                     } => {
                         let adapter_id = match self.global.pick_adapter(
                             &options,
-                            wgt::UnsafeExtensions::disallow(),
+                            wgt::UnsafeFeatures::disallow(),
                             wgpu::instance::AdapterInputs::IdSet(&ids, |id| id.backend()),
                         ) {
                             Some(id) => id,
@@ -1022,6 +1035,36 @@ impl<'a> WGPU<'a> {
                         }
                         gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
                         self.present_buffer_maps.remove(&buffer_id);
+                    },
+                    WebGPURequest::WriteBuffer {
+                        queue_id,
+                        buffer_id,
+                        buffer_offset,
+                        data,
+                    } => {
+                        let global = &self.global;
+                        gfx_select!(queue_id => global.queue_write_buffer(
+                            queue_id,
+                            buffer_id,
+                            buffer_offset as wgt::BufferAddress,
+                            &data
+                        ));
+                    },
+                    WebGPURequest::WriteTexture {
+                        queue_id,
+                        texture_cv,
+                        data_layout,
+                        size,
+                        data,
+                    } => {
+                        let global = &self.global;
+                        gfx_select!(queue_id => global.queue_write_texture(
+                            queue_id,
+                            &texture_cv,
+                            &data,
+                            &data_layout,
+                            &size
+                        ));
                     },
                 }
             }

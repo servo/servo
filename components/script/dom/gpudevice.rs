@@ -874,7 +874,7 @@ pub fn convert_texture_view_dimension(
     }
 }
 
-fn convert_texture_size_to_dict(size: &GPUExtent3D) -> GPUExtent3DDict {
+pub fn convert_texture_size_to_dict(size: &GPUExtent3D) -> GPUExtent3DDict {
     match *size {
         GPUExtent3D::GPUExtent3DDict(ref dict) => GPUExtent3DDict {
             width: dict.width,
@@ -889,7 +889,7 @@ fn convert_texture_size_to_dict(size: &GPUExtent3D) -> GPUExtent3DDict {
     }
 }
 
-fn convert_texture_size_to_wgt(size: &GPUExtent3DDict) -> wgt::Extent3d {
+pub fn convert_texture_size_to_wgt(size: &GPUExtent3DDict) -> wgt::Extent3d {
     wgt::Extent3d {
         width: size.width,
         height: size.height,
