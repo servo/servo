@@ -3953,7 +3953,7 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -3962,7 +3962,7 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
-source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
 dependencies = [
  "proc-macro2 1.0.17",
  "quote 1.0.2",
@@ -6447,8 +6447,9 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
 dependencies = [
+ "backtrace",
  "base64 0.10.1",
  "bincode",
  "bitflags",
@@ -6476,6 +6477,7 @@ dependencies = [
  "ron",
  "serde",
  "serde_json",
+ "sig",
  "smallvec 1.3.0",
  "svg_fmt",
  "time",
@@ -6489,7 +6491,7 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
 dependencies = [
  "app_units",
  "bitflags",
@@ -6510,7 +6512,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -6691,7 +6693,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#1175acad2d4f49fa712e105c84149ac7f394261d"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
 dependencies = [
  "app_units",
  "euclid",

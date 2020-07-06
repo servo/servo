@@ -28,3 +28,8 @@ opt-level = 3
 
 # This is here to dedupe winapi since mio 0.6 is still using winapi 0.2.
 mio = { git = "https://github.com/servo/mio.git", branch = "servo" }
+
+# https://github.com/servo/servo/issues/27039#issuecomment-654400150
+[patch."https://github.com/servo/webrender"]
+webrender = { git = "https://github.com/jdm/webrender", branch = "crash-backtrace" }
+webrender_api = { git = "https://github.com/jdm/webrender", branch = "crash-backtrace" }
