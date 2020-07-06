@@ -134,8 +134,8 @@ const char *prompt_input(const char *message, const char *default,
   }
 }
 
-Servo::Servo(hstring args, GLsizei width, GLsizei height,
-             EGLNativeWindowType eglNativeWindow, float dpi,
+Servo::Servo(std::optional<hstring> initUrl, hstring args, GLsizei width,
+             GLsizei height, EGLNativeWindowType eglNativeWindow, float dpi,
              ServoDelegate &aDelegate)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
   ApplicationDataContainer localSettings =
@@ -172,13 +172,22 @@ Servo::Servo(hstring args, GLsizei width, GLsizei height,
       auto val = unbox_value<bool>(value);
       cpref.value = &val;
     } else if (type == Windows::Foundation::PropertyType::String) {
-      cpref.pref_type = capi::CPrefType::Str;
-      cpref.value = *hstring2char(unbox_value<hstring>(value));
-#ifdef OVERRIDE_DEFAULT_URL
+      hstring strValue;
       if (pref.Key() == L"shell.homepage") {
-        cpref.value = OVERRIDE_DEFAULT_URL;
-      }
+        if (initUrl.has_value()) {
+          strValue = *initUrl;
+        } else {
+#ifdef OVERRIDE_DEFAULT_URL
+          strValue = OVERRIDE_DEFAULT_URL;
+#else
+          strValue = unbox_value<hstring>(value);
 #endif
+        }
+      } else {
+        strValue = unbox_value<hstring>(value);
+      }
+      cpref.pref_type = capi::CPrefType::Str;
+      cpref.value = *hstring2char(strValue);
     } else if (type == Windows::Foundation::PropertyType::Int64) {
       cpref.pref_type = capi::CPrefType::Int;
       auto val = unbox_value<int64_t>(value);
@@ -200,7 +209,7 @@ Servo::Servo(hstring args, GLsizei width, GLsizei height,
 
   capi::CInitOptions o;
   o.prefs = &prefsList;
-  o.args = *hstring2char(args + L"--devtools");
+  o.args = *hstring2char(args + L" --devtools");
   o.width = mWindowWidth;
   o.height = mWindowHeight;
   o.density = dpi;
