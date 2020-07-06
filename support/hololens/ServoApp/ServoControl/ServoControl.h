@@ -217,6 +217,7 @@ private:
   float mDPI = 1;
   hstring mCurrentUrl = L"";
   bool mTransient = false;
+  std::optional<hstring> mInitUrl = {};
 
   Windows::UI::Xaml::Controls::SwapChainPanel ServoControl::Panel();
   void CreateNativeWindow();

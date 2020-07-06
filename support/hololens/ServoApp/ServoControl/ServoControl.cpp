@@ -379,6 +379,8 @@ void ServoControl::TryLoadUri(hstring input) {
         });
       }
     });
+  } else {
+    mInitUrl = input;
   }
 }
 
@@ -398,8 +400,8 @@ void ServoControl::Loop() {
     log(L"Entering loop");
     ServoDelegate *sd = static_cast<ServoDelegate *>(this);
     EGLNativeWindowType win = GetNativeWindow();
-    mServo = std::make_unique<Servo>(mArgs, mPanelWidth, mPanelHeight, win,
-                                     mDPI, *sd);
+    mServo = std::make_unique<Servo>(mInitUrl, mArgs, mPanelWidth, mPanelHeight,
+                                     win, mDPI, *sd);
   } else {
     // FIXME: this will fail since create_task didn't pick the thread
     // where Servo was running initially.
