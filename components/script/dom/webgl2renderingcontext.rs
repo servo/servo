@@ -1119,6 +1119,11 @@ impl WebGL2RenderingContextMethods for WebGL2RenderingContext {
         self.base.GetContextAttributes()
     }
 
+    // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.13
+    fn IsContextLost(&self) -> bool {
+        self.base.IsContextLost()
+    }
+
     /// https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.14
     fn GetSupportedExtensions(&self) -> Option<Vec<DOMString>> {
         self.base.GetSupportedExtensions()

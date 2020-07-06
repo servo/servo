@@ -470,8 +470,7 @@ interface mixin WebGLRenderingContextBase
     readonly attribute GLsizei drawingBufferHeight;
 
     [WebGLHandlesContextLoss] WebGLContextAttributes? getContextAttributes();
-    // FIXME: https://github.com/servo/servo/issues/15266
-    // [WebGLHandlesContextLoss] boolean isContextLost();
+    [WebGLHandlesContextLoss] boolean isContextLost();
 
     sequence<DOMString>? getSupportedExtensions();
     object? getExtension(DOMString name);
