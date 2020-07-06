@@ -820,7 +820,7 @@ impl<'a> Iterator for TransitionPropertyIterator<'a> {
                 if let Some(longhand_id) = longhand_iterator.next() {
                     return Some(TransitionPropertyIteration {
                         longhand_id,
-                        index: self.index_range.start,
+                        index: self.index_range.start - 1,
                     });
                 }
                 self.longhand_iterator = None;
