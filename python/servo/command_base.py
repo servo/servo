@@ -304,6 +304,7 @@ class CommandBase(object):
         self.config["build"].setdefault("debug-assertions", False)
         self.config["build"].setdefault("debug-mozjs", False)
         self.config["build"].setdefault("layout-2020", False)
+        self.config["build"].setdefault("media-stack", "auto")
         self.config["build"].setdefault("ccache", "")
         self.config["build"].setdefault("rustflags", "")
         self.config["build"].setdefault("incremental", None)
@@ -856,11 +857,13 @@ install them, let us know by filing a bug!")
 
     # A guess about which platforms should use the gstreamer media stack
     def pick_media_stack(self, media_stack, target):
-        if not(media_stack):
-            if (
-                    not(target)
-                    or ("armv7" in target and "android" in target)
-                    or ("x86_64" in target)
+        if not media_stack:
+            if self.config["build"]["media-stack"] != "auto":
+                media_stack = self.config["build"]["media-stack"]
+            elif (
+                not target
+                or ("armv7" in target and "android" in target)
+                or "x86_64" in target
             ):
                 media_stack = "gstreamer"
             else:
