@@ -202,10 +202,10 @@ impl LintPass for UnrootedPass {
     }
 }
 
-impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
+impl<'tcx> LateLintPass<'tcx> for UnrootedPass {
     /// All structs containing #[unrooted_must_root_lint::must_root] types
     /// must be #[unrooted_must_root_lint::must_root] themselves
-    fn check_item(&mut self, cx: &LateContext<'a, 'tcx>, item: &'tcx hir::Item) {
+    fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx hir::Item) {
         if has_lint_attr(&self.symbols, &item.attrs, self.symbols.must_root) {
             return;
         }
@@ -256,7 +256,7 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     /// Function arguments that are #[unrooted_must_root_lint::must_root] types are not allowed
     fn check_fn(
         &mut self,
-        cx: &LateContext<'a, 'tcx>,
+        cx: &LateContext<'tcx>,
         kind: visit::FnKind<'tcx>,
         decl: &'tcx hir::FnDecl,
         body: &'tcx hir::Body,
@@ -302,13 +302,13 @@ impl<'a, 'tcx> LateLintPass<'a, 'tcx> for UnrootedPass {
     }
 }
 
-struct FnDefVisitor<'a, 'b: 'a, 'tcx: 'a + 'b> {
+struct FnDefVisitor<'a, 'tcx: 'a> {
     symbols: &'a Symbols,
-    cx: &'a LateContext<'b, 'tcx>,
+    cx: &'a LateContext<'tcx>,
     in_new_function: bool,
 }
 
-impl<'a, 'b, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'b, 'tcx> {
+impl<'a, 'tcx> visit::Visitor<'tcx> for FnDefVisitor<'a, 'tcx> {
     type Map = rustc_middle::hir::map::Map<'tcx>;
 
     fn visit_expr(&mut self, expr: &'tcx hir::Expr) {
