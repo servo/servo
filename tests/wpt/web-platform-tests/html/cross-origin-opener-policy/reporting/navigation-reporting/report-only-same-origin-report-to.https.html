@@ -1,0 +1,98 @@
+
+<meta name=timeout content=long>
+<title>reporting same origin with report-to</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/common.js"></script>
+<script src="../resources/dispatcher.js"></script>
+<script src="../resources/reporting-common.js"></script>
+
+<script>
+
+let tests = [
+  // popup origin, popup COOP, popup COEP, popup COOP report-only, popup COEP report-only, expected reports
+
+  // Open a cross-origin popup without any COOP setup, the current document
+  // (opener) report-only would cause a browsing context group swap, hence a
+  // report is sent to the corresponding endpoint.
+  [
+    CROSS_ORIGIN,
+    "",
+    "",
+    "",
+    "",
+    [
+      {
+        "endpoint": reportOnlyEndpoint,
+        "report": {
+          "body": {
+            "disposition": "reporting",
+            "document-uri": `${location.href}`,
+            "effective-policy": "same-origin",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/, // next document URL
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      },
+    ]
+  ],
+  // Open a cross-origin popup with a same-origin COOP report-only value, which
+  // would cause a browsing context group swap, hence a report is sent to both
+  // endpoints.
+  [
+    CROSS_ORIGIN,
+    "",
+    "",
+    `same-origin; report-to="${popupReportOnlyEndpoint.name}"`,
+    "",
+    [
+      {
+        "endpoint": reportOnlyEndpoint,
+        "report": {
+          "body": {
+            "disposition": "reporting",
+            "document-uri": `${location.href}`,
+            "effective-policy": "same-origin",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/, // next document URL
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      },
+      {
+        "endpoint": popupReportOnlyEndpoint,
+        "report": {
+          "body": {
+            "disposition": "reporting",
+            "document-uri": /uuid=EXECUTOR_UUID$/,
+            "effective-policy": "same-origin",
+            "navigation-uri": `${location.origin}/`, // referrer
+            "violation-type": "navigation-to-document"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
+  // Open a same-origin popup with a same-origin COOP report-only value, the two
+  // COOP-report-only values match, hence no virtual browsing context group swap
+  // happens and no report is sent.
+  [
+    SAME_ORIGIN,
+    "",
+    "",
+    `same-origin; report-to="${popupReportOnlyEndpoint.name}"`,
+    "",
+    []
+  ],
+];
+
+runNavigationReportingTests(document.title, tests);
+
+</script>

@@ -1,0 +1,32 @@
+
+<meta name=timeout content=long>
+<title>reporting same origin with report-to</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/common.js"></script>
+<script src="../resources/dispatcher.js"></script>
+<script src="../resources/reporting-common.js"></script>
+
+<script>
+
+let tests = [
+  // popup origin, popup COOP, popup COEP, popup COOP report-only, popup COEP report-only, expected reports
+
+  // Open a cross-origin popup with COOP report-only with coep, which mismatches
+  // with the current document (opener) COOP (unsafe-none) and COOP report-only
+  // (same-origin) values.
+  [
+    SAME_ORIGIN,
+    "",
+    "require-corp",
+    `same-origin; report-to="${popupReportOnlyEndpoint.name}"`,
+    "",
+    []
+  ],
+];
+
+runNavigationReportingTests(document.title, tests);
+
+</script>
