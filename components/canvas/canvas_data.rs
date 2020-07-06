@@ -528,13 +528,21 @@ impl<'a> CanvasData<'a> {
                     // are not already in the memory.
                     if let Some(bytes) = font.handle.template().bytes_if_in_memory() {
                         Font::from_bytes(Arc::new(bytes), 0)
-                            .unwrap_or_else(|_| load_system_font_from_style(Some(style)))
+                            .ok()
+                            .or_else(|| load_system_font_from_style(Some(style)))
                     } else {
                         load_system_font_from_style(Some(style))
                     }
                 })
             },
         );
+        let font = match font {
+            Some(f) => f,
+            None => {
+                error!("Couldn't load desired font or system fallback.");
+                return;
+            },
+        };
         let font_width = font_width(&text, point_size, &font);
 
         // Step 6.
@@ -1390,7 +1398,7 @@ fn to_font_kit_family(font_family: &font::SingleFontFamily) -> FamilyName {
     }
 }
 
-fn load_system_font_from_style(font_style: Option<&FontStyleStruct>) -> Font {
+fn load_system_font_from_style(font_style: Option<&FontStyleStruct>) -> Option<Font> {
     let mut properties = Properties::new();
     let style = match font_style {
         Some(style) => style,
@@ -1420,18 +1428,21 @@ fn load_system_font_from_style(font_style: Option<&FontStyleStruct>) -> Font {
             return load_default_system_fallback_font(&properties);
         },
     };
-    font_handle.load().unwrap_or_else(|e| {
-        error!("error loading font for style {:?}: {}", style, e);
-        load_default_system_fallback_font(&properties)
-    })
+    match font_handle.load() {
+        Ok(f) => Some(f),
+        Err(e) => {
+            error!("error loading font for style {:?}: {}", style, e);
+            load_default_system_fallback_font(&properties)
+        },
+    }
 }
 
-fn load_default_system_fallback_font(properties: &Properties) -> Font {
+fn load_default_system_fallback_font(properties: &Properties) -> Option<Font> {
     SystemSource::new()
         .select_best_match(&[FamilyName::SansSerif], properties)
-        .expect("error getting font handle for default system font")
+        .ok()?
         .load()
-        .expect("error loading default system font")
+        .ok()
 }
 
 fn replace_ascii_whitespace(text: String) -> String {
