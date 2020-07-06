@@ -24,7 +24,7 @@ use euclid::default::Size2D;
 use ipc_channel::ipc;
 use script_layout_interface::HTMLCanvasDataSource;
 use std::cell::Cell;
-use webgpu::{wgpu::id, wgt, WebGPU, WebGPURequest};
+use webgpu::{wgpu::id, wgt, WebGPU, WebGPURequest, PRESENTATION_BUFFER_COUNT};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd)]
 pub struct WebGPUContextId(pub u64);
@@ -130,8 +130,8 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
         }
         *self.swap_chain.borrow_mut() = None;
 
-        let mut buffer_ids = ArrayVec::<[id::BufferId; 5]>::new();
-        for _ in 0..5 {
+        let mut buffer_ids = ArrayVec::<[id::BufferId; PRESENTATION_BUFFER_COUNT]>::new();
+        for _ in 0..PRESENTATION_BUFFER_COUNT {
             buffer_ids.push(
                 self.global()
                     .wgpu_id_hub()
