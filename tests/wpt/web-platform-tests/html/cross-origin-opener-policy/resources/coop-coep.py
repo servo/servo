@@ -1,4 +1,3 @@
-
 def main(request, response):
     coop = request.GET.first("coop")
     coopReportOnly = request.GET.first("coop-report-only") if "coop-report-only" in request.GET else ""

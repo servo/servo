@@ -1,7 +1,12 @@
 import json, uuid
 
 def main(request, response):
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'OPTIONS, GET, POST')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
     response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    if request.method == 'OPTIONS': # CORS preflight
+        return ''
 
     key = 0;
     if 'endpoint' in request.GET:

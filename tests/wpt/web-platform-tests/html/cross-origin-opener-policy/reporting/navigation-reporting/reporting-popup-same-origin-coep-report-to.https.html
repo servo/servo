@@ -105,6 +105,69 @@ let tests = [
       }
     ]
   ],
+  // Open a same-origin popup with a same-origin COOP report only. One report
+  // is sent to this page's endpoint, but none to the report-only endpoint.
+  [
+    SAME_ORIGIN,
+    "",
+    "",
+    `same-origin; report-to="${popupReportEndpoint.name}"`,
+    "require-corp",
+    [
+      {
+        "endpoint": reportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": `${location.href}`,
+            "effective-policy": "same-origin-plus-coep",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/, // next destination url
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      },]
+  ],
+  // Open a cross-origin popup with a same-origin COOP report only. A report is
+  // sent to both this page's endpoint and the popup's.
+  [
+    CROSS_ORIGIN,
+    "",
+    "",
+    `same-origin; report-to="${popupReportOnlyEndpoint.name}"`,
+    "require-corp",
+    [
+      {
+        "endpoint": reportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": `${location.href}`,
+            "effective-policy": "same-origin-plus-coep",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/, // next destination url
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      },
+      {
+        "endpoint": popupReportOnlyEndpoint,
+        "report": {
+          "body": {
+            "disposition": "reporting",
+            "document-uri": /uuid=EXECUTOR_UUID$/,
+            "effective-policy": "same-origin-plus-coep",
+            "navigation-uri": `${location.origin}/`, // referrer (origin, as dictated by the referrer policy)
+            "violation-type": "navigation-to-document"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ],
 ];
 
 runNavigationReportingTests(document.title, tests);

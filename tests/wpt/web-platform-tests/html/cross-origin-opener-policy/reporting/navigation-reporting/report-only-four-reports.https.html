@@ -1,0 +1,88 @@
+
+<meta name=timeout content=long>
+<title>A test with both COOP and COOP report only setup</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../../resources/common.js"></script>
+<script src="../resources/dispatcher.js"></script>
+<script src="../resources/reporting-common.js"></script>
+
+<script>
+
+let tests = [
+  // popup origin, popup COOP, popup COEP, popup COOP report-only, popup COEP report-only, expected reports
+
+  // Open a cross-origin popup with both normal and report-only COOP. Four
+  // reports are sent.
+  [
+    CROSS_ORIGIN,
+    `same-origin-allow-popups; report-to="${popupReportEndpoint.name}"`,
+    "require-corp",
+    `same-origin; report-to="${popupReportOnlyEndpoint.name}"`,
+    "require-corp",
+    [
+      {
+        "endpoint": reportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": `${location.href}`,
+            "effective-policy": "same-origin-allow-popups",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/, // next document URL
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      },
+      {
+        "endpoint": reportOnlyEndpoint,
+        "report": {
+          "body": {
+            "disposition": "reporting",
+            "document-uri": `${location.href}`,
+            "effective-policy": "same-origin-plus-coep",
+            "navigation-uri": /uuid=EXECUTOR_UUID$/, // next document URL
+            "violation-type": "navigation-from-document"
+          },
+          "url": `${location.href}`,
+          "type": "coop"
+        }
+      },
+      {
+        "endpoint": popupReportEndpoint,
+        "report": {
+          "body": {
+            "disposition": "enforce",
+            "document-uri": /uuid=EXECUTOR_UUID$/,
+            "effective-policy": "same-origin-allow-popups",
+            "navigation-uri": `${location.origin}/`, // referrer
+            "violation-type": "navigation-to-document"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      },
+      {
+        "endpoint": popupReportOnlyEndpoint,
+        "report": {
+          "body": {
+            "disposition": "reporting",
+            "document-uri": /uuid=EXECUTOR_UUID$/,
+            "effective-policy": "same-origin-plus-coep",
+            "navigation-uri": `${location.origin}/`, // referrer
+            "violation-type": "navigation-to-document"
+          },
+          "url": /uuid=EXECUTOR_UUID$/,
+          "type": "coop"
+        }
+      }
+    ]
+  ]
+];
+
+runNavigationReportingTests(document.title, tests);
+
+</script>

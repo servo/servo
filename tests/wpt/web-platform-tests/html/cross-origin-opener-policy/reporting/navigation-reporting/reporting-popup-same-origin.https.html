@@ -93,7 +93,17 @@ let tests = [
         }
       }
     ]
-  ]
+  ],
+  // Open a same-origin popup with a same-origin COOP Report only value, the
+  // report only matches the previous document COOP value, no report is sent.
+  [
+    SAME_ORIGIN,
+    "",
+    "",
+    `same-origin; report-to="${popupReportOnlyEndpoint.name}"`,
+    "",
+    []
+  ],
 ];
 
 runNavigationReportingTests(document.title, tests);
