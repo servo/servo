@@ -20,7 +20,8 @@ use servo_config::pref;
 use smallvec::SmallVec;
 use std::collections::HashMap;
 use std::ffi::CString;
-use std::ptr::{self, NonNull};
+use std::ptr;
+use std::rc::Rc;
 use std::slice;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -38,6 +39,7 @@ use wgpu::{
 };
 
 const DEVICE_POLL_INTERVAL: u64 = 100;
+pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum WebGPUResponse {
@@ -145,7 +147,7 @@ pub enum WebGPURequest {
     },
     CreateSwapChain {
         device_id: id::DeviceId,
-        buffer_ids: ArrayVec<[id::BufferId; 5]>,
+        buffer_ids: ArrayVec<[id::BufferId; PRESENTATION_BUFFER_COUNT]>,
         external_id: u64,
         sender: IpcSender<webrender_api::ImageKey>,
         image_desc: webrender_api::ImageDescriptor,
@@ -299,9 +301,9 @@ struct WGPU<'a> {
     // Track invalid adapters https://gpuweb.github.io/gpuweb/#invalid
     _invalid_adapters: Vec<WebGPUAdapter>,
     // Buffers with pending mapping
-    buffer_maps: HashMap<id::BufferId, BufferMapInfo<'a, WebGPUResponseResult>>,
+    buffer_maps: HashMap<id::BufferId, Rc<BufferMapInfo<'a, WebGPUResponseResult>>>,
     // Presentation Buffers with pending mapping
-    present_buffer_maps: HashMap<id::BufferId, BufferMapInfo<'a, WebGPURequest>>,
+    present_buffer_maps: HashMap<id::BufferId, Rc<BufferMapInfo<'a, WebGPURequest>>>,
     webrender_api: webrender_api::RenderApi,
     webrender_document: webrender_api::DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -361,16 +363,15 @@ impl<'a> WGPU<'a> {
                             size: (map_range.end - map_range.start) as usize,
                             external_id: None,
                         };
-                        self.buffer_maps.insert(buffer_id, map_info);
+                        self.buffer_maps.insert(buffer_id, Rc::new(map_info));
 
                         unsafe extern "C" fn callback(
                             status: BufferMapAsyncStatus,
                             userdata: *mut u8,
                         ) {
-                            let nonnull_info =
-                                NonNull::new(userdata as *mut BufferMapInfo<WebGPUResponseResult>)
-                                    .unwrap();
-                            let info = nonnull_info.as_ref();
+                            let info = Rc::from_raw(
+                                userdata as *const BufferMapInfo<WebGPUResponseResult>,
+                            );
                             match status {
                                 BufferMapAsyncStatus::Success => {
                                     let global = &info.global;
@@ -393,7 +394,7 @@ impl<'a> WGPU<'a> {
                             host: host_map,
                             callback,
                             user_data: convert_to_pointer(
-                                self.buffer_maps.get(&buffer_id).unwrap(),
+                                self.buffer_maps.get(&buffer_id).unwrap().clone(),
                             ),
                         };
                         let global = &self.global;
@@ -566,6 +567,19 @@ impl<'a> WGPU<'a> {
                             },
                             None => None,
                         };
+
+                        let vert_buffers = vertex_state
+                            .1
+                            .iter()
+                            .map(|&(array_stride, step_mode, ref attributes)| {
+                                wgpu_core::pipeline::VertexBufferLayoutDescriptor {
+                                    array_stride,
+                                    step_mode,
+                                    attributes_length: attributes.len(),
+                                    attributes: attributes.as_ptr(),
+                                }
+                            })
+                            .collect::<Vec<_>>();
                         let descriptor = wgpu_core::pipeline::RenderPipelineDescriptor {
                             layout: pipeline_layout_id,
                             vertex_stage: wgpu_core::pipeline::ProgrammableStageDescriptor {
@@ -585,19 +599,7 @@ impl<'a> WGPU<'a> {
                             vertex_state: wgpu_core::pipeline::VertexStateDescriptor {
                                 index_format: vertex_state.0,
                                 vertex_buffers_length: vertex_state.1.len(),
-                                vertex_buffers: vertex_state
-                                    .1
-                                    .iter()
-                                    .map(|buffer| {
-                                        wgpu_core::pipeline::VertexBufferLayoutDescriptor {
-                                            array_stride: buffer.0,
-                                            step_mode: buffer.1,
-                                            attributes_length: buffer.2.len(),
-                                            attributes: buffer.2.as_ptr(),
-                                        }
-                                    })
-                                    .collect::<Vec<_>>()
-                                    .as_ptr(),
+                                vertex_buffers: vert_buffers.as_ptr(),
                             },
                             sample_count,
                             sample_mask,
@@ -654,8 +656,12 @@ impl<'a> WGPU<'a> {
                                 data: vec![255; (buffer_stride * height as u32) as usize],
                                 size: Size2D::new(width, height),
                                 unassigned_buffer_ids: buffer_ids,
-                                available_buffer_ids: ArrayVec::<[id::BufferId; 5]>::new(),
-                                queued_buffer_ids: ArrayVec::<[id::BufferId; 5]>::new(),
+                                available_buffer_ids: ArrayVec::<
+                                    [id::BufferId; PRESENTATION_BUFFER_COUNT],
+                                >::new(),
+                                queued_buffer_ids: ArrayVec::<
+                                    [id::BufferId; PRESENTATION_BUFFER_COUNT],
+                                >::new(),
                                 buffer_stride,
                                 image_key,
                                 image_desc,
@@ -939,15 +945,14 @@ impl<'a> WGPU<'a> {
                             size: buffer_size as usize,
                             external_id: Some(external_id),
                         };
-                        self.present_buffer_maps.insert(buffer_id, map_info);
+                        self.present_buffer_maps
+                            .insert(buffer_id, Rc::new(map_info));
                         unsafe extern "C" fn callback(
                             status: BufferMapAsyncStatus,
                             userdata: *mut u8,
                         ) {
-                            let nonnull_info =
-                                NonNull::new(userdata as *mut BufferMapInfo<WebGPURequest>)
-                                    .unwrap();
-                            let info = nonnull_info.as_ref();
+                            let info =
+                                Rc::from_raw(userdata as *const BufferMapInfo<WebGPURequest>);
                             match status {
                                 BufferMapAsyncStatus::Success => {
                                     if let Err(e) =
@@ -967,7 +972,7 @@ impl<'a> WGPU<'a> {
                             host: HostMap::Read,
                             callback,
                             user_data: convert_to_pointer(
-                                self.present_buffer_maps.get(&buffer_id).unwrap(),
+                                self.present_buffer_maps.get(&buffer_id).unwrap().clone(),
                             ),
                         };
                         gfx_select!(buffer_id => global.buffer_map_async(buffer_id, 0..buffer_size, map_op));
@@ -1029,8 +1034,8 @@ impl<'a> WGPU<'a> {
     }
 }
 
-fn convert_to_pointer<T: Sized>(obj: &T) -> *mut u8 {
-    (obj as *const T) as *mut u8
+fn convert_to_pointer<T: Sized>(obj: Rc<T>) -> *mut u8 {
+    Rc::into_raw(obj) as *mut u8
 }
 
 macro_rules! webgpu_resource {
@@ -1107,9 +1112,9 @@ pub struct PresentationData {
     queue_id: id::QueueId,
     pub data: Vec<u8>,
     pub size: Size2D<i32>,
-    unassigned_buffer_ids: ArrayVec<[id::BufferId; 5]>,
-    available_buffer_ids: ArrayVec<[id::BufferId; 5]>,
-    queued_buffer_ids: ArrayVec<[id::BufferId; 5]>,
+    unassigned_buffer_ids: ArrayVec<[id::BufferId; PRESENTATION_BUFFER_COUNT]>,
+    available_buffer_ids: ArrayVec<[id::BufferId; PRESENTATION_BUFFER_COUNT]>,
+    queued_buffer_ids: ArrayVec<[id::BufferId; PRESENTATION_BUFFER_COUNT]>,
     buffer_stride: u32,
     image_key: webrender_api::ImageKey,
     image_desc: webrender_api::ImageDescriptor,
