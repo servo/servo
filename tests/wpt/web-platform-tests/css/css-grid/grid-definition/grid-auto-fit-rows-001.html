@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <title>CSS Grid: auto-fit rows</title>
-<link rel="author" title="Sergio Villar" href="mailto: svillar@igalia.com">
+h<link rel="author" title="Sergio Villar" href="mailto: svillar@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/css-grid-1/#valdef-repeat-auto-fit">
 <link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-auto-columns">
 <link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-auto-rows">
@@ -27,14 +27,17 @@
 }
 
 .gridOnlyAutoRepeat { grid-template-rows: repeat(auto-fit, 30px [autobar]); }
+.gridMinMaxAutoRepeat { grid-template-rows: repeat(auto-fill, minmax(13px, 30px)); }
+.gridMaxMinAutoRepeat { grid-template-rows: repeat(auto-fill, minmax(30px, 13px)); }
+.gridMaxMinPercentAutoRepeat { grid-template-rows: repeat(auto-fill, minmax(30px, 6.5%)); }
 .gridAutoRepeatAndFixedBefore { grid-template-rows: 10px [foo] 20% [bar] repeat(auto-fit, [autofoo] 35px); }
 .gridAutoRepeatAndFixedAfter { grid-template-rows: repeat(auto-fit, [first] 30px [last]) [foo] minmax(60px, 80px) [bar] minmax(45px, max-content); }
 .gridAutoRepeatAndFixed { grid-template-rows: [start] repeat(2, 50px [a]) [middle] repeat(auto-fit, [autofoo] 15px [autobar]) minmax(5%, 10%) [end]; }
 .gridMultipleNames { grid-template-rows: [start] 20px [foo] 50% repeat(auto-fit, [bar] 20px [start foo]) [foo] 10% [end bar]; }
 .gridMultipleTracks { grid-template-rows: [start] 20px repeat(auto-fit, [a] 2em [b c] 10% [d]) [e] minmax(75px, 1fr) [last]; }
 
-.item { background-color: cyan; }
-.item:nth-child(2n) { background-color: green; }
+.item { background: cyan; }
+.item:nth-child(2n) { background: green; }
 
 .gap { grid-row-gap: 20px; }
 
@@ -51,6 +54,18 @@
 
 <div class="grid gridOnlyAutoRepeat">
     <div class="item" style="grid-row: 1 / span 6" data-offset-y="0" data-offset-x="0" data-expected-height="180" data-expected-width="25"></div>
+</div>
+
+<div class="grid gridMinMaxAutoRepeat">
+    <div class="item" style="grid-row: 1 / -1" data-offset-y="0" data-offset-x="0" data-expected-height="180" data-expected-width="25"></div>
+</div>
+
+<div class="grid gridMaxMinAutoRepeat">
+    <div class="item" style="grid-row: 1 / -1" data-offset-y="0" data-offset-x="0" data-expected-height="180" data-expected-width="25"></div>
+</div>
+
+<div class="grid gridMaxMinPercentAutoRepeat">
+    <div class="item" style="grid-row: 1 / -1" data-offset-y="0" data-offset-x="0" data-expected-height="180" data-expected-width="25"></div>
 </div>
 
 <div class="grid gridOnlyAutoRepeat">

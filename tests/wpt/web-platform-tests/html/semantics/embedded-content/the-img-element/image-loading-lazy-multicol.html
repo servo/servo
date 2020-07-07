@@ -20,7 +20,7 @@
 
   window.addEventListener("load", t.step_func_done(function() {
     assert_true(has_in_viewport_loaded, "The in_viewport element should have loaded before window.load().");
-    assert_false(has_window_loaded, "The window.load() event should only fire once.");
+    assert_false(has_window_loaded, "The window load event should only fire once.");
     has_window_loaded = true;
   }));
 
@@ -37,7 +37,7 @@
   <!--
     This async script loads very slowly in order to ensure that, if the
     below_viewport element has started loading, it has a chance to finish
-    loading before window.load() happens, so that the test will dependably fail
+    loading before window load event fires, so that the test will dependably fail
     in that case instead of potentially passing depending on how long different
     resource fetches take.
   -->

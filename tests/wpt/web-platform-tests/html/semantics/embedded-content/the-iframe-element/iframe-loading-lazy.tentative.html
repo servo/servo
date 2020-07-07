@@ -37,20 +37,20 @@
 
   const below_viewport_iframe_onload = t_below_viewport.step_func_done(() => {
     assert_true(has_window_loaded,
-                "The window.load() event should have fired before " +
+                "The window load event should have fired before " +
                 "the below-viewport iframe loads");
   });
 
   // Must make this accessible to the srcdoc iframe's body.
   window.below_viewport_srcdoc_iframe_subresource_onload = t_below_viewport_srcdoc.step_func(() => {
     assert_true(has_window_loaded,
-                "The window.load() event should have fired before " +
+                "The window load event should have fired before " +
                 "the below-viewport srcdoc iframe's subresource loads");
   });
 
   const below_viewport_srcdoc_iframe_onload = t_below_viewport_srcdoc.step_func_done(() => {
     assert_true(has_window_loaded,
-                "The window.load() event should have fired before " +
+                "The window load event should have fired before " +
                 "the below-viewport srcdoc iframe loads");
   });
 </script>
@@ -77,7 +77,7 @@
 
   <!-- This async script loads very slowly in order to ensure that, if the
        below_viewport* elements have started loading, it has a chance to finish
-       loading before window.load() happens, so that the test will dependably
+       loading before window load event fires, so that the test will dependably
        fail in that case instead of potentially passing depending on how long
        different resource fetches take. -->
   <script async src="/common/slow.py"></script>

@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 <title>CSS Grid: auto-fit columns</title>
+<base href="https://wpt.live/css/css-grid/grid-definition/grid-auto-fill-rows-001.html">
+
 <link rel="author" title="Sergio Villar" href="mailto: svillar@igalia.com">
 <link rel="help" href="https://drafts.csswg.org/css-grid-1/#valdef-repeat-auto-fit">
 <link rel="help" href="https://drafts.csswg.org/css-grid-1/#propdef-grid-auto-columns">
@@ -24,6 +26,9 @@
 }
 
 .gridOnlyAutoRepeat { grid-template-columns: repeat(auto-fit, 30px [autobar]); }
+.gridMinMaxAutoRepeat { grid-template-columns: repeat(auto-fill, minmax(13px, 30px)); }
+.gridMaxMinAutoRepeat { grid-template-columns: repeat(auto-fill, minmax(30px, 13px)); }
+.gridMaxMinPercentAutoRepeat { grid-template-columns: repeat(auto-fill, minmax(30px, 6.5%)); }
 .gridAutoRepeatAndFixedBefore { grid-template-columns: 10px [foo] 20% [bar] repeat(auto-fit, [autofoo] 35px); }
 .gridAutoRepeatAndFixedAfter { grid-template-columns: repeat(auto-fit, [first] 30px [last]) [foo] minmax(60px, 80px) [bar] minmax(45px, max-content); }
 .gridAutoRepeatAndFixed { grid-template-columns: [start] repeat(2, 50px [a]) [middle] repeat(auto-fit, [autofoo] 15px [autobar]) minmax(5%, 10%) [end]; }
@@ -31,8 +36,8 @@
 .gridMultipleTracks { grid-template-columns: [start] 20px repeat(auto-fit, [a] 2em [b c] 10% [d]) [e] minmax(75px, 1fr) [last]; }
 .gridMinMaxFixedFlex { grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); }
 
-.item { background-color: cyan; }
-.item:nth-child(2n) { background-color: green; }
+.item { background: cyan; }
+.item:nth-child(2n) { background: green; }
 
 .gap { grid-column-gap: 20px; }
 
@@ -48,7 +53,19 @@
 <p>This test checks that repeat(auto-fit, ) syntax works as expected.</p>
 
 <div class="grid gridOnlyAutoRepeat">
-    <div class="item" style="grid-column: 1 / span 6" data-offset-x="0" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+    <div class="item" style="grid-column: 1 / -1" data-offset-x="0" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMinMaxAutoRepeat">
+    <div class="item" style="grid-column: 1 / -1" data-offset-x="0" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMaxMinAutoRepeat">
+    <div class="item" style="grid-column: 1 / -1" data-offset-x="0" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridMaxMinPercentAutoRepeat">
+    <div class="item" style="grid-column: 1 / -1" data-offset-x="0" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
 </div>
 
 <div class="grid gridOnlyAutoRepeat">

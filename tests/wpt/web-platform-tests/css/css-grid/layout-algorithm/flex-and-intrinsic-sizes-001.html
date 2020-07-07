@@ -45,6 +45,12 @@ div { font: 10px/1 Ahem; }
 </div>
 
 <div class="container">
+  <div class="grid min-content" data-expected-width="30" data-expected-height="20" style="grid-template-columns:minmax(0, 1fr);">
+    <div>XXX XXX</div>
+  </div>
+</div>
+
+<div class="container">
   <div class="grid max-content" data-expected-width="70" data-expected-height="10">
     <div>XXX XXX</div>
   </div>

@@ -20,13 +20,13 @@
     assert_false(has_in_viewport_loaded,
                "The in_viewport element should load only once.");
     assert_true(has_window_loaded,
-               "The window.load() event should fire before in_viewport image loads.");
+               "The window load event should fire before in_viewport image loads.");
     has_in_viewport_loaded = true;
   });
 
   window.addEventListener("load", t.step_func(function() {
     assert_false(has_window_loaded,
-                 "The window.load() event should only fire once.");
+                 "The window load event should only fire once.");
     has_window_loaded = true;
   }));
 </script>

@@ -28,18 +28,20 @@
 }
 
 .gridOnlyAutoRepeat { grid-template-rows: repeat(auto-fill, 30px [autobar]); }
+.gridMinMaxAutoRepeat { grid-template-rows: repeat(auto-fill, minmax(13px, 30px)); }
+.gridMaxMinAutoRepeat { grid-template-rows: repeat(auto-fill, minmax(30px, 13px)); }
+.gridMaxMinPercentAutoRepeat { grid-template-rows: repeat(auto-fill, minmax(30px, 6.5%)); }
 .gridAutoRepeatAndFixedBefore { grid-template-rows: 10px [foo] 20% [bar] repeat(auto-fill, [autofoo] 35px); }
 .gridAutoRepeatAndFixedAfter { grid-template-rows: repeat(auto-fill, [first] 30px [last]) [foo] minmax(60px, 80px) [bar] minmax(45px, max-content); }
 .gridAutoRepeatAndFixed { grid-template-rows: [start] repeat(2, 50px [a]) [middle] repeat(auto-fill, [autofoo] 15px [autobar]) minmax(5%, 10%) [end]; }
 .gridMultipleNames { grid-template-rows: [start] 20px [foo] 50% repeat(auto-fill, [bar] 20px [start foo]) [foo] 10% [end bar]; }
 .gridMultipleTracks { grid-template-rows: [start] 20px repeat(auto-fill, [a] 2em [b c] 10% [d]) [e] minmax(75px, 1fr) [last]; }
 
-.item { background-color: blue; }
+.item { background: blue; }
 .item:nth-child(2) { background: green; }
 .item:nth-child(3) { background: orange; }
 
 .gap { grid-row-gap: 20px; }
-
 </style>
 
 <script src="/resources/testharness.js"></script>
@@ -52,7 +54,19 @@
 <p>This test checks that repeat(auto-fill, ) syntax works as expected.</p>
 
 <div class="grid gridOnlyAutoRepeat">
-    <div class="item" style="grid-row: 1 / span 6" data-offset-y="0" data-offset-x="0" data-expected-height="180" data-expected-width="25"></div>
+    <div class="item" style="grid-row: 1 / -1" data-offset-y="0" data-offset-x="0" data-expected-height="180" data-expected-width="25"></div>
+</div>
+
+<div class="grid gridMinMaxAutoRepeat">
+    <div class="item" style="grid-row: 1 / -1" data-offset-y="0" data-offset-x="0" data-expected-height="180" data-expected-width="25"></div>
+</div>
+
+<div class="grid gridMaxMinAutoRepeat">
+    <div class="item" style="grid-row: 1 / -1" data-offset-y="0" data-offset-x="0" data-expected-height="180" data-expected-width="25"></div>
+</div>
+
+<div class="grid gridMaxMinPercentAutoRepeat">
+    <div class="item" style="grid-row: 1 / -1" data-offset-y="0" data-offset-x="0" data-expected-height="180" data-expected-width="25"></div>
 </div>
 
 <div class="grid gridOnlyAutoRepeat">

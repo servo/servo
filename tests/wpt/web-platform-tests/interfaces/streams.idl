@@ -65,8 +65,13 @@ interface ReadableStreamDefaultReader {
   readonly attribute Promise<void> closed;
 
   Promise<void> cancel(optional any reason);
-  Promise<any> read();
+  Promise<ReadableStreamDefaultReadResult> read();
   void releaseLock();
+};
+
+dictionary ReadableStreamDefaultReadResult {
+ any value;
+ boolean done;
 };
 
 [Exposed=(Window,Worker,Worklet)]
@@ -76,8 +81,13 @@ interface ReadableStreamBYOBReader {
   readonly attribute Promise<void> closed;
 
   Promise<void> cancel(optional any reason);
-  Promise<any> read(ArrayBufferView view);
+  Promise<ReadableStreamBYOBReadResult> read(ArrayBufferView view);
   void releaseLock();
+};
+
+dictionary ReadableStreamBYOBReadResult {
+ ArrayBufferView value;
+ boolean done;
 };
 
 [Exposed=(Window,Worker,Worklet)]

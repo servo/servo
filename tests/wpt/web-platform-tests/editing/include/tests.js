@@ -5667,9 +5667,19 @@ function runConformanceTest(browserTest) {
     subsetTest(test, function() {
         assert_equals(exception, null, "Setup must not throw an exception");
 
-        assert_equals(testDiv.innerHTML,
-            browserTest[2].replace(/[\[\]{}]/g, ""),
-            "Unexpected innerHTML (after normalizing inline style)");
+        if (Array.isArray(browserTest[2])) {
+          var expectedInnerHTMLArray = [];
+          browserTest[2].forEach(function (expectedInnerHTML) {
+            expectedInnerHTMLArray.push(expectedInnerHTML.replace(/[\[\]{}]/g, ""));
+          });
+          assert_in_array(testDiv.innerHTML,
+               expectedInnerHTMLArray,
+               "Unexpected innerHTML (after normalizing inline style)");
+        } else {
+          assert_equals(testDiv.innerHTML,
+              browserTest[2].replace(/[\[\]{}]/g, ""),
+              "Unexpected innerHTML (after normalizing inline style)");
+        }
     }, testName + " compare innerHTML");
 
     for (var command in expectedQueryResults) {

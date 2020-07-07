@@ -76,8 +76,10 @@ and ensures that an empty string sent by one is received by the second.
 
   test.step(function() {
     gFirstConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gFirstConnection.close());
 
     gSecondConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gSecondConnection.close());
 
     gFirstConnection.onicecandidate = exchangeIce(gSecondConnection);
     gSecondConnection.onicecandidate = exchangeIce(gFirstConnection);

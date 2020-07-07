@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Detaching positioned object before it is laid out should not crash</title>
+<link rel="author" href="mailto:kojii@chromium.org">
+<link rel="help" href="https://crbug.com/1101986">
+<meta name="assert" content="Detaching positioned object before it is laid out should not crash">
+<style>
+.float {
+  float: left;
+}
+.abs {
+  position: absolute;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div id="container">text<span id="target" class="float"></span></div>
+</body>
+<script>
+test(() => {
+  document.body.offsetTop;
+  let target = document.getElementById('target');
+
+  // Change `#target` from floating object to positioned object.
+  target.classList.add('abs');
+
+  // Style recalc without layout, and detach.
+  getComputedStyle(target).display;
+  container.style.display = "none";
+}, 'No crash or DCHECK failure');
+</script>

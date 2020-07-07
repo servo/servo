@@ -122,6 +122,8 @@
         assert_true(had_checking, 'state should pass checking before' +
                                   ' reaching connected or completed');
         t.done();
+      } else if (iceConnectionState === 'failed') {
+        assert_unreached("ICE should not fail");
       }
     });
 
@@ -165,6 +167,8 @@ async_test(t => {
           'Expect ICE transport to be in connected state when' +
           ' iceConnectionState is completed');
         t.done();
+      } else if (iceConnectionState === 'failed') {
+        assert_unreached("ICE should not fail");
       }
     });
 

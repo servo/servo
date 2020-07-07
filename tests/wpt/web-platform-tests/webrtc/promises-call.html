@@ -66,10 +66,12 @@ This test uses data only, and thus does not require fake media devices.
   // This function starts the test.
   test.step(function() {
     gFirstConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gFirstConnection.close());
     gFirstConnection.onicecandidate = onIceCandidateToFirst;
     gFirstConnection.oniceconnectionstatechange = onIceConnectionStateChange;
 
     gSecondConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gSecondConnection.close());
     gSecondConnection.onicecandidate = onIceCandidateToSecond;
     gSecondConnection.oniceconnectionstatechange = onIceConnectionStateChange;
 
