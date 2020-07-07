@@ -23,6 +23,6 @@ libservo = { path = "../../components/servo", features = ["no_static_freetype"] 
 log = "0.4"
 servo-egl = "0.2"
 simpleservo = { path = "../libsimpleservo/api", features = ["no_static_freetype"] }
-smallvec = "1.3"
+smallvec = "1.4"
 webxr = { git = "https://github.com/servo/webxr", features = ["ipc", "magicleap"] }
 webxr-api = { git = "https://github.com/servo/webxr", features = ["ipc"] }
