@@ -197,12 +197,18 @@ fn test_hang_monitoring_exit_signal() {
     );
 
     let (exit_sender, exit_receiver) = ipc::channel().expect("Failed to create IPC channel!");
+
     // Send the exit message.
-    let _ = control_sender.send(BackgroundHangMonitorControlMsg::Exit(exit_sender));
+    if control_sender
+        .send(BackgroundHangMonitorControlMsg::Exit(exit_sender))
+        .is_ok()
+    {
+        // Assert we receive a confirmation back.
+        assert!(exit_receiver.recv().is_ok());
 
-    // Assert we receive a confirmation back.
-    assert!(exit_receiver.recv().is_ok());
-
-    // Assert we get the exit signal.
-    while !closing.load(Ordering::SeqCst) {}
+        // Assert we get the exit signal.
+        while !closing.load(Ordering::SeqCst) {
+            thread::sleep(Duration::from_millis(10));
+        }
+    }
 }

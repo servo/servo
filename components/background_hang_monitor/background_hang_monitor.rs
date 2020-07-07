@@ -33,17 +33,19 @@ impl HangMonitorRegister {
         monitoring_enabled: bool,
     ) -> Box<dyn BackgroundHangMonitorRegister> {
         let (sender, port) = unbounded();
-        let _ = thread::Builder::new().spawn(move || {
-            let mut monitor = BackgroundHangMonitorWorker::new(
-                constellation_chan,
-                control_port,
-                port,
-                monitoring_enabled,
-            );
-            while monitor.run() {
-                // Monitoring until all senders have been dropped...
-            }
-        });
+        let _ = thread::Builder::new()
+            .spawn(move || {
+                let mut monitor = BackgroundHangMonitorWorker::new(
+                    constellation_chan,
+                    control_port,
+                    port,
+                    monitoring_enabled,
+                );
+                while monitor.run() {
+                    // Monitoring until all senders have been dropped...
+                }
+            })
+            .expect("Couldn't start BHM worker.");
         Box::new(HangMonitorRegister {
             sender,
             monitoring_enabled,
