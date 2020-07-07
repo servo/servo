@@ -1690,12 +1690,22 @@ fn http_network_fetch(
     // The receiver will receive true if there has been an error streaming the request body.
     let (fetch_terminated_sender, fetch_terminated_receiver) = unbounded();
 
+    let body = request.body.as_ref().map(|body| body.take_stream());
+
+    if body.is_none() {
+        // There cannot be an error streaming a non-existent body.
+        // However in such a case the channel will remain unused
+        // and drop inside `obtain_response`.
+        // Send the confirmation now, ensuring the receiver will not dis-connect first.
+        let _ = fetch_terminated_sender.send(false);
+    }
+
     let response_future = obtain_response(
         &context.state.client,
         &url,
         &request.method,
         &mut request.headers,
-        request.body.as_ref().map(|body| body.take_stream()),
+        body,
         request
             .body
             .as_ref()
