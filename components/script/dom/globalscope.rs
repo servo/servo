@@ -5,6 +5,7 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
+use crate::dom::bindings::codegen::Bindings::GPUValidationErrorBinding::GPUError;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
@@ -34,6 +35,9 @@ use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
 use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
+use crate::dom::gpudevice::GPUDevice;
+use crate::dom::gpuoutofmemoryerror::GPUOutOfMemoryError;
+use crate::dom::gpuvalidationerror::GPUValidationError;
 use crate::dom::htmlscriptelement::ScriptId;
 use crate::dom::identityhub::Identities;
 use crate::dom::imagebitmap::ImageBitmap;
@@ -122,6 +126,7 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use time::{get_time, Timespec};
 use uuid::Uuid;
+use webgpu::{identity::WebGPUOpResult, WebGPUDevice};
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker {
@@ -288,6 +293,9 @@ pub struct GlobalScope {
     /// Identity Manager for WebGPU resources
     #[ignore_malloc_size_of = "defined in wgpu"]
     gpu_id_hub: Arc<Mutex<Identities>>,
+
+    /// WebGPU devices
+    gpu_devices: DomRefCell<HashMap<WebGPUDevice, Dom<GPUDevice>>>,
 
     // https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute
     #[ignore_malloc_size_of = "mozjs"]
@@ -745,6 +753,7 @@ impl GlobalScope {
             is_headless,
             user_agent,
             gpu_id_hub,
+            gpu_devices: DomRefCell::new(HashMap::new()),
             frozen_supported_performance_entry_types: DomRefCell::new(Default::default()),
             https_state: Cell::new(HttpsState::None),
             console_group_stack: DomRefCell::new(Vec::new()),
@@ -2937,6 +2946,31 @@ impl GlobalScope {
 
     pub fn wgpu_id_hub(&self) -> Arc<Mutex<Identities>> {
         self.gpu_id_hub.clone()
+    }
+
+    pub fn add_gpu_device(&self, device: &GPUDevice) {
+        self.gpu_devices
+            .borrow_mut()
+            .insert(device.id(), Dom::from_ref(device));
+    }
+
+    pub fn handle_wgpu_msg(&self, device: WebGPUDevice, scope: u64, result: WebGPUOpResult) {
+        let result = match result {
+            WebGPUOpResult::Success => Ok(()),
+            WebGPUOpResult::ValidationError(m) => {
+                let val_err = GPUValidationError::new(&self, DOMString::from_string(m));
+                Err(GPUError::GPUValidationError(val_err))
+            },
+            WebGPUOpResult::OutOfMemoryError => {
+                let oom_err = GPUOutOfMemoryError::new(&self);
+                Err(GPUError::GPUOutOfMemoryError(oom_err))
+            },
+        };
+        self.gpu_devices
+            .borrow()
+            .get(&device)
+            .expect("GPUDevice not found")
+            .handle_server_msg(scope, result);
     }
 
     pub(crate) fn current_group_label(&self) -> Option<DOMString> {

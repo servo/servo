@@ -2,7 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::WebGPUDevice;
 use ipc_channel::ipc::IpcSender;
+use msg::constellation_msg::PipelineId;
 use serde::{Deserialize, Serialize};
 use wgpu::{
     hub::{GlobalIdentityHandlerFactory, IdentityHandler, IdentityHandlerFactory},
@@ -14,7 +16,14 @@ use wgpu::{
 };
 use wgt::Backend;
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum WebGPUOpResult {
+    ValidationError(String),
+    OutOfMemoryError,
+    Success,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum WebGPUMsg {
     FreeAdapter(AdapterId),
     FreeDevice(DeviceId),
@@ -32,6 +41,12 @@ pub enum WebGPUMsg {
     FreeSurface(SurfaceId),
     FreeShaderModule(ShaderModuleId),
     FreeRenderBundle(RenderBundleId),
+    WebGPUOpResult {
+        device: WebGPUDevice,
+        scope_id: u64,
+        pipeline_id: PipelineId,
+        result: WebGPUOpResult,
+    },
     Exit,
 }
 
@@ -56,7 +71,7 @@ macro_rules! impl_identity_handler {
             fn free(&self, id: $id) {
                 log::debug!("free {} {:?}", $st, id);
                 let msg = $($var)*(id);
-                if self.sender.send(msg).is_err() {
+                if self.sender.send(msg.clone()).is_err() {
                     log::error!("Failed to send {:?}", msg);
                 }
             }

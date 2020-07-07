@@ -1936,7 +1936,7 @@ dependencies = [
 [[package]]
 name = "gfx-descriptor"
 version = "0.1.0"
-source = "git+https://github.com/gfx-rs/gfx-extras?rev=6387d81773e29be2220cb15186ceb875ed88303b#6387d81773e29be2220cb15186ceb875ed88303b"
+source = "git+https://github.com/gfx-rs/gfx-extras?rev=473a4cdc63463e7986707507c4a7f6a3a767e329#473a4cdc63463e7986707507c4a7f6a3a767e329"
 dependencies = [
  "fxhash",
  "gfx-hal",
@@ -1956,7 +1956,7 @@ dependencies = [
 [[package]]
 name = "gfx-memory"
 version = "0.1.3"
-source = "git+https://github.com/gfx-rs/gfx-extras?rev=6387d81773e29be2220cb15186ceb875ed88303b#6387d81773e29be2220cb15186ceb875ed88303b"
+source = "git+https://github.com/gfx-rs/gfx-extras?rev=473a4cdc63463e7986707507c4a7f6a3a767e329#473a4cdc63463e7986707507c4a7f6a3a767e329"
 dependencies = [
  "fxhash",
  "gfx-hal",
@@ -6675,6 +6675,7 @@ dependencies = [
  "ipc-channel",
  "log",
  "malloc_size_of",
+ "msg",
  "serde",
  "servo_config",
  "smallvec 0.6.13",
@@ -6813,7 +6814,6 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "0.5.0"
-source = "git+https://github.com/gfx-rs/wgpu#349c02104948fea7aee38c3e7dc197427b1f2414"
 dependencies = [
  "arrayvec 0.5.1",
  "bitflags",
@@ -6835,14 +6835,12 @@ dependencies = [
  "smallvec 1.4.1",
  "spirv_headers",
  "tracing",
- "vec_map",
  "wgpu-types",
 ]
 
 [[package]]
 name = "wgpu-types"
 version = "0.5.0"
-source = "git+https://github.com/gfx-rs/wgpu#349c02104948fea7aee38c3e7dc197427b1f2414"
 dependencies = [
  "bitflags",
  "serde",

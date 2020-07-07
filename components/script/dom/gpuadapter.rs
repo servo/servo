@@ -34,7 +34,7 @@ pub struct GPUAdapter {
 }
 
 impl GPUAdapter {
-    pub fn new_inherited(
+    fn new_inherited(
         channel: WebGPU,
         name: DOMString,
         extensions: Heap<*mut JSObject>,
@@ -93,6 +93,7 @@ impl GPUAdapterMethods for GPUAdapter {
             .wgpu_id_hub()
             .lock()
             .create_device_id(self.adapter.0.backend());
+        let pipeline_id = self.global().pipeline_id();
         if self
             .channel
             .0
@@ -101,6 +102,7 @@ impl GPUAdapterMethods for GPUAdapter {
                 adapter_id: self.adapter,
                 descriptor: desc,
                 device_id: id,
+                pipeline_id,
             })
             .is_err()
         {
@@ -127,6 +129,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     device_id,
                     queue_id,
                 );
+                self.global().add_gpu_device(&device);
                 promise.resolve_native(&device);
             },
             _ => promise.reject_error(Error::Operation),
