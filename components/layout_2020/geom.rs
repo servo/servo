@@ -19,21 +19,21 @@ pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
 pub type LengthOrAuto = AutoOr<Length>;
 pub type LengthPercentageOrAuto<'a> = AutoOr<&'a LengthPercentage>;
 
-pub(crate) mod flow_relative {
+pub mod flow_relative {
     #[derive(Clone, Serialize)]
-    pub(crate) struct Vec2<T> {
+    pub struct Vec2<T> {
         pub inline: T,
         pub block: T,
     }
 
     #[derive(Clone, Serialize)]
-    pub(crate) struct Rect<T> {
+    pub struct Rect<T> {
         pub start_corner: Vec2<T>,
         pub size: Vec2<T>,
     }
 
     #[derive(Clone, Serialize)]
-    pub(crate) struct Sides<T> {
+    pub struct Sides<T> {
         pub inline_start: T,
         pub inline_end: T,
         pub block_start: T,
@@ -325,6 +325,20 @@ where
 }
 
 impl<T> flow_relative::Rect<T> {
+    pub fn max_inline_position(&self) -> T
+    where
+        T: Add<Output = T> + Copy,
+    {
+        self.start_corner.inline + self.size.inline
+    }
+
+    pub fn max_block_position(&self) -> T
+    where
+        T: Add<Output = T> + Copy,
+    {
+        self.start_corner.block + self.size.block
+    }
+
     pub fn inflate(&self, sides: &flow_relative::Sides<T>) -> Self
     where
         T: Add<Output = T> + Copy,

@@ -222,7 +222,7 @@ class MachCommands(CommandBase):
     @CommandArgument('--nocapture', default=False, action="store_true",
                      help="Run tests with nocapture ( show test stdout )")
     @CommandBase.build_like_command_arguments
-    def test_unit(self, test_name=None, package=None, bench=False, nocapture=False, **kwargs):
+    def test_unit(self, test_name=None, package=None, bench=False, nocapture=False, with_layout_2020=False, **kwargs):
         if test_name is None:
             test_name = []
 
@@ -255,7 +255,6 @@ class MachCommands(CommandBase):
         self_contained_tests = [
             "background_hang_monitor",
             "gfx",
-            "layout_2013",
             "msg",
             "net",
             "net_traits",
@@ -263,6 +262,10 @@ class MachCommands(CommandBase):
             "servo_config",
             "servo_remutex",
         ]
+        if with_layout_2020:
+            self_contained_tests.append("layout_2020")
+        else:
+            self_contained_tests.append("layout_2013")
         if not packages:
             packages = set(os.listdir(path.join(self.context.topdir, "tests", "unit"))) - set(['.DS_Store'])
             packages |= set(self_contained_tests)
@@ -298,7 +301,11 @@ class MachCommands(CommandBase):
             if nocapture:
                 args += ["--", "--nocapture"]
 
-            err = self.run_cargo_build_like_command("bench" if bench else "test", args, env=env, **kwargs)
+            err = self.run_cargo_build_like_command("bench" if bench else "test",
+                                                    args,
+                                                    env=env,
+                                                    with_layout_2020=with_layout_2020,
+                                                    **kwargs)
             if err:
                 return err
 
