@@ -1435,13 +1435,14 @@ fn test_origin_set() {
 
     *origin_header_clone.lock().unwrap() = None;
     let response = fetch(&mut request, None);
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
+    match response.internal_response.as_ref() {
+        Some(response) => {
+            assert!(response.status.as_ref().unwrap().0.is_success());
+        },
+        None => {
+            panic!("Expected internal response, got {:?}", response);
+        },
+    }
 
     let _ = server.close();
 }
