@@ -85,6 +85,13 @@ matches the expected HTML provided here.  As on line 1, the characters []{}
 expected to be in the HTML.  However, on this line they don't affect the test's
 processing -- there are no tests of what the final selection is.
 
+This can be array of string if there are some acceptable cases.  However,
+array shouldn't be used as far as possible because WPT checks compatibility
+between browsers.  So, this should be used when:
+
+- There are some different behaviors in edge cases.
+- There are some differences which are not related to the test.
+
 ## Line 4: expected return values ##
 
        ["foo[bar]baz",

@@ -32,6 +32,7 @@
 
   function getNoiseStreamOkCallback(localStream) {
     gFirstConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gFirstConnection.close());
     gFirstConnection.onicecandidate = onIceCandidateToFirst;
     localStream.getTracks().forEach(function(track) {
       gFirstConnection.addTrack(track, localStream);
@@ -52,6 +53,7 @@
 
   function receiveCall(offerSdp) {
     gSecondConnection = new RTCPeerConnection(null);
+    test.add_cleanup(() => gSecondConnection.close());
     gSecondConnection.onicecandidate = onIceCandidateToSecond;
     gSecondConnection.ontrack = onRemoteTrack;
 

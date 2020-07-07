@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<style>
+html {
+  background: red;
+  /* an "L" shape */
+  clip-path: polygon(50px 50px, 100px 50px, 100px 100px, 150px 100px, 150px 150px, 50px 150px);
+}
+div {
+  width: 500px;
+  height: 500px;
+  background: green;
+}
+</style>
+<link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-path">
+<link rel="help" href="https://drafts.fxtf.org/compositing/#rootgroup">
+<link rel="help" href="https://drafts.fxtf.org/compositing/#pagebackdrop">
+<link rel="match" href="reference/clip-path-document-element-ref.html">
+<meta name="assert" content="Clip-path on the document element applies to the root background.
+    The test passes if there is a green 'L' shape without red.">
+<div></div>

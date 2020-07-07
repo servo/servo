@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Display flex first line with floated first letter</title>
+<link rel="help" href="https://crbug.com/1097595">
+<link rel="match" href="display-first-line-002-ref.html">
+<style id="styleElm">
+  #victim::first-line { display:flex;  }
+  #victim::first-letter { float:right; }
+</style>
+
+<!-- The contenteditable DIV is just here to trigger legacy layout
+     fallback, and a DCHECK failure identical to the one in the bug
+     report. If we remove it, we'll get NG layout, and then it will
+     actually DCHECK-fail inside NG inline layout code instead. -->
+<div contenteditable></div>
+
+<p>The word "PASS" should be seen below. There should be no DCHECK
+  failure.</p>
+<div id="child" style="display:none;"></div>
+<div id="victim" style="width:fit-content;">
+  SPAS
+</div>
+<script>
+  document.body.offsetTop;
+  styleElm.appendChild(child);
+  document.body.offsetTop;
+  victim.style.color = "blue";
+</script>
