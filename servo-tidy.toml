@@ -21,6 +21,7 @@ rand = [
   "servo_rand",
   "tempfile",
   "uuid",
+  "tungstenite",
   "ws",
 ]
 
@@ -36,6 +37,14 @@ packages = [
   "parking_lot",
   "parking_lot_core",
   "wayland-sys",
+
+  # https://github.com/servo/servo/issues/26933
+  "futures",
+  "tokio-openssl",
+  "tokio",
+  "http",
+  "scoped-tls",
+  "bytes",
 
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "gl_generator",

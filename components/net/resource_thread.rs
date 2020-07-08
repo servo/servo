@@ -16,7 +16,7 @@ use crate::hsts::HstsList;
 use crate::http_cache::HttpCache;
 use crate::http_loader::{http_redirect_fetch, HttpState, HANDLE};
 use crate::storage_thread::StorageThreadFactory;
-use crate::websocket_loader;
+use crate::websocket_loader::{self, HANDLE as WS_HANDLE};
 use crossbeam_channel::Sender;
 use devtools_traits::DevtoolsControlMsg;
 use embedder_traits::resources::{self, Resource};
@@ -616,6 +616,9 @@ impl CoreResourceManager {
         // Shut-down the async runtime used by fetch workers.
         drop(HANDLE.lock().unwrap().take());
 
+        // Shut-down the async runtime used by websocket workers.
+        drop(WS_HANDLE.lock().unwrap().take());
+
         debug!("Exited CoreResourceManager");
     }
 
@@ -727,8 +730,6 @@ impl CoreResourceManager {
             action_receiver,
             http_state.clone(),
             self.certificate_path.clone(),
-            http_state.extra_certs.clone(),
-            http_state.connection_certs.clone(),
         );
     }
 }

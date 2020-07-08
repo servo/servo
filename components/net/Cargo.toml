@@ -15,6 +15,7 @@ test = false
 doctest = false
 
 [dependencies]
+async-tungstenite = { version = "0.7.1", features = ["tokio-openssl"] }
 base64 = "0.10.1"
 brotli = "3"
 bytes = "0.4"
@@ -26,6 +27,7 @@ devtools_traits = { path = "../devtools_traits" }
 embedder_traits = { path = "../embedder_traits" }
 flate2 = "1"
 futures = "0.1"
+futures03 = { version = "0.3", package = "futures" }
 headers = "0.2"
 http = "0.1"
 hyper = "0.12"
@@ -56,10 +58,11 @@ servo_config = { path = "../config" }
 servo_url = { path = "../url" }
 time = "0.1.17"
 tokio = "0.1"
+tokio2 = { version = "0.2", package = "tokio", features = ["sync", "macros", "rt-threaded"] }
+tungstenite = "0.11"
 url = "2.0"
 uuid = { version = "0.8", features = ["v4"] }
 webrender_api = { git = "https://github.com/servo/webrender" }
-ws = { version = "0.9", features = ["ssl"] }
 
 [dev-dependencies]
 futures = "0.1"
