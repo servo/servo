@@ -32,9 +32,10 @@ packages = [
   "cocoa",
   "gleam",
   "libloading",
-  "wayland-sys",
+  "miniz_oxide",
   "parking_lot",
   "parking_lot_core",
+  "wayland-sys",
 
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746
   "gl_generator",
