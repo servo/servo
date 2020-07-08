@@ -22,7 +22,7 @@ canvas_traits = { path = "../canvas_traits" }
 crossbeam-channel = "0.4"
 cssparser = "0.27"
 euclid = "0.20"
-font-kit = "0.7"
+font-kit = "0.9"
 fnv = "1.0"
 gfx = { path = "../gfx" }
 gleam = "0.11"
@@ -32,7 +32,7 @@ log = "0.4"
 lyon_geom = "0.14"
 num-traits = "0.2"
 pixels = { path = "../pixels" }
-raqote = { version = "0.8", features = ["text"] }
+raqote = { git = "https://github.com/jrmuizel/raqote", features = ["text"] }
 servo_arc = { path = "../servo_arc" }
 servo_config = { path = "../config" }
 sparkle = "0.1.25"

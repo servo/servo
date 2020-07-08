@@ -718,9 +718,9 @@ dependencies = [
 
 [[package]]
 name = "cmake"
-version = "0.1.41"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c84c596dcf125d6781f58e3f4254677ec2a6d8aa56e8501ac277100990b3229"
+checksum = "0e56268c17a6248366d66d4a47a3381369d068cce8409bb1716ed77ea32163bb"
 dependencies = [
  "cc",
 ]
@@ -1213,16 +1213,6 @@ dependencies = [
 
 [[package]]
 name = "deflate"
-version = "0.7.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "707b6a7b384888a70c8d2e8650b3e60170dfc6a67bb4aa67b6dfca57af4bedb4"
-dependencies = [
- "adler32",
- "byteorder",
-]
-
-[[package]]
-name = "deflate"
 version = "0.8.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73770f8e1fe7d64df17ca66ad28994a0a623ea497fa69486e14984e715c5d174"
@@ -1580,9 +1570,9 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "font-kit"
-version = "0.7.1"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76ab2cdc792b545c49acb23aafa1cdc9381ea96140741f10bac596fd1bd1aa4f"
+checksum = "22ed9b6d89600e22d9bfcfdd8c27e981540664a1a85a3f3971793c75502f49d9"
 dependencies = [
  "bitflags",
  "byteorder",
@@ -1592,7 +1582,7 @@ dependencies = [
  "dirs",
  "dwrote",
  "float-ord",
- "freetype",
+ "freetype 0.5.1",
  "lazy_static",
  "libc",
  "log",
@@ -1636,6 +1626,27 @@ checksum = "11926b2b410b469d0e9399eca4cbbe237a9ef02176c485803b29216307e8e028"
 dependencies = [
  "libc",
  "servo-freetype-sys",
+]
+
+[[package]]
+name = "freetype"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b73222ab32d9ad65fe0e1c3258da8d614fd47cf19fce92b09eb520060c5c5ad5"
+dependencies = [
+ "freetype-sys",
+ "libc",
+]
+
+[[package]]
+name = "freetype-sys"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d48ac0ce366dd47a115ec8e598d7c51b4a974fc52ded5e53a56b31f55f34f3ea"
+dependencies = [
+ "cmake",
+ "libc",
+ "pkg-config",
 ]
 
 [[package]]
@@ -1853,7 +1864,7 @@ dependencies = [
  "euclid",
  "fnv",
  "fontsan",
- "freetype",
+ "freetype 0.4.1",
  "gfx_traits",
  "harfbuzz-sys",
  "ipc-channel",
@@ -2476,7 +2487,7 @@ dependencies = [
  "core-graphics 0.17.3",
  "core-text 13.3.2",
  "foreign-types",
- "freetype",
+ "freetype 0.4.1",
  "pkg-config",
 ]
 
@@ -2719,7 +2730,7 @@ dependencies = [
  "num-iter",
  "num-rational 0.3.0",
  "num-traits",
- "png 0.16.6",
+ "png",
  "scoped_threadpool",
  "tiff",
 ]
@@ -2743,15 +2754,6 @@ checksum = "5b88cd59ee5f71fea89a62248fc8f387d44400cefe05ef548466d61ced9029a7"
 dependencies = [
  "autocfg",
  "hashbrown",
-]
-
-[[package]]
-name = "inflate"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cdb29978cc5797bd8dcc8e5bf7de604891df2a8dc576973d71a281e916db2ff"
-dependencies = [
- "adler32",
 ]
 
 [[package]]
@@ -4337,25 +4339,13 @@ dependencies = [
 
 [[package]]
 name = "png"
-version = "0.15.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef859a23054bbfee7811284275ae522f0434a3c8e7f4b74bd4a35ae7e1c4a283"
-dependencies = [
- "bitflags",
- "crc32fast",
- "deflate 0.7.20",
- "inflate",
-]
-
-[[package]]
-name = "png"
 version = "0.16.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c150bf7479fafe3dd8740dbe48cc33b2a3efb7b0fe3483aced8bbc39f6d0238d"
 dependencies = [
  "bitflags",
  "crc32fast",
- "deflate 0.8.6",
+ "deflate",
  "miniz_oxide",
 ]
 
@@ -4565,15 +4555,14 @@ checksum = "a871f1e45a3a3f0c73fb60343c811238bb5143a81642e27c2ac7aac27ff01a63"
 
 [[package]]
 name = "raqote"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "501c19caa439857ed7bea975fa4c3c10ee9a24e33c2640030c3ac14b58f39f77"
+version = "0.8.1-alpha.0"
+source = "git+https://github.com/jrmuizel/raqote#5444a1040bd4fd72e860ff75244fbe8fa7814470"
 dependencies = [
  "euclid",
  "font-kit",
  "lyon_geom 0.15.0",
  "pathfinder_geometry",
- "png 0.15.3",
+ "png",
  "sw-composite",
  "typed-arena",
 ]
@@ -5129,9 +5118,9 @@ dependencies = [
 
 [[package]]
 name = "servo-fontconfig"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a088f8d775a5c5314aae09bd77340bc9c67d72b9a45258be34c83548b4814cd9"
+checksum = "0b47fef69c52fb55838c756949c60595f0b855daa4e82fc52ad99ff3e03e2c70"
 dependencies = [
  "libc",
  "servo-fontconfig-sys",
@@ -5139,20 +5128,20 @@ dependencies = [
 
 [[package]]
 name = "servo-fontconfig-sys"
-version = "4.0.9"
+version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62b3e166450f523f4db06c14f02a2d39e76d49b5d8cbd224338d93e3595c156c"
+checksum = "1c5e8d42c2957f6f433d90ab61277ed0226b3f49fffb19aa5493213c42e5d6df"
 dependencies = [
  "expat-sys",
+ "freetype-sys",
  "pkg-config",
- "servo-freetype-sys",
 ]
 
 [[package]]
 name = "servo-freetype-sys"
-version = "4.0.5"
+version = "4.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c4ccb6d0d32d277d3ef7dea86203d8210945eb7a45fba89dd445b3595dd0dfc"
+checksum = "9232032c2e85118c0282c6562c84cab12316e655491ba0a5d1905b2320060d1b"
 dependencies = [
  "cmake",
  "pkg-config",
@@ -6833,7 +6822,7 @@ dependencies = [
  "cstr",
  "dwrote",
  "euclid",
- "freetype",
+ "freetype 0.4.1",
  "fxhash",
  "gleam 0.11.0",
  "glslopt",
