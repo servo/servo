@@ -24,6 +24,7 @@ RUN \
         clang \
         llvm \
         llvm-dev \
+        #
         # GStreamer
         libpcre3-dev \
         #
@@ -36,6 +37,10 @@ RUN \
         # sampling profiler
         libunwind-dev \
         #
+        # x11 integration
+        libxcb-render-util0-dev \
+        libxcb-shape0-dev \
+        libxcb-xfixes0-dev \
         #
     && \
     #
