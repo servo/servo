@@ -24,11 +24,9 @@ use glib::subclass::object::Property;
 use glib::subclass::simple::ClassStruct;
 use glib::subclass::types::ObjectSubclass;
 use glib::translate::FromGlibPtrBorrow;
-use glib::translate::ToGlibPtr;
 use glib::value::Value;
 use glib::ParamSpec;
 use gstreamer::gst_element_error;
-use gstreamer::gst_error_msg;
 use gstreamer::gst_loggable_error;
 use gstreamer::subclass::element::ElementClassSubclassExt;
 use gstreamer::subclass::element::ElementImpl;
@@ -48,7 +46,6 @@ use gstreamer::LoggableError;
 use gstreamer::PadDirection;
 use gstreamer::PadPresence;
 use gstreamer::PadTemplate;
-use gstreamer::ResourceError;
 use gstreamer_base::subclass::base_src::BaseSrcImpl;
 use gstreamer_base::BaseSrc;
 use gstreamer_base::BaseSrcExt;
@@ -106,6 +103,7 @@ use std::time::Instant;
 pub struct ServoWebSrc {
     sender: Sender<ServoWebSrcMsg>,
     url: Mutex<Option<String>>,
+    outcaps: Mutex<Option<Caps>>,
     info: Mutex<Option<VideoInfo>>,
     buffer_pool: Mutex<Option<BufferPool>>,
     gl_context: Mutex<Option<GLContext>>,
@@ -322,6 +320,7 @@ impl ObjectSubclass for ServoWebSrc {
         let (sender, receiver) = crossbeam_channel::bounded(1);
         thread::spawn(move || ServoThread::new(receiver).run());
         let info = Mutex::new(None);
+        let outcaps = Mutex::new(None);
         let url = Mutex::new(None);
         let buffer_pool = Mutex::new(None);
         let gl_context = Mutex::new(None);
@@ -332,6 +331,7 @@ impl ObjectSubclass for ServoWebSrc {
         Self {
             sender,
             info,
+            outcaps,
             url,
             buffer_pool,
             gl_context,
@@ -418,34 +418,8 @@ impl BaseSrcImpl for ServoWebSrc {
                 .store(frame_duration_micros, Ordering::SeqCst);
         }
 
-        // Create a new buffer pool for GL memory
-        let gst_gl_context = self
-            .gl_context
-            .lock()
-            .unwrap()
-            .as_ref()
-            .expect("Set caps before starting")
-            .to_glib_none()
-            .0;
-        let gst_gl_buffer_pool =
-            unsafe { gstreamer_gl_sys::gst_gl_buffer_pool_new(gst_gl_context) };
-        if gst_gl_buffer_pool.is_null() {
-            return Err(gst_loggable_error!(
-                CATEGORY,
-                "Failed to create buffer pool"
-            ));
-        }
-        let pool = unsafe { BufferPool::from_glib_borrow(gst_gl_buffer_pool) };
-
-        // Configure the buffer pool with the negotiated caps
-        let mut config = pool.get_config();
-        let (_, size, min_buffers, max_buffers) = config.get_params().unwrap_or((None, 0, 0, 1024));
-        config.set_params(Some(outcaps), size, min_buffers, max_buffers);
-        pool.set_config(config)
-            .map_err(|_| gst_loggable_error!(CATEGORY, "Failed to update config"))?;
-
-        // Save the buffer pool for later use
-        *self.buffer_pool.lock().expect("Poisoned lock") = Some(pool);
+        // Save the caps for later use
+        *self.outcaps.lock().expect("Poisoned mutex") = Some(outcaps.copy());
 
         Ok(())
     }
@@ -458,57 +432,7 @@ impl BaseSrcImpl for ServoWebSrc {
         false
     }
 
-    fn start(&self, src: &BaseSrc) -> Result<(), ErrorMessage> {
-        info!("Starting");
-
-        // Get the URL
-        let url_guard = self
-            .url
-            .lock()
-            .map_err(|_| gst_error_msg!(ResourceError::Settings, ["Failed to lock mutex"]))?;
-        let url_string = url_guard.as_ref().map(|s| &**s).unwrap_or(DEFAULT_URL);
-        let url = ServoUrl::parse(url_string)
-            .map_err(|_| gst_error_msg!(ResourceError::Settings, ["Failed to parse url"]))?;
-
-        // Get the downstream GL context
-        let mut gst_gl_context = std::ptr::null_mut();
-        let el = src.upcast_ref::<Element>();
-        unsafe {
-            gstreamer_gl_sys::gst_gl_query_local_gl_context(
-                el.as_ptr(),
-                gstreamer_sys::GST_PAD_SRC,
-                &mut gst_gl_context,
-            );
-        }
-        if gst_gl_context.is_null() {
-            return Err(gst_error_msg!(
-                ResourceError::Settings,
-                ["Failed to get GL context"]
-            ));
-        }
-        let gl_context = unsafe { GLContext::from_glib_borrow(gst_gl_context) };
-
-        // Get the surfman connection on the GL thread
-        let mut task = BootstrapSurfmanOnGLThread {
-            servo_web_src: self,
-            result: None,
-        };
-
-        let data = &mut task as *mut BootstrapSurfmanOnGLThread as *mut c_void;
-        unsafe {
-            gst_gl_context_thread_add(gst_gl_context, Some(bootstrap_surfman_on_gl_thread), data)
-        };
-        let connection = task.result.expect("Failed to get connection");
-
-        // Save the GL context and connection for later use
-        *self.gl_context.lock().expect("Poisoned lock") = Some(gl_context);
-        *self.connection.lock().expect("Poisoned lock") = Some(connection.clone());
-
-        // Inform servo we're starting
-        let _ = self.sender.send(ServoWebSrcMsg::Start(
-            ConnectionWhichImplementsDebug(connection),
-            url,
-        ));
+    fn start(&self, _: &BaseSrc) -> Result<(), ErrorMessage> {
         Ok(())
     }
 
@@ -537,6 +461,7 @@ impl BaseSrcImpl for ServoWebSrc {
         }
 
         // Get the buffer pool
+        self.ensure_gl(src)?;
         let pool_guard = self.buffer_pool.lock().unwrap();
         let pool = pool_guard.as_ref().ok_or(FlowError::NotNegotiated)?;
 
@@ -599,6 +524,78 @@ unsafe extern "C" fn bootstrap_surfman_on_gl_thread(context: *mut GstGLContext, 
     let task = &mut *(data as *mut BootstrapSurfmanOnGLThread);
     let gl_context = GLContext::from_glib_borrow(context);
     task.result = task.servo_web_src.bootstrap_surfman(gl_context);
+}
+
+impl ServoWebSrc {
+    // Create the GL state if necessary
+    fn ensure_gl(&self, src: &BaseSrc) -> Result<(), FlowError> {
+        if self.gl_context.lock().expect("Poisoned lock").is_some() {
+            return Ok(());
+        }
+
+        // Get the downstream GL context
+        let mut gst_gl_context = std::ptr::null_mut();
+        let el = src.upcast_ref::<Element>();
+        unsafe {
+            gstreamer_gl_sys::gst_gl_query_local_gl_context(
+                el.as_ptr(),
+                gstreamer_sys::GST_PAD_SRC,
+                &mut gst_gl_context,
+            );
+        }
+        if gst_gl_context.is_null() {
+            error!("Failed to get GL context");
+            return Err(FlowError::Error);
+        }
+        let gl_context = unsafe { GLContext::from_glib_borrow(gst_gl_context) };
+        *self.gl_context.lock().expect("Poisoned lock") = Some(gl_context);
+
+        // Get the surfman connection on the GL thread
+        let mut task = BootstrapSurfmanOnGLThread {
+            servo_web_src: self,
+            result: None,
+        };
+        let data = &mut task as *mut BootstrapSurfmanOnGLThread as *mut c_void;
+        unsafe {
+            gst_gl_context_thread_add(gst_gl_context, Some(bootstrap_surfman_on_gl_thread), data)
+        };
+        let connection = task.result.expect("Failed to get connection");
+        *self.connection.lock().expect("Poisoned lock") = Some(connection.clone());
+
+        // Inform servo we're starting
+        let url_guard = self.url.lock().expect("Poisoned mutex");
+        let url_string = url_guard.as_ref().map(|s| &**s).unwrap_or(DEFAULT_URL);
+        let url = ServoUrl::parse(url_string).map_err(|e| {
+            error!("Failed to parse url {} ({:?})", url_string, e);
+            FlowError::Error
+        })?;
+        let _ = self.sender.send(ServoWebSrcMsg::Start(
+            ConnectionWhichImplementsDebug(connection),
+            url,
+        ));
+
+        // Create a new buffer pool for GL memory
+        let gst_gl_buffer_pool =
+            unsafe { gstreamer_gl_sys::gst_gl_buffer_pool_new(gst_gl_context) };
+        if gst_gl_buffer_pool.is_null() {
+            error!("Failed to create buffer pool");
+            return Err(FlowError::Error);
+        }
+        let pool = unsafe { BufferPool::from_glib_borrow(gst_gl_buffer_pool) };
+
+        // Configure the buffer pool with the negotiated caps
+        let mut config = pool.get_config();
+        let (_, size, min_buffers, max_buffers) = config.get_params().unwrap_or((None, 0, 0, 1024));
+        let outcaps = self.outcaps.lock().expect("Poisoned mutex");
+        config.set_params(outcaps.as_ref(), size, min_buffers, max_buffers);
+        pool.set_config(config).map_err(|e| {
+            error!("Failed to parse url {:?}", e);
+            FlowError::Error
+        })?;
+        *self.buffer_pool.lock().expect("Poisoned lock") = Some(pool);
+
+        Ok(())
+    }
 }
 
 impl ServoWebSrc {
