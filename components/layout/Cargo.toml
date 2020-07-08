@@ -48,7 +48,7 @@ smallvec = { version = "0.6", features = ["std", "union"] }
 style = { path = "../style", features = ["servo", "servo-layout-2013"] }
 style_traits = { path = "../style_traits" }
 unicode-bidi = { version = "0.3", features = ["with_serde"] }
-unicode-script = { version = "0.3", features = ["harfbuzz"] }
+unicode-script = "0.5"
 webrender_api = { git = "https://github.com/servo/webrender" }
 xi-unicode = "0.1.0"
 
