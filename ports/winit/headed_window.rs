@@ -684,6 +684,10 @@ impl webxr::glwindow::GlWindow for XRWindow {
             webxr::glwindow::GlWindowMode::StereoRedCyan
         } else if pref!(dom.webxr.glwindow.left_right) {
             webxr::glwindow::GlWindowMode::StereoLeftRight
+        } else if pref!(dom.webxr.glwindow.spherical) {
+            webxr::glwindow::GlWindowMode::Spherical
+        } else if pref!(dom.webxr.glwindow.cubemap) {
+            webxr::glwindow::GlWindowMode::Cubemap
         } else {
             webxr::glwindow::GlWindowMode::Blit
         }
