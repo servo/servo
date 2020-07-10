@@ -2662,7 +2662,7 @@ class CGConstructorEnabled(CGAbstractMethod):
         pref = iface.getExtendedAttribute("Pref")
         if pref:
             assert isinstance(pref, list) and len(pref) == 1
-            conditions.append('prefs::pref_map().get("%s").as_bool().unwrap_or(false)' % pref[0])
+            conditions.append('pref!(%s)' % pref[0])
 
         func = iface.getExtendedAttribute("Func")
         if func:

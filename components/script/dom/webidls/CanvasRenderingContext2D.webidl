@@ -148,12 +148,12 @@ interface mixin CanvasUserInterface {
 [Exposed=(PaintWorklet, Window, Worker)]
 interface mixin CanvasText {
   // text (see also the CanvasPathDrawingStyles and CanvasTextDrawingStyles interfaces)
-  [Pref="dom.canvas-text.enabled"]
+  [Pref="dom.canvas_text.enabled"]
   void fillText(DOMString text, unrestricted double x, unrestricted double y,
                 optional unrestricted double maxWidth);
   //void strokeText(DOMString text, unrestricted double x, unrestricted double y,
   //                optional unrestricted double maxWidth);
-  [Pref="dom.canvas-text.enabled"]
+  [Pref="dom.canvas_text.enabled"]
   TextMetrics measureText(DOMString text);
 };
 
