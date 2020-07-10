@@ -281,7 +281,8 @@ mod gen {
                     },
                     layers: {
                         enabled: bool,
-                    }
+                    },
+                    sessionavailable: bool,
                 },
                 worklet: {
                     blockingsleep: {

@@ -7,6 +7,7 @@ use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionInit;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::{XRSessionMode, XRSystemMethods};
 use crate::dom::bindings::conversions::{ConversionResult, FromJSValConvertible};
 use crate::dom::bindings::error::Error;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -288,5 +289,27 @@ impl XRSystem {
         // https://github.com/immersive-web/webxr/issues/961
         // This must be called _after_ the promise is resolved
         session.setup_initial_inputs();
+    }
+
+    // https://github.com/immersive-web/navigation/issues/10
+    pub fn dispatch_sessionavailable(&self) {
+        let xr = Trusted::new(self);
+        let global = self.global();
+        let window = global.as_window();
+        window
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(
+                task!(fire_sessionavailable_event: move || {
+                    // The sessionavailable event indicates user intent to enter an XR session
+                    let xr = xr.root();
+                    let interacting = ScriptThread::is_user_interacting();
+                    ScriptThread::set_user_interacting(true);
+                    xr.upcast::<EventTarget>().fire_bubbling_event(atom!("sessionavailable"));
+                    ScriptThread::set_user_interacting(interacting);
+                }),
+                window.upcast(),
+            )
+            .unwrap();
     }
 }
