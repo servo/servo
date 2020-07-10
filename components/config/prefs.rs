@@ -134,7 +134,6 @@ mod gen {
                     }
                 },
                 canvas_text: {
-                    #[serde(rename = "dom.canvas-text.enabled")]
                     enabled: bool,
                 },
                 composition_event: {

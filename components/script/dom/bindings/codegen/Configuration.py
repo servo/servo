@@ -401,6 +401,9 @@ class Descriptor(DescriptorProvider):
             parent = parent.parent
         return None
 
+    def supportsIndexedProperties(self):
+        return self.operations['IndexedGetter'] is not None
+
     def hasDescendants(self):
         return (self.interface.getUserData("hasConcreteDescendant", False)
                 or self.interface.getUserData("hasProxyDescendant", False))

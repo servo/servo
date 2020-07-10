@@ -1672,8 +1672,27 @@ class MethodDefiner(PropertyDefiner):
                          "condition": PropertyDefiner.getControllingCondition(m, descriptor)}
                         for m in methods]
 
-        # FIXME Check for an existing iterator on the interface first.
-        if any(m.isGetter() and m.isIndexed() for m in methods):
+        # TODO: Once iterable is implemented, use tiebreak rules instead of
+        # failing. Also, may be more tiebreak rules to implement once spec bug
+        # is resolved.
+        # https://www.w3.org/Bugs/Public/show_bug.cgi?id=28592
+        def hasIterator(methods, regular):
+            return (any("@@iterator" in m.aliases for m in methods)
+                    or any("@@iterator" == r["name"] for r in regular))
+
+        # Check whether we need to output an @@iterator due to having an indexed
+        # getter.  We only do this while outputting non-static and
+        # non-unforgeable methods, since the @@iterator function will be
+        # neither.
+        if (not static
+            and not unforgeable
+            and descriptor.supportsIndexedProperties()):  # noqa
+            if hasIterator(methods, self.regular):  # noqa
+                raise TypeError("Cannot have indexed getter/attr on "
+                                "interface %s with other members "
+                                "that generate @@iterator, such as "
+                                "maplike/setlike or aliased functions." %
+                                self.descriptor.interface.identifier.name)
             self.regular.append({"name": '@@iterator',
                                  "methodInfo": False,
                                  "selfHostedName": "$ArrayValues",
@@ -2662,7 +2681,7 @@ class CGConstructorEnabled(CGAbstractMethod):
         pref = iface.getExtendedAttribute("Pref")
         if pref:
             assert isinstance(pref, list) and len(pref) == 1
-            conditions.append('prefs::pref_map().get("%s").as_bool().unwrap_or(false)' % pref[0])
+            conditions.append('pref!(%s)' % pref[0])
 
         func = iface.getExtendedAttribute("Func")
         if func:
