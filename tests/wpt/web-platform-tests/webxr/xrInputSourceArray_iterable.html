@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/webxr_util.js"></script>
+<script src="resources/webxr_test_constants.js"></script>
+<canvas id="webgl-canvas"></canvas>
+<script>
+let testName = "XRInputSourceArray is iterable";
+let testFunction = function(session, fakeDeviceController, t) {
+  return new Promise((resolve) => {
+    let input_source = fakeDeviceController.simulateInputSourceConnection({
+      handedness: "right",
+      targetRayMode: "tracked-pointer",
+      pointerOrigin: VALID_POINTER_TRANSFORM,
+      gripOrigin: VALID_GRIP_TRANSFORM,
+      profiles: ["foo", "bar"]
+    });
+
+    requestSkipAnimationFrame(session, (time, xrFrame) => {
+        let sources = [];
+        t.step(() => {
+            for (const source of session.inputSources) {
+                sources.push(source);
+            }
+            assert_equals(sources.length, 1);
+        });
+        resolve();
+    });
+  });
+};
+
+xr_session_promise_test(
+  testName, testFunction, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
+</script>
