@@ -92,24 +92,18 @@ class GetSyncTargetCommit(Step):
         self.logger.debug("New base commit is %s" % state.sync_commit.sha1)
 
 
-class LoadManifest(Step):
-    """Load the test manifest"""
+class UpdateManifest(Step):
+    """Update the manifest to match the tests in the sync tree checkout"""
 
     provides = ["manifest_path", "test_manifest"]
 
     def create(self, state):
         from manifest import manifest
         state.manifest_path = os.path.join(state.metadata_path, "MANIFEST.json")
-        state.test_manifest = manifest.Manifest("/")
-
-
-class UpdateManifest(Step):
-    """Update the manifest to match the tests in the sync tree checkout"""
-
-    def create(self, state):
-        from manifest import manifest, update
-        update.update(state.sync["path"], state.test_manifest)
-        manifest.write(state.test_manifest, state.manifest_path)
+        state.test_manifest = manifest.load_and_update(state.sync["path"],
+                                                       state.manifest_path,
+                                                       "/",
+                                                       write_manifest=True)
 
 
 class CopyWorkTree(Step):
@@ -149,7 +143,6 @@ class SyncFromUpstreamRunner(StepRunner):
     """(Sub)Runner for doing an upstream sync"""
     steps = [UpdateCheckout,
              GetSyncTargetCommit,
-             LoadManifest,
              UpdateManifest,
              CopyWorkTree,
              CreateSyncPatch]
