@@ -115,6 +115,7 @@ selectend
 selectionchange
 selectstart
 serif
+sessionavailable
 signalingstatechange
 squeeze
 squeezeend

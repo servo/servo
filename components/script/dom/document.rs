@@ -17,6 +17,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventBinding::EventMe
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::HTMLTextAreaElementMethods;
+use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::NodeFilterBinding::NodeFilter;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::PerformanceMethods;
@@ -2266,6 +2267,17 @@ impl Document {
 
         // Step 11.
         // TODO: ready for post-load tasks.
+
+        // The dom.webxr.sessionavailable pref allows webxr
+        // content to immediately begin a session without waiting for a user gesture.
+        // TODO: should this only happen on the first document loaded?
+        // https://immersive-web.github.io/webxr/#user-intention
+        // https://github.com/immersive-web/navigation/issues/10
+        if pref!(dom.webxr.sessionavailable) {
+            if self.window.is_top_level() {
+                self.window.Navigator().Xr().dispatch_sessionavailable();
+            }
+        }
 
         // Step 12: completely loaded.
         // https://html.spec.whatwg.org/multipage/#completely-loaded
