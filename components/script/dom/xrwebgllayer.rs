@@ -240,7 +240,19 @@ impl XRWebGLLayer {
                 0,
             )
             .ok()?;
-        // TODO: depth/stencil
+        if let Some(id) = sub_images.sub_image.as_ref()?.depth_stencil_texture {
+            // TODO: Cache this texture
+            let depth_stencil_texture_id = WebGLTextureId::maybe_new(id)?;
+            let depth_stencil_texture = WebGLTexture::new(context, depth_stencil_texture_id);
+            framebuffer
+                .texture2d_even_if_opaque(
+                    constants::DEPTH_STENCIL_ATTACHMENT,
+                    constants::TEXTURE_2D,
+                    Some(&depth_stencil_texture),
+                    0,
+                )
+                .ok()?;
+        }
         Some(())
     }
 
@@ -252,6 +264,14 @@ impl XRWebGLLayer {
         framebuffer.bind(constants::FRAMEBUFFER);
         framebuffer
             .texture2d_even_if_opaque(constants::COLOR_ATTACHMENT0, self.texture_target(), None, 0)
+            .ok()?;
+        framebuffer
+            .texture2d_even_if_opaque(
+                constants::DEPTH_STENCIL_ATTACHMENT,
+                constants::DEPTH_STENCIL_ATTACHMENT,
+                None,
+                0,
+            )
             .ok()?;
         framebuffer.upcast::<WebGLObject>().context().Flush();
         Some(())

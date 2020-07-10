@@ -763,6 +763,19 @@ impl WebGLThread {
             &self.contexts,
             &mut self.bound_context_id,
         );
+
+        // Destroy WebXR layers associated with this context
+        let webxr_context_id = WebXRContextId::from(context_id);
+        let mut webxr_contexts = WebXRBridgeContexts {
+            contexts: &mut self.contexts,
+            bound_context_id: &mut self.bound_context_id,
+        };
+        self.webxr_bridge.destroy_all_layers(
+            &mut self.device,
+            &mut webxr_contexts,
+            webxr_context_id,
+        );
+
         // Release GL context.
         let mut data = match self.contexts.remove(&context_id) {
             Some(data) => data,
@@ -773,11 +786,6 @@ impl WebGLThread {
         self.webrender_swap_chains
             .destroy(context_id, &mut self.device, &mut data.ctx)
             .unwrap();
-
-        // Destroy WebXR layers associated with this context
-        let webxr_context_id = WebXRContextId::from(context_id);
-        self.webxr_bridge
-            .destroy_all_layers(&mut self.device, &mut data.ctx, webxr_context_id);
 
         // Destroy the context
         self.device.destroy_context(&mut data.ctx).unwrap();
@@ -3193,10 +3201,7 @@ impl WebXRBridge {
             .managers
             .get_mut(&manager_id)
             .ok_or(WebXRError::NoMatchingDevice)?;
-        let context = contexts
-            .context(device, context_id)
-            .ok_or(WebXRError::NoMatchingDevice)?;
-        manager.create_layer(device, context, context_id, layer_init)
+        manager.create_layer(device, contexts, context_id, layer_init)
     }
 
     fn destroy_layer(
@@ -3208,22 +3213,20 @@ impl WebXRBridge {
         layer_id: WebXRLayerId,
     ) {
         if let Some(manager) = self.managers.get_mut(&manager_id) {
-            if let Some(context) = contexts.context(device, context_id) {
-                manager.destroy_layer(device, context, context_id, layer_id);
-            }
+            manager.destroy_layer(device, contexts, context_id, layer_id);
         }
     }
 
     fn destroy_all_layers(
         &mut self,
         device: &mut Device,
-        context: &mut Context,
+        contexts: &mut dyn WebXRContexts<WebXRSurfman>,
         context_id: WebXRContextId,
     ) {
         for (_, manager) in &mut self.managers {
             for (other_id, layer_id) in manager.layers().to_vec() {
                 if other_id == context_id {
-                    manager.destroy_layer(device, context, context_id, layer_id);
+                    manager.destroy_layer(device, contexts, context_id, layer_id);
                 }
             }
         }
@@ -3335,7 +3338,7 @@ impl<GL: WebXRTypes> WebXRLayerManagerAPI<GL> for WebXRBridgeManager {
     fn create_layer(
         &mut self,
         _: &mut GL::Device,
-        _: &mut GL::Context,
+        _: &mut dyn WebXRContexts<GL>,
         context_id: WebXRContextId,
         init: WebXRLayerInit,
     ) -> Result<WebXRLayerId, WebXRError> {
@@ -3358,7 +3361,7 @@ impl<GL: WebXRTypes> WebXRLayerManagerAPI<GL> for WebXRBridgeManager {
     fn destroy_layer(
         &mut self,
         _: &mut GL::Device,
-        _: &mut GL::Context,
+        _: &mut dyn WebXRContexts<GL>,
         context_id: WebXRContextId,
         layer_id: WebXRLayerId,
     ) {
