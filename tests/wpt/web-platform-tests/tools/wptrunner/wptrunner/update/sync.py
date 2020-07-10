@@ -100,7 +100,7 @@ class LoadManifest(Step):
     def create(self, state):
         from manifest import manifest
         state.manifest_path = os.path.join(state.metadata_path, "MANIFEST.json")
-        state.test_manifest = manifest.Manifest("/")
+        state.test_manifest = manifest.Manifest(state.sync["path"], "/")
 
 
 class UpdateManifest(Step):
