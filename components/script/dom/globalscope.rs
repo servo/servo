@@ -77,13 +77,14 @@ use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
+use js::jsapi::Compile1;
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
 use js::jsapi::{HandleObject, Heap};
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::transform_str_to_source_text;
-use js::rust::wrappers::Evaluate2;
+use js::rust::wrappers::JS_ExecuteScript;
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
@@ -2568,15 +2569,22 @@ impl GlobalScope {
                 let options =
                     unsafe { CompileOptionsWrapper::new(*cx, filename.as_ptr(), line_number) };
 
-                debug!("evaluating Dom string");
-                let result = unsafe {
-                    Evaluate2(
+                rooted!(in(*cx) let compiled_script = unsafe {
+                    Compile1(
                         *cx,
                         options.ptr,
                         &mut transform_str_to_source_text(code),
-                        rval,
                     )
-                };
+                });
+
+                if compiled_script.is_null() {
+                    debug!("error compiling Dom string");
+                    report_pending_exception(*cx, true, InRealm::Entered(&ar));
+                    return false;
+                }
+
+                debug!("evaluating Dom string");
+                let result = unsafe { JS_ExecuteScript(*cx, compiled_script.handle(), rval) };
 
                 if !result {
                     debug!("error evaluating Dom string");
