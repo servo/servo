@@ -111,10 +111,24 @@ impl Clone for RethrowError {
     }
 }
 
-struct ModuleScript {
+pub(crate) struct ModuleScript {
     base_url: ServoUrl,
     options: ScriptFetchOptions,
-    owner: ModuleOwner,
+    owner: Option<ModuleOwner>,
+}
+
+impl ModuleScript {
+    pub fn new(
+        base_url: ServoUrl,
+        options: ScriptFetchOptions,
+        owner: Option<ModuleOwner>,
+    ) -> Self {
+        ModuleScript {
+            base_url,
+            options,
+            owner,
+        }
+    }
 }
 
 /// Identity for a module which will be
@@ -312,15 +326,21 @@ impl ModuleTree {
 
     // We just leverage the power of Promise to run the task for `finish` the owner.
     // Thus, we will always `resolve` it and no need to register a callback for `reject`
-    fn append_handler(&self, owner: ModuleOwner, module_identity: ModuleIdentity) {
+    fn append_handler(
+        &self,
+        owner: ModuleOwner,
+        module_identity: ModuleIdentity,
+        fetch_options: ScriptFetchOptions,
+    ) {
         let this = owner.clone();
         let identity = module_identity.clone();
+        let options = fetch_options.clone();
 
         let handler = PromiseNativeHandler::new(
             &owner.global(),
             Some(ModuleHandler::new(Box::new(
                 task!(fetched_resolve: move || {
-                    this.notify_owner_to_finish(identity.clone());
+                    this.notify_owner_to_finish(identity, options);
                 }),
             ))),
             None,
@@ -429,11 +449,7 @@ impl ModuleTree {
                 ))));
             }
 
-            let module_script_data = Box::new(ModuleScript {
-                base_url: url.clone(),
-                options,
-                owner,
-            });
+            let module_script_data = Box::new(ModuleScript::new(url.clone(), options, Some(owner)));
 
             SetModulePrivate(
                 module_script.get(),
@@ -885,7 +901,11 @@ impl ModuleOwner {
         }
     }
 
-    pub fn notify_owner_to_finish(&self, module_identity: ModuleIdentity) {
+    pub fn notify_owner_to_finish(
+        &self,
+        module_identity: ModuleIdentity,
+        fetch_options: ScriptFetchOptions,
+    ) {
         match &self {
             ModuleOwner::Worker(_) => unimplemented!(),
             ModuleOwner::DynamicModule(_) => unimplemented!(),
@@ -904,11 +924,13 @@ impl ModuleOwner {
                             ModuleIdentity::ModuleUrl(script_src) => Ok(ScriptOrigin::external(
                                 Rc::clone(&module_tree.get_text().borrow()),
                                 script_src.clone(),
+                                fetch_options,
                                 ScriptType::Module,
                             )),
                             ModuleIdentity::ScriptId(_) => Ok(ScriptOrigin::internal(
                                 Rc::clone(&module_tree.get_text().borrow()),
                                 document.base_url().clone(),
+                                fetch_options,
                                 ScriptType::Module,
                             )),
                         },
@@ -1106,6 +1128,7 @@ impl FetchResponseListener for ModuleContext {
             Ok(ScriptOrigin::external(
                 Rc::new(DOMString::from(source_text)),
                 meta.final_url,
+                self.options.clone(),
                 ScriptType::Module,
             ))
         });
@@ -1239,9 +1262,9 @@ pub unsafe extern "C" fn host_import_module_dynamically(
     true
 }
 
-#[derive(Clone)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
 /// <https://html.spec.whatwg.org/multipage/#script-fetch-options>
-pub(crate) struct ScriptFetchOptions {
+pub struct ScriptFetchOptions {
     pub referrer: Referrer,
     pub integrity_metadata: String,
     pub credentials_mode: CredentialsMode,
@@ -1252,7 +1275,7 @@ pub(crate) struct ScriptFetchOptions {
 
 impl ScriptFetchOptions {
     /// <https://html.spec.whatwg.org/multipage/#default-classic-script-fetch-options>
-    fn default_classic_script(global: &GlobalScope) -> ScriptFetchOptions {
+    pub fn default_classic_script(global: &GlobalScope) -> ScriptFetchOptions {
         Self {
             cryptographic_nonce: String::new(),
             integrity_metadata: String::new(),
@@ -1310,8 +1333,8 @@ fn fetch_an_import_module_script_graph(
 
     // Step 3.
     let owner = match unsafe { module_script_from_reference_private(&reference_private) } {
-        Some(module_data) => module_data.owner.clone(),
-        None => ModuleOwner::DynamicModule(Trusted::new(&DynamicModuleOwner::new(
+        Some(module_data) if module_data.owner.is_some() => module_data.owner.clone().unwrap(),
+        _ => ModuleOwner::DynamicModule(Trusted::new(&DynamicModuleOwner::new(
             global,
             promise.clone(),
             dynamic_module_id.clone(),
@@ -1529,8 +1552,11 @@ fn fetch_single_module_script(
                     ModuleIdentity::ModuleUrl(url.clone()),
                     module,
                 ),
-                None if top_level_module_fetch => module_tree
-                    .append_handler(owner.clone(), ModuleIdentity::ModuleUrl(url.clone())),
+                None if top_level_module_fetch => module_tree.append_handler(
+                    owner.clone(),
+                    ModuleIdentity::ModuleUrl(url.clone()),
+                    options,
+                ),
                 // do nothing if it's neither a dynamic module nor a top level module
                 None => {},
             }
@@ -1566,9 +1592,11 @@ fn fetch_single_module_script(
             ModuleIdentity::ModuleUrl(url.clone()),
             module,
         ),
-        None if top_level_module_fetch => {
-            module_tree.append_handler(owner.clone(), ModuleIdentity::ModuleUrl(url.clone()))
-        },
+        None if top_level_module_fetch => module_tree.append_handler(
+            owner.clone(),
+            ModuleIdentity::ModuleUrl(url.clone()),
+            options.clone(),
+        ),
         // do nothing if it's neither a dynamic module nor a top level module
         None => {},
     }
@@ -1670,7 +1698,11 @@ pub(crate) fn fetch_inline_module_script(
 
     match compiled_module {
         Ok(record) => {
-            module_tree.append_handler(owner.clone(), ModuleIdentity::ScriptId(script_id.clone()));
+            module_tree.append_handler(
+                owner.clone(),
+                ModuleIdentity::ScriptId(script_id.clone()),
+                options.clone(),
+            );
             module_tree.set_record(record);
 
             // We need to set `module_tree` into inline module map in case
@@ -1695,7 +1727,7 @@ pub(crate) fn fetch_inline_module_script(
             module_tree.set_rethrow_error(exception);
             module_tree.set_status(ModuleStatus::Finished);
             global.set_inline_module_map(script_id.clone(), module_tree);
-            owner.notify_owner_to_finish(ModuleIdentity::ScriptId(script_id));
+            owner.notify_owner_to_finish(ModuleIdentity::ScriptId(script_id), options);
         },
     }
 }

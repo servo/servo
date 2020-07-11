@@ -52,6 +52,7 @@ use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
 use crate::script_module::{DynamicModuleList, ModuleTree};
+use crate::script_module::{ModuleScript, ScriptFetchOptions};
 use crate::script_runtime::{
     CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext, ScriptChan, ScriptPort,
 };
@@ -79,8 +80,10 @@ use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::Compile1;
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
+use js::jsapi::{GetScriptPrivate, SetScriptPrivate};
 use js::jsapi::{HandleObject, Heap};
 use js::jsapi::{JSContext, JSObject};
+use js::jsval::PrivateValue;
 use js::jsval::{JSVal, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::transform_str_to_source_text;
@@ -2533,8 +2536,21 @@ impl GlobalScope {
     }
 
     /// Evaluate JS code on this global scope.
-    pub fn evaluate_js_on_global_with_result(&self, code: &str, rval: MutableHandleValue) -> bool {
-        self.evaluate_script_on_global_with_result(code, "", rval, 1)
+    pub fn evaluate_js_on_global_with_result(
+        &self,
+        code: &str,
+        rval: MutableHandleValue,
+        fetch_options: ScriptFetchOptions,
+        script_base_url: ServoUrl,
+    ) -> bool {
+        self.evaluate_script_on_global_with_result(
+            code,
+            "",
+            rval,
+            1,
+            fetch_options,
+            script_base_url,
+        )
     }
 
     /// Evaluate a JS script on this global scope.
@@ -2545,6 +2561,8 @@ impl GlobalScope {
         filename: &str,
         rval: MutableHandleValue,
         line_number: u32,
+        fetch_options: ScriptFetchOptions,
+        script_base_url: ServoUrl,
     ) -> bool {
         let metadata = profile_time::TimerMetadata {
             url: if filename.is_empty() {
@@ -2566,33 +2584,56 @@ impl GlobalScope {
                 let ar = enter_realm(&*self);
 
                 let _aes = AutoEntryScript::new(self);
-                let options =
-                    unsafe { CompileOptionsWrapper::new(*cx, filename.as_ptr(), line_number) };
 
-                rooted!(in(*cx) let compiled_script = unsafe {
-                    Compile1(
-                        *cx,
-                        options.ptr,
-                        &mut transform_str_to_source_text(code),
-                    )
-                });
+                unsafe {
+                    let options = CompileOptionsWrapper::new(*cx, filename.as_ptr(), line_number);
 
-                if compiled_script.is_null() {
-                    debug!("error compiling Dom string");
-                    report_pending_exception(*cx, true, InRealm::Entered(&ar));
-                    return false;
+                    debug!("compiling Dom string");
+                    rooted!(in(*cx) let compiled_script =
+                        Compile1(
+                            *cx,
+                            options.ptr,
+                            &mut transform_str_to_source_text(code),
+                        )
+                    );
+
+                    if compiled_script.is_null() {
+                        debug!("error compiling Dom string");
+                        report_pending_exception(*cx, true, InRealm::Entered(&ar));
+                        return false;
+                    }
+
+                    // When `ScriptPrivate` for the compiled script is undefined,
+                    // we need to set it so that it can be used in dynamic import context.
+                    if GetScriptPrivate(*compiled_script).is_undefined() {
+                        debug!("Set script private for {}", script_base_url);
+
+                        let module_script_data = Box::new(ModuleScript::new(
+                            script_base_url,
+                            fetch_options,
+                            // We can't initialize an module owner here because
+                            // the executing context of script might be different
+                            // from the dynamic import script's executing context.
+                            None,
+                        ));
+
+                        SetScriptPrivate(
+                            *compiled_script,
+                            &PrivateValue(Box::into_raw(module_script_data) as *const _),
+                        );
+                    }
+
+                    debug!("evaluating Dom string");
+                    let result = JS_ExecuteScript(*cx, compiled_script.handle(), rval);
+
+                    if !result {
+                        debug!("error evaluating Dom string");
+                        report_pending_exception(*cx, true, InRealm::Entered(&ar));
+                    }
+
+                    maybe_resume_unwind();
+                    result
                 }
-
-                debug!("evaluating Dom string");
-                let result = unsafe { JS_ExecuteScript(*cx, compiled_script.handle(), rval) };
-
-                if !result {
-                    debug!("error evaluating Dom string");
-                    unsafe { report_pending_exception(*cx, true, InRealm::Entered(&ar)) };
-                }
-
-                maybe_resume_unwind();
-                result
             },
         )
     }

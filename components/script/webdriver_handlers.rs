@@ -38,6 +38,7 @@ use crate::dom::nodelist::NodeList;
 use crate::dom::window::Window;
 use crate::dom::xmlserializer::XMLSerializer;
 use crate::realms::enter_realm;
+use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::JSContext as SafeJSContext;
 use crate::script_thread::{Documents, ScriptThread};
 use cookie::Cookie;
@@ -297,9 +298,13 @@ pub fn handle_execute_script(
             let result = unsafe {
                 let cx = window.get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
-                window
-                    .upcast::<GlobalScope>()
-                    .evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+                let global = window.upcast::<GlobalScope>();
+                global.evaluate_js_on_global_with_result(
+                    &eval,
+                    rval.handle_mut(),
+                    ScriptFetchOptions::default_classic_script(&global),
+                    global.api_base_url(),
+                );
                 jsval_to_webdriver(*cx, &window.upcast::<GlobalScope>(), rval.handle())
             };
 
@@ -323,9 +328,13 @@ pub fn handle_execute_async_script(
             let cx = window.get_cx();
             window.set_webdriver_script_chan(Some(reply));
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            window
-                .upcast::<GlobalScope>()
-                .evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+            let global = window.upcast::<GlobalScope>();
+            global.evaluate_js_on_global_with_result(
+                &eval,
+                rval.handle_mut(),
+                ScriptFetchOptions::default_classic_script(&global),
+                global.api_base_url(),
+            );
         },
         None => {
             reply

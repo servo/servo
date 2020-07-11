@@ -7,6 +7,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::htmlheadelement::HTMLHeadElement;
 use crate::dom::node::document_from_node;
+use crate::script_module::ScriptFetchOptions;
 use js::jsval::UndefinedValue;
 use std::fs::{read_dir, File};
 use std::io::Read;
@@ -38,13 +39,15 @@ pub fn load_script(head: &HTMLHeadElement) {
             let mut contents = vec![];
             f.read_to_end(&mut contents).unwrap();
             let script_text = String::from_utf8_lossy(&contents);
-            win.upcast::<GlobalScope>()
-                .evaluate_script_on_global_with_result(
-                    &script_text,
-                    &file.to_string_lossy(),
-                    rval.handle_mut(),
-                    1,
-                );
+            let global = win.upcast::<GlobalScope>();
+            global.evaluate_script_on_global_with_result(
+                &script_text,
+                &file.to_string_lossy(),
+                rval.handle_mut(),
+                1,
+                ScriptFetchOptions::default_classic_script(&global),
+                global.api_base_url(),
+            );
         }
     }));
 }

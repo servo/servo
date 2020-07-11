@@ -156,24 +156,37 @@ pub struct ScriptOrigin {
     text: Rc<DOMString>,
     url: ServoUrl,
     external: bool,
+    fetch_options: ScriptFetchOptions,
     type_: ScriptType,
 }
 
 impl ScriptOrigin {
-    pub fn internal(text: Rc<DOMString>, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
+    pub fn internal(
+        text: Rc<DOMString>,
+        url: ServoUrl,
+        fetch_options: ScriptFetchOptions,
+        type_: ScriptType,
+    ) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
             external: false,
+            fetch_options,
             type_,
         }
     }
 
-    pub fn external(text: Rc<DOMString>, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
+    pub fn external(
+        text: Rc<DOMString>,
+        url: ServoUrl,
+        fetch_options: ScriptFetchOptions,
+        type_: ScriptType,
+    ) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
             external: true,
+            fetch_options,
             type_,
         }
     }
@@ -202,6 +215,8 @@ struct ClassicContext {
     url: ServoUrl,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
+    /// The fetch options of the script
+    fetch_options: ScriptFetchOptions,
     /// Timing object for this resource
     resource_timing: ResourceFetchTiming,
 }
@@ -262,6 +277,7 @@ impl FetchResponseListener for ClassicContext {
             ScriptOrigin::external(
                 Rc::new(DOMString::from(source_text)),
                 metadata.final_url,
+                self.fetch_options.clone(),
                 ScriptType::Classic,
             )
         });
@@ -358,7 +374,7 @@ fn fetch_a_classic_script(
         cors_setting,
         doc.origin().immutable().clone(),
         script.global().pipeline_id(),
-        options,
+        options.clone(),
     );
 
     // TODO: Step 3, Add custom steps to perform fetch
@@ -371,6 +387,7 @@ fn fetch_a_classic_script(
         metadata: None,
         url: url.clone(),
         status: Ok(()),
+        fetch_options: options,
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
     }));
 
@@ -630,6 +647,7 @@ impl HTMLScriptElement {
             let result = Ok(ScriptOrigin::internal(
                 Rc::clone(&text_rc),
                 base_url.clone(),
+                options.clone(),
                 script_type.clone(),
             ));
 
@@ -866,6 +884,8 @@ impl HTMLScriptElement {
             script.url.as_str(),
             rval.handle_mut(),
             line_number,
+            script.fetch_options.clone(),
+            script.url.clone(),
         );
     }
 
