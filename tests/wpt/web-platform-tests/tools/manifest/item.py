@@ -198,7 +198,7 @@ class TestharnessTest(URLManifestItem):
 
     @property
     def script_metadata(self):
-        # type: () -> Optional[Text]
+        # type: () -> Optional[List[Tuple[Text, Text]]]
         return self._extras.get("script_metadata")
 
     def to_json(self):

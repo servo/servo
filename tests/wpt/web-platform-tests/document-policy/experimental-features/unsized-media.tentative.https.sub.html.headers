@@ -1,1 +1,1 @@
-Document-Policy: no-unsized-media
+Document-Policy: unsized-media=?0

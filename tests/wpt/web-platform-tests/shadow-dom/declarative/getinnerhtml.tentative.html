@@ -20,7 +20,8 @@ function testElementType(allowsShadowDom, elementType, mode, delegatesFocus) {
 
     const isOpen = mode === 'open';
     if (allowsShadowDom) {
-      const correctShadowHtml = `<template shadowroot="${mode}"><slot></slot></template>`;
+      const delegatesAttr = delegatesFocus ? ' shadowrootdelegatesfocus=""' : '';
+      const correctShadowHtml = `<template shadowroot="${mode}"${delegatesAttr}><slot></slot></template>`;
       const correctHtml = `<${elementType}>${correctShadowHtml}</${elementType}>`;
       const shadowRoot = element.attachShadow({mode: mode, delegatesFocus: delegatesFocus});
       shadowRoot.appendChild(document.createElement('slot'));

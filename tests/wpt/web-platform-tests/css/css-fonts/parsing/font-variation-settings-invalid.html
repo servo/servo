@@ -22,6 +22,17 @@ test_invalid_value('font-variation-settings', '"XHGTX" 0.7');
 test_invalid_value('font-variation-settings', '"abc\1F" 0.5');
 test_invalid_value('font-variation-settings', '"abc\7F" 0.5');
 test_invalid_value('font-variation-settings', '"abc\A9" 0.5');
+
+test_invalid_value('font-variation-settings', "'wght' 200 'abcd' 400");
+test_invalid_value('font-variation-settings', "'a' 1234");
+test_invalid_value('font-variation-settings', "'abcde' 1234");
+test_invalid_value('font-variation-settings', "'wght' 200, ");
+test_invalid_value('font-variation-settings', "'abcd\" 123");
+
+test_invalid_value('font-variation-settings', "'wght' 100px");
+test_invalid_value('font-variation-settings', "'wght' calc(100px + 200px)");
+test_invalid_value('font-variation-settings', "'wght' 42%");
+test_invalid_value('font-variation-settings', "'wght' calc(100%)");
 </script>
 </body>
 </html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-at-rule">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#phase-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+  #contents {
+    height: 200px;
+  }
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  #element {
+    width: 0px;
+  }
+  /* Ensure stable expectations if feature is not supported */
+  @supports not (animation-timeline:foo) {
+    #element { animation-play-state: paused; }
+  }
+</style>
+<div id=scroller>
+  <div id=contents></div>
+</div>
+<div id=container></div>
+<script>
+  promise_test(async (t) => {
+    try {
+      // Make sure scroller has a layout box.
+      await waitForNextFrame();
+
+      container.innerHTML = `
+        <div id=element></div>
+        <style>
+          @scroll-timeline timeline {
+            source: selector(#scroller);
+            time-range: 10s;
+            start: 50px;
+            end: 100px;
+          }
+          #element {
+            animation: expand 10s linear;
+            animation-timeline: timeline;
+          }
+        </style>
+      `;
+      // Animation should not apply in before phase.
+      assert_equals(getComputedStyle(element).width, '0px');
+      await waitForNextFrame();
+      // Animation should still not apply.
+      assert_equals(getComputedStyle(element).width, '0px');
+    } finally {
+      container.innerHTML = '';
+    }
+  }, 'Animation does not apply when timeline phase is before');
+</script>

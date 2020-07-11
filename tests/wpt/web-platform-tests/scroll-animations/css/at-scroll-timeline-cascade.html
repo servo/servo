@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-at-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+  #contents {
+    height: 200px;
+  }
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  @scroll-timeline timeline {
+    source: selector(#scroller);
+    time-range: 10s;
+    start: 0px;
+    end: 100px;
+  }
+  @scroll-timeline timeline {
+    source: selector(#scroller);
+    time-range: 1s;
+    start: 0px;
+    end: 50px;
+  }
+  #element {
+    animation: expand 10s linear;
+    animation-timeline: timeline;
+  }
+  /* Ensure stable expectations if feature is not supported */
+  @supports not (animation-timeline:foo) {
+    #element { animation-play-state: paused; }
+  }
+</style>
+<div id=scroller>
+  <div id=contents></div>
+</div>
+<div id=element></div>
+<script>
+  promise_test(async (t) => {
+    scroller.scrollTop = 25;
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element).width, '105px');
+  }, 'Latest @scroll-timeline rule wins');
+</script>

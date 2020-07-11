@@ -1,13 +1,14 @@
 import json
 
-def main(request, response):
-    headers = [("Content-Type", "text/javascript")]
+from wptserve.utils import isomorphic_decode
 
-    body = "var header = %s;" % json.dumps({
-        "dest": request.headers.get("sec-fetch-dest", ""),
-        "mode": request.headers.get("sec-fetch-mode", ""),
-        "site": request.headers.get("sec-fetch-site", ""),
-        "user": request.headers.get("sec-fetch-user", ""),
-        });
+def main(request, response):
+    headers = [(b"Content-Type", b"text/javascript")]
+    body = u"var header = %s;" % json.dumps({
+        u"dest": isomorphic_decode(request.headers.get(b"sec-fetch-dest", b"")),
+        u"mode": isomorphic_decode(request.headers.get(b"sec-fetch-mode", b"")),
+        u"site": isomorphic_decode(request.headers.get(b"sec-fetch-site", b"")),
+        u"user": isomorphic_decode(request.headers.get(b"sec-fetch-user", b"")),
+        })
 
     return headers, body

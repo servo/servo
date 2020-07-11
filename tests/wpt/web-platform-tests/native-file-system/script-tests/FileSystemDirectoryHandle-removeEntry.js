@@ -18,7 +18,7 @@ directory_test(async (t, root) => {
 }, 'removeEntry() on an already removed file should fail');
 
 directory_test(async (t, root) => {
-  const dir = await root.getDirectory('dir-to-remove', {create: true});
+  const dir = await root.getDirectoryHandle('dir-to-remove', {create: true});
   await createFileWithContents(t, 'file-to-keep', 'abc', root);
   await root.removeEntry('dir-to-remove');
 
@@ -27,7 +27,7 @@ directory_test(async (t, root) => {
 }, 'removeEntry() to remove an empty directory');
 
 directory_test(async (t, root) => {
-  const dir = await root.getDirectory('dir-to-remove', {create: true});
+  const dir = await root.getDirectoryHandle('dir-to-remove', {create: true});
   t.add_cleanup(() => root.removeEntry('dir-to-remove', {recursive: true}));
   await createEmptyFile(t, 'file-in-dir', dir);
 

@@ -5,6 +5,7 @@
  <!-- This iframe will have a sibling that paints, we want to ensure it does not detect that paint. -->
 <iframe id="listening-iframe" src="resources/subframe-sending-paint.html"></iframe>
 <script>
+setup({"hide_test_state": true});
 async_test(function (t) {
     assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     let paintingIframeHasDispatchedEntries = false;

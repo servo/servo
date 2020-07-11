@@ -528,6 +528,10 @@ with some existing test framework that has its own timeout mechanism).
 `allow_uncaught_exception` - don't treat an uncaught exception as an error;
 needed when e.g. testing the `window.onerror` handler.
 
+`hide_test_state` - hide the test state output while the test is
+running; This is helpful when the output of the test state may interfere
+the test results.
+
 `timeout_multiplier` - Multiplier to apply to per-test timeouts.
 
 `single_test` - Test authors may set this property to `true` to enable [the

@@ -20,6 +20,7 @@ window.onload = function() {
   history.replaceState({}, "", "./");
   history.replaceState({}, "", current_url);
 }
+setup({"hide_test_state": true});
 async_test(function(t) {
   assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
   function testPaintEntries() {

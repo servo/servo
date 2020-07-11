@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-at-rule">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#phase-algorithm">
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#avoiding-cycles">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+  #contents {
+    height: 200px;
+  }
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  #element {
+    width: 0px;
+    animation: expand 10s linear paused;
+    animation-timeline: timeline;
+  }
+</style>
+<div id="container"></div>
+<div id=element></div>
+<script>
+
+promise_test(async (t) => {
+  try {
+    container.innerHTML = `
+      <div id=scroller>
+        <div id=contents></div>
+      </div>
+      <style>
+        @scroll-timeline timeline {
+          source: selector(#scroller);
+          time-range: 10s;
+          start: 0px;
+          end: 100px;
+        }
+      </style>
+    `;
+
+    // The source has no layout box at the time the scroll timeline is created.
+    assert_equals(getComputedStyle(element).width, '0px');
+    scroller.offsetTop; // Ensure a layout box for the scroller.
+    // Wait for an update to the timeline state:
+    await waitForNextFrame();
+    // The timeline should now be active, and the animation should apply:
+    assert_equals(getComputedStyle(element).width, '100px');
+  } finally {
+    container.innerHTML = '';
+  }
+}, 'Animation does not apply when timeline is initially inactive');
+
+</script>

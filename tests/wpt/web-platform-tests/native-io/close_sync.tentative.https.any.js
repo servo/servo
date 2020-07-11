@@ -25,7 +25,7 @@ test(testCase => {
   assert_equals(undefined, file.close());
 
   assert_equals(undefined, file.close());
-}, 'nativeIO.close is idempotent');
+}, 'NativeIOFileSync.close is idempotent');
 
 test(testCase => {
   const file = createFileSync(testCase, 'file_name');
@@ -33,7 +33,7 @@ test(testCase => {
 
   const readBytes = new Uint8Array(4);
   assert_throws_dom('InvalidStateError', () => file.read(readBytes, 4));
-}, 'nativeIO.read fails after nativeIO.close settles');
+}, 'NativeIOFileSync.read fails after NativeIOFileSync.close');
 
 test(testCase => {
   const file = createFileSync(testCase, 'file_name');
@@ -42,3 +42,10 @@ test(testCase => {
   const writtenBytes = Uint8Array.from([96, 97, 98, 99]);
   assert_throws_dom('InvalidStateError', () => file.write(writtenBytes, 4));
 }, 'NativeIOFile.write fails after NativeIOFile.close');
+
+test(testCase => {
+  const file = createFileSync(testCase, 'file_name');
+  assert_equals(undefined, file.close());
+
+  assert_throws_dom('InvalidStateError', () => file.getLength());
+}, 'NativeIOFileSync.getLength fails after NativeIOFileSync.close');

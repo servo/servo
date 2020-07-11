@@ -1,12 +1,14 @@
 import json
 
+from wptserve.utils import isomorphic_decode
+
 def main(request, response):
     headers = [
-        ("Content-Type", "text/html"),
-        ("Cache-Control", "no-cache, no-store, must-revalidate")
+        (b"Content-Type", b"text/html"),
+        (b"Cache-Control", b"no-cache, no-store, must-revalidate")
     ]
 
-    body = """
+    body = u"""
         <!DOCTYPE html>
         <script>
             var data = %s;
@@ -18,9 +20,9 @@ def main(request, response):
                 window.portalHost.postMessage(data, "*");
         </script>
     """ % json.dumps({
-        "dest": request.headers.get("sec-fetch-dest", ""),
-        "mode": request.headers.get("sec-fetch-mode", ""),
-        "site": request.headers.get("sec-fetch-site", ""),
-        "user": request.headers.get("sec-fetch-user", ""),
+        u"dest": isomorphic_decode(request.headers.get(b"sec-fetch-dest", b"")),
+        u"mode": isomorphic_decode(request.headers.get(b"sec-fetch-mode", b"")),
+        u"site": isomorphic_decode(request.headers.get(b"sec-fetch-site", b"")),
+        u"user": isomorphic_decode(request.headers.get(b"sec-fetch-user", b"")),
         })
     return headers, body

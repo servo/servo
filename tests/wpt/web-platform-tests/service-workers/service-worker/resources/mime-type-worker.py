@@ -1,4 +1,4 @@
 def main(request, response):
-    if 'mime' in request.GET:
-        return [('Content-Type', request.GET['mime'])], ""
-    return [], ""
+    if b'mime' in request.GET:
+        return [(b'Content-Type', request.GET[b'mime'])], b""
+    return [], b""

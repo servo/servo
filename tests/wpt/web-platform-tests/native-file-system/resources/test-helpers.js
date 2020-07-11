@@ -34,7 +34,7 @@ async function getDirectoryEntryCount(handle) {
 async function getSortedDirectoryEntries(handle) {
   let result = [];
   for await (let entry of handle.getEntries()) {
-    if (entry.isDirectory)
+    if (entry.kind === 'directory')
       result.push(entry.name + '/');
     else
       result.push(entry.name);
@@ -44,7 +44,7 @@ async function getSortedDirectoryEntries(handle) {
 }
 
 async function createDirectory(test, name, parent) {
-  const new_dir_handle = await parent.getDirectory(name, {create: true});
+  const new_dir_handle = await parent.getDirectoryHandle(name, {create: true});
   test.add_cleanup(async () => {
     try {
       await parent.removeEntry(name, {recursive: true});
@@ -57,7 +57,7 @@ async function createDirectory(test, name, parent) {
 }
 
 async function createEmptyFile(test, name, parent) {
-  const handle = await parent.getFile(name, {create: true});
+  const handle = await parent.getFileHandle(name, {create: true});
   test.add_cleanup(async () => {
     try {
       await parent.removeEntry(name);

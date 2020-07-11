@@ -7,10 +7,14 @@ dictionary FileSystemHandlePermissionDescriptor {
   boolean writable = false;
 };
 
+enum FileSystemHandleKind {
+  "file",
+  "directory",
+};
+
 [Exposed=(Window,Worker), SecureContext, Serializable]
 interface FileSystemHandle {
-  readonly attribute boolean isFile;
-  readonly attribute boolean isDirectory;
+  readonly attribute FileSystemHandleKind kind;
   readonly attribute USVString name;
 
   Promise<boolean> isSameEntry(FileSystemHandle other);
@@ -45,8 +49,8 @@ dictionary FileSystemRemoveOptions {
 interface FileSystemDirectoryHandle : FileSystemHandle {
   async iterable<USVString, FileSystemHandle>;
 
-  Promise<FileSystemFileHandle> getFile(USVString name, optional FileSystemGetFileOptions options = {});
-  Promise<FileSystemDirectoryHandle> getDirectory(USVString name, optional FileSystemGetDirectoryOptions options = {});
+  Promise<FileSystemFileHandle> getFileHandle(USVString name, optional FileSystemGetFileOptions options = {});
+  Promise<FileSystemDirectoryHandle> getDirectoryHandle(USVString name, optional FileSystemGetDirectoryOptions options = {});
 
   Promise<void> removeEntry(USVString name, optional FileSystemRemoveOptions options = {});
 

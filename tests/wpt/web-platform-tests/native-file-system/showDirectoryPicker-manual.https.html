@@ -22,8 +22,7 @@
     const dir = await self.showDirectoryPicker();
     assert_true(dir instanceof FileSystemHandle);
     assert_true(dir instanceof FileSystemDirectoryHandle);
-    assert_false(dir.isFile);
-    assert_true(dir.isDirectory);
+    assert_equals(dir.kind, "directory");
     assert_equals(dir.name, 'data');
     assert_array_equals(await getSortedDirectoryEntries(dir), ['testfile.txt']);
 

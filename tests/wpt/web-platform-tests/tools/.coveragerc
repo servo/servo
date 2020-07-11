@@ -13,6 +13,7 @@ omit =
   wpt/*
   wptrunner/*
   */tests/*
+  quic/*
 
 [paths]
 html5lib =

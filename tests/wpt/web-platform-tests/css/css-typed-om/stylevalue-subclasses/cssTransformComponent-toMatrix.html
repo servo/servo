@@ -51,7 +51,7 @@ test(() => {
 
 test(() => {
   const component = new CSSSkewX(
-    new CSSUnitValue(10, 'rad'),
+    new CSSUnitValue(10, 'deg'),
   );
   const expectedMatrix = (new DOMMatrixReadOnly()).skewX(10);
   assert_matrix_approx_equals(component.toMatrix(), expectedMatrix, gEpsilon);
@@ -59,7 +59,7 @@ test(() => {
 
 test(() => {
   const component = new CSSSkewY(
-    new CSSUnitValue(10, 'rad'),
+    new CSSUnitValue(10, 'deg'),
   );
   const expectedMatrix = (new DOMMatrixReadOnly()).skewY(10);
   assert_matrix_approx_equals(component.toMatrix(), expectedMatrix, gEpsilon);

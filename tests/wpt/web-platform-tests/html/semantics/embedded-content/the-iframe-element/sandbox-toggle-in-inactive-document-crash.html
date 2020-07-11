@@ -1,0 +1,9 @@
+<body>
+<iframe id="i"></iframe>
+<script>
+var saved_i = i;
+var saved_i_doc = i.contentDocument;
+i.remove();
+saved_i_doc.adoptNode(saved_i);
+saved_i.sandbox.toggle("1");
+</script>

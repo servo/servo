@@ -19,8 +19,7 @@
     });
     assert_true(file instanceof FileSystemHandle);
     assert_true(file instanceof FileSystemFileHandle);
-    assert_true(file.isFile);
-    assert_false(file.isDirectory);
+    assert_equals(file.kind, "file");
     assert_equals(file.name, 'testfile.txt');
     assert_equals(await (await file.getFile()).text(), '',
       'showSaveFilePicker should clear contents of file');

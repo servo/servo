@@ -11,7 +11,7 @@ partial interface ServiceWorkerRegistration {
 interface PaymentManager {
   [SameObject] readonly attribute PaymentInstruments instruments;
   attribute DOMString userHint;
-  Promise<void> enableDelegations(FrozenArray<PaymentDelegation> delegations);
+  Promise<void> enableDelegations(sequence<PaymentDelegation> delegations);
 };
 
 enum PaymentDelegation {
@@ -70,8 +70,8 @@ partial interface ServiceWorkerGlobalScope {
 dictionary PaymentRequestDetailsUpdate {
   DOMString error;
   PaymentCurrencyAmount total;
-  FrozenArray<PaymentDetailsModifier> modifiers;
-  FrozenArray<PaymentShippingOption> shippingOptions;
+  sequence<PaymentDetailsModifier> modifiers;
+  sequence<PaymentShippingOption> shippingOptions;
   object paymentMethodErrors;
   AddressErrors shippingAddressErrors;
 };

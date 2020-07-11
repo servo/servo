@@ -1,11 +1,14 @@
-import os, sys, urllib
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import os, sys
+from six.moves.urllib.parse import unquote
+
+from wptserve.utils import isomorphic_decode
+sys.path.insert(0, os.path.dirname(os.path.abspath(isomorphic_decode(__file__))))
 import subresource
 
 def generate_payload(request):
-    import_url = urllib.unquote(request.GET['import_url'])
-    return subresource.get_template("static-import.js.template") % {
-        "import_url": import_url
+    import_url = unquote(isomorphic_decode(request.GET[b'import_url']))
+    return subresource.get_template(u"static-import.js.template") % {
+        u"import_url": import_url
     }
 
 def main(request, response):
@@ -13,4 +16,4 @@ def main(request, response):
     subresource.respond(request,
                         response,
                         payload_generator = payload_generator,
-                        content_type = "application/javascript")
+                        content_type = b"application/javascript")

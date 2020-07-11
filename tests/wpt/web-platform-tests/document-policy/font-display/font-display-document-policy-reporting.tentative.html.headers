@@ -1,1 +1,1 @@
-Document-Policy: no-font-display-late-swap
+Document-Policy: font-display-late-swap=?0

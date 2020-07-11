@@ -688,6 +688,7 @@ MISSING-LINK: css/filter-effects/*.any.js
 
 # Tests that use WebKit/Blink testing APIs
 LAYOUTTESTS APIS: import-maps/common/resources/common-test-helper.js
+LAYOUTTESTS APIS: resources/test-only-api.js
 LAYOUTTESTS APIS: resources/chromium/enable-hyperlink-auditing.js
 LAYOUTTESTS APIS: resources/chromium/generic_sensor_mocks.js
 LAYOUTTESTS APIS: resources/chromium/nfc-mock.js
@@ -709,6 +710,7 @@ WEB-PLATFORM.TEST:web-bundle/resources/wbn/*.wbn
 # Tests that depend on resources in /gen/ in Chromium:
 # https://github.com/web-platform-tests/wpt/issues/16455
 # Please consult with ecosystem-infra@chromium.org before adding more.
+MISSING DEPENDENCY: resources/test-only-api.js
 MISSING DEPENDENCY: idle-detection/interceptor.https.html
 MISSING DEPENDENCY: credential-management/support/otpcredential-helper.js
 MISSING DEPENDENCY: web-nfc/resources/nfc-helpers.js

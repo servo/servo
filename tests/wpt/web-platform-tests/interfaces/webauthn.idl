@@ -167,6 +167,10 @@ partial dictionary AuthenticationExtensionsClientInputs {
   USVString appidExclude;
 };
 
+partial dictionary AuthenticationExtensionsClientOutputs {
+  boolean appidExclude;
+};
+
 partial dictionary AuthenticationExtensionsClientInputs {
   boolean uvm;
 };

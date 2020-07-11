@@ -10,7 +10,7 @@ if __name__ == "__main__":
     if (args.py3 or py3only) and sys.version_info.major < 3:
         from subprocess import call
         try:
-            sys.exit(call(['python3', sys.argv[0]] + [args.command] + extra))
+            sys.exit(call(['python3'] + sys.argv))
         except OSError as e:
             if e.errno == 2:
                 sys.stderr.write("python3 is needed to run this command\n")

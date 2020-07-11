@@ -104,14 +104,20 @@ directory_test(async (t, root) => {
 directory_test(async (t, root) => {
   const handle = await createEmptyFile(t, 'contents', root);
   const stream = await handle.createWritable();
+  assert_false(stream.locked);
 
   stream.write('abc');
+  assert_false(stream.locked);
   stream.write('def');
+  assert_false(stream.locked);
   stream.truncate(9);
+  assert_false(stream.locked);
   stream.seek(0);
+  assert_false(stream.locked);
   stream.write('xyz');
+  assert_false(stream.locked);
   await stream.close();
 
   assert_equals(await getFileContents(handle), 'xyzdef\0\0\0');
   assert_equals(await getFileSize(handle), 9);
-}, 'commands are queued');
+}, 'commands are queued, stream is unlocked after each operation');

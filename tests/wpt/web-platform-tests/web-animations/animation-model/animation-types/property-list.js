@@ -599,7 +599,7 @@ const gCSSProperties1 = {
     types: [
       'fontVariationSettings',
       { type: 'discrete',
-        options: [ ['"wght" 1.1, "wdth" 1', '"wdth" 5'],
+        options: [ ['"wdth" 1, "wght" 1.1', '"wdth" 5'],
                    ['"wdth" 5', 'normal']
                  ] },
     ]

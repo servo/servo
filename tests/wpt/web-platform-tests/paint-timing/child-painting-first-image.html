@@ -4,6 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <script>
+setup({"hide_test_state": true});
 async_test(function (t) {
     assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     window.addEventListener('message', t.step_func(e => {

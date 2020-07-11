@@ -197,4 +197,23 @@
                 "resizeMode should exist and it should be a string.");
     assert_in_array(settings.resizeMode, ['none', 'crop-and-scale']);
   }, 'resizeMode is reported by getSettings() for getUserMedia() video tracks');
+
+  promise_test(async t => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video : true});
+    const audioTrack = stream.getAudioTracks()[0];
+    const videoTrack = stream.getVideoTracks()[0];
+
+    const audioDeviceId = audioTrack.getSettings().deviceId;
+    const videoDeviceId = videoTrack.getSettings().deviceId;
+    const audioGroupId = audioTrack.getSettings().groupId;
+    const videoGroupId = videoTrack.getSettings().groupId;
+
+    audioTrack.stop();
+    videoTrack.stop();
+
+    assert_equals(audioTrack.getSettings().deviceId, audioDeviceId, "audio track deviceId");
+    assert_equals(videoTrack.getSettings().deviceId, videoDeviceId, "video track deviceId");
+    assert_equals(audioTrack.getSettings().groupId, audioGroupId, "audio track groupId");
+    assert_equals(videoTrack.getSettings().groupId, videoGroupId, "video track groupId");
+  }, 'Stopped tracks should expose deviceId/groupId');
 </script>

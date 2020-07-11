@@ -51,8 +51,11 @@ RUN apt-get -qqy install \
 
 RUN apt-get -y autoremove
 
-RUN pip install --upgrade pip
-RUN pip install virtualenv
+RUN pip2 install --upgrade pip
+RUN pip2 install virtualenv
+
+RUN pip3 install --upgrade pip
+RUN pip3 install virtualenv
 
 ENV TZ "UTC"
 RUN echo "${TZ}" > /etc/timezone \

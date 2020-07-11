@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>foreignObject should create an isolated group for html descendants</title>
+<meta name="assert" content="ForeignObject creates a stacking context which is an isolated group, so mix-blend-mode should not be affected by content outside the isolated group." />
+<link rel="help" href="https://svgwg.org/svg2-draft/single-page.html#render-EstablishingStackingContex" />
+<link rel="help" href="https://drafts.fxtf.org/compositing-2/#csscompositingrules_CSS" />
+<link rel="author" title="Philip Rogers" href="mailto:pdr@chromium.org" />
+<link rel="match" href="isolation-with-html-ref.html" />
+<svg xmlns="http://www.w3.org/2000/svg" width="200px" height="200px">
+  <rect x="0" y="0" width="200" height="200" style="fill: yellow" />
+  <foreignObject width="200" height="200">
+    <div style="width: 200px; height: 200px; background: lime; mix-blend-mode: difference"></div>
+  </foreignObject>
+</svg>

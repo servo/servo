@@ -46,5 +46,15 @@
         "pyyaml",
         "taskcluster"
     ]
+  },
+  "tc-sink-task": {
+    "path": "tc/sink_task.py",
+    "parser": "get_parser",
+    "script": "run",
+    "help": "Run the sink task",
+    "virtualenv": true,
+    "install": [
+        "taskcluster"
+    ]
   }
 }

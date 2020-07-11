@@ -30,7 +30,7 @@ const testFunctionGenerator = function(expectSucceeded, endSession, expectedErro
 
   const testFunction = function(session, fakeDeviceController, t) {
 
-    let debug = xr_debug.bind(this, 'testAnchorStates');
+    const debug = xr_debug.bind(this, 'testAnchorStates');
 
     fakeDeviceController.setAnchorCreationCallback((parameters, controller) => {
       // All anchor creation requests that reach this stage should be marked as successful.
@@ -39,9 +39,9 @@ const testFunctionGenerator = function(expectSucceeded, endSession, expectedErro
       return Promise.resolve(true);
     });
 
-    let watcherDone = new Event("watcherdone");
-    let eventWatcher = new EventWatcher(t, session, ["watcherdone"]);
-    let eventPromise = eventWatcher.wait_for(["watcherdone"]);
+    const watcherDone = new Event("watcherdone");
+    const eventWatcher = new EventWatcher(t, session, ["watcherdone"]);
+    const eventPromise = eventWatcher.wait_for(["watcherdone"]);
 
     session.requestReferenceSpace('local').then((localRefSpace) => {
 

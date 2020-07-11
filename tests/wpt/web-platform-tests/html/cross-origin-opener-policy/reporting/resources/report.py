@@ -1,31 +1,40 @@
 import json, uuid
 
-def main(request, response):
-    response.headers.set('Access-Control-Allow-Origin', '*')
-    response.headers.set('Access-Control-Allow-Methods', 'OPTIONS, GET, POST')
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
-    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    if request.method == 'OPTIONS': # CORS preflight
-        return ''
+from six import PY3
 
-    key = 0;
-    if 'endpoint' in request.GET:
-        key = uuid.uuid5(uuid.NAMESPACE_OID, request.GET['endpoint']).get_urn()
+from wptserve.utils import isomorphic_decode
+
+def main(request, response):
+    response.headers.set(b'Access-Control-Allow-Origin', b'*')
+    response.headers.set(b'Access-Control-Allow-Methods', b'OPTIONS, GET, POST')
+    response.headers.set(b'Access-Control-Allow-Headers', b'Content-Type')
+    response.headers.set(b'Cache-Control', b'no-cache, no-store, must-revalidate');
+    if request.method == u'OPTIONS': # CORS preflight
+        return b''
+
+    key = 0
+    if b'endpoint' in request.GET:
+        # Use Python version checking here due to the issue reported on uuid5 handling unicode
+        # type of name argument at https://bugs.python.org/issue34145
+        if PY3:
+            key = uuid.uuid5(uuid.NAMESPACE_OID, isomorphic_decode(request.GET[b'endpoint'])).urn
+        else:
+            key = uuid.uuid5(uuid.NAMESPACE_OID, request.GET[b'endpoint']).urn
 
     if key == 0:
         response.status = 400
-        return 'invalid endpoint'
+        return b'invalid endpoint'
 
-    if request.method == 'POST':
+    if request.method == u'POST':
         reports = request.server.stash.take(key) or []
         for report in json.loads(request.body):
             reports.append(report)
         request.server.stash.put(key, reports)
-        return "done"
+        return b"done"
 
-    if request.method == 'GET':
-        response.headers.set('Content-Type', 'application/json')
+    if request.method == u'GET':
+        response.headers.set(b'Content-Type', b'application/json')
         return json.dumps(request.server.stash.take(key) or [])
 
     response.status = 400
-    return 'invalid method'
+    return b'invalid method'

@@ -15,10 +15,12 @@
 test_valid_value('font-variation-settings', 'normal');
 
 test_valid_value('font-variation-settings', '"wght" 700');
+test_valid_value('font-variation-settings', "'wght' 700", '"wght" 700');
 test_valid_value('font-variation-settings', '"wght" 700, "XHGT" 0.7');
 
 test_valid_value('font-variation-settings', '"a cd" 0.5');
 test_valid_value('font-variation-settings', '"ab@d" 0.5');
+test_valid_value('font-variation-settings', "'wght' 1e3, 'slnt' -450.0e-1", '"wght" 1000, "slnt" -45');
 </script>
 </body>
 </html>

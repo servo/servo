@@ -19,6 +19,7 @@ idl_test(
       DocumentOrShadowRoot: ['document'],
       HTMLVideoElement: ['video'],
       PictureInPictureWindow: ['pipw'],
+      PictureInPictureEvent: ['new PictureInPictureEvent("type", { pictureInPictureWindow: pipw })'],
     });
 
     self.video = await loadVideo();

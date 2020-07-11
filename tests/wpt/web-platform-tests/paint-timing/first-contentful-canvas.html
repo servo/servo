@@ -8,6 +8,7 @@
 <canvas id="canvas" width="200" height="200" ></canvas>
 
 <script>
+setup({"hide_test_state": true});
 async_test(function (t) {
     assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     const canvas = document.getElementById("canvas");
