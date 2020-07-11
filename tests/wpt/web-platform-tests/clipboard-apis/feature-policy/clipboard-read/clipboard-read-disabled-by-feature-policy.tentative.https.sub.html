@@ -1,0 +1,40 @@
+<!doctype html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/feature-policy/resources/featurepolicy.js"></script>
+<script>
+'use strict';
+
+const same_origin_src =
+  '/feature-policy/resources/feature-policy-clipboard-read.html';
+const cross_origin_src =
+  'https://{{domains[www]}}:{{ports[https][0]}}' + same_origin_src;
+
+promise_test(async t => {
+  await test_driver.set_permission({ name: 'clipboard-read' }, 'granted');
+  return promise_rejects_dom(t, 'NotAllowedError',
+      navigator.clipboard.readText('test text'));
+}, 'Feature-Policy header clipboard-read "none" disallows the top-level document.');
+
+async_test(t => {
+  test_feature_availability(
+    'navigator.clipboard.readText()',
+    t,
+    same_origin_src,
+    expect_feature_unavailable_default
+  );
+}, 'Feature-Policy header clipboard-read "none" disallows same-origin iframes.');
+
+async_test(t => {
+  test_feature_availability(
+    'navigator.clipboard.readText()',
+    t,
+    cross_origin_src,
+    expect_feature_unavailable_default
+  );
+}, 'Feature-Policy header clipboard-read "none" disallows cross-origin iframes.');
+</script>
+</body>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<style type='text/css'>
+  @import "/fonts/ahem.css";
+  .contain {
+    font: 20px/1 Ahem;
+    border: solid blue;
+    margin: 1em;
+    float: left; }
+
+  .block, .table, .flex, .grid {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    background: orange;
+  }
+  .table {
+    display: inline-table;
+  }
+  .flex {
+    display: inline-flex;
+  }
+  .grid {
+    display: inline-grid;
+  }
+  .control p {
+    white-space: pre-wrap;
+  }
+  p {
+    letter-spacing: 0;
+    margin: 0;
+  }
+</style>
+
+<div id='instructions'>Test passes if the pattern is identical in all blue boxes.</div>
+
+<div class="contain control">
+  <p>A <img src="../support/swatch-orange.png"><img src="../support/swatch-orange.png"> D</p>
+  <p>A <img class="block" src="../support/swatch-orange.png"><img class="block" src="../support/swatch-orange.png"> D</p>
+  <p>A <span class="block"></span><span class="block"></span> D</p>
+  <p>A <span class="table"></span><span class="block"></span> D</p>
+  <p>A <span class="flex"></span><span class="block"></span> D</p>
+  <p>A <span class="grid"></span><span class="block"></span> D</p>
+</div>
+
+<div class="contain control">
+  <p>A <img src="../support/swatch-orange.png"><img src="../support/swatch-orange.png"> D</p>
+  <p>A <img class="block" src="../support/swatch-orange.png"><img class="block" src="../support/swatch-orange.png"> D</p>
+  <p>A <span class="block"></span><span class="block"></span> D</p>
+  <p>A <span class="table"></span><span class="block"></span> D</p>
+  <p>A <span class="flex"></span><span class="block"></span> D</p>
+  <p>A <span class="grid"></span><span class="block"></span> D</p>
+</div>
+
+<div class="contain control">
+  <p>A <img src="../support/swatch-orange.png"><img src="../support/swatch-orange.png"> D</p>
+  <p>A <img class="block" src="../support/swatch-orange.png"><img class="block" src="../support/swatch-orange.png"> D</p>
+  <p>A <span class="block"></span><span class="block"></span> D</p>
+  <p>A <span class="table"></span><span class="block"></span> D</p>
+  <p>A <span class="flex"></span><span class="block"></span> D</p>
+  <p>A <span class="grid"></span><span class="block"></span> D</p>
+</div>
+
+<div class="contain control">
+  <p>A <img src="../support/swatch-orange.png"><img src="../support/swatch-orange.png"> D</p>
+  <p>A <img class="block" src="../support/swatch-orange.png"><img class="block" src="../support/swatch-orange.png"> D</p>
+  <p>A <span class="block"></span><span class="block"></span> D</p>
+  <p>A <span class="table"></span><span class="block"></span> D</p>
+  <p>A <span class="flex"></span><span class="block"></span> D</p>
+  <p>A <span class="grid"></span><span class="block"></span> D</p>
+</div>

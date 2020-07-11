@@ -9,6 +9,7 @@
 <script src="/common/media.js"></script>
 <video id="video" autoplay></video>
 <script>
+  setup({"hide_test_state": true});
   promise_test(async t => {
       assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
       await new Promise(r => window.addEventListener('load', r));

@@ -464,7 +464,10 @@ def test_ignore_glob(caplog):
     # clean.
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["ref/absolute.html", "ref/existent_relative.html"], "normal", "*solu*")
+            rv = lint(_dummy_repo,
+                      ["broken.html", "ref/absolute.html", "ref/existent_relative.html"],
+                      "normal",
+                      ["broken*", "*solu*"])
             assert rv == 0
             # Also confirm that only one file is checked
             assert mocked_check_path.call_count == 1
@@ -473,22 +476,23 @@ def test_ignore_glob(caplog):
     # However, linting the same two files without ignore_glob yields lint errors.
     with _mock_lint("check_path") as mocked_check_path:
         with _mock_lint("check_file_contents") as mocked_check_file_contents:
-            rv = lint(_dummy_repo, ["ref/absolute.html", "ref/existent_relative.html"], "normal")
-            assert rv == 1
-            assert mocked_check_path.call_count == 2
-            assert mocked_check_file_contents.call_count == 2
+            rv = lint(_dummy_repo, ["broken.html", "ref/absolute.html", "ref/existent_relative.html"], "normal")
+            assert rv == 2
+            assert mocked_check_path.call_count == 3
+            assert mocked_check_file_contents.call_count == 3
+            assert "TRAILING WHITESPACE" in caplog.text
             assert "ABSOLUTE-URL-REF" in caplog.text
 
 
 def test_all_filesystem_paths():
     with mock.patch(
             'tools.lint.lint.walk',
-            return_value=[('',
-                           [('dir_a', None), ('dir_b', None)],
-                           [('file_a', None), ('file_b', None)]),
-                          ('dir_a',
+            return_value=[(b'',
+                           [(b'dir_a', None), (b'dir_b', None)],
+                           [(b'file_a', None), (b'file_b', None)]),
+                          (b'dir_a',
                            [],
-                           [('file_c', None), ('file_d', None)])]
+                           [(b'file_c', None), (b'file_d', None)])]
     ):
         got = list(lint_mod.all_filesystem_paths('.'))
         assert got == ['file_a',
@@ -500,12 +504,12 @@ def test_all_filesystem_paths():
 def test_filesystem_paths_subdir():
     with mock.patch(
             'tools.lint.lint.walk',
-            return_value=[('',
-                           [('dir_a', None), ('dir_b', None)],
-                           [('file_a', None), ('file_b', None)]),
-                          ('dir_a',
+            return_value=[(b'',
+                           [(b'dir_a', None), (b'dir_b', None)],
+                           [(b'file_a', None), (b'file_b', None)]),
+                          (b'dir_a',
                            [],
-                           [('file_c', None), ('file_d', None)])]
+                           [(b'file_c', None), (b'file_d', None)])]
     ):
         got = list(lint_mod.all_filesystem_paths('.', 'dir'))
         assert got == [os.path.join('dir', 'file_a'),
@@ -526,7 +530,7 @@ def test_main_with_args():
                                           [os.path.relpath(os.path.join(os.getcwd(), x), repo_root)
                                            for x in ['a', 'b', 'c']],
                                           "normal",
-                                          str())
+                                          None)
     finally:
         sys.argv = orig_argv
 
@@ -538,7 +542,7 @@ def test_main_no_args():
         with _mock_lint('lint', return_value=True) as m:
             with _mock_lint('changed_files', return_value=['foo', 'bar']):
                 lint_mod.main(**vars(create_parser().parse_args()))
-                m.assert_called_once_with(repo_root, ['foo', 'bar'], "normal", str())
+                m.assert_called_once_with(repo_root, ['foo', 'bar'], "normal", None)
     finally:
         sys.argv = orig_argv
 
@@ -550,6 +554,6 @@ def test_main_all():
         with _mock_lint('lint', return_value=True) as m:
             with _mock_lint('all_filesystem_paths', return_value=['foo', 'bar']):
                 lint_mod.main(**vars(create_parser().parse_args()))
-                m.assert_called_once_with(repo_root, ['foo', 'bar'], "normal", str())
+                m.assert_called_once_with(repo_root, ['foo', 'bar'], "normal", None)
     finally:
         sys.argv = orig_argv

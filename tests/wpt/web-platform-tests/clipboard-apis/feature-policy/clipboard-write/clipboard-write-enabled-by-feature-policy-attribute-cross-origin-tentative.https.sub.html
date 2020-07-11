@@ -1,0 +1,30 @@
+<!doctype html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/feature-policy/resources/featurepolicy.js"></script>
+<script>
+'use strict';
+
+const same_origin_src =
+  '/feature-policy/resources/feature-policy-clipboard-write.html';
+const cross_origin_src =
+  'https://{{domains[www]}}:{{ports[https][0]}}' + same_origin_src;
+
+// TODO(https://github.com/whatwg/html/issues/5493, https://crbug.com/1074482):
+// In Chrome and Firefox, Cross-origin focus requires user gesture. In Chrome
+// only, cross-origin focus is asynchronous. Implement WPT support for
+// cross-origin focus.
+async_test(t => {
+  test_feature_availability(
+    'navigator.clipboard.writeText("test text")',
+    t,
+    cross_origin_src,
+    expect_feature_available_default,
+    'clipboard-write'
+  );
+}, 'Feature policy "clipboard-write" can be enabled in cross-origin iframe using allow="clipboard-write" attribute');
+</script>
+</body>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<link rel="bookmark" href="https://crbug.com/1092934">
+<meta name="assert" content="Replaced children with % max-height are sized correctly when their parents are flex items with imposed definite heights." />
+
+<p>Test passes if there is a filled green square.</p>
+
+<div style="display: flex; height: 100px;">
+  <div>
+    <!-- This is a 200x200 green square. It's inline so that there is no
+         raciness when an image resource loads, which affects chrome's behavior
+         on this test. -->
+    <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' width='200' height='200'><rect width='200' height='200' fill='green'/></svg>" style="max-height: 100%">
+  </div>
+</div>

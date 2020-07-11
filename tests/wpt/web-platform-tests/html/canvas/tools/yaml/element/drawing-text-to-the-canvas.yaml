@@ -626,6 +626,15 @@
             @assert ctx.measureText('A').actualBoundingBoxAscent >= 35;
             @assert Math.abs(ctx.measureText('A').actualBoundingBoxDescent) <= 1;
 
+            @assert ctx.measureText('D').actualBoundingBoxLeft >= 48;
+            @assert ctx.measureText('D').actualBoundingBoxLeft <= 52;
+            @assert ctx.measureText('D').actualBoundingBoxRight >= 75;
+            @assert ctx.measureText('D').actualBoundingBoxRight <= 80;
+            @assert ctx.measureText('D').actualBoundingBoxAscent >= 35;
+            @assert ctx.measureText('D').actualBoundingBoxAscent <= 40;
+            @assert ctx.measureText('D').actualBoundingBoxDescent >= 12;
+            @assert ctx.measureText('D').actualBoundingBoxDescent <= 15;
+
             @assert Math.abs(ctx.measureText('ABCD').actualBoundingBoxLeft) <= 1;
             @assert ctx.measureText('ABCD').actualBoundingBoxRight >= 200;
             @assert ctx.measureText('ABCD').actualBoundingBoxAscent >= 85;

@@ -23,6 +23,7 @@
 }
 
 .gridOnlyAutoRepeat { grid-template-columns: repeat(auto-fill, 30px [autobar]); }
+.gridPercentAutoRepeat { grid-template-columns: repeat(auto-fit, 30% [autobar]); padding: 0 13px; }
 .gridMinMaxAutoRepeat { grid-template-columns: repeat(auto-fill, minmax(13px, 30px)); }
 .gridMaxMinAutoRepeat { grid-template-columns: repeat(auto-fill, minmax(30px, 13px)); }
 .gridMaxMinPercentAutoRepeat { grid-template-columns: repeat(auto-fill, minmax(30px, 6.5%)); }
@@ -49,6 +50,10 @@
 
 <div class="grid gridOnlyAutoRepeat">
     <div class="item" style="grid-column: 1 / -1" data-offset-x="0" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
+</div>
+
+<div class="grid gridPercentAutoRepeat">
+    <div class="item" style="grid-column: 1 / -1" data-offset-x="13" data-offset-y="0" data-expected-width="180" data-expected-height="25"></div>
 </div>
 
 <div class="grid gridMinMaxAutoRepeat">

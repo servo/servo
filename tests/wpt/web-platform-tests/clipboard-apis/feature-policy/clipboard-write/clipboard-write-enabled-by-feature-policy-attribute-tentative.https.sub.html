@@ -1,0 +1,24 @@
+<!doctype html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/feature-policy/resources/featurepolicy.js"></script>
+<script>
+'use strict';
+
+const same_origin_src =
+  '/feature-policy/resources/feature-policy-clipboard-write.html';
+
+async_test(t => {
+  test_feature_availability(
+    'navigator.clipboard.writeText("test text")',
+    t,
+    same_origin_src,
+    expect_feature_available_default,
+    'clipboard-write'
+  );
+}, 'Feature policy "clipboard-write" can be enabled in same-origin iframe using allow="clipboard-write" attribute');
+</script>
+</body>

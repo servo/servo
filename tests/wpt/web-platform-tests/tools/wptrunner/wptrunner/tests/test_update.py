@@ -29,6 +29,19 @@ def SourceFileWithTest(path, hash, cls, *args):
     return s
 
 
+def tree_and_sourcefile_mocks(source_files):
+    paths_dict = {}
+    tree = []
+    for source_file, file_hash, updated in source_files:
+        paths_dict[source_file.rel_path] = source_file
+        tree.append([source_file.rel_path, file_hash, updated])
+
+    def MockSourceFile(tests_root, path, url_base, file_hash):
+        return paths_dict[path]
+
+    return tree, MockSourceFile
+
+
 item_classes = {"testharness": manifest_item.TestharnessTest,
                 "reftest": manifest_item.RefTest,
                 "manual": manifest_item.ManualTest,
@@ -129,9 +142,11 @@ def create_test_manifest(tests, url_base="/"):
     source_files = []
     for i, (test, _, test_type, _) in enumerate(tests):
         if test_type:
-            source_files.append((SourceFileWithTest(test, str(i) * 40, item_classes[test_type]), True))
-    m = manifest.Manifest()
-    m.update(source_files)
+            source_files.append(SourceFileWithTest(test, str(i) * 40, item_classes[test_type]))
+    m = manifest.Manifest("")
+    tree, sourcefile_mock = tree_and_sourcefile_mocks((item, None, True) for item in source_files)
+    with mock.patch("manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        m.update(tree)
     return m
 
 

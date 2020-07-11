@@ -38,6 +38,7 @@ function testElementType(allowed, nochildren, elementType, mode, delegatesFocus)
         // TODO(masonfreed): Add a check for ElementInternals.shadowRoot once that exists.
         assert_true(!!element.shadowRoot, 'Shadow root should be present');
         assert_equals(element.shadowRoot.innerHTML, shadowContent, 'Correct shadow content');
+        assert_equals(element.shadowRoot.delegatesFocus,delegatesFocus,'Correct delegatesFocus')
         originalShadowRoot = element.shadowRoot;
       }
 

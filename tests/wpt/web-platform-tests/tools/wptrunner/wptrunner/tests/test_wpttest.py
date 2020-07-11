@@ -1,10 +1,12 @@
+import mock
 from io import BytesIO
-from mock import Mock
 
 from manifest import manifest as wptmanifest
 from manifest.item import TestharnessTest, RefTest
 from manifest.utils import to_os_path
+from . test_update import tree_and_sourcefile_mocks
 from .. import manifestexpected, wpttest
+
 
 dir_ini_0 = b"""\
 prefs: [a:b]
@@ -83,7 +85,7 @@ testharness_test = b"""<script src="/resources/testharness.js"></script>
 
 
 def make_mock_manifest(*items):
-    rv = Mock(tests_root="/foobar")
+    rv = mock.Mock(tests_root="/foobar")
     tests = []
     rv.__iter__ = lambda self: iter(tests)
     rv.__getitem__ = lambda self, k: tests[k]
@@ -204,13 +206,15 @@ def test_metadata_fuzzy():
                    references=[["/a/fuzzy-ref.html", "=="]],
                    fuzzy=[[["/a/fuzzy.html", '/a/fuzzy-ref.html', '=='],
                            [[2, 3], [10, 15]]]])
-    s = Mock(rel_path="a/fuzzy.html", rel_path_parts=("a", "fuzzy.html"), hash="0"*40)
-    s.manifest_items = Mock(return_value=(item.item_type, [item]))
+    s = mock.Mock(rel_path="a/fuzzy.html", rel_path_parts=("a", "fuzzy.html"), hash="0"*40)
+    s.manifest_items = mock.Mock(return_value=(item.item_type, [item]))
 
 
-    manifest = wptmanifest.Manifest()
+    manifest = wptmanifest.Manifest("")
 
-    assert manifest.update([(s, True)]) is True
+    tree, sourcefile_mock = tree_and_sourcefile_mocks([(s, None, True)])
+    with mock.patch("manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        assert manifest.update(tree) is True
 
     test_metadata = manifestexpected.static.compile(BytesIO(test_fuzzy),
                                                     {},

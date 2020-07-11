@@ -7,6 +7,7 @@
   <input type="text" id='myInput'>
 </form>
 <script>
+setup({"hide_test_state": true});
 promise_test(async t => {
   const onload = new Promise(r => window.addEventListener('load', r));
   await onload;

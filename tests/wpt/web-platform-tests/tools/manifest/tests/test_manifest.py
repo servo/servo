@@ -30,6 +30,7 @@ def SourceFileWithTest(path, hash, cls, **kwargs):
     s.manifest_items = mock.Mock(return_value=(cls.item_type, [test]))
     return s  # type: ignore
 
+
 def SourceFileWithTests(path, hash, cls, variants):
     # type: (str, str, Type[item.URLManifestItem], **Any) -> sourcefile.SourceFile
     rel_path_parts = tuple(path.split(os.path.sep))
@@ -39,6 +40,19 @@ def SourceFileWithTests(path, hash, cls, variants):
     tests = [cls("/foobar", path, "/", item[0], **item[1]) for item in variants]
     s.manifest_items = mock.Mock(return_value=(cls.item_type, tests))
     return s  # type: ignore
+
+
+def tree_and_sourcefile_mocks(source_files):
+    paths_dict = {}
+    tree = []
+    for source_file, file_hash, updated in source_files:
+        paths_dict[source_file.rel_path] = source_file
+        tree.append([source_file.rel_path, file_hash, updated])
+
+    def MockSourceFile(tests_root, path, url_base, file_hash):
+        return paths_dict[path]
+
+    return tree, MockSourceFile
 
 
 @hs.composite
@@ -111,9 +125,11 @@ def manifest_tree(draw):
 @h.settings(suppress_health_check=(h.HealthCheck.too_slow,))
 @h.example([SourceFileWithTest("a", "0"*40, item.ConformanceCheckerTest)])
 def test_manifest_to_json(s):
-    m = manifest.Manifest()
+    m = manifest.Manifest("")
 
-    assert m.update((item, True) for item in s) is True
+    tree, sourcefile_mock = tree_and_sourcefile_mocks((item, None, True) for item in s)
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        assert m.update(tree) is True
 
     json_str = m.to_json()
     loaded = manifest.Manifest.from_json("/", json_str)
@@ -129,23 +145,28 @@ def test_manifest_to_json(s):
 @h.example([SourceFileWithTest("a", "0"*40, item.TestharnessTest)])
 @h.example([SourceFileWithTest("a", "0"*40, item.RefTest, references=[("/aa", "==")])])
 def test_manifest_idempotent(s):
-    m = manifest.Manifest()
+    m = manifest.Manifest("")
 
-    assert m.update((item, True) for item in s) is True
+    tree, sourcefile_mock = tree_and_sourcefile_mocks((item, None, True) for item in s)
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        assert m.update(tree) is True
 
     m1 = list(m)
 
-    assert m.update((item, True) for item in s) is False
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        assert m.update(tree) is False
 
     assert list(m) == m1
 
 
 def test_manifest_to_json_forwardslash():
-    m = manifest.Manifest()
+    m = manifest.Manifest("")
 
     s = SourceFileWithTest("a" + os.path.sep + "b", "0"*40, item.TestharnessTest)
 
-    assert m.update([(s, True)]) is True
+    tree, sourcefile_mock = tree_and_sourcefile_mocks([(s, None, True)])
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        assert m.update(tree) is True
 
     assert m.to_json() == {
         'version': 8,
@@ -159,14 +180,15 @@ def test_manifest_to_json_forwardslash():
     }
 
 
-
 def test_reftest_computation_chain():
-    m = manifest.Manifest()
+    m = manifest.Manifest("")
 
     s1 = SourceFileWithTest("test1", "0"*40, item.RefTest, references=[("/test2", "==")])
     s2 = SourceFileWithTest("test2", "0"*40, item.RefTest, references=[("/test3", "==")])
 
-    m.update([(s1, True), (s2, True)])
+    tree, sourcefile_mock = tree_and_sourcefile_mocks([(s1, None, True), (s2, None, True)])
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        m.update(tree)
 
     test1 = s1.manifest_items()[1][0]
     test2 = s2.manifest_items()[1][0]
@@ -176,13 +198,16 @@ def test_reftest_computation_chain():
 
 
 def test_iterpath():
-    m = manifest.Manifest()
+    m = manifest.Manifest("")
 
     sources = [SourceFileWithTest("test1", "0"*40, item.RefTest, references=[("/test1-ref", "==")]),
                SourceFileWithTests("test2", "1"*40, item.TestharnessTest, [("test2-1.html", {}),
                                                                            ("test2-2.html", {})]),
                SourceFileWithTest("test3", "0"*40, item.TestharnessTest)]
-    m.update([(s, True) for s in sources])
+    tree, sourcefile_mock = tree_and_sourcefile_mocks((item, None, True) for item in sources)
+    assert len(tree) == len(sources)
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        m.update(tree)
 
     assert {item.url for item in m.iterpath("test2")} == {"/test2-1.html",
                                                           "/test2-2.html"}
@@ -190,12 +215,14 @@ def test_iterpath():
 
 
 def test_no_update():
-    m = manifest.Manifest()
+    m = manifest.Manifest("")
 
     s1 = SourceFileWithTest("test1", "0"*40, item.TestharnessTest)
     s2 = SourceFileWithTest("test2", "0"*40, item.TestharnessTest)
 
-    m.update([(s1, True), (s2, True)])
+    tree, sourcefile_mock = tree_and_sourcefile_mocks((item, None, True) for item in [s1, s2])
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        m.update(tree)
 
     test1 = s1.manifest_items()[1][0]
     test2 = s2.manifest_items()[1][0]
@@ -205,7 +232,9 @@ def test_no_update():
 
     s1_1 = SourceFileWithTest("test1", "1"*40, item.ManualTest)
 
-    m.update([(s1_1, True), (s2.rel_path, False)])
+    tree, sourcefile_mock = tree_and_sourcefile_mocks([(s1_1, None, True), (s2, None, False)])
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        m.update(tree)
 
     test1_1 = s1_1.manifest_items()[1][0]
 
@@ -214,32 +243,40 @@ def test_no_update():
 
 
 def test_no_update_delete():
-    m = manifest.Manifest()
+    m = manifest.Manifest("")
 
     s1 = SourceFileWithTest("test1", "0"*40, item.TestharnessTest)
     s2 = SourceFileWithTest("test2", "0"*40, item.TestharnessTest)
 
-    m.update([(s1, True), (s2, True)])
+    tree, sourcefile_mock = tree_and_sourcefile_mocks([(s1, None, True), (s2, None, True)])
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        m.update(tree)
 
     test1 = s1.manifest_items()[1][0]
 
-    m.update([(s1.rel_path, False)])
+    tree, sourcefile_mock = tree_and_sourcefile_mocks([(s1, None, False)])
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        m.update(tree)
 
     assert list(m) == [("testharness", test1.path, {test1})]
 
 
 def test_update_from_json():
-    m = manifest.Manifest()
+    m = manifest.Manifest("")
 
     s1 = SourceFileWithTest("test1", "0"*40, item.TestharnessTest)
     s2 = SourceFileWithTest("test2", "0"*40, item.TestharnessTest)
 
-    m.update([(s1, True), (s2, True)])
+    tree, sourcefile_mock = tree_and_sourcefile_mocks([(s1, None, True), (s2, None, True)])
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        m.update(tree)
 
     json_str = m.to_json()
     m = manifest.Manifest.from_json("/", json_str)
 
-    m.update([(s1, True)])
+    tree, sourcefile_mock = tree_and_sourcefile_mocks([(s1, None, True)])
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        m.update(tree)
 
     test1 = s1.manifest_items()[1][0]
 
@@ -248,9 +285,11 @@ def test_update_from_json():
 
 def test_update_from_json_modified():
     # Create the original manifest
-    m = manifest.Manifest()
+    m = manifest.Manifest("")
     s1 = SourceFileWithTest("test1", "0"*40, item.TestharnessTest)
-    m.update([(s1, True)])
+    tree, sourcefile_mock = tree_and_sourcefile_mocks([(s1, None, True)])
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        m.update(tree)
     json_str = m.to_json()
 
     # Reload it from JSON
@@ -258,7 +297,9 @@ def test_update_from_json_modified():
 
     # Update it with timeout="long"
     s2 = SourceFileWithTest("test1", "1"*40, item.TestharnessTest, timeout="long")
-    m.update([(s2, True)])
+    tree, sourcefile_mock = tree_and_sourcefile_mocks([(s2, None, True)])
+    with mock.patch("tools.manifest.manifest.SourceFile", side_effect=sourcefile_mock):
+        m.update(tree)
     json_str = m.to_json()
     assert json_str == {
         'items': {'testharness': {'test1': [

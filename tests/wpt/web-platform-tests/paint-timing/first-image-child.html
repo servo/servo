@@ -9,6 +9,7 @@
 <iframe src='resources/subframe-sending-paint.html' id='child-iframe'></iframe>
 <img src='resources/circles.png'/>
 <script>
+setup({"hide_test_state": true});
 async_test(function (t) {
     assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
 

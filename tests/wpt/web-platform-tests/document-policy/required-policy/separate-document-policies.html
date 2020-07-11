@@ -25,7 +25,7 @@ async_test(t => {
   var iframe = document.createElement('iframe');
   iframe.src = "/document-policy/echo-policy.py?id=1";
   callbacks["1"] = t.step_func_done(result => {
-    assert_equals(result, "unoptimized-lossless-images;bpp=1.0");
+    assert_equals(result, "unoptimized-lossless-images=1.0");
   });
   document.body.appendChild(iframe);
 }, "Child frame with no explicit policy should have the same required policy as its parent.");
@@ -33,9 +33,9 @@ async_test(t => {
 async_test(t => {
   var iframe = document.createElement('iframe');
   iframe.src = "/document-policy/echo-policy.py?id=2";
-  iframe.policy = "unoptimized-lossless-images;bpp=4";
+  iframe.policy = "unoptimized-lossless-images=4";
   callbacks["2"] = t.step_func_done(result => {
-    assert_equals(result, "unoptimized-lossless-images;bpp=1.0");
+    assert_equals(result, "unoptimized-lossless-images=1.0");
   });
   document.body.appendChild(iframe);
 }, "Child frame with a less strict required policy should have the stricter value from the parent's policy applied.");
@@ -43,9 +43,9 @@ async_test(t => {
 async_test(t => {
   var iframe = document.createElement('iframe');
   iframe.src = "/document-policy/echo-policy.py?id=3";
-  iframe.policy = "unoptimized-lossless-images;bpp=0.9";
+  iframe.policy = "unoptimized-lossless-images=0.9";
   callbacks["3"] = t.step_func_done(result => {
-    assert_equals(result, "unoptimized-lossless-images;bpp=0.9");
+    assert_equals(result, "unoptimized-lossless-images=0.9");
   });
   document.body.appendChild(iframe);
 }, "Child frame may have a stricter policy than the parent.");
@@ -55,7 +55,7 @@ async_test(t => {
   iframe.src = "/document-policy/echo-policy.py?id=4";
   iframe.policy = "no-font-display-late-swap";
   callbacks["4"] = t.step_func_done(result => {
-    assert_equals(result, "no-font-display-late-swap, unoptimized-lossless-images;bpp=1.0");
+    assert_equals(result, "no-font-display-late-swap, unoptimized-lossless-images=1.0");
   });
   document.body.appendChild(iframe);
 }, "Any unrelated policy directives should combine with the parent's required policy.");

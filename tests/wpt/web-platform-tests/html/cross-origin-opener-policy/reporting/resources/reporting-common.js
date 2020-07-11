@@ -76,12 +76,14 @@ async function checkForExpectedReport(expectedReport) {
       };
       await wait(waitTime);
     }
-    reject("No report matched the expected report for endpoint: "
-      + expectedReport.endpoint.name
-      + ", expected report: " + JSON.stringify(expectedReport.report)
-      + ", within available reports: "
-      + JSON.stringify(expectedReport.endpoint.reports)
-    );
+    reject(
+      replaceTokensInReceivedReport(
+        "No report matched the expected report for endpoint: "
+        + expectedReport.endpoint.name
+        + ", expected report: " + JSON.stringify(expectedReport.report)
+        + ", within available reports: "
+        + JSON.stringify(expectedReport.endpoint.reports)
+    ));
   });
 }
 
@@ -112,6 +114,10 @@ function replaceValuesInExpectedReport(expectedReport, executorUuid) {
           expectedReport.report.url, "EXECUTOR_UUID", executorUuid);
   }
   return expectedReport;
+}
+
+function replaceTokensInReceivedReport(str) {
+  return str.replace(/.{8}-.{4}-.{4}-.{4}-.{12}/g, `(uuid)`);
 }
 
 // Run a test (such as coop_coep_test from ./common.js) then check that all

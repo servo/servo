@@ -3,8 +3,9 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Ambient Light Sensor (https://w3c.github.io/ambient-light/)
 
-[Constructor(optional SensorOptions sensorOptions = {}), SecureContext, Exposed=Window]
+[SecureContext, Exposed=Window]
 interface AmbientLightSensor : Sensor {
+  constructor(optional SensorOptions sensorOptions = {});
   readonly attribute double? illuminance;
 };
 

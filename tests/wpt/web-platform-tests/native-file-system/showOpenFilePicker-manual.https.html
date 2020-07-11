@@ -29,8 +29,7 @@
     assert_equals(files.length, 1);
     assert_true(files[0] instanceof FileSystemHandle);
     assert_true(files[0] instanceof FileSystemFileHandle);
-    assert_true(files[0].isFile);
-    assert_false(files[0].isDirectory);
+    assert_equals(files[0].kind, "file");
     assert_equals(files[0].name, 'testfile.txt');
     assert_equals(await (await files[0].getFile()).text(), 'Hello World!\n');
 

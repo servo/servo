@@ -4,7 +4,7 @@ components:
     workerType: ci
     schedulerId: taskcluster-github
     deadline: "24 hours"
-    image: webplatformtests/wpt:0.37
+    image: webplatformtests/wpt:0.41
     maxRunTime: 7200
     artifacts:
       public/results:
@@ -128,6 +128,9 @@ components:
         - affected_tests
 
 tasks:
+  # The scheduling order of tasks is NOT determined by the order in which they
+  # are defined, but by their dependencies (depends-on).
+
   # Run full suites on push
   - $map:
       for:
@@ -487,3 +490,14 @@ tasks:
       schedule-if:
         run-job:
           - wptrunner_infrastructure
+
+  # Note: even though sink-task does not have `depends-on`, it depends on all
+  # other tasks (dynamically added by tools/ci/tc/decision.py).
+  - sink-task:
+      description: >-
+        Sink task for all other tasks; indicates success
+      use:
+        - wpt-base
+        - trigger-pr
+      command: "./wpt tc-sink-task"
+      requires: all-resolved

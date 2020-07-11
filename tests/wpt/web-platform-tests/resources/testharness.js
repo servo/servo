@@ -2609,6 +2609,7 @@ policies and contribution forms [3].
         this.test_done_callbacks = [];
         this.all_done_callbacks = [];
 
+        this.hide_test_state = false;
         this.pending_remotes = [];
 
         this.status = new TestsStatus();
@@ -2656,6 +2657,8 @@ policies and contribution forms [3].
                     if (this.timeout_length) {
                          this.timeout_length *= this.timeout_multiplier;
                     }
+                } else if (p == "hide_test_state") {
+                    this.hide_test_state = value;
                 }
             }
         }
@@ -3162,7 +3165,7 @@ policies and contribution forms [3].
             this.phase = this.HAVE_RESULTS;
         }
         var done_count = tests.tests.length - tests.num_pending;
-        if (this.output_node) {
+        if (this.output_node && !tests.hide_test_state) {
             if (done_count < 100 ||
                 (done_count < 1000 && done_count % 100 === 0) ||
                 done_count % 1000 === 0) {

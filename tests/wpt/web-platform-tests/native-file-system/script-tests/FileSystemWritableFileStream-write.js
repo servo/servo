@@ -295,7 +295,9 @@ directory_test(async (t, root) => {
 directory_test(async (t, root) => {
   const handle = await createEmptyFile(t, 'writer_written', root);
   const stream = await handle.createWritable();
+  assert_false(stream.locked);
   const writer = stream.getWriter();
+  assert_true(stream.locked);
 
   await writer.write('foo');
   await writer.write(new Blob(['bar']));

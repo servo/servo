@@ -15,6 +15,7 @@
 <script src="../resources/utils.js"></script>
 <div id="main"></div>
 <script>
+  setup({"hide_test_state": true});
   promise_test(async t => {
       assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
       await new Promise(r => window.addEventListener('load', r));

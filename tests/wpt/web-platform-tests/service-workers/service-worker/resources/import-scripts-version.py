@@ -11,7 +11,7 @@ def main(req, res):
     now = (datetime.datetime.now() - epoch).total_seconds()
 
     return ([
-        ('Cache-Control', 'no-cache, must-revalidate'),
-        ('Pragma', 'no-cache'),
-        ('Content-Type', 'application/javascript')],
-      'version = "%s";\n' % now)
+        (b'Cache-Control', b'no-cache, must-revalidate'),
+        (b'Pragma', b'no-cache'),
+        (b'Content-Type', b'application/javascript')],
+       u'version = "%s";\n' % now)

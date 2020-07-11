@@ -87,7 +87,7 @@ function add_message_event_handlers(receiver, target, target_origin) {
           const directory =
             await self.getOriginPrivateDirectory();
           const file_handle =
-            await directory.getFile('temp-file', { create: true });
+            await directory.getFileHandle('temp-file', { create: true });
           message_source.postMessage(
             { type: 'receive-file', file_handle },
             { targetOrigin: target_origin });
@@ -98,7 +98,7 @@ function add_message_event_handlers(receiver, target, target_origin) {
           const parent_directory =
             await self.getOriginPrivateDirectory();
           const directory_handle =
-            await parent_directory.getDirectory('temp-directory',
+            await parent_directory.getDirectoryHandle('temp-directory',
               { create: true });
           message_source.postMessage(
             { type: 'receive-directory', directory_handle },

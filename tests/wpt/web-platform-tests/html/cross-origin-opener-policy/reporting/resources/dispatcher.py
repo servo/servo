@@ -1,22 +1,20 @@
 # A server used to store and retrieve arbitrary data.
 # This is used by: ./dispatcher.js
-import json
-
 def main(request, response):
-    response.headers.set('Access-Control-Allow-Origin', '*')
-    response.headers.set('Access-Control-Allow-Methods', 'OPTIONS, GET, POST')
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type')
-    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-    if request.method == 'OPTIONS': # CORS preflight
-        return ''
+    response.headers.set(b'Access-Control-Allow-Origin', b'*')
+    response.headers.set(b'Access-Control-Allow-Methods', b'OPTIONS, GET, POST')
+    response.headers.set(b'Access-Control-Allow-Headers', b'Content-Type')
+    response.headers.set(b'Cache-Control', b'no-cache, no-store, must-revalidate')
+    if request.method == u'OPTIONS': # CORS preflight
+        return b''
 
-    uuid = request.GET['uuid']
+    uuid = request.GET[b'uuid']
 
-    if request.method == 'POST':
+    if request.method == u'POST':
         return request.server.stash.put(uuid, request.body)
     else:
         body = request.server.stash.take(uuid)
         if body is None:
-            return 'not ready'
+            return b'not ready'
         else:
             return body

@@ -121,7 +121,9 @@
     try {
       portal.focus();
       for (let key of [SPACE, RETURN]) {
-        let clickPromise = new Promise(r => portal.onclick = r);
+        let clickPromise = new Promise((resolve) => {
+          portal.onclick = e => { e.preventDefault(); resolve(); };
+        });
         await test_driver.send_keys(document.body, key);
         await clickPromise;
       }

@@ -15,7 +15,13 @@
 test_computed_value('font-variation-settings', 'normal');
 
 test_computed_value('font-variation-settings', '"wght" 700');
-test_computed_value('font-variation-settings', '"wght" 700, "XHGT" 0.7');
+test_computed_value('font-variation-settings', '"AB@D" 0.5');
+
+test_computed_value('font-variation-settings', '"wght" 700, "wght" 500', '"wght" 500',
+    "duplicate values should be removed, keeping the rightmost occurrence.");
+
+test_computed_value('font-variation-settings', '"wght" 700, "XHGT" 0.7',
+    ['"wght" 700, "XHGT" 0.7', '"XHGT" 0.7, "wght" 700']);
 
 test_computed_value('font-variation-settings', '"XHGT" calc(0.4 + 0.3)', '"XHGT" 0.7');
 </script>

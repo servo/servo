@@ -33,6 +33,7 @@ async function assertFirstContentfulPaint(t) {
 }
 
 async function test_fcp(label) {
+  setup({"hide_test_state": true});
   const style = document.createElement('style');
   document.head.appendChild(style);
   await promise_test(async t => {

@@ -6,13 +6,13 @@ from tools.wpt import testfiles
 
 
 def test_getrevish_kwarg():
-    assert testfiles.get_revish(revish=u"abcdef") == b"abcdef"
-    assert testfiles.get_revish(revish=b"abcdef") == b"abcdef"
+    assert testfiles.get_revish(revish=u"abcdef") == u"abcdef"
+    assert testfiles.get_revish(revish=b"abcdef") == u"abcdef"
 
 
 def test_getrevish_implicit():
     with patch("tools.wpt.testfiles.branch_point", return_value=u"base"):
-        assert testfiles.get_revish() == b"base..HEAD"
+        assert testfiles.get_revish() == u"base..HEAD"
 
 
 def test_affected_testfiles():

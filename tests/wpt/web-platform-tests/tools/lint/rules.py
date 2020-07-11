@@ -354,7 +354,7 @@ class Regexp(six.with_metaclass(abc.ABCMeta)):
         self._re = re.compile(self.pattern)  # type: Pattern[bytes]
 
     def applies(self, path):
-        # type: (str) -> bool
+        # type: (Text) -> bool
         return (self.file_extensions is None or
                 os.path.splitext(path)[1] in self.file_extensions)
 

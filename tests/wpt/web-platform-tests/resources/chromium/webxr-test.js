@@ -3,14 +3,13 @@
 // This polyfill library implements the WebXR Test API as specified here:
 // https://github.com/immersive-web/webxr-test-api
 
-// The standingTransform is floor_from_mojo and represented as such here.
-const default_standing = new gfx.mojom.Transform();
-default_standing.matrix = [1, 0, 0, 0,
-                           0, 1, 0, 0,
-                           0, 0, 1, 0,
-                           0, 1.65, 0, 1];
+const defaultMojoFromFloor = new gfx.mojom.Transform();
+defaultMojoFromFloor.matrix = [1, 0,     0, 0,
+                               0, 1,     0, 0,
+                               0, 0,     1, 0,
+                               0, -1.65, 0, 1];
 const default_stage_parameters = {
-  standingTransform: default_standing,
+  mojoFromFloor: defaultMojoFromFloor,
   bounds: null
 };
 
@@ -267,6 +266,10 @@ class FakeXRAnchorController {
     return this.dirty_;
   }
 
+  get paused() {
+    return this.paused_;
+  }
+
   markProcessed() {
     this.dirty_ = false;
   }
@@ -490,12 +493,11 @@ class MockRuntime {
       this.stageParameters_.bounds = this.bounds_;
     }
 
-    this.stageParameters_.standingTransform = new gfx.mojom.Transform();
+    this.stageParameters_.mojoFromFloor = new gfx.mojom.Transform();
 
-    // floorOrigin is passed in as mojoFromFloor; however, standingTransform is
-    // floorFromMojo so we need to invert the result of |getMatrixFromTransform|
-    this.stageParameters_.standingTransform.matrix =
-      XRMathHelper.inverse(getMatrixFromTransform(floorOrigin));
+    // floorOrigin is passed in as mojoFromFloor.
+    this.stageParameters_.mojoFromFloor.matrix =
+      getMatrixFromTransform(floorOrigin);
 
     this.onStageParametersUpdated();
   }
@@ -982,7 +984,7 @@ class MockRuntime {
         const anchorData = new device.mojom.XRAnchorData();
         anchorData.id = id;
         if(!controller.paused) {
-          anchorData.pose = XRMathHelper.decomposeRigidTransform(
+          anchorData.mojoFromAnchor = XRMathHelper.decomposeRigidTransform(
             controller.getAnchorOrigin());
         }
 
@@ -1261,12 +1263,11 @@ class MockRuntime {
         case device.mojom.XRReferenceSpaceType.kLocal:
           return XRMathHelper.identity();
         case device.mojom.XRReferenceSpaceType.kLocalFloor:
-          if (this.stageParameters_ == null || this.stageParameters_.standingTransform == null) {
+          if (this.stageParameters_ == null || this.stageParameters_.mojoFromFloor == null) {
             console.warn("Standing transform not available.");
             return null;
           }
-          // this.stageParameters_.standingTransform = floor_from_mojo aka native_origin_from_mojo
-          return XRMathHelper.inverse(this.stageParameters_.standingTransform.matrix);
+          return this.stageParameters_.mojoFromFloor.matrix;
         case device.mojom.XRReferenceSpaceType.kViewer:
           return mojo_from_viewer;
         case device.mojom.XRReferenceSpaceType.kBoundedFlor:

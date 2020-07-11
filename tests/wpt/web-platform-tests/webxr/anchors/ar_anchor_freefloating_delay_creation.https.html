@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_world.js"></script>
+<canvas />
+
+<script>
+
+// 1m above world origin.
+const VIEWER_ORIGIN_TRANSFORM = {
+  position: [0, 1, 0],
+  orientation: [0, 0, 0, 1],
+};
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+  viewerOrigin: VIEWER_ORIGIN_TRANSFORM,
+};
+
+// All test cases require anchors.
+const sessionInit = { 'requiredFeatures': ['anchors'] };
+
+// Creates a test function that will attempt to create an anchor with a delay.
+// In case the anchor creation is expected to succeed, the test will then
+// validate whether the anchor belongs to frame.trackedAnchors, has a valid pose,
+// and that after deleting it, it no longer allows access to its anchorSpace.
+// |shouldSucceed| - true if the anchor creation is expected to succeed.
+const anchorCreationDelayedCreator = function(shouldSucceed) {
+  return function(session, fakeDeviceController, t) {
+    const debug = xr_debug.bind(this, 'anchorCreationDelayed' + (shouldSucceed ? 'Success' : 'Failure'));
+
+    let anchorCreationResolve = null;
+    fakeDeviceController.setAnchorCreationCallback((parameters, controller) => {
+        return new Promise((resolve) => {
+          anchorCreationResolve = resolve;
+        });
+    });
+
+    const watcherDone = new Event("watcherdone");
+    const creationDelayedEvent = new Event("creationdelayed");
+    const eventWatcher = new EventWatcher(t, session, ["creationdelayed", "watcherdone"]);
+    const eventPromise = eventWatcher.wait_for(["creationdelayed", "watcherdone"]);
+
+    session.requestReferenceSpace('local').then((localRefSpace) => {
+      debug("requesting animation frame");
+
+      session.requestAnimationFrame((time, frame) => {
+        debug("rAF 1");
+
+        let createdAnchor = null;
+        frame.createAnchor(new XRRigidTransform(), localRefSpace)
+          .then((anchor) => {
+            createdAnchor = anchor;
+
+            t.step(() => {
+              assert_true(anchor != null, "Returned anchor should not be null!");
+              assert_true(shouldSucceed,
+                          "Anchor creation succeeded when it was expected to fail!");
+            });
+          })
+          .catch((error) => {
+            t.step(() => {
+              assert_false(shouldSucceed,
+                           "Anchor creation failed when it was expected to succeed!");
+            });
+
+            session.dispatchEvent(watcherDone);
+          });
+
+        session.requestAnimationFrame(() => {
+          debug("rAF 2");
+
+          session.dispatchEvent(creationDelayedEvent);
+
+          anchorCreationResolve(shouldSucceed);
+
+          session.requestAnimationFrame((time_2, frame_2) => {
+            debug("rAF 3");
+
+            if(shouldSucceed) {
+              t.step(() => {
+                assert_true(createdAnchor != null);
+                assert_true(frame_2.trackedAnchors.has(createdAnchor),
+                            "Newly created anchor must be in tracked anchors set!");
+                assert_true(createdAnchor.anchorSpace != null,
+                            "Newly created anchor must have a non-null anchor space!");
+                assert_true(frame_2.getPose(createdAnchor.anchorSpace, localRefSpace) != null,
+                            "Newly created anchor should have a pose!");
+              });
+
+              createdAnchor.delete();
+
+              t.step(() => {
+                assert_throws_dom('InvalidStateError', () => {
+                  createdAnchor.anchorSpace;
+                });
+              });
+
+              session.dispatchEvent(watcherDone);
+            }
+          });
+        });
+      });
+    }); // session.requestReferenceSpace(...).then({...});
+
+    return eventPromise;
+  };
+};
+
+xr_session_promise_test(
+  "Ensures free-floating anchor creation with delayed success is handled correctly",
+  anchorCreationDelayedCreator(true), fakeDeviceInitParams, 'immersive-ar', sessionInit);
+
+xr_session_promise_test(
+  "Ensures free-floating anchor creation with delayed failure is handled correctly",
+  anchorCreationDelayedCreator(false), fakeDeviceInitParams, 'immersive-ar', sessionInit);
+
+</script>

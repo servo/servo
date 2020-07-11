@@ -107,6 +107,7 @@ def get_pr(owner, repo, sha):
 
 
 def create_release(manifest_path, owner, repo, sha, tag, body):
+    logger.info("Creating a release for tag='%s', target_commitish='%s'" % (tag, sha))
     create_url = "https://api.github.com/repos/%s/%s/releases" % (owner, repo)
     create_data = {"tag_name": tag,
                    "target_commitish": sha,
@@ -173,7 +174,7 @@ def main():
     owner, repo = os.environ["GITHUB_REPOSITORY"].split("/", 1)
 
     git = get_git_cmd(wpt_root)
-    head_rev = git("rev-parse", "HEAD")
+    head_rev = git("rev-parse", "HEAD").strip()
     body = git("show", "--no-patch", "--format=%B", "HEAD")
 
     if dry_run:

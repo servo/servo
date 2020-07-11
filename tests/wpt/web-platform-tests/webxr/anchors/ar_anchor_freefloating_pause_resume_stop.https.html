@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_world.js"></script>
+<canvas />
+
+<script>
+
+// 1m above world origin.
+const VIEWER_ORIGIN_TRANSFORM = {
+  position: [0, 1, 0],
+  orientation: [0, 0, 0, 1],
+};
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  supportedFeatures: ALL_FEATURES,
+  viewerOrigin: VIEWER_ORIGIN_TRANSFORM,
+};
+
+// All test cases require anchors.
+const sessionInit = { 'requiredFeatures': ['anchors'] };
+
+// Create an anchor, pause tracking, resume tracking, & stop tracking and validate
+// that the state changes are propagated to the caller.
+const anchorCreatePauseTrackingResumeAndDelete = function(session, fakeDeviceController, t) {
+  const debug = xr_debug.bind(this, 'anchorCreatePauseTrackingResumeAndDelete');
+
+  let anchorController = null;
+  fakeDeviceController.setAnchorCreationCallback((parameters, controller) => {
+      anchorController = controller;
+      return Promise.resolve(true);
+  });
+
+  const watcherDone = new Event("watcherdone");
+  const eventWatcher = new EventWatcher(t, session, ["watcherdone"]);
+  const eventPromise = eventWatcher.wait_for(["watcherdone"]);
+
+  session.requestReferenceSpace('local').then((localRefSpace) => {
+    debug("requesting animation frame");
+
+    session.requestAnimationFrame((time, frame) => {
+      debug("rAF 1");
+
+      let createdAnchor = null;
+      frame.createAnchor(new XRRigidTransform(), localRefSpace)
+        .then((anchor) => {
+          createdAnchor = anchor;
+        });
+
+      session.requestAnimationFrame((time_2, frame_2) => {
+        debug("rAF 2");
+
+        t.step(() => {
+          assert_true(frame_2.getPose(createdAnchor.anchorSpace, localRefSpace) != null,
+                      "Newly created anchor should have a pose!");
+          assert_true(frame_2.trackedAnchors.has(createdAnchor),
+                      "Newly created anchor must be in tracked anchors set on subsequent RAF (2)!");
+        });
+
+        anchorController.pauseTracking();
+
+        session.requestAnimationFrame((time_3, frame_3) => {
+          debug("rAF 3");
+
+          t.step(() => {
+            assert_true(frame_3.getPose(createdAnchor.anchorSpace, localRefSpace) == null,
+                        "Newly created anchor with paused tracking should not have a pose!");
+            assert_true(frame_3.trackedAnchors.has(createdAnchor),
+                        "Newly created anchor with paused tracking must be in tracked anchors set on subsequent RAF (3)!");
+          });
+
+          anchorController.resumeTracking();
+
+          session.requestAnimationFrame((time_4, frame_4) => {
+            debug("rAF 4");
+
+            t.step(() => {
+              assert_true(frame_4.trackedAnchors.has(createdAnchor),
+                          "Newly created anchor with resumed tracking must be in tracked anchors set on subsequent RAF (4)!");
+              assert_true(frame_4.getPose(createdAnchor.anchorSpace, localRefSpace) != null,
+                          "Newly created anchor with resumed tracking should have a pose!");
+            });
+
+            anchorController.stopTracking();
+
+            session.requestAnimationFrame((time_5, frame_5) => {
+              debug("rAF 5");
+
+              t.step(() => {
+                assert_false(frame_5.trackedAnchors.has(createdAnchor),
+                            "Newly created anchor with stopped tracking must not be in tracked anchors set on subsequent RAF (5)!");
+              });
+
+              session.dispatchEvent(watcherDone);
+            });
+          });
+        });
+      });
+    });
+  }); // session.requestReferenceSpace(...).then({...});
+
+  return eventPromise;
+};
+
+
+xr_session_promise_test(
+  "Ensures free-floating anchor state changes get propagated",
+  anchorCreatePauseTrackingResumeAndDelete, fakeDeviceInitParams,
+  'immersive-ar', sessionInit);
+
+</script>

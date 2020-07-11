@@ -16,7 +16,7 @@ directory_test(async (t, root_dir) => {
 
 directory_test(async (t, root_dir) => {
   const subdir = await createDirectory(t, 'subdir-name', root_dir);
-  const subdir2 = await root_dir.getDirectory('subdir-name');
+  const subdir2 = await root_dir.getDirectoryHandle('subdir-name');
 
   assert_true(await subdir.isSameEntry(subdir2));
   assert_true(await subdir2.isSameEntry(subdir));
@@ -38,7 +38,7 @@ directory_test(async (t, root_dir) => {
 
 directory_test(async (t, root_dir) => {
   const handle1 = await createEmptyFile(t, 'mtime.txt', root_dir);
-  const handle2 = await root_dir.getFile('mtime.txt');
+  const handle2 = await root_dir.getFileHandle('mtime.txt');
 
   assert_true(await handle1.isSameEntry(handle2));
   assert_true(await handle2.isSameEntry(handle1));
