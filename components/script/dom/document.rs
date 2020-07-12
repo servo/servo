@@ -3954,7 +3954,7 @@ impl DocumentMethods for Document {
     // https://html.spec.whatwg.org/multipage/#dom-document-hasfocus
     fn HasFocus(&self) -> bool {
         // Step 1-2.
-        if self.window().parent_info().is_none() && self.is_fully_active() {
+        if !self.window().has_parent() && self.is_fully_active() {
             return true;
         }
         // TODO Step 3.

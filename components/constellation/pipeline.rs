@@ -44,7 +44,7 @@ use servo_config::opts::{self, Opts};
 use servo_config::{prefs, prefs::PrefValue};
 use servo_url::ServoUrl;
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::rc::Rc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
@@ -116,6 +116,10 @@ pub struct InitialPipelineState {
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is the root.
     pub parent_pipeline_id: Option<PipelineId>,
+
+    /// The ID of all ancestors, if any.
+    /// If empty, this is the root.
+    pub ancestors: VecDeque<BrowsingContextId>,
 
     pub opener: Option<BrowsingContextId>,
 
@@ -226,6 +230,7 @@ impl Pipeline {
             Some(script_chan) => {
                 let new_layout_info = NewLayoutInfo {
                     parent_info: state.parent_pipeline_id,
+                    ancestors: state.ancestors,
                     new_pipeline_id: state.id,
                     browsing_context_id: state.browsing_context_id,
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
@@ -275,6 +280,7 @@ impl Pipeline {
                     browsing_context_id: state.browsing_context_id,
                     top_level_browsing_context_id: state.top_level_browsing_context_id,
                     parent_pipeline_id: state.parent_pipeline_id,
+                    ancestors: state.ancestors,
                     opener: state.opener,
                     script_to_constellation_chan: state.script_to_constellation_chan.clone(),
                     namespace_request_sender: state.namespace_request_sender,
@@ -485,6 +491,7 @@ pub struct UnprivilegedPipelineContent {
     top_level_browsing_context_id: TopLevelBrowsingContextId,
     browsing_context_id: BrowsingContextId,
     parent_pipeline_id: Option<PipelineId>,
+    ancestors: VecDeque<BrowsingContextId>,
     opener: Option<BrowsingContextId>,
     namespace_request_sender: IpcSender<PipelineNamespaceRequest>,
     script_to_constellation_chan: ScriptToConstellationChan,
@@ -546,6 +553,7 @@ impl UnprivilegedPipelineContent {
                 browsing_context_id: self.browsing_context_id,
                 top_level_browsing_context_id: self.top_level_browsing_context_id,
                 parent_info: self.parent_pipeline_id,
+                ancestors: self.ancestors,
                 opener: self.opener,
                 control_chan: self.script_chan.clone(),
                 control_port: self.script_port,

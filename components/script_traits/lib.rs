@@ -224,6 +224,9 @@ pub struct NewLayoutInfo {
     /// The ID of the parent pipeline and frame type, if any.
     /// If `None`, this is a root pipeline.
     pub parent_info: Option<PipelineId>,
+    /// The ID of all ancestors, if any.
+    /// If empty, this is the root.
+    pub ancestors: VecDeque<BrowsingContextId>,
     /// Id of the newly-created pipeline.
     pub new_pipeline_id: PipelineId,
     /// Id of the browsing context associated with this pipeline.
@@ -342,6 +345,8 @@ pub enum ConstellationControlMsg {
         target: PipelineId,
         /// The parent browsing-context of the source, if any.
         source_parent: Option<BrowsingContextId>,
+        /// The ancestor browsing-contexts of the source, if any.
+        ancestors: VecDeque<BrowsingContextId>,
         /// The source of the message.
         source: PipelineId,
         /// The browsing context associated with the source pipeline.
@@ -357,9 +362,10 @@ pub enum ConstellationControlMsg {
         data: StructuredSerializedData,
     },
     /// Updates the current pipeline ID of a given iframe.
-    /// First PipelineId is for the parent, second is the new PipelineId for the frame.
+    /// The vector represents the ancestors.
     UpdatePipelineId(
         PipelineId,
+        VecDeque<BrowsingContextId>,
         BrowsingContextId,
         TopLevelBrowsingContextId,
         PipelineId,
@@ -632,9 +638,11 @@ pub fn precise_time_ms() -> MsDuration {
 pub struct InitialScriptState {
     /// The ID of the pipeline with which this script thread is associated.
     pub id: PipelineId,
+    /// The ID of the parent pipeline, if any.
+    pub parent_info: Option<PipelineId>,
     /// The subpage ID of this pipeline to create in its pipeline parent.
     /// If `None`, this is the root.
-    pub parent_info: Option<PipelineId>,
+    pub ancestors: VecDeque<BrowsingContextId>,
     /// The ID of the browsing context this script is part of.
     pub browsing_context_id: BrowsingContextId,
     /// The ID of the top-level browsing context this script is part of.

@@ -319,6 +319,7 @@ impl WindowProxy {
             let (pipeline_sender, pipeline_receiver) = ipc::channel().unwrap();
             let new_layout_info = NewLayoutInfo {
                 parent_info: None,
+                ancestors: window.ancestors(),
                 new_pipeline_id: new_pipeline_id,
                 browsing_context_id: new_browsing_context_id,
                 top_level_browsing_context_id: new_top_level_browsing_context_id,
