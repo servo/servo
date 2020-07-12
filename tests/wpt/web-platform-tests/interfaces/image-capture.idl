@@ -33,6 +33,7 @@ dictionary PhotoSettings {
     readonly attribute double max;
     readonly attribute double min;
     readonly attribute double step;
+    [Default] object toJSON();
 };
 
 enum RedEyeReduction {
