@@ -7,6 +7,8 @@ use crate::logging::CATEGORY;
 use crossbeam_channel::Receiver;
 use crossbeam_channel::Sender;
 
+use euclid::default::Rotation3D;
+use euclid::default::Vector3D;
 use euclid::Point2D;
 use euclid::Rect;
 use euclid::Scale;
@@ -63,14 +65,17 @@ use gstreamer_video::VideoInfo;
 use log::debug;
 use log::error;
 use log::info;
+use log::warn;
 
 use servo::compositing::windowing::AnimationState;
 use servo::compositing::windowing::EmbedderCoordinates;
 use servo::compositing::windowing::EmbedderMethods;
 use servo::compositing::windowing::WindowEvent;
 use servo::compositing::windowing::WindowMethods;
+use servo::embedder_traits::EmbedderProxy;
 use servo::embedder_traits::EventLoopWaker;
 use servo::msg::constellation_msg::TopLevelBrowsingContextId;
+use servo::servo_config::set_pref;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_surfman::WebrenderSurfman;
@@ -83,6 +88,7 @@ use sparkle::gl::Gl;
 use surfman::Connection;
 use surfman::Context;
 use surfman::Device;
+use surfman::SurfaceAccess;
 use surfman::SurfaceType;
 use surfman_chains::SwapChain;
 use surfman_chains_api::SwapChainAPI;
@@ -100,9 +106,15 @@ use std::thread;
 use std::time::Duration;
 use std::time::Instant;
 
+use webxr::glwindow::GlWindow as WebXRWindow;
+use webxr::glwindow::GlWindowDiscovery as WebXRDiscovery;
+use webxr::glwindow::GlWindowMode as WebXRMode;
+use webxr::glwindow::GlWindowRenderTarget as WebXRRenderTarget;
+
 pub struct ServoWebSrc {
     sender: Sender<ServoWebSrcMsg>,
     url: Mutex<Option<String>>,
+    webxr_mode: Mutex<Option<WebXRMode>>,
     outcaps: Mutex<Option<Caps>>,
     info: Mutex<Option<VideoInfo>>,
     buffer_pool: Mutex<Option<BufferPool>>,
@@ -121,7 +133,7 @@ pub struct ServoWebSrc {
 struct ServoWebSrcGfx {
     device: Device,
     context: Context,
-    swap_chain: SwapChain<Device>,
+    swap_chain: Option<SwapChain<Device>>,
     gl: Rc<Gl>,
     read_fbo: GLuint,
     draw_fbo: GLuint,
@@ -146,10 +158,24 @@ impl std::fmt::Debug for ConnectionWhichImplementsDebug {
     }
 }
 
+struct SwapChainWhichImplementsDebug(SwapChain<Device>);
+
+impl std::fmt::Debug for SwapChainWhichImplementsDebug {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        "SwapChain".fmt(fmt)
+    }
+}
+
 #[derive(Debug)]
 enum ServoWebSrcMsg {
-    Start(ConnectionWhichImplementsDebug, ServoUrl),
+    Start(
+        ConnectionWhichImplementsDebug,
+        ServoUrl,
+        Option<WebXRMode>,
+        Size2D<i32, DevicePixel>,
+    ),
     GetSwapChain(Sender<SwapChain<Device>>),
+    SetSwapChain(SwapChainWhichImplementsDebug),
     Resize(Size2D<i32, DevicePixel>),
     Heartbeat,
     Stop,
@@ -164,24 +190,44 @@ const DEFAULT_FRAME_DURATION: Duration = Duration::from_micros(16_667);
 struct ServoThread {
     receiver: Receiver<ServoWebSrcMsg>,
     servo: Servo<ServoWebSrcWindow>,
+    swap_chain: Option<SwapChain<Device>>,
 }
 
 impl ServoThread {
-    fn new(receiver: Receiver<ServoWebSrcMsg>) -> Self {
-        let (connection, url) = match receiver.recv() {
-            Ok(ServoWebSrcMsg::Start(connection, url)) => (connection.0, url),
+    fn new(sender: Sender<ServoWebSrcMsg>, receiver: Receiver<ServoWebSrcMsg>) -> Self {
+        let (connection, url, webxr_mode, size) = match receiver.recv() {
+            Ok(ServoWebSrcMsg::Start(connection, url, webxr_mode, size)) => {
+                (connection.0, url, webxr_mode, size)
+            },
             e => panic!("Failed to start ({:?})", e),
         };
-        info!("Created new servo thread for {}", url);
-        let embedder = Box::new(ServoWebSrcEmbedder);
-        let window = Rc::new(ServoWebSrcWindow::new(connection));
-
+        info!("Created new servo thread for {} ({:?})", url, webxr_mode);
+        let window = Rc::new(ServoWebSrcWindow::new(connection, webxr_mode, sender, size));
+        let embedder = Box::new(ServoWebSrcEmbedder::new(&window));
+        let webrender_swap_chain = window
+            .webrender_surfman
+            .swap_chain()
+            .expect("Failed to get webrender swap chain")
+            .clone();
         let mut servo = Servo::new(embedder, window, None);
 
         let id = TopLevelBrowsingContextId::new();
         servo.handle_events(vec![WindowEvent::NewBrowser(url, id)]);
 
-        Self { receiver, servo }
+        let swap_chain = match webxr_mode {
+            None => Some(webrender_swap_chain),
+            Some(..) => {
+                set_pref!(dom.webxr.sessionavailable, true);
+                servo.handle_events(vec![WindowEvent::ChangeBrowserVisibility(id, false)]);
+                None
+            },
+        };
+
+        Self {
+            receiver,
+            servo,
+            swap_chain,
+        }
     }
 
     fn run(&mut self) {
@@ -190,6 +236,7 @@ impl ServoThread {
             match msg {
                 ServoWebSrcMsg::Start(..) => error!("Already started"),
                 ServoWebSrcMsg::GetSwapChain(sender) => self.send_swap_chain(sender),
+                ServoWebSrcMsg::SetSwapChain(swap_chain) => self.swap_chain = Some(swap_chain.0),
                 ServoWebSrcMsg::Resize(size) => self.resize(size),
                 ServoWebSrcMsg::Heartbeat => self.servo.handle_events(vec![]),
                 ServoWebSrcMsg::Stop => break,
@@ -199,17 +246,14 @@ impl ServoThread {
     }
 
     fn send_swap_chain(&mut self, sender: Sender<SwapChain<Device>>) {
-        let swap_chain = self
-            .servo
-            .window()
-            .webrender_surfman
-            .swap_chain()
-            .expect("Failed to get swap chain")
-            .clone();
-        sender.send(swap_chain).expect("Failed to send swap chain");
+        if let Some(ref swap_chain) = self.swap_chain {
+            debug!("Sending swap chain");
+            let _ = sender.send(swap_chain.clone());
+        }
     }
 
     fn resize(&mut self, size: Size2D<i32, DevicePixel>) {
+        debug!("Servo resized to {:?}", size);
         let _ = self
             .servo
             .window()
@@ -219,17 +263,50 @@ impl ServoThread {
     }
 }
 
-struct ServoWebSrcEmbedder;
+struct ServoWebSrcEmbedder {
+    webrender_surfman: WebrenderSurfman,
+    webxr_mode: Option<WebXRMode>,
+    sender: Sender<ServoWebSrcMsg>,
+}
 
-impl EmbedderMethods for ServoWebSrcEmbedder {
-    fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker> {
-        Box::new(ServoWebSrcEmbedder)
+impl ServoWebSrcEmbedder {
+    fn new(window: &ServoWebSrcWindow) -> ServoWebSrcEmbedder {
+        let webxr_mode = window.webxr_mode;
+        let sender = window.sender.clone();
+        let webrender_surfman = window.webrender_surfman.clone();
+        ServoWebSrcEmbedder {
+            webxr_mode,
+            webrender_surfman,
+            sender,
+        }
     }
 }
 
-impl EventLoopWaker for ServoWebSrcEmbedder {
+impl EmbedderMethods for ServoWebSrcEmbedder {
+    fn create_event_loop_waker(&mut self) -> Box<dyn EventLoopWaker> {
+        Box::new(ServoWebSrcEventLoopWaker)
+    }
+
+    fn register_webxr(&mut self, registry: &mut webxr::MainThreadRegistry, _: EmbedderProxy) {
+        let connection = self.webrender_surfman.connection();
+        let adapter = self.webrender_surfman.adapter();
+        let context_attributes = self.webrender_surfman.context_attributes();
+        let sender = self.sender.clone();
+        let webrender_surfman = self.webrender_surfman.clone();
+        let webxr_mode = self.webxr_mode;
+        let factory = Box::new(move || {
+            ServoWebSrcWebXR::new(webrender_surfman.clone(), webxr_mode, sender.clone())
+        });
+        let discovery = WebXRDiscovery::new(connection, adapter, context_attributes, factory);
+        registry.register(discovery);
+    }
+}
+
+struct ServoWebSrcEventLoopWaker;
+
+impl EventLoopWaker for ServoWebSrcEventLoopWaker {
     fn clone_box(&self) -> Box<dyn EventLoopWaker> {
-        Box::new(ServoWebSrcEmbedder)
+        Box::new(ServoWebSrcEventLoopWaker)
     }
 
     fn wake(&self) {}
@@ -237,19 +314,30 @@ impl EventLoopWaker for ServoWebSrcEmbedder {
 
 struct ServoWebSrcWindow {
     webrender_surfman: WebrenderSurfman,
+    webxr_mode: Option<WebXRMode>,
+    sender: Sender<ServoWebSrcMsg>,
 }
 
 impl ServoWebSrcWindow {
-    fn new(connection: Connection) -> Self {
+    fn new(
+        connection: Connection,
+        webxr_mode: Option<WebXRMode>,
+        sender: Sender<ServoWebSrcMsg>,
+        size: Size2D<i32, DevicePixel>,
+    ) -> Self {
         let adapter = connection
             .create_adapter()
             .expect("Failed to create adapter");
-        let size = Size2D::new(512, 512);
+        let size = size.to_untyped();
         let surface_type = SurfaceType::Generic { size };
         let webrender_surfman = WebrenderSurfman::create(&connection, &adapter, surface_type)
             .expect("Failed to create surfman");
 
-        Self { webrender_surfman }
+        Self {
+            webrender_surfman,
+            webxr_mode,
+            sender,
+        }
     }
 }
 
@@ -292,15 +380,88 @@ impl WindowMethods for ServoWebSrcWindow {
     }
 }
 
-static PROPERTIES: [Property; 1] = [Property("url", |name| {
-    ParamSpec::string(
-        name,
-        "URL",
-        "Initial URL",
-        Some(DEFAULT_URL),
-        glib::ParamFlags::READWRITE,
-    )
-})];
+struct ServoWebSrcWebXR {
+    webrender_surfman: WebrenderSurfman,
+    webxr_mode: Option<WebXRMode>,
+    sender: Sender<ServoWebSrcMsg>,
+}
+
+impl ServoWebSrcWebXR {
+    fn new(
+        webrender_surfman: WebrenderSurfman,
+        webxr_mode: Option<WebXRMode>,
+        sender: Sender<ServoWebSrcMsg>,
+    ) -> Result<Box<dyn WebXRWindow>, ()> {
+        Ok(Box::new(ServoWebSrcWebXR {
+            webrender_surfman,
+            webxr_mode,
+            sender,
+        }))
+    }
+}
+
+impl WebXRWindow for ServoWebSrcWebXR {
+    fn get_mode(&self) -> WebXRMode {
+        self.webxr_mode.unwrap()
+    }
+
+    fn get_render_target(&self, device: &mut Device, context: &mut Context) -> WebXRRenderTarget {
+        log::debug!("Creating webxr render target");
+        let size = self
+            .webrender_surfman
+            .context_surface_info()
+            .expect("Failed to get webrender size")
+            .expect("Failed to get webrender size")
+            .size;
+        let surface_access = SurfaceAccess::GPUOnly;
+        let surface_type = SurfaceType::Generic { size };
+        let surface = device
+            .create_surface(context, surface_access, surface_type)
+            .expect("Failed to create target surface");
+        device
+            .bind_surface_to_context(context, surface)
+            .expect("Failed to bind target surface");
+        let webxr_swap_chain = SwapChain::create_attached(device, context, surface_access)
+            .expect("Failed to create target swap chain");
+
+        log::debug!("Created webxr render target {:?}", size);
+        let _ = self
+            .sender
+            .send(ServoWebSrcMsg::SetSwapChain(SwapChainWhichImplementsDebug(
+                webxr_swap_chain.clone(),
+            )));
+        WebXRRenderTarget::SwapChain(webxr_swap_chain)
+    }
+
+    fn get_rotation(&self) -> Rotation3D<f32> {
+        Rotation3D::identity()
+    }
+
+    fn get_translation(&self) -> Vector3D<f32> {
+        Vector3D::zero()
+    }
+}
+
+static PROPERTIES: [Property; 2] = [
+    Property("url", |name| {
+        ParamSpec::string(
+            name,
+            "URL",
+            "Initial URL",
+            Some(DEFAULT_URL),
+            glib::ParamFlags::READWRITE,
+        )
+    }),
+    Property("webxr", |name| {
+        ParamSpec::string(
+            name,
+            "WebXR",
+            "Stream immersive WebXR content",
+            None,
+            glib::ParamFlags::READWRITE,
+        )
+    }),
+];
 
 const CAPS: &str = "video/x-raw(memory:GLMemory),
   format={RGBA,RGBx},
@@ -317,11 +478,13 @@ impl ObjectSubclass for ServoWebSrc {
     type Class = ClassStruct<Self>;
 
     fn new() -> Self {
-        let (sender, receiver) = crossbeam_channel::bounded(1);
-        thread::spawn(move || ServoThread::new(receiver).run());
+        let (sender, receiver) = crossbeam_channel::unbounded();
+        let sender_clone = sender.clone();
+        thread::spawn(move || ServoThread::new(sender_clone, receiver).run());
         let info = Mutex::new(None);
         let outcaps = Mutex::new(None);
         let url = Mutex::new(None);
+        let webxr_mode = Mutex::new(None);
         let buffer_pool = Mutex::new(None);
         let gl_context = Mutex::new(None);
         let connection = Mutex::new(None);
@@ -333,6 +496,7 @@ impl ObjectSubclass for ServoWebSrc {
             info,
             outcaps,
             url,
+            webxr_mode,
             buffer_pool,
             gl_context,
             connection,
@@ -379,6 +543,19 @@ impl ObjectImpl for ServoWebSrc {
                 let url = value.get().expect("Failed to get url value");
                 *guard = url;
             },
+            Property("webxr", ..) => {
+                let mut guard = self.webxr_mode.lock().expect("Failed to lock mutex");
+                let webxr_mode = match value.get().expect("Failed to get url value") {
+                    None | Some("none") => None,
+                    Some("blit") => Some(WebXRMode::Blit),
+                    Some("left-right") => Some(WebXRMode::StereoLeftRight),
+                    Some("red-cyan") => Some(WebXRMode::StereoRedCyan),
+                    Some("cubemap") => Some(WebXRMode::Cubemap),
+                    Some("spherical") => Some(WebXRMode::Spherical),
+                    Some(mode) => panic!("Unknown WebXR mode {}", mode),
+                };
+                *guard = webxr_mode;
+            },
             _ => unimplemented!(),
         }
     }
@@ -389,6 +566,18 @@ impl ObjectImpl for ServoWebSrc {
             Property("url", ..) => {
                 let guard = self.url.lock().expect("Failed to lock mutex");
                 Ok(Value::from(guard.as_ref()))
+            },
+            Property("webxr", ..) => {
+                let guard = self.webxr_mode.lock().expect("Failed to lock mutex");
+                let webxr_mode = match guard.as_ref() {
+                    Some(WebXRMode::Blit) => Some("blit"),
+                    Some(WebXRMode::StereoLeftRight) => Some("left-right"),
+                    Some(WebXRMode::StereoRedCyan) => Some("red-cyan"),
+                    Some(WebXRMode::Cubemap) => Some("cubemap"),
+                    Some(WebXRMode::Spherical) => Some("spherical"),
+                    None => None,
+                };
+                Ok(Value::from(webxr_mode))
             },
             _ => unimplemented!(),
         }
@@ -501,7 +690,6 @@ impl BaseSrcImpl for ServoWebSrc {
 
         let data = &mut task as *mut FillOnGLThread as *mut c_void;
         unsafe { gst_gl_context_thread_add(gl_memory.mem.context, Some(fill_on_gl_thread), data) };
-        task.result?;
 
         // Put down a GL sync point if needed
         if let Some(meta) = buffer.get_meta::<GLSyncMeta>() {
@@ -510,7 +698,10 @@ impl BaseSrcImpl for ServoWebSrc {
         }
 
         // Wake up Servo
+        debug!("Sending heartbeat");
         let _ = self.sender.send(ServoWebSrcMsg::Heartbeat);
+
+        task.result?;
         Ok(buffer)
     }
 }
@@ -569,9 +760,19 @@ impl ServoWebSrc {
             error!("Failed to parse url {} ({:?})", url_string, e);
             FlowError::Error
         })?;
+        let size = self
+            .info
+            .lock()
+            .expect("Poisoned mutex")
+            .as_ref()
+            .map(|info| Size2D::new(info.width() as i32, info.height() as i32))
+            .unwrap_or(Size2D::new(512, 512));
+        let webxr_mode = *self.webxr_mode.lock().expect("Poisoned mutex");
         let _ = self.sender.send(ServoWebSrcMsg::Start(
             ConnectionWhichImplementsDebug(connection),
             url,
+            webxr_mode,
+            size,
         ));
 
         // Create a new buffer pool for GL memory
@@ -702,17 +903,14 @@ impl ServoWebSrc {
                         .expect("Failed to bootstrap surfman context")
                 };
 
+                let swap_chain = None;
+
                 debug!("Creating GL bindings");
                 let gl = Gl::gl_fns(gl::ffi_gl::Gl::load_with(|s| {
                     gl_context.get_proc_address(s) as *const _
                 }));
                 let draw_fbo = gl.gen_framebuffers(1)[0];
                 let read_fbo = gl.gen_framebuffers(1)[0];
-
-                debug!("Getting the swap chain");
-                let (acks, ackr) = crossbeam_channel::bounded(1);
-                let _ = self.sender.send(ServoWebSrcMsg::GetSwapChain(acks));
-                let swap_chain = ackr.recv().expect("Failed to get swap chain");
 
                 ServoWebSrcGfx {
                     device,
@@ -723,6 +921,13 @@ impl ServoWebSrc {
                     draw_fbo,
                 }
             });
+
+            if gfx.swap_chain.is_none() {
+                debug!("Getting the swap chain");
+                let (acks, ackr) = crossbeam_channel::bounded(1);
+                let _ = self.sender.send(ServoWebSrcMsg::GetSwapChain(acks));
+                gfx.swap_chain = ackr.recv_timeout(Duration::from_millis(16)).ok();
+            }
 
             gfx.device
                 .make_context_current(&gfx.context)
@@ -753,7 +958,11 @@ impl ServoWebSrc {
             gfx.gl.clear(gl::COLOR_BUFFER_BIT);
             debug_assert_eq!(gfx.gl.get_error(), gl::NO_ERROR);
 
-            if let Some(surface) = gfx.swap_chain.take_surface() {
+            if let Some((swap_chain, surface)) = gfx.swap_chain.as_ref().and_then(|swap_chain| {
+                swap_chain
+                    .take_surface()
+                    .map(|surface| (swap_chain, surface))
+            }) {
                 debug!("Rendering surface");
                 let surface_size = Size2D::from_untyped(gfx.device.surface_info(&surface).size);
                 if size != surface_size {
@@ -764,7 +973,7 @@ impl ServoWebSrc {
 
                 if size.width <= 0 || size.height <= 0 {
                     info!("Surface is zero-sized");
-                    gfx.swap_chain.recycle_surface(surface);
+                    swap_chain.recycle_surface(surface);
                     return;
                 }
 
@@ -833,9 +1042,9 @@ impl ServoWebSrc {
                     .device
                     .destroy_surface_texture(&mut gfx.context, surface_texture)
                     .unwrap();
-                gfx.swap_chain.recycle_surface(surface);
+                swap_chain.recycle_surface(surface);
             } else {
-                debug!("Failed to get current surface");
+                warn!("Failed to get current surface");
             }
 
             // Restore the GL state

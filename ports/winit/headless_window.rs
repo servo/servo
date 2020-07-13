@@ -18,8 +18,8 @@ use servo::webrender_surfman::WebrenderSurfman;
 use std::cell::Cell;
 use std::rc::Rc;
 use surfman::Connection;
+use surfman::Context;
 use surfman::Device;
-use surfman::NativeWidget;
 use surfman::SurfaceType;
 
 pub struct Window {
@@ -148,7 +148,7 @@ impl WindowMethods for Window {
 }
 
 impl webxr::glwindow::GlWindow for Window {
-    fn get_native_widget(&self, _device: &Device) -> NativeWidget {
+    fn get_render_target(&self, _device: &mut Device, _context: &mut Context) -> webxr::glwindow::GlWindowRenderTarget {
         unimplemented!()
     }
 

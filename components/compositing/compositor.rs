@@ -1689,6 +1689,9 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
         // Run the WebXR main thread
         self.webxr_main_thread.run_one_frame();
 
+        // The WebXR thread may make a different context current
+        let _ = self.webrender_surfman.make_gl_context_current();
+
         if !self.pending_scroll_zoom_events.is_empty() && !self.waiting_for_results_of_scroll {
             self.process_pending_scroll_events()
         }

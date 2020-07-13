@@ -32,6 +32,7 @@ sparkle = "0.1"
 surfman = "0.3"
 surfman-chains = "0.4"
 surfman-chains-api = "0.2"
+webxr = { git = "https://github.com/servo/webxr", features = ["glwindow"] }
 
 [build-dependencies]
 gst-plugin-version-helper = "0.2"

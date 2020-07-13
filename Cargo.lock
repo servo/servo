@@ -5072,6 +5072,7 @@ dependencies = [
  "surfman",
  "surfman-chains",
  "surfman-chains-api",
+ "webxr",
 ]
 
 [[package]]
@@ -6778,7 +6779,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#d9ec2263b017d9c415ce35e0f4417a454564bcf2"
+source = "git+https://github.com/servo/webxr#3e731eac4180f739e85f8b6b9dacbc5a2015aec8"
 dependencies = [
  "android_injected_glue",
  "bindgen",
@@ -6801,7 +6802,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#d9ec2263b017d9c415ce35e0f4417a454564bcf2"
+source = "git+https://github.com/servo/webxr#3e731eac4180f739e85f8b6b9dacbc5a2015aec8"
 dependencies = [
  "euclid",
  "ipc-channel",
