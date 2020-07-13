@@ -159,7 +159,13 @@ impl ActorRegistry {
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
     ) -> Result<(), ()> {
-        let to = msg.get("to").unwrap().as_str().unwrap();
+        let to = match msg.get("to") {
+            Some(to) => to.as_str().unwrap(),
+            None => {
+                warn!("Received unexpected message: {:?}", msg);
+                return Err(());
+            },
+        };
 
         match self.actors.get(to) {
             None => debug!("message received for unknown actor \"{}\"", to),

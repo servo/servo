@@ -7,9 +7,9 @@
 /// Connection point for all new remote devtools interactions, providing lists of know actors
 /// that perform more specific actions (targets, addons, browser chrome, etc.)
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
-use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::device::DeviceActor;
 use crate::actors::performance::PerformanceActor;
+use crate::actors::tab::{TabDescriptorActor, TabDescriptorActorMsg};
 use crate::actors::worker::{WorkerActor, WorkerMsg};
 use crate::protocol::{ActorDescription, JsonPacketStream};
 use serde_json::{Map, Value};
@@ -45,13 +45,13 @@ struct GetRootReply {
 struct ListTabsReply {
     from: String,
     selected: u32,
-    tabs: Vec<BrowsingContextActorMsg>,
+    tabs: Vec<TabDescriptorActorMsg>,
 }
 
 #[derive(Serialize)]
 struct GetTabReply {
     from: String,
-    tab: BrowsingContextActorMsg,
+    tab: TabDescriptorActorMsg,
 }
 
 #[derive(Serialize)]
@@ -181,7 +181,11 @@ impl Actor for RootActor {
                     tabs: self
                         .tabs
                         .iter()
-                        .map(|target| registry.find::<BrowsingContextActor>(target).encodable())
+                        .map(|target| {
+                            registry
+                                .find::<TabDescriptorActor>(target)
+                                .encodable(&registry)
+                        })
                         .collect(),
                 };
                 stream.write_json_packet(&actor);
@@ -211,10 +215,10 @@ impl Actor for RootActor {
             },
 
             "getTab" => {
-                let tab = registry.find::<BrowsingContextActor>(&self.tabs[0]);
+                let tab = registry.find::<TabDescriptorActor>(&self.tabs[0]);
                 let reply = GetTabReply {
                     from: self.name(),
-                    tab: tab.encodable(),
+                    tab: tab.encodable(&registry),
                 };
                 stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed

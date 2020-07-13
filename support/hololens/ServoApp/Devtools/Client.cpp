@@ -113,24 +113,11 @@ void DevtoolsClient::HandleMessage(JsonObject obj) {
     } else if (obj.HasKey(L"tab")) {
       // Got the current tab.
       auto tab = obj.GetNamedObject(L"tab");
-      if (tab.HasKey(L"actor")) {
-        // Attach to tab, and ask for cached messaged
-        JsonObject msg1;
-        mConsoleActor = tab.GetNamedValue(L"consoleActor");
-        msg1.Insert(L"to", tab.GetNamedValue(L"actor"));
-        msg1.Insert(L"type", JsonValue::CreateStringValue(L"attach"));
-        Send(msg1);
-        JsonObject msg2;
-        msg2.Insert(L"to", *mConsoleActor);
-        msg2.Insert(L"type",
-                    JsonValue::CreateStringValue(L"getCachedMessages"));
-        JsonArray types;
-        types.Append(JsonValue::CreateStringValue(L"PageError"));
-        types.Append(JsonValue::CreateStringValue(L"ConsoleAPI"));
-        msg2.Insert(L"messageTypes", types);
-        Send(msg2);
-        return;
-      }
+      JsonObject out;
+      out.Insert(L"to", tab.GetNamedValue(L"actor"));
+      out.Insert(L"type", JsonValue::CreateStringValue(L"getTarget"));
+      Send(out);
+      return;
     }
   } else if (obj.HasKey(L"resultID")) {
     // evaluateJSAsync response.
@@ -163,6 +150,23 @@ void DevtoolsClient::HandleMessage(JsonObject obj) {
       // FIXME: log if there is a non-200 HTTP response
       return;
     }
+  } else if (obj.HasKey(L"frame")) {
+    auto frame = obj.GetNamedObject(L"frame");
+    // Attach to tab, and ask for cached messaged
+    JsonObject msg1;
+    mConsoleActor = frame.GetNamedValue(L"consoleActor");
+    msg1.Insert(L"to", frame.GetNamedValue(L"actor"));
+    msg1.Insert(L"type", JsonValue::CreateStringValue(L"attach"));
+    Send(msg1);
+    JsonObject msg2;
+    msg2.Insert(L"to", *mConsoleActor);
+    msg2.Insert(L"type", JsonValue::CreateStringValue(L"getCachedMessages"));
+    JsonArray types;
+    types.Append(JsonValue::CreateStringValue(L"PageError"));
+    types.Append(JsonValue::CreateStringValue(L"ConsoleAPI"));
+    msg2.Insert(L"messageTypes", types);
+    Send(msg2);
+    return;
   } else if (obj.HasKey(L"messages")) {
     // Response to getCachedMessages
     for (auto messageValue : obj.GetNamedArray(L"messages")) {
