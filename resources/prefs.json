@@ -18,6 +18,7 @@
   "dom.offscreen_canvas.enabled": false,
   "dom.permissions.enabled": false,
   "dom.permissions.testing.allowed_in_nonsecure_contexts": false,
+  "dom.script.asynch": true,
   "dom.serviceworker.enabled": false,
   "dom.serviceworker.timeout_seconds": 60,
   "dom.servo_helpers.enabled": false,

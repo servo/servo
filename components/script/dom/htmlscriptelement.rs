@@ -13,6 +13,7 @@ use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::AutoEntryScript;
 use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::document::Document;
 use crate::dom::element::{
     cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
@@ -27,15 +28,25 @@ use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
+use crate::realms::enter_realm;
 use crate::script_module::fetch_inline_module_script;
 use crate::script_module::{fetch_external_module_script, ModuleOwner, ScriptFetchOptions};
+use crate::task::TaskCanceller;
+use crate::task_source::dom_manipulation::DOMManipulationTaskSource;
+use crate::task_source::TaskSource;
+use crate::task_source::TaskSourceName;
 use content_security_policy as csp;
+use core::ffi::c_void;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
 use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
+use js::jsapi::{
+    CanCompileOffThread, CompileOffThread, FinishOffThreadScript, Heap, JSScript, OffThreadToken,
+};
 use js::jsval::UndefinedValue;
+use js::rust::{transform_u16_to_source_text, CompileOptionsWrapper};
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder,
@@ -43,17 +54,95 @@ use net_traits::request::{
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_atoms::Atom;
+use servo_config::pref;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{Read, Seek, Write};
+use std::mem::replace;
 use std::path::PathBuf;
 use std::process::Command;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use style::str::{StaticStringVec, HTML_SPACE_CHARACTERS};
 use uuid::Uuid;
+
+pub struct OffThreadCompilationContext {
+    script_element: Trusted<HTMLScriptElement>,
+    script_kind: ExternalScriptKind,
+    final_url: ServoUrl,
+    url: ServoUrl,
+    task_source: DOMManipulationTaskSource,
+    canceller: TaskCanceller,
+    script_text: String,
+    utf16_chars: Vec<u16>,
+    fetch_options: ScriptFetchOptions,
+}
+
+/// A wrapper to mark OffThreadToken as Send,
+/// which should be safe according to
+/// mozjs/js/public/OffThreadScriptCompilation.h
+struct OffThreadCompilationToken(*mut OffThreadToken);
+
+#[allow(unsafe_code)]
+unsafe impl Send for OffThreadCompilationToken {}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn off_thread_compilation_callback(
+    token: *mut OffThreadToken,
+    callback_data: *mut c_void,
+) {
+    let mut context = Box::from_raw(callback_data as *mut OffThreadCompilationContext);
+    let token = OffThreadCompilationToken(token);
+
+    let url = context.url.clone();
+    let final_url = context.final_url.clone();
+    let script_element = context.script_element.clone();
+    let script_kind = context.script_kind.clone();
+    let script = replace(&mut context.script_text, String::new());
+    let fetch_options = context.fetch_options.clone();
+
+    // Continue with <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
+    let _ = context.task_source.queue_with_canceller(
+        task!(off_thread_compile_continue: move || {
+            let elem = script_element.root();
+            let global = elem.global();
+            let cx = global.get_cx();
+            let _ar = enter_realm(&*global);
+
+            rooted!(in(*cx)
+                let compiled_script = FinishOffThreadScript(*cx, token.0)
+            );
+
+            let load = if compiled_script.get().is_null() {
+                Err(NetworkError::Internal(
+                    "Off-thread compilation failed.".into(),
+                ))
+            } else {
+                let script_text = DOMString::from(script);
+                let heap = Heap::default();
+                let source_code = RootedTraceableBox::new(heap);
+                source_code.set(compiled_script.get());
+                let code = SourceCode::Compiled(CompiledSourceCode {
+                    source_code: source_code,
+                    original_text: Rc::new(script_text),
+                });
+
+                Ok(ScriptOrigin {
+                    code,
+                    url: final_url,
+                    external: true,
+                    fetch_options: fetch_options,
+                    type_: ScriptType::Classic,
+                })
+            };
+
+            finish_fetching_a_classic_script(&*elem, script_kind, url, load);
+        }),
+        &context.canceller,
+    );
+}
 
 /// An unique id for script element.
 #[derive(Clone, Copy, Debug, Eq, Hash, JSTraceable, PartialEq)]
@@ -151,9 +240,23 @@ pub enum ScriptType {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+pub struct CompiledSourceCode {
+    #[ignore_malloc_size_of = "SM handles JS values"]
+    pub source_code: RootedTraceableBox<Heap<*mut JSScript>>,
+    #[ignore_malloc_size_of = "Rc is hard"]
+    pub original_text: Rc<DOMString>,
+}
+
+#[derive(JSTraceable)]
+pub enum SourceCode {
+    Text(Rc<DOMString>),
+    Compiled(CompiledSourceCode),
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
 pub struct ScriptOrigin {
     #[ignore_malloc_size_of = "Rc is hard"]
-    text: Rc<DOMString>,
+    code: SourceCode,
     url: ServoUrl,
     external: bool,
     fetch_options: ScriptFetchOptions,
@@ -168,7 +271,7 @@ impl ScriptOrigin {
         type_: ScriptType,
     ) -> ScriptOrigin {
         ScriptOrigin {
-            text: text,
+            code: SourceCode::Text(text),
             url: url,
             external: false,
             fetch_options,
@@ -183,7 +286,7 @@ impl ScriptOrigin {
         type_: ScriptType,
     ) -> ScriptOrigin {
         ScriptOrigin {
-            text: text,
+            code: SourceCode::Text(text),
             url: url,
             external: true,
             fetch_options,
@@ -192,8 +295,35 @@ impl ScriptOrigin {
     }
 
     pub fn text(&self) -> Rc<DOMString> {
-        Rc::clone(&self.text)
+        match &self.code {
+            SourceCode::Text(text) => Rc::clone(&text),
+            SourceCode::Compiled(compiled_script) => Rc::clone(&compiled_script.original_text),
+        }
     }
+}
+
+/// Final steps of <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
+fn finish_fetching_a_classic_script(
+    elem: &HTMLScriptElement,
+    script_kind: ExternalScriptKind,
+    url: ServoUrl,
+    load: ScriptResult,
+) {
+    // Step 11, Asynchronously complete this algorithm with script,
+    // which refers to step 26.6 "When the chosen algorithm asynchronously completes",
+    // of https://html.spec.whatwg.org/multipage/#prepare-a-script
+    let document = document_from_node(&*elem);
+
+    match script_kind {
+        ExternalScriptKind::Asap => document.asap_script_loaded(&elem, load),
+        ExternalScriptKind::AsapInOrder => document.asap_in_order_script_loaded(&elem, load),
+        ExternalScriptKind::Deferred => document.deferred_script_loaded(&elem, load),
+        ExternalScriptKind::ParsingBlocking => {
+            document.pending_parsing_blocking_script_loaded(&elem, load)
+        },
+    }
+
+    document.finish_load(LoadType::Script(url));
 }
 
 pub type ScriptResult = Result<ScriptOrigin, NetworkError>;
@@ -261,43 +391,79 @@ impl FetchResponseListener for ClassicContext {
 
     /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
     /// step 4-9
+    #[allow(unsafe_code)]
     fn process_response_eof(&mut self, response: Result<ResourceFetchTiming, NetworkError>) {
-        // Step 5.
-        let load = response.and(self.status.clone()).map(|_| {
-            let metadata = self.metadata.take().unwrap();
+        let (source_text, final_url) = match (response.as_ref(), self.status.as_ref()) {
+            (Err(err), _) | (_, Err(err)) => {
+                // Step 6, response is an error.
+                finish_fetching_a_classic_script(
+                    &*self.elem.root(),
+                    self.kind.clone(),
+                    self.url.clone(),
+                    Err(err.clone()),
+                );
+                return;
+            },
+            (Ok(_), Ok(_)) => {
+                let metadata = self.metadata.take().unwrap();
 
-            // Step 6.
-            let encoding = metadata
-                .charset
-                .and_then(|encoding| Encoding::for_label(encoding.as_bytes()))
-                .unwrap_or(self.character_encoding);
+                // Step 7.
+                let encoding = metadata
+                    .charset
+                    .and_then(|encoding| Encoding::for_label(encoding.as_bytes()))
+                    .unwrap_or(self.character_encoding);
 
-            // Step 7.
-            let (source_text, _, _) = encoding.decode(&self.data);
-            ScriptOrigin::external(
+                // Step 8.
+                let (source_text, _, _) = encoding.decode(&self.data);
+                (source_text, metadata.final_url)
+            },
+        };
+
+        let elem = self.elem.root();
+        let global = elem.global();
+        let cx = global.get_cx();
+        let _ar = enter_realm(&*global);
+
+        let options =
+            unsafe { CompileOptionsWrapper::new(*cx, final_url.as_str().as_ptr() as *const i8, 1) };
+
+        let can_compile_off_thread = pref!(dom.script.asynch) &&
+            unsafe { CanCompileOffThread(*cx, options.ptr as *const _, source_text.len()) };
+
+        if can_compile_off_thread {
+            let source_string = source_text.to_string();
+            let source_text: Vec<u16> = source_text.encode_utf16().collect();
+
+            let context = Box::new(OffThreadCompilationContext {
+                script_element: self.elem.clone(),
+                script_kind: self.kind.clone(),
+                final_url,
+                url: self.url.clone(),
+                task_source: global.dom_manipulation_task_source(),
+                canceller: global.task_canceller(TaskSourceName::DOMManipulation),
+                script_text: source_string,
+                utf16_chars: source_text,
+                fetch_options: self.fetch_options.clone(),
+            });
+
+            unsafe {
+                assert!(CompileOffThread(
+                    *cx,
+                    options.ptr as *const _,
+                    &mut transform_u16_to_source_text(&context.utf16_chars) as *mut _,
+                    Some(off_thread_compilation_callback),
+                    Box::into_raw(context) as *mut c_void,
+                ));
+            }
+        } else {
+            let load = ScriptOrigin::external(
                 Rc::new(DOMString::from(source_text)),
-                metadata.final_url,
+                final_url.clone(),
                 self.fetch_options.clone(),
                 ScriptType::Classic,
-            )
-        });
-
-        // Step 9.
-        // https://html.spec.whatwg.org/multipage/#prepare-a-script
-        // Step 18.6 (When the chosen algorithm asynchronously completes).
-        let elem = self.elem.root();
-        let document = document_from_node(&*elem);
-
-        match self.kind {
-            ExternalScriptKind::Asap => document.asap_script_loaded(&elem, load),
-            ExternalScriptKind::AsapInOrder => document.asap_in_order_script_loaded(&elem, load),
-            ExternalScriptKind::Deferred => document.deferred_script_loaded(&elem, load),
-            ExternalScriptKind::ParsingBlocking => {
-                document.pending_parsing_blocking_script_loaded(&elem, load)
-            },
+            );
+            finish_fetching_a_classic_script(&*elem, self.kind.clone(), self.url.clone(), Ok(load));
         }
-
-        document.finish_load(LoadType::Script(self.url.clone()));
     }
 
     fn resource_timing_mut(&mut self) -> &mut ResourceFetchTiming {
@@ -702,7 +868,16 @@ impl HTMLScriptElement {
         // unminified content.
         let (input, output) = (tempfile::NamedTempFile::new(), tempfile::tempfile());
         if let (Ok(mut input), Ok(mut output)) = (input, output) {
-            input.write_all(script.text.as_bytes()).unwrap();
+            match &script.code {
+                SourceCode::Text(text) => {
+                    input.write_all(text.as_bytes()).unwrap();
+                },
+                SourceCode::Compiled(compiled_source_code) => {
+                    input
+                        .write_all(compiled_source_code.original_text.as_bytes())
+                        .unwrap();
+                },
+            }
             match Command::new("js-beautify")
                 .arg(input.path())
                 .stdout(output.try_clone().unwrap())
@@ -712,7 +887,7 @@ impl HTMLScriptElement {
                     let mut script_content = String::new();
                     output.seek(std::io::SeekFrom::Start(0)).unwrap();
                     output.read_to_string(&mut script_content).unwrap();
-                    script.text = Rc::new(DOMString::from(script_content));
+                    script.code = SourceCode::Text(Rc::new(DOMString::from(script_content)));
                 },
                 _ => {
                     warn!("Failed to execute js-beautify. Will store unmodified script");
@@ -763,7 +938,13 @@ impl HTMLScriptElement {
         debug!("script will be stored in {:?}", path);
 
         match File::create(&path) {
-            Ok(mut file) => file.write_all(script.text.as_bytes()).unwrap(),
+            Ok(mut file) => match &script.code {
+                SourceCode::Text(text) => file.write_all(text.as_bytes()).unwrap(),
+                SourceCode::Compiled(compiled_source_code) => {
+                    file.write_all(compiled_source_code.original_text.as_bytes())
+                        .unwrap();
+                },
+            },
             Err(why) => warn!("Could not store script {:?}", why),
         }
     }
@@ -790,7 +971,7 @@ impl HTMLScriptElement {
         match read_to_string(path.clone()) {
             Ok(local_script) => {
                 debug!("Found script stored at: {:?}", path);
-                script.text = Rc::new(DOMString::from(local_script));
+                script.code = SourceCode::Text(Rc::new(DOMString::from(local_script)));
             },
             Err(why) => warn!("Could not restore script from file {:?}", why),
         }
@@ -880,7 +1061,7 @@ impl HTMLScriptElement {
         rooted!(in(*window.get_cx()) let mut rval = UndefinedValue());
         let global = window.upcast::<GlobalScope>();
         global.evaluate_script_on_global_with_result(
-            &script.text,
+            &script.code,
             script.url.as_str(),
             rval.handle_mut(),
             line_number,

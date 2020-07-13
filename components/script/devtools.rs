@@ -14,6 +14,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::document::AnimationFrameCallback;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlscriptelement::SourceCode;
 use crate::dom::node::{window_from_node, Node, ShadowIncluding};
 use crate::realms::enter_realm;
 use crate::script_module::ScriptFetchOptions;
@@ -25,6 +26,7 @@ use js::jsval::UndefinedValue;
 use js::rust::wrappers::ObjectClassName;
 use msg::constellation_msg::PipelineId;
 use std::ffi::CStr;
+use std::rc::Rc;
 use std::str;
 use uuid::Uuid;
 
@@ -35,8 +37,9 @@ pub fn handle_evaluate_js(global: &GlobalScope, eval: String, reply: IpcSender<E
         let cx = global.get_cx();
         let _ac = enter_realm(global);
         rooted!(in(*cx) let mut rval = UndefinedValue());
+        let source_code = SourceCode::Text(Rc::new(DOMString::from_string(eval)));
         global.evaluate_script_on_global_with_result(
-            &eval,
+            &source_code,
             "<eval>",
             rval.handle_mut(),
             1,

@@ -77,8 +77,10 @@ use hyper::Method;
 use hyper::StatusCode;
 use indexmap::IndexMap;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
-use js::glue::{CallObjectTracer, CallStringTracer, CallValueTracer};
-use js::jsapi::{GCTraceKindToAscii, Heap, JSObject, JSString, JSTracer, JobQueue, TraceKind};
+use js::glue::{CallObjectTracer, CallScriptTracer, CallStringTracer, CallValueTracer};
+use js::jsapi::{
+    GCTraceKindToAscii, Heap, JSObject, JSScript, JSString, JSTracer, JobQueue, TraceKind,
+};
 use js::jsval::JSVal;
 use js::rust::{GCMethods, Handle, Runtime};
 use js::typedarray::TypedArray;
@@ -219,6 +221,18 @@ unsafe_no_jsmanaged_fields!(Cow<'static, str>);
 
 unsafe_no_jsmanaged_fields!(CspList);
 
+/// Trace a `JSScript`.
+pub fn trace_script(tracer: *mut JSTracer, description: &str, script: &Heap<*mut JSScript>) {
+    unsafe {
+        trace!("tracing {}", description);
+        CallScriptTracer(
+            tracer,
+            script.ptr.get() as *mut _,
+            GCTraceKindToAscii(TraceKind::Script),
+        );
+    }
+}
+
 /// Trace a `JSVal`.
 pub fn trace_jsval(tracer: *mut JSTracer, description: &str, val: &Heap<JSVal>) {
     unsafe {
@@ -325,6 +339,15 @@ unsafe impl<T: JSTraceable> JSTraceable for DomRefCell<T> {
 unsafe impl<T: JSTraceable> JSTraceable for RefCell<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         (*self).borrow().trace(trc)
+    }
+}
+
+unsafe impl JSTraceable for Heap<*mut JSScript> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        if self.get().is_null() {
+            return;
+        }
+        trace_script(trc, "heap script", self);
     }
 }
 
