@@ -766,6 +766,14 @@ pub extern "C" fn change_visibility(visible: bool) {
     });
 }
 
+#[no_mangle]
+pub extern "C" fn ime_dismissed() {
+    catch_any_panic(|| {
+        debug!("ime_dismissed");
+        call(|s| s.ime_dismissed());
+    });
+}
+
 pub struct WakeupCallback(extern "C" fn());
 
 impl WakeupCallback {

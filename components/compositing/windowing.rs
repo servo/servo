@@ -102,6 +102,8 @@ pub enum WindowEvent {
     MediaSessionAction(MediaSessionActionType),
     /// Set browser visibility. A hidden browser will not tick the animations.
     ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
+    /// Virtual keyboard was dismissed
+    IMEDismissed,
 }
 
 impl Debug for WindowEvent {
@@ -134,6 +136,7 @@ impl Debug for WindowEvent {
             WindowEvent::ExitFullScreen(..) => write!(f, "ExitFullScreen"),
             WindowEvent::MediaSessionAction(..) => write!(f, "MediaSessionAction"),
             WindowEvent::ChangeBrowserVisibility(..) => write!(f, "ChangeBrowserVisibility"),
+            WindowEvent::IMEDismissed => write!(f, "IMEDismissed"),
         }
     }
 }

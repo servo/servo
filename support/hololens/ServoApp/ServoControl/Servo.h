@@ -88,6 +88,7 @@ public:
   void ContextMenuClosed(CContextMenuResult res, unsigned int idx) {
     on_context_menu_closed(res, idx);
   }
+  void IMEDismissed() { ime_dismissed(); }
 
 private:
   ServoDelegate &mDelegate;

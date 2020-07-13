@@ -1722,6 +1722,13 @@ impl Document {
         self.window.reflow(ReflowGoal::Full, ReflowReason::KeyEvent);
     }
 
+    pub fn ime_dismissed(&self) {
+        self.request_focus(
+            self.GetBody().as_ref().map(|e| &*e.upcast()),
+            FocusType::Element,
+        )
+    }
+
     pub fn dispatch_composition_event(
         &self,
         composition_event: ::keyboard_types::CompositionEvent,

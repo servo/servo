@@ -91,6 +91,12 @@ void ServoControl::OnLoaded(IInspectable const &, RoutedEventArgs const &) {
 
 void ServoControl::InitializeTextController() {
   mInputPane = Windows::UI::ViewManagement::InputPane::GetForCurrentView();
+  mInputPane->Hiding([=](const auto &, const auto &) {
+    if (mLooping) {
+      RunOnGLThread([=] { mServo->IMEDismissed(); });
+    }
+  });
+
   auto manager = CoreTextServicesManager::GetForCurrentView();
   mEditContext = manager.CreateEditContext();
   mEditContext->InputPaneDisplayPolicy(CoreTextInputPaneDisplayPolicy::Manual);

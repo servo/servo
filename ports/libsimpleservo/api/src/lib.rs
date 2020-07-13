@@ -560,6 +560,11 @@ impl ServoGlue {
         }
     }
 
+    pub fn ime_dismissed(&mut self) -> Result<(), &'static str> {
+        info!("ime_dismissed");
+        self.process_event(WindowEvent::IMEDismissed)
+    }
+
     pub fn on_context_menu_closed(
         &mut self,
         result: ContextMenuResult,
