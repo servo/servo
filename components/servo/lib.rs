@@ -663,6 +663,16 @@ where
                 }
             },
 
+            WindowEvent::IMEDismissed => {
+                let msg = ConstellationMsg::IMEDismissed;
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!(
+                        "Sending IMEDismissed event to constellation failed ({:?}).",
+                        e
+                    );
+                }
+            },
+
             WindowEvent::Quit => {
                 self.compositor.maybe_start_shutting_down();
             },

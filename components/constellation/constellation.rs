@@ -1470,6 +1470,9 @@ where
             FromCompositorMsg::Keyboard(key_event) => {
                 self.handle_key_msg(key_event);
             },
+            FromCompositorMsg::IMEDismissed => {
+                self.handle_ime_dismissed();
+            },
             // Perform a navigation previously requested by script, if approved by the embedder.
             // If there is already a pending page (self.pending_changes), it will not be overridden;
             // However, if the id is not encompassed by another change, it will be.
@@ -4072,6 +4075,39 @@ where
 
         let session_history = self.get_joint_session_history(top_level_browsing_context_id);
         session_history.replace_history_state(pipeline_id, history_state_id, url);
+    }
+
+    fn handle_ime_dismissed(&mut self) {
+        // Send to the focused browsing contexts' current pipeline.
+        let focused_browsing_context_id = self
+            .active_browser_id
+            .and_then(|browser_id| self.browsers.get(&browser_id))
+            .map(|browser| browser.focused_browsing_context_id);
+        if let Some(browsing_context_id) = focused_browsing_context_id {
+            let pipeline_id = match self.browsing_contexts.get(&browsing_context_id) {
+                Some(ctx) => ctx.pipeline_id,
+                None => {
+                    return warn!(
+                        "Got IME dismissed event for nonexistent browsing context {}.",
+                        browsing_context_id,
+                    );
+                },
+            };
+            let msg =
+                ConstellationControlMsg::SendEvent(pipeline_id, CompositorEvent::IMEDismissedEvent);
+            let result = match self.pipelines.get(&pipeline_id) {
+                Some(pipeline) => pipeline.event_loop.send(msg),
+                None => {
+                    return debug!(
+                        "Pipeline {:?} got IME dismissed event after closure.",
+                        pipeline_id
+                    );
+                },
+            };
+            if let Err(e) = result {
+                self.handle_send_error(pipeline_id, e);
+            }
+        }
     }
 
     fn handle_key_msg(&mut self, event: KeyboardEvent) {

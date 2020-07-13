@@ -109,6 +109,8 @@ pub enum ConstellationMsg {
     MediaSessionAction(MediaSessionActionType),
     /// Toggle browser visibility.
     ChangeBrowserVisibility(TopLevelBrowsingContextId, bool),
+    /// Virtual keyboard was dismissed
+    IMEDismissed,
 }
 
 impl fmt::Debug for ConstellationMsg {
@@ -140,6 +142,7 @@ impl fmt::Debug for ConstellationMsg {
             ExitFullScreen(..) => "ExitFullScreen",
             MediaSessionAction(..) => "MediaSessionAction",
             ChangeBrowserVisibility(..) => "ChangeBrowserVisibility",
+            IMEDismissed => "IMEDismissed",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }

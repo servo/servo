@@ -570,6 +570,8 @@ pub enum CompositorEvent {
     KeyboardEvent(KeyboardEvent),
     /// An event from the IME is dispatched.
     CompositionEvent(CompositionEvent),
+    /// Virtual keyboard was dismissed
+    IMEDismissedEvent,
 }
 
 /// Requests a TimerEvent-Message be sent after the given duration.

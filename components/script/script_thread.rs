@@ -129,8 +129,8 @@ use profile_traits::time::{self as profile_time, profile, ProfilerCategory};
 use script_layout_interface::message::{self, LayoutThreadInit, Msg, ReflowGoal};
 use script_traits::webdriver_msg::WebDriverScriptCommand;
 use script_traits::CompositorEvent::{
-    CompositionEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent, ResizeEvent, TouchEvent,
-    WheelEvent,
+    CompositionEvent, IMEDismissedEvent, KeyboardEvent, MouseButtonEvent, MouseMoveEvent,
+    ResizeEvent, TouchEvent, WheelEvent,
 };
 use script_traits::{
     AnimationTickType, CompositorEvent, ConstellationControlMsg, DiscardBrowsingContext,
@@ -3581,6 +3581,14 @@ impl ScriptThread {
                     None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
                 };
                 document.dispatch_key_event(key_event);
+            },
+
+            IMEDismissedEvent => {
+                let document = match self.documents.borrow().find_document(pipeline_id) {
+                    Some(document) => document,
+                    None => return warn!("Message sent to closed pipeline {}.", pipeline_id),
+                };
+                document.ime_dismissed();
             },
 
             CompositionEvent(composition_event) => {
