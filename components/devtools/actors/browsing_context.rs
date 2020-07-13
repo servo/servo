@@ -12,8 +12,8 @@ use crate::actors::emulation::EmulationActor;
 use crate::actors::inspector::InspectorActor;
 use crate::actors::performance::PerformanceActor;
 use crate::actors::profiler::ProfilerActor;
-use crate::actors::root::RootActor;
 use crate::actors::stylesheets::StyleSheetsActor;
+use crate::actors::tab::TabDescriptorActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::timeline::TimelineActor;
 use crate::protocol::JsonPacketStream;
@@ -130,6 +130,7 @@ pub struct BrowsingContextActor {
     pub performance: String,
     pub styleSheets: String,
     pub thread: String,
+    pub tab: String,
     pub streams: RefCell<Vec<TcpStream>>,
     pub browsing_context_id: BrowsingContextId,
     pub active_pipeline: Cell<PipelineId>,
@@ -266,6 +267,9 @@ impl BrowsingContextActor {
         let thread = ThreadActor::new(actors.new_name("context"));
 
         let DevtoolsPageInfo { title, url } = page_info;
+
+        let tabdesc = TabDescriptorActor::new(actors, name.clone());
+
         let target = BrowsingContextActor {
             name: name,
             script_chan: script_sender,
@@ -278,6 +282,7 @@ impl BrowsingContextActor {
             profiler: profiler.name(),
             performance: performance.name(),
             styleSheets: styleSheets.name(),
+            tab: tabdesc.name(),
             thread: thread.name(),
             streams: RefCell::new(Vec::new()),
             browsing_context_id: id,
@@ -291,9 +296,8 @@ impl BrowsingContextActor {
         actors.register(Box::new(performance));
         actors.register(Box::new(styleSheets));
         actors.register(Box::new(thread));
+        actors.register(Box::new(tabdesc));
 
-        let root = actors.find_mut::<RootActor>("root");
-        root.tabs.push(target.name.clone());
         target
     }
 

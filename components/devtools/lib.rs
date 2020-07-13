@@ -66,6 +66,7 @@ mod actors {
     pub mod profiler;
     pub mod root;
     pub mod stylesheets;
+    pub mod tab;
     pub mod thread;
     pub mod timeline;
     pub mod worker;
