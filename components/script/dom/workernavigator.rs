@@ -6,11 +6,14 @@ use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavig
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::gpu::GPU;
 use crate::dom::navigatorinfo;
 use crate::dom::permissions::Permissions;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
+use js::jsval::JSVal;
 
 // https://html.spec.whatwg.org/multipage/#workernavigator
 #[dom_struct]
@@ -88,6 +91,12 @@ impl WorkerNavigatorMethods for WorkerNavigator {
     // https://html.spec.whatwg.org/multipage/#navigatorlanguage
     fn Language(&self) -> DOMString {
         navigatorinfo::Language()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
+    #[allow(unsafe_code)]
+    fn Languages(&self, cx: JSContext) -> JSVal {
+        to_frozen_array(&[self.Language()], cx)
     }
 
     // https://w3c.github.io/permissions/#navigator-and-workernavigator-extension
