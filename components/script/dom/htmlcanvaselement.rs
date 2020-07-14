@@ -25,7 +25,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::mediastream::MediaStream;
-use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
@@ -45,8 +44,8 @@ use js::rust::HandleValue;
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use script_traits::ScriptMsg;
-use servo_media::streams::registry::MediaStreamId;
-use servo_media::streams::MediaStreamType;
+use servo_media::streams::{MediaSource, MediaStreamType};
+use servo_media::ServoMedia;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 const DEFAULT_WIDTH: u32 = 300;
@@ -134,10 +133,31 @@ pub trait LayoutHTMLCanvasElementHelpers {
 impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn data(self) -> HTMLCanvasData {
+        let width_attr = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"));
+        let height_attr = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"));
+        let width = width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint());
+        let height = height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint());
+
+        let canvas_id = self.get_canvas_id_for_layout();
+
         let source = unsafe {
             match self.unsafe_get().context.borrow_for_layout().as_ref() {
                 Some(&CanvasContext::Context2d(ref context)) => {
-                    HTMLCanvasDataSource::Image(Some(context.to_layout().get_ipc_renderer()))
+                    let renderer = context.to_layout().get_ipc_renderer();
+                    renderer
+                        .send(CanvasMsg::FromScript(
+                            FromScriptMsg::PushCapturedStreamsData(Size2D::new(
+                                width.into(),
+                                height.into(),
+                            )),
+                            canvas_id,
+                        ))
+                        .unwrap();
+                    HTMLCanvasDataSource::Image(Some(renderer))
                 },
                 Some(&CanvasContext::WebGL(ref context)) => {
                     context.to_layout().canvas_data_source()
@@ -152,17 +172,11 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
             }
         };
 
-        let width_attr = self
-            .upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("width"));
-        let height_attr = self
-            .upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("height"));
         HTMLCanvasData {
-            source: source,
-            width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
-            height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
-            canvas_id: self.get_canvas_id_for_layout(),
+            source,
+            width,
+            height,
+            canvas_id,
         }
     }
 
@@ -436,13 +450,34 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         Ok(USVString(url))
     }
 
-    /// https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream
-    fn CaptureStream(&self, _frame_request_rate: Option<Finite<f64>>) -> DomRoot<MediaStream> {
-        let global = self.global();
-        let stream = MediaStream::new(&*global);
-        let track = MediaStreamTrack::new(&*global, MediaStreamId::new(), MediaStreamType::Video);
-        stream.AddTrack(&track);
-        stream
+    fn CaptureStream(&self, frame_request_rate: Option<Finite<f64>>) -> DomRoot<MediaStream> {
+        let media = ServoMedia::get().unwrap();
+        let id = media
+            .create_videoinput_stream(Default::default(), MediaSource::App(self.get_size()))
+            .expect("Expected input stream");
+        // Register captured stream with canvas_paint_thread or webgl_thread
+        match self.context.borrow().as_ref() {
+            Some(&CanvasContext::Context2d(ref context)) => {
+                let msg = CanvasMsg::FromScript(
+                    FromScriptMsg::RegisterCapturedStream(id),
+                    context.get_canvas_id(),
+                );
+                context.get_ipc_renderer().send(msg).unwrap();
+            },
+            Some(&CanvasContext::WebGL(_)) => {
+                unimplemented!();
+            },
+            Some(&CanvasContext::WebGL2(_)) => {
+                unimplemented!();
+            },
+            Some(&CanvasContext::WebGPU(_)) => {
+                unimplemented!();
+            },
+            None => {
+                warn!("Captured stream with no canvas context");
+            },
+        };
+        MediaStream::new_single(&self.global(), id, MediaStreamType::Video)
     }
 }
 
