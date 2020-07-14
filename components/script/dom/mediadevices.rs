@@ -19,7 +19,7 @@ use crate::dom::promise::Promise;
 use crate::realms::{AlreadyInRealm, InRealm};
 use dom_struct::dom_struct;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
-use servo_media::streams::MediaStreamType;
+use servo_media::streams::{MediaSource, MediaStreamType};
 use servo_media::ServoMedia;
 use std::rc::Rc;
 
@@ -54,7 +54,7 @@ impl MediaDevicesMethods for MediaDevices {
             }
         }
         if let Some(constraints) = convert_constraints(&constraints.video) {
-            if let Some(video) = media.create_videoinput_stream(constraints) {
+            if let Some(video) = media.create_videoinput_stream(constraints, MediaSource::Device) {
                 let track = MediaStreamTrack::new(&self.global(), video, MediaStreamType::Video);
                 stream.add_track(&track);
             }

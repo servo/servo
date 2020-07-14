@@ -6,6 +6,7 @@ use cssparser::RGBA;
 use euclid::default::{Point2D, Rect, Size2D, Transform2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSender, IpcSharedMemory};
 use serde_bytes::ByteBuf;
+use servo_media::streams::registry::MediaStreamId;
 use std::default::Default;
 use std::str::FromStr;
 use style::properties::style_structs::Font as FontStyleStruct;
@@ -84,6 +85,8 @@ pub enum FromLayoutMsg {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FromScriptMsg {
     SendPixels(IpcSender<IpcSharedMemory>),
+    RegisterCapturedStream(MediaStreamId),
+    PushCapturedStreamsData(Size2D<u64>),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

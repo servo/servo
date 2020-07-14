@@ -29,3 +29,8 @@ partial interface HTMLCanvasElement {
 };
 
 //callback BlobCallback = void (Blob? blob);
+
+// https://w3c.github.io/mediacapture-fromelement/#html-canvas-element-media-capture-extensions
+partial interface HTMLCanvasElement {
+    MediaStream captureStream (optional double frameRequestRate);
+};

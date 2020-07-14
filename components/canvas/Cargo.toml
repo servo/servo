@@ -34,6 +34,7 @@ num-traits = "0.2"
 pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }
 raqote = { git = "https://github.com/jrmuizel/raqote", features = ["text"] }
+servo-media = { git = "https://github.com/servo/media" }
 servo_arc = { path = "../servo_arc" }
 servo_config = { path = "../config" }
 sparkle = "0.1.25"

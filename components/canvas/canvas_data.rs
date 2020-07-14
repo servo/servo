@@ -19,7 +19,10 @@ use gfx::font_context::FontContext;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use num_traits::ToPrimitive;
 use servo_arc::Arc as ServoArc;
+use servo_media::streams::registry::MediaStreamId;
+use servo_media::ServoMedia;
 use std::cell::RefCell;
+use std::collections::HashSet;
 #[allow(unused_imports)]
 use std::marker::PhantomData;
 use std::mem;
@@ -411,6 +414,7 @@ pub struct CanvasData<'a> {
     /// An old webrender image key that can be deleted when the current epoch ends.
     very_old_image_key: Option<webrender_api::ImageKey>,
     font_cache_thread: Mutex<FontCacheThread>,
+    captured_streams: HashSet<MediaStreamId>,
 }
 
 fn create_backend() -> Box<dyn Backend> {
@@ -437,6 +441,7 @@ impl<'a> CanvasData<'a> {
             old_image_key: None,
             very_old_image_key: None,
             font_cache_thread: Mutex::new(font_cache_thread),
+            captured_streams: HashSet::new(),
         }
     }
 
@@ -1259,6 +1264,18 @@ impl<'a> CanvasData<'a> {
         self.drawtarget.snapshot_data(&|bytes| {
             pixels::rgba8_get_rect(bytes, canvas_size, read_rect).into_owned()
         })
+    }
+
+    pub fn register_captured_stream(&mut self, stream_id: MediaStreamId) {
+        self.captured_streams.insert(stream_id);
+    }
+
+    pub fn push_captured_streams_data(&self, canvas_size: Size2D<u64>) {
+        let pixels = self.read_pixels(Rect::from_size(canvas_size), canvas_size);
+        let media = ServoMedia::get().unwrap();
+        for stream in self.captured_streams.iter() {
+            media.push_stream_data(stream, pixels.clone());
+        }
     }
 }
 
