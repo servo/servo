@@ -142,6 +142,8 @@ partial interface Window {
   void gc();
   [Pref="dom.servo_helpers.enabled"]
   void trap();
+  [Pref="dom.servo_helpers.enabled"]
+  void js_backtrace();
 };
 
 // WebDriver extensions

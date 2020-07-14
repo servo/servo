@@ -72,6 +72,7 @@ use crate::task_source::{TaskSource, TaskSourceName};
 use crate::timers::{IsInterval, TimerCallback};
 use crate::webdriver_handlers::jsval_to_webdriver;
 use app_units::Au;
+use backtrace::Backtrace;
 use base64;
 use bluetooth_traits::BluetoothRequest;
 use canvas_traits::webgl::WebGLChan;
@@ -89,7 +90,7 @@ use js::jsapi::Heap;
 use js::jsapi::JSAutoRealm;
 use js::jsapi::JSObject;
 use js::jsapi::JSPROP_ENUMERATE;
-use js::jsapi::{GCReason, JS_GC};
+use js::jsapi::{GCReason, StackFormat, JS_GC};
 use js::jsval::UndefinedValue;
 use js::jsval::{JSVal, NullValue};
 use js::rust::wrappers::JS_DefineProperty;
@@ -1079,6 +1080,20 @@ impl WindowMethods for Window {
     #[allow(unsafe_code)]
     fn Trap(&self) {
         unsafe { ::std::intrinsics::breakpoint() }
+    }
+
+    #[allow(unsafe_code)]
+    fn Js_backtrace(&self) {
+        unsafe {
+            capture_stack!(in(*self.get_cx()) let stack);
+            let js_stack = stack.and_then(|s| s.as_string(None, StackFormat::SpiderMonkey));
+            let rust_stack = Backtrace::new();
+            println!(
+                "Current JS stack:\n{}\nCurrent Rust stack:\n{:?}",
+                js_stack.unwrap_or(String::new()),
+                rust_stack
+            );
+        }
     }
 
     #[allow(unsafe_code)]
