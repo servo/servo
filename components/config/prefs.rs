@@ -256,6 +256,9 @@ mod gen {
                     enabled: bool,
                 },
                 webrtc: {
+                    transceiver: {
+                        enabled: bool,
+                    },
                     #[serde(default)]
                     enabled: bool,
                 },

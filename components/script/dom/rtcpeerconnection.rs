@@ -8,12 +8,12 @@ use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::RTCIceCandi
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::RTCPeerConnectionMethods;
 use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
     RTCAnswerOptions, RTCBundlePolicy, RTCConfiguration, RTCIceConnectionState,
-    RTCIceGatheringState, RTCOfferOptions, RTCSignalingState,
+    RTCIceGatheringState, RTCOfferOptions, RTCRtpTransceiverInit, RTCSignalingState,
 };
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit,
 };
-use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence;
+use crate::dom::bindings::codegen::UnionTypes::{MediaStreamTrackOrString, StringOrStringSequence};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
@@ -32,6 +32,7 @@ use crate::dom::rtcdatachannel::RTCDataChannel;
 use crate::dom::rtcdatachannelevent::RTCDataChannelEvent;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::rtcpeerconnectioniceevent::RTCPeerConnectionIceEvent;
+use crate::dom::rtcrtptransceiver::RTCRtpTransceiver;
 use crate::dom::rtcsessiondescription::RTCSessionDescription;
 use crate::dom::rtctrackevent::RTCTrackEvent;
 use crate::dom::window::Window;
@@ -743,6 +744,15 @@ impl RTCPeerConnectionMethods for RTCPeerConnection {
         init: &RTCDataChannelInit,
     ) -> DomRoot<RTCDataChannel> {
         RTCDataChannel::new(&self.global(), &self, label, init, None)
+    }
+
+    /// https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnection-addtransceiver
+    fn AddTransceiver(
+        &self,
+        _track_or_kind: MediaStreamTrackOrString,
+        init: &RTCRtpTransceiverInit,
+    ) -> DomRoot<RTCRtpTransceiver> {
+        RTCRtpTransceiver::new(&self.global(), init.direction)
     }
 }
 
