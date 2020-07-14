@@ -662,9 +662,18 @@ dependencies = [
 
 [[package]]
 name = "clang-sys"
-version = "0.29.3"
+version = "0.29.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fe6837df1d5cba2397b835c8530f51723267e16abbf83892e9e5af4f0e5dd10a"
+checksum = "2b14a9b9fadc5fabb63ceb60e8c2d833bcc97d19d8eb1e229f452d07fe2001e0"
+dependencies = [
+ "clang-sys-linkage",
+]
+
+[[package]]
+name = "clang-sys-linkage"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "720a18d5e5b09e70856c278d2fcf64917db370987beb78bf569fde9adba4ea63"
 dependencies = [
  "glob",
  "libc",
