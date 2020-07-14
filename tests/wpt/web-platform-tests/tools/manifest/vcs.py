@@ -3,9 +3,9 @@ import json
 import os
 import stat
 from collections import deque
-from collections import MutableMapping
 
 from six import with_metaclass, PY2
+from six.moves.collections_abc import MutableMapping
 
 from .utils import git
 

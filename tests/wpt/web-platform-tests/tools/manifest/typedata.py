@@ -1,6 +1,5 @@
-from collections import MutableMapping
-
 from six import itervalues, iteritems
+from six.moves.collections_abc import MutableMapping
 
 
 MYPY = False
