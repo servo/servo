@@ -133,6 +133,9 @@ mod gen {
                         enabled: bool,
                     }
                 },
+                canvas_capture: {
+                    enabled: bool,
+                },
                 canvas_text: {
                     enabled: bool,
                 },
