@@ -123,14 +123,14 @@ def test_verify_payload():
       'wpt-chrome-dev-reftest-3',
       'wpt-chrome-dev-reftest-4',
       'wpt-chrome-dev-reftest-5',
-      'wpt-firefox-nightly-print-reftest-1',
-      'wpt-chrome-dev-print-reftest-1',
       'wpt-firefox-nightly-wdspec-1',
       'wpt-firefox-nightly-wdspec-2',
       'wpt-chrome-dev-wdspec-1',
       'wpt-chrome-dev-wdspec-2',
       'wpt-firefox-nightly-crashtest-1',
       'wpt-chrome-dev-crashtest-1',
+      'wpt-firefox-nightly-print-reftest-1',
+      'wpt-chrome-dev-print-reftest-1',
       'lint']),
     ("pr_event.json", True, {".taskcluster.yml",".travis.yml","tools/ci/start.sh"},
      ['lint',
@@ -243,10 +243,6 @@ def test_verify_payload():
       'wpt-servo-nightly-reftest-3',
       'wpt-servo-nightly-reftest-4',
       'wpt-servo-nightly-reftest-5',
-      'wpt-firefox-stable-print-reftest-1',
-      'wpt-chrome-stable-print-reftest-1',
-      'wpt-webkitgtk_minibrowser-nightly-print-reftest-1',
-      'wpt-servo-nightly-print-reftest-1',
       'wpt-firefox-stable-wdspec-1',
       'wpt-firefox-stable-wdspec-2',
       'wpt-chrome-stable-wdspec-1',
@@ -258,7 +254,9 @@ def test_verify_payload():
       'wpt-firefox-stable-crashtest-1',
       'wpt-chrome-stable-crashtest-1',
       'wpt-webkitgtk_minibrowser-nightly-crashtest-1',
-      'wpt-servo-nightly-crashtest-1'])
+      'wpt-servo-nightly-crashtest-1',
+      'wpt-firefox-stable-print-reftest-1',
+      'wpt-chrome-stable-print-reftest-1',])
 ])
 def test_schedule_tasks(event_path, is_pr, files_changed, expected):
     with mock.patch("tools.ci.tc.decision.get_fetch_rev", return_value=(None, None, None)):
