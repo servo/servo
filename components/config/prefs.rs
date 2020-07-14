@@ -187,6 +187,9 @@ mod gen {
                     enabled: bool,
                     timeout_seconds: i64,
                 },
+                servo_helpers: {
+                    enabled: bool,
+                },
                 servoparser: {
                     async_html_tokenizer: {
                         enabled: bool,
