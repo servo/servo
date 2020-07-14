@@ -25,6 +25,9 @@ interface HTMLFormElement : HTMLElement {
            attribute boolean noValidate;
   [CEReactions]
            attribute DOMString target;
+  [CEReactions]
+           attribute DOMString rel;
+  [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
 
   [SameObject] readonly attribute HTMLFormControlsCollection elements;
   readonly attribute unsigned long length;

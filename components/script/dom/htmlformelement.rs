@@ -20,10 +20,11 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomObject;
-use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot};
+use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
 use crate::dom::document::Document;
+use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -68,6 +69,7 @@ use servo_atoms::Atom;
 use servo_rand::random;
 use std::borrow::ToOwned;
 use std::cell::Cell;
+use style::attr::AttrValue;
 use style::str::split_html_space_chars;
 
 use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
@@ -90,6 +92,7 @@ pub struct HTMLFormElement {
     controls: DomRefCell<Vec<Dom<Element>>>,
     past_names_map: DomRefCell<HashMap<Atom, (Dom<Element>, Tm)>>,
     firing_submission_events: Cell<bool>,
+    rel_list: MutNullableDom<DOMTokenList>,
 }
 
 impl HTMLFormElement {
@@ -107,6 +110,7 @@ impl HTMLFormElement {
             controls: DomRefCell::new(Vec::new()),
             past_names_map: DomRefCell::new(HashMap::new()),
             firing_submission_events: Cell::new(false),
+            rel_list: Default::default(),
         }
     }
 
@@ -240,6 +244,9 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-fs-target
     make_setter!(SetTarget, "target");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-rel
+    make_getter!(Rel, "rel");
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:concept-form-submit
     fn Submit(&self) {
@@ -432,6 +439,18 @@ impl HTMLFormElementMethods for HTMLFormElement {
         return Some(RadioNodeListOrElement::Element(DomRoot::from_ref(
             &*element_node.downcast::<Element>().unwrap(),
         )));
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-rel
+    fn SetRel(&self, rel: DOMString) {
+        self.upcast::<Element>()
+            .set_tokenlist_attribute(&local_name!("rel"), rel);
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-rellist
+    fn RelList(&self) -> DomRoot<DOMTokenList> {
+        self.rel_list
+            .or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
     }
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names
@@ -1634,6 +1653,16 @@ impl VirtualMethods for HTMLFormElement {
                 .as_maybe_form_control()
                 .expect("Element must be a form control")
                 .reset_form_owner();
+        }
+    }
+
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+        match name {
+            &local_name!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
         }
     }
 }
