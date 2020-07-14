@@ -6,6 +6,7 @@ use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::bluetooth::Bluetooth;
 use crate::dom::gamepadlist::GamepadList;
 use crate::dom::gpu::GPU;
@@ -18,7 +19,9 @@ use crate::dom::pluginarray::PluginArray;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::window::Window;
 use crate::dom::xrsystem::XRSystem;
+use crate::script_runtime::JSContext;
 use dom_struct::dom_struct;
+use js::jsval::JSVal;
 
 #[dom_struct]
 pub struct Navigator {
@@ -120,6 +123,12 @@ impl NavigatorMethods for Navigator {
     // https://html.spec.whatwg.org/multipage/#navigatorlanguage
     fn Language(&self) -> DOMString {
         navigatorinfo::Language()
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-navigator-languages
+    #[allow(unsafe_code)]
+    fn Languages(&self, cx: JSContext) -> JSVal {
+        to_frozen_array(&[self.Language()], cx)
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-navigator-plugins

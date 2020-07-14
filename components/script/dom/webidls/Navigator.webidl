@@ -44,8 +44,7 @@ partial interface Navigator {
 [Exposed=(Window,Worker)]
 interface mixin NavigatorLanguage {
   readonly attribute DOMString language;
-  // https://github.com/servo/servo/issues/10073
-  //readonly attribute DOMString[] languages;
+  readonly attribute any languages;
 };
 
 // https://html.spec.whatwg.org/multipage/#navigatorplugins
