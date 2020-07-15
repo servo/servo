@@ -49,6 +49,7 @@ use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{Read, Seek, Write};
 use std::path::PathBuf;
 use std::process::Command;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use style::str::{StaticStringVec, HTML_SPACE_CHARACTERS};
 use uuid::Uuid;
@@ -150,14 +151,15 @@ pub enum ScriptType {
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct ScriptOrigin {
-    text: DOMString,
+    #[ignore_malloc_size_of = "Rc is hard"]
+    text: Rc<DOMString>,
     url: ServoUrl,
     external: bool,
     type_: ScriptType,
 }
 
 impl ScriptOrigin {
-    pub fn internal(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
+    pub fn internal(text: Rc<DOMString>, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
@@ -166,7 +168,7 @@ impl ScriptOrigin {
         }
     }
 
-    pub fn external(text: DOMString, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
+    pub fn external(text: Rc<DOMString>, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
@@ -175,8 +177,8 @@ impl ScriptOrigin {
         }
     }
 
-    pub fn text(&self) -> DOMString {
-        self.text.clone()
+    pub fn text(&self) -> Rc<DOMString> {
+        Rc::clone(&self.text)
     }
 }
 
@@ -257,7 +259,7 @@ impl FetchResponseListener for ClassicContext {
             // Step 7.
             let (source_text, _, _) = encoding.decode(&self.data);
             ScriptOrigin::external(
-                DOMString::from(source_text),
+                Rc::new(DOMString::from(source_text)),
                 metadata.final_url,
                 ScriptType::Classic,
             )
@@ -613,7 +615,7 @@ impl HTMLScriptElement {
 
             // Step 25-1. & 25-2.
             let result = Ok(ScriptOrigin::internal(
-                text.clone(),
+                Rc::new(text.clone()),
                 base_url.clone(),
                 script_type.clone(),
             ));
@@ -647,7 +649,7 @@ impl HTMLScriptElement {
 
                     fetch_inline_module_script(
                         ModuleOwner::Window(Trusted::new(self)),
-                        text.clone(),
+                        Rc::new(text.clone()),
                         base_url.clone(),
                         self.id.clone(),
                         credentials_mode.unwrap(),
@@ -679,7 +681,7 @@ impl HTMLScriptElement {
                     let mut script_content = String::new();
                     output.seek(std::io::SeekFrom::Start(0)).unwrap();
                     output.read_to_string(&mut script_content).unwrap();
-                    script.text = DOMString::from(script_content);
+                    script.text = Rc::new(DOMString::from(script_content));
                 },
                 _ => {
                     warn!("Failed to execute js-beautify. Will store unmodified script");
@@ -757,7 +759,7 @@ impl HTMLScriptElement {
         match read_to_string(path.clone()) {
             Ok(local_script) => {
                 debug!("Found script stored at: {:?}", path);
-                script.text = DOMString::from(local_script);
+                script.text = Rc::new(DOMString::from(local_script));
             },
             Err(why) => warn!("Could not restore script from file {:?}", why),
         }
