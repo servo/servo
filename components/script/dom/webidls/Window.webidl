@@ -136,9 +136,14 @@ partial interface Window {
 
 // Proprietary extensions.
 partial interface Window {
+  [Pref="dom.servo_helpers.enabled"]
   void debug(DOMString arg);
+  [Pref="dom.servo_helpers.enabled"]
   void gc();
+  [Pref="dom.servo_helpers.enabled"]
   void trap();
+  [Pref="dom.servo_helpers.enabled"]
+  void js_backtrace();
 };
 
 // WebDriver extensions
