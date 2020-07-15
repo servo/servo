@@ -1,18 +1,45 @@
-## Servo on Hololens.
+# Using Servo on HoloLens 2
 
-How to compile and run:
+To build Servo for the HoloLens 2, see [the wiki](https://github.com/servo/servo/wiki/Building-for-UWP).
 
-In your Visual Studio 2017 cmd prompt:
-- compile servo: `mach build -d --uwp`
+## Web development workflow
 
-Install [HoloLens 2 Emulator](https://docs.microsoft.com/en-us/windows/mixed-reality/using-the-hololens-emulator).
+#### To load a page without typing on the on-screen keyboard:
+1. ensure Firefox Reality is installed
+1. create a QR code for `fxr://[url]` (eg. https://www.qr-code-generator.com/)
+1. display it on some visible screen or surface (relatively large)
+1. point the HoloLens towards the QR code, wait until it is recognised
+1. accept the prompt to open the URL in Firefox Reality
 
-With Visual Studio 2017:
-- Open `support\hololens\ServoApp.sln`
-- Select emulator or local machine, select configuration (Debug or Release) and press run
-- VS will look for the DLLs and .h in `../../target/debug|release/` (depending on the configuration you selected in VS) and copy them in the final package.
+#### Viewing JS output and exceptions
 
-For now, it's not possible to interact with the web page.
+1. Press the "developer" button to the right of the URL bar in Firefox Reality
+1. A panel appears at the bottom of the app which acts as a JS console for the current page.
 
-Note: to build the project with MSBuild:
-- `MSBuild ServoApp.sln /p:Configuration=Debug /p:Platform=x64`
+#### Viewing JS output and exceptions in immersive mode
+
+Before entering immersive mode, use the desktop Firefox [remote developer tools](https://github.com/servo/servo/wiki/Devtools)
+to access the Firefox Reality JS console.
+
+## Exiting immersive mode
+
+#### Pausing immersive mode
+
+Use the default "bloom gesture" (two fingers on a wrist) to pause immersive mode and return to the home environment.
+Tap the Firefox Reality app to re-enter immersive mode and continue interacting with web content.
+
+#### Exiting immersive mode
+
+Use the "palm gesture" - hold your palm parallel to your face for several seconds. A prompt will appear which
+will allow you to cancel the prompt exit or exit immersive mode and return to the 2d browsing session.
+
+#### Exiting immersive mode via web content
+
+If your content can respond to user interaction events, invoking the [XrSession.end](https://immersive-web.github.io/webxr/#dom-xrsession-end)
+API will exit immersive mode and return to 2d browsing.
+
+
+## Reporting issues
+
+If your web content is not rendering the same as other browsers, or is throwing exceptions that only appear in Firefox Reality,
+please [file an issue](https://github.com/servo/servo/issues/new)! When possible, please provide a link that demonstrates the problem.
