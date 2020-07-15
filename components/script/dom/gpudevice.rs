@@ -95,6 +95,8 @@ pub struct GPUDevice {
     next_scope_id: Cell<u64>,
     #[ignore_malloc_size_of = "promises are hard"]
     lost_promise: DomRefCell<Option<Rc<Promise>>>,
+    #[ignore_malloc_size_of = "defined in webgpu"]
+    bind_group_layouts: DomRefCell<Vec<(Vec<wgt::BindGroupLayoutEntry>, Dom<GPUBindGroupLayout>)>>,
 }
 
 impl GPUDevice {
@@ -119,6 +121,7 @@ impl GPUDevice {
             scope_stack: DomRefCell::new(Vec::new()),
             next_scope_id: Cell::new(0),
             lost_promise: DomRefCell::new(None),
+            bind_group_layouts: DomRefCell::new(Vec::new()),
         }
     }
 
@@ -362,6 +365,18 @@ impl GPUDeviceMethods for GPUDevice {
                 warn!("Could not find Error Scope for id {}", s_id);
             }
         }
+        // Check for equivalent GPUBindGroupLayout
+        {
+            for (bgl_ent, bgl) in self.bind_group_layouts.borrow().iter() {
+                if *bgl_ent == entries {
+                    let layout = DomRoot::from_ref(&**bgl);
+                    if let Some(i) = scope_id {
+                        self.handle_server_msg(i, Ok(()));
+                    }
+                    return layout;
+                }
+            }
+        }
 
         let bind_group_layout_id = self
             .global()
@@ -373,14 +388,20 @@ impl GPUDeviceMethods for GPUDevice {
             .send(WebGPURequest::CreateBindGroupLayout {
                 device_id: self.device.0,
                 bind_group_layout_id,
-                entries,
+                entries: entries.clone(),
                 scope_id,
             })
             .expect("Failed to create WebGPU BindGroupLayout");
 
         let bgl = webgpu::WebGPUBindGroupLayout(bind_group_layout_id);
 
-        GPUBindGroupLayout::new(&self.global(), bgl, true)
+        let layout = GPUBindGroupLayout::new(&self.global(), bgl, true);
+
+        self.bind_group_layouts
+            .borrow_mut()
+            .push((entries, Dom::from_ref(&*layout)));
+
+        layout
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout
