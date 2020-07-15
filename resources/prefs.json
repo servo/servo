@@ -1,6 +1,7 @@
 {
   "dom.bluetooth.enabled": false,
   "dom.bluetooth.testing.enabled": false,
+  "dom.canvas_capture.enabled": false,
   "dom.canvas_text.enabled": true,
   "dom.compositionevent.enabled": false,
   "dom.customelements.enabled": true,
@@ -30,6 +31,7 @@
   "dom.webgl2.enabled": false,
   "dom.webgpu.enabled": false,
   "dom.webrtc.enabled": false,
+  "dom.webrtc.transceiver.enabled": false,
   "dom.webvr.enabled": false,
   "dom.webvr.event_polling_interval": 500,
   "dom.webvr.test": false,

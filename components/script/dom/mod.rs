@@ -498,6 +498,8 @@ pub mod rtcerrorevent;
 pub mod rtcicecandidate;
 pub mod rtcpeerconnection;
 pub mod rtcpeerconnectioniceevent;
+pub(crate) mod rtcrtpsender;
+pub(crate) mod rtcrtptransceiver;
 pub mod rtcsessiondescription;
 pub mod rtctrackevent;
 pub mod screen;

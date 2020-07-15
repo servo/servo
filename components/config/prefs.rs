@@ -133,6 +133,9 @@ mod gen {
                         enabled: bool,
                     }
                 },
+                canvas_capture: {
+                    enabled: bool,
+                },
                 canvas_text: {
                     enabled: bool,
                 },
@@ -256,6 +259,9 @@ mod gen {
                     enabled: bool,
                 },
                 webrtc: {
+                    transceiver: {
+                        enabled: bool,
+                    },
                     #[serde(default)]
                     enabled: bool,
                 },

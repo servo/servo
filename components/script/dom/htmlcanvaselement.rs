@@ -7,10 +7,12 @@ use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
     HTMLCanvasElementMethods, RenderingContext,
 };
+use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -22,6 +24,8 @@ use crate::dom::element::{AttributeMutation, Element, LayoutElementHelpers};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::mediastream::MediaStream;
+use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
@@ -41,6 +45,8 @@ use js::rust::HandleValue;
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use script_traits::ScriptMsg;
+use servo_media::streams::registry::MediaStreamId;
+use servo_media::streams::MediaStreamType;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 const DEFAULT_WIDTH: u32 = 300;
@@ -428,6 +434,15 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         // FIXME(nox): https://github.com/marshallpierce/rust-base64/pull/56
         base64::encode_config_buf(&png, base64::STANDARD, &mut url);
         Ok(USVString(url))
+    }
+
+    /// https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream
+    fn CaptureStream(&self, _frame_request_rate: Option<Finite<f64>>) -> DomRoot<MediaStream> {
+        let global = self.global();
+        let stream = MediaStream::new(&*global);
+        let track = MediaStreamTrack::new(&*global, MediaStreamId::new(), MediaStreamType::Video);
+        stream.AddTrack(&track);
+        stream
     }
 }
 
