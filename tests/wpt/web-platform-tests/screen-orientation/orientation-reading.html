@@ -5,8 +5,8 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
 test(() => {
-  assert_true('type' in screen.orientation);
-  assert_true('angle' in screen.orientation);
+  assert_true("type" in screen.orientation);
+  assert_true("angle" in screen.orientation);
 }, "Test screen.orientation properties");
 
 test(() => {
@@ -37,12 +37,12 @@ promise_test(async t => {
       ? {
           secondaryOrientation1: "portrait-secondary",
           primaryOrientation2: "landscape-primary",
-          secondaryOrientation2: "landscape-secondary"
+          secondaryOrientation2: "landscape-secondary",
         }
       : {
           secondaryOrientation1: "landscape-secondary",
           primaryOrientation2: "portrait-primary",
-          secondaryOrientation2: "portrait-secondary"
+          secondaryOrientation2: "portrait-secondary",
         };
   await screen.orientation.lock(orientations.secondaryOrientation1);
   assert_equals(
@@ -70,7 +70,7 @@ test(() => {
   const type = screen.orientation.type;
   const angle = screen.orientation.angle;
 
-  screen.orientation.type = 'foo';
+  screen.orientation.type = "foo";
   screen.orientation.angle = 42;
 
   assert_equals(screen.orientation.type, type);
@@ -108,5 +108,8 @@ promise_test(async t => {
   assert_equals(screen.orientation.angle, orientation.angle);
   assert_not_equals(screen.orientation.type, orientationType);
   assert_not_equals(screen.orientation.angle, orientationAngle);
+  // currently doesn't return a promise, makes it less racy against exitFullScreen
+  await screen.orientation.unlock();
+  return document.exitFullscreen();
 }, "Test that screen.orientation values change if the orientation changes");
 </script>

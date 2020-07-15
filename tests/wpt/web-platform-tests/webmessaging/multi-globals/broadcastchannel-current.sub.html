@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The current page being cross-origin must prevent the BroadcastChannel message from being seen</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- This is the entry global -->
+
+<iframe src="support/incumbent-document-domain.sub.html" id="incumbent"></iframe>
+<iframe src="http://{{hosts[][www]}}:{{ports[http][0]}}/webmessaging/multi-globals/support/current-document-domain.sub.html" id="current"></iframe>
+
+<script>
+"use strict";
+document.domain = "{{hosts[][]}}";
+
+setup({ explicit_done: true });
+
+const incumbentIframe = document.querySelector("#incumbent");
+const currentIframe = document.querySelector("#current");
+
+window.onload = () => {
+  promise_test(async t => {
+    const createdCrossOrigin = frames[0].createBroadcastChannel("current");
+    const createdSameOrigin = new BroadcastChannel("current");
+
+    createdSameOrigin.onmessage = t.unreached_func("message event fired");
+    createdSameOrigin.onmessageerror = t.unreached_func("messageerror event fired");
+
+    createdCrossOrigin.postMessage("the message");
+
+    // BroadcastChannel messages are guaranteed to be ordered within an event loop, as they all use
+    // the DOM manipulation task source. So, any messages from the "current" channel, if they are
+    // going to be erroneously delivered, would have to be delivered before those from this
+    // channel. I.e., if we recieve a message from this channel without first recieving one from
+    // the "current" channel, then the test passes.
+    const testEnder = new BroadcastChannel("current / test-ender");
+    const testEnder2 = new BroadcastChannel("current / test-ender");
+
+    testEnder.postMessage("end test");
+    await new Promise(resolve => testEnder2.onmessage = resolve);
+  });
+
+  done();
+};
+</script>

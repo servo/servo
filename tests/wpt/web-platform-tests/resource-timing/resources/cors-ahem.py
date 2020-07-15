@@ -6,7 +6,7 @@ def main(request, response):
     etag = b"123abc"
     if etag == request.headers.get(b"If-None-Match", None):
         response.headers.set(b"X-HTTP-STATUS", 304)
-        response.status = (304, u"Not Modified")
+        response.status = (304, b"Not Modified")
         return u""
 
     response.headers.set(b"Cache-Control", b"public, max-age=86400")

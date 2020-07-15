@@ -64,6 +64,6 @@ def main(request, response):
     body = json.dumps(headers)
 
     if code:
-        return (code, u"StatusText"), [], body
+        return (code, b"StatusText"), [], body
     else:
         return body

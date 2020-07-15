@@ -1,10 +1,13 @@
-import os, json, urllib, urlparse
+import os, json
+from six.moves.urllib.parse import parse_qsl, SplitResult, urlencode, urlsplit, urlunsplit
+
+from wptserve.utils import isomorphic_decode, isomorphic_encode
 
 def get_template(template_basename):
-    script_directory = os.path.dirname(os.path.abspath(__file__))
+    script_directory = os.path.dirname(os.path.abspath(isomorphic_decode(__file__)))
     template_directory = os.path.abspath(os.path.join(script_directory,
-                                                      "template"))
-    template_filename = os.path.join(template_directory, template_basename);
+                                                      u"template"))
+    template_filename = os.path.join(template_directory, template_basename)
 
     with open(template_filename, "r") as f:
         return f.read()
@@ -13,15 +16,15 @@ def get_template(template_basename):
 def redirect(url, response):
     response.add_required_headers = False
     response.writer.write_status(301)
-    response.writer.write_header("access-control-allow-origin", "*")
-    response.writer.write_header("location", url)
+    response.writer.write_header(b"access-control-allow-origin", b"*")
+    response.writer.write_header(b"location", isomorphic_encode(url))
     response.writer.end_headers()
-    response.writer.write("")
+    response.writer.write(u"")
 
 
 # TODO(kristijanburnik): subdomain_prefix is a hardcoded value aligned with
 # referrer-policy-test-case.js. The prefix should be configured in one place.
-def __get_swapped_origin_netloc(netloc, subdomain_prefix = "www1."):
+def __get_swapped_origin_netloc(netloc, subdomain_prefix = u"www1."):
     if netloc.startswith(subdomain_prefix):
         return netloc[len(subdomain_prefix):]
     else:
@@ -40,16 +43,16 @@ def create_url(request,
                swap_scheme=False,
                swap_origin=False,
                downgrade=False,
-               query_parameter_to_remove="redirection"):
-    parsed = urlparse.urlsplit(request.url)
+               query_parameter_to_remove=u"redirection"):
+    parsed = urlsplit(request.url)
     destination_netloc = parsed.netloc
 
     scheme = parsed.scheme
     if swap_scheme:
-        scheme = "http" if parsed.scheme == "https" else "https"
-        hostname = parsed.netloc.split(':')[0]
-        port = request.server.config["ports"][scheme][0]
-        destination_netloc = ":".join([hostname, str(port)])
+        scheme = u"http" if parsed.scheme == u"https" else u"https"
+        hostname = parsed.netloc.split(u':')[0]
+        port = request.server.config[u"ports"][scheme][0]
+        destination_netloc = u":".join([hostname, str(port)])
 
     if downgrade:
         # These rely on some unintuitive cleverness due to WPT's test setup:
@@ -58,107 +61,106 @@ def create_url(request,
         # which will be upgraded to `https://[domain]:[https-port]`.
         # If the upgrade fails, the load will fail, as we don't serve HTTP over
         # the secure port.
-        if parsed.scheme == "https":
-            scheme = "http"
-        elif parsed.scheme == "wss":
-            scheme = "ws"
+        if parsed.scheme == u"https":
+            scheme = u"http"
+        elif parsed.scheme == u"wss":
+            scheme = u"ws"
         else:
-            raise ValueError("Downgrade redirection: Invalid scheme '%s'" %
+            raise ValueError(u"Downgrade redirection: Invalid scheme '%s'" %
                              parsed.scheme)
-        hostname = parsed.netloc.split(':')[0]
-        port = request.server.config["ports"][parsed.scheme][0]
-        destination_netloc = ":".join([hostname, str(port)])
+        hostname = parsed.netloc.split(u':')[0]
+        port = request.server.config[u"ports"][parsed.scheme][0]
+        destination_netloc = u":".join([hostname, str(port)])
 
     if swap_origin:
         destination_netloc = __get_swapped_origin_netloc(destination_netloc)
 
-    parsed_query = urlparse.parse_qsl(parsed.query, keep_blank_values=True)
-    parsed_query = filter(lambda x: x[0] != query_parameter_to_remove,
-                          parsed_query)
+    parsed_query = parse_qsl(parsed.query, keep_blank_values=True)
+    parsed_query = [x for x in parsed_query if x[0] != query_parameter_to_remove]
 
-    destination_url = urlparse.urlunsplit(urlparse.SplitResult(
+    destination_url = urlunsplit(SplitResult(
         scheme = scheme,
         netloc = destination_netloc,
         path = parsed.path,
-        query = urllib.urlencode(parsed_query),
+        query = urlencode(parsed_query),
         fragment = None))
 
     return destination_url
 
 
 def preprocess_redirection(request, response):
-    if "redirection" not in request.GET:
+    if b"redirection" not in request.GET:
         return False
 
-    redirection = request.GET["redirection"]
+    redirection = request.GET[b"redirection"]
 
-    if redirection == "no-redirect":
+    if redirection == b"no-redirect":
         return False
-    elif redirection == "keep-scheme":
+    elif redirection == b"keep-scheme":
         redirect_url = create_url(request, swap_scheme=False)
-    elif redirection == "swap-scheme":
+    elif redirection == b"swap-scheme":
         redirect_url = create_url(request, swap_scheme=True)
-    elif redirection == "downgrade":
+    elif redirection == b"downgrade":
         redirect_url = create_url(request, downgrade=True)
-    elif redirection == "keep-origin":
+    elif redirection == b"keep-origin":
         redirect_url = create_url(request, swap_origin=False)
-    elif redirection == "swap-origin":
+    elif redirection == b"swap-origin":
         redirect_url = create_url(request, swap_origin=True)
     else:
-        raise ValueError("Invalid redirection type '%s'" % redirection)
+        raise ValueError(u"Invalid redirection type '%s'" % isomorphic_decode(redirection))
 
     redirect(redirect_url, response)
     return True
 
 
 def preprocess_stash_action(request, response):
-    if "action" not in request.GET:
+    if b"action" not in request.GET:
         return False
 
-    action = request.GET["action"]
+    action = request.GET[b"action"]
 
-    key = request.GET["key"]
+    key = request.GET[b"key"]
     stash = request.server.stash
-    path = request.GET.get("path", request.url.split('?'))[0]
+    path = request.GET.get(b"path", isomorphic_encode(request.url.split(u'?')[0]))
 
-    if action == "put":
-        value = request.GET["value"]
+    if action == b"put":
+        value = isomorphic_decode(request.GET[b"value"])
         stash.take(key=key, path=path)
         stash.put(key=key, value=value, path=path)
-        response_data = json.dumps({"status": "success", "result": key})
-    elif action == "purge":
+        response_data = json.dumps({u"status": u"success", u"result": isomorphic_decode(key)})
+    elif action == b"purge":
         value = stash.take(key=key, path=path)
         return False
-    elif action == "take":
+    elif action == b"take":
         value = stash.take(key=key, path=path)
         if value is None:
-            status = "allowed"
+            status = u"allowed"
         else:
-            status = "blocked"
-        response_data = json.dumps({"status": status, "result": value})
+            status = u"blocked"
+        response_data = json.dumps({u"status": status, u"result": value})
     else:
         return False
 
     response.add_required_headers = False
     response.writer.write_status(200)
-    response.writer.write_header("content-type", "text/javascript")
-    response.writer.write_header("cache-control", "no-cache; must-revalidate")
+    response.writer.write_header(b"content-type", b"text/javascript")
+    response.writer.write_header(b"cache-control", b"no-cache; must-revalidate")
     response.writer.end_headers()
     response.writer.write(response_data)
     return True
 
 
 def __noop(request, response):
-    return ""
+    return u""
 
 
 def respond(request,
             response,
             status_code = 200,
-            content_type = "text/html",
+            content_type = b"text/html",
             payload_generator = __noop,
-            cache_control = "no-cache; must-revalidate",
-            access_control_allow_origin = "*",
+            cache_control = b"no-cache; must-revalidate",
+            access_control_allow_origin = b"*",
             maybe_additional_headers = None):
     if preprocess_redirection(request, response):
         return
@@ -170,10 +172,10 @@ def respond(request,
     response.writer.write_status(status_code)
 
     if access_control_allow_origin != None:
-        response.writer.write_header("access-control-allow-origin",
+        response.writer.write_header(b"access-control-allow-origin",
                                      access_control_allow_origin)
-    response.writer.write_header("content-type", content_type)
-    response.writer.write_header("cache-control", cache_control)
+    response.writer.write_header(b"content-type", content_type)
+    response.writer.write_header(b"cache-control", cache_control)
 
     additional_headers = maybe_additional_headers or {}
     for header, value in additional_headers.items():
@@ -181,9 +183,16 @@ def respond(request,
 
     response.writer.end_headers()
 
-    server_data = {"headers": json.dumps(request.headers, indent = 4)}
+    new_headers = {}
+    new_val = []
+    for key, val in request.headers.items():
+        if len(val) == 1:
+            new_val = isomorphic_decode(val[0])
+        else:
+            new_val = [isomorphic_decode(x) for x in val]
+        new_headers[isomorphic_decode(key)] = new_val
+
+    server_data = {u"headers": json.dumps(new_headers, indent = 4)}
 
     payload = payload_generator(server_data)
     response.writer.write(payload)
-
-

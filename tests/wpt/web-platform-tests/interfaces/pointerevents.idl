@@ -9,11 +9,11 @@ dictionary PointerEventInit : MouseEventInit {
     double      height = 1;
     float       pressure = 0;
     float       tangentialPressure = 0;
-    long        tiltX = 0;
-    long        tiltY = 0;
+    long        tiltX;
+    long        tiltY;
     long        twist = 0;
-    double      altitudeAngle = 0;
-    double      azimuthAngle = 0;
+    double      altitudeAngle;
+    double      azimuthAngle;
     DOMString   pointerType = "";
     boolean     isPrimary = false;
     sequence<PointerEvent> coalescedEvents = [];

@@ -1,44 +1,44 @@
 import os, sys, json
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from wptserve.utils import isomorphic_decode, isomorphic_encode
+sys.path.insert(0, os.path.dirname(os.path.abspath(isomorphic_decode(__file__))))
 import util
 
-
 def main(request, response):
-  policyDeliveries = json.loads(request.GET.first('policyDeliveries', '[]'))
-  worker_type = request.GET.first('type', 'classic')
-  commonjs_url = '%s://%s:%s/common/security-features/resources/common.sub.js' % (
+  policyDeliveries = json.loads(request.GET.first(b'policyDeliveries', b'[]'))
+  worker_type = request.GET.first(b'type', b'classic')
+  commonjs_url = u'%s://%s:%s/common/security-features/resources/common.sub.js' % (
       request.url_parts.scheme, request.url_parts.hostname,
       request.url_parts.port)
-  if worker_type == 'classic':
-    import_line = 'importScripts("%s");' % commonjs_url
+  if worker_type == b'classic':
+    import_line = u'importScripts("%s");' % commonjs_url
   else:
-    import_line = 'import "%s";' % commonjs_url
+    import_line = u'import "%s";' % commonjs_url
 
   maybe_additional_headers = {}
-  error = ''
+  error = u''
   for delivery in policyDeliveries:
-    if delivery['deliveryType'] == 'meta':
-      error = '<meta> cannot be used in WorkerGlobalScope'
-    elif delivery['deliveryType'] == 'http-rp':
-      if delivery['key'] == 'referrerPolicy':
-        maybe_additional_headers['Referrer-Policy'] = delivery['value']
-      elif delivery['key'] == 'mixedContent' and delivery['value'] == 'opt-in':
-        maybe_additional_headers['Content-Security-Policy'] = 'block-all-mixed-content'
-      elif delivery['key'] == 'upgradeInsecureRequests' and delivery['value'] == 'upgrade':
-        maybe_additional_headers['Content-Security-Policy'] = 'upgrade-insecure-requests'
+    if delivery[u'deliveryType'] == u'meta':
+      error = u'<meta> cannot be used in WorkerGlobalScope'
+    elif delivery[u'deliveryType'] == u'http-rp':
+      if delivery[u'key'] == u'referrerPolicy':
+        maybe_additional_headers[b'Referrer-Policy'] = isomorphic_encode(delivery[u'value'])
+      elif delivery[u'key'] == u'mixedContent' and delivery[u'value'] == u'opt-in':
+        maybe_additional_headers[b'Content-Security-Policy'] = b'block-all-mixed-content'
+      elif delivery[u'key'] == u'upgradeInsecureRequests' and delivery[u'value'] == u'upgrade':
+        maybe_additional_headers[b'Content-Security-Policy'] = b'upgrade-insecure-requests'
       else:
-        error = 'invalid delivery key for http-rp: %s' % delivery['key']
+        error = u'invalid delivery key for http-rp: %s' % delivery[u'key']
     else:
-      error = 'invalid deliveryType: %s' % delivery['deliveryType']
+      error = u'invalid deliveryType: %s' % delivery[u'deliveryType']
 
-  handler = lambda: util.get_template('worker.js.template') % ({
-      'import': import_line,
-      'error': error
+  handler = lambda: util.get_template(u'worker.js.template') % ({
+      u'import': import_line,
+      u'error': error
   })
   util.respond(
       request,
       response,
       payload_generator=handler,
-      content_type='text/javascript',
+      content_type=b'text/javascript',
       maybe_additional_headers=maybe_additional_headers)

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Making the current page become non-active must prevent message transmission</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- This is the entry global -->
+
+<iframe src="support/incumbent.html" id="incumbent"></iframe>
+<iframe src="support/current.html" id="current"></iframe>
+
+<script>
+"use strict";
+const incumbentIframe = document.querySelector("#incumbent");
+const currentIframe = document.querySelector("#current");
+
+window.addEventListener("load", () => {
+  promise_test(async t => {
+    // This will invoke the constructor from currentIframe, but with incumbentIframe as the incumbent.
+    const messageChannel = incumbentIframe.contentWindow.createMessageChannel();
+
+    await new Promise((resolve, reject) => {
+      currentIframe.onload = () => resolve();
+      currentIframe.onerror = () => reject(new Error("Could not navigate the iframe"));
+      currentIframe.src = "/common/blank.html";
+    });
+
+    messageChannel.port1.onmessage = t.unreached_func("message event recieved");
+    messageChannel.port1.onmessageerror = t.unreached_func("messageerror event recieved");
+    messageChannel.port2.postMessage("boo");
+
+    // We are testing that neither of the above two events fire. We assume that a 3 second timeout
+    // is good enough. We can't use any other API for an end condition because each MessagePort has
+    // its own independent port message queue, which has no ordering guarantees relative to other
+    // APIs.
+    await new Promise(resolve => t.step_timeout(resolve, 3000));
+  });
+});
+</script>

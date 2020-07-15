@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>window.originIsolationRestricted for a data: URL</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- TODO(domenic): update this to test window.originIsolated, not
+     window.originIsolationRestricted. See
+     https://github.com/WICG/origin-isolation/pull/34. -->
+
+<div id="log"></div>
+
+<script type="module">
+import {
+  waitForIframe,
+  testOriginIsolationRestricted
+} from "../resources/helpers.mjs";
+
+promise_setup(() => {
+  const iframe = document.createElement("iframe");
+
+  // This copies parts of resources/send-origin-isolation-header.py that allow
+  // us to reuse testOriginIsolationRestricted.
+  iframe.src = `data:text/html,<script>
+    window.onmessage = () => {
+      parent.postMessage(self.originIsolationRestricted, "*");
+    };
+    </` + `script>
+  `;
+
+  const waitPromise = waitForIframe(iframe);
+  document.body.append(iframe);
+  return waitPromise;
+});
+
+// The data: URL iframe has an opaque origin, so it should return true, since
+// for them site === origin so they are always "origin-isolated".
+
+testOriginIsolationRestricted(0, true);
+</script>
