@@ -247,13 +247,12 @@ fn eval_color_index(
 
 /// https://drafts.csswg.org/mediaqueries-4/#monochrome
 fn eval_monochrome(
-    _: &Device,
+    device: &Device,
     query_value: Option<u32>,
     range_or_operator: Option<RangeOrOperator>,
 ) -> bool {
     // For color devices we should return 0.
-    // FIXME: On a monochrome device, return the actual color depth, not 0!
-    let depth = 0;
+    let depth = unsafe { bindings::Gecko_MediaFeatures_GetMonochromeBitsPerPixel(device.document()) };
     RangeOrOperator::evaluate(range_or_operator, query_value, depth)
 }
 
