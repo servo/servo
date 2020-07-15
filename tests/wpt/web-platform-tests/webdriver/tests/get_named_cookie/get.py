@@ -131,11 +131,11 @@ def test_get_cookie_with_same_site_flag(session, url, same_site):
     assert isinstance(cookie, dict)
 
     assert "name" in cookie
-    assert isinstance(cookie["name"], basestring)
+    assert isinstance(cookie["name"], text_type)
     assert "value" in cookie
-    assert isinstance(cookie["value"], basestring)
+    assert isinstance(cookie["value"], text_type)
     assert "sameSite" in cookie
-    assert isinstance(cookie["sameSite"], basestring)
+    assert isinstance(cookie["sameSite"], text_type)
 
     assert cookie["name"] == "foo"
     assert cookie["value"] == "bar"

@@ -5,7 +5,7 @@ from wptserve.utils import isomorphic_decode
 def main(request, response):
     stash_id = request.GET.first(b"id")
     if request.server.stash.take(stash_id) is not None:
-        response.status = (404, u"Not Found")
+        response.status = (404, b"Not Found")
         response.headers.set(b"Content-Type", b"text/plain")
         return u"not found"
     request.server.stash.put(stash_id, True)

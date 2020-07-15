@@ -20,6 +20,7 @@ RUN apt-get -qqy update \
     libvirt-daemon-system \
     libvirt-clients \
     libunwind8 \
+    libxcb-shape0-dev \
     locales \
     openjdk-8-jre-headless \
     pulseaudio \

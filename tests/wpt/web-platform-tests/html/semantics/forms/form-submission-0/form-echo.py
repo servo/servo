@@ -1,7 +1,7 @@
 def main(request, response):
     bytes = bytearray(request.raw_input.read())
-    bytes_string = " ".join("%02x" % b for b in bytes)
+    bytes_string = b" ".join(b"%02x" % b for b in bytes)
     return (
-        [("Content-Type", "text/plain")],
+        [(b"Content-Type", b"text/plain")],
         bytes_string
     )

@@ -14,13 +14,13 @@ def main(request, response):
         response.headers.set(b"Last-Modified", date)
     if redirect:
         response.headers.set(b"Location", redirect)
-        response.status = (302, u"Moved")
-        return u""
+        response.status = (302, b"Moved")
+        return b""
 
     if ((match is not None and match == tag) or
         (modified is not None and modified == date)):
-        response.status = (304, u"SUPERCOOL")
-        return u""
+        response.status = (304, b"SUPERCOOL")
+        return b""
     else:
         response.headers.set(b"Content-Type", b"text/plain")
-        return u"MAYBE NOT"
+        return b"MAYBE NOT"

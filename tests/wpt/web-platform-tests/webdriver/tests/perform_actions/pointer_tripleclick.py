@@ -19,8 +19,8 @@ def test_tripleclick_at_coordinates(session, mouse_chain):
     div = session.find.css("div", all=False)
     div_rect = div.rect
     div_centre = {
-        "x": div_rect["x"] + div_rect["width"]/2,
-        "y": div_rect["y"] + div_rect["height"]/2
+        "x": div_rect["x"] + int(div_rect["width"]/2),
+        "y": div_rect["y"] + int(div_rect["height"]/2)
     }
     mouse_chain \
         .pointer_move(div_centre["x"], div_centre["y"]) \

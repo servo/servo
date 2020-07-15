@@ -16,13 +16,13 @@ def main(request, response):
     user = request.auth.username
     password = request.auth.password
 
-    if user == "user" and password == "password":
-        return "Authentication done"
+    if user == b"user" and password == b"password":
+        return b"Authentication done"
 
-    realm = "test"
-    if "realm" in request.GET:
-        realm = request.GET.first("realm")
+    realm = b"test"
+    if b"realm" in request.GET:
+        realm = request.GET.first(b"realm")
 
-    return ((401, "Unauthorized"),
-            [("WWW-Authenticate", 'Basic realm="' + realm + '"')],
-            "Please login with credentials 'user' and 'password'")
+    return ((401, b"Unauthorized"),
+            [(b"WWW-Authenticate", b'Basic realm="' + realm + b'"')],
+            b"Please login with credentials 'user' and 'password'")
