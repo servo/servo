@@ -44,6 +44,7 @@ use ipc_channel::router::ROUTER;
 use js::jsapi::Handle as RawHandle;
 use js::jsapi::HandleObject;
 use js::jsapi::HandleValue as RawHandleValue;
+use js::jsapi::Value;
 use js::jsapi::{CompileModule, ExceptionStackBehavior, FinishDynamicModuleImport};
 use js::jsapi::{GetModuleResolveHook, JSRuntime, SetModuleResolveHook};
 use js::jsapi::{GetRequestedModules, SetModuleMetadataHook};
@@ -70,6 +71,7 @@ use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
 use std::collections::{HashMap, HashSet};
 use std::ffi;
+use std::mem;
 use std::rc::Rc;
 use std::str::FromStr;
 use std::sync::{Arc, Mutex};
@@ -449,11 +451,11 @@ impl ModuleTree {
                 ))));
             }
 
-            let module_script_data = Box::new(ModuleScript::new(url.clone(), options, Some(owner)));
+            let module_script_data = Rc::new(ModuleScript::new(url.clone(), options, Some(owner)));
 
             SetModulePrivate(
                 module_script.get(),
-                &PrivateValue(Box::into_raw(module_script_data) as *const _),
+                &PrivateValue(Rc::into_raw(module_script_data) as *const _),
             );
 
             debug!("module script of {} compile done", url);
@@ -1214,8 +1216,24 @@ pub unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
 
     SetModuleResolveHook(rt, Some(HostResolveImportedModule));
     SetModuleMetadataHook(rt, Some(HostPopulateImportMeta));
-    SetScriptPrivateReferenceHooks(rt, None, None);
+    SetScriptPrivateReferenceHooks(
+        rt,
+        Some(host_add_ref_top_level_script),
+        Some(host_release_top_level_script),
+    );
     SetModuleDynamicImportHook(rt, Some(host_import_module_dynamically));
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn host_add_ref_top_level_script(value: *const Value) {
+    let val = Rc::from_raw((*value).to_private() as *const ModuleScript);
+    mem::forget(val.clone());
+    mem::forget(val);
+}
+
+#[allow(unsafe_code)]
+unsafe extern "C" fn host_release_top_level_script(value: *const Value) {
+    let _val = Rc::from_raw((*value).to_private() as *const ModuleScript);
 }
 
 #[allow(unsafe_code)]

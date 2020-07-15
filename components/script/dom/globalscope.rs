@@ -2608,7 +2608,7 @@ impl GlobalScope {
                     if GetScriptPrivate(*compiled_script).is_undefined() {
                         debug!("Set script private for {}", script_base_url);
 
-                        let module_script_data = Box::new(ModuleScript::new(
+                        let module_script_data = Rc::new(ModuleScript::new(
                             script_base_url,
                             fetch_options,
                             // We can't initialize an module owner here because
@@ -2619,7 +2619,7 @@ impl GlobalScope {
 
                         SetScriptPrivate(
                             *compiled_script,
-                            &PrivateValue(Box::into_raw(module_script_data) as *const _),
+                            &PrivateValue(Rc::into_raw(module_script_data) as *const _),
                         );
                     }
 
