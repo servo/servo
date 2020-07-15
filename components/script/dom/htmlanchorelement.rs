@@ -18,7 +18,9 @@ use crate::dom::element::{referrer_policy_for_element, Element};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlareaelement::HTMLAreaElement;
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{document_from_node, Node};
@@ -566,6 +568,52 @@ impl Activatable for HTMLAnchorElement {
     }
 }
 
+/// <https://html.spec.whatwg.org/multipage/#get-an-element's-target>
+pub fn get_element_target(subject: &Element) -> Option<DOMString> {
+    if !(subject.is::<HTMLAreaElement>() ||
+        subject.is::<HTMLAnchorElement>() ||
+        subject.is::<HTMLFormElement>())
+    {
+        return None;
+    }
+    if subject.has_attribute(&local_name!("target")) {
+        return Some(subject.get_string_attribute(&local_name!("target")));
+    }
+
+    let doc = document_from_node(subject).base_element();
+    match doc {
+        Some(doc) => {
+            let element = doc.upcast::<Element>();
+            if element.has_attribute(&local_name!("target")) {
+                return Some(element.get_string_attribute(&local_name!("target")));
+            } else {
+                return None;
+            }
+        },
+        None => return None,
+    };
+}
+
+///  < https://html.spec.whatwg.org/multipage/#get-an-element's-noopener>
+pub fn get_element_noopener(subject: &Element, target_attribute_value: Option<DOMString>) -> bool {
+    if !(subject.is::<HTMLAreaElement>() ||
+        subject.is::<HTMLAnchorElement>() ||
+        subject.is::<HTMLFormElement>())
+    {
+        return false;
+    }
+    let target_is_blank = target_attribute_value
+        .as_ref()
+        .map_or(false, |target| target.to_lowercase() == "_blank");
+    let link_types = match subject.get_attribute(&ns!(), &local_name!("rel")) {
+        Some(rel) => rel.Value(),
+        None => return target_is_blank,
+    };
+    return link_types.contains("noreferrer") ||
+        link_types.contains("noopener") ||
+        (!link_types.contains("opener") && target_is_blank);
+}
+
 /// <https://html.spec.whatwg.org/multipage/#following-hyperlinks-2>
 pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
     // Step 1.
@@ -581,29 +629,19 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
     let source = document.browsing_context().unwrap();
 
     // Step 4-5: target attribute.
-    let target_attribute_value = subject.get_attribute(&ns!(), &local_name!("target"));
-
-    // Step 6.
-    let noopener = if let Some(link_types) = subject.get_attribute(&ns!(), &local_name!("rel")) {
-        let values = link_types.Value();
-        let contains_noopener = values.contains("noopener");
-        let contains_noreferrer = values.contains("noreferrer");
-        let contains_opener = values.contains("opener");
-        let target_is_blank = if let Some(name) = target_attribute_value.as_ref() {
-            name.Value().to_lowercase() == "_blank"
+    let target_attribute_value =
+        if subject.is::<HTMLAreaElement>() || subject.is::<HTMLAnchorElement>() {
+            get_element_target(subject)
         } else {
-            false
+            None
         };
-
-        contains_noreferrer || contains_noopener || (!contains_opener && target_is_blank)
-    } else {
-        false
-    };
+    // Step 6.
+    let noopener = get_element_noopener(subject, target_attribute_value.clone());
 
     // Step 7.
     let (maybe_chosen, replace) = match target_attribute_value {
         Some(name) => {
-            let (maybe_chosen, new) = source.choose_browsing_context(name.Value(), noopener);
+            let (maybe_chosen, new) = source.choose_browsing_context(name, noopener);
             let replace = if new {
                 HistoryEntryReplacement::Enabled
             } else {
