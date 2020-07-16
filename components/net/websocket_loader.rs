@@ -22,9 +22,7 @@ use embedder_traits::resources::{self, Resource};
 use futures03::future::TryFutureExt;
 use futures03::sink::SinkExt;
 use futures03::stream::StreamExt;
-use headers::Host;
 use http::header::{HeaderMap, HeaderName, HeaderValue};
-use http::uri::Authority;
 use ipc_channel::ipc::{IpcReceiver, IpcSender};
 use ipc_channel::router::ROUTER;
 use net_traits::request::{RequestBuilder, RequestMode};
@@ -56,14 +54,13 @@ lazy_static! {
 
 /// Create a tungstenite Request object for the initial HTTP request.
 /// This request contains `Origin`, `Sec-WebSocket-Protocol`, `Authorization`,
-/// `Cookie`, and `Host` headers as appropriate.
+/// and `Cookie` headers as appropriate.
 /// Returns an error if any header values are invalid or tungstenite cannot create
 /// the desired request.
 fn create_request(
     resource_url: &ServoUrl,
     origin: &str,
     protocols: &[String],
-    host: &Host,
     http_state: &HttpState,
 ) -> WebSocketResult<Request> {
     let mut builder = Request::get(resource_url.as_str());
@@ -77,8 +74,6 @@ fn create_request(
             WSHeaderValue::from_str(&protocols)?,
         );
     }
-
-    headers.insert("Host", WSHeaderValue::from_str(&host.to_string())?);
 
     let mut cookie_jar = http_state.cookie_jar.write().unwrap();
     cookie_jar.remove_expired_cookies_for_url(resource_url);
@@ -402,25 +397,6 @@ fn connect(
         return Err("Port blocked".to_string());
     }
 
-    let host_str = req_builder
-        .url
-        .host_str()
-        .ok_or_else(|| "No host string".to_string())?;
-
-    let host = Host::from(
-        format!(
-            "{}{}",
-            host_str,
-            req_builder
-                .url
-                .port_or_known_default()
-                .map(|v| format!(":{}", v))
-                .unwrap_or("".into())
-        )
-        .parse::<Authority>()
-        .map_err(|e| e.to_string())?,
-    );
-
     let certs = match certificate_path {
         Some(ref path) => fs::read_to_string(path).map_err(|e| e.to_string())?,
         None => resources::read_string(Resource::SSLCertificates),
@@ -430,7 +406,6 @@ fn connect(
         &req_builder.url,
         &req_builder.origin.ascii_serialization(),
         &protocols,
-        &host,
         &*http_state,
     ) {
         Ok(c) => c,
