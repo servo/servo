@@ -1530,8 +1530,31 @@ pub enum Appearance {
     /// This value doesn't make sense for -moz-default-appearance, but we don't bother to guard
     /// against parsing it.
     Auto,
+    /// A searchfield.
+    Searchfield,
+    /// A multi-line text field, e.g. HTML <textarea>.
+    #[parse(aliases = "textfield-multiline")]
+    Textarea,
+    /// A checkbox element.
+    Checkbox,
+    /// A radio element within a radio group.
+    Radio,
+    /// A dropdown list.
+    Menulist,
+    /// List boxes.
+    Listbox,
+    /// A horizontal meter bar.
+    #[parse(aliases = "meterbar")]
+    Meter,
+    /// A horizontal progress bar.
+    #[parse(aliases = "progressbar")]
+    ProgressBar,
     /// A typical dialog button.
     Button,
+    /// A single-line text field, e.g. HTML <input type=text>.
+    Textfield,
+    /// The dropdown button(s) that open up a dropdown list.
+    MenulistButton,
     /// Various arrows that go in buttons
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ButtonArrowDown,
@@ -1550,8 +1573,6 @@ pub enum Appearance {
     /// A groupbox.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Groupbox,
-    /// List boxes.
-    Listbox,
     /// Menu Bar background
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Menubar,
@@ -1565,10 +1586,6 @@ pub enum Appearance {
     /// For text on non-iconic menuitems only
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Menuitemtext,
-    /// A dropdown list.
-    Menulist,
-    /// The dropdown button(s) that open up a dropdown list.
-    MenulistButton,
     /// The text part of a dropdown list, to left of button.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MenulistText,
@@ -1587,9 +1604,6 @@ pub enum Appearance {
     /// An image in the menu gutter, like in bookmarks or history.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Menuimage,
-    /// A horizontal meter bar.
-    #[parse(aliases = "meterbar")]
-    Meter,
     /// The meter bar's meter indicator.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Meterchunk,
@@ -1598,16 +1612,9 @@ pub enum Appearance {
     MozMenulistArrowButton,
     /// For HTML's <input type=number>
     NumberInput,
-    /// A horizontal progress bar.
-    #[parse(aliases = "progressbar")]
-    ProgressBar,
     /// The progress bar's progress indicator
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Progresschunk,
-    /// A checkbox element.
-    Checkbox,
-    /// A radio element within a radio group.
-    Radio,
     /// A generic container that always repaints on state changes. This is a
     /// hack to make XUL checkboxes and radio buttons work.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
@@ -1666,8 +1673,6 @@ pub enum Appearance {
     /// The scroll corner
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Scrollcorner,
-    /// A searchfield.
-    Searchfield,
     /// A separator.  Can be horizontal or vertical.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Separator,
@@ -1706,11 +1711,6 @@ pub enum Appearance {
     TabScrollArrowBack,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     TabScrollArrowForward,
-    /// A multi-line text field, e.g. HTML <textarea>.
-    #[parse(aliases = "textfield-multiline")]
-    Textarea,
-    /// A single-line text field, e.g. HTML <input type=text>.
-    Textfield,
     /// A toolbar in an application window.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Toolbar,
