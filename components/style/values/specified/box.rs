@@ -1653,10 +1653,14 @@ pub enum Appearance {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ScrollbarbuttonRight,
     /// The scrollbar thumb.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ScrollbarthumbHorizontal,
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ScrollbarthumbVertical,
     /// The scrollbar track.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ScrollbartrackHorizontal,
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ScrollbartrackVertical,
     /// The scroll corner
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
