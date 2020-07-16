@@ -95,10 +95,7 @@ void App::OnActivated(IActivatedEventArgs const &args) {
       rootFrame = content.try_as<Frame>();
     }
     auto page = rootFrame.Content().try_as<BrowserPage>();
-    page->LoadServoURI(protocolActivatedEventArgs.Uri());
-    // If Servo was opened as a result of clicking on a fxr:// URL,
-    // we activate transient mode.
-    page->SetTransientMode(!isRunning);
+    page->LoadFXRURI(protocolActivatedEventArgs.Uri());
   }
 }
 
