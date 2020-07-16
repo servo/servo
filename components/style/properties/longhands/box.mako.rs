@@ -635,7 +635,7 @@ ${helpers.predefined_type(
     engines="gecko",
     animation_value_type="none",
     spec="Internal (not web-exposed)",
-    enabled_in="ua",
+    enabled_in="chrome",
     gecko_ffi_name="mDefaultAppearance",
 )}
 
