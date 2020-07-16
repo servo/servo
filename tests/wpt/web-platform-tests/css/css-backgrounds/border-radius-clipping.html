@@ -1,40 +1,37 @@
 <!DOCTYPE html>
-<html>
-<head>
-    <title>Border radius clipping</title>
-    <link rel="author" title="zhouli" href="mailto:liz@oupeng.com">
-    <link rel="help" href="http://www.w3.org/TR/css3-background/#corner-clipping" />
-    <link rel="match" href="reference/border-radius-clipping-ref.html">
-    <meta name="assert" content="When set with 'overflow: hidden', outer container should clip background of an element insides at the corners. " />
-    <style>
-        #parent{
-            border-radius: 15px;
-            border: 1px solid blue;
-            overflow: hidden;
-            width: 300px;
-            height: 30px;
-        }
-        #son{
-            background-color: green;
-            width: 300px;
-            height: 30px;
-        }
-        #dummy {
-            border-radius: 5000em;
-            height: 10000em;
-            overflow: hidden;
-            width: 10000em;
-        }
-    </style>
-</head>
-<body>
-<div id="parent">
+
+  <meta charset="UTF-8">
+
+  <title>CSS Backgrounds and Borders Test: 'border-radius' and corner-clipping of content elements</title>
+
+  <link rel="author" title="zhouli" href="mailto:liz@oupeng.com">
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="http://www.w3.org/TR/css3-background/#corner-clipping">
+  <link rel="match" href="reference/border-radius-clipping-ref.html">
+
+  <meta content="" name="flag">
+  <meta name="assert" content="When set with 'overflow: hidden', an outer container must clip background area of its child element at its corners. In this test, the outer container has a 'border-radius' declaration which implies that the clipping must occur at its curves.">
+
+  <style>
+  div#parent
+    {
+      border: transparent solid 20px;
+      border-radius: 50%;
+      overflow: hidden;
+      width: 100px;
+    }
+
+  div#son
+    {
+      background-color: red;
+      background-image: url("support/100x100-green-with-red-corners.png");
+      height: 100px;
+      width: 100px;
+    }
+  </style>
+
+  <p>Test passes if there is a filled green circle and <strong>no red</strong>.
+
+  <div id="parent">
     <div id="son"></div>
-</div>
-<div id="dummy">
-    This should not appear if browser supports border-radius
-</div>
-<script>
-</script>
-</body>
-</html>
+  </div>
