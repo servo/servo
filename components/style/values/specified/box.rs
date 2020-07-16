@@ -1611,6 +1611,7 @@ pub enum Appearance {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     MozMenulistArrowButton,
     /// For HTML's <input type=number>
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     NumberInput,
     /// The progress bar's progress indicator
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
@@ -1628,6 +1629,7 @@ pub enum Appearance {
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     RadioLabel,
     /// nsRangeFrame and its subparts
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Range,
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     RangeThumb,
