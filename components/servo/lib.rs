@@ -134,10 +134,15 @@ pub use servo_url as url;
 
 #[cfg(feature = "media-gstreamer")]
 mod media_platform {
+    #[cfg(any(windows, target_os = "macos"))]
+    mod gstreamer_plugins {
+        include!(concat!(env!("OUT_DIR"), "/gstreamer_plugins.rs"));
+    }
+
     use super::ServoMedia;
     use servo_media_gstreamer::GStreamerBackend;
 
-    #[cfg(target_os = "windows")]
+    #[cfg(feature = "uwp")]
     fn set_gstreamer_log_handler() {
         use gstreamer::{debug_add_log_function, debug_remove_default_log_function, DebugLevel};
 
@@ -165,7 +170,7 @@ mod media_platform {
         });
     }
 
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos"))]
     pub fn init() {
         // UWP apps have the working directory set appropriately. Win32 apps
         // do not and need some assistance finding the DLLs.
@@ -177,66 +182,24 @@ mod media_platform {
             plugin_dir
         };
 
-        let uwp_plugins = [
-            "gstapp.dll",
-            "gstaudioconvert.dll",
-            "gstaudiofx.dll",
-            "gstaudioparsers.dll",
-            "gstaudioresample.dll",
-            "gstautodetect.dll",
-            "gstcoreelements.dll",
-            "gstdeinterlace.dll",
-            "gstinterleave.dll",
-            "gstisomp4.dll",
-            "gstlibav.dll",
-            "gstplayback.dll",
-            "gstproxy.dll",
-            "gsttypefindfunctions.dll",
-            "gstvideoconvert.dll",
-            "gstvideofilter.dll",
-            "gstvideoparsersbad.dll",
-            "gstvideoscale.dll",
-            "gstvolume.dll",
-            "gstwasapi.dll",
-        ];
-
-        let non_uwp_plugins = [
-            "gstmatroska.dll",
-            "gstnice.dll",
-            "gstogg.dll",
-            "gstopengl.dll",
-            "gstopus.dll",
-            "gstrtp.dll",
-            "gsttheora.dll",
-            "gstvorbis.dll",
-            "gstvpx.dll",
-            "gstwebrtc.dll",
-        ];
-
-        let plugins: Vec<_> = if cfg!(feature = "uwp") {
-            uwp_plugins.to_vec()
-        } else {
-            uwp_plugins
-                .iter()
-                .map(|&s| s)
-                .chain(non_uwp_plugins.iter().map(|&s| s))
-                .collect()
-        };
-
-        let backend = match GStreamerBackend::init_with_plugins(plugin_dir, &plugins) {
+        let backend = match GStreamerBackend::init_with_plugins(
+            plugin_dir,
+            &gstreamer_plugins::GSTREAMER_PLUGINS,
+        ) {
             Ok(b) => b,
             Err(e) => {
-                error!("Error initializing GStreamer: {:?}", e);
-                panic!()
+                eprintln!("Error initializing GStreamer: {:?}", e);
+                std::process::exit(1);
             },
         };
         ServoMedia::init_with_backend(backend);
-        if cfg!(feature = "uwp") {
+        #[cfg(feature = "uwp")]
+        {
             set_gstreamer_log_handler();
         }
     }
 
-    #[cfg(not(windows))]
+    #[cfg(not(any(windows, target_os = "macos")))]
     pub fn init() {
         ServoMedia::init::<GStreamerBackend>();
     }
