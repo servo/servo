@@ -83,6 +83,7 @@ pub enum WebGPURequest {
     },
     CreateBindGroup {
         device_id: id::DeviceId,
+        // TODO: Consider using NonZeroU64 to reduce enum size
         scope_id: Option<u64>,
         bind_group_id: id::BindGroupId,
         bind_group_layout_id: id::BindGroupLayoutId,
@@ -480,25 +481,7 @@ impl<'a> WGPU<'a> {
                         let result = gfx_select!(bind_group_id =>
                             global.device_create_bind_group(device_id, &descriptor, bind_group_id));
                         if let Some(s_id) = scope_id {
-                            let &pipeline_id = self.devices.get(&WebGPUDevice(device_id)).unwrap();
-                            let op_result;
-                            if let Err(e) = result {
-                                let error_msg = format!("{:?}", e);
-                                op_result = WebGPUOpResult::ValidationError(error_msg);
-                            } else {
-                                op_result = WebGPUOpResult::Success;
-                            }
-                            if let Err(w) = self.script_sender.send(WebGPUMsg::WebGPUOpResult {
-                                device: WebGPUDevice(device_id),
-                                scope_id: s_id,
-                                pipeline_id,
-                                result: op_result,
-                            }) {
-                                warn!(
-                                    "Failed to send BindGroupResult({:?}) ({})",
-                                    bind_group_id, w
-                                );
-                            }
+                            self.send_result(device_id, s_id, result);
                         }
                     },
                     WebGPURequest::CreateBindGroupLayout {
@@ -515,25 +498,7 @@ impl<'a> WGPU<'a> {
                         let result = gfx_select!(bind_group_layout_id =>
                             global.device_create_bind_group_layout(device_id, &descriptor, bind_group_layout_id));
                         if let Some(s_id) = scope_id {
-                            let &pipeline_id = self.devices.get(&WebGPUDevice(device_id)).unwrap();
-                            let op_result;
-                            if let Err(e) = result {
-                                let error_msg = format!("{:?}", e);
-                                op_result = WebGPUOpResult::ValidationError(error_msg);
-                            } else {
-                                op_result = WebGPUOpResult::Success;
-                            }
-                            if let Err(w) = self.script_sender.send(WebGPUMsg::WebGPUOpResult {
-                                device: WebGPUDevice(device_id),
-                                pipeline_id,
-                                scope_id: s_id,
-                                result: op_result,
-                            }) {
-                                warn!(
-                                    "Failed to send BindGroupLayoutResult({:?}) ({})",
-                                    bind_group_layout_id, w
-                                );
-                            }
+                            self.send_result(device_id, s_id, result);
                         }
                     },
                     WebGPURequest::CreateBuffer {
@@ -574,25 +539,7 @@ impl<'a> WGPU<'a> {
                         let result = gfx_select!(compute_pipeline_id =>
                             global.device_create_compute_pipeline(device_id, &descriptor, compute_pipeline_id));
                         if let Some(s_id) = scope_id {
-                            let &pipeline_id = self.devices.get(&WebGPUDevice(device_id)).unwrap();
-                            let op_result;
-                            if let Err(e) = result {
-                                let error_msg = format!("{:?}", e);
-                                op_result = WebGPUOpResult::ValidationError(error_msg);
-                            } else {
-                                op_result = WebGPUOpResult::Success;
-                            }
-                            if let Err(w) = self.script_sender.send(WebGPUMsg::WebGPUOpResult {
-                                device: WebGPUDevice(device_id),
-                                scope_id: s_id,
-                                pipeline_id,
-                                result: op_result,
-                            }) {
-                                warn!(
-                                    "Failed to send ComputePipelineResult({:?}) ({})",
-                                    compute_pipeline_id, w
-                                );
-                            }
+                            self.send_result(device_id, s_id, result);
                         }
                     },
                     WebGPURequest::CreateContext(sender) => {
@@ -619,25 +566,7 @@ impl<'a> WGPU<'a> {
                         let result = gfx_select!(pipeline_layout_id =>
                             global.device_create_pipeline_layout(device_id, &descriptor, pipeline_layout_id));
                         if let Some(s_id) = scope_id {
-                            let &pipeline_id = self.devices.get(&WebGPUDevice(device_id)).unwrap();
-                            let op_result;
-                            if let Err(e) = result {
-                                let error_msg = format!("{:?}", e);
-                                op_result = WebGPUOpResult::ValidationError(error_msg);
-                            } else {
-                                op_result = WebGPUOpResult::Success;
-                            }
-                            if let Err(w) = self.script_sender.send(WebGPUMsg::WebGPUOpResult {
-                                device: WebGPUDevice(device_id),
-                                scope_id: s_id,
-                                pipeline_id,
-                                result: op_result,
-                            }) {
-                                warn!(
-                                    "Failed to send PipelineLayoutResult({:?}) ({})",
-                                    pipeline_layout_id, w
-                                );
-                            }
+                            self.send_result(device_id, s_id, result);
                         }
                     },
                     //TODO: consider https://github.com/gfx-rs/wgpu/issues/684
@@ -707,25 +636,7 @@ impl<'a> WGPU<'a> {
                         let result = gfx_select!(render_pipeline_id =>
                             global.device_create_render_pipeline(device_id, &descriptor, render_pipeline_id));
                         if let Some(s_id) = scope_id {
-                            let &pipeline_id = self.devices.get(&WebGPUDevice(device_id)).unwrap();
-                            let op_result;
-                            if let Err(e) = result {
-                                let error_msg = format!("{:?}", e);
-                                op_result = WebGPUOpResult::ValidationError(error_msg);
-                            } else {
-                                op_result = WebGPUOpResult::Success;
-                            }
-                            if let Err(w) = self.script_sender.send(WebGPUMsg::WebGPUOpResult {
-                                device: WebGPUDevice(device_id),
-                                scope_id: s_id,
-                                pipeline_id,
-                                result: op_result,
-                            }) {
-                                warn!(
-                                    "Failed to send RenderPipelineResult({:?}) ({})",
-                                    render_pipeline_id, w
-                                );
-                            }
+                            self.send_result(device_id, s_id, result);
                         }
                     },
                     WebGPURequest::CreateSampler {
@@ -937,7 +848,7 @@ impl<'a> WGPU<'a> {
                         compute_pass,
                     } => {
                         let global = &self.global;
-                        gfx_select!(command_encoder_id => global.command_encoder_run_compute_pass(
+                        let _ = gfx_select!(command_encoder_id => global.command_encoder_run_compute_pass(
                             command_encoder_id,
                             &compute_pass
                         ));
@@ -947,7 +858,7 @@ impl<'a> WGPU<'a> {
                         render_pass,
                     } => {
                         let global = &self.global;
-                        gfx_select!(command_encoder_id => global.command_encoder_run_render_pass(
+                        let _ = gfx_select!(command_encoder_id => global.command_encoder_run_render_pass(
                             command_encoder_id,
                             &render_pass
                         ));
@@ -1177,6 +1088,27 @@ impl<'a> WGPU<'a> {
                     },
                 }
             }
+        }
+    }
+
+    fn send_result<U: id::TypedId, T: std::fmt::Debug>(
+        &self,
+        device_id: id::DeviceId,
+        scope_id: u64,
+        result: Result<U, T>,
+    ) {
+        let &pipeline_id = self.devices.get(&WebGPUDevice(device_id)).unwrap();
+        if let Err(w) = self.script_sender.send(WebGPUMsg::WebGPUOpResult {
+            device: WebGPUDevice(device_id),
+            scope_id,
+            pipeline_id,
+            result: if let Err(e) = result {
+                WebGPUOpResult::ValidationError(format!("{:?}", e))
+            } else {
+                WebGPUOpResult::Success
+            },
+        }) {
+            warn!("Failed to send WebGPUOpResult ({})", w);
         }
     }
 }
