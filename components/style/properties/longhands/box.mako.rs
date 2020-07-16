@@ -639,6 +639,25 @@ ${helpers.predefined_type(
     gecko_ffi_name="mDefaultAppearance",
 )}
 
+// A UA-sheet only property that controls the effect of `appearance: button`
+// on the element: `-moz-button-appearance: allow` means the element is rendered
+// with button appearance, and `-moz-button-appearance: disallow` is treated
+// like `appearance: auto`.
+//
+// https://github.com/w3c/csswg-drafts/issues/5174 proposes to simplify `button`
+// to mean `auto` unconditionally, at which point this property can be removed.
+${helpers.predefined_type(
+    "-moz-button-appearance",
+    "ButtonAppearance",
+    "computed::ButtonAppearance::Allow",
+    engines="gecko",
+    animation_value_type="none",
+    needs_context=False,
+    spec="Internal (not web-exposed)",
+    enabled_in="ua",
+    gecko_ffi_name="mButtonAppearance",
+)}
+
 ${helpers.single_keyword(
     "-moz-orient",
     "inline block horizontal vertical",

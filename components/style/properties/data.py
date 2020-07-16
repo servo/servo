@@ -334,6 +334,7 @@ class Longhand(object):
                 "BackgroundRepeat",
                 "BorderImageRepeat",
                 "BorderStyle",
+                "ButtonAppearance",
                 "Clear",
                 "ColumnCount",
                 "Contain",

@@ -12,8 +12,8 @@ use crate::values::generics::box_::VerticalAlign as GenericVerticalAlign;
 use crate::values::specified::box_ as specified;
 
 pub use crate::values::specified::box_::{AnimationName, Appearance, BreakBetween, BreakWithin};
-pub use crate::values::specified::box_::{Clear as SpecifiedClear, Float as SpecifiedFloat};
-pub use crate::values::specified::box_::{Contain, Display, Overflow};
+pub use crate::values::specified::box_::{ButtonAppearance, Clear as SpecifiedClear};
+pub use crate::values::specified::box_::{Float as SpecifiedFloat, Contain, Display, Overflow};
 pub use crate::values::specified::box_::{OverflowAnchor, OverflowClipBox, OverscrollBehavior};
 pub use crate::values::specified::box_::{
     ScrollSnapAlign, ScrollSnapAxis, ScrollSnapStrictness, ScrollSnapType,
