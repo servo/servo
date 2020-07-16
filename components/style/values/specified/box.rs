@@ -1525,6 +1525,11 @@ pub enum Resize {
 pub enum Appearance {
     /// No appearance at all.
     None,
+    /// Default appearance for the element.
+    ///
+    /// This value doesn't make sense for -moz-default-appearance, but we don't bother to guard
+    /// against parsing it.
+    Auto,
     /// A typical dialog button.
     Button,
     /// Various arrows that go in buttons

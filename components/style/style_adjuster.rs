@@ -763,10 +763,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     where
         E: TElement,
     {
-        use crate::properties::longhands::_moz_appearance::computed_value::T as Appearance;
+        use crate::properties::longhands::appearance::computed_value::T as Appearance;
         use crate::properties::longhands::line_height::computed_value::T as LineHeight;
 
-        if self.style.get_box().clone__moz_appearance() == Appearance::Menulist {
+        if self.style.get_box().clone_appearance() == Appearance::Menulist {
             if self.style.get_inherited_text().clone_line_height() == LineHeight::normal() {
                 return;
             }
