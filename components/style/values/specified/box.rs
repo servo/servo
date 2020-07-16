@@ -1622,7 +1622,8 @@ pub enum Appearance {
     RadioLabel,
     /// nsRangeFrame and its subparts
     Range,
-    RangeThumb, // FIXME: This should not be exposed to content.
+    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
+    RangeThumb,
     /// The resizer background area in a status bar for the resizer widget in
     /// the corner of a window.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
