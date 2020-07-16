@@ -577,6 +577,22 @@ gen-signedexchange \
   -miRecordSize 100 \
   -responseHeader "link:<$inner_url_origin/signed-exchange/resources/sxg-subresource-script.js>;rel=allowed-alt-sxg;header-integrity=\"$header_integrity\",<$inner_url_origin/signed-exchange/resources/sxg-subresource-script.js>;rel=preload;as=script"
 
+# Generate the signed exchange file of signed exchange subresource test with
+# header integrity mismatch.
+gen-signedexchange \
+  -version $sxg_version \
+  -uri $inner_url_origin/signed-exchange/resources/sxg-subresource-sxg.html \
+  -status 200 \
+  -content sxg-subresource-sxg-inner.html \
+  -certificate $certfile \
+  -certUrl $cert_url_origin/signed-exchange/resources/$certfile.cbor \
+  -validityUrl $inner_url_origin/signed-exchange/resources/resource.validity.msg \
+  -privateKey $keyfile \
+  -date 2030-04-01T00:00:00Z \
+  -expire 168h \
+  -o sxg/sxg-subresource-header-integrity-mismatch.sxg \
+  -miRecordSize 100 \
+  -responseHeader "link:<$inner_url_origin/signed-exchange/resources/sxg-subresource-script.js>;rel=allowed-alt-sxg;header-integrity=\"sha256-$dummy_sha256\",<$inner_url_origin/signed-exchange/resources/sxg-subresource-script.js>;rel=preload;as=script"
 
 # A Signed Exchange for testing prefetch.
 # The id query value "XXX..." of prefetch-test-cert.py will be replaced with

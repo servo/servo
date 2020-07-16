@@ -50,7 +50,7 @@
       for (var i = 0; i <= 2; i++) {
         var mpadded = getBox("depth" + i);
         assert_equals(mpadded.width, contentWidth, "width" + i);
-        assert_approx_equals(getBox("baseline").bottom - mpadded.top, contentHeight, epsilon, "height" + i);
+        assert_approx_equals(getBox("baseline2").bottom - mpadded.top, contentHeight, epsilon, "height" + i);
         assert_approx_equals(mpadded.bottom - getBox("baseline").bottom, 25*(i+1), epsilon, "depth" + i);
       }
     }, "Different depths");
@@ -59,7 +59,7 @@
       for (var i = 0; i <= 2; i++) {
         var mpadded = getBox("mpadded" + i);
         assert_approx_equals(mpadded.width, 25*(1+i%3), epsilon, "width" + i);
-        assert_approx_equals(getBox("baseline").bottom - mpadded.top, 25*(1+(i+1)%3), epsilon, "height" + i);
+        assert_approx_equals(getBox("baseline2").bottom - mpadded.top, 25*(1+(i+1)%3), epsilon, "height" + i);
         assert_approx_equals(mpadded.bottom - getBox("baseline").bottom, 25*(1+(i+2)%3), epsilon, "depth" + i);
       }
     }, "Various combinations of height, depth and width.");
@@ -79,7 +79,7 @@
         document.getElementById("dynamic-attach").setAttribute(name, length);
         document.getElementById("dynamic-modify").setAttribute(name, length);
     });
-    let baseline = getBox("baseline2").bottom;
+    let baseline = getBox("baseline3").bottom;
 
     test(function() {
         let remove = getBox("dynamic-remove");
@@ -126,6 +126,11 @@ div.shrink-wrap {
       <mpadded id="height0" height="25px"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
       <mpadded id="height1" height="50px"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
       <mpadded id="height2" height="75px"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
+    </math>
+  </p>
+  <p>
+    <span id="baseline2" style="display: inline-block; width: 30px; height: 5px; background: blue"></span>
+    <math>
       <mpadded id="depth0" depth="25px"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
       <mpadded id="depth1" depth="50px"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
       <mpadded id="depth2" depth="75px"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
@@ -140,7 +145,7 @@ div.shrink-wrap {
     </div>
   </div>
   <p>
-    <span id="baseline2" style="display: inline-block; width: 30px; height: 5px; background: blue"></span>
+    <span id="baseline3" style="display: inline-block; width: 30px; height: 5px; background: blue"></span>
     <math>
       <mpadded id="dynamic-attach" style="background: lightgreen"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
       <mpadded id="dynamic-remove" width="10px" height="20px" depth="30px" style="background: lightyellow"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>

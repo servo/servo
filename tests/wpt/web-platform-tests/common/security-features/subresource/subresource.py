@@ -121,7 +121,8 @@ def preprocess_stash_action(request, response):
 
     key = request.GET[b"key"]
     stash = request.server.stash
-    path = request.GET.get(b"path", isomorphic_encode(request.url.split(u'?')[0]))
+    path = request.GET[b"path"] if b"path" in request.GET \
+           else isomorphic_encode(request.url.split(u'?')[0])
 
     if action == b"put":
         value = isomorphic_decode(request.GET[b"value"])
