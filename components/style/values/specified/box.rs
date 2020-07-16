@@ -1550,8 +1550,6 @@ pub enum Appearance {
     /// A groupbox.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Groupbox,
-    /// A inner-spin button.
-    InnerSpinButton,
     /// List boxes.
     Listbox,
     /// Menu Bar background
@@ -1606,8 +1604,6 @@ pub enum Appearance {
     /// The progress bar's progress indicator
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Progresschunk,
-    /// A vertical progress bar.
-    ProgressbarVertical,
     /// A checkbox element.
     Checkbox,
     /// A radio element within a radio group.
@@ -1634,17 +1630,6 @@ pub enum Appearance {
     /// The resizer itself.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Resizer,
-    /// A slider.
-    ScaleHorizontal,
-    ScaleVertical,
-    /// A slider's thumb.
-    ScalethumbHorizontal,
-    ScalethumbVertical,
-    /// If the platform supports it, the left/right chunks of the slider thumb.
-    Scalethumbstart,
-    Scalethumbend,
-    /// The ticks for a slider.
-    Scalethumbtick,
     /// A scrollbar.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Scrollbar,
