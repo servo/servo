@@ -99,16 +99,20 @@ void BrowserPage::OnURLKeyboardAccelerator(
   urlTextbox().Focus(FocusState::Programmatic);
 }
 
-void BrowserPage::LoadServoURI(Uri uri) {
+void BrowserPage::LoadFXRURI(Uri uri) {
   auto scheme = uri.SchemeName();
-
-  if (scheme != SERVO_SCHEME) {
-    log(L"Unexpected URL: ", uri.RawUri().c_str());
-    return;
-  }
   std::wstring raw{uri.RawUri()};
-  auto raw2 = raw.substr(SERVO_SCHEME_SLASH_SLASH.size());
-  servoControl().LoadURIOrSearch(raw2);
+  if (scheme == FXR_SCHEME) {
+    auto raw2 = raw.substr(FXR_SCHEME_SLASH_SLASH.size());
+    servoControl().LoadURIOrSearch(raw2);
+    SetTransientMode(false);
+  } else if (scheme == FXRMIN_SCHEME) {
+    auto raw2 = raw.substr(FXRMIN_SCHEME_SLASH_SLASH.size());
+    servoControl().LoadURIOrSearch(raw2);
+    SetTransientMode(true);
+  } else {
+    log(L"Unexpected URL: ", uri.RawUri().c_str());
+  }
 }
 
 void BrowserPage::SetTransientMode(bool transient) {

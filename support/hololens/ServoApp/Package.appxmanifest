@@ -38,6 +38,12 @@
             <uap:DisplayName>Firefox Reality URL</uap:DisplayName>
           </uap:Protocol>
         </uap:Extension>
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="fxrmin">
+            <uap:Logo>Assets\StoreLogo.png</uap:Logo>
+            <uap:DisplayName>Firefox Reality URL (Kiosk mode)</uap:DisplayName>
+          </uap:Protocol>
+        </uap:Extension>
       </Extensions>
     </Application>
   </Applications>

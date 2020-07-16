@@ -17,8 +17,10 @@ using namespace winrt::Windows::Foundation;
 using namespace winrt::Windows::UI::Xaml;
 using namespace winrt::Windows::UI::Xaml::Media;
 
-static const hstring SERVO_SCHEME = L"fxr";
-static const hstring SERVO_SCHEME_SLASH_SLASH = L"fxr://";
+static const hstring FXR_SCHEME = L"fxr";
+static const hstring FXR_SCHEME_SLASH_SLASH = L"fxr://";
+static const hstring FXRMIN_SCHEME = L"fxrmin";
+static const hstring FXRMIN_SCHEME_SLASH_SLASH = L"fxrmin://";
 
 struct BrowserPage : BrowserPageT<BrowserPage>, public servo::DevtoolsDelegate {
 public:
@@ -37,8 +39,7 @@ public:
   OnURLKeyboardAccelerator(IInspectable const &,
                            Input::KeyboardAcceleratorInvokedEventArgs const &);
   void Shutdown();
-  void LoadServoURI(Uri uri);
-  void SetTransientMode(bool);
+  void LoadFXRURI(Uri uri);
   void SetArgs(hstring);
   void OnMediaControlsPlayClicked(IInspectable const &,
                                   RoutedEventArgs const &);
@@ -52,6 +53,7 @@ public:
   Collections::IObservableVector<IInspectable> ConsoleLogs() { return mLogs; };
 
 private:
+  void SetTransientMode(bool);
   void UpdatePref(ServoApp::Pref, Controls::Control);
   void BindServoEvents();
   void BuildPrefList();
