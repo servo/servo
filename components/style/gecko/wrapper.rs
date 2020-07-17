@@ -2116,6 +2116,9 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
                 bindings::Gecko_IsTableBorderNonzero(self.0)
             },
             NonTSPseudoClass::MozBrowserFrame => unsafe { bindings::Gecko_IsBrowserFrame(self.0) },
+            NonTSPseudoClass::MozSelectListBox => unsafe {
+                bindings::Gecko_IsSelectListBox(self.0)
+            },
             NonTSPseudoClass::MozIsHTML => self.is_html_element_in_html_document(),
             NonTSPseudoClass::MozLWTheme => self.document_theme() != DocumentTheme::Doc_Theme_None,
             NonTSPseudoClass::MozLWThemeBrightText => {

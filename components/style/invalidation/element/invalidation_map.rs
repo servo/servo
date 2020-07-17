@@ -506,6 +506,12 @@ impl<'a> SelectorVisitor for SelectorDependencyCollector<'a> {
                     NonTSPseudoClass::MozTableBorderNonzero => local_name!("border"),
                     #[cfg(feature = "gecko")]
                     NonTSPseudoClass::MozBrowserFrame => local_name!("mozbrowser"),
+                    #[cfg(feature = "gecko")]
+                    NonTSPseudoClass::MozSelectListBox => {
+                        // This depends on two attributes.
+                        return self.add_attr_dependency(local_name!("multiple")) &&
+                            self.add_attr_dependency(local_name!("size"));
+                    },
                     NonTSPseudoClass::Lang(..) => local_name!("lang"),
                     _ => return true,
                 };
