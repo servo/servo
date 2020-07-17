@@ -143,7 +143,7 @@ impl ModuleIdentity {
 #[derive(JSTraceable)]
 pub struct ModuleTree {
     url: ServoUrl,
-    text: DomRefCell<DOMString>,
+    text: DomRefCell<Rc<DOMString>>,
     record: DomRefCell<Option<ModuleObject>>,
     status: DomRefCell<ModuleStatus>,
     // The spec maintains load order for descendants, so we use an indexset for descendants and
@@ -171,7 +171,7 @@ impl ModuleTree {
     pub fn new(url: ServoUrl, external: bool, visited_urls: HashSet<ServoUrl>) -> Self {
         ModuleTree {
             url,
-            text: DomRefCell::new(DOMString::new()),
+            text: DomRefCell::new(Rc::new(DOMString::new())),
             record: DomRefCell::new(None),
             status: DomRefCell::new(ModuleStatus::Initial),
             parent_identities: DomRefCell::new(IndexSet::new()),
@@ -217,11 +217,11 @@ impl ModuleTree {
         *self.network_error.borrow_mut() = Some(network_error);
     }
 
-    pub fn get_text(&self) -> &DomRefCell<DOMString> {
+    pub fn get_text(&self) -> &DomRefCell<Rc<DOMString>> {
         &self.text
     }
 
-    pub fn set_text(&self, module_text: DOMString) {
+    pub fn set_text(&self, module_text: Rc<DOMString>) {
         *self.text.borrow_mut() = module_text;
     }
 
@@ -351,7 +351,7 @@ impl ModuleTree {
     fn compile_module_script(
         &self,
         global: &GlobalScope,
-        module_script_text: DOMString,
+        module_script_text: Rc<DOMString>,
         url: ServoUrl,
     ) -> Result<ModuleObject, RethrowError> {
         let module: Vec<u16> = module_script_text.encode_utf16().collect();
@@ -852,12 +852,12 @@ impl ModuleOwner {
                         Some(network_error) => Err(network_error.clone()),
                         None => match module_identity {
                             ModuleIdentity::ModuleUrl(script_src) => Ok(ScriptOrigin::external(
-                                module_tree.get_text().borrow().clone(),
+                                Rc::clone(&module_tree.get_text().borrow()),
                                 script_src.clone(),
                                 ScriptType::Module,
                             )),
                             ModuleIdentity::ScriptId(_) => Ok(ScriptOrigin::internal(
-                                module_tree.get_text().borrow().clone(),
+                                Rc::clone(&module_tree.get_text().borrow()),
                                 document.base_url().clone(),
                                 ScriptType::Module,
                             )),
@@ -980,7 +980,7 @@ impl FetchResponseListener for ModuleContext {
             // Step 10.
             let (source_text, _, _) = UTF_8.decode(&self.data);
             Ok(ScriptOrigin::external(
-                DOMString::from(source_text),
+                Rc::new(DOMString::from(source_text)),
                 meta.final_url,
                 ScriptType::Module,
             ))
@@ -1302,7 +1302,7 @@ pub fn fetch_single_module_script(
 /// https://html.spec.whatwg.org/multipage/#fetch-an-inline-module-script-graph
 pub fn fetch_inline_module_script(
     owner: ModuleOwner,
-    module_script_text: DOMString,
+    module_script_text: Rc<DOMString>,
     url: ServoUrl,
     script_id: ScriptId,
     credentials_mode: CredentialsMode,
