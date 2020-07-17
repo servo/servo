@@ -31,7 +31,11 @@ use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
     GPUTextureDimension, GPUTextureFormat,
 };
 use crate::dom::bindings::codegen::Bindings::GPUTextureViewBinding::GPUTextureViewDimension;
+use crate::dom::bindings::codegen::Bindings::GPUValidationErrorBinding::{
+    GPUError, GPUErrorFilter,
+};
 use crate::dom::bindings::codegen::UnionTypes::Uint32ArrayOrString::{String, Uint32Array};
+use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
@@ -50,15 +54,37 @@ use crate::dom::gpurenderpipeline::GPURenderPipeline;
 use crate::dom::gpusampler::GPUSampler;
 use crate::dom::gpushadermodule::GPUShaderModule;
 use crate::dom::gputexture::GPUTexture;
+use crate::dom::promise::Promise;
+use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
 use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ptr::NonNull;
 use std::rc::Rc;
 use webgpu::wgpu::binding_model::BufferBinding;
 use webgpu::{self, wgt, WebGPU, WebGPUBindings, WebGPURequest};
+
+type ErrorScopeId = u64;
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct ErrorScopeInfo {
+    filter: GPUErrorFilter,
+    op_count: u64,
+    #[ignore_malloc_size_of = "defined in webgpu"]
+    error: Option<GPUError>,
+    #[ignore_malloc_size_of = "promises are hard"]
+    promise: Option<Rc<Promise>>,
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct ScopeContext {
+    error_scopes: HashMap<ErrorScopeId, ErrorScopeInfo>,
+    scope_stack: Vec<ErrorScopeId>,
+    next_scope_id: ErrorScopeId,
+}
 
 #[dom_struct]
 pub struct GPUDevice {
@@ -73,6 +99,12 @@ pub struct GPUDevice {
     label: DomRefCell<Option<DOMString>>,
     device: webgpu::WebGPUDevice,
     default_queue: Dom<GPUQueue>,
+    scope_context: DomRefCell<ScopeContext>,
+    #[ignore_malloc_size_of = "promises are hard"]
+    lost_promise: DomRefCell<Option<Rc<Promise>>>,
+    #[ignore_malloc_size_of = "defined in webgpu"]
+    bind_group_layouts:
+        DomRefCell<HashMap<Vec<wgt::BindGroupLayoutEntry>, Dom<GPUBindGroupLayout>>>,
 }
 
 impl GPUDevice {
@@ -93,6 +125,13 @@ impl GPUDevice {
             label: DomRefCell::new(None),
             device,
             default_queue: Dom::from_ref(queue),
+            scope_context: DomRefCell::new(ScopeContext {
+                error_scopes: HashMap::new(),
+                scope_stack: Vec::new(),
+                next_scope_id: 0,
+            }),
+            lost_promise: DomRefCell::new(None),
+            bind_group_layouts: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -118,6 +157,51 @@ impl GPUDevice {
 impl GPUDevice {
     pub fn id(&self) -> webgpu::WebGPUDevice {
         self.device
+    }
+
+    pub fn handle_server_msg(&self, scope: ErrorScopeId, result: Result<(), GPUError>) {
+        let mut context = self.scope_context.borrow_mut();
+        let remove = if let Some(mut err_scope) = context.error_scopes.get_mut(&scope) {
+            err_scope.op_count -= 1;
+            match result {
+                Ok(()) => {},
+                Err(e) => {
+                    if err_scope.error.is_none() {
+                        err_scope.error = Some(e);
+                    }
+                },
+            }
+            if let Some(ref promise) = err_scope.promise {
+                if !promise.is_fulfilled() {
+                    if let Some(ref e) = err_scope.error {
+                        match e {
+                            GPUError::GPUValidationError(v) => promise.resolve_native(&v),
+                            GPUError::GPUOutOfMemoryError(w) => promise.resolve_native(&w),
+                        }
+                    } else if err_scope.op_count == 0 {
+                        promise.resolve_native(&None::<GPUError>);
+                    }
+                }
+            }
+            err_scope.op_count == 0 && err_scope.promise.is_some()
+        } else {
+            warn!("Could not find ErrroScope with Id({})", scope);
+            false
+        };
+        if remove {
+            let _ = context.error_scopes.remove(&scope);
+        }
+    }
+
+    fn use_current_scope(&self) -> Option<ErrorScopeId> {
+        let mut context = self.scope_context.borrow_mut();
+        let scope_id = context.scope_stack.last().cloned();
+        scope_id.and_then(|s_id| {
+            context.error_scopes.get_mut(&s_id).map(|mut scope| {
+                scope.op_count += 1;
+                s_id
+            })
+        })
     }
 }
 
@@ -150,6 +234,13 @@ impl GPUDeviceMethods for GPUDevice {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn SetLabel(&self, value: Option<DOMString>) {
         *self.label.borrow_mut() = value;
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-lost
+    fn Lost(&self, comp: InRealm) -> Rc<Promise> {
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
+        *self.lost_promise.borrow_mut() = Some(promise.clone());
+        promise
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
@@ -289,6 +380,23 @@ impl GPUDeviceMethods for GPUDevice {
             })
             .collect::<Vec<_>>();
 
+        let scope_id = self.use_current_scope();
+
+        // Check for equivalent GPUBindGroupLayout
+        {
+            let layout = self
+                .bind_group_layouts
+                .borrow()
+                .get(&entries)
+                .map(|bgl| DomRoot::from_ref(&**bgl));
+            if let Some(l) = layout {
+                if let Some(i) = scope_id {
+                    self.handle_server_msg(i, Ok(()));
+                }
+                return l;
+            }
+        }
+
         let bind_group_layout_id = self
             .global()
             .wgpu_id_hub()
@@ -299,13 +407,20 @@ impl GPUDeviceMethods for GPUDevice {
             .send(WebGPURequest::CreateBindGroupLayout {
                 device_id: self.device.0,
                 bind_group_layout_id,
-                entries,
+                entries: entries.clone(),
+                scope_id,
             })
             .expect("Failed to create WebGPU BindGroupLayout");
 
         let bgl = webgpu::WebGPUBindGroupLayout(bind_group_layout_id);
 
-        GPUBindGroupLayout::new(&self.global(), bgl, true)
+        let layout = GPUBindGroupLayout::new(&self.global(), bgl, true);
+
+        self.bind_group_layouts
+            .borrow_mut()
+            .insert(entries, Dom::from_ref(&*layout));
+
+        layout
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout
@@ -320,6 +435,8 @@ impl GPUDeviceMethods for GPUDevice {
             }
         });
 
+        let scope_id = self.use_current_scope();
+
         let pipeline_layout_id = self
             .global()
             .wgpu_id_hub()
@@ -331,6 +448,7 @@ impl GPUDeviceMethods for GPUDevice {
                 device_id: self.device.0,
                 pipeline_layout_id,
                 bind_group_layouts: bgl_ids,
+                scope_id,
             })
             .expect("Failed to create WebGPU PipelineLayout");
 
@@ -369,6 +487,8 @@ impl GPUDeviceMethods for GPUDevice {
             })
             .collect::<Vec<_>>();
 
+        let scope_id = self.use_current_scope();
+
         let bind_group_id = self
             .global()
             .wgpu_id_hub()
@@ -381,10 +501,12 @@ impl GPUDeviceMethods for GPUDevice {
                 bind_group_id,
                 bind_group_layout_id: descriptor.layout.id().0,
                 entries,
+                scope_id,
             })
             .expect("Failed to create WebGPU BindGroup");
 
         let bind_group = webgpu::WebGPUBindGroup(bind_group_id);
+
         GPUBindGroup::new(
             &self.global(),
             bind_group,
@@ -436,10 +558,13 @@ impl GPUDeviceMethods for GPUDevice {
             .lock()
             .create_compute_pipeline_id(self.device.0.backend());
 
+        let scope_id = self.use_current_scope();
+
         self.channel
             .0
             .send(WebGPURequest::CreateComputePipeline {
                 device_id: self.device.0,
+                scope_id,
                 compute_pipeline_id,
                 pipeline_layout_id: pipeline.0,
                 program_id: program.0,
@@ -683,11 +808,14 @@ impl GPUDeviceMethods for GPUDevice {
             .lock()
             .create_render_pipeline_id(self.device.0.backend());
 
+        let scope_id = self.use_current_scope();
+
         self.channel
             .0
             .send(WebGPURequest::CreateRenderPipeline {
                 device_id: self.device.0,
                 render_pipeline_id,
+                scope_id,
                 pipeline_layout_id: descriptor.parent.layout.id().0,
                 vertex_module,
                 vertex_entry_point,
@@ -707,6 +835,53 @@ impl GPUDeviceMethods for GPUDevice {
         let render_pipeline = webgpu::WebGPURenderPipeline(render_pipeline_id);
 
         GPURenderPipeline::new(&self.global(), render_pipeline, self.device, valid)
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope
+    fn PushErrorScope(&self, filter: GPUErrorFilter) {
+        let mut context = self.scope_context.borrow_mut();
+        let scope_id = context.next_scope_id;
+        context.next_scope_id += 1;
+        let err_scope = ErrorScopeInfo {
+            filter,
+            op_count: 0,
+            error: None,
+            promise: None,
+        };
+        let res = context.error_scopes.insert(scope_id, err_scope);
+        context.scope_stack.push(scope_id);
+        assert!(res.is_none());
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-poperrorscope
+    fn PopErrorScope(&self, comp: InRealm) -> Rc<Promise> {
+        let mut context = self.scope_context.borrow_mut();
+        let promise = Promise::new_in_current_realm(&self.global(), comp);
+        let scope_id = if let Some(e) = context.scope_stack.pop() {
+            e
+        } else {
+            promise.reject_error(Error::Operation);
+            return promise;
+        };
+        let remove = if let Some(mut err_scope) = context.error_scopes.get_mut(&scope_id) {
+            if let Some(ref e) = err_scope.error {
+                match e {
+                    GPUError::GPUValidationError(ref v) => promise.resolve_native(&v),
+                    GPUError::GPUOutOfMemoryError(ref w) => promise.resolve_native(&w),
+                }
+            } else if err_scope.op_count == 0 {
+                promise.resolve_native(&None::<GPUError>);
+            }
+            err_scope.promise = Some(promise.clone());
+            err_scope.op_count == 0
+        } else {
+            error!("Could not find ErrorScope with Id({})", scope_id);
+            false
+        };
+        if remove {
+            let _ = context.error_scopes.remove(&scope_id);
+        }
+        promise
     }
 }
 

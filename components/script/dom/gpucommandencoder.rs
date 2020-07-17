@@ -24,7 +24,8 @@ use dom_struct::dom_struct;
 use std::cell::Cell;
 use std::collections::HashSet;
 use webgpu::wgpu::command::{
-    ColorAttachmentDescriptor, DepthStencilAttachmentDescriptor, RenderPass, RenderPassDescriptor,
+    ColorAttachmentDescriptor, DepthStencilAttachmentDescriptor, LoadOp, PassChannel, RenderPass,
+    RenderPassDescriptor, StoreOp,
 };
 use webgpu::{self, wgt, WebGPU, WebGPUDevice, WebGPURequest};
 
@@ -138,9 +139,9 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .iter()
             .map(|color| {
                 let (load_op, clear_value) = match color.loadValue {
-                    GPUColorLoad::GPULoadOp(_) => (wgt::LoadOp::Load, wgt::Color::TRANSPARENT),
+                    GPUColorLoad::GPULoadOp(_) => (LoadOp::Load, wgt::Color::TRANSPARENT),
                     GPUColorLoad::DoubleSequence(ref s) => (
-                        wgt::LoadOp::Clear,
+                        LoadOp::Clear,
                         wgt::Color {
                             r: *s[0],
                             g: *s[1],
@@ -149,7 +150,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                         },
                     ),
                     GPUColorLoad::GPUColorDict(ref d) => (
-                        wgt::LoadOp::Clear,
+                        LoadOp::Clear,
                         wgt::Color {
                             r: *d.r,
                             g: *d.g,
@@ -158,11 +159,11 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                         },
                     ),
                 };
-                let channel = wgt::PassChannel {
+                let channel = PassChannel {
                     load_op,
                     store_op: match color.storeOp {
-                        GPUStoreOp::Store => wgt::StoreOp::Store,
-                        GPUStoreOp::Clear => wgt::StoreOp::Clear,
+                        GPUStoreOp::Store => StoreOp::Store,
+                        GPUStoreOp::Clear => StoreOp::Clear,
                     },
                     clear_value,
                     read_only: false,
@@ -177,27 +178,27 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
 
         let depth_stencil = descriptor.depthStencilAttachment.as_ref().map(|depth| {
             let (depth_load_op, clear_depth) = match depth.depthLoadValue {
-                GPULoadOpOrFloat::GPULoadOp(_) => (wgt::LoadOp::Load, 0.0f32),
-                GPULoadOpOrFloat::Float(f) => (wgt::LoadOp::Clear, *f),
+                GPULoadOpOrFloat::GPULoadOp(_) => (LoadOp::Load, 0.0f32),
+                GPULoadOpOrFloat::Float(f) => (LoadOp::Clear, *f),
             };
             let (stencil_load_op, clear_stencil) = match depth.stencilLoadValue {
-                GPUStencilLoadValue::GPULoadOp(_) => (wgt::LoadOp::Load, 0u32),
-                GPUStencilLoadValue::RangeEnforcedUnsignedLong(l) => (wgt::LoadOp::Clear, l),
+                GPUStencilLoadValue::GPULoadOp(_) => (LoadOp::Load, 0u32),
+                GPUStencilLoadValue::RangeEnforcedUnsignedLong(l) => (LoadOp::Clear, l),
             };
-            let depth_channel = wgt::PassChannel {
+            let depth_channel = PassChannel {
                 load_op: depth_load_op,
                 store_op: match depth.depthStoreOp {
-                    GPUStoreOp::Store => wgt::StoreOp::Store,
-                    GPUStoreOp::Clear => wgt::StoreOp::Clear,
+                    GPUStoreOp::Store => StoreOp::Store,
+                    GPUStoreOp::Clear => StoreOp::Clear,
                 },
                 clear_value: clear_depth,
                 read_only: depth.depthReadOnly,
             };
-            let stencil_channel = wgt::PassChannel {
+            let stencil_channel = PassChannel {
                 load_op: stencil_load_op,
                 store_op: match depth.stencilStoreOp {
-                    GPUStoreOp::Store => wgt::StoreOp::Store,
-                    GPUStoreOp::Clear => wgt::StoreOp::Clear,
+                    GPUStoreOp::Store => StoreOp::Store,
+                    GPUStoreOp::Clear => StoreOp::Clear,
                 },
                 clear_value: clear_stencil,
                 read_only: depth.stencilReadOnly,

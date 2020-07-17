@@ -16,6 +16,7 @@ euclid = "0.20"
 ipc-channel = "0.14"
 log = "0.4"
 malloc_size_of = { path = "../malloc_size_of" }
+msg = { path = "../msg" }
 serde = { version = "1.0", features = ["serde_derive"] }
 servo_config = { path = "../config" }
 smallvec = { version = "0.6", features = ["serde"] }
