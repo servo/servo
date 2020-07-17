@@ -651,7 +651,7 @@ impl HTMLScriptElement {
 
                     fetch_inline_module_script(
                         ModuleOwner::Window(Trusted::new(self)),
-                        Rc::clone(&text_rc),
+                        text_rc,
                         base_url.clone(),
                         self.id.clone(),
                         credentials_mode.unwrap(),
