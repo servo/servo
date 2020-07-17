@@ -147,14 +147,6 @@ Servo::Servo(std::optional<hstring> initUrl, hstring args, GLsizei width,
 
   auto prefs = localSettings.Containers().Lookup(L"servoUserPrefs");
 
-  if (!prefs.Values().HasKey(L"shell.homepage")) {
-    prefs.Values().Insert(L"shell.homepage", box_value(DEFAULT_URL_PROD));
-  }
-
-  if (!prefs.Values().HasKey(L"dom.webxr.enabled")) {
-    prefs.Values().Insert(L"dom.webxr.enabled", box_value(true));
-  }
-
   std::vector<capi::CPref> cprefs;
 
   for (auto pref : prefs.Values()) {
@@ -172,22 +164,9 @@ Servo::Servo(std::optional<hstring> initUrl, hstring args, GLsizei width,
       auto val = unbox_value<bool>(value);
       cpref.value = &val;
     } else if (type == Windows::Foundation::PropertyType::String) {
-      hstring strValue;
-      if (pref.Key() == L"shell.homepage") {
-        if (initUrl.has_value()) {
-          strValue = *initUrl;
-        } else {
-#ifdef OVERRIDE_DEFAULT_URL
-          strValue = OVERRIDE_DEFAULT_URL;
-#else
-          strValue = unbox_value<hstring>(value);
-#endif
-        }
-      } else {
-        strValue = unbox_value<hstring>(value);
-      }
       cpref.pref_type = capi::CPrefType::Str;
-      cpref.value = *hstring2char(strValue);
+      auto val = unbox_value<hstring>(value);
+      cpref.value = *hstring2char(val);
     } else if (type == Windows::Foundation::PropertyType::Int64) {
       cpref.pref_type = capi::CPrefType::Int;
       auto val = unbox_value<int64_t>(value);
@@ -205,11 +184,19 @@ Servo::Servo(std::optional<hstring> initUrl, hstring args, GLsizei width,
     cprefs.push_back(cpref);
   }
 
+  if (initUrl.has_value()) {
+    setNonPersistentHomepage(*initUrl, cprefs);
+  } else {
+#ifdef OVERRIDE_DEFAULT_URL
+    setNonPersistentHomepage(OVERRIDE_DEFAULT_URL, cprefs);
+#endif
+  }
+
   capi::CPrefList prefsList = {cprefs.size(), cprefs.data()};
 
   capi::CInitOptions o;
   o.prefs = &prefsList;
-  o.args = *hstring2char(args + L" --devtools");
+  o.args = *hstring2char(args);
   o.width = mWindowWidth;
   o.height = mWindowHeight;
   o.density = dpi;
@@ -383,6 +370,20 @@ std::vector<Servo::PrefTuple> Servo::GetPrefs() {
     vec.push_back(pref);
   }
   return vec;
+}
+
+void setNonPersistentHomepage(hstring url, std::vector<capi::CPref> &cprefs) {
+  for (auto cpref : cprefs) {
+    if (strcmp(cpref.key, "shell.homepage") == 0) {
+      cpref.value = *hstring2char(url);
+      return;
+    }
+  }
+  capi::CPref cpref;
+  cpref.key = "shell.homepage";
+  cpref.pref_type = capi::CPrefType::Str;
+  cpref.value = *hstring2char(url);
+  cprefs.push_back(cpref);
 }
 
 winrt::hstring char2hstring(const char *c_str) {

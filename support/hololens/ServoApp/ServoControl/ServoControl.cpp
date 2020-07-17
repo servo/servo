@@ -661,6 +661,8 @@ void ServoControl::OnServoDevtoolsStarted(bool success, const unsigned int port,
                                           hstring token) {
   RunOnUIThread([=] {
     auto status = success ? DevtoolsStatus::Running : DevtoolsStatus::Failed;
+    // This port works, let's save it for future use.
+    Servo::SetIntPref(L"devtools.server.port", port);
     mOnDevtoolsStatusChangedEvent(status, port, token);
   });
 }
