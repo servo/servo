@@ -14,7 +14,6 @@
 /python/_virtualenv*
 /python/tidy/servo_tidy.egg-info
 /tests/wpt/sync
-*~
 *.pkl
 *.pyc
 *.swp
@@ -42,6 +41,10 @@ capture_webrender/
 # VSCode
 .vscode
 !/.vscode/extensions.json
+
+# Emacs
+*~
+*#*
 
 /unminified-js
 
