@@ -7,13 +7,14 @@
 
 idl_test(
   ['audio-output'],
-  ['html', 'dom'],
+  ['mediacapture-streams', 'html', 'dom'],
   idl_array => {
     self.audio = document.createElement('audio');
     self.video = document.createElement('video');
     idl_array.add_objects({
       HTMLAudioElement: ['audio'],
-      HTMLVideoElement: ['video']
+      HTMLVideoElement: ['video'],
+      MediaDevices: ['navigator.mediaDevices'],
     });
   }
 );

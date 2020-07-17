@@ -242,6 +242,16 @@ class EarlyTestharnessReport(Rule):
     to_fix = "flip the order"
 
 
+class EarlyTestdriverVendor(Rule):
+    name = "EARLY-TESTDRIVER-VENDOR"
+    description = collapse("""
+        Test file has an instance of
+        `<script src='/resources/testdriver-vendor.js'>` prior to
+        `<script src='/resources/testdriver.js'>`
+    """)
+    to_fix = "flip the order"
+
+
 class MultipleTestdriver(Rule):
     name = "MULTIPLE-TESTDRIVER"
     description = "More than one `<script src='/resources/testdriver.js'>`"

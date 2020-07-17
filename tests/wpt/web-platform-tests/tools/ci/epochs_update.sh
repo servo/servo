@@ -26,7 +26,12 @@ main () {
     do
         EPOCH=$(get_epoch_timeval ${e})
         EPOCH_BRANCH_NAME=$(get_epoch_branch_name ${e})
-        git branch ${EPOCH_BRANCH_NAME} $(./wpt rev-list --epoch ${EPOCH})
+        EPOCH_SHA=$(./wpt rev-list --epoch ${EPOCH})
+        if [ "${EPOCH_SHA}" = "" ]; then
+            echo "ERROR: Empty SHA returned from ./wpt rev-list"
+            exit 1
+        fi
+        git branch "${EPOCH_BRANCH_NAME}" "${EPOCH_SHA}"
         ALL_BRANCHES_NAMES="${ALL_BRANCHES_NAMES} ${EPOCH_BRANCH_NAME}"
     done
     # This is safe because `git push` will by default fail for a non-fast-forward

@@ -762,9 +762,10 @@ class ResponseWriter(object):
         self.content_written = True
         try:
             self._wfile.write(self.encode(data))
+            return True
         except socket.error:
             # This can happen if the socket got closed by the remote end
-            pass
+            return False
 
     def write_content_file(self, data):
         """Write a file-like object directly to the response in chunks.

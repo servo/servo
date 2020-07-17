@@ -1,7 +1,7 @@
 import mock
 from six import binary_type
 
-from wptserve.request import Request, RequestHeaders
+from wptserve.request import Request, RequestHeaders, MultiDict
 
 
 class MockHTTPMessage(dict):
@@ -76,3 +76,30 @@ def test_request_url_from_host_header():
     request = Request(request_handler)
     assert request.url == 'http://web-platform.test:8001/demo'
     assert isinstance(request.url, str)
+
+
+def test_multidict():
+    m = MultiDict()
+    m["foo"] = "bar"
+    m["bar"] = "baz"
+    m.add("foo", "baz")
+    m.add("baz", "qux")
+
+    assert m["foo"] == "bar"
+    assert m.get("foo") == "bar"
+    assert m["bar"] == "baz"
+    assert m.get("bar") == "baz"
+    assert m["baz"] == "qux"
+    assert m.get("baz") == "qux"
+
+    assert m.first("foo") == "bar"
+    assert m.last("foo") == "baz"
+    assert m.get_list("foo") == ["bar", "baz"]
+    assert m.get_list("non_existent") == []
+
+    assert m.get("non_existent") is None
+    try:
+        m["non_existent"]
+        assert False, "An exception should be raised"
+    except KeyError:
+        pass

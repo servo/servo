@@ -309,8 +309,8 @@ class FirefoxAndroid(BrowserSetup):
             os.environ["ADB_PATH"] = adb_path
         adb_path = os.environ["ADB_PATH"]
 
-        device = mozdevice.ADBDevice(adb=adb_path,
-                                     device=kwargs["device_serial"])
+        device = mozdevice.ADBDeviceFactory(adb=adb_path,
+                                            device=kwargs["device_serial"])
 
         if install:
             device.uninstall_app(app)
