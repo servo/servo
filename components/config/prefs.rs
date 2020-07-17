@@ -123,6 +123,12 @@ mod gen {
                     },
                 },
             },
+            devtools: {
+                server: {
+                    enabled: bool,
+                    port: i64,
+                },
+            },
             dom: {
                 webgpu: {
                     enabled: bool,
