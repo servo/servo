@@ -71,6 +71,7 @@ pub struct XRWebGLLayer {
     depth: bool,
     stencil: bool,
     alpha: bool,
+    ignore_depth_values: bool,
     context: RenderingContext,
     session: Dom<XRSession>,
     /// If none, this is an inline session (the composition disabled flag is true)
@@ -94,6 +95,7 @@ impl XRWebGLLayer {
             depth: init.depth,
             stencil: init.stencil,
             alpha: init.alpha,
+            ignore_depth_values: init.ignoreDepthValues,
             layer_id,
             context: match context {
                 XRWebGLRenderingContext::WebGLRenderingContext(ctx) => {
@@ -276,31 +278,8 @@ impl XRWebGLLayer {
         framebuffer.upcast::<WebGLObject>().context().Flush();
         Some(())
     }
-}
 
-impl XRWebGLLayerMethods for XRWebGLLayer {
-    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-depth
-    fn Depth(&self) -> bool {
-        self.depth
-    }
-
-    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-stencil
-    fn Stencil(&self) -> bool {
-        self.stencil
-    }
-
-    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-antialias
-    fn Antialias(&self) -> bool {
-        self.antialias
-    }
-
-    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-alpha
-    fn Alpha(&self) -> bool {
-        self.alpha
-    }
-
-    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-context
-    fn Context(&self) -> XRWebGLRenderingContext {
+    pub(crate) fn context(&self) -> XRWebGLRenderingContext {
         match self.context {
             RenderingContext::WebGL1(ref ctx) => {
                 XRWebGLRenderingContext::WebGLRenderingContext(DomRoot::from_ref(&**ctx))
@@ -309,6 +288,18 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
                 XRWebGLRenderingContext::WebGL2RenderingContext(DomRoot::from_ref(&**ctx))
             },
         }
+    }
+}
+
+impl XRWebGLLayerMethods for XRWebGLLayer {
+    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-antialias
+    fn Antialias(&self) -> bool {
+        self.antialias
+    }
+
+    /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-ignoredepthvalues
+    fn IgnoreDepthValues(&self) -> bool {
+        self.ignore_depth_values
     }
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-framebuffer
