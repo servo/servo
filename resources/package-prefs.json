@@ -9,7 +9,8 @@
     "_comment": "settings specific to Hololens/UWP builds",
     "devtools.server.enabled": true,
     "dom.webxr.enabled": true,
-    "shell.homepage": "https://servo.org/hl-home/"
+    "shell.homepage": "https://servo.org/hl-home/",
+    "gfx.subpixel-text-antialiasing.enabled": false
   },
   "vr": {
     "_comment": "settings specific to VR builds",

@@ -200,7 +200,6 @@ Servo::Servo(std::optional<hstring> initUrl, hstring args, GLsizei width,
   o.width = mWindowWidth;
   o.height = mWindowHeight;
   o.density = dpi;
-  o.enable_subpixel_text_antialiasing = false;
   o.native_widget = eglNativeWindow;
 
   // Note about logs:

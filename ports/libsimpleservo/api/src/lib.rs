@@ -30,8 +30,7 @@ use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{TouchEventType, TouchId};
-use servo::servo_config::opts;
-use servo::servo_config::{pref, set_pref};
+use servo::servo_config::{opts, pref};
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
@@ -62,7 +61,6 @@ pub struct InitOptions {
     pub coordinates: Coordinates,
     pub density: f32,
     pub xr_discovery: Option<webxr::Discovery>,
-    pub enable_subpixel_text_antialiasing: bool,
     pub gl_context_pointer: Option<*const c_void>,
     pub native_display_pointer: Option<*const c_void>,
     pub native_widget: *mut c_void,
@@ -226,11 +224,6 @@ pub fn init(
     callbacks: Box<dyn HostTrait>,
 ) -> Result<(), &'static str> {
     resources::set(Box::new(ResourceReaderInstance::new()));
-
-    set_pref!(
-        gfx.subpixel_text_antialiasing.enabled,
-        init_opts.enable_subpixel_text_antialiasing
-    );
 
     if let Some(prefs) = init_opts.prefs {
         add_user_prefs(prefs);
