@@ -59,6 +59,22 @@ GST_PLUGIN_PATH=target/gstplugins \
     ! filesink location=test.ogg
 ```
 
+To stream webxr content and save to a file:
+```
+GST_PLUGIN_PATH=target/gstplugins \
+ gst-launch-1.0 -e servowebsrc url=... webxr=left-right \
+   ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=512,format=RGBA \
+   ! glvideoflip video-direction=vert \
+   ! glcolorconvert \
+   ! gldownload \
+   ! queue \
+   ! x264enc \
+   ! mp4mux \
+   ! filesink location=test.mp4
+```
+This requires the webxr content to support the `sessionavailable` event for launching directly into immersive mode.
+Values for `webxr` include `none`, `left-right`, `red-cyan`, `cubemap` and `spherical`.
+
 *Note*: killing the gstreamer pipeline with control-C sometimes locks up macOS to the point
 of needing a power cycle. Killing the pipeline by closing the window seems to work.
 

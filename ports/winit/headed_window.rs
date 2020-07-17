@@ -41,10 +41,10 @@ use surfman::platform::generic::multi::connection::NativeConnection;
 #[cfg(target_os = "linux")]
 use surfman::platform::generic::multi::context::NativeContext;
 use surfman::Connection;
+use surfman::Context;
 use surfman::Device;
 use surfman::GLApi;
 use surfman::GLVersion;
-use surfman::NativeWidget;
 use surfman::SurfaceType;
 #[cfg(target_os = "windows")]
 use winapi;
@@ -665,10 +665,11 @@ struct XRWindowPose {
 }
 
 impl webxr::glwindow::GlWindow for XRWindow {
-    fn get_native_widget(&self, device: &Device) -> NativeWidget {
-        device.connection()
+    fn get_render_target(&self, device: &mut Device, _context: &mut Context) -> webxr::glwindow::GlWindowRenderTarget {
+        let native_widget = device.connection()
             .create_native_widget_from_winit_window(&self.winit_window)
-            .expect("Failed to create native widget")
+            .expect("Failed to create native widget");
+        webxr::glwindow::GlWindowRenderTarget::NativeWidget(native_widget)
     }
 
     fn get_rotation(&self) -> Rotation3D<f32, UnknownUnit, UnknownUnit> {
