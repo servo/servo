@@ -229,9 +229,27 @@ impl XRWebGLLayer {
             WebGLTextureId::maybe_new(sub_images.sub_image.as_ref()?.color_texture)?;
         let color_texture = WebGLTexture::new(context, color_texture_id);
         let target = self.texture_target();
-        // TODO: rebind the current bindings
+
+        // Save the current bindings
+        let saved_framebuffer = context.get_draw_framebuffer_slot().get();
+        let saved_framebuffer_target = framebuffer.target();
+        let saved_texture_id = context
+            .textures()
+            .active_texture_slot(target, context.webgl_version())
+            .ok()
+            .and_then(|slot| slot.get().map(|texture| texture.id()));
+
+        // We have to pick a framebuffer target.
+        // If there is a draw framebuffer, we use its target,
+        // otherwise we just use DRAW_FRAMEBUFFER.
+        let framebuffer_target = saved_framebuffer
+            .as_ref()
+            .and_then(|fb| fb.target())
+            .unwrap_or(constants::DRAW_FRAMEBUFFER);
+
+        // Update the attachments
         context.send_command(WebGLCommand::BindTexture(target, Some(color_texture_id)));
-        framebuffer.bind(constants::FRAMEBUFFER);
+        framebuffer.bind(framebuffer_target);
         framebuffer
             .texture2d_even_if_opaque(
                 constants::COLOR_ATTACHMENT0,
@@ -252,6 +270,15 @@ impl XRWebGLLayer {
                     0,
                 )
                 .ok()?;
+        }
+
+        // Restore the old bindings
+        context.send_command(WebGLCommand::BindTexture(target, saved_texture_id));
+        if let Some(framebuffer_target) = saved_framebuffer_target {
+            framebuffer.bind(framebuffer_target);
+        }
+        if let Some(framebuffer) = saved_framebuffer {
+            framebuffer.bind(framebuffer_target);
         }
         Some(())
     }
