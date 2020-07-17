@@ -2069,6 +2069,13 @@ impl ScriptThread {
                 let global = self.documents.borrow().find_global(pipeline_id).unwrap();
                 global.handle_wgpu_msg(device, scope_id, result);
             },
+            WebGPUMsg::CleanDevice {
+                pipeline_id,
+                device,
+            } => {
+                let global = self.documents.borrow().find_global(pipeline_id).unwrap();
+                global.remove_gpu_device(device);
+            },
             _ => {},
         }
     }

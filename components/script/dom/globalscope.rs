@@ -2954,6 +2954,10 @@ impl GlobalScope {
             .insert(device.id(), Dom::from_ref(device));
     }
 
+    pub fn remove_gpu_device(&self, device: WebGPUDevice) {
+        let _ = self.gpu_devices.borrow_mut().remove(&device);
+    }
+
     pub fn handle_wgpu_msg(&self, device: WebGPUDevice, scope: u64, result: WebGPUOpResult) {
         let result = match result {
             WebGPUOpResult::Success => Ok(()),

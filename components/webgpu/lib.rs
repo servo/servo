@@ -177,6 +177,7 @@ pub enum WebGPURequest {
     },
     DestroyTexture(id::TextureId),
     Exit(IpcSender<()>),
+    FreeDevice(id::DeviceId),
     RequestAdapter {
         sender: IpcSender<WebGPUResponseResult>,
         options: RequestAdapterOptions,
@@ -344,6 +345,7 @@ impl<'a> WGPU<'a> {
     ) -> Self {
         let factory = IdentityRecyclerFactory {
             sender: script_sender.clone(),
+            self_sender: sender.clone(),
         };
         WGPU {
             receiver,
@@ -773,6 +775,16 @@ impl<'a> WGPU<'a> {
                             warn!("Failed to send response to WebGPURequest::Exit ({})", e)
                         }
                         return;
+                    },
+                    WebGPURequest::FreeDevice(device_id) => {
+                        let device = WebGPUDevice(device_id);
+                        let pipeline_id = self.devices.remove(&device).unwrap();
+                        if let Err(e) = self.script_sender.send(WebGPUMsg::CleanDevice {
+                            device,
+                            pipeline_id,
+                        }) {
+                            warn!("Unable to send CleanDevice({:?}) ({:?})", device_id, e);
+                        }
                     },
                     WebGPURequest::RequestAdapter {
                         sender,
