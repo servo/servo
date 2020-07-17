@@ -1,19 +1,37 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
+<meta charset='utf-8'>
 <title>Screen Enumeration: getScreens() tentative</title>
 <!-- TODO: update link to W3C whenever specifications are ready -->
-<link rel="help" href="https://github.com/webscreens/screen-enumeration"/>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="resources/screenenumeration-helpers.js"></script>
+<link rel='help' href='https://github.com/webscreens/screen-enumeration'/>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='resources/screenenumeration-helpers.js'></script>
 <script>
 
-"use strict";
+'use strict';
+
+function check_screen_matches_display(screen, display) {
+  assert_equals(screen.left, display.bounds.x);
+  assert_equals(screen.top, display.bounds.y);
+  assert_equals(screen.width, display.bounds.width);
+  assert_equals(screen.height, display.bounds.height);
+  assert_equals(screen.availLeft, display.workArea.x);
+  assert_equals(screen.availTop, display.workArea.y);
+  assert_equals(screen.availWidth, display.workArea.width);
+  assert_equals(screen.availHeight, display.workArea.height);
+  assert_equals(screen.scaleFactor, display.deviceScaleFactor);
+}
+
+screen_enumeration_test(async (t, mockScreenEnum) => {
+  mockScreenEnum.setSuccess(true);
+  await test_driver.set_permission({name: 'window-placement'}, 'granted');
+  assert_equals((await self.getScreens()).length, 0);
+}, 'getScreens() supports an empty set of mocked screens');
 
 screen_enumeration_test(async (t, mockScreenEnum) => {
   let display1 = makeDisplay(10,
-                             {x: 0, y: 10, width: 1200, height: 800},
-                             {x: 20, y: 30, width: 1000, height: 600},
+                             {x: 0, y: 0, width: 800, height: 600},
+                             {x: 0, y: 0, width: 800, height: 550},
                              1.0);
 
   mockScreenEnum.addDisplay(display1);
@@ -21,43 +39,31 @@ screen_enumeration_test(async (t, mockScreenEnum) => {
   mockScreenEnum.setInternalId(mockScreenEnum.displays_[0].id);
   mockScreenEnum.setSuccess(true);
 
-  // Grant window-placement permissions for testdriver.
-  await test_driver.set_permission({name: "window-placement"}, "granted");
+  await test_driver.set_permission({name: 'window-placement'}, 'granted');
 
-  // This returns the mocked displays via MockScreenEnumeration implementation.
   const screens = await self.getScreens();
-
   assert_equals(screens.length, 1);
-
-  assert_equals(screens[0].left, 0);
-  assert_equals(screens[0].top, 10);
-  assert_equals(screens[0].width, 1200);
-  assert_equals(screens[0].height, 800);
-  assert_equals(screens[0].availLeft, 20);
-  assert_equals(screens[0].availTop, 30);
-  assert_equals(screens[0].availWidth, 1000);
-  assert_equals(screens[0].availHeight, 600);
+  check_screen_matches_display(screens[0], display1);
   assert_equals(screens[0].primary, true);
   assert_equals(screens[0].internal, true);
-  assert_equals(screens[0].scaleFactor, 1.0);
-  assert_equals(screens[0].id, "0");
-}, "getScreens() returns a single mocked screen");
+  assert_equals(screens[0].id, '0');
+}, 'getScreens() supports a single mocked screen');
 
 screen_enumeration_test(async (t, mockScreenEnum) => {
   let display1 = makeDisplay(10,
-                             {x: 0, y: 10, width: 1200, height: 800},
-                             {x: 20, y: 30, width: 1000, height: 600},
+                             {x: 0, y: 0, width: 800, height: 600},
+                             {x: 0, y: 0, width: 800, height: 550},
                              1.0);
 
   let display2 = makeDisplay(11,
-                             {x: 0, y: 10, width: 1200, height: 800},
-                             {x: 20, y: 30, width: 1000, height: 600},
-                             1.0);
+                             {x: 800, y: 0, width: 800, height: 600},
+                             {x: 800, y: 0, width: 800, height: 550},
+                             2.0);
 
   let display3 = makeDisplay(12,
-                             {x: 0, y: 10, width: 1200, height: 800},
-                             {x: 20, y: 30, width: 1000, height: 600},
-                             1.0);
+                             {x: 0, y: 600, width: 1200, height: 800},
+                             {x: 50, y: 50, width: 1150, height: 750},
+                             1.5);
 
   mockScreenEnum.addDisplay(display1);
   mockScreenEnum.addDisplay(display2);
@@ -66,29 +72,42 @@ screen_enumeration_test(async (t, mockScreenEnum) => {
   mockScreenEnum.setInternalId(mockScreenEnum.displays_[0].id);
   mockScreenEnum.setSuccess(true);
 
-  // Grant window-placement permissions for testdriver.
-  await test_driver.set_permission({name: "window-placement"}, "granted");
+  await test_driver.set_permission({name: 'window-placement'}, 'granted');
 
-  // This returns the mocked displays via MockScreenEnumeration implementation.
   let screens = await self.getScreens();
-
   assert_equals(screens.length, 3);
-  assert_equals(screens[0].id, "0");
-  assert_equals(screens[1].id, "1");
-  assert_equals(screens[2].id, "2");
+  check_screen_matches_display(screens[0], display1);
+  assert_equals(screens[0].primary, true);
+  assert_equals(screens[0].internal, true);
+  assert_equals(screens[0].id, '0');
+  check_screen_matches_display(screens[1], display2);
+  assert_equals(screens[1].primary, false);
+  assert_equals(screens[1].internal, false);
+  assert_equals(screens[1].id, '1');
+  check_screen_matches_display(screens[2], display3);
+  assert_equals(screens[2].primary, false);
+  assert_equals(screens[2].internal, false);
+  assert_equals(screens[2].id, '2');
 
   mockScreenEnum.removeDisplay(display2.id);
-
   screens = await self.getScreens();
   assert_equals(screens.length, 2);
-  assert_equals(screens[0].id, "0");
-  assert_equals(screens[1].id, "1");
+  check_screen_matches_display(screens[0], display1);
+  assert_equals(screens[0].id, '0');
+  check_screen_matches_display(screens[1], display3);
+  assert_equals(screens[1].id, '1');
 
   mockScreenEnum.removeDisplay(display1.id);
-
   screens = await self.getScreens();
   assert_equals(screens.length, 1);
-  assert_equals(screens[0].id, "0");
-}, "getScreens() supports multiple mocked screens");
+  check_screen_matches_display(screens[0], display3);
+  assert_equals(screens[0].id, '0');
+}, 'getScreens() supports multiple mocked screens');
+
+screen_enumeration_test(async (t, mockScreenEnum) => {
+  mockScreenEnum.setSuccess(false);
+  await test_driver.set_permission({name: 'window-placement'}, 'granted');
+  promise_rejects_dom(t, 'NotAllowedError', self.getScreens());
+}, 'getScreens() rejects when the mock success value is set to false');
 
 </script>

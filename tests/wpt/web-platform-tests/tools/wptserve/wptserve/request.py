@@ -560,6 +560,17 @@ class MultiDict(dict):
             return default
         raise KeyError(key)
 
+    # We need to explicitly override dict.get; otherwise, it won't call
+    # __getitem__ and would return a list instead.
+    def get(self, key, default=None):
+        """Get the first value with a given key
+
+        :param key: The key to lookup
+        :param default: The default to return if key is
+                        not found (None by default)
+        """
+        return self.first(key, default)
+
     def get_list(self, key):
         """Get all values with a given key as a list
 

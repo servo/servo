@@ -48,6 +48,11 @@ if MYPY:
     # ignores the error.
     Ignorelist = Dict[Text, Dict[Text, Set[Optional[int]]]]
 
+    try:
+        from xml.etree import cElementTree as ElementTree
+    except ImportError:
+        from xml.etree import ElementTree as ElementTree  # type: ignore
+
 
 logger = None  # type: Optional[logging.Logger]
 
@@ -521,6 +526,9 @@ def check_parsed(repo_root, path, f):
         if timeout_value != "long":
             errors.append(rules.InvalidTimeout.error(path, (timeout_value,)))
 
+    required_elements = []  # type: List[Text]
+
+    testharnessreport_nodes = []  # type: List[ElementTree.Element]
     if source_file.testharness_nodes:
         test_type = source_file.manifest_items()[0]
         if test_type not in ("testharness", "manual"):
@@ -543,31 +551,12 @@ def check_parsed(repo_root, path, f):
                 if variant != "" and variant[0] not in ("?", "#"):
                     errors.append(rules.MalformedVariant.error(path, (path,)))
 
-        seen_elements = {"timeout": False,
-                         "testharness": False,
-                         "testharnessreport": False}
-        required_elements = [key for key, value in {"testharness": True,
-                                                    "testharnessreport": len(testharnessreport_nodes) > 0,
-                                                    "timeout": len(source_file.timeout_nodes) > 0}.items()
-                             if value]
+        required_elements.extend(key for key, value in {"testharness": True,
+                                                        "testharnessreport": len(testharnessreport_nodes) > 0,
+                                                        "timeout": len(source_file.timeout_nodes) > 0}.items()
+                                 if value)
 
-        for elem in source_file.root.iter():
-            if source_file.timeout_nodes and elem == source_file.timeout_nodes[0]:
-                seen_elements["timeout"] = True
-                if seen_elements["testharness"]:
-                    errors.append(rules.LateTimeout.error(path))
-
-            elif elem == source_file.testharness_nodes[0]:
-                seen_elements["testharness"] = True
-
-            elif testharnessreport_nodes and elem == testharnessreport_nodes[0]:
-                seen_elements["testharnessreport"] = True
-                if not seen_elements["testharness"]:
-                    errors.append(rules.EarlyTestharnessReport.error(path))
-
-            if all(seen_elements[name] for name in required_elements):
-                break
-
+    testdriver_vendor_nodes = []  # type: List[ElementTree.Element]
     if source_file.testdriver_nodes:
         if len(source_file.testdriver_nodes) > 1:
             errors.append(rules.MultipleTestdriver.error(path))
@@ -578,6 +567,38 @@ def check_parsed(repo_root, path, f):
         else:
             if len(testdriver_vendor_nodes) > 1:
                 errors.append(rules.MultipleTestdriverVendor.error(path))
+
+        required_elements.append("testdriver")
+        if len(testdriver_vendor_nodes) > 0:
+            required_elements.append("testdriver-vendor")
+
+    if required_elements:
+        seen_elements = defaultdict(bool)
+
+        for elem in source_file.root.iter():
+            if source_file.timeout_nodes and elem == source_file.timeout_nodes[0]:
+                seen_elements["timeout"] = True
+                if seen_elements["testharness"]:
+                    errors.append(rules.LateTimeout.error(path))
+
+            elif source_file.testharness_nodes and elem == source_file.testharness_nodes[0]:
+                seen_elements["testharness"] = True
+
+            elif testharnessreport_nodes and elem == testharnessreport_nodes[0]:
+                seen_elements["testharnessreport"] = True
+                if not seen_elements["testharness"]:
+                    errors.append(rules.EarlyTestharnessReport.error(path))
+
+            elif source_file.testdriver_nodes and elem == source_file.testdriver_nodes[0]:
+                seen_elements["testdriver"] = True
+
+            elif testdriver_vendor_nodes and elem == testdriver_vendor_nodes[0]:
+                seen_elements["testdriver-vendor"] = True
+                if not seen_elements["testdriver"]:
+                    errors.append(rules.EarlyTestdriverVendor.error(path))
+
+            if all(seen_elements[name] for name in required_elements):
+                break
 
     for element in source_file.root.findall(".//{http://www.w3.org/1999/xhtml}script[@src]"):
         src = element.attrib["src"]

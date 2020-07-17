@@ -3,8 +3,9 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: UI Events (https://w3c.github.io/uievents/)
 
-[Constructor(DOMString type, optional UIEventInit eventInitDict), Exposed=Window]
+[Exposed=Window]
 interface UIEvent : Event {
+  constructor(DOMString type, optional UIEventInit eventInitDict);
   readonly attribute Window? view;
   readonly attribute long detail;
 };
@@ -14,8 +15,9 @@ dictionary UIEventInit : EventInit {
   long detail = 0;
 };
 
-[Constructor(DOMString type, optional FocusEventInit eventInitDict), Exposed=Window]
+[Exposed=Window]
 interface FocusEvent : UIEvent {
+  constructor(DOMString type, optional FocusEventInit eventInitDict);
   readonly attribute EventTarget? relatedTarget;
 };
 
@@ -23,8 +25,9 @@ dictionary FocusEventInit : UIEventInit {
   EventTarget? relatedTarget = null;
 };
 
-[Constructor(DOMString type, optional MouseEventInit eventInitDict), Exposed=Window]
+[Exposed=Window]
 interface MouseEvent : UIEvent {
+  constructor(DOMString type, optional MouseEventInit eventInitDict);
   readonly attribute long screenX;
   readonly attribute long screenY;
   readonly attribute long clientX;
@@ -72,8 +75,9 @@ dictionary EventModifierInit : UIEventInit {
   boolean modifierSymbolLock = false;
 };
 
-[Constructor(DOMString type, optional WheelEventInit eventInitDict), Exposed=Window]
+[Exposed=Window]
 interface WheelEvent : MouseEvent {
+  constructor(DOMString type, optional WheelEventInit eventInitDict);
   // DeltaModeCode
   const unsigned long DOM_DELTA_PIXEL = 0x00;
   const unsigned long DOM_DELTA_LINE  = 0x01;
@@ -92,8 +96,9 @@ dictionary WheelEventInit : MouseEventInit {
   unsigned long deltaMode = 0;
 };
 
-[Constructor(DOMString type, optional InputEventInit eventInitDict), Exposed=Window]
+[Exposed=Window]
 interface InputEvent : UIEvent {
+  constructor(DOMString type, optional InputEventInit eventInitDict);
   readonly attribute DOMString? data;
   readonly attribute boolean isComposing;
   readonly attribute DOMString inputType;
@@ -105,8 +110,9 @@ dictionary InputEventInit : UIEventInit {
   DOMString inputType = "";
 };
 
-[Constructor(DOMString type, optional KeyboardEventInit eventInitDict), Exposed=Window]
+[Exposed=Window]
 interface KeyboardEvent : UIEvent {
+  constructor(DOMString type, optional KeyboardEventInit eventInitDict);
   // KeyLocationCode
   const unsigned long DOM_KEY_LOCATION_STANDARD = 0x00;
   const unsigned long DOM_KEY_LOCATION_LEFT = 0x01;
@@ -136,8 +142,9 @@ dictionary KeyboardEventInit : EventModifierInit {
   boolean isComposing = false;
 };
 
-[Constructor(DOMString type, optional CompositionEventInit eventInitDict), Exposed=Window]
+[Exposed=Window]
 interface CompositionEvent : UIEvent {
+  constructor(DOMString type, optional CompositionEventInit eventInitDict);
   readonly attribute DOMString data;
 };
 

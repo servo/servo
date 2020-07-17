@@ -7,3 +7,7 @@ partial interface HTMLMediaElement {
   [SecureContext] readonly attribute DOMString sinkId;
   [SecureContext] Promise<void> setSinkId (DOMString sinkId);
 };
+
+partial interface MediaDevices {
+  Promise<MediaDeviceInfo> selectAudioOutput();
+};

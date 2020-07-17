@@ -19,6 +19,7 @@ The `ScreenEnumerationTest` interface is defined as:
     addDisplay(display); // Push display to the display vector.
     removeDisplay(id); // Remove display from the display vector.
     async getDisplays(); // Interceptor of getDisplays (screen_enumeration.mojom).
+    async hasMultipleDisplays(); // Interceptor of hasMultipleDisplays (screen_enumeration.mojom).
   };
 ```
 

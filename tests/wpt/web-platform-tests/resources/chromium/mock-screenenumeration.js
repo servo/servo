@@ -44,11 +44,22 @@ var ScreenEnumerationTest = (() => {
     }
 
     async getDisplays() {
+      if (!this.success_)
+        return Promise.resolve({ result: undefined, });
+      let value = new blink.mojom.Displays();
+      value.displays = this.displays_;
+      value.internalId = this.internalId_;
+      value.primaryId = this.primaryId_;
+      return Promise.resolve({ result: value, });
+    }
+
+    async hasMultipleDisplays() {
+      if (!this.success_)
+        return Promise.resolve({ result: blink.mojom.MultipleDisplays.kError });
       return Promise.resolve({
-        displays: this.displays_,
-        internalId: this.internalId_,
-        primaryId: this.primaryId_,
-        success: this.success_,
+        result: this.displays_.length > 1
+            ? blink.mojom.MultipleDisplays.kTrue
+            : blink.mojom.MultipleDisplays.kFalse,
       });
     }
   }
