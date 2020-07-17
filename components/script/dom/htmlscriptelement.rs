@@ -613,9 +613,11 @@ impl HTMLScriptElement {
             // Step 25.
             assert!(!text.is_empty());
 
+            let text_rc = Rc::new(text);
+
             // Step 25-1. & 25-2.
             let result = Ok(ScriptOrigin::internal(
-                Rc::new(text.clone()),
+                Rc::clone(&text_rc),
                 base_url.clone(),
                 script_type.clone(),
             ));
@@ -649,7 +651,7 @@ impl HTMLScriptElement {
 
                     fetch_inline_module_script(
                         ModuleOwner::Window(Trusted::new(self)),
-                        Rc::new(text.clone()),
+                        Rc::clone(&text_rc),
                         base_url.clone(),
                         self.id.clone(),
                         credentials_mode.unwrap(),
