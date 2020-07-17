@@ -5408,6 +5408,7 @@ dependencies = [
  "libloading 0.5.2",
  "libservo",
  "log",
+ "serde_json",
  "servo-media",
  "surfman",
  "webxr",

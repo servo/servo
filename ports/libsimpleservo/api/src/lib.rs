@@ -227,21 +227,19 @@ pub fn init(
 ) -> Result<(), &'static str> {
     resources::set(Box::new(ResourceReaderInstance::new()));
 
-    let mut args = mem::replace(&mut init_opts.args, vec![]);
-    if !args.is_empty() {
-        // opts::from_cmdline_args expects the first argument to be the binary name.
-        args.insert(0, "servo".to_string());
-
-        set_pref!(
-            gfx.subpixel_text_antialiasing.enabled,
-            init_opts.enable_subpixel_text_antialiasing
-        );
-        opts::from_cmdline_args(Options::new(), &args);
-    }
+    set_pref!(
+        gfx.subpixel_text_antialiasing.enabled,
+        init_opts.enable_subpixel_text_antialiasing
+    );
 
     if let Some(prefs) = init_opts.prefs {
         add_user_prefs(prefs);
     }
+
+    let mut args = mem::replace(&mut init_opts.args, vec![]);
+    // opts::from_cmdline_args expects the first argument to be the binary name.
+    args.insert(0, "servo".to_string());
+    opts::from_cmdline_args(Options::new(), &args);
 
     let pref_url = ServoUrl::parse(&pref!(shell.homepage)).ok();
     let blank_url = ServoUrl::parse("about:blank").ok();
@@ -943,7 +941,7 @@ impl ResourceReaderInstance {
 impl ResourceReaderMethods for ResourceReaderInstance {
     fn read(&self, res: Resource) -> Vec<u8> {
         Vec::from(match res {
-            Resource::Preferences => &include_bytes!("../../../../resources/prefs.json")[..],
+            Resource::Preferences => &include_bytes!(concat!(env!("OUT_DIR"), "/prefs.json"))[..],
             Resource::HstsPreloadList => {
                 &include_bytes!("../../../../resources/hsts_preload.json")[..]
             },
