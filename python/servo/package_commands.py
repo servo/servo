@@ -39,6 +39,7 @@ from servo.command_base import (
     is_macosx,
     is_windows,
 )
+from servo.gstreamer import macos_dylibs
 from servo.util import delete
 
 # Note: mako cannot be imported at the top level because it breaks mach bootstrap
@@ -139,6 +140,7 @@ def copy_dependencies(binary_path, lib_path):
 
     # Update binary libraries
     binary_dependencies = set(otool(binary_path))
+    binary_dependencies = binary_dependencies.union(macos_dylibs())
     change_non_system_libraries_path(binary_dependencies, relative_path, binary_path)
 
     # Update dependencies libraries

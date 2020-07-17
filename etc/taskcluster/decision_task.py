@@ -492,6 +492,8 @@ def macos_release_build_with_debug_assertions(priority=None):
             "./etc/ci/lockfile_changed.sh",
             "tar -czf target.tar.gz" +
             " target/release/servo" +
+            " target/release/*.so" +
+            " target/release/*.dylib" +
             " resources",
         ]))
         .with_artifacts("repo/target.tar.gz")
