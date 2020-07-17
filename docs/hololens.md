@@ -11,6 +11,11 @@ To build Servo for the HoloLens 2, see [the wiki](https://github.com/servo/servo
 1. point the HoloLens towards the QR code, wait until it is recognised
 1. accept the prompt to open the URL in Firefox Reality
 
+#### Use URL shorteners to minimize typing
+
+Services like [https://free-url-shortener.rb.gy/](rb.gy) can generate short URLs like https://rb.gy/kqxz7h,
+so you only need to type `rb.gy/kqxz7h` on the on-screen keyboard.
+
 #### Viewing JS output and exceptions
 
 1. Press the "developer" button to the right of the URL bar in Firefox Reality
@@ -43,3 +48,7 @@ API will exit immersive mode and return to 2d browsing.
 
 If your web content is not rendering the same as other browsers, or is throwing exceptions that only appear in Firefox Reality,
 please [file an issue](https://github.com/servo/servo/issues/new)! When possible, please provide a link that demonstrates the problem.
+
+It can be useful to include application logs in the issue report. To find the log of the most recent Firefox Reality session,
+open the [Device Portal](http://127.0.0.1:10080/), go to `System` -> `File explorer` -> `LocalAppData` -> `Firefox Reality` -> `AppData`,
+and attach the `stdout.txt` file that is present in that directory.
