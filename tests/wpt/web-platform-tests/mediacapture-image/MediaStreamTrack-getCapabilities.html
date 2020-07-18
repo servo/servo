@@ -159,14 +159,16 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
       assert_equals(capabilities.tilt.max, mockCapabilities.tilt.max);
       assert_equals(capabilities.tilt.min, mockCapabilities.tilt.min);
       assert_equals(capabilities.tilt.step, mockCapabilities.tilt.step);
+
+      assert_true(capabilities.zoom instanceof MediaSettingsRange);
+      assert_equals(capabilities.zoom.max, mockCapabilities.zoom.max);
+      assert_equals(capabilities.zoom.min, mockCapabilities.zoom.min);
+      assert_equals(capabilities.zoom.step, mockCapabilities.zoom.step);
     } else if (ptzPermission === 'denied') {
       assert_false('pan' in capabilities);
       assert_false('tilt' in capabilities);
+      assert_false('zoom' in capabilities);
     }
-    assert_true(capabilities.zoom instanceof MediaSettingsRange);
-    assert_equals(capabilities.zoom.max, mockCapabilities.zoom.max);
-    assert_equals(capabilities.zoom.min, mockCapabilities.zoom.min);
-    assert_equals(capabilities.zoom.step, mockCapabilities.zoom.step);
 
     assert_equals(capabilities.torch, mockCapabilities.supportsTorch,
                   'torch');

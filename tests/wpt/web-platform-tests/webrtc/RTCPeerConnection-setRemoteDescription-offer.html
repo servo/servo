@@ -325,4 +325,16 @@
     await pc1.setRemoteDescription(answer);
   }, 'repeated sRD(offer) works');
 
+  promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+    pc1.addTransceiver('video');
+    await exchangeOfferAnswer(pc1, pc2);
+    await waitForIceGatheringState(pc1, ['complete']);
+    await exchangeOfferAnswer(pc1, pc2);
+    await waitForIceStateChange(pc2, ['connected', 'completed']);
+  }, 'sRD(reoffer) with candidates and without trickle works');
+
 </script>

@@ -28,7 +28,7 @@ typedef [StringContext=TrustedScriptURL] USVString ScriptURLString;
 [
   Exposed=(Window, Worker),
   SecureContext
-] interface TrustedTypePolicyFactory {
+] interface TrustedTypePolicyFactory : EventTarget {
     TrustedTypePolicy createPolicy(DOMString policyName, optional TrustedTypePolicyOptions policyOptions = {});
     // All the policy object names that have been created
 };

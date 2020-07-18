@@ -2534,6 +2534,10 @@ IdlInterface.prototype.do_member_operation_asserts = function(memberHolderObject
         memberHolderObject[member.name].length,
         minOverloadLength(ctors),
         "property has wrong .length");
+    assert_equals(
+        memberHolderObject[member.name].name,
+        member.name,
+        "property has wrong .name");
 
     // Make some suitable arguments
     var args = member.arguments.map(function(arg) {

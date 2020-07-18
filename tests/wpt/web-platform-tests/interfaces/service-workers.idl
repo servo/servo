@@ -173,6 +173,7 @@ interface FetchEvent : ExtendableEvent {
   readonly attribute DOMString clientId;
   readonly attribute DOMString resultingClientId;
   readonly attribute DOMString replacesClientId;
+  readonly attribute Promise<void> handled;
 
   void respondWith(Promise<Response> r);
 };
@@ -183,6 +184,7 @@ dictionary FetchEventInit : ExtendableEventInit {
   DOMString clientId = "";
   DOMString resultingClientId = "";
   DOMString replacesClientId = "";
+  Promise<void> handled;
 };
 
 [Exposed=ServiceWorker]

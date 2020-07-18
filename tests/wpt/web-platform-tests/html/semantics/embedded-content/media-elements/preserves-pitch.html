@@ -15,8 +15,8 @@ function getPreservesPitch(audio) {
     if ("mozPreservesPitch" in HTMLAudioElement.prototype) {
         return audio.mozPreservesPitch;
     }
-    if ("wekbitPreservesPitch" in HTMLAudioElement.prototype) {
-        return audio.wekbitPreservesPitch;
+    if ("webkitPreservesPitch" in HTMLAudioElement.prototype) {
+        return audio.webkitPreservesPitch;
     }
     return undefined;
 }
@@ -27,8 +27,8 @@ function setPreservesPitch(audio, value) {
         audio.preservesPitch = value;
     } else if ("mozPreservesPitch" in HTMLAudioElement.prototype) {
         audio.mozPreservesPitch = value;
-    } else if ("wekbitPreservesPitch" in HTMLAudioElement.prototype) {
-        audio.wekbitPreservesPitch = value;
+    } else if ("webkitPreservesPitch" in HTMLAudioElement.prototype) {
+        audio.webkitPreservesPitch = value;
     }
 }
 
@@ -37,21 +37,28 @@ test(function(t) {
 }, "Test that preservesPitch is present and unprefixed.");
 
 test(function(t) {
-    let audio = document.createElement('audio');
-    assert_true(getPreservesPitch(audio));
+    let defaultAudio = document.createElement('audio');
+    assert_true(getPreservesPitch(defaultAudio));
 
-    setPreservesPitch(audio, false);
-    assert_false(getPreservesPitch(audio));
-}, "Test that presevesPitch is on by default");
+    setPreservesPitch(defaultAudio, false);
+    assert_false(getPreservesPitch(defaultAudio));
+}, "Test that preservesPitch is on by default");
+
+
+var audio;
+
+function addTestCleanups(t, detector) {
+    t.add_cleanup(() => {
+        audio.pause();
+        audio.currentTime = 0;
+    });
+    t.add_cleanup(() => detector.cleanup());
+}
 
 function testPreservesPitch(preservesPitch, playbackRate, expectedPitch, description) {
     promise_test(async t => {
-        let audio = document.createElement('audio');
-
-        var detector = getPitchDetector(audio, t);
-
-        // This file contains 5 seconds of a 440hz sine wave.
-        audio.src = "/media/sine440.mp3";
+        let detector = getPitchDetector(audio);
+        addTestCleanups(t, detector);
 
         audio.playbackRate = playbackRate;
         setPreservesPitch(audio, preservesPitch);
@@ -66,13 +73,12 @@ function testPreservesPitch(preservesPitch, playbackRate, expectedPitch, descrip
             });
         }
 
-        await test_driver.bless("Play audio element", () => audio.play() )
+        // Wait until we have played some audio. Otherwise, the detector
+        // might return a pitch of 0Hz.
+        audio.play();
+        await waitUntil(0.25);
 
-        // Wait until we have at least played some audio. Otherwise, the
-        // detector might return a pitch of 0Hz.
-        await waitUntil(0.5);
-
-        var pitch = detector();
+        var pitch = detector.detect();
 
         // 25Hz is larger than the margin we get from 48kHz and 44.1kHz
         // audio being analyzed by a FFT of size 2048. If we get something
@@ -88,6 +94,24 @@ function testPreservesPitch(preservesPitch, playbackRate, expectedPitch, descrip
 }
 
 var REFERENCE_PITCH = 440;
+
+promise_test(async t => {
+    // Create the audio element only once, in order to lower the chances of
+    // tests timing out.
+    audio = document.createElement('audio');
+
+    // This file contains 5 seconds of a 440hz sine wave.
+    audio.src = "/media/sine440.mp3";
+
+    let detector = getPitchDetector(audio);
+    addTestCleanups(t, detector);
+
+    // The first time we run the test, we need to interact with the
+    // AudioContext and Audio element via user gestures.
+    await test_driver.bless("Play audio element", () => {
+        return Promise.all([audio.play(), detector.ensureStart()]);
+    });
+}, "Setup Audio element and AudioContext")
 
 testPreservesPitch(true, 1.0, REFERENCE_PITCH,
     "The default playbackRate should not affect pitch")

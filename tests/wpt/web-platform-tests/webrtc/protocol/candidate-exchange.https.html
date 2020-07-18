@@ -10,23 +10,6 @@
 <body>
 <script>
 
-function iceGatheringCompleteWaiter(pc) {
-  const waiter = new Promise((resolve) => {
-    const eventHandler = () => {
-      if (pc.iceGatheringState == 'complete') {
-        pc.removeEventListener('icegatheringstatechange', eventHandler, false);
-        resolve();
-      }
-    };
-    if (pc.iceGatheringState == 'complete') {
-      resolve();
-    } else {
-      pc.addEventListener('icegatheringstatechange', eventHandler, false);
-    }
-  });
-  return waiter;
-}
-
 class StateLogger {
   constructor(source, eventname, field) {
     source.addEventListener(eventname, event => {
@@ -74,7 +57,7 @@ promise_test(async t => {
   // Candidates from PC2 are not delivered to pc1, so pc1 will use
   // peer-reflexive candidates.
   await exchangeOfferAnswer(pc1, pc2);
-  const waiter = iceGatheringCompleteWaiter(pc1);
+  const waiter = waitForIceGatheringState(pc1, ['complete']);
   await waiter;
   for (const candidate of candidates) {
     if (candidate) {
@@ -105,7 +88,7 @@ promise_test(async t => {
   // Candidates from pc1 are not delivered to pc2.  so pc2 will use
   // peer-reflexive candidates.
   await exchangeOfferAnswer(pc1, pc2);
-  const waiter = iceGatheringCompleteWaiter(pc2);
+  const waiter = waitForIceGatheringState(pc2, ['complete']);
   await waiter;
   for (const candidate of candidates) {
     if (candidate) {
@@ -174,7 +157,7 @@ promise_test(async t => {
   await Promise.all([pc1.setLocalDescription(offer),
                      pc2.setRemoteDescription(offer)]);
   const answer = await pc2.createAnswer();
-  await iceGatheringCompleteWaiter(pc1);
+  await waitForIceGatheringState(pc1, ['complete']);
   await pc2.setLocalDescription(answer).then(() => {
     for (const candidate of pc1ToPc2Candidates) {
       if (candidate) {
@@ -182,7 +165,7 @@ promise_test(async t => {
       }
     }
   });
-  await iceGatheringCompleteWaiter(pc2);
+  await waitForIceGatheringState(pc2, ['complete']);
   pc1.setRemoteDescription(answer).then(async () => {
     for (const candidate of pc2ToPc1Candidates) {
       if (candidate) {

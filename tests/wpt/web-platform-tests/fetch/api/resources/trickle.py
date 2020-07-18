@@ -12,5 +12,5 @@ def main(request, response):
     response.write_status_headers()
     time.sleep(delay)
     for i in xrange(count):
-        response.writer.write_content(u"TEST_TRICKLE\n")
+        response.writer.write_content(b"TEST_TRICKLE\n")
         time.sleep(delay)

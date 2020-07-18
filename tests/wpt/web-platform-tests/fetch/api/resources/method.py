@@ -1,16 +1,18 @@
+from wptserve.utils import isomorphic_encode
+
 def main(request, response):
     headers = []
-    if "cors" in request.GET:
-        headers.append(("Access-Control-Allow-Origin", "*"))
-        headers.append(("Access-Control-Allow-Credentials", "true"))
-        headers.append(("Access-Control-Allow-Methods", "GET, POST, PUT, FOO"))
-        headers.append(("Access-Control-Allow-Headers", "x-test, x-foo"))
-        headers.append(("Access-Control-Expose-Headers", "x-request-method"))
+    if b"cors" in request.GET:
+        headers.append((b"Access-Control-Allow-Origin", b"*"))
+        headers.append((b"Access-Control-Allow-Credentials", b"true"))
+        headers.append((b"Access-Control-Allow-Methods", b"GET, POST, PUT, FOO"))
+        headers.append((b"Access-Control-Allow-Headers", b"x-test, x-foo"))
+        headers.append((b"Access-Control-Expose-Headers", b"x-request-method"))
 
-    headers.append(("x-request-method", request.method))
-    headers.append(("x-request-content-type", request.headers.get("Content-Type", "NO")))
-    headers.append(("x-request-content-length", request.headers.get("Content-Length", "NO")))
-    headers.append(("x-request-content-encoding", request.headers.get("Content-Encoding", "NO")))
-    headers.append(("x-request-content-language", request.headers.get("Content-Language", "NO")))
-    headers.append(("x-request-content-location", request.headers.get("Content-Location", "NO")))
+    headers.append((b"x-request-method", isomorphic_encode(request.method)))
+    headers.append((b"x-request-content-type", request.headers.get(b"Content-Type", b"NO")))
+    headers.append((b"x-request-content-length", request.headers.get(b"Content-Length", b"NO")))
+    headers.append((b"x-request-content-encoding", request.headers.get(b"Content-Encoding", b"NO")))
+    headers.append((b"x-request-content-language", request.headers.get(b"Content-Language", b"NO")))
+    headers.append((b"x-request-content-location", request.headers.get(b"Content-Location", b"NO")))
     return headers, request.body
