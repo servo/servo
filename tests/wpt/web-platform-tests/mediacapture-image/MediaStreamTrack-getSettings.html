@@ -73,11 +73,12 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
     if (ptzPermission === 'granted') {
       assert_equals(settings.pan, mockSettings.pan.current);
       assert_equals(settings.tilt, mockSettings.tilt.current);
+      assert_equals(settings.zoom, mockSettings.zoom.current);
     } else if (ptzPermission === 'denied') {
       assert_false('pan' in settings);
       assert_false('tilt' in settings);
+      assert_false('zoom' in settings);
     }
-    assert_equals(settings.zoom, mockSettings.zoom.current);
 
     assert_equals(settings.torch, mockSettings.torch, 'torch');
   });

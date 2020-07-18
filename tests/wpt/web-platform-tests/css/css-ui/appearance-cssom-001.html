@@ -24,6 +24,7 @@
                   "textarea",
                   "textfield",
                  ];
+  const initial_appearance = getComputedStyle(button).appearance;
   function assert_style_for_prop(style, prop, value) {
     if (prop === '-webkit-appearance') {
       assert_equals(style.WebkitAppearance, value, 'style.WebkitAppearance (uppercase W)');
@@ -198,7 +199,7 @@
         button.style.setProperty(prop, invalidValue);
         assert_style_for_prop(button.style, prop, "");
         const style = getComputedStyle(button);
-        assert_style_for_prop(style, prop, "button");
+        assert_style_for_prop(style, prop, initial_appearance);
       }, `${prop}: ${invalidValue} (invalid)`);
     }
   }

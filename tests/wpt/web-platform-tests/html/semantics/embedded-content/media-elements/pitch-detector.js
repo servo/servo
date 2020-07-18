@@ -4,11 +4,14 @@ window.AudioContext = window.AudioContext || window.webkitAudioContext;
 
 var FFT_SIZE = 2048;
 
-function getPitchDetector(media, t) {
-  var audioContext = new AudioContext();
-  t.add_cleanup(() => audioContext.close());
+var audioContext;
+var sourceNode;
 
-  var sourceNode = audioContext.createMediaElementSource(media);
+function getPitchDetector(media) {
+  if(!audioContext) {
+    audioContext = new AudioContext();
+    sourceNode = audioContext.createMediaElementSource(media);
+  }
 
   var analyser = audioContext.createAnalyser();
   analyser.fftSize = FFT_SIZE;
@@ -16,13 +19,20 @@ function getPitchDetector(media, t) {
   sourceNode.connect(analyser);
   analyser.connect(audioContext.destination);
 
-  return () => getPitch(analyser);
+  return {
+      ensureStart() { return audioContext.resume(); },
+      detect() { return getPitch(analyser); },
+      cleanup() {
+        sourceNode.disconnect();
+        analyser.disconnect();
+      },
+  };
 }
 
 function getPitch(analyser) {
   // Returns the frequency value for the nth FFT bin.
   var binConverter = (bin) =>
-    (analyser.context.sampleRate/2)*((bin)/(analyser.frequencyBinCount-1));
+    (audioContext.sampleRate/2)*((bin)/(analyser.frequencyBinCount-1));
 
   var buf = new Uint8Array(analyser.frequencyBinCount);
   analyser.getByteFrequencyData(buf);
