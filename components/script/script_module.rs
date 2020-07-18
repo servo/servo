@@ -865,14 +865,14 @@ impl ModuleOwner {
                     }
                 };
 
-                let r#async = script
+                let asynch = script
                     .root()
                     .upcast::<Element>()
                     .has_attribute(&local_name!("async"));
 
-                if !r#async && (&*script.root()).get_parser_inserted() {
+                if !asynch && (&*script.root()).get_parser_inserted() {
                     document.deferred_script_loaded(&*script.root(), load);
-                } else if !r#async && !(&*script.root()).get_non_blocking() {
+                } else if !asynch && !(&*script.root()).get_non_blocking() {
                     document.asap_in_order_script_loaded(&*script.root(), load);
                 } else {
                     document.asap_script_loaded(&*script.root(), load);

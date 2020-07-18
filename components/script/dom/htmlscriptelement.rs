@@ -402,9 +402,9 @@ impl HTMLScriptElement {
 
         // Step 3.
         let element = self.upcast::<Element>();
-        let r#async = element.has_attribute(&local_name!("async"));
+        let asynch = element.has_attribute(&local_name!("async"));
         // Note: confusingly, this is done if the element does *not* have an "async" attribute.
-        if was_parser_inserted && !r#async {
+        if was_parser_inserted && !asynch {
             self.non_blocking.set(true);
         }
 
@@ -556,14 +556,14 @@ impl HTMLScriptElement {
                     // Preparation for step 26.
                     let kind = if element.has_attribute(&local_name!("defer")) &&
                         was_parser_inserted &&
-                        !r#async
+                        !asynch
                     {
                         // Step 26.a: classic, has src, has defer, was parser-inserted, is not async.
                         ExternalScriptKind::Deferred
-                    } else if was_parser_inserted && !r#async {
+                    } else if was_parser_inserted && !asynch {
                         // Step 26.c: classic, has src, was parser-inserted, is not async.
                         ExternalScriptKind::ParsingBlocking
-                    } else if !r#async && !self.non_blocking.get() {
+                    } else if !asynch && !self.non_blocking.get() {
                         // Step 26.d: classic, has src, is not async, is not non-blocking.
                         ExternalScriptKind::AsapInOrder
                     } else {
@@ -600,9 +600,9 @@ impl HTMLScriptElement {
                         credentials_mode.unwrap(),
                     );
 
-                    if !r#async && was_parser_inserted {
+                    if !asynch && was_parser_inserted {
                         doc.add_deferred_script(self);
-                    } else if !r#async && !self.non_blocking.get() {
+                    } else if !asynch && !self.non_blocking.get() {
                         doc.push_asap_in_order_script(self);
                     } else {
                         doc.add_asap_script(self);
@@ -641,9 +641,9 @@ impl HTMLScriptElement {
                     // We should add inline module script elements
                     // into those vectors in case that there's no
                     // descendants in the inline module script.
-                    if !r#async && was_parser_inserted {
+                    if !asynch && was_parser_inserted {
                         doc.add_deferred_script(self);
-                    } else if !r#async && !self.non_blocking.get() {
+                    } else if !asynch && !self.non_blocking.get() {
                         doc.push_asap_in_order_script(self);
                     } else {
                         doc.add_asap_script(self);

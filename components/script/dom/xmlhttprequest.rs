@@ -340,7 +340,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         &self,
         method: ByteString,
         url: USVString,
-        r#async: bool,
+        asynch: bool,
         username: Option<USVString>,
         password: Option<USVString>,
     ) -> ErrorResult {
@@ -396,7 +396,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 }
 
                 // Step 10
-                if !r#async {
+                if !asynch {
                     // FIXME: This should only happen if the global environment is a document environment
                     if self.timeout.get() != 0 ||
                         self.response_type.get() != XMLHttpRequestResponseType::_empty
@@ -416,7 +416,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 // Step 12
                 *self.request_method.borrow_mut() = parsed_method;
                 *self.request_url.borrow_mut() = Some(parsed_url);
-                self.sync.set(!r#async);
+                self.sync.set(!asynch);
                 *self.request_headers.borrow_mut() = HeaderMap::new();
                 self.send_flag.set(false);
                 *self.status_text.borrow_mut() = ByteString::new(vec![]);
