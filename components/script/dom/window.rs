@@ -1105,6 +1105,19 @@ impl WindowMethods for Window {
         }
     }
 
+    #[allow(unsafe_code)]
+    fn WebdriverException(&self, cx: JSContext, val: HandleValue) {
+        let rv = unsafe { jsval_to_webdriver(*cx, &self.globalscope, val) };
+        let opt_chan = self.webdriver_script_chan.borrow_mut().take();
+        if let Some(chan) = opt_chan {
+            if let Ok(rv) = rv {
+                chan.send(Err(WebDriverJSError::JSError(rv))).unwrap();
+            } else {
+                chan.send(rv).unwrap();
+            }
+        }
+    }
+
     fn WebdriverTimeout(&self) {
         let opt_chan = self.webdriver_script_chan.borrow_mut().take();
         if let Some(chan) = opt_chan {

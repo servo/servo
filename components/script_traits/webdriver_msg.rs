@@ -114,7 +114,7 @@ pub enum WebDriverJSError {
     /// Occurs when handler received an event message for a layout channel that is not
     /// associated with the current script thread
     BrowsingContextNotFound,
-    JSError,
+    JSError(WebDriverJSValue),
     StaleElementReference,
     Timeout,
     UnknownType,

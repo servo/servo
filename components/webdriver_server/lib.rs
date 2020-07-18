@@ -1377,7 +1377,10 @@ impl Handler {
         parameters: &JavascriptCommandParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let func_body = &parameters.script;
-        let args_string = "";
+        let args = parameters.args.as_ref().map_or(vec![], |args| {
+            args.iter().map(|a| format!("{}", a)).collect()
+        });
+        let args_string = args.join(",");
 
         // This is pretty ugly; we really want something that acts like
         // new Function() and then takes the resulting function and executes
@@ -1396,7 +1399,11 @@ impl Handler {
         parameters: &JavascriptCommandParameters,
     ) -> WebDriverResult<WebDriverResponse> {
         let func_body = &parameters.script;
-        let args_string = "window.webdriverCallback";
+        let mut args = parameters.args.as_ref().map_or(vec![], |args| {
+            args.iter().map(|a| format!("{}", a)).collect()
+        });
+        args.push("resolve".to_string());
+        let args_string = args.join(",");
 
         let timeout_script = if let Some(script_timeout) = self.session()?.script_timeout {
             format!("setTimeout(webdriverTimeout, {});", script_timeout)
@@ -1404,7 +1411,15 @@ impl Handler {
             "".into()
         };
         let script = format!(
-            "{} (function(callback) {{ {} }})({})",
+            "(function() {{ \
+              let webdriverPromise = new Promise(function(resolve, reject) {{ \
+                  {} \
+                  (async function() {{ {} }})({}) \
+                    .then((v) => {{}}, (err) => reject(err))
+              }}) \
+              .then((v) => window.webdriverCallback(v), (r) => window.webdriverException(r)) \
+              .catch((r) => window.webdriverException(r)); \
+            }})();",
             timeout_script, func_body, args_string
         );
 
@@ -1427,7 +1442,7 @@ impl Handler {
                 ErrorStatus::JavascriptError,
                 "Pipeline id not found in browsing context",
             )),
-            Err(WebDriverJSError::JSError) => Err(WebDriverError::new(
+            Err(WebDriverJSError::JSError(_e)) => Err(WebDriverError::new(
                 ErrorStatus::JavascriptError,
                 "JS evaluation raised an exception",
             )),
@@ -1435,7 +1450,9 @@ impl Handler {
                 ErrorStatus::StaleElementReference,
                 "Stale element",
             )),
-            Err(WebDriverJSError::Timeout) => Err(WebDriverError::new(ErrorStatus::Timeout, "")),
+            Err(WebDriverJSError::Timeout) => {
+                Err(WebDriverError::new(ErrorStatus::ScriptTimeout, ""))
+            },
             Err(WebDriverJSError::UnknownType) => Err(WebDriverError::new(
                 ErrorStatus::UnsupportedOperation,
                 "Unsupported return type",

@@ -207,7 +207,7 @@ pub unsafe fn jsval_to_webdriver(
                 },
                 Err(error) => {
                     throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, error);
-                    return Err(WebDriverJSError::JSError);
+                    return Err(WebDriverJSError::JSError(WebDriverJSValue::Undefined));
                 },
             };
 
@@ -220,7 +220,7 @@ pub unsafe fn jsval_to_webdriver(
                     },
                     Err(error) => {
                         throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, error);
-                        return Err(WebDriverJSError::JSError);
+                        return Err(WebDriverJSError::JSError(WebDriverJSValue::Undefined));
                     },
                 }
             }
@@ -258,7 +258,7 @@ pub unsafe fn jsval_to_webdriver(
                 jsval_to_webdriver(cx, global_scope, Handle::new(&value))
             } else {
                 throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
-                Err(WebDriverJSError::JSError)
+                Err(WebDriverJSError::JSError(WebDriverJSValue::Undefined))
             }
         } else {
             let mut result = HashMap::new();
@@ -275,7 +275,7 @@ pub unsafe fn jsval_to_webdriver(
                     }
                 } else {
                     throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
-                    return Err(WebDriverJSError::JSError);
+                    return Err(WebDriverJSError::JSError(WebDriverJSValue::Undefined));
                 }
             }
 
@@ -297,10 +297,14 @@ pub fn handle_execute_script(
             let result = unsafe {
                 let cx = window.get_cx();
                 rooted!(in(*cx) let mut rval = UndefinedValue());
-                window
+                if window
                     .upcast::<GlobalScope>()
-                    .evaluate_js_on_global_with_result(&eval, rval.handle_mut());
-                jsval_to_webdriver(*cx, &window.upcast::<GlobalScope>(), rval.handle())
+                    .evaluate_js_on_global_with_result(&eval, rval.handle_mut())
+                {
+                    jsval_to_webdriver(*cx, &window.upcast::<GlobalScope>(), rval.handle())
+                } else {
+                    Err(WebDriverJSError::JSError(WebDriverJSValue::Undefined))
+                }
             };
 
             reply.send(result).unwrap();
@@ -321,11 +325,17 @@ pub fn handle_execute_async_script(
     match window {
         Some(window) => {
             let cx = window.get_cx();
+            let reply_sender = reply.clone();
             window.set_webdriver_script_chan(Some(reply));
             rooted!(in(*cx) let mut rval = UndefinedValue());
-            window
+            if !window
                 .upcast::<GlobalScope>()
-                .evaluate_js_on_global_with_result(&eval, rval.handle_mut());
+                .evaluate_js_on_global_with_result(&eval, rval.handle_mut())
+            {
+                reply_sender
+                    .send(Err(WebDriverJSError::JSError(WebDriverJSValue::Undefined)))
+                    .unwrap();
+            }
         },
         None => {
             reply

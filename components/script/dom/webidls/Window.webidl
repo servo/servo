@@ -150,6 +150,7 @@ partial interface Window {
 partial interface Window {
   // Shouldn't be public, but just to make things work for now
   void webdriverCallback(optional any result);
+  void webdriverException(optional any result);
   void webdriverTimeout();
 };
 
