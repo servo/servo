@@ -79,15 +79,15 @@ use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
 use js::jsapi::Compile1;
+use js::jsapi::SetScriptPrivate;
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
-use js::jsapi::{GetScriptPrivate, SetScriptPrivate};
 use js::jsapi::{HandleObject, Heap};
 use js::jsapi::{JSContext, JSObject};
 use js::jsval::PrivateValue;
 use js::jsval::{JSVal, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::transform_str_to_source_text;
-use js::rust::wrappers::JS_ExecuteScript;
+use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
@@ -2603,9 +2603,12 @@ impl GlobalScope {
                         return false;
                     }
 
+                    rooted!(in(*cx) let mut script_private = UndefinedValue());
+                    JS_GetScriptPrivate(*compiled_script, script_private.handle_mut());
+
                     // When `ScriptPrivate` for the compiled script is undefined,
                     // we need to set it so that it can be used in dynamic import context.
-                    if GetScriptPrivate(*compiled_script).is_undefined() {
+                    if script_private.is_undefined() {
                         debug!("Set script private for {}", script_base_url);
 
                         let module_script_data = Rc::new(ModuleScript::new(
