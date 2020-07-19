@@ -28,11 +28,16 @@ use servo_atoms::Atom;
 #[dom_struct]
 #[allow(non_snake_case)]
 pub struct ExtendableMessageEvent {
+    /// https://w3c.github.io/ServiceWorker/#extendableevent
     event: ExtendableEvent,
+    /// https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-data
     #[ignore_malloc_size_of = "mozjs"]
     data: Heap<JSVal>,
+    /// <https://w3c.github.io/ServiceWorker/#extendablemessage-event-origin>
     origin: DOMString,
+    /// https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-lasteventid
     lastEventId: DOMString,
+    /// https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-ports
     ports: Vec<Dom<MessagePort>>,
     #[ignore_malloc_size_of = "mozjs"]
     frozen_ports: DomRefCell<Option<Heap<JSVal>>>,
@@ -95,8 +100,8 @@ impl ExtendableMessageEvent {
             init.parent.parent.bubbles,
             init.parent.parent.cancelable,
             init.data.handle(),
-            init.origin.clone().unwrap(),
-            init.lastEventId.clone().unwrap(),
+            init.origin.clone(),
+            init.lastEventId.clone(),
             vec![],
         );
         Ok(ev)
@@ -122,6 +127,21 @@ impl ExtendableMessageEvent {
             ports,
         );
         Extendablemessageevent.upcast::<Event>().fire(target);
+    }
+
+    pub fn dispatch_error(target: &EventTarget, scope: &GlobalScope) {
+        let init = ExtendableMessageEventBinding::ExtendableMessageEventInit::empty();
+        let ExtendableMsgEvent = ExtendableMessageEvent::new(
+            scope,
+            atom!("messageerror"),
+            init.parent.parent.bubbles,
+            init.parent.parent.cancelable,
+            init.data.handle(),
+            init.origin.clone(),
+            init.lastEventId.clone(),
+            init.ports.clone(),
+        );
+        ExtendableMsgEvent.upcast::<Event>().fire(target);
     }
 }
 

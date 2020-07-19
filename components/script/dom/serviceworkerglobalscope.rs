@@ -19,7 +19,6 @@ use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::extendablemessageevent::ExtendableMessageEvent;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::identityhub::Identities;
-use crate::dom::messageevent::MessageEvent;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::load_whole_resource;
@@ -446,7 +445,7 @@ impl ServiceWorkerGlobalScope {
                         ports,
                     );
                 } else {
-                    MessageEvent::dispatch_error(target, scope.upcast());
+                    ExtendableMessageEvent::dispatch_error(target, scope.upcast());
                 }
             },
             CommonWorker(WorkerScriptMsg::Common(msg)) => {

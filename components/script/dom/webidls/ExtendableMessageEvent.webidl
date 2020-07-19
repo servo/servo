@@ -16,9 +16,9 @@ interface ExtendableMessageEvent : ExtendableEvent {
 };
 
 dictionary ExtendableMessageEventInit : ExtendableEventInit {
-  any data;
-  DOMString origin;
-  DOMString lastEventId;
+  any data = null;
+  DOMString origin = "";
+  DOMString lastEventId = "";
   // (Client or ServiceWorker /*or MessagePort*/)? source;
-  // sequence<MessagePort>? ports;
+  sequence<MessagePort> ports = [];
 };
