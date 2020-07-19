@@ -63,6 +63,7 @@ use crate::dom::workletglobalscope::WorkletGlobalScopeInit;
 use crate::fetch::FetchCanceller;
 use crate::microtask::{Microtask, MicrotaskQueue};
 use crate::realms::enter_realm;
+use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::{
     get_reports, new_rt_and_cx, ContextForRequestInterrupt, JSContext, Runtime, ScriptPort,
 };
@@ -3718,7 +3719,12 @@ impl ScriptThread {
         // Script source is ready to be evaluated (11.)
         let _ac = enter_realm(global_scope);
         rooted!(in(*global_scope.get_cx()) let mut jsval = UndefinedValue());
-        global_scope.evaluate_js_on_global_with_result(&script_source, jsval.handle_mut());
+        global_scope.evaluate_js_on_global_with_result(
+            &script_source,
+            jsval.handle_mut(),
+            ScriptFetchOptions::default_classic_script(&global_scope),
+            global_scope.api_base_url(),
+        );
 
         load_data.js_eval_result = if jsval.get().is_string() {
             unsafe {

@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
 use crate::dom::bindings::codegen::Bindings::GPUValidationErrorBinding::GPUError;
@@ -55,7 +55,8 @@ use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::dom::workletglobalscope::WorkletGlobalScope;
 use crate::microtask::{Microtask, MicrotaskQueue, UserMicrotask};
 use crate::realms::{enter_realm, AlreadyInRealm, InRealm};
-use crate::script_module::ModuleTree;
+use crate::script_module::{DynamicModuleList, ModuleTree};
+use crate::script_module::{ModuleScript, ScriptFetchOptions};
 use crate::script_runtime::{
     CommonScriptMsg, ContextForRequestInterrupt, JSContext as SafeJSContext, ScriptChan, ScriptPort,
 };
@@ -81,13 +82,16 @@ use embedder_traits::EmbedderMsg;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
 use js::glue::{IsWrapper, UnwrapObjectDynamic};
+use js::jsapi::Compile1;
+use js::jsapi::SetScriptPrivate;
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
 use js::jsapi::{HandleObject, Heap};
 use js::jsapi::{JSContext, JSObject};
+use js::jsval::PrivateValue;
 use js::jsval::{JSVal, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::transform_str_to_source_text;
-use js::rust::wrappers::Evaluate2;
+use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
 use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
@@ -306,6 +310,9 @@ pub struct GlobalScope {
 
     /// The stack of active group labels for the Console APIs.
     console_group_stack: DomRefCell<Vec<DOMString>>,
+
+    /// List of ongoing dynamic module imports.
+    dynamic_modules: DomRefCell<DynamicModuleList>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -757,6 +764,7 @@ impl GlobalScope {
             frozen_supported_performance_entry_types: DomRefCell::new(Default::default()),
             https_state: Cell::new(HttpsState::None),
             console_group_stack: DomRefCell::new(Vec::new()),
+            dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
         }
     }
 
@@ -2537,8 +2545,21 @@ impl GlobalScope {
     }
 
     /// Evaluate JS code on this global scope.
-    pub fn evaluate_js_on_global_with_result(&self, code: &str, rval: MutableHandleValue) -> bool {
-        self.evaluate_script_on_global_with_result(code, "", rval, 1)
+    pub fn evaluate_js_on_global_with_result(
+        &self,
+        code: &str,
+        rval: MutableHandleValue,
+        fetch_options: ScriptFetchOptions,
+        script_base_url: ServoUrl,
+    ) -> bool {
+        self.evaluate_script_on_global_with_result(
+            code,
+            "",
+            rval,
+            1,
+            fetch_options,
+            script_base_url,
+        )
     }
 
     /// Evaluate a JS script on this global scope.
@@ -2549,6 +2570,8 @@ impl GlobalScope {
         filename: &str,
         rval: MutableHandleValue,
         line_number: u32,
+        fetch_options: ScriptFetchOptions,
+        script_base_url: ServoUrl,
     ) -> bool {
         let metadata = profile_time::TimerMetadata {
             url: if filename.is_empty() {
@@ -2570,26 +2593,59 @@ impl GlobalScope {
                 let ar = enter_realm(&*self);
 
                 let _aes = AutoEntryScript::new(self);
-                let options =
-                    unsafe { CompileOptionsWrapper::new(*cx, filename.as_ptr(), line_number) };
 
-                debug!("evaluating Dom string");
-                let result = unsafe {
-                    Evaluate2(
-                        *cx,
-                        options.ptr,
-                        &mut transform_str_to_source_text(code),
-                        rval,
-                    )
-                };
+                unsafe {
+                    let options = CompileOptionsWrapper::new(*cx, filename.as_ptr(), line_number);
 
-                if !result {
-                    debug!("error evaluating Dom string");
-                    unsafe { report_pending_exception(*cx, true, InRealm::Entered(&ar)) };
+                    debug!("compiling Dom string");
+                    rooted!(in(*cx) let compiled_script =
+                        Compile1(
+                            *cx,
+                            options.ptr,
+                            &mut transform_str_to_source_text(code),
+                        )
+                    );
+
+                    if compiled_script.is_null() {
+                        debug!("error compiling Dom string");
+                        report_pending_exception(*cx, true, InRealm::Entered(&ar));
+                        return false;
+                    }
+
+                    rooted!(in(*cx) let mut script_private = UndefinedValue());
+                    JS_GetScriptPrivate(*compiled_script, script_private.handle_mut());
+
+                    // When `ScriptPrivate` for the compiled script is undefined,
+                    // we need to set it so that it can be used in dynamic import context.
+                    if script_private.is_undefined() {
+                        debug!("Set script private for {}", script_base_url);
+
+                        let module_script_data = Rc::new(ModuleScript::new(
+                            script_base_url,
+                            fetch_options,
+                            // We can't initialize an module owner here because
+                            // the executing context of script might be different
+                            // from the dynamic import script's executing context.
+                            None,
+                        ));
+
+                        SetScriptPrivate(
+                            *compiled_script,
+                            &PrivateValue(Rc::into_raw(module_script_data) as *const _),
+                        );
+                    }
+
+                    debug!("evaluating Dom string");
+                    let result = JS_ExecuteScript(*cx, compiled_script.handle(), rval);
+
+                    if !result {
+                        debug!("error evaluating Dom string");
+                        report_pending_exception(*cx, true, InRealm::Entered(&ar));
+                    }
+
+                    maybe_resume_unwind();
+                    result
                 }
-
-                maybe_resume_unwind();
-                result
             },
         )
     }
@@ -2990,6 +3046,10 @@ impl GlobalScope {
 
     pub(crate) fn pop_console_group(&self) {
         let _ = self.console_group_stack.borrow_mut().pop();
+    }
+
+    pub(crate) fn dynamic_module_list(&self) -> RefMut<DynamicModuleList> {
+        self.dynamic_modules.borrow_mut()
     }
 }
 

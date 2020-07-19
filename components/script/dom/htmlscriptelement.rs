@@ -28,7 +28,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::fetch::create_a_potential_cors_request;
 use crate::network_listener::{self, NetworkListener, PreInvoke, ResourceTimingListener};
 use crate::script_module::fetch_inline_module_script;
-use crate::script_module::{fetch_external_module_script, ModuleOwner};
+use crate::script_module::{fetch_external_module_script, ModuleOwner, ScriptFetchOptions};
 use content_security_policy as csp;
 use dom_struct::dom_struct;
 use encoding_rs::Encoding;
@@ -37,8 +37,9 @@ use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsval::UndefinedValue;
 use msg::constellation_msg::PipelineId;
-use net_traits::request::{CorsSettings, CredentialsMode, Destination, Referrer, RequestBuilder};
-use net_traits::ReferrerPolicy;
+use net_traits::request::{
+    CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder,
+};
 use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_atoms::Atom;
@@ -155,24 +156,37 @@ pub struct ScriptOrigin {
     text: Rc<DOMString>,
     url: ServoUrl,
     external: bool,
+    fetch_options: ScriptFetchOptions,
     type_: ScriptType,
 }
 
 impl ScriptOrigin {
-    pub fn internal(text: Rc<DOMString>, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
+    pub fn internal(
+        text: Rc<DOMString>,
+        url: ServoUrl,
+        fetch_options: ScriptFetchOptions,
+        type_: ScriptType,
+    ) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
             external: false,
+            fetch_options,
             type_,
         }
     }
 
-    pub fn external(text: Rc<DOMString>, url: ServoUrl, type_: ScriptType) -> ScriptOrigin {
+    pub fn external(
+        text: Rc<DOMString>,
+        url: ServoUrl,
+        fetch_options: ScriptFetchOptions,
+        type_: ScriptType,
+    ) -> ScriptOrigin {
         ScriptOrigin {
             text: text,
             url: url,
             external: true,
+            fetch_options,
             type_,
         }
     }
@@ -201,6 +215,8 @@ struct ClassicContext {
     url: ServoUrl,
     /// Indicates whether the request failed, and why
     status: Result<(), NetworkError>,
+    /// The fetch options of the script
+    fetch_options: ScriptFetchOptions,
     /// Timing object for this resource
     resource_timing: ResourceFetchTiming,
 }
@@ -261,6 +277,7 @@ impl FetchResponseListener for ClassicContext {
             ScriptOrigin::external(
                 Rc::new(DOMString::from(source_text)),
                 metadata.final_url,
+                self.fetch_options.clone(),
                 ScriptType::Classic,
             )
         });
@@ -322,15 +339,22 @@ pub(crate) fn script_fetch_request(
     cors_setting: Option<CorsSettings>,
     origin: ImmutableOrigin,
     pipeline_id: PipelineId,
-    referrer: Referrer,
-    referrer_policy: Option<ReferrerPolicy>,
-    integrity_metadata: String,
+    options: ScriptFetchOptions,
 ) -> RequestBuilder {
-    create_a_potential_cors_request(url, Destination::Script, cors_setting, None, referrer)
-        .origin(origin)
-        .pipeline_id(Some(pipeline_id))
-        .referrer_policy(referrer_policy)
-        .integrity_metadata(integrity_metadata)
+    // We intentionally ignore options' credentials_mode member for classic scripts.
+    // The mode is initialized by create_a_potential_cors_request.
+    create_a_potential_cors_request(
+        url,
+        Destination::Script,
+        cors_setting,
+        None,
+        options.referrer,
+    )
+    .origin(origin)
+    .pipeline_id(Some(pipeline_id))
+    .parser_metadata(options.parser_metadata)
+    .integrity_metadata(options.integrity_metadata.clone())
+    .referrer_policy(options.referrer_policy)
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-a-classic-script>
@@ -339,7 +363,7 @@ fn fetch_a_classic_script(
     kind: ExternalScriptKind,
     url: ServoUrl,
     cors_setting: Option<CorsSettings>,
-    integrity_metadata: String,
+    options: ScriptFetchOptions,
     character_encoding: &'static Encoding,
 ) {
     let doc = document_from_node(script);
@@ -350,9 +374,7 @@ fn fetch_a_classic_script(
         cors_setting,
         doc.origin().immutable().clone(),
         script.global().pipeline_id(),
-        script.global().get_referrer(),
-        doc.get_referrer_policy(),
-        integrity_metadata,
+        options.clone(),
     );
 
     // TODO: Step 3, Add custom steps to perform fetch
@@ -365,6 +387,7 @@ fn fetch_a_classic_script(
         metadata: None,
         url: url.clone(),
         status: Ok(()),
+        fetch_options: options,
         resource_timing: ResourceFetchTiming::new(ResourceTimingType::Resource),
     }));
 
@@ -400,7 +423,7 @@ impl HTMLScriptElement {
         let was_parser_inserted = self.parser_inserted.get();
         self.parser_inserted.set(false);
 
-        // Step 3.
+        // Step 4.
         let element = self.upcast::<Element>();
         let asynch = element.has_attribute(&local_name!("async"));
         // Note: confusingly, this is done if the element does *not* have an "async" attribute.
@@ -408,13 +431,13 @@ impl HTMLScriptElement {
             self.non_blocking.set(true);
         }
 
-        // Step 4-5.
+        // Step 5-6.
         let text = self.Text();
         if text.is_empty() && !element.has_attribute(&local_name!("src")) {
             return;
         }
 
-        // Step 6.
+        // Step 7.
         if !self.upcast::<Node>().is_connected() {
             return;
         }
@@ -432,26 +455,26 @@ impl HTMLScriptElement {
             self.non_blocking.set(false);
         }
 
-        // Step 9.
+        // Step 10.
         self.already_started.set(true);
 
-        // Step 10.
+        // Step 12.
         let doc = document_from_node(self);
         if self.parser_inserted.get() && &*self.parser_document != &*doc {
             return;
         }
 
-        // Step 11.
+        // Step 13.
         if !doc.is_scripting_enabled() {
             return;
         }
 
-        // Step 12
+        // Step 14
         if element.has_attribute(&local_name!("nomodule")) && script_type == ScriptType::Classic {
             return;
         }
 
-        // Step 13.
+        // Step 15.
         if !element.has_attribute(&local_name!("src")) &&
             doc.should_elements_inline_type_behavior_be_blocked(
                 &element,
@@ -463,7 +486,7 @@ impl HTMLScriptElement {
             return;
         }
 
-        // Step 14.
+        // Step 16.
         if script_type == ScriptType::Classic {
             let for_attribute = element.get_attribute(&ns!(), &local_name!("for"));
             let event_attribute = element.get_attribute(&ns!(), &local_name!("event"));
@@ -485,31 +508,31 @@ impl HTMLScriptElement {
             }
         }
 
-        // Step 15.
+        // Step 17.
         let encoding = element
             .get_attribute(&ns!(), &local_name!("charset"))
             .and_then(|charset| Encoding::for_label(charset.value().as_bytes()))
             .unwrap_or_else(|| doc.encoding());
 
-        // Step 16.
+        // Step 18.
         let cors_setting = cors_setting_for_element(element);
 
-        // Step 17.
-        let credentials_mode = match script_type {
-            ScriptType::Classic => None,
-            ScriptType::Module => Some(reflect_cross_origin_attribute(element).map_or(
+        // Step 19.
+        let module_credentials_mode = match script_type {
+            ScriptType::Classic => CredentialsMode::CredentialsSameOrigin,
+            ScriptType::Module => reflect_cross_origin_attribute(element).map_or(
                 CredentialsMode::CredentialsSameOrigin,
                 |attr| match &*attr {
                     "use-credentials" => CredentialsMode::Include,
                     "anonymous" => CredentialsMode::CredentialsSameOrigin,
                     _ => CredentialsMode::CredentialsSameOrigin,
                 },
-            )),
+            ),
         };
 
-        // TODO: Step 18: Nonce.
+        // TODO: Step 20: Nonce.
 
-        // Step 19: Integrity metadata.
+        // Step 21: Integrity metadata.
         let im_attribute = element.get_attribute(&ns!(), &local_name!("integrity"));
         let integrity_val = im_attribute.as_ref().map(|a| a.value());
         let integrity_metadata = match integrity_val {
@@ -517,30 +540,43 @@ impl HTMLScriptElement {
             None => "",
         };
 
-        // TODO: Step 20: referrer policy
+        // TODO: Step 22: referrer policy
 
-        // TODO: Step 21: parser state.
+        // Step 23
+        let parser_metadata = if self.parser_inserted.get() {
+            ParserMetadata::ParserInserted
+        } else {
+            ParserMetadata::NotParserInserted
+        };
 
-        // TODO: Step 22: Fetch options
+        // Step 24.
+        let options = ScriptFetchOptions {
+            cryptographic_nonce: "".into(),
+            integrity_metadata: integrity_metadata.to_owned(),
+            parser_metadata,
+            referrer: self.global().get_referrer(),
+            referrer_policy: doc.get_referrer_policy(),
+            credentials_mode: module_credentials_mode,
+        };
 
         // TODO: Step 23: environment settings object.
 
         let base_url = doc.base_url();
         if let Some(src) = element.get_attribute(&ns!(), &local_name!("src")) {
-            // Step 24.
+            // Step 26.
 
-            // Step 24.1.
+            // Step 26.1.
             let src = src.value();
 
-            // Step 24.2.
+            // Step 26.2.
             if src.is_empty() {
                 self.queue_error_event();
                 return;
             }
 
-            // Step 24.3: The "from an external file"" flag is stored in ScriptOrigin.
+            // Step 26.3: The "from an external file"" flag is stored in ScriptOrigin.
 
-            // Step 24.4-24.5.
+            // Step 26.4-26.5.
             let url = match base_url.join(&src) {
                 Ok(url) => url,
                 Err(_) => {
@@ -550,7 +586,7 @@ impl HTMLScriptElement {
                 },
             };
 
-            // Step 24.6.
+            // Step 26.6.
             match script_type {
                 ScriptType::Classic => {
                     // Preparation for step 26.
@@ -572,14 +608,7 @@ impl HTMLScriptElement {
                     };
 
                     // Step 24.6.
-                    fetch_a_classic_script(
-                        self,
-                        kind,
-                        url,
-                        cors_setting,
-                        integrity_metadata.to_owned(),
-                        encoding,
-                    );
+                    fetch_a_classic_script(self, kind, url, cors_setting, options, encoding);
 
                     // Step 23.
                     match kind {
@@ -596,8 +625,7 @@ impl HTMLScriptElement {
                         ModuleOwner::Window(Trusted::new(self)),
                         url.clone(),
                         Destination::Script,
-                        integrity_metadata.to_owned(),
-                        credentials_mode.unwrap(),
+                        options,
                     );
 
                     if !asynch && was_parser_inserted {
@@ -610,19 +638,20 @@ impl HTMLScriptElement {
                 },
             }
         } else {
-            // Step 25.
+            // Step 27.
             assert!(!text.is_empty());
 
             let text_rc = Rc::new(text);
 
-            // Step 25-1. & 25-2.
+            // Step 27-1. & 27-2.
             let result = Ok(ScriptOrigin::internal(
                 Rc::clone(&text_rc),
                 base_url.clone(),
+                options.clone(),
                 script_type.clone(),
             ));
 
-            // Step 25-2.
+            // Step 27-2.
             match script_type {
                 ScriptType::Classic => {
                     if was_parser_inserted &&
@@ -630,10 +659,10 @@ impl HTMLScriptElement {
                             .map_or(false, |parser| parser.script_nesting_level() <= 1) &&
                         doc.get_script_blocking_stylesheets_count() > 0
                     {
-                        // Step 26.h: classic, has no src, was parser-inserted, is blocked on stylesheet.
+                        // Step 27.h: classic, has no src, was parser-inserted, is blocked on stylesheet.
                         doc.set_pending_parsing_blocking_script(self, Some(result));
                     } else {
-                        // Step 26.i: otherwise.
+                        // Step 27.i: otherwise.
                         self.execute(result);
                     }
                 },
@@ -654,7 +683,7 @@ impl HTMLScriptElement {
                         text_rc,
                         base_url.clone(),
                         self.id.clone(),
-                        credentials_mode.unwrap(),
+                        options,
                     );
                 },
             }
@@ -855,6 +884,8 @@ impl HTMLScriptElement {
             script.url.as_str(),
             rval.handle_mut(),
             line_number,
+            script.fetch_options.clone(),
+            script.url.clone(),
         );
     }
 

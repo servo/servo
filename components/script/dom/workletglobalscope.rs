@@ -11,6 +11,7 @@ use crate::dom::paintworkletglobalscope::PaintWorkletTask;
 use crate::dom::testworkletglobalscope::TestWorkletGlobalScope;
 use crate::dom::testworkletglobalscope::TestWorkletTask;
 use crate::dom::worklet::WorkletExecutor;
+use crate::script_module::ScriptFetchOptions;
 use crate::script_runtime::JSContext;
 use crate::script_thread::MainThreadScriptMsg;
 use crossbeam_channel::Sender;
@@ -88,10 +89,14 @@ impl WorkletGlobalScope {
 
     /// Evaluate a JS script in this global.
     pub fn evaluate_js(&self, script: &str) -> bool {
-        debug!("Evaluating Dom.");
+        debug!("Evaluating Dom in a worklet.");
         rooted!(in (*self.globalscope.get_cx()) let mut rval = UndefinedValue());
-        self.globalscope
-            .evaluate_js_on_global_with_result(&*script, rval.handle_mut())
+        self.globalscope.evaluate_js_on_global_with_result(
+            &*script,
+            rval.handle_mut(),
+            ScriptFetchOptions::default_classic_script(&self.globalscope),
+            self.globalscope.api_base_url(),
+        )
     }
 
     /// Register a paint worklet to the script thread.
