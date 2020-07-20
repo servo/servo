@@ -7,28 +7,23 @@
 
 #![deny(unsafe_code)]
 
+use crate::context::QuirksMode;
 use crate::dom::{TDocument, TElement, TNode};
-use crate::hash::HashSet;
 use crate::invalidation::element::element_wrapper::{ElementSnapshot, ElementWrapper};
 use crate::invalidation::element::restyle_hints::RestyleHint;
 use crate::media_queries::Device;
+use crate::selector_map::{MaybeCaseInsensitiveHashMap, PrecomputedHashMap};
 use crate::selector_parser::{SelectorImpl, Snapshot, SnapshotMap};
 use crate::shared_lock::SharedRwLockReadGuard;
 use crate::stylesheets::{CssRule, StylesheetInDocument};
 use crate::Atom;
-use crate::CaseSensitivityExt;
 use crate::LocalName as SelectorLocalName;
-use fxhash::FxHasher;
-use selectors::attr::CaseSensitivity;
 use selectors::parser::{Component, LocalName, Selector};
-use std::hash::BuildHasherDefault;
-
-type FxHashSet<K> = HashSet<K, BuildHasherDefault<FxHasher>>;
 
 /// A style sheet invalidation represents a kind of element or subtree that may
 /// need to be restyled. Whether it represents a whole subtree or just a single
-/// element is determined by whether the invalidation is stored in the
-/// StylesheetInvalidationSet's invalid_scopes or invalid_elements table.
+/// element is determined by the given InvalidationKind in
+/// StylesheetInvalidationSet's maps.
 #[derive(Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 enum Invalidation {
     /// An element with a given id.
@@ -50,56 +45,35 @@ impl Invalidation {
     fn is_id_or_class(&self) -> bool {
         matches!(*self, Invalidation::ID(..) | Invalidation::Class(..))
     }
+}
 
-    fn matches<E>(
-        &self,
-        element: E,
-        snapshot: Option<&Snapshot>,
-        case_sensitivity: CaseSensitivity,
-    ) -> bool
-    where
-        E: TElement,
-    {
-        match *self {
-            Invalidation::Class(ref class) => {
-                if element.has_class(class, case_sensitivity) {
-                    return true;
-                }
+/// Whether we should invalidate just the element, or the whole subtree within
+/// it.
+#[derive(Copy, Clone, Debug, Eq, MallocSizeOf, Ord, PartialEq, PartialOrd)]
+enum InvalidationKind {
+    None = 0,
+    Element,
+    Scope,
+}
 
-                if let Some(snapshot) = snapshot {
-                    if snapshot.has_class(class, case_sensitivity) {
-                        return true;
-                    }
-                }
-            },
-            Invalidation::ID(ref id) => {
-                if let Some(ref element_id) = element.id() {
-                    if case_sensitivity.eq_atom(element_id, id) {
-                        return true;
-                    }
-                }
+impl std::ops::BitOrAssign for InvalidationKind {
+    #[inline]
+    fn bitor_assign(&mut self, other: Self) {
+        *self = std::cmp::max(*self, other);
+    }
+}
 
-                if let Some(snapshot) = snapshot {
-                    if let Some(ref old_id) = snapshot.id_attr() {
-                        if case_sensitivity.eq_atom(old_id, id) {
-                            return true;
-                        }
-                    }
-                }
-            },
-            Invalidation::LocalName {
-                ref name,
-                ref lower_name,
-            } => {
-                // This could look at the quirks mode of the document, instead
-                // of testing against both names, but it's probably not worth
-                // it.
-                let local_name = element.local_name();
-                return *local_name == **name || *local_name == **lower_name;
-            },
+impl InvalidationKind {
+    #[inline]
+    fn is_scope(self) -> bool {
+        matches!(self, Self::Scope)
+    }
+
+    #[inline]
+    fn add(&mut self, other: Option<&InvalidationKind>) {
+        if let Some(other) = other {
+            *self |= *other;
         }
-
-        false
     }
 }
 
@@ -107,31 +81,24 @@ impl Invalidation {
 ///
 /// TODO(emilio): We might be able to do the same analysis for media query
 /// changes too (or even selector changes?).
-#[derive(MallocSizeOf)]
+#[derive(Debug, Default, MallocSizeOf)]
 pub struct StylesheetInvalidationSet {
-    /// The subtrees we know we have to restyle so far.
-    invalid_scopes: FxHashSet<Invalidation>,
-    /// The elements we know we have to restyle so far.
-    invalid_elements: FxHashSet<Invalidation>,
-    /// Whether the whole document should be restyled.
+    classes: MaybeCaseInsensitiveHashMap<Atom, InvalidationKind>,
+    ids: MaybeCaseInsensitiveHashMap<Atom, InvalidationKind>,
+    local_names: PrecomputedHashMap<SelectorLocalName, InvalidationKind>,
     fully_invalid: bool,
 }
 
 impl StylesheetInvalidationSet {
     /// Create an empty `StylesheetInvalidationSet`.
     pub fn new() -> Self {
-        Self {
-            invalid_scopes: FxHashSet::default(),
-            invalid_elements: FxHashSet::default(),
-            fully_invalid: false,
-        }
+        Default::default()
     }
 
     /// Mark the DOM tree styles' as fully invalid.
     pub fn invalidate_fully(&mut self) {
         debug!("StylesheetInvalidationSet::invalidate_fully");
-        self.invalid_scopes.clear();
-        self.invalid_elements.clear();
+        self.clear();
         self.fully_invalid = true;
     }
 
@@ -157,22 +124,19 @@ impl StylesheetInvalidationSet {
             return; // Nothing to do here.
         }
 
+        let quirks_mode = stylesheet.quirks_mode(guard);
         for rule in stylesheet.effective_rules(device, guard) {
-            self.collect_invalidations_for_rule(rule, guard, device);
+            self.collect_invalidations_for_rule(rule, guard, device, quirks_mode);
             if self.fully_invalid {
-                self.invalid_scopes.clear();
-                self.invalid_elements.clear();
                 break;
             }
         }
 
+        debug!(" > resulting class invalidations: {:?}", self.classes);
+        debug!(" > resulting id invalidations: {:?}", self.ids);
         debug!(
-            " > resulting subtree invalidations: {:?}",
-            self.invalid_scopes
-        );
-        debug!(
-            " > resulting self invalidations: {:?}",
-            self.invalid_elements
+            " > resulting local name invalidations: {:?}",
+            self.local_names
         );
         debug!(" > fully_invalid: {}", self.fully_invalid);
     }
@@ -198,21 +162,83 @@ impl StylesheetInvalidationSet {
         have_invalidations
     }
 
+    fn is_empty(&self) -> bool {
+        !self.fully_invalid &&
+            self.classes.is_empty() &&
+            self.ids.is_empty() &&
+            self.local_names.is_empty()
+    }
+
+    fn invalidation_kind_for<E>(
+        &self,
+        element: E,
+        snapshot: Option<&Snapshot>,
+        quirks_mode: QuirksMode,
+    ) -> InvalidationKind
+    where
+        E: TElement,
+    {
+        debug_assert!(!self.fully_invalid);
+
+        let mut kind = InvalidationKind::None;
+
+        if !self.classes.is_empty() {
+            element.each_class(|c| {
+                kind.add(self.classes.get(c, quirks_mode));
+            });
+
+            if kind.is_scope() {
+                return kind;
+            }
+
+            if let Some(snapshot) = snapshot {
+                snapshot.each_class(|c| {
+                    kind.add(self.classes.get(c, quirks_mode));
+                });
+
+                if kind.is_scope() {
+                    return kind;
+                }
+            }
+        }
+
+        if !self.ids.is_empty() {
+            if let Some(ref id) = element.id() {
+                kind.add(self.ids.get(id, quirks_mode));
+                if kind.is_scope() {
+                    return kind;
+                }
+            }
+
+            if let Some(ref old_id) = snapshot.and_then(|s| s.id_attr()) {
+                kind.add(self.ids.get(old_id, quirks_mode));
+                if kind.is_scope() {
+                    return kind;
+                }
+            }
+        }
+
+        if !self.local_names.is_empty() {
+            kind.add(self.local_names.get(element.local_name()));
+        }
+
+        kind
+    }
+
     /// Clears the invalidation set without processing.
     pub fn clear(&mut self) {
-        self.invalid_scopes.clear();
-        self.invalid_elements.clear();
+        self.classes.clear();
+        self.ids.clear();
+        self.local_names.clear();
         self.fully_invalid = false;
+        debug_assert!(self.is_empty());
     }
 
     fn process_invalidations<E>(&self, element: E, snapshots: Option<&SnapshotMap>) -> bool
     where
         E: TElement,
     {
-        debug!(
-            "Stylist::process_invalidations({:?}, {:?}, {:?})",
-            element, self.invalid_scopes, self.invalid_elements,
-        );
+        debug!("Stylist::process_invalidations({:?}, {:?})", element, self);
 
         {
             let mut data = match element.mutate_data() {
@@ -227,22 +253,18 @@ impl StylesheetInvalidationSet {
             }
         }
 
-        if self.invalid_scopes.is_empty() && self.invalid_elements.is_empty() {
+        if self.is_empty() {
             debug!("process_invalidations: empty invalidation set");
             return false;
         }
 
-        let case_sensitivity = element
-            .as_node()
-            .owner_doc()
-            .quirks_mode()
-            .classes_and_ids_case_sensitivity();
-        self.process_invalidations_in_subtree(element, snapshots, case_sensitivity)
+        let quirks_mode = element.as_node().owner_doc().quirks_mode();
+        self.process_invalidations_in_subtree(element, snapshots, quirks_mode)
     }
 
     /// Process style invalidations in a given subtree. This traverses the
-    /// subtree looking for elements that match the invalidations in
-    /// invalid_scopes and invalid_elements.
+    /// subtree looking for elements that match the invalidations in our hash
+    /// map members.
     ///
     /// Returns whether it invalidated at least one element's style.
     #[allow(unsafe_code)]
@@ -250,7 +272,7 @@ impl StylesheetInvalidationSet {
         &self,
         element: E,
         snapshots: Option<&SnapshotMap>,
-        case_sensitivity: CaseSensitivity,
+        quirks_mode: QuirksMode,
     ) -> bool
     where
         E: TElement,
@@ -275,31 +297,24 @@ impl StylesheetInvalidationSet {
 
         let element_wrapper = snapshots.map(|s| ElementWrapper::new(element, s));
         let snapshot = element_wrapper.as_ref().and_then(|e| e.snapshot());
-        for invalidation in &self.invalid_scopes {
-            if invalidation.matches(element, snapshot, case_sensitivity) {
+
+        match self.invalidation_kind_for(element, snapshot, quirks_mode) {
+            InvalidationKind::None => {},
+            InvalidationKind::Element => {
                 debug!(
-                    "process_invalidations_in_subtree: {:?} matched subtree {:?}",
-                    element, invalidation
+                    "process_invalidations_in_subtree: {:?} matched self",
+                    element
+                );
+                data.hint.insert(RestyleHint::RESTYLE_SELF);
+            },
+            InvalidationKind::Scope => {
+                debug!(
+                    "process_invalidations_in_subtree: {:?} matched subtree",
+                    element
                 );
                 data.hint.insert(RestyleHint::restyle_subtree());
                 return true;
-            }
-        }
-
-        let mut self_invalid = false;
-
-        if !data.hint.contains(RestyleHint::RESTYLE_SELF) {
-            for invalidation in &self.invalid_elements {
-                if invalidation.matches(element, snapshot, case_sensitivity) {
-                    debug!(
-                        "process_invalidations_in_subtree: {:?} matched self {:?}",
-                        element, invalidation
-                    );
-                    data.hint.insert(RestyleHint::RESTYLE_SELF);
-                    self_invalid = true;
-                    break;
-                }
-            }
+            },
         }
 
         let mut any_children_invalid = false;
@@ -311,7 +326,7 @@ impl StylesheetInvalidationSet {
             };
 
             any_children_invalid |=
-                self.process_invalidations_in_subtree(child, snapshots, case_sensitivity);
+                self.process_invalidations_in_subtree(child, snapshots, quirks_mode);
         }
 
         if any_children_invalid {
@@ -322,7 +337,7 @@ impl StylesheetInvalidationSet {
             unsafe { element.set_dirty_descendants() }
         }
 
-        return self_invalid || any_children_invalid;
+        data.hint.contains(RestyleHint::RESTYLE_SELF) || any_children_invalid
     }
 
     fn scan_component(
@@ -371,7 +386,11 @@ impl StylesheetInvalidationSet {
     /// prefer to generate subtree invalidations for the outermost part
     /// of the selector, to reduce the amount of traversal we need to do
     /// when flushing invalidations.
-    fn collect_invalidations(&mut self, selector: &Selector<SelectorImpl>) {
+    fn collect_invalidations(
+        &mut self,
+        selector: &Selector<SelectorImpl>,
+        quirks_mode: QuirksMode,
+    ) {
         debug!(
             "StylesheetInvalidationSet::collect_invalidations({:?})",
             selector
@@ -404,13 +423,14 @@ impl StylesheetInvalidationSet {
 
         if let Some(s) = subtree_invalidation {
             debug!(" > Found subtree invalidation: {:?}", s);
-            if self.invalid_scopes.try_insert(s).is_ok() {
+            if self.insert_invalidation(s, InvalidationKind::Scope, quirks_mode) {
                 return;
             }
         }
+
         if let Some(s) = element_invalidation {
             debug!(" > Found element invalidation: {:?}", s);
-            if self.invalid_elements.try_insert(s).is_ok() {
+            if self.insert_invalidation(s, InvalidationKind::Element, quirks_mode) {
                 return;
             }
         }
@@ -418,7 +438,48 @@ impl StylesheetInvalidationSet {
         // The selector was of a form that we can't handle. Any element could
         // match it, so let's just bail out.
         debug!(" > Can't handle selector or OOMd, marking fully invalid");
-        self.fully_invalid = true;
+        self.invalidate_fully()
+    }
+
+    fn insert_invalidation(
+        &mut self,
+        invalidation: Invalidation,
+        kind: InvalidationKind,
+        quirks_mode: QuirksMode,
+    ) -> bool {
+        match invalidation {
+            Invalidation::Class(c) => {
+                let entry = match self.classes.try_entry(c, quirks_mode) {
+                    Ok(e) => e,
+                    Err(..) => return false,
+                };
+                *entry.or_insert(InvalidationKind::None) |= kind;
+            },
+            Invalidation::ID(i) => {
+                let entry = match self.ids.try_entry(i, quirks_mode) {
+                    Ok(e) => e,
+                    Err(..) => return false,
+                };
+                *entry.or_insert(InvalidationKind::None) |= kind;
+            },
+            Invalidation::LocalName { name, lower_name } => {
+                let insert_lower = name != lower_name;
+                let entry = match self.local_names.try_entry(name) {
+                    Ok(e) => e,
+                    Err(..) => return false,
+                };
+                *entry.or_insert(InvalidationKind::None) |= kind;
+                if insert_lower {
+                    let entry = match self.local_names.try_entry(lower_name) {
+                        Ok(e) => e,
+                        Err(..) => return false,
+                    };
+                    *entry.or_insert(InvalidationKind::None) |= kind;
+                }
+            },
+        }
+
+        true
     }
 
     /// Collects invalidations for a given CSS rule.
@@ -427,6 +488,7 @@ impl StylesheetInvalidationSet {
         rule: &CssRule,
         guard: &SharedRwLockReadGuard,
         device: &Device,
+        quirks_mode: QuirksMode,
     ) {
         use crate::stylesheets::CssRule::*;
         debug!("StylesheetInvalidationSet::collect_invalidations_for_rule");
@@ -436,7 +498,7 @@ impl StylesheetInvalidationSet {
             Style(ref lock) => {
                 let style_rule = lock.read_with(guard);
                 for selector in &style_rule.selectors.0 {
-                    self.collect_invalidations(selector);
+                    self.collect_invalidations(selector, quirks_mode);
                     if self.fully_invalid {
                         return;
                     }
