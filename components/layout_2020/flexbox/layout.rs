@@ -69,6 +69,8 @@ struct FlexItem<'a> {
 
     /// https://drafts.csswg.org/css-flexbox/#algo-main-item
     hypothetical_main_size: Length,
+    /// This is `align-self`, defaulting to `align-items` if `auto`
+    align_self: AlignItems,
 }
 
 /// A flex line with some intermediate results
@@ -436,6 +438,8 @@ impl<'a> FlexItem<'a> {
         let padding_border = padding.sum_by_axis() + border.sum_by_axis();
         let pbm_auto_is_zero = padding_border + margin_auto_is_zero.sum_by_axis();
 
+        let align_self = flex_context.align_for(&box_style.clone_align_self());
+
         let flex_base_size = flex_base_size(
             flex_context,
             box_,
@@ -459,6 +463,7 @@ impl<'a> FlexItem<'a> {
             pbm_auto_is_zero,
             flex_base_size,
             hypothetical_main_size,
+            align_self,
         }
     }
 }
@@ -641,15 +646,14 @@ impl FlexLine<'_> {
 
         // Determine the used cross size of each flex item
         // https://drafts.csswg.org/css-flexbox/#algo-stretch
-        // FIXME: For now we hard-code the behavior for `align-self: stretch`
         let (item_used_cross_sizes, item_fragments): (Vec<_>, Vec<_>) = self
             .items
             .iter_mut()
             .zip(item_layout_results)
             .zip(&item_used_main_sizes)
             .map(|((item, mut item_result), &used_main_size)| {
-                let has_stretch_auto = true; // FIXME: use the property
-                let cross_size = if has_stretch_auto &&
+                let has_stretch = item.align_self == AlignItems::Stretch;
+                let cross_size = if has_stretch &&
                     item.content_box_size.cross.is_auto() &&
                     !(item.margin.cross_start.is_auto() || item.margin.cross_end.is_auto())
                 {
@@ -660,7 +664,7 @@ impl FlexLine<'_> {
                 } else {
                     item_result.hypothetical_cross_size
                 };
-                if has_stretch_auto {
+                if has_stretch {
                     // “If the flex item has `align-self: stretch`, redo layout for its contents,
                     //  treating this used size as its definite cross size
                     //  so that percentage-sized children can be resolved.”
