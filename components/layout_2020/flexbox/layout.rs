@@ -19,6 +19,8 @@ use crate::style_ext::ComputedValuesExt;
 use crate::ContainingBlock;
 use atomic_refcell::AtomicRefMut;
 use std::cell::Cell;
+use style::properties::longhands::align_items::computed_value::T as AlignItems;
+use style::properties::longhands::align_self::computed_value::T as AlignSelf;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
@@ -44,6 +46,7 @@ struct FlexContext<'a> {
     flex_axis: FlexAxis,
     main_start_cross_start_sides_are: MainStartCrossStart,
     container_definite_inner_size: FlexRelativeVec2<Option<Length>>,
+    align_items: AlignItems,
 }
 
 /// A flex item with some intermediate results
@@ -113,6 +116,17 @@ impl FlexContext<'_> {
             base_rect_size,
             rect,
         )
+    }
+
+    fn align_for(&self, align_self: &AlignSelf) -> AlignItems {
+        match align_self {
+            AlignSelf::Auto => self.align_items,
+            AlignSelf::Stretch => AlignItems::Stretch,
+            AlignSelf::FlexStart => AlignItems::FlexStart,
+            AlignSelf::FlexEnd => AlignItems::FlexEnd,
+            AlignSelf::Center => AlignItems::Center,
+            AlignSelf::Baseline => AlignItems::Baseline,
+        }
     }
 }
 
@@ -252,6 +266,8 @@ fn layout<'context, 'boxes>(
         FlexWrap::Nowrap | FlexWrap::Wrap => false,
         FlexWrap::WrapReverse => true,
     };
+    let align_items = containing_block.style.clone_align_items();
+
     let mut flex_context = FlexContext {
         layout_context,
         positioning_context,
@@ -260,6 +276,7 @@ fn layout<'context, 'boxes>(
         container_max_cross_size,
         container_is_single_line,
         flex_axis,
+        align_items,
         main_start_cross_start_sides_are: MainStartCrossStart::from(
             flex_direction,
             flex_wrap_reverse,
