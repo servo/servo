@@ -88,23 +88,26 @@ pub enum WebGPURequest {
         bind_group_id: id::BindGroupId,
         bind_group_layout_id: id::BindGroupLayoutId,
         entries: Vec<(u32, WebGPUBindings)>,
+        label: Option<String>,
     },
     CreateBindGroupLayout {
         device_id: id::DeviceId,
         scope_id: Option<u64>,
         bind_group_layout_id: id::BindGroupLayoutId,
         entries: Vec<wgt::BindGroupLayoutEntry>,
+        label: Option<String>,
     },
     CreateBuffer {
         device_id: id::DeviceId,
         buffer_id: id::BufferId,
-        descriptor: wgt::BufferDescriptor<String>,
+        descriptor: wgt::BufferDescriptor<Option<String>>,
     },
     CreateCommandEncoder {
         device_id: id::DeviceId,
         // TODO(zakorgy): Serialize CommandEncoderDescriptor in wgpu-core
         // wgpu::command::CommandEncoderDescriptor,
         command_encoder_id: id::CommandEncoderId,
+        label: Option<String>,
     },
     CreateComputePipeline {
         device_id: id::DeviceId,
@@ -145,7 +148,7 @@ pub enum WebGPURequest {
     CreateSampler {
         device_id: id::DeviceId,
         sampler_id: id::SamplerId,
-        descriptor: wgt::SamplerDescriptor<String>,
+        descriptor: wgt::SamplerDescriptor<Option<String>>,
     },
     CreateShaderModule {
         device_id: id::DeviceId,
@@ -163,12 +166,12 @@ pub enum WebGPURequest {
     CreateTexture {
         device_id: id::DeviceId,
         texture_id: id::TextureId,
-        descriptor: wgt::TextureDescriptor<String>,
+        descriptor: wgt::TextureDescriptor<Option<String>>,
     },
     CreateTextureView {
         texture_id: id::TextureId,
         texture_view_id: id::TextureViewId,
-        descriptor: wgt::TextureViewDescriptor<String>,
+        descriptor: wgt::TextureViewDescriptor<Option<String>>,
     },
     DestroyBuffer(id::BufferId),
     DestroySwapChain {
@@ -368,7 +371,7 @@ impl<'a> WGPU<'a> {
     fn run(&'a mut self) {
         loop {
             if self.last_poll.elapsed() >= Duration::from_millis(DEVICE_POLL_INTERVAL) {
-                self.global.poll_all_devices(false);
+                let _ = self.global.poll_all_devices(false);
                 self.last_poll = Instant::now();
             }
             if let Ok(msg) = self.receiver.try_recv() {
@@ -457,6 +460,7 @@ impl<'a> WGPU<'a> {
                         bind_group_id,
                         bind_group_layout_id,
                         mut entries,
+                        label,
                     } => {
                         let global = &self.global;
                         let bindings = entries
@@ -476,7 +480,7 @@ impl<'a> WGPU<'a> {
                             })
                             .collect::<Vec<_>>();
                         let descriptor = BindGroupDescriptor {
-                            label: None,
+                            label: label.as_deref(),
                             layout: bind_group_layout_id,
                             entries: bindings.as_slice(),
                         };
@@ -491,11 +495,12 @@ impl<'a> WGPU<'a> {
                         scope_id,
                         bind_group_layout_id,
                         entries,
+                        label,
                     } => {
                         let global = &self.global;
                         let descriptor = wgt::BindGroupLayoutDescriptor {
                             entries: entries.as_slice(),
-                            label: None,
+                            label: label.as_deref(),
                         };
                         let result = gfx_select!(bind_group_layout_id =>
                             global.device_create_bind_group_layout(device_id, &descriptor, bind_group_layout_id));
@@ -509,16 +514,32 @@ impl<'a> WGPU<'a> {
                         descriptor,
                     } => {
                         let global = &self.global;
-                        let st = CString::new(descriptor.label.as_bytes()).unwrap();
+                        let st;
+                        let label = match descriptor.label {
+                            Some(ref s) => {
+                                st = CString::new(s.as_bytes()).unwrap();
+                                st.as_ptr()
+                            },
+                            None => ptr::null(),
+                        };
                         let _ = gfx_select!(buffer_id =>
-                            global.device_create_buffer(device_id, &descriptor.map_label(|_| st.as_ptr()), buffer_id));
+                            global.device_create_buffer(device_id, &descriptor.map_label(|_| label), buffer_id));
                     },
                     WebGPURequest::CreateCommandEncoder {
                         device_id,
                         command_encoder_id,
+                        label,
                     } => {
                         let global = &self.global;
-                        let desc = wgt::CommandEncoderDescriptor { label: ptr::null() };
+                        let st;
+                        let label = match label {
+                            Some(ref s) => {
+                                st = CString::new(s.as_bytes()).unwrap();
+                                st.as_ptr()
+                            },
+                            None => ptr::null(),
+                        };
+                        let desc = wgt::CommandEncoderDescriptor { label };
                         let _ = gfx_select!(command_encoder_id =>
                             global.device_create_command_encoder(device_id, &desc, command_encoder_id));
                     },
@@ -647,10 +668,17 @@ impl<'a> WGPU<'a> {
                         descriptor,
                     } => {
                         let global = &self.global;
-                        let st = CString::new(descriptor.label.as_bytes()).unwrap();
+                        let st;
+                        let label = match descriptor.label {
+                            Some(ref s) => {
+                                st = CString::new(s.as_bytes()).unwrap();
+                                st.as_ptr()
+                            },
+                            None => ptr::null(),
+                        };
                         let _ = gfx_select!(sampler_id => global.device_create_sampler(
                             device_id,
-                            &descriptor.map_label(|_| st.as_ptr()),
+                            &descriptor.map_label(|_| label),
                             sampler_id
                         ));
                     },
@@ -712,10 +740,17 @@ impl<'a> WGPU<'a> {
                         descriptor,
                     } => {
                         let global = &self.global;
-                        let st = CString::new(descriptor.label.as_bytes()).unwrap();
+                        let st;
+                        let label = match descriptor.label {
+                            Some(ref s) => {
+                                st = CString::new(s.as_bytes()).unwrap();
+                                st.as_ptr()
+                            },
+                            None => ptr::null(),
+                        };
                         let _ = gfx_select!(texture_id => global.device_create_texture(
                             device_id,
-                            &descriptor.map_label(|_| st.as_ptr()),
+                            &descriptor.map_label(|_| label),
                             texture_id
                         ));
                     },
@@ -725,10 +760,17 @@ impl<'a> WGPU<'a> {
                         descriptor,
                     } => {
                         let global = &self.global;
-                        let st = CString::new(descriptor.label.as_bytes()).unwrap();
+                        let st;
+                        let label = match descriptor.label {
+                            Some(ref s) => {
+                                st = CString::new(s.as_bytes()).unwrap();
+                                st.as_ptr()
+                            },
+                            None => ptr::null(),
+                        };
                         let _ = gfx_select!(texture_view_id => global.texture_create_view(
                             texture_id,
-                            Some(&descriptor.map_label(|_| st.as_ptr())),
+                            Some(&descriptor.map_label(|_| label)),
                             texture_view_id
                         ));
                     },
@@ -880,7 +922,7 @@ impl<'a> WGPU<'a> {
                         command_buffers,
                     } => {
                         let global = &self.global;
-                        gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers));
+                        let _ = gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers));
                     },
                     WebGPURequest::SwapChainPresent {
                         external_id,
@@ -973,7 +1015,7 @@ impl<'a> WGPU<'a> {
                             encoder_id,
                             &wgt::CommandBufferDescriptor::default()
                         ));
-                        gfx_select!(queue_id => global.queue_submit(
+                        let _ = gfx_select!(queue_id => global.queue_submit(
                             queue_id,
                             &[encoder_id]
                         ));

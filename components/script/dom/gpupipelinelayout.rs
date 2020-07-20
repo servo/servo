@@ -6,37 +6,30 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUPipelineLayoutBinding::GPUPipelineLayoutMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use std::cell::Cell;
 use webgpu::WebGPUPipelineLayout;
 
 #[dom_struct]
 pub struct GPUPipelineLayout {
     reflector_: Reflector,
-    label: DomRefCell<Option<DOMString>>,
+    label: DomRefCell<Option<USVString>>,
     pipeline_layout: WebGPUPipelineLayout,
-    valid: Cell<bool>,
 }
 
 impl GPUPipelineLayout {
-    fn new_inherited(pipeline_layout: WebGPUPipelineLayout, valid: bool) -> Self {
+    fn new_inherited(pipeline_layout: WebGPUPipelineLayout) -> Self {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(None),
             pipeline_layout,
-            valid: Cell::new(valid),
         }
     }
 
-    pub fn new(
-        global: &GlobalScope,
-        pipeline_layout: WebGPUPipelineLayout,
-        valid: bool,
-    ) -> DomRoot<Self> {
+    pub fn new(global: &GlobalScope, pipeline_layout: WebGPUPipelineLayout) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUPipelineLayout::new_inherited(pipeline_layout, valid)),
+            Box::new(GPUPipelineLayout::new_inherited(pipeline_layout)),
             global,
         )
     }
@@ -46,20 +39,16 @@ impl GPUPipelineLayout {
     pub fn id(&self) -> WebGPUPipelineLayout {
         self.pipeline_layout
     }
-
-    pub fn is_valid(&self) -> bool {
-        self.valid.get()
-    }
 }
 
 impl GPUPipelineLayoutMethods for GPUPipelineLayout {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<DOMString> {
+    fn GetLabel(&self) -> Option<USVString> {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<DOMString>) {
+    fn SetLabel(&self, value: Option<USVString>) {
         *self.label.borrow_mut() = value;
     }
 }

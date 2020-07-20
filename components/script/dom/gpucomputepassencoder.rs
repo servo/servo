@@ -6,7 +6,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUComputePassEncoderBinding::GPUComputePassEncoderMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubuffer::GPUBuffer;
@@ -23,7 +23,7 @@ pub struct GPUComputePassEncoder {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     channel: WebGPU,
-    label: DomRefCell<Option<DOMString>>,
+    label: DomRefCell<Option<USVString>>,
     #[ignore_malloc_size_of = "defined in wgpu-core"]
     compute_pass: DomRefCell<Option<ComputePass>>,
     command_encoder: Dom<GPUCommandEncoder>,
@@ -50,12 +50,12 @@ impl GPUComputePassEncoder {
 
 impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<DOMString> {
+    fn GetLabel(&self) -> Option<USVString> {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<DOMString>) {
+    fn SetLabel(&self, value: Option<USVString>) {
         *self.label.borrow_mut() = value;
     }
 
