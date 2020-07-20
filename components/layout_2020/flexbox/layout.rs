@@ -939,6 +939,7 @@ impl<'a> FlexItem<'a> {
                             Some(s) => LengthOrAuto::LengthPercentage(s),
                             None => self.content_box_size.cross,
                         };
+
                         let item_as_containing_block = ContainingBlock {
                             inline_size: used_main_size,
                             block_size,
@@ -953,8 +954,18 @@ impl<'a> FlexItem<'a> {
                             &item_as_containing_block,
                             self.tree_rank,
                         );
+
+                        let hypothetical_cross_size = self
+                            .content_box_size
+                            .cross
+                            .auto_is(|| content_block_size)
+                            .clamp_between_extremums(
+                                self.content_min_size.cross,
+                                self.content_max_size.cross,
+                            );
+
                         FlexItemLayoutResult {
-                            hypothetical_cross_size: content_block_size,
+                            hypothetical_cross_size,
                             fragments,
                             positioning_context,
                         }
