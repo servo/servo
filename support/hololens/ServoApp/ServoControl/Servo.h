@@ -28,7 +28,7 @@ class ServoDelegate;
 class Servo {
 public:
   Servo(std::optional<hstring>, hstring, GLsizei, GLsizei, EGLNativeWindowType,
-        float, ServoDelegate &);
+        float, ServoDelegate &, bool);
   ~Servo();
   ServoDelegate &Delegate() { return mDelegate; }
 

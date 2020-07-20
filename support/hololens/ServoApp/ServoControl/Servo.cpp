@@ -136,7 +136,7 @@ const char *prompt_input(const char *message, const char *default,
 
 Servo::Servo(std::optional<hstring> initUrl, hstring args, GLsizei width,
              GLsizei height, EGLNativeWindowType eglNativeWindow, float dpi,
-             ServoDelegate &aDelegate)
+             ServoDelegate &aDelegate, bool transient)
     : mWindowHeight(height), mWindowWidth(width), mDelegate(aDelegate) {
   ApplicationDataContainer localSettings =
       ApplicationData::Current().LocalSettings();
@@ -190,6 +190,14 @@ Servo::Servo(std::optional<hstring> initUrl, hstring args, GLsizei width,
 #ifdef OVERRIDE_DEFAULT_URL
     setNonPersistentHomepage(OVERRIDE_DEFAULT_URL, cprefs);
 #endif
+  }
+
+  if (transient) {
+    capi::CPref cpref;
+    cpref.key = "dom.webxr.sessionavailable";
+    cpref.pref_type = capi::CPrefType::Bool;
+    cpref.value = &transient;
+    cprefs.push_back(cpref);
   }
 
   capi::CPrefList prefsList = {cprefs.size(), cprefs.data()};
