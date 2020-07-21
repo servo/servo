@@ -34,11 +34,11 @@ use crate::dom::bindings::codegen::Bindings::GPUTextureViewBinding::GPUTextureVi
 use crate::dom::bindings::codegen::Bindings::GPUValidationErrorBinding::{
     GPUError, GPUErrorFilter,
 };
-use crate::dom::bindings::codegen::UnionTypes::Uint32ArrayOrString::{String, Uint32Array};
+use crate::dom::bindings::codegen::UnionTypes::Uint32ArrayOrString;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -64,6 +64,7 @@ use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ptr::NonNull;
 use std::rc::Rc;
+use std::string::String;
 use webgpu::wgpu::binding_model::BufferBinding;
 use webgpu::{self, wgt, WebGPU, WebGPUBindings, WebGPURequest};
 
@@ -96,7 +97,7 @@ pub struct GPUDevice {
     extensions: Heap<*mut JSObject>,
     #[ignore_malloc_size_of = "mozjs"]
     limits: Heap<*mut JSObject>,
-    label: DomRefCell<Option<DOMString>>,
+    label: DomRefCell<Option<USVString>>,
     device: webgpu::WebGPUDevice,
     default_queue: Dom<GPUQueue>,
     scope_context: DomRefCell<ScopeContext>,
@@ -227,12 +228,12 @@ impl GPUDeviceMethods for GPUDevice {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<DOMString> {
+    fn GetLabel(&self) -> Option<USVString> {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<DOMString>) {
+    fn SetLabel(&self, value: Option<USVString>) {
         *self.label.borrow_mut() = value;
     }
 
@@ -246,7 +247,11 @@ impl GPUDeviceMethods for GPUDevice {
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
     fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> DomRoot<GPUBuffer> {
         let wgpu_descriptor = wgt::BufferDescriptor {
-            label: Default::default(),
+            label: descriptor
+                .parent
+                .label
+                .as_ref()
+                .map(|s| String::from(s.as_ref())),
             size: descriptor.size,
             usage: match wgt::BufferUsage::from_bits(descriptor.usage) {
                 Some(u) => u,
@@ -293,7 +298,6 @@ impl GPUDeviceMethods for GPUDevice {
             self.device,
             state,
             descriptor.size,
-            true,
             map_info,
         )
     }
@@ -409,12 +413,17 @@ impl GPUDeviceMethods for GPUDevice {
                 bind_group_layout_id,
                 entries: entries.clone(),
                 scope_id,
+                label: descriptor
+                    .parent
+                    .label
+                    .as_ref()
+                    .map(|s| String::from(s.as_ref())),
             })
             .expect("Failed to create WebGPU BindGroupLayout");
 
         let bgl = webgpu::WebGPUBindGroupLayout(bind_group_layout_id);
 
-        let layout = GPUBindGroupLayout::new(&self.global(), bgl, true);
+        let layout = GPUBindGroupLayout::new(&self.global(), bgl);
 
         self.bind_group_layouts
             .borrow_mut()
@@ -429,11 +438,10 @@ impl GPUDeviceMethods for GPUDevice {
         descriptor: &GPUPipelineLayoutDescriptor,
     ) -> DomRoot<GPUPipelineLayout> {
         let mut bgl_ids = Vec::new();
-        descriptor.bindGroupLayouts.iter().for_each(|each| {
-            if each.is_valid() {
-                bgl_ids.push(each.id().0);
-            }
-        });
+        descriptor
+            .bindGroupLayouts
+            .iter()
+            .for_each(|each| bgl_ids.push(each.id().0));
 
         let scope_id = self.use_current_scope();
 
@@ -453,12 +461,11 @@ impl GPUDeviceMethods for GPUDevice {
             .expect("Failed to create WebGPU PipelineLayout");
 
         let pipeline_layout = webgpu::WebGPUPipelineLayout(pipeline_layout_id);
-        GPUPipelineLayout::new(&self.global(), pipeline_layout, true)
+        GPUPipelineLayout::new(&self.global(), pipeline_layout)
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbindgroup
     fn CreateBindGroup(&self, descriptor: &GPUBindGroupDescriptor) -> DomRoot<GPUBindGroup> {
-        let mut valid = descriptor.layout.is_valid();
         let entries = descriptor
             .entries
             .iter()
@@ -466,16 +473,11 @@ impl GPUDeviceMethods for GPUDevice {
                 (
                     bind.binding,
                     match bind.resource {
-                        GPUBindingResource::GPUSampler(ref s) => {
-                            valid &= s.is_valid();
-                            WebGPUBindings::Sampler(s.id().0)
-                        },
+                        GPUBindingResource::GPUSampler(ref s) => WebGPUBindings::Sampler(s.id().0),
                         GPUBindingResource::GPUTextureView(ref t) => {
-                            valid &= t.is_valid();
                             WebGPUBindings::TextureView(t.id().0)
                         },
                         GPUBindingResource::GPUBufferBindings(ref b) => {
-                            valid &= b.buffer.is_valid();
                             WebGPUBindings::Buffer(BufferBinding {
                                 buffer_id: b.buffer.id().0,
                                 offset: b.offset,
@@ -502,18 +504,17 @@ impl GPUDeviceMethods for GPUDevice {
                 bind_group_layout_id: descriptor.layout.id().0,
                 entries,
                 scope_id,
+                label: descriptor
+                    .parent
+                    .label
+                    .as_ref()
+                    .map(|s| String::from(s.as_ref())),
             })
             .expect("Failed to create WebGPU BindGroup");
 
         let bind_group = webgpu::WebGPUBindGroup(bind_group_id);
 
-        GPUBindGroup::new(
-            &self.global(),
-            bind_group,
-            self.device,
-            valid,
-            &*descriptor.layout,
-        )
+        GPUBindGroup::new(&self.global(), bind_group, self.device, &*descriptor.layout)
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createshadermodule
@@ -522,8 +523,10 @@ impl GPUDeviceMethods for GPUDevice {
         descriptor: RootedTraceableBox<GPUShaderModuleDescriptor>,
     ) -> DomRoot<GPUShaderModule> {
         let program: Vec<u32> = match &descriptor.code {
-            Uint32Array(program) => program.to_vec(),
-            String(program) => program.chars().map(|c| c as u32).collect::<Vec<u32>>(),
+            Uint32ArrayOrString::Uint32Array(program) => program.to_vec(),
+            Uint32ArrayOrString::String(program) => {
+                program.chars().map(|c| c as u32).collect::<Vec<u32>>()
+            },
         };
         let program_id = self
             .global()
@@ -548,7 +551,6 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPUComputePipelineDescriptor,
     ) -> DomRoot<GPUComputePipeline> {
-        let valid = descriptor.parent.layout.is_valid();
         let pipeline = descriptor.parent.layout.id();
         let program = descriptor.computeStage.module.id();
         let entry_point = descriptor.computeStage.entryPoint.to_string();
@@ -573,13 +575,13 @@ impl GPUDeviceMethods for GPUDevice {
             .expect("Failed to create WebGPU ComputePipeline");
 
         let compute_pipeline = webgpu::WebGPUComputePipeline(compute_pipeline_id);
-        GPUComputePipeline::new(&self.global(), compute_pipeline, valid)
+        GPUComputePipeline::new(&self.global(), compute_pipeline)
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createcommandencoder
     fn CreateCommandEncoder(
         &self,
-        _descriptor: &GPUCommandEncoderDescriptor,
+        descriptor: &GPUCommandEncoderDescriptor,
     ) -> DomRoot<GPUCommandEncoder> {
         let command_encoder_id = self
             .global()
@@ -591,6 +593,11 @@ impl GPUDeviceMethods for GPUDevice {
             .send(WebGPURequest::CreateCommandEncoder {
                 device_id: self.device.0,
                 command_encoder_id,
+                label: descriptor
+                    .parent
+                    .label
+                    .as_ref()
+                    .map(|s| String::from(s.as_ref())),
             })
             .expect("Failed to create WebGPU command encoder");
 
@@ -607,10 +614,13 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createtexture
     fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> DomRoot<GPUTexture> {
-        let mut valid = true;
         let size = convert_texture_size_to_dict(&descriptor.size);
         let desc = wgt::TextureDescriptor {
-            label: Default::default(),
+            label: descriptor
+                .parent
+                .label
+                .as_ref()
+                .map(|s| String::from(s.as_ref())),
             size: convert_texture_size_to_wgt(&size),
             mip_level_count: descriptor.mipLevelCount,
             sample_count: descriptor.sampleCount,
@@ -622,10 +632,7 @@ impl GPUDeviceMethods for GPUDevice {
             format: convert_texture_format(descriptor.format),
             usage: match wgt::TextureUsage::from_bits(descriptor.usage) {
                 Some(t) => t,
-                None => {
-                    valid = false;
-                    wgt::TextureUsage::empty()
-                },
+                None => wgt::TextureUsage::empty(),
             },
         };
 
@@ -657,7 +664,6 @@ impl GPUDeviceMethods for GPUDevice {
             descriptor.dimension,
             descriptor.format,
             descriptor.usage,
-            valid,
         )
     }
 
@@ -670,7 +676,11 @@ impl GPUDeviceMethods for GPUDevice {
             .create_sampler_id(self.device.0.backend());
         let compare_enable = descriptor.compare.is_some();
         let desc = wgt::SamplerDescriptor {
-            label: Default::default(),
+            label: descriptor
+                .parent
+                .label
+                .as_ref()
+                .map(|s| String::from(s.as_ref())),
             address_mode_u: convert_address_mode(descriptor.addressModeU),
             address_mode_v: convert_address_mode(descriptor.addressModeV),
             address_mode_w: convert_address_mode(descriptor.addressModeW),
@@ -694,7 +704,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         let sampler = webgpu::WebGPUSampler(sampler_id);
 
-        GPUSampler::new(&self.global(), self.device, compare_enable, sampler, true)
+        GPUSampler::new(&self.global(), self.device, compare_enable, sampler)
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createrenderpipeline
@@ -702,7 +712,6 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> DomRoot<GPURenderPipeline> {
-        let valid = descriptor.parent.layout.is_valid();
         let vertex_module = descriptor.vertexStage.module.id().0;
         let vertex_entry_point = descriptor.vertexStage.entryPoint.to_string();
         let (fragment_module, fragment_entry_point) = match descriptor.fragmentStage {
@@ -834,7 +843,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         let render_pipeline = webgpu::WebGPURenderPipeline(render_pipeline_id);
 
-        GPURenderPipeline::new(&self.global(), render_pipeline, self.device, valid)
+        GPURenderPipeline::new(&self.global(), render_pipeline, self.device)
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-pusherrorscope

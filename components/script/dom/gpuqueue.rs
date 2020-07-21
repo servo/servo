@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
@@ -27,7 +27,7 @@ pub struct GPUQueue {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     channel: WebGPU,
-    label: DomRefCell<Option<DOMString>>,
+    label: DomRefCell<Option<USVString>>,
     queue: WebGPUQueue,
 }
 
@@ -48,12 +48,12 @@ impl GPUQueue {
 
 impl GPUQueueMethods for GPUQueue {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<DOMString> {
+    fn GetLabel(&self) -> Option<USVString> {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<DOMString>) {
+    fn SetLabel(&self, value: Option<USVString>) {
         *self.label.borrow_mut() = value;
     }
 
@@ -98,8 +98,7 @@ impl GPUQueueMethods for GPUQueue {
         let valid = data_offset + content_size <= bytes.len() as u64 &&
             buffer.state() == GPUBufferState::Unmapped &&
             content_size % wgt::COPY_BUFFER_ALIGNMENT == 0 &&
-            buffer_offset % wgt::COPY_BUFFER_ALIGNMENT == 0 &&
-            buffer.is_valid();
+            buffer_offset % wgt::COPY_BUFFER_ALIGNMENT == 0;
 
         if !valid {
             return Err(Error::Operation);
@@ -130,7 +129,7 @@ impl GPUQueueMethods for GPUQueue {
         size: GPUExtent3D,
     ) -> Fallible<()> {
         let bytes = data.to_vec();
-        let valid = data_layout.offset <= data.len() as u64 && destination.texture.is_valid();
+        let valid = data_layout.offset <= data.len() as u64;
 
         if !valid {
             return Err(Error::Operation);

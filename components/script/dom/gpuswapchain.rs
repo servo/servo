@@ -6,7 +6,7 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUSwapChainBinding::GPUSwapChainMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::gputexture::GPUTexture;
@@ -18,7 +18,7 @@ pub struct GPUSwapChain {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     channel: WebGPU,
-    label: DomRefCell<Option<DOMString>>,
+    label: DomRefCell<Option<USVString>>,
     context: Dom<GPUCanvasContext>,
     texture: Dom<GPUTexture>,
 }
@@ -67,12 +67,12 @@ impl GPUSwapChain {
 
 impl GPUSwapChainMethods for GPUSwapChain {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<DOMString> {
+    fn GetLabel(&self) -> Option<USVString> {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<DOMString>) {
+    fn SetLabel(&self, value: Option<USVString>) {
         *self.label.borrow_mut() = value;
     }
 

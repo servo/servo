@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::GPUCommandBufferBinding::GPUCommand
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::Dom;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::GPUBuffer;
 use dom_struct::dom_struct;
@@ -27,7 +27,7 @@ pub struct GPUCommandBuffer {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     channel: WebGPU,
-    label: DomRefCell<Option<DOMString>>,
+    label: DomRefCell<Option<USVString>>,
     command_buffer: WebGPUCommandBuffer,
     buffers: DomRefCell<HashSet<Dom<GPUBuffer>>>,
 }
@@ -76,12 +76,12 @@ impl GPUCommandBuffer {
 
 impl GPUCommandBufferMethods for GPUCommandBuffer {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<DOMString> {
+    fn GetLabel(&self) -> Option<USVString> {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<DOMString>) {
+    fn SetLabel(&self, value: Option<USVString>) {
         *self.label.borrow_mut() = value;
     }
 }

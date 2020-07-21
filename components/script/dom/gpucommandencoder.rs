@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
@@ -43,7 +43,7 @@ pub struct GPUCommandEncoder {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     channel: WebGPU,
-    label: DomRefCell<Option<DOMString>>,
+    label: DomRefCell<Option<USVString>>,
     encoder: webgpu::WebGPUCommandEncoder,
     buffers: DomRefCell<HashSet<DomRoot<GPUBuffer>>>,
     state: DomRefCell<GPUCommandEncoderState>,
@@ -103,12 +103,12 @@ impl GPUCommandEncoder {
 
 impl GPUCommandEncoderMethods for GPUCommandEncoder {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<DOMString> {
+    fn GetLabel(&self) -> Option<USVString> {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<DOMString>) {
+    fn SetLabel(&self, value: Option<USVString>) {
         *self.label.borrow_mut() = value;
     }
 
@@ -229,9 +229,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination_offset: GPUSize64,
         size: GPUSize64,
     ) {
-        let valid = source.is_valid() &&
-            destination.is_valid() &&
-            *self.state.borrow() == GPUCommandEncoderState::Open;
+        let valid = *self.state.borrow() == GPUCommandEncoderState::Open;
 
         if !valid {
             // TODO: Record an error in the current scope.

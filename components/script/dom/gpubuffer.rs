@@ -9,7 +9,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpu::{response_async, AsyncWGPUListener};
 use crate::dom::promise::Promise;
@@ -58,11 +58,10 @@ pub struct GPUBuffer {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     channel: WebGPU,
-    label: DomRefCell<Option<DOMString>>,
+    label: DomRefCell<Option<USVString>>,
     state: Cell<GPUBufferState>,
     buffer: WebGPUBuffer,
     device: WebGPUDevice,
-    valid: Cell<bool>,
     size: GPUSize64,
     #[ignore_malloc_size_of = "promises are hard"]
     map_promise: DomRefCell<Option<Rc<Promise>>>,
@@ -76,7 +75,6 @@ impl GPUBuffer {
         device: WebGPUDevice,
         state: GPUBufferState,
         size: GPUSize64,
-        valid: bool,
         map_info: DomRefCell<Option<GPUBufferMapInfo>>,
     ) -> Self {
         Self {
@@ -84,7 +82,6 @@ impl GPUBuffer {
             channel,
             label: DomRefCell::new(None),
             state: Cell::new(state),
-            valid: Cell::new(valid),
             device,
             buffer,
             map_promise: DomRefCell::new(None),
@@ -101,12 +98,11 @@ impl GPUBuffer {
         device: WebGPUDevice,
         state: GPUBufferState,
         size: GPUSize64,
-        valid: bool,
         map_info: DomRefCell<Option<GPUBufferMapInfo>>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBuffer::new_inherited(
-                channel, buffer, device, state, size, valid, map_info,
+                channel, buffer, device, state, size, map_info,
             )),
             global,
         )
@@ -120,10 +116,6 @@ impl GPUBuffer {
 
     pub fn state(&self) -> GPUBufferState {
         self.state.get()
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.valid.get()
     }
 }
 
@@ -305,12 +297,12 @@ impl GPUBufferMethods for GPUBuffer {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn GetLabel(&self) -> Option<DOMString> {
+    fn GetLabel(&self) -> Option<USVString> {
         self.label.borrow().clone()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
-    fn SetLabel(&self, value: Option<DOMString>) {
+    fn SetLabel(&self, value: Option<USVString>) {
         *self.label.borrow_mut() = value;
     }
 }

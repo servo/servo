@@ -5912,6 +5912,26 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8eaa81235c7058867fa8c0e7314f33dcce9c215f535d1913822a2b3f5e289f3c"
 
 [[package]]
+name = "thiserror"
+version = "1.0.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7dfdd070ccd8ccb78f4ad66bf1982dc37f620ef696c6b5028fe2ed83dd3d0d08"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.20"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bd80fc12f73063ac132ac92aceea36734f04a1d93c1240c6944e23a3b8841793"
+dependencies = [
+ "proc-macro2 1.0.17",
+ "quote 1.0.2",
+ "syn",
+]
+
+[[package]]
 name = "thread_local"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6825,7 +6845,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "0.5.0"
-source = "git+https://github.com/gfx-rs/wgpu#71e853d6ce289cb529ce39c03263e7f101dd4db5"
+source = "git+https://github.com/gfx-rs/wgpu#73b230871ea4428ed3fb1e6e8bff81a7364fcdb2"
 dependencies = [
  "arrayvec 0.5.1",
  "bitflags",
@@ -6846,6 +6866,7 @@ dependencies = [
  "serde",
  "smallvec 1.4.1",
  "spirv_headers",
+ "thiserror",
  "tracing",
  "wgpu-types",
 ]
@@ -6853,7 +6874,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "0.5.0"
-source = "git+https://github.com/gfx-rs/wgpu#71e853d6ce289cb529ce39c03263e7f101dd4db5"
+source = "git+https://github.com/gfx-rs/wgpu#73b230871ea4428ed3fb1e6e8bff81a7364fcdb2"
 dependencies = [
  "bitflags",
  "serde",
