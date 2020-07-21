@@ -710,6 +710,11 @@ impl TemplateAreas {
                     });
                     current_area_index = Some(index);
                 }
+                if column == 0 {
+                    // Each string must produce a valid token.
+                    // https://github.com/w3c/csswg-drafts/issues/5110
+                    return Err(());
+                }
                 if let Some(index) = current_area_index {
                     if areas[index].columns.end != column + 1 {
                         assert_ne!(areas[index].rows.start, row);
