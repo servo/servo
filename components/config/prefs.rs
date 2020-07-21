@@ -192,6 +192,9 @@ mod gen {
                         allowed_in_nonsecure_contexts: bool,
                     }
                 },
+                script: {
+                    asynch: bool,
+                },
                 serviceworker: {
                     enabled: bool,
                     timeout_seconds: i64,
