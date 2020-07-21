@@ -30,8 +30,7 @@ use servo::euclid::{Point2D, Rect, Scale, Size2D, Vector2D};
 use servo::keyboard_types::{Key, KeyState, KeyboardEvent};
 use servo::msg::constellation_msg::TraversalDirection;
 use servo::script_traits::{TouchEventType, TouchId};
-use servo::servo_config::opts;
-use servo::servo_config::{pref, set_pref};
+use servo::servo_config::{opts, pref};
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
 use servo::webrender_api::ScrollLocation;
@@ -62,7 +61,6 @@ pub struct InitOptions {
     pub coordinates: Coordinates,
     pub density: f32,
     pub xr_discovery: Option<webxr::Discovery>,
-    pub enable_subpixel_text_antialiasing: bool,
     pub gl_context_pointer: Option<*const c_void>,
     pub native_display_pointer: Option<*const c_void>,
     pub native_widget: *mut c_void,
@@ -227,21 +225,14 @@ pub fn init(
 ) -> Result<(), &'static str> {
     resources::set(Box::new(ResourceReaderInstance::new()));
 
-    let mut args = mem::replace(&mut init_opts.args, vec![]);
-    if !args.is_empty() {
-        // opts::from_cmdline_args expects the first argument to be the binary name.
-        args.insert(0, "servo".to_string());
-
-        set_pref!(
-            gfx.subpixel_text_antialiasing.enabled,
-            init_opts.enable_subpixel_text_antialiasing
-        );
-        opts::from_cmdline_args(Options::new(), &args);
-    }
-
     if let Some(prefs) = init_opts.prefs {
         add_user_prefs(prefs);
     }
+
+    let mut args = mem::replace(&mut init_opts.args, vec![]);
+    // opts::from_cmdline_args expects the first argument to be the binary name.
+    args.insert(0, "servo".to_string());
+    opts::from_cmdline_args(Options::new(), &args);
 
     let pref_url = ServoUrl::parse(&pref!(shell.homepage)).ok();
     let blank_url = ServoUrl::parse("about:blank").ok();
@@ -943,7 +934,7 @@ impl ResourceReaderInstance {
 impl ResourceReaderMethods for ResourceReaderInstance {
     fn read(&self, res: Resource) -> Vec<u8> {
         Vec::from(match res {
-            Resource::Preferences => &include_bytes!("../../../../resources/prefs.json")[..],
+            Resource::Preferences => &include_bytes!(concat!(env!("OUT_DIR"), "/prefs.json"))[..],
             Resource::HstsPreloadList => {
                 &include_bytes!("../../../../resources/hsts_preload.json")[..]
             },

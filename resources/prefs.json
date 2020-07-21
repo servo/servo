@@ -1,4 +1,6 @@
 {
+  "devtools.server.enabled": false,
+  "devtools.server.port": 0,
   "dom.bluetooth.enabled": false,
   "dom.bluetooth.testing.enabled": false,
   "dom.canvas_capture.enabled": false,

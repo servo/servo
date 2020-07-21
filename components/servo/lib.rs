@@ -356,9 +356,15 @@ where
         let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
 
         let debugger_chan = opts.debugger_port.map(|port| debugger::start_server(port));
-        let devtools_chan = opts
-            .devtools_port
-            .map(|port| devtools::start_server(port, embedder_proxy.clone()));
+
+        let devtools_chan = if opts.devtools_server_enabled {
+            Some(devtools::start_server(
+                opts.devtools_port,
+                embedder_proxy.clone(),
+            ))
+        } else {
+            None
+        };
 
         let coordinates = window.get_coordinates();
         let device_pixel_ratio = coordinates.hidpi_factor.get();

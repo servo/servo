@@ -112,9 +112,12 @@ pub struct Opts {
     /// remote Firefox debugger connections.
     pub debugger_port: Option<u16>,
 
-    /// `None` to disable devtools or `Some` with a port number to start a server to listen to
-    /// remote Firefox devtools connections.
-    pub devtools_port: Option<u16>,
+    /// Port number to start a server to listen to remote Firefox devtools connections.
+    /// 0 for random port.
+    pub devtools_port: u16,
+
+    /// Start the devtools server at startup
+    pub devtools_server_enabled: bool,
 
     /// `None` to disable WebDriver or `Some` with a port number to start a server to listen to
     /// remote WebDriver commands.
@@ -482,7 +485,8 @@ pub fn default_opts() -> Opts {
         enable_canvas_antialiasing: true,
         trace_layout: false,
         debugger_port: None,
-        devtools_port: None,
+        devtools_port: 0,
+        devtools_server_enabled: false,
         webdriver_port: None,
         initial_window_size: Size2D::new(1024, 740),
         multiprocess: false,
@@ -802,11 +806,22 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
             })
         });
 
-    // Set default port 0 for a random port to be selected.
-    let devtools_port = opt_match.opt_default("devtools", "0").map(|port| {
-        port.parse()
-            .unwrap_or_else(|err| args_fail(&format!("Error parsing option: --devtools ({})", err)))
-    });
+    let (devtools_enabled, devtools_port) = if opt_match.opt_present("devtools") {
+        let port = opt_match
+            .opt_str("devtools")
+            .map(|port| {
+                port.parse().unwrap_or_else(|err| {
+                    args_fail(&format!("Error parsing option: --devtools ({})", err))
+                })
+            })
+            .unwrap_or(pref!(devtools.server.port));
+        (true, port as u16)
+    } else {
+        (
+            pref!(devtools.server.enabled),
+            pref!(devtools.server.port) as u16,
+        )
+    };
 
     let webdriver_port = opt_match.opt_default("webdriver", "7000").map(|port| {
         port.parse().unwrap_or_else(|err| {
@@ -874,6 +889,7 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         trace_layout: debug_options.trace_layout,
         debugger_port: debugger_port,
         devtools_port: devtools_port,
+        devtools_server_enabled: devtools_enabled,
         webdriver_port: webdriver_port,
         initial_window_size: initial_window_size,
         multiprocess: opt_match.opt_present("M"),

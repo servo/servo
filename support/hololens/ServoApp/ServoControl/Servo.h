@@ -21,6 +21,7 @@ using namespace capi;
 
 hstring char2hstring(const char *);
 std::unique_ptr<char *> hstring2char(hstring);
+void setNonPersistentHomepage(hstring, std::vector<capi::CPref> &);
 
 class ServoDelegate;
 
