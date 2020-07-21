@@ -92,22 +92,3 @@ dictionary GPUExtent3DDict {
 };
 typedef [EnforceRange] unsigned long GPUIntegerCoordinate;
 typedef (sequence<GPUIntegerCoordinate> or GPUExtent3DDict) GPUExtent3D;
-
-dictionary GPUTextureCopyView {
-    required GPUTexture texture;
-    GPUIntegerCoordinate mipLevel = 0;
-    GPUOrigin3D origin = {};
-};
-
-dictionary GPUTextureDataLayout {
-    GPUSize64 offset = 0;
-    required GPUSize32 bytesPerRow;
-    GPUSize32 rowsPerImage = 0;
-};
-
-dictionary GPUOrigin3DDict {
-    GPUIntegerCoordinate x = 0;
-    GPUIntegerCoordinate y = 0;
-    GPUIntegerCoordinate z = 0;
-};
-typedef (sequence<GPUIntegerCoordinate> or GPUOrigin3DDict) GPUOrigin3D;
