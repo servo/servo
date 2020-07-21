@@ -772,6 +772,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "cocoa"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "667fdc068627a2816b9ff831201dd9864249d6ee8d190b9532357f1fc0f61ea7"
+dependencies = [
+ "bitflags",
+ "block",
+ "core-foundation 0.9.0",
+ "core-graphics 0.21.0",
+ "foreign-types",
+ "libc",
+ "objc",
+]
+
+[[package]]
 name = "color_quant"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -922,6 +937,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-foundation"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b5ed8e7e76c45974e15e41bfa8d5b0483cd90191639e01d8f5f1e606299d3fb"
+dependencies = [
+ "core-foundation-sys 0.8.0",
+ "libc",
+]
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -932,6 +957,12 @@ name = "core-foundation-sys"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3a71ab494c0b5b860bdc8407ae08978052417070c2ced38573a9157ad75b8ac"
+
+[[package]]
+name = "core-foundation-sys"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a21fa21941700a3cd8fcb4091f361a6a712fac632f85d9f487cc892045d55c6"
 
 [[package]]
 name = "core-graphics"
@@ -953,6 +984,18 @@ checksum = "59e78b2e0aaf43f08e7ae0d6bc96895ef72ff0921c7d4ff4762201b2dba376dd"
 dependencies = [
  "bitflags",
  "core-foundation 0.7.0",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
+name = "core-graphics"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "52a67c4378cf203eace8fb6567847eb641fd6ff933c1145a115c6ee820ebb978"
+dependencies = [
+ "bitflags",
+ "core-foundation 0.9.0",
  "foreign-types",
  "libc",
 ]
@@ -1889,22 +1932,21 @@ dependencies = [
 
 [[package]]
 name = "gfx-backend-metal"
-version = "0.5.4"
+version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "412a1e0e53e9e325a7c2e0316f1a4e8a14cbe8d8bfb5f030bc3895692f8a8254"
+checksum = "77fe42f6685bac32650a52de5fd3adc2f72d316bbf85969b307f42abf5fce9b6"
 dependencies = [
  "arrayvec 0.5.1",
  "bitflags",
  "block",
- "cocoa 0.20.1",
+ "cocoa 0.22.0",
  "copyless",
- "core-graphics 0.19.0",
  "foreign-types",
  "gfx-auxil",
  "gfx-hal",
  "lazy_static",
  "log",
- "metal",
+ "metal 0.19.0",
  "objc",
  "parking_lot 0.10.2",
  "range-alloc",
@@ -3428,6 +3470,20 @@ dependencies = [
  "block",
  "cocoa 0.20.1",
  "core-graphics 0.19.0",
+ "foreign-types",
+ "log",
+ "objc",
+]
+
+[[package]]
+name = "metal"
+version = "0.19.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f7ed263bb25a70ee127f56017cfc0916d1fc643be493a7c1e532700a0e57fda"
+dependencies = [
+ "bitflags",
+ "block",
+ "cocoa 0.22.0",
  "foreign-types",
  "log",
  "objc",
@@ -5780,7 +5836,7 @@ dependencies = [
  "libc",
  "log",
  "mach",
- "metal",
+ "metal 0.18.0",
  "objc",
  "parking_lot 0.10.2",
  "wayland-sys 0.24.0",
