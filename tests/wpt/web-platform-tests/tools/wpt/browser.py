@@ -70,17 +70,31 @@ class Browser(object):
         :param channel: Browser channel to download
         :param rename: Optional name for the downloaded package; the original
                        extension is preserved.
+        :return: The path to the downloaded package/installer
         """
         return NotImplemented
 
     @abstractmethod
-    def install(self, dest=None):
-        """Install the browser."""
+    def install(self, dest=None, channel=None):
+        """Download and install the browser.
+
+        This method usually calls download().
+
+        :param dest: Directory in which to install the browser
+        :param channel: Browser channel to install
+        :return: The path to the installed browser
+        """
         return NotImplemented
 
     @abstractmethod
     def install_webdriver(self, dest=None, channel=None, browser_binary=None):
-        """Install the WebDriver implementation for this browser."""
+        """Download and install the WebDriver implementation for this browser.
+
+        :param dest: Directory in which to install the WebDriver
+        :param channel: Browser channel to install
+        :param browser_binary: The path to the browser binary
+        :return: The path to the installed WebDriver
+        """
         return NotImplemented
 
     @abstractmethod
@@ -387,14 +401,14 @@ class Firefox(Browser):
         tags = call("git", "ls-remote", "--tags", "--refs",
                     "https://github.com/mozilla/geckodriver.git")
         release_re = re.compile(r".*refs/tags/v(\d+)\.(\d+)\.(\d+)")
-        latest_release = (0,0,0)
+        latest_release = (0, 0, 0)
         for item in tags.split("\n"):
             m = release_re.match(item)
             if m:
                 version = tuple(int(item) for item in m.groups())
                 if version > latest_release:
                     latest_release = version
-        assert latest_release != (0,0,0)
+        assert latest_release != (0, 0, 0)
         return "v%s.%s.%s" % tuple(str(item) for item in latest_release)
 
     def install_webdriver(self, dest=None, channel=None, browser_binary=None):
@@ -470,10 +484,13 @@ class FirefoxAndroid(Browser):
     product = "firefox_android"
     requirements = "requirements_firefox.txt"
 
+    def __init__(self, logger):
+        super(FirefoxAndroid, self).__init__(logger)
+        self.apk_path = None
+
     def download(self, dest=None, channel=None, rename=None):
         if dest is None:
             dest = os.pwd
-
 
         resp = get_taskcluster_artifact(
             "gecko.v2.mozilla-central.latest.mobile.android-x86_64-opt",
@@ -482,12 +499,12 @@ class FirefoxAndroid(Browser):
         filename = "geckoview-androidTest.apk"
         if rename:
             filename = "%s%s" % (rename, get_ext(filename)[1])
-        apk_path = os.path.join(dest, filename)
+        self.apk_path = os.path.join(dest, filename)
 
-        with open(apk_path, "wb") as f:
+        with open(self.apk_path, "wb") as f:
             f.write(resp.content)
 
-        return apk_path
+        return self.apk_path
 
     def install(self, dest=None, channel=None):
         return self.download(dest, channel)
@@ -497,7 +514,7 @@ class FirefoxAndroid(Browser):
         return fx_browser.install_prefs(binary, dest, channel)
 
     def find_binary(self, venv_path=None, channel=None):
-        raise NotImplementedError
+        return self.apk_path
 
     def find_webdriver(self, channel=None):
         raise NotImplementedError
@@ -730,9 +747,9 @@ class ChromeAndroid(ChromeAndroidBase):
         return "com.android.chrome"
 
 
-#TODO(aluo): This is largely copied from the AndroidWebView implementation.
-#            Tests are not running for weblayer yet (crbug/1019521), this
-#            initial implementation will help to reproduce and debug any issues.
+# TODO(aluo): This is largely copied from the AndroidWebView implementation.
+# Tests are not running for weblayer yet (crbug/1019521), this initial
+# implementation will help to reproduce and debug any issues.
 class AndroidWeblayer(ChromeAndroidBase):
     """Weblayer-specific interface for Android."""
 
