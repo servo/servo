@@ -277,6 +277,7 @@ def macos_unit():
             ./mach build --dev --verbose
             ./mach test-unit
             ./mach package --dev
+            ./etc/ci/macos_package_smoketest.sh target/debug/servo-tech-demo.dmg
             ./etc/ci/lockfile_changed.sh
         """)
         .find_or_create("macos_unit." + CONFIG.tree_hash())
@@ -451,6 +452,7 @@ def macos_nightly():
         .with_script(
             "./mach build --release",
             "./mach package --release",
+            "./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg"
             "./mach upload-nightly mac --secret-from-taskcluster",
         )
         .with_artifacts("repo/target/release/servo-tech-demo.dmg")
