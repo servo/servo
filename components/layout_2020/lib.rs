@@ -16,10 +16,10 @@ pub mod display_list;
 mod dom_traversal;
 pub mod element_data;
 mod flexbox;
-mod flow;
+pub mod flow;
 mod formatting_contexts;
 mod fragments;
-mod geom;
+pub mod geom;
 #[macro_use]
 pub mod layout_debug;
 mod opaque_node;
@@ -37,7 +37,7 @@ use crate::geom::flow_relative::Vec2;
 use style::properties::ComputedValues;
 use style::values::computed::{Length, LengthOrAuto};
 
-struct ContainingBlock<'a> {
+pub struct ContainingBlock<'a> {
     inline_size: Length,
     block_size: LengthOrAuto,
     style: &'a ComputedValues,

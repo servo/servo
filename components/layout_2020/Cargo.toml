@@ -44,3 +44,7 @@ style = { path = "../style", features = ["servo", "servo-layout-2020"] }
 style_traits = { path = "../style_traits" }
 unicode-script = { version = "0.3", features = ["harfbuzz"] }
 webrender_api = { git = "https://github.com/servo/webrender" }
+
+[dev-dependencies]
+lazy_static = "1"
+quickcheck = "0.9"

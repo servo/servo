@@ -30,7 +30,7 @@ use style::values::computed::{Length, LengthOrAuto};
 use style::Zero;
 
 mod construct;
-mod float;
+pub mod float;
 pub mod inline;
 mod root;
 
@@ -80,7 +80,7 @@ impl BlockFormattingContext {
     ) -> IndependentLayout {
         let mut float_context;
         let float_context = if self.contains_floats {
-            float_context = FloatContext::new();
+            float_context = FloatContext::new(containing_block.inline_size);
             Some(&mut float_context)
         } else {
             None

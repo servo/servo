@@ -18,6 +18,7 @@ rand = [
   "hashglobe", # Only used in tests
   "ipc-channel",
   "phf_generator",
+  "quickcheck", # Only used in tests
   "servo_rand",
   "tempfile",
   "uuid",
