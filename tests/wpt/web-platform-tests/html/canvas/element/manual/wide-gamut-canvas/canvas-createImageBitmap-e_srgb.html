@@ -298,7 +298,7 @@ promise_test(function() {
 GIF, ICO, JPG, PNG, WEBP) with resize.');
 
 // HTMLImageElement - Transparent sRGB
-// File formats: Bitmap, GIF, ICO, PNG, WEBP
+// File formats: Bitmap, ICO, PNG, WEBP
 promise_test(function() {
     return Promise.all(['bmp', 'ico', 'png', 'webp'].map(
         ext => new Promise((resolve,reject) => {
@@ -369,30 +369,36 @@ promise_test(function() {
 //////////////////////////////////////////////////////////////////////////////
 
 // Blob from file - Opaque sRGB
+// File formats: Bitmap, GIF, ICO, JPEG, PNG, WEBP
 promise_test(function() {
-    return new Promise((resolve, reject) => {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", 'resources/pattern-srgb.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    }).then(testImageBitmapOpaque);
-}, 'createImageBitmap in e-sRGB from an opaque sRGB Blob with resize.');
+    return Promise.all(['bmp', 'gif', 'ico', 'jpg', 'png', 'webp'].map(
+        ext => new Promise((resolve, reject) => {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", 'resources/pattern-srgb.' + ext);
+            xhr.responseType = 'blob';
+            xhr.send();
+            xhr.onload = function() {
+                resolve(xhr.response);
+            };
+        }).then(testImageBitmapOpaque)));
+}, 'createImageBitmap in e-sRGB from an opaque sRGB Blob (BMP, GIF, ICO, JPG, \
+PNG, WEBP) with resize.');
 
 // Blob form file - Transparent sRGB
+// File formats: Bitmap, ICO, PNG, WEBP
 promise_test(function() {
-    return new Promise((resolve, reject) => {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", 'resources/pattern-srgb-transparent.png');
-        xhr.responseType = 'blob';
-        xhr.send();
-        xhr.onload = function() {
-            resolve(xhr.response);
-        };
-    }).then(testImageBitmapFromTransparentImage);
-}, 'createImageBitmap in e-sRGB from a transparent sRGB Blob with resize.');
+    return Promise.all(['bmp', 'ico', 'png', 'webp'].map(
+        ext => new Promise((resolve, reject) => {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", 'resources/pattern-srgb-transparent.' + ext);
+            xhr.responseType = 'blob';
+            xhr.send();
+            xhr.onload = function() {
+                resolve(xhr.response);
+            };
+        }).then(testImageBitmapFromTransparentImage)));
+}, 'createImageBitmap in e-sRGB from a transparent sRGB Blob (BMP, ICO, PNG, \
+WEBP) with resize.');
 
 // Color managed blob from canvas
 function testCreateImageBitmapFromColorManagedBlob(pixelFormat, isTransparent) {

@@ -21,7 +21,7 @@
       const contentDepth = 125;
       const contentHeight = 150;
 
-      test(function() {
+    test(function() {
       var none = getBox("none");
       assert_equals(none.width, contentWidth, "content width");
       assert_approx_equals(getBox("baseline").bottom - none.top, contentHeight, epsilon, "content height");
@@ -47,11 +47,18 @@
     }, "Different heights");
 
     test(function() {
+      var mpadded = getBox("percentages");
+      assert_equals(mpadded.width, contentWidth / 2, "width");
+      assert_approx_equals(getBox("baseline").bottom - mpadded.top, contentHeight / 3, epsilon, "height");
+      assert_approx_equals(mpadded.bottom - getBox("baseline").bottom, contentDepth, epsilon, "depth");
+    }, "Percentage calculation for width, height and depth");
+
+    test(function() {
       for (var i = 0; i <= 2; i++) {
         var mpadded = getBox("depth" + i);
         assert_equals(mpadded.width, contentWidth, "width" + i);
         assert_approx_equals(getBox("baseline2").bottom - mpadded.top, contentHeight, epsilon, "height" + i);
-        assert_approx_equals(mpadded.bottom - getBox("baseline").bottom, 25*(i+1), epsilon, "depth" + i);
+        assert_approx_equals(mpadded.bottom - getBox("baseline2").bottom, 25*(i+1), epsilon, "depth" + i);
       }
     }, "Different depths");
 
@@ -60,7 +67,7 @@
         var mpadded = getBox("mpadded" + i);
         assert_approx_equals(mpadded.width, 25*(1+i%3), epsilon, "width" + i);
         assert_approx_equals(getBox("baseline2").bottom - mpadded.top, 25*(1+(i+1)%3), epsilon, "height" + i);
-        assert_approx_equals(mpadded.bottom - getBox("baseline").bottom, 25*(1+(i+2)%3), epsilon, "depth" + i);
+        assert_approx_equals(mpadded.bottom - getBox("baseline2").bottom, 25*(1+(i+2)%3), epsilon, "depth" + i);
       }
     }, "Various combinations of height, depth and width.");
 
@@ -126,6 +133,7 @@ div.shrink-wrap {
       <mpadded id="height0" height="25px"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
       <mpadded id="height1" height="50px"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
       <mpadded id="height2" height="75px"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
+      <mpadded id="percentages" width="50%" height="33%" depth="100%"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
     </math>
   </p>
   <p>
