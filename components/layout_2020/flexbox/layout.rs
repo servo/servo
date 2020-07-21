@@ -19,6 +19,8 @@ use crate::style_ext::ComputedValuesExt;
 use crate::ContainingBlock;
 use atomic_refcell::AtomicRefMut;
 use std::cell::Cell;
+use style::properties::longhands::align_items::computed_value::T as AlignItems;
+use style::properties::longhands::align_self::computed_value::T as AlignSelf;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
 use style::properties::longhands::flex_direction::computed_value::T as FlexDirection;
 use style::properties::longhands::flex_wrap::computed_value::T as FlexWrap;
@@ -44,6 +46,7 @@ struct FlexContext<'a> {
     flex_axis: FlexAxis,
     main_start_cross_start_sides_are: MainStartCrossStart,
     container_definite_inner_size: FlexRelativeVec2<Option<Length>>,
+    align_items: AlignItems,
 }
 
 /// A flex item with some intermediate results
@@ -66,6 +69,8 @@ struct FlexItem<'a> {
 
     /// https://drafts.csswg.org/css-flexbox/#algo-main-item
     hypothetical_main_size: Length,
+    /// This is `align-self`, defaulting to `align-items` if `auto`
+    align_self: AlignItems,
 }
 
 /// A flex line with some intermediate results
@@ -113,6 +118,17 @@ impl FlexContext<'_> {
             base_rect_size,
             rect,
         )
+    }
+
+    fn align_for(&self, align_self: &AlignSelf) -> AlignItems {
+        match align_self {
+            AlignSelf::Auto => self.align_items,
+            AlignSelf::Stretch => AlignItems::Stretch,
+            AlignSelf::FlexStart => AlignItems::FlexStart,
+            AlignSelf::FlexEnd => AlignItems::FlexEnd,
+            AlignSelf::Center => AlignItems::Center,
+            AlignSelf::Baseline => AlignItems::Baseline,
+        }
     }
 }
 
@@ -252,6 +268,8 @@ fn layout<'context, 'boxes>(
         FlexWrap::Nowrap | FlexWrap::Wrap => false,
         FlexWrap::WrapReverse => true,
     };
+    let align_items = containing_block.style.clone_align_items();
+
     let mut flex_context = FlexContext {
         layout_context,
         positioning_context,
@@ -260,6 +278,7 @@ fn layout<'context, 'boxes>(
         container_max_cross_size,
         container_is_single_line,
         flex_axis,
+        align_items,
         main_start_cross_start_sides_are: MainStartCrossStart::from(
             flex_direction,
             flex_wrap_reverse,
@@ -419,6 +438,8 @@ impl<'a> FlexItem<'a> {
         let padding_border = padding.sum_by_axis() + border.sum_by_axis();
         let pbm_auto_is_zero = padding_border + margin_auto_is_zero.sum_by_axis();
 
+        let align_self = flex_context.align_for(&box_style.clone_align_self());
+
         let flex_base_size = flex_base_size(
             flex_context,
             box_,
@@ -442,6 +463,7 @@ impl<'a> FlexItem<'a> {
             pbm_auto_is_zero,
             flex_base_size,
             hypothetical_main_size,
+            align_self,
         }
     }
 }
@@ -624,15 +646,14 @@ impl FlexLine<'_> {
 
         // Determine the used cross size of each flex item
         // https://drafts.csswg.org/css-flexbox/#algo-stretch
-        // FIXME: For now we hard-code the behavior for `align-self: stretch`
         let (item_used_cross_sizes, item_fragments): (Vec<_>, Vec<_>) = self
             .items
             .iter_mut()
             .zip(item_layout_results)
             .zip(&item_used_main_sizes)
             .map(|((item, mut item_result), &used_main_size)| {
-                let has_stretch_auto = true; // FIXME: use the property
-                let cross_size = if has_stretch_auto &&
+                let has_stretch = item.align_self == AlignItems::Stretch;
+                let cross_size = if has_stretch &&
                     item.content_box_size.cross.is_auto() &&
                     !(item.margin.cross_start.is_auto() || item.margin.cross_end.is_auto())
                 {
@@ -643,7 +664,7 @@ impl FlexLine<'_> {
                 } else {
                     item_result.hypothetical_cross_size
                 };
-                if has_stretch_auto {
+                if has_stretch {
                     // “If the flex item has `align-self: stretch`, redo layout for its contents,
                     //  treating this used size as its definite cross size
                     //  so that percentage-sized children can be resolved.”
@@ -694,7 +715,10 @@ impl FlexLine<'_> {
             .items
             .iter()
             .zip(&item_margins)
-            .map(|(item, margin)| item.align_along_cross_axis(margin));
+            .zip(&item_used_cross_sizes)
+            .map(|((item, margin), size)| {
+                item.align_along_cross_axis(margin, size, line_cross_size)
+            });
 
         let item_fragments = self
             .items
@@ -939,6 +963,7 @@ impl<'a> FlexItem<'a> {
                             Some(s) => LengthOrAuto::LengthPercentage(s),
                             None => self.content_box_size.cross,
                         };
+
                         let item_as_containing_block = ContainingBlock {
                             inline_size: used_main_size,
                             block_size,
@@ -953,8 +978,18 @@ impl<'a> FlexItem<'a> {
                             &item_as_containing_block,
                             self.tree_rank,
                         );
+
+                        let hypothetical_cross_size = self
+                            .content_box_size
+                            .cross
+                            .auto_is(|| content_block_size)
+                            .clamp_between_extremums(
+                                self.content_min_size.cross,
+                                self.content_max_size.cross,
+                            );
+
                         FlexItemLayoutResult {
-                            hypothetical_cross_size: content_block_size,
+                            hypothetical_cross_size,
                             fragments,
                             positioning_context,
                         }
@@ -1117,14 +1152,29 @@ impl FlexItem<'_> {
     }
 
     /// Return the coordinate of the cross-start side of the content area
-    fn align_along_cross_axis(&self, margin: &FlexRelativeSides<Length>) -> Length {
+    fn align_along_cross_axis(
+        &self,
+        margin: &FlexRelativeSides<Length>,
+        content_size: &Length,
+        line_cross_size: Length,
+    ) -> Length {
         let outer_cross_start =
             if self.margin.cross_start.is_auto() || self.margin.cross_end.is_auto() {
                 Length::zero()
             } else {
-                // FIXME: “Align all flex items along the cross-axis per `align-self`”
-                // For now we hard-code the behavior of `stretch`:
-                Length::zero()
+                match self.align_self {
+                    AlignItems::Stretch | AlignItems::FlexStart => Length::zero(),
+                    AlignItems::FlexEnd => {
+                        let margin_box_cross = *content_size + self.pbm_auto_is_zero.cross;
+                        line_cross_size - margin_box_cross
+                    },
+                    AlignItems::Center => {
+                        let margin_box_cross = *content_size + self.pbm_auto_is_zero.cross;
+                        (line_cross_size - margin_box_cross) / 2.
+                    },
+                    // FIXME: handle baseline alignment
+                    AlignItems::Baseline => Length::zero(),
+                }
             };
         outer_cross_start + margin.cross_start + self.border.cross_start + self.padding.cross_start
     }
