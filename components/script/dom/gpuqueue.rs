@@ -4,10 +4,11 @@
 
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPUBufferBinding::GPUSize64;
-use crate::dom::bindings::codegen::Bindings::GPUQueueBinding::GPUQueueMethods;
-use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
-    GPUExtent3D, GPUOrigin3D, GPUTextureCopyView, GPUTextureDataLayout,
+use crate::dom::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
+    GPUTextureCopyView, GPUTextureDataLayout,
 };
+use crate::dom::bindings::codegen::Bindings::GPUQueueBinding::GPUQueueMethods;
+use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::GPUExtent3D;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
@@ -15,12 +16,13 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
+use crate::dom::gpucommandencoder::{convert_texture_cv, convert_texture_data_layout};
 use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
-use webgpu::{wgpu::command as wgpu_com, wgt, WebGPU, WebGPUQueue, WebGPURequest};
+use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest};
 
 #[dom_struct]
 pub struct GPUQueue {
@@ -135,29 +137,8 @@ impl GPUQueueMethods for GPUQueue {
             return Err(Error::Operation);
         }
 
-        let texture_cv = wgpu_com::TextureCopyView {
-            texture: destination.texture.id().0,
-            mip_level: destination.mipLevel,
-            origin: match destination.origin {
-                GPUOrigin3D::RangeEnforcedUnsignedLongSequence(ref v) => wgt::Origin3d {
-                    x: v[0],
-                    y: v[1],
-                    z: v[2],
-                },
-                GPUOrigin3D::GPUOrigin3DDict(ref d) => wgt::Origin3d {
-                    x: d.x,
-                    y: d.y,
-                    z: d.z,
-                },
-            },
-        };
-
-        let texture_layout = wgt::TextureDataLayout {
-            offset: data_layout.offset as wgt::BufferAddress,
-            bytes_per_row: data_layout.bytesPerRow,
-            rows_per_image: data_layout.rowsPerImage,
-        };
-
+        let texture_cv = convert_texture_cv(destination);
+        let texture_layout = convert_texture_data_layout(data_layout);
         let write_size = convert_texture_size_to_wgt(&convert_texture_size_to_dict(&size));
         let final_data = IpcSharedMemory::from_bytes(&bytes);
 

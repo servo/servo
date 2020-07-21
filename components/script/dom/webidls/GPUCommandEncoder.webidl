@@ -15,24 +15,33 @@ interface GPUCommandEncoder {
         GPUSize64 destinationOffset,
         GPUSize64 size);
 
-    // void copyBufferToTexture(
-    //     GPUBufferCopyView source,
-    //     GPUTextureCopyView destination,
-    //     GPUExtent3D copySize);
+    void copyBufferToTexture(
+        GPUBufferCopyView source,
+        GPUTextureCopyView destination,
+        GPUExtent3D copySize);
 
-    // void copyTextureToBuffer(
-    //     GPUTextureCopyView source,
-    //     GPUBufferCopyView destination,
-    //     GPUExtent3D copySize);
+    void copyTextureToBuffer(
+        GPUTextureCopyView source,
+        GPUBufferCopyView destination,
+        GPUExtent3D copySize);
 
-    // void copyTextureToTexture(
-    //     GPUTextureCopyView source,
-    //     GPUTextureCopyView destination,
-    //     GPUExtent3D copySize);
+    void copyTextureToTexture(
+        GPUTextureCopyView source,
+        GPUTextureCopyView destination,
+        GPUExtent3D copySize);
 
-    // void pushDebugGroup(DOMString groupLabel);
-    // void popDebugGroup();
-    // void insertDebugMarker(DOMString markerLabel);
+    //void pushDebugGroup(USVString groupLabel);
+    //void popDebugGroup();
+    //void insertDebugMarker(USVString markerLabel);
+
+    //void writeTimestamp(GPUQuerySet querySet, GPUSize32 queryIndex);
+
+    //void resolveQuerySet(
+    //    GPUQuerySet querySet,
+    //    GPUSize32 firstQuery,
+    //    GPUSize32 queryCount,
+    //    GPUBuffer destination,
+    //    GPUSize64 destinationOffset);
 
     GPUCommandBuffer finish(optional GPUCommandBufferDescriptor descriptor = {});
 };
@@ -88,3 +97,26 @@ dictionary GPUColorDict {
     required double a;
 };
 typedef (sequence<double> or GPUColorDict) GPUColor;
+
+dictionary GPUTextureDataLayout {
+    GPUSize64 offset = 0;
+    required GPUSize32 bytesPerRow;
+    GPUSize32 rowsPerImage = 0;
+};
+
+dictionary GPUBufferCopyView : GPUTextureDataLayout {
+    required GPUBuffer buffer;
+};
+
+dictionary GPUTextureCopyView {
+    required GPUTexture texture;
+    GPUIntegerCoordinate mipLevel = 0;
+    GPUOrigin3D origin = {};
+};
+
+dictionary GPUOrigin3DDict {
+    GPUIntegerCoordinate x = 0;
+    GPUIntegerCoordinate y = 0;
+    GPUIntegerCoordinate z = 0;
+};
+typedef (sequence<GPUIntegerCoordinate> or GPUOrigin3DDict) GPUOrigin3D;

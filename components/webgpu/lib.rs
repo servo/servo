@@ -81,6 +81,24 @@ pub enum WebGPURequest {
         destination_offset: wgt::BufferAddress,
         size: wgt::BufferAddress,
     },
+    CopyBufferToTexture {
+        command_encoder_id: id::CommandEncoderId,
+        source: BufferCopyView,
+        destination: TextureCopyView,
+        copy_size: wgt::Extent3d,
+    },
+    CopyTextureToBuffer {
+        command_encoder_id: id::CommandEncoderId,
+        source: TextureCopyView,
+        destination: BufferCopyView,
+        copy_size: wgt::Extent3d,
+    },
+    CopyTextureToTexture {
+        command_encoder_id: id::CommandEncoderId,
+        source: TextureCopyView,
+        destination: TextureCopyView,
+        copy_size: wgt::Extent3d,
+    },
     CreateBindGroup {
         device_id: id::DeviceId,
         // TODO: Consider using NonZeroU64 to reduce enum size
@@ -452,6 +470,48 @@ impl<'a> WGPU<'a> {
                             destination_id,
                             destination_offset,
                             size
+                        ));
+                    },
+                    WebGPURequest::CopyBufferToTexture {
+                        command_encoder_id,
+                        source,
+                        destination,
+                        copy_size,
+                    } => {
+                        let global = &self.global;
+                        let _ = gfx_select!(command_encoder_id => global.command_encoder_copy_buffer_to_texture(
+                            command_encoder_id,
+                            &source,
+                            &destination,
+                            &copy_size
+                        ));
+                    },
+                    WebGPURequest::CopyTextureToBuffer {
+                        command_encoder_id,
+                        source,
+                        destination,
+                        copy_size,
+                    } => {
+                        let global = &self.global;
+                        let _ = gfx_select!(command_encoder_id => global.command_encoder_copy_texture_to_buffer(
+                            command_encoder_id,
+                            &source,
+                            &destination,
+                            &copy_size
+                        ));
+                    },
+                    WebGPURequest::CopyTextureToTexture {
+                        command_encoder_id,
+                        source,
+                        destination,
+                        copy_size,
+                    } => {
+                        let global = &self.global;
+                        let _ = gfx_select!(command_encoder_id => global.command_encoder_copy_texture_to_texture(
+                            command_encoder_id,
+                            &source,
+                            &destination,
+                            &copy_size
                         ));
                     },
                     WebGPURequest::CreateBindGroup {

@@ -1065,10 +1065,14 @@ pub fn convert_texture_size_to_dict(size: &GPUExtent3D) -> GPUExtent3DDict {
             height: dict.height,
             depth: dict.depth,
         },
-        GPUExtent3D::RangeEnforcedUnsignedLongSequence(ref v) => GPUExtent3DDict {
-            width: v[0],
-            height: v[1],
-            depth: v[2],
+        GPUExtent3D::RangeEnforcedUnsignedLongSequence(ref v) => {
+            let mut w = v.clone();
+            w.resize(3, 1);
+            GPUExtent3DDict {
+                width: w[0],
+                height: w[1],
+                depth: w[2],
+            }
         },
     }
 }
