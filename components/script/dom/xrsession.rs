@@ -16,9 +16,7 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCal
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
-use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::{
-    XRWebGLLayerMethods, XRWebGLRenderingContext,
-};
+use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLRenderingContext;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -497,7 +495,7 @@ impl XRSession {
 
     pub fn dirty_layers(&self) {
         if let Some(layer) = self.RenderState().GetBaseLayer() {
-            match layer.Context() {
+            match layer.context() {
                 XRWebGLRenderingContext::WebGLRenderingContext(c) => c.mark_as_dirty(),
                 XRWebGLRenderingContext::WebGL2RenderingContext(c) => {
                     c.base_context().mark_as_dirty()

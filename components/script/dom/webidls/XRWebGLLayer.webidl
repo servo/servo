@@ -22,12 +22,8 @@ interface XRWebGLLayer {
               XRWebGLRenderingContext context,
               optional XRWebGLLayerInit layerInit = {});
   // // Attributes
-  readonly attribute XRWebGLRenderingContext context;
-
   readonly attribute boolean antialias;
-  readonly attribute boolean depth;
-  readonly attribute boolean stencil;
-  readonly attribute boolean alpha;
+  readonly attribute boolean ignoreDepthValues;
 
   readonly attribute WebGLFramebuffer? framebuffer;
   readonly attribute unsigned long framebufferWidth;
@@ -35,7 +31,6 @@ interface XRWebGLLayer {
 
   // // Methods
   XRViewport? getViewport(XRView view);
-  // void requestViewportScaling(double viewportScaleFactor);
 
   // // Static Methods
   // static double getNativeFramebufferScaleFactor(XRSession session);
