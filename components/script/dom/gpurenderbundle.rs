@@ -3,51 +3,52 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUSamplerBinding::GPUSamplerMethods;
+use crate::dom::bindings::codegen::Bindings::GPURenderBundleBinding::GPURenderBundleMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use webgpu::{WebGPUDevice, WebGPUSampler};
+use webgpu::{WebGPU, WebGPUDevice, WebGPURenderBundle};
 
 #[dom_struct]
-pub struct GPUSampler {
+pub struct GPURenderBundle {
     reflector_: Reflector,
-    label: DomRefCell<Option<USVString>>,
+    #[ignore_malloc_size_of = "channels are hard"]
+    channel: WebGPU,
     device: WebGPUDevice,
-    compare_enable: bool,
-    sampler: WebGPUSampler,
+    render_bundle: WebGPURenderBundle,
+    label: DomRefCell<Option<USVString>>,
 }
 
-impl GPUSampler {
+impl GPURenderBundle {
     fn new_inherited(
+        render_bundle: WebGPURenderBundle,
         device: WebGPUDevice,
-        compare_enable: bool,
-        sampler: WebGPUSampler,
+        channel: WebGPU,
         label: Option<USVString>,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            label: DomRefCell::new(label),
+            render_bundle,
             device,
-            sampler,
-            compare_enable,
+            channel,
+            label: DomRefCell::new(label),
         }
     }
 
     pub fn new(
         global: &GlobalScope,
+        render_bundle: WebGPURenderBundle,
         device: WebGPUDevice,
-        compare_enable: bool,
-        sampler: WebGPUSampler,
+        channel: WebGPU,
         label: Option<USVString>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUSampler::new_inherited(
+            Box::new(GPURenderBundle::new_inherited(
+                render_bundle,
                 device,
-                compare_enable,
-                sampler,
+                channel,
                 label,
             )),
             global,
@@ -55,13 +56,13 @@ impl GPUSampler {
     }
 }
 
-impl GPUSampler {
-    pub fn id(&self) -> WebGPUSampler {
-        self.sampler
+impl GPURenderBundle {
+    pub fn id(&self) -> WebGPURenderBundle {
+        self.render_bundle
     }
 }
 
-impl GPUSamplerMethods for GPUSampler {
+impl GPURenderBundleMethods for GPURenderBundle {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label
     fn GetLabel(&self) -> Option<USVString> {
         self.label.borrow().clone()

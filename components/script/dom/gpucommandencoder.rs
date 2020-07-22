@@ -59,11 +59,12 @@ impl GPUCommandEncoder {
         device: WebGPUDevice,
         encoder: webgpu::WebGPUCommandEncoder,
         valid: bool,
+        label: Option<USVString>,
     ) -> Self {
         Self {
             channel,
             reflector_: Reflector::new(),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             device,
             encoder,
             buffers: DomRefCell::new(HashSet::new()),
@@ -78,10 +79,11 @@ impl GPUCommandEncoder {
         device: WebGPUDevice,
         encoder: webgpu::WebGPUCommandEncoder,
         valid: bool,
+        label: Option<USVString>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUCommandEncoder::new_inherited(
-                channel, device, encoder, valid,
+                channel, device, encoder, valid, label,
             )),
             global,
         )
@@ -117,13 +119,18 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-begincomputepass
     fn BeginComputePass(
         &self,
-        _descriptor: &GPUComputePassDescriptor,
+        descriptor: &GPUComputePassDescriptor,
     ) -> DomRoot<GPUComputePassEncoder> {
         self.set_state(
             GPUCommandEncoderState::EncodingComputePass,
             GPUCommandEncoderState::Open,
         );
-        GPUComputePassEncoder::new(&self.global(), self.channel.clone(), &self)
+        GPUComputePassEncoder::new(
+            &self.global(),
+            self.channel.clone(),
+            &self,
+            descriptor.parent.label.as_ref().cloned(),
+        )
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-beginrenderpass
@@ -228,7 +235,13 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
 
         let render_pass = wgpu_com::RenderPass::new(self.encoder.0, desc);
 
-        GPURenderPassEncoder::new(&self.global(), self.channel.clone(), render_pass, &self)
+        GPURenderPassEncoder::new(
+            &self.global(),
+            self.channel.clone(),
+            render_pass,
+            &self,
+            descriptor.parent.label.as_ref().cloned(),
+        )
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-copybuffertobuffer
@@ -352,7 +365,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish
-    fn Finish(&self, _descriptor: &GPUCommandBufferDescriptor) -> DomRoot<GPUCommandBuffer> {
+    fn Finish(&self, descriptor: &GPUCommandBufferDescriptor) -> DomRoot<GPUCommandBuffer> {
         self.channel
             .0
             .send(WebGPURequest::CommandEncoderFinish {
@@ -369,6 +382,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             self.channel.clone(),
             buffer,
             self.buffers.borrow_mut().drain().collect(),
+            descriptor.parent.label.as_ref().cloned(),
         )
     }
 }

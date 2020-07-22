@@ -21,10 +21,14 @@ pub struct GPURenderPipeline {
 }
 
 impl GPURenderPipeline {
-    fn new_inherited(render_pipeline: WebGPURenderPipeline, device: WebGPUDevice) -> Self {
+    fn new_inherited(
+        render_pipeline: WebGPURenderPipeline,
+        device: WebGPUDevice,
+        label: Option<USVString>,
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             render_pipeline,
             device,
         }
@@ -34,9 +38,14 @@ impl GPURenderPipeline {
         global: &GlobalScope,
         render_pipeline: WebGPURenderPipeline,
         device: WebGPUDevice,
+        label: Option<USVString>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPURenderPipeline::new_inherited(render_pipeline, device)),
+            Box::new(GPURenderPipeline::new_inherited(
+                render_pipeline,
+                device,
+                label,
+            )),
             global,
         )
     }

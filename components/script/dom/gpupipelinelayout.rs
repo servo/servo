@@ -19,17 +19,21 @@ pub struct GPUPipelineLayout {
 }
 
 impl GPUPipelineLayout {
-    fn new_inherited(pipeline_layout: WebGPUPipelineLayout) -> Self {
+    fn new_inherited(pipeline_layout: WebGPUPipelineLayout, label: Option<USVString>) -> Self {
         Self {
             reflector_: Reflector::new(),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             pipeline_layout,
         }
     }
 
-    pub fn new(global: &GlobalScope, pipeline_layout: WebGPUPipelineLayout) -> DomRoot<Self> {
+    pub fn new(
+        global: &GlobalScope,
+        pipeline_layout: WebGPUPipelineLayout,
+        label: Option<USVString>,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUPipelineLayout::new_inherited(pipeline_layout)),
+            Box::new(GPUPipelineLayout::new_inherited(pipeline_layout, label)),
             global,
         )
     }

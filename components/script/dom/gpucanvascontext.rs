@@ -201,7 +201,13 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
         self.webrender_image.set(Some(receiver.recv().unwrap()));
 
-        let swap_chain = GPUSwapChain::new(&self.global(), self.channel.clone(), &self, &*texture);
+        let swap_chain = GPUSwapChain::new(
+            &self.global(),
+            self.channel.clone(),
+            &self,
+            &*texture,
+            descriptor.parent.label.as_ref().cloned(),
+        );
         *self.swap_chain.borrow_mut() = Some(Dom::from_ref(&*swap_chain));
         swap_chain
     }

@@ -26,10 +26,11 @@ impl GPUBindGroup {
         bind_group: WebGPUBindGroup,
         device: WebGPUDevice,
         layout: &GPUBindGroupLayout,
+        label: Option<USVString>,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             bind_group,
             device,
             layout: Dom::from_ref(layout),
@@ -41,9 +42,12 @@ impl GPUBindGroup {
         bind_group: WebGPUBindGroup,
         device: WebGPUDevice,
         layout: &GPUBindGroupLayout,
+        label: Option<USVString>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUBindGroup::new_inherited(bind_group, device, layout)),
+            Box::new(GPUBindGroup::new_inherited(
+                bind_group, device, layout, label,
+            )),
             global,
         )
     }

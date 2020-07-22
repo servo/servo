@@ -57,12 +57,12 @@ pub enum WebGPUMsg {
 #[derive(Debug)]
 pub struct IdentityRecycler {
     sender: IpcSender<WebGPUMsg>,
-    self_sender: IpcSender<WebGPURequest<'static>>,
+    self_sender: IpcSender<WebGPURequest>,
 }
 
 pub struct IdentityRecyclerFactory {
     pub sender: IpcSender<WebGPUMsg>,
-    pub self_sender: IpcSender<WebGPURequest<'static>>,
+    pub self_sender: IpcSender<WebGPURequest>,
 }
 
 macro_rules! impl_identity_handler {

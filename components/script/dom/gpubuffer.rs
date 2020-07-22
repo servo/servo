@@ -76,11 +76,12 @@ impl GPUBuffer {
         state: GPUBufferState,
         size: GPUSize64,
         map_info: DomRefCell<Option<GPUBufferMapInfo>>,
+        label: Option<USVString>,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
             channel,
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             state: Cell::new(state),
             device,
             buffer,
@@ -99,10 +100,11 @@ impl GPUBuffer {
         state: GPUBufferState,
         size: GPUSize64,
         map_info: DomRefCell<Option<GPUBufferMapInfo>>,
+        label: Option<USVString>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUBuffer::new_inherited(
-                channel, buffer, device, state, size, map_info,
+                channel, buffer, device, state, size, map_info, label,
             )),
             global,
         )

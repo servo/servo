@@ -16,9 +16,14 @@ interface GPURenderPassEncoder {
     void setStencilReference(GPUStencilValue reference);
 
     //void beginOcclusionQuery(GPUSize32 queryIndex);
-    //void endOcclusionQuery(GPUSize32 queryIndex);
+    //void endOcclusionQuery();
 
-    //void executeBundles(sequence<GPURenderBundle> bundles);
+    //void beginPipelineStatisticsQuery(GPUQuerySet querySet, GPUSize32 queryIndex);
+    //void endPipelineStatisticsQuery();
+
+    //void writeTimestamp(GPUQuerySet querySet, GPUSize32 queryIndex);
+
+    void executeBundles(sequence<GPURenderBundle> bundles);
     void endPass();
 };
 GPURenderPassEncoder includes GPUObjectBase;

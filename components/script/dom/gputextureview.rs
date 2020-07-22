@@ -21,11 +21,15 @@ pub struct GPUTextureView {
 }
 
 impl GPUTextureView {
-    fn new_inherited(texture_view: WebGPUTextureView, texture: &GPUTexture) -> GPUTextureView {
+    fn new_inherited(
+        texture_view: WebGPUTextureView,
+        texture: &GPUTexture,
+        label: Option<USVString>,
+    ) -> GPUTextureView {
         Self {
             reflector_: Reflector::new(),
             texture: Dom::from_ref(texture),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             texture_view,
         }
     }
@@ -34,9 +38,10 @@ impl GPUTextureView {
         global: &GlobalScope,
         texture_view: WebGPUTextureView,
         texture: &GPUTexture,
+        label: Option<USVString>,
     ) -> DomRoot<GPUTextureView> {
         reflect_dom_object(
-            Box::new(GPUTextureView::new_inherited(texture_view, texture)),
+            Box::new(GPUTextureView::new_inherited(texture_view, texture, label)),
             global,
         )
     }

@@ -30,19 +30,28 @@ pub struct GPUComputePassEncoder {
 }
 
 impl GPUComputePassEncoder {
-    fn new_inherited(channel: WebGPU, parent: &GPUCommandEncoder) -> Self {
+    fn new_inherited(
+        channel: WebGPU,
+        parent: &GPUCommandEncoder,
+        label: Option<USVString>,
+    ) -> Self {
         Self {
             channel,
             reflector_: Reflector::new(),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             compute_pass: DomRefCell::new(Some(ComputePass::new(parent.id().0))),
             command_encoder: Dom::from_ref(parent),
         }
     }
 
-    pub fn new(global: &GlobalScope, channel: WebGPU, parent: &GPUCommandEncoder) -> DomRoot<Self> {
+    pub fn new(
+        global: &GlobalScope,
+        channel: WebGPU,
+        parent: &GPUCommandEncoder,
+        label: Option<USVString>,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUComputePassEncoder::new_inherited(channel, parent)),
+            Box::new(GPUComputePassEncoder::new_inherited(channel, parent, label)),
             global,
         )
     }
@@ -86,7 +95,7 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
                     command_encoder_id: self.command_encoder.id().0,
                     compute_pass,
                 })
-                .unwrap();
+                .expect("Failed to send RunComputePass");
 
             self.command_encoder.set_state(
                 GPUCommandEncoderState::Open,

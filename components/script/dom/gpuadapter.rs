@@ -103,6 +103,7 @@ impl GPUAdapterMethods for GPUAdapter {
                 descriptor: desc,
                 device_id: id,
                 pipeline_id,
+                label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
             })
             .is_err()
         {
@@ -119,6 +120,7 @@ impl AsyncWGPUListener for GPUAdapter {
                 device_id,
                 queue_id,
                 _descriptor,
+                label,
             } => {
                 let device = GPUDevice::new(
                     &self.global(),
@@ -128,6 +130,7 @@ impl AsyncWGPUListener for GPUAdapter {
                     Heap::default(),
                     device_id,
                     queue_id,
+                    label,
                 );
                 self.global().add_gpu_device(&device);
                 promise.resolve_native(&device);

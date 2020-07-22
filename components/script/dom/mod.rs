@@ -338,6 +338,8 @@ pub mod gpumapmode;
 pub mod gpuoutofmemoryerror;
 pub mod gpupipelinelayout;
 pub mod gpuqueue;
+pub mod gpurenderbundle;
+pub mod gpurenderbundleencoder;
 pub mod gpurenderpassencoder;
 pub mod gpurenderpipeline;
 pub mod gpusampler;

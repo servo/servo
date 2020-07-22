@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://gpuweb.github.io/gpuweb/#gpudevice
-[Exposed=(Window, DedicatedWorker)/*, Serializable */, Pref="dom.webgpu.enabled"]
+[Exposed=(Window, DedicatedWorker), /*Serializable,*/ Pref="dom.webgpu.enabled"]
 interface GPUDevice : EventTarget {
     [SameObject] readonly attribute GPUAdapter adapter;
     readonly attribute object extensions;
@@ -24,7 +24,7 @@ interface GPUDevice : EventTarget {
     GPURenderPipeline createRenderPipeline(GPURenderPipelineDescriptor descriptor);
 
     GPUCommandEncoder createCommandEncoder(optional GPUCommandEncoderDescriptor descriptor = {});
-    // GPURenderBundleEncoder createRenderBundleEncoder(GPURenderBundleEncoderDescriptor descriptor);
+    GPURenderBundleEncoder createRenderBundleEncoder(GPURenderBundleEncoderDescriptor descriptor);
 };
 GPUDevice includes GPUObjectBase;
 

@@ -19,6 +19,7 @@ use msg::constellation_msg::PipelineId;
 use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use smallvec::SmallVec;
+use std::borrow::Cow;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::ptr;
@@ -32,7 +33,7 @@ use webrender_traits::{
 };
 use wgpu::{
     binding_model::BindGroupDescriptor,
-    command::{BufferCopyView, ComputePass, RenderPass, TextureCopyView},
+    command::{BufferCopyView, ComputePass, RenderBundleEncoder, RenderPass, TextureCopyView},
     device::HostMap,
     id,
     instance::RequestAdapterOptions,
@@ -54,6 +55,7 @@ pub enum WebGPUResponse {
         device_id: WebGPUDevice,
         queue_id: WebGPUQueue,
         _descriptor: wgt::DeviceDescriptor,
+        label: Option<String>,
     },
     BufferMapAsync(IpcSharedMemory),
 }
@@ -61,7 +63,7 @@ pub enum WebGPUResponse {
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum WebGPURequest<'a> {
+pub enum WebGPURequest {
     BufferMapAsync {
         sender: IpcSender<WebGPUResponseResult>,
         buffer_id: id::BufferId,
@@ -105,13 +107,13 @@ pub enum WebGPURequest<'a> {
         // TODO: Consider using NonZeroU64 to reduce enum size
         scope_id: Option<u64>,
         bind_group_id: id::BindGroupId,
-        descriptor: BindGroupDescriptor<'a>,
+        descriptor: BindGroupDescriptor<'static>,
     },
     CreateBindGroupLayout {
         device_id: id::DeviceId,
         scope_id: Option<u64>,
         bind_group_layout_id: id::BindGroupLayoutId,
-        descriptor: wgt::BindGroupLayoutDescriptor<'a>,
+        descriptor: wgt::BindGroupLayoutDescriptor<'static>,
     },
     CreateBuffer {
         device_id: id::DeviceId,
@@ -129,20 +131,20 @@ pub enum WebGPURequest<'a> {
         device_id: id::DeviceId,
         scope_id: Option<u64>,
         compute_pipeline_id: id::ComputePipelineId,
-        descriptor: ComputePipelineDescriptor<'a>,
+        descriptor: ComputePipelineDescriptor<'static>,
     },
     CreateContext(IpcSender<webrender_api::ExternalImageId>),
     CreatePipelineLayout {
         device_id: id::DeviceId,
         scope_id: Option<u64>,
         pipeline_layout_id: id::PipelineLayoutId,
-        descriptor: wgt::PipelineLayoutDescriptor<'a, id::BindGroupLayoutId>,
+        descriptor: wgt::PipelineLayoutDescriptor<'static, id::BindGroupLayoutId>,
     },
     CreateRenderPipeline {
         device_id: id::DeviceId,
         scope_id: Option<u64>,
         render_pipeline_id: id::RenderPipelineId,
-        descriptor: RenderPipelineDescriptor<'a>,
+        descriptor: RenderPipelineDescriptor<'static>,
     },
     CreateSampler {
         device_id: id::DeviceId,
@@ -180,6 +182,11 @@ pub enum WebGPURequest<'a> {
     DestroyTexture(id::TextureId),
     Exit(IpcSender<()>),
     FreeDevice(id::DeviceId),
+    RenderBundleEncoderFinish {
+        render_bundle_encoder: RenderBundleEncoder,
+        descriptor: wgt::RenderBundleDescriptor<Option<String>>,
+        render_bundle_id: id::RenderBundleId,
+    },
     RequestAdapter {
         sender: IpcSender<WebGPUResponseResult>,
         options: RequestAdapterOptions,
@@ -191,6 +198,7 @@ pub enum WebGPURequest<'a> {
         descriptor: wgt::DeviceDescriptor,
         device_id: id::DeviceId,
         pipeline_id: PipelineId,
+        label: Option<String>,
     },
     RunComputePass {
         command_encoder_id: id::CommandEncoderId,
@@ -245,7 +253,7 @@ struct BufferMapInfo<'a, T> {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct WebGPU(pub IpcSender<WebGPURequest<'static>>);
+pub struct WebGPU(pub IpcSender<WebGPURequest>);
 
 impl WebGPU {
     pub fn new(
@@ -309,8 +317,8 @@ impl WebGPU {
 }
 
 struct WGPU<'a> {
-    receiver: IpcReceiver<WebGPURequest<'static>>,
-    sender: IpcSender<WebGPURequest<'static>>,
+    receiver: IpcReceiver<WebGPURequest>,
+    sender: IpcSender<WebGPURequest>,
     script_sender: IpcSender<WebGPUMsg>,
     global: wgpu::hub::Global<IdentityRecyclerFactory>,
     adapters: Vec<WebGPUAdapter>,
@@ -320,7 +328,7 @@ struct WGPU<'a> {
     // Buffers with pending mapping
     buffer_maps: HashMap<id::BufferId, Rc<BufferMapInfo<'a, WebGPUResponseResult>>>,
     // Presentation Buffers with pending mapping
-    present_buffer_maps: HashMap<id::BufferId, Rc<BufferMapInfo<'a, WebGPURequest<'static>>>>,
+    present_buffer_maps: HashMap<id::BufferId, Rc<BufferMapInfo<'a, WebGPURequest>>>,
     webrender_api: webrender_api::RenderApi,
     webrender_document: webrender_api::DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -330,8 +338,8 @@ struct WGPU<'a> {
 
 impl<'a> WGPU<'a> {
     fn new(
-        receiver: IpcReceiver<WebGPURequest<'static>>,
-        sender: IpcSender<WebGPURequest<'static>>,
+        receiver: IpcReceiver<WebGPURequest>,
+        sender: IpcSender<WebGPURequest>,
         script_sender: IpcSender<WebGPUMsg>,
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
@@ -626,7 +634,8 @@ impl<'a> WGPU<'a> {
                         program,
                     } => {
                         let global = &self.global;
-                        let source = wgpu_core::pipeline::ShaderModuleSource::SpirV(&program);
+                        let source =
+                            wgpu_core::pipeline::ShaderModuleSource::SpirV(Cow::Owned(program));
                         let _ = gfx_select!(program_id =>
                             global.device_create_shader_module(device_id, source, program_id));
                     },
@@ -766,6 +775,26 @@ impl<'a> WGPU<'a> {
                             warn!("Unable to send CleanDevice({:?}) ({:?})", device_id, e);
                         }
                     },
+                    WebGPURequest::RenderBundleEncoderFinish {
+                        render_bundle_encoder,
+                        descriptor,
+                        render_bundle_id,
+                    } => {
+                        let global = &self.global;
+                        let st;
+                        let label = match descriptor.label {
+                            Some(ref s) => {
+                                st = CString::new(s.as_bytes()).unwrap();
+                                st.as_ptr()
+                            },
+                            None => ptr::null(),
+                        };
+                        let _ = gfx_select!(render_bundle_id => global.render_bundle_encoder_finish(
+                            render_bundle_encoder,
+                            &descriptor.map_label(|_| label),
+                            render_bundle_id
+                        ));
+                    },
                     WebGPURequest::RequestAdapter {
                         sender,
                         options,
@@ -809,6 +838,7 @@ impl<'a> WGPU<'a> {
                         descriptor,
                         device_id,
                         pipeline_id,
+                        label,
                     } => {
                         let global = &self.global;
                         let result = gfx_select!(device_id => global.adapter_request_device(
@@ -828,6 +858,7 @@ impl<'a> WGPU<'a> {
                             device_id: device,
                             queue_id: queue,
                             _descriptor: descriptor,
+                            label,
                         })) {
                             warn!(
                                 "Failed to send response to WebGPURequest::RequestDevice ({})",
@@ -1136,6 +1167,7 @@ webgpu_resource!(WebGPUComputePipeline, id::ComputePipelineId);
 webgpu_resource!(WebGPUDevice, id::DeviceId);
 webgpu_resource!(WebGPUPipelineLayout, id::PipelineLayoutId);
 webgpu_resource!(WebGPUQueue, id::QueueId);
+webgpu_resource!(WebGPURenderBundle, id::RenderBundleId);
 webgpu_resource!(WebGPURenderPipeline, id::RenderPipelineId);
 webgpu_resource!(WebGPUSampler, id::SamplerId);
 webgpu_resource!(WebGPUShaderModule, id::ShaderModuleId);

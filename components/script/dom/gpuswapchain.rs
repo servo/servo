@@ -24,13 +24,18 @@ pub struct GPUSwapChain {
 }
 
 impl GPUSwapChain {
-    fn new_inherited(channel: WebGPU, context: &GPUCanvasContext, texture: &GPUTexture) -> Self {
+    fn new_inherited(
+        channel: WebGPU,
+        context: &GPUCanvasContext,
+        texture: &GPUTexture,
+        label: Option<USVString>,
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
             channel,
             context: Dom::from_ref(context),
             texture: Dom::from_ref(texture),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
         }
     }
 
@@ -39,9 +44,12 @@ impl GPUSwapChain {
         channel: WebGPU,
         context: &GPUCanvasContext,
         texture: &GPUTexture,
+        label: Option<USVString>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUSwapChain::new_inherited(channel, context, texture)),
+            Box::new(GPUSwapChain::new_inherited(
+                channel, context, texture, label,
+            )),
             global,
         )
     }

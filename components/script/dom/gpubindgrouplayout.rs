@@ -19,17 +19,21 @@ pub struct GPUBindGroupLayout {
 }
 
 impl GPUBindGroupLayout {
-    fn new_inherited(bind_group_layout: WebGPUBindGroupLayout) -> Self {
+    fn new_inherited(bind_group_layout: WebGPUBindGroupLayout, label: Option<USVString>) -> Self {
         Self {
             reflector_: Reflector::new(),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             bind_group_layout,
         }
     }
 
-    pub fn new(global: &GlobalScope, bind_group_layout: WebGPUBindGroupLayout) -> DomRoot<Self> {
+    pub fn new(
+        global: &GlobalScope,
+        bind_group_layout: WebGPUBindGroupLayout,
+        label: Option<USVString>,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUBindGroupLayout::new_inherited(bind_group_layout)),
+            Box::new(GPUBindGroupLayout::new_inherited(bind_group_layout, label)),
             global,
         )
     }

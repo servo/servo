@@ -47,11 +47,12 @@ impl GPUTexture {
         dimension: GPUTextureDimension,
         format: GPUTextureFormat,
         texture_usage: u32,
+        label: Option<USVString>,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
             texture,
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             device,
             channel,
             texture_size,
@@ -74,6 +75,7 @@ impl GPUTexture {
         dimension: GPUTextureDimension,
         format: GPUTextureFormat,
         texture_usage: u32,
+        label: Option<USVString>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUTexture::new_inherited(
@@ -86,6 +88,7 @@ impl GPUTexture {
                 dimension,
                 format,
                 texture_usage,
+                label,
             )),
             global,
         )
@@ -179,7 +182,12 @@ impl GPUTextureMethods for GPUTexture {
 
         let texture_view = WebGPUTextureView(texture_view_id);
 
-        GPUTextureView::new(&self.global(), texture_view, &self)
+        GPUTextureView::new(
+            &self.global(),
+            texture_view,
+            &self,
+            descriptor.parent.label.as_ref().cloned(),
+        )
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy
