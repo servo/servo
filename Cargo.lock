@@ -242,8 +242,7 @@ dependencies = [
 [[package]]
 name = "backtrace"
 version = "0.3.50"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46254cf2fdcdf1badb5934448c1bcbe046a56537b3987d96c51a7afc5d03f293"
+source = "git+https://github.com/servo/backtrace-rs?branch=uwp-fix#5366f72ca5be2e2341f418923a71b70acbb653ad"
 dependencies = [
  "addr2line",
  "cfg-if",
