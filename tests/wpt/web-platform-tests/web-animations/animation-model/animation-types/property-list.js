@@ -1261,12 +1261,6 @@ const gCSSProperties2 = {
       { type: 'discrete', options: [ [ 'middle', 'end' ] ] }
     ]
   },
-  'text-combine-upright': {
-    // https://drafts.csswg.org/css-writing-modes-3/#propdef-text-combine-upright
-    types: [
-      { type: 'discrete', options: [ [ 'all', 'none' ] ] }
-    ]
-  },
   'text-decoration-color': {
     // https://drafts.csswg.org/css-text-decor-3/#propdef-text-decoration-color
     types: [ 'color' ]

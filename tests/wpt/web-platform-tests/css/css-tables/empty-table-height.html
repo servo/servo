@@ -1,0 +1,16 @@
+<!doctype html>
+<title>Empty tables still account for paddings / borders</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1651530">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#computing-the-table-height">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.org" title="Mozilla">
+<link rel="match" href="min-height-table-ref.html">
+<style>
+div {
+  display: table;
+  background-color: green;
+  border: 1px solid black;
+  padding: 155px;
+}
+</style>
+<div></div>

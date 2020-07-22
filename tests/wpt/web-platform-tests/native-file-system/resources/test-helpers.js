@@ -25,7 +25,7 @@ async function getFileContents(handle) {
 
 async function getDirectoryEntryCount(handle) {
   let result = 0;
-  for await (let entry of handle.getEntries()) {
+  for await (let entry of handle) {
     result++;
   }
   return result;
@@ -33,7 +33,7 @@ async function getDirectoryEntryCount(handle) {
 
 async function getSortedDirectoryEntries(handle) {
   let result = [];
-  for await (let entry of handle.getEntries()) {
+  for await (let entry of handle.values()) {
     if (entry.kind === 'directory')
       result.push(entry.name + '/');
     else

@@ -1,4 +1,4 @@
 def main(request, response):
-    response.headers.set("Content-Type", "text/javascript")
-    response.headers.set("Custom", "\0")
-    return "var thisIsJavaScript = 0"
+    response.headers.set(b"Content-Type", b"text/javascript")
+    response.headers.set(b"Custom", b"\0")
+    return b"var thisIsJavaScript = 0"
