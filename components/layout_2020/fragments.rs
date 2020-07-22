@@ -66,6 +66,7 @@ impl Tag {
 #[derive(Serialize)]
 pub(crate) enum Fragment {
     Box(BoxFragment),
+    Float(FloatFragment),
     Anonymous(AnonymousFragment),
     AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment),
     Text(TextFragment),
@@ -99,6 +100,11 @@ pub(crate) struct BoxFragment {
 
     /// The scrollable overflow of this box fragment.
     pub scrollable_overflow_from_children: PhysicalRect<Length>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct FloatFragment {
+    pub box_fragment: BoxFragment,
 }
 
 #[derive(Serialize)]
@@ -178,7 +184,7 @@ impl Fragment {
     pub fn offset_inline(&mut self, offset: &Length) {
         let position = match self {
             Fragment::Box(f) => &mut f.content_rect.start_corner,
-            Fragment::AbsoluteOrFixedPositioned(_) => return,
+            Fragment::Float(_) | Fragment::AbsoluteOrFixedPositioned(_) => return,
             Fragment::Anonymous(f) => &mut f.rect.start_corner,
             Fragment::Text(f) => &mut f.rect.start_corner,
             Fragment::Image(f) => &mut f.rect.start_corner,
@@ -191,6 +197,7 @@ impl Fragment {
         match self {
             Fragment::Box(fragment) => Some(fragment.tag),
             Fragment::Text(fragment) => Some(fragment.tag),
+            Fragment::Float(_) |
             Fragment::AbsoluteOrFixedPositioned(_) |
             Fragment::Anonymous(_) |
             Fragment::Image(_) => None,
@@ -200,6 +207,7 @@ impl Fragment {
     pub fn print(&self, tree: &mut PrintTree) {
         match self {
             Fragment::Box(fragment) => fragment.print(tree),
+            Fragment::Float(fragment) => fragment.print(tree),
             Fragment::AbsoluteOrFixedPositioned(fragment) => fragment.print(tree),
             Fragment::Anonymous(fragment) => fragment.print(tree),
             Fragment::Text(fragment) => fragment.print(tree),
@@ -213,7 +221,7 @@ impl Fragment {
     ) -> PhysicalRect<Length> {
         match self {
             Fragment::Box(fragment) => fragment.scrollable_overflow_for_parent(&containing_block),
-            Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
+            Fragment::Float(_) | Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
             Fragment::Anonymous(fragment) => fragment.scrollable_overflow.clone(),
             Fragment::Text(fragment) => fragment
                 .rect
@@ -259,6 +267,14 @@ impl Fragment {
     }
 }
 
+impl FloatFragment {
+    pub fn print(&self, tree: &mut PrintTree) {
+        tree.new_level(format!("FloatFragment"));
+        self.box_fragment.print(tree);
+        tree.end_level();
+    }
+}
+
 impl AbsoluteOrFixedPositionedFragment {
     pub fn print(&self, tree: &mut PrintTree) {
         tree.add_item(format!("AbsoluteOrFixedPositionedFragment"));
@@ -266,16 +282,6 @@ impl AbsoluteOrFixedPositionedFragment {
 }
 
 impl AnonymousFragment {
-    pub fn no_op(mode: WritingMode) -> Self {
-        Self {
-            debug_id: DebugId::new(),
-            children: vec![],
-            rect: Rect::zero(),
-            mode,
-            scrollable_overflow: PhysicalRect::zero(),
-        }
-    }
-
     pub fn new(rect: Rect<Length>, children: Vec<Fragment>, mode: WritingMode) -> Self {
         // FIXME(mrobinson, bug 25564): We should be using the containing block
         // here to properly convert scrollable overflow to physical geometry.

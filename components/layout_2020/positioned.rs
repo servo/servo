@@ -686,7 +686,7 @@ fn adjust_static_positions(
 
         let child_fragment_rect = match &child_fragments[original_tree_rank] {
             Fragment::Box(b) => &b.content_rect,
-            Fragment::AbsoluteOrFixedPositioned(_) => continue,
+            Fragment::AbsoluteOrFixedPositioned(_) | Fragment::Float(_) => continue,
             Fragment::Anonymous(a) => &a.rect,
             _ => unreachable!(),
         };
