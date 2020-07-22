@@ -31,11 +31,12 @@ use webrender_traits::{
     WebrenderImageSource,
 };
 use wgpu::{
-    binding_model::{BindGroupDescriptor, BindGroupEntry, BindingResource, BufferBinding},
+    binding_model::BindGroupDescriptor,
     command::{BufferCopyView, ComputePass, RenderPass, TextureCopyView},
     device::HostMap,
     id,
     instance::RequestAdapterOptions,
+    pipeline::{ComputePipelineDescriptor, RenderPipelineDescriptor},
     resource::{BufferMapAsyncStatus, BufferMapOperation},
 };
 
@@ -60,7 +61,7 @@ pub enum WebGPUResponse {
 pub type WebGPUResponseResult = Result<WebGPUResponse, String>;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub enum WebGPURequest {
+pub enum WebGPURequest<'a> {
     BufferMapAsync {
         sender: IpcSender<WebGPUResponseResult>,
         buffer_id: id::BufferId,
@@ -104,16 +105,13 @@ pub enum WebGPURequest {
         // TODO: Consider using NonZeroU64 to reduce enum size
         scope_id: Option<u64>,
         bind_group_id: id::BindGroupId,
-        bind_group_layout_id: id::BindGroupLayoutId,
-        entries: Vec<(u32, WebGPUBindings)>,
-        label: Option<String>,
+        descriptor: BindGroupDescriptor<'a>,
     },
     CreateBindGroupLayout {
         device_id: id::DeviceId,
         scope_id: Option<u64>,
         bind_group_layout_id: id::BindGroupLayoutId,
-        entries: Vec<wgt::BindGroupLayoutEntry>,
-        label: Option<String>,
+        descriptor: wgt::BindGroupLayoutDescriptor<'a>,
     },
     CreateBuffer {
         device_id: id::DeviceId,
@@ -131,37 +129,20 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         scope_id: Option<u64>,
         compute_pipeline_id: id::ComputePipelineId,
-        pipeline_layout_id: id::PipelineLayoutId,
-        program_id: id::ShaderModuleId,
-        entry_point: String,
+        descriptor: ComputePipelineDescriptor<'a>,
     },
     CreateContext(IpcSender<webrender_api::ExternalImageId>),
     CreatePipelineLayout {
         device_id: id::DeviceId,
         scope_id: Option<u64>,
         pipeline_layout_id: id::PipelineLayoutId,
-        bind_group_layouts: Vec<id::BindGroupLayoutId>,
+        descriptor: wgt::PipelineLayoutDescriptor<'a, id::BindGroupLayoutId>,
     },
     CreateRenderPipeline {
         device_id: id::DeviceId,
         scope_id: Option<u64>,
         render_pipeline_id: id::RenderPipelineId,
-        pipeline_layout_id: id::PipelineLayoutId,
-        vertex_module: id::ShaderModuleId,
-        vertex_entry_point: String,
-        fragment_module: Option<id::ShaderModuleId>,
-        fragment_entry_point: Option<String>,
-        primitive_topology: wgt::PrimitiveTopology,
-        rasterization_state: wgt::RasterizationStateDescriptor,
-        color_states: ArrayVec<[wgt::ColorStateDescriptor; wgpu::device::MAX_COLOR_TARGETS]>,
-        depth_stencil_state: Option<wgt::DepthStencilStateDescriptor>,
-        vertex_state: (
-            wgt::IndexFormat,
-            Vec<(u64, wgt::InputStepMode, Vec<wgt::VertexAttributeDescriptor>)>,
-        ),
-        sample_count: u32,
-        sample_mask: u32,
-        alpha_to_coverage_enabled: bool,
+        descriptor: RenderPipelineDescriptor<'a>,
     },
     CreateSampler {
         device_id: id::DeviceId,
@@ -255,13 +236,6 @@ pub enum WebGPURequest {
     },
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub enum WebGPUBindings {
-    Buffer(BufferBinding),
-    Sampler(id::SamplerId),
-    TextureView(id::TextureViewId),
-}
-
 struct BufferMapInfo<'a, T> {
     buffer_id: id::BufferId,
     sender: IpcSender<T>,
@@ -271,7 +245,7 @@ struct BufferMapInfo<'a, T> {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct WebGPU(pub IpcSender<WebGPURequest>);
+pub struct WebGPU(pub IpcSender<WebGPURequest<'static>>);
 
 impl WebGPU {
     pub fn new(
@@ -335,8 +309,8 @@ impl WebGPU {
 }
 
 struct WGPU<'a> {
-    receiver: IpcReceiver<WebGPURequest>,
-    sender: IpcSender<WebGPURequest>,
+    receiver: IpcReceiver<WebGPURequest<'static>>,
+    sender: IpcSender<WebGPURequest<'static>>,
     script_sender: IpcSender<WebGPUMsg>,
     global: wgpu::hub::Global<IdentityRecyclerFactory>,
     adapters: Vec<WebGPUAdapter>,
@@ -346,7 +320,7 @@ struct WGPU<'a> {
     // Buffers with pending mapping
     buffer_maps: HashMap<id::BufferId, Rc<BufferMapInfo<'a, WebGPUResponseResult>>>,
     // Presentation Buffers with pending mapping
-    present_buffer_maps: HashMap<id::BufferId, Rc<BufferMapInfo<'a, WebGPURequest>>>,
+    present_buffer_maps: HashMap<id::BufferId, Rc<BufferMapInfo<'a, WebGPURequest<'static>>>>,
     webrender_api: webrender_api::RenderApi,
     webrender_document: webrender_api::DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -356,8 +330,8 @@ struct WGPU<'a> {
 
 impl<'a> WGPU<'a> {
     fn new(
-        receiver: IpcReceiver<WebGPURequest>,
-        sender: IpcSender<WebGPURequest>,
+        receiver: IpcReceiver<WebGPURequest<'static>>,
+        sender: IpcSender<WebGPURequest<'static>>,
         script_sender: IpcSender<WebGPUMsg>,
         webrender_api_sender: webrender_api::RenderApiSender,
         webrender_document: webrender_api::DocumentId,
@@ -420,7 +394,8 @@ impl<'a> WGPU<'a> {
                                 BufferMapAsyncStatus::Success => {
                                     let global = &info.global;
                                     let data_pt = gfx_select!(info.buffer_id =>
-                                        global.buffer_get_mapped_range(info.buffer_id, 0, None));
+                                        global.buffer_get_mapped_range(info.buffer_id, 0, None))
+                                    .unwrap();
                                     let data = slice::from_raw_parts(data_pt, info.size);
                                     if let Err(e) =
                                         info.sender.send(Ok(WebGPUResponse::BufferMapAsync(
@@ -442,7 +417,7 @@ impl<'a> WGPU<'a> {
                             ),
                         };
                         let global = &self.global;
-                        gfx_select!(buffer_id => global.buffer_map_async(buffer_id, map_range, operation));
+                        let _ = gfx_select!(buffer_id => global.buffer_map_async(buffer_id, map_range, operation));
                     },
                     WebGPURequest::BufferMapComplete(buffer_id) => {
                         self.buffer_maps.remove(&buffer_id);
@@ -518,32 +493,9 @@ impl<'a> WGPU<'a> {
                         device_id,
                         scope_id,
                         bind_group_id,
-                        bind_group_layout_id,
-                        mut entries,
-                        label,
+                        descriptor,
                     } => {
                         let global = &self.global;
-                        let bindings = entries
-                            .drain(..)
-                            .map(|(bind, res)| {
-                                let resource = match res {
-                                    WebGPUBindings::Sampler(s) => BindingResource::Sampler(s),
-                                    WebGPUBindings::TextureView(t) => {
-                                        BindingResource::TextureView(t)
-                                    },
-                                    WebGPUBindings::Buffer(b) => BindingResource::Buffer(b),
-                                };
-                                BindGroupEntry {
-                                    binding: bind,
-                                    resource,
-                                }
-                            })
-                            .collect::<Vec<_>>();
-                        let descriptor = BindGroupDescriptor {
-                            label: label.as_deref(),
-                            layout: bind_group_layout_id,
-                            entries: bindings.as_slice(),
-                        };
                         let result = gfx_select!(bind_group_id =>
                             global.device_create_bind_group(device_id, &descriptor, bind_group_id));
                         if let Some(s_id) = scope_id {
@@ -554,14 +506,9 @@ impl<'a> WGPU<'a> {
                         device_id,
                         scope_id,
                         bind_group_layout_id,
-                        entries,
-                        label,
+                        descriptor,
                     } => {
                         let global = &self.global;
-                        let descriptor = wgt::BindGroupLayoutDescriptor {
-                            entries: entries.as_slice(),
-                            label: label.as_deref(),
-                        };
                         let result = gfx_select!(bind_group_layout_id =>
                             global.device_create_bind_group_layout(device_id, &descriptor, bind_group_layout_id));
                         if let Some(s_id) = scope_id {
@@ -607,18 +554,9 @@ impl<'a> WGPU<'a> {
                         device_id,
                         scope_id,
                         compute_pipeline_id,
-                        pipeline_layout_id,
-                        program_id,
-                        entry_point,
+                        descriptor,
                     } => {
                         let global = &self.global;
-                        let descriptor = wgpu_core::pipeline::ComputePipelineDescriptor {
-                            layout: pipeline_layout_id,
-                            compute_stage: wgpu_core::pipeline::ProgrammableStageDescriptor {
-                                module: program_id,
-                                entry_point: entry_point.as_str(),
-                            },
-                        };
                         let result = gfx_select!(compute_pipeline_id =>
                             global.device_create_compute_pipeline(device_id, &descriptor, compute_pipeline_id));
                         if let Some(s_id) = scope_id {
@@ -639,13 +577,9 @@ impl<'a> WGPU<'a> {
                         device_id,
                         scope_id,
                         pipeline_layout_id,
-                        bind_group_layouts,
+                        descriptor,
                     } => {
                         let global = &self.global;
-                        let descriptor = wgt::PipelineLayoutDescriptor {
-                            bind_group_layouts: bind_group_layouts.as_slice(),
-                            push_constant_ranges: &[],
-                        };
                         let result = gfx_select!(pipeline_layout_id =>
                             global.device_create_pipeline_layout(device_id, &descriptor, pipeline_layout_id));
                         if let Some(s_id) = scope_id {
@@ -657,65 +591,9 @@ impl<'a> WGPU<'a> {
                         device_id,
                         scope_id,
                         render_pipeline_id,
-                        pipeline_layout_id,
-                        vertex_module,
-                        vertex_entry_point,
-                        fragment_module,
-                        fragment_entry_point,
-                        primitive_topology,
-                        rasterization_state,
-                        color_states,
-                        depth_stencil_state,
-                        vertex_state,
-                        sample_count,
-                        sample_mask,
-                        alpha_to_coverage_enabled,
+                        descriptor,
                     } => {
                         let global = &self.global;
-                        let frag_ep;
-                        let fragment_stage = match fragment_module {
-                            Some(frag) => {
-                                frag_ep = fragment_entry_point.unwrap().clone();
-                                let frag_module =
-                                    wgpu_core::pipeline::ProgrammableStageDescriptor {
-                                        module: frag,
-                                        entry_point: frag_ep.as_str(),
-                                    };
-                                Some(frag_module)
-                            },
-                            None => None,
-                        };
-                        let vert_buffers = vertex_state
-                            .1
-                            .iter()
-                            .map(|&(stride, step_mode, ref attributes)| {
-                                wgt::VertexBufferDescriptor {
-                                    stride,
-                                    step_mode,
-                                    attributes: attributes.as_slice(),
-                                }
-                            })
-                            .collect::<Vec<_>>();
-                        let descriptor = wgpu_core::pipeline::RenderPipelineDescriptor {
-                            layout: pipeline_layout_id,
-                            vertex_stage: wgpu_core::pipeline::ProgrammableStageDescriptor {
-                                module: vertex_module,
-                                entry_point: vertex_entry_point.as_str(),
-                            },
-                            fragment_stage,
-                            primitive_topology,
-                            rasterization_state: Some(rasterization_state),
-                            color_states: color_states.as_slice(),
-                            depth_stencil_state,
-                            vertex_state: wgt::VertexStateDescriptor {
-                                index_format: vertex_state.0,
-                                vertex_buffers: vert_buffers.as_slice(),
-                            },
-                            sample_count,
-                            sample_mask,
-                            alpha_to_coverage_enabled,
-                        };
-
                         let result = gfx_select!(render_pipeline_id =>
                             global.device_create_render_pipeline(device_id, &descriptor, render_pipeline_id));
                         if let Some(s_id) = scope_id {
@@ -1117,7 +995,7 @@ impl<'a> WGPU<'a> {
                                 self.present_buffer_maps.get(&buffer_id).unwrap().clone(),
                             ),
                         };
-                        gfx_select!(buffer_id => global.buffer_map_async(buffer_id, 0..buffer_size, map_op));
+                        let _ = gfx_select!(buffer_id => global.buffer_map_async(buffer_id, 0..buffer_size, map_op));
                     },
                     WebGPURequest::UnmapBuffer {
                         buffer_id,
@@ -1132,11 +1010,12 @@ impl<'a> WGPU<'a> {
                                 buffer_id,
                                 offset,
                                 wgt::BufferSize::new(size)
-                            ));
+                            ))
+                            .unwrap();
                             unsafe { slice::from_raw_parts_mut(map_ptr, size as usize) }
                                 .copy_from_slice(&array_buffer);
                         }
-                        gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
+                        let _ = gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
                     },
                     WebGPURequest::UpdateWebRenderData {
                         buffer_id,
@@ -1145,7 +1024,8 @@ impl<'a> WGPU<'a> {
                     } => {
                         let global = &self.global;
                         let data_pt = gfx_select!(buffer_id =>
-                            global.buffer_get_mapped_range(buffer_id, 0, None));
+                            global.buffer_get_mapped_range(buffer_id, 0, None))
+                        .unwrap();
                         let data = unsafe { slice::from_raw_parts(data_pt, buffer_size) }.to_vec();
                         if let Some(present_data) =
                             self.wgpu_image_map.lock().unwrap().get_mut(&external_id)
@@ -1167,7 +1047,7 @@ impl<'a> WGPU<'a> {
                         } else {
                             warn!("Data not found for ExternalImageId({:?})", external_id);
                         }
-                        gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
+                        let _ = gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
                         self.present_buffer_maps.remove(&buffer_id);
                     },
                     WebGPURequest::WriteBuffer {

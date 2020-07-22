@@ -25,6 +25,7 @@ use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
 use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt};
 use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
 use dom_struct::dom_struct;
+use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashSet;
 use webgpu::wgpu::command as wgpu_com;
@@ -135,55 +136,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             GPUCommandEncoderState::Open,
         );
 
-        let colors = descriptor
-            .colorAttachments
-            .iter()
-            .map(|color| {
-                let (load_op, clear_value) = match color.loadValue {
-                    GPUColorLoad::GPULoadOp(_) => (wgpu_com::LoadOp::Load, wgt::Color::TRANSPARENT),
-                    GPUColorLoad::DoubleSequence(ref s) => {
-                        let mut w = s.clone();
-                        if w.len() < 3 {
-                            w.resize(3, Finite::wrap(0.0f64));
-                        }
-                        w.resize(4, Finite::wrap(1.0f64));
-                        (
-                            wgpu_com::LoadOp::Clear,
-                            wgt::Color {
-                                r: *w[0],
-                                g: *w[1],
-                                b: *w[2],
-                                a: *w[3],
-                            },
-                        )
-                    },
-                    GPUColorLoad::GPUColorDict(ref d) => (
-                        wgpu_com::LoadOp::Clear,
-                        wgt::Color {
-                            r: *d.r,
-                            g: *d.g,
-                            b: *d.b,
-                            a: *d.a,
-                        },
-                    ),
-                };
-                let channel = wgpu_com::PassChannel {
-                    load_op,
-                    store_op: match color.storeOp {
-                        GPUStoreOp::Store => wgpu_com::StoreOp::Store,
-                        GPUStoreOp::Clear => wgpu_com::StoreOp::Clear,
-                    },
-                    clear_value,
-                    read_only: false,
-                };
-                wgpu_com::ColorAttachmentDescriptor {
-                    attachment: color.attachment.id().0,
-                    resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
-                    channel,
-                }
-            })
-            .collect::<Vec<_>>();
-
         let depth_stencil = descriptor.depthStencilAttachment.as_ref().map(|depth| {
             let (depth_load_op, clear_depth) = match depth.depthLoadValue {
                 GPULoadOpOrFloat::GPULoadOp(_) => (wgpu_com::LoadOp::Load, 0.0f32),
@@ -219,7 +171,58 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         });
 
         let desc = wgpu_com::RenderPassDescriptor {
-            color_attachments: colors.as_slice(),
+            color_attachments: Cow::Owned(
+                descriptor
+                    .colorAttachments
+                    .iter()
+                    .map(|color| {
+                        let (load_op, clear_value) = match color.loadValue {
+                            GPUColorLoad::GPULoadOp(_) => {
+                                (wgpu_com::LoadOp::Load, wgt::Color::TRANSPARENT)
+                            },
+                            GPUColorLoad::DoubleSequence(ref s) => {
+                                let mut w = s.clone();
+                                if w.len() < 3 {
+                                    w.resize(3, Finite::wrap(0.0f64));
+                                }
+                                w.resize(4, Finite::wrap(1.0f64));
+                                (
+                                    wgpu_com::LoadOp::Clear,
+                                    wgt::Color {
+                                        r: *w[0],
+                                        g: *w[1],
+                                        b: *w[2],
+                                        a: *w[3],
+                                    },
+                                )
+                            },
+                            GPUColorLoad::GPUColorDict(ref d) => (
+                                wgpu_com::LoadOp::Clear,
+                                wgt::Color {
+                                    r: *d.r,
+                                    g: *d.g,
+                                    b: *d.b,
+                                    a: *d.a,
+                                },
+                            ),
+                        };
+                        let channel = wgpu_com::PassChannel {
+                            load_op,
+                            store_op: match color.storeOp {
+                                GPUStoreOp::Store => wgpu_com::StoreOp::Store,
+                                GPUStoreOp::Clear => wgpu_com::StoreOp::Clear,
+                            },
+                            clear_value,
+                            read_only: false,
+                        };
+                        wgpu_com::ColorAttachmentDescriptor {
+                            attachment: color.attachment.id().0,
+                            resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
+                            channel,
+                        }
+                    })
+                    .collect::<Vec<_>>(),
+            ),
             depth_stencil_attachment: depth_stencil.as_ref(),
         };
 

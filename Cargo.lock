@@ -6861,7 +6861,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "0.5.0"
-source = "git+https://github.com/gfx-rs/wgpu#73b230871ea4428ed3fb1e6e8bff81a7364fcdb2"
+source = "git+https://github.com/gfx-rs/wgpu#4ed2c0a313deb48a99f15e8fe0558ad3d095ca01"
 dependencies = [
  "arrayvec 0.5.1",
  "bitflags",
@@ -6890,7 +6890,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "0.5.0"
-source = "git+https://github.com/gfx-rs/wgpu#73b230871ea4428ed3fb1e6e8bff81a7364fcdb2"
+source = "git+https://github.com/gfx-rs/wgpu#4ed2c0a313deb48a99f15e8fe0558ad3d095ca01"
 dependencies = [
  "bitflags",
  "serde",

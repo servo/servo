@@ -57,16 +57,16 @@ use crate::dom::gputexture::GPUTexture;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
-use arrayvec::ArrayVec;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
+use std::borrow::Cow;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ptr::NonNull;
 use std::rc::Rc;
 use std::string::String;
-use webgpu::wgpu::binding_model::BufferBinding;
-use webgpu::{self, wgt, WebGPU, WebGPUBindings, WebGPURequest};
+use webgpu::wgpu::{binding_model as wgpu_bind, pipeline as wgpu_pipe};
+use webgpu::{self, wgt, WebGPU, WebGPURequest};
 
 type ErrorScopeId = u64;
 
@@ -401,6 +401,15 @@ impl GPUDeviceMethods for GPUDevice {
             }
         }
 
+        let desc = wgt::BindGroupLayoutDescriptor {
+            label: descriptor
+                .parent
+                .label
+                .as_ref()
+                .map(|s| Cow::Owned(s.to_string())),
+            entries: Cow::Owned(entries.clone()),
+        };
+
         let bind_group_layout_id = self
             .global()
             .wgpu_id_hub()
@@ -411,13 +420,8 @@ impl GPUDeviceMethods for GPUDevice {
             .send(WebGPURequest::CreateBindGroupLayout {
                 device_id: self.device.0,
                 bind_group_layout_id,
-                entries: entries.clone(),
                 scope_id,
-                label: descriptor
-                    .parent
-                    .label
-                    .as_ref()
-                    .map(|s| String::from(s.as_ref())),
+                descriptor: desc,
             })
             .expect("Failed to create WebGPU BindGroupLayout");
 
@@ -437,11 +441,16 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPUPipelineLayoutDescriptor,
     ) -> DomRoot<GPUPipelineLayout> {
-        let mut bgl_ids = Vec::new();
-        descriptor
-            .bindGroupLayouts
-            .iter()
-            .for_each(|each| bgl_ids.push(each.id().0));
+        let desc = wgt::PipelineLayoutDescriptor {
+            bind_group_layouts: Cow::Owned(
+                descriptor
+                    .bindGroupLayouts
+                    .iter()
+                    .map(|each| each.id().0)
+                    .collect::<Vec<_>>(),
+            ),
+            push_constant_ranges: Cow::Owned(vec![]),
+        };
 
         let scope_id = self.use_current_scope();
 
@@ -455,7 +464,7 @@ impl GPUDeviceMethods for GPUDevice {
             .send(WebGPURequest::CreatePipelineLayout {
                 device_id: self.device.0,
                 pipeline_layout_id,
-                bind_group_layouts: bgl_ids,
+                descriptor: desc,
                 scope_id,
             })
             .expect("Failed to create WebGPU PipelineLayout");
@@ -469,25 +478,35 @@ impl GPUDeviceMethods for GPUDevice {
         let entries = descriptor
             .entries
             .iter()
-            .map(|bind| {
-                (
-                    bind.binding,
-                    match bind.resource {
-                        GPUBindingResource::GPUSampler(ref s) => WebGPUBindings::Sampler(s.id().0),
-                        GPUBindingResource::GPUTextureView(ref t) => {
-                            WebGPUBindings::TextureView(t.id().0)
-                        },
-                        GPUBindingResource::GPUBufferBindings(ref b) => {
-                            WebGPUBindings::Buffer(BufferBinding {
-                                buffer_id: b.buffer.id().0,
-                                offset: b.offset,
-                                size: b.size.and_then(wgt::BufferSize::new),
-                            })
-                        },
+            .map(|bind| wgpu_bind::BindGroupEntry {
+                binding: bind.binding,
+                resource: match bind.resource {
+                    GPUBindingResource::GPUSampler(ref s) => {
+                        wgpu_bind::BindingResource::Sampler(s.id().0)
                     },
-                )
+                    GPUBindingResource::GPUTextureView(ref t) => {
+                        wgpu_bind::BindingResource::TextureView(t.id().0)
+                    },
+                    GPUBindingResource::GPUBufferBindings(ref b) => {
+                        wgpu_bind::BindingResource::Buffer(wgpu_bind::BufferBinding {
+                            buffer_id: b.buffer.id().0,
+                            offset: b.offset,
+                            size: b.size.and_then(wgt::BufferSize::new),
+                        })
+                    },
+                },
             })
             .collect::<Vec<_>>();
+
+        let desc = wgpu_bind::BindGroupDescriptor {
+            label: descriptor
+                .parent
+                .label
+                .as_ref()
+                .map(|l| Cow::Owned(l.to_string())),
+            layout: descriptor.layout.id().0,
+            entries: Cow::Owned(entries),
+        };
 
         let scope_id = self.use_current_scope();
 
@@ -501,14 +520,8 @@ impl GPUDeviceMethods for GPUDevice {
             .send(WebGPURequest::CreateBindGroup {
                 device_id: self.device.0,
                 bind_group_id,
-                bind_group_layout_id: descriptor.layout.id().0,
-                entries,
+                descriptor: desc,
                 scope_id,
-                label: descriptor
-                    .parent
-                    .label
-                    .as_ref()
-                    .map(|s| String::from(s.as_ref())),
             })
             .expect("Failed to create WebGPU BindGroup");
 
@@ -551,9 +564,6 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPUComputePipelineDescriptor,
     ) -> DomRoot<GPUComputePipeline> {
-        let pipeline = descriptor.parent.layout.id();
-        let program = descriptor.computeStage.module.id();
-        let entry_point = descriptor.computeStage.entryPoint.to_string();
         let compute_pipeline_id = self
             .global()
             .wgpu_id_hub()
@@ -562,15 +572,21 @@ impl GPUDeviceMethods for GPUDevice {
 
         let scope_id = self.use_current_scope();
 
+        let desc = wgpu_pipe::ComputePipelineDescriptor {
+            layout: descriptor.parent.layout.id().0,
+            compute_stage: wgpu_pipe::ProgrammableStageDescriptor {
+                module: descriptor.computeStage.module.id().0,
+                entry_point: Cow::Owned(descriptor.computeStage.entryPoint.to_string()),
+            },
+        };
+
         self.channel
             .0
             .send(WebGPURequest::CreateComputePipeline {
                 device_id: self.device.0,
                 scope_id,
                 compute_pipeline_id,
-                pipeline_layout_id: pipeline.0,
-                program_id: program.0,
-                entry_point,
+                descriptor: desc,
             })
             .expect("Failed to create WebGPU ComputePipeline");
 
@@ -712,104 +728,112 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPURenderPipelineDescriptor,
     ) -> DomRoot<GPURenderPipeline> {
-        let vertex_module = descriptor.vertexStage.module.id().0;
-        let vertex_entry_point = descriptor.vertexStage.entryPoint.to_string();
-        let (fragment_module, fragment_entry_point) = match descriptor.fragmentStage {
-            Some(ref frag) => (Some(frag.module.id().0), Some(frag.entryPoint.to_string())),
-            None => (None, None),
-        };
-
-        let primitive_topology = match descriptor.primitiveTopology {
-            GPUPrimitiveTopology::Point_list => wgt::PrimitiveTopology::PointList,
-            GPUPrimitiveTopology::Line_list => wgt::PrimitiveTopology::LineList,
-            GPUPrimitiveTopology::Line_strip => wgt::PrimitiveTopology::LineStrip,
-            GPUPrimitiveTopology::Triangle_list => wgt::PrimitiveTopology::TriangleList,
-            GPUPrimitiveTopology::Triangle_strip => wgt::PrimitiveTopology::TriangleStrip,
-        };
-
         let ref rs_desc = descriptor.rasterizationState;
-        let rasterization_state = wgt::RasterizationStateDescriptor {
-            front_face: match rs_desc.frontFace {
-                GPUFrontFace::Ccw => wgt::FrontFace::Ccw,
-                GPUFrontFace::Cw => wgt::FrontFace::Cw,
-            },
-            cull_mode: match rs_desc.cullMode {
-                GPUCullMode::None => wgt::CullMode::None,
-                GPUCullMode::Front => wgt::CullMode::Front,
-                GPUCullMode::Back => wgt::CullMode::Back,
-            },
-            depth_bias: rs_desc.depthBias,
-            depth_bias_slope_scale: *rs_desc.depthBiasSlopeScale,
-            depth_bias_clamp: *rs_desc.depthBiasClamp,
-        };
-
-        let color_states = descriptor
-            .colorStates
-            .iter()
-            .map(|state| wgt::ColorStateDescriptor {
-                format: convert_texture_format(state.format),
-                alpha_blend: convert_blend_descriptor(&state.alphaBlend),
-                color_blend: convert_blend_descriptor(&state.colorBlend),
-                write_mask: match wgt::ColorWrite::from_bits(state.writeMask) {
-                    Some(mask) => mask,
-                    None => wgt::ColorWrite::empty(),
-                },
-            })
-            .collect::<ArrayVec<_>>();
-
-        let depth_stencil_state = if let Some(ref dss_desc) = descriptor.depthStencilState {
-            Some(wgt::DepthStencilStateDescriptor {
-                format: convert_texture_format(dss_desc.format),
-                depth_write_enabled: dss_desc.depthWriteEnabled,
-                depth_compare: convert_compare_function(dss_desc.depthCompare),
-                stencil_front: wgt::StencilStateFaceDescriptor {
-                    compare: convert_compare_function(dss_desc.stencilFront.compare),
-                    fail_op: convert_stencil_op(dss_desc.stencilFront.failOp),
-                    depth_fail_op: convert_stencil_op(dss_desc.stencilFront.depthFailOp),
-                    pass_op: convert_stencil_op(dss_desc.stencilFront.passOp),
-                },
-                stencil_back: wgt::StencilStateFaceDescriptor {
-                    compare: convert_compare_function(dss_desc.stencilBack.compare),
-                    fail_op: convert_stencil_op(dss_desc.stencilBack.failOp),
-                    depth_fail_op: convert_stencil_op(dss_desc.stencilBack.depthFailOp),
-                    pass_op: convert_stencil_op(dss_desc.stencilBack.passOp),
-                },
-                stencil_read_mask: dss_desc.stencilReadMask,
-                stencil_write_mask: dss_desc.stencilWriteMask,
-            })
-        } else {
-            None
-        };
-
         let ref vs_desc = descriptor.vertexState;
-        let vertex_state = (
-            match vs_desc.indexFormat {
-                GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
-                GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
+
+        let desc = wgpu_pipe::RenderPipelineDescriptor {
+            layout: descriptor.parent.layout.id().0,
+            vertex_stage: wgpu_pipe::ProgrammableStageDescriptor {
+                module: descriptor.vertexStage.module.id().0,
+                entry_point: Cow::Owned(descriptor.vertexStage.entryPoint.to_string()),
             },
-            vs_desc
-                .vertexBuffers
-                .iter()
-                .map(|buffer| {
-                    (
-                        buffer.arrayStride,
-                        match buffer.stepMode {
-                            GPUInputStepMode::Vertex => wgt::InputStepMode::Vertex,
-                            GPUInputStepMode::Instance => wgt::InputStepMode::Instance,
+            fragment_stage: descriptor.fragmentStage.as_ref().map(|stage| {
+                wgpu_pipe::ProgrammableStageDescriptor {
+                    module: stage.module.id().0,
+                    entry_point: Cow::Owned(stage.entryPoint.to_string()),
+                }
+            }),
+            rasterization_state: Some(wgt::RasterizationStateDescriptor {
+                front_face: match rs_desc.frontFace {
+                    GPUFrontFace::Ccw => wgt::FrontFace::Ccw,
+                    GPUFrontFace::Cw => wgt::FrontFace::Cw,
+                },
+                cull_mode: match rs_desc.cullMode {
+                    GPUCullMode::None => wgt::CullMode::None,
+                    GPUCullMode::Front => wgt::CullMode::Front,
+                    GPUCullMode::Back => wgt::CullMode::Back,
+                },
+                depth_bias: rs_desc.depthBias,
+                depth_bias_slope_scale: *rs_desc.depthBiasSlopeScale,
+                depth_bias_clamp: *rs_desc.depthBiasClamp,
+            }),
+            primitive_topology: match descriptor.primitiveTopology {
+                GPUPrimitiveTopology::Point_list => wgt::PrimitiveTopology::PointList,
+                GPUPrimitiveTopology::Line_list => wgt::PrimitiveTopology::LineList,
+                GPUPrimitiveTopology::Line_strip => wgt::PrimitiveTopology::LineStrip,
+                GPUPrimitiveTopology::Triangle_list => wgt::PrimitiveTopology::TriangleList,
+                GPUPrimitiveTopology::Triangle_strip => wgt::PrimitiveTopology::TriangleStrip,
+            },
+            color_states: Cow::Owned(
+                descriptor
+                    .colorStates
+                    .iter()
+                    .map(|state| wgt::ColorStateDescriptor {
+                        format: convert_texture_format(state.format),
+                        alpha_blend: convert_blend_descriptor(&state.alphaBlend),
+                        color_blend: convert_blend_descriptor(&state.colorBlend),
+                        write_mask: match wgt::ColorWrite::from_bits(state.writeMask) {
+                            Some(mask) => mask,
+                            None => wgt::ColorWrite::empty(),
                         },
-                        buffer
-                            .attributes
-                            .iter()
-                            .map(|att| wgt::VertexAttributeDescriptor {
-                                format: convert_vertex_format(att.format),
-                                offset: att.offset,
-                                shader_location: att.shaderLocation,
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                })
-                .collect::<Vec<_>>(),
-        );
+                    })
+                    .collect::<Vec<_>>(),
+            ),
+            depth_stencil_state: descriptor.depthStencilState.as_ref().map(|dss_desc| {
+                wgt::DepthStencilStateDescriptor {
+                    format: convert_texture_format(dss_desc.format),
+                    depth_write_enabled: dss_desc.depthWriteEnabled,
+                    depth_compare: convert_compare_function(dss_desc.depthCompare),
+                    stencil_front: wgt::StencilStateFaceDescriptor {
+                        compare: convert_compare_function(dss_desc.stencilFront.compare),
+                        fail_op: convert_stencil_op(dss_desc.stencilFront.failOp),
+                        depth_fail_op: convert_stencil_op(dss_desc.stencilFront.depthFailOp),
+                        pass_op: convert_stencil_op(dss_desc.stencilFront.passOp),
+                    },
+                    stencil_back: wgt::StencilStateFaceDescriptor {
+                        compare: convert_compare_function(dss_desc.stencilBack.compare),
+                        fail_op: convert_stencil_op(dss_desc.stencilBack.failOp),
+                        depth_fail_op: convert_stencil_op(dss_desc.stencilBack.depthFailOp),
+                        pass_op: convert_stencil_op(dss_desc.stencilBack.passOp),
+                    },
+                    stencil_read_mask: dss_desc.stencilReadMask,
+                    stencil_write_mask: dss_desc.stencilWriteMask,
+                }
+            }),
+            vertex_state: wgt::VertexStateDescriptor {
+                index_format: match vs_desc.indexFormat {
+                    GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
+                    GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
+                },
+                vertex_buffers: Cow::Owned(
+                    vs_desc
+                        .vertexBuffers
+                        .iter()
+                        .map(|buffer| wgt::VertexBufferDescriptor {
+                            stride: buffer.arrayStride,
+                            step_mode: match buffer.stepMode {
+                                GPUInputStepMode::Vertex => wgt::InputStepMode::Vertex,
+                                GPUInputStepMode::Instance => wgt::InputStepMode::Instance,
+                            },
+                            attributes: Cow::Owned(
+                                buffer
+                                    .attributes
+                                    .iter()
+                                    .map(|att| wgt::VertexAttributeDescriptor {
+                                        format: convert_vertex_format(att.format),
+                                        offset: att.offset,
+                                        shader_location: att.shaderLocation,
+                                    })
+                                    .collect::<Vec<_>>(),
+                            ),
+                        })
+                        .collect::<Vec<_>>(),
+                ),
+            },
+            sample_count: descriptor.sampleCount,
+            sample_mask: descriptor.sampleMask,
+            alpha_to_coverage_enabled: descriptor.alphaToCoverageEnabled,
+        };
 
         let render_pipeline_id = self
             .global()
@@ -825,19 +849,7 @@ impl GPUDeviceMethods for GPUDevice {
                 device_id: self.device.0,
                 render_pipeline_id,
                 scope_id,
-                pipeline_layout_id: descriptor.parent.layout.id().0,
-                vertex_module,
-                vertex_entry_point,
-                fragment_module,
-                fragment_entry_point,
-                primitive_topology,
-                rasterization_state,
-                color_states,
-                depth_stencil_state,
-                vertex_state,
-                sample_count: descriptor.sampleCount,
-                sample_mask: descriptor.sampleMask,
-                alpha_to_coverage_enabled: descriptor.alphaToCoverageEnabled,
+                descriptor: desc,
             })
             .expect("Failed to create WebGPU render pipeline");
 
