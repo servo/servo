@@ -12,7 +12,7 @@
       const xhr = new XMLHttpRequest;
 
       xhr.open("GET", get_host_info().HTTP_REMOTE_ORIGIN +
-          "/xhr/resources/access-control-basic-whitelist-response-headers.py", false);
+          "/xhr/resources/access-control-basic-cors-safelisted-response-headers.py", false);
       xhr.send();
 
       assert_not_equals(xhr.getResponseHeader("cache-control"), null);

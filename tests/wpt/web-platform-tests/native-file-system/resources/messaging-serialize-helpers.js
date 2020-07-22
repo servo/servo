@@ -77,7 +77,7 @@ async function serialize_file_system_directory_handle(directory_handle) {
   // Serialize the contents of the directory.
   const serialized_files = [];
   const serialized_directories = [];
-  for await (const child_handle of directory_handle.getEntries()) {
+  for await (const child_handle of directory_handle.values()) {
     const serialized_child_handle = await serialize_handle(child_handle);
     if (child_handle.kind === "directory") {
       serialized_directories.push(serialized_child_handle);

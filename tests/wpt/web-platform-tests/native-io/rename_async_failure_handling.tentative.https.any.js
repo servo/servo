@@ -93,8 +93,8 @@ promise_test(async testCase => {
   closed_file.close();
   const opened_file = await nativeIO.open('opened_file');
   testCase.add_cleanup(async () => {
-    closed_file.close();
-    opened_file.close();
+    await closed_file.close();
+    await opened_file.close();
     await nativeIO.delete('closed_file');
     await nativeIO.delete('opened_file');
   });

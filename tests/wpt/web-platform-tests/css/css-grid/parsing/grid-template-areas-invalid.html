@@ -15,6 +15,14 @@
 test_invalid_value("grid-template-areas", "auto");
 test_invalid_value("grid-template-areas", 'none "first"');
 test_invalid_value("grid-template-areas", '"first" none');
+test_invalid_value("grid-template-areas", '""');
+test_invalid_value("grid-template-areas", '" "');
+test_invalid_value("grid-template-areas", '"." ""');
+test_invalid_value("grid-template-areas", '"." " "');
+test_invalid_value("grid-template-areas", '"first" ""');
+test_invalid_value("grid-template-areas", '"first" "" "second"');
+test_invalid_value("grid-template-areas", '"first" " "');
+test_invalid_value("grid-template-areas", '"" none');
 </script>
 </body>
 </html>

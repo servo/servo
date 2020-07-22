@@ -284,4 +284,19 @@ nfc_test(async (t, mockNFC) => {
   await promise;
 }, "Test that reading message with multiple records should succeed.");
 
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const promise1 = reader.scan();
+  const promise2 = promise_rejects_dom(t, 'InvalidStateError', reader.scan());
+  await promise1;
+  await promise2;
+}, "Test that NDEFReader.scan rejects if there is already an ongoing scan.");
+
+nfc_test(async (t, mockNFC) => {
+  const reader = new NDEFReader();
+  const controller = new AbortController();
+  await reader.scan({signal : controller.signal});
+  controller.abort();
+  await reader.scan();
+}, "Test that NDEFReader.scan can be started after the previous scan is aborted.");
 </script>
