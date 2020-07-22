@@ -57,7 +57,7 @@ def tasks(task_for):
 
             "try-mac": [macos_unit],
             "try-linux": [linux_tidy_unit, linux_docs_check, linux_release],
-            "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
+            "try-windows": [windows_wack],
             "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
             "try-wpt-2020": [linux_wpt_layout_2020],
@@ -311,6 +311,27 @@ appx_artifact = '/'.join([
     'ServoApp',
     'FirefoxReality.zip',
 ])
+
+
+def windows_wack(rdp=False):
+    return (
+        windows_build_task("UWP WACK test", package=False, rdp=rdp)
+        .with_treeherder("Windows arm64", "UWP-Dev")
+        .with_directory_mount(
+            "https://download.servo.org/nightly/uwp/servo-latest.zip",
+            path="servo-nightly",
+        )
+        .with_features("taskclusterProxy")
+        .with_scopes("secrets:get:project/servo/windows-codesign-cert/latest")
+        .with_script(
+            "set PATH=C:\\Program Files (x86)\\Windows Kits\\10\\App Certification Kit;%PATH%",
+            "appcert reset",
+            "appcert test -testid [38] -appxpackagepath %HOMEDRIVE%%HOMEPATH%\\servo-nightly\\servo\\ServoApp_1.1.0.0_x64_arm64.msixbundle" +
+            "-reportoutputpath repo\\report.xml"
+        )
+        .with_artifacts("repo/report.xml")
+        .find_or_create("build.windows_uwp_wack." + CONFIG.tree_hash())
+    )
 
 
 def windows_arm64(rdp=False):
