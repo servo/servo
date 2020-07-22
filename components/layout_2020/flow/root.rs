@@ -446,6 +446,8 @@ impl FragmentTree {
                 Fragment::Text(fragment) => fragment
                     .rect
                     .to_physical(fragment.parent_style.writing_mode, &containing_block),
+                Fragment::HoistedFloat(_) |
+                Fragment::Float |
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) |
@@ -526,6 +528,8 @@ impl FragmentTree {
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) |
+                Fragment::Float |
+                Fragment::HoistedFloat(_) |
                 Fragment::Anonymous(_) => return None,
             };
             None::<()>

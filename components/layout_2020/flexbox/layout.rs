@@ -800,6 +800,7 @@ impl FlexLine<'_> {
                     flex_context.sides_to_flow_relative(item.padding),
                     flex_context.sides_to_flow_relative(item.border),
                     margin,
+                    Length::zero(),
                     collapsed_margin,
                 )
             })

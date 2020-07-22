@@ -434,6 +434,8 @@ fn process_offset_parent_query_inner(
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) |
+                Fragment::Float |
+                Fragment::HoistedFloat(_) |
                 Fragment::Anonymous(_) => unreachable!(),
             };
             let border_box = fragment_relative_rect.translate(containing_block.origin.to_vector());
@@ -510,6 +512,8 @@ fn process_offset_parent_query_inner(
                 Fragment::Text(_) |
                 Fragment::Image(_) |
                 Fragment::IFrame(_) |
+                Fragment::Float |
+                Fragment::HoistedFloat(_) |
                 Fragment::Anonymous(_) => None,
             };
 
@@ -561,6 +565,8 @@ fn process_offset_parent_query_inner(
                         Fragment::Text(_) |
                         Fragment::Image(_) |
                         Fragment::IFrame(_) |
+                        Fragment::Float |
+                        Fragment::HoistedFloat(_) |
                         Fragment::Anonymous(_) => None,
                     }
                 })
