@@ -101,6 +101,8 @@ impl Fragment {
                 Visibility::Hidden => (),
                 Visibility::Collapse => (),
             },
+            Fragment::HoistedFloat(_) => {},
+            Fragment::Float => {},
             Fragment::AbsoluteOrFixedPositioned(_) => {},
             Fragment::Anonymous(_) => {},
             Fragment::Image(i) => match i.style.get_inherited_box().visibility {

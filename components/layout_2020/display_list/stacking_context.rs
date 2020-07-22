@@ -5,9 +5,8 @@
 use crate::cell::ArcRefCell;
 use crate::display_list::conversions::ToWebRender;
 use crate::display_list::DisplayListBuilder;
-use crate::fragments::{
-    AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment, Fragment,
-};
+use crate::fragments::{AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment};
+use crate::fragments::{Fragment, HoistedFloatFragment};
 use crate::geom::PhysicalRect;
 use crate::style_ext::ComputedValuesExt;
 use euclid::default::Rect;
@@ -453,7 +452,7 @@ impl Fragment {
                     return;
                 }
 
-                // If this fragment has a transform applied that makes it take up no spae
+                // If this fragment has a transform applied that makes it take up no space
                 // then we don't need to create any stacking contexts for it.
                 let has_non_invertible_transform =
                     fragment.has_non_invertible_transform(&containing_block_info.rect.to_untyped());
@@ -468,6 +467,14 @@ impl Fragment {
                     stacking_context,
                 );
             },
+            Fragment::HoistedFloat(fragment) => {
+                fragment.build_stacking_context_tree(
+                    builder,
+                    containing_block_info,
+                    stacking_context,
+                );
+            },
+            Fragment::Float => {},
             Fragment::AbsoluteOrFixedPositioned(fragment) => {
                 fragment.build_stacking_context_tree(
                     builder,
@@ -934,6 +941,23 @@ impl AnonymousFragment {
                 StackingContextBuildMode::SkipHoisted,
             );
         }
+    }
+}
+
+impl HoistedFloatFragment {
+    fn build_stacking_context_tree(
+        &self,
+        builder: &mut StackingContextBuilder,
+        containing_block_info: &ContainingBlockInfo,
+        stacking_context: &mut StackingContext,
+    ) {
+        self.fragment.borrow().build_stacking_context_tree(
+            &self.fragment,
+            builder,
+            containing_block_info,
+            stacking_context,
+            StackingContextBuildMode::SkipHoisted,
+        );
     }
 }
 

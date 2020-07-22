@@ -9,7 +9,7 @@ extern crate lazy_static;
 
 use euclid::num::Zero;
 use layout::flow::float::{ClearSide, FloatBand, FloatBandNode, FloatBandTree, FloatContext};
-use layout::flow::float::{FloatSide, PlacementInfo};
+use layout::flow::float::{FloatSide, InlineWalls, PlacementInfo};
 use layout::geom::flow_relative::{Rect, Vec2};
 use quickcheck::{Arbitrary, Gen};
 use std::f32;
@@ -341,6 +341,9 @@ struct FloatInput {
     // The float may be placed no higher than this line. This simulates the effect of line boxes
     // per CSS 2.1 § 9.5.1 rule 6.
     ceiling: u32,
+    /// Distances from the logical left side of the block formatting context to the logical sides
+    /// of the current containing block.
+    walls: InlineWalls,
 }
 
 impl Arbitrary for FloatInput {
@@ -352,8 +355,8 @@ impl Arbitrary for FloatInput {
         let height: u32 = Arbitrary::arbitrary(generator);
         let is_left: bool = Arbitrary::arbitrary(generator);
         let ceiling: u32 = Arbitrary::arbitrary(generator);
-        let left_wall: u32 = Arbitrary::arbitrary(generator);
-        let right_wall: u32 = Arbitrary::arbitrary(generator);
+        let left: u32 = Arbitrary::arbitrary(generator);
+        let right: u32 = Arbitrary::arbitrary(generator);
         let clear: u8 = Arbitrary::arbitrary(generator);
         FloatInput {
             info: PlacementInfo {
@@ -367,10 +370,12 @@ impl Arbitrary for FloatInput {
                     FloatSide::Right
                 },
                 clear: new_clear_side(clear),
-                left_wall: Length::new(left_wall as f32),
-                right_wall: Length::new(right_wall as f32),
             },
             ceiling,
+            walls: InlineWalls {
+                left: Length::new(left as f32),
+                right: Length::new(right as f32),
+            },
         }
     }
 
@@ -389,12 +394,12 @@ impl Arbitrary for FloatInput {
             this.info.clear = new_clear_side(clear_side);
             shrunk = true;
         }
-        if let Some(left_wall) = self.info.left_wall.px().shrink().next() {
-            this.info.left_wall = Length::new(left_wall);
+        if let Some(left) = self.walls.left.px().shrink().next() {
+            this.walls.left = Length::new(left);
             shrunk = true;
         }
-        if let Some(right_wall) = self.info.right_wall.px().shrink().next() {
-            this.info.right_wall = Length::new(right_wall);
+        if let Some(right) = self.walls.right.px().shrink().next() {
+            this.walls.right = Length::new(right);
             shrunk = true;
         }
         if let Some(ceiling) = self.ceiling.shrink().next() {
@@ -430,6 +435,7 @@ struct PlacedFloat {
     origin: Vec2<Length>,
     info: PlacementInfo,
     ceiling: Length,
+    walls: InlineWalls,
 }
 
 impl Drop for FloatPlacement {
@@ -442,8 +448,12 @@ impl Drop for FloatPlacement {
         eprintln!("Failing float placement:");
         for placed_float in &self.placed_floats {
             eprintln!(
-                "   * {:?} @ {:?}, {:?}",
-                placed_float.info, placed_float.origin, placed_float.ceiling
+                "   * {:?} @ {:?}, T {:?} L {:?} R {:?}",
+                placed_float.info,
+                placed_float.origin,
+                placed_float.ceiling,
+                placed_float.walls.left,
+                placed_float.walls.right,
             );
         }
         eprintln!("Bands:\n{:?}\n", self.float_context.bands);
@@ -466,10 +476,12 @@ impl FloatPlacement {
         for float in floats {
             let ceiling = Length::new(float.ceiling as f32);
             float_context.lower_ceiling(ceiling);
+            float_context.walls = float.walls;
             placed_floats.push(PlacedFloat {
                 origin: float_context.add_float(&float.info),
                 info: float.info,
                 ceiling,
+                walls: float.walls,
             })
         }
         FloatPlacement {
@@ -488,9 +500,9 @@ impl FloatPlacement {
 fn check_floats_rule_1(placement: &FloatPlacement) {
     for placed_float in &placement.placed_floats {
         match placed_float.info.side {
-            FloatSide::Left => assert!(placed_float.origin.inline >= placed_float.info.left_wall),
+            FloatSide::Left => assert!(placed_float.origin.inline >= placed_float.walls.left),
             FloatSide::Right => {
-                assert!(placed_float.rect().max_inline_position() <= placed_float.info.right_wall)
+                assert!(placed_float.rect().max_inline_position() <= placed_float.walls.right)
             },
         }
     }
@@ -596,12 +608,12 @@ fn check_floats_rule_7(placement: &FloatPlacement) {
         // Only consider floats that stick out.
         match placed_float.info.side {
             FloatSide::Left => {
-                if placed_float.rect().max_inline_position() <= placed_float.info.right_wall {
+                if placed_float.rect().max_inline_position() <= placed_float.walls.right {
                     continue;
                 }
             },
             FloatSide::Right => {
-                if placed_float.origin.inline >= placed_float.info.left_wall {
+                if placed_float.origin.inline >= placed_float.walls.left {
                     continue;
                 }
             },

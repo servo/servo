@@ -66,10 +66,22 @@ impl Tag {
 #[derive(Serialize)]
 pub(crate) enum Fragment {
     Box(BoxFragment),
+    // The original document position of a float in the document tree.
+    Float,
+    // A float hoisted up from its original position (where a placeholder `Fragment::Float` is) to
+    // its containing block.
+    HoistedFloat(HoistedFloatFragment),
     Anonymous(AnonymousFragment),
     AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment),
     Text(TextFragment),
     Image(ImageFragment),
+}
+
+// A float hoisted up from its original position (where a placeholder `Fragment::Float` is) to its
+// containing block.
+#[derive(Serialize)]
+pub(crate) struct HoistedFloatFragment {
+    pub fragment: ArcRefCell<Fragment>,
 }
 
 #[derive(Serialize)]
@@ -95,10 +107,17 @@ pub(crate) struct BoxFragment {
     pub border: Sides<Length>,
     pub margin: Sides<Length>,
 
+    pub clearance: Length,
+
     pub block_margins_collapsed_with_children: CollapsedBlockMargins,
 
     /// The scrollable overflow of this box fragment.
     pub scrollable_overflow_from_children: PhysicalRect<Length>,
+}
+
+#[derive(Serialize)]
+pub(crate) struct FloatFragment {
+    pub box_fragment: BoxFragment,
 }
 
 #[derive(Serialize)]
@@ -108,7 +127,7 @@ pub(crate) struct CollapsedBlockMargins {
     pub end: CollapsedMargin,
 }
 
-#[derive(Clone, Copy, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize)]
 pub(crate) struct CollapsedMargin {
     max_positive: Length,
     min_negative: Length,
@@ -178,6 +197,8 @@ impl Fragment {
     pub fn offset_inline(&mut self, offset: &Length) {
         let position = match self {
             Fragment::Box(f) => &mut f.content_rect.start_corner,
+            Fragment::HoistedFloat(_) |
+            Fragment::Float |
             Fragment::AbsoluteOrFixedPositioned(_) => return,
             Fragment::Anonymous(f) => &mut f.rect.start_corner,
             Fragment::Text(f) => &mut f.rect.start_corner,
@@ -191,15 +212,19 @@ impl Fragment {
         match self {
             Fragment::Box(fragment) => Some(fragment.tag),
             Fragment::Text(fragment) => Some(fragment.tag),
+            Fragment::Float |
             Fragment::AbsoluteOrFixedPositioned(_) |
             Fragment::Anonymous(_) |
-            Fragment::Image(_) => None,
+            Fragment::Image(_) |
+            Fragment::HoistedFloat(_) => None,
         }
     }
 
     pub fn print(&self, tree: &mut PrintTree) {
         match self {
             Fragment::Box(fragment) => fragment.print(tree),
+            Fragment::HoistedFloat(fragment) => fragment.print(tree),
+            Fragment::Float => tree.add_item(format!("Float")),
             Fragment::AbsoluteOrFixedPositioned(fragment) => fragment.print(tree),
             Fragment::Anonymous(fragment) => fragment.print(tree),
             Fragment::Text(fragment) => fragment.print(tree),
@@ -213,7 +238,10 @@ impl Fragment {
     ) -> PhysicalRect<Length> {
         match self {
             Fragment::Box(fragment) => fragment.scrollable_overflow_for_parent(&containing_block),
-            Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
+            Fragment::HoistedFloat(fragment) => {
+                (*fragment.fragment.borrow()).scrollable_overflow(&containing_block)
+            },
+            Fragment::Float | Fragment::AbsoluteOrFixedPositioned(_) => PhysicalRect::zero(),
             Fragment::Anonymous(fragment) => fragment.scrollable_overflow.clone(),
             Fragment::Text(fragment) => fragment
                 .rect
@@ -259,6 +287,15 @@ impl Fragment {
     }
 }
 
+impl HoistedFloatFragment {
+    #[allow(dead_code)]
+    pub fn print(&self, tree: &mut PrintTree) {
+        tree.new_level(format!("HoistedFloatFragment"));
+        self.fragment.borrow().print(tree);
+        tree.end_level();
+    }
+}
+
 impl AbsoluteOrFixedPositionedFragment {
     pub fn print(&self, tree: &mut PrintTree) {
         tree.add_item(format!("AbsoluteOrFixedPositionedFragment"));
@@ -266,16 +303,6 @@ impl AbsoluteOrFixedPositionedFragment {
 }
 
 impl AnonymousFragment {
-    pub fn no_op(mode: WritingMode) -> Self {
-        Self {
-            debug_id: DebugId::new(),
-            children: vec![],
-            rect: Rect::zero(),
-            mode,
-            scrollable_overflow: PhysicalRect::zero(),
-        }
-    }
-
     pub fn new(rect: Rect<Length>, children: Vec<Fragment>, mode: WritingMode) -> Self {
         // FIXME(mrobinson, bug 25564): We should be using the containing block
         // here to properly convert scrollable overflow to physical geometry.
@@ -324,6 +351,7 @@ impl BoxFragment {
         padding: Sides<Length>,
         border: Sides<Length>,
         margin: Sides<Length>,
+        clearance: Length,
         block_margins_collapsed_with_children: CollapsedBlockMargins,
     ) -> BoxFragment {
         // FIXME(mrobinson, bug 25564): We should be using the containing block
@@ -345,6 +373,7 @@ impl BoxFragment {
             padding,
             border,
             margin,
+            clearance,
             block_margins_collapsed_with_children,
             scrollable_overflow_from_children,
         }

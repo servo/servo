@@ -4,7 +4,7 @@
 
 use crate::cell::ArcRefCell;
 use crate::context::LayoutContext;
-use crate::flow::float::FloatBox;
+use crate::flow::float::{FloatBox, SequentialLayoutState};
 use crate::flow::FlowLayout;
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragments::{
@@ -96,6 +96,7 @@ struct InlineFormattingContextState<'box_tree, 'a, 'b> {
     inline_position: Length,
     partial_inline_boxes_stack: Vec<PartialInlineBoxFragment<'box_tree>>,
     current_nesting_level: InlineNestingLevelState<'box_tree>,
+    sequential_layout_state: Option<&'a mut SequentialLayoutState>,
 }
 
 impl<'box_tree, 'a, 'b> InlineFormattingContextState<'box_tree, 'a, 'b> {
@@ -264,6 +265,7 @@ impl InlineFormattingContext {
         positioning_context: &mut PositioningContext,
         containing_block: &ContainingBlock,
         tree_rank: usize,
+        sequential_layout_state: Option<&mut SequentialLayoutState>,
     ) -> FlowLayout {
         let mut ifc = InlineFormattingContextState {
             positioning_context,
@@ -282,7 +284,14 @@ impl InlineFormattingContext {
                 positioning_context: None,
                 text_decoration_line: self.text_decoration_line,
             },
+            sequential_layout_state,
         };
+
+        // FIXME(pcwalton): This assumes that margins never collapse through inline formatting
+        // contexts (i.e. that inline formatting contexts are never empty). Is that right?
+        if let Some(ref mut sequential_layout_state) = ifc.sequential_layout_state {
+            sequential_layout_state.collapse_margins();
+        }
 
         loop {
             if let Some(child) = ifc.current_nesting_level.remaining_boxes.next() {
@@ -331,8 +340,16 @@ impl InlineFormattingContext {
                             ),
                         );
                     },
-                    InlineLevelBox::OutOfFlowFloatBox(_box_) => {
-                        // TODO
+                    InlineLevelBox::OutOfFlowFloatBox(box_) => {
+                        box_.layout(
+                            layout_context,
+                            ifc.positioning_context,
+                            containing_block,
+                            ifc.sequential_layout_state.as_mut().map(|c| &mut **c),
+                        );
+                        ifc.current_nesting_level
+                            .fragments_so_far
+                            .push(Fragment::Float);
                     },
                 }
             } else
@@ -349,6 +366,7 @@ impl InlineFormattingContext {
                 ifc.lines.finish_line(
                     &mut ifc.current_nesting_level,
                     containing_block,
+                    ifc.sequential_layout_state,
                     ifc.inline_position,
                 );
                 return FlowLayout {
@@ -366,6 +384,7 @@ impl Lines {
         &mut self,
         top_nesting_level: &mut InlineNestingLevelState,
         containing_block: &ContainingBlock,
+        mut sequential_layout_state: Option<&mut SequentialLayoutState>,
         line_content_inline_size: Length,
     ) {
         let mut line_contents = std::mem::take(&mut top_nesting_level.fragments_so_far);
@@ -419,7 +438,11 @@ impl Lines {
             inline: containing_block.inline_size,
             block: line_block_size,
         };
+
         self.next_line_block_position += size.block;
+        if let Some(ref mut sequential_layout_state) = sequential_layout_state {
+            sequential_layout_state.advance_block_position(size.block);
+        }
 
         self.fragments
             .push(Fragment::Anonymous(AnonymousFragment::new(
@@ -508,6 +531,7 @@ impl<'box_tree> PartialInlineBoxFragment<'box_tree> {
             self.padding.clone(),
             self.border.clone(),
             self.margin.clone(),
+            Length::zero(),
             CollapsedBlockMargins::zero(),
         );
         let last_fragment = self.last_box_tree_fragment && !at_line_break;
@@ -576,6 +600,7 @@ fn layout_atomic(
                 pbm.padding,
                 pbm.border,
                 margin,
+                Length::zero(),
                 CollapsedBlockMargins::zero(),
             )
         },
@@ -651,6 +676,7 @@ fn layout_atomic(
                 pbm.padding,
                 pbm.border,
                 margin,
+                Length::zero(),
                 CollapsedBlockMargins::zero(),
             )
         },
@@ -855,8 +881,12 @@ impl TextRun {
                     partial.parent_nesting_level.inline_start = Length::zero();
                     nesting_level = &mut partial.parent_nesting_level;
                 }
-                ifc.lines
-                    .finish_line(nesting_level, ifc.containing_block, ifc.inline_position);
+                ifc.lines.finish_line(
+                    nesting_level,
+                    ifc.containing_block,
+                    ifc.sequential_layout_state.as_mut().map(|c| &mut **c),
+                    ifc.inline_position,
+                );
                 ifc.inline_position = Length::zero();
             }
         }
