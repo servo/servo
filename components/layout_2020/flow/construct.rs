@@ -20,6 +20,7 @@ use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
 use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
+use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextDecorationLine;
@@ -192,7 +193,21 @@ impl BlockContainer {
         };
 
         if is_list_item {
-            // FIXME: generate a box for the list marker
+            if let Some(marker_contents) = crate::lists::make_marker(context, info) {
+                let _position = info.style.clone_list_style_position();
+                // FIXME: implement support for `outside` and remove this:
+                let position = ListStylePosition::Inside;
+                match position {
+                    ListStylePosition::Inside => {
+                        builder.handle_list_item_marker_inside(info, marker_contents)
+                    },
+                    ListStylePosition::Outside => {
+                        // FIXME: implement layout for this case
+                        // https://github.com/servo/servo/issues/27383
+                        // and enable `list-style-position` and the `list-style` shorthand in Stylo.
+                    },
+                }
+            }
         }
 
         contents.traverse(context, info, &mut builder);
@@ -399,6 +414,29 @@ where
         }
     }
 
+    fn handle_list_item_marker_inside(
+        &mut self,
+        info: &NodeAndStyleInfo<Node>,
+        contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
+    ) {
+        let marker_style = self
+            .context
+            .shared_context()
+            .stylist
+            .style_for_anonymous::<Node::ConcreteElement>(
+                &self.context.shared_context().guards,
+                &PseudoElement::ServoText, // FIMXE: use `PseudoElement::Marker` when we add it
+                &info.style,
+            );
+        self.handle_inline_level_element(
+            &info.new_replacing_style(marker_style),
+            DisplayInside::Flow {
+                is_list_item: false,
+            },
+            Contents::OfPseudoElement(contents),
+        );
+    }
+
     fn handle_inline_level_element(
         &mut self,
         info: &NodeAndStyleInfo<Node>,
@@ -420,7 +458,12 @@ where
             });
 
             if is_list_item {
-                // FIXME: generate a box for the list marker
+                if let Some(marker_contents) = crate::lists::make_marker(self.context, info) {
+                    // Ignore `list-style-position` here:
+                    // “If the list item is an inline box: this value is equivalent to `inside`.”
+                    // https://drafts.csswg.org/css-lists/#list-style-position-outside
+                    self.handle_list_item_marker_inside(info, marker_contents)
+                }
             }
 
             // `unwrap` doesn’t panic here because `is_replaced` returned `false`.

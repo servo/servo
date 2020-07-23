@@ -4,7 +4,7 @@
 
 //! Generic types for counters-related CSS values.
 
-#[cfg(feature = "servo")]
+#[cfg(feature = "servo-layout-2013")]
 use crate::computed_values::list_style_type::T as ListStyleType;
 #[cfg(feature = "gecko")]
 use crate::values::generics::CounterStyle;
@@ -123,7 +123,7 @@ pub struct GenericCounters<I>(
 );
 pub use self::GenericCounters as Counters;
 
-#[cfg(feature = "servo")]
+#[cfg(feature = "servo-layout-2013")]
 type CounterStyleType = ListStyleType;
 
 #[cfg(feature = "gecko")]

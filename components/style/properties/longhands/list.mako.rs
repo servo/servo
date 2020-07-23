@@ -25,12 +25,14 @@ ${helpers.single_keyword(
 % if engine in ["servo-2013", "servo-2020"]:
     ${helpers.single_keyword(
         "list-style-type",
-        """disc none circle square decimal disclosure-open disclosure-closed lower-alpha upper-alpha
-        arabic-indic bengali cambodian cjk-decimal devanagari gujarati gurmukhi kannada khmer lao
-        malayalam mongolian myanmar oriya persian telugu thai tibetan cjk-earthly-branch
-        cjk-heavenly-stem lower-greek hiragana hiragana-iroha katakana katakana-iroha""",
+        "disc none circle square disclosure-open disclosure-closed",
+        extra_servo_2013_values="""
+            decimal lower-alpha upper-alpha arabic-indic bengali cambodian cjk-decimal devanagari
+            gujarati gurmukhi kannada khmer lao malayalam mongolian myanmar oriya persian telugu
+            thai tibetan cjk-earthly-branch cjk-heavenly-stem lower-greek hiragana hiragana-iroha
+            katakana katakana-iroha
+        """,
         engines="servo-2013 servo-2020",
-        servo_2020_pref="layout.2020.unimplemented",
         animation_value_type="discrete",
         spec="https://drafts.csswg.org/css-lists/#propdef-list-style-type",
         servo_restyle_damage="rebuild_and_reflow",
@@ -53,7 +55,7 @@ ${helpers.single_keyword(
 ${helpers.predefined_type(
     "list-style-image",
     "url::ImageUrlOrNone",
-    engines="gecko servo-2013",
+    engines="gecko servo-2013 servo-2020",
     initial_value="computed::url::ImageUrlOrNone::none()",
     initial_specified_value="specified::url::ImageUrlOrNone::none()",
     animation_value_type="discrete",
