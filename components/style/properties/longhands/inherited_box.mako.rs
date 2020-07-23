@@ -31,6 +31,7 @@ ${helpers.single_keyword(
     servo_2020_pref="layout.writing-mode.enabled",
     animation_value_type="none",
     spec="https://drafts.csswg.org/css-writing-modes/#propdef-writing-mode",
+    gecko_enum_prefix="StyleWritingModeProperty",
     servo_restyle_damage="rebuild_and_reflow",
 )}
 
