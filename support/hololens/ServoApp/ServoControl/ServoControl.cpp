@@ -407,7 +407,7 @@ void ServoControl::Loop() {
     ServoDelegate *sd = static_cast<ServoDelegate *>(this);
     EGLNativeWindowType win = GetNativeWindow();
     mServo = std::make_unique<Servo>(mInitUrl, mArgs, mPanelWidth, mPanelHeight,
-                                     win, mDPI, *sd);
+                                     win, mDPI, *sd, mTransient);
   } else {
     // FIXME: this will fail since create_task didn't pick the thread
     // where Servo was running initially.
