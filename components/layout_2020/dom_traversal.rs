@@ -93,7 +93,6 @@ pub(super) enum NonReplacedContents {
 
 pub(super) enum PseudoElementContentItem {
     Text(String),
-    #[allow(dead_code)]
     Replaced(ReplacedContent),
 }
 
@@ -347,7 +346,6 @@ where
                             vec.push(PseudoElementContentItem::Replaced(replaced_content));
                         }
                     },
-                    _ => (),
                 }
             }
             vec

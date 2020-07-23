@@ -129,7 +129,7 @@ type CounterStyleType = ListStyleType;
 #[cfg(feature = "gecko")]
 type CounterStyleType = CounterStyle;
 
-#[cfg(feature = "servo")]
+#[cfg(feature = "servo-layout-2013")]
 #[inline]
 fn is_decimal(counter_type: &CounterStyleType) -> bool {
     *counter_type == ListStyleType::Decimal
@@ -191,9 +191,11 @@ pub enum GenericContentItem<ImageUrl> {
     /// Literal string content.
     String(crate::OwnedStr),
     /// `counter(name, style)`.
+    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     #[css(comma, function)]
     Counter(CustomIdent, #[css(skip_if = "is_decimal")] CounterStyleType),
     /// `counters(name, separator, style)`.
+    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     #[css(comma, function)]
     Counters(
         CustomIdent,
@@ -201,12 +203,16 @@ pub enum GenericContentItem<ImageUrl> {
         #[css(skip_if = "is_decimal")] CounterStyleType,
     ),
     /// `open-quote`.
+    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     OpenQuote,
     /// `close-quote`.
+    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     CloseQuote,
     /// `no-open-quote`.
+    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     NoOpenQuote,
     /// `no-close-quote`.
+    #[cfg(any(feature = "gecko", feature = "servo-layout-2013"))]
     NoCloseQuote,
     /// `-moz-alt-content`.
     #[cfg(feature = "gecko")]
