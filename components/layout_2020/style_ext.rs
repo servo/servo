@@ -33,7 +33,6 @@ pub(crate) enum DisplayGeneratingBox {
     OutsideInside {
         outside: DisplayOutside,
         inside: DisplayInside,
-        // list_item: bool,
     },
     // Layout-internal display types go here:
     // https://drafts.csswg.org/css-display-3/#layout-specific-display
@@ -47,8 +46,10 @@ pub(crate) enum DisplayOutside {
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum DisplayInside {
-    Flow,
-    FlowRoot,
+    // “list-items are limited to the Flow Layout display types”
+    // https://drafts.csswg.org/css-display/#list-items
+    Flow { is_list_item: bool },
+    FlowRoot { is_list_item: bool },
     Flex,
 }
 
@@ -444,8 +445,12 @@ impl ComputedValuesExt for ComputedValues {
 impl From<stylo::Display> for Display {
     fn from(packed: stylo::Display) -> Self {
         let inside = match packed.inside() {
-            stylo::DisplayInside::Flow => DisplayInside::Flow,
-            stylo::DisplayInside::FlowRoot => DisplayInside::FlowRoot,
+            stylo::DisplayInside::Flow => DisplayInside::Flow {
+                is_list_item: packed.is_list_item(),
+            },
+            stylo::DisplayInside::FlowRoot => DisplayInside::FlowRoot {
+                is_list_item: packed.is_list_item(),
+            },
             stylo::DisplayInside::Flex => DisplayInside::Flex,
 
             // These should not be values of DisplayInside, but oh well
@@ -459,11 +464,7 @@ impl From<stylo::Display> for Display {
             // This should not be a value of DisplayInside, but oh well
             stylo::DisplayOutside::None => return Display::None,
         };
-        Display::GeneratingBox(DisplayGeneratingBox::OutsideInside {
-            outside,
-            inside,
-            // list_item: packed.is_list_item(),
-        })
+        Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { outside, inside })
     }
 }
 
