@@ -95,6 +95,7 @@ def linux(context, force=False):
                 'libgl1-mesa-dri', 'libglib2.0-dev', 'xorg-dev', 'gperf', 'g++',
                 'build-essential', 'cmake', 'libssl-dev',
                 'liblzma-dev', 'libxmu6', 'libxmu-dev',
+                "libxcb-render0-dev", "libxcb-shape0-dev", "libxcb-xfixes0-dev",
                 'libgles2-mesa-dev', 'libegl1-mesa-dev', 'libdbus-1-dev',
                 'libharfbuzz-dev', 'ccache', 'clang', 'libunwind-dev',
                 'libgstreamer1.0-dev', 'libgstreamer-plugins-base1.0-dev',
