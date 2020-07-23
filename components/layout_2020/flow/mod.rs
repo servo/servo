@@ -80,7 +80,7 @@ impl BlockFormattingContext {
     ) -> IndependentLayout {
         let mut float_context;
         let float_context = if self.contains_floats {
-            float_context = FloatContext::new(containing_block.inline_size);
+            float_context = FloatContext::new();
             Some(&mut float_context)
         } else {
             None
