@@ -86,14 +86,14 @@ use js::jsapi::Compile1;
 use js::jsapi::SetScriptPrivate;
 use js::jsapi::{CurrentGlobalOrNull, GetNonCCWObjectGlobal};
 use js::jsapi::{HandleObject, Heap};
-use js::jsapi::{JSContext, JSObject};
+use js::jsapi::{JSContext, JSObject, JSScript};
 use js::jsval::PrivateValue;
 use js::jsval::{JSVal, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::transform_str_to_source_text;
-use js::rust::wrappers::{JS_ExecuteScript, JS_ExecuteScript1, JS_GetScriptPrivate};
+use js::rust::wrappers::{JS_ExecuteScript, JS_GetScriptPrivate};
 use js::rust::{get_object_class, CompileOptionsWrapper, ParentRuntime, Runtime};
-use js::rust::{HandleScript, HandleValue, MutableHandleValue};
+use js::rust::{HandleValue, MutableHandleValue};
 use js::{JSCLASS_IS_DOMJSCLASS, JSCLASS_IS_GLOBAL};
 use msg::constellation_msg::{
     BlobId, BroadcastChannelRouterId, MessagePortId, MessagePortRouterId, PipelineId,
@@ -2596,58 +2596,56 @@ impl GlobalScope {
                 let _aes = AutoEntryScript::new(self);
 
                 unsafe {
-                    let result = match code {
+                    rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
+                    match code {
                         SourceCode::Text(text_code) => {
                             let options =
                                 CompileOptionsWrapper::new(*cx, filename.as_ptr(), line_number);
 
-                            debug!("compiling Dom string");
-                            rooted!(in(*cx) let compiled_script =
-                                Compile1(
-                                    *cx,
-                                    options.ptr,
-                                    &mut transform_str_to_source_text(text_code),
-                                )
-                            );
+                            debug!("compiling dom string");
+                            compiled_script.set(Compile1(
+                                *cx,
+                                options.ptr,
+                                &mut transform_str_to_source_text(text_code),
+                            ));
 
                             if compiled_script.is_null() {
                                 debug!("error compiling Dom string");
                                 report_pending_exception(*cx, true, InRealm::Entered(&ar));
                                 return false;
                             }
-
-                            rooted!(in(*cx) let mut script_private = UndefinedValue());
-                            JS_GetScriptPrivate(*compiled_script, script_private.handle_mut());
-
-                            // When `ScriptPrivate` for the compiled script is undefined,
-                            // we need to set it so that it can be used in dynamic import context.
-                            if script_private.is_undefined() {
-                                debug!("Set script private for {}", script_base_url);
-
-                                let module_script_data = Rc::new(ModuleScript::new(
-                                    script_base_url,
-                                    fetch_options,
-                                    // We can't initialize an module owner here because
-                                    // the executing context of script might be different
-                                    // from the dynamic import script's executing context.
-                                    None,
-                                ));
-
-                                SetScriptPrivate(
-                                    *compiled_script,
-                                    &PrivateValue(Rc::into_raw(module_script_data) as *const _),
-                                );
-                            }
-
-                            debug!("evaluating Dom string");
-                            JS_ExecuteScript(*cx, compiled_script.handle(), rval)
                         },
-                        SourceCode::Compiled(compiled_script) => {
-                            let script = compiled_script.source_code.get();
-                            let script_handle = HandleScript::new(&script);
-                            JS_ExecuteScript1(*cx, script_handle)
+                        SourceCode::Compiled(pre_compiled_script) => {
+                            compiled_script.set(pre_compiled_script.source_code.get());
                         },
                     };
+
+                    assert!(!compiled_script.is_null());
+
+                    rooted!(in(*cx) let mut script_private = UndefinedValue());
+                    JS_GetScriptPrivate(*compiled_script, script_private.handle_mut());
+
+                    // When `ScriptPrivate` for the compiled script is undefined,
+                    // we need to set it so that it can be used in dynamic import context.
+                    if script_private.is_undefined() {
+                        debug!("Set script private for {}", script_base_url);
+
+                        let module_script_data = Rc::new(ModuleScript::new(
+                            script_base_url,
+                            fetch_options,
+                            // We can't initialize an module owner here because
+                            // the executing context of script might be different
+                            // from the dynamic import script's executing context.
+                            None,
+                        ));
+
+                        SetScriptPrivate(
+                            *compiled_script,
+                            &PrivateValue(Rc::into_raw(module_script_data) as *const _),
+                        );
+                    }
+
+                    let result = JS_ExecuteScript(*cx, compiled_script.handle(), rval);
 
                     if !result {
                         debug!("error evaluating Dom string");
