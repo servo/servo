@@ -618,14 +618,14 @@ test(t => {
 
 test(t => {
   const div = addDiv(t);
-  div.style.animation = 'anim-custom-property-in-keyframe 100s';
+  div.style.animation = 'anim-custom-property-in-keyframe 100s steps(2, start)';
 
   const frames = getKeyframes(div);
 
   const expected = [
-    { offset: 0, computedOffset: 0, easing: "ease", composite: "auto",
+    { offset: 0, computedOffset: 0, easing: "steps(2, start)", composite: "auto",
       color: "rgb(0, 0, 0)" },
-    { offset: 1, computedOffset: 1, easing: "ease", composite: "auto",
+    { offset: 1, computedOffset: 1, easing: "steps(2, start)", composite: "auto",
       color: "rgb(0, 255, 0)" },
   ];
   assert_frame_lists_equal(frames, expected);

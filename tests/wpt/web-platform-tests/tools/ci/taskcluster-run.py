@@ -12,13 +12,14 @@ browser_specific_args = {
     "servo": ["--install-browser", "--processes=12"]
 }
 
+
 def get_browser_args(product):
     if product == "firefox":
         local_binary = os.path.expanduser(os.path.join("~", "build", "firefox", "firefox"))
         if os.path.exists(local_binary):
             return ["--binary=%s" % local_binary]
         print("WARNING: Local firefox binary not found")
-        return ["--install-browser"]
+        return ["--install-browser", "--install-webdriver"]
     return browser_specific_args.get(product, [])
 
 

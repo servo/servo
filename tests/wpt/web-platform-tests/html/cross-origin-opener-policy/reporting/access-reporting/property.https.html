@@ -47,7 +47,7 @@ origin.forEach(([origin_name, origin]) => {
 
       const reportTo = reportToHeaders(report_token);
       const openee_url = origin+ executor_path +
-        reportTo.header + reportTo.coopSameOriginHeader + coep_header +
+        reportTo.header + reportTo.coopReportOnlySameOriginHeader + coep_header +
         `&uuid=${executor_token}`;
       const openee = window.open(openee_url);
       t.add_cleanup(() => send(executor_token, "window.close()"))
