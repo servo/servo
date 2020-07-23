@@ -52,6 +52,9 @@ def create_parser():
     parser.add_argument("--install-browser", action="store_true",
                         help="Install the browser from the release channel specified by --channel "
                         "(or the nightly channel by default).")
+    parser.add_argument("--install-webdriver", action="store_true",
+                        help="Install WebDriver from the release channel specified by --channel "
+                        "(or the nightly channel by default).")
     parser._add_container_actions(wptcommandline.create_parser())
     return parser
 
@@ -217,14 +220,19 @@ Consider installing certutil via your OS package manager or directly.""")
             kwargs["certutil_binary"] = certutil
 
         if kwargs["webdriver_binary"] is None and "wdspec" in kwargs["test_types"]:
-            webdriver_binary = self.browser.find_webdriver()
+            webdriver_binary = None
+            if not kwargs["install_webdriver"]:
+                webdriver_binary = self.browser.find_webdriver()
 
             if webdriver_binary is None:
                 install = self.prompt_install("geckodriver")
 
                 if install:
                     logger.info("Downloading geckodriver")
-                    webdriver_binary = self.browser.install_webdriver(dest=self.venv.bin_path)
+                    webdriver_binary = self.browser.install_webdriver(
+                        dest=self.venv.bin_path,
+                        channel=kwargs["browser_channel"],
+                        browser_binary=kwargs["binary"])
             else:
                 logger.info("Using webdriver binary %s" % webdriver_binary)
 
@@ -314,7 +322,9 @@ class Chrome(BrowserSetup):
             else:
                 raise WptrunError("Unable to locate Chrome binary")
         if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver()
+            webdriver_binary = None
+            if not kwargs["install_webdriver"]:
+                webdriver_binary = self.browser.find_webdriver()
 
             if webdriver_binary is None:
                 install = self.prompt_install("chromedriver")
@@ -323,6 +333,7 @@ class Chrome(BrowserSetup):
                     logger.info("Downloading chromedriver")
                     webdriver_binary = self.browser.install_webdriver(
                         dest=self.venv.bin_path,
+                        channel=browser_channel,
                         browser_binary=kwargs["binary"],
                     )
             else:
@@ -355,7 +366,9 @@ class ChromeAndroid(BrowserSetup):
             kwargs["package_name"] = self.browser.find_binary(
                 channel=browser_channel)
         if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver()
+            webdriver_binary = None
+            if not kwargs["install_webdriver"]:
+                webdriver_binary = self.browser.find_webdriver()
 
             if webdriver_binary is None:
                 install = self.prompt_install("chromedriver")
@@ -364,6 +377,7 @@ class ChromeAndroid(BrowserSetup):
                     logger.info("Downloading chromedriver")
                     webdriver_binary = self.browser.install_webdriver(
                         dest=self.venv.bin_path,
+                        channel=browser_channel,
                         browser_binary=kwargs["package_name"],
                     )
             else:
@@ -397,14 +411,18 @@ class AndroidWeblayer(BrowserSetup):
         if kwargs.get("device_serial"):
             self.browser.device_serial = kwargs["device_serial"]
         if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver()
+            webdriver_binary = None
+            if not kwargs["install_webdriver"]:
+                webdriver_binary = self.browser.find_webdriver()
 
             if webdriver_binary is None:
                 install = self.prompt_install("chromedriver")
 
                 if install:
                     logger.info("Downloading chromedriver")
-                    webdriver_binary = self.browser.install_webdriver(dest=self.venv.bin_path)
+                    webdriver_binary = self.browser.install_webdriver(
+                        dest=self.venv.bin_path,
+                        channel=kwargs["browser_channel"])
             else:
                 logger.info("Using webdriver binary %s" % webdriver_binary)
 
@@ -422,14 +440,18 @@ class AndroidWebview(BrowserSetup):
         if kwargs.get("device_serial"):
             self.browser.device_serial = kwargs["device_serial"]
         if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver()
+            webdriver_binary = None
+            if not kwargs["install_webdriver"]:
+                webdriver_binary = self.browser.find_webdriver()
 
             if webdriver_binary is None:
                 install = self.prompt_install("chromedriver")
 
                 if install:
                     logger.info("Downloading chromedriver")
-                    webdriver_binary = self.browser.install_webdriver(dest=self.venv.bin_path)
+                    webdriver_binary = self.browser.install_webdriver(
+                        dest=self.venv.bin_path,
+                        channel=kwargs["browser_channel"])
             else:
                 logger.info("Using webdriver binary %s" % webdriver_binary)
 
@@ -445,14 +467,18 @@ class Opera(BrowserSetup):
 
     def setup_kwargs(self, kwargs):
         if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver()
+            webdriver_binary = None
+            if not kwargs["install_webdriver"]:
+                webdriver_binary = self.browser.find_webdriver()
 
             if webdriver_binary is None:
                 install = self.prompt_install("operadriver")
 
                 if install:
                     logger.info("Downloading operadriver")
-                    webdriver_binary = self.browser.install_webdriver(dest=self.venv.bin_path)
+                    webdriver_binary = self.browser.install_webdriver(
+                        dest=self.venv.bin_path,
+                        channel=kwargs["browser_channel"])
             else:
                 logger.info("Using webdriver binary %s" % webdriver_binary)
 
@@ -475,7 +501,9 @@ class EdgeChromium(BrowserSetup):
             else:
                 raise WptrunError("Unable to locate Edge binary")
         if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver()
+            webdriver_binary = None
+            if not kwargs["install_webdriver"]:
+                webdriver_binary = self.browser.find_webdriver()
 
             # Install browser if none are found or if it's found in venv path
             if webdriver_binary is None or webdriver_binary in self.venv.bin_path:
@@ -483,7 +511,9 @@ class EdgeChromium(BrowserSetup):
 
                 if install:
                     logger.info("Downloading msedgedriver")
-                    webdriver_binary = self.browser.install_webdriver(dest=self.venv.bin_path, channel=browser_channel)
+                    webdriver_binary = self.browser.install_webdriver(
+                        dest=self.venv.bin_path,
+                        channel=browser_channel)
             else:
                 logger.info("Using webdriver binary %s" % webdriver_binary)
 
@@ -695,7 +725,7 @@ def setup_logging(kwargs, default_config=None, formatter_defaults=None):
     return logger
 
 
-def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
+def setup_wptrunner(venv, **kwargs):
     from wptrunner import wptcommandline
     from six import iteritems
 
@@ -709,10 +739,10 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
     if kwargs["product"] not in product_setup:
         raise WptrunError("Unsupported product %s" % kwargs["product"])
 
-    setup_cls = product_setup[kwargs["product"]](venv, prompt)
+    setup_cls = product_setup[kwargs["product"]](venv, kwargs["prompt"])
     setup_cls.install_requirements()
 
-    affected_revish = kwargs.pop("affected", None)
+    affected_revish = kwargs.get("affected")
     if affected_revish is not None:
         # TODO: Consolidate with `./wpt tests-affected --ignore-rules`:
         # https://github.com/web-platform-tests/wpt/issues/14560
@@ -731,7 +761,7 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
         kwargs["test_list"] += test_list
         kwargs["default_exclude"] = True
 
-    if install_browser and not kwargs["channel"]:
+    if kwargs["install_browser"] and not kwargs["channel"]:
         logger.info("--install-browser is given but --channel is not set, default to nightly channel")
         kwargs["channel"] = "nightly"
 
@@ -745,15 +775,23 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
         else:
             logger.info("Valid channels for %s not known; using argument unmodified" % kwargs["product"])
             kwargs["browser_channel"] = kwargs["channel"]
-        del kwargs["channel"]
 
-    if install_browser:
+    if kwargs["install_browser"]:
         logger.info("Installing browser")
         kwargs["binary"] = setup_cls.install(channel=channel)
 
     setup_cls.setup(kwargs)
 
-    wptcommandline.check_args(kwargs)
+    # Remove kwargs we handle here
+    wptrunner_kwargs = kwargs.copy()
+    for kwarg in ["affected",
+                  "install_browser",
+                  "install_webdriver",
+                  "channel",
+                  "prompt"]:
+        del wptrunner_kwargs[kwarg]
+
+    wptcommandline.check_args(wptrunner_kwargs)
 
     wptrunner_path = os.path.join(wpt_root, "tools", "wptrunner")
 
@@ -762,28 +800,21 @@ def setup_wptrunner(venv, prompt=True, install_browser=False, **kwargs):
 
     # Only update browser_version if it was not given as a command line
     # argument, so that it can be overridden on the command line.
-    if not kwargs["browser_version"]:
-        kwargs["browser_version"] = setup_cls.browser.version(
-            binary=kwargs.get("binary") or kwargs.get("package_name"),
-            webdriver_binary=kwargs.get("webdriver_binary"),
+    if not wptrunner_kwargs["browser_version"]:
+        wptrunner_kwargs["browser_version"] = setup_cls.browser.version(
+            binary=wptrunner_kwargs.get("binary") or wptrunner_kwargs.get("package_name"),
+            webdriver_binary=wptrunner_kwargs.get("webdriver_binary"),
         )
 
-    return kwargs
+    return wptrunner_kwargs
 
 
 def run(venv, **kwargs):
     setup_logging(kwargs)
 
-    # Remove arguments that aren't passed to wptrunner
-    prompt = kwargs.pop("prompt", True)
-    install_browser = kwargs.pop("install_browser", False)
+    wptrunner_kwargs = setup_wptrunner(venv, **kwargs)
 
-    kwargs = setup_wptrunner(venv,
-                             prompt=prompt,
-                             install_browser=install_browser,
-                             **kwargs)
-
-    rv = run_single(venv, **kwargs) > 0
+    rv = run_single(venv, **wptrunner_kwargs) > 0
 
     return rv
 

@@ -4,6 +4,11 @@
 
 'use strict';
 
+setup(async () => {
+  assert_implements(nativeIO.rename,
+                    "nativeIO.rename is not implemented.");
+});
+
 promise_test(async testCase => {
   const file1 = await nativeIO.open('test_file_1');
   const file2 = await nativeIO.open('test_file_2');

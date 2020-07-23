@@ -4,6 +4,12 @@
 
 'use strict';
 
+setup(() => {
+  // Without this assertion, one test passes even if renameSync is not defined
+  assert_implements(nativeIO.renameSync,
+                    "nativeIO.renameSync is not implemented.");
+});
+
 test(testCase => {
   const file1 = nativeIO.openSync('test_file_1');
   const file2 = nativeIO.openSync('test_file_2');

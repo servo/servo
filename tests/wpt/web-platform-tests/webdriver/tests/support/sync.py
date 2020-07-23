@@ -2,6 +2,8 @@ import collections
 import sys
 import time
 
+import six
+
 from webdriver import error
 
 
@@ -107,7 +109,7 @@ class Poll(object):
             be returned by this function.
         """
         rv = None
-        last_exc = None
+        tb = None
         start = self.clock.time()
         end = start + self.timeout
 
@@ -118,7 +120,7 @@ class Poll(object):
             except (KeyboardInterrupt, SystemExit):
                 raise
             except self.exceptions:
-                last_exc = sys.exc_info()
+                _, _, tb = sys.exc_info()
 
             # re-adjust the interval depending on how long
             # the callback took to evaluate the condition
@@ -135,11 +137,9 @@ class Poll(object):
 
         if self.exc_cls is not None:
             elapsed = round((self.clock.time() - start), 1)
-            message = ""
+            message = "Timed out after {} seconds".format(elapsed)
             if self.exc_msg is not None:
-                message = " with message: {}".format(self.exc_msg)
-            raise self.exc_cls(
-                "Timed out after {} seconds{}".format(elapsed, message),
-                cause=last_exc)
+                message = "{} with message: {}".format(message, self.exc_msg)
+            six.reraise(self.exc_cls, self.exc_cls(message=message), tb)
         else:
             return rv

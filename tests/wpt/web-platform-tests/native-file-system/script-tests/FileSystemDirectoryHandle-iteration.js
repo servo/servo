@@ -78,3 +78,21 @@ directory_test(async (t, root) => {
   names.sort();
   assert_array_equals(names, [file_name1, file_name2]);
 }, 'keys: full iteration works');
+
+directory_test(async (t, root) => {
+  const file_name1 = 'foo1.txt';
+  await createFileWithContents(t, file_name1, 'contents', /*parent=*/ root);
+
+  const next = (() => {
+    const iterator = root.entries();
+    return iterator.next();
+  })();
+  garbageCollect();
+  let entry = await next;
+  assert_false(entry.done);
+  assert_true(Array.isArray(entry.value));
+  assert_equals(entry.value.length, 2);
+  assert_equals(entry.value[0], file_name1);
+  assert_true(entry.value[1] instanceof FileSystemFileHandle);
+  assert_equals(entry.value[1].name, file_name1);
+}, 'iteration while iterator gets garbage collected');

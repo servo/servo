@@ -230,4 +230,29 @@ a=ssrc:1001 cname:some
     await new Promise(resolve => t.step_timeout(resolve, 100));
   }, `addTransceiver() with inactive direction should not cause remote connection to fire ontrack when setRemoteDescription()`);
 
+  ["audio", "video"].forEach(type => promise_test(async t => {
+    const pc1 = new RTCPeerConnection();
+    t.add_cleanup(() => pc1.close());
+    const pc2 = new RTCPeerConnection();
+    t.add_cleanup(() => pc2.close());
+
+    const checkNoUnexpectedTrack = ({track}) => {
+      assert_equals(track.kind, type, `ontrack event should not fire for ${track.kind}`);
+    };
+
+    pc2.ontrack = t.step_func(checkNoUnexpectedTrack);
+    pc1.ontrack = t.step_func(checkNoUnexpectedTrack);
+
+    await pc1.setLocalDescription(await pc1.createOffer(
+      { offerToReceiveVideo: true, offerToReceiveAudio: true }));
+
+    pc2.addTrack(...await getTrackFromUserMedia(type));
+
+    await pc2.setRemoteDescription(pc1.localDescription);
+    await pc2.setLocalDescription(await pc2.createAnswer());
+    await pc1.setRemoteDescription(pc2.localDescription);
+
+    await new Promise(resolve => t.step_timeout(resolve, 100));
+  }, `Using offerToReceiveAudio and offerToReceiveVideo should only cause a ${type} track event to fire, if ${type} was the only type negotiated`));
+
 </script>
