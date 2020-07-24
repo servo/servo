@@ -32,6 +32,7 @@ use crate::dom::file::File;
 use crate::dom::formdata::FormData;
 use crate::dom::formdataevent::FormDataEvent;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::htmlanchorelement::{get_element_noopener, get_element_target};
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::htmlcollection::CollectionFilter;
 use crate::dom::htmldatalistelement::HTMLDataListElement;
@@ -595,12 +596,12 @@ impl HTMLFormElementMethods for HTMLFormElement {
         return names_vec;
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-form-checkvalidity
+    /// https://html.spec.whatwg.org/multipage/#dom-form-checkvalidity
     fn CheckValidity(&self) -> bool {
         self.static_validation().is_ok()
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-form-reportvalidity
+    /// https://html.spec.whatwg.org/multipage/#dom-form-reportvalidity
     fn ReportValidity(&self) -> bool {
         self.interactive_validation().is_ok()
     }
@@ -765,10 +766,26 @@ impl HTMLFormElement {
         let enctype = submitter.enctype();
         let method = submitter.method();
 
-        // Step 17-21
-        let target_attribute_value = submitter.target();
+        // Step 17
+        let target_attribute_value =
+            if submitter.is_submit_button() && submitter.target() != DOMString::new() {
+                Some(submitter.target())
+            } else {
+                let form_owner = submitter.form_owner();
+                let form = form_owner.as_ref().map(|form| &**form).unwrap_or(self);
+                get_element_target(form.upcast::<Element>())
+            };
+
+        // Step 18
+        let noopener =
+            get_element_noopener(self.upcast::<Element>(), target_attribute_value.clone());
+
+        // Step 19
         let source = doc.browsing_context().unwrap();
-        let (maybe_chosen, _new) = source.choose_browsing_context(target_attribute_value, false);
+        let (maybe_chosen, _new) = source
+            .choose_browsing_context(target_attribute_value.unwrap_or(DOMString::new()), noopener);
+
+        // Step 20
         let chosen = match maybe_chosen {
             Some(proxy) => proxy,
             None => return,
@@ -777,6 +794,7 @@ impl HTMLFormElement {
             Some(doc) => doc,
             None => return,
         };
+        // Step 21
         let target_window = target_document.window();
         let mut load_data = LoadData::new(
             LoadOrigin::Script(doc.origin().immutable().clone()),
