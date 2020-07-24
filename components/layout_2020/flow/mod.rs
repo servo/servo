@@ -166,9 +166,14 @@ fn layout_block_level_children(
     mut float_context: Option<&mut FloatContext>,
     collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
 ) -> FlowLayout {
-    fn place_block_level_fragment(fragment: &mut Fragment, placement_state: &mut PlacementState) {
+    fn place_block_level_fragment(
+        fragment: &mut Fragment,
+        placement_state: &mut PlacementState,
+        positioning_context: &mut PositioningContext,
+        maybe_hoisted: Option<HoistedAbsolutelyPositionedBox>,
+    ) {
         match fragment {
-            Fragment::Box(fragment) => {
+            Fragment::Box(ref mut fragment) => {
                 let fragment_block_margins = &fragment.block_margins_collapsed_with_children;
                 let fragment_block_size = fragment.padding.block_sum() +
                     fragment.border.block_sum() +
@@ -203,7 +208,21 @@ fn layout_block_level_children(
                     placement_state.current_margin.solve() + fragment_block_size;
                 placement_state.current_margin = fragment_block_margins.end;
             },
-            Fragment::Anonymous(_) | Fragment::AbsoluteOrFixedPositioned(_) => {},
+            Fragment::AbsoluteOrFixedPositioned(_) => {
+                // We didn't know where to apply `inset: auto` adjustments before
+                // but we do know, apply the offsets based on where the box is supposed
+                // to be
+                //
+                // https://drafts.csswg.org/css-position-3/#staticpos-rect
+                if let Some(mut hoisted) = maybe_hoisted {
+                    hoisted.adjust_offsets(Vec2 {
+                        block: placement_state.current_block_direction_position,
+                        inline: Length::new(0.),
+                    });
+                    positioning_context.push(hoisted)
+                }
+            },
+            Fragment::Anonymous(_) => {},
             _ => unreachable!(),
         }
     }
@@ -231,47 +250,54 @@ fn layout_block_level_children(
                 .iter()
                 .enumerate()
                 .map(|(tree_rank, box_)| {
-                    let mut fragment = box_
-                        .borrow_mut()
-                        .layout(
-                            layout_context,
-                            positioning_context,
-                            containing_block,
-                            tree_rank,
-                            float_context.as_mut().map(|c| &mut **c),
-                        )
-                        .0;
-                    place_block_level_fragment(&mut fragment, &mut placement_state);
+                    let (mut fragment, maybe_hoisted) = box_.borrow_mut().layout(
+                        layout_context,
+                        positioning_context,
+                        containing_block,
+                        tree_rank,
+                        float_context.as_mut().map(|c| &mut **c),
+                    );
+                    place_block_level_fragment(
+                        &mut fragment,
+                        &mut placement_state,
+                        positioning_context,
+                        maybe_hoisted,
+                    );
                     fragment
                 })
                 .collect()
         } else {
             let collects_for_nearest_positioned_ancestor =
                 positioning_context.collects_for_nearest_positioned_ancestor();
-            let mut fragments = child_boxes
+            let fragments: Vec<_> = child_boxes
                 .par_iter()
                 .enumerate()
                 .mapfold_reduce_into(
                     positioning_context,
                     |positioning_context, (tree_rank, box_)| {
-                        box_.borrow_mut()
-                            .layout(
-                                layout_context,
-                                positioning_context,
-                                containing_block,
-                                tree_rank,
-                                /* float_context = */ None,
-                            )
-                            .0
+                        box_.borrow_mut().layout(
+                            layout_context,
+                            positioning_context,
+                            containing_block,
+                            tree_rank,
+                            /* float_context = */ None,
+                        )
                     },
                     || PositioningContext::new_for_rayon(collects_for_nearest_positioned_ancestor),
                     PositioningContext::append,
                 )
                 .collect();
-            for fragment in &mut fragments {
-                place_block_level_fragment(fragment, &mut placement_state)
+            let mut new_fragments = Vec::with_capacity(fragments.len());
+            for (mut fragment, maybe_hoisted) in fragments.into_iter() {
+                place_block_level_fragment(
+                    &mut fragment,
+                    &mut placement_state,
+                    positioning_context,
+                    maybe_hoisted,
+                );
+                new_fragments.push(fragment)
             }
-            fragments
+            new_fragments
         }
     });
 
