@@ -36,9 +36,6 @@ pub struct FloatContext {
     /// This tree is immutable; modification operations return the new tree, which may share nodes
     /// with previous versions of the tree.
     pub bands: FloatBandTree,
-    /// The logical width of this context. No floats may extend outside the width of this context
-    /// unless they are as far (logically) left or right as possible.
-    pub inline_size: Length,
     /// The current (logically) vertical position. No new floats may be placed (logically) above
     /// this line.
     pub ceiling: Length,
@@ -47,7 +44,7 @@ pub struct FloatContext {
 impl FloatContext {
     /// Returns a new float context representing a containing block with the given content
     /// inline-size.
-    pub fn new(inline_size: Length) -> Self {
+    pub fn new() -> Self {
         let mut bands = FloatBandTree::new();
         bands = bands.insert(FloatBand {
             top: Length::zero(),
@@ -61,7 +58,6 @@ impl FloatContext {
         });
         FloatContext {
             bands,
-            inline_size,
             ceiling: Length::zero(),
         }
     }
@@ -78,25 +74,15 @@ impl FloatContext {
         self.ceiling = self.ceiling.max(new_ceiling);
     }
 
-    /// Returns the highest block position that is both logically below the current ceiling and
-    /// clear of floats on the given side or sides.
-    pub fn clearance(&self, side: ClearSide) -> Length {
-        let mut band = self.bands.find(self.ceiling).unwrap();
-        while !band.is_clear(side) {
-            let next_band = self.bands.find_next(band.top).unwrap();
-            if next_band.top.px().is_infinite() {
-                break;
-            }
-            band = next_band;
-        }
-        band.top.max(self.ceiling)
-    }
-
-    /// Places a new float and adds it to the list. Returns the start corner of its margin box.
-    pub fn add_float(&mut self, new_float: FloatInfo) -> Vec2<Length> {
+    /// Determines where a float with the given placement would go, but leaves the float context
+    /// unmodified. Returns the start corner of its margin box.
+    ///
+    /// This should be used for placing inline elements and block formatting contexts so that they
+    /// don't collide with floats.
+    pub fn place_object(&self, object: &PlacementInfo) -> Vec2<Length> {
         // Find the first band this float fits in.
         let mut first_band = self.bands.find(self.ceiling).unwrap();
-        while !first_band.float_fits(&new_float, self.inline_size) {
+        while !first_band.object_fits(&object) {
             let next_band = self.bands.find_next(first_band.top).unwrap();
             if next_band.top.px().is_infinite() {
                 break;
@@ -104,30 +90,46 @@ impl FloatContext {
             first_band = next_band;
         }
 
-        // The float fits perfectly here. Place it.
-        let (new_float_origin, new_float_extent);
-        match new_float.side {
+        // The object fits perfectly here. Place it.
+        match object.side {
             FloatSide::Left => {
-                new_float_origin = Vec2 {
-                    inline: first_band.left.unwrap_or(Length::zero()),
-                    block: first_band.top.max(self.ceiling),
+                let left_object_edge = match first_band.left {
+                    Some(band_left) => band_left.max(object.left_wall),
+                    None => object.left_wall,
                 };
-                new_float_extent = new_float_origin.inline + new_float.size.inline;
+                Vec2 {
+                    inline: left_object_edge,
+                    block: first_band.top.max(self.ceiling),
+                }
             },
             FloatSide::Right => {
-                new_float_origin = Vec2 {
-                    inline: first_band.right.unwrap_or(self.inline_size) - new_float.size.inline,
-                    block: first_band.top.max(self.ceiling),
+                let right_object_edge = match first_band.right {
+                    Some(band_right) => band_right.min(object.right_wall),
+                    None => object.right_wall,
                 };
-                new_float_extent = new_float_origin.inline;
+                Vec2 {
+                    inline: right_object_edge - object.size.inline,
+                    block: first_band.top.max(self.ceiling),
+                }
             },
+        }
+    }
+
+    /// Places a new float and adds it to the list. Returns the start corner of its margin box.
+    pub fn add_float(&mut self, new_float: &PlacementInfo) -> Vec2<Length> {
+        // Place the float.
+        let new_float_origin = self.place_object(new_float);
+        let new_float_extent = match new_float.side {
+            FloatSide::Left => new_float_origin.inline + new_float.size.inline,
+            FloatSide::Right => new_float_origin.inline,
         };
         let new_float_rect = Rect {
             start_corner: new_float_origin,
-            size: new_float.size,
+            size: new_float.size.clone(),
         };
 
         // Split the first band if necessary.
+        let mut first_band = self.bands.find(new_float_rect.start_corner.block).unwrap();
         first_band.top = new_float_rect.start_corner.block;
         self.bands = self.bands.insert(first_band);
 
@@ -152,15 +154,21 @@ impl FloatContext {
     }
 }
 
-/// Information needed to place a float.
+/// Information needed to place an object so that it doesn't collide with existing floats.
 #[derive(Clone, Debug)]
-pub struct FloatInfo {
-    /// The *margin* box size of the float.
+pub struct PlacementInfo {
+    /// The *margin* box size of the object.
     pub size: Vec2<Length>,
-    /// Whether the float is left or right.
+    /// Whether the object is (logically) aligned to the left or right.
     pub side: FloatSide,
     /// Which side or sides to clear floats on.
     pub clear: ClearSide,
+    /// The distance from the logical left side of the block formatting context to the logical
+    /// left side of this object's containing block.
+    pub left_wall: Length,
+    /// The distance from the logical *left* side of the block formatting context to the logical
+    /// right side of this object's containing block.
+    pub right_wall: Length,
 }
 
 /// Whether the float is left or right.
@@ -189,19 +197,20 @@ pub enum ClearSide {
 pub struct FloatBand {
     /// The logical vertical position of the top of this band.
     pub top: Length,
-    /// The distance from the left edge to the first legal (logically) horizontal position where
-    /// floats may be placed. If `None`, there are no floats to the left; distinguishing between
-    /// the cases of "a zero-width float is present" and "no floats at all are present" is
-    /// necessary to, for example, clear past zero-width floats.
+    /// The distance from the left edge of the block formatting context to the first legal
+    /// (logically) horizontal position where floats may be placed. If `None`, there are no floats
+    /// to the left; distinguishing between the cases of "a zero-width float is present" and "no
+    /// floats at all are present" is necessary to, for example, clear past zero-width floats.
     pub left: Option<Length>,
-    /// The distance from the right edge to the first legal (logically) horizontal position where
-    /// floats may be placed. If `None`, there are no floats to the right; distinguishing between
-    /// the cases of "a zero-width float is present" and "no floats at all are present" is
-    /// necessary to, for example, clear past zero-width floats.
+    /// The distance from the *left* edge of the block formatting context to the first legal
+    /// (logically) horizontal position where floats may be placed. If `None`, there are no floats
+    /// to the right; distinguishing between the cases of "a zero-width float is present" and "no
+    /// floats at all are present" is necessary to, for example, clear past zero-width floats.
     pub right: Option<Length>,
 }
 
 impl FloatBand {
+    // Returns true if this band is clear of floats on the given side or sides.
     fn is_clear(&self, side: ClearSide) -> bool {
         match (side, self.left, self.right) {
             (ClearSide::Left, Some(_), _) |
@@ -215,12 +224,56 @@ impl FloatBand {
         }
     }
 
-    fn float_fits(&self, new_float: &FloatInfo, container_inline_size: Length) -> bool {
-        let available_space =
-            self.right.unwrap_or(container_inline_size) - self.left.unwrap_or(Length::zero());
-        self.is_clear(new_float.clear) &&
-            (new_float.size.inline <= available_space ||
-                (self.left.is_none() && self.right.is_none()))
+    // Determines whether an object fits in a band.
+    fn object_fits(&self, object: &PlacementInfo) -> bool {
+        // If we must be clear on the given side and we aren't, this object doesn't fit.
+        if !self.is_clear(object.clear) {
+            return false;
+        }
+
+        match object.side {
+            FloatSide::Left => {
+                // Compute a candidate left position for the object.
+                let candidate_left = match self.left {
+                    None => object.left_wall,
+                    Some(left) => left.max(object.left_wall),
+                };
+
+                // If this band has an existing left float in it, then make sure that the object
+                // doesn't stick out past the right edge (rule 7).
+                if self.left.is_some() && candidate_left + object.size.inline > object.right_wall {
+                    return false;
+                }
+
+                // If this band has an existing right float in it, make sure we don't collide with
+                // it (rule 3).
+                match self.right {
+                    None => true,
+                    Some(right) => object.size.inline <= right - candidate_left,
+                }
+            },
+
+            FloatSide::Right => {
+                // Compute a candidate right position for the object.
+                let candidate_right = match self.right {
+                    None => object.right_wall,
+                    Some(right) => right.min(object.right_wall),
+                };
+
+                // If this band has an existing right float in it, then make sure that the new
+                // object doesn't stick out past the left edge (rule 7).
+                if self.right.is_some() && candidate_right - object.size.inline < object.left_wall {
+                    return false;
+                }
+
+                // If this band has an existing left float in it, make sure we don't collide with
+                // it (rule 3).
+                match self.left {
+                    None => true,
+                    Some(left) => object.size.inline <= candidate_right - left,
+                }
+            },
+        }
     }
 }
 

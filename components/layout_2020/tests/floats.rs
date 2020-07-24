@@ -9,7 +9,7 @@ extern crate lazy_static;
 
 use euclid::num::Zero;
 use layout::flow::float::{ClearSide, FloatBand, FloatBandNode, FloatBandTree, FloatContext};
-use layout::flow::float::{FloatInfo, FloatSide};
+use layout::flow::float::{FloatSide, PlacementInfo};
 use layout::geom::flow_relative::{Rect, Vec2};
 use quickcheck::{Arbitrary, Gen};
 use std::f32;
@@ -337,7 +337,7 @@ fn test_tree_range_setting() {
 #[derive(Clone, Debug)]
 struct FloatInput {
     // Information needed to place the float.
-    info: FloatInfo,
+    info: PlacementInfo,
     // The float may be placed no higher than this line. This simulates the effect of line boxes
     // per CSS 2.1 § 9.5.1 rule 6.
     ceiling: u32,
@@ -352,9 +352,11 @@ impl Arbitrary for FloatInput {
         let height: u32 = Arbitrary::arbitrary(generator);
         let is_left: bool = Arbitrary::arbitrary(generator);
         let ceiling: u32 = Arbitrary::arbitrary(generator);
+        let left_wall: u32 = Arbitrary::arbitrary(generator);
+        let right_wall: u32 = Arbitrary::arbitrary(generator);
         let clear: u8 = Arbitrary::arbitrary(generator);
         FloatInput {
-            info: FloatInfo {
+            info: PlacementInfo {
                 size: Vec2 {
                     inline: Length::new(width as f32),
                     block: Length::new(height as f32),
@@ -365,6 +367,8 @@ impl Arbitrary for FloatInput {
                     FloatSide::Right
                 },
                 clear: new_clear_side(clear),
+                left_wall: Length::new(left_wall as f32),
+                right_wall: Length::new(right_wall as f32),
             },
             ceiling,
         }
@@ -383,6 +387,14 @@ impl Arbitrary for FloatInput {
         }
         if let Some(clear_side) = (self.info.clear as u8).shrink().next() {
             this.info.clear = new_clear_side(clear_side);
+            shrunk = true;
+        }
+        if let Some(left_wall) = self.info.left_wall.px().shrink().next() {
+            this.info.left_wall = Length::new(left_wall);
+            shrunk = true;
+        }
+        if let Some(right_wall) = self.info.right_wall.px().shrink().next() {
+            this.info.right_wall = Length::new(right_wall);
             shrunk = true;
         }
         if let Some(ceiling) = self.ceiling.shrink().next() {
@@ -416,7 +428,7 @@ struct FloatPlacement {
 #[derive(Clone)]
 struct PlacedFloat {
     origin: Vec2<Length>,
-    info: FloatInfo,
+    info: PlacementInfo,
     ceiling: Length,
 }
 
@@ -427,12 +439,12 @@ impl Drop for FloatPlacement {
         }
 
         // Dump the float context for debugging.
-        eprintln!(
-            "Failing float placement (inline size: {:?}):",
-            self.float_context.inline_size
-        );
+        eprintln!("Failing float placement:");
         for placed_float in &self.placed_floats {
-            eprintln!("   * {:?} @ {:?}", placed_float.info, placed_float.origin);
+            eprintln!(
+                "   * {:?} @ {:?}, {:?}",
+                placed_float.info, placed_float.origin, placed_float.ceiling
+            );
         }
         eprintln!("Bands:\n{:?}\n", self.float_context.bands);
     }
@@ -448,14 +460,14 @@ impl PlacedFloat {
 }
 
 impl FloatPlacement {
-    fn place(inline_size: u32, floats: Vec<FloatInput>) -> FloatPlacement {
-        let mut float_context = FloatContext::new(Length::new(inline_size as f32));
+    fn place(floats: Vec<FloatInput>) -> FloatPlacement {
+        let mut float_context = FloatContext::new();
         let mut placed_floats = vec![];
         for float in floats {
             let ceiling = Length::new(float.ceiling as f32);
             float_context.lower_ceiling(ceiling);
             placed_floats.push(PlacedFloat {
-                origin: float_context.add_float(float.info.clone()),
+                origin: float_context.add_float(&float.info),
                 info: float.info,
                 ceiling,
             })
@@ -476,10 +488,10 @@ impl FloatPlacement {
 fn check_floats_rule_1(placement: &FloatPlacement) {
     for placed_float in &placement.placed_floats {
         match placed_float.info.side {
-            FloatSide::Left => assert!(placed_float.origin.inline >= Length::zero()),
-            FloatSide::Right => assert!(
-                placed_float.rect().max_inline_position() <= placement.float_context.inline_size
-            ),
+            FloatSide::Left => assert!(placed_float.origin.inline >= placed_float.info.left_wall),
+            FloatSide::Right => {
+                assert!(placed_float.rect().max_inline_position() <= placed_float.info.right_wall)
+            },
         }
     }
 }
@@ -584,13 +596,12 @@ fn check_floats_rule_7(placement: &FloatPlacement) {
         // Only consider floats that stick out.
         match placed_float.info.side {
             FloatSide::Left => {
-                if placed_float.rect().max_inline_position() <= placement.float_context.inline_size
-                {
+                if placed_float.rect().max_inline_position() <= placed_float.info.right_wall {
                     continue;
                 }
             },
             FloatSide::Right => {
-                if placed_float.origin.inline >= Length::zero() {
+                if placed_float.origin.inline >= placed_float.info.left_wall {
                     continue;
                 }
             },
@@ -608,12 +619,12 @@ fn check_floats_rule_7(placement: &FloatPlacement) {
 }
 
 // 8. A floating box must be placed as high as possible.
-fn check_floats_rule_8(inline_size: u32, floats_and_perturbations: Vec<(FloatInput, u32)>) {
+fn check_floats_rule_8(floats_and_perturbations: Vec<(FloatInput, u32)>) {
     let floats = floats_and_perturbations
         .iter()
         .map(|&(ref float, _)| (*float).clone())
         .collect();
-    let placement = FloatPlacement::place(inline_size, floats);
+    let placement = FloatPlacement::place(floats);
 
     for (float_index, &(_, perturbation)) in floats_and_perturbations.iter().enumerate() {
         if perturbation == 0 {
@@ -636,12 +647,12 @@ fn check_floats_rule_8(inline_size: u32, floats_and_perturbations: Vec<(FloatInp
 // 9. A left-floating box must be put as far to the left as possible, a right-floating box as far
 //    to the right as possible. A higher position is preferred over one that is further to the
 //    left/right.
-fn check_floats_rule_9(inline_size: u32, floats_and_perturbations: Vec<(FloatInput, u32)>) {
+fn check_floats_rule_9(floats_and_perturbations: Vec<(FloatInput, u32)>) {
     let floats = floats_and_perturbations
         .iter()
         .map(|&(ref float, _)| (*float).clone())
         .collect();
-    let placement = FloatPlacement::place(inline_size, floats);
+    let placement = FloatPlacement::place(floats);
 
     for (float_index, &(_, perturbation)) in floats_and_perturbations.iter().enumerate() {
         if perturbation == 0 {
@@ -734,90 +745,90 @@ fn check_basic_float_rules(placement: &FloatPlacement) {
 
 #[test]
 fn test_floats_rule_1() {
-    let f: fn(u32, Vec<FloatInput>) = check;
+    let f: fn(Vec<FloatInput>) = check;
     quickcheck::quickcheck(f);
-    fn check(inline_size: u32, floats: Vec<FloatInput>) {
-        check_floats_rule_1(&FloatPlacement::place(inline_size, floats));
+    fn check(floats: Vec<FloatInput>) {
+        check_floats_rule_1(&FloatPlacement::place(floats));
     }
 }
 
 #[test]
 fn test_floats_rule_2() {
-    let f: fn(u32, Vec<FloatInput>) = check;
+    let f: fn(Vec<FloatInput>) = check;
     quickcheck::quickcheck(f);
-    fn check(inline_size: u32, floats: Vec<FloatInput>) {
-        check_floats_rule_2(&FloatPlacement::place(inline_size, floats));
+    fn check(floats: Vec<FloatInput>) {
+        check_floats_rule_2(&FloatPlacement::place(floats));
     }
 }
 
 #[test]
 fn test_floats_rule_3() {
-    let f: fn(u32, Vec<FloatInput>) = check;
+    let f: fn(Vec<FloatInput>) = check;
     quickcheck::quickcheck(f);
-    fn check(inline_size: u32, floats: Vec<FloatInput>) {
-        check_floats_rule_3(&FloatPlacement::place(inline_size, floats));
+    fn check(floats: Vec<FloatInput>) {
+        check_floats_rule_3(&FloatPlacement::place(floats));
     }
 }
 
 #[test]
 fn test_floats_rule_4() {
-    let f: fn(u32, Vec<FloatInput>) = check;
+    let f: fn(Vec<FloatInput>) = check;
     quickcheck::quickcheck(f);
-    fn check(inline_size: u32, floats: Vec<FloatInput>) {
-        check_floats_rule_4(&FloatPlacement::place(inline_size, floats));
+    fn check(floats: Vec<FloatInput>) {
+        check_floats_rule_4(&FloatPlacement::place(floats));
     }
 }
 
 #[test]
 fn test_floats_rule_5() {
-    let f: fn(u32, Vec<FloatInput>) = check;
+    let f: fn(Vec<FloatInput>) = check;
     quickcheck::quickcheck(f);
-    fn check(inline_size: u32, floats: Vec<FloatInput>) {
-        check_floats_rule_5(&FloatPlacement::place(inline_size, floats));
+    fn check(floats: Vec<FloatInput>) {
+        check_floats_rule_5(&FloatPlacement::place(floats));
     }
 }
 
 #[test]
 fn test_floats_rule_6() {
-    let f: fn(u32, Vec<FloatInput>) = check;
+    let f: fn(Vec<FloatInput>) = check;
     quickcheck::quickcheck(f);
-    fn check(inline_size: u32, floats: Vec<FloatInput>) {
-        check_floats_rule_6(&FloatPlacement::place(inline_size, floats));
+    fn check(floats: Vec<FloatInput>) {
+        check_floats_rule_6(&FloatPlacement::place(floats));
     }
 }
 
 #[test]
 fn test_floats_rule_7() {
-    let f: fn(u32, Vec<FloatInput>) = check;
+    let f: fn(Vec<FloatInput>) = check;
     quickcheck::quickcheck(f);
-    fn check(inline_size: u32, floats: Vec<FloatInput>) {
-        check_floats_rule_7(&FloatPlacement::place(inline_size, floats));
+    fn check(floats: Vec<FloatInput>) {
+        check_floats_rule_7(&FloatPlacement::place(floats));
     }
 }
 
 #[test]
 fn test_floats_rule_8() {
-    let f: fn(u32, Vec<(FloatInput, u32)>) = check;
+    let f: fn(Vec<(FloatInput, u32)>) = check;
     quickcheck::quickcheck(f);
-    fn check(inline_size: u32, floats: Vec<(FloatInput, u32)>) {
-        check_floats_rule_8(inline_size, floats);
+    fn check(floats: Vec<(FloatInput, u32)>) {
+        check_floats_rule_8(floats);
     }
 }
 
 #[test]
 fn test_floats_rule_9() {
-    let f: fn(u32, Vec<(FloatInput, u32)>) = check;
+    let f: fn(Vec<(FloatInput, u32)>) = check;
     quickcheck::quickcheck(f);
-    fn check(inline_size: u32, floats: Vec<(FloatInput, u32)>) {
-        check_floats_rule_9(inline_size, floats);
+    fn check(floats: Vec<(FloatInput, u32)>) {
+        check_floats_rule_9(floats);
     }
 }
 
 #[test]
 fn test_floats_rule_10() {
-    let f: fn(u32, Vec<FloatInput>) = check;
+    let f: fn(Vec<FloatInput>) = check;
     quickcheck::quickcheck(f);
-    fn check(inline_size: u32, floats: Vec<FloatInput>) {
-        check_floats_rule_10(&FloatPlacement::place(inline_size, floats));
+    fn check(floats: Vec<FloatInput>) {
+        check_floats_rule_10(&FloatPlacement::place(floats));
     }
 }
