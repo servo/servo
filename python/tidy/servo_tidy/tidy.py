@@ -281,14 +281,14 @@ def is_unsplittable(file_name, line):
 
 
 def check_whatwg_specific_url(idx, line):
-    match = re.search(br"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\:-]+)", line)
+    match = re.search(br"https://html\.spec\.whatwg\.org/multipage/[\w-]+\.html#([\w\'\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
         yield (idx + 1, "link to WHATWG may break in the future, use this format instead: {}".format(preferred_link))
 
 
 def check_whatwg_single_page_url(idx, line):
-    match = re.search(br"https://html\.spec\.whatwg\.org/#([\w\:-]+)", line)
+    match = re.search(br"https://html\.spec\.whatwg\.org/#([\w\'\:-]+)", line)
     if match is not None:
         preferred_link = "https://html.spec.whatwg.org/multipage/#{}".format(match.group(1))
         yield (idx + 1, "links to WHATWG single-page url, change to multi page: {}".format(preferred_link))
