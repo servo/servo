@@ -201,7 +201,18 @@ fn layout_block_level_children(
                     placement_state.current_margin.solve() + fragment_block_size;
                 placement_state.current_margin = fragment_block_margins.end;
             },
-            Fragment::Anonymous(_) | Fragment::AbsoluteOrFixedPositioned(_) => {},
+            Fragment::AbsoluteOrFixedPositioned(fragment) => {
+                let offset = Vec2 {
+                    block: placement_state.current_margin.solve() +
+                        placement_state.current_block_direction_position,
+                    inline: Length::new(0.),
+                };
+                fragment
+                    .hoisted_fragment
+                    .borrow_mut()
+                    .adjust_offsets(offset);
+            },
+            Fragment::Anonymous(_) => {},
             _ => unreachable!(),
         }
     }
