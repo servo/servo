@@ -19,6 +19,7 @@ use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::properties::ComputedValues;
+use style::values::computed::ClipRectOrAuto;
 use style::values::computed::Length;
 use style::values::generics::box_::Perspective;
 use style::values::generics::transform;
@@ -670,6 +671,7 @@ impl BoxFragment {
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
         self.build_scroll_frame_if_necessary(builder, containing_block_info);
+        self.build_clip_frame_if_necessary(builder, containing_block_info);
 
         let padding_rect = self
             .padding_rect()
@@ -708,6 +710,27 @@ impl BoxFragment {
         builder.current_space_and_clip.spatial_id = builder.nearest_reference_frame;
     }
 
+    fn build_clip_frame_if_necessary(
+        &self,
+        builder: &mut StackingContextBuilder,
+        containing_block_info: &ContainingBlockInfo,
+    ) {
+        let clip = self.style.get_effects().clip;
+        if let ClipRectOrAuto::Rect(r) = clip {
+            let border_rect = self
+                .border_rect()
+                .to_physical(self.style.writing_mode, &containing_block_info.rect);
+            let clip_rect = r
+                .for_border_rect(border_rect)
+                .translate(containing_block_info.rect.origin.to_vector())
+                .to_webrender();
+
+            let parent = builder.current_space_and_clip;
+            builder.current_space_and_clip.clip_id =
+                builder.wr.define_clip_rect(&parent, clip_rect);
+        }
+    }
+
     fn build_scroll_frame_if_necessary<'a>(
         &self,
         builder: &mut StackingContextBuilder,
@@ -715,6 +738,7 @@ impl BoxFragment {
     ) {
         let overflow_x = self.style.get_box().overflow_x;
         let overflow_y = self.style.get_box().overflow_y;
+
         let original_scroll_and_clip_info = builder.current_space_and_clip;
         if overflow_x != ComputedOverflow::Visible || overflow_y != ComputedOverflow::Visible {
             let external_id = wr::ExternalScrollId(
