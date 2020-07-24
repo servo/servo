@@ -41,8 +41,6 @@ pub(crate) struct HoistedAbsolutelyPositionedBox {
     /// static positions when going up the tree.
     pub(crate) tree_rank: usize,
 
-    box_offsets: Vec2<AbsoluteBoxOffsets>,
-
     /// A reference to a Fragment which is shared between this `HoistedAbsolutelyPositionedBox`
     /// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
     /// This will be used later in order to paint this hoisted box in tree order.
@@ -54,16 +52,20 @@ pub(crate) struct HoistedAbsolutelyPositionedBox {
 /// This will be used later in order to paint this hoisted box in tree order.
 #[derive(Serialize)]
 pub(crate) struct HoistedSharedFragment {
-    pub fragment: Option<ArcRefCell<Fragment>>,
+    pub(crate) fragment: Option<ArcRefCell<Fragment>>,
+    pub(crate) box_offsets: Vec2<AbsoluteBoxOffsets>,
 }
 
 impl HoistedSharedFragment {
-    pub(crate) fn new() -> Self {
-        HoistedSharedFragment { fragment: None }
+    pub(crate) fn new(box_offsets: Vec2<AbsoluteBoxOffsets>) -> Self {
+        HoistedSharedFragment {
+            fragment: None,
+            box_offsets,
+        }
     }
 }
 
-impl HoistedAbsolutelyPositionedBox {
+impl HoistedSharedFragment {
     /// In some cases `inset: auto`-positioned elements do not know their precise
     /// position until after they're hoisted. This lets us adjust auto values
     /// after the fact.
@@ -73,7 +75,7 @@ impl HoistedAbsolutelyPositionedBox {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub(crate) enum AbsoluteBoxOffsets {
     StaticStart {
         start: Length,
@@ -162,8 +164,7 @@ impl AbsolutelyPositionedBox {
         };
         HoistedAbsolutelyPositionedBox {
             tree_rank,
-            box_offsets,
-            fragment: ArcRefCell::new(HoistedSharedFragment::new()),
+            fragment: ArcRefCell::new(HoistedSharedFragment::new(box_offsets)),
             absolutely_positioned_box: self_,
         }
     }
@@ -442,13 +443,15 @@ impl HoistedAbsolutelyPositionedBox {
                 .content_box_size(&containing_block.into(), &pbm),
         };
 
+        let shared_fragment = self.fragment.borrow();
+
         let inline_axis = solve_axis(
             cbis,
             pbm.padding_border_sums.inline,
             pbm.margin.inline_start,
             pbm.margin.inline_end,
             /* avoid_negative_margin_start */ true,
-            &self.box_offsets.inline,
+            &shared_fragment.box_offsets.inline,
             size.inline,
         );
 
@@ -458,7 +461,7 @@ impl HoistedAbsolutelyPositionedBox {
             pbm.margin.block_start,
             pbm.margin.block_end,
             /* avoid_negative_margin_start */ false,
-            &self.box_offsets.block,
+            &shared_fragment.box_offsets.block,
             size.block,
         );
 
@@ -688,11 +691,13 @@ fn adjust_static_positions(
             _ => unreachable!(),
         };
 
-        if let AbsoluteBoxOffsets::StaticStart { start } = &mut abspos_fragment.box_offsets.inline {
+        let mut shared_fragment = abspos_fragment.fragment.borrow_mut();
+
+        if let AbsoluteBoxOffsets::StaticStart { start } = &mut shared_fragment.box_offsets.inline {
             *start += child_fragment_rect.start_corner.inline;
         }
 
-        if let AbsoluteBoxOffsets::StaticStart { start } = &mut abspos_fragment.box_offsets.block {
+        if let AbsoluteBoxOffsets::StaticStart { start } = &mut shared_fragment.box_offsets.block {
             *start += child_fragment_rect.start_corner.block;
         }
     }
