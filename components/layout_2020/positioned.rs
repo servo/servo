@@ -46,7 +46,21 @@ pub(crate) struct HoistedAbsolutelyPositionedBox {
     /// A reference to a Fragment which is shared between this `HoistedAbsolutelyPositionedBox`
     /// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
     /// This will be used later in order to paint this hoisted box in tree order.
-    pub fragment: ArcRefCell<Option<ArcRefCell<Fragment>>>,
+    pub fragment: ArcRefCell<HoistedSharedFragment>,
+}
+
+/// A reference to a Fragment which is shared between `HoistedAbsolutelyPositionedBox`
+/// and its placeholder `AbsoluteOrFixedPositionedFragment` in the original tree position.
+/// This will be used later in order to paint this hoisted box in tree order.
+#[derive(Serialize)]
+pub(crate) struct HoistedSharedFragment {
+    pub fragment: Option<ArcRefCell<Fragment>>,
+}
+
+impl HoistedSharedFragment {
+    pub(crate) fn new() -> Self {
+        HoistedSharedFragment { fragment: None }
+    }
 }
 
 impl HoistedAbsolutelyPositionedBox {
@@ -79,8 +93,8 @@ pub(crate) enum AbsoluteBoxOffsets {
 impl AbsoluteBoxOffsets {
     fn adjust_offset(&mut self, new_offset: Length) {
         match *self {
-            AbsoluteBoxOffsets::StaticStart {ref mut start} => *start = new_offset,
-            _ => ()
+            AbsoluteBoxOffsets::StaticStart { ref mut start } => *start = new_offset,
+            _ => (),
         }
     }
 }
@@ -149,7 +163,7 @@ impl AbsolutelyPositionedBox {
         HoistedAbsolutelyPositionedBox {
             tree_rank,
             box_offsets,
-            fragment: ArcRefCell::new(None),
+            fragment: ArcRefCell::new(HoistedSharedFragment::new()),
             absolutely_positioned_box: self_,
         }
     }
@@ -376,7 +390,7 @@ impl HoistedAbsolutelyPositionedBox {
                         containing_block,
                     )));
 
-                    *box_.fragment.borrow_mut() = Some(new_fragment.clone());
+                    box_.fragment.borrow_mut().fragment = Some(new_fragment.clone());
                     new_fragment
                 },
                 Vec::new,
@@ -389,7 +403,7 @@ impl HoistedAbsolutelyPositionedBox {
                     for_nearest_containing_block_for_all_descendants,
                     containing_block,
                 )));
-                *box_.fragment.borrow_mut() = Some(new_fragment.clone());
+                box_.fragment.borrow_mut().fragment = Some(new_fragment.clone());
                 new_fragment
             }))
         }

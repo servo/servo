@@ -8,6 +8,7 @@ use crate::geom::flow_relative::{Rect, Sides};
 use crate::geom::{PhysicalPoint, PhysicalRect};
 #[cfg(debug_assertions)]
 use crate::layout_debug;
+use crate::positioned::HoistedSharedFragment;
 use gfx::font::FontMetrics as GfxFontMetrics;
 use gfx::text::glyph::GlyphStore;
 use gfx_traits::print_tree::PrintTree;
@@ -74,7 +75,7 @@ pub(crate) enum Fragment {
 #[derive(Serialize)]
 pub(crate) struct AbsoluteOrFixedPositionedFragment {
     pub position: ComputedPosition,
-    pub hoisted_fragment: ArcRefCell<Option<ArcRefCell<Fragment>>>,
+    pub hoisted_fragment: ArcRefCell<HoistedSharedFragment>,
 }
 
 #[derive(Serialize)]
