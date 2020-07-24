@@ -216,7 +216,8 @@ fn layout_block_level_children(
                 // https://drafts.csswg.org/css-position-3/#staticpos-rect
                 if let Some(mut hoisted) = maybe_hoisted {
                     hoisted.adjust_offsets(Vec2 {
-                        block: placement_state.current_block_direction_position,
+                        block: placement_state.current_block_direction_position +
+                            placement_state.current_margin.solve(),
                         inline: Length::new(0.),
                     });
                     positioning_context.push(hoisted)
