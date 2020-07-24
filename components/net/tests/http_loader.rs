@@ -16,8 +16,7 @@ use flate2::Compression;
 use futures::{self, Future, Stream};
 use headers::authorization::Basic;
 use headers::{
-    AccessControlAllowOrigin, Authorization, ContentLength, Date, HeaderMapExt, Host, Origin,
-    StrictTransportSecurity, UserAgent,
+    Authorization, ContentLength, Date, HeaderMapExt, Host, StrictTransportSecurity, UserAgent,
 };
 use http::header::{self, HeaderMap, HeaderValue};
 use http::uri::Authority;
@@ -34,7 +33,7 @@ use net::resource_thread::AuthCacheEntry;
 use net::test::replace_host_table;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource, CredentialsMode, Destination, Referrer,
-    RequestBody, RequestBuilder, RequestMode,
+    RequestBody, RequestBuilder,
 };
 use net_traits::response::ResponseBody;
 use net_traits::{CookieSource, NetworkError, ReferrerPolicy};
@@ -1370,81 +1369,6 @@ fn test_auth_ui_needs_www_auth() {
         response.internal_response.unwrap().status.unwrap().0,
         StatusCode::UNAUTHORIZED
     );
-}
-
-#[test]
-fn test_origin_set() {
-    let origin_header = Arc::new(Mutex::new(None));
-    let origin_header_clone = origin_header.clone();
-    let handler = move |request: HyperRequest<Body>, resp: &mut HyperResponse<Body>| {
-        let origin_header_clone = origin_header.clone();
-        resp.headers_mut()
-            .typed_insert(AccessControlAllowOrigin::ANY);
-        match request.headers().typed_get::<Origin>() {
-            None => assert_eq!(origin_header_clone.lock().unwrap().take(), None),
-            Some(h) => assert_eq!(h, origin_header_clone.lock().unwrap().take().unwrap()),
-        }
-    };
-    let (server, url) = make_server(handler);
-
-    let mut origin =
-        Origin::try_from_parts(url.scheme(), url.host_str().unwrap(), url.port()).unwrap();
-    *origin_header_clone.lock().unwrap() = Some(origin.clone());
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
-        .method(Method::POST)
-        .body(None)
-        .origin(url.clone().origin())
-        .build();
-
-    let response = fetch(&mut request, None);
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
-
-    let origin_url = ServoUrl::parse("http://example.com").unwrap();
-    origin =
-        Origin::try_from_parts(origin_url.scheme(), origin_url.host_str().unwrap(), None).unwrap();
-    // Test Origin header is set on Get request with CORS mode
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
-        .method(Method::GET)
-        .mode(RequestMode::CorsMode)
-        .body(None)
-        .origin(origin_url.clone().origin())
-        .build();
-
-    *origin_header_clone.lock().unwrap() = Some(origin.clone());
-    let response = fetch(&mut request, None);
-    assert!(response
-        .internal_response
-        .unwrap()
-        .status
-        .unwrap()
-        .0
-        .is_success());
-
-    // Test Origin header is not set on method Head
-    let mut request = RequestBuilder::new(url.clone(), Referrer::NoReferrer)
-        .method(Method::HEAD)
-        .body(None)
-        .origin(url.clone().origin())
-        .build();
-
-    *origin_header_clone.lock().unwrap() = None;
-    let response = fetch(&mut request, None);
-    match response.internal_response.as_ref() {
-        Some(response) => {
-            assert!(response.status.as_ref().unwrap().0.is_success());
-        },
-        None => {
-            panic!("Expected internal response, got {:?}", response);
-        },
-    }
-
-    let _ = server.close();
 }
 
 #[test]
