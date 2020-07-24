@@ -85,8 +85,7 @@ pub enum FromLayoutMsg {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FromScriptMsg {
     SendPixels(IpcSender<IpcSharedMemory>),
-    RegisterCapturedStream(MediaStreamId),
-    PushCapturedStreamsData(Size2D<u64>),
+    PushCapturedStreamsData(Vec<MediaStreamId>, Size2D<u64>),
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
