@@ -19,17 +19,21 @@ pub struct GPUShaderModule {
 }
 
 impl GPUShaderModule {
-    fn new_inherited(shader_module: WebGPUShaderModule) -> Self {
+    fn new_inherited(shader_module: WebGPUShaderModule, label: Option<USVString>) -> Self {
         Self {
             reflector_: Reflector::new(),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             shader_module,
         }
     }
 
-    pub fn new(global: &GlobalScope, shader_module: WebGPUShaderModule) -> DomRoot<Self> {
+    pub fn new(
+        global: &GlobalScope,
+        shader_module: WebGPUShaderModule,
+        label: Option<USVString>,
+    ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUShaderModule::new_inherited(shader_module)),
+            Box::new(GPUShaderModule::new_inherited(shader_module, label)),
             global,
         )
     }

@@ -13,6 +13,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandencoder::{GPUCommandEncoder, GPUCommandEncoderState};
+use crate::dom::gpurenderbundle::GPURenderBundle;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
 use dom_struct::dom_struct;
 use webgpu::{
@@ -32,11 +33,16 @@ pub struct GPURenderPassEncoder {
 }
 
 impl GPURenderPassEncoder {
-    fn new_inherited(channel: WebGPU, render_pass: RenderPass, parent: &GPUCommandEncoder) -> Self {
+    fn new_inherited(
+        channel: WebGPU,
+        render_pass: RenderPass,
+        parent: &GPUCommandEncoder,
+        label: Option<USVString>,
+    ) -> Self {
         Self {
             channel,
             reflector_: Reflector::new(),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             render_pass: DomRefCell::new(Some(render_pass)),
             command_encoder: Dom::from_ref(parent),
         }
@@ -47,12 +53,14 @@ impl GPURenderPassEncoder {
         channel: WebGPU,
         render_pass: RenderPass,
         parent: &GPUCommandEncoder,
+        label: Option<USVString>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderPassEncoder::new_inherited(
                 channel,
                 render_pass,
                 parent,
+                label,
             )),
             global,
         )
@@ -125,11 +133,17 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
                 b: *d.b,
                 a: *d.a,
             },
-            GPUColor::DoubleSequence(s) => wgt::Color {
-                r: *s[0],
-                g: *s[1],
-                b: *s[2],
-                a: *s[3],
+            GPUColor::DoubleSequence(mut s) => {
+                if s.len() < 3 {
+                    s.resize(3, Finite::wrap(0.0f64));
+                }
+                s.resize(4, Finite::wrap(1.0f64));
+                wgt::Color {
+                    r: *s[0],
+                    g: *s[1],
+                    b: *s[2],
+                    a: *s[3],
+                }
             },
         };
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
@@ -153,7 +167,7 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
                     command_encoder_id: self.command_encoder.id().0,
                     render_pass,
                 })
-                .unwrap();
+                .expect("Failed to send RunRenderPass");
 
             self.command_encoder.set_state(
                 GPUCommandEncoderState::Open,
@@ -247,6 +261,21 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
                 indirect_buffer.id().0,
                 indirect_offset,
             );
+        }
+    }
+
+    /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-executebundles
+    #[allow(unsafe_code)]
+    fn ExecuteBundles(&self, bundles: Vec<DomRoot<GPURenderBundle>>) {
+        let bundle_ids = bundles.iter().map(|b| b.id().0).collect::<Vec<_>>();
+        if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
+            unsafe {
+                wgpu_render::wgpu_render_pass_execute_bundles(
+                    render_pass,
+                    bundle_ids.as_ptr(),
+                    bundle_ids.len(),
+                )
+            };
         }
     }
 }

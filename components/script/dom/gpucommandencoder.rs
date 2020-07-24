@@ -25,6 +25,7 @@ use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
 use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt};
 use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
 use dom_struct::dom_struct;
+use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashSet;
 use webgpu::wgpu::command as wgpu_com;
@@ -58,11 +59,12 @@ impl GPUCommandEncoder {
         device: WebGPUDevice,
         encoder: webgpu::WebGPUCommandEncoder,
         valid: bool,
+        label: Option<USVString>,
     ) -> Self {
         Self {
             channel,
             reflector_: Reflector::new(),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             device,
             encoder,
             buffers: DomRefCell::new(HashSet::new()),
@@ -77,10 +79,11 @@ impl GPUCommandEncoder {
         device: WebGPUDevice,
         encoder: webgpu::WebGPUCommandEncoder,
         valid: bool,
+        label: Option<USVString>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUCommandEncoder::new_inherited(
-                channel, device, encoder, valid,
+                channel, device, encoder, valid, label,
             )),
             global,
         )
@@ -116,13 +119,18 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-begincomputepass
     fn BeginComputePass(
         &self,
-        _descriptor: &GPUComputePassDescriptor,
+        descriptor: &GPUComputePassDescriptor,
     ) -> DomRoot<GPUComputePassEncoder> {
         self.set_state(
             GPUCommandEncoderState::EncodingComputePass,
             GPUCommandEncoderState::Open,
         );
-        GPUComputePassEncoder::new(&self.global(), self.channel.clone(), &self)
+        GPUComputePassEncoder::new(
+            &self.global(),
+            self.channel.clone(),
+            &self,
+            descriptor.parent.label.as_ref().cloned(),
+        )
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-beginrenderpass
@@ -134,55 +142,6 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             GPUCommandEncoderState::EncodingRenderPass,
             GPUCommandEncoderState::Open,
         );
-
-        let colors = descriptor
-            .colorAttachments
-            .iter()
-            .map(|color| {
-                let (load_op, clear_value) = match color.loadValue {
-                    GPUColorLoad::GPULoadOp(_) => (wgpu_com::LoadOp::Load, wgt::Color::TRANSPARENT),
-                    GPUColorLoad::DoubleSequence(ref s) => {
-                        let mut w = s.clone();
-                        if w.len() < 3 {
-                            w.resize(3, Finite::wrap(0.0f64));
-                        }
-                        w.resize(4, Finite::wrap(1.0f64));
-                        (
-                            wgpu_com::LoadOp::Clear,
-                            wgt::Color {
-                                r: *w[0],
-                                g: *w[1],
-                                b: *w[2],
-                                a: *w[3],
-                            },
-                        )
-                    },
-                    GPUColorLoad::GPUColorDict(ref d) => (
-                        wgpu_com::LoadOp::Clear,
-                        wgt::Color {
-                            r: *d.r,
-                            g: *d.g,
-                            b: *d.b,
-                            a: *d.a,
-                        },
-                    ),
-                };
-                let channel = wgpu_com::PassChannel {
-                    load_op,
-                    store_op: match color.storeOp {
-                        GPUStoreOp::Store => wgpu_com::StoreOp::Store,
-                        GPUStoreOp::Clear => wgpu_com::StoreOp::Clear,
-                    },
-                    clear_value,
-                    read_only: false,
-                };
-                wgpu_com::ColorAttachmentDescriptor {
-                    attachment: color.attachment.id().0,
-                    resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
-                    channel,
-                }
-            })
-            .collect::<Vec<_>>();
 
         let depth_stencil = descriptor.depthStencilAttachment.as_ref().map(|depth| {
             let (depth_load_op, clear_depth) = match depth.depthLoadValue {
@@ -219,13 +178,70 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         });
 
         let desc = wgpu_com::RenderPassDescriptor {
-            color_attachments: colors.as_slice(),
+            color_attachments: Cow::Owned(
+                descriptor
+                    .colorAttachments
+                    .iter()
+                    .map(|color| {
+                        let (load_op, clear_value) = match color.loadValue {
+                            GPUColorLoad::GPULoadOp(_) => {
+                                (wgpu_com::LoadOp::Load, wgt::Color::TRANSPARENT)
+                            },
+                            GPUColorLoad::DoubleSequence(ref s) => {
+                                let mut w = s.clone();
+                                if w.len() < 3 {
+                                    w.resize(3, Finite::wrap(0.0f64));
+                                }
+                                w.resize(4, Finite::wrap(1.0f64));
+                                (
+                                    wgpu_com::LoadOp::Clear,
+                                    wgt::Color {
+                                        r: *w[0],
+                                        g: *w[1],
+                                        b: *w[2],
+                                        a: *w[3],
+                                    },
+                                )
+                            },
+                            GPUColorLoad::GPUColorDict(ref d) => (
+                                wgpu_com::LoadOp::Clear,
+                                wgt::Color {
+                                    r: *d.r,
+                                    g: *d.g,
+                                    b: *d.b,
+                                    a: *d.a,
+                                },
+                            ),
+                        };
+                        let channel = wgpu_com::PassChannel {
+                            load_op,
+                            store_op: match color.storeOp {
+                                GPUStoreOp::Store => wgpu_com::StoreOp::Store,
+                                GPUStoreOp::Clear => wgpu_com::StoreOp::Clear,
+                            },
+                            clear_value,
+                            read_only: false,
+                        };
+                        wgpu_com::ColorAttachmentDescriptor {
+                            attachment: color.attachment.id().0,
+                            resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
+                            channel,
+                        }
+                    })
+                    .collect::<Vec<_>>(),
+            ),
             depth_stencil_attachment: depth_stencil.as_ref(),
         };
 
         let render_pass = wgpu_com::RenderPass::new(self.encoder.0, desc);
 
-        GPURenderPassEncoder::new(&self.global(), self.channel.clone(), render_pass, &self)
+        GPURenderPassEncoder::new(
+            &self.global(),
+            self.channel.clone(),
+            render_pass,
+            &self,
+            descriptor.parent.label.as_ref().cloned(),
+        )
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-copybuffertobuffer
@@ -349,7 +365,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpucommandencoder-finish
-    fn Finish(&self, _descriptor: &GPUCommandBufferDescriptor) -> DomRoot<GPUCommandBuffer> {
+    fn Finish(&self, descriptor: &GPUCommandBufferDescriptor) -> DomRoot<GPUCommandBuffer> {
         self.channel
             .0
             .send(WebGPURequest::CommandEncoderFinish {
@@ -366,6 +382,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             self.channel.clone(),
             buffer,
             self.buffers.borrow_mut().drain().collect(),
+            descriptor.parent.label.as_ref().cloned(),
         )
     }
 }

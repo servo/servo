@@ -7,8 +7,8 @@ use webgpu::wgpu::{
     hub::IdentityManager,
     id::{
         AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandEncoderId, ComputePipelineId,
-        DeviceId, PipelineLayoutId, RenderPipelineId, SamplerId, ShaderModuleId, TextureId,
-        TextureViewId,
+        DeviceId, PipelineLayoutId, RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId,
+        TextureId, TextureViewId,
     },
 };
 use webgpu::wgt::Backend;
@@ -28,6 +28,7 @@ pub struct IdentityHub {
     texture_views: IdentityManager,
     samplers: IdentityManager,
     render_pipelines: IdentityManager,
+    render_bundles: IdentityManager,
 }
 
 impl IdentityHub {
@@ -46,6 +47,7 @@ impl IdentityHub {
             texture_views: IdentityManager::default(),
             samplers: IdentityManager::default(),
             render_pipelines: IdentityManager::default(),
+            render_bundles: IdentityManager::default(),
         }
     }
 }
@@ -214,5 +216,13 @@ impl Identities {
 
     pub fn kill_texture_view_id(&mut self, id: TextureViewId) {
         self.select(id.backend()).texture_views.free(id);
+    }
+
+    pub fn create_render_bundle_id(&mut self, backend: Backend) -> RenderBundleId {
+        self.select(backend).render_bundles.alloc(backend)
+    }
+
+    pub fn kill_render_bundle_id(&mut self, id: RenderBundleId) {
+        self.select(id.backend()).render_bundles.free(id);
     }
 }

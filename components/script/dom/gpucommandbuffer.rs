@@ -37,11 +37,12 @@ impl GPUCommandBuffer {
         channel: WebGPU,
         command_buffer: WebGPUCommandBuffer,
         buffers: HashSet<DomRoot<GPUBuffer>>,
+        label: Option<USVString>,
     ) -> Self {
         Self {
             channel,
             reflector_: Reflector::new(),
-            label: DomRefCell::new(None),
+            label: DomRefCell::new(label),
             command_buffer,
             buffers: DomRefCell::new(buffers.into_iter().map(|b| Dom::from_ref(&*b)).collect()),
         }
@@ -52,12 +53,14 @@ impl GPUCommandBuffer {
         channel: WebGPU,
         command_buffer: WebGPUCommandBuffer,
         buffers: HashSet<DomRoot<GPUBuffer>>,
+        label: Option<USVString>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUCommandBuffer::new_inherited(
                 channel,
                 command_buffer,
                 buffers,
+                label,
             )),
             global,
         )
