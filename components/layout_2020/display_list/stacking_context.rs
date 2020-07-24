@@ -661,6 +661,7 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
     ) {
+        self.build_clip_frame_if_necessary(builder, containing_block_info);
         stacking_context.fragments.push(StackingContextFragment {
             space_and_clip: builder.current_space_and_clip,
             section: self.get_stacking_context_section(),
@@ -671,7 +672,6 @@ impl BoxFragment {
         // We want to build the scroll frame after the background and border, because
         // they shouldn't scroll with the rest of the box content.
         self.build_scroll_frame_if_necessary(builder, containing_block_info);
-        self.build_clip_frame_if_necessary(builder, containing_block_info);
 
         let padding_rect = self
             .padding_rect()
