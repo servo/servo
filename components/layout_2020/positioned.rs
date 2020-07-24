@@ -79,8 +79,8 @@ pub(crate) enum AbsoluteBoxOffsets {
 impl AbsoluteBoxOffsets {
     fn adjust_offset(&mut self, new_offset: Length) {
         match *self {
-            AbsoluteBoxOffsets::StaticStart {ref mut start} => *start = new_offset,
-            _ => ()
+            AbsoluteBoxOffsets::StaticStart { ref mut start } => *start = new_offset,
+            _ => (),
         }
     }
 }

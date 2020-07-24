@@ -16,7 +16,9 @@ use crate::fragments::{
     CollapsedMargin, Fragment, Tag,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
-use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
+use crate::positioned::{
+    AbsolutelyPositionedBox, HoistedAbsolutelyPositionedBox, PositioningContext,
+};
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
 use crate::style_ext::{ComputedValuesExt, PaddingBorderMargin};
@@ -229,13 +231,16 @@ fn layout_block_level_children(
                 .iter()
                 .enumerate()
                 .map(|(tree_rank, box_)| {
-                    let mut fragment = box_.borrow_mut().layout(
-                        layout_context,
-                        positioning_context,
-                        containing_block,
-                        tree_rank,
-                        float_context.as_mut().map(|c| &mut **c),
-                    );
+                    let mut fragment = box_
+                        .borrow_mut()
+                        .layout(
+                            layout_context,
+                            positioning_context,
+                            containing_block,
+                            tree_rank,
+                            float_context.as_mut().map(|c| &mut **c),
+                        )
+                        .0;
                     place_block_level_fragment(&mut fragment, &mut placement_state);
                     fragment
                 })
@@ -249,13 +254,15 @@ fn layout_block_level_children(
                 .mapfold_reduce_into(
                     positioning_context,
                     |positioning_context, (tree_rank, box_)| {
-                        box_.borrow_mut().layout(
-                            layout_context,
-                            positioning_context,
-                            containing_block,
-                            tree_rank,
-                            /* float_context = */ None,
-                        )
+                        box_.borrow_mut()
+                            .layout(
+                                layout_context,
+                                positioning_context,
+                                containing_block,
+                                tree_rank,
+                                /* float_context = */ None,
+                            )
+                            .0
                     },
                     || PositioningContext::new_for_rayon(collects_for_nearest_positioned_ancestor),
                     PositioningContext::append,
@@ -281,6 +288,9 @@ fn layout_block_level_children(
 }
 
 impl BlockLevelBox {
+    /// Lays out the box. In case it is absolutely positioned,
+    /// this also returns the HoistedAbsolutelyPositionedBox which will need
+    /// to be adjusted before being added to the positioning context
     fn layout(
         &mut self,
         layout_context: &LayoutContext,
@@ -288,31 +298,34 @@ impl BlockLevelBox {
         containing_block: &ContainingBlock,
         tree_rank: usize,
         float_context: Option<&mut FloatContext>,
-    ) -> Fragment {
+    ) -> (Fragment, Option<HoistedAbsolutelyPositionedBox>) {
         match self {
             BlockLevelBox::SameFormattingContextBlock {
                 tag,
                 style,
                 contents,
-            } => Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
-                layout_context,
-                containing_block,
-                style,
-                |positioning_context| {
-                    layout_in_flow_non_replaced_block_level(
-                        layout_context,
-                        positioning_context,
-                        containing_block,
-                        *tag,
-                        style,
-                        NonReplacedContents::SameFormattingContextBlock(contents),
-                        tree_rank,
-                        float_context,
-                    )
-                },
-            )),
+            } => (
+                Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
+                    layout_context,
+                    containing_block,
+                    style,
+                    |positioning_context| {
+                        layout_in_flow_non_replaced_block_level(
+                            layout_context,
+                            positioning_context,
+                            containing_block,
+                            *tag,
+                            style,
+                            NonReplacedContents::SameFormattingContextBlock(contents),
+                            tree_rank,
+                            float_context,
+                        )
+                    },
+                )),
+                None,
+            ),
             BlockLevelBox::Independent(independent) => match independent {
-                IndependentFormattingContext::Replaced(replaced) => {
+                IndependentFormattingContext::Replaced(replaced) => (
                     Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
                         layout_context,
                         containing_block,
@@ -325,9 +338,10 @@ impl BlockLevelBox {
                                 &replaced.contents,
                             )
                         },
-                    ))
-                },
-                IndependentFormattingContext::NonReplaced(non_replaced) => {
+                    )),
+                    None,
+                ),
+                IndependentFormattingContext::NonReplaced(non_replaced) => (
                     Fragment::Box(positioning_context.layout_maybe_position_relative_fragment(
                         layout_context,
                         containing_block,
@@ -346,8 +360,9 @@ impl BlockLevelBox {
                                 float_context,
                             )
                         },
-                    ))
-                },
+                    )),
+                    None,
+                ),
             },
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                 let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
@@ -360,17 +375,22 @@ impl BlockLevelBox {
                     containing_block,
                 );
                 let hoisted_fragment = hoisted_box.fragment.clone();
-                positioning_context.push(hoisted_box);
-                Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment {
-                    hoisted_fragment,
-                    position: box_.borrow().context.style().clone_position(),
-                })
+                (
+                    Fragment::AbsoluteOrFixedPositioned(AbsoluteOrFixedPositionedFragment {
+                        hoisted_fragment,
+                        position: box_.borrow().context.style().clone_position(),
+                    }),
+                    Some(hoisted_box),
+                )
             },
             BlockLevelBox::OutOfFlowFloatBox(_box_) => {
                 // FIXME: call layout_maybe_position_relative_fragment here
-                Fragment::Anonymous(AnonymousFragment::no_op(
-                    containing_block.style.writing_mode,
-                ))
+                (
+                    Fragment::Anonymous(AnonymousFragment::no_op(
+                        containing_block.style.writing_mode,
+                    )),
+                    None,
+                )
             },
         }
     }
