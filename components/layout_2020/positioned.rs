@@ -49,6 +49,16 @@ pub(crate) struct HoistedAbsolutelyPositionedBox {
     pub fragment: ArcRefCell<Option<ArcRefCell<Fragment>>>,
 }
 
+impl HoistedAbsolutelyPositionedBox {
+    /// In some cases `inset: auto`-positioned elements do not know their precise
+    /// position until after they're hoisted. This lets us adjust auto values
+    /// after the fact.
+    pub(crate) fn adjust_offsets(&mut self, offsets: Vec2<Length>) {
+        self.box_offsets.inline.adjust_offset(offsets.inline);
+        self.box_offsets.block.adjust_offset(offsets.block);
+    }
+}
+
 #[derive(Clone, Debug)]
 pub(crate) enum AbsoluteBoxOffsets {
     StaticStart {
@@ -64,6 +74,15 @@ pub(crate) enum AbsoluteBoxOffsets {
         start: LengthPercentage,
         end: LengthPercentage,
     },
+}
+
+impl AbsoluteBoxOffsets {
+    fn adjust_offset(&mut self, new_offset: Length) {
+        match *self {
+            AbsoluteBoxOffsets::StaticStart {ref mut start} => *start = new_offset,
+            _ => ()
+        }
+    }
 }
 
 impl AbsolutelyPositionedBox {
