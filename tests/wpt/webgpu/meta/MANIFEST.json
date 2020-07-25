@@ -186,6 +186,20 @@
       ]
      }
     },
+    "third_party": {
+     "glslang_js": {
+      "lib": {
+       "glslang.js": [
+        "21bd32eafa285c95c87c14056e1e0f253549dedd",
+        []
+       ],
+       "glslang.wasm": [
+        "d951d65e063a930ad0d841848367f7b8cc6b2703",
+        []
+       ]
+      }
+     }
+    },
     "webgpu": {
      "api": {
       "operation": {
@@ -475,7 +489,7 @@
   "testharness": {
    "webgpu": {
     "cts.html": [
-     "ea93cd81ce10e23a272a10bcbc0914644ef39cc9",
+     "40941fb9520652e95c3f356b05b73310b3ebdddb",
      [
       "webgpu/cts.html?q=webgpu:api,operation,buffers,create_mapped:*",
       {}
