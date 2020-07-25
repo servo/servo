@@ -909,6 +909,7 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
         # with UWP's restrictions.
         gst_dlls += [
             "graphene-1.0-0.dll",
+            "libcrypto-1_1-x64.dll",
             "libgmp-10.dll",
             "libgnutls-30.dll",
             "libhogweed-4.dll",
@@ -917,10 +918,12 @@ def package_gstreamer_dlls(env, servo_exe_dir, target, uwp):
             "libogg-0.dll",
             "libopus-0.dll",
             "libpng16-16.dll",
+            "libssl-1_1-x64.dll",
             "libtasn1-6.dll",
             "libtheora-0.dll",
             "libtheoradec-1.dll",
             "libtheoraenc-1.dll",
+            "libusrsctp-1.dll",
             "libvorbis-0.dll",
             "libvorbisenc-2.dll",
             "libwinpthread-1.dll",

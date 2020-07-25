@@ -754,16 +754,16 @@ def linux_build_task(name, *, build_env=build_env):
 def windows_build_task(name, package=True, arch="x86_64", rdp=False):
     hashes = {
         "devel": {
-            "x86_64": "c136cbfb0330041d52fe6ec4e3e468563176333c857f6ed71191ebc37fc9d605",
+            "x86_64": "bd444f3ff9d828f93ba5db0ef511d648d238fff50c4435ccefc7b3e9b2bea3b9",
         },
         "non-devel": {
-            "x86_64": "0744a8ef2a4ba393dacb7927d741df871400a85bab5aecf7905f63bf52c405e4",
+            "x86_64": "f33fff17a558a433b9c4cf7bd9a338a3d0867fa2d5ee1ee33d249b6a55e8a297",
         },
     }
     prefix = {
         "x86_64": "msvc",
     }
-    version = "1.16.0"
+    version = "1.16.2"
     task = (
         windows_task(name)
         .with_max_run_time_minutes(90)

@@ -18,6 +18,7 @@ GSTREAMER_DYLIBS = [
     ("gstcontroller", "gstreamer"),
     ("gstfft", "gst-plugins-base"),
     ("gstgl", "gst-plugins-base"),
+    ("gstnet", "gstreamer"),
     ("gstpbutils", "gst-plugins-base"),
     ("gstplayer", "gst-plugins-bad"),
     ("gstreamer", "gstreamer"),
@@ -32,11 +33,13 @@ GSTREAMER_DYLIBS = [
 ]
 
 NON_UWP_DYLIBS = [
+    "gstnet",
     "gstsctp",
 ]
 
 GSTREAMER_PLUGINS = [
     ("gstapp", "gst-plugins-base"),
+    ("gstaudiobuffersplit", "gst-plugins-bad"),
     ("gstaudioconvert", "gst-plugins-base"),
     ("gstaudiofx", "gst-plugins-good"),
     ("gstaudioparsers", "gst-plugins-good"),
@@ -44,6 +47,10 @@ GSTREAMER_PLUGINS = [
     ("gstautodetect", "gst-plugins-good"),
     ("gstcoreelements", "gstreamer"),
     ("gstdeinterlace", "gst-plugins-good"),
+    ("gstdtls", "gst-plugins-bad"),
+    ("gstgio", "gst-plugins-base"),
+    ("gstid3tag", "gst-plugins-bad"),
+    ("gstid3demux", "gst-plugins-good"),
     ("gstinterleave", "gst-plugins-good"),
     ("gstisomp4", "gst-plugins-good"),
     ("gstlibav", "gst-libav"),
@@ -54,6 +61,7 @@ GSTREAMER_PLUGINS = [
     ("gstplayback", "gst-plugins-base"),
     ("gstproxy", "gst-plugins-bad"),
     ("gstrtp", "gst-plugins-good"),
+    ("gstrtpmanager", "gst-plugins-good"),
     ("gsttheora", "gst-plugins-base"),
     ("gsttypefindfunctions", "gst-plugins-base"),
     ("gstvideoconvert", "gst-plugins-base"),
@@ -67,21 +75,25 @@ GSTREAMER_PLUGINS = [
 ]
 
 WINDOWS_PLUGINS = [
-    ("gstnice", "gst-plugins-base"),
-    ("gstwasapi", "gst-plugins-base"),
+    "gstnice",
+    "gstwasapi",
 ]
 
 MACOS_PLUGINS = [
     ("gstapplemedia", "gst-plugins-bad"),
+    ("gstosxaudio", "gst-plugins-good"),
+    ("gstosxvideo", "gst-plugins-good"),
 ]
 
 NON_UWP_PLUGINS = [
+    "gstdtls",
     "gstmatroska",
     "gstnice",
     "gstogg",
     "gstopengl",
     "gstopus",
     "gstrtp",
+    "gstrtpmanager",
     "gsttheora",
     "gstvorbis",
     "gstvpx",
@@ -97,10 +109,14 @@ def windows_dlls(uwp):
 
 
 def windows_plugins(uwp):
-    dlls = [x for x, _ in GSTREAMER_PLUGINS] + [x for x, _ in WINDOWS_PLUGINS]
+    dlls = [x for x, _ in GSTREAMER_PLUGINS] + WINDOWS_PLUGINS
     if uwp:
         dlls = filter(lambda x: x not in NON_UWP_PLUGINS, dlls)
     return [x + ".dll" for x in dlls]
+
+
+def macos_libnice():
+    return os.path.join('/', 'usr', 'local', 'opt', 'libnice', 'lib')
 
 
 def macos_dylibs():
@@ -111,6 +127,9 @@ def macos_dylibs():
             "lib",
             "lib" + name + "-1.0.0.dylib"
         ) for name, path in GSTREAMER_DYLIBS
+    ] + [
+        os.path.join(macos_libnice(), "libnice.dylib"),
+        os.path.join(macos_libnice(), "libnice.10.dylib"),
     ]
 
 
@@ -122,7 +141,9 @@ def macos_plugins():
             "lib",
             "gstreamer-1.0",
             "lib" + name + ".so"
-        ) for name, path in GSTREAMER_PLUGINS
+        ) for name, path in GSTREAMER_PLUGINS + MACOS_PLUGINS
+    ] + [
+        os.path.join(macos_libnice(), "gstreamer-1.0", "libgstnice.so"),
     ]
 
 
