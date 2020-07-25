@@ -5,7 +5,7 @@
 <%namespace name="helpers" file="/helpers.mako.rs" />
 
 <%helpers:shorthand name="list-style"
-                    engines="gecko servo-2013"
+                    engines="gecko servo-2013 servo-2020"
                     sub_properties="list-style-position list-style-image list-style-type"
                     derive_serialize="True"
                     spec="https://drafts.csswg.org/css-lists/#propdef-list-style">

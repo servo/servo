@@ -20,6 +20,7 @@ use rayon_croissant::ParallelIteratorExt;
 use servo_arc::Arc;
 use std::borrow::Cow;
 use std::convert::{TryFrom, TryInto};
+use style::properties::longhands::list_style_position::computed_value::T as ListStylePosition;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 use style::values::specified::text::TextDecorationLine;
@@ -30,12 +31,18 @@ impl BlockFormattingContext {
         info: &NodeAndStyleInfo<Node>,
         contents: NonReplacedContents,
         propagated_text_decoration_line: TextDecorationLine,
+        is_list_item: bool,
     ) -> Self
     where
         Node: NodeExt<'dom>,
     {
-        let (contents, contains_floats) =
-            BlockContainer::construct(context, info, contents, propagated_text_decoration_line);
+        let (contents, contains_floats) = BlockContainer::construct(
+            context,
+            info,
+            contents,
+            propagated_text_decoration_line,
+            is_list_item,
+        );
         let bfc = Self {
             contents,
             contains_floats: contains_floats == ContainsFloats::Yes,
@@ -97,7 +104,11 @@ enum BlockLevelCreator {
 /// Deferring allows using rayon’s `into_par_iter`.
 enum IntermediateBlockContainer {
     InlineFormattingContext(InlineFormattingContext),
-    Deferred(NonReplacedContents, TextDecorationLine),
+    Deferred {
+        contents: NonReplacedContents,
+        propagated_text_decoration_line: TextDecorationLine,
+        is_list_item: bool,
+    },
 }
 
 /// A builder for a block container.
@@ -164,6 +175,7 @@ impl BlockContainer {
         info: &NodeAndStyleInfo<Node>,
         contents: NonReplacedContents,
         propagated_text_decoration_line: TextDecorationLine,
+        is_list_item: bool,
     ) -> (BlockContainer, ContainsFloats)
     where
         Node: NodeExt<'dom>,
@@ -179,6 +191,24 @@ impl BlockContainer {
             anonymous_style: None,
             contains_floats: ContainsFloats::No,
         };
+
+        if is_list_item {
+            if let Some(marker_contents) = crate::lists::make_marker(context, info) {
+                let _position = info.style.clone_list_style_position();
+                // FIXME: implement support for `outside` and remove this:
+                let position = ListStylePosition::Inside;
+                match position {
+                    ListStylePosition::Inside => {
+                        builder.handle_list_item_marker_inside(info, marker_contents)
+                    },
+                    ListStylePosition::Outside => {
+                        // FIXME: implement layout for this case
+                        // https://github.com/servo/servo/issues/27383
+                        // and enable `list-style-position` and the `list-style` shorthand in Stylo.
+                    },
+                }
+            }
+        }
 
         contents.traverse(context, info, &mut builder);
 
@@ -384,13 +414,38 @@ where
         }
     }
 
+    fn handle_list_item_marker_inside(
+        &mut self,
+        info: &NodeAndStyleInfo<Node>,
+        contents: Vec<crate::dom_traversal::PseudoElementContentItem>,
+    ) {
+        let marker_style = self
+            .context
+            .shared_context()
+            .stylist
+            .style_for_anonymous::<Node::ConcreteElement>(
+                &self.context.shared_context().guards,
+                &PseudoElement::ServoText, // FIMXE: use `PseudoElement::Marker` when we add it
+                &info.style,
+            );
+        self.handle_inline_level_element(
+            &info.new_replacing_style(marker_style),
+            DisplayInside::Flow {
+                is_list_item: false,
+            },
+            Contents::OfPseudoElement(contents),
+        );
+    }
+
     fn handle_inline_level_element(
         &mut self,
         info: &NodeAndStyleInfo<Node>,
         display_inside: DisplayInside,
         contents: Contents,
     ) -> ArcRefCell<InlineLevelBox> {
-        let box_ = if display_inside == DisplayInside::Flow && !contents.is_replaced() {
+        let box_ = if let (DisplayInside::Flow { is_list_item }, false) =
+            (display_inside, contents.is_replaced())
+        {
             // We found un inline box.
             // Whatever happened before, all we need to do before recurring
             // is to remember this ongoing inline level box.
@@ -401,6 +456,15 @@ where
                 last_fragment: false,
                 children: vec![],
             });
+
+            if is_list_item {
+                if let Some(marker_contents) = crate::lists::make_marker(self.context, info) {
+                    // Ignore `list-style-position` here:
+                    // “If the list item is an inline box: this value is equivalent to `inside`.”
+                    // https://drafts.csswg.org/css-lists/#list-style-position-outside
+                    self.handle_list_item_marker_inside(info, marker_contents)
+                }
+            }
 
             // `unwrap` doesn’t panic here because `is_replaced` returned `false`.
             NonReplacedContents::try_from(contents)
@@ -485,9 +549,15 @@ where
 
         let kind = match contents.try_into() {
             Ok(contents) => match display_inside {
-                DisplayInside::Flow => BlockLevelCreator::SameFormattingContextBlock(
-                    IntermediateBlockContainer::Deferred(contents, propagated_text_decoration_line),
-                ),
+                DisplayInside::Flow { is_list_item } => {
+                    BlockLevelCreator::SameFormattingContextBlock(
+                        IntermediateBlockContainer::Deferred {
+                            contents,
+                            propagated_text_decoration_line,
+                            is_list_item,
+                        },
+                    )
+                },
                 _ => BlockLevelCreator::Independent {
                     display_inside,
                     contents: contents.into(),
@@ -695,9 +765,17 @@ impl IntermediateBlockContainer {
         Node: NodeExt<'dom>,
     {
         match self {
-            IntermediateBlockContainer::Deferred(contents, propagated_text_decoration_line) => {
-                BlockContainer::construct(context, info, contents, propagated_text_decoration_line)
-            },
+            IntermediateBlockContainer::Deferred {
+                contents,
+                propagated_text_decoration_line,
+                is_list_item,
+            } => BlockContainer::construct(
+                context,
+                info,
+                contents,
+                propagated_text_decoration_line,
+                is_list_item,
+            ),
             IntermediateBlockContainer::InlineFormattingContext(ifc) => {
                 // If that inline formatting context contained any float, those
                 // were already taken into account during the first phase of

@@ -520,9 +520,7 @@ fn is_valid_inside_for_list_item<'i>(inside: &Result<DisplayInside, ParseError<'
 
 /// Parse `list-item`.
 fn parse_list_item<'i, 't>(input: &mut Parser<'i, 't>) -> Result<(), ParseError<'i>> {
-    Ok(try_match_ident_ignore_ascii_case! { input,
-        "list-item" => (),
-    })
+    Ok(input.expect_ident_matching("list-item")?)
 }
 
 impl Parse for Display {

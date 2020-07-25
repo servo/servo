@@ -93,7 +93,6 @@ pub(super) enum NonReplacedContents {
 
 pub(super) enum PseudoElementContentItem {
     Text(String),
-    #[allow(dead_code)]
     Replaced(ReplacedContent),
 }
 
@@ -219,7 +218,9 @@ fn traverse_pseudo_element_contents<'dom, Node>(
                 });
                 let display_inline = DisplayGeneratingBox::OutsideInside {
                     outside: DisplayOutside::Inline,
-                    inside: DisplayInside::Flow,
+                    inside: DisplayInside::Flow {
+                        is_list_item: false,
+                    },
                 };
                 // `display` is not inherited, so we get the initial value
                 debug_assert!(
@@ -345,7 +346,6 @@ where
                             vec.push(PseudoElementContentItem::Replaced(replaced_content));
                         }
                     },
-                    _ => (),
                 }
             }
             vec
