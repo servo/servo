@@ -343,8 +343,8 @@ class Chrome(BrowserSetup):
                 kwargs["webdriver_binary"] = webdriver_binary
             else:
                 raise WptrunError("Unable to locate or install chromedriver binary")
-        if browser_channel in ("dev", "canary"):
-            logger.info("Automatically turning on experimental features for Chrome Dev/Canary")
+        if browser_channel in ("dev", "canary", "nightly"):
+            logger.info("Automatically turning on experimental features for Chrome Dev/Canary or Chromium trunk")
             kwargs["binary_args"].append("--enable-experimental-web-platform-features")
             # HACK(Hexcles): work around https://github.com/web-platform-tests/wpt/issues/16448
             kwargs["webdriver_args"].append("--disable-build-check")

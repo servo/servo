@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:20.04
 
 # No interactive frontend during docker build
 ENV DEBIAN_FRONTEND=noninteractive \
@@ -10,12 +10,14 @@ RUN apt-get -qqy update \
     bridge-utils \
     bzip2 \
     ca-certificates \
+    curl \
     dbus-x11 \
     earlyoom \
     fluxbox \
     gdebi \
     git \
     gstreamer1.0-plugins-bad \
+    gstreamer1.0-gl \
     libosmesa6-dev \
     libvirt-daemon-system \
     libvirt-clients \
@@ -24,16 +26,28 @@ RUN apt-get -qqy update \
     locales \
     openjdk-8-jre-headless \
     pulseaudio \
-    python \
-    python-pip \
+    python2 \
+    python2-dev \
     python3 \
+    python3-dev \
     python3-pip \
+    software-properties-common \
     qemu-kvm \
     tzdata \
     sudo \
     unzip \
     wget \
     xvfb
+
+# python3.6 is not available by default in new versions of Ubuntu.
+RUN apt-add-repository -y ppa:deadsnakes/ppa
+
+# Ensure that scripts referencing `/usr/bin/env python` work.
+RUN apt install python-is-python2
+
+# The python-pip package no longer exists in new versions of Ubuntu.
+RUN curl https://bootstrap.pypa.io/get-pip.py --output get-pip.py
+RUN python2 get-pip.py
 
 # Installing just the deps of firefox and chrome is moderately tricky, so
 # just install the default versions of them, and some extra deps we happen

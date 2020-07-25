@@ -199,7 +199,6 @@ def build_full_command(event, task):
 ~/start.sh \
   %(repo_url)s \
   %(fetch_ref)s;
-sudo add-apt-repository ppa:deadsnakes/ppa
 %(install_str)s
 cd web-platform-tests;
 ./tools/ci/run_tc.py %(options_str)s -- %(task_cmd)s;
