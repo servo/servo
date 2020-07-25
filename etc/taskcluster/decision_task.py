@@ -452,7 +452,7 @@ def macos_nightly():
         .with_script(
             "./mach build --release",
             "./mach package --release",
-            "./etc/ci/macos_package_smoketest.sh repo/target/release/servo-tech-demo.dmg",
+            "./etc/ci/macos_package_smoketest.sh target/release/servo-tech-demo.dmg",
             "./mach upload-nightly mac --secret-from-taskcluster",
         )
         .with_artifacts("repo/target/release/servo-tech-demo.dmg")
