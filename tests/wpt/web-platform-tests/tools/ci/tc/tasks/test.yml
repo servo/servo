@@ -4,7 +4,7 @@ components:
     workerType: ci
     schedulerId: taskcluster-github
     deadline: "24 hours"
-    image: webplatformtests/wpt:0.42
+    image: webplatformtests/wpt:0.46
     maxRunTime: 7200
     artifacts:
       public/results:
@@ -392,6 +392,9 @@ tasks:
         - trigger-pr
         - tox-python3
       command: ./tools/ci/ci_tools_unittest.sh
+      install:
+        - python3.6
+        - python3.6-dev
       env:
         HYPOTHESIS_PROFILE: ci
       schedule-if:
@@ -444,6 +447,8 @@ tasks:
       command: ./tools/ci/ci_tools_integration_test.sh
       install:
         - libnss3-tools
+        - python3.6
+        - python3.6-dev
       options:
         oom-killer: true
         browser:

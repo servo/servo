@@ -355,6 +355,32 @@
         set_user_verified: function(authenticator_id, uv) {
             return window.test_driver_internal.set_user_verified(authenticator_id, uv);
         },
+
+        /**
+         * Sets the storage access rule for an origin when embedded
+         * in a third-party context.
+         *
+         * {@link https://privacycg.github.io/storage-access/#set-storage-access-command}
+         *
+         * @param {String} origin - A third-party origin to block or allow.
+         *                          May be "*" to indicate all origins.
+         * @param {String} embedding_origin - an embedding (first-party) origin
+         *                                    on which {origin}'s access should
+         *                                    be blocked or allowed.
+         *                                    May be "*" to indicate all origins.
+         * @param {String} state - The storage access setting.
+         *                         Must be either "allowed" or "blocked".
+         *
+         * @returns {Promise} Fulfilled after the storage access rule has been
+         *                    set, or rejected if setting the rule fails.
+         */
+        set_storage_access: function(origin, embedding_origin, state) {
+            if (state !== "allowed" && state !== "blocked") {
+                throw new Error("storage access status must be 'allowed' or 'blocked'");
+            }
+            const blocked = state === "blocked";
+            return window.test_driver_internal.set_storage_access(origin, embedding_origin, blocked);
+        },
     };
 
     window.test_driver_internal = {
@@ -567,6 +593,14 @@
          *
          */
         set_user_verified: function(authenticator_id, uv) {
+            return Promise.reject(new Error("unimplemented"));
+        },
+
+        /**
+         * Sets the storage access policy for a third-party origin when loaded
+         * in the current first party context
+         */
+        set_storage_access: function(origin, embedding_origin, blocked) {
             return Promise.reject(new Error("unimplemented"));
         },
     };

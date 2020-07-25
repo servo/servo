@@ -16,7 +16,7 @@ except ImportError:
 
 import pytest
 
-from tools.wpt import wpt
+from tools.wpt import utils, wpt
 
 
 here = os.path.abspath(os.path.dirname(__file__))
@@ -61,7 +61,7 @@ def manifest_dir():
                         os.path.join(path, "MANIFEST.json"))
         yield path
     finally:
-        shutil.rmtree(path)
+        utils.rmtree(path)
 
 
 @pytest.fixture
@@ -86,7 +86,7 @@ def temp_test():
 
     yield make_test
 
-    shutil.rmtree("../../.tools-tests")
+    utils.rmtree("../../.tools-tests")
 
 
 def test_missing():
@@ -185,6 +185,7 @@ def test_run_zero_tests():
                        "chrome", "/non-existent-dir/non-existent-file.html"])
     assert excinfo.value.code != 0
 
+
 @pytest.mark.slow
 @pytest.mark.remote_network
 def test_run_failing_test():
@@ -240,6 +241,25 @@ def test_run_verify_unstable(temp_test):
 
 @pytest.mark.slow
 @pytest.mark.remote_network
+def test_install_chromium():
+    if sys.platform == "win32":
+        chromium_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "chrome-win")
+    elif sys.platform == "darwin":
+        chromium_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "chrome-mac")
+    else:
+        chromium_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "chrome-linux")
+
+    if os.path.exists(chromium_path):
+        utils.rmtree(chromium_path)
+    with pytest.raises(SystemExit) as excinfo:
+        wpt.main(argv=["install", "chrome", "browser", "--channel=nightly"])
+    assert excinfo.value.code == 0
+    assert os.path.exists(chromium_path)
+    utils.rmtree(chromium_path)
+
+
+@pytest.mark.slow
+@pytest.mark.remote_network
 def test_install_chromedriver():
     if sys.platform == "win32":
         chromedriver_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "Scripts", "chromedriver.exe")
@@ -251,7 +271,13 @@ def test_install_chromedriver():
         wpt.main(argv=["install", "chrome", "webdriver"])
     assert excinfo.value.code == 0
     assert os.path.exists(chromedriver_path)
-    os.unlink(chromedriver_path)
+    # FIXME: On Windows, this may sometimes fail (access denied), possibly
+    # because the file handler is not released immediately.
+    try:
+        os.unlink(chromedriver_path)
+    except OSError:
+        if sys.platform != "win32":
+            raise
 
 
 @pytest.mark.slow
@@ -264,12 +290,12 @@ def test_install_firefox():
     else:
         fx_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "firefox")
     if os.path.exists(fx_path):
-        shutil.rmtree(fx_path)
+        utils.rmtree(fx_path)
     with pytest.raises(SystemExit) as excinfo:
         wpt.main(argv=["install", "firefox", "browser", "--channel=nightly"])
     assert excinfo.value.code == 0
     assert os.path.exists(fx_path)
-    shutil.rmtree(fx_path)
+    utils.rmtree(fx_path)
 
 
 def test_files_changed(capsys):
