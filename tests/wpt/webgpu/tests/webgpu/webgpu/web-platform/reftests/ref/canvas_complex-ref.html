@@ -1,0 +1,17 @@
+<html>
+  <title>WebGPU canvas_complex (ref)</title>
+  <meta charset="utf-8" />
+  <link rel="help" href="https://gpuweb.github.io/gpuweb/" />
+  <canvas id="cvs" width="2" height="2" style="width: 20px; height: 20px;"></canvas>
+  <script>
+    const ctx = cvs.getContext('2d');
+    ctx.fillStyle = '#7F0000';
+    ctx.fillRect(0, 0, 1, 1);
+    ctx.fillStyle = '#007F00';
+    ctx.fillRect(1, 0, 1, 1);
+    ctx.fillStyle = '#00007F';
+    ctx.fillRect(0, 1, 1, 1);
+    ctx.fillStyle = '#7F7F00';
+    ctx.fillRect(1, 1, 1, 1);
+  </script>
+</html>
