@@ -2022,6 +2022,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::Checked |
             NonTSPseudoClass::Fullscreen |
             NonTSPseudoClass::Indeterminate |
+            NonTSPseudoClass::MozInert |
             NonTSPseudoClass::PlaceholderShown |
             NonTSPseudoClass::Target |
             NonTSPseudoClass::Valid |

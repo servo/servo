@@ -153,6 +153,56 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         }
     }
 
+    /// https://html.spec.whatwg.org/multipage/interaction.html#inert-subtrees
+    ///
+    ///    If -moz-inert is applied then add:
+    ///        -moz-user-focus: none;
+    ///        -moz-user-input: none;
+    ///        -moz-user-modify: read-only;
+    ///        user-select: none;
+    ///        pointer-events: none;
+    ///        cursor: default;
+    fn adjust_for_inert(&mut self) {
+        use properties::longhands::_moz_inert::computed_value::T as Inert;
+        use properties::longhands::_moz_user_focus::computed_value::T as UserFocus;
+        use properties::longhands::_moz_user_input::computed_value::T as UserInput;
+        use properties::longhands::_moz_user_modify::computed_value::T as UserModify;
+        use properties::longhands::pointer_events::computed_value::T as PointerEvents;
+        use properties::longhands::cursor::computed_value::T as Cursor;
+        use crate::values::specified::ui::CursorKind;
+        use crate::values::specified::ui::UserSelect;
+
+        let needs_update = {
+            let ui = self.style.get_inherited_ui();
+            if ui.clone__moz_inert() == Inert::None {
+                return;
+            }
+
+            ui.clone__moz_user_focus() != UserFocus::None ||
+                ui.clone__moz_user_input() != UserInput::None ||
+                ui.clone__moz_user_modify() != UserModify::ReadOnly ||
+                ui.clone_pointer_events() != PointerEvents::None ||
+                ui.clone_cursor().keyword != CursorKind::Default ||
+                ui.clone_cursor().images != Default::default()
+        };
+
+        if needs_update {
+            let ui = self.style.mutate_inherited_ui();
+            ui.set__moz_user_focus(UserFocus::None);
+            ui.set__moz_user_input(UserInput::None);
+            ui.set__moz_user_modify(UserModify::ReadOnly);
+            ui.set_pointer_events(PointerEvents::None);
+            ui.set_cursor(Cursor {
+                images: Default::default(),
+                keyword: CursorKind::Default,
+            });
+        }
+
+        if self.style.get_ui().clone_user_select() != UserSelect::None {
+            self.style.mutate_ui().set_user_select(UserSelect::None);
+        }
+    }
+
     /// Whether we should skip any item-based display property blockification on
     /// this element.
     fn skip_item_display_fixup<E>(&self, element: Option<E>) -> bool
@@ -855,6 +905,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         #[cfg(feature = "gecko")]
         {
             self.adjust_for_appearance(element);
+            self.adjust_for_inert();
         }
         self.set_bits();
     }

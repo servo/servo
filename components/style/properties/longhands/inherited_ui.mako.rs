@@ -30,6 +30,17 @@ ${helpers.single_keyword(
 )}
 
 ${helpers.single_keyword(
+    "-moz-inert",
+    "none inert",
+    engines="gecko",
+    gecko_ffi_name="mInert",
+    gecko_enum_prefix="StyleInert",
+    animation_value_type="discrete",
+    enabled_in="ua",
+    spec="Nonstandard (https://html.spec.whatwg.org/multipage/interaction.html#inert-subtrees)",
+)}
+
+${helpers.single_keyword(
     "-moz-user-input",
     "auto none",
     engines="gecko",

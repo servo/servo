@@ -145,6 +145,9 @@ bitflags! {
         ///
         /// https://html.spec.whatwg.org/multipage/#centered-alignment
         const IN_MODAL_DIALOG_STATE = 1 << 53;
+
+        /// https://html.spec.whatwg.org/multipage/interaction.html#inert-subtrees
+        const IN_MOZINERT_STATE = 1 << 54;
     }
 }
 
