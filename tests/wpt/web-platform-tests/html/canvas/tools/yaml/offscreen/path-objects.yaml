@@ -2395,3 +2395,20 @@
     @assert ctx.isPointInPath(NaN, NaN) === false;
     t.done();
 
+- name: 2d.path.isPointInStroke.basic
+  desc: detects whether point is in the area contained by the stroke of the path
+  testing:
+  - 2d.path.isPointInStroke.basic
+  code: |
+    ctx.strokeStyle = '#0f0';
+    ctx.beginPath();
+    ctx.rect(0, 0, 20, 20);
+    @assert ctx.isPointInStroke(0, 0) === true;
+    @assert ctx.isPointInStroke(30, 10) === false;
+
+    var path = new Path2D();
+    path.rect(20, 20, 100, 100);
+    @assert ctx.isPointInStroke(path, 20, 20) === true;
+    @assert ctx.isPointInStroke(path, 120, 20) === true;
+    t.done();
+

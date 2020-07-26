@@ -5,6 +5,21 @@
   code: |
     @assert canvas.getContext('2d') !== null;
 
+- name: 2d.getcontext.invalid.args
+  desc: Calling getContext with invalid arguments.
+  testing:
+  - context.2d
+  code: |
+    @assert canvas.getContext('') === null;
+    @assert canvas.getContext('2d#') === null;
+    @assert canvas.getContext('This is clearly not a valid context name.') === null;
+    @assert canvas.getContext('2d\0') === null;
+    @assert canvas.getContext('2\uFF44') === null;
+    @assert canvas.getContext('2D') === null;
+    @assert throws TypeError canvas.getContext();
+    @assert canvas.getContext('null') === null;
+    @assert canvas.getContext('undefined') === null;
+
 - name: 2d.getcontext.extraargs
   desc: The 2D context ignores extra getContext arguments
   testing:
@@ -130,4 +145,13 @@
     @assert c !== d;
     ctx.canvas = c;
     @assert ctx.canvas === d;
+
+- name: 2d.canvas.context
+  desc: checks CanvasRenderingContext2D prototype
+  testing:
+  - 2d.path.contexttypexxx.basic
+  code: |
+    @assert CanvasRenderingContext2D.prototype.__proto__ === Object.prototype;
+    @assert ctx.__proto__ === CanvasRenderingContext2D.prototype;
+    t.done();
 
