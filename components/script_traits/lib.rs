@@ -552,7 +552,7 @@ pub enum CompositorEvent {
     ),
     /// The mouse was moved over a point (or was moved out of the recognizable region).
     MouseMoveEvent(
-        Option<Point2D<f32>>,
+        Point2D<f32>,
         Option<UntrustedNodeAddress>,
         // Bitmask of MouseButton values representing the currently pressed buttons
         u16,

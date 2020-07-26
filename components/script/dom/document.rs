@@ -1376,21 +1376,11 @@ impl Document {
     pub fn handle_mouse_move_event(
         &self,
         js_runtime: *mut JSRuntime,
-        client_point: Option<Point2D<f32>>,
+        client_point: Point2D<f32>,
         prev_mouse_over_target: &MutNullableDom<Element>,
         node_address: Option<UntrustedNodeAddress>,
         pressed_mouse_buttons: u16,
     ) {
-        let client_point = match client_point {
-            None => {
-                // If there's no point, there's no target under the mouse
-                // FIXME: dispatch mouseout here. We have no point.
-                prev_mouse_over_target.set(None);
-                return;
-            },
-            Some(client_point) => client_point,
-        };
-
         let maybe_new_target = node_address.and_then(|address| {
             let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
             node.inclusive_ancestors(ShadowIncluding::No)
@@ -1398,13 +1388,82 @@ impl Document {
                 .next()
         });
 
-        // Send mousemove event to topmost target, unless it's an iframe, in which case the
-        // compositor should have also sent an event to the inner document.
         let new_target = match maybe_new_target {
             Some(ref target) => target,
             None => return,
         };
 
+        let target_has_changed = prev_mouse_over_target
+            .get()
+            .as_ref()
+            .map_or(true, |old_target| old_target != new_target);
+
+        // Here we know the target has changed, so we must update the state,
+        // dispatch mouseout to the previous one, mouseover to the new one,
+        if target_has_changed {
+            // Dispatch mouseout to previous target
+            if let Some(old_target) = prev_mouse_over_target.get() {
+                let old_target_is_ancestor_of_new_target = prev_mouse_over_target
+                    .get()
+                    .as_ref()
+                    .map_or(false, |old_target| {
+                        old_target
+                            .upcast::<Node>()
+                            .is_ancestor_of(new_target.upcast::<Node>())
+                    });
+
+                // If the old target is an ancestor of the new target, this can be skipped
+                // completely, since the node's hover state will be reseted below.
+                if !old_target_is_ancestor_of_new_target {
+                    for element in old_target
+                        .upcast::<Node>()
+                        .inclusive_ancestors(ShadowIncluding::No)
+                        .filter_map(DomRoot::downcast::<Element>)
+                    {
+                        element.set_hover_state(false);
+                        element.set_active_state(false);
+                    }
+                }
+
+                // Remove hover state to old target and its parents
+                self.fire_mouse_event(
+                    client_point,
+                    old_target.upcast(),
+                    FireMouseEventType::Out,
+                    pressed_mouse_buttons,
+                );
+
+                // TODO: Fire mouseleave here only if the old target is
+                // not an ancestor of the new target.
+            }
+
+            // Dispatch mouseover to new target - TODO: Redundant check?
+            if let Some(new_target) = maybe_new_target.as_ref() {
+                for element in new_target
+                    .upcast::<Node>()
+                    .inclusive_ancestors(ShadowIncluding::No)
+                    .filter_map(DomRoot::downcast::<Element>)
+                {
+                    if element.hover_state() {
+                        break;
+                    }
+
+                    element.set_hover_state(true);
+                }
+
+                self.fire_mouse_event(
+                    client_point,
+                    &new_target.upcast(),
+                    FireMouseEventType::Over,
+                    pressed_mouse_buttons,
+                );
+
+                // TODO: Fire mouseenter here.
+            }
+        }
+
+        // Send mousemove event to topmost target, unless it's an iframe, in which case the
+        // compositor should have also sent an event to the inner document.
         self.fire_mouse_event(
             client_point,
             new_target.upcast(),
@@ -1412,76 +1471,13 @@ impl Document {
             pressed_mouse_buttons,
         );
 
-        // Nothing more to do here, mousemove is sent,
-        // and the element under the mouse hasn't changed.
-        if maybe_new_target == prev_mouse_over_target.get() {
-            return;
+        if target_has_changed {
+            // Store the current mouse over target for next frame.
+            prev_mouse_over_target.set(maybe_new_target.as_deref());
+
+            self.window
+                .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
         }
-
-        let old_target_is_ancestor_of_new_target =
-            match (prev_mouse_over_target.get(), maybe_new_target.as_ref()) {
-                (Some(old_target), Some(new_target)) => old_target
-                    .upcast::<Node>()
-                    .is_ancestor_of(new_target.upcast::<Node>()),
-                _ => false,
-            };
-
-        // Here we know the target has changed, so we must update the state,
-        // dispatch mouseout to the previous one, mouseover to the new one,
-        if let Some(old_target) = prev_mouse_over_target.get() {
-            // If the old target is an ancestor of the new target, this can be skipped
-            // completely, since the node's hover state will be reseted below.
-            if !old_target_is_ancestor_of_new_target {
-                for element in old_target
-                    .upcast::<Node>()
-                    .inclusive_ancestors(ShadowIncluding::No)
-                    .filter_map(DomRoot::downcast::<Element>)
-                {
-                    element.set_hover_state(false);
-                    element.set_active_state(false);
-                }
-            }
-
-            // Remove hover state to old target and its parents
-            self.fire_mouse_event(
-                client_point,
-                old_target.upcast(),
-                FireMouseEventType::Out,
-                pressed_mouse_buttons,
-            );
-
-            // TODO: Fire mouseleave here only if the old target is
-            // not an ancestor of the new target.
-        }
-
-        if let Some(ref new_target) = maybe_new_target {
-            for element in new_target
-                .upcast::<Node>()
-                .inclusive_ancestors(ShadowIncluding::No)
-                .filter_map(DomRoot::downcast::<Element>)
-            {
-                if element.hover_state() {
-                    break;
-                }
-
-                element.set_hover_state(true);
-            }
-
-            self.fire_mouse_event(
-                client_point,
-                &new_target.upcast(),
-                FireMouseEventType::Over,
-                pressed_mouse_buttons,
-            );
-
-            // TODO: Fire mouseenter here.
-        }
-
-        // Store the current mouse over target for next frame.
-        prev_mouse_over_target.set(maybe_new_target.as_deref());
-
-        self.window
-            .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
     }
 
     #[allow(unsafe_code)]
