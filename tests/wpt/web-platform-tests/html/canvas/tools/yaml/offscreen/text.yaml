@@ -1089,7 +1089,7 @@
     fonts.ready.then(function() {
         ctx.font = '50px CanvasTest';
         @assert ctx.measureText('A B').width === 150;
-        @assert ctx.measureText('A  B').width === 150; @moz-todo
+        @assert ctx.measureText('A  B').width === 200;
         @assert ctx.measureText('A \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dB').width === 150; @moz-todo
         @assert ctx.measureText('A \x0b B').width >= 200;
 

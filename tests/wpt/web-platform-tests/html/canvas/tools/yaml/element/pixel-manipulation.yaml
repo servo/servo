@@ -585,15 +585,96 @@
       @assert imgdata.data[i] === 0;
     }
 
-- name: 2d.imageData.object.ctor.size.bounds
-  desc: ImageData has a usable constructor
+- name: 2d.imageData.object.ctor.basics
+  desc: Testing different type of ImageData constructor
   testing:
   - 2d.imageData.type
   code: |
-    @assert window.ImageData !== undefined;
-    @assert throws INDEX_SIZE_ERR new window.ImageData(0, 0);
-    @assert throws INDEX_SIZE_ERR new window.ImageData(0, 1);
-    @assert throws INDEX_SIZE_ERR new window.ImageData(1, 0);
+    function setRGBA(imageData, i, rgba)
+    {
+        var s = i * 4;
+        imageData[s] = rgba[0];
+        imageData[s + 1] = rgba[1];
+        imageData[s + 2] = rgba[2];
+        imageData[s + 3] = rgba[3];
+    }
+
+    function getRGBA(imageData, i)
+    {
+        var result = [];
+        var s = i * 4;
+        for (var j = 0; j < 4; j++) {
+            result[j] = imageData[s + j];
+        }
+        return result;
+    }
+
+    function assertArrayEquals(actual, expected)
+    {
+        @assert typeof actual === "object";
+        @assert actual !== null;
+        @assert "length" in actual === true;
+        @assert actual.length === expected.length;
+        for (var i = 0; i < actual.length; i++) {
+            @assert actual.hasOwnProperty(i) === expected.hasOwnProperty(i);
+            @assert actual[i] === expected[i];
+        }
+    }
+
+    @assert ImageData !== undefined;
+    imageData = new ImageData(100, 50);
+
+    @assert imageData !== null;
+    @assert imageData.data !== null;
+    @assert imageData.width === 100;
+    @assert imageData.height === 50;
+    assertArrayEquals(getRGBA(imageData.data, 4), [0, 0, 0, 0]);
+
+    var testColor = [0, 255, 255, 128];
+    setRGBA(imageData.data, 4, testColor);
+    assertArrayEquals(getRGBA(imageData.data, 4), testColor);
+
+    @assert throws TypeError new ImageData(10);
+    @assert throws INDEX_SIZE_ERR new ImageData(0, 10);
+    @assert throws INDEX_SIZE_ERR new ImageData(10, 0);
+    @assert throws INDEX_SIZE_ERR new ImageData('width', 'height');
+    @assert throws INDEX_SIZE_ERR new ImageData(1 << 31, 1 << 31);
+    @assert throws TypeError new ImageData(new Uint8ClampedArray(0));
+    @assert throws INDEX_SIZE_ERR new ImageData(new Uint8Array(100), 25);
+    @assert throws INVALID_STATE_ERR new ImageData(new Uint8ClampedArray(27), 2);
+    @assert throws INDEX_SIZE_ERR new ImageData(new Uint8ClampedArray(28), 7, 0);
+    @assert throws INDEX_SIZE_ERR new ImageData(new Uint8ClampedArray(104), 14);
+    @assert throws INDEX_SIZE_ERR new ImageData(new Uint8ClampedArray([12, 34, 168, 65328]), 1, 151);
+    @assert throws TypeError new ImageData(self, 4, 4);
+    @assert throws TypeError new ImageData(null, 4, 4);
+    @assert throws INDEX_SIZE_ERR new ImageData(imageData.data, 0);
+    @assert throws INDEX_SIZE_ERR new ImageData(imageData.data, 13);
+    @assert throws INDEX_SIZE_ERR new ImageData(imageData.data, 1 << 31);
+    @assert throws INDEX_SIZE_ERR new ImageData(imageData.data, 'biggish');
+    @assert throws INDEX_SIZE_ERR new ImageData(imageData.data, 1 << 24, 1 << 31);
+    @assert new ImageData(new Uint8ClampedArray(28), 7).height === 1;
+
+    imageDataFromData = new ImageData(imageData.data, 100);
+    @assert imageDataFromData.width === 100;
+    @assert imageDataFromData.height === 50;
+    @assert imageDataFromData.data === imageData.data;
+    assertArrayEquals(getRGBA(imageDataFromData.data, 10), getRGBA(imageData.data, 10));
+    setRGBA(imageData.data, 10, testColor);
+    assertArrayEquals(getRGBA(imageDataFromData.data, 10), getRGBA(imageData.data, 10));
+
+    var data = new Uint8ClampedArray(400);
+    data[22] = 129;
+    imageDataFromData = new ImageData(data, 20, 5);
+    @assert imageDataFromData.width === 20;
+    @assert imageDataFromData.height === 5;
+    @assert imageDataFromData.data === data;
+    assertArrayEquals(getRGBA(imageDataFromData.data, 2), getRGBA(data, 2));
+    setRGBA(imageDataFromData.data, 2, testColor);
+    assertArrayEquals(getRGBA(imageDataFromData.data, 2), getRGBA(data, 2));
+
+    if (window.SharedArrayBuffer) {
+        @assert throws TypeError new ImageData(new Uint16Array(new SharedArrayBuffer(32)), 4, 2);
+    }
 
 - name: 2d.imageData.object.ctor.array
   desc: ImageData has a usable constructor

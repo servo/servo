@@ -27,7 +27,7 @@ fonts.add(f);
 fonts.ready.then(function() {
     ctx.font = '50px CanvasTest';
     _assertSame(ctx.measureText('A B').width, 150, "ctx.measureText('A B').width", "150");
-    _assertSame(ctx.measureText('A  B').width, 150, "ctx.measureText('A  B').width", "150");
+    _assertSame(ctx.measureText('A  B').width, 200, "ctx.measureText('A  B').width", "200");
     _assertSame(ctx.measureText('A \x09\x0a\x0c\x0d  \x09\x0a\x0c\x0dB').width, 150, "ctx.measureText('A \\x09\\x0a\\x0c\\x0d  \\x09\\x0a\\x0c\\x0dB').width", "150");
     _assert(ctx.measureText('A \x0b B').width >= 200, "ctx.measureText('A \\x0b B').width >= 200");
 
