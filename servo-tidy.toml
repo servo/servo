@@ -44,7 +44,6 @@ packages = [
   "tokio-openssl",
   "tokio",
   "http",
-  "scoped-tls",
   "bytes",
 
   # https://github.com/servo/servo/pull/23288#issuecomment-494687746
