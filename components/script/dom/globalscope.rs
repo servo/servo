@@ -5,7 +5,6 @@
 use crate::dom::bindings::cell::{DomRefCell, RefMut};
 use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastChannelMethods;
 use crate::dom::bindings::codegen::Bindings::EventSourceBinding::EventSourceBinding::EventSourceMethods;
-use crate::dom::bindings::codegen::Bindings::GPUValidationErrorBinding::GPUError;
 use crate::dom::bindings::codegen::Bindings::ImageBitmapBinding::{
     ImageBitmapOptions, ImageBitmapSource,
 };
@@ -36,8 +35,6 @@ use crate::dom::eventsource::EventSource;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::gpudevice::GPUDevice;
-use crate::dom::gpuoutofmemoryerror::GPUOutOfMemoryError;
-use crate::dom::gpuvalidationerror::GPUValidationError;
 use crate::dom::htmlscriptelement::{ScriptId, SourceCode};
 use crate::dom::identityhub::Identities;
 use crate::dom::imagebitmap::ImageBitmap;
@@ -3023,18 +3020,12 @@ impl GlobalScope {
         let _ = self.gpu_devices.borrow_mut().remove(&device);
     }
 
-    pub fn handle_wgpu_msg(&self, device: WebGPUDevice, scope: u64, result: WebGPUOpResult) {
-        let result = match result {
-            WebGPUOpResult::Success => Ok(()),
-            WebGPUOpResult::ValidationError(m) => {
-                let val_err = GPUValidationError::new(&self, DOMString::from_string(m));
-                Err(GPUError::GPUValidationError(val_err))
-            },
-            WebGPUOpResult::OutOfMemoryError => {
-                let oom_err = GPUOutOfMemoryError::new(&self);
-                Err(GPUError::GPUOutOfMemoryError(oom_err))
-            },
-        };
+    pub fn handle_wgpu_msg(
+        &self,
+        device: WebGPUDevice,
+        scope: Option<u64>,
+        result: WebGPUOpResult,
+    ) {
         self.gpu_devices
             .borrow()
             .get(&device)

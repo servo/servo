@@ -169,7 +169,6 @@ use time::{Duration, Timespec, Tm};
 use uuid::Uuid;
 use webgpu::{
     wgpu::command::{ComputePass, RenderBundleEncoder, RenderPass},
-    wgt::BindGroupLayoutEntry,
     WebGPU, WebGPUAdapter, WebGPUBindGroup, WebGPUBindGroupLayout, WebGPUBuffer,
     WebGPUCommandBuffer, WebGPUCommandEncoder, WebGPUComputePipeline, WebGPUDevice,
     WebGPUPipelineLayout, WebGPUQueue, WebGPURenderBundle, WebGPURenderPipeline, WebGPUSampler,
@@ -629,7 +628,6 @@ unsafe_no_jsmanaged_fields!(WebGPUContextId);
 unsafe_no_jsmanaged_fields!(WebGPUCommandBuffer);
 unsafe_no_jsmanaged_fields!(WebGPUCommandEncoder);
 unsafe_no_jsmanaged_fields!(WebGPUDevice);
-unsafe_no_jsmanaged_fields!(BindGroupLayoutEntry);
 unsafe_no_jsmanaged_fields!(Option<RenderPass>);
 unsafe_no_jsmanaged_fields!(Option<RenderBundleEncoder>);
 unsafe_no_jsmanaged_fields!(Option<ComputePass>);
