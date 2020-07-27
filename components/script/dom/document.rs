@@ -1406,21 +1406,16 @@ impl Document {
             .map_or(true, |old_target| old_target != new_target);
 
         // Here we know the target has changed, so we must update the state,
-        // dispatch mouseout to the previous one, mouseover to the new one,
+        // dispatch mouseout to the previous one, mouseover to the new one.
         if target_has_changed {
-            // Dispatch mouseout to previous target
+            // Dispatch mouseout and mouseleave to previous target.
             if let Some(old_target) = prev_mouse_over_target.get() {
-                let old_target_is_ancestor_of_new_target = prev_mouse_over_target
-                    .get()
-                    .as_ref()
-                    .map_or(false, |old_target| {
-                        old_target
-                            .upcast::<Node>()
-                            .is_ancestor_of(new_target.upcast::<Node>())
-                    });
+                let old_target_is_ancestor_of_new_target = old_target
+                    .upcast::<Node>()
+                    .is_ancestor_of(new_target.upcast::<Node>());
 
                 // If the old target is an ancestor of the new target, this can be skipped
-                // completely, since the node's hover state will be reseted below.
+                // completely, since the node's hover state will be reset below.
                 if !old_target_is_ancestor_of_new_target {
                     for element in old_target
                         .upcast::<Node>()
@@ -1432,7 +1427,6 @@ impl Document {
                     }
                 }
 
-                // Remove hover state to old target and its parents
                 self.fire_mouse_event(
                     client_point,
                     old_target.upcast(),
@@ -1455,41 +1449,38 @@ impl Document {
                 }
             }
 
-            // Dispatch mouseover to new target - TODO: Redundant check?
-            if let Some(new_target) = maybe_new_target.as_ref() {
-                for element in new_target
-                    .upcast::<Node>()
-                    .inclusive_ancestors(ShadowIncluding::No)
-                    .filter_map(DomRoot::downcast::<Element>)
-                {
-                    if element.hover_state() {
-                        break;
-                    }
-
-                    element.set_hover_state(true);
+            // Dispatch mouseover and mouseenter to new target.
+            for element in new_target
+                .upcast::<Node>()
+                .inclusive_ancestors(ShadowIncluding::No)
+                .filter_map(DomRoot::downcast::<Element>)
+            {
+                if element.hover_state() {
+                    break;
                 }
-
-                self.fire_mouse_event(
-                    client_point,
-                    new_target.upcast(),
-                    FireMouseEventType::Over,
-                    EventBubbles::Bubbles,
-                    EventCancelable::Cancelable,
-                    pressed_mouse_buttons,
-                );
-
-                let moving_from = prev_mouse_over_target
-                    .get()
-                    .map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
-                let event_target = DomRoot::from_ref(new_target.upcast::<Node>());
-                self.handle_mouse_enter_leave_event(
-                    client_point,
-                    FireMouseEventType::Enter,
-                    moving_from,
-                    event_target,
-                    pressed_mouse_buttons,
-                );
+                element.set_hover_state(true);
             }
+
+            self.fire_mouse_event(
+                client_point,
+                new_target.upcast(),
+                FireMouseEventType::Over,
+                EventBubbles::Bubbles,
+                EventCancelable::Cancelable,
+                pressed_mouse_buttons,
+            );
+
+            let moving_from = prev_mouse_over_target
+                .get()
+                .map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
+            let event_target = DomRoot::from_ref(new_target.upcast::<Node>());
+            self.handle_mouse_enter_leave_event(
+                client_point,
+                FireMouseEventType::Enter,
+                moving_from,
+                event_target,
+                pressed_mouse_buttons,
+            );
         }
 
         // Send mousemove event to topmost target, unless it's an iframe, in which case the
@@ -1503,10 +1494,9 @@ impl Document {
             pressed_mouse_buttons,
         );
 
+        // If the target has changed then store the current mouse over target for next frame.
         if target_has_changed {
-            // Store the current mouse over target for next frame.
             prev_mouse_over_target.set(maybe_new_target.as_deref());
-
             self.window
                 .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
         }
@@ -1530,6 +1520,8 @@ impl Document {
             |related_target| event_target.common_ancestor(related_target, ShadowIncluding::No),
         );
 
+        // We need to create a target chain in case the event target shares
+        // its boundaries with its ancestors.
         let mut targets = vec![];
         let mut current = Some(event_target);
         while let Some(node) = current {
@@ -1539,6 +1531,9 @@ impl Document {
             current = node.GetParentNode();
             targets.push(node);
         }
+
+        // The order for dispatching mouseenter events starts from the topmost
+        // common ancestor of the event target and the related target.
         if event_type == FireMouseEventType::Enter {
             targets = targets.into_iter().rev().collect();
         }
