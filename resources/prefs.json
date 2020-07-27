@@ -40,6 +40,7 @@
   "dom.webvr.test": false,
   "dom.webvtt.enabled": false,
   "dom.webxr.enabled": true,
+  "dom.webxr.first_person_observer_view": false,
   "dom.webxr.glwindow.cubemap": false,
   "dom.webxr.glwindow.enabled": true,
   "dom.webxr.glwindow.left-right": false,

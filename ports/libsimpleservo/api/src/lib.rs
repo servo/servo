@@ -843,7 +843,7 @@ impl EmbedderMethods for ServoEmbedderCallbacks {
             }
         }
 
-        if openxr::create_instance(false).is_ok() {
+        if openxr::create_instance(false, false).is_ok() {
             let discovery =
                 openxr::OpenXrDiscovery::new(Box::new(ContextMenuCallback(embedder_proxy)));
             registry.register(discovery);

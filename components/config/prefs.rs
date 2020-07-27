@@ -282,6 +282,7 @@ mod gen {
                     enabled: bool,
                     #[serde(default)]
                     test: bool,
+                    first_person_observer_view: bool,
                     glwindow: {
                         #[serde(default)]
                         enabled: bool,
