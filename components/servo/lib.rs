@@ -583,6 +583,13 @@ where
                 }
             },
 
+            WindowEvent::ClearCache => {
+                let msg = ConstellationMsg::ClearCache;
+                if let Err(e) = self.constellation_chan.send(msg) {
+                    warn!("Sending clear cache to constellation failed ({:?}).", e);
+                }
+            },
+
             WindowEvent::MouseWindowEventClass(mouse_window_event) => {
                 self.compositor
                     .on_mouse_window_event_class(mouse_window_event);

@@ -67,7 +67,10 @@ public:
   void KeyDown(const char *k) { key_down(k); }
   void KeyUp(const char *k) { key_up(k); }
 
-  void Reload() { reload(); }
+  void Reload() {
+    clear_cache();
+    reload();
+  }
   void Stop() { stop(); }
   bool LoadUri(hstring uri) { return load_uri(*hstring2char(uri)); }
   void ChangeVisibility(bool visible) { change_visibility(visible); }

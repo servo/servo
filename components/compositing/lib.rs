@@ -71,6 +71,8 @@ pub enum ConstellationMsg {
     AllowNavigationResponse(PipelineId, bool),
     /// Request to load a page.
     LoadUrl(TopLevelBrowsingContextId, ServoUrl),
+    /// Clear the network cache.
+    ClearCache,
     /// Request to traverse the joint session history of the provided browsing context.
     TraverseHistory(TopLevelBrowsingContextId, TraversalDirection),
     /// Inform the constellation of a window being resized.
@@ -143,6 +145,7 @@ impl fmt::Debug for ConstellationMsg {
             MediaSessionAction(..) => "MediaSessionAction",
             ChangeBrowserVisibility(..) => "ChangeBrowserVisibility",
             IMEDismissed => "IMEDismissed",
+            ClearCache => "ClearCache",
         };
         write!(formatter, "ConstellationMsg::{}", variant)
     }
