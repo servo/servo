@@ -201,7 +201,18 @@ fn layout_block_level_children(
                     placement_state.current_margin.solve() + fragment_block_size;
                 placement_state.current_margin = fragment_block_margins.end;
             },
-            Fragment::Anonymous(_) | Fragment::AbsoluteOrFixedPositioned(_) => {},
+            Fragment::AbsoluteOrFixedPositioned(fragment) => {
+                let offset = Vec2 {
+                    block: placement_state.current_margin.solve() +
+                        placement_state.current_block_direction_position,
+                    inline: Length::new(0.),
+                };
+                fragment
+                    .hoisted_fragment
+                    .borrow_mut()
+                    .adjust_offsets(offset);
+            },
+            Fragment::Anonymous(_) => {},
             _ => unreachable!(),
         }
     }
@@ -352,6 +363,9 @@ impl BlockLevelBox {
             BlockLevelBox::OutOfFlowAbsolutelyPositionedBox(box_) => {
                 let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
                     box_.clone(),
+                    // This is incorrect, however we do not know the
+                    // correct positioning until later, in place_block_level_fragment,
+                    // and this value will be adjusted there
                     Vec2::zero(),
                     tree_rank,
                     containing_block,

@@ -916,7 +916,7 @@ impl AbsoluteOrFixedPositionedFragment {
         stacking_context: &mut StackingContext,
     ) {
         let hoisted_fragment = self.hoisted_fragment.borrow();
-        let fragment_ref = match hoisted_fragment.as_ref() {
+        let fragment_ref = match hoisted_fragment.fragment.as_ref() {
             Some(fragment_ref) => fragment_ref,
             None => unreachable!("Found hoisted box with missing fragment."),
         };
