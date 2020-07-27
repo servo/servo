@@ -189,10 +189,13 @@ pub enum TouchEventResult {
     Forwarded,
 }
 
+#[derive(Clone, Copy, PartialEq)]
 pub enum FireMouseEventType {
     Move,
     Over,
     Out,
+    Enter,
+    Leave,
 }
 
 impl FireMouseEventType {
@@ -201,6 +204,8 @@ impl FireMouseEventType {
             &FireMouseEventType::Move => "mousemove",
             &FireMouseEventType::Over => "mouseover",
             &FireMouseEventType::Out => "mouseout",
+            &FireMouseEventType::Enter => "mouseenter",
+            &FireMouseEventType::Leave => "mouseleave",
         }
     }
 }
@@ -1343,6 +1348,8 @@ impl Document {
         client_point: Point2D<f32>,
         target: &EventTarget,
         event_name: FireMouseEventType,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
         pressed_mouse_buttons: u16,
     ) {
         let client_x = client_point.x.to_i32().unwrap_or(0);
@@ -1351,8 +1358,8 @@ impl Document {
         let mouse_event = MouseEvent::new(
             &self.window,
             DOMString::from(event_name.as_str()),
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
+            can_bubble,
+            cancelable,
             Some(&self.window),
             0i32,
             client_x,
@@ -1430,11 +1437,22 @@ impl Document {
                     client_point,
                     old_target.upcast(),
                     FireMouseEventType::Out,
+                    EventBubbles::Bubbles,
+                    EventCancelable::Cancelable,
                     pressed_mouse_buttons,
                 );
 
-                // TODO: Fire mouseleave here only if the old target is
-                // not an ancestor of the new target.
+                if !old_target_is_ancestor_of_new_target {
+                    let event_target = DomRoot::from_ref(old_target.upcast::<Node>());
+                    let moving_into = Some(DomRoot::from_ref(new_target.upcast::<Node>()));
+                    self.handle_mouse_enter_leave_event(
+                        client_point,
+                        FireMouseEventType::Leave,
+                        moving_into,
+                        event_target,
+                        pressed_mouse_buttons,
+                    );
+                }
             }
 
             // Dispatch mouseover to new target - TODO: Redundant check?
@@ -1453,12 +1471,24 @@ impl Document {
 
                 self.fire_mouse_event(
                     client_point,
-                    &new_target.upcast(),
+                    new_target.upcast(),
                     FireMouseEventType::Over,
+                    EventBubbles::Bubbles,
+                    EventCancelable::Cancelable,
                     pressed_mouse_buttons,
                 );
 
-                // TODO: Fire mouseenter here.
+                let moving_from = prev_mouse_over_target
+                    .get()
+                    .map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
+                let event_target = DomRoot::from_ref(new_target.upcast::<Node>());
+                self.handle_mouse_enter_leave_event(
+                    client_point,
+                    FireMouseEventType::Enter,
+                    moving_from,
+                    event_target,
+                    pressed_mouse_buttons,
+                );
             }
         }
 
@@ -1468,6 +1498,8 @@ impl Document {
             client_point,
             new_target.upcast(),
             FireMouseEventType::Move,
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
             pressed_mouse_buttons,
         );
 
@@ -1477,6 +1509,49 @@ impl Document {
 
             self.window
                 .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
+        }
+    }
+
+    fn handle_mouse_enter_leave_event(
+        &self,
+        client_point: Point2D<f32>,
+        event_type: FireMouseEventType,
+        related_target: Option<DomRoot<Node>>,
+        event_target: DomRoot<Node>,
+        pressed_mouse_buttons: u16,
+    ) {
+        assert!(matches!(
+            event_type,
+            FireMouseEventType::Enter | FireMouseEventType::Leave
+        ));
+
+        let common_ancestor = related_target.as_ref().map_or_else(
+            || DomRoot::from_ref(&*event_target),
+            |related_target| event_target.common_ancestor(related_target, ShadowIncluding::No),
+        );
+
+        let mut targets = vec![];
+        let mut current = Some(event_target);
+        while let Some(node) = current {
+            if node == common_ancestor {
+                break;
+            }
+            current = node.GetParentNode();
+            targets.push(node);
+        }
+        if event_type == FireMouseEventType::Enter {
+            targets = targets.into_iter().rev().collect();
+        }
+
+        for target in targets {
+            self.fire_mouse_event(
+                client_point,
+                target.upcast(),
+                event_type,
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+                pressed_mouse_buttons,
+            );
         }
     }
 
