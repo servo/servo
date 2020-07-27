@@ -3238,13 +3238,13 @@ dependencies = [
 
 [[package]]
 name = "loom"
-version = "0.3.4"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ecc775857611e1df29abba5c41355cdf540e7e9d4acfdf0f355eefee82330b7"
+checksum = "28e1106f2fa156410c0feb373657bd8afc9e801ab1c3e71cca22ec8faf8d5ded"
 dependencies = [
  "cfg-if",
  "generator",
- "scoped-tls 0.1.2",
+ "scoped-tls",
 ]
 
 [[package]]
@@ -4684,12 +4684,6 @@ dependencies = [
  "lazy_static",
  "winapi",
 ]
-
-[[package]]
-name = "scoped-tls"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "332ffa32bf586782a3efaeb58f127980944bbc8c4d6913a86107ac2a5ab24b28"
 
 [[package]]
 name = "scoped-tls"
@@ -6526,7 +6520,7 @@ dependencies = [
  "log",
  "mime",
  "mime_guess",
- "scoped-tls 1.0.0",
+ "scoped-tls",
  "serde",
  "serde_json",
  "serde_urlencoded",
