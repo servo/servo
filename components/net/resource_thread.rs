@@ -354,6 +354,9 @@ impl ResourceChannelManager {
             CoreResourceMsg::Synchronize(sender) => {
                 let _ = sender.send(());
             },
+            CoreResourceMsg::ClearCache => {
+                http_state.http_cache.write().unwrap().clear();
+            },
             CoreResourceMsg::ToFileManager(msg) => self.resource_manager.filemanager.handle(msg),
             CoreResourceMsg::Exit(sender) => {
                 if let Some(ref config_dir) = self.config_dir {

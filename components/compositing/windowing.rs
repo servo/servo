@@ -95,6 +95,8 @@ pub enum WindowEvent {
     ToggleWebRenderDebug(WebRenderDebugOption),
     /// Capture current WebRender
     CaptureWebRender,
+    /// Clear the network cache.
+    ClearCache,
     /// Toggle sampling profiler with the given sampling rate and max duration.
     ToggleSamplingProfiler(Duration, Duration),
     /// Sent when the user triggers a media action through the UA exposed media UI
@@ -137,6 +139,7 @@ impl Debug for WindowEvent {
             WindowEvent::MediaSessionAction(..) => write!(f, "MediaSessionAction"),
             WindowEvent::ChangeBrowserVisibility(..) => write!(f, "ChangeBrowserVisibility"),
             WindowEvent::IMEDismissed => write!(f, "IMEDismissed"),
+            WindowEvent::ClearCache => write!(f, "ClearCache"),
         }
     }
 }
