@@ -566,6 +566,14 @@ pub extern "C" fn load_uri(url: *const c_char) -> bool {
 }
 
 #[no_mangle]
+pub extern "C" fn clear_cache() {
+    catch_any_panic(|| {
+        debug!("clear_cache");
+        call(|s| s.clear_cache())
+    });
+}
+
+#[no_mangle]
 pub extern "C" fn reload() {
     catch_any_panic(|| {
         debug!("reload");

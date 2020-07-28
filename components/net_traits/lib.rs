@@ -361,6 +361,10 @@ impl ResourceThreads {
             storage_thread: s,
         }
     }
+
+    pub fn clear_cache(&self) {
+        let _ = self.core_thread.send(CoreResourceMsg::ClearCache);
+    }
 }
 
 impl IpcSend<CoreResourceMsg> for ResourceThreads {
@@ -459,6 +463,8 @@ pub enum CoreResourceMsg {
     RemoveHistoryStates(Vec<HistoryStateId>),
     /// Synchronization message solely for knowing the state of the ResourceChannelManager loop
     Synchronize(IpcSender<()>),
+    /// Clear the network cache.
+    ClearCache,
     /// Send the service worker network mediator for an origin to CoreResourceThread
     NetworkMediator(IpcSender<CustomResponseMediator>, ImmutableOrigin),
     /// Message forwarded to file manager's handler

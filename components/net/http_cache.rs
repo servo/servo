@@ -902,4 +902,9 @@ impl HttpCache {
         // See A cache MAY complete a stored incomplete response by making a subsequent range request
         // https://tools.ietf.org/html/rfc7234#section-3.1
     }
+
+    /// Clear the contents of this cache.
+    pub fn clear(&mut self) {
+        self.entries.clear();
+    }
 }

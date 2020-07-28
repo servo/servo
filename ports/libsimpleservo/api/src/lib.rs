@@ -356,6 +356,13 @@ impl ServoGlue {
     }
 
     /// Reload the page.
+    pub fn clear_cache(&mut self) -> Result<(), &'static str> {
+        info!("clear_cache");
+        let event = WindowEvent::ClearCache;
+        self.process_event(event)
+    }
+
+    /// Reload the page.
     pub fn reload(&mut self) -> Result<(), &'static str> {
         info!("reload");
         let browser_id = self.get_browser_id()?;
