@@ -126,6 +126,9 @@ def test_name_is_tentative():
     s = create("css/css-ui/appearance-revert-001.tentative.html")
     assert s.name_is_tentative
 
+    s = create("css/css-ui/tentative/appearance-revert-001.html")
+    assert s.name_is_tentative
+
     s = create("css/css-ui/appearance-revert-001.html")
     assert not s.name_is_tentative
 

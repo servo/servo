@@ -240,7 +240,6 @@ scheme host and port.""")
                             default=None,
                             help="Build is a release (overrides any mozinfo file)")
 
-
     chunking_group = parser.add_argument_group("Test Chunking")
     chunking_group.add_argument("--total-chunks", action="store", type=int, default=1,
                                 help="Total number of chunks to use")
@@ -251,20 +250,20 @@ scheme host and port.""")
 
     ssl_group = parser.add_argument_group("SSL/TLS")
     ssl_group.add_argument("--ssl-type", action="store", default=None,
-                        choices=["openssl", "pregenerated", "none"],
-                        help="Type of ssl support to enable (running without ssl may lead to spurious errors)")
+                           choices=["openssl", "pregenerated", "none"],
+                           help="Type of ssl support to enable (running without ssl may lead to spurious errors)")
 
     ssl_group.add_argument("--openssl-binary", action="store",
-                        help="Path to openssl binary", default="openssl")
+                           help="Path to openssl binary", default="openssl")
     ssl_group.add_argument("--certutil-binary", action="store",
-                        help="Path to certutil binary for use with Firefox + ssl")
+                           help="Path to certutil binary for use with Firefox + ssl")
 
     ssl_group.add_argument("--ca-cert-path", action="store", type=abs_path,
-                        help="Path to ca certificate when using pregenerated ssl certificates")
+                           help="Path to ca certificate when using pregenerated ssl certificates")
     ssl_group.add_argument("--host-key-path", action="store", type=abs_path,
-                        help="Path to host private key when using pregenerated ssl certificates")
+                           help="Path to host private key when using pregenerated ssl certificates")
     ssl_group.add_argument("--host-cert-path", action="store", type=abs_path,
-                        help="Path to host certificate when using pregenerated ssl certificates")
+                           help="Path to host certificate when using pregenerated ssl certificates")
 
     gecko_group = parser.add_argument_group("Gecko-specific")
     gecko_group.add_argument("--prefs-root", dest="prefs_root", action="store", type=abs_path,
@@ -313,6 +312,11 @@ scheme host and port.""")
                              default=[], action="append", dest="user_stylesheets",
                              help="Inject a user CSS stylesheet into every test.")
 
+    servo_group = parser.add_argument_group("Chrome-specific")
+    servo_group.add_argument("--enable-mojojs", action="store_true", default=False,
+                             help="Enable MojoJS for testing. Mojo bindings need to be available in "
+                             "_venv2/mojojs.")
+
     sauce_group = parser.add_argument_group("Sauce Labs-specific")
     sauce_group.add_argument("--sauce-browser", dest="sauce_browser",
                              help="Sauce Labs browser name")
@@ -346,7 +350,7 @@ scheme host and port.""")
 
     webkit_group = parser.add_argument_group("WebKit-specific")
     webkit_group.add_argument("--webkit-port", dest="webkit_port",
-                             help="WebKit port")
+                              help="WebKit port")
 
     parser.add_argument("test_list", nargs="*",
                         help="List of URLs for tests to run, or paths including tests to run. "

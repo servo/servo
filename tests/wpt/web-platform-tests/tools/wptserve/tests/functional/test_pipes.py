@@ -38,6 +38,10 @@ class TestHeader(TestUsingServer):
         resp = self.request("/document.txt", query="pipe=header(X-Test,1)|header(X-Test,2,True)")
         self.assert_multiple_headers(resp, "X-Test", ["1", "2"])
 
+    def test_semicolon(self):
+        resp = self.request("/document.txt", query="pipe=header(Refresh,3;url=http://example.com)")
+        self.assertEqual(resp.info()["Refresh"], "3;url=http://example.com")
+
 class TestSlice(TestUsingServer):
     def test_both_bounds(self):
         resp = self.request("/document.txt", query="pipe=slice(1,10)")
@@ -94,8 +98,8 @@ server: http://localhost:{0}""".format(self.server.port).encode("ascii")
         self.assertEqual(resp.read().rstrip(), expected.strip())
 
     def test_sub_params(self):
-        resp = self.request("/sub_params.txt", query="test=PASS&pipe=sub")
-        expected = b"PASS"
+        resp = self.request("/sub_params.txt", query="plus+pct-20%20pct-3D%3D=PLUS+PCT-20%20PCT-3D%3D&pipe=sub")
+        expected = b"PLUS PCT-20 PCT-3D="
         self.assertEqual(resp.read().rstrip(), expected)
 
     def test_sub_url_base(self):

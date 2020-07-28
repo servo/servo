@@ -26,7 +26,7 @@
 
     promise_test(async t => {
       assert_equals(await file.queryPermission(), 'granted');
-      assert_equals(await file.queryPermission({ writable: true }), 'granted');
+      assert_equals(await file.queryPermission({ mode: 'readwrite' }), 'granted');
     }, 'showSaveFilePicker returns correct permissions');
   }, 'showSaveFilePicker works');
 

@@ -5,57 +5,42 @@
 <title>Update playback rate zero</title>
 <link rel="match" href="update-playback-rate-zero-ref.html">
 <script src="/common/reftest-wait.js"></script>
+<script src="../../testcommon.js"></script>
 <style>
-  #box-1, #box-2 {
-    border: 1px solid white;
+  #box {
+    background: green;
     height: 40px;
-    left: 40px;
-    position: absolute;
-    top: 40px;
     width: 40px;
   }
-  #box-1 {
-    background: blue;
-    z-index: 1;
-  }
-  #box-2 {
-    background: white;
-    transform: translateX(200px);
-    z-index: 2;
-  }
-  #notes {
-    position: absolute;
-    left: 0px;
-    top: 100px;
-  }
 </style>
-
 <body>
-  <div id="box-1"></div>
-  <div id="box-2"></div>
+  <div id="box"></div>
   <p id="notes">
-    This test creates a running animation and changes its playback rate
-    part way through. The animation should stop behind an occluding rectangle.
-    If not fully occluded, the test fails.
+    This test creates a running animation and halts its playback rate
+    part way through. If the box transitions to red the test fails.
   </p>
 </body>
 <script>
-  onload = function() {
-    const elem = document.getElementById('box-1');
-    const anim = elem.animate([
-        { transform: 'translateX(100px)' },
-        { transform: 'translateX(100px)' },
-        { transform: 'translateX(200px)' },
-        { transform: 'translateX(200px)' }
-      ], {
-        duration: 1000
-      });
-
+  onload = async function() {
+    const box = document.getElementById('box');
+    const duration = 2000;
+    const anim =
+        box.animate({ bacground: [ 'green', 'red' ] },
+                    { duration: duration, easing: 'steps(2, jump-none)' });
     anim.ready.then(() => {
-      setTimeout(() => {
+      const startTime = anim.timeline.currentTime;
+      waitForAnimationFrames(2).then(() => {
         anim.updatePlaybackRate(0);
-      }, 750);
-      takeScreenshotDelayed(1200);
+        anim.ready.then(() => {
+          const checkIfDone = () => {
+            if (anim.timeline.currentTime - startTime > duration / 2)
+              takeScreenshot();
+            else
+              requestAnimationFrame(checkIfDone);
+          };
+          requestAnimationFrame(checkIfDone);
+        });
+      });
     });
   };
 </script>

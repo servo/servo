@@ -55,7 +55,7 @@ class TestEnvironment(object):
     websockets servers"""
     def __init__(self, test_paths, testharness_timeout_multipler,
                  pause_after_test, debug_info, options, ssl_config, env_extras,
-                 enable_quic=False):
+                 enable_quic=False, serve_mojojs=False):
         self.test_paths = test_paths
         self.server = None
         self.config_ctx = None
@@ -72,6 +72,7 @@ class TestEnvironment(object):
         self.env_extras_cms = None
         self.ssl_config = ssl_config
         self.enable_quic = enable_quic
+        self.serve_mojojs = serve_mojojs
 
     def __enter__(self):
         self.config_ctx = self.build_config()
@@ -162,7 +163,7 @@ class TestEnvironment(object):
     def setup_server_logging(self):
         server_logger = get_default_logger(component="wptserve")
         assert server_logger is not None
-        log_filter = handlers.LogLevelFilter(lambda x:x, "info")
+        log_filter = handlers.LogLevelFilter(lambda x: x, "info")
         # Downgrade errors to warnings for the server
         log_filter = LogLevelRewriter(log_filter, ["error"], "warning")
         server_logger.component_filter = log_filter
@@ -170,7 +171,7 @@ class TestEnvironment(object):
         server_logger = proxy.QueuedProxyLogger(server_logger)
 
         try:
-            #Set as the default logger for wptserve
+            # Set as the default logger for wptserve
             serve.set_logger(server_logger)
             serve.logger = server_logger
         except Exception:
@@ -215,6 +216,10 @@ class TestEnvironment(object):
 
         if "/" not in self.test_paths:
             del route_builder.mountpoint_routes["/"]
+
+        if self.serve_mojojs:
+            # TODO(Hexcles): Properly pass venv.path in.
+            route_builder.add_mount_point("/gen/", "_venv2/mojojs/gen")
 
         return route_builder.get_routes()
 

@@ -14,15 +14,25 @@ cookie_test(async t => {
     eventPromise, {changed: [{name: '', value: 'first-value'}]},
     'Observed no-name change');
 
-  eventPromise = observeNextCookieChangeEvent();
-  await cookieStore.set('', '');
-  const actual2 =
-      (await cookieStore.getAll('')).map(({ value }) => value).join(';');
-  const expected2 = '';
-  assert_equals(actual2, expected2);
-  await verifyCookieChangeEvent(
-    eventPromise, {changed: [{name: '', value: ''}]},
-    'Observed no-name change');
+  await promise_rejects_js(
+    t,
+    TypeError,
+    cookieStore.set('', ''),
+    'Expected promise rejection when setting a cookie with' +
+      ' no name and no value');
+
+  await promise_rejects_js(
+    t,
+    TypeError,
+    cookieStore.set({name: '', value: ''}),
+    'Expected promise rejection when setting a cookie with' +
+      ' no name and no value');
+
+  const cookies = await cookieStore.getAll('');
+  assert_equals(cookies.length, 1);
+  assert_equals(cookies[0].name, '');
+  assert_equals(cookies[0].value, 'first-value',
+      'Cookie with no name should still have previous value.');
 
   eventPromise = observeNextCookieChangeEvent();
   await cookieStore.delete('');

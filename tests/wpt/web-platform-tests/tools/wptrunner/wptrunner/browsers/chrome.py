@@ -78,6 +78,9 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     # Point all .test domains to localhost for Chrome
     chrome_options["args"].append("--host-resolver-rules=MAP nonexistent.*.test ~NOTFOUND, MAP *.test 127.0.0.1")
 
+    if kwargs["enable_mojojs"]:
+        chrome_options["args"].append("--enable-blink-features=MojoJS,MojoJSTest")
+
     # Copy over any other flags that were passed in via --binary_args
     if kwargs["binary_args"] is not None:
         chrome_options["args"].extend(kwargs["binary_args"])

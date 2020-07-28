@@ -321,6 +321,13 @@ class Chrome(BrowserSetup):
                 kwargs["binary"] = binary
             else:
                 raise WptrunError("Unable to locate Chrome binary")
+        if browser_channel == "nightly":
+            try:
+                self.browser.install_mojojs(self.venv.path)
+                kwargs["enable_mojojs"] = True
+                logger.info("MojoJS enabled")
+            except Exception as e:
+                logger.error("Cannot enable MojoJS: %s" % e)
         if kwargs["webdriver_binary"] is None:
             webdriver_binary = None
             if not kwargs["install_webdriver"]:
@@ -744,12 +751,8 @@ def setup_wptrunner(venv, **kwargs):
 
     affected_revish = kwargs.get("affected")
     if affected_revish is not None:
-        # TODO: Consolidate with `./wpt tests-affected --ignore-rules`:
-        # https://github.com/web-platform-tests/wpt/issues/14560
         files_changed, _ = testfiles.files_changed(
-            affected_revish,
-            ignore_rules=["resources/testharness*"],
-            include_uncommitted=True, include_new=True)
+            affected_revish, include_uncommitted=True, include_new=True)
         # TODO: Perhaps use wptrunner.testloader.ManifestLoader here
         # and remove the manifest-related code from testfiles.
         # https://github.com/web-platform-tests/wpt/issues/14421

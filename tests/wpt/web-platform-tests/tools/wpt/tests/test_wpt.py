@@ -239,65 +239,6 @@ def test_run_verify_unstable(temp_test):
     assert excinfo.value.code == 0
 
 
-@pytest.mark.slow
-@pytest.mark.remote_network
-def test_install_chromium():
-    if sys.platform == "win32":
-        chromium_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "chrome-win")
-    elif sys.platform == "darwin":
-        chromium_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "chrome-mac")
-    else:
-        chromium_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "chrome-linux")
-
-    if os.path.exists(chromium_path):
-        utils.rmtree(chromium_path)
-    with pytest.raises(SystemExit) as excinfo:
-        wpt.main(argv=["install", "chrome", "browser", "--channel=nightly"])
-    assert excinfo.value.code == 0
-    assert os.path.exists(chromium_path)
-    utils.rmtree(chromium_path)
-
-
-@pytest.mark.slow
-@pytest.mark.remote_network
-def test_install_chromedriver():
-    if sys.platform == "win32":
-        chromedriver_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "Scripts", "chromedriver.exe")
-    else:
-        chromedriver_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "bin", "chromedriver")
-    if os.path.exists(chromedriver_path):
-        os.unlink(chromedriver_path)
-    with pytest.raises(SystemExit) as excinfo:
-        wpt.main(argv=["install", "chrome", "webdriver"])
-    assert excinfo.value.code == 0
-    assert os.path.exists(chromedriver_path)
-    # FIXME: On Windows, this may sometimes fail (access denied), possibly
-    # because the file handler is not released immediately.
-    try:
-        os.unlink(chromedriver_path)
-    except OSError:
-        if sys.platform != "win32":
-            raise
-
-
-@pytest.mark.slow
-@pytest.mark.remote_network
-@pytest.mark.xfail(sys.platform == "win32",
-                   reason="https://github.com/web-platform-tests/wpt/issues/17074")
-def test_install_firefox():
-    if sys.platform == "darwin":
-        fx_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "Firefox Nightly.app")
-    else:
-        fx_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "firefox")
-    if os.path.exists(fx_path):
-        utils.rmtree(fx_path)
-    with pytest.raises(SystemExit) as excinfo:
-        wpt.main(argv=["install", "firefox", "browser", "--channel=nightly"])
-    assert excinfo.value.code == 0
-    assert os.path.exists(fx_path)
-    utils.rmtree(fx_path)
-
-
 def test_files_changed(capsys):
     commit = "9047ac1d9f51b1e9faa4f9fad9c47d109609ab09"
     with pytest.raises(SystemExit) as excinfo:

@@ -63,6 +63,9 @@ test_pseudo_computed_value("::marker", "transition-duration", "2s");
 test_pseudo_computed_value("::marker", "transition-property", "display");
 test_pseudo_computed_value("::marker", "transition-timing-function", "linear");
 
+// ::marker supports `text-transform`
+test_pseudo_computed_value("::marker", "text-transform", "uppercase");
+
 // ::marker does NOT support layout properties
 test_pseudo_computed_value("::marker", "display", "none", ["block", "inline", "inline-block"]);
 test_pseudo_computed_value("::marker", "position", "absolute", "static");

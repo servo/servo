@@ -41,14 +41,14 @@ function directory_test(func, description) {
 }
 
 directory_test(async (t, dir) => {
-  assert_equals(await dir.queryPermission({writable: false}), 'granted');
+  assert_equals(await dir.queryPermission({mode: 'read'}), 'granted');
 }, 'User succesfully selected an empty directory.');
 
 directory_test(async (t, dir) => {
-  const status = await dir.queryPermission({writable: true});
+  const status = await dir.queryPermission({mode: 'readwrite'});
   if (status == 'granted')
     return;
 
   await window.test_driver.bless('ask for write permission');
-  assert_equals(await dir.requestPermission({writable: true}), 'granted');
+  assert_equals(await dir.requestPermission({mode: 'readwrite'}), 'granted');
 }, 'User granted write access.');
