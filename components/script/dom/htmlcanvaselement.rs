@@ -7,7 +7,6 @@ use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
     HTMLCanvasElementMethods, RenderingContext,
 };
-use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -32,7 +31,7 @@ use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::script_runtime::JSContext;
 use base64;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
-use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
+use canvas_traits::webgl::{GLContextAttributes, WebGLCommand, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};
@@ -124,6 +123,8 @@ impl HTMLCanvasElement {
 pub trait LayoutCanvasRenderingContextHelpers {
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(self) -> HTMLCanvasDataSource;
+    #[allow(unsafe_code)]
+    unsafe fn send_command(self, command: WebGLCommand);
 }
 
 pub trait LayoutHTMLCanvasElementHelpers {
@@ -165,10 +166,20 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
                     HTMLCanvasDataSource::Image(Some(renderer))
                 },
                 Some(&CanvasContext::WebGL(ref context)) => {
-                    context.to_layout().canvas_data_source()
+                    let context = context.to_layout();
+                    context.send_command(WebGLCommand::PushCapturedStreamsData(
+                        self.get_captured_streams(),
+                        Size2D::new(width.into(), height.into()),
+                    ));
+                    context.canvas_data_source()
                 },
                 Some(&CanvasContext::WebGL2(ref context)) => {
-                    context.to_layout().canvas_data_source()
+                    let context = context.to_layout();
+                    context.send_command(WebGLCommand::PushCapturedStreamsData(
+                        self.get_captured_streams(),
+                        Size2D::new(width.into(), height.into()),
+                    ));
+                    context.canvas_data_source()
                 },
                 Some(&CanvasContext::WebGPU(ref context)) => {
                     context.to_layout().canvas_data_source()
