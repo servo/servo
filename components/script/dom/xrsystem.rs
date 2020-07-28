@@ -26,6 +26,7 @@ use ipc_channel::ipc::{self as ipc_crate, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::PipelineId;
 use profile_traits::ipc;
+use servo_config::pref;
 use std::cell::Cell;
 use std::rc::Rc;
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
@@ -215,6 +216,7 @@ impl XRSystemMethods for XRSystem {
         let init = SessionInit {
             required_features,
             optional_features,
+            first_person_observer_view: pref!(dom.webxr.first_person_observer_view),
         };
 
         let mut trusted = Some(TrustedPromise::new(promise.clone()));
