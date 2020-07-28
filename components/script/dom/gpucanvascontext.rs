@@ -19,6 +19,7 @@ use crate::dom::gpuswapchain::GPUSwapChain;
 use crate::dom::htmlcanvaselement::{HTMLCanvasElement, LayoutCanvasRenderingContextHelpers};
 use crate::dom::node::{document_from_node, Node, NodeDamage};
 use arrayvec::ArrayVec;
+use canvas_traits::webgl::WebGLCommand;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
 use ipc_channel::ipc;
@@ -123,6 +124,11 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(self) -> HTMLCanvasDataSource {
         (*self.unsafe_get()).layout_handle()
+    }
+
+    #[allow(unsafe_code)]
+    unsafe fn send_command(self, _: WebGLCommand) {
+        unimplemented!();
     }
 }
 

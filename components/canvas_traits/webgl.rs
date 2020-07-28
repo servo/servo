@@ -6,6 +6,7 @@ use euclid::default::{Rect, Size2D};
 use ipc_channel::ipc::{IpcBytesReceiver, IpcBytesSender, IpcSharedMemory};
 use pixels::PixelFormat;
 use serde::{Deserialize, Serialize};
+use servo_media::streams::registry::MediaStreamId;
 use sparkle::gl;
 use std::borrow::Cow;
 use std::fmt;
@@ -511,6 +512,7 @@ pub enum WebGLCommand {
     FramebufferTextureLayer(u32, u32, Option<WebGLTextureId>, i32, i32),
     ReadBuffer(u32),
     DrawBuffers(Vec<u32>),
+    PushCapturedStreamsData(Vec<MediaStreamId>, Size2D<u64>),
 }
 
 /// WebXR layer management

@@ -4723,6 +4723,11 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGLRenderingContext
     unsafe fn canvas_data_source(self) -> HTMLCanvasDataSource {
         (*self.unsafe_get()).layout_handle()
     }
+
+    #[allow(unsafe_code)]
+    unsafe fn send_command(self, command: WebGLCommand) {
+        (*self.unsafe_get()).send_command(command);
+    }
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]

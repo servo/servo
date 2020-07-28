@@ -47,6 +47,7 @@ use euclid::default::Size2D;
 use fnv::FnvHashMap;
 use half::f16;
 use pixels::{self, PixelFormat};
+use servo_media::ServoMedia;
 use sparkle::gl;
 use sparkle::gl::GLint;
 use sparkle::gl::GLuint;
@@ -800,7 +801,6 @@ impl WebGLThread {
         completed_sender: WebGLSender<u64>,
         _sent_time: u64,
     ) {
-        debug!("handle_swap_buffers()");
         for context_id in context_ids {
             let data = Self::make_current_if_needed_mut(
                 &self.device,
@@ -1077,7 +1077,7 @@ impl WebGLThread {
     /// Gets the GLSL Version supported by a GLContext.
     fn get_glsl_version(gl: &Gl) -> WebGLSLVersion {
         let version = gl.get_string(gl::SHADING_LANGUAGE_VERSION);
-        // Fomat used by SHADING_LANGUAGE_VERSION query : major.minor[.release] [vendor info]
+        // Format used by SHADING_LANGUAGE_VERSION query : major.minor[.release] [vendor info]
         let mut values = version.split(&['.', ' '][..]);
         let major = values
             .next()
@@ -2216,6 +2216,22 @@ impl WebGLImpl {
             },
             WebGLCommand::ReadBuffer(buffer) => gl.read_buffer(buffer),
             WebGLCommand::DrawBuffers(ref buffers) => gl.draw_buffers(buffers),
+            WebGLCommand::PushCapturedStreamsData(ref captured_streams, size) => {
+                // XXX(ferjm) This is currently returning all 0's.
+                //     I suspect this requires https://github.com/servo/servo/issues/2460
+                let pixels = gl.read_pixels(
+                    0,
+                    0,
+                    size.width as gl::GLsizei,
+                    size.height as gl::GLsizei,
+                    gl::RGB,
+                    gl::UNSIGNED_BYTE,
+                );
+                let media = ServoMedia::get().unwrap();
+                for stream in captured_streams.iter() {
+                    media.push_stream_data(stream, pixels.clone());
+                }
+            },
         }
 
         // If debug asertions are enabled, then check the error state.
