@@ -300,6 +300,8 @@ mod gen {
                         enabled: bool,
                     },
                     sessionavailable: bool,
+                    #[serde(rename = "dom.webxr.unsafe-assume-user-intent")]
+                    unsafe_assume_user_intent: bool,
                 },
                 worklet: {
                     blockingsleep: {

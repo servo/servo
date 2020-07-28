@@ -26,6 +26,7 @@ use ipc_channel::ipc::{self as ipc_crate, IpcReceiver};
 use ipc_channel::router::ROUTER;
 use msg::constellation_msg::PipelineId;
 use profile_traits::ipc;
+use servo_config::pref;
 use std::cell::Cell;
 use std::rc::Rc;
 use webxr_api::{Error as XRError, Frame, Session, SessionInit, SessionMode};
@@ -161,8 +162,12 @@ impl XRSystemMethods for XRSystem {
 
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {
-                promise.reject_error(Error::Security);
-                return promise;
+                if pref!(dom.webxr.unsafe_assume_user_intent) {
+                    warn!("The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR.");
+                } else {
+                    promise.reject_error(Error::Security);
+                    return promise;
+                }
             }
 
             if self.pending_or_active_session() {

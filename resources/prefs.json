@@ -49,6 +49,7 @@
   "dom.webxr.layers.enabled": false,
   "dom.webxr.sessionavailable": false,
   "dom.webxr.test": false,
+  "dom.webxr.unsafe-assume-user-intent": false,
   "dom.worklet.timeout_ms": 10,
   "gfx.subpixel-text-antialiasing.enabled": true,
   "gfx.texture-swizzling.enabled": true,
