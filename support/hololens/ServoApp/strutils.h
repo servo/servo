@@ -13,7 +13,7 @@ std::wstring format(const std::wstring &txt, Args... args) {
   auto ptr = new wchar_t[size];
   swprintf(ptr, size, txt.c_str(), args...);
   auto wstr = std::wstring(ptr);
-  delete ptr;
+  delete[] ptr;
   return wstr;
 }
 
