@@ -715,19 +715,24 @@ impl BoxFragment {
         builder: &mut StackingContextBuilder,
         containing_block_info: &ContainingBlockInfo,
     ) {
-        let clip = self.style.get_effects().clip;
-        if let ClipRectOrAuto::Rect(r) = clip {
-            let border_rect = self
-                .border_rect()
-                .to_physical(self.style.writing_mode, &containing_block_info.rect);
-            let clip_rect = r
-                .for_border_rect(border_rect)
-                .translate(containing_block_info.rect.origin.to_vector())
-                .to_webrender();
+        let position = self.style.get_box().position;
+        // https://drafts.csswg.org/css2/#clipping
+        // The clip property applies only to absolutely positioned elements
+        if position == ComputedPosition::Absolute || position == ComputedPosition::Fixed {
+            let clip = self.style.get_effects().clip;
+            if let ClipRectOrAuto::Rect(r) = clip {
+                let border_rect = self
+                    .border_rect()
+                    .to_physical(self.style.writing_mode, &containing_block_info.rect);
+                let clip_rect = r
+                    .for_border_rect(border_rect)
+                    .translate(containing_block_info.rect.origin.to_vector())
+                    .to_webrender();
 
-            let parent = builder.current_space_and_clip;
-            builder.current_space_and_clip.clip_id =
-                builder.wr.define_clip_rect(&parent, clip_rect);
+                let parent = builder.current_space_and_clip;
+                builder.current_space_and_clip.clip_id =
+                    builder.wr.define_clip_rect(&parent, clip_rect);
+            }
         }
     }
 
