@@ -43,10 +43,10 @@ use html5ever::{LocalName, Prefix};
 use ipc_channel::ipc;
 use ipc_channel::router::ROUTER;
 use js::jsapi::{
-    CanCompileOffThread, CompileOffThread, FinishOffThreadScript, Heap, JSScript, OffThreadToken,
+    CanCompileOffThread, CompileOffThread1, FinishOffThreadScript, Heap, JSScript, OffThreadToken,
 };
 use js::jsval::UndefinedValue;
-use js::rust::{transform_u16_to_source_text, CompileOptionsWrapper};
+use js::rust::{transform_str_to_source_text, CompileOptionsWrapper};
 use msg::constellation_msg::PipelineId;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder,
@@ -77,7 +77,6 @@ pub struct OffThreadCompilationContext {
     task_source: DOMManipulationTaskSource,
     canceller: TaskCanceller,
     script_text: String,
-    utf16_chars: Vec<u16>,
     fetch_options: ScriptFetchOptions,
 }
 
@@ -433,7 +432,6 @@ impl FetchResponseListener for ClassicContext {
 
         if can_compile_off_thread {
             let source_string = source_text.to_string();
-            let source_text: Vec<u16> = source_text.encode_utf16().collect();
 
             let context = Box::new(OffThreadCompilationContext {
                 script_element: self.elem.clone(),
@@ -443,15 +441,14 @@ impl FetchResponseListener for ClassicContext {
                 task_source: global.dom_manipulation_task_source(),
                 canceller: global.task_canceller(TaskSourceName::DOMManipulation),
                 script_text: source_string,
-                utf16_chars: source_text,
                 fetch_options: self.fetch_options.clone(),
             });
 
             unsafe {
-                assert!(CompileOffThread(
+                assert!(CompileOffThread1(
                     *cx,
                     options.ptr as *const _,
-                    &mut transform_u16_to_source_text(&context.utf16_chars) as *mut _,
+                    &mut transform_str_to_source_text(&context.script_text) as *mut _,
                     Some(off_thread_compilation_callback),
                     Box::into_raw(context) as *mut c_void,
                 ));
