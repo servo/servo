@@ -38,7 +38,6 @@ ${helpers.predefined_type(
     "ClipRectOrAuto",
     "computed::ClipRectOrAuto::auto()",
     engines="gecko servo-2013 servo-2020",
-    servo_2020_pref="layout.2020.unimplemented",
     animation_value_type="ComputedValue",
     boxed=True,
     allow_quirks="Yes",
