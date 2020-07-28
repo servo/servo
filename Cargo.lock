@@ -554,6 +554,7 @@ dependencies = [
  "pathfinder_geometry",
  "pixels",
  "raqote",
+ "servo-media",
  "servo_arc",
  "servo_config",
  "sparkle",
@@ -585,6 +586,7 @@ dependencies = [
  "pixels",
  "serde",
  "serde_bytes",
+ "servo-media",
  "servo_config",
  "sparkle",
  "style",
@@ -5374,19 +5376,19 @@ dependencies = [
 [[package]]
 name = "servo-media"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#cdf82da4cb59d1dae7bfb0b1396d5ebd53310540"
+source = "git+https://github.com/ferjm/media?branch=canvas.capturestream#23083e6a807ab7391456a1277967873bdde07172"
 dependencies = [
  "servo-media-audio",
  "servo-media-player",
  "servo-media-streams",
- "servo-media-traits",
+ "servo-media-traits 0.1.0 (git+https://github.com/ferjm/media?branch=canvas.capturestream)",
  "servo-media-webrtc",
 ]
 
 [[package]]
 name = "servo-media-audio"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#cdf82da4cb59d1dae7bfb0b1396d5ebd53310540"
+source = "git+https://github.com/ferjm/media?branch=canvas.capturestream#23083e6a807ab7391456a1277967873bdde07172"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
@@ -5399,7 +5401,7 @@ dependencies = [
  "serde_derive",
  "servo-media-player",
  "servo-media-streams",
- "servo-media-traits",
+ "servo-media-traits 0.1.0 (git+https://github.com/ferjm/media?branch=canvas.capturestream)",
  "servo_media_derive",
  "smallvec 0.6.13",
  "speexdsp-resampler",
@@ -5416,17 +5418,18 @@ dependencies = [
  "servo-media-audio",
  "servo-media-player",
  "servo-media-streams",
- "servo-media-traits",
+ "servo-media-traits 0.1.0 (git+https://github.com/servo/media)",
  "servo-media-webrtc",
 ]
 
 [[package]]
 name = "servo-media-gstreamer"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#cdf82da4cb59d1dae7bfb0b1396d5ebd53310540"
+source = "git+https://github.com/ferjm/media?branch=canvas.capturestream#23083e6a807ab7391456a1277967873bdde07172"
 dependencies = [
  "boxfnonce",
  "byte-slice-cast",
+ "euclid",
  "glib",
  "glib-sys",
  "gstreamer",
@@ -5450,7 +5453,7 @@ dependencies = [
  "servo-media-gstreamer-render-unix",
  "servo-media-player",
  "servo-media-streams",
- "servo-media-traits",
+ "servo-media-traits 0.1.0 (git+https://github.com/ferjm/media?branch=canvas.capturestream)",
  "servo-media-webrtc",
  "url",
  "zip",
@@ -5459,7 +5462,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#cdf82da4cb59d1dae7bfb0b1396d5ebd53310540"
+source = "git+https://github.com/ferjm/media?branch=canvas.capturestream#23083e6a807ab7391456a1277967873bdde07172"
 dependencies = [
  "gstreamer",
  "gstreamer-video",
@@ -5469,7 +5472,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-android"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#cdf82da4cb59d1dae7bfb0b1396d5ebd53310540"
+source = "git+https://github.com/ferjm/media?branch=canvas.capturestream#23083e6a807ab7391456a1277967873bdde07172"
 dependencies = [
  "glib",
  "gstreamer",
@@ -5482,7 +5485,7 @@ dependencies = [
 [[package]]
 name = "servo-media-gstreamer-render-unix"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#cdf82da4cb59d1dae7bfb0b1396d5ebd53310540"
+source = "git+https://github.com/ferjm/media?branch=canvas.capturestream#23083e6a807ab7391456a1277967873bdde07172"
 dependencies = [
  "glib",
  "gstreamer",
@@ -5495,23 +5498,30 @@ dependencies = [
 [[package]]
 name = "servo-media-player"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#cdf82da4cb59d1dae7bfb0b1396d5ebd53310540"
+source = "git+https://github.com/ferjm/media?branch=canvas.capturestream#23083e6a807ab7391456a1277967873bdde07172"
 dependencies = [
  "ipc-channel",
  "serde",
  "serde_derive",
  "servo-media-streams",
- "servo-media-traits",
+ "servo-media-traits 0.1.0 (git+https://github.com/ferjm/media?branch=canvas.capturestream)",
 ]
 
 [[package]]
 name = "servo-media-streams"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#cdf82da4cb59d1dae7bfb0b1396d5ebd53310540"
+source = "git+https://github.com/ferjm/media?branch=canvas.capturestream#23083e6a807ab7391456a1277967873bdde07172"
 dependencies = [
+ "euclid",
  "lazy_static",
+ "serde",
  "uuid",
 ]
+
+[[package]]
+name = "servo-media-traits"
+version = "0.1.0"
+source = "git+https://github.com/ferjm/media?branch=canvas.capturestream#23083e6a807ab7391456a1277967873bdde07172"
 
 [[package]]
 name = "servo-media-traits"
@@ -5521,7 +5531,7 @@ source = "git+https://github.com/servo/media#cdf82da4cb59d1dae7bfb0b1396d5ebd533
 [[package]]
 name = "servo-media-webrtc"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#cdf82da4cb59d1dae7bfb0b1396d5ebd53310540"
+source = "git+https://github.com/ferjm/media?branch=canvas.capturestream#23083e6a807ab7391456a1277967873bdde07172"
 dependencies = [
  "boxfnonce",
  "lazy_static",
@@ -5599,7 +5609,7 @@ dependencies = [
 [[package]]
 name = "servo_media_derive"
 version = "0.1.0"
-source = "git+https://github.com/servo/media#cdf82da4cb59d1dae7bfb0b1396d5ebd53310540"
+source = "git+https://github.com/ferjm/media?branch=canvas.capturestream#23083e6a807ab7391456a1277967873bdde07172"
 dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.2",
