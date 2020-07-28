@@ -20,7 +20,7 @@ euclid = "0.20"
 fnv = "1.0"
 fontsan = { git = "https://github.com/servo/fontsan" }
 gfx_traits = { path = "../gfx_traits" }
-harfbuzz-sys = "0.4"
+harfbuzz-sys = "0.5"
 ipc-channel = "0.14"
 lazy_static = "1"
 libc = "0.2"
@@ -48,7 +48,7 @@ core-graphics = "0.19"
 core-text = "15.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
-freetype = "0.5"
+freetype = "0.7"
 servo_allocator = { path = "../allocator" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
