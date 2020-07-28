@@ -5878,9 +5878,9 @@ dependencies = [
 
 [[package]]
 name = "surfman-chains"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d51598e1772bda3dbb1b81a9dc4b46725896948ea58d0f128e5b492a92f297af"
+checksum = "d7370be9fb29386426ce52d9c3ac0501e7f71ea8218baf4bee061465f2fcec04"
 dependencies = [
  "euclid",
  "fnv",
@@ -6910,7 +6910,7 @@ dependencies = [
 [[package]]
 name = "webxr"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#da44de55ca8c082a033787946cb59dbbd2903a15"
+source = "git+https://github.com/servo/webxr#7763f4826fb04a1b48dbf502e48ca9d6ff3b6378"
 dependencies = [
  "android_injected_glue",
  "bindgen",
@@ -6933,7 +6933,7 @@ dependencies = [
 [[package]]
 name = "webxr-api"
 version = "0.0.1"
-source = "git+https://github.com/servo/webxr#da44de55ca8c082a033787946cb59dbbd2903a15"
+source = "git+https://github.com/servo/webxr#7763f4826fb04a1b48dbf502e48ca9d6ff3b6378"
 dependencies = [
  "euclid",
  "ipc-channel",
