@@ -44,3 +44,26 @@ def test_affected_testfiles():
             testfiles.wpt_root, "a", "b", "c", "foo-crash.html")
         tests_changed, _ = testfiles.affected_testfiles([full_test_path])
         assert tests_changed == set([full_test_path])
+
+
+def test_exclude_ignored():
+    default_ignored = [
+        "resources/testharness.js",
+        "resources/testharnessreport.js",
+        "resources/testdriver.js",
+        "resources/testdriver-vendor.js",
+    ]
+    default_ignored_abs = sorted(os.path.join(testfiles.wpt_root, x) for x in default_ignored)
+    default_changed = [
+        "foo/bar.html"
+    ]
+    default_changed_abs = sorted(os.path.join(testfiles.wpt_root, x) for x in default_changed)
+    files = default_ignored + default_changed
+
+    changed, ignored = testfiles.exclude_ignored(files, None)
+    assert sorted(changed) == default_changed_abs
+    assert sorted(ignored) == default_ignored_abs
+
+    changed, ignored = testfiles.exclude_ignored(files, [])
+    assert sorted(changed) == sorted(default_changed_abs + default_ignored_abs)
+    assert sorted(ignored) == []

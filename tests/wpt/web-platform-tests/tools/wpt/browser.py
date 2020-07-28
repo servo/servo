@@ -560,6 +560,11 @@ class Chrome(Browser):
         os.remove(installer_path)
         return self.find_nightly_binary(dest, channel)
 
+    def install_mojojs(self, dest):
+        url = self._latest_chromium_snapshot_url() + "mojojs.zip"
+        self.logger.info("Downloading Mojo bindings from %s" % url)
+        unzip(get(url).raw, dest)
+
     def _chromedriver_platform_string(self):
         platform = self.platforms.get(uname[0])
 
@@ -675,13 +680,21 @@ class Chrome(Browser):
             else self._chromium_chromedriver_url(None)
         self.logger.info("Downloading ChromeDriver from %s" % url)
         unzip(get(url).raw, dest)
+
+        # The two sources of ChromeDriver have different zip structures:
+        # * Chromium archives the binary inside a chromedriver_* directory;
+        # * Chrome archives the binary directly.
+        # We want to make sure the binary always ends up directly in bin/.
         chromedriver_dir = os.path.join(
             dest, 'chromedriver_%s' % self._chromedriver_platform_string())
-        unzipped_path = find_executable("chromedriver", chromedriver_dir)
-        assert unzipped_path is not None
-        shutil.move(unzipped_path, dest)
-        rmtree(chromedriver_dir)
-        return find_executable("chromedriver", dest)
+        binary_path = find_executable("chromedriver", chromedriver_dir)
+        if binary_path is not None:
+            shutil.move(binary_path, dest)
+            rmtree(chromedriver_dir)
+
+        binary_path = find_executable("chromedriver", dest)
+        assert binary_path is not None
+        return binary_path
 
     def install_webdriver(self, dest=None, channel=None, browser_binary=None):
         if channel == "nightly":

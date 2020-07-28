@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ScrollTimeline constructor</title>
+  <link rel="help" href="https://wicg.github.io/scroll-animations/#scrolltimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.scroller {
+  height: 100px;
+  width: 100px;
+  overflow: scroll;
+}
+
+.content {
+  height: 500px;
+  width: 500px;
+}
+</style>
+
+<div class="scroller">
+  <div class="content"></div>
+</div>
+
+<script>
+'use strict';
+
+test(t => {
+  assert_array_equals(new ScrollTimeline({timeRange: 100}).scrollOffsets, []);
+}, 'A ScrollTimeline created with the default scrollOffsets should default to []');
+
+test(t => {
+  assert_array_equals(new ScrollTimeline({timeRange: 100, scrollOffsets: []}).scrollOffsets, []);
+}, 'A ScrollTimeline created with empty scrollOffsets should resolve to []');
+
+test(t => {
+  assert_array_equals(new ScrollTimeline({timeRange: 100, scrollOffsets: ['20%', 'auto']}).scrollOffsets, ['20%', 'auto']);
+}, 'A ScrollTimeline created with last \'auto\' offset in scrollOffsets should be allowed.');
+
+test(t => {
+  let constructorFunc = function() {
+    new ScrollTimeline({timeRange: 100, scrollOffsets: null})
+  };
+  assert_throws_js(TypeError, constructorFunc);
+}, 'Creating a ScrollTimeline with an invalid scrollOffsets value should throw');
+
+test(t => {
+  let constructorFunc = function() {
+    new ScrollTimeline({timeRange: 100, scrollOffsets: ['auto']})
+  };
+  assert_throws_js(TypeError, constructorFunc);
+}, 'Creating a ScrollTimeline with an scrollOffsets value of [\'auto\'] should throw');
+
+const gValidScrollOffsetValues = [
+  0,
+  'calc(100% - 80px)',
+];
+
+const gValidScrollOffsetSuffixes = [
+  // Relative lengths.
+  'em',
+  'ex',
+  'ch',
+  'rem',
+  'vw',
+  'vh',
+  'vmin',
+  'vmax',
+  // Absolute lengths.
+  'cm',
+  'mm',
+  'q',
+  'in',
+  'pc',
+  'pt',
+  'px',
+  // Percentage.
+  '%',
+];
+
+for (let offset of gValidScrollOffsetValues) {
+  test(function() {
+    const scrollTimeline = new ScrollTimeline(
+        {timeRange: 100, scrollOffsets: [offset, offset]});
+
+    // Special case for 0; this is a valid value, but like computed style will
+    // be output as '0px' when queried.
+    if (offset === 0) offset = '0px';
+
+    assert_array_equals(scrollTimeline.scrollOffsets, [offset, offset]);
+  }, '\'' + offset + '\' is a valid scroll offset value');
+}
+
+for (const suffix of gValidScrollOffsetSuffixes) {
+  test(function() {
+    const offset = '75' + suffix;
+    const scrollTimeline = new ScrollTimeline(
+        {timeRange: 100, scrollOffsets: [offset, offset]});
+
+    assert_array_equals(scrollTimeline.scrollOffsets, [offset, offset]);
+  }, '\'' + suffix + '\' is a valid scroll offset unit');
+}
+
+// These are deliberately incomplete, just a random sampling of invalid
+// values/units.
+const gInvalidScrollOffsetValues = [
+  '',
+  'calc(360deg / 4)',
+  'left',
+  '#ff0000',
+  'rgb(0, 128, 0)',
+  'url("http://www.example.com/pinkish.gif")',
+  'this_is_garbage',
+  // Multiple valid values.
+  '100px 5%',
+];
+
+const gInvalidScrollOffsetSuffixes = [
+  'deg',
+  's',
+  'Hz',
+  'dpi',
+];
+
+for (const offset of gInvalidScrollOffsetValues) {
+  test(function() {
+    const constructorFunc = function() {
+      new ScrollTimeline(
+          {timeRange: 100, scrollOffsets: ['0px', offset]})
+    };
+    assert_throws_js(TypeError, constructorFunc);
+  }, '\'' + offset + '\' is an invalid scroll offset value in scrollOffsets');
+}
+
+for (const suffix of gInvalidScrollOffsetSuffixes) {
+  test(function() {
+    const offset = '75' + suffix;
+    const constructorFunc = function() {
+      new ScrollTimeline(
+          {timeRange: 100, scrollOffsets: ['0px', offset]});
+    };
+    assert_throws_js(TypeError, constructorFunc);
+  }, '\'' + suffix + '\' is an invalid scroll offset unit in scrollOffsets');
+}
+
+const offset_target = document.createElement('div');
+
+const gValidElementBasedScrollOffsetValues = [
+  {target: offset_target},
+  {target: offset_target, threshold: 0},
+  {target: offset_target, threshold: 0.5},
+  {target: offset_target, threshold: 1},
+];
+
+for (let offset of gValidElementBasedScrollOffsetValues) {
+  test(function() {
+    const scrollTimeline = new ScrollTimeline(
+        {timeRange: 100, scrollOffsets: [offset, offset]});
+
+    // Special case unspecified threshold since it gets initialized to 0.
+    if (!offset.hasOwnProperty('threshold'))
+      offset.threshold = 0;
+
+    assert_equals(scrollTimeline.scrollOffsets[0].target, offset.target);
+    assert_equals(scrollTimeline.scrollOffsets[0].threshold, offset.threshold);
+    assert_equals(scrollTimeline.scrollOffsets[1].target, offset.target);
+    assert_equals(scrollTimeline.scrollOffsets[1].threshold, offset.threshold);
+  }, '\'' + JSON.stringify(offset) + '\' is a valid scroll offset value');
+}
+
+const gInvalidElementBasedScrollOffsetValues = [
+  {}, // empty
+  {target: offset_target, threshold: "test"},
+  {target: offset_target, threshold: 2},
+  {target: offset_target, threshold: -0.2},
+];
+
+for (let offset of gInvalidElementBasedScrollOffsetValues) {
+  test(function() {
+    const constructorFunc = function() {
+      new ScrollTimeline(
+          {timeRange: 100, scrollOffsets: [offset]})
+    };
+    assert_throws_js(TypeError, constructorFunc);
+  }, '\'' + JSON.stringify(offset) + '\' is an invalid scroll offset value in scrollOffsets');
+}
+</script>

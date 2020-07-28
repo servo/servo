@@ -99,8 +99,8 @@ class TestFileHandler(TestUsingServer):
         assert resp.read().rstrip() == expected
 
     def test_sub_params(self):
-        resp = self.request("/sub_params.sub.txt", query="test=PASS")
-        expected = b"PASS"
+        resp = self.request("/sub_params.txt", query="plus+pct-20%20pct-3D%3D=PLUS+PCT-20%20PCT-3D%3D&pipe=sub")
+        expected = b"PLUS PCT-20 PCT-3D="
         assert resp.read().rstrip() == expected
 
 

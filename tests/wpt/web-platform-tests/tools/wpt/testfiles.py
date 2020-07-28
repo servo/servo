@@ -35,6 +35,8 @@ if MYPY:
     from typing import Text
     from typing import Tuple
 
+DEFAULT_IGNORE_RULERS = ("resources/testharness*", "resources/testdriver*")
+
 here = ensure_text(os.path.dirname(__file__))
 wpt_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
@@ -167,8 +169,8 @@ def repo_files_changed(revish, include_uncommitted=False, include_new=False):
 def exclude_ignored(files, ignore_rules):
     # type: (Iterable[Text], Optional[Sequence[Text]]) -> Tuple[List[Text], List[Text]]
     if ignore_rules is None:
-        ignore_rules = []
-    compiled_ignore_rules = [compile_ignore_rule(item) for item in ignore_rules]
+        ignore_rules = DEFAULT_IGNORE_RULERS
+    compiled_ignore_rules = [compile_ignore_rule(item) for item in set(ignore_rules)]
 
     changed = []
     ignored = []
@@ -334,14 +336,13 @@ def get_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument("revish", default=None, help="Commits to consider. Defaults to the "
                         "commits on the current branch", nargs="?")
-    # TODO: Consolidate with `./wpt run --affected`:
-    # https://github.com/web-platform-tests/wpt/issues/14560
-    parser.add_argument("--ignore-rules", nargs="*", type=set,  # type: ignore
-                        default={"resources/testharness*"},
-                        help="Rules for paths to exclude from lists of changes. Rules are paths "
-                        "relative to the test root, with * before a separator or the end matching "
-                        "anything other than a path separator and ** in that position matching "
-                        "anything")
+    parser.add_argument("--ignore-rule", action="append",
+                        help="Override the rules for paths to exclude from lists of changes. "
+                        "Rules are paths relative to the test root, with * before a separator "
+                        "or the end matching anything other than a path separator and ** in that "
+                        "position matching anything. This flag can be used multiple times for "
+                        "multiple rules. Specifying this flag overrides the default: " +
+                        ", ".join(DEFAULT_IGNORE_RULERS))
     parser.add_argument("--modified", action="store_true",
                         help="Include files under version control that have been "
                         "modified or staged")
@@ -377,7 +378,7 @@ def run_changed_files(**kwargs):
     # type: (**Any) -> None
     revish = get_revish(**kwargs)
     changed, _ = files_changed(revish,
-                               kwargs["ignore_rules"],
+                               kwargs["ignore_rule"],
                                include_uncommitted=kwargs["modified"],
                                include_new=kwargs["new"])
 
@@ -391,7 +392,8 @@ def run_changed_files(**kwargs):
 def run_tests_affected(**kwargs):
     # type: (**Any) -> None
     revish = get_revish(**kwargs)
-    changed, _ = files_changed(revish, kwargs["ignore_rules"],
+    changed, _ = files_changed(revish,
+                               kwargs["ignore_rule"],
                                include_uncommitted=kwargs["modified"],
                                include_new=kwargs["new"])
     manifest_path = os.path.join(kwargs["metadata_root"], "MANIFEST.json")

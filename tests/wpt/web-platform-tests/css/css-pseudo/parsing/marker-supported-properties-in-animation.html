@@ -158,6 +158,14 @@ const interpolationTests = [
     midPoint: "\"bar\"",
   },
 
+  // ::marker supports `text-transform`
+  {
+    property: "text-transform",
+    from: "lowercase",
+    to: "uppercase",
+    midPoint: "uppercase",
+  },
+
   // ::marker does NOT support layout properties
   {
     property: "display",

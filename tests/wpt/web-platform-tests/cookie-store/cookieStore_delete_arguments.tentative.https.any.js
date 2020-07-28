@@ -147,3 +147,25 @@ promise_test(async testCase => {
   const cookie = await cookieStore.get('cookie-name');
   assert_equals(cookie, null);
 }, 'cookieStore.delete with get result');
+
+promise_test(async testCase => {
+  await cookieStore.set('', 'cookie-value');
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete('');
+  });
+
+  await cookieStore.delete('');
+  const cookie = await cookieStore.get('');
+  assert_equals(cookie, null);
+}, 'cookieStore.delete with positional empty name');
+
+promise_test(async testCase => {
+  await cookieStore.set('', 'cookie-value');
+  testCase.add_cleanup(async () => {
+    await cookieStore.delete('');
+  });
+
+  await cookieStore.delete({ name: '' });
+  const cookie = await cookieStore.get('');
+  assert_equals(cookie, null);
+}, 'cookieStore.delete with empty name in options');

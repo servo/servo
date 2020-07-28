@@ -31,10 +31,10 @@ async function serialize_handle(handle) {
 // FileSystemDirectoryHandle.
 async function serialize_file_system_handle(handle) {
   const read_permission =
-    await handle.queryPermission({ writable: false });
+    await handle.queryPermission({ mode: 'read' });
 
   const write_permission =
-    await handle.queryPermission({ writable: true })
+    await handle.queryPermission({ mode: 'readwrite' })
 
   return {
     kind: handle.kind,

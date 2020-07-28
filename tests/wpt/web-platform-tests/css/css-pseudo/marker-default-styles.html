@@ -11,6 +11,7 @@
 .decimal { list-style-type: decimal }
 .string { list-style-type: "string" }
 .marker::marker { content: "marker" }
+li { text-transform: lowercase }
 </style>
 <div id="log"></div>
 <ul>
@@ -30,6 +31,7 @@
 const defaultStyles = [
   ["unicode-bidi", "isolate"],
   ["font-variant-numeric", "tabular-nums"],
+  ["text-transform", "none"],
 ];
 for (const target of document.querySelectorAll("li")) {
   const cs = getComputedStyle(target, "::marker");

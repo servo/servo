@@ -2,8 +2,9 @@ import json
 import os
 import sys
 import traceback
+from collections import defaultdict
 
-from six.moves.urllib.parse import parse_qs, quote, unquote, urljoin
+from six.moves.urllib.parse import quote, unquote, urljoin
 from six import iteritems
 
 from .constants import content_types
@@ -120,6 +121,24 @@ class DirectoryHandler(object):
                    {"link": link, "name": escape(item), "class": class_,
                     "headers": dot_headers_markup})
 
+def parse_qs(qs):
+    """Parse a query string given as a string argument (data of type
+    application/x-www-form-urlencoded). Data are returned as a dictionary. The
+    dictionary keys are the unique query variable names and the values are
+    lists of values for each name.
+
+    This implementation is used instead of Python's built-in `parse_qs` method
+    in order to support the semicolon character (which the built-in method
+    interprets as a parameter delimiter)."""
+    pairs = [item.split("=", 1) for item in qs.split('&') if item]
+    rv = defaultdict(list)
+    for pair in pairs:
+        if len(pair) == 1 or len(pair[1]) == 0:
+            continue
+        name = unquote(pair[0].replace('+', ' '))
+        value = unquote(pair[1].replace('+', ' '))
+        rv[name].append(value)
+    return dict(rv)
 
 def wrap_pipeline(path, request, response):
     query = parse_qs(request.url_parts.query)

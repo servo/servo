@@ -79,6 +79,29 @@ def test_ahem_copy_negative(path):
 
     assert errors == []
 
+@pytest.mark.parametrize("path", ["css/foo.tentative/bar.html",
+                                  "css/.tentative/bar.html",
+                                  "css/tentative.bar/baz.html",
+                                  "css/bar-tentative/baz.html"])
+def test_tentative_directories(path):
+    path = os.path.join(*path.split("/"))
+    expected_error = ("TENTATIVE-DIRECTORY-NAME",
+                      "Directories for tentative tests must be named exactly 'tentative'",
+                      path,
+                      None)
+
+    errors = check_path("/foo/", path)
+
+    assert errors == [expected_error]
+
+@pytest.mark.parametrize("path", ["css/bar.html",
+                                  "css/tentative/baz.html"])
+def test_tentative_directories_negative(path):
+    path = os.path.join(*path.split("/"))
+    errors = check_path("/foo/", path)
+
+    assert errors == []
+
 @pytest.mark.parametrize("path", ["elsewhere/.gitignore",
                                   "else/where/.gitignore"
                                   "elsewhere/tools/.gitignore",
