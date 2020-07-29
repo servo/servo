@@ -28,7 +28,7 @@ cp target/release/libgstservoplugin.* target/gstplugins
 To run locally:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
-  gst-launch-1.0 servowebsrc \
+  gst-launch-1.0 -e servowebsrc \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=1920,height=1080,format=RGBA \
     ! glimagesink rotate-method=vertical-flip
 ```
@@ -36,7 +36,7 @@ GST_PLUGIN_PATH=target/gstplugins \
 To stream over the network:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
-  gst-launch-1.0 servowebsrc \
+  gst-launch-1.0 -e servowebsrc \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
     ! glcolorconvert \
     ! gldownload \
@@ -49,7 +49,7 @@ GST_PLUGIN_PATH=target/gstplugins \
 To  save to a file:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
-  gst-launch-1.0 servowebsrc \
+  gst-launch-1.0 -e servowebsrc \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
     ! glcolorconvert \
     ! gldownload \
