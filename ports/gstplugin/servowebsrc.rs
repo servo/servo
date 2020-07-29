@@ -218,6 +218,7 @@ impl ServoThread {
             None => Some(webrender_swap_chain),
             Some(..) => {
                 set_pref!(dom.webxr.sessionavailable, true);
+                set_pref!(dom.webxr.unsafe_assume_user_intent, true);
                 servo.handle_events(vec![WindowEvent::ChangeBrowserVisibility(id, false)]);
                 None
             },
