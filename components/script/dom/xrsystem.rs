@@ -162,8 +162,12 @@ impl XRSystemMethods for XRSystem {
 
         if mode != XRSessionMode::Inline {
             if !ScriptThread::is_user_interacting() {
-                promise.reject_error(Error::Security);
-                return promise;
+                if pref!(dom.webxr.unsafe_assume_user_intent) {
+                    warn!("The dom.webxr.unsafe-assume-user-intent preference assumes user intent to enter WebXR.");
+                } else {
+                    promise.reject_error(Error::Security);
+                    return promise;
+                }
             }
 
             if self.pending_or_active_session() {
