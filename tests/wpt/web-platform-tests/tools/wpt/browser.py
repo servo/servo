@@ -558,7 +558,7 @@ class Chrome(Browser):
         with open(installer_path, "rb") as f:
             unzip(f, dest)
         os.remove(installer_path)
-        return self.find_nightly_binary(dest, channel)
+        return self.find_nightly_binary(dest)
 
     def install_mojojs(self, dest):
         url = self._latest_chromium_snapshot_url() + "mojojs.zip"
@@ -603,10 +603,12 @@ class Chrome(Browser):
             self._last_change = get(revision_url).text.strip()
         return "https://storage.googleapis.com/chromium-browser-snapshots/%s/%s/" % (architecture, self._last_change)
 
-    def find_nightly_binary(self, dest, channel):
-        binary = "Chromium" if uname[0] == "Darwin" else "chrome"
+    def find_nightly_binary(self, dest):
+        if uname[0] == "Darwin":
+            return find_executable("Chromium",
+                                   os.path.join(dest, self._chromium_package_name(), "Chromium.app", "Contents", "MacOS"))
         # find_executable will add .exe on Windows automatically.
-        return find_executable(binary, os.path.join(dest, self._chromium_package_name()))
+        return find_executable("chrome", os.path.join(dest, self._chromium_package_name()))
 
     def find_binary(self, venv_path=None, channel=None):
         if channel == "nightly":

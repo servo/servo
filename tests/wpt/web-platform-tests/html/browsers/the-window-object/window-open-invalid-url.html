@@ -1,0 +1,10 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>window.open() with an invalid URL</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(() => {
+  assert_throws_dom("SyntaxError", () => window.open("https://example.com\u0000mozilla.org"));
+}, "Window.open should throw SyntaxError when an invalid url is passed as the first parameter");
+</script>

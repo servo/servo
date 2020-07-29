@@ -22,7 +22,6 @@ def main(request, response):
     single_delay = finish_delay / count
     for i in range(count): # pylint: disable=unused-variable
         time.sleep(single_delay)
-        response.writer.write_content(u"\n")
-        if not response.writer.flush():
+        if not response.writer.write_content(b"\n"):
           return
     request.server.stash.put(token, True)
