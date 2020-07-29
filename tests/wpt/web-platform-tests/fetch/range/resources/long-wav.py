@@ -118,12 +118,11 @@ def main(request, response):
     bytes_remaining_to_send -= len(initial_write)
 
     while bytes_remaining_to_send > 0:
-        if not response.writer.flush():
-            break
-
         to_send = b'\x00' * min(bytes_remaining_to_send, sample_rate)
         bytes_remaining_to_send -= len(to_send)
 
-        response.writer.write(to_send)
+        if not response.writer.write(to_send):
+            break
+
         # Throttle the stream
         time.sleep(0.5)

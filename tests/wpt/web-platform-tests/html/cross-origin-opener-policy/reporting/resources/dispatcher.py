@@ -9,17 +9,12 @@ def main(request, response):
         return b''
 
     uuid = request.GET[b'uuid']
-    stashed = request.server.stash.take(uuid)
-    if stashed is None:
-        stashed = []
 
     if request.method == u'POST':
-        stashed.append(request.body)
-        ret = b'done'
+        return request.server.stash.put(uuid, request.body)
     else:
-        if len(stashed) == 0:
-            ret = b'not ready'
+        body = request.server.stash.take(uuid)
+        if body is None:
+            return b'not ready'
         else:
-            ret = stashed.pop(0)
-    request.server.stash.put(uuid, stashed)
-    return ret;
+            return body
