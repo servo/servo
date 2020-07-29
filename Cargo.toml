@@ -34,8 +34,3 @@ backtrace = { git = "https://github.com/servo/backtrace-rs", branch = "uwp-fix" 
 
 [patch."https://github.com/jrmuizel/raqote"]
 raqote = { git = "https://github.com/jdm/raqote", branch = "fkup" }
-
-# https://github.com/servo/servo/issues/27039#issuecomment-654400150
-[patch."https://github.com/servo/webrender"]
-webrender = { git = "https://github.com/jdm/webrender", branch = "crash-backtrace" }
-webrender_api = { git = "https://github.com/jdm/webrender", branch = "crash-backtrace" }

@@ -43,9 +43,9 @@ xi-unicode = "0.1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "1.0"
-core-foundation = "0.7"
-core-graphics = "0.19"
-core-text = "15.0"
+core-foundation = "0.9"
+core-graphics = "0.22"
+core-text = "19.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
 freetype = "0.7"
