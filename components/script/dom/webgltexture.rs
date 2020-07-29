@@ -29,6 +29,14 @@ pub enum TexParameterValue {
     Bool(bool),
 }
 
+// Textures generated for WebXR are owned by the WebXR device, not by the WebGL thread
+// so the GL texture should not be deleted when the texture is garbage collected.
+#[derive(Clone, Copy, Debug, Eq, JSTraceable, MallocSizeOf, PartialEq)]
+enum WebGLTextureOwner {
+    WebGL,
+    WebXR,
+}
+
 const MAX_LEVEL_COUNT: usize = 31;
 const MAX_FACE_COUNT: usize = 6;
 
@@ -41,6 +49,7 @@ pub struct WebGLTexture {
     /// The target to which this texture was bound the first time
     target: Cell<Option<u32>>,
     is_deleted: Cell<bool>,
+    owner: WebGLTextureOwner,
     /// Stores information about mipmap levels and cubemap faces.
     #[ignore_malloc_size_of = "Arrays are cumbersome"]
     image_info_array: DomRefCell<[Option<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
@@ -59,12 +68,17 @@ pub struct WebGLTexture {
 }
 
 impl WebGLTexture {
-    fn new_inherited(context: &WebGLRenderingContext, id: WebGLTextureId) -> Self {
+    fn new_inherited(
+        context: &WebGLRenderingContext,
+        id: WebGLTextureId,
+        owner: WebGLTextureOwner,
+    ) -> Self {
         Self {
             webgl_object: WebGLObject::new_inherited(context),
             id: id,
             target: Cell::new(None),
             is_deleted: Cell::new(false),
+            owner: owner,
             immutable_levels: Cell::new(None),
             face_count: Cell::new(0),
             base_mipmap_level: 0,
@@ -87,7 +101,22 @@ impl WebGLTexture {
 
     pub fn new(context: &WebGLRenderingContext, id: WebGLTextureId) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(WebGLTexture::new_inherited(context, id)),
+            Box::new(WebGLTexture::new_inherited(
+                context,
+                id,
+                WebGLTextureOwner::WebGL,
+            )),
+            &*context.global(),
+        )
+    }
+
+    pub fn new_webxr(context: &WebGLRenderingContext, id: WebGLTextureId) -> DomRoot<Self> {
+        reflect_dom_object(
+            Box::new(WebGLTexture::new_inherited(
+                context,
+                id,
+                WebGLTextureOwner::WebXR,
+            )),
             &*context.global(),
         )
     }
@@ -214,6 +243,11 @@ impl WebGLTexture {
             }
             if let Some(fb) = context.get_read_framebuffer_slot().get() {
                 let _ = fb.detach_texture(self);
+            }
+
+            // We don't delete textures owned by WebXR
+            if self.owner == WebGLTextureOwner::WebXR {
+                return;
             }
 
             let cmd = WebGLCommand::DeleteTexture(self.id);
