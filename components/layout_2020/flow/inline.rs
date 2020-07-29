@@ -756,13 +756,21 @@ impl TextRun {
             let mut glyphs = vec![];
             let mut advance_width = Length::zero();
             let mut last_break_opportunity = None;
+            let mut force_line_break = false;
+            // Fit as many glyphs within a single line as possible.
             loop {
                 let next = runs.next();
+                // If there are no more text runs we still need to check if the last
+                // run was a forced line break
                 if next
                     .as_ref()
                     .map_or(true, |run| run.glyph_store.is_whitespace())
                 {
+                    // If this run exceeds the bounds of the containing block, then
+                    // we need to attempt to break the line.
                     if advance_width > ifc.containing_block.inline_size - ifc.inline_position {
+                        // Reset the text run iterator to the last whitespace if possible,
+                        // to attempt to re-layout the most recent glyphs on a new line.
                         if let Some((len, width, iter)) = last_break_opportunity.take() {
                             glyphs.truncate(len);
                             advance_width = width;
@@ -774,10 +782,24 @@ impl TextRun {
                 if let Some(run) = next {
                     if run.glyph_store.is_whitespace() {
                         last_break_opportunity = Some((glyphs.len(), advance_width, runs.clone()));
+                        // If this whitespace ends with a newline, we need to check if
+                        // it's meaningful within the current style. If so, we force
+                        // a line break immediately.
+                        let last_byte = self.text.as_bytes().get(run.range.end().to_usize() - 1);
+                        if last_byte == Some(&b'\n') &&
+                            self.parent_style
+                                .get_inherited_text()
+                                .white_space
+                                .preserve_newlines()
+                        {
+                            force_line_break = true;
+                            break;
+                        }
                     }
                     glyphs.push(run.glyph_store.clone());
                     advance_width += Length::from(run.glyph_store.total_advance());
                 } else {
+                    // No more runs, so we can end the line.
                     break;
                 }
             }
@@ -812,7 +834,8 @@ impl TextRun {
                     glyphs,
                     text_decoration_line: ifc.current_nesting_level.text_decoration_line,
                 }));
-            if runs.as_slice().is_empty() {
+            // If this line is being broken because of a trailing newline, we can't ignore it.
+            if runs.as_slice().is_empty() && !force_line_break {
                 break;
             } else {
                 // New line
