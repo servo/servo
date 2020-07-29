@@ -14,8 +14,8 @@ interface Geolocation {
                           optional PositionOptions options = {});
 
   long watchPosition(PositionCallback successCallback,
-                     optional PositionErrorCallback errorCallback,
-                     optional PositionOptions options = {});
+                      optional PositionErrorCallback errorCallback,
+                      optional PositionOptions options = {});
 
   void clearWatch(long watchId);
 };

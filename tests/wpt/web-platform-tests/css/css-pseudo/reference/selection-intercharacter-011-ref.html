@@ -9,13 +9,16 @@
   <style>
   div
     {
-      background-color: yellow;
-      display: inline-block;
       font-size: 48px;
       letter-spacing: 1em;
     }
 
-  span
+  span#yellow
+    {
+      background-color: yellow;
+    }
+
+  span#orange
     {
       background-color: orange;
     }
@@ -23,4 +26,4 @@
 
   <p>Test passes if the background of characters "c" and "t" is orange (and only those 2 characters) and if the space between those 2 characters is also orange.
 
-  <div>Sele<span>ct</span>ed Text</div>
+  <div><span id="yellow">Sele<span id="orange">ct</span>ed</span></div>

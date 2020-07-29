@@ -10,12 +10,13 @@ from tools.wpt import browser, utils, wpt
 @pytest.mark.slow
 @pytest.mark.remote_network
 def test_install_chromium():
+    dest = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly")
     if sys.platform == "win32":
-        chromium_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "chrome-win")
+        chromium_path = os.path.join(dest, "chrome-win")
     elif sys.platform == "darwin":
-        chromium_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "chrome-mac")
+        chromium_path = os.path.join(dest, "chrome-mac")
     else:
-        chromium_path = os.path.join(wpt.localpaths.repo_root, wpt.venv_dir(), "browsers", "nightly", "chrome-linux")
+        chromium_path = os.path.join(dest, "chrome-linux")
 
     if os.path.exists(chromium_path):
         utils.rmtree(chromium_path)
@@ -23,6 +24,11 @@ def test_install_chromium():
         wpt.main(argv=["install", "chrome", "browser", "--channel=nightly"])
     assert excinfo.value.code == 0
     assert os.path.exists(chromium_path)
+
+    chrome = browser.Chrome(logging.getLogger("Chrome"))
+    binary = chrome.find_nightly_binary(dest)
+    assert binary is not None and os.path.exists(binary)
+
     utils.rmtree(chromium_path)
 
 
