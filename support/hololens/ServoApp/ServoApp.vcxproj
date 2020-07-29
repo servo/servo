@@ -191,6 +191,9 @@
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstaudio-1.0-0.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
     </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstaudiobuffersplit.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
+    </None>
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstaudioconvert.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
     </None>
@@ -224,10 +227,19 @@
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstfft-1.0-0.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
     </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstgio.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
+    </None>
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstgl-1.0-0.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
     </None>
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstinterleave.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
+    </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstid3tag.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
+    </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstid3demux.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">true</DeploymentContent>
     </None>
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstisomp4.dll">
@@ -365,6 +377,9 @@
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstaudio-1.0-0.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
     </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstaudiobuffersplit.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
+    </None>
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstaudioconvert.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
     </None>
@@ -398,10 +413,19 @@
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstfft-1.0-0.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
     </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstgio.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
+    </None>
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstgl-1.0-0.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
     </None>
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstinterleave.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
+    </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstid3tag.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
+    </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstid3demux.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">true</DeploymentContent>
     </None>
     <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstisomp4.dll">
@@ -539,6 +563,9 @@
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstaudio-1.0-0.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstaudiobuffersplit.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    </None>
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstaudioconvert.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
@@ -572,10 +599,19 @@
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstfft-1.0-0.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstgio.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    </None>
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstgl-1.0-0.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstinterleave.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstid3tag.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
+    </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstid3demux.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</DeploymentContent>
     </None>
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstisomp4.dll">
@@ -725,6 +761,9 @@
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstaudio-1.0-0.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstaudiobuffersplit.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </None>
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstaudioconvert.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </None>
@@ -758,7 +797,16 @@
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstfft-1.0-0.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstgio.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </None>
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstgl-1.0-0.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstid3tag.dll">
+      <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
+    </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstid3demux.dll">
       <DeploymentContent Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DeploymentContent>
     </None>
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstinterleave.dll">
