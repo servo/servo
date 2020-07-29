@@ -63,7 +63,7 @@ use style::properties::{style_structs, ComputedValues};
 use style::servo::restyle_damage::ServoRestyleDamage;
 use style::values::computed::effects::SimpleShadow;
 use style::values::computed::image::Image;
-use style::values::computed::{ClipRectOrAuto, Gradient, LengthOrAuto};
+use style::values::computed::{ClipRectOrAuto, Gradient};
 use style::values::generics::background::BackgroundSize;
 use style::values::generics::image::PaintWorklet;
 use style::values::specified::ui::CursorKind;
@@ -2701,26 +2701,7 @@ impl BlockFlow {
             _ => return,
         }
 
-        fn extract_clip_component(p: &LengthOrAuto) -> Option<Au> {
-            match *p {
-                LengthOrAuto::Auto => None,
-                LengthOrAuto::LengthPercentage(ref length) => Some(Au::from(*length)),
-            }
-        }
-
-        let clip_origin = Point2D::new(
-            stacking_relative_border_box.origin.x +
-                extract_clip_component(&style_clip_rect.left).unwrap_or_default(),
-            stacking_relative_border_box.origin.y +
-                extract_clip_component(&style_clip_rect.top).unwrap_or_default(),
-        );
-        let right = extract_clip_component(&style_clip_rect.right)
-            .unwrap_or(stacking_relative_border_box.size.width);
-        let bottom = extract_clip_component(&style_clip_rect.bottom)
-            .unwrap_or(stacking_relative_border_box.size.height);
-        let clip_size = Size2D::new(right - clip_origin.x, bottom - clip_origin.y);
-
-        let clip_rect = Rect::new(clip_origin, clip_size);
+        let clip_rect = style_clip_rect.for_border_rect(stacking_relative_border_box);
         preserved_state.push_clip(state, clip_rect, self.positioning());
 
         let new_index = state.add_clip_scroll_node(ClipScrollNode {

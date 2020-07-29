@@ -19,6 +19,7 @@ use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::properties::ComputedValues;
+use style::values::computed::ClipRectOrAuto;
 use style::values::computed::Length;
 use style::values::generics::box_::Perspective;
 use style::values::generics::transform;
@@ -660,6 +661,7 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
     ) {
+        self.build_clip_frame_if_necessary(builder, containing_block_info);
         stacking_context.fragments.push(StackingContextFragment {
             space_and_clip: builder.current_space_and_clip,
             section: self.get_stacking_context_section(),
@@ -708,6 +710,32 @@ impl BoxFragment {
         builder.current_space_and_clip.spatial_id = builder.nearest_reference_frame;
     }
 
+    fn build_clip_frame_if_necessary(
+        &self,
+        builder: &mut StackingContextBuilder,
+        containing_block_info: &ContainingBlockInfo,
+    ) {
+        let position = self.style.get_box().position;
+        // https://drafts.csswg.org/css2/#clipping
+        // The clip property applies only to absolutely positioned elements
+        if position == ComputedPosition::Absolute || position == ComputedPosition::Fixed {
+            let clip = self.style.get_effects().clip;
+            if let ClipRectOrAuto::Rect(r) = clip {
+                let border_rect = self
+                    .border_rect()
+                    .to_physical(self.style.writing_mode, &containing_block_info.rect);
+                let clip_rect = r
+                    .for_border_rect(border_rect)
+                    .translate(containing_block_info.rect.origin.to_vector())
+                    .to_webrender();
+
+                let parent = builder.current_space_and_clip;
+                builder.current_space_and_clip.clip_id =
+                    builder.wr.define_clip_rect(&parent, clip_rect);
+            }
+        }
+    }
+
     fn build_scroll_frame_if_necessary<'a>(
         &self,
         builder: &mut StackingContextBuilder,
@@ -715,6 +743,7 @@ impl BoxFragment {
     ) {
         let overflow_x = self.style.get_box().overflow_x;
         let overflow_y = self.style.get_box().overflow_y;
+
         let original_scroll_and_clip_info = builder.current_space_and_clip;
         if overflow_x != ComputedOverflow::Visible || overflow_y != ComputedOverflow::Visible {
             let external_id = wr::ExternalScrollId(
