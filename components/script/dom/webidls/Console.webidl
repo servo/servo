@@ -15,6 +15,7 @@ namespace console {
   void warn(DOMString... messages);
   void error(DOMString... messages);
   void assert(boolean condition, optional DOMString message);
+  void clear();
 
   // Grouping
   void group(DOMString... data);
