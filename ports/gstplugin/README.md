@@ -3,7 +3,7 @@
 ## Supported platforms
 
 * MacOS + CGL
-* Linux + Wayland (currently no WebGL content)
+* Linux + Wayland
 
 ## Build
 
