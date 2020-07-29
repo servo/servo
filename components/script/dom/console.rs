@@ -72,6 +72,12 @@ impl Console {
         console_messages(global, &messages, LogLevel::Log)
     }
 
+    // https://developer.mozilla.org/en-US/docs/Web/API/Console/clear
+    pub fn Clear(global: &GlobalScope) {
+        let message: Vec<DOMString> = Vec::new();
+        console_messages(global, &message, LogLevel::Clear)
+    }
+
     // https://developer.mozilla.org/en-US/docs/Web/API/Console
     pub fn Debug(global: &GlobalScope, messages: Vec<DOMString>) {
         console_messages(global, &messages, LogLevel::Debug)

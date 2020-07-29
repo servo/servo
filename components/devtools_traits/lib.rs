@@ -246,6 +246,7 @@ pub enum LogLevel {
     Info,
     Warn,
     Error,
+    Clear,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
