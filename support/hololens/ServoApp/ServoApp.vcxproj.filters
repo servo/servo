@@ -855,6 +855,55 @@
     <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\swresample-3.dll">
       <Filter>ReleaseServoDLLs</Filter>
     </None>
+    <None Include="$(OpenXRLoaderBinaryRoot)\bin\openxr_loader.dll" />
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstaudiobuffersplit.dll">
+      <Filter>DebugARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstgio.dll">
+      <Filter>DebugARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstid3tag.dll">
+      <Filter>DebugARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\debug\gstid3demux.dll">
+      <Filter>DebugARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstaudiobuffersplit.dll">
+      <Filter>ReleaseARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstgio.dll">
+      <Filter>ReleaseARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstid3tag.dll">
+      <Filter>ReleaseARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\aarch64-uwp-windows-msvc\release\gstid3demux.dll">
+      <Filter>ReleaseARM64ServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstaudiobuffersplit.dll">
+      <Filter>DebugServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstgio.dll">
+      <Filter>DebugServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstid3tag.dll">
+      <Filter>DebugServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\debug\gstid3demux.dll">
+      <Filter>DebugServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstaudiobuffersplit.dll">
+      <Filter>ReleaseServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstgio.dll">
+      <Filter>ReleaseServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstid3tag.dll">
+      <Filter>ReleaseServoDLLs</Filter>
+    </None>
+    <None Include="..\..\..\target\x86_64-uwp-windows-msvc\release\gstid3demux.dll">
+      <Filter>ReleaseServoDLLs</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Assets">
