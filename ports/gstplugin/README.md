@@ -38,9 +38,9 @@ To stream over the network:
 GST_PLUGIN_PATH=target/gstplugins \
   gst-launch-1.0 -e servowebsrc \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
+    ! glvideoflip video-direction=vert \
     ! glcolorconvert \
     ! gldownload \
-    ! videoflip video-direction=vert \
     ! theoraenc \
     ! oggmux \
     ! tcpserversink host=127.0.0.1 port=8080
@@ -51,9 +51,9 @@ To  save to a file:
 GST_PLUGIN_PATH=target/gstplugins \
   gst-launch-1.0 -e servowebsrc \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
+    ! glvideoflip video-direction=vert \
     ! glcolorconvert \
     ! gldownload \
-    ! videoflip video-direction=vert \
     ! theoraenc \
     ! oggmux \
     ! filesink location=test.ogg
