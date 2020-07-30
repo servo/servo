@@ -15,11 +15,11 @@ interface ImageCapture {
    readonly attribute MediaStreamTrack track;
 };
 
-[Exposed=Window] interface PhotoCapabilities {
-  readonly attribute RedEyeReduction            redEyeReduction;
-  readonly attribute MediaSettingsRange         imageHeight;
-  readonly attribute MediaSettingsRange         imageWidth;
-  readonly attribute FrozenArray<FillLightMode> fillLightMode;
+dictionary PhotoCapabilities {
+  RedEyeReduction         redEyeReduction;
+  MediaSettingsRange      imageHeight;
+  MediaSettingsRange      imageWidth;
+  sequence<FillLightMode> fillLightMode;
 };
 
 dictionary PhotoSettings {
@@ -29,11 +29,10 @@ dictionary PhotoSettings {
   boolean         redEyeReduction;
 };
 
-[Exposed=Window] interface MediaSettingsRange {
-    readonly attribute double max;
-    readonly attribute double min;
-    readonly attribute double step;
-    [Default] object toJSON();
+dictionary MediaSettingsRange {
+    double max;
+    double min;
+    double step;
 };
 
 enum RedEyeReduction {

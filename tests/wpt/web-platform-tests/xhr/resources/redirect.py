@@ -13,4 +13,4 @@ def main(request, response):
     if b"followed" in request.GET:
         return [(b"Content:Type", b"text/plain")], b"MAGIC HAPPENED"
     else:
-        return (code, u"WEBSRT MARKETING"), [(b"Location", location)], b"TEST"
+        return (code, b"WEBSRT MARKETING"), [(b"Location", location)], b"TEST"

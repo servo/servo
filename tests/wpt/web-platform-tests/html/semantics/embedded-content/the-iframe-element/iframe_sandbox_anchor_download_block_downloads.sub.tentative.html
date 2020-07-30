@@ -19,13 +19,32 @@ async_test(t => {
         iframe.contentWindow.addEventListener(
             "unload", t.unreached_func("Unexpected navigation."));
         var anchor = iframe.contentDocument.getElementsByTagName('a')[0];
-        anchor.href = "support/download_stash.py?token=" + token;
+        anchor.href = "support/download_stash.py?token=" + token + "&finish-delay=" + StreamDownloadFinishDelay();
+        anchor.download = null;
+        anchor.click();
+        AssertDownloadFailure(t, token, StreamDownloadFinishDelay() + DownloadVerifyDelay());
+    });
+
+    document.body.appendChild(iframe);
+}, "<a download> triggered download in sandbox is blocked.");
+
+async_test(t => {
+    const token = "{{$id:uuid()}}";
+    var iframe = document.createElement("iframe");
+    iframe.srcdoc = "<a>Download</a>";
+    iframe.sandbox = "allow-same-origin";
+    iframe.onload = t.step_func(function () {
+        iframe.contentWindow.addEventListener(
+            "unload", t.unreached_func("Unexpected navigation."));
+        var anchor = iframe.contentDocument.getElementsByTagName('a')[0];
+        anchor.href = "support/download_stash.py?token=" + token ;
         anchor.download = null;
         anchor.click();
         AssertDownloadFailure(t, token, DownloadVerifyDelay());
     });
 
     document.body.appendChild(iframe);
-}, "<a download> triggered download in sandbox is blocked.");
+}, "<a download> triggered download in sandbox is blocked before a request is made");
+
 </script>
 </body>

@@ -35,7 +35,7 @@ def get_response(raw_headers, filter_value, filter_name):
 
 def main(request, response):
     headers = []
-    if "cors" in request.GET:
+    if b"cors" in request.GET:
         headers.append((b"Access-Control-Allow-Origin", b"*"))
         headers.append((b"Access-Control-Allow-Credentials", b"true"))
         headers.append((b"Access-Control-Allow-Methods", b"GET, POST, PUT, FOO"))
