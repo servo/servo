@@ -75,6 +75,9 @@ use servo::compositing::windowing::WindowMethods;
 use servo::embedder_traits::EmbedderProxy;
 use servo::embedder_traits::EventLoopWaker;
 use servo::msg::constellation_msg::TopLevelBrowsingContextId;
+use servo::servo_config::prefs::add_user_prefs;
+use servo::servo_config::prefs::read_prefs_map;
+use servo::servo_config::prefs::PrefValue;
 use servo::servo_config::set_pref;
 use servo::servo_url::ServoUrl;
 use servo::webrender_api::units::DevicePixel;
@@ -115,6 +118,7 @@ pub struct ServoWebSrc {
     sender: Sender<ServoWebSrcMsg>,
     url: Mutex<Option<String>>,
     webxr_mode: Mutex<Option<WebXRMode>>,
+    prefs: Mutex<Option<String>>,
     outcaps: Mutex<Option<Caps>>,
     info: Mutex<Option<VideoInfo>>,
     buffer_pool: Mutex<Option<BufferPool>>,
@@ -172,6 +176,7 @@ enum ServoWebSrcMsg {
         ConnectionWhichImplementsDebug,
         ServoUrl,
         Option<WebXRMode>,
+        HashMap<String, PrefValue>,
         Size2D<i32, DevicePixel>,
     ),
     GetSwapChain(Sender<SwapChain<Device>>),
@@ -195,13 +200,16 @@ struct ServoThread {
 
 impl ServoThread {
     fn new(sender: Sender<ServoWebSrcMsg>, receiver: Receiver<ServoWebSrcMsg>) -> Self {
-        let (connection, url, webxr_mode, size) = match receiver.recv() {
-            Ok(ServoWebSrcMsg::Start(connection, url, webxr_mode, size)) => {
-                (connection.0, url, webxr_mode, size)
+        let (connection, url, webxr_mode, prefs, size) = match receiver.recv() {
+            Ok(ServoWebSrcMsg::Start(connection, url, webxr_mode, prefs, size)) => {
+                (connection.0, url, webxr_mode, prefs, size)
             },
             e => panic!("Failed to start ({:?})", e),
         };
-        info!("Created new servo thread for {} ({:?})", url, webxr_mode);
+        info!(
+            "Created new servo thread for {} ({:?}, {:?})",
+            url, webxr_mode, prefs
+        );
         let window = Rc::new(ServoWebSrcWindow::new(connection, webxr_mode, sender, size));
         let embedder = Box::new(ServoWebSrcEmbedder::new(&window));
         let webrender_swap_chain = window
@@ -223,6 +231,8 @@ impl ServoThread {
                 None
             },
         };
+
+        add_user_prefs(prefs);
 
         Self {
             receiver,
@@ -443,7 +453,16 @@ impl WebXRWindow for ServoWebSrcWebXR {
     }
 }
 
-static PROPERTIES: [Property; 2] = [
+static PROPERTIES: [Property; 3] = [
+    Property("prefs", |name| {
+        ParamSpec::string(
+            name,
+            "prefs",
+            "Servo preferences",
+            None,
+            glib::ParamFlags::READWRITE,
+        )
+    }),
     Property("url", |name| {
         ParamSpec::string(
             name,
@@ -485,6 +504,7 @@ impl ObjectSubclass for ServoWebSrc {
         let info = Mutex::new(None);
         let outcaps = Mutex::new(None);
         let url = Mutex::new(None);
+        let prefs = Mutex::new(None);
         let webxr_mode = Mutex::new(None);
         let buffer_pool = Mutex::new(None);
         let gl_context = Mutex::new(None);
@@ -497,6 +517,7 @@ impl ObjectSubclass for ServoWebSrc {
             info,
             outcaps,
             url,
+            prefs,
             webxr_mode,
             buffer_pool,
             gl_context,
@@ -539,6 +560,11 @@ impl ObjectImpl for ServoWebSrc {
     fn set_property(&self, _obj: &Object, id: usize, value: &Value) {
         let prop = &PROPERTIES[id];
         match *prop {
+            Property("prefs", ..) => {
+                let mut guard = self.prefs.lock().expect("Failed to lock mutex");
+                let prefs = value.get().expect("Failed to get prefs value");
+                *guard = prefs;
+            },
             Property("url", ..) => {
                 let mut guard = self.url.lock().expect("Failed to lock mutex");
                 let url = value.get().expect("Failed to get url value");
@@ -564,6 +590,10 @@ impl ObjectImpl for ServoWebSrc {
     fn get_property(&self, _obj: &Object, id: usize) -> Result<Value, ()> {
         let prop = &PROPERTIES[id];
         match *prop {
+            Property("prefs", ..) => {
+                let guard = self.url.lock().expect("Failed to lock mutex");
+                Ok(Value::from(guard.as_ref()))
+            },
             Property("url", ..) => {
                 let guard = self.url.lock().expect("Failed to lock mutex");
                 Ok(Value::from(guard.as_ref()))
@@ -761,6 +791,12 @@ impl ServoWebSrc {
             error!("Failed to parse url {} ({:?})", url_string, e);
             FlowError::Error
         })?;
+        let prefs_guard = self.prefs.lock().expect("Poisoned mutex");
+        let prefs_string = prefs_guard.as_ref().map(|s| &**s).unwrap_or("{}");
+        let prefs = read_prefs_map(prefs_string).map_err(|e| {
+            error!("Failed to parse prefs {} ({:?})", prefs_string, e);
+            FlowError::Error
+        })?;
         let size = self
             .info
             .lock()
@@ -773,6 +809,7 @@ impl ServoWebSrc {
             ConnectionWhichImplementsDebug(connection),
             url,
             webxr_mode,
+            prefs,
             size,
         ));
 
@@ -925,7 +962,7 @@ impl ServoWebSrc {
 
             if gfx.swap_chain.is_none() {
                 debug!("Getting the swap chain");
-                let (acks, ackr) = crossbeam_channel::bounded(1);
+                let (acks, ackr) = crossbeam_channel::unbounded();
                 let _ = self.sender.send(ServoWebSrcMsg::GetSwapChain(acks));
                 gfx.swap_chain = ackr.recv_timeout(Duration::from_millis(16)).ok();
             }
