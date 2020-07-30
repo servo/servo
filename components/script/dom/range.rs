@@ -298,6 +298,7 @@ impl RangeMethods for Range {
     fn CommonAncestorContainer(&self) -> DomRoot<Node> {
         self.EndContainer()
             .common_ancestor(&self.StartContainer(), ShadowIncluding::No)
+            .expect("Couldn't find common ancestor container")
     }
 
     // https://dom.spec.whatwg.org/#dom-range-setstart

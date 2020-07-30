@@ -560,7 +560,8 @@ impl Document {
 
         let new_dirty_root = element
             .upcast::<Node>()
-            .common_ancestor(dirty_root.upcast(), ShadowIncluding::Yes);
+            .common_ancestor(dirty_root.upcast(), ShadowIncluding::Yes)
+            .expect("Couldn't find common ancestor");
 
         let mut has_dirty_descendants = true;
         for ancestor in dirty_root
@@ -1515,10 +1516,12 @@ impl Document {
             FireMouseEventType::Enter | FireMouseEventType::Leave
         ));
 
-        let common_ancestor = related_target.as_ref().map_or_else(
-            || DomRoot::from_ref(&*event_target),
-            |related_target| event_target.common_ancestor(related_target, ShadowIncluding::No),
-        );
+        let common_ancestor = match related_target.as_ref() {
+            Some(related_target) => event_target
+                .common_ancestor(related_target, ShadowIncluding::No)
+                .unwrap_or_else(|| DomRoot::from_ref(&*event_target)),
+            None => DomRoot::from_ref(&*event_target),
+        };
 
         // We need to create a target chain in case the event target shares
         // its boundaries with its ancestors.
