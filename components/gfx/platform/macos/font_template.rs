@@ -167,7 +167,7 @@ impl FontTemplateData {
     /// Returns the native font that underlies this font template, if applicable.
     pub fn native_font(&self) -> Option<NativeFontHandle> {
         self.ctfont(0.0)
-            .map(|ctfont| NativeFontHandle(ctfont.copy_to_CGFont()))
+            .map(|ctfont| NativeFontHandle(unsafe { std::mem::transmute(ctfont.copy_to_CGFont()) }))
     }
 }
 

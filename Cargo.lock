@@ -936,6 +936,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-foundation"
+version = "0.9.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3b5ed8e7e76c45974e15e41bfa8d5b0483cd90191639e01d8f5f1e606299d3fb"
+dependencies = [
+ "core-foundation-sys 0.8.0",
+ "libc",
+]
+
+[[package]]
 name = "core-foundation-sys"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -946,6 +956,12 @@ name = "core-foundation-sys"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b3a71ab494c0b5b860bdc8407ae08978052417070c2ced38573a9157ad75b8ac"
+
+[[package]]
+name = "core-foundation-sys"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9a21fa21941700a3cd8fcb4091f361a6a712fac632f85d9f487cc892045d55c6"
 
 [[package]]
 name = "core-graphics"
@@ -972,6 +988,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-graphics"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6082396a349fa49674ba1bda4077332a18bf150e8fa75745ece07085e29a113"
+dependencies = [
+ "bitflags",
+ "core-foundation 0.9.0",
+ "core-graphics-types",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
+name = "core-graphics-types"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e92f5d519093a4178296707dbaa3880eae85a5ef5386675f361a1cf25376e93c"
+dependencies = [
+ "bitflags",
+ "core-foundation 0.9.0",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
 name = "core-text"
 version = "13.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -991,6 +1032,18 @@ checksum = "131b3fd1f8bd5db9f2b398fa4fdb6008c64afc04d447c306ac2c7e98fba2a61d"
 dependencies = [
  "core-foundation 0.7.0",
  "core-graphics 0.19.0",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
+name = "core-text"
+version = "19.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04dfae50af11e72657fe7174cddb1ecddc5398037f7f6f39533ad69207c9a4e2"
+dependencies = [
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
  "foreign-types",
  "libc",
 ]
@@ -1808,9 +1861,9 @@ dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
- "core-foundation 0.7.0",
- "core-graphics 0.19.0",
- "core-text 15.0.0",
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
+ "core-text 19.0.0",
  "dwrote",
  "euclid",
  "fnv",
