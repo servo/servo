@@ -10,7 +10,7 @@ name = "script_tests"
 path = "lib.rs"
 
 [dependencies]
-euclid = "0.20"
+euclid = "0.22"
 keyboard-types = "0.5"
 script = {path = "../../../components/script"}
 servo_url = {path = "../../../components/url"}
