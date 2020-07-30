@@ -12,7 +12,7 @@ exclude = [".cargo"]
 [profile.release]
 opt-level = 3
 # Uncomment to profile on Linux:
-# debug = true
+debug = true
 # lto = false
 
 [patch.crates-io]
