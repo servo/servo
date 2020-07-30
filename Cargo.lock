@@ -1841,14 +1841,14 @@ dependencies = [
 
 [[package]]
 name = "gfx-backend-dx11"
-version = "0.5.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "92de0ddc0fde1a89b2a0e92dcc6bbb554bd34af0135e53a28d5ef064611094a4"
+checksum = "32d95d5fddfa596c0628be117a16979b273f676b4e5a037a417365f274349123"
 dependencies = [
  "bitflags",
  "gfx-auxil",
  "gfx-hal",
- "libloading 0.5.2",
+ "libloading 0.6.1",
  "log",
  "parking_lot 0.10.2",
  "range-alloc",
