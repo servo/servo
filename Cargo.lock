@@ -538,7 +538,7 @@ dependencies = [
  "fnv",
  "font-kit",
  "gfx",
- "gleam 0.11.0",
+ "gleam 0.12.1",
  "half",
  "ipc-channel",
  "log",
@@ -718,9 +718,9 @@ dependencies = [
 
 [[package]]
 name = "cmake"
-version = "0.1.41"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c84c596dcf125d6781f58e3f4254677ec2a6d8aa56e8501ac277100990b3229"
+checksum = "0e56268c17a6248366d66d4a47a3381369d068cce8409bb1716ed77ea32163bb"
 dependencies = [
  "cc",
 ]
@@ -813,7 +813,7 @@ dependencies = [
  "embedder_traits",
  "euclid",
  "gfx_traits",
- "gleam 0.11.0",
+ "gleam 0.12.1",
  "image",
  "ipc-channel",
  "keyboard-types",
@@ -988,6 +988,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-graphics"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6082396a349fa49674ba1bda4077332a18bf150e8fa75745ece07085e29a113"
+dependencies = [
+ "bitflags",
+ "core-foundation 0.9.0",
+ "core-graphics-types",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
 name = "core-graphics-types"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1019,6 +1032,18 @@ checksum = "131b3fd1f8bd5db9f2b398fa4fdb6008c64afc04d447c306ac2c7e98fba2a61d"
 dependencies = [
  "core-foundation 0.7.0",
  "core-graphics 0.19.0",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
+name = "core-text"
+version = "19.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04dfae50af11e72657fe7174cddb1ecddc5398037f7f6f39533ad69207c9a4e2"
+dependencies = [
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
  "foreign-types",
  "libc",
 ]
@@ -1582,7 +1607,7 @@ dependencies = [
  "dirs",
  "dwrote",
  "float-ord",
- "freetype",
+ "freetype 0.4.1",
  "lazy_static",
  "libc",
  "log",
@@ -1626,6 +1651,27 @@ checksum = "11926b2b410b469d0e9399eca4cbbe237a9ef02176c485803b29216307e8e028"
 dependencies = [
  "libc",
  "servo-freetype-sys",
+]
+
+[[package]]
+name = "freetype"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bee38378a9e3db1cc693b4f88d166ae375338a0ff75cb8263e1c601d51f35dc6"
+dependencies = [
+ "freetype-sys",
+ "libc",
+]
+
+[[package]]
+name = "freetype-sys"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a37d4011c0cc628dfa766fcc195454f4b068d7afdc2adfd28861191d866e731a"
+dependencies = [
+ "cmake",
+ "libc",
+ "pkg-config",
 ]
 
 [[package]]
@@ -1836,14 +1882,14 @@ dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
- "core-foundation 0.7.0",
- "core-graphics 0.19.0",
- "core-text 15.0.0",
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
+ "core-text 19.0.0",
  "dwrote",
  "euclid",
  "fnv",
  "fontsan",
- "freetype",
+ "freetype 0.4.1",
  "gfx_traits",
  "harfbuzz-sys",
  "ipc-channel",
@@ -2067,9 +2113,9 @@ dependencies = [
 
 [[package]]
 name = "gleam"
-version = "0.11.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9a13b5bb12ab457c15400b43cbba5971df5c1898b6a9c30cc8c52cb01baa112"
+checksum = "3fdef5b9df6d3a261b80a5ac55e13bf93945725df2463c1b0a2e5a527dce0d37"
 dependencies = [
  "gl_generator 0.14.0",
 ]
@@ -2110,9 +2156,9 @@ checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
 name = "glslopt"
-version = "0.1.4"
+version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "065c2e941ad25c18428724fd2ad0bc3967cb96242e8db92f3794eedb15c02e44"
+checksum = "ade35abcc6d6d49b294b2f39ea0c55ef616b682f4385553c77739f82bf163277"
 dependencies = [
  "cc",
 ]
@@ -2466,7 +2512,7 @@ dependencies = [
  "core-graphics 0.17.3",
  "core-text 13.3.2",
  "foreign-types",
- "freetype",
+ "freetype 0.4.1",
  "pkg-config",
 ]
 
@@ -3187,7 +3233,7 @@ dependencies = [
  "gaol",
  "gfx",
  "gfx_traits",
- "gleam 0.11.0",
+ "gleam 0.12.1",
  "gstreamer",
  "ipc-channel",
  "keyboard-types",
@@ -4160,7 +4206,7 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
+source = "git+https://github.com/servo/webrender#a9955c944997bd13467dd5c46265bb9359f0855b"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -4169,7 +4215,7 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
+source = "git+https://github.com/servo/webrender#a9955c944997bd13467dd5c46265bb9359f0855b"
 dependencies = [
  "proc-macro2 1.0.17",
  "quote 1.0.2",
@@ -5117,9 +5163,9 @@ dependencies = [
 
 [[package]]
 name = "servo-freetype-sys"
-version = "4.0.5"
+version = "4.0.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c4ccb6d0d32d277d3ef7dea86203d8210945eb7a45fba89dd445b3595dd0dfc"
+checksum = "9232032c2e85118c0282c6562c84cab12316e655491ba0a5d1905b2320060d1b"
 dependencies = [
  "cmake",
  "pkg-config",
@@ -6785,24 +6831,23 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.61.0"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
+source = "git+https://github.com/servo/webrender#a9955c944997bd13467dd5c46265bb9359f0855b"
 dependencies = [
- "backtrace",
  "base64 0.10.1",
  "bincode",
  "bitflags",
  "build-parallel",
  "byteorder",
  "cfg-if",
- "core-foundation 0.7.0",
- "core-graphics 0.19.0",
- "core-text 15.0.0",
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
+ "core-text 19.0.0",
  "cstr",
  "dwrote",
  "euclid",
- "freetype",
+ "freetype 0.7.0",
  "fxhash",
- "gleam 0.11.0",
+ "gleam 0.12.1",
  "glslopt",
  "image",
  "lazy_static",
@@ -6815,11 +6860,11 @@ dependencies = [
  "ron",
  "serde",
  "serde_json",
- "sig",
  "smallvec 1.4.1",
  "svg_fmt",
  "time",
  "tracy-rs",
+ "uuid",
  "webrender_api",
  "webrender_build",
  "wr_malloc_size_of",
@@ -6829,13 +6874,14 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.61.0"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
+source = "git+https://github.com/servo/webrender#a9955c944997bd13467dd5c46265bb9359f0855b"
 dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
- "core-foundation 0.7.0",
- "core-graphics 0.19.0",
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
+ "crossbeam-channel",
  "derive_more",
  "euclid",
  "malloc_size_of_derive",
@@ -6850,7 +6896,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
+source = "git+https://github.com/servo/webrender#a9955c944997bd13467dd5c46265bb9359f0855b"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -7029,7 +7075,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
+source = "git+https://github.com/servo/webrender#a9955c944997bd13467dd5c46265bb9359f0855b"
 dependencies = [
  "app_units",
  "euclid",

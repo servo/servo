@@ -21,7 +21,7 @@ crossbeam-channel = "0.4"
 embedder_traits = { path = "../embedder_traits" }
 euclid = "0.20"
 gfx_traits = { path = "../gfx_traits" }
-gleam = { version = "0.11", optional = true }
+gleam = { version = "0.12", optional = true }
 image = "0.23"
 ipc-channel = "0.14"
 keyboard-types = "0.5"
