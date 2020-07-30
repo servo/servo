@@ -962,7 +962,7 @@ impl ServoWebSrc {
 
             if gfx.swap_chain.is_none() {
                 debug!("Getting the swap chain");
-                let (acks, ackr) = crossbeam_channel::bounded(1);
+                let (acks, ackr) = crossbeam_channel::unbounded();
                 let _ = self.sender.send(ServoWebSrcMsg::GetSwapChain(acks));
                 gfx.swap_chain = ackr.recv_timeout(Duration::from_millis(16)).ok();
             }
