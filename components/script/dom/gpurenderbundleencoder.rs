@@ -6,17 +6,18 @@ use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::GPURenderBundleBinding::GPURenderBundleDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPURenderBundleEncoderBinding::GPURenderBundleEncoderMethods;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgroup::GPUBindGroup;
 use crate::dom::gpubuffer::GPUBuffer;
+use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpurenderbundle::GPURenderBundle;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
 use dom_struct::dom_struct;
 use webgpu::{
     wgpu::command::{bundle_ffi as wgpu_bundle, RenderBundleEncoder},
-    wgt, WebGPU, WebGPUDevice, WebGPURenderBundle, WebGPURequest,
+    wgt, WebGPU, WebGPURenderBundle, WebGPURequest,
 };
 
 #[dom_struct]
@@ -24,7 +25,7 @@ pub struct GPURenderBundleEncoder {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "channels are hard"]
     channel: WebGPU,
-    device: WebGPUDevice,
+    device: Dom<GPUDevice>,
     #[ignore_malloc_size_of = "defined in wgpu-core"]
     render_bundle_encoder: DomRefCell<Option<RenderBundleEncoder>>,
     label: DomRefCell<Option<USVString>>,
@@ -33,14 +34,14 @@ pub struct GPURenderBundleEncoder {
 impl GPURenderBundleEncoder {
     fn new_inherited(
         render_bundle_encoder: RenderBundleEncoder,
-        device: WebGPUDevice,
+        device: &GPUDevice,
         channel: WebGPU,
         label: Option<USVString>,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
             render_bundle_encoder: DomRefCell::new(Some(render_bundle_encoder)),
-            device,
+            device: Dom::from_ref(device),
             channel,
             label: DomRefCell::new(label),
         }
@@ -49,7 +50,7 @@ impl GPURenderBundleEncoder {
     pub fn new(
         global: &GlobalScope,
         render_bundle_encoder: RenderBundleEncoder,
-        device: WebGPUDevice,
+        device: &GPUDevice,
         channel: WebGPU,
         label: Option<USVString>,
     ) -> DomRoot<Self> {
@@ -190,7 +191,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
             .global()
             .wgpu_id_hub()
             .lock()
-            .create_render_bundle_id(self.device.0.backend());
+            .create_render_bundle_id(self.device.id().0.backend());
 
         self.channel
             .0
@@ -198,6 +199,8 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
                 render_bundle_encoder: encoder,
                 descriptor: desc,
                 render_bundle_id,
+                device_id: self.device.id().0,
+                scope_id: self.device.use_current_scope(),
             })
             .expect("Failed to send RenderBundleEncoderFinish");
 
@@ -205,7 +208,7 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
         GPURenderBundle::new(
             &self.global(),
             render_bundle,
-            self.device,
+            self.device.id(),
             self.channel.clone(),
             descriptor.parent.label.as_ref().cloned(),
         )

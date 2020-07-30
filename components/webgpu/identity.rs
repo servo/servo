@@ -43,7 +43,7 @@ pub enum WebGPUMsg {
     FreeRenderBundle(RenderBundleId),
     WebGPUOpResult {
         device: WebGPUDevice,
-        scope_id: u64,
+        scope_id: Option<u64>,
         pipeline_id: PipelineId,
         result: WebGPUOpResult,
     },

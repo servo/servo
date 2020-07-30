@@ -39,7 +39,7 @@ use crate::dom::bindings::codegen::UnionTypes::Uint32ArrayOrString;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::USVString;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -49,6 +49,7 @@ use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
 use crate::dom::gpubuffer::{GPUBuffer, GPUBufferMapInfo, GPUBufferState};
 use crate::dom::gpucommandencoder::GPUCommandEncoder;
 use crate::dom::gpucomputepipeline::GPUComputePipeline;
+use crate::dom::gpuoutofmemoryerror::GPUOutOfMemoryError;
 use crate::dom::gpupipelinelayout::GPUPipelineLayout;
 use crate::dom::gpuqueue::GPUQueue;
 use crate::dom::gpurenderbundleencoder::GPURenderBundleEncoder;
@@ -56,6 +57,7 @@ use crate::dom::gpurenderpipeline::GPURenderPipeline;
 use crate::dom::gpusampler::GPUSampler;
 use crate::dom::gpushadermodule::GPUShaderModule;
 use crate::dom::gputexture::GPUTexture;
+use crate::dom::gpuvalidationerror::GPUValidationError;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext as SafeJSContext;
@@ -69,13 +71,12 @@ use std::rc::Rc;
 use webgpu::wgpu::{
     binding_model as wgpu_bind, command::RenderBundleEncoder, pipeline as wgpu_pipe,
 };
-use webgpu::{self, wgt, WebGPU, WebGPURequest};
+use webgpu::{self, identity::WebGPUOpResult, wgt, WebGPU, WebGPURequest};
 
 type ErrorScopeId = u64;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct ErrorScopeInfo {
-    filter: GPUErrorFilter,
     op_count: u64,
     #[ignore_malloc_size_of = "defined in webgpu"]
     error: Option<GPUError>,
@@ -86,7 +87,7 @@ struct ErrorScopeInfo {
 #[derive(JSTraceable, MallocSizeOf)]
 struct ScopeContext {
     error_scopes: HashMap<ErrorScopeId, ErrorScopeInfo>,
-    scope_stack: Vec<ErrorScopeId>,
+    scope_stack: Vec<(ErrorScopeId, GPUErrorFilter)>,
     next_scope_id: ErrorScopeId,
 }
 
@@ -106,9 +107,6 @@ pub struct GPUDevice {
     scope_context: DomRefCell<ScopeContext>,
     #[ignore_malloc_size_of = "promises are hard"]
     lost_promise: DomRefCell<Option<Rc<Promise>>>,
-    #[ignore_malloc_size_of = "defined in webgpu"]
-    bind_group_layouts:
-        DomRefCell<HashMap<Vec<wgt::BindGroupLayoutEntry>, Dom<GPUBindGroupLayout>>>,
 }
 
 impl GPUDevice {
@@ -136,7 +134,6 @@ impl GPUDevice {
                 next_scope_id: 0,
             }),
             lost_promise: DomRefCell::new(None),
-            bind_group_layouts: DomRefCell::new(HashMap::new()),
         }
     }
 
@@ -165,18 +162,62 @@ impl GPUDevice {
         self.device
     }
 
-    pub fn handle_server_msg(&self, scope: ErrorScopeId, result: Result<(), GPUError>) {
+    pub fn handle_server_msg(&self, scope: Option<ErrorScopeId>, result: WebGPUOpResult) {
+        let result = match result {
+            WebGPUOpResult::Success => Ok(()),
+            WebGPUOpResult::ValidationError(m) => {
+                let val_err = GPUValidationError::new(&self.global(), DOMString::from_string(m));
+                Err((
+                    GPUError::GPUValidationError(val_err),
+                    GPUErrorFilter::Validation,
+                ))
+            },
+            WebGPUOpResult::OutOfMemoryError => {
+                let oom_err = GPUOutOfMemoryError::new(&self.global());
+                Err((
+                    GPUError::GPUOutOfMemoryError(oom_err),
+                    GPUErrorFilter::Out_of_memory,
+                ))
+            },
+        };
+
+        if let Some(s_id) = scope {
+            if let Err((err, filter)) = result {
+                let scop = self
+                    .scope_context
+                    .borrow()
+                    .scope_stack
+                    .iter()
+                    .rev()
+                    .find(|&&(id, fil)| id <= s_id && fil == filter)
+                    .map(|(id, _)| *id);
+                if let Some(s) = scop {
+                    self.handle_error(s, err);
+                } else {
+                    // Fire UncapturedErrorEvent.
+                }
+            }
+            self.try_remove_scope(s_id);
+        } else {
+            // Fire UncapturedErrorEvent if result is Error
+        }
+    }
+
+    fn handle_error(&self, scope: ErrorScopeId, error: GPUError) {
+        let mut context = self.scope_context.borrow_mut();
+        if let Some(mut err_scope) = context.error_scopes.get_mut(&scope) {
+            if err_scope.error.is_none() {
+                err_scope.error = Some(error);
+            }
+        } else {
+            warn!("Could not find ErrorScope with Id({})", scope);
+        }
+    }
+
+    fn try_remove_scope(&self, scope: ErrorScopeId) {
         let mut context = self.scope_context.borrow_mut();
         let remove = if let Some(mut err_scope) = context.error_scopes.get_mut(&scope) {
             err_scope.op_count -= 1;
-            match result {
-                Ok(()) => {},
-                Err(e) => {
-                    if err_scope.error.is_none() {
-                        err_scope.error = Some(e);
-                    }
-                },
-            }
             if let Some(ref promise) = err_scope.promise {
                 if !promise.is_fulfilled() {
                     if let Some(ref e) = err_scope.error {
@@ -191,18 +232,19 @@ impl GPUDevice {
             }
             err_scope.op_count == 0 && err_scope.promise.is_some()
         } else {
-            warn!("Could not find ErrroScope with Id({})", scope);
+            warn!("Could not find ErrorScope with Id({})", scope);
             false
         };
         if remove {
             let _ = context.error_scopes.remove(&scope);
+            context.scope_stack.retain(|(id, _)| *id != scope);
         }
     }
 
-    fn use_current_scope(&self) -> Option<ErrorScopeId> {
+    pub fn use_current_scope(&self) -> Option<ErrorScopeId> {
         let mut context = self.scope_context.borrow_mut();
-        let scope_id = context.scope_stack.last().cloned();
-        scope_id.and_then(|s_id| {
+        let scope_id = context.scope_stack.last().copied();
+        scope_id.and_then(|(s_id, _)| {
             context.error_scopes.get_mut(&s_id).map(|mut scope| {
                 scope.op_count += 1;
                 s_id
@@ -265,10 +307,13 @@ impl GPUDeviceMethods for GPUDevice {
             .wgpu_id_hub()
             .lock()
             .create_buffer_id(self.device.0.backend());
+
+        let scope_id = self.use_current_scope();
         self.channel
             .0
             .send(WebGPURequest::CreateBuffer {
                 device_id: self.device.0,
+                scope_id,
                 buffer_id: id,
                 descriptor: wgpu_descriptor,
             })
@@ -388,28 +433,13 @@ impl GPUDeviceMethods for GPUDevice {
 
         let scope_id = self.use_current_scope();
 
-        // Check for equivalent GPUBindGroupLayout
-        {
-            let layout = self
-                .bind_group_layouts
-                .borrow()
-                .get(&entries)
-                .map(|bgl| DomRoot::from_ref(&**bgl));
-            if let Some(l) = layout {
-                if let Some(i) = scope_id {
-                    self.handle_server_msg(i, Ok(()));
-                }
-                return l;
-            }
-        }
-
         let desc = wgt::BindGroupLayoutDescriptor {
             label: descriptor
                 .parent
                 .label
                 .as_ref()
                 .map(|s| Cow::Owned(s.to_string())),
-            entries: Cow::Owned(entries.clone()),
+            entries: Cow::Owned(entries),
         };
 
         let bind_group_layout_id = self
@@ -429,17 +459,11 @@ impl GPUDeviceMethods for GPUDevice {
 
         let bgl = webgpu::WebGPUBindGroupLayout(bind_group_layout_id);
 
-        let layout = GPUBindGroupLayout::new(
+        GPUBindGroupLayout::new(
             &self.global(),
             bgl,
             descriptor.parent.label.as_ref().cloned(),
-        );
-
-        self.bind_group_layouts
-            .borrow_mut()
-            .insert(entries, Dom::from_ref(&*layout));
-
-        layout
+        )
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createpipelinelayout
@@ -562,10 +586,13 @@ impl GPUDeviceMethods for GPUDevice {
             .wgpu_id_hub()
             .lock()
             .create_shader_module_id(self.device.0.backend());
+
+        let scope_id = self.use_current_scope();
         self.channel
             .0
             .send(WebGPURequest::CreateShaderModule {
                 device_id: self.device.0,
+                scope_id,
                 program_id,
                 program,
             })
@@ -628,10 +655,12 @@ impl GPUDeviceMethods for GPUDevice {
             .wgpu_id_hub()
             .lock()
             .create_command_encoder_id(self.device.0.backend());
+        let scope_id = self.use_current_scope();
         self.channel
             .0
             .send(WebGPURequest::CreateCommandEncoder {
                 device_id: self.device.0,
+                scope_id,
                 command_encoder_id,
                 label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
             })
@@ -642,7 +671,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPUCommandEncoder::new(
             &self.global(),
             self.channel.clone(),
-            self.device,
+            &self,
             encoder,
             true,
             descriptor.parent.label.as_ref().cloned(),
@@ -675,12 +704,15 @@ impl GPUDeviceMethods for GPUDevice {
             .lock()
             .create_texture_id(self.device.0.backend());
 
+        let scope_id = self.use_current_scope();
+
         self.channel
             .0
             .send(WebGPURequest::CreateTexture {
                 device_id: self.device.0,
                 texture_id,
                 descriptor: desc,
+                scope_id,
             })
             .expect("Failed to create WebGPU Texture");
 
@@ -689,7 +721,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPUTexture::new(
             &self.global(),
             texture,
-            self.device,
+            &self,
             self.channel.clone(),
             size,
             descriptor.mipLevelCount,
@@ -723,10 +755,13 @@ impl GPUDeviceMethods for GPUDevice {
             anisotropy_clamp: None,
             ..Default::default()
         };
+
+        let scope_id = self.use_current_scope();
         self.channel
             .0
             .send(WebGPURequest::CreateSampler {
                 device_id: self.device.0,
+                scope_id,
                 sampler_id,
                 descriptor: desc,
             })
@@ -914,7 +949,7 @@ impl GPUDeviceMethods for GPUDevice {
         GPURenderBundleEncoder::new(
             &self.global(),
             render_bundle_encoder,
-            self.device,
+            &self,
             self.channel.clone(),
             descriptor.parent.label.as_ref().cloned(),
         )
@@ -926,13 +961,12 @@ impl GPUDeviceMethods for GPUDevice {
         let scope_id = context.next_scope_id;
         context.next_scope_id += 1;
         let err_scope = ErrorScopeInfo {
-            filter,
             op_count: 0,
             error: None,
             promise: None,
         };
         let res = context.error_scopes.insert(scope_id, err_scope);
-        context.scope_stack.push(scope_id);
+        context.scope_stack.push((scope_id, filter));
         assert!(res.is_none());
     }
 
@@ -940,8 +974,8 @@ impl GPUDeviceMethods for GPUDevice {
     fn PopErrorScope(&self, comp: InRealm) -> Rc<Promise> {
         let mut context = self.scope_context.borrow_mut();
         let promise = Promise::new_in_current_realm(&self.global(), comp);
-        let scope_id = if let Some(e) = context.scope_stack.pop() {
-            e
+        let scope_id = if let Some((e, _)) = context.scope_stack.last() {
+            *e
         } else {
             promise.reject_error(Error::Operation);
             return promise;
@@ -963,6 +997,7 @@ impl GPUDeviceMethods for GPUDevice {
         };
         if remove {
             let _ = context.error_scopes.remove(&scope_id);
+            let _ = context.scope_stack.pop();
         }
         promise
     }

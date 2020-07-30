@@ -16,20 +16,20 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::GPUBuffer;
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucomputepassencoder::GPUComputePassEncoder;
-use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt};
+use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt, GPUDevice};
 use crate::dom::gpurenderpassencoder::GPURenderPassEncoder;
 use dom_struct::dom_struct;
 use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashSet;
 use webgpu::wgpu::command as wgpu_com;
-use webgpu::{self, wgt, WebGPU, WebGPUDevice, WebGPURequest};
+use webgpu::{self, wgt, WebGPU, WebGPURequest};
 
 // https://gpuweb.github.io/gpuweb/#enumdef-encoder-state
 #[derive(MallocSizeOf, PartialEq)]
@@ -49,14 +49,14 @@ pub struct GPUCommandEncoder {
     encoder: webgpu::WebGPUCommandEncoder,
     buffers: DomRefCell<HashSet<DomRoot<GPUBuffer>>>,
     state: DomRefCell<GPUCommandEncoderState>,
-    device: WebGPUDevice,
+    device: Dom<GPUDevice>,
     valid: Cell<bool>,
 }
 
 impl GPUCommandEncoder {
     pub fn new_inherited(
         channel: WebGPU,
-        device: WebGPUDevice,
+        device: &GPUDevice,
         encoder: webgpu::WebGPUCommandEncoder,
         valid: bool,
         label: Option<USVString>,
@@ -65,7 +65,7 @@ impl GPUCommandEncoder {
             channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
-            device,
+            device: Dom::from_ref(device),
             encoder,
             buffers: DomRefCell::new(HashSet::new()),
             state: DomRefCell::new(GPUCommandEncoderState::Open),
@@ -76,7 +76,7 @@ impl GPUCommandEncoder {
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,
-        device: WebGPUDevice,
+        device: &GPUDevice,
         encoder: webgpu::WebGPUCommandEncoder,
         valid: bool,
         label: Option<USVString>,
@@ -370,6 +370,8 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .0
             .send(WebGPURequest::CommandEncoderFinish {
                 command_encoder_id: self.encoder.0,
+                device_id: self.device.id().0,
+                scope_id: self.device.use_current_scope(),
                 // TODO(zakorgy): We should use `_descriptor` here after it's not empty
                 // and the underlying wgpu-core struct is serializable
             })

@@ -10,21 +10,21 @@ use crate::dom::bindings::codegen::Bindings::GPUTextureViewBinding::{
     GPUTextureAspect, GPUTextureViewDescriptor, GPUTextureViewDimension,
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpudevice::{convert_texture_format, convert_texture_view_dimension};
+use crate::dom::gpudevice::{convert_texture_format, convert_texture_view_dimension, GPUDevice};
 use crate::dom::gputextureview::GPUTextureView;
 use dom_struct::dom_struct;
 use std::string::String;
-use webgpu::{wgt, WebGPU, WebGPUDevice, WebGPURequest, WebGPUTexture, WebGPUTextureView};
+use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 
 #[dom_struct]
 pub struct GPUTexture {
     reflector_: Reflector,
     texture: WebGPUTexture,
     label: DomRefCell<Option<USVString>>,
-    device: WebGPUDevice,
+    device: Dom<GPUDevice>,
     #[ignore_malloc_size_of = "channels are hard"]
     channel: WebGPU,
     #[ignore_malloc_size_of = "defined in webgpu"]
@@ -39,7 +39,7 @@ pub struct GPUTexture {
 impl GPUTexture {
     fn new_inherited(
         texture: WebGPUTexture,
-        device: WebGPUDevice,
+        device: &GPUDevice,
         channel: WebGPU,
         texture_size: GPUExtent3DDict,
         mip_level_count: u32,
@@ -53,7 +53,7 @@ impl GPUTexture {
             reflector_: Reflector::new(),
             texture,
             label: DomRefCell::new(label),
-            device,
+            device: Dom::from_ref(device),
             channel,
             texture_size,
             mip_level_count,
@@ -67,7 +67,7 @@ impl GPUTexture {
     pub fn new(
         global: &GlobalScope,
         texture: WebGPUTexture,
-        device: WebGPUDevice,
+        device: &GPUDevice,
         channel: WebGPU,
         texture_size: GPUExtent3DDict,
         mip_level_count: u32,
@@ -126,7 +126,7 @@ impl GPUTextureMethods for GPUTexture {
             match self.dimension {
                 GPUTextureDimension::_1d => GPUTextureViewDimension::_1d,
                 GPUTextureDimension::_2d => {
-                    if self.texture_size.depth > 1 && descriptor.arrayLayerCount == 0 {
+                    if self.texture_size.depth > 1 && descriptor.arrayLayerCount.is_none() {
                         GPUTextureViewDimension::_2d_array
                     } else {
                         GPUTextureViewDimension::_2d
@@ -152,31 +152,27 @@ impl GPUTextureMethods for GPUTexture {
                 GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
             },
             base_mip_level: descriptor.baseMipLevel,
-            level_count: if descriptor.mipLevelCount == 0 {
-                self.mip_level_count - descriptor.baseMipLevel
-            } else {
-                descriptor.mipLevelCount
-            },
+            level_count: descriptor.mipLevelCount.as_ref().copied(),
             base_array_layer: descriptor.baseArrayLayer,
-            array_layer_count: if descriptor.arrayLayerCount == 0 {
-                self.texture_size.depth - descriptor.baseArrayLayer
-            } else {
-                descriptor.arrayLayerCount
-            },
+            array_layer_count: descriptor.arrayLayerCount.as_ref().copied(),
         };
 
         let texture_view_id = self
             .global()
             .wgpu_id_hub()
             .lock()
-            .create_texture_view_id(self.device.0.backend());
+            .create_texture_view_id(self.device.id().0.backend());
+
+        let scope_id = self.device.use_current_scope();
 
         self.channel
             .0
             .send(WebGPURequest::CreateTextureView {
                 texture_id: self.texture.0,
                 texture_view_id,
+                device_id: self.device.id().0,
                 descriptor: desc,
+                scope_id,
             })
             .expect("Failed to create WebGPU texture view");
 
