@@ -91,6 +91,23 @@ GST_PLUGIN_PATH=target/gstplugins \
 This requires the webxr content to support the `sessionavailable` event for launching directly into immersive mode.
 Values for `webxr` include `none`, `left-right`, `red-cyan`, `cubemap` and `spherical`.
 
+To stream a Hubs room and save to a file (there'll be ~30s black at the beginning while Hubs starts up):
+```
+GST_PLUGIN_PATH=$PWD/target/gstplugins \
+  gst-launch-1.0 -e servowebsrc \
+      url="https://hubs.mozilla.com/$ROOM?no_force_webvr&vr_entry_type=vr_now" \
+      webxr=red-cyan \
+      prefs='{"dom.gamepad.enabled":true, "dom.svg.enabled":true, "dom.canvas_capture.enabled": true, "dom.canvas_capture.enabled":true, "dom.webrtc.enabled":true, "dom.webrtc.transceiver.enabled":true}' \
+    ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=1920,height=1080,format=RGBA \
+    ! glvideoflip video-direction=vert \
+    ! glcolorconvert \
+    ! gldownload \
+    ! queue \
+    ! x264enc \
+    ! mp4mux \
+    ! filesink location=test.mp4
+```
+
 *Note*: killing the gstreamer pipeline with control-C sometimes locks up macOS to the point
 of needing a power cycle. Killing the pipeline by closing the window seems to work.
 
