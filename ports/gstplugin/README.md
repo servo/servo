@@ -3,7 +3,7 @@
 ## Supported platforms
 
 * MacOS + CGL
-* Linux + Wayland (currently no WebGL content)
+* Linux + Wayland
 
 ## Build
 
@@ -28,7 +28,7 @@ cp target/release/libgstservoplugin.* target/gstplugins
 To run locally:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
-  gst-launch-1.0 servowebsrc \
+  gst-launch-1.0 -e servowebsrc \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=1920,height=1080,format=RGBA \
     ! glimagesink rotate-method=vertical-flip
 ```
@@ -36,24 +36,40 @@ GST_PLUGIN_PATH=target/gstplugins \
 To stream over the network:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
-  gst-launch-1.0 servowebsrc \
+  gst-launch-1.0 -e servowebsrc \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
+    ! glvideoflip video-direction=vert \
     ! glcolorconvert \
     ! gldownload \
-    ! videoflip video-direction=vert \
     ! theoraenc \
     ! oggmux \
     ! tcpserversink host=127.0.0.1 port=8080
 ```
 
+To stream to youtube live, first go to youtube studio and create a new live stream, with its token, then:
+```
+GST_PLUGIN_PATH=target/gstplugins \
+  gst-launch-1.0 -e servowebsrc \
+    ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=1960,height=1080 \
+    ! glvideoflip video-direction=vert \
+    ! glcolorconvert \
+    ! gldownload \
+    ! x264enc bitrate=6000 \
+    ! flvmux name=mux \
+    ! rtmpsink location="rtmp://a.rtmp.youtube.com/live2/x/$TOKEN" \
+    audiotestsrc wave=silence \
+    ! voaacenc bitrate=128000 \
+    ! mux.
+```
+
 To  save to a file:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
-  gst-launch-1.0 servowebsrc \
+  gst-launch-1.0 -e servowebsrc \
     ! video/x-raw\(memory:GLMemory\),framerate=50/1,width=512,height=256 \
+    ! glvideoflip video-direction=vert \
     ! glcolorconvert \
     ! gldownload \
-    ! videoflip video-direction=vert \
     ! theoraenc \
     ! oggmux \
     ! filesink location=test.ogg
