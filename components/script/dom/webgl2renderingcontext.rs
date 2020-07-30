@@ -4475,4 +4475,10 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGL2RenderingContex
         let this = &*self.unsafe_get();
         (*this.base.to_layout().unsafe_get()).send_command(command);
     }
+
+    #[allow(unsafe_code)]
+    unsafe fn get_unpacking_alignment(self) -> u32 {
+        let this = &*self.unsafe_get();
+        (*this.base.to_layout().unsafe_get()).texture_unpacking_alignment()
+    }
 }

@@ -4728,6 +4728,11 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGLRenderingContext
     unsafe fn send_command(self, command: WebGLCommand) {
         (*self.unsafe_get()).send_command(command);
     }
+
+    #[allow(unsafe_code)]
+    unsafe fn get_unpacking_alignment(self) -> u32 {
+        (*self.unsafe_get()).texture_unpacking_alignment()
+    }
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]

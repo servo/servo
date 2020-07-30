@@ -130,6 +130,11 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, GPUCanvasContext> {
     unsafe fn send_command(self, _: WebGLCommand) {
         unimplemented!();
     }
+
+    #[allow(unsafe_code)]
+    unsafe fn get_unpacking_alignment(self) -> u32 {
+        0
+    }
 }
 
 impl GPUCanvasContextMethods for GPUCanvasContext {

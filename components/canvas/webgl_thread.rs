@@ -501,7 +501,7 @@ impl WebGLThread {
                 &data.ctx,
                 &*data.gl,
                 &mut data.state,
-                &data.attributes,
+                &mut data.attributes,
                 command,
                 backtrace,
             );
@@ -1124,7 +1124,7 @@ impl WebGLImpl {
         ctx: &Context,
         gl: &Gl,
         state: &mut GLState,
-        attributes: &GLContextAttributes,
+        attributes: &mut GLContextAttributes,
         command: WebGLCommand,
         _backtrace: WebGLCommandBacktrace,
     ) {
@@ -2216,16 +2216,29 @@ impl WebGLImpl {
             },
             WebGLCommand::ReadBuffer(buffer) => gl.read_buffer(buffer),
             WebGLCommand::DrawBuffers(ref buffers) => gl.draw_buffers(buffers),
-            WebGLCommand::PushCapturedStreamsData(ref captured_streams, size) => {
-                // XXX(ferjm) This is currently returning all 0's.
-                //     I suspect this requires https://github.com/servo/servo/issues/2460
+            WebGLCommand::PushCapturedStreamsData(
+                ref captured_streams,
+                size,
+                unpacking_alignment,
+            ) => {
+                if (!attributes.preserve_drawing_buffer) {
+                    attributes.preserve_drawing_buffer = true;
+                }
                 let pixels = gl.read_pixels(
                     0,
                     0,
                     size.width as gl::GLsizei,
                     size.height as gl::GLsizei,
-                    gl::RGB,
+                    gl::RGBA,
                     gl::UNSIGNED_BYTE,
+                );
+                let pixels = flip_pixels_y(
+                    TexFormat::RGBA,
+                    TexDataType::UnsignedByte,
+                    size.width as usize,
+                    size.height as usize,
+                    unpacking_alignment as usize,
+                    pixels,
                 );
                 let media = ServoMedia::get().unwrap();
                 for stream in captured_streams.iter() {

@@ -125,6 +125,8 @@ pub trait LayoutCanvasRenderingContextHelpers {
     unsafe fn canvas_data_source(self) -> HTMLCanvasDataSource;
     #[allow(unsafe_code)]
     unsafe fn send_command(self, command: WebGLCommand);
+    #[allow(unsafe_code)]
+    unsafe fn get_unpacking_alignment(self) -> u32;
 }
 
 pub trait LayoutHTMLCanvasElementHelpers {
@@ -170,6 +172,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
                     context.send_command(WebGLCommand::PushCapturedStreamsData(
                         self.get_captured_streams(),
                         Size2D::new(width.into(), height.into()),
+                        context.get_unpacking_alignment(),
                     ));
                     context.canvas_data_source()
                 },
@@ -178,6 +181,7 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
                     context.send_command(WebGLCommand::PushCapturedStreamsData(
                         self.get_captured_streams(),
                         Size2D::new(width.into(), height.into()),
+                        context.get_unpacking_alignment(),
                     ));
                     context.canvas_data_source()
                 },

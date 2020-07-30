@@ -512,7 +512,7 @@ pub enum WebGLCommand {
     FramebufferTextureLayer(u32, u32, Option<WebGLTextureId>, i32, i32),
     ReadBuffer(u32),
     DrawBuffers(Vec<u32>),
-    PushCapturedStreamsData(Vec<MediaStreamId>, Size2D<u64>),
+    PushCapturedStreamsData(Vec<MediaStreamId>, Size2D<u64>, u32),
 }
 
 /// WebXR layer management
