@@ -33,6 +33,7 @@ lyon_geom = "0.14"
 num-traits = "0.2"
 pixels = { path = "../pixels" }
 raqote = { version = "0.8", features = ["text"] }
+servo-media = { git = "https://github.com/servo/media" }
 servo_arc = { path = "../servo_arc" }
 servo_config = { path = "../config" }
 sparkle = "0.1.25"

@@ -79,6 +79,9 @@ impl<'a> CanvasPaintThread<'a> {
                                     canvas_paint_thread.canvas(canvas_id).recreate(size);
                                 },
                                 Ok(CanvasMsg::FromScript(message, canvas_id)) => match message {
+                                    FromScriptMsg::PushCapturedStreamsData(streams, size) => {
+                                        canvas_paint_thread.canvas(canvas_id).push_captured_streams_data(streams, size);
+                                    }
                                     FromScriptMsg::SendPixels(chan) => {
                                         canvas_paint_thread.canvas(canvas_id).send_pixels(chan);
                                     },

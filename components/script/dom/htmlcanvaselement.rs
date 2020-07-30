@@ -7,7 +7,6 @@ use crate::dom::bindings::cell::{ref_filter_map, DomRefCell, Ref};
 use crate::dom::bindings::codegen::Bindings::HTMLCanvasElementBinding::{
     HTMLCanvasElementMethods, RenderingContext,
 };
-use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMethods;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLContextAttributes;
 use crate::dom::bindings::conversions::ConversionResult;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -25,7 +24,6 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpucanvascontext::GPUCanvasContext;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::mediastream::MediaStream;
-use crate::dom::mediastreamtrack::MediaStreamTrack;
 use crate::dom::node::{window_from_node, Node};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
@@ -33,7 +31,7 @@ use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::script_runtime::JSContext;
 use base64;
 use canvas_traits::canvas::{CanvasId, CanvasMsg, FromScriptMsg};
-use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
+use canvas_traits::webgl::{GLContextAttributes, WebGLCommand, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};
@@ -45,8 +43,8 @@ use js::rust::HandleValue;
 use profile_traits::ipc;
 use script_layout_interface::{HTMLCanvasData, HTMLCanvasDataSource};
 use script_traits::ScriptMsg;
-use servo_media::streams::registry::MediaStreamId;
-use servo_media::streams::MediaStreamType;
+use servo_media::streams::{MediaSource, MediaStreamId, MediaStreamType};
+use servo_media::ServoMedia;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
 const DEFAULT_WIDTH: u32 = 300;
@@ -65,6 +63,8 @@ pub enum CanvasContext {
 pub struct HTMLCanvasElement {
     htmlelement: HTMLElement,
     context: DomRefCell<Option<CanvasContext>>,
+    #[ignore_malloc_size_of = "Defined in servo-media"]
+    captured_streams: DomRefCell<Vec<MediaStreamId>>,
 }
 
 impl HTMLCanvasElement {
@@ -76,6 +76,7 @@ impl HTMLCanvasElement {
         HTMLCanvasElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             context: DomRefCell::new(None),
+            captured_streams: DomRefCell::new(Vec::new()),
         }
     }
 
@@ -122,6 +123,8 @@ impl HTMLCanvasElement {
 pub trait LayoutCanvasRenderingContextHelpers {
     #[allow(unsafe_code)]
     unsafe fn canvas_data_source(self) -> HTMLCanvasDataSource;
+    #[allow(unsafe_code)]
+    unsafe fn send_command(self, command: WebGLCommand);
 }
 
 pub trait LayoutHTMLCanvasElementHelpers {
@@ -129,21 +132,54 @@ pub trait LayoutHTMLCanvasElementHelpers {
     fn get_width(self) -> LengthOrPercentageOrAuto;
     fn get_height(self) -> LengthOrPercentageOrAuto;
     fn get_canvas_id_for_layout(self) -> CanvasId;
+    fn get_captured_streams(self) -> Vec<MediaStreamId>;
 }
 
 impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
     #[allow(unsafe_code)]
     fn data(self) -> HTMLCanvasData {
+        let width_attr = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("width"));
+        let height_attr = self
+            .upcast::<Element>()
+            .get_attr_for_layout(&ns!(), &local_name!("height"));
+        let width = width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint());
+        let height = height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint());
+
+        let canvas_id = self.get_canvas_id_for_layout();
+
         let source = unsafe {
             match self.unsafe_get().context.borrow_for_layout().as_ref() {
                 Some(&CanvasContext::Context2d(ref context)) => {
-                    HTMLCanvasDataSource::Image(Some(context.to_layout().get_ipc_renderer()))
+                    let streams = self.get_captured_streams();
+                    let renderer = context.to_layout().get_ipc_renderer();
+                    renderer
+                        .send(CanvasMsg::FromScript(
+                            FromScriptMsg::PushCapturedStreamsData(
+                                streams,
+                                Size2D::new(width.into(), height.into()),
+                            ),
+                            canvas_id,
+                        ))
+                        .unwrap();
+                    HTMLCanvasDataSource::Image(Some(renderer))
                 },
                 Some(&CanvasContext::WebGL(ref context)) => {
-                    context.to_layout().canvas_data_source()
+                    let context = context.to_layout();
+                    context.send_command(WebGLCommand::PushCapturedStreamsData(
+                        self.get_captured_streams(),
+                        Size2D::new(width.into(), height.into()),
+                    ));
+                    context.canvas_data_source()
                 },
                 Some(&CanvasContext::WebGL2(ref context)) => {
-                    context.to_layout().canvas_data_source()
+                    let context = context.to_layout();
+                    context.send_command(WebGLCommand::PushCapturedStreamsData(
+                        self.get_captured_streams(),
+                        Size2D::new(width.into(), height.into()),
+                    ));
+                    context.canvas_data_source()
                 },
                 Some(&CanvasContext::WebGPU(ref context)) => {
                     context.to_layout().canvas_data_source()
@@ -152,17 +188,11 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
             }
         };
 
-        let width_attr = self
-            .upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("width"));
-        let height_attr = self
-            .upcast::<Element>()
-            .get_attr_for_layout(&ns!(), &local_name!("height"));
         HTMLCanvasData {
-            source: source,
-            width: width_attr.map_or(DEFAULT_WIDTH, |val| val.as_uint()),
-            height: height_attr.map_or(DEFAULT_HEIGHT, |val| val.as_uint()),
-            canvas_id: self.get_canvas_id_for_layout(),
+            source,
+            width,
+            height,
+            canvas_id,
         }
     }
 
@@ -190,6 +220,14 @@ impl LayoutHTMLCanvasElementHelpers for LayoutDom<'_, HTMLCanvasElement> {
             } else {
                 CanvasId(0)
             }
+        }
+    }
+
+    #[allow(unsafe_code)]
+    fn get_captured_streams(self) -> Vec<MediaStreamId> {
+        unsafe {
+            let canvas = &*self.unsafe_get();
+            canvas.captured_streams.borrow().clone()
         }
     }
 }
@@ -436,13 +474,14 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         Ok(USVString(url))
     }
 
-    /// https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream
-    fn CaptureStream(&self, _frame_request_rate: Option<Finite<f64>>) -> DomRoot<MediaStream> {
-        let global = self.global();
-        let stream = MediaStream::new(&*global);
-        let track = MediaStreamTrack::new(&*global, MediaStreamId::new(), MediaStreamType::Video);
-        stream.AddTrack(&track);
-        stream
+    // https://w3c.github.io/mediacapture-fromelement/#dom-htmlcanvaselement-capturestream
+    fn CaptureStream(&self, frame_request_rate: Option<Finite<f64>>) -> DomRoot<MediaStream> {
+        let media = ServoMedia::get().unwrap();
+        let id = media
+            .create_videoinput_stream(Default::default(), MediaSource::App(self.get_size()))
+            .expect("Expected input stream");
+        self.captured_streams.borrow_mut().push(id);
+        MediaStream::new_single(&self.global(), id, MediaStreamType::Video)
     }
 }
 

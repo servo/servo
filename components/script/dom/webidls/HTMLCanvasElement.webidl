@@ -23,6 +23,7 @@ interface HTMLCanvasElement : HTMLElement {
   //OffscreenCanvas transferControlToOffscreen();
 };
 
+// https://w3c.github.io/mediacapture-fromelement/#html-canvas-element-media-capture-extensions
 partial interface HTMLCanvasElement {
     [Pref="dom.canvas_capture.enabled"]
     MediaStream captureStream (optional double frameRequestRate);

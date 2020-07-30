@@ -19,6 +19,8 @@ use gfx::font_context::FontContext;
 use ipc_channel::ipc::{IpcSender, IpcSharedMemory};
 use num_traits::ToPrimitive;
 use servo_arc::Arc as ServoArc;
+use servo_media::streams::registry::MediaStreamId;
+use servo_media::ServoMedia;
 use std::cell::RefCell;
 #[allow(unused_imports)]
 use std::marker::PhantomData;
@@ -1265,6 +1267,18 @@ impl<'a> CanvasData<'a> {
         self.drawtarget.snapshot_data(&|bytes| {
             pixels::rgba8_get_rect(bytes, canvas_size, read_rect).into_owned()
         })
+    }
+
+    pub fn push_captured_streams_data(
+        &self,
+        captured_streams: Vec<MediaStreamId>,
+        canvas_size: Size2D<u64>,
+    ) {
+        let pixels = self.read_pixels(Rect::from_size(canvas_size), canvas_size);
+        let media = ServoMedia::get().unwrap();
+        for stream in captured_streams.iter() {
+            media.push_stream_data(stream, pixels.clone());
+        }
     }
 }
 

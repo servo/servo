@@ -4469,4 +4469,10 @@ impl LayoutCanvasRenderingContextHelpers for LayoutDom<'_, WebGL2RenderingContex
         let this = &*self.unsafe_get();
         (*this.base.to_layout().unsafe_get()).layout_handle()
     }
+
+    #[allow(unsafe_code)]
+    unsafe fn send_command(self, command: WebGLCommand) {
+        let this = &*self.unsafe_get();
+        (*this.base.to_layout().unsafe_get()).send_command(command);
+    }
 }
