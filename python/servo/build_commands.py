@@ -655,10 +655,10 @@ class MachCommands(CommandBase):
             env.setdefault("CC", "clang-cl.exe")
             env.setdefault("CXX", "clang-cl.exe")
             if uwp:
-                env.setdefault("CFLAGS", "")
-                env.setdefault("CXXFLAGS", "")
-                env["CFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
-                env["CXXFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
+                env.setdefault("TARGET_CFLAGS", "")
+                env.setdefault("TARGET_CXXFLAGS", "")
+                env["TARGET_CFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
+                env["TARGET_CXXFLAGS"] += " -DWINAPI_FAMILY=WINAPI_FAMILY_APP"
         else:
             env.setdefault("CC", "clang")
             env.setdefault("CXX", "clang++")
