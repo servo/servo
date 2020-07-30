@@ -29,5 +29,24 @@ async_test(t => {
 
     document.body.appendChild(iframe);
 }, "Navigation resulted download in sandbox is blocked.");
+
+
+async_test(t => {
+    const token = "{{$id:uuid()}}";
+    var iframe = document.createElement("iframe");
+
+    const folder = location.origin+"/html/semantics/embedded-content/the-iframe-element/";
+    const href = `${folder}support/download_stash.py?token=${token}&finish-delay=${StreamDownloadFinishDelay() }`;
+    const objectDoc =`<a href="${href}">download</a>
+    <${"script"}> document.querySelector("a").click(); </${"script"}>`;
+
+    iframe.srcdoc = `<object data='data:text/html,${objectDoc}'></object>`;
+    iframe.sandbox = "allow-same-origin  allow-scripts";
+    iframe.addEventListener("load",()=>{
+        AssertDownloadFailure(t, token, StreamDownloadFinishDelay() + DownloadVerifyDelay());
+    })
+    document.body.appendChild(iframe);
+}, "Navigation resulted download in sandbox from <object> is blocked.");
+
 </script>
 </body>

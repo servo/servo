@@ -337,3 +337,18 @@ directory_test(async (t, root) => {
       t, "SyntaxError", stream.write({type: 'seek'}), 'seek without position');
 
 }, 'WriteParams: seek missing position param');
+
+directory_test(async (t, root) => {
+  const source_file =
+      await createFileWithContents(t, 'source_file', 'source data', root);
+  const source_blob = await source_file.getFile();
+  await root.removeEntry(source_file.name);
+
+  const handle = await createEmptyFile(t, 'invalid_blob_test', root);
+  const stream = await handle.createWritable();
+  await promise_rejects_dom(t, "NotFoundError", stream.write(source_blob));
+  await promise_rejects_js(t, TypeError, stream.close());
+
+  assert_equals(await getFileContents(handle), '');
+  assert_equals(await getFileSize(handle), 0);
+}, 'write() with an invalid blob to an empty file should reject');

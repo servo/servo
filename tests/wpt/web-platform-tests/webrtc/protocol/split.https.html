@@ -53,7 +53,7 @@ promise_test(async t => {
 
   const offer = await caller.createOffer();
   const sections = SDPUtils.splitSections(offer.sdp);
-  // remove the a=group:BUNDLE from the SDP when signaling.
+  // Remove the a=group:BUNDLE from the SDP when signaling.
   const bundle = SDPUtils.matchPrefix(sections[0], 'a=group:BUNDLE')[0];
   sections[0] = sections[0].replace(bundle + '\r\n', '');
 
@@ -68,6 +68,18 @@ promise_test(async t => {
   const answerVideo = await calleeVideo.createAnswer();
   const audioSections = SDPUtils.splitSections(answerAudio.sdp);
   const videoSections = SDPUtils.splitSections(answerVideo.sdp);
+
+  // Remove the fingerprint from the session part of the SDP if present
+  // and move it to the media section.
+  SDPUtils.matchPrefix(audioSections[0], 'a=fingerprint:').forEach(line => {
+    audioSections[0] = audioSections[0].replace(line + '\r\n', '');
+    audioSections[1] += line + '\r\n';
+  });
+  SDPUtils.matchPrefix(videoSections[0], 'a=fingerprint:').forEach(line => {
+    videoSections[0] = videoSections[0].replace(line + '\r\n', '');
+    videoSections[1] += line + '\r\n';
+  });
+
   const sdp = audioSections[0] + audioSections[1] + videoSections[1];
   await caller.setRemoteDescription({type: 'answer', sdp});
   await calleeAudio.setLocalDescription(answerAudio);
