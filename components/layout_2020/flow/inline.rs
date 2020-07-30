@@ -304,6 +304,8 @@ impl InlineFormattingContext {
                                     inline: match outside {
                                         DisplayOutside::Inline => ifc.inline_position,
                                         DisplayOutside::Block => Length::zero(),
+                                        DisplayOutside::TableCaption |
+                                        DisplayOutside::InternalTable => todo!(),
                                     },
                                     block: ifc.lines.next_line_block_position,
                                 },

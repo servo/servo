@@ -289,6 +289,7 @@ where
                         self.handle_block_level_element(info, inside, contents, box_slot)
                     }
                 },
+                DisplayOutside::TableCaption | DisplayOutside::InternalTable => todo!(),
             },
         }
     }

@@ -42,6 +42,8 @@ pub(crate) enum DisplayGeneratingBox {
 pub(crate) enum DisplayOutside {
     Block,
     Inline,
+    TableCaption,
+    InternalTable,
 }
 
 #[derive(Clone, Copy, Eq, PartialEq)]
@@ -51,6 +53,14 @@ pub(crate) enum DisplayInside {
     Flow { is_list_item: bool },
     FlowRoot { is_list_item: bool },
     Flex,
+    Table,
+    TableRowGroup,
+    TableColumn,
+    TableColumnGroup,
+    TableHeaderGroup,
+    TableFooterGroup,
+    TableRow,
+    TableCell,
 }
 
 /// Percentages resolved but not `auto` margins
@@ -452,7 +462,14 @@ impl From<stylo::Display> for Display {
                 is_list_item: packed.is_list_item(),
             },
             stylo::DisplayInside::Flex => DisplayInside::Flex,
-
+            stylo::DisplayInside::Table => DisplayInside::Table,
+            stylo::DisplayInside::TableRowGroup => DisplayInside::TableRowGroup,
+            stylo::DisplayInside::TableColumn => DisplayInside::TableColumn,
+            stylo::DisplayInside::TableColumnGroup => DisplayInside::TableColumnGroup,
+            stylo::DisplayInside::TableHeaderGroup => DisplayInside::TableHeaderGroup,
+            stylo::DisplayInside::TableFooterGroup => DisplayInside::TableFooterGroup,
+            stylo::DisplayInside::TableRow => DisplayInside::TableRow,
+            stylo::DisplayInside::TableCell => DisplayInside::TableCell,
             // These should not be values of DisplayInside, but oh well
             stylo::DisplayInside::None => return Display::None,
             stylo::DisplayInside::Contents => return Display::Contents,
@@ -460,7 +477,8 @@ impl From<stylo::Display> for Display {
         let outside = match packed.outside() {
             stylo::DisplayOutside::Block => DisplayOutside::Block,
             stylo::DisplayOutside::Inline => DisplayOutside::Inline,
-
+            stylo::DisplayOutside::TableCaption => DisplayOutside::TableCaption,
+            stylo::DisplayOutside::InternalTable => DisplayOutside::InternalTable,
             // This should not be a value of DisplayInside, but oh well
             stylo::DisplayOutside::None => return Display::None,
         };

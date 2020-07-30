@@ -91,6 +91,14 @@ impl IndependentFormattingContext {
                             propagated_text_decoration_line,
                         ))
                     },
+                    DisplayInside::Table |
+                    DisplayInside::TableRowGroup |
+                    DisplayInside::TableColumn |
+                    DisplayInside::TableColumnGroup |
+                    DisplayInside::TableHeaderGroup |
+                    DisplayInside::TableFooterGroup |
+                    DisplayInside::TableRow |
+                    DisplayInside::TableCell => todo!(),
                 };
                 Self::NonReplaced(NonReplacedFormattingContext {
                     tag: Tag::from_node_and_style_info(info),

@@ -445,6 +445,9 @@ mod gen {
                 flexbox: {
                     enabled: bool,
                 },
+                table: {
+                    enabled: bool,
+                },
                 #[serde(default = "default_layout_threads")]
                 threads: i64,
                 viewport: {
