@@ -1607,7 +1607,7 @@ dependencies = [
  "dirs",
  "dwrote",
  "float-ord",
- "freetype",
+ "freetype 0.4.1",
  "lazy_static",
  "libc",
  "log",
@@ -1651,6 +1651,27 @@ checksum = "11926b2b410b469d0e9399eca4cbbe237a9ef02176c485803b29216307e8e028"
 dependencies = [
  "libc",
  "servo-freetype-sys",
+]
+
+[[package]]
+name = "freetype"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bee38378a9e3db1cc693b4f88d166ae375338a0ff75cb8263e1c601d51f35dc6"
+dependencies = [
+ "freetype-sys",
+ "libc",
+]
+
+[[package]]
+name = "freetype-sys"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a37d4011c0cc628dfa766fcc195454f4b068d7afdc2adfd28861191d866e731a"
+dependencies = [
+ "cmake",
+ "libc",
+ "pkg-config",
 ]
 
 [[package]]
@@ -1868,7 +1889,7 @@ dependencies = [
  "euclid",
  "fnv",
  "fontsan",
- "freetype",
+ "freetype 0.4.1",
  "gfx_traits",
  "harfbuzz-sys",
  "ipc-channel",
@@ -2491,7 +2512,7 @@ dependencies = [
  "core-graphics 0.17.3",
  "core-text 13.3.2",
  "foreign-types",
- "freetype",
+ "freetype 0.4.1",
  "pkg-config",
 ]
 
@@ -4185,7 +4206,7 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/servo/webrender#64f1d8a0490c3ac73f40559e6b79f8c7864a4436"
+source = "git+https://github.com/servo/webrender#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -4194,7 +4215,7 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
-source = "git+https://github.com/servo/webrender#64f1d8a0490c3ac73f40559e6b79f8c7864a4436"
+source = "git+https://github.com/servo/webrender#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "proc-macro2 1.0.17",
  "quote 1.0.2",
@@ -6810,7 +6831,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender#64f1d8a0490c3ac73f40559e6b79f8c7864a4436"
+source = "git+https://github.com/servo/webrender#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "base64 0.10.1",
  "bincode",
@@ -6818,13 +6839,13 @@ dependencies = [
  "build-parallel",
  "byteorder",
  "cfg-if",
- "core-foundation 0.7.0",
- "core-graphics 0.19.0",
- "core-text 15.0.0",
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
+ "core-text 19.0.0",
  "cstr",
  "dwrote",
  "euclid",
- "freetype",
+ "freetype 0.7.0",
  "fxhash",
  "gleam 0.12.1",
  "glslopt",
@@ -6853,13 +6874,13 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender#64f1d8a0490c3ac73f40559e6b79f8c7864a4436"
+source = "git+https://github.com/servo/webrender#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
- "core-foundation 0.7.0",
- "core-graphics 0.19.0",
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
  "derive_more",
  "euclid",
  "malloc_size_of_derive",
@@ -6874,7 +6895,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#64f1d8a0490c3ac73f40559e6b79f8c7864a4436"
+source = "git+https://github.com/servo/webrender#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -7053,7 +7074,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#64f1d8a0490c3ac73f40559e6b79f8c7864a4436"
+source = "git+https://github.com/servo/webrender#96f087803b126ff04bdb09830c129ec73f2437a1"
 dependencies = [
  "app_units",
  "euclid",
