@@ -30,14 +30,14 @@ BrowserPage::BrowserPage() {
 }
 
 void BrowserPage::BindServoEvents() {
-  servoControl().OnURLChanged(
+  servoView().OnURLChanged(
       [=](const auto &, hstring url) { urlTextbox().Text(url); });
-  servoControl().OnTitleChanged([=](const auto &, hstring title) {});
-  servoControl().OnHistoryChanged([=](bool back, bool forward) {
+  servoView().OnTitleChanged([=](const auto &, hstring title) {});
+  servoView().OnHistoryChanged([=](bool back, bool forward) {
     backButton().IsEnabled(back);
     forwardButton().IsEnabled(forward);
   });
-  servoControl().OnLoadStarted([=] {
+  servoView().OnLoadStarted([=] {
     urlbarLoadingIndicator().IsActive(true);
     transientLoadingIndicator().IsIndeterminate(true);
 
@@ -47,7 +47,7 @@ void BrowserPage::BindServoEvents() {
     stopButton().Visibility(Visibility::Visible);
     devtoolsButton().IsEnabled(true);
   });
-  servoControl().OnLoadEnded([=] {
+  servoView().OnLoadEnded([=] {
     urlbarLoadingIndicator().IsActive(false);
     transientLoadingIndicator().IsIndeterminate(false);
     reloadButton().IsEnabled(true);
@@ -55,17 +55,16 @@ void BrowserPage::BindServoEvents() {
     stopButton().IsEnabled(false);
     stopButton().Visibility(Visibility::Collapsed);
   });
-  servoControl().OnCaptureGesturesStarted([=] {
-    servoControl().Focus(FocusState::Programmatic);
+  servoView().OnCaptureGesturesStarted([=] {
+    servoView().Focus(FocusState::Programmatic);
     navigationBar().IsHitTestVisible(false);
   });
-  servoControl().OnCaptureGesturesEnded(
+  servoView().OnCaptureGesturesEnded(
       [=] { navigationBar().IsHitTestVisible(true); });
   urlTextbox().GotFocus(std::bind(&BrowserPage::OnURLFocused, this, _1));
-  servoControl().OnMediaSessionMetadata(
+  servoView().OnMediaSessionMetadata(
       [=](hstring title, hstring artist, hstring album) {});
-  servoControl().OnMediaSessionPlaybackStateChange([=](const auto &,
-                                                       int state) {
+  servoView().OnMediaSessionPlaybackStateChange([=](const auto &, int state) {
     if (state == Servo::MediaSessionPlaybackState::None) {
       mediaControls().Visibility(Visibility::Collapsed);
       return;
@@ -78,7 +77,7 @@ void BrowserPage::BindServoEvents() {
                                  ? Visibility::Collapsed
                                  : Visibility::Visible);
   });
-  servoControl().OnDevtoolsStatusChanged(
+  servoView().OnDevtoolsStatusChanged(
       [=](DevtoolsStatus status, unsigned int port, hstring token) {
         mDevtoolsStatus = status;
         mDevtoolsPort = port;
@@ -86,7 +85,7 @@ void BrowserPage::BindServoEvents() {
       });
   Window::Current().VisibilityChanged(
       [=](const auto &, const VisibilityChangedEventArgs &args) {
-        servoControl().ChangeVisibility(args.Visible());
+        servoView().ChangeVisibility(args.Visible());
       });
 }
 
@@ -104,11 +103,11 @@ void BrowserPage::LoadFXRURI(Uri uri) {
   std::wstring raw{uri.RawUri()};
   if (scheme == FXR_SCHEME) {
     auto raw2 = raw.substr(FXR_SCHEME_SLASH_SLASH.size());
-    servoControl().LoadURIOrSearch(raw2);
+    servoView().LoadURIOrSearch(raw2);
     SetTransientMode(false);
   } else if (scheme == FXRMIN_SCHEME) {
     auto raw2 = raw.substr(FXRMIN_SCHEME_SLASH_SLASH.size());
-    servoControl().LoadURIOrSearch(raw2);
+    servoView().LoadURIOrSearch(raw2);
     SetTransientMode(true);
   } else {
     log(L"Unexpected URL: ", uri.RawUri().c_str());
@@ -116,42 +115,42 @@ void BrowserPage::LoadFXRURI(Uri uri) {
 }
 
 void BrowserPage::SetTransientMode(bool transient) {
-  servoControl().SetTransientMode(transient);
+  servoView().SetTransientMode(transient);
   navigationBar().Visibility(transient ? Visibility::Collapsed
                                        : Visibility::Visible);
   transientLoadingIndicator().Visibility(transient ? Visibility::Visible
                                                    : Visibility::Collapsed);
 }
 
-void BrowserPage::SetArgs(hstring args) { servoControl().SetArgs(args); }
+void BrowserPage::SetArgs(hstring args) { servoView().SetArgs(args); }
 
-void BrowserPage::Shutdown() { servoControl().Shutdown(); }
+void BrowserPage::Shutdown() { servoView().Shutdown(); }
 
 /**** USER INTERACTIONS WITH UI ****/
 
 void BrowserPage::OnBackButtonClicked(IInspectable const &,
                                       RoutedEventArgs const &) {
-  servoControl().GoBack();
+  servoView().GoBack();
 }
 
 void BrowserPage::OnForwardButtonClicked(IInspectable const &,
                                          RoutedEventArgs const &) {
-  servoControl().GoForward();
+  servoView().GoForward();
 }
 
 void BrowserPage::OnReloadButtonClicked(IInspectable const &,
                                         RoutedEventArgs const &) {
-  servoControl().Reload();
+  servoView().Reload();
 }
 
 void BrowserPage::OnStopButtonClicked(IInspectable const &,
                                       RoutedEventArgs const &) {
-  servoControl().Stop();
+  servoView().Stop();
 }
 
 void BrowserPage::OnHomeButtonClicked(IInspectable const &,
                                       RoutedEventArgs const &) {
-  servoControl().GoHome();
+  servoView().GoHome();
 }
 
 // Given a pref, update its associated UI control.
@@ -188,7 +187,7 @@ void BrowserPage::BuildPrefList() {
   auto resourceLoader = ResourceLoader::GetForCurrentView();
   auto resetStr =
       resourceLoader.GetString(L"devtoolsPreferenceResetButton/Content");
-  for (auto pref : ServoControl().Preferences()) {
+  for (auto pref : servoView().Preferences()) {
     auto value = pref.Value();
     auto type = value.as<IPropertyValue>().Type();
     std::optional<Controls::Control> ctrl;
@@ -196,8 +195,8 @@ void BrowserPage::BuildPrefList() {
       auto checkbox = Controls::CheckBox();
       checkbox.IsChecked(unbox_value<bool>(value));
       checkbox.Click([=](const auto &, auto const &) {
-        auto upref = ServoControl().SetBoolPref(
-            pref.Key(), checkbox.IsChecked().GetBoolean());
+        auto upref = servoView().SetBoolPref(pref.Key(),
+                                             checkbox.IsChecked().GetBoolean());
         UpdatePref(upref, checkbox);
       });
       ctrl = checkbox;
@@ -206,7 +205,7 @@ void BrowserPage::BuildPrefList() {
       textbox.Text(unbox_value<hstring>(value));
       textbox.KeyUp([=](const auto &, Input::KeyRoutedEventArgs const &e) {
         if (e.Key() == Windows::System::VirtualKey::Enter) {
-          auto upref = ServoControl().SetStringPref(pref.Key(), textbox.Text());
+          auto upref = servoView().SetStringPref(pref.Key(), textbox.Text());
           UpdatePref(upref, textbox);
         }
       });
@@ -220,7 +219,7 @@ void BrowserPage::BuildPrefList() {
               Inline);
       nbox.ValueChanged([=](const auto &, const auto &) {
         int val = (int)nbox.Value();
-        auto upref = ServoControl().SetIntPref(pref.Key(), val);
+        auto upref = servoView().SetIntPref(pref.Key(), val);
         UpdatePref(upref, nbox);
       });
       ctrl = nbox;
@@ -228,8 +227,7 @@ void BrowserPage::BuildPrefList() {
       auto nbox = Microsoft::UI::Xaml::Controls::NumberBox();
       nbox.Value(unbox_value<double>(value));
       nbox.ValueChanged([=](const auto &, const auto &) {
-        auto upref =
-            ServoControl().SetIntPref(pref.Key(), (int64_t)nbox.Value());
+        auto upref = servoView().SetIntPref(pref.Key(), (int64_t)nbox.Value());
         UpdatePref(upref, (Controls::Control &)nbox);
       });
       ctrl = nbox;
@@ -254,7 +252,7 @@ void BrowserPage::BuildPrefList() {
       reset.Content(winrt::box_value(resetStr));
       reset.IsEnabled(!pref.IsDefault());
       reset.Click([=](const auto &, auto const &) {
-        auto upref = ServoControl().ResetPref(pref.Key());
+        auto upref = servoView().ResetPref(pref.Key());
         UpdatePref(upref, *ctrl);
       });
       stack.Children().Append(reset);
@@ -351,21 +349,21 @@ void BrowserPage::OnJSInputEdited(IInspectable const &,
 void BrowserPage::OnURLEdited(IInspectable const &,
                               Input::KeyRoutedEventArgs const &e) {
   if (e.Key() == Windows::System::VirtualKey::Enter) {
-    servoControl().Focus(FocusState::Programmatic);
+    servoView().Focus(FocusState::Programmatic);
     auto input = urlTextbox().Text();
-    auto uri = servoControl().LoadURIOrSearch(input);
+    auto uri = servoView().LoadURIOrSearch(input);
     urlTextbox().Text(uri);
   }
 }
 
 void BrowserPage::OnMediaControlsPlayClicked(IInspectable const &,
                                              RoutedEventArgs const &) {
-  servoControl().SendMediaSessionAction(
+  servoView().SendMediaSessionAction(
       static_cast<int32_t>(Servo::MediaSessionActionType::Play));
 }
 void BrowserPage::OnMediaControlsPauseClicked(IInspectable const &,
                                               RoutedEventArgs const &) {
-  servoControl().SendMediaSessionAction(
+  servoView().SendMediaSessionAction(
       static_cast<int32_t>(Servo::MediaSessionActionType::Pause));
 }
 

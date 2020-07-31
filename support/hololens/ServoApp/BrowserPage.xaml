@@ -137,7 +137,7 @@
                 <ProgressRing x:Name="urlbarLoadingIndicator" Margin="10,0"/>
             </StackPanel>
         </Grid>
-        <local:ServoControl Grid.Row="1" TabIndex="0" x:Name="servoControl"/>
+        <local:ServoControl Grid.Row="1" TabIndex="0" x:Name="servoView"/>
         <muxc:TabView x:Name="toolbox" IsAddTabButtonVisible="False" Grid.Row="2" Visibility="Collapsed" Height="300">
             <muxc:TabView.TabStripFooter>
                 <Grid>
