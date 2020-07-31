@@ -17,19 +17,19 @@ dictionary XRWebGLLayerInit {
 };
 
 [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
-interface XRWebGLLayer {
+interface XRWebGLLayer: XRLayer {
   [Throws] constructor(XRSession session,
               XRWebGLRenderingContext context,
               optional XRWebGLLayerInit layerInit = {});
-  // // Attributes
+  // Attributes
   readonly attribute boolean antialias;
   readonly attribute boolean ignoreDepthValues;
 
-  readonly attribute WebGLFramebuffer? framebuffer;
+  [SameObject] readonly attribute WebGLFramebuffer? framebuffer;
   readonly attribute unsigned long framebufferWidth;
   readonly attribute unsigned long framebufferHeight;
 
-  // // Methods
+  // Methods
   XRViewport? getViewport(XRView view);
 
   // // Static Methods

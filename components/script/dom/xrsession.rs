@@ -16,7 +16,6 @@ use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRFrameRequestCal
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRSessionMethods;
 use crate::dom::bindings::codegen::Bindings::XRSessionBinding::XRVisibilityState;
 use crate::dom::bindings::codegen::Bindings::XRSystemBinding::XRSessionMode;
-use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLRenderingContext;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -33,7 +32,6 @@ use crate::dom::xrinputsourcearray::XRInputSourceArray;
 use crate::dom::xrinputsourceevent::XRInputSourceEvent;
 use crate::dom::xrreferencespace::XRReferenceSpace;
 use crate::dom::xrrenderstate::XRRenderState;
-use crate::dom::xrrenderstate::XRWebGLLayerOrXRLayer;
 use crate::dom::xrsessionevent::XRSessionEvent;
 use crate::dom::xrspace::XRSpace;
 use crate::realms::InRealm;
@@ -133,7 +131,7 @@ impl XRSession {
         } else {
             None
         };
-        let render_state = XRRenderState::new(global, 0.1, 1000.0, ivfov, None, &[]);
+        let render_state = XRRenderState::new(global, 0.1, 1000.0, ivfov, None, Vec::new());
         let input_sources = XRInputSourceArray::new(global);
         let ret = reflect_dom_object(
             Box::new(XRSession::new_inherited(
@@ -495,12 +493,7 @@ impl XRSession {
 
     pub fn dirty_layers(&self) {
         if let Some(layer) = self.RenderState().GetBaseLayer() {
-            match layer.context() {
-                XRWebGLRenderingContext::WebGLRenderingContext(c) => c.mark_as_dirty(),
-                XRWebGLRenderingContext::WebGL2RenderingContext(c) => {
-                    c.base_context().mark_as_dirty()
-                },
-            }
+            layer.context().mark_as_dirty();
         }
     }
 
@@ -511,14 +504,7 @@ impl XRSession {
         }
         self.active_render_state.get().with_layers(|layers| {
             for layer in layers {
-                match layer {
-                    XRWebGLLayerOrXRLayer::XRWebGLLayer(layer) => {
-                        layer.begin_frame(frame);
-                    },
-                    XRWebGLLayerOrXRLayer::XRLayer(layer) => {
-                        layer.begin_frame(frame);
-                    },
-                }
+                layer.begin_frame(frame);
             }
         });
     }
@@ -530,14 +516,7 @@ impl XRSession {
         }
         self.active_render_state.get().with_layers(|layers| {
             for layer in layers {
-                match layer {
-                    XRWebGLLayerOrXRLayer::XRWebGLLayer(layer) => {
-                        layer.end_frame(frame);
-                    },
-                    XRWebGLLayerOrXRLayer::XRLayer(layer) => {
-                        layer.end_frame(frame);
-                    },
-                }
+                layer.end_frame(frame);
             }
         });
     }
@@ -612,7 +591,7 @@ impl XRSessionMethods for XRSession {
             return Err(Error::InvalidState);
         }
         // Step 3:
-        if let Some(ref layer) = init.baseLayer {
+        if let Some(Some(ref layer)) = init.baseLayer {
             if Dom::from_ref(layer.session()) != Dom::from_ref(self) {
                 return Err(Error::InvalidState);
             }
@@ -623,22 +602,8 @@ impl XRSessionMethods for XRSession {
             return Err(Error::InvalidState);
         }
 
-        // TODO: add spec link for this step once XR layers has settled down
-        // https://immersive-web.github.io/layers/
-        if init.baseLayer.is_some() && init.layers.is_some() {
-            return Err(Error::InvalidState);
-        }
-
-        // TODO: add spec link for this step once XR layers has settled down
-        // https://immersive-web.github.io/layers/
-        if init
-            .layers
-            .as_ref()
-            .map(|layers| layers.is_empty())
-            .unwrap_or(false)
-        {
-            return Err(Error::InvalidState);
-        }
+        // TODO: Add the checks in
+        // https://immersive-web.github.io/layers/#updaterenderstatechanges
 
         let pending = self
             .pending_render_state
@@ -673,9 +638,10 @@ impl XRSessionMethods for XRSession {
             pending.set_inline_vertical_fov(fov);
         }
         if let Some(ref layer) = init.baseLayer {
-            pending.set_base_layer(Some(&layer));
-            pending.set_layers(&[]);
-            let layers = std::iter::once(layer)
+            pending.set_base_layer(layer.as_deref());
+            pending.set_layers(Vec::new());
+            let layers = layer
+                .iter()
                 .filter_map(|layer| {
                     let context_id = WebXRContextId::from(layer.context_id());
                     let layer_id = layer.layer_id()?;
@@ -691,11 +657,11 @@ impl XRSessionMethods for XRSession {
                 .update_clip_planes(*pending.DepthNear() as f32, *pending.DepthFar() as f32);
         }
 
-        // TODO: add spec link for this step once XR layers has settled down
-        // https://immersive-web.github.io/layers/
+        // https://immersive-web.github.io/layers/#updaterenderstatechanges
         if let Some(ref layers) = init.layers {
+            let layers = layers.as_deref().unwrap_or_default();
             pending.set_base_layer(None);
-            pending.set_layers(layers);
+            pending.set_layers(layers.iter().map(|x| &**x).collect());
             let layers = layers
                 .iter()
                 .filter_map(|layer| {

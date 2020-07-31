@@ -13,6 +13,7 @@ interface XRMediaBinding {
 };
 
 dictionary XRMediaLayerInit {
+  required XRSpace space;
   XRLayerLayout layout = "mono";
   boolean invertStereo = false;
 };
