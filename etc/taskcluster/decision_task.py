@@ -549,6 +549,7 @@ def macos_wpt():
         repo_dir="repo",
         total_chunks=20,
         processes=8,
+        run_webgpu=True,
     )
 
 
@@ -569,7 +570,7 @@ def linux_wpt_common(total_chunks, layout_2020):
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
-               repo_dir, chunks="all", layout_2020=False):
+               repo_dir, chunks="all", layout_2020=False, run_webgpu=False):
     if layout_2020:
         start = 1  # Skip the "extra" WPT testing, a.k.a. chunk 0
         name_prefix = "Layout 2020 "
@@ -618,6 +619,22 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
         # and wptrunner does not use "interactive mode" formatting:
         # https://github.com/servo/servo/issues/22438
         if this_chunk == 0:
+            if run_webgpu:
+                webgpu_script = """
+                    time ./mach test-wpt _webgpu --release --processes $PROCESSES \
+                        --headless --log-raw test-webgpu.log \
+                        --log-errorsummary webgpu-errorsummary.log \
+                        | cat
+                    ./mach filter-intermittents \
+                        webgpu-errorsummary.log \
+                        --log-intermittents webgpu-intermittents.log \
+                        --log-filteredsummary filtered-webgpu-errorsummary.log \
+                        --tracker-api default \
+                        --reporter-api default
+                """
+            else:
+                webgpu_script = ""
+
             task.with_script("""
                 time python ./mach test-wpt --release --binary-arg=--multiprocess \
                     --processes $PROCESSES \
@@ -654,7 +671,8 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --log-filteredsummary filtered-wdspec-errorsummary.log \
                     --tracker-api default \
                     --reporter-api default
-            """)
+                """ + webgpu_script
+            )
         else:
             task.with_script("""
                 ./mach test-wpt \
