@@ -6339,9 +6339,9 @@ dependencies = [
 
 [[package]]
 name = "tracy-rs"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbbb439715d4c258415c7cbf137be32a4f54f7348724076145ede565ee2142e8"
+checksum = "ce607aae8ab0ab3abf3a2723a9ab6f09bb8639ed83fdd888d857b8e556c868d8"
 
 [[package]]
 name = "truetype"
