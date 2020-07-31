@@ -189,10 +189,13 @@ pub enum TouchEventResult {
     Forwarded,
 }
 
+#[derive(Clone, Copy, PartialEq)]
 pub enum FireMouseEventType {
     Move,
     Over,
     Out,
+    Enter,
+    Leave,
 }
 
 impl FireMouseEventType {
@@ -201,6 +204,8 @@ impl FireMouseEventType {
             &FireMouseEventType::Move => "mousemove",
             &FireMouseEventType::Over => "mouseover",
             &FireMouseEventType::Out => "mouseout",
+            &FireMouseEventType::Enter => "mouseenter",
+            &FireMouseEventType::Leave => "mouseleave",
         }
     }
 }
@@ -555,7 +560,8 @@ impl Document {
 
         let new_dirty_root = element
             .upcast::<Node>()
-            .common_ancestor(dirty_root.upcast(), ShadowIncluding::Yes);
+            .common_ancestor(dirty_root.upcast(), ShadowIncluding::Yes)
+            .expect("Couldn't find common ancestor");
 
         let mut has_dirty_descendants = true;
         for ancestor in dirty_root
@@ -1343,6 +1349,8 @@ impl Document {
         client_point: Point2D<f32>,
         target: &EventTarget,
         event_name: FireMouseEventType,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
         pressed_mouse_buttons: u16,
     ) {
         let client_x = client_point.x.to_i32().unwrap_or(0);
@@ -1351,8 +1359,8 @@ impl Document {
         let mouse_event = MouseEvent::new(
             &self.window,
             DOMString::from(event_name.as_str()),
-            EventBubbles::Bubbles,
-            EventCancelable::Cancelable,
+            can_bubble,
+            cancelable,
             Some(&self.window),
             0i32,
             client_x,
@@ -1376,21 +1384,11 @@ impl Document {
     pub fn handle_mouse_move_event(
         &self,
         js_runtime: *mut JSRuntime,
-        client_point: Option<Point2D<f32>>,
+        client_point: Point2D<f32>,
         prev_mouse_over_target: &MutNullableDom<Element>,
         node_address: Option<UntrustedNodeAddress>,
         pressed_mouse_buttons: u16,
     ) {
-        let client_point = match client_point {
-            None => {
-                // If there's no point, there's no target under the mouse
-                // FIXME: dispatch mouseout here. We have no point.
-                prev_mouse_over_target.set(None);
-                return;
-            },
-            Some(client_point) => client_point,
-        };
-
         let maybe_new_target = node_address.and_then(|address| {
             let node = unsafe { node::from_untrusted_node_address(js_runtime, address) };
             node.inclusive_ancestors(ShadowIncluding::No)
@@ -1398,63 +1396,61 @@ impl Document {
                 .next()
         });
 
-        // Send mousemove event to topmost target, unless it's an iframe, in which case the
-        // compositor should have also sent an event to the inner document.
         let new_target = match maybe_new_target {
             Some(ref target) => target,
             None => return,
         };
 
-        self.fire_mouse_event(
-            client_point,
-            new_target.upcast(),
-            FireMouseEventType::Move,
-            pressed_mouse_buttons,
-        );
-
-        // Nothing more to do here, mousemove is sent,
-        // and the element under the mouse hasn't changed.
-        if maybe_new_target == prev_mouse_over_target.get() {
-            return;
-        }
-
-        let old_target_is_ancestor_of_new_target =
-            match (prev_mouse_over_target.get(), maybe_new_target.as_ref()) {
-                (Some(old_target), Some(new_target)) => old_target
-                    .upcast::<Node>()
-                    .is_ancestor_of(new_target.upcast::<Node>()),
-                _ => false,
-            };
+        let target_has_changed = prev_mouse_over_target
+            .get()
+            .as_ref()
+            .map_or(true, |old_target| old_target != new_target);
 
         // Here we know the target has changed, so we must update the state,
-        // dispatch mouseout to the previous one, mouseover to the new one,
-        if let Some(old_target) = prev_mouse_over_target.get() {
-            // If the old target is an ancestor of the new target, this can be skipped
-            // completely, since the node's hover state will be reseted below.
-            if !old_target_is_ancestor_of_new_target {
-                for element in old_target
+        // dispatch mouseout to the previous one, mouseover to the new one.
+        if target_has_changed {
+            // Dispatch mouseout and mouseleave to previous target.
+            if let Some(old_target) = prev_mouse_over_target.get() {
+                let old_target_is_ancestor_of_new_target = old_target
                     .upcast::<Node>()
-                    .inclusive_ancestors(ShadowIncluding::No)
-                    .filter_map(DomRoot::downcast::<Element>)
-                {
-                    element.set_hover_state(false);
-                    element.set_active_state(false);
+                    .is_ancestor_of(new_target.upcast::<Node>());
+
+                // If the old target is an ancestor of the new target, this can be skipped
+                // completely, since the node's hover state will be reset below.
+                if !old_target_is_ancestor_of_new_target {
+                    for element in old_target
+                        .upcast::<Node>()
+                        .inclusive_ancestors(ShadowIncluding::No)
+                        .filter_map(DomRoot::downcast::<Element>)
+                    {
+                        element.set_hover_state(false);
+                        element.set_active_state(false);
+                    }
+                }
+
+                self.fire_mouse_event(
+                    client_point,
+                    old_target.upcast(),
+                    FireMouseEventType::Out,
+                    EventBubbles::Bubbles,
+                    EventCancelable::Cancelable,
+                    pressed_mouse_buttons,
+                );
+
+                if !old_target_is_ancestor_of_new_target {
+                    let event_target = DomRoot::from_ref(old_target.upcast::<Node>());
+                    let moving_into = Some(DomRoot::from_ref(new_target.upcast::<Node>()));
+                    self.handle_mouse_enter_leave_event(
+                        client_point,
+                        FireMouseEventType::Leave,
+                        moving_into,
+                        event_target,
+                        pressed_mouse_buttons,
+                    );
                 }
             }
 
-            // Remove hover state to old target and its parents
-            self.fire_mouse_event(
-                client_point,
-                old_target.upcast(),
-                FireMouseEventType::Out,
-                pressed_mouse_buttons,
-            );
-
-            // TODO: Fire mouseleave here only if the old target is
-            // not an ancestor of the new target.
-        }
-
-        if let Some(ref new_target) = maybe_new_target {
+            // Dispatch mouseover and mouseenter to new target.
             for element in new_target
                 .upcast::<Node>()
                 .inclusive_ancestors(ShadowIncluding::No)
@@ -1463,25 +1459,98 @@ impl Document {
                 if element.hover_state() {
                     break;
                 }
-
                 element.set_hover_state(true);
             }
 
             self.fire_mouse_event(
                 client_point,
-                &new_target.upcast(),
+                new_target.upcast(),
                 FireMouseEventType::Over,
+                EventBubbles::Bubbles,
+                EventCancelable::Cancelable,
                 pressed_mouse_buttons,
             );
 
-            // TODO: Fire mouseenter here.
+            let moving_from = prev_mouse_over_target
+                .get()
+                .map(|old_target| DomRoot::from_ref(old_target.upcast::<Node>()));
+            let event_target = DomRoot::from_ref(new_target.upcast::<Node>());
+            self.handle_mouse_enter_leave_event(
+                client_point,
+                FireMouseEventType::Enter,
+                moving_from,
+                event_target,
+                pressed_mouse_buttons,
+            );
         }
 
-        // Store the current mouse over target for next frame.
-        prev_mouse_over_target.set(maybe_new_target.as_deref());
+        // Send mousemove event to topmost target, unless it's an iframe, in which case the
+        // compositor should have also sent an event to the inner document.
+        self.fire_mouse_event(
+            client_point,
+            new_target.upcast(),
+            FireMouseEventType::Move,
+            EventBubbles::Bubbles,
+            EventCancelable::Cancelable,
+            pressed_mouse_buttons,
+        );
 
-        self.window
-            .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
+        // If the target has changed then store the current mouse over target for next frame.
+        if target_has_changed {
+            prev_mouse_over_target.set(maybe_new_target.as_deref());
+            self.window
+                .reflow(ReflowGoal::Full, ReflowReason::MouseEvent);
+        }
+    }
+
+    fn handle_mouse_enter_leave_event(
+        &self,
+        client_point: Point2D<f32>,
+        event_type: FireMouseEventType,
+        related_target: Option<DomRoot<Node>>,
+        event_target: DomRoot<Node>,
+        pressed_mouse_buttons: u16,
+    ) {
+        assert!(matches!(
+            event_type,
+            FireMouseEventType::Enter | FireMouseEventType::Leave
+        ));
+
+        let common_ancestor = match related_target.as_ref() {
+            Some(related_target) => event_target
+                .common_ancestor(related_target, ShadowIncluding::No)
+                .unwrap_or_else(|| DomRoot::from_ref(&*event_target)),
+            None => DomRoot::from_ref(&*event_target),
+        };
+
+        // We need to create a target chain in case the event target shares
+        // its boundaries with its ancestors.
+        let mut targets = vec![];
+        let mut current = Some(event_target);
+        while let Some(node) = current {
+            if node == common_ancestor {
+                break;
+            }
+            current = node.GetParentNode();
+            targets.push(node);
+        }
+
+        // The order for dispatching mouseenter events starts from the topmost
+        // common ancestor of the event target and the related target.
+        if event_type == FireMouseEventType::Enter {
+            targets = targets.into_iter().rev().collect();
+        }
+
+        for target in targets {
+            self.fire_mouse_event(
+                client_point,
+                target.upcast(),
+                event_type,
+                EventBubbles::DoesNotBubble,
+                EventCancelable::NotCancelable,
+                pressed_mouse_buttons,
+            );
+        }
     }
 
     #[allow(unsafe_code)]

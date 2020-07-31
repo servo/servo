@@ -708,16 +708,16 @@ impl Node {
         &self,
         other: &Node,
         shadow_including: ShadowIncluding,
-    ) -> DomRoot<Node> {
+    ) -> Option<DomRoot<Node>> {
         for ancestor in self.inclusive_ancestors(shadow_including) {
             if other
                 .inclusive_ancestors(shadow_including)
                 .any(|node| node == ancestor)
             {
-                return ancestor;
+                return Some(ancestor);
             }
         }
-        unreachable!();
+        None
     }
 
     pub fn is_inclusive_ancestor_of(&self, parent: &Node) -> bool {
