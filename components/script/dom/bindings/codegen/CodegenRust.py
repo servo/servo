@@ -2778,6 +2778,8 @@ rooted!(in(*cx) let obj = NewProxyObject(
     handler,
     Handle::from_raw(UndefinedHandleValue),
     proto.get(),
+    ptr::null(),
+    false,
 ));
 assert!(!obj.is_null());
 SetProxyReservedSlot(

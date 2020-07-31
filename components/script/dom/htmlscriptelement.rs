@@ -58,7 +58,6 @@ use servo_config::pref;
 use servo_url::ImmutableOrigin;
 use servo_url::ServoUrl;
 use std::cell::Cell;
-use std::ffi::CString;
 use std::fs::{create_dir_all, read_to_string, File};
 use std::io::{Read, Seek, Write};
 use std::mem::replace;
@@ -424,8 +423,7 @@ impl FetchResponseListener for ClassicContext {
         let cx = global.get_cx();
         let _ar = enter_realm(&*global);
 
-        let final_url_c_str = CString::new(final_url.as_str()).unwrap();
-        let options = unsafe { CompileOptionsWrapper::new(*cx, final_url_c_str.as_ptr(), 1) };
+        let options = unsafe { CompileOptionsWrapper::new(*cx, final_url.as_str(), 1) };
 
         let can_compile_off_thread = pref!(dom.script.asynch) &&
             unsafe { CanCompileOffThread(*cx, options.ptr as *const _, source_text.len()) };
