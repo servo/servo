@@ -21,14 +21,14 @@ use style::values::specified::box_ as stylo;
 use style::Zero;
 use webrender_api as wr;
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub(crate) enum Display {
     None,
     Contents,
     GeneratingBox(DisplayGeneratingBox),
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub(crate) enum DisplayGeneratingBox {
     OutsideInside {
         outside: DisplayOutside,
@@ -38,7 +38,7 @@ pub(crate) enum DisplayGeneratingBox {
     // https://drafts.csswg.org/css-display-3/#layout-specific-display
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub(crate) enum DisplayOutside {
     Block,
     Inline,
@@ -46,7 +46,7 @@ pub(crate) enum DisplayOutside {
     InternalTable,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Eq, PartialEq, Debug)]
 pub(crate) enum DisplayInside {
     // “list-items are limited to the Flow Layout display types”
     // https://drafts.csswg.org/css-display/#list-items

@@ -11,6 +11,7 @@ use crate::positioned::PositioningContext;
 use crate::replaced::ReplacedContent;
 use crate::sizing::{self, ContentSizes};
 use crate::style_ext::DisplayInside;
+use crate::table::TableContainer;
 use crate::ContainingBlock;
 use servo_arc::Arc;
 use std::convert::TryInto;
@@ -50,6 +51,7 @@ pub(crate) struct ReplacedFormattingContext {
 pub(crate) enum NonReplacedFormattingContextContents {
     Flow(BlockFormattingContext),
     Flex(FlexContainer),
+    Table(TableContainer),
     // Other layout modes go here
 }
 
@@ -91,7 +93,14 @@ impl IndependentFormattingContext {
                             propagated_text_decoration_line,
                         ))
                     },
-                    DisplayInside::Table |
+                    DisplayInside::Table => {
+                        NonReplacedFormattingContextContents::Table(TableContainer::construct(
+                            context,
+                            info,
+                            non_replaced,
+                            propagated_text_decoration_line,
+                        ))
+                    },
                     DisplayInside::TableRowGroup |
                     DisplayInside::TableColumn |
                     DisplayInside::TableColumnGroup |
@@ -214,6 +223,12 @@ impl NonReplacedFormattingContext {
                 containing_block,
                 tree_rank,
             ),
+            NonReplacedFormattingContextContents::Table(tc) => tc.layout(
+                layout_context,
+                positioning_context,
+                containing_block,
+                tree_rank,
+            ),
         }
     }
 
@@ -237,6 +252,7 @@ impl NonReplacedFormattingContextContents {
                 .contents
                 .inline_content_sizes(layout_context, writing_mode),
             Self::Flex(inner) => inner.inline_content_sizes(),
+            Self::Table(table) => table.inline_content_sizes(),
         }
     }
 }
