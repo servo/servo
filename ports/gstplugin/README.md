@@ -91,7 +91,7 @@ GST_PLUGIN_PATH=target/gstplugins \
 This requires the webxr content to support the `sessionavailable` event for launching directly into immersive mode.
 Values for `webxr` include `none`, `left-right`, `red-cyan`, `cubemap` and `spherical`.
 
-To stream a Hubs room and save to a file (there'll be ~30s black at the beginning while Hubs starts up):
+To stream a Hubs room to twitch (there'll be ~30s black at the beginning while Hubs starts up):
 ```
 GST_PLUGIN_PATH=$PWD/target/gstplugins \
   gst-launch-1.0 -e servowebsrc \
@@ -103,9 +103,10 @@ GST_PLUGIN_PATH=$PWD/target/gstplugins \
     ! glcolorconvert \
     ! gldownload \
     ! queue \
-    ! x264enc \
-    ! mp4mux \
-    ! filesink location=test.mp4
+    ! x264enc bitrate=4500 \
+    ! video/x-h264, profile=high \
+    ! flvmux streamable=true \
+    ! rtmpsink location="rtmp://$ENDPOINT.twitch.tv/app/$STREAM_KEY"
 ```
 
 *Note*: killing the gstreamer pipeline with control-C sometimes locks up macOS to the point
