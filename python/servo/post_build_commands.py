@@ -74,11 +74,14 @@ class PostBuildCommands(CommandBase):
                      help='Launch with specific binary')
     @CommandArgument('--nightly', '-n', default=None,
                      help='Specify a YYYY-MM-DD nightly build to run')
+    @CommandArgument('--target', default=None, type=str,
+                     help='Specify a target directory to use')
     @CommandArgument(
         'params', nargs='...',
         help="Command-line arguments to be passed through to Servo")
     def run(self, params, release=False, dev=False, android=None, debug=False, debugger=None,
-            headless=False, software=False, bin=None, emulator=False, usb=False, nightly=None):
+            headless=False, software=False, bin=None, emulator=False, usb=False, nightly=None,
+            target=None):
         self.set_run_env(android is not None)
         env = self.build_env()
         env["RUST_BACKTRACE"] = "1"
@@ -124,7 +127,7 @@ class PostBuildCommands(CommandBase):
             shell.communicate("\n".join(script) + "\n")
             return shell.wait()
 
-        args = [bin or self.get_nightly_binary_path(nightly) or self.get_binary_path(release, dev)]
+        args = [bin or self.get_nightly_binary_path(nightly) or self.get_binary_path(release, dev, target=target)]
 
         if headless:
             args.append('-z')

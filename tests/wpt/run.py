@@ -4,7 +4,6 @@
 
 import multiprocessing
 import os
-from os import path
 import sys
 import mozlog
 import grouping_formatter
@@ -74,9 +73,15 @@ def set_defaults(kwargs):
         if sys.platform == "win32":
             bin_name += ".exe"
         if "CARGO_TARGET_DIR" in os.environ:
-            bin_path = path.join(os.environ["CARGO_TARGET_DIR"], bin_dir, bin_name)
+            base_path = os.environ["CARGO_TARGET_DIR"]
         else:
-            bin_path = servo_path("target", bin_dir, bin_name)
+            base_path = servo_path("target")
+
+        target = kwargs.pop('target')
+        if target:
+            base_path = os.path.join(base_path, target)
+
+        bin_path = os.path.join(base_path, bin_dir, bin_name)
 
         kwargs["binary"] = bin_path
         kwargs["webdriver_binary"] = bin_path

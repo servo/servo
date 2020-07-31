@@ -72,6 +72,8 @@ def create_parser_wpt():
     parser = wptcommandline.create_parser()
     parser.add_argument('--release', default=False, action="store_true",
                         help="Run with a release build of servo")
+    parser.add_argument('--target', default=None, type=str,
+                        help="Run the binary for a particular target")
     parser.add_argument('--rr-chaos', default=False, action="store_true",
                         help="Run under chaos mode in rr until a failure is captured")
     parser.add_argument('--pref', default=[], action="append", dest="prefs",

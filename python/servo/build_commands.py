@@ -170,13 +170,14 @@ class MachCommands(CommandBase):
                      action='store_true',
                      help='Build for HoloLens (x64)')
     @CommandArgument('--win-arm64', action='store_true', help="Use arm64 Windows target")
+    @CommandArgument('--with-asan', action='store_true', help="Enable AddressSanitizer")
     @CommandArgument('params', nargs='...',
                      help="Command-line arguments to be passed through to Cargo")
     @CommandBase.build_like_command_arguments
     def build(self, release=False, dev=False, jobs=None, params=None, media_stack=None,
               no_package=False, verbose=False, very_verbose=False,
               target=None, android=False, magicleap=False, libsimpleservo=False,
-              features=None, uwp=False, win_arm64=False, **kwargs):
+              features=None, uwp=False, win_arm64=False, with_asan=False, **kwargs):
         # Force the UWP-enabled target if the convenience UWP flags are passed.
         if uwp and not target:
             if win_arm64:
@@ -645,6 +646,12 @@ class MachCommands(CommandBase):
         # Prepend so that e.g. `-Ztimings` (which means `-Ztimings=info,html`)
         # given on the command line can override it
         opts = ["-Ztimings=info"] + opts
+
+        if with_asan:
+            check_call(["rustup", "component", "add", "rust-src"])
+            env["RUSTFLAGS"] = env.get("RUSTFLAGS", "") + " -Zsanitizer=address"
+            target = target or host
+            opts += ["-Zbuild-std"]
 
         if very_verbose:
             print(["Calling", "cargo", "build"] + opts)
