@@ -207,6 +207,18 @@ where
     }
 }
 
+impl<T> Parse for Box<T>
+where
+    T: Parse
+{
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        T::parse(context, input).map(Box::new)
+    }
+}
+
 impl Parse for crate::OwnedStr {
     fn parse<'i, 't>(
         _: &ParserContext,
