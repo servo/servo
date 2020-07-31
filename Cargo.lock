@@ -1497,11 +1497,12 @@ dependencies = [
 
 [[package]]
 name = "error-chain"
-version = "0.12.0"
+version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "07e791d3be96241c77c43846b665ef1384606da2cd2a48730abe606a12906e02"
+checksum = "be51ed50e75656c17216bdd4326914466db0c91b9b246b12962a00284d06566b"
 dependencies = [
  "backtrace",
+ "version_check",
 ]
 
 [[package]]
