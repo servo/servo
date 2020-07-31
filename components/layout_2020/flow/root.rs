@@ -260,7 +260,7 @@ fn construct_for_root_element<'dom>(
             unreachable!()
         },
         // The root element is blockified, ignore DisplayOutside
-        Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { inside, .. }) => inside,
+        Display::GeneratingBox(oi) => oi.display_inside(),
     };
 
     let contents =

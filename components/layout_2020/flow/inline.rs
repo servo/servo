@@ -304,10 +304,13 @@ impl InlineFormattingContext {
                                     inline: match outside {
                                         DisplayOutside::Inline => ifc.inline_position,
                                         DisplayOutside::Block => Length::zero(),
-                                        DisplayOutside::TableCaption |
-                                        DisplayOutside::InternalTable => todo!(),
                                     },
                                     block: ifc.lines.next_line_block_position,
+                                },
+                                Display::GeneratingBox(DisplayGeneratingBox::Internal(_)) => {
+                                    panic!(
+                                    "the result of blockification is never a layout-internal value"
+                                );
                                 },
                                 Display::Contents => {
                                     panic!("display:contents does not generate an abspos box")

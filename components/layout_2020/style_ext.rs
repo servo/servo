@@ -21,32 +21,30 @@ use style::values::specified::box_ as stylo;
 use style::Zero;
 use webrender_api as wr;
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum Display {
     None,
     Contents,
     GeneratingBox(DisplayGeneratingBox),
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum DisplayGeneratingBox {
     OutsideInside {
         outside: DisplayOutside,
         inside: DisplayInside,
     },
-    // Layout-internal display types go here:
-    // https://drafts.csswg.org/css-display-3/#layout-specific-display
+    Internal(DisplayInternal), // Layout-internal display types go here:
+                               // https://drafts.csswg.org/css-display-3/#layout-specific-display
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum DisplayOutside {
     Block,
     Inline,
-    TableCaption,
-    InternalTable,
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(crate) enum DisplayInside {
     // “list-items are limited to the Flow Layout display types”
     // https://drafts.csswg.org/css-display/#list-items
@@ -54,6 +52,11 @@ pub(crate) enum DisplayInside {
     FlowRoot { is_list_item: bool },
     Flex,
     Table,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+/// https://drafts.csswg.org/css-display-3/#layout-specific-display
+pub(crate) enum DisplayInternal {
     TableRowGroup,
     TableColumn,
     TableColumnGroup,
@@ -61,6 +64,28 @@ pub(crate) enum DisplayInside {
     TableFooterGroup,
     TableRow,
     TableCell,
+    TableCaption,
+}
+
+impl DisplayInternal {
+    /// https://drafts.csswg.org/css-display-3/#layout-specific-displa
+    pub(crate) fn display_inside(&self) -> DisplayInside {
+        // When we add ruby, the display_inside of ruby must be Flow
+        // XXXManishearth this should be unreachable for everything but
+        // table cell and caption, once we have box tree fixups
+        DisplayInside::FlowRoot {
+            is_list_item: false,
+        }
+    }
+}
+
+impl DisplayGeneratingBox {
+    pub(crate) fn display_inside(&self) -> DisplayInside {
+        match *self {
+            DisplayGeneratingBox::OutsideInside { inside, .. } => inside,
+            DisplayGeneratingBox::Internal(i) => i.display_inside(),
+        }
+    }
 }
 
 /// Percentages resolved but not `auto` margins
@@ -454,6 +479,31 @@ impl ComputedValuesExt for ComputedValues {
 
 impl From<stylo::Display> for Display {
     fn from(packed: stylo::Display) -> Self {
+        let outside = packed.outside();
+        let outside = match outside {
+            stylo::DisplayOutside::Block => DisplayOutside::Block,
+            stylo::DisplayOutside::Inline => DisplayOutside::Inline,
+            stylo::DisplayOutside::TableCaption => {
+                return Display::GeneratingBox(DisplayGeneratingBox::Internal(
+                    DisplayInternal::TableCaption,
+                ));
+            },
+            stylo::DisplayOutside::InternalTable => {
+                let internal = match packed.inside() {
+                    stylo::DisplayInside::TableRowGroup => DisplayInternal::TableRowGroup,
+                    stylo::DisplayInside::TableColumn => DisplayInternal::TableColumn,
+                    stylo::DisplayInside::TableColumnGroup => DisplayInternal::TableColumnGroup,
+                    stylo::DisplayInside::TableHeaderGroup => DisplayInternal::TableHeaderGroup,
+                    stylo::DisplayInside::TableFooterGroup => DisplayInternal::TableFooterGroup,
+                    stylo::DisplayInside::TableRow => DisplayInternal::TableRow,
+                    stylo::DisplayInside::TableCell => DisplayInternal::TableCell,
+                    _ => unreachable!("Non-internal DisplayInside found"),
+                };
+                return Display::GeneratingBox(DisplayGeneratingBox::Internal(internal));
+            },
+            // This should not be a value of DisplayInside, but oh well
+            stylo::DisplayOutside::None => return Display::None,
+        };
         let inside = match packed.inside() {
             stylo::DisplayInside::Flow => DisplayInside::Flow {
                 is_list_item: packed.is_list_item(),
@@ -463,24 +513,19 @@ impl From<stylo::Display> for Display {
             },
             stylo::DisplayInside::Flex => DisplayInside::Flex,
             stylo::DisplayInside::Table => DisplayInside::Table,
-            stylo::DisplayInside::TableRowGroup => DisplayInside::TableRowGroup,
-            stylo::DisplayInside::TableColumn => DisplayInside::TableColumn,
-            stylo::DisplayInside::TableColumnGroup => DisplayInside::TableColumnGroup,
-            stylo::DisplayInside::TableHeaderGroup => DisplayInside::TableHeaderGroup,
-            stylo::DisplayInside::TableFooterGroup => DisplayInside::TableFooterGroup,
-            stylo::DisplayInside::TableRow => DisplayInside::TableRow,
-            stylo::DisplayInside::TableCell => DisplayInside::TableCell,
+            stylo::DisplayInside::TableRowGroup |
+            stylo::DisplayInside::TableColumn |
+            stylo::DisplayInside::TableColumnGroup |
+            stylo::DisplayInside::TableHeaderGroup |
+            stylo::DisplayInside::TableFooterGroup |
+            stylo::DisplayInside::TableRow |
+            stylo::DisplayInside::TableCell => {
+                unreachable!("Table display values should be handled by TableInternal")
+            },
+
             // These should not be values of DisplayInside, but oh well
             stylo::DisplayInside::None => return Display::None,
             stylo::DisplayInside::Contents => return Display::Contents,
-        };
-        let outside = match packed.outside() {
-            stylo::DisplayOutside::Block => DisplayOutside::Block,
-            stylo::DisplayOutside::Inline => DisplayOutside::Inline,
-            stylo::DisplayOutside::TableCaption => DisplayOutside::TableCaption,
-            stylo::DisplayOutside::InternalTable => DisplayOutside::InternalTable,
-            // This should not be a value of DisplayInside, but oh well
-            stylo::DisplayOutside::None => return Display::None,
         };
         Display::GeneratingBox(DisplayGeneratingBox::OutsideInside { outside, inside })
     }

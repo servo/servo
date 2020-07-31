@@ -3,8 +3,9 @@ use crate::context::LayoutContext;
 use crate::dom_traversal::{
     BoxSlot, Contents, NodeAndStyleInfo, NodeExt, NonReplacedContents, TraversalHandler,
 };
-use crate::style_ext::{DisplayInside, DisplayGeneratingBox};
+use crate::style_ext::{DisplayGeneratingBox, DisplayInternal};
 use std::borrow::Cow;
+use std::convert::TryFrom;
 use style::values::specified::text::TextDecorationLine;
 
 #[derive(Debug, Serialize, Default)]
@@ -39,7 +40,7 @@ pub(crate) struct TableCellBox {}
 struct TableContainerBuilder<'a, Node> {
     context: &'a LayoutContext<'a>,
     info: &'a NodeAndStyleInfo<Node>,
-    slots: TableSlots
+    slots: TableSlots,
 }
 
 impl TableContainer {
@@ -50,7 +51,11 @@ impl TableContainer {
         // XXXManishearth is this useful?
         _propagated_text_decoration_line: TextDecorationLine,
     ) -> Self {
-        let mut builder = TableContainerBuilder { context, info, slots: TableSlots::default() };
+        let mut builder = TableContainerBuilder {
+            context,
+            info,
+            slots: TableSlots::default(),
+        };
         contents.traverse(context, info, &mut builder);
         TableContainer {}
     }
@@ -61,7 +66,6 @@ where
     Node: NodeExt<'dom>,
 {
     fn handle_text(&mut self, info: &NodeAndStyleInfo<Node>, text: Cow<'dom, str>) {
-        println!("text {:?}", text);
         // TODO: this might need to be wrapped in something
     }
 
@@ -73,7 +77,18 @@ where
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
-
+        println!("Node {:?}", display);
+        match display {
+            DisplayGeneratingBox::Internal(i) => match i {
+                DisplayInternal::TableRowGroup => NonReplacedContents::try_from(contents)
+                    .unwrap()
+                    .traverse(self.context, info, self),
+                _ => (),
+            },
+            _ => {
+                // TODO this might need to be wrapped
+            }
+        }
         ::std::mem::forget(box_slot)
         // do something?
     }
