@@ -1,6 +1,6 @@
 html5lib==1.1
 mozinfo==1.2.1  # https://bugzilla.mozilla.org/show_bug.cgi?id=1621226
-mozlog==6.0
+mozlog==6.1
 mozdebug==0.2
 # Pillow 7 requires Python 3
 pillow==6.2.2  # pyup: <7.0

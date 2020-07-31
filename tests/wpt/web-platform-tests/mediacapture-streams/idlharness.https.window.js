@@ -13,8 +13,6 @@ idl_test(
     const inputDevices = [];
     const outputDevices = [];
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({audio:true, video:true});
-      stream.getTracks().forEach(track => track.stop());
       const list = await navigator.mediaDevices.enumerateDevices();
       for (const device of list) {
         if (device.kind in self) {

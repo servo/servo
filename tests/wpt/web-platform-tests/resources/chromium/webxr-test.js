@@ -279,6 +279,23 @@ class FakeXRAnchorController {
   }
 }
 
+// Internal only for now, needs to be moved into WebXR Test API.
+class FakeXRHitTestSourceController {
+  constructor(id) {
+    this.id_ = id;
+    this.deleted_ = false;
+  }
+
+  get deleted() {
+    return this.deleted_;
+  }
+
+  // Internal setter:
+  set deleted(value) {
+    this.deleted_ = value;
+  }
+}
+
 // Implements XRFrameDataProvider and XRPresentationProvider. Maintains a mock
 // for XRPresentationProvider. Implements FakeXRDevice test API.
 class MockRuntime {
@@ -535,6 +552,10 @@ class MockRuntime {
     this.anchor_creation_callback_ = callback;
   }
 
+  setHitTestSourceCreationCallback(callback) {
+    this.hit_test_source_creation_callback_ = callback;
+  }
+
   // Helper methods
   getNonImmersiveDisplayInfo() {
     const displayInfo = this.getImmersiveDisplayInfo();
@@ -772,14 +793,29 @@ class MockRuntime {
       });
     }
 
-    // Store the subscription information as-is:
+    // Reserve the id for hit test source:
     const id = this.next_hit_test_id_++;
-    this.hitTestSubscriptions_.set(id, { nativeOriginInformation, entityTypes, ray });
+    const hitTestParameters = { isTransient: false, profileName: null };
+    const controller = new FakeXRHitTestSourceController(id);
 
-    return Promise.resolve({
-      result : device.mojom.SubscribeToHitTestResult.SUCCESS,
-      subscriptionId : id
-    });
+
+    return this._shouldHitTestSourceCreationSucceed(hitTestParameters, controller)
+      .then((succeeded) => {
+        if(succeeded) {
+          // Store the subscription information as-is (including controller):
+          this.hitTestSubscriptions_.set(id, { nativeOriginInformation, entityTypes, ray, controller });
+
+          return Promise.resolve({
+            result : device.mojom.SubscribeToHitTestResult.SUCCESS,
+            subscriptionId : id
+          });
+        } else {
+          return Promise.resolve({
+            result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
+            subscriptionId : 0
+          });
+        }
+      });
   }
 
   subscribeToHitTestForTransientInput(profileName, entityTypes, ray){
@@ -791,14 +827,45 @@ class MockRuntime {
       });
     }
 
-    // Store the subscription information as-is:
     const id = this.next_hit_test_id_++;
-    this.transientHitTestSubscriptions_.set(id, { profileName, entityTypes, ray });
+    const hitTestParameters = { isTransient: true, profileName: profileName };
+    const controller = new FakeXRHitTestSourceController(id);
 
-    return Promise.resolve({
-      result : device.mojom.SubscribeToHitTestResult.SUCCESS,
-      subscriptionId : id
-    });
+    // Check if we have hit test source creation callback.
+    // If yes, ask it if the hit test source creation should succeed.
+    // If no, for back-compat, assume the hit test source creation succeeded.
+    return this._shouldHitTestSourceCreationSucceed(hitTestParameters, controller)
+      .then((succeeded) => {
+        if(succeeded) {
+          // Store the subscription information as-is (including controller):
+          this.transientHitTestSubscriptions_.set(id, { profileName, entityTypes, ray, controller });
+
+          return Promise.resolve({
+            result : device.mojom.SubscribeToHitTestResult.SUCCESS,
+            subscriptionId : id
+          });
+        } else {
+          return Promise.resolve({
+            result : device.mojom.SubscribeToHitTestResult.FAILURE_GENERIC,
+            subscriptionId : 0
+          });
+        }
+      });
+  }
+
+  unsubscribeFromHitTest(subscriptionId) {
+    let controller = null;
+    if(this.transientHitTestSubscriptions_.has(subscriptionId)){
+      controller = this.transientHitTestSubscriptions_.get(subscriptionId).controller;
+      this.transientHitTestSubscriptions_.delete(subscriptionId);
+    } else if(this.hitTestSubscriptions_.has(subscriptionId)){
+      controller = this.hitTestSubscriptions_.get(subscriptionId).controller;
+      this.hitTestSubscriptions_.delete(subscriptionId);
+    }
+
+    if(controller) {
+      controller.deleted = true;
+    }
   }
 
   createAnchor(nativeOriginInformation, nativeOriginFromAnchor) {
@@ -996,6 +1063,17 @@ class MockRuntime {
   }
 
   // Private functions - hit test implementation:
+
+  // Returns a Promise<bool> that signifies whether hit test source creation should succeed.
+  // If we have a hit test source creation callback installed, invoke it and return its result.
+  // If it's not installed, for back-compat just return a promise that resolves to true.
+  _shouldHitTestSourceCreationSucceed(hitTestParameters, controller) {
+    if(this.hit_test_source_creation_callback_) {
+      return this.hit_test_source_creation_callback_(hitTestParameters, controller);
+    } else {
+      return Promise.resolve(true);
+    }
+  }
 
   // Modifies passed in frameData to add hit test results.
   _calculateHitTestResults(frameData) {

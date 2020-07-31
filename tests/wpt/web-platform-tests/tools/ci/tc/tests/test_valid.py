@@ -1,6 +1,5 @@
 import json
 import os
-import sys
 from io import open
 
 import jsone
@@ -9,7 +8,6 @@ import pytest
 import requests
 import yaml
 from jsonschema import validate
-from six import PY3
 
 from tools.ci.tc import decision
 
@@ -21,8 +19,6 @@ def data_path(filename):
     return os.path.join(here, "..", "testdata", filename)
 
 
-@pytest.mark.xfail(sys.platform == "win32" and PY3,
-                   reason="https://github.com/web-platform-tests/wpt/issues/24561")
 def test_verify_taskcluster_yml():
     """Verify that the json-e in the .taskcluster.yml is valid"""
     with open(os.path.join(root, ".taskcluster.yml"), encoding="utf8") as f:

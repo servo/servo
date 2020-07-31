@@ -184,6 +184,7 @@ function runTests() {
     { initialText: "a&nbsp;&nbsp;&nbsp;b[]|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c", expectedText: ["a&nbsp;&nbsp;&nbsp;[]", "&nbsp; &nbsp; &nbsp;c"] },
     { initialText: "a&nbsp;&nbsp;&nbsp;b|[]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c", expectedText: ["a&nbsp;&nbsp;&nbsp;[]", "&nbsp; &nbsp; &nbsp;c"] },
     { initialText: "a&nbsp;&nbsp;&nbsp;|b[]&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c", expectedText: ["a&nbsp;&nbsp;&nbsp;[]", "&nbsp; &nbsp; &nbsp;c"] },
+    { initialText: "a&nbsp;&nbsp;&nbsp;[]|b&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c", expectedText: ["a&nbsp;&nbsp;[]", "b&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;c"] },
     { initialText: "a&nbsp;&nbsp;&nbsp;|&nbsp;b[]&nbsp;&nbsp;&nbsp;&nbsp;c", expectedText: ["a&nbsp;&nbsp;&nbsp;", "&nbsp;[] &nbsp; &nbsp;c"] },
 
     { initialText: "a&nbsp;&nbsp;&nbsp;|&nbsp;|[]&nbsp;&nbsp;&nbsp;&nbsp;c", expectedText: ["a&nbsp;&nbsp;&nbsp;[]", "&nbsp; &nbsp; c"] },

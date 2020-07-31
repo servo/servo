@@ -40,8 +40,6 @@ test(function () {
 promise_test(async t => {
   assert_true(navigator.mediaDevices.getSupportedConstraints()["groupId"],
     "groupId should be supported");
-  const stream = await navigator.mediaDevices.getUserMedia({video:true});
-  stream.getVideoTracks()[0].stop();
   const devices = await navigator.mediaDevices.enumerateDevices();
   for (const device of devices) {
     await navigator.mediaDevices.getUserMedia(
@@ -65,8 +63,6 @@ promise_test(async t => {
 promise_test(async t => {
   assert_true(navigator.mediaDevices.getSupportedConstraints()["groupId"],
     "groupId should be supported");
-  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  stream.getAudioTracks()[0].stop();
   const devices = await navigator.mediaDevices.enumerateDevices();
   for (const device of devices) {
     await navigator.mediaDevices.getUserMedia(
