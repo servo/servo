@@ -4,6 +4,7 @@ use crate::formatting_contexts::IndependentLayout;
 use crate::positioned::PositioningContext;
 use crate::sizing::ContentSizes;
 use crate::ContainingBlock;
+use style::values::computed::Length;
 
 impl TableContainer {
     pub fn inline_content_sizes(&self) -> ContentSizes {
@@ -18,6 +19,10 @@ impl TableContainer {
         containing_block: &ContainingBlock,
         tree_rank: usize,
     ) -> IndependentLayout {
-        todo!()
+        // XXXManishearth implement table layout
+        IndependentLayout {
+            fragments: Vec::new(),
+            content_block_size: Length::new(0.),
+        }
     }
 }
