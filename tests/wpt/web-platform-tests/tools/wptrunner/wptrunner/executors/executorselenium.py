@@ -155,7 +155,7 @@ class SeleniumTestharnessProtocolPart(TestharnessProtocolPart):
         """
         while True:
             try:
-                self.webdriver.execute_script(self.window_loaded_script, asynchronous=True)
+                self.webdriver.execute_async_script(self.window_loaded_script)
                 break
             except exceptions.JavascriptException:
                 pass

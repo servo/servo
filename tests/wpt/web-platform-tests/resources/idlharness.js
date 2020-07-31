@@ -3437,15 +3437,59 @@ IdlNamespace.prototype.test_member_attribute = function (member)
     }.bind(this));
 };
 
-IdlNamespace.prototype.test = function ()
+IdlNamespace.prototype.test_self = function ()
 {
     /**
      * TODO(lukebjerring): Assert:
      * - "Note that unlike interfaces or dictionaries, namespaces do not create types."
-     * - "Of the extended attributes defined in this specification, only the
-     *     [Exposed] and [SecureContext] extended attributes are applicable to namespaces."
-     * - "Namespaces must be annotated with the [Exposed] extended attribute."
      */
+
+    subsetTestByKey(this.name, test, () => {
+        assert_true(this.extAttrs.every(o => o.name === "Exposed" || o.name === "SecureContext"),
+            "Only the [Exposed] and [SecureContext] extended attributes are applicable to namespaces");
+        assert_true(this.has_extended_attribute("Exposed"),
+            "Namespaces must be annotated with the [Exposed] extended attribute");
+    }, `${this.name} namespace: extended attributes`);
+
+    const namespaceObject = self[this.name];
+
+    subsetTestByKey(this.name, test, () => {
+        const desc = Object.getOwnPropertyDescriptor(self, this.name);
+        assert_equals(desc.value, namespaceObject, `wrong value for ${this.name} namespace object`);
+        assert_true(desc.writable, "namespace object should be writable");
+        assert_false(desc.enumerable, "namespace object should not be enumerable");
+        assert_true(desc.configurable, "namespace object should be configurable");
+        assert_false("get" in desc, "namespace object should not have a getter");
+        assert_false("set" in desc, "namespace object should not have a setter");
+    }, `${this.name} namespace: property descriptor`);
+
+    subsetTestByKey(this.name, test, () => {
+        assert_true(Object.isExtensible(namespaceObject));
+    }, `${this.name} namespace: [[Extensible]] is true`);
+
+    subsetTestByKey(this.name, test, () => {
+        assert_true(namespaceObject instanceof Object);
+
+        if (this.name === "console") {
+            // https://console.spec.whatwg.org/#console-namespace
+            const namespacePrototype = Object.getPrototypeOf(namespaceObject);
+            assert_equals(Reflect.ownKeys(namespacePrototype).length, 0);
+            assert_equals(Object.getPrototypeOf(namespacePrototype), Object.prototype);
+        } else {
+            assert_equals(Object.getPrototypeOf(namespaceObject), Object.prototype);
+        }
+    }, `${this.name} namespace: [[Prototype]] is Object.prototype`);
+
+    subsetTestByKey(this.name, test, () => {
+        assert_equals(typeof namespaceObject, "object");
+    }, `${this.name} namespace: typeof is "object"`);
+};
+
+IdlNamespace.prototype.test = function ()
+{
+    if (!this.untested) {
+        this.test_self();
+    }
 
     for (const v of Object.values(this.members)) {
         switch (v.type) {

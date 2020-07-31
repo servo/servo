@@ -17,8 +17,6 @@ promise_test(t => promise_rejects_dom(t, "NotFoundError", audio.setSinkId("nonex
   "setSinkId fails with NotFoundError on made up deviceid");
 
 promise_test(async t => {
-  const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-  stream.getAudioTracks()[0].stop();
   const list = await navigator.mediaDevices.enumerateDevices();
   const outputDevicesList = list.filter(({kind}) => kind == "audiooutput");
   assert_not_equals(outputDevicesList.length, 0,

@@ -16,13 +16,19 @@
 <script>
 "use strict";
 
-self.foo = {
-  truth: true
-};
+Object.defineProperty(self, "foo", {
+  value: {
+    truth: true,
+  },
+  writable: true,
+  enumerable: false,
+  configurable: true,
+});
 
 var idlArray = new IdlArray();
-idlArray.add_idls(
-`namespace foo {
+idlArray.add_idls(`
+[Exposed=Window]
+namespace foo {
   readonly attribute bool truth;
   readonly attribute bool lies;
 };`);
@@ -35,6 +41,36 @@ idlArray.test();
     "message": null
   },
   "summarized_tests": [
+    {
+      "name": "foo namespace: extended attributes",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: property descriptor",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: [[Extensible]] is true",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: [[Prototype]] is Object.prototype",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
+    {
+      "name": "foo namespace: typeof is \"object\"",
+      "status_string": "PASS",
+      "properties": {},
+      "message": null
+    },
     {
       "name": "foo namespace: attribute truth",
       "status_string": "PASS",
