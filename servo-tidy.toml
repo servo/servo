@@ -36,6 +36,7 @@ packages = [
   "libloading",
   "metal",
   "miniz_oxide",
+  "num-rational",
   "parking_lot",
   "parking_lot_core",
   "wayland-sys",
@@ -62,7 +63,6 @@ packages = [
   "core-foundation",
   "core-foundation-sys",
   "core-graphics",
-  "core-text",
   "lyon_geom",
 ]
 # Files that are ignored for all tidy and lint checks.

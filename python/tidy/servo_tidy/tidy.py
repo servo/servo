@@ -393,7 +393,8 @@ def check_lock(file_name, contents):
             message += "\n\t\033[93mThe following packages depend on version {} from '{}':\033[0m" \
                        .format(version, short_source)
             for pname, package_version, dependency in packages_dependencies:
-                if version in dependency[1] and (not dependency[2] or short_source in dependency[2]):
+                if (not dependency[1] or version in dependency[1]) and \
+                   (not dependency[2] or short_source in dependency[2]):
                     message += "\n\t\t" + pname + " " + package_version
         yield (1, message)
 

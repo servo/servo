@@ -42,7 +42,7 @@ servo_arc = { path = "../servo_arc" }
 servo_url = { path = "../url" }
 style = { path = "../style", features = ["servo", "servo-layout-2020"] }
 style_traits = { path = "../style_traits" }
-unicode-script = { version = "0.3", features = ["harfbuzz"] }
+unicode-script = "0.5"
 webrender_api = { git = "https://github.com/servo/webrender" }
 
 [dev-dependencies]
