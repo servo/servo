@@ -526,9 +526,8 @@ impl EventTarget {
         let args = if is_error { ERROR_ARG_NAMES } else { ARG_NAMES };
 
         let cx = window.get_cx();
-        let options = unsafe {
-            CompileOptionsWrapper::new(*cx, &handler.url.to_string(), handler.line as u32)
-        };
+        let options =
+            unsafe { CompileOptionsWrapper::new(*cx, handler.url.as_str(), handler.line as u32) };
 
         // Step 3.9, subsection Scope steps 1-6
         let scopechain = RootedObjectVectorWrapper::new(*cx);
