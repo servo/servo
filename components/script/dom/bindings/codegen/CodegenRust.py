@@ -5354,13 +5354,12 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
             attrs = "JSPROP_ENUMERATE"
             if self.descriptor.operations['IndexedSetter'] is None:
                 attrs += " | JSPROP_READONLY"
-            fillDescriptor = ("desc.value = result_root.get();\n"
-                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
-                              "return true;" % attrs)
+            fill = ("fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), rval.get(), (%s) as u32);\n"
+                    "return true;" % attrs)
             templateValues = {
-                'jsvalRef': 'result_root.handle_mut()',
-                'successCode': fillDescriptor,
-                'pre': 'rooted!(in(*cx) let mut result_root = UndefinedValue());'
+                'jsvalRef': 'rval.handle_mut()',
+                'successCode': fill,
+                'pre': 'rooted!(in(*cx) let mut rval = UndefinedValue());'
             }
             get += ("if let Some(index) = index {\n"
                     + "    let this = UnwrapProxy(proxy);\n"
@@ -5379,13 +5378,12 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                 attrs = " | ".join(attrs)
             else:
                 attrs = "0"
-            fillDescriptor = ("desc.value = result_root.get();\n"
-                              "fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), (%s) as u32);\n"
-                              "return true;" % attrs)
+            fill = ("fill_property_descriptor(MutableHandle::from_raw(desc), proxy.get(), rval.get(), (%s) as u32);\n"
+                    "return true;" % attrs)
             templateValues = {
-                'jsvalRef': 'result_root.handle_mut()',
-                'successCode': fillDescriptor,
-                'pre': 'rooted!(in(*cx) let mut result_root = UndefinedValue());'
+                'jsvalRef': 'rval.handle_mut()',
+                'successCode': fill,
+                'pre': 'rooted!(in(*cx) let mut rval = UndefinedValue());'
             }
 
             # See the similar-looking in CGDOMJSProxyHandler_get for the spec quote.

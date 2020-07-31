@@ -19,6 +19,7 @@ use js::jsapi::MutableHandleObject as RawMutableHandleObject;
 use js::jsapi::ObjectOpResult;
 use js::jsapi::{DOMProxyShadowsResult, JSContext, JSObject, PropertyDescriptor};
 use js::jsapi::{JSErrNum, SetDOMProxyInformation};
+use js::jsval::JSVal;
 use js::jsval::ObjectValue;
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::JS_AlreadyHasOwnPropertyById;
@@ -167,12 +168,14 @@ pub unsafe fn ensure_expando_object(
 
 /// Set the property descriptor's object to `obj` and set it to enumerable,
 /// and writable if `readonly` is true.
-pub fn fill_property_descriptor(
+pub unsafe fn fill_property_descriptor(
     mut desc: MutableHandle<PropertyDescriptor>,
     obj: *mut JSObject,
+    v: JSVal,
     attrs: u32,
 ) {
     desc.obj = obj;
+    desc.value = v;
     desc.attrs = attrs;
     desc.getter = None;
     desc.setter = None;
