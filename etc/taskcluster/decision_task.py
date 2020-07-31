@@ -58,7 +58,8 @@ def tasks(task_for):
             # https://github.com/servo/saltfs/blob/master/homu/map.jinja
 
             "try-mac": [macos_unit],
-            "try-linux": [linux_wpt_asan, macos_wpt_asan],
+            #"try-linux": [linux_wpt_asan, macos_wpt_asan],
+            "try-linux": [macos_wpt_asan],
             "try-windows": [windows_unit, windows_arm64, windows_uwp_x64],
             "try-arm": [windows_arm64],
             "try-wpt": [linux_wpt],
