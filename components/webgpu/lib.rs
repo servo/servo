@@ -80,6 +80,8 @@ pub enum WebGPURequest {
     },
     CopyBufferToBuffer {
         command_encoder_id: id::CommandEncoderId,
+        device_id: id::DeviceId,
+        scope_id: Option<u64>,
         source_id: id::BufferId,
         source_offset: wgt::BufferAddress,
         destination_id: id::BufferId,
@@ -88,18 +90,24 @@ pub enum WebGPURequest {
     },
     CopyBufferToTexture {
         command_encoder_id: id::CommandEncoderId,
+        device_id: id::DeviceId,
+        scope_id: Option<u64>,
         source: BufferCopyView,
         destination: TextureCopyView,
         copy_size: wgt::Extent3d,
     },
     CopyTextureToBuffer {
         command_encoder_id: id::CommandEncoderId,
+        device_id: id::DeviceId,
+        scope_id: Option<u64>,
         source: TextureCopyView,
         destination: BufferCopyView,
         copy_size: wgt::Extent3d,
     },
     CopyTextureToTexture {
         command_encoder_id: id::CommandEncoderId,
+        device_id: id::DeviceId,
+        scope_id: Option<u64>,
         source: TextureCopyView,
         destination: TextureCopyView,
         copy_size: wgt::Extent3d,
@@ -213,14 +221,19 @@ pub enum WebGPURequest {
     },
     RunComputePass {
         command_encoder_id: id::CommandEncoderId,
+        device_id: id::DeviceId,
+        scope_id: Option<u64>,
         compute_pass: ComputePass,
     },
     RunRenderPass {
         command_encoder_id: id::CommandEncoderId,
+        device_id: id::DeviceId,
+        scope_id: Option<u64>,
         render_pass: RenderPass,
     },
     Submit {
         queue_id: id::QueueId,
+        scope_id: Option<u64>,
         command_buffers: Vec<id::CommandBufferId>,
     },
     SwapChainPresent {
@@ -230,6 +243,8 @@ pub enum WebGPURequest {
     },
     UnmapBuffer {
         buffer_id: id::BufferId,
+        device_id: id::DeviceId,
+        scope_id: Option<u64>,
         array_buffer: IpcSharedMemory,
         is_map_read: bool,
         offset: u64,
@@ -242,12 +257,14 @@ pub enum WebGPURequest {
     },
     WriteBuffer {
         queue_id: id::QueueId,
+        scope_id: Option<u64>,
         buffer_id: id::BufferId,
         buffer_offset: u64,
         data: IpcSharedMemory,
     },
     WriteTexture {
         queue_id: id::QueueId,
+        scope_id: Option<u64>,
         texture_cv: TextureCopyView,
         data_layout: wgt::TextureDataLayout,
         size: wgt::Extent3d,
@@ -455,6 +472,8 @@ impl<'a> WGPU<'a> {
                     },
                     WebGPURequest::CopyBufferToBuffer {
                         command_encoder_id,
+                        device_id,
+                        scope_id,
                         source_id,
                         source_offset,
                         destination_id,
@@ -462,7 +481,7 @@ impl<'a> WGPU<'a> {
                         size,
                     } => {
                         let global = &self.global;
-                        let _ = gfx_select!(command_encoder_id => global.command_encoder_copy_buffer_to_buffer(
+                        let result = gfx_select!(command_encoder_id => global.command_encoder_copy_buffer_to_buffer(
                             command_encoder_id,
                             source_id,
                             source_offset,
@@ -470,48 +489,58 @@ impl<'a> WGPU<'a> {
                             destination_offset,
                             size
                         ));
+                        self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CopyBufferToTexture {
                         command_encoder_id,
+                        device_id,
+                        scope_id,
                         source,
                         destination,
                         copy_size,
                     } => {
                         let global = &self.global;
-                        let _ = gfx_select!(command_encoder_id => global.command_encoder_copy_buffer_to_texture(
+                        let result = gfx_select!(command_encoder_id => global.command_encoder_copy_buffer_to_texture(
                             command_encoder_id,
                             &source,
                             &destination,
                             &copy_size
                         ));
+                        self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CopyTextureToBuffer {
                         command_encoder_id,
+                        device_id,
+                        scope_id,
                         source,
                         destination,
                         copy_size,
                     } => {
                         let global = &self.global;
-                        let _ = gfx_select!(command_encoder_id => global.command_encoder_copy_texture_to_buffer(
+                        let result = gfx_select!(command_encoder_id => global.command_encoder_copy_texture_to_buffer(
                             command_encoder_id,
                             &source,
                             &destination,
                             &copy_size
                         ));
+                        self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CopyTextureToTexture {
                         command_encoder_id,
+                        device_id,
+                        scope_id,
                         source,
                         destination,
                         copy_size,
                     } => {
                         let global = &self.global;
-                        let _ = gfx_select!(command_encoder_id => global.command_encoder_copy_texture_to_texture(
+                        let result = gfx_select!(command_encoder_id => global.command_encoder_copy_texture_to_texture(
                             command_encoder_id,
                             &source,
                             &destination,
                             &copy_size
                         ));
+                        self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CreateBindGroup {
                         device_id,
@@ -890,30 +919,38 @@ impl<'a> WGPU<'a> {
                     },
                     WebGPURequest::RunComputePass {
                         command_encoder_id,
+                        device_id,
+                        scope_id,
                         compute_pass,
                     } => {
                         let global = &self.global;
-                        let _ = gfx_select!(command_encoder_id => global.command_encoder_run_compute_pass(
+                        let result = gfx_select!(command_encoder_id => global.command_encoder_run_compute_pass(
                             command_encoder_id,
                             &compute_pass
                         ));
+                        self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::RunRenderPass {
                         command_encoder_id,
+                        device_id,
+                        scope_id,
                         render_pass,
                     } => {
                         let global = &self.global;
-                        let _ = gfx_select!(command_encoder_id => global.command_encoder_run_render_pass(
+                        let result = gfx_select!(command_encoder_id => global.command_encoder_run_render_pass(
                             command_encoder_id,
                             &render_pass
                         ));
+                        self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::Submit {
                         queue_id,
+                        scope_id,
                         command_buffers,
                     } => {
                         let global = &self.global;
-                        let _ = gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers));
+                        let result = gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers));
+                        self.send_result(queue_id, scope_id, result);
                     },
                     WebGPURequest::SwapChainPresent {
                         external_id,
@@ -1052,6 +1089,8 @@ impl<'a> WGPU<'a> {
                     },
                     WebGPURequest::UnmapBuffer {
                         buffer_id,
+                        device_id,
+                        scope_id,
                         array_buffer,
                         is_map_read,
                         offset,
@@ -1068,7 +1107,8 @@ impl<'a> WGPU<'a> {
                             unsafe { slice::from_raw_parts_mut(map_ptr, size as usize) }
                                 .copy_from_slice(&array_buffer);
                         }
-                        let _ = gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
+                        let result = gfx_select!(buffer_id => global.buffer_unmap(buffer_id));
+                        self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::UpdateWebRenderData {
                         buffer_id,
@@ -1105,21 +1145,24 @@ impl<'a> WGPU<'a> {
                     },
                     WebGPURequest::WriteBuffer {
                         queue_id,
+                        scope_id,
                         buffer_id,
                         buffer_offset,
                         data,
                     } => {
                         let global = &self.global;
                         //TODO: Report result to content process
-                        let _ = gfx_select!(queue_id => global.queue_write_buffer(
+                        let result = gfx_select!(queue_id => global.queue_write_buffer(
                             queue_id,
                             buffer_id,
                             buffer_offset as wgt::BufferAddress,
                             &data
                         ));
+                        self.send_result(queue_id, scope_id, result);
                     },
                     WebGPURequest::WriteTexture {
                         queue_id,
+                        scope_id,
                         texture_cv,
                         data_layout,
                         size,
@@ -1127,20 +1170,21 @@ impl<'a> WGPU<'a> {
                     } => {
                         let global = &self.global;
                         //TODO: Report result to content process
-                        let _ = gfx_select!(queue_id => global.queue_write_texture(
+                        let result = gfx_select!(queue_id => global.queue_write_texture(
                             queue_id,
                             &texture_cv,
                             &data,
                             &data_layout,
                             &size
                         ));
+                        self.send_result(queue_id, scope_id, result);
                     },
                 }
             }
         }
     }
 
-    fn send_result<U: id::TypedId, T: std::fmt::Debug>(
+    fn send_result<U, T: std::fmt::Debug>(
         &self,
         device_id: id::DeviceId,
         scope_id: Option<u64>,

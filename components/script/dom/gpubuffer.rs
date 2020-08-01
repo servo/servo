@@ -8,10 +8,11 @@ use crate::dom::bindings::codegen::Bindings::GPUMapModeBinding::GPUMapModeConsta
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomObject;
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpu::{response_async, AsyncWGPUListener};
+use crate::dom::gpudevice::GPUDevice;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
@@ -25,9 +26,7 @@ use std::ffi::c_void;
 use std::ops::Range;
 use std::ptr::NonNull;
 use std::rc::Rc;
-use webgpu::{
-    wgpu::device::HostMap, WebGPU, WebGPUBuffer, WebGPUDevice, WebGPURequest, WebGPUResponse,
-};
+use webgpu::{wgpu::device::HostMap, WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse};
 
 const RANGE_OFFSET_ALIGN_MASK: u64 = 8;
 const RANGE_SIZE_ALIGN_MASK: u64 = 4;
@@ -61,7 +60,7 @@ pub struct GPUBuffer {
     label: DomRefCell<Option<USVString>>,
     state: Cell<GPUBufferState>,
     buffer: WebGPUBuffer,
-    device: WebGPUDevice,
+    device: Dom<GPUDevice>,
     size: GPUSize64,
     #[ignore_malloc_size_of = "promises are hard"]
     map_promise: DomRefCell<Option<Rc<Promise>>>,
@@ -72,7 +71,7 @@ impl GPUBuffer {
     fn new_inherited(
         channel: WebGPU,
         buffer: WebGPUBuffer,
-        device: WebGPUDevice,
+        device: &GPUDevice,
         state: GPUBufferState,
         size: GPUSize64,
         map_info: DomRefCell<Option<GPUBufferMapInfo>>,
@@ -83,7 +82,7 @@ impl GPUBuffer {
             channel,
             label: DomRefCell::new(label),
             state: Cell::new(state),
-            device,
+            device: Dom::from_ref(device),
             buffer,
             map_promise: DomRefCell::new(None),
             size,
@@ -96,7 +95,7 @@ impl GPUBuffer {
         global: &GlobalScope,
         channel: WebGPU,
         buffer: WebGPUBuffer,
-        device: WebGPUDevice,
+        device: &GPUDevice,
         state: GPUBufferState,
         size: GPUSize64,
         map_info: DomRefCell<Option<GPUBufferMapInfo>>,
@@ -145,6 +144,8 @@ impl GPUBufferMethods for GPUBuffer {
                 let m_range = m_info.mapping_range.clone();
                 if let Err(e) = self.channel.0.send(WebGPURequest::UnmapBuffer {
                     buffer_id: self.id().0,
+                    device_id: self.device.id().0,
+                    scope_id: self.device.use_current_scope(),
                     array_buffer: IpcSharedMemory::from_bytes(m_info.mapping.borrow().as_slice()),
                     is_map_read: m_info.map_mode == Some(GPUMapModeConstants::READ),
                     offset: m_range.start,

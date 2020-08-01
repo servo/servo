@@ -9,8 +9,7 @@ interface GPUAdapter {
     readonly attribute object extensions;
     //readonly attribute GPULimits limits; Don’t expose higher limits for now.
 
-    // May reject with DOMException  // TODO: DOMException("OperationError")?
-    Promise<GPUDevice> requestDevice(optional GPUDeviceDescriptor descriptor = {});
+    Promise<GPUDevice?> requestDevice(optional GPUDeviceDescriptor descriptor = {});
 };
 
 dictionary GPUDeviceDescriptor : GPUObjectDescriptorBase {

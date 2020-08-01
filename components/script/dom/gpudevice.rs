@@ -148,12 +148,14 @@ impl GPUDevice {
         label: Option<String>,
     ) -> DomRoot<Self> {
         let queue = GPUQueue::new(global, channel.clone(), queue);
-        reflect_dom_object(
+        let device = reflect_dom_object(
             Box::new(GPUDevice::new_inherited(
                 channel, adapter, extensions, limits, device, &queue, label,
             )),
             global,
-        )
+        );
+        queue.set_device(&*device);
+        device
     }
 }
 
@@ -341,7 +343,7 @@ impl GPUDeviceMethods for GPUDevice {
             &self.global(),
             self.channel.clone(),
             buffer,
-            self.device,
+            &self,
             state,
             descriptor.size,
             map_info,

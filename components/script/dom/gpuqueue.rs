@@ -11,24 +11,25 @@ use crate::dom::bindings::codegen::Bindings::GPUQueueBinding::GPUQueueMethods;
 use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::GPUExtent3D;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubuffer::{GPUBuffer, GPUBufferState};
 use crate::dom::gpucommandbuffer::GPUCommandBuffer;
 use crate::dom::gpucommandencoder::{convert_texture_cv, convert_texture_data_layout};
-use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt};
+use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt, GPUDevice};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::ArrayBuffer;
-use webgpu::{wgt, WebGPU, WebGPUQueue, WebGPURequest};
+use webgpu::{identity::WebGPUOpResult, wgt, WebGPU, WebGPUQueue, WebGPURequest};
 
 #[dom_struct]
 pub struct GPUQueue {
     reflector_: Reflector,
     #[ignore_malloc_size_of = "defined in webgpu"]
     channel: WebGPU,
+    device: DomRefCell<Option<Dom<GPUDevice>>>,
     label: DomRefCell<Option<USVString>>,
     queue: WebGPUQueue,
 }
@@ -38,6 +39,7 @@ impl GPUQueue {
         GPUQueue {
             channel,
             reflector_: Reflector::new(),
+            device: DomRefCell::new(None),
             label: DomRefCell::new(None),
             queue,
         }
@@ -45,6 +47,12 @@ impl GPUQueue {
 
     pub fn new(global: &GlobalScope, channel: WebGPU, queue: WebGPUQueue) -> DomRoot<Self> {
         reflect_dom_object(Box::new(GPUQueue::new_inherited(channel, queue)), global)
+    }
+}
+
+impl GPUQueue {
+    pub fn set_device(&self, device: &GPUDevice) {
+        *self.device.borrow_mut() = Some(Dom::from_ref(device));
     }
 }
 
@@ -67,8 +75,14 @@ impl GPUQueueMethods for GPUQueue {
                 _ => false,
             })
         });
+        let scope_id = self.device.borrow().as_ref().unwrap().use_current_scope();
         if !valid {
-            // TODO: Generate error to the ErrorScope
+            self.device.borrow().as_ref().unwrap().handle_server_msg(
+                scope_id,
+                WebGPUOpResult::ValidationError(String::from(
+                    "Referenced GPUBuffer(s) are not Unmapped",
+                )),
+            );
             return;
         }
         let command_buffers = command_buffers.iter().map(|cb| cb.id().0).collect();
@@ -76,6 +90,7 @@ impl GPUQueueMethods for GPUQueue {
             .0
             .send(WebGPURequest::Submit {
                 queue_id: self.queue.0,
+                scope_id,
                 command_buffers,
             })
             .unwrap();
@@ -111,6 +126,7 @@ impl GPUQueueMethods for GPUQueue {
         );
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteBuffer {
             queue_id: self.queue.0,
+            scope_id: self.device.borrow().as_ref().unwrap().use_current_scope(),
             buffer_id: buffer.id().0,
             buffer_offset,
             data: final_data,
@@ -144,6 +160,7 @@ impl GPUQueueMethods for GPUQueue {
 
         if let Err(e) = self.channel.0.send(WebGPURequest::WriteTexture {
             queue_id: self.queue.0,
+            scope_id: self.device.borrow().as_ref().unwrap().use_current_scope(),
             texture_cv,
             data_layout: texture_layout,
             size: write_size,
