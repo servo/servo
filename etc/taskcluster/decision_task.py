@@ -623,7 +623,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
     if asan_target:
         name_prefix += "ASAN"
         job_id_prefix += "asan-"
-        args += ["--target", asan_target, "--timeout-multipiler=4"]
+        args += ["--target", asan_target, "--timeout-multiplier=4"]
 
     # Our Mac CI runs on machines with an Intel 4000 GPU, so need to work around
     # https://github.com/servo/webrender/wiki/Driver-issues#bug-1570736---texture-swizzling-affects-wrap-modes-on-some-intel-gpus
