@@ -499,10 +499,10 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         {
             // overflow: clip is deprecated, so convert to hidden if it's
             // specified in only one dimension.
-            if overflow_x == Overflow::MozHiddenUnscrollable {
+            if overflow_x == Overflow::Clip {
                 overflow_x = Overflow::Hidden;
             }
-            if overflow_y == Overflow::MozHiddenUnscrollable {
+            if overflow_y == Overflow::Clip {
                 overflow_y = Overflow::Hidden;
             }
         }
@@ -560,7 +560,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let overflow_y = box_style.clone_overflow_y();
 
         fn scrollable(v: Overflow) -> bool {
-            v != Overflow::MozHiddenUnscrollable && v != Overflow::Visible
+            v != Overflow::Clip && v != Overflow::Visible
         }
 
         // If at least one is scrollable we'll adjust the other one in

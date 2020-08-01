@@ -1991,5 +1991,25 @@ pub enum Overflow {
     Scroll,
     Auto,
     #[cfg(feature = "gecko")]
-    MozHiddenUnscrollable,
+    #[parse(aliases = "-moz-hidden-unscrollable")]
+    Clip,
+}
+
+impl Overflow {
+    /// Return true if the value will create a scrollable box.
+    #[inline]
+    pub fn is_scrollable(&self) -> bool {
+        matches!(*self, Self::Hidden | Self::Scroll | Self::Auto)
+    }
+    /// Convert the value to a scrollable value if it's not already scrollable.
+    /// This maps `visible` to `auto` and `clip` to `hidden`.
+    #[inline]
+    pub fn to_scrollable(&self) -> Self {
+        match *self {
+            Self::Hidden | Self::Scroll | Self::Auto => *self,
+            Self::Visible => Self::Auto,
+            #[cfg(feature = "gecko")]
+            Self::Clip => Self::Hidden,
+        }
+    }
 }
