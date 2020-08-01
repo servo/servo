@@ -18,5 +18,5 @@ std::wstring format(const std::wstring &txt, Args... args) {
 }
 
 template <typename... Args> void log(const std::wstring &txt, Args... args) {
-  OutputDebugString((format(txt, args...) + L"\r\n").c_str());
+  std::cout << (format(txt, args...) + L"\r\n").c_str();
 }
