@@ -582,6 +582,7 @@ def macos_wpt(asan_target=None):
         repo_dir="repo",
         total_chunks=20,
         processes=8,
+        asan_target=asan_target,
     )
 
 
@@ -602,11 +603,12 @@ def linux_wpt_common(total_chunks, layout_2020, asan_target=None):
     def linux_run_task(name):
         return linux_task(name).with_dockerfile(dockerfile_path("run")).with_repo_bundle()
     wpt_chunks("Linux x64", linux_run_task, release_build_task, repo_dir="/repo",
-               processes=20, total_chunks=total_chunks, layout_2020=layout_2020)
+               processes=20, total_chunks=total_chunks, layout_2020=layout_2020,
+               asan_target=asan_target)
 
 
 def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
-               repo_dir, chunks="all", layout_2020=False):
+               repo_dir, chunks="all", layout_2020=False, asan_target=None):
     if layout_2020:
         start = 1  # Skip the "extra" WPT testing, a.k.a. chunk 0
         name_prefix = "Layout 2020 "
@@ -617,6 +619,11 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
         name_prefix = ""
         job_id_prefix = ""
         args = []
+
+    if asan_target:
+        name_prefix += "ASAN"
+        job_id_prefix += "asan-"
+        args += ["--target", asan_target]
 
     # Our Mac CI runs on machines with an Intel 4000 GPU, so need to work around
     # https://github.com/servo/webrender/wiki/Driver-issues#bug-1570736---texture-swizzling-affects-wrap-modes-on-some-intel-gpus
