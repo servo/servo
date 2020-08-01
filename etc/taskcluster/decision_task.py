@@ -623,10 +623,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
     if asan_target:
         name_prefix += "ASAN"
         job_id_prefix += "asan-"
-        args += ["--target", asan_target]
-        target = "--target " + asan_target
-    else:
-        target = ""
+        args += ["--target", asan_target, "--timeout-multipiler=4"]
 
     # Our Mac CI runs on machines with an Intel 4000 GPU, so need to work around
     # https://github.com/servo/webrender/wiki/Driver-issues#bug-1570736---texture-swizzling-affects-wrap-modes-on-some-intel-gpus
@@ -666,7 +663,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
         # https://github.com/servo/servo/issues/22438
         if this_chunk == 0:
             task.with_script("""
-                time python ./mach test-wpt {target} --release --binary-arg=--multiprocess \
+                time python ./mach test-wpt $WPT_ARGS --release --binary-arg=--multiprocess \
                     --processes $PROCESSES \
                     --log-raw test-wpt-mp.log \
                     --log-errorsummary wpt-mp-errorsummary.log \
@@ -678,18 +675,18 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --log-errorsummary wpt-py3-errorsummary.log \
                     url \
                     | cat
-                time ./mach test-wpt {target} --release --product=servodriver --headless  \
+                time ./mach test-wpt $WPT_ARGS --release --product=servodriver --headless  \
                     tests/wpt/mozilla/tests/mozilla/DOMParser.html \
                     tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html \
                     tests/wpt/mozilla/tests/css/img_simple.html \
                     tests/wpt/mozilla/tests/mozilla/secure.https.html \
                     | cat
-                time ./mach test-wpt {target} --release --processes $PROCESSES --product=servodriver \
+                time ./mach test-wpt $WPT_ARGS --release --processes $PROCESSES --product=servodriver \
                     --headless --log-raw test-bluetooth.log \
                     --log-errorsummary bluetooth-errorsummary.log \
                     bluetooth \
                     | cat
-                time ./mach test-wpt {target} --release --processes $PROCESSES --timeout-multiplier=4 \
+                time ./mach test-wpt $WPT_ARGS --release --processes $PROCESSES --timeout-multiplier=4 \
                     --headless --log-raw test-wdspec.log \
                     --log-servojson wdspec-jsonsummary.log \
                     --always-succeed \
@@ -701,7 +698,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --log-filteredsummary filtered-wdspec-errorsummary.log \
                     --tracker-api default \
                     --reporter-api default
-            """.format(target=target))
+            """)
         else:
             task.with_script("""
                 ./mach test-wpt \
