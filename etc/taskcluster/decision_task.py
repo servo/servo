@@ -99,6 +99,7 @@ def tasks(task_for):
         macos_nightly()
         update_wpt()
         uwp_nightly()
+        macos_wpt_asan()
 
 
 ping_on_daily_task_failure = "SimonSapin, nox, emilio"
