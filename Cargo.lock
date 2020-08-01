@@ -4175,7 +4175,7 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/servo/webrender#0bf15cbdbda530f733511f169194439e197e0f40"
+source = "git+https://github.com/servo/webrender#46791f3fd9188ab3178ab612de168ec554669be7"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -4184,7 +4184,7 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
-source = "git+https://github.com/servo/webrender#0bf15cbdbda530f733511f169194439e197e0f40"
+source = "git+https://github.com/servo/webrender#46791f3fd9188ab3178ab612de168ec554669be7"
 dependencies = [
  "proc-macro2 1.0.17",
  "quote 1.0.2",
@@ -6786,7 +6786,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender#0bf15cbdbda530f733511f169194439e197e0f40"
+source = "git+https://github.com/servo/webrender#46791f3fd9188ab3178ab612de168ec554669be7"
 dependencies = [
  "base64 0.10.1",
  "bincode",
@@ -6829,13 +6829,14 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.61.0"
-source = "git+https://github.com/servo/webrender#0bf15cbdbda530f733511f169194439e197e0f40"
+source = "git+https://github.com/servo/webrender#46791f3fd9188ab3178ab612de168ec554669be7"
 dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
  "core-foundation 0.9.0",
  "core-graphics 0.22.0",
+ "crossbeam-channel",
  "derive_more",
  "euclid",
  "malloc_size_of_derive",
@@ -6850,7 +6851,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#0bf15cbdbda530f733511f169194439e197e0f40"
+source = "git+https://github.com/servo/webrender#46791f3fd9188ab3178ab612de168ec554669be7"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -7029,7 +7030,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/servo/webrender#0bf15cbdbda530f733511f169194439e197e0f40"
+source = "git+https://github.com/servo/webrender#46791f3fd9188ab3178ab612de168ec554669be7"
 dependencies = [
  "app_units",
  "euclid",
