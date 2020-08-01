@@ -652,6 +652,10 @@ class MachCommands(CommandBase):
             env["RUSTFLAGS"] = env.get("RUSTFLAGS", "") + " -Zsanitizer=address"
             target = target or host
             opts += ["-Zbuild-std"]
+            env.setdefault("CFLAGS", "")
+            env.setdefault("CXXFLAGS", "")
+            env["CFLAGS"] += " -fsanitize=address"
+            env["CXXFLAGS"] += " -fsanitize=address"
 
         if very_verbose:
             print(["Calling", "cargo", "build"] + opts)
