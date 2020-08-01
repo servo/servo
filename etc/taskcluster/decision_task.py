@@ -621,7 +621,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
         args = []
 
     if asan_target:
-        name_prefix += "ASAN"
+        name_prefix += "ASAN "
         job_id_prefix += "asan-"
         args += ["--target", asan_target, "--timeout-multiplier=4"]
 
@@ -669,7 +669,7 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --log-errorsummary wpt-mp-errorsummary.log \
                     eventsource \
                     | cat
-                time env PYTHONIOENCODING=utf-8 python3 ./mach test-wpt {target}  --release \
+                time env PYTHONIOENCODING=utf-8 python3 ./mach test-wpt $WPT_ARGS  --release \
                     --processes $PROCESSES \
                     --log-raw test-wpt-py3.log \
                     --log-errorsummary wpt-py3-errorsummary.log \
