@@ -3,23 +3,24 @@
 promise_test(async testCase => {
   const db = await createDatabase(testCase, db => {
     const store = createBooksStore(testCase, db);
-    let values = [
-      {isbn: 'one', title: 'title1'},
-      {isbn: 'two', title: 'title2'},
-      {isbn: 'three', title: 'title3'}
-    ];
-    const putAllRequests = store.putAll(values);
-    putAllRequests.forEach(async request => {
-      await promiseForRequest(testCase, request);
-    });
   });
-
-  const txn = db.transaction(['books'], 'readonly');
+  const txn = db.transaction(['books'], 'readwrite');
   const objectStore = txn.objectStore('books');
-  const getRequest1 = objectStore.get('one');
-  const getRequest2 = objectStore.get('two');
-  const getRequest3 = objectStore.get('three');
+  let values = [
+    {isbn: 'one', title: 'title1'},
+    {isbn: 'two', title: 'title2'},
+    {isbn: 'three', title: 'title3'}
+  ];
+  let putAllRequest = objectStore.putAll(values);
+  await promiseForRequest(testCase, putAllRequest);
   await promiseForTransaction(testCase, txn);
+
+  const txn2 = db.transaction(['books'], 'readonly');
+  const objectStore2 = txn2.objectStore('books');
+  const getRequest1 = objectStore2.get('one');
+  const getRequest2 = objectStore2.get('two');
+  const getRequest3 = objectStore2.get('three');
+  await promiseForTransaction(testCase, txn2);
   assert_array_equals(
       [getRequest1.result.title,
           getRequest2.result.title,
