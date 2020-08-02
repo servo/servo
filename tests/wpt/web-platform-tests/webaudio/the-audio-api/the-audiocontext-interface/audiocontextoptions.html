@@ -180,6 +180,20 @@
                 },
                 'context = new AudioContext({sampleRate: 1000000})')
                 .throw(DOMException);
+            // A negative sample rate should not be accepted
+            should(
+                () => {
+                  context = new AudioContext({sampleRate: -1})
+                },
+                'context = new AudioContext({sampleRate: -1})')
+                .throw(DOMException);
+            // A null sample rate should not be accepted
+            should(
+                () => {
+                  context = new AudioContext({sampleRate: 0})
+                },
+                'context = new AudioContext({sampleRate: 0})')
+                .throw(DOMException);
 
             should(
                 () => {
