@@ -489,7 +489,7 @@
   "testharness": {
    "webgpu": {
     "cts.html": [
-     "40941fb9520652e95c3f356b05b73310b3ebdddb",
+     "0e637156fa95e5039db18c62136f73595b92c087",
      [
       "webgpu/cts.html?q=webgpu:api,operation,buffers,create_mapped:*",
       {}
@@ -559,23 +559,11 @@
       {}
      ],
      [
-      "webgpu/cts.html?q=webgpu:api,validation,createBindGroupLayout:*",
-      {}
-     ],
-     [
       "webgpu/cts.html?q=webgpu:api,validation,createPipelineLayout:*",
       {}
      ],
      [
-      "webgpu/cts.html?q=webgpu:api,validation,createRenderPipeline:*",
-      {}
-     ],
-     [
       "webgpu/cts.html?q=webgpu:api,validation,createTexture:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:api,validation,createView:*",
       {}
      ],
      [
@@ -628,10 +616,6 @@
      ],
      [
       "webgpu/cts.html?q=webgpu:api,validation,setViewport:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:api,validation,vertex_state:*",
       {}
      ],
      [
