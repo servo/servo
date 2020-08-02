@@ -26,7 +26,10 @@ use std::ffi::c_void;
 use std::ops::Range;
 use std::ptr::NonNull;
 use std::rc::Rc;
-use webgpu::{wgpu::device::HostMap, WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse};
+use webgpu::{
+    wgpu::device::HostMap, WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse,
+    WebGPUResponseResult,
+};
 
 const RANGE_OFFSET_ALIGN_MASK: u64 = 8;
 const RANGE_SIZE_ALIGN_MASK: u64 = 4;
@@ -197,19 +200,21 @@ impl GPUBufferMethods for GPUBuffer {
         &self,
         mode: u32,
         offset: GPUSize64,
-        size: GPUSize64,
+        size: Option<GPUSize64>,
         comp: InRealm,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(&self.global(), comp);
-        let map_range = if size == 0 {
-            offset..self.size
+        if self.state.get() != GPUBufferState::Unmapped {
+            promise.reject_error(Error::Abort);
+            return promise;
+        }
+        let range_size = if let Some(s) = size {
+            s
+        } else if offset >= self.size {
+            promise.reject_error(Error::Operation);
+            return promise;
         } else {
-            if offset + size > self.size {
-                warn!("Requested mapping size is greated than buffer size");
-                promise.reject_error(Error::Abort);
-                return promise;
-            }
-            offset..offset + size
+            self.size - offset
         };
         let host_map = match mode {
             GPUMapModeConstants::READ => HostMap::Read,
@@ -219,10 +224,8 @@ impl GPUBufferMethods for GPUBuffer {
                 return promise;
             },
         };
-        if self.state.get() != GPUBufferState::Unmapped {
-            promise.reject_error(Error::Abort);
-            return promise;
-        }
+
+        let map_range = offset..offset + range_size;
 
         let sender = response_async(&promise, self);
         if let Err(e) = self.channel.0.send(WebGPURequest::BufferMapAsync {
@@ -257,9 +260,16 @@ impl GPUBufferMethods for GPUBuffer {
         &self,
         cx: JSContext,
         offset: GPUSize64,
-        size: GPUSize64,
+        size: Option<GPUSize64>,
     ) -> Fallible<NonNull<JSObject>> {
-        let m_end = if size == 0 { self.size } else { offset + size };
+        let range_size = if let Some(s) = size {
+            s
+        } else if offset >= self.size {
+            return Err(Error::Operation);
+        } else {
+            self.size - offset
+        };
+        let m_end = offset + range_size;
         let mut info = self.map_info.borrow_mut();
         let m_info = info.as_mut().unwrap();
 
@@ -268,7 +278,7 @@ impl GPUBufferMethods for GPUBuffer {
             _ => false,
         };
         valid &= offset % RANGE_OFFSET_ALIGN_MASK == 0 &&
-            (m_end - offset) % RANGE_SIZE_ALIGN_MASK == 0 &&
+            range_size % RANGE_SIZE_ALIGN_MASK == 0 &&
             offset >= m_info.mapping_range.start &&
             m_end <= m_info.mapping_range.end;
         valid &= m_info
@@ -286,7 +296,7 @@ impl GPUBufferMethods for GPUBuffer {
         let array_buffer = unsafe {
             NewExternalArrayBuffer(
                 *cx,
-                (m_end - offset) as usize,
+                range_size as usize,
                 m_info.mapping.borrow_mut()[offset as usize..m_end as usize].as_mut_ptr() as _,
                 Some(free_func),
                 Rc::into_raw(m_info.mapping.clone()) as _,
@@ -312,9 +322,9 @@ impl GPUBufferMethods for GPUBuffer {
 
 impl AsyncWGPUListener for GPUBuffer {
     #[allow(unsafe_code)]
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>) {
         match response {
-            WebGPUResponse::BufferMapAsync(bytes) => {
+            Ok(WebGPUResponse::BufferMapAsync(bytes)) => {
                 *self
                     .map_info
                     .borrow_mut()
@@ -325,8 +335,12 @@ impl AsyncWGPUListener for GPUBuffer {
                 promise.resolve_native(&());
                 self.state.set(GPUBufferState::Mapped);
             },
+            Err(e) => {
+                warn!("Could not map buffer({:?})", e);
+                promise.reject_error(Error::Abort);
+            },
             _ => {
-                warn!("Wrong WebGPUResponse received");
+                warn!("GPUBuffer received wrong WebGPUResponse");
                 promise.reject_error(Error::Operation);
             },
         }

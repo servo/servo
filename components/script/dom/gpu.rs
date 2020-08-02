@@ -41,7 +41,7 @@ impl GPU {
 }
 
 pub trait AsyncWGPUListener {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>);
+    fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>);
 }
 
 struct WGPUResponse<T: AsyncWGPUListener + DomObject> {
@@ -53,13 +53,7 @@ impl<T: AsyncWGPUListener + DomObject> WGPUResponse<T> {
     #[allow(unrooted_must_root)]
     fn response(self, response: WebGPUResponseResult) {
         let promise = self.trusted.root();
-        match response {
-            Ok(response) => self.receiver.root().handle_response(response, &promise),
-            Err(error) => promise.reject_error(Error::Type(format!(
-                "Received error from WebGPU thread: {}",
-                error
-            ))),
-        }
+        self.receiver.root().handle_response(response, &promise);
     }
 }
 
@@ -134,13 +128,13 @@ impl GPUMethods for GPU {
 }
 
 impl AsyncWGPUListener for GPU {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>) {
         match response {
-            WebGPUResponse::RequestAdapter {
+            Ok(WebGPUResponse::RequestAdapter {
                 adapter_name,
                 adapter_id,
                 channel,
-            } => {
+            }) => {
                 let adapter = GPUAdapter::new(
                     &self.global(),
                     channel,
@@ -150,7 +144,14 @@ impl AsyncWGPUListener for GPU {
                 );
                 promise.resolve_native(&adapter);
             },
-            _ => promise.reject_error(Error::Operation),
+            Err(e) => {
+                warn!("Could not get GPUAdapter ({:?})", e);
+                promise.resolve_native(&None::<GPUAdapter>);
+            },
+            _ => {
+                warn!("GPU received wrong WebGPUResponse");
+                promise.reject_error(Error::Operation);
+            },
         }
     }
 }
