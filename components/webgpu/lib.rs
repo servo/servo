@@ -67,6 +67,8 @@ pub enum WebGPURequest {
     BufferMapAsync {
         sender: IpcSender<WebGPUResponseResult>,
         buffer_id: id::BufferId,
+        device_id: id::DeviceId,
+        scope_id: Option<u64>,
         host_map: HostMap,
         map_range: std::ops::Range<u64>,
     },
@@ -407,6 +409,8 @@ impl<'a> WGPU<'a> {
                     WebGPURequest::BufferMapAsync {
                         sender,
                         buffer_id,
+                        device_id,
+                        scope_id,
                         host_map,
                         map_range,
                     } => {
@@ -456,11 +460,12 @@ impl<'a> WGPU<'a> {
                         };
                         let global = &self.global;
                         let result = gfx_select!(buffer_id => global.buffer_map_async(buffer_id, map_range, operation));
-                        if let Err(e) = result {
+                        if let Err(ref e) = result {
                             if let Err(w) = sender.send(Err(format!("{:?}", e))) {
                                 warn!("Failed to send BufferMapAsync Response ({:?})", w);
                             }
                         }
+                        self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::BufferMapComplete(buffer_id) => {
                         self.buffer_maps.remove(&buffer_id);

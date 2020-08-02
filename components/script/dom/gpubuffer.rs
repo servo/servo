@@ -26,9 +26,10 @@ use std::ffi::c_void;
 use std::ops::Range;
 use std::ptr::NonNull;
 use std::rc::Rc;
+use std::string::String;
 use webgpu::{
-    wgpu::device::HostMap, WebGPU, WebGPUBuffer, WebGPURequest, WebGPUResponse,
-    WebGPUResponseResult,
+    identity::WebGPUOpResult, wgpu::device::HostMap, WebGPU, WebGPUBuffer, WebGPURequest,
+    WebGPUResponse, WebGPUResponseResult,
 };
 
 const RANGE_OFFSET_ALIGN_MASK: u64 = 8;
@@ -204,10 +205,6 @@ impl GPUBufferMethods for GPUBuffer {
         comp: InRealm,
     ) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(&self.global(), comp);
-        if self.state.get() != GPUBufferState::Unmapped {
-            promise.reject_error(Error::Abort);
-            return promise;
-        }
         let range_size = if let Some(s) = size {
             s
         } else if offset >= self.size {
@@ -216,10 +213,23 @@ impl GPUBufferMethods for GPUBuffer {
         } else {
             self.size - offset
         };
+        let scope_id = self.device.use_current_scope();
+        if self.state.get() != GPUBufferState::Unmapped {
+            self.device.handle_server_msg(
+                scope_id,
+                WebGPUOpResult::ValidationError(String::from("Buffer is not Unmapped")),
+            );
+            promise.reject_error(Error::Abort);
+            return promise;
+        }
         let host_map = match mode {
             GPUMapModeConstants::READ => HostMap::Read,
             GPUMapModeConstants::WRITE => HostMap::Write,
             _ => {
+                self.device.handle_server_msg(
+                    scope_id,
+                    WebGPUOpResult::ValidationError(String::from("Invalid MapModeFlags")),
+                );
                 promise.reject_error(Error::Abort);
                 return promise;
             },
@@ -231,6 +241,8 @@ impl GPUBufferMethods for GPUBuffer {
         if let Err(e) = self.channel.0.send(WebGPURequest::BufferMapAsync {
             sender,
             buffer_id: self.buffer.0,
+            device_id: self.device.id().0,
+            scope_id,
             host_map,
             map_range: map_range.clone(),
         }) {
