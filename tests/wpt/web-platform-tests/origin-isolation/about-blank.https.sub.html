@@ -34,23 +34,20 @@ async function insertAboutBlankIframe() {
   const iframe = document.createElement("iframe");
   document.body.append(iframe);
 
-  // Now use document.write() to get the child frame script in there, without
-  // actually navigating anywhere.
+  // Now create and add the script, but don't navigate anywhere (since we want
+  // to stay on the initial about:blank).
   // We need to absolutize the URL to since about:blank doesn't have a base URL.
   const scriptURL = (new URL("./resources/child-frame-script.mjs", import.meta.url)).href;
-  iframe.contentDocument.write(`<script type="module" src="${scriptURL}"></scr` + `ipt>`);
-  iframe.contentDocument.close();
+  const script = iframe.contentDocument.createElement("script");
+  script.type = "module";
+  script.src = scriptURL;
 
   await new Promise((resolve, reject) => {
-    // Note that since this code runs during the same event loop turn as the
-    // contentDocument.write() above, we know that the load/error events will
-    // not have been fired at this time. (The spec guarantees they are fired
-    // from queued tasks.)
-    const script = iframe.contentDocument.querySelector("script");
     script.onload = resolve;
     script.onerror = () => reject(
       new Error("Could not load the child frame script into the about:blank page")
     );
+    iframe.contentDocument.body.append(script);
   });
 
   await setBothDocumentDomains(iframe.contentWindow);
