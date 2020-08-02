@@ -45,7 +45,9 @@ pub struct GPUCanvasContext {
 impl GPUCanvasContext {
     fn new_inherited(canvas: &HTMLCanvasElement, size: Size2D<u32>, channel: WebGPU) -> Self {
         let (sender, receiver) = ipc::channel().unwrap();
-        let _ = channel.0.send(WebGPURequest::CreateContext(sender));
+        if let Err(e) = channel.0.send((None, WebGPURequest::CreateContext(sender))) {
+            warn!("Failed to send CreateContext ({:?})", e);
+        }
         let external_id = receiver.recv().unwrap();
         Self {
             reflector_: Reflector::new(),
@@ -88,11 +90,14 @@ impl GPUCanvasContext {
             .wgpu_id_hub()
             .lock()
             .create_command_encoder_id(texture_id.backend());
-        if let Err(e) = self.channel.0.send(WebGPURequest::SwapChainPresent {
-            external_id: self.context_id.0,
-            texture_id,
-            encoder_id,
-        }) {
+        if let Err(e) = self.channel.0.send((
+            None,
+            WebGPURequest::SwapChainPresent {
+                external_id: self.context_id.0,
+                texture_id,
+                encoder_id,
+            },
+        )) {
             warn!(
                 "Failed to send UpdateWebrenderData({:?}) ({})",
                 self.context_id, e
@@ -168,14 +173,17 @@ impl GPUCanvasContextMethods for GPUCanvasContext {
 
         self.channel
             .0
-            .send(WebGPURequest::CreateSwapChain {
-                device_id: descriptor.device.id().0,
-                buffer_ids,
-                external_id: self.context_id.0,
-                sender,
-                image_desc,
-                image_data,
-            })
+            .send((
+                None,
+                WebGPURequest::CreateSwapChain {
+                    device_id: descriptor.device.id().0,
+                    buffer_ids,
+                    external_id: self.context_id.0,
+                    sender,
+                    image_desc,
+                    image_data,
+                },
+            ))
             .expect("Failed to create WebGPU SwapChain");
 
         let usage = if descriptor.usage % 2 == 0 {

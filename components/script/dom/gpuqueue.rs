@@ -88,11 +88,13 @@ impl GPUQueueMethods for GPUQueue {
         let command_buffers = command_buffers.iter().map(|cb| cb.id().0).collect();
         self.channel
             .0
-            .send(WebGPURequest::Submit {
-                queue_id: self.queue.0,
+            .send((
                 scope_id,
-                command_buffers,
-            })
+                WebGPURequest::Submit {
+                    queue_id: self.queue.0,
+                    command_buffers,
+                },
+            ))
             .unwrap();
     }
 
@@ -124,13 +126,15 @@ impl GPUQueueMethods for GPUQueue {
         let final_data = IpcSharedMemory::from_bytes(
             &bytes[data_offset as usize..(data_offset + content_size) as usize],
         );
-        if let Err(e) = self.channel.0.send(WebGPURequest::WriteBuffer {
-            queue_id: self.queue.0,
-            scope_id: self.device.borrow().as_ref().unwrap().use_current_scope(),
-            buffer_id: buffer.id().0,
-            buffer_offset,
-            data: final_data,
-        }) {
+        if let Err(e) = self.channel.0.send((
+            self.device.borrow().as_ref().unwrap().use_current_scope(),
+            WebGPURequest::WriteBuffer {
+                queue_id: self.queue.0,
+                buffer_id: buffer.id().0,
+                buffer_offset,
+                data: final_data,
+            },
+        )) {
             warn!("Failed to send WriteBuffer({:?}) ({})", buffer.id(), e);
             return Err(Error::Operation);
         }
@@ -158,14 +162,16 @@ impl GPUQueueMethods for GPUQueue {
         let write_size = convert_texture_size_to_wgt(&convert_texture_size_to_dict(&size));
         let final_data = IpcSharedMemory::from_bytes(&bytes);
 
-        if let Err(e) = self.channel.0.send(WebGPURequest::WriteTexture {
-            queue_id: self.queue.0,
-            scope_id: self.device.borrow().as_ref().unwrap().use_current_scope(),
-            texture_cv,
-            data_layout: texture_layout,
-            size: write_size,
-            data: final_data,
-        }) {
+        if let Err(e) = self.channel.0.send((
+            self.device.borrow().as_ref().unwrap().use_current_scope(),
+            WebGPURequest::WriteTexture {
+                queue_id: self.queue.0,
+                texture_cv,
+                data_layout: texture_layout,
+                size: write_size,
+                data: final_data,
+            },
+        )) {
             warn!(
                 "Failed to send WriteTexture({:?}) ({})",
                 destination.texture.id().0,

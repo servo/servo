@@ -97,14 +97,17 @@ impl GPUAdapterMethods for GPUAdapter {
         if self
             .channel
             .0
-            .send(WebGPURequest::RequestDevice {
-                sender,
-                adapter_id: self.adapter,
-                descriptor: desc,
-                device_id: id,
-                pipeline_id,
-                label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
-            })
+            .send((
+                None,
+                WebGPURequest::RequestDevice {
+                    sender,
+                    adapter_id: self.adapter,
+                    descriptor: desc,
+                    device_id: id,
+                    pipeline_id,
+                    label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
+                },
+            ))
             .is_err()
         {
             promise.reject_error(Error::Operation);

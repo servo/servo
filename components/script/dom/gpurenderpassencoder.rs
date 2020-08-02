@@ -163,12 +163,14 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         if let Some(render_pass) = self.render_pass.borrow_mut().take() {
             self.channel
                 .0
-                .send(WebGPURequest::RunRenderPass {
-                    command_encoder_id: self.command_encoder.id().0,
-                    device_id: self.command_encoder.device().id().0,
-                    scope_id: self.command_encoder.device().use_current_scope(),
-                    render_pass,
-                })
+                .send((
+                    self.command_encoder.device().use_current_scope(),
+                    WebGPURequest::RunRenderPass {
+                        command_encoder_id: self.command_encoder.id().0,
+                        device_id: self.command_encoder.device().id().0,
+                        render_pass,
+                    },
+                ))
                 .expect("Failed to send RunRenderPass");
 
             self.command_encoder.set_state(

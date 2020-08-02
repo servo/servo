@@ -91,12 +91,14 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
         if let Some(compute_pass) = self.compute_pass.borrow_mut().take() {
             self.channel
                 .0
-                .send(WebGPURequest::RunComputePass {
-                    command_encoder_id: self.command_encoder.id().0,
-                    device_id: self.command_encoder.device().id().0,
-                    scope_id: self.command_encoder.device().use_current_scope(),
-                    compute_pass,
-                })
+                .send((
+                    self.command_encoder.device().use_current_scope(),
+                    WebGPURequest::RunComputePass {
+                        command_encoder_id: self.command_encoder.id().0,
+                        device_id: self.command_encoder.device().id().0,
+                        compute_pass,
+                    },
+                ))
                 .expect("Failed to send RunComputePass");
 
             self.command_encoder.set_state(

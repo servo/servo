@@ -71,9 +71,7 @@ use std::rc::Rc;
 use webgpu::wgpu::{
     binding_model as wgpu_bind, command::RenderBundleEncoder, pipeline as wgpu_pipe,
 };
-use webgpu::{self, identity::WebGPUOpResult, wgt, WebGPU, WebGPURequest};
-
-type ErrorScopeId = u64;
+use webgpu::{self, identity::WebGPUOpResult, wgt, ErrorScopeId, WebGPU, WebGPURequest};
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct ErrorScopeInfo {
@@ -131,7 +129,7 @@ impl GPUDevice {
             scope_context: DomRefCell::new(ScopeContext {
                 error_scopes: HashMap::new(),
                 scope_stack: Vec::new(),
-                next_scope_id: 0,
+                next_scope_id: ErrorScopeId::new(1).unwrap(),
             }),
             lost_promise: DomRefCell::new(None),
         }
@@ -313,12 +311,14 @@ impl GPUDeviceMethods for GPUDevice {
         let scope_id = self.use_current_scope();
         self.channel
             .0
-            .send(WebGPURequest::CreateBuffer {
-                device_id: self.device.0,
+            .send((
                 scope_id,
-                buffer_id: id,
-                descriptor: wgpu_descriptor,
-            })
+                WebGPURequest::CreateBuffer {
+                    device_id: self.device.0,
+                    buffer_id: id,
+                    descriptor: wgpu_descriptor,
+                },
+            ))
             .expect("Failed to create WebGPU buffer");
 
         let buffer = webgpu::WebGPUBuffer(id);
@@ -451,12 +451,14 @@ impl GPUDeviceMethods for GPUDevice {
             .create_bind_group_layout_id(self.device.0.backend());
         self.channel
             .0
-            .send(WebGPURequest::CreateBindGroupLayout {
-                device_id: self.device.0,
-                bind_group_layout_id,
+            .send((
                 scope_id,
-                descriptor: desc,
-            })
+                WebGPURequest::CreateBindGroupLayout {
+                    device_id: self.device.0,
+                    bind_group_layout_id,
+                    descriptor: desc,
+                },
+            ))
             .expect("Failed to create WebGPU BindGroupLayout");
 
         let bgl = webgpu::WebGPUBindGroupLayout(bind_group_layout_id);
@@ -493,12 +495,14 @@ impl GPUDeviceMethods for GPUDevice {
             .create_pipeline_layout_id(self.device.0.backend());
         self.channel
             .0
-            .send(WebGPURequest::CreatePipelineLayout {
-                device_id: self.device.0,
-                pipeline_layout_id,
-                descriptor: desc,
+            .send((
                 scope_id,
-            })
+                WebGPURequest::CreatePipelineLayout {
+                    device_id: self.device.0,
+                    pipeline_layout_id,
+                    descriptor: desc,
+                },
+            ))
             .expect("Failed to create WebGPU PipelineLayout");
 
         let pipeline_layout = webgpu::WebGPUPipelineLayout(pipeline_layout_id);
@@ -553,12 +557,14 @@ impl GPUDeviceMethods for GPUDevice {
             .create_bind_group_id(self.device.0.backend());
         self.channel
             .0
-            .send(WebGPURequest::CreateBindGroup {
-                device_id: self.device.0,
-                bind_group_id,
-                descriptor: desc,
+            .send((
                 scope_id,
-            })
+                WebGPURequest::CreateBindGroup {
+                    device_id: self.device.0,
+                    bind_group_id,
+                    descriptor: desc,
+                },
+            ))
             .expect("Failed to create WebGPU BindGroup");
 
         let bind_group = webgpu::WebGPUBindGroup(bind_group_id);
@@ -592,12 +598,14 @@ impl GPUDeviceMethods for GPUDevice {
         let scope_id = self.use_current_scope();
         self.channel
             .0
-            .send(WebGPURequest::CreateShaderModule {
-                device_id: self.device.0,
+            .send((
                 scope_id,
-                program_id,
-                program,
-            })
+                WebGPURequest::CreateShaderModule {
+                    device_id: self.device.0,
+                    program_id,
+                    program,
+                },
+            ))
             .expect("Failed to create WebGPU ShaderModule");
 
         let shader_module = webgpu::WebGPUShaderModule(program_id);
@@ -631,12 +639,14 @@ impl GPUDeviceMethods for GPUDevice {
 
         self.channel
             .0
-            .send(WebGPURequest::CreateComputePipeline {
-                device_id: self.device.0,
+            .send((
                 scope_id,
-                compute_pipeline_id,
-                descriptor: desc,
-            })
+                WebGPURequest::CreateComputePipeline {
+                    device_id: self.device.0,
+                    compute_pipeline_id,
+                    descriptor: desc,
+                },
+            ))
             .expect("Failed to create WebGPU ComputePipeline");
 
         let compute_pipeline = webgpu::WebGPUComputePipeline(compute_pipeline_id);
@@ -660,12 +670,14 @@ impl GPUDeviceMethods for GPUDevice {
         let scope_id = self.use_current_scope();
         self.channel
             .0
-            .send(WebGPURequest::CreateCommandEncoder {
-                device_id: self.device.0,
+            .send((
                 scope_id,
-                command_encoder_id,
-                label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
-            })
+                WebGPURequest::CreateCommandEncoder {
+                    device_id: self.device.0,
+                    command_encoder_id,
+                    label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
+                },
+            ))
             .expect("Failed to create WebGPU command encoder");
 
         let encoder = webgpu::WebGPUCommandEncoder(command_encoder_id);
@@ -710,12 +722,14 @@ impl GPUDeviceMethods for GPUDevice {
 
         self.channel
             .0
-            .send(WebGPURequest::CreateTexture {
-                device_id: self.device.0,
-                texture_id,
-                descriptor: desc,
+            .send((
                 scope_id,
-            })
+                WebGPURequest::CreateTexture {
+                    device_id: self.device.0,
+                    texture_id,
+                    descriptor: desc,
+                },
+            ))
             .expect("Failed to create WebGPU Texture");
 
         let texture = webgpu::WebGPUTexture(texture_id);
@@ -761,12 +775,14 @@ impl GPUDeviceMethods for GPUDevice {
         let scope_id = self.use_current_scope();
         self.channel
             .0
-            .send(WebGPURequest::CreateSampler {
-                device_id: self.device.0,
+            .send((
                 scope_id,
-                sampler_id,
-                descriptor: desc,
-            })
+                WebGPURequest::CreateSampler {
+                    device_id: self.device.0,
+                    sampler_id,
+                    descriptor: desc,
+                },
+            ))
             .expect("Failed to create WebGPU sampler");
 
         let sampler = webgpu::WebGPUSampler(sampler_id);
@@ -903,12 +919,14 @@ impl GPUDeviceMethods for GPUDevice {
 
         self.channel
             .0
-            .send(WebGPURequest::CreateRenderPipeline {
-                device_id: self.device.0,
-                render_pipeline_id,
+            .send((
                 scope_id,
-                descriptor: desc,
-            })
+                WebGPURequest::CreateRenderPipeline {
+                    device_id: self.device.0,
+                    render_pipeline_id,
+                    descriptor: desc,
+                },
+            ))
             .expect("Failed to create WebGPU render pipeline");
 
         let render_pipeline = webgpu::WebGPURenderPipeline(render_pipeline_id);
@@ -961,7 +979,7 @@ impl GPUDeviceMethods for GPUDevice {
     fn PushErrorScope(&self, filter: GPUErrorFilter) {
         let mut context = self.scope_context.borrow_mut();
         let scope_id = context.next_scope_id;
-        context.next_scope_id += 1;
+        context.next_scope_id = ErrorScopeId::new(scope_id.get() + 1).unwrap();
         let err_scope = ErrorScopeInfo {
             op_count: 0,
             error: None,
