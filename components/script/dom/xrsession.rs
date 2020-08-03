@@ -602,12 +602,67 @@ impl XRSessionMethods for XRSession {
             return Err(Error::InvalidState);
         }
 
-        // TODO: Add the checks in
         // https://immersive-web.github.io/layers/#updaterenderstatechanges
+        // Step 1.
+        // TODO: support the `layers' feature.
+        let session_created_with_layers_enabled = false;
+        if init.baseLayer.is_some() {
+            if session_created_with_layers_enabled {
+                return Err(Error::NotSupported);
+            }
+            // https://github.com/immersive-web/layers/issues/189
+            if init.layers.is_some() {
+                return Err(Error::Type(String::from(
+                    "Cannot set WebXR layers and baseLayer",
+                )));
+            }
+        }
 
+        if let Some(Some(ref layers)) = init.layers {
+            // Step 2
+            for layer in layers {
+                let count = layers
+                    .iter()
+                    .filter(|other| other.layer_id() == layer.layer_id())
+                    .count();
+                if count > 1 {
+                    return Err(Error::Type(String::from("Duplicate entry in WebXR layers")));
+                }
+            }
+
+            // Step 3
+            for layer in layers {
+                if layer.session() != self {
+                    return Err(Error::Type(String::from(
+                        "Layer from different session in WebXR layers",
+                    )));
+                }
+            }
+        }
+
+        // Step 4-5
         let pending = self
             .pending_render_state
             .or_init(|| self.active_render_state.get().clone_object());
+
+        // Step 6
+        if let Some(ref layers) = init.layers {
+            let layers = layers.as_deref().unwrap_or_default();
+            pending.set_base_layer(None);
+            pending.set_layers(layers.iter().map(|x| &**x).collect());
+            let layers = layers
+                .iter()
+                .filter_map(|layer| {
+                    let context_id = WebXRContextId::from(layer.context_id());
+                    let layer_id = layer.layer_id()?;
+                    Some((context_id, layer_id))
+                })
+                .collect();
+            self.session.borrow_mut().set_layers(layers);
+        }
+
+        // End of https://immersive-web.github.io/layers/#updaterenderstatechanges
+
         if let Some(near) = init.depthNear {
             let mut near = *near;
             // Step 8 from #apply-the-pending-render-state
@@ -655,22 +710,6 @@ impl XRSessionMethods for XRSession {
             self.session
                 .borrow_mut()
                 .update_clip_planes(*pending.DepthNear() as f32, *pending.DepthFar() as f32);
-        }
-
-        // https://immersive-web.github.io/layers/#updaterenderstatechanges
-        if let Some(ref layers) = init.layers {
-            let layers = layers.as_deref().unwrap_or_default();
-            pending.set_base_layer(None);
-            pending.set_layers(layers.iter().map(|x| &**x).collect());
-            let layers = layers
-                .iter()
-                .filter_map(|layer| {
-                    let context_id = WebXRContextId::from(layer.context_id());
-                    let layer_id = layer.layer_id()?;
-                    Some((context_id, layer_id))
-                })
-                .collect();
-            self.session.borrow_mut().set_layers(layers);
         }
 
         Ok(())
