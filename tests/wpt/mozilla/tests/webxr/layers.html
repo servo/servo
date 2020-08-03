@@ -43,8 +43,8 @@
             });
             assert_equals(session.renderState.baseLayer, null, "Setting layers should unset baseLayer");
 
-            assert_throws_dom(
-              "InvalidStateError",
+            assert_throws_js(
+              TypeError,
               () => { session.updateRenderState({ layers: [layer], baseLayer: layer }); },
               "Setting both baseLayer and layers should fail"
             );
