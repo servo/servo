@@ -5110,9 +5110,9 @@ dependencies = [
 
 [[package]]
 name = "servo-fontconfig"
-version = "0.5.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b47fef69c52fb55838c756949c60595f0b855daa4e82fc52ad99ff3e03e2c70"
+checksum = "c7e3e22fe5fd73d04ebf0daa049d3efe3eae55369ce38ab16d07ddd9ac5c217c"
 dependencies = [
  "libc",
  "servo-fontconfig-sys",
