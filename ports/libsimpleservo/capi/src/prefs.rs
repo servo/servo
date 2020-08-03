@@ -18,7 +18,7 @@ thread_local! {
     // The CPREFS are structs holding pointers to values held alive by LOCALCPREFS.
     // This is emptied in free_prefs the next time perform_updates is called.
     static CPREFS: RefCell<Vec<CPref>> = RefCell::new(Vec::new());
-    static LOCALCPREFS: RefCell<BTreeMap<String, LocalCPref>> = RefCell::new(BTreeMap::new());
+    static LOCALCPREFS: RefCell<BTreeMap<String, Box<LocalCPref>>> = RefCell::new(BTreeMap::new());
 }
 
 struct LocalCPref {
@@ -70,7 +70,7 @@ pub struct CPref {
 }
 
 impl CPref {
-    fn new(local: &LocalCPref) -> CPref {
+    fn new(local: &Box<LocalCPref>) -> CPref {
         let (pref_type, value) = match &local.value {
             LocalCPrefValue::Float(v) => (CPrefType::Float, v as *const f64 as *const c_void),
             LocalCPrefValue::Int(v) => (CPrefType::Int, v as *const i64 as *const c_void),
@@ -154,11 +154,11 @@ pub extern "C" fn get_pref(key: *const c_char) -> CPref {
         let key = unsafe { CStr::from_ptr(key) };
         let key = key.to_str().expect("Can't read string");
         let (value, is_default) = simpleservo::get_pref(key);
-        let local = LocalCPref {
+        let local = Box::new(LocalCPref {
             key: CString::new(key).unwrap(),
             value: LocalCPrefValue::new(&value),
             is_default: is_default,
-        };
+        });
         let cpref = CPref::new(&local);
         localmap.borrow_mut().insert(key.to_string(), local);
         cpref
@@ -199,14 +199,14 @@ pub extern "C" fn get_prefs() -> CPrefList {
     // Called from any thread
     debug!("get_prefs");
     let map = simpleservo::get_prefs();
-    let local: BTreeMap<String, LocalCPref> = map
+    let local: BTreeMap<String, Box<LocalCPref>> = map
         .into_iter()
         .map(|(key, (value, is_default))| {
-            let l = LocalCPref {
+            let l = Box::new(LocalCPref {
                 key: CString::new(key.clone()).unwrap(),
                 value: LocalCPrefValue::new(&value),
                 is_default: is_default,
-            };
+            });
             (key, l)
         })
         .collect();
