@@ -41,6 +41,8 @@ public:
   void Shutdown();
   void LoadFXRURI(Uri uri);
   void SetArgs(hstring);
+  void OnDismissCrashReport(IInspectable const &, RoutedEventArgs const &);
+  void OnSubmitCrashReport(IInspectable const &, RoutedEventArgs const &);
   void OnMediaControlsPlayClicked(IInspectable const &,
                                   RoutedEventArgs const &);
   void OnMediaControlsPauseClicked(IInspectable const &,
@@ -55,11 +57,15 @@ public:
 private:
   void SetTransientMode(bool);
   void UpdatePref(ServoApp::Pref, Controls::Control);
+  void CheckCrashReport();
   void BindServoEvents();
   void BuildPrefList();
+  void ShowToolbox();
+  void HideToolbox();
   DevtoolsStatus mDevtoolsStatus = DevtoolsStatus::Stopped;
   unsigned int mDevtoolsPort = 0;
   hstring mDevtoolsToken;
+  bool mPanicking = false;
   std::unique_ptr<servo::DevtoolsClient> mDevtoolsClient;
   Collections::IObservableVector<IInspectable> mLogs;
 };

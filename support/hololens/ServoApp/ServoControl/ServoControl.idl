@@ -39,6 +39,7 @@ namespace ServoApp {
       event DevtoolsStatusChangedDelegate OnDevtoolsStatusChanged;
       event HistoryChangedDelegate OnHistoryChanged;
       event Windows.Foundation.EventHandler<String> OnTitleChanged;
+      event Windows.Foundation.EventHandler<String> OnServoPanic;
       event Windows.Foundation.EventHandler<String> OnURLChanged;
       event MediaSessionMetadataDelegate OnMediaSessionMetadata;
       event Windows.Foundation.EventHandler<int> OnMediaSessionPlaybackStateChange;

@@ -100,6 +100,14 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
     mOnTitleChangedEvent.remove(token);
   }
 
+  winrt::event_token
+  OnServoPanic(Windows::Foundation::EventHandler<hstring> const &handler) {
+    return mOnServoPanic.add(handler);
+  };
+  void OnServoPanic(winrt::event_token const &token) noexcept {
+    mOnServoPanic.remove(token);
+  }
+
   winrt::event_token OnHistoryChanged(HistoryChangedDelegate const &handler) {
     return mOnHistoryChangedEvent.add(handler);
   };
@@ -173,6 +181,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   virtual void OnServoURLChanged(winrt::hstring);
   virtual bool OnServoAllowNavigation(winrt::hstring);
   virtual void OnServoAnimatingChanged(bool);
+  virtual void OnServoPanic(hstring);
   virtual void OnServoIMEHide();
   virtual void OnServoIMEShow(hstring text, int32_t, int32_t, int32_t, int32_t);
   virtual void OnServoMediaSessionMetadata(winrt::hstring, winrt::hstring,
@@ -193,6 +202,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
 private:
   winrt::event<Windows::Foundation::EventHandler<hstring>> mOnURLChangedEvent;
   winrt::event<Windows::Foundation::EventHandler<hstring>> mOnTitleChangedEvent;
+  winrt::event<Windows::Foundation::EventHandler<hstring>> mOnServoPanic;
   winrt::event<HistoryChangedDelegate> mOnHistoryChangedEvent;
   winrt::event<DevtoolsStatusChangedDelegate> mOnDevtoolsStatusChangedEvent;
   winrt::event<EventDelegate> mOnLoadStartedEvent;
