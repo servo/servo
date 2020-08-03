@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <iostream>
+
 template <typename... Args>
 std::wstring format(const std::wstring &txt, Args... args) {
   size_t size = swprintf(nullptr, 0, txt.c_str(), args...) + 1;
