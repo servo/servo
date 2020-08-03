@@ -533,13 +533,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         let overflow_x = box_style.clone_overflow_x();
         let overflow_y = box_style.clone_overflow_y();
 
-        fn scrollable(v: Overflow) -> bool {
-            v != Overflow::Clip && v != Overflow::Visible
-        }
-
         // If at least one is scrollable we'll adjust the other one in
         // adjust_for_overflow if needed.
-        if scrollable(overflow_x) || scrollable(overflow_y) {
+        if overflow_x.is_scrollable() || overflow_y.is_scrollable() {
             return;
         }
 
