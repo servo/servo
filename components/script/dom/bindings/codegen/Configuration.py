@@ -366,6 +366,9 @@ class Descriptor(DescriptorProvider):
     def internalNameFor(self, name):
         return self._internalNames.get(name, name)
 
+    def supportsNamedProperties(self):
+        return self.operations['NamedGetter'] is not None
+
     def getExtendedAttributes(self, member, getter=False, setter=False):
         def maybeAppendInfallibleToAttrs(attrs, throws):
             if throws is None:
