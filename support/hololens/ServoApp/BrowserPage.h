@@ -34,6 +34,7 @@ public:
   void OnDevtoolsButtonClicked(IInspectable const &, RoutedEventArgs const &);
   void OnJSInputEdited(IInspectable const &, Input::KeyRoutedEventArgs const &);
   void OnURLEdited(IInspectable const &, Input::KeyRoutedEventArgs const &);
+  void OnSeeAllPrefClicked(IInspectable const &, RoutedEventArgs const &);
   void OnURLFocused(IInspectable const &);
   void
   OnURLKeyboardAccelerator(IInspectable const &,
@@ -53,13 +54,13 @@ public:
   void ClearConsole();
   void OnDevtoolsDetached();
   Collections::IObservableVector<IInspectable> ConsoleLogs() { return mLogs; };
+  void BuildPrefList();
 
 private:
   void SetTransientMode(bool);
   void UpdatePref(ServoApp::Pref, Controls::Control);
   void CheckCrashReport();
   void BindServoEvents();
-  void BuildPrefList();
   void ShowToolbox();
   void HideToolbox();
   DevtoolsStatus mDevtoolsStatus = DevtoolsStatus::Stopped;
@@ -68,6 +69,7 @@ private:
   bool mPanicking = false;
   std::unique_ptr<servo::DevtoolsClient> mDevtoolsClient;
   Collections::IObservableVector<IInspectable> mLogs;
+  std::map<hstring, hstring> mPromotedPrefs;
 };
 
 struct ConsoleLog : ConsoleLogT<ConsoleLog> {

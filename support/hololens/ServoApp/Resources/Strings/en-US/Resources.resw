@@ -171,4 +171,7 @@
   <data name="ContextMenu.title" xml:space="preserve">
     <value>Menu</value>
   </data>
+  <data name="seeAllPrefCheckBox.Content" xml:space="preserve">
+    <value>See all preferences</value>
+  </data>
 </root>

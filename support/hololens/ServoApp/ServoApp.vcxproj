@@ -988,8 +988,9 @@
     <None Include="PropertySheet.props" />
   </ItemGroup>
   <ItemGroup>
-    <PRIResource Include="Strings\en-US\Resources.resw" />
-    <PRIResource Include="Strings\fr-FR\Resources.resw" />
+    <PRIResource Include="Resources\PromotedPrefs.resw" />
+    <PRIResource Include="Resources\Strings\en-US\Resources.resw" />
+    <PRIResource Include="Resources\Strings\fr-FR\Resources.resw" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
