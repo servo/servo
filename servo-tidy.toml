@@ -64,6 +64,7 @@ packages = [
   "core-foundation",
   "core-foundation-sys",
   "core-graphics",
+  "core-text",
   "lyon_geom",
 ]
 # Files that are ignored for all tidy and lint checks.
