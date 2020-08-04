@@ -5315,8 +5315,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(CGAbstractExternMethod):
                     + CGIndenter(CGProxyIndexedGetter(self.descriptor, templateValues)).define() + "\n"
                     + "}\n")
 
-        namedGetter = self.descriptor.operations['NamedGetter']
-        if namedGetter:
+        if self.descriptor.supportsNamedProperties():
             attrs = []
             if not self.descriptor.interface.getExtendedAttribute("LegacyUnenumerableNamedProperties"):
                 attrs.append("JSPROP_ENUMERATE")
@@ -5414,7 +5413,7 @@ class CGDOMJSProxyHandler_defineProperty(CGAbstractExternMethod):
                     + CGIndenter(CGProxyNamedSetter(self.descriptor)).define()
                     + "    return (*opresult).succeed();\n"
                     + "}\n")
-        elif self.descriptor.operations['NamedGetter']:
+        elif self.descriptor.supportsNamedProperties():
             set += ("if RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id) {\n"
                     + CGIndenter(CGProxyNamedGetter(self.descriptor)).define()
                     + "    if result.is_some() {\n"
@@ -5475,7 +5474,7 @@ class CGDOMJSProxyHandler_ownPropertyKeys(CGAbstractExternMethod):
                 }
                 """)
 
-        if self.descriptor.operations['NamedGetter']:
+        if self.descriptor.supportsNamedProperties():
             body += dedent(
                 """
                 for name in (*unwrapped_proxy).SupportedPropertyNames() {
@@ -5572,11 +5571,10 @@ class CGDOMJSProxyHandler_hasOwn(CGAbstractExternMethod):
                         + "    return true;\n"
                         + "}\n\n")
 
-        namedGetter = self.descriptor.operations['NamedGetter']
         condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
         if indexedGetter:
             condition = "index.is_none() && (%s)" % condition
-        if namedGetter:
+        if self.descriptor.supportsNamedProperties():
             named = """\
 if %s {
     let mut has_on_proto = false;
@@ -5659,8 +5657,7 @@ if !expando.is_null() {
         else:
             getIndexedOrExpando = getFromExpando + "\n"
 
-        namedGetter = self.descriptor.operations['NamedGetter']
-        if namedGetter:
+        if self.descriptor.supportsNamedProperties():
             condition = "RUST_JSID_IS_STRING(id) || RUST_JSID_IS_INT(id)"
             # From step 1:
             #     If O supports indexed properties and P is an array index, then:
