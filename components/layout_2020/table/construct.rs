@@ -10,10 +10,16 @@ use std::cmp;
 use std::convert::TryFrom;
 use style::values::specified::text::TextDecorationLine;
 
-#[derive(Debug, Serialize, Default)]
+#[derive(Debug, Default, Serialize)]
 /// A map of table slots to cells
 pub(crate) struct TableSlots {
     rows: Vec<TableSlotsRow>,
+}
+
+#[derive(Debug, Default, Serialize)]
+/// A row in the table slot map
+pub(crate) struct TableSlotsRow {
+    cells: Vec<TableSlot>,
 }
 
 impl TableSlots {
@@ -22,7 +28,8 @@ impl TableSlots {
         self.rows.get(y)?.cells.get(x)
     }
 
-    fn insert(&mut self, slot: TableSlot) {
+    /// Inserts a new slot into the last row
+    fn push(&mut self, slot: TableSlot) {
         let y = self.rows.len() - 1;
         self.rows[y].cells.push(slot)
     }
@@ -122,19 +129,18 @@ impl TableSlots {
 }
 
 // A reference to a slot and its coordinates in the table
-#[derive(Copy, Clone, Debug)]
+#[derive(Clone, Copy, Debug)]
 struct SlotAndLocation<'a> {
     slot: &'a TableSlot,
     x: usize,
     y: usize,
 }
 
-#[derive(Debug, Serialize, Default)]
-pub(crate) struct TableSlotsRow {
-    cells: Vec<TableSlot>,
-}
-
 #[derive(Debug, Serialize)]
+/// A single table slot. It may be an actual cell, or a reference
+/// to a previous cell that is spanned here
+///
+/// In case of table model errors, it may be multiple references
 pub(crate) enum TableSlot {
     /// A table cell, with a width and height
     Cell {
@@ -156,11 +162,25 @@ pub(crate) enum TableSlot {
 }
 
 impl TableSlot {
+    /// Assuming this is a TableSlot::Spanned, get the coordinates
     pub fn as_spanned(&self) -> (usize, usize) {
         if let TableSlot::Spanned(x, y) = *self {
             (x, y)
         } else {
             panic!("TableSlot::as_spanned called with a non-Spanned TableSlot")
+        }
+    }
+
+    /// Merge a TableSlot::Spanned(x, y) with this (only for model errors)
+    pub fn push_spanned(&mut self, x: usize, y: usize) {
+        match *self {
+            TableSlot::Cell {..} => {
+                panic!("Should never have a table model error with an originating cell slot overlapping a spanned slot")
+            }
+            TableSlot::Spanned(x1, y1) => {
+                *self = TableSlot::MultiSpanned(vec![(x, y), (x1, y1)])
+            }
+            TableSlot::MultiSpanned(ref mut vec) => vec.insert(0, (x, y))
         }
     }
 }
@@ -175,7 +195,10 @@ struct TableContainerBuilder<'a, Node> {
     /// If there is an incoming rowspanned cell in this column,
     /// this value will be nonzero. Positive values indicate the number of
     /// rows that still need to be spanned. Negative values indicate rowspan=0
-    incoming_rowspans: Vec<i32>,
+    ///
+    /// This vector is reused for the outgoing rowspans, if there is already a cell
+    /// in the cell map the value in this array represents the incoming rowspan for the *next* row
+    incoming_rowspans: Vec<isize>,
 }
 
 impl TableContainer {
@@ -233,6 +256,9 @@ where
                         info,
                         self,
                     );
+
+                    // XXXManishearth maybe fixup `width=0` to the actual resolved value
+                    self.incoming_rowspans.clear();
                 },
                 DisplayInternal::TableRow => {
                     let context = self.context;
@@ -262,15 +288,17 @@ where
 
 struct TableRowBuilder<'a, 'builder, Node> {
     builder: &'builder mut TableContainerBuilder<'a, Node>,
-    current_x: usize,
 }
 
 impl<'a, 'builder, Node> TableRowBuilder<'a, 'builder, Node> {
     fn new(builder: &'builder mut TableContainerBuilder<'a, Node>) -> Self {
-        TableRowBuilder {
-            builder,
-            current_x: 0,
-        }
+        TableRowBuilder { builder }
+    }
+
+    fn current_x(&self) -> usize {
+        self.builder.slots.rows[self.builder.current_y()]
+            .cells
+            .len()
     }
 }
 
@@ -293,7 +321,12 @@ where
     ) {
         match display {
             DisplayGeneratingBox::Internal(i) => match i {
-                DisplayInternal::TableCell => self.handle_cell(&info),
+                DisplayInternal::TableCell => {
+                    self.handle_cell(&info);
+                    self.consume_rowspans();
+                    // XXXManishearth this will not handle any leftover incoming rowspans
+                    // after all cells are processed, we need to introduce TableSlot::None
+                },
                 _ => (), // XXXManishearth handle unparented row groups/etc ?
             },
             _ => {
@@ -309,36 +342,117 @@ impl<'a, 'builder, 'dom, Node> TableRowBuilder<'a, 'builder, Node>
 where
     Node: NodeExt<'dom>,
 {
+    /// When not in the process of filling a cell, make sure any incoming rowspans are
+    /// filled so that the next specified cell comes after them. Should have been called before
+    /// handle_cell
     fn consume_rowspans(&mut self) {
         loop {
-            if let Some(span) = self.builder.incoming_rowspans.get_mut(self.current_x) {
+            let current_x = self.current_x();
+            if let Some(span) = self.builder.incoming_rowspans.get_mut(current_x) {
                 if *span != 0 {
                     *span -= 1;
                     let previous = self
                         .builder
                         .slots
-                        .get_above(self.current_x)
+                        .get_above(current_x)
                         .expect("Cannot have nonzero incoming rowspan with no slot above");
                     let new_slot = self.builder
-                        .slots.spanned_slot(self.current_x, self.builder.current_y(), previous)
-                        .expect("Nonzero incoming rowspan cannot occur without a cell spannign this slot");
-                    self.builder.slots.insert(new_slot);
-                    self.current_x += 1;
+                        .slots.spanned_slot(current_x, self.builder.current_y(), previous)
+                        .expect("Nonzero incoming rowspan cannot occur without a cell spanning this slot");
+                    self.builder.slots.push(new_slot);
                 } else {
+                    // We have at least one free slot here, exit so that cells can be filled in
                     break;
                 }
             } else {
+                // No more incoming rowspans, exit
                 break;
             }
         }
     }
 
     /// https://html.spec.whatwg.org/multipage/tables.html#algorithm-for-processing-rows
+    /// Push a single cell onto the cell slot map, handling any colspans it may have, and
+    /// setting up the outgoing rowspans
     fn handle_cell(&mut self, info: &NodeAndStyleInfo<Node>) {
+        let current_x = self.current_x();
         let node = info.node.to_threadsafe();
         // This value will already have filtered out rowspan=0
         // in quirks mode, so we don't have to worry about that
-        let rowspan = cmp::min(node.get_rowspan(), 1000);
-        let colspan = cmp::min(node.get_colspan(), 1000);
+        let rowspan = cmp::min(node.get_rowspan() as usize, 1000);
+        let colspan = cmp::min(node.get_colspan() as usize, 1000);
+
+        let me = TableSlot::Cell {
+            cell: TableCellBox {},
+            width: colspan,
+            height: rowspan,
+        };
+
+        if self.builder.incoming_rowspans.len() < current_x + colspan {
+            // make sure the incoming_rowspans table is large enough
+            // because we will be
+            self.builder
+                .incoming_rowspans
+                .resize(current_x + colspan, 0isize);
+        }
+
+        debug_assert_eq!(
+            self.builder.incoming_rowspans[current_x], 0,
+            "consume_rowspans must have been called before this!"
+        );
+
+        // if rowspan is zero, this is automatically negative and will stay negative
+        let outgoing_rowspan = rowspan as isize - 1;
+        self.builder.slots.push(me);
+        self.builder.incoming_rowspans[current_x] = outgoing_rowspan;
+
+        // Draw colspanned cells
+        for offset in 1..colspan {
+            let offset_x = current_x + offset;
+            let new_slot = TableSlot::Spanned(offset, 0);
+            let incoming_rowspan = &mut self.builder.incoming_rowspans[offset_x];
+            if *incoming_rowspan == 0 {
+                *incoming_rowspan = outgoing_rowspan;
+                self.builder.slots.push(new_slot);
+
+                // No model error, skip the remaining stuff
+                continue;
+            } else if *incoming_rowspan > 0 {
+                // Set the incoming rowspan to the highest of two possible outgoing rowspan values
+                // (the incoming rowspan minus one, OR this cell's outgoing rowspan)
+                // spanned_slot() will handle filtering out inapplicable spans when it needs to
+                *incoming_rowspan = cmp::max(*incoming_rowspan - 1, outgoing_rowspan);
+            } else {
+                // Don't change the rowspan, if it's negative we are in `rowspan=0` mode,
+                // i.e. rowspan=infinity, so we don't have to worry about the current cell making
+                // it larger
+
+                // do nothing
+            }
+
+            // Code for handling model errors
+            let previous = self
+                .builder
+                .slots
+                .get_above(offset_x)
+                .expect("Cannot have nonzero incoming rowspan with no slot above");
+            let incoming_slot =
+                self.builder
+                    .slots
+                    .spanned_slot(offset_x, self.builder.current_y(), previous);
+            let new_slot = incoming_slot
+                .map(|mut s| {
+                    s.push_spanned(offset, 0);
+                    s
+                })
+                .unwrap_or(new_slot);
+            self.builder.slots.push(new_slot)
+        }
+
+        debug_assert_eq!(
+            current_x + colspan,
+            self.current_x(),
+            "Must have produced `colspan` slot entries!"
+        );
     }
 }
