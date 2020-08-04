@@ -552,6 +552,8 @@ class MachCommands(CommandBase):
                 elif tracker_api.endswith('/'):
                     tracker_api = tracker_api[0:-1]
 
+                if 'test' not in failure:
+                    continue
                 query = urllib.parse.quote(failure['test'], safe='')
                 request = urllib.request.Request("%s/query.py?name=%s" % (tracker_api, query))
                 search = urllib.request.urlopen(request)
@@ -569,9 +571,17 @@ class MachCommands(CommandBase):
                 is_intermittent = data['total_count'] > 0
 
             if is_intermittent:
-                intermittents.append(failure["output"])
+                if 'output' in failure:
+                    intermittents.append(failure["output"])
+                else:
+                    intermittents.append("%s [expected %s] %s \n"
+                                         % (failure["status"], failure["expected"], failure['test']))
             else:
-                actual_failures.append(failure["output"])
+                if 'output' in failure:
+                    actual_failures.append(failure["output"])
+                else:
+                    actual_failures.append("%s [expected %s] %s \n"
+                                           % (failure["status"], failure["expected"], failure['test']))
 
         def format(outputs, description, file=sys.stdout):
             formatted = "%s %s:\n%s" % (len(outputs), description, "\n".join(outputs))
