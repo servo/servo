@@ -5,8 +5,7 @@
 // https://gpuweb.github.io/gpuweb/#gpu-interface
 [Exposed=(Window, DedicatedWorker), Pref="dom.webgpu.enabled"]
 interface GPU {
-    // May reject with DOMException  // TODO: DOMException("OperationError")?
-    Promise<GPUAdapter> requestAdapter(optional GPURequestAdapterOptions options = {});
+    Promise<GPUAdapter?> requestAdapter(optional GPURequestAdapterOptions options = {});
 };
 
 // https://gpuweb.github.io/gpuweb/#dictdef-gpurequestadapteroptions

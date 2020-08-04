@@ -29,7 +29,7 @@ use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::HashSet;
 use webgpu::wgpu::command as wgpu_com;
-use webgpu::{self, wgt, WebGPU, WebGPURequest};
+use webgpu::{self, identity::WebGPUOpResult, wgt, WebGPU, WebGPURequest};
 
 // https://gpuweb.github.io/gpuweb/#enumdef-encoder-state
 #[derive(MallocSizeOf, PartialEq)]
@@ -102,6 +102,10 @@ impl GPUCommandEncoder {
             self.valid.set(false);
             *self.state.borrow_mut() = GPUCommandEncoderState::Closed;
         }
+    }
+
+    pub fn device(&self) -> &GPUDevice {
+        &*self.device
     }
 }
 
@@ -254,9 +258,15 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         size: GPUSize64,
     ) {
         let valid = *self.state.borrow() == GPUCommandEncoderState::Open;
+        let scope_id = self.device.use_current_scope();
 
         if !valid {
-            // TODO: Record an error in the current scope.
+            self.device.handle_server_msg(
+                scope_id,
+                WebGPUOpResult::ValidationError(String::from(
+                    "CommandEncoder is not in Open State",
+                )),
+            );
             self.valid.set(false);
             return;
         }
@@ -267,14 +277,18 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
             .insert(DomRoot::from_ref(destination));
         self.channel
             .0
-            .send(WebGPURequest::CopyBufferToBuffer {
-                command_encoder_id: self.encoder.0,
-                source_id: source.id().0,
-                source_offset,
-                destination_id: destination.id().0,
-                destination_offset,
-                size,
-            })
+            .send((
+                scope_id,
+                WebGPURequest::CopyBufferToBuffer {
+                    command_encoder_id: self.encoder.0,
+                    device_id: self.device.id().0,
+                    source_id: source.id().0,
+                    source_offset,
+                    destination_id: destination.id().0,
+                    destination_offset,
+                    size,
+                },
+            ))
             .expect("Failed to send CopyBufferToBuffer");
     }
 
@@ -286,9 +300,15 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         copy_size: GPUExtent3D,
     ) {
         let valid = *self.state.borrow() == GPUCommandEncoderState::Open;
+        let scope_id = self.device.use_current_scope();
 
         if !valid {
-            // TODO: Record an error in the current scope.
+            self.device.handle_server_msg(
+                scope_id,
+                WebGPUOpResult::ValidationError(String::from(
+                    "CommandEncoder is not in Open State",
+                )),
+            );
             self.valid.set(false);
             return;
         }
@@ -299,12 +319,18 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
 
         self.channel
             .0
-            .send(WebGPURequest::CopyBufferToTexture {
-                command_encoder_id: self.encoder.0,
-                source: convert_buffer_cv(source),
-                destination: convert_texture_cv(destination),
-                copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(&copy_size)),
-            })
+            .send((
+                scope_id,
+                WebGPURequest::CopyBufferToTexture {
+                    command_encoder_id: self.encoder.0,
+                    device_id: self.device.id().0,
+                    source: convert_buffer_cv(source),
+                    destination: convert_texture_cv(destination),
+                    copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(
+                        &copy_size,
+                    )),
+                },
+            ))
             .expect("Failed to send CopyBufferToTexture");
     }
 
@@ -316,9 +342,15 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         copy_size: GPUExtent3D,
     ) {
         let valid = *self.state.borrow() == GPUCommandEncoderState::Open;
+        let scope_id = self.device.use_current_scope();
 
         if !valid {
-            // TODO: Record an error in the current scope.
+            self.device.handle_server_msg(
+                scope_id,
+                WebGPUOpResult::ValidationError(String::from(
+                    "CommandEncoder is not in Open State",
+                )),
+            );
             self.valid.set(false);
             return;
         }
@@ -329,12 +361,18 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
 
         self.channel
             .0
-            .send(WebGPURequest::CopyTextureToBuffer {
-                command_encoder_id: self.encoder.0,
-                source: convert_texture_cv(source),
-                destination: convert_buffer_cv(destination),
-                copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(&copy_size)),
-            })
+            .send((
+                scope_id,
+                WebGPURequest::CopyTextureToBuffer {
+                    command_encoder_id: self.encoder.0,
+                    device_id: self.device.id().0,
+                    source: convert_texture_cv(source),
+                    destination: convert_buffer_cv(destination),
+                    copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(
+                        &copy_size,
+                    )),
+                },
+            ))
             .expect("Failed to send CopyTextureToBuffer");
     }
 
@@ -346,21 +384,33 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         copy_size: GPUExtent3D,
     ) {
         let valid = *self.state.borrow() == GPUCommandEncoderState::Open;
+        let scope_id = self.device.use_current_scope();
 
         if !valid {
-            // TODO: Record an error in the current scope.
+            self.device.handle_server_msg(
+                scope_id,
+                WebGPUOpResult::ValidationError(String::from(
+                    "CommandEncoder is not in Open State",
+                )),
+            );
             self.valid.set(false);
             return;
         }
 
         self.channel
             .0
-            .send(WebGPURequest::CopyTextureToTexture {
-                command_encoder_id: self.encoder.0,
-                source: convert_texture_cv(source),
-                destination: convert_texture_cv(destination),
-                copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(&copy_size)),
-            })
+            .send((
+                scope_id,
+                WebGPURequest::CopyTextureToTexture {
+                    command_encoder_id: self.encoder.0,
+                    device_id: self.device.id().0,
+                    source: convert_texture_cv(source),
+                    destination: convert_texture_cv(destination),
+                    copy_size: convert_texture_size_to_wgt(&convert_texture_size_to_dict(
+                        &copy_size,
+                    )),
+                },
+            ))
             .expect("Failed to send CopyTextureToTexture");
     }
 
@@ -368,13 +418,15 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
     fn Finish(&self, descriptor: &GPUCommandBufferDescriptor) -> DomRoot<GPUCommandBuffer> {
         self.channel
             .0
-            .send(WebGPURequest::CommandEncoderFinish {
-                command_encoder_id: self.encoder.0,
-                device_id: self.device.id().0,
-                scope_id: self.device.use_current_scope(),
-                // TODO(zakorgy): We should use `_descriptor` here after it's not empty
-                // and the underlying wgpu-core struct is serializable
-            })
+            .send((
+                self.device.use_current_scope(),
+                WebGPURequest::CommandEncoderFinish {
+                    command_encoder_id: self.encoder.0,
+                    device_id: self.device.id().0,
+                    // TODO(zakorgy): We should use `_descriptor` here after it's not empty
+                    // and the underlying wgpu-core struct is serializable
+                },
+            ))
             .expect("Failed to send Finish");
 
         *self.state.borrow_mut() = GPUCommandEncoderState::Closed;

@@ -20,7 +20,7 @@ use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use std::ptr::NonNull;
 use std::rc::Rc;
-use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse};
+use webgpu::{wgt, WebGPU, WebGPUAdapter, WebGPURequest, WebGPUResponse, WebGPUResponseResult};
 
 #[dom_struct]
 pub struct GPUAdapter {
@@ -97,14 +97,17 @@ impl GPUAdapterMethods for GPUAdapter {
         if self
             .channel
             .0
-            .send(WebGPURequest::RequestDevice {
-                sender,
-                adapter_id: self.adapter,
-                descriptor: desc,
-                device_id: id,
-                pipeline_id,
-                label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
-            })
+            .send((
+                None,
+                WebGPURequest::RequestDevice {
+                    sender,
+                    adapter_id: self.adapter,
+                    descriptor: desc,
+                    device_id: id,
+                    pipeline_id,
+                    label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
+                },
+            ))
             .is_err()
         {
             promise.reject_error(Error::Operation);
@@ -114,14 +117,14 @@ impl GPUAdapterMethods for GPUAdapter {
 }
 
 impl AsyncWGPUListener for GPUAdapter {
-    fn handle_response(&self, response: WebGPUResponse, promise: &Rc<Promise>) {
+    fn handle_response(&self, response: WebGPUResponseResult, promise: &Rc<Promise>) {
         match response {
-            WebGPUResponse::RequestDevice {
+            Ok(WebGPUResponse::RequestDevice {
                 device_id,
                 queue_id,
                 _descriptor,
                 label,
-            } => {
+            }) => {
                 let device = GPUDevice::new(
                     &self.global(),
                     self.channel.clone(),
@@ -135,7 +138,14 @@ impl AsyncWGPUListener for GPUAdapter {
                 self.global().add_gpu_device(&device);
                 promise.resolve_native(&device);
             },
-            _ => promise.reject_error(Error::Operation),
+            Err(e) => {
+                warn!("Could not get GPUDevice({:?})", e);
+                promise.reject_error(Error::Operation);
+            },
+            _ => {
+                warn!("GPUAdapter received wrong WebGPUResponse");
+                promise.reject_error(Error::Operation);
+            },
         }
     }
 }

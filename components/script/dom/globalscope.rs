@@ -127,7 +127,7 @@ use std::sync::Arc;
 use std::thread::JoinHandle;
 use time::{get_time, Timespec};
 use uuid::Uuid;
-use webgpu::{identity::WebGPUOpResult, WebGPUDevice};
+use webgpu::{identity::WebGPUOpResult, ErrorScopeId, WebGPUDevice};
 
 #[derive(JSTraceable)]
 pub struct AutoCloseWorker {
@@ -3023,7 +3023,7 @@ impl GlobalScope {
     pub fn handle_wgpu_msg(
         &self,
         device: WebGPUDevice,
-        scope: Option<u64>,
+        scope: Option<ErrorScopeId>,
         result: WebGPUOpResult,
     ) {
         self.gpu_devices

@@ -57,10 +57,13 @@ impl GPUSwapChain {
 
 impl GPUSwapChain {
     pub fn destroy(&self, external_id: u64, image_key: webrender_api::ImageKey) {
-        if let Err(e) = self.channel.0.send(WebGPURequest::DestroySwapChain {
-            external_id,
-            image_key,
-        }) {
+        if let Err(e) = self.channel.0.send((
+            None,
+            WebGPURequest::DestroySwapChain {
+                external_id,
+                image_key,
+            },
+        )) {
             warn!(
                 "Failed to send DestroySwapChain-ImageKey({:?}) ({})",
                 image_key, e

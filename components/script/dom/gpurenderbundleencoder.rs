@@ -195,13 +195,15 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
 
         self.channel
             .0
-            .send(WebGPURequest::RenderBundleEncoderFinish {
-                render_bundle_encoder: encoder,
-                descriptor: desc,
-                render_bundle_id,
-                device_id: self.device.id().0,
-                scope_id: self.device.use_current_scope(),
-            })
+            .send((
+                self.device.use_current_scope(),
+                WebGPURequest::RenderBundleEncoderFinish {
+                    render_bundle_encoder: encoder,
+                    descriptor: desc,
+                    render_bundle_id,
+                    device_id: self.device.id().0,
+                },
+            ))
             .expect("Failed to send RenderBundleEncoderFinish");
 
         let render_bundle = WebGPURenderBundle(render_bundle_id);

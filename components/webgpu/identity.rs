@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::{WebGPUDevice, WebGPURequest};
+use crate::{ErrorScopeId, WebGPUDevice, WebGPURequest};
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
 use serde::{Deserialize, Serialize};
@@ -43,7 +43,7 @@ pub enum WebGPUMsg {
     FreeRenderBundle(RenderBundleId),
     WebGPUOpResult {
         device: WebGPUDevice,
-        scope_id: Option<u64>,
+        scope_id: Option<ErrorScopeId>,
         pipeline_id: PipelineId,
         result: WebGPUOpResult,
     },
@@ -57,12 +57,12 @@ pub enum WebGPUMsg {
 #[derive(Debug)]
 pub struct IdentityRecycler {
     sender: IpcSender<WebGPUMsg>,
-    self_sender: IpcSender<WebGPURequest>,
+    self_sender: IpcSender<(Option<ErrorScopeId>, WebGPURequest)>,
 }
 
 pub struct IdentityRecyclerFactory {
     pub sender: IpcSender<WebGPUMsg>,
-    pub self_sender: IpcSender<WebGPURequest>,
+    pub self_sender: IpcSender<(Option<ErrorScopeId>, WebGPURequest)>,
 }
 
 macro_rules! impl_identity_handler {
@@ -130,12 +130,14 @@ impl IdentityHandler<DeviceId> for IdentityRecycler {
     }
     fn free(&self, id: DeviceId) {
         log::debug!("free device {:?}", id);
-        let msg = WebGPUMsg::FreeDevice(id);
-        if self.sender.send(msg).is_err() {
+        if self.sender.send(WebGPUMsg::FreeDevice(id)).is_err() {
             log::error!("Failed to send FreeDevice({:?}) to script", id);
         }
-        let msg_to_self = WebGPURequest::FreeDevice(id);
-        if self.self_sender.send(msg_to_self).is_err() {
+        if self
+            .self_sender
+            .send((None, WebGPURequest::FreeDevice(id)))
+            .is_err()
+        {
             log::error!("Failed to send FreeDevice({:?}) to server", id);
         }
     }

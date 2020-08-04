@@ -5,8 +5,8 @@
 // https://gpuweb.github.io/gpuweb/#gpubuffer
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUBuffer {
-    Promise<void> mapAsync(GPUMapModeFlags mode, optional GPUSize64 offset = 0, optional GPUSize64 size = 0);
-    [Throws] ArrayBuffer getMappedRange(optional GPUSize64 offset = 0, optional GPUSize64 size = 0);
+    Promise<void> mapAsync(GPUMapModeFlags mode, optional GPUSize64 offset = 0, optional GPUSize64 size);
+    [Throws] ArrayBuffer getMappedRange(optional GPUSize64 offset = 0, optional GPUSize64 size);
     void unmap();
 
     void destroy();
