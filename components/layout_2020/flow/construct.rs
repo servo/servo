@@ -290,7 +290,7 @@ where
                     }
                 },
             },
-            DisplayGeneratingBox::Internal(internal) => {
+            DisplayGeneratingBox::Internal(_internal) => {
                 // XXXManishearth This can be unreachable once we have table fixups
                 todo!()
             },
