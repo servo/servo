@@ -77,6 +77,9 @@ impl TableSlots {
                     .collect();
                 (v.pop().unwrap(), v)
             },
+            TableSlot::Empty => {
+                panic!("Should never attempt to resolve an empty slot");
+            },
         }
     }
 
@@ -160,6 +163,10 @@ pub(crate) enum TableSlot {
     ///
     /// The Vec is in the order of newest to oldest cell
     MultiSpanned(Vec<(usize, usize)>),
+
+    /// There's nothing here
+    /// Only exists when there's a rowspan coming up
+    Empty,
 }
 
 impl TableSlot {
@@ -181,7 +188,10 @@ impl TableSlot {
             TableSlot::Spanned(x1, y1) => {
                 *self = TableSlot::MultiSpanned(vec![(x, y), (x1, y1)])
             }
-            TableSlot::MultiSpanned(ref mut vec) => vec.insert(0, (x, y))
+            TableSlot::MultiSpanned(ref mut vec) => vec.insert(0, (x, y)),
+            TableSlot::Empty => {
+                panic!("Should never have a table model error with an empty slot");
+            }
         }
     }
 }
@@ -192,6 +202,7 @@ impl fmt::Debug for TableSlot {
             TableSlot::Cell { width, height, .. } => write!(f, "Cell({}, {})", width, height),
             TableSlot::Spanned(x, y) => write!(f, "Spanned({}, {})", x, y),
             TableSlot::MultiSpanned(ref vec) => write!(f, "MultiSpanned({:?})", vec),
+            TableSlot::Empty => write!(f, "Empty"),
         }
     }
 }
@@ -260,28 +271,32 @@ where
         match display {
             DisplayGeneratingBox::Internal(i) => match i {
                 DisplayInternal::TableRowGroup => {
-                    // XXXManishearth we need to cap downward growing rows
-                    // https://html.spec.whatwg.org/multipage/tables.html#algorithm-for-ending-a-row-group
+                    // XXXManishearth maybe fixup `width=0` to the actual resolved value
+                    // and any other rowspans that have been cut short
+                    self.incoming_rowspans.clear();
                     NonReplacedContents::try_from(contents).unwrap().traverse(
                         self.context,
                         info,
                         self,
                     );
 
-                    // XXXManishearth maybe fixup `width=0` to the actual resolved value
-                    self.incoming_rowspans.clear();
+                    // XXXManishearth push some kind of row group box somewhere
                 },
                 DisplayInternal::TableRow => {
                     let context = self.context;
                     // XXXManishearth use with_capacity
                     self.slots.rows.push(TableSlotsRow::default());
                     let mut row_builder = TableRowBuilder::new(self);
-                    row_builder.consume_rowspans();
+                    row_builder.consume_rowspans(true);
                     NonReplacedContents::try_from(contents).unwrap().traverse(
                         context,
                         info,
                         &mut row_builder,
                     );
+                    row_builder.truncate_incoming_rowspans();
+                    row_builder.consume_rowspans(false);
+
+                    // XXXManishearth push some kind of row box somewhere
                 },
                 _ => (),
                 // XXXManishearth handle colgroups/etc
@@ -334,7 +349,7 @@ where
             DisplayGeneratingBox::Internal(i) => match i {
                 DisplayInternal::TableCell => {
                     self.handle_cell(&info);
-                    self.consume_rowspans();
+                    self.consume_rowspans(true);
                     // XXXManishearth this will not handle any leftover incoming rowspans
                     // after all cells are processed, we need to introduce TableSlot::None
                 },
@@ -356,7 +371,12 @@ where
     /// When not in the process of filling a cell, make sure any incoming rowspans are
     /// filled so that the next specified cell comes after them. Should have been called before
     /// handle_cell
-    fn consume_rowspans(&mut self) {
+    ///
+    /// if stop_at_zero is set, this will stop at the first slot with incoming_rowspans equal
+    /// to zero. If not, it will insert Empty TableSlots and continue to look for more incoming
+    /// rowspans (which should only be done once we're finished processing the cells in a row,
+    /// and after calling truncate_incoming_rowspans() )
+    fn consume_rowspans(&mut self, stop_at_zero: bool) {
         loop {
             let current_x = self.current_x();
             if let Some(span) = self.builder.incoming_rowspans.get_mut(current_x) {
@@ -372,11 +392,29 @@ where
                         .expect("Nonzero incoming rowspan cannot occur without a cell spanning this slot");
                     self.builder.slots.push(new_slot);
                 } else {
-                    // We have at least one free slot here, exit so that cells can be filled in
-                    break;
+                    if stop_at_zero {
+                        // We have at least one free slot here, exit so that cells can be filled in
+                        break;
+                    } else {
+                        // Push an empty slot so that the incoming span is in the right place
+                        self.builder.slots.push(TableSlot::Empty);
+                    }
                 }
             } else {
                 // No more incoming rowspans, exit
+                break;
+            }
+        }
+    }
+
+    /// Before calling consume_rowspans() with stop_at_zero=true, make sure there are no extraneous incoming rowspans
+    /// at the tail
+    fn truncate_incoming_rowspans(&mut self) {
+        let current_x = self.current_x();
+        for i in (current_x..self.builder.incoming_rowspans.len()).rev() {
+            if self.builder.incoming_rowspans[i] == 0 {
+                self.builder.incoming_rowspans.pop();
+            } else {
                 break;
             }
         }
@@ -401,7 +439,7 @@ where
 
         if self.builder.incoming_rowspans.len() < current_x + colspan {
             // make sure the incoming_rowspans table is large enough
-            // because we will be
+            // because we will be writing to it
             self.builder
                 .incoming_rowspans
                 .resize(current_x + colspan, 0isize);
