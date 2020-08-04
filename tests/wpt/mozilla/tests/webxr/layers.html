@@ -48,6 +48,27 @@
               () => { session.updateRenderState({ layers: [layer], baseLayer: layer }); },
               "Setting both baseLayer and layers should fail"
             );
+
+            assert_throws_dom(
+              "NotSupportedError",
+              () => { glLayerFactory.createQuadLayer("texture"); },
+              "Creating a quad layer without the layers feature should fail"
+            );
+            assert_throws_dom(
+              "NotSupportedError",
+              () => { glLayerFactory.createCylinderLayer("texture"); },
+              "Creating a cylinder layer without the layers feature should fail"
+            );
+            assert_throws_dom(
+              "NotSupportedError",
+              () => { glLayerFactory.createEquirectLayer("texture"); },
+              "Creating a equirect layer without the layers feature should fail"
+            );
+            assert_throws_dom(
+              "NotSupportedError",
+              () => { glLayerFactory.createCubeLayer(); },
+              "Creating a cube layer without the layers feature should fail"
+            );
           });
         </script>
     </body>
