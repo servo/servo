@@ -5,5 +5,5 @@
 // https://immersive-web.github.io/layers/#xrsubimagetype
 [SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
 interface XRSubImage {
-  readonly attribute XRViewport viewport;
+  [SameObject] readonly attribute XRViewport viewport;
 };

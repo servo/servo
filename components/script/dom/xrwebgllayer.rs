@@ -2,30 +2,29 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextConstants as constants;
 use crate::dom::bindings::codegen::Bindings::WebGLRenderingContextBinding::WebGLRenderingContextMethods;
-use crate::dom::bindings::codegen::Bindings::WebGL2RenderingContextBinding::WebGL2RenderingContextBinding::WebGL2RenderingContextMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerInit;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLLayerMethods;
 use crate::dom::bindings::codegen::Bindings::XRWebGLLayerBinding::XRWebGLRenderingContext;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::reflector::{reflect_dom_object, DomObject};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::webglframebuffer::WebGLFramebuffer;
 use crate::dom::webglobject::WebGLObject;
-use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
-use crate::dom::webgl2renderingcontext::WebGL2RenderingContext;
+use crate::dom::webgltexture::WebGLTexture;
 use crate::dom::window::Window;
 use crate::dom::xrframe::XRFrame;
+use crate::dom::xrlayer::XRLayer;
 use crate::dom::xrsession::XRSession;
 use crate::dom::xrview::XRView;
 use crate::dom::xrviewport::XRViewport;
-use canvas_traits::webgl::WebGLContextId;
 use canvas_traits::webgl::WebGLCommand;
+use canvas_traits::webgl::WebGLContextId;
 use canvas_traits::webgl::WebGLTextureId;
 use dom_struct::dom_struct;
 use euclid::{Rect, Size2D};
@@ -34,22 +33,6 @@ use webxr_api::ContextId as WebXRContextId;
 use webxr_api::LayerId;
 use webxr_api::LayerInit;
 use webxr_api::Viewport;
-
-#[derive(JSTraceable, MallocSizeOf)]
-#[unrooted_must_root_lint::must_root]
-pub enum RenderingContext {
-    WebGL1(Dom<WebGLRenderingContext>),
-    WebGL2(Dom<WebGL2RenderingContext>),
-}
-
-impl RenderingContext {
-    fn context_id(&self) -> WebGLContextId {
-        match self {
-            RenderingContext::WebGL1(ref ctx) => ctx.context_id(),
-            RenderingContext::WebGL2(ref ctx) => ctx.base_context().context_id(),
-        }
-    }
-}
 
 impl<'a> From<&'a XRWebGLLayerInit> for LayerInit {
     fn from(init: &'a XRWebGLLayerInit) -> LayerInit {
@@ -66,46 +49,31 @@ impl<'a> From<&'a XRWebGLLayerInit> for LayerInit {
 
 #[dom_struct]
 pub struct XRWebGLLayer {
-    reflector_: Reflector,
+    xr_layer: XRLayer,
     antialias: bool,
     depth: bool,
     stencil: bool,
     alpha: bool,
     ignore_depth_values: bool,
-    context: RenderingContext,
-    session: Dom<XRSession>,
     /// If none, this is an inline session (the composition disabled flag is true)
     framebuffer: Option<Dom<WebGLFramebuffer>>,
-    /// If none, this is an inline session (the composition disabled flag is true)
-    #[ignore_malloc_size_of = "Layer ids don't heap-allocate"]
-    layer_id: Option<LayerId>,
 }
 
 impl XRWebGLLayer {
     pub fn new_inherited(
         session: &XRSession,
-        context: XRWebGLRenderingContext,
+        context: &WebGLRenderingContext,
         init: &XRWebGLLayerInit,
         framebuffer: Option<&WebGLFramebuffer>,
         layer_id: Option<LayerId>,
     ) -> XRWebGLLayer {
         XRWebGLLayer {
-            reflector_: Reflector::new(),
+            xr_layer: XRLayer::new_inherited(session, context, layer_id),
             antialias: init.antialias,
             depth: init.depth,
             stencil: init.stencil,
             alpha: init.alpha,
             ignore_depth_values: init.ignoreDepthValues,
-            layer_id,
-            context: match context {
-                XRWebGLRenderingContext::WebGLRenderingContext(ctx) => {
-                    RenderingContext::WebGL1(Dom::from_ref(&*ctx))
-                },
-                XRWebGLRenderingContext::WebGL2RenderingContext(ctx) => {
-                    RenderingContext::WebGL2(Dom::from_ref(&*ctx))
-                },
-            },
-            session: Dom::from_ref(session),
             framebuffer: framebuffer.map(Dom::from_ref),
         }
     }
@@ -113,7 +81,7 @@ impl XRWebGLLayer {
     pub fn new(
         global: &GlobalScope,
         session: &XRSession,
-        context: XRWebGLRenderingContext,
+        context: &WebGLRenderingContext,
         init: &XRWebGLLayerInit,
         framebuffer: Option<&WebGLFramebuffer>,
         layer_id: Option<LayerId>,
@@ -138,6 +106,11 @@ impl XRWebGLLayer {
         context: XRWebGLRenderingContext,
         init: &XRWebGLLayerInit,
     ) -> Fallible<DomRoot<Self>> {
+        let context = match context {
+            XRWebGLRenderingContext::WebGLRenderingContext(ctx) => ctx,
+            XRWebGLRenderingContext::WebGL2RenderingContext(ctx) => ctx.base_context(),
+        };
+
         // Step 2
         if session.is_ended() {
             return Err(Error::InvalidState);
@@ -169,16 +142,13 @@ impl XRWebGLLayer {
         };
 
         // Ensure that we finish setting up this layer before continuing.
-        match context {
-            XRWebGLRenderingContext::WebGLRenderingContext(ref ctx) => ctx.Finish(),
-            XRWebGLRenderingContext::WebGL2RenderingContext(ref ctx) => ctx.Finish(),
-        }
+        context.Finish();
 
         // Step 10. "Return layer."
         Ok(XRWebGLLayer::new(
             &global.global(),
             session,
-            context,
+            &context,
             init,
             framebuffer.as_deref(),
             layer_id,
@@ -186,15 +156,15 @@ impl XRWebGLLayer {
     }
 
     pub fn layer_id(&self) -> Option<LayerId> {
-        self.layer_id
+        self.xr_layer.layer_id()
     }
 
     pub fn context_id(&self) -> WebGLContextId {
-        self.context.context_id()
+        self.xr_layer.context_id()
     }
 
     pub fn session(&self) -> &XRSession {
-        &self.session
+        &self.xr_layer.session()
     }
 
     pub fn size(&self) -> Size2D<u32, Viewport> {
@@ -205,10 +175,7 @@ impl XRWebGLLayer {
                 size.1.try_into().unwrap_or(0),
             )
         } else {
-            let size = match self.context {
-                RenderingContext::WebGL1(ref ctx) => ctx.Canvas().get_size(),
-                RenderingContext::WebGL2(ref ctx) => ctx.base_context().Canvas().get_size(),
-            };
+            let size = self.context().Canvas().get_size();
             Size2D::from_untyped(size)
         }
     }
@@ -225,7 +192,7 @@ impl XRWebGLLayer {
         debug!("XRWebGLLayer begin frame");
         let framebuffer = self.framebuffer.as_ref()?;
         let context = framebuffer.upcast::<WebGLObject>().context();
-        let sub_images = frame.get_sub_images(self.layer_id?)?;
+        let sub_images = frame.get_sub_images(self.layer_id()?)?;
         // TODO: Cache this texture
         let color_texture_id =
             WebGLTextureId::maybe_new(sub_images.sub_image.as_ref()?.color_texture)?;
@@ -306,15 +273,8 @@ impl XRWebGLLayer {
         Some(())
     }
 
-    pub(crate) fn context(&self) -> XRWebGLRenderingContext {
-        match self.context {
-            RenderingContext::WebGL1(ref ctx) => {
-                XRWebGLRenderingContext::WebGLRenderingContext(DomRoot::from_ref(&**ctx))
-            },
-            RenderingContext::WebGL2(ref ctx) => {
-                XRWebGLRenderingContext::WebGL2RenderingContext(DomRoot::from_ref(&**ctx))
-            },
-        }
+    pub(crate) fn context(&self) -> &WebGLRenderingContext {
+        self.xr_layer.context()
     }
 }
 
@@ -346,13 +306,13 @@ impl XRWebGLLayerMethods for XRWebGLLayer {
 
     /// https://immersive-web.github.io/webxr/#dom-xrwebgllayer-getviewport
     fn GetViewport(&self, view: &XRView) -> Option<DomRoot<XRViewport>> {
-        if self.session != view.session() {
+        if self.session() != view.session() {
             return None;
         }
 
         let index = view.viewport_index();
 
-        let viewport = self.session.with_session(|s| {
+        let viewport = self.session().with_session(|s| {
             // Inline sssions
             if s.viewports().is_empty() {
                 Rect::from_size(self.size().to_i32())

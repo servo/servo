@@ -9,14 +9,18 @@ interface XRWebGLBinding {
 
 //  readonly attribute double nativeProjectionScaleFactor;
 
-//  XRProjectionLayer createProjectionLayer(GLenum textureTarget, optional XRProjectionLayerInit init = {});
-//  XRQuadLayer createQuadLayer(GLenum textureTarget, XRLayerInit init);
-//  XRCylinderLayer createCylinderLayer(GLenum textureTarget, XRLayerInit init);
-//  XREquirectLayer createEquirectLayer(GLenum textureTarget, XRLayerInit init);
-//  XRCubeLayer createCubeLayer(XRLayerInit init);
+//  XRProjectionLayer createProjectionLayer(XRTextureType textureType,
+//                                          optional XRProjectionLayerInit init);
+//  XRQuadLayer createQuadLayer(XRTextureType textureType,
+//                              optional XRQuadLayerInit init);
+//  XRCylinderLayer createCylinderLayer(XRTextureType textureType,
+//                                      optional XRCylinderLayerInit init);
+//  XREquirectLayer createEquirectLayer(XRTextureType textureType,
+//                                      optional XREquirectLayerInit init);
+//  XRCubeLayer createCubeLayer(optional XRCubeLayerInit init);
 
-  XRWebGLSubImage? getSubImage(XRLayer layer, XRFrame frame); // for mono layers
-  XRWebGLSubImage? getViewSubImage(XRLayer layer, XRView view); // for stereo layers
+//  XRWebGLSubImage getSubImage(XRCompositionLayer layer, XRFrame frame, optional XREye eye = "none");
+//  XRWebGLSubImage getViewSubImage(XRProjectionLayer layer, XRView view);
 };
 
 dictionary XRProjectionLayerInit {
@@ -26,19 +30,54 @@ dictionary XRProjectionLayerInit {
   double scaleFactor = 1.0;
 };
 
+dictionary XRQuadLayerInit : XRLayerInit {
+  XRRigidTransform? transform;
+  float width = 1.0;
+  float height = 1.0;
+  boolean isStatic = false;
+};
+
+dictionary XRCylinderLayerInit : XRLayerInit {
+  XRRigidTransform? transform;
+  float radius = 2.0;
+  float centralAngle = 0.78539;
+  float aspectRatio = 2.0;
+  boolean isStatic = false;
+};
+
+dictionary XREquirectLayerInit : XRLayerInit {
+  XRRigidTransform? transform;
+  float radius = 0;
+  float centralHorizontalAngle = 6.28318;
+  float upperVerticalAngle = 1.570795;
+  float lowerVerticalAngle = -1.570795;
+  boolean isStatic = false;
+};
+
+dictionary XRCubeLayerInit : XRLayerInit {
+  DOMPointReadOnly? orientation;
+  boolean isStatic = false;
+};
+
 dictionary XRLayerInit {
-  required unsigned long pixelWidth;
-  required unsigned long pixelHeight;
+  required XRSpace space;
+  required unsigned long viewPixelWidth;
+  required unsigned long viewPixelHeight;
   XRLayerLayout layout = "mono";
-  boolean depth = false; // This is a change from typical WebGL initialization, but feels appropriate.
+  boolean depth = false;
   boolean stencil = false;
   boolean alpha = true;
 };
 
+enum XRTextureType {
+  "texture",
+  "texture-array"
+};
+
 enum XRLayerLayout {
+  "default",
   "mono",
   "stereo",
   "stereo-left-right",
   "stereo-top-bottom"
 };
-

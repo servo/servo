@@ -2,59 +2,74 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-// https://immersive-web.github.io/layers/#xrlayertype
-[SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
-interface XRLayer {
-//  attribute boolean blendTextureSourceAlpha;
-//  attribute boolean chromaticAberrationCorrection;
+// https://immersive-web.github.io/webxr/#xrlayer
+[SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
+interface XRLayer : EventTarget {};
 
-  void destroy();
-};
-//
 // TODO: Implement the layer types
 //
-// [SecureContext, Exposed=Window, Pref="dom.webxr.enabled"]
-// interface XRProjectionLayer : XRLayer {
+// [SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
+// interface XRCompositionLayer : XRLayer {
+//   readonly attribute XRLayerLayout layout;
+//
+//   attribute boolean blendTextureSourceAlpha;
+//   attribute boolean? chromaticAberrationCorrection;
+//   attribute float? fixedFoveation;
+//
+//   readonly attribute boolean needsRedraw;
+//
+//   void destroy();
+// };
+//
+// [SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
+// interface XRProjectionLayer : XRCompositionLayer {
 //   readonly attribute boolean ignoreDepthValues;
 // };
 //
 // [SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
-// interface XRQuadLayer : XRLayer {
-//   readonly attribute XRLayerLayout layout;
+// interface XRQuadLayer : XRCompositionLayer {
+//   attribute XRSpace space;
 //   attribute XRRigidTransform transform;
 //
 //   attribute float width;
 //   attribute float height;
+//
+//   // Events
+//   attribute EventHandler onredraw;
 // };
 //
 // [SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
-// interface XRCylinderLayer : XRLayer {
-//   readonly attribute XRLayerLayout layout;
-//   attribute XRReferenceSpace referenceSpace;
-//
+// interface XRCylinderLayer : XRCompositionLayer {
+//   attribute XRSpace space;
 //   attribute XRRigidTransform transform;
+//
 //   attribute float radius;
 //   attribute float centralAngle;
 //   attribute float aspectRatio;
+//
+//   // Events
+//   attribute EventHandler onredraw;
 // };
 //
 // [SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
-// interface XREquirectLayer : XRLayer {
-//   readonly attribute XRLayerLayout layout;
-//   attribute XRReferenceSpace referenceSpace;
-//
+// interface XREquirectLayer : XRCompositionLayer {
+//   attribute XRSpace space;
 //   attribute XRRigidTransform transform;
+//
 //   attribute float radius;
-//   attribute float scaleX;
-//   attribute float scaleY;
-//   attribute float biasX;
-//   attribute float biasY;
+//   attribute float centralHorizontalAngle;
+//   attribute float upperVerticalAngle;
+//   attribute float lowerVerticalAngle;
+//
+//   // Events
+//   attribute EventHandler onredraw;
 // };
 //
 // [SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
-// interface XRCubeLayer : XRLayer {
-//   readonly attribute XRLayerLayout layout;
-//   attribute XRReferenceSpace referenceSpace;
+// interface XRCubeLayer : XRCompositionLayer {
+//   attribute XRSpace space;
+//   attribute DOMPointReadOnly orientation;
 //
-//   attribute DOMPoint orientation;
+//   // Events
+//   attribute EventHandler onredraw;
 // };

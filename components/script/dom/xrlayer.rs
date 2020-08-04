@@ -2,30 +2,26 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::codegen::Bindings::XRLayerBinding::XRLayerBinding::XRLayerMethods;
-use crate::dom::bindings::reflector::Reflector;
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::Dom;
+use crate::dom::eventtarget::EventTarget;
 use crate::dom::webglrenderingcontext::WebGLRenderingContext;
 use crate::dom::xrframe::XRFrame;
 use crate::dom::xrsession::XRSession;
+use crate::dom::xrwebgllayer::XRWebGLLayer;
 use canvas_traits::webgl::WebGLContextId;
 use dom_struct::dom_struct;
 use webxr_api::LayerId;
 
 #[dom_struct]
 pub struct XRLayer {
-    reflector: Reflector,
+    event_target: EventTarget,
     session: Dom<XRSession>,
     context: Dom<WebGLRenderingContext>,
-    #[ignore_malloc_size_of = "Layers don't heap-allocate"]
-    layer_id: LayerId,
-}
-
-impl XRLayerMethods for XRLayer {
-    /// https://immersive-web.github.io/layers/#dom-xrlayer-destroy
-    fn Destroy(&self) {
-        // TODO: Implement this
-    }
+    /// If none, the session is inline (the composition disabled flag is true)
+    /// and this is a XRWebGLLayer.
+    #[ignore_malloc_size_of = "Layer ids don't heap-allocate"]
+    layer_id: Option<LayerId>,
 }
 
 impl XRLayer {
@@ -33,17 +29,17 @@ impl XRLayer {
     pub fn new_inherited(
         session: &XRSession,
         context: &WebGLRenderingContext,
-        layer_id: LayerId,
+        layer_id: Option<LayerId>,
     ) -> XRLayer {
         XRLayer {
-            reflector: Reflector::new(),
+            event_target: EventTarget::new_inherited(),
             session: Dom::from_ref(session),
             context: Dom::from_ref(context),
             layer_id,
         }
     }
 
-    pub(crate) fn layer_id(&self) -> LayerId {
+    pub(crate) fn layer_id(&self) -> Option<LayerId> {
         self.layer_id
     }
 
@@ -51,13 +47,29 @@ impl XRLayer {
         self.context.context_id()
     }
 
-    pub fn begin_frame(&self, _frame: &XRFrame) -> Option<()> {
-        // TODO: Implement this
-        None
+    pub(crate) fn context(&self) -> &WebGLRenderingContext {
+        &self.context
     }
 
-    pub fn end_frame(&self, _frame: &XRFrame) -> Option<()> {
-        // TODO: Implement this
-        None
+    pub(crate) fn session(&self) -> &XRSession {
+        &self.session
+    }
+
+    pub fn begin_frame(&self, frame: &XRFrame) -> Option<()> {
+        // TODO: Implement this for other layer types
+        if let Some(this) = self.downcast::<XRWebGLLayer>() {
+            this.begin_frame(frame)
+        } else {
+            unimplemented!()
+        }
+    }
+
+    pub fn end_frame(&self, frame: &XRFrame) -> Option<()> {
+        // TODO: Implement this for other layer types
+        if let Some(this) = self.downcast::<XRWebGLLayer>() {
+            this.end_frame(frame)
+        } else {
+            unimplemented!()
+        }
     }
 }
