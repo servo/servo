@@ -1,7 +1,7 @@
 {
     "ports": {
         "http": [],
-        "https": ["auto"],
+        "https": [],
         "ws": [],
         "wss": []
     },
@@ -9,7 +9,7 @@
     "ssl": {
         "type": "openssl",
         "openssl": {
-            "duration": 3650,
+            "duration": 800,
             "force_regenerate": true,
             "base_path": "tools/certs"
         }

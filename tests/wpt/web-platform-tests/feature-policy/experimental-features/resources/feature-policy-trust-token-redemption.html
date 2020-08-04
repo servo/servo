@@ -20,7 +20,7 @@
       new Request("https://destination.example/", {
         trustToken: {
           type: "send-srr",
-          issuer: "https://issuer.example/"
+          issuers: ["https://issuer.example/"]
         }
       });
     } catch (e) {
@@ -30,7 +30,9 @@
     try {
       const xhr = new XMLHttpRequest();
       xhr.open("GET", "https://issuer.example/");
-      xhr.setTrustToken( { type: "srr-token-redemption" } );
+      xhr.setTrustToken({
+        type: "srr-token-redemption"
+      });
     } catch (e) {
       num_enabled--;
     }
@@ -40,7 +42,7 @@
       xhr.open("GET", "https://destination.example/");
       xhr.setTrustToken({
         type: "send-srr",
-        issuer: "https://issuer.example/"
+        issuers: ["https://issuer.example/"]
       });
     } catch (e) {
       num_enabled--;

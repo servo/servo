@@ -654,3 +654,40 @@ class UniqueSet extends Set {
     super.add(value);
   }
 }
+
+const iceGatheringStateTransitions = async (pc, ...states) => {
+  for (const state of states) {
+    await new Promise((resolve, reject) => {
+      pc.addEventListener('icegatheringstatechange', () => {
+        if (pc.iceGatheringState == state) {
+          resolve();
+        } else {
+          reject(`Unexpected gathering state: ${pc.iceGatheringState}, was expecting ${state}`);
+        }
+      }, {once: true});
+    });
+  }
+};
+
+const initialOfferAnswerWithIceGatheringStateTransitions =
+    async (pc1, pc2, offerOptions) => {
+      await pc1.setLocalDescription(
+        await pc1.createOffer(offerOptions));
+      const pc1Transitions =
+          iceGatheringStateTransitions(pc1, 'gathering', 'complete');
+      await pc2.setRemoteDescription(pc1.localDescription);
+      await pc2.setLocalDescription(await pc2.createAnswer());
+      const pc2Transitions =
+          iceGatheringStateTransitions(pc2, 'gathering', 'complete');
+      await pc1.setRemoteDescription(pc2.localDescription);
+      await pc1Transitions;
+      await pc2Transitions;
+    };
+
+const expectNoMoreGatheringStateChanges = async (t, pc) => {
+  pc.onicegatheringstatechange =
+      t.step_func(() => {
+        assert_unreached(
+            'Should not get an icegatheringstatechange right now!');
+      });
+};

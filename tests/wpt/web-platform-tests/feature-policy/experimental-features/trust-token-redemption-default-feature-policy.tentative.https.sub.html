@@ -23,20 +23,22 @@
         });
         new Request("https://destination.example/", {
           trustToken: {
-            type: "send-srr",  // signing
-            issuer: "https://issuer.example/"
+            type: "send-srr", // signing
+            issuers: ["https://issuer.example/"]
           }
         });
 
         const redemption_xhr = new XMLHttpRequest();
         redemption_xhr.open("GET", "https://issuer.example/");
-        redemption_xhr.setTrustToken( { type: "srr-token-redemption" } );
+        redemption_xhr.setTrustToken({
+          type: "srr-token-redemption"
+        });
 
         const signing_xhr = new XMLHttpRequest();
         signing_xhr.open("GET", "https://destination.example/");
         signing_xhr.setTrustToken({
-          type: "send-srr",  // signing
-          issuer: "https://issuer.example/"
+          type: "send-srr", // signing
+          issuers: ["https://issuer.example/"]
         });
       } catch (e) {
         assert_unreached();
