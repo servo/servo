@@ -8,6 +8,7 @@ use script_layout_interface::wrapper_traits::ThreadSafeLayoutNode;
 use std::borrow::Cow;
 use std::cmp;
 use std::convert::TryFrom;
+use std::fmt;
 use style::values::specified::text::TextDecorationLine;
 
 #[derive(Debug, Default, Serialize)]
@@ -136,7 +137,7 @@ struct SlotAndLocation<'a> {
     y: usize,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 /// A single table slot. It may be an actual cell, or a reference
 /// to a previous cell that is spanned here
 ///
@@ -181,6 +182,16 @@ impl TableSlot {
                 *self = TableSlot::MultiSpanned(vec![(x, y), (x1, y1)])
             }
             TableSlot::MultiSpanned(ref mut vec) => vec.insert(0, (x, y))
+        }
+    }
+}
+
+impl fmt::Debug for TableSlot {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            TableSlot::Cell { width, height, .. } => write!(f, "Cell({}, {})", width, height),
+            TableSlot::Spanned(x, y) => write!(f, "Spanned({}, {})", x, y),
+            TableSlot::MultiSpanned(ref vec) => write!(f, "MultiSpanned({:?})", vec),
         }
     }
 }
