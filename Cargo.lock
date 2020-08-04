@@ -988,19 +988,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core-graphics"
-version = "0.22.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f6082396a349fa49674ba1bda4077332a18bf150e8fa75745ece07085e29a113"
-dependencies = [
- "bitflags",
- "core-foundation 0.9.0",
- "core-graphics-types",
- "foreign-types",
- "libc",
-]
-
-[[package]]
 name = "core-graphics-types"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1020,18 +1007,6 @@ checksum = "131b3fd1f8bd5db9f2b398fa4fdb6008c64afc04d447c306ac2c7e98fba2a61d"
 dependencies = [
  "core-foundation 0.7.0",
  "core-graphics 0.19.0",
- "foreign-types",
- "libc",
-]
-
-[[package]]
-name = "core-text"
-version = "19.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "04dfae50af11e72657fe7174cddb1ecddc5398037f7f6f39533ad69207c9a4e2"
-dependencies = [
- "core-foundation 0.9.0",
- "core-graphics 0.22.0",
  "foreign-types",
  "libc",
 ]
@@ -1584,19 +1559,19 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "font-kit"
-version = "0.10.0"
+version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1f9042cb45150fb2b2a012fc03d0f1d2071f18e90397b9d2a5ec8ade8464bf20"
+checksum = "22ed9b6d89600e22d9bfcfdd8c27e981540664a1a85a3f3971793c75502f49d9"
 dependencies = [
  "bitflags",
  "byteorder",
- "core-foundation 0.9.0",
- "core-graphics 0.22.0",
- "core-text 19.0.0",
+ "core-foundation 0.7.0",
+ "core-graphics 0.19.0",
+ "core-text",
  "dirs",
  "dwrote",
  "float-ord",
- "freetype 0.7.0",
+ "freetype 0.5.1",
  "lazy_static",
  "libc",
  "log",
@@ -1644,9 +1619,9 @@ dependencies = [
 
 [[package]]
 name = "freetype"
-version = "0.7.0"
+version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bee38378a9e3db1cc693b4f88d166ae375338a0ff75cb8263e1c601d51f35dc6"
+checksum = "b73222ab32d9ad65fe0e1c3258da8d614fd47cf19fce92b09eb520060c5c5ad5"
 dependencies = [
  "freetype-sys",
  "libc",
@@ -1654,9 +1629,9 @@ dependencies = [
 
 [[package]]
 name = "freetype-sys"
-version = "0.13.1"
+version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a37d4011c0cc628dfa766fcc195454f4b068d7afdc2adfd28861191d866e731a"
+checksum = "d48ac0ce366dd47a115ec8e598d7c51b4a974fc52ded5e53a56b31f55f34f3ea"
 dependencies = [
  "cmake",
  "libc",
@@ -1873,12 +1848,12 @@ dependencies = [
  "byteorder",
  "core-foundation 0.7.0",
  "core-graphics 0.19.0",
- "core-text 15.0.0",
+ "core-text",
  "dwrote",
  "euclid",
  "fnv",
  "fontsan",
- "freetype 0.7.0",
+ "freetype 0.5.1",
  "gfx_traits",
  "harfbuzz-sys",
  "ipc-channel",
@@ -2493,15 +2468,15 @@ checksum = "63d68db75012a85555434ee079e7e6337931f87a087ab2988becbadf64673a7f"
 
 [[package]]
 name = "harfbuzz-sys"
-version = "0.5.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bf8c27ca13930dc4ffe474880040fe9e0f03c2121600dc9c95423624cab3e467"
+checksum = "8c50680ef38c3c83947499b5df4f340db5b436807dfa2b21330d86254e2e4dd6"
 dependencies = [
  "cc",
- "core-graphics 0.22.0",
- "core-text 19.0.0",
+ "core-graphics 0.19.0",
+ "core-text",
  "foreign-types",
- "freetype 0.7.0",
+ "freetype 0.5.1",
  "pkg-config",
 ]
 
@@ -4360,7 +4335,7 @@ dependencies = [
  "bitflags",
  "crc32fast",
  "deflate",
- "miniz_oxide 0.3.7",
+ "miniz_oxide",
 ]
 
 [[package]]
@@ -4570,7 +4545,7 @@ checksum = "a871f1e45a3a3f0c73fb60343c811238bb5143a81642e27c2ac7aac27ff01a63"
 [[package]]
 name = "raqote"
 version = "0.8.1-alpha.0"
-source = "git+https://github.com/jdm/raqote?branch=fkup#ff5d2d1aa7813dbcacb0d028cf7d17c82a35d9d4"
+source = "git+https://github.com/jrmuizel/raqote#5444a1040bd4fd72e860ff75244fbe8fa7814470"
 dependencies = [
  "euclid",
  "font-kit",
@@ -5142,9 +5117,9 @@ dependencies = [
 
 [[package]]
 name = "servo-fontconfig-sys"
-version = "5.1.0"
+version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e36b879db9892dfa40f95da1c38a835d41634b825fbd8c4c418093d53c24b388"
+checksum = "1c5e8d42c2957f6f433d90ab61277ed0226b3f49fffb19aa5493213c42e5d6df"
 dependencies = [
  "expat-sys",
  "freetype-sys",
@@ -6829,7 +6804,7 @@ dependencies = [
  "cfg-if",
  "core-foundation 0.7.0",
  "core-graphics 0.19.0",
- "core-text 15.0.0",
+ "core-text",
  "cstr",
  "dwrote",
  "euclid",
