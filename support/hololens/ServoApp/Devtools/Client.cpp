@@ -79,7 +79,7 @@ IAsyncAction DevtoolsClient::Loop() {
       } catch (...) {
         throw hresult_error(E_FAIL, L"Can't parse message header:" + c);
       }
-      if (len >= 10000) {
+      if (len >= 100000) {
         throw hresult_error(E_FAIL, L"Message length too long");
       }
     }

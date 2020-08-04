@@ -7,7 +7,6 @@
 //! retrieve an array (CPREFS) of struct of pointers (CPrefs) to the C-compatible preferences
 //! (LocalCPref).
 
-use crate::catch_any_panic;
 use crate::simpleservo::{self, PrefValue};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, HashMap};
@@ -19,7 +18,7 @@ thread_local! {
     // The CPREFS are structs holding pointers to values held alive by LOCALCPREFS.
     // This is emptied in free_prefs the next time perform_updates is called.
     static CPREFS: RefCell<Vec<CPref>> = RefCell::new(Vec::new());
-    static LOCALCPREFS: RefCell<BTreeMap<String, LocalCPref>> = RefCell::new(BTreeMap::new());
+    static LOCALCPREFS: RefCell<BTreeMap<String, Box<LocalCPref>>> = RefCell::new(BTreeMap::new());
 }
 
 struct LocalCPref {
@@ -71,7 +70,7 @@ pub struct CPref {
 }
 
 impl CPref {
-    fn new(local: &LocalCPref) -> CPref {
+    fn new(local: &Box<LocalCPref>) -> CPref {
         let (pref_type, value) = match &local.value {
             LocalCPrefValue::Float(v) => (CPrefType::Float, v as *const f64 as *const c_void),
             LocalCPrefValue::Int(v) => (CPrefType::Int, v as *const i64 as *const c_void),
@@ -136,49 +135,41 @@ pub extern "C" fn get_pref_as_bool(ptr: *const c_void) -> *const bool {
 
 #[no_mangle]
 pub extern "C" fn reset_all_prefs() {
-    catch_any_panic(|| {
-        debug!("reset_all_prefs");
-        simpleservo::reset_all_prefs()
-    })
+    debug!("reset_all_prefs");
+    simpleservo::reset_all_prefs()
 }
 
 #[no_mangle]
 pub extern "C" fn reset_pref(key: *const c_char) -> bool {
-    catch_any_panic(|| {
-        debug!("reset_pref");
-        let key = unsafe { CStr::from_ptr(key) };
-        let key = key.to_str().expect("Can't read string");
-        simpleservo::reset_pref(key)
-    })
+    debug!("reset_pref");
+    let key = unsafe { CStr::from_ptr(key) };
+    let key = key.to_str().expect("Can't read string");
+    simpleservo::reset_pref(key)
 }
 
 #[no_mangle]
 pub extern "C" fn get_pref(key: *const c_char) -> CPref {
-    catch_any_panic(|| {
-        debug!("get_pref");
-        LOCALCPREFS.with(|localmap| {
-            let key = unsafe { CStr::from_ptr(key) };
-            let key = key.to_str().expect("Can't read string");
-            let (value, is_default) = simpleservo::get_pref(key);
-            let local = LocalCPref {
-                key: CString::new(key).unwrap(),
-                value: LocalCPrefValue::new(&value),
-                is_default: is_default,
-            };
-            let cpref = CPref::new(&local);
-            localmap.borrow_mut().insert(key.to_string(), local);
-            cpref
-        })
+    debug!("get_pref");
+    LOCALCPREFS.with(|localmap| {
+        let key = unsafe { CStr::from_ptr(key) };
+        let key = key.to_str().expect("Can't read string");
+        let (value, is_default) = simpleservo::get_pref(key);
+        let local = Box::new(LocalCPref {
+            key: CString::new(key).unwrap(),
+            value: LocalCPrefValue::new(&value),
+            is_default: is_default,
+        });
+        let cpref = CPref::new(&local);
+        localmap.borrow_mut().insert(key.to_string(), local);
+        cpref
     })
 }
 
 fn set_pref(key: *const c_char, value: PrefValue) -> bool {
-    catch_any_panic(|| {
-        debug!("set_pref");
-        let key = unsafe { CStr::from_ptr(key) };
-        let key = key.to_str().expect("Can't read string");
-        simpleservo::set_pref(key, value).is_ok()
-    })
+    debug!("set_pref");
+    let key = unsafe { CStr::from_ptr(key) };
+    let key = key.to_str().expect("Can't read string");
+    simpleservo::set_pref(key, value).is_ok()
 }
 
 #[no_mangle]
@@ -206,33 +197,31 @@ pub extern "C" fn set_str_pref(key: *const c_char, value: *const c_char) -> bool
 #[no_mangle]
 pub extern "C" fn get_prefs() -> CPrefList {
     // Called from any thread
-    catch_any_panic(|| {
-        debug!("get_prefs");
-        let map = simpleservo::get_prefs();
-        let local: BTreeMap<String, LocalCPref> = map
-            .into_iter()
-            .map(|(key, (value, is_default))| {
-                let l = LocalCPref {
-                    key: CString::new(key.clone()).unwrap(),
-                    value: LocalCPrefValue::new(&value),
-                    is_default: is_default,
-                };
-                (key, l)
-            })
-            .collect();
+    debug!("get_prefs");
+    let map = simpleservo::get_prefs();
+    let local: BTreeMap<String, Box<LocalCPref>> = map
+        .into_iter()
+        .map(|(key, (value, is_default))| {
+            let l = Box::new(LocalCPref {
+                key: CString::new(key.clone()).unwrap(),
+                value: LocalCPrefValue::new(&value),
+                is_default: is_default,
+            });
+            (key, l)
+        })
+        .collect();
 
-        let ptrs: Vec<CPref> = local.iter().map(|(_, local)| CPref::new(&local)).collect();
+    let ptrs: Vec<CPref> = local.iter().map(|(_, local)| CPref::new(&local)).collect();
 
-        let list = CPrefList {
-            len: ptrs.len(),
-            list: ptrs.as_ptr(),
-        };
+    let list = CPrefList {
+        len: ptrs.len(),
+        list: ptrs.as_ptr(),
+    };
 
-        LOCALCPREFS.with(|p| *p.borrow_mut() = local);
-        CPREFS.with(|p| *p.borrow_mut() = ptrs);
+    LOCALCPREFS.with(|p| *p.borrow_mut() = local);
+    CPREFS.with(|p| *p.borrow_mut() = ptrs);
 
-        list
-    })
+    list
 }
 
 pub(crate) fn free_prefs() {

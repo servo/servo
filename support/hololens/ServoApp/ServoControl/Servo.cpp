@@ -21,8 +21,10 @@ void on_title_changed(const char *title) {
   sServo->Delegate().OnServoTitleChanged(char2hstring(title));
 }
 
-void on_url_changed(const char *url) {
-  sServo->Delegate().OnServoURLChanged(char2hstring(url));
+void on_url_changed(const char *curl) {
+  auto url = char2hstring(curl);
+  sServo->CurrentUrl(url);
+  sServo->Delegate().OnServoURLChanged(url);
 }
 
 void wakeup() { sServo->Delegate().WakeUp(); }
@@ -35,12 +37,46 @@ void on_animating_changed(bool aAnimating) {
   sServo->Delegate().OnServoAnimatingChanged(aAnimating);
 }
 
-void on_panic(const char *backtrace) {
+void on_panic(const char *cbacktrace) {
+
   if (sLogHandle != INVALID_HANDLE_VALUE) {
     CloseHandle(sLogHandle);
     sLogHandle = INVALID_HANDLE_VALUE;
   }
-  throw hresult_error(E_FAIL, char2hstring(backtrace));
+
+  auto backtrace = char2hstring(cbacktrace);
+
+  try {
+    // Making all sync operations sync, as we are crashing.
+    auto storageFolder = ApplicationData::Current().LocalFolder();
+    auto stdout_txt = storageFolder.GetFileAsync(L"stdout.txt").get();
+    auto crash_txt =
+        storageFolder
+            .CreateFileAsync(L"crash-report.txt",
+                             CreationCollisionOption::ReplaceExisting)
+            .get();
+    auto out = FileIO::ReadTextAsync(stdout_txt).get();
+    FileIO::WriteTextAsync(crash_txt, L"--- CUSTOM MESSAGE ---\r\n").get();
+    FileIO::AppendTextAsync(crash_txt,
+                            L"Feel free to add details here before reporting")
+        .get();
+    FileIO::AppendTextAsync(
+        crash_txt, L"\r\n--- CURRENT URL (remove if sensitive) ---\r\n")
+        .get();
+    FileIO::AppendTextAsync(crash_txt, sServo->CurrentUrl()).get();
+    FileIO::AppendTextAsync(crash_txt, L"\r\n--- BACKTRACE ---\r\n").get();
+    FileIO::AppendTextAsync(crash_txt, backtrace).get();
+    FileIO::AppendTextAsync(crash_txt, L"\r\n--- STDOUT ---\r\n").get();
+    FileIO::AppendTextAsync(crash_txt, out).get();
+    FileIO::AppendTextAsync(crash_txt, L"\r\n").get();
+  } catch (...) {
+    log(L"Failed to log panic to crash report");
+  }
+
+  // If this is happening in the GL thread, the app can continue running.
+  // So let's show the crash report:
+  sServo->Delegate().OnServoPanic(backtrace);
+  throw hresult_error(E_FAIL, backtrace);
 }
 
 void on_ime_show(const char *text, int32_t x, int32_t y, int32_t width,
@@ -371,9 +407,7 @@ std::vector<Servo::PrefTuple> Servo::GetPrefs() {
     return {};
   }
   auto prefs = capi::get_prefs();
-  std::vector<
-      std::tuple<hstring, winrt::Windows::Foundation::IInspectable, bool>>
-      vec;
+  std::vector<PrefTuple> vec;
   for (auto i = 0; i < prefs.len; i++) {
     auto pref = WrapPref(prefs.list[i]);
     vec.push_back(pref);

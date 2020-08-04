@@ -148,6 +148,8 @@ pub trait HostTrait {
     fn on_media_session_set_position_state(&self, duration: f64, position: f64, playback_rate: f64);
     /// Called when devtools server is started
     fn on_devtools_started(&self, port: Result<u16, ()>, token: String);
+    /// Called when we get a panic message from constellation
+    fn on_panic(&self, reason: String, backtrace: Option<String>);
 }
 
 pub struct ServoGlue {
@@ -764,6 +766,9 @@ impl ServoGlue {
                         .host_callbacks
                         .on_devtools_started(port, token);
                 },
+                EmbedderMsg::Panic(reason, backtrace) => {
+                    self.callbacks.host_callbacks.on_panic(reason, backtrace);
+                },
                 EmbedderMsg::Status(..) |
                 EmbedderMsg::SelectFiles(..) |
                 EmbedderMsg::MoveTo(..) |
@@ -773,7 +778,6 @@ impl ServoGlue {
                 EmbedderMsg::NewFavicon(..) |
                 EmbedderMsg::HeadParsed |
                 EmbedderMsg::SetFullscreenState(..) |
-                EmbedderMsg::Panic(..) |
                 EmbedderMsg::ReportProfile(..) => {},
             }
         }

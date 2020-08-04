@@ -111,6 +111,7 @@
   "network.http-cache.disabled": false,
   "network.mime.sniff": false,
   "session-history.max-length": 20,
+  "shell.crash_reporter.enabled": false,
   "shell.homepage": "https://servo.org",
   "shell.keep_screen_on.enabled": false,
   "shell.native-orientation": "both",

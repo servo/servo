@@ -150,7 +150,7 @@
                     </Button>
                 </Grid>
             </muxc:TabView.TabStripFooter>
-            <muxc:TabViewItem x:Uid="devtoolsTabConsole" IsClosable="False">
+            <muxc:TabViewItem x:Uid="devtoolsTabConsole" x:Name="devtoolsTabConsole" IsClosable="False">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="*"/>
@@ -198,6 +198,20 @@
                         <StackPanel x:Name="prefList"/>
                     </ScrollViewer>
                 </Grid>
+            </muxc:TabViewItem>
+            <muxc:TabViewItem x:Uid="crashTab" x:Name="crashTab" IsClosable="False" Visibility="Collapsed">
+              <Grid VerticalAlignment="Stretch">
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="auto"/>
+                  <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <StackPanel Grid.Row="0" Padding="4" Orientation="Horizontal">
+                  <TextBlock VerticalAlignment="Center" x:Name="crashTabMessage"></TextBlock>
+                  <Button IsTabStop="true" x:Uid="SubmitCrashReportButton" Margin="4" Click="OnSubmitCrashReport"/>
+                  <Button IsTabStop="true" x:Uid="DismissCrashReportButton" Margin="4" Click="OnDismissCrashReport"/>
+                </StackPanel>
+                <TextBox Grid.Row="1" TextWrapping="Wrap" IsTabStop="true" x:Name="crashReport" AcceptsReturn="True" IsSpellCheckEnabled="False" Margin="3"/>
+              </Grid>
             </muxc:TabViewItem>
         </muxc:TabView>
         <ProgressBar x:Name="transientLoadingIndicator" Visibility="Collapsed" Grid.Row="3"/>

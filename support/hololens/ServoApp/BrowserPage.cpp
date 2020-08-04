@@ -19,6 +19,7 @@ using namespace winrt::Windows::ApplicationModel::Resources;
 using namespace winrt::Windows::UI::Notifications;
 using namespace winrt::Windows::Data::Json;
 using namespace winrt::Windows::Data::Xml::Dom;
+using namespace winrt::Windows::Storage;
 using namespace winrt::servo;
 
 namespace winrt::ServoApp::implementation {
@@ -37,15 +38,19 @@ void BrowserPage::BindServoEvents() {
     backButton().IsEnabled(back);
     forwardButton().IsEnabled(forward);
   });
+  servoView().OnServoPanic([=](const auto &, hstring /*message*/) {
+    mPanicking = true;
+    CheckCrashReport();
+  });
   servoView().OnLoadStarted([=] {
     urlbarLoadingIndicator().IsActive(true);
     transientLoadingIndicator().IsIndeterminate(true);
-
     reloadButton().IsEnabled(false);
     reloadButton().Visibility(Visibility::Collapsed);
     stopButton().IsEnabled(true);
     stopButton().Visibility(Visibility::Visible);
     devtoolsButton().IsEnabled(true);
+    CheckCrashReport();
   });
   servoView().OnLoadEnded([=] {
     urlbarLoadingIndicator().IsActive(false);
@@ -297,24 +302,59 @@ void BrowserPage::OnDevtoolsMessage(DevtoolsMessageLevel level, hstring source,
   });
 }
 
+void BrowserPage::CheckCrashReport() {
+  Concurrency::create_task([=] {
+    auto pref = servo::Servo::GetPref(L"shell.crash_reporter.enabled");
+    bool reporter_enabled = unbox_value<bool>(std::get<1>(pref));
+    auto storageFolder = ApplicationData::Current().LocalFolder();
+    bool file_exist =
+        storageFolder.TryGetItemAsync(L"crash-report.txt").get() != nullptr;
+    if (reporter_enabled && file_exist) {
+      auto crash_file = storageFolder.GetFileAsync(L"crash-report.txt").get();
+      auto content = FileIO::ReadTextAsync(crash_file).get();
+      Dispatcher().RunAsync(CoreDispatcherPriority::High, [=] {
+        auto resourceLoader = ResourceLoader::GetForCurrentView();
+        auto message = resourceLoader.GetString(mPanicking ? L"crash/Happening"
+                                                           : L"crash/Happened");
+        crashTabMessage().Text(message);
+        crashReport().Text(content);
+        crashTab().Visibility(Visibility::Visible);
+        crashTab().IsSelected(true);
+        ShowToolbox();
+      });
+    } else {
+      Dispatcher().RunAsync(CoreDispatcherPriority::High, [=] {
+        crashTab().Visibility(Visibility::Collapsed);
+        devtoolsTabConsole().IsSelected(true);
+      });
+    }
+  });
+}
+
+void BrowserPage::OnDismissCrashReport(IInspectable const &,
+                                       RoutedEventArgs const &) {
+  Concurrency::create_task([=] {
+    auto storageFolder = ApplicationData::Current().LocalFolder();
+    auto crash_file = storageFolder.GetFileAsync(L"crash-report.txt").get();
+    crash_file.DeleteAsync().get();
+  });
+  HideToolbox();
+}
+
+void BrowserPage::OnSubmitCrashReport(IInspectable const &,
+                                      RoutedEventArgs const &) {
+  // FIXME
+}
+
 void BrowserPage::OnDevtoolsDetached() {}
 
-void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
-                                          RoutedEventArgs const &) {
+void BrowserPage::ShowToolbox() {
   if (toolbox().Visibility() == Visibility::Visible) {
-    prefList().Children().Clear();
-    toolbox().Visibility(Visibility::Collapsed);
-    ClearConsole();
-    if (mDevtoolsClient != nullptr) {
-      mDevtoolsClient->Stop();
-    }
     return;
   }
-
   toolbox().Visibility(Visibility::Visible);
-
+  CheckCrashReport();
   BuildPrefList();
-
   auto resourceLoader = ResourceLoader::GetForCurrentView();
   if (mDevtoolsStatus == DevtoolsStatus::Running) {
     hstring port = to_hstring(mDevtoolsPort);
@@ -334,6 +374,24 @@ void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
   } else if (mDevtoolsStatus == DevtoolsStatus::Stopped) {
     auto body = resourceLoader.GetString(L"devtoolsStatus/Stopped");
     OnDevtoolsMessage(servo::DevtoolsMessageLevel::None, L"", body);
+  }
+}
+
+void BrowserPage::HideToolbox() {
+  prefList().Children().Clear();
+  toolbox().Visibility(Visibility::Collapsed);
+  ClearConsole();
+  if (mDevtoolsClient != nullptr) {
+    mDevtoolsClient->Stop();
+  }
+}
+
+void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
+                                          RoutedEventArgs const &) {
+  if (toolbox().Visibility() == Visibility::Visible) {
+    HideToolbox();
+  } else {
+    ShowToolbox();
   }
 }
 

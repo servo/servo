@@ -482,6 +482,9 @@ mod gen {
                 max_length: i64,
             },
             shell: {
+                crash_reporter: {
+                    enabled: bool,
+                },
                 homepage: String,
                 keep_screen_on: {
                     enabled: bool,

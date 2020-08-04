@@ -31,6 +31,8 @@ public:
         float, ServoDelegate &, bool);
   ~Servo();
   ServoDelegate &Delegate() { return mDelegate; }
+  hstring CurrentUrl() { return mUrl; }
+  void CurrentUrl(hstring url) { mUrl = url; }
 
   typedef std::tuple<hstring, winrt::Windows::Foundation::IInspectable, bool>
       PrefTuple;
@@ -96,6 +98,7 @@ public:
 
 private:
   ServoDelegate &mDelegate;
+  hstring mUrl;
   GLsizei mWindowWidth;
   GLsizei mWindowHeight;
   static void SaveUserPref(PrefTuple);
@@ -115,6 +118,7 @@ public:
   virtual void OnServoURLChanged(hstring) = 0;
   virtual bool OnServoAllowNavigation(hstring) = 0;
   virtual void OnServoAnimatingChanged(bool) = 0;
+  virtual void OnServoPanic(hstring) = 0;
   virtual void OnServoIMEShow(hstring text, int32_t x, int32_t y, int32_t width,
                               int32_t height) = 0;
   virtual void OnServoIMEHide() = 0;

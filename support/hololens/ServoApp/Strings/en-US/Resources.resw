@@ -114,6 +114,21 @@
   <data name="devtoolsTabPrefs.[using:Microsoft.UI.Xaml.Controls]TabViewItem.Header" xml:space="preserve">
     <value>Preferences</value>
   </data>
+  <data name="crashTab.[using:Microsoft.UI.Xaml.Controls]TabViewItem.Header" xml:space="preserve">
+    <value>Crash Report</value>
+  </data>
+  <data name="crash.Happening" xml:space="preserve">
+    <value>Internal crash detected. Application might be unstable:</value>
+  </data>
+  <data name="crash.Happened" xml:space="preserve">
+    <value>Internal crash was detected during last run:</value>
+  </data>
+  <data name="SubmitCrashReportButton.Content" xml:space="preserve">
+    <value>Send crash report</value>
+  </data>
+  <data name="DismissCrashReportButton.Content" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
   <data name="preferenceSearchbox.PlaceholderText" xml:space="preserve">
     <value>Search Preferences</value>
   </data>
