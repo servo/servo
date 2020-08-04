@@ -9,18 +9,18 @@ interface XRWebGLBinding {
 
 //  readonly attribute double nativeProjectionScaleFactor;
 
-//  XRProjectionLayer createProjectionLayer(XRTextureType textureType,
-//                                          optional XRProjectionLayerInit init);
-//  XRQuadLayer createQuadLayer(XRTextureType textureType,
-//                              optional XRQuadLayerInit init);
-//  XRCylinderLayer createCylinderLayer(XRTextureType textureType,
-//                                      optional XRCylinderLayerInit init);
-//  XREquirectLayer createEquirectLayer(XRTextureType textureType,
-//                                      optional XREquirectLayerInit init);
-//  XRCubeLayer createCubeLayer(optional XRCubeLayerInit init);
+  [Throws] XRProjectionLayer createProjectionLayer(XRTextureType textureType,
+                                          optional XRProjectionLayerInit init = {});
+  [Throws] XRQuadLayer createQuadLayer(XRTextureType textureType,
+                              optional XRQuadLayerInit init);
+  [Throws] XRCylinderLayer createCylinderLayer(XRTextureType textureType,
+                                      optional XRCylinderLayerInit init);
+  [Throws] XREquirectLayer createEquirectLayer(XRTextureType textureType,
+                                      optional XREquirectLayerInit init);
+  [Throws] XRCubeLayer createCubeLayer(optional XRCubeLayerInit init);
 
-//  XRWebGLSubImage getSubImage(XRCompositionLayer layer, XRFrame frame, optional XREye eye = "none");
-//  XRWebGLSubImage getViewSubImage(XRProjectionLayer layer, XRView view);
+  [Throws] XRWebGLSubImage getSubImage(XRCompositionLayer layer, XRFrame frame, optional XREye eye = "none");
+  [Throws] XRWebGLSubImage getViewSubImage(XRProjectionLayer layer, XRView view);
 };
 
 dictionary XRProjectionLayerInit {
