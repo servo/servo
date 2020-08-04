@@ -4357,7 +4357,7 @@ dependencies = [
  "bitflags",
  "crc32fast",
  "deflate 0.8.6",
- "miniz_oxide",
+ "miniz_oxide 0.3.7",
 ]
 
 [[package]]

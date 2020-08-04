@@ -32,12 +32,15 @@ packages = [
   "arrayvec",
   "base64",
   "cocoa",
+  "deflate",
   "gleam",
   "libloading",
   "metal",
   "miniz_oxide",
+  "num-rational",
   "parking_lot",
   "parking_lot_core",
+  "png",
   "wayland-sys",
 
   # https://github.com/servo/servo/issues/26933
