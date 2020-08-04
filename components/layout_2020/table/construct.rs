@@ -28,26 +28,26 @@ pub(crate) struct TableSlots {
 #[derive(Debug, Default, Serialize)]
 /// A row in the table slot map
 pub(crate) struct TableSlotsRow {
-    cells: Vec<TableSlot>,
+    slots: Vec<TableSlot>,
 }
 
 impl TableSlots {
     /// Get the slot at (x, y)
     pub fn get(&self, x: usize, y: usize) -> Option<&TableSlot> {
-        self.rows.get(y)?.cells.get(x)
+        self.rows.get(y)?.slots.get(x)
     }
 
     /// Inserts a new slot into the last row
     fn push(&mut self, slot: TableSlot) {
         let y = self.rows.len() - 1;
-        self.rows[y].cells.push(slot)
+        self.rows[y].slots.push(slot)
     }
 
     /// Convenience method for get() that returns a SlotAndLocation
     fn get_loc(&self, x: usize, y: usize) -> Option<SlotAndLocation> {
         self.rows
             .get(y)?
-            .cells
+            .slots
             .get(x)
             .map(|slot| SlotAndLocation { slot, x, y })
     }
@@ -227,7 +227,7 @@ struct TableContainerBuilder<'a, Node> {
     /// rows that still need to be spanned. Negative values indicate rowspan=0
     ///
     /// This vector is reused for the outgoing rowspans, if there is already a cell
-    /// in the cell map the value in this array represents the incoming rowspan for the *next* row
+    /// in the slot map the value in this array represents the incoming rowspan for the *next* row
     incoming_rowspans: Vec<isize>,
 }
 
@@ -331,7 +331,7 @@ impl<'a, 'builder, Node> TableRowBuilder<'a, 'builder, Node> {
 
     fn current_x(&self) -> usize {
         self.builder.slots.rows[self.builder.current_y()]
-            .cells
+            .slots
             .len()
     }
 }
@@ -429,7 +429,7 @@ where
     }
 
     /// https://html.spec.whatwg.org/multipage/#algorithm-for-processing-rows
-    /// Push a single cell onto the cell slot map, handling any colspans it may have, and
+    /// Push a single cell onto the slot map, handling any colspans it may have, and
     /// setting up the outgoing rowspans
     fn handle_cell(&mut self, info: &NodeAndStyleInfo<Node>) {
         let current_x = self.current_x();
