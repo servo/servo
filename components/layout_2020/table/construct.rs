@@ -2,6 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+//! Constructs the slot map for a table
+//!
+//! Based on https://html.spec.whatwg.org/multipage/#table-processing-model
+
 use super::TableContainer;
 use crate::context::LayoutContext;
 use crate::dom_traversal::{
