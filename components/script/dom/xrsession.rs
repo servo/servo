@@ -160,6 +160,13 @@ impl XRSession {
         self.mode != XRSessionMode::Inline
     }
 
+    // https://immersive-web.github.io/layers/#feature-descriptor-layers
+    pub fn has_layers_feature(&self) -> bool {
+        // We do not support creating layers other than projection layers
+        // https://github.com/servo/servo/issues/27493
+        false
+    }
+
     fn setup_raf_loop(&self, frame_receiver: IpcReceiver<Frame>) {
         let this = Trusted::new(self);
         let global = self.global();
@@ -604,10 +611,8 @@ impl XRSessionMethods for XRSession {
 
         // https://immersive-web.github.io/layers/#updaterenderstatechanges
         // Step 1.
-        // TODO: support the `layers' feature.
-        let session_created_with_layers_enabled = false;
         if init.baseLayer.is_some() {
-            if session_created_with_layers_enabled {
+            if self.has_layers_feature() {
                 return Err(Error::NotSupported);
             }
             // https://github.com/immersive-web/layers/issues/189

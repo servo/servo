@@ -5,11 +5,11 @@
 // https://immersive-web.github.io/layers/#xrmediabindingtype
 [SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
 interface XRMediaBinding {
-  constructor(XRSession session);
+  [Throws] constructor(XRSession session);
 
-//  XRQuadLayer createQuadVideoLayer(HTMLVideoElement video, optional XRMediaLayerInit init = {});
-//  XRCylinderLayer createCylinderVideoLayer(HTMLVideoElement video, optional XRMediaLayerInit init = {});
-//  XREquirectLayer createEquirectVideoLayer(HTMLVideoElement video, optional XRMediaLayerInit init = {});
+  [Throws] XRQuadLayer createQuadLayer(HTMLVideoElement video, XRMediaLayerInit init);
+  [Throws] XRCylinderLayer createCylinderLayer(HTMLVideoElement video, XRMediaLayerInit init);
+  [Throws] XREquirectLayer createEquirectLayer(HTMLVideoElement video, XRMediaLayerInit init);
 };
 
 dictionary XRMediaLayerInit {
