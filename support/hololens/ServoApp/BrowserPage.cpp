@@ -16,6 +16,7 @@ using namespace winrt::Windows::UI::Core;
 using namespace winrt::Windows::UI::ViewManagement;
 using namespace winrt::Windows::ApplicationModel::Core;
 using namespace winrt::Windows::ApplicationModel::Resources;
+using namespace winrt::Windows::ApplicationModel::Resources::Core;
 using namespace winrt::Windows::UI::Notifications;
 using namespace winrt::Windows::Data::Json;
 using namespace winrt::Windows::Data::Xml::Dom;
@@ -28,6 +29,17 @@ BrowserPage::BrowserPage() {
   InitializeComponent();
   BindServoEvents();
   mLogs = winrt::single_threaded_observable_vector<IInspectable>();
+
+  auto ctx = ResourceContext::GetForCurrentView();
+  auto current = ResourceManager::Current();
+  auto tree = current.MainResourceMap().GetSubtree(L"PromotedPrefs");
+  for (auto s : tree) {
+    hstring k = s.Key();
+    std::wstring wk = k.c_str();
+    std::replace(wk.begin(), wk.end(), '/', '.');
+    hstring v = s.Value().Resolve(ctx).ValueAsString();
+    mPromotedPrefs.insert(std::pair(wk, v));
+  }
 }
 
 void BrowserPage::BindServoEvents() {
@@ -182,17 +194,34 @@ void BrowserPage::UpdatePref(ServoApp::Pref pref, Controls::Control ctrl) {
   stack.Children().GetAt(2).as<Controls::Button>().IsEnabled(!pref.IsDefault());
 }
 
+void BrowserPage::OnSeeAllPrefClicked(IInspectable const &,
+                                      RoutedEventArgs const &) {
+  BuildPrefList();
+}
+
 // Retrieve the preference list from Servo and build the preference table.
 void BrowserPage::BuildPrefList() {
+  prefList().Children().Clear();
+  bool promoted = !seeAllPrefCheckBox().IsChecked().GetBoolean();
+  preferenceSearchbox().Visibility(promoted ? Visibility::Collapsed
+                                            : Visibility::Visible);
+  preferenceSearchbox().Text(L"");
   // It would be better to use a template and bindings, but the
   // <ListView> takes too long to generate all the items, and
   // it's pretty difficiult to have different controls depending
   // on the pref type.
-  prefList().Children().Clear();
   auto resourceLoader = ResourceLoader::GetForCurrentView();
   auto resetStr =
       resourceLoader.GetString(L"devtoolsPreferenceResetButton/Content");
   for (auto pref : servoView().Preferences()) {
+    std::optional<hstring> description = {};
+    if (promoted) {
+      auto search = mPromotedPrefs.find(pref.Key());
+      if (search == mPromotedPrefs.end()) {
+        continue;
+      }
+      description = {search->second};
+    }
     auto value = pref.Value();
     auto type = value.as<IPropertyValue>().Type();
     std::optional<Controls::Control> ctrl;
@@ -243,7 +272,7 @@ void BrowserPage::BuildPrefList() {
       stack.Padding({4, 4, 4, 4});
       stack.Orientation(Controls::Orientation::Horizontal);
       auto key = Controls::TextBlock();
-      key.Text(pref.Key());
+      key.Text(promoted ? *description : pref.Key());
       key.Width(350);
       if (!pref.IsDefault()) {
         auto font = winrt::Windows::UI::Text::FontWeights::Bold();

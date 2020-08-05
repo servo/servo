@@ -924,13 +924,16 @@
     <Filter Include="ServoControl">
       <UniqueIdentifier>{d21a959c-19d1-4a54-b942-692c27e5b3a6}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Strings">
+    <Filter Include="Resources">
+      <UniqueIdentifier>{c05cce0c-d62c-11ea-87d0-0242ac130003}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resources\Strings">
       <UniqueIdentifier>{49e23631-d899-4caf-bf7b-30776fee4d09}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Strings\en-US">
+    <Filter Include="Resources\Strings\en-US">
       <UniqueIdentifier>{c12ff5d4-3730-4a0e-8b16-56ded3138875}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Strings\fr-FR">
+    <Filter Include="Resources\Strings\fr-FR">
       <UniqueIdentifier>{b7d3273d-a27c-4176-87a1-3d5222b796b3}</UniqueIdentifier>
     </Filter>
     <Filter Include="Devtools">
@@ -950,11 +953,14 @@
     <ApplicationDefinition Include="App.xaml" />
   </ItemGroup>
   <ItemGroup>
-    <PRIResource Include="Strings\en-US\Resources.resw">
-      <Filter>Strings\en-US</Filter>
+    <PRIResource Include="Resources\PromotedPrefs.resw">
+      <Filter>Resources</Filter>
     </PRIResource>
-    <PRIResource Include="Strings\fr-FR\Resources.resw">
-      <Filter>Strings\fr-FR</Filter>
+    <PRIResource Include="Resources\Strings\en-US\Resources.resw">
+      <Filter>Resources\Strings\en-US</Filter>
+    </PRIResource>
+    <PRIResource Include="Resources\Strings\fr-FR\Resources.resw">
+      <Filter>Resources\Strings\fr-FR</Filter>
     </PRIResource>
   </ItemGroup>
 </Project>

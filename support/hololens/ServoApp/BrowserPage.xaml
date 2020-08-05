@@ -192,11 +192,13 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="auto"/>
                         <RowDefinition Height="*"/>
+                        <RowDefinition Height="auto"/>
                     </Grid.RowDefinitions>
-                    <TextBox Grid.Row="0" IsTabStop="true" x:Uid="preferenceSearchbox" x:Name="preferenceSearchbox" VerticalAlignment="Center" KeyUp="OnPrefererenceSearchboxEdited" IsSpellCheckEnabled="False" Margin="3"/>
+                    <CheckBox Margin="3" x:Name="seeAllPrefCheckBox" x:Uid="seeAllPrefCheckBox" Click="OnSeeAllPrefClicked" IsChecked="False" Grid.Row="0"/>
                     <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
                         <StackPanel x:Name="prefList"/>
                     </ScrollViewer>
+                    <TextBox Grid.Row="2" IsTabStop="true" x:Uid="preferenceSearchbox" x:Name="preferenceSearchbox" VerticalAlignment="Center" KeyUp="OnPrefererenceSearchboxEdited" IsSpellCheckEnabled="False" Margin="3"/>
                 </Grid>
             </muxc:TabViewItem>
             <muxc:TabViewItem x:Uid="crashTab" x:Name="crashTab" IsClosable="False" Visibility="Collapsed">
