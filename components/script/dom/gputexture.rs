@@ -16,6 +16,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpudevice::{convert_texture_format, convert_texture_view_dimension, GPUDevice};
 use crate::dom::gputextureview::GPUTextureView;
 use dom_struct::dom_struct;
+use std::num::NonZeroU32;
 use std::string::String;
 use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
 
@@ -152,9 +153,9 @@ impl GPUTextureMethods for GPUTexture {
                 GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
             },
             base_mip_level: descriptor.baseMipLevel,
-            level_count: descriptor.mipLevelCount.as_ref().copied(),
+            level_count: descriptor.mipLevelCount.and_then(NonZeroU32::new),
             base_array_layer: descriptor.baseArrayLayer,
-            array_layer_count: descriptor.arrayLayerCount.as_ref().copied(),
+            array_layer_count: descriptor.arrayLayerCount.and_then(NonZeroU32::new),
         };
 
         let texture_view_id = self

@@ -744,7 +744,7 @@ impl<'a> WGPU<'a> {
                     },
                     WebGPURequest::DestroyBuffer(buffer) => {
                         let global = &self.global;
-                        gfx_select!(buffer => global.buffer_destroy(buffer, false));
+                        gfx_select!(buffer => global.buffer_drop(buffer, false));
                     },
                     WebGPURequest::DestroySwapChain {
                         external_id,
@@ -758,10 +758,10 @@ impl<'a> WGPU<'a> {
                             .unwrap();
                         let global = &self.global;
                         for b_id in data.available_buffer_ids.iter() {
-                            gfx_select!(b_id => global.buffer_destroy(*b_id, false));
+                            gfx_select!(b_id => global.buffer_drop(*b_id, false));
                         }
                         for b_id in data.queued_buffer_ids.iter() {
-                            gfx_select!(b_id => global.buffer_destroy(*b_id, false));
+                            gfx_select!(b_id => global.buffer_drop(*b_id, false));
                         }
                         for b_id in data.unassigned_buffer_ids.iter() {
                             if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(*b_id)) {
@@ -775,7 +775,7 @@ impl<'a> WGPU<'a> {
                     },
                     WebGPURequest::DestroyTexture(texture) => {
                         let global = &self.global;
-                        gfx_select!(texture => global.texture_destroy(texture));
+                        gfx_select!(texture => global.texture_drop(texture));
                     },
                     WebGPURequest::Exit(sender) => {
                         if let Err(e) = self.script_sender.send(WebGPUMsg::Exit) {
@@ -823,15 +823,13 @@ impl<'a> WGPU<'a> {
                         options,
                         ids,
                     } => {
-                        let adapter_id = match self.global.pick_adapter(
+                        let adapter_id = match self.global.request_adapter(
                             &options,
                             wgpu::instance::AdapterInputs::IdSet(&ids, |id| id.backend()),
                         ) {
-                            Some(id) => id,
-                            None => {
-                                if let Err(e) =
-                                    sender.send(Err("Failed to get webgpu adapter".to_string()))
-                                {
+                            Ok(id) => id,
+                            Err(w) => {
+                                if let Err(e) = sender.send(Err(format!("{:?}", w))) {
                                     warn!(
                                     "Failed to send response to WebGPURequest::RequestAdapter ({})",
                                     e
@@ -843,7 +841,8 @@ impl<'a> WGPU<'a> {
                         let adapter = WebGPUAdapter(adapter_id);
                         self.adapters.push(adapter);
                         let global = &self.global;
-                        let info = gfx_select!(adapter_id => global.adapter_get_info(adapter_id));
+                        let info =
+                            gfx_select!(adapter_id => global.adapter_get_info(adapter_id)).unwrap();
                         if let Err(e) = sender.send(Ok(WebGPUResponse::RequestAdapter {
                             adapter_name: info.name,
                             adapter_id: adapter,
