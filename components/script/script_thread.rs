@@ -1503,10 +1503,13 @@ impl ScriptThread {
                         ScriptThreadEventCategory::AttachLayout,
                         Some(pipeline_id),
                         || {
-                            // If this is an about:blank load, it must share the creator's origin.
-                            // This must match the logic in the constellation when creating a new pipeline
-                            let origin = if new_layout_info.load_data.url.as_str() != "about:blank"
-                            {
+                            // If this is an about:blank or about:srcdoc load, it must share the
+                            // creator's origin. This must match the logic in the constellation
+                            // when creating a new pipeline
+                            let not_an_about_blank_and_about_srcdoc_load =
+                                new_layout_info.load_data.url.as_str() != "about:blank" &&
+                                    new_layout_info.load_data.url.as_str() != "about:srcdoc";
+                            let origin = if not_an_about_blank_and_about_srcdoc_load {
                                 MutableOrigin::new(new_layout_info.load_data.url.origin())
                             } else if let Some(parent) =
                                 new_layout_info.parent_info.and_then(|pipeline_id| {

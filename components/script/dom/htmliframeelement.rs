@@ -248,7 +248,7 @@ impl HTMLIFrameElement {
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
             self.navigate_or_reload_child_browsing_context(
                 load_data,
-                NavigationType::InitialAboutBlank,
+                NavigationType::Regular,
                 HistoryEntryReplacement::Disabled,
             );
             return;
