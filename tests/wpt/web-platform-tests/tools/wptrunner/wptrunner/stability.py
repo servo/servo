@@ -13,6 +13,7 @@ from mozlog.handlers import BaseHandler, StreamHandler, LogLevelFilter
 
 here = os.path.dirname(__file__)
 localpaths = imp.load_source("localpaths", os.path.abspath(os.path.join(here, os.pardir, os.pardir, "localpaths.py")))
+from ci.tc.github_checks_output import get_gh_checks_outputter
 from wpt.markdown import markdown_adjust, table
 
 
@@ -178,8 +179,32 @@ def err_string(results_dict, iterations):
     return rv
 
 
+def write_github_checks_summary_inconsistent(log, inconsistent, iterations):
+    """Outputs a summary of inconsistent tests for GitHub Checks."""
+    log("Some affected tests had inconsistent (flaky) results:\n")
+    write_inconsistent(log, inconsistent, iterations)
+    log("\n")
+    log("These may be pre-existing or new flakes. Please try to reproduce (see "
+        "the above WPT command, though some flags may not be needed when "
+        "running locally) and determine if your change introduced the flake. "
+        "If you are unable to reproduce the problem, please tag "
+        "`@web-platform-tests/wpt-core-team` in a comment for help.\n")
+
+
+def write_github_checks_summary_slow_tests(log, slow):
+    """Outputs a summary of slow tests for GitHub Checks."""
+    log("Some affected tests had slow results:\n")
+    write_slow_tests(log, slow)
+    log("\n")
+    log("These may be pre-existing or newly slow tests. Slow tests indicate "
+        "that a test ran very close to the test timeout limit and so may "
+        "become TIMEOUT-flaky in the future. Consider speeding up the test or "
+        "breaking it into multiple tests. For help, please tag "
+        "`@web-platform-tests/wpt-core-team` in a comment.\n")
+
+
 def write_inconsistent(log, inconsistent, iterations):
-    """Output inconsistent tests to logger.error."""
+    """Output inconsistent tests to the passed in logging function."""
     log("## Unstable results ##\n")
     strings = [(
         "`%s`" % markdown_adjust(test),
@@ -191,6 +216,7 @@ def write_inconsistent(log, inconsistent, iterations):
 
 
 def write_slow_tests(log, slow):
+    """Output slow tests to the passed in logging function."""
     log("## Slow tests ##\n")
     strings = [(
         "`%s`" % markdown_adjust(test),
@@ -321,6 +347,8 @@ def check_stability(logger, repeat_loop=10, repeat_restart=5, chaos_mode=True, m
     start_time = datetime.now()
     step_results = []
 
+    github_checks_outputter = get_gh_checks_outputter(kwargs)
+
     for desc, step_func in steps:
         if max_time and datetime.now() - start_time > max_time:
             logger.info("::: Test verification is taking too long: Giving up!")
@@ -337,12 +365,16 @@ def check_stability(logger, repeat_loop=10, repeat_restart=5, chaos_mode=True, m
 
         if inconsistent:
             step_results.append((desc, "FAIL"))
+            if github_checks_outputter:
+                write_github_checks_summary_inconsistent(github_checks_outputter.output, inconsistent, iterations)
             write_inconsistent(logger.info, inconsistent, iterations)
             write_summary(logger, step_results, "FAIL")
             return 1
 
         if slow:
             step_results.append((desc, "FAIL"))
+            if github_checks_outputter:
+                write_github_checks_summary_slow_tests(github_checks_outputter.output, slow)
             write_slow_tests(logger.info, slow)
             write_summary(logger, step_results, "FAIL")
             return 1
