@@ -185,9 +185,18 @@ Servo::Servo(std::optional<hstring> initUrl, hstring args, GLsizei width,
 
   std::vector<capi::CPref> cprefs;
 
+  // Ensure few things stay in memories long enough as we send raw
+  // pointers to Rust.
+  std::vector<std::unique_ptr<char *>> memChar;
+  std::vector<std::unique_ptr<bool>> memBool;
+  std::vector<std::unique_ptr<int64_t>> memInt;
+  std::vector<std::unique_ptr<double>> memDouble;
+
   for (auto pref : prefs.Values()) {
 
-    auto key = *hstring2char(pref.Key());
+    auto charkey = hstring2char(pref.Key());
+    auto key = *charkey.get();
+    memChar.push_back(std::move(charkey));
     auto value = pref.Value();
 
     auto type = value.as<Windows::Foundation::IPropertyValue>().Type();
@@ -197,20 +206,24 @@ Servo::Servo(std::optional<hstring> initUrl, hstring args, GLsizei width,
     cpref.value = NULL;
     if (type == Windows::Foundation::PropertyType::Boolean) {
       cpref.pref_type = capi::CPrefType::Bool;
-      auto val = unbox_value<bool>(value);
-      cpref.value = &val;
+      auto val = std::make_unique<bool>(unbox_value<bool>(value));
+      cpref.value = val.get();
+      memBool.push_back(std::move(val));
     } else if (type == Windows::Foundation::PropertyType::String) {
       cpref.pref_type = capi::CPrefType::Str;
-      auto val = unbox_value<hstring>(value);
-      cpref.value = *hstring2char(val);
+      auto val = hstring2char(unbox_value<hstring>(value));
+      cpref.value = *val.get();
+      memChar.push_back(std::move(val));
     } else if (type == Windows::Foundation::PropertyType::Int64) {
       cpref.pref_type = capi::CPrefType::Int;
-      auto val = unbox_value<int64_t>(value);
-      cpref.value = &val;
+      auto val = std::make_unique<int64_t>(unbox_value<int64_t>(value));
+      cpref.value = val.get();
+      memInt.push_back(std::move(val));
     } else if (type == Windows::Foundation::PropertyType::Double) {
       cpref.pref_type = capi::CPrefType::Float;
-      auto val = unbox_value<double>(value);
-      cpref.value = &val;
+      auto val = std::make_unique<double>(unbox_value<double>(value));
+      cpref.value = val.get();
+      memDouble.push_back(std::move(val));
     } else if (type == Windows::Foundation::PropertyType::Empty) {
       cpref.pref_type = capi::CPrefType::Missing;
     } else {
