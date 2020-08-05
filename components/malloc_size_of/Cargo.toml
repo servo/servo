@@ -32,7 +32,7 @@ app_units = "0.7"
 content-security-policy = { version = "0.4.0", features = ["serde"], optional = true }
 crossbeam-channel = { version = "0.4", optional = true }
 cssparser = "0.27"
-euclid = "0.20"
+euclid = "0.22"
 hashglobe = { path = "../hashglobe" }
 hyper = { version = "0.12", optional = true }
 hyper_serde = { version = "0.11", optional = true }

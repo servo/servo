@@ -76,7 +76,7 @@ pub use self::GenericMatrix3D as Matrix3D;
 impl<T: Into<f64>> From<Matrix<T>> for Transform3D<f64> {
     #[inline]
     fn from(m: Matrix<T>) -> Self {
-        Transform3D::row_major(
+        Transform3D::new(
             m.a.into(), m.b.into(), 0.0, 0.0,
             m.c.into(), m.d.into(), 0.0, 0.0,
             0.0,        0.0,        1.0, 0.0,
@@ -89,7 +89,7 @@ impl<T: Into<f64>> From<Matrix<T>> for Transform3D<f64> {
 impl<T: Into<f64>> From<Matrix3D<T>> for Transform3D<f64> {
     #[inline]
     fn from(m: Matrix3D<T>) -> Self {
-        Transform3D::row_major(
+        Transform3D::new(
             m.m11.into(), m.m12.into(), m.m13.into(), m.m14.into(),
             m.m21.into(), m.m22.into(), m.m23.into(), m.m24.into(),
             m.m31.into(), m.m32.into(), m.m33.into(), m.m34.into(),
@@ -443,15 +443,14 @@ where
         use self::TransformOperation::*;
         use std::f64;
 
-        const TWO_PI: f64 = 2.0f64 * f64::consts::PI;
         let reference_width = reference_box.map(|v| v.size.width);
         let reference_height = reference_box.map(|v| v.size.height);
         let matrix = match *self {
             Rotate3D(ax, ay, az, theta) => {
-                let theta = TWO_PI - theta.radians64();
+                let theta = theta.radians64();
                 let (ax, ay, az, theta) =
                     get_normalized_vector_and_angle(ax.into(), ay.into(), az.into(), theta);
-                Transform3D::create_rotation(
+                Transform3D::rotation(
                     ax as f64,
                     ay as f64,
                     az as f64,
@@ -459,56 +458,56 @@ where
                 )
             },
             RotateX(theta) => {
-                let theta = euclid::Angle::radians(TWO_PI - theta.radians64());
-                Transform3D::create_rotation(1., 0., 0., theta)
+                let theta = euclid::Angle::radians(theta.radians64());
+                Transform3D::rotation(1., 0., 0., theta)
             },
             RotateY(theta) => {
-                let theta = euclid::Angle::radians(TWO_PI - theta.radians64());
-                Transform3D::create_rotation(0., 1., 0., theta)
+                let theta = euclid::Angle::radians(theta.radians64());
+                Transform3D::rotation(0., 1., 0., theta)
             },
             RotateZ(theta) | Rotate(theta) => {
-                let theta = euclid::Angle::radians(TWO_PI - theta.radians64());
-                Transform3D::create_rotation(0., 0., 1., theta)
+                let theta = euclid::Angle::radians(theta.radians64());
+                Transform3D::rotation(0., 0., 1., theta)
             },
             Perspective(ref d) => {
                 let m = create_perspective_matrix(d.to_pixel_length(None)?);
                 m.cast()
             },
-            Scale3D(sx, sy, sz) => Transform3D::create_scale(sx.into(), sy.into(), sz.into()),
-            Scale(sx, sy) => Transform3D::create_scale(sx.into(), sy.into(), 1.),
-            ScaleX(s) => Transform3D::create_scale(s.into(), 1., 1.),
-            ScaleY(s) => Transform3D::create_scale(1., s.into(), 1.),
-            ScaleZ(s) => Transform3D::create_scale(1., 1., s.into()),
+            Scale3D(sx, sy, sz) => Transform3D::scale(sx.into(), sy.into(), sz.into()),
+            Scale(sx, sy) => Transform3D::scale(sx.into(), sy.into(), 1.),
+            ScaleX(s) => Transform3D::scale(s.into(), 1., 1.),
+            ScaleY(s) => Transform3D::scale(1., s.into(), 1.),
+            ScaleZ(s) => Transform3D::scale(1., 1., s.into()),
             Translate3D(ref tx, ref ty, ref tz) => {
                 let tx = tx.to_pixel_length(reference_width)? as f64;
                 let ty = ty.to_pixel_length(reference_height)? as f64;
-                Transform3D::create_translation(tx, ty, tz.to_pixel_length(None)? as f64)
+                Transform3D::translation(tx, ty, tz.to_pixel_length(None)? as f64)
             },
             Translate(ref tx, ref ty) => {
                 let tx = tx.to_pixel_length(reference_width)? as f64;
                 let ty = ty.to_pixel_length(reference_height)? as f64;
-                Transform3D::create_translation(tx, ty, 0.)
+                Transform3D::translation(tx, ty, 0.)
             },
             TranslateX(ref t) => {
                 let t = t.to_pixel_length(reference_width)? as f64;
-                Transform3D::create_translation(t, 0., 0.)
+                Transform3D::translation(t, 0., 0.)
             },
             TranslateY(ref t) => {
                 let t = t.to_pixel_length(reference_height)? as f64;
-                Transform3D::create_translation(0., t, 0.)
+                Transform3D::translation(0., t, 0.)
             },
             TranslateZ(ref z) => {
-                Transform3D::create_translation(0., 0., z.to_pixel_length(None)? as f64)
+                Transform3D::translation(0., 0., z.to_pixel_length(None)? as f64)
             },
-            Skew(theta_x, theta_y) => Transform3D::create_skew(
+            Skew(theta_x, theta_y) => Transform3D::skew(
                 euclid::Angle::radians(theta_x.radians64()),
                 euclid::Angle::radians(theta_y.radians64()),
             ),
-            SkewX(theta) => Transform3D::create_skew(
+            SkewX(theta) => Transform3D::skew(
                 euclid::Angle::radians(theta.radians64()),
                 euclid::Angle::radians(0.),
             ),
-            SkewY(theta) => Transform3D::create_skew(
+            SkewY(theta) => Transform3D::skew(
                 euclid::Angle::radians(0.),
                 euclid::Angle::radians(theta.radians64()),
             ),
@@ -547,7 +546,7 @@ impl<T: ToMatrix> Transform<T> {
         let cast_3d_transform = |m: Transform3D<f64>| -> Transform3D<CSSFloat> {
             use std::{f32, f64};
             let cast = |v: f64| { v.min(f32::MAX as f64).max(f32::MIN as f64) as f32 };
-            Transform3D::row_major(
+            Transform3D::new(
                 cast(m.m11), cast(m.m12), cast(m.m13), cast(m.m14),
                 cast(m.m21), cast(m.m22), cast(m.m23), cast(m.m24),
                 cast(m.m31), cast(m.m32), cast(m.m33), cast(m.m34),
@@ -565,7 +564,7 @@ impl<T: ToMatrix> Transform<T> {
         reference_box: Option<&Rect<ComputedLength>>,
     ) -> Result<(Transform3D<f64>, bool), ()> {
         // We intentionally use Transform3D<f64> during computation to avoid error propagation
-        // because using f32 to compute triangle functions (e.g. in create_rotation()) is not
+        // because using f32 to compute triangle functions (e.g. in rotation()) is not
         // accurate enough. In Gecko, we also use "double" to compute the triangle functions.
         // Therefore, let's use Transform3D<f64> during matrix computation and cast it into f32
         // in the end.
@@ -575,7 +574,7 @@ impl<T: ToMatrix> Transform<T> {
         for operation in &*self.0 {
             let matrix = operation.to_3d_matrix(reference_box)?;
             contain_3d |= operation.is_3d();
-            transform = transform.pre_transform(&matrix);
+            transform = matrix.then(&transform);
         }
 
         Ok((transform, contain_3d))
@@ -595,7 +594,7 @@ pub fn create_perspective_matrix(d: CSSFloat) -> Transform3D<CSSFloat> {
     if d <= 0.0 {
         Transform3D::identity()
     } else {
-        Transform3D::create_perspective(d)
+        Transform3D::perspective(d)
     }
 }
 
