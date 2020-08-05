@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
+use crate::StreamId;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 
@@ -34,6 +35,7 @@ impl Actor for MemoryActor {
         _msg_type: &str,
         _msg: &Map<String, Value>,
         _stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(ActorMessageStatus::Ignored)
     }

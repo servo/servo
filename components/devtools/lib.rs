@@ -127,6 +127,9 @@ pub fn start_server(port: u16, embedder: EmbedderProxy) -> Sender<DevtoolsContro
     sender
 }
 
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub(crate) struct StreamId(u32);
+
 fn run_server(
     sender: Sender<DevtoolsControlMsg>,
     receiver: Receiver<DevtoolsControlMsg>,
@@ -188,7 +191,7 @@ fn run_server(
     let mut actor_workers: HashMap<WorkerId, String> = HashMap::new();
 
     /// Process the input from a single devtools client until EOF.
-    fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream) {
+    fn handle_client(actors: Arc<Mutex<ActorRegistry>>, mut stream: TcpStream, id: StreamId) {
         debug!("connection established to {}", stream.peer_addr().unwrap());
         {
             let actors = actors.lock().unwrap();
@@ -202,11 +205,11 @@ fn run_server(
         'outer: loop {
             match stream.read_json_packet() {
                 Ok(Some(json_packet)) => {
-                    if let Err(()) = actors
-                        .lock()
-                        .unwrap()
-                        .handle_message(json_packet.as_object().unwrap(), &mut stream)
-                    {
+                    if let Err(()) = actors.lock().unwrap().handle_message(
+                        json_packet.as_object().unwrap(),
+                        &mut stream,
+                        id,
+                    ) {
                         debug!("error: devtools actor stopped responding");
                         let _ = stream.shutdown(Shutdown::Both);
                         break 'outer;
@@ -222,6 +225,8 @@ fn run_server(
                 },
             }
         }
+
+        actors.lock().unwrap().cleanup(id);
     }
 
     fn handle_framerate_tick(actors: Arc<Mutex<ActorRegistry>>, actor_name: String, tick: f64) {
@@ -586,15 +591,18 @@ fn run_server(
         })
         .expect("Thread spawning failed");
 
+    let mut next_id = StreamId(0);
     while let Ok(msg) = receiver.recv() {
         debug!("{:?}", msg);
         match msg {
             DevtoolsControlMsg::FromChrome(ChromeToDevtoolsControlMsg::AddClient(stream)) => {
                 let actors = actors.clone();
+                let id = next_id;
+                next_id = StreamId(id.0 + 1);
                 accepted_connections.push(stream.try_clone().unwrap());
                 thread::Builder::new()
                     .name("DevtoolsClientHandler".to_owned())
-                    .spawn(move || handle_client(actors, stream.try_clone().unwrap()))
+                    .spawn(move || handle_client(actors, stream.try_clone().unwrap(), id))
                     .expect("Thread spawning failed");
             },
             DevtoolsControlMsg::FromScript(ScriptToDevtoolsControlMsg::FramerateTick(

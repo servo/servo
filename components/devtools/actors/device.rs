@@ -5,6 +5,7 @@
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::protocol::{ActorDescription, Method};
+use crate::StreamId;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 
@@ -34,6 +35,7 @@ impl Actor for DeviceActor {
         msg_type: &str,
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getDescription" => {

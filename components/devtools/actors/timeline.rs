@@ -6,6 +6,7 @@ use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::framerate::FramerateActor;
 use crate::actors::memory::{MemoryActor, TimelineMemoryReply};
 use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 use devtools_traits::DevtoolScriptControlMsg;
 use devtools_traits::DevtoolScriptControlMsg::{DropTimelineMarkers, SetTimelineMarkers};
 use devtools_traits::{PreciseTime, TimelineMarker, TimelineMarkerType};
@@ -188,6 +189,7 @@ impl Actor for TimelineActor {
         msg_type: &str,
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "start" => {
@@ -202,6 +204,7 @@ impl Actor for TimelineActor {
                     ))
                     .unwrap();
 
+                //TODO: support multiple connections by using root actor's streams instead.
                 *self.stream.borrow_mut() = stream.try_clone().ok();
 
                 // init memory actor
@@ -256,6 +259,7 @@ impl Actor for TimelineActor {
                     ))
                     .unwrap();
 
+                //TODO: move this to the cleanup method.
                 if let Some(ref actor_name) = *self.framerate_actor.borrow() {
                     registry.drop_actor_later(actor_name.clone());
                 }

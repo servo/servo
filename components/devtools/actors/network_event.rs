@@ -8,6 +8,7 @@
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 use devtools_traits::HttpRequest as DevtoolsHttpRequest;
 use devtools_traits::HttpResponse as DevtoolsHttpResponse;
 use headers::{ContentType, Cookie, HeaderMapExt};
@@ -180,6 +181,7 @@ impl Actor for NetworkEventActor {
         msg_type: &str,
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getRequestHeaders" => {

@@ -4,6 +4,7 @@
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::{ActorDescription, JsonPacketStream, Method};
+use crate::StreamId;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 
@@ -57,6 +58,7 @@ impl Actor for PerformanceActor {
         msg_type: &str,
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "connect" => {

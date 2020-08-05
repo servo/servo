@@ -4,6 +4,7 @@
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 use devtools_traits::DevtoolScriptControlMsg::WantsLiveNotifications;
 use devtools_traits::{DevtoolScriptControlMsg, WorkerId};
 use ipc_channel::ipc::IpcSender;
@@ -11,6 +12,7 @@ use msg::constellation_msg::TEST_PIPELINE_ID;
 use serde_json::{Map, Value};
 use servo_url::ServoUrl;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::net::TcpStream;
 
 #[derive(Clone, Copy)]
@@ -21,7 +23,7 @@ pub enum WorkerType {
     Service = 2,
 }
 
-pub struct WorkerActor {
+pub(crate) struct WorkerActor {
     pub name: String,
     pub console: String,
     pub thread: String,
@@ -29,7 +31,7 @@ pub struct WorkerActor {
     pub url: ServoUrl,
     pub type_: WorkerType,
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
-    pub streams: RefCell<Vec<TcpStream>>,
+    pub streams: RefCell<HashMap<StreamId, TcpStream>>,
 }
 
 impl WorkerActor {
@@ -58,6 +60,7 @@ impl Actor for WorkerActor {
         msg_type: &str,
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "attach" => {
@@ -66,8 +69,12 @@ impl Actor for WorkerActor {
                     type_: "attached".to_owned(),
                     url: self.url.as_str().to_owned(),
                 };
-                self.streams.borrow_mut().push(stream.try_clone().unwrap());
-                stream.write_json_packet(&msg);
+                if stream.write_json_packet(&msg).is_err() {
+                    return Ok(ActorMessageStatus::Processed);
+                }
+                self.streams
+                    .borrow_mut()
+                    .insert(id, stream.try_clone().unwrap());
                 // FIXME: fix messages to not require forging a pipeline for worker messages
                 self.script_chan
                     .send(WantsLiveNotifications(TEST_PIPELINE_ID, true))
@@ -91,17 +98,22 @@ impl Actor for WorkerActor {
                     from: self.name(),
                     type_: "detached".to_string(),
                 };
-                // FIXME: we should ensure we're removing the correct stream.
-                self.streams.borrow_mut().pop();
-                stream.write_json_packet(&msg);
-                self.script_chan
-                    .send(WantsLiveNotifications(TEST_PIPELINE_ID, false))
-                    .unwrap();
+                let _ = stream.write_json_packet(&msg);
+                self.cleanup(id);
                 ActorMessageStatus::Processed
             },
 
             _ => ActorMessageStatus::Ignored,
         })
+    }
+
+    fn cleanup(&self, id: StreamId) {
+        self.streams.borrow_mut().remove(&id);
+        if self.streams.borrow().is_empty() {
+            self.script_chan
+                .send(WantsLiveNotifications(TEST_PIPELINE_ID, false))
+                .unwrap();
+        }
     }
 }
 

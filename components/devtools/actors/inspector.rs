@@ -8,6 +8,7 @@
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::BrowsingContextActor;
 use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 use devtools_traits::DevtoolScriptControlMsg::{GetChildren, GetDocumentElement, GetRootNode};
 use devtools_traits::DevtoolScriptControlMsg::{GetLayout, ModifyAttribute};
 use devtools_traits::{ComputedNodeLayout, DevtoolScriptControlMsg, NodeInfo};
@@ -68,6 +69,7 @@ impl Actor for HighlighterActor {
         msg_type: &str,
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "showBoxModel" => {
@@ -103,6 +105,7 @@ impl Actor for NodeActor {
         msg_type: &str,
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "modifyAttributes" => {
@@ -289,6 +292,7 @@ impl Actor for WalkerActor {
         msg_type: &str,
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "querySelector" => {
@@ -471,6 +475,7 @@ impl Actor for PageStyleActor {
         msg_type: &str,
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getApplied" => {
@@ -596,6 +601,7 @@ impl Actor for InspectorActor {
         msg_type: &str,
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         let browsing_context = registry.find::<BrowsingContextActor>(&self.browsing_context);
         let pipeline = browsing_context.active_pipeline.get();

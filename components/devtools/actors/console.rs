@@ -12,7 +12,7 @@ use crate::actors::browsing_context::BrowsingContextActor;
 use crate::actors::object::ObjectActor;
 use crate::actors::worker::WorkerActor;
 use crate::protocol::JsonPacketStream;
-use crate::UniqueId;
+use crate::{StreamId, UniqueId};
 use devtools_traits::CachedConsoleMessage;
 use devtools_traits::ConsoleMessage;
 use devtools_traits::EvaluateJSReply::{ActorValue, BooleanValue, StringValue};
@@ -23,7 +23,7 @@ use devtools_traits::{
 use ipc_channel::ipc::{self, IpcSender};
 use msg::constellation_msg::TEST_PIPELINE_ID;
 use serde_json::{self, Map, Number, Value};
-use std::cell::{RefCell, RefMut};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::net::TcpStream;
 use time::precise_time_ns;
@@ -130,15 +130,20 @@ impl ConsoleActor {
         }
     }
 
-    fn streams_mut<'a>(&self, registry: &'a ActorRegistry) -> RefMut<'a, Vec<TcpStream>> {
+    fn streams_mut<'a>(&self, registry: &'a ActorRegistry, cb: impl Fn(&mut TcpStream)) {
         match &self.root {
             Root::BrowsingContext(bc) => registry
                 .find::<BrowsingContextActor>(bc)
                 .streams
-                .borrow_mut(),
-            Root::DedicatedWorker(worker) => {
-                registry.find::<WorkerActor>(worker).streams.borrow_mut()
-            },
+                .borrow_mut()
+                .values_mut()
+                .for_each(cb),
+            Root::DedicatedWorker(worker) => registry
+                .find::<WorkerActor>(worker)
+                .streams
+                .borrow_mut()
+                .values_mut()
+                .for_each(cb),
         }
     }
 
@@ -255,9 +260,9 @@ impl ConsoleActor {
                 type_: "pageError".to_owned(),
                 pageError: page_error,
             };
-            for stream in &mut *self.streams_mut(registry) {
-                stream.write_json_packet(&msg);
-            }
+            self.streams_mut(registry, |stream| {
+                let _ = stream.write_json_packet(&msg);
+            });
         }
     }
 
@@ -303,9 +308,9 @@ impl ConsoleActor {
                     columnNumber: console_message.columnNumber,
                 },
             };
-            for stream in &mut *self.streams_mut(registry) {
-                stream.write_json_packet(&msg);
-            }
+            self.streams_mut(registry, |stream| {
+                let _ = stream.write_json_packet(&msg);
+            });
         }
     }
 }
@@ -321,6 +326,7 @@ impl Actor for ConsoleActor {
         msg_type: &str,
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "clearMessagesCache" => {
