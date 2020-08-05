@@ -614,6 +614,7 @@ pub mod xrinputsourceschangeevent;
 pub mod xrjointpose;
 pub mod xrjointspace;
 pub mod xrlayer;
+pub mod xrlayerevent;
 pub mod xrmediabinding;
 pub mod xrpose;
 pub mod xrprojectionlayer;
