@@ -1174,10 +1174,20 @@
     @assert pixel 75,25 == 0,255,0,255;
   expected: green
 
-
-
-
-
+- name: 2d.gradient.conic
+  desc: Conic gradient function exists
+  code: |
+    const g = ctx.createConicGradient(0, 0, 25);
+    g.addColorStop(0, "#0f0");
+    g.addColorStop(0.5, "#0f0");
+    g.addColorStop(0.51, "#f00");
+    g.addColorStop(1, "#f00");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 25,25 == 0,255,0,255;
+    @assert pixel 50,25 == 0,255,0,255;
+    @assert pixel 75,25 == 0,255,0,255;
+  expected: green
 
 - name: 2d.pattern.basic.type
   testing:

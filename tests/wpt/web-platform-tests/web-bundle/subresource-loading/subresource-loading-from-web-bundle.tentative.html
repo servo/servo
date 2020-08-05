@@ -7,7 +7,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <body>
-  <link rel="webbundle" href="../resources/wbn/subresource.wbn"
+  <link id="link-web-bundle" rel="webbundle" href="../resources/wbn/subresource.wbn"
         resources="https://subresource-wbn.example/root.js https://subresource-wbn.example/submodule.js" />
   <script>
     promise_test(async () => {
@@ -41,25 +41,43 @@
     }, 'Dynamically adding / updating / removing "<link rel=webbundle>"');
 
     promise_test(() => {
+      return addLinkAndWaitForLoad("../resources/wbn/dynamic1.wbn?test-event");
+    }, '<link rel="webbundle"> fires a load event on load success');
+
+    promise_test((t) => {
+      return addLinkAndWaitForError("../resources/wbn/nonexistent.wbn");
+    }, '<link rel="webbundle"> fires an error event on load failure');
+
+    promise_test(async () => {
+      const wbn_url = 'http://web-platform.test:8001/web-bundle/resources/wbn/subresource.wbn?test-resources-update';
+      const resource_url = 'https://subresource-wbn.example/submodule.js';
+      const link = await addLinkAndWaitForLoad(wbn_url);
+      link.resources.add(resource_url);
+      const resp = await fetch(resource_url, {cache: 'no-store'});
+      assert_true(resp.ok);
+      assert_equals(performance.getEntriesByName(wbn_url).length, 1);
+    }, 'Updating resource= attribute should not reload the bundle');
+
+    function addLinkAndWaitForLoad(url) {
       return new Promise((resolve, reject) => {
         const link = document.createElement("link");
         link.rel = "webbundle";
-        link.href = "../resources/wbn/dynamic1.wbn?test-event";
-        link.onload = resolve;
+        link.href = url;
+        link.onload = () => resolve(link);
         link.onerror = reject;
         document.body.appendChild(link);
       });
-    }, '<link rel="webbundle"> fires a load event on load success');
+    }
 
-    promise_test(() => {
+    function addLinkAndWaitForError(url) {
       return new Promise((resolve, reject) => {
         const link = document.createElement("link");
         link.rel = "webbundle";
-        link.href = "../resources/wbn/nonexistent.wbn";
+        link.href = url;
         link.onload = reject;
-        link.onerror = resolve;
+        link.onerror = () => resolve(link);
         document.body.appendChild(link);
       });
-    }, '<link rel="webbundle"> fires an error event on load failure');
+    }
   </script>
 </body>

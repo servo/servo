@@ -14,7 +14,10 @@ dictionary HIDDeviceRequestOptions {
     required sequence<HIDDeviceFilter> filters;
 };
 
-[SecureContext]
+[
+    Exposed=Window,
+    SecureContext
+]
 interface HID : EventTarget {
     attribute EventHandler onconnect;
     attribute EventHandler ondisconnect;
@@ -32,9 +35,10 @@ dictionary HIDConnectionEventInit : EventInit {
 };
 
 [
-    Constructor(DOMString type, HIDConnectionEventInit eventInitDict),
+    Exposed=Window,
     SecureContext
 ] interface HIDConnectionEvent : Event {
+    constructor(DOMString type, HIDConnectionEventInit eventInitDict);
     [SameObject] readonly attribute HIDDevice device;
 };
 
@@ -45,9 +49,10 @@ dictionary HIDInputReportEventInit : EventInit {
 };
 
 [
-    Constructor(DOMString type, HIDInputReportEventInit eventInitDict),
+    Exposed=Window,
     SecureContext
 ] interface HIDInputReportEvent : Event {
+    constructor(DOMString type, HIDInputReportEventInit eventInitDict);
     [SameObject] readonly attribute HIDDevice device;
     readonly attribute octet reportId;
     readonly attribute DataView data;
@@ -58,7 +63,10 @@ enum HIDUnitSystem {
     "english-rotation", "vendor-defined", "reserved"
 };
 
-[SecureContext] interface HIDReportItem {
+[
+    Exposed=Window,
+    SecureContext
+] interface HIDReportItem {
     readonly attribute boolean isAbsolute;
     readonly attribute boolean isArray;
     readonly attribute boolean isRange;
@@ -66,38 +74,55 @@ enum HIDUnitSystem {
     readonly attribute FrozenArray<unsigned long> usages;
     readonly attribute unsigned long usageMinimum;
     readonly attribute unsigned long usageMaximum;
+    readonly attribute unsigned long designatorMinimum;
+    readonly attribute unsigned long designatorMaximum;
+    readonly attribute unsigned long stringMinimum;
+    readonly attribute unsigned long stringMaximum;
     readonly attribute unsigned short reportSize;
     readonly attribute unsigned short reportCount;
-    readonly attribute unsigned long unitExponent;
-    readonly attribute HIDUnitSystem unitSystem;
-    readonly attribute byte unitFactorLengthExponent;
-    readonly attribute byte unitFactorMassExponent;
-    readonly attribute byte unitFactorTimeExponent;
-    readonly attribute byte unitFactorTemperatureExponent;
-    readonly attribute byte unitFactorCurrentExponent;
-    readonly attribute byte unitFactorLuminousIntensityExponent;
+    readonly attribute byte unitExponent;
+    readonly attribute unsigned long unit;
     readonly attribute long logicalMinimum;
     readonly attribute long logicalMaximum;
     readonly attribute long physicalMinimum;
     readonly attribute long physicalMaximum;
-    readonly attribute FrozenArray<DOMString> strings;
 };
 
-[SecureContext] interface HIDReportInfo {
+[
+    Exposed=Window,
+    SecureContext
+] interface HIDReportInfo {
     readonly attribute octet reportId;
     readonly attribute FrozenArray<HIDReportItem> items;
 };
 
-[SecureContext] interface HIDCollectionInfo {
+dictionary HIDFieldOptions {
+    required octet reportId;
+    required unsigned long fieldIndex;
+    boolean isFeatureReport;
+};
+
+[
+    Exposed=Window,
+    SecureContext
+] interface HIDCollectionInfo {
     readonly attribute unsigned short usagePage;
     readonly attribute unsigned short usage;
     readonly attribute FrozenArray<HIDCollectionInfo> children;
     readonly attribute FrozenArray<HIDReportInfo> inputReports;
     readonly attribute FrozenArray<HIDReportInfo> outputReports;
     readonly attribute FrozenArray<HIDReportInfo> featureReports;
+    readonly attribute FrozenArray<octet> reportIds;
+
+    double getField(BufferSource reportData, HIDFieldOptions options);
+    void setField(BufferSource reportData, HIDFieldOptions options,
+                  double value);
 };
 
-[SecureContext] interface HIDDevice : EventTarget {
+[
+    Exposed=Window,
+    SecureContext
+] interface HIDDevice : EventTarget {
     attribute EventHandler oninputreport;
     readonly attribute boolean opened;
     readonly attribute unsigned short vendorId;
@@ -106,7 +131,7 @@ enum HIDUnitSystem {
     readonly attribute FrozenArray<HIDCollectionInfo> collections;
     Promise<void> open();
     Promise<void> close();
-    Promise<void> sendReport(octet reportId, BufferSource data);
-    Promise<void> sendFeatureReport(octet reportId, BufferSource data);
-    Promise<DataView> receiveFeatureReport(octet reportId);
+    Promise<void> sendReport([EnforceRange] octet reportId, BufferSource data);
+    Promise<void> sendFeatureReport([EnforceRange] octet reportId, BufferSource data);
+    Promise<DataView> receiveFeatureReport([EnforceRange] octet reportId);
 };

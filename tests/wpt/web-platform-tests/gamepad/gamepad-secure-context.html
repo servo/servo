@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>Gamepad Test: non-secure contexts</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(() => {
+    return new Promise((resolve, reject) => {
+      try {
+        navigator.getGamepads();
+        reject(
+          "getGamepads should throw an error when being called in non-secure contexts."
+        );
+      } catch (error) {
+        resolve();
+      }
+    });
+  }, "When in a non-secure context, getGamepad() should throw an error.");
+
+</script>

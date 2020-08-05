@@ -51,18 +51,40 @@
       new Request('https://example.com', {
         trustToken: {
           type: "send-srr",
-          issuer: "not a valid URL"
+          issuers: []
         }
       });
     });
-  }, 'Trust Tokens fetches require valid issuer URLs, if provided.');
+  }, 'Trust Tokens signing operations require at least one issuer URL');
 
   test(() => {
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
         trustToken: {
           type: "send-srr",
-          issuer: "http://not-secure.com"
+          issuers: [3]
+        }
+      });
+    });
+  }, 'Trust Tokens signing operations require string issuer URLs, if provided.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      new Request('https://example.com', {
+        trustToken: {
+          type: "send-srr",
+          issuers: ["not a valid URL"]
+        }
+      });
+    });
+  }, 'Trust Tokens signing operations require valid issuer URLs, if provided.');
+
+  test(() => {
+    assert_throws_js(TypeError, () => {
+      new Request('https://example.com', {
+        trustToken: {
+          type: "send-srr",
+          issuers: ["http://not-secure.com"]
         }
       });
     });
@@ -72,7 +94,7 @@
     new Request('https://example.com', {
       trustToken: {
         type: "send-srr",
-        issuer: "http://localhost"
+        issuers: ["http://localhost"]
       }
     });
   }, 'Since localhost URLs are potentially trustworthy, setting an issuer to localhost should succeed.');
