@@ -39,9 +39,6 @@ wherever you currently set your PATH.
 See also [additional setup required to run Safari](safari.md).
 
 ### Windows Setup
-**Note:** In general, Windows Subsystem for Linux will provide the smoothest
-user experience for running web-platform-tests on Windows, where installation
-and usage are similar to Linux.
 
 Download and install [Python 2.7](https://www.python.org/downloads). The
 installer includes `pip` by default.
@@ -62,6 +59,15 @@ started using:
 ```bash
 python wpt serve
 ```
+
+#### Windows Subsystem for Linux
+
+Optionally on Windows you can use the [Windows Subsystem for
+Linux](https://docs.microsoft.com/en-us/windows/wsl/about) (WSL). If doing so,
+installation and usage are similar to the Linux instructions. Be aware that WSL
+may attempt to override `/etc/hosts` each time it is launched, which would then
+require you to re-run [`hosts` File Setup](#hosts-file-setup). This behavior
+[can be configured](https://docs.microsoft.com/en-us/windows/wsl/wsl-config#network).
 
 ### `hosts` File Setup
 

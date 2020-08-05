@@ -348,6 +348,11 @@ scheme host and port.""")
                              help="Command-line argument to forward to the "
                                   "Sauce Connect binary (repeatable)")
 
+    taskcluster_group = parser.add_argument_group("Taskcluster-specific")
+    taskcluster_group.add_argument("--github-checks-text-file",
+                                   dest="github_checks_text_file",
+                                   help="Path to GitHub checks output file")
+
     webkit_group = parser.add_argument_group("WebKit-specific")
     webkit_group.add_argument("--webkit-port", dest="webkit_port",
                               help="WebKit port")

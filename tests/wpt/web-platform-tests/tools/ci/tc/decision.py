@@ -241,6 +241,8 @@ def create_tc_task(event, task, taskgroup_id, depends_on_ids, env_extra=None):
         },
         "routes": ["checks"]
     }
+    if "extra" in task:
+        task_data["extra"].update(task["extra"])
     if env_extra:
         task_data["payload"]["env"].update(env_extra)
     if depends_on_ids:

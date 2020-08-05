@@ -84,6 +84,9 @@ def main(product, commit_range, wpt_args):
     command = ["python", "./wpt", "run"] + wpt_args + [product]
 
     logger.info("Executing command: %s" % " ".join(command))
+    with open("/home/test/artifacts/checkrun.md", "a") as f:
+        f.write("\n**WPT Command:** `%s`\n\n" % " ".join(command))
+
     retcode = subprocess.call(command, env=dict(os.environ, TERM="dumb"))
     if retcode != 0:
         sys.exit(retcode)
