@@ -32,6 +32,7 @@ packages = [
   "arrayvec",
   "base64",
   "cocoa",
+  "deflate",
   "gleam",
   "libloading",
   "metal",
@@ -39,6 +40,7 @@ packages = [
   "num-rational",
   "parking_lot",
   "parking_lot_core",
+  "png",
   "wayland-sys",
 
   # https://github.com/servo/servo/issues/26933
@@ -63,6 +65,7 @@ packages = [
   "core-foundation",
   "core-foundation-sys",
   "core-graphics",
+  "core-text",
   "lyon_geom",
 ]
 # Files that are ignored for all tidy and lint checks.
