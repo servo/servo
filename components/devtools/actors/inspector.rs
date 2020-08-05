@@ -72,13 +72,13 @@ impl Actor for HighlighterActor {
         Ok(match msg_type {
             "showBoxModel" => {
                 let msg = ShowBoxModelReply { from: self.name() };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
             "hideBoxModel" => {
                 let msg = HideBoxModelReply { from: self.name() };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -123,7 +123,7 @@ impl Actor for NodeActor {
                     ))
                     .unwrap();
                 let reply = ModifyAttributeReply { from: self.name() };
-                stream.write_json_packet(&reply);
+                let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 
@@ -293,7 +293,7 @@ impl Actor for WalkerActor {
         Ok(match msg_type {
             "querySelector" => {
                 let msg = QuerySelectorReply { from: self.name() };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -310,13 +310,13 @@ impl Actor for WalkerActor {
                     from: self.name(),
                     node: node,
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
             "clearPseudoClassLocks" => {
                 let msg = ClearPseudoclassesReply { from: self.name() };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -343,7 +343,7 @@ impl Actor for WalkerActor {
                         .collect(),
                     from: self.name(),
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -481,7 +481,7 @@ impl Actor for PageStyleActor {
                     sheets: vec![],
                     from: self.name(),
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -491,7 +491,7 @@ impl Actor for PageStyleActor {
                     computed: vec![],
                     from: self.name(),
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -576,7 +576,7 @@ impl Actor for PageStyleActor {
                 };
                 let msg = serde_json::to_string(&msg).unwrap();
                 let msg = serde_json::from_str::<Value>(&msg).unwrap();
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -625,7 +625,7 @@ impl Actor for InspectorActor {
                         root: node,
                     },
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -647,7 +647,7 @@ impl Actor for InspectorActor {
                         actor: self.pageStyle.borrow().clone().unwrap(),
                     },
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -670,7 +670,7 @@ impl Actor for InspectorActor {
                         actor: self.highlighter.borrow().clone().unwrap(),
                     },
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 

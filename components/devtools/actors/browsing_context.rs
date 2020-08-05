@@ -160,7 +160,7 @@ impl Actor for BrowsingContextActor {
                         }
                     }
                 }
-                stream.write_json_packet(&ReconfigureReply { from: self.name() });
+                let _ = stream.write_json_packet(&ReconfigureReply { from: self.name() });
                 ActorMessageStatus::Processed
             },
 
@@ -215,7 +215,7 @@ impl Actor for BrowsingContextActor {
                         title: self.title.borrow().clone(),
                     }],
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 

@@ -131,7 +131,7 @@ impl Actor for RootActor {
                     from: "root".to_owned(),
                     addons: vec![],
                 };
-                stream.write_json_packet(&actor);
+                let _ = stream.write_json_packet(&actor);
                 ActorMessageStatus::Processed
             },
 
@@ -144,7 +144,7 @@ impl Actor for RootActor {
                         isParent: true,
                     }],
                 };
-                stream.write_json_packet(&reply);
+                let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 
@@ -157,7 +157,7 @@ impl Actor for RootActor {
                         isParent: true,
                     },
                 };
-                stream.write_json_packet(&reply);
+                let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 
@@ -169,7 +169,7 @@ impl Actor for RootActor {
                     deviceActor: self.device.clone(),
                     preferenceActor: self.preference.clone(),
                 };
-                stream.write_json_packet(&actor);
+                let _ = stream.write_json_packet(&actor);
                 ActorMessageStatus::Processed
             },
 
@@ -188,7 +188,7 @@ impl Actor for RootActor {
                         })
                         .collect(),
                 };
-                stream.write_json_packet(&actor);
+                let _ = stream.write_json_packet(&actor);
                 ActorMessageStatus::Processed
             },
 
@@ -197,7 +197,7 @@ impl Actor for RootActor {
                     from: self.name(),
                     registrations: vec![],
                 };
-                stream.write_json_packet(&reply);
+                let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 
@@ -210,7 +210,7 @@ impl Actor for RootActor {
                         .map(|name| registry.find::<WorkerActor>(name).encodable())
                         .collect(),
                 };
-                stream.write_json_packet(&reply);
+                let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 
@@ -220,7 +220,7 @@ impl Actor for RootActor {
                     from: self.name(),
                     tab: tab.encodable(&registry),
                 };
-                stream.write_json_packet(&reply);
+                let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 
@@ -232,7 +232,7 @@ impl Actor for RootActor {
                         device: DeviceActor::description(),
                     },
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 

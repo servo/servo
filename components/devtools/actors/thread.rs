@@ -100,8 +100,8 @@ impl Actor for ThreadActor {
                         type_: "attached".to_owned(),
                     },
                 };
-                stream.write_json_packet(&msg);
-                stream.write_json_packet(&VoidAttachedReply { from: self.name() });
+                let _ = stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&VoidAttachedReply { from: self.name() });
                 ActorMessageStatus::Processed
             },
 
@@ -110,8 +110,8 @@ impl Actor for ThreadActor {
                     from: self.name(),
                     type_: "resumed".to_owned(),
                 };
-                stream.write_json_packet(&msg);
-                stream.write_json_packet(&VoidAttachedReply { from: self.name() });
+                let _ = stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&VoidAttachedReply { from: self.name() });
                 ActorMessageStatus::Processed
             },
 
@@ -120,12 +120,12 @@ impl Actor for ThreadActor {
                     from: self.name(),
                     type_: "interrupted".to_owned(),
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
             "reconfigure" => {
-                stream.write_json_packet(&ReconfigureReply { from: self.name() });
+                let _ = stream.write_json_packet(&ReconfigureReply { from: self.name() });
                 ActorMessageStatus::Processed
             },
 
@@ -134,7 +134,7 @@ impl Actor for ThreadActor {
                     from: self.name(),
                     sources: vec![],
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 

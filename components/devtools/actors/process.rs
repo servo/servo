@@ -41,7 +41,7 @@ impl Actor for ProcessActor {
                     from: self.name(),
                     workers: vec![],
                 };
-                stream.write_json_packet(&reply);
+                let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 

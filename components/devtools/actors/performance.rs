@@ -72,7 +72,7 @@ impl Actor for PerformanceActor {
                         },
                     },
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "canCurrentlyRecord" => {
@@ -83,7 +83,7 @@ impl Actor for PerformanceActor {
                         errors: vec![],
                     },
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,

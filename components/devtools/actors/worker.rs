@@ -82,7 +82,7 @@ impl Actor for WorkerActor {
                     threadActor: self.thread.clone(),
                     consoleActor: self.console.clone(),
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 

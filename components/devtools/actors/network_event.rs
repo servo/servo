@@ -201,7 +201,7 @@ impl Actor for NetworkEventActor {
                     headerSize: headersSize,
                     rawHeaders: rawHeadersString,
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "getRequestCookies" => {
@@ -217,7 +217,7 @@ impl Actor for NetworkEventActor {
                     from: self.name(),
                     cookies: cookies,
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "getRequestPostData" => {
@@ -226,7 +226,7 @@ impl Actor for NetworkEventActor {
                     postData: self.request.body.clone(),
                     postDataDiscarded: false,
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "getResponseHeaders" => {
@@ -251,7 +251,7 @@ impl Actor for NetworkEventActor {
                         headerSize: headersSize,
                         rawHeaders: rawHeadersString,
                     };
-                    stream.write_json_packet(&msg);
+                    let _ = stream.write_json_packet(&msg);
                 }
                 ActorMessageStatus::Processed
             },
@@ -268,7 +268,7 @@ impl Actor for NetworkEventActor {
                     from: self.name(),
                     cookies: cookies,
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "getResponseContent" => {
@@ -277,7 +277,7 @@ impl Actor for NetworkEventActor {
                     content: self.response.body.clone(),
                     contentDiscarded: self.response.body.is_none(),
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "getEventTimings" => {
@@ -297,7 +297,7 @@ impl Actor for NetworkEventActor {
                     timings: timingsObj,
                     totalTime: total,
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             "getSecurityInfo" => {
@@ -308,7 +308,7 @@ impl Actor for NetworkEventActor {
                         state: "insecure".to_owned(),
                     },
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
             _ => ActorMessageStatus::Ignored,

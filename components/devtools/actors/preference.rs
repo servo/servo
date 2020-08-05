@@ -35,7 +35,7 @@ impl Actor for PreferenceActor {
                     from: self.name(),
                     value: false,
                 };
-                stream.write_json_packet(&reply);
+                let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 
@@ -44,7 +44,7 @@ impl Actor for PreferenceActor {
                     from: self.name(),
                     value: "".to_owned(),
                 };
-                stream.write_json_packet(&reply);
+                let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 
@@ -53,7 +53,7 @@ impl Actor for PreferenceActor {
                     from: self.name(),
                     value: 0,
                 };
-                stream.write_json_packet(&reply);
+                let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
 

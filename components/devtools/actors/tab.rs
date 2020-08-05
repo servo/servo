@@ -54,7 +54,7 @@ impl Actor for TabDescriptorActor {
                 let frame = registry
                     .find::<BrowsingContextActor>(&self.browsing_context_actor)
                     .encodable();
-                stream.write_json_packet(&GetTargetReply {
+                let _ = stream.write_json_packet(&GetTargetReply {
                     from: self.name(),
                     frame,
                 });

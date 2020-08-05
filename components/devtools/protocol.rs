@@ -8,6 +8,7 @@
 
 use serde::Serialize;
 use serde_json::{self, Value};
+use std::error::Error;
 use std::io::{Read, Write};
 use std::net::TcpStream;
 
@@ -26,29 +27,38 @@ pub struct Method {
 }
 
 pub trait JsonPacketStream {
-    fn write_json_packet<T: Serialize>(&mut self, obj: &T);
-    fn write_merged_json_packet<T: Serialize, U: Serialize>(&mut self, base: &T, extra: &U);
+    fn write_json_packet<T: Serialize>(&mut self, obj: &T) -> Result<(), Box<dyn Error>>;
+    fn write_merged_json_packet<T: Serialize, U: Serialize>(
+        &mut self,
+        base: &T,
+        extra: &U,
+    ) -> Result<(), Box<dyn Error>>;
     fn read_json_packet(&mut self) -> Result<Option<Value>, String>;
 }
 
 impl JsonPacketStream for TcpStream {
-    fn write_json_packet<T: Serialize>(&mut self, obj: &T) {
-        let s = serde_json::to_string(obj).unwrap();
+    fn write_json_packet<T: Serialize>(&mut self, obj: &T) -> Result<(), Box<dyn Error>> {
+        let s = serde_json::to_string(obj)?;
         debug!("<- {}", s);
-        write!(self, "{}:{}", s.len(), s).unwrap();
+        write!(self, "{}:{}", s.len(), s)?;
+        Ok(())
     }
 
-    fn write_merged_json_packet<T: Serialize, U: Serialize>(&mut self, base: &T, extra: &U) {
-        let mut obj = serde_json::to_value(base).unwrap();
+    fn write_merged_json_packet<T: Serialize, U: Serialize>(
+        &mut self,
+        base: &T,
+        extra: &U,
+    ) -> Result<(), Box<dyn Error>> {
+        let mut obj = serde_json::to_value(base)?;
         let obj = obj.as_object_mut().unwrap();
-        let extra = serde_json::to_value(extra).unwrap();
+        let extra = serde_json::to_value(extra)?;
         let extra = extra.as_object().unwrap();
 
         for (key, value) in extra {
             obj.insert(key.to_owned(), value.to_owned());
         }
 
-        self.write_json_packet(obj);
+        self.write_json_packet(obj)
     }
 
     fn read_json_packet(&mut self) -> Result<Option<Value>, String> {
@@ -74,7 +84,9 @@ impl JsonPacketStream for TcpStream {
                         Err(_) => return Err("packet length missing / not parsable".to_owned()),
                     };
                     let mut packet = String::new();
-                    self.take(packet_len).read_to_string(&mut packet).unwrap();
+                    self.take(packet_len)
+                        .read_to_string(&mut packet)
+                        .map_err(|e| e.to_string())?;
                     debug!("{}", packet);
                     return match serde_json::from_str(&packet) {
                         Ok(json) => Ok(Some(json)),

@@ -14,6 +14,7 @@ use msg::constellation_msg::PipelineId;
 use serde::{Serialize, Serializer};
 use serde_json::{Map, Value};
 use std::cell::RefCell;
+use std::error::Error;
 use std::net::TcpStream;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -166,7 +167,9 @@ impl TimelineActor {
                 while let Ok(Some(marker)) = receiver.try_recv() {
                     markers.push(emitter.marker(marker));
                 }
-                emitter.send(markers);
+                if emitter.send(markers).is_err() {
+                    break;
+                }
 
                 thread::sleep(Duration::from_millis(DEFAULT_TIMELINE_DATA_PULL_TIMEOUT));
             })
@@ -235,7 +238,7 @@ impl Actor for TimelineActor {
                     from: self.name(),
                     value: HighResolutionStamp::new(registry.start_stamp(), PreciseTime::now()),
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -245,7 +248,7 @@ impl Actor for TimelineActor {
                     value: HighResolutionStamp::new(registry.start_stamp(), PreciseTime::now()),
                 };
 
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 self.script_sender
                     .send(DropTimelineMarkers(
                         self.pipeline,
@@ -272,7 +275,7 @@ impl Actor for TimelineActor {
                     value: self.is_recording.lock().unwrap().clone(),
                 };
 
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -311,7 +314,7 @@ impl Emitter {
         }
     }
 
-    fn send(&mut self, markers: Vec<TimelineMarkerReply>) {
+    fn send(&mut self, markers: Vec<TimelineMarkerReply>) -> Result<(), Box<dyn Error>> {
         let end_time = PreciseTime::now();
         let reply = MarkersEmitterReply {
             type_: "markers".to_owned(),
@@ -319,7 +322,7 @@ impl Emitter {
             from: self.from.clone(),
             endTime: HighResolutionStamp::new(self.start_stamp, end_time),
         };
-        self.stream.write_json_packet(&reply);
+        self.stream.write_json_packet(&reply)?;
 
         if let Some(ref actor_name) = self.framerate_actor {
             let mut lock = self.registry.lock();
@@ -331,7 +334,7 @@ impl Emitter {
                 delta: HighResolutionStamp::new(self.start_stamp, end_time),
                 timestamps: framerate_actor.take_pending_ticks(),
             };
-            self.stream.write_json_packet(&framerateReply);
+            self.stream.write_json_packet(&framerateReply)?;
         }
 
         if let Some(ref actor_name) = self.memory_actor {
@@ -343,7 +346,9 @@ impl Emitter {
                 delta: HighResolutionStamp::new(self.start_stamp, end_time),
                 measurement: memory_actor.measure(),
             };
-            self.stream.write_json_packet(&memoryReply);
+            self.stream.write_json_packet(&memoryReply)?;
         }
+
+        Ok(())
     }
 }

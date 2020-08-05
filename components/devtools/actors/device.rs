@@ -44,7 +44,7 @@ impl Actor for DeviceActor {
                         platformVersion: "71.0".to_string(),
                     },
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 

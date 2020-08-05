@@ -380,7 +380,7 @@ impl Actor for ConsoleActor {
                     from: self.name(),
                     messages: messages,
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -396,7 +396,7 @@ impl Actor for ConsoleActor {
                         .collect(),
                     traits: StartedListenersTraits,
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -413,7 +413,7 @@ impl Actor for ConsoleActor {
                         .map(|listener| listener.as_str().unwrap().to_owned())
                         .collect(),
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -425,13 +425,13 @@ impl Actor for ConsoleActor {
                     matches: vec![],
                     matchProp: "".to_owned(),
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
             "evaluateJS" => {
                 let msg = self.evaluateJS(&registry, &msg);
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -443,7 +443,9 @@ impl Actor for ConsoleActor {
                 };
                 // Emit an eager reply so that the client starts listening
                 // for an async event with the resultID
-                stream.write_json_packet(&early_reply);
+                if stream.write_json_packet(&early_reply).is_err() {
+                    return Ok(ActorMessageStatus::Processed);
+                }
 
                 if msg.get("eager").and_then(|v| v.as_bool()).unwrap_or(false) {
                     // We don't support the side-effect free evaluation that eager evalaution
@@ -464,7 +466,7 @@ impl Actor for ConsoleActor {
                     helperResult: reply.helperResult,
                 };
                 // Send the data from evaluateJS along with a resultID
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -473,7 +475,7 @@ impl Actor for ConsoleActor {
                     from: self.name(),
                     updated: vec![],
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 

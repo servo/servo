@@ -34,7 +34,7 @@ impl Actor for StyleSheetsActor {
                     from: self.name(),
                     styleSheets: vec![],
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 

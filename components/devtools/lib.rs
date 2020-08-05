@@ -193,7 +193,10 @@ fn run_server(
         {
             let actors = actors.lock().unwrap();
             let msg = actors.find::<RootActor>("root").encodable();
-            stream.write_json_packet(&msg);
+            if let Err(e) = stream.write_json_packet(&msg) {
+                warn!("Error writing response: {:?}", e);
+                return;
+            }
         }
 
         'outer: loop {
@@ -451,7 +454,7 @@ fn run_server(
                     eventActor: actor.event_actor(),
                 };
                 for stream in &mut connections {
-                    stream.write_json_packet(&msg);
+                    let _ = stream.write_json_packet(&msg);
                 }
             },
             NetworkEvent::HttpResponse(httpresponse) => {
@@ -464,7 +467,7 @@ fn run_server(
                     updateType: "requestHeaders".to_owned(),
                 };
                 for stream in &mut connections {
-                    stream.write_merged_json_packet(&msg, &actor.request_headers());
+                    let _ = stream.write_merged_json_packet(&msg, &actor.request_headers());
                 }
 
                 let msg = NetworkEventUpdateMsg {
@@ -473,7 +476,7 @@ fn run_server(
                     updateType: "requestCookies".to_owned(),
                 };
                 for stream in &mut connections {
-                    stream.write_merged_json_packet(&msg, &actor.request_cookies());
+                    let _ = stream.write_merged_json_packet(&msg, &actor.request_cookies());
                 }
 
                 //Send a networkEventUpdate (responseStart) to the client
@@ -485,7 +488,7 @@ fn run_server(
                 };
 
                 for stream in &mut connections {
-                    stream.write_json_packet(&msg);
+                    let _ = stream.write_json_packet(&msg);
                 }
                 let msg = NetworkEventUpdateMsg {
                     from: netevent_actor_name.clone(),
@@ -496,7 +499,7 @@ fn run_server(
                     totalTime: actor.total_time(),
                 };
                 for stream in &mut connections {
-                    stream.write_merged_json_packet(&msg, &extra);
+                    let _ = stream.write_merged_json_packet(&msg, &extra);
                 }
 
                 let msg = NetworkEventUpdateMsg {
@@ -508,7 +511,7 @@ fn run_server(
                     state: "insecure".to_owned(),
                 };
                 for stream in &mut connections {
-                    stream.write_merged_json_packet(&msg, &extra);
+                    let _ = stream.write_merged_json_packet(&msg, &extra);
                 }
 
                 let msg = NetworkEventUpdateMsg {
@@ -517,7 +520,7 @@ fn run_server(
                     updateType: "responseContent".to_owned(),
                 };
                 for stream in &mut connections {
-                    stream.write_merged_json_packet(&msg, &actor.response_content());
+                    let _ = stream.write_merged_json_packet(&msg, &actor.response_content());
                 }
 
                 let msg = NetworkEventUpdateMsg {
@@ -526,7 +529,7 @@ fn run_server(
                     updateType: "responseCookies".to_owned(),
                 };
                 for stream in &mut connections {
-                    stream.write_merged_json_packet(&msg, &actor.response_cookies());
+                    let _ = stream.write_merged_json_packet(&msg, &actor.response_cookies());
                 }
 
                 let msg = NetworkEventUpdateMsg {
@@ -535,7 +538,7 @@ fn run_server(
                     updateType: "responseHeaders".to_owned(),
                 };
                 for stream in &mut connections {
-                    stream.write_merged_json_packet(&msg, &actor.response_headers());
+                    let _ = stream.write_merged_json_packet(&msg, &actor.response_headers());
                 }
             },
         }
