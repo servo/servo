@@ -81,4 +81,15 @@ legend {
                   testElm.querySelector('div').offsetTop, 'offsetTop')
 
   }, "Inline flex");
+
+test(() => {
+  const testElm = document.getElementById('test');
+  testElm.style.flexDirection = 'row';
+  const item0 = testElm.querySelectorAll('div')[0];
+  const item1 = testElm.querySelectorAll('div')[1];
+  assert_equals(item0.offsetTop, item1.offsetTop);
+
+  testElm.style.flexDirection = 'column';
+  assert_true(item0.offsetTop < item1.offsetTop);
+}, "Dynamic change of flex-direction");
 </script>

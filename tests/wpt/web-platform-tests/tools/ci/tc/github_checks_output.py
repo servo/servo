@@ -21,7 +21,7 @@ def get_gh_checks_outputter(kwargs):
     """Return the outputter for GitHub Checks output, if enabled.
 
     :param kwargs: The arguments passed to the program (to look for the
-                   --github_checks_text_file flag)
+                   github_checks_text_file field)
     """
     global __outputter
     if kwargs['github_checks_text_file'] and __outputter is None:

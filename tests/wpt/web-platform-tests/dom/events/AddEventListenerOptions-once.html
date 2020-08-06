@@ -78,4 +78,21 @@ test(function() {
   assert_equals(invoked_count, 0, "The handler should have been removed");
 }, "Once listener should be added / removed like normal listeners");
 
+test(function() {
+  var invoked_count = 0;
+
+  for (let n = 4; n > 0; n--) {
+    document.addEventListener('test', (e) => {
+      invoked_count++;
+      e.stopImmediatePropagation();
+    }, {once: true});
+  }
+
+  for (let n = 4; n > 0; n--) {
+    document.dispatchEvent(new Event('test'));
+  }
+
+  assert_equals(invoked_count, 4, "The listeners should be invoked");
+}, "Multiple once listeners should be invoked even if the stopImmediatePropagation is set");
+
 </script>

@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>stretching works for replaced items with no aspect ratio</title>
+<link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://drafts.csswg.org/css-grid">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1656281">
+<link rel="match" href="grid-item-no-aspect-ratio-stretch-4-ref.html">
+<style>
+  body {
+    line-height: 0;
+  }
+
+  div {
+    display: inline-grid;
+    height: 250px;
+    width: 350px;
+    background: grey;
+    margin: 10px;
+    vertical-align: top;
+  }
+
+  .justify {
+    justify-self: stretch;
+  }
+  .align {
+    align-self: stretch;
+  }
+</style>
+<div>
+  <img class="align justify">
+</div>
+<div>
+  <img class="align">
+</div>
+<div>
+  <img class="justify">
+</div>
+<div>
+  <img>
+</div>
+
+<script>
+var url = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" height="20px" viewBox="0 0 50 100"><circle cx="50%" cy="50%" r="50%" fill="blue"/></svg>'
+var imgs = document.querySelectorAll('img');
+for (var i = 0; i < imgs.length; ++i) {
+  var img = imgs[i];
+  img.src = url;
+}
+</script>

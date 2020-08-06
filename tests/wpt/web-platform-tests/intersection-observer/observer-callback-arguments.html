@@ -1,0 +1,28 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>IntersectionObserver: callback arguments</title>
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/#notify-intersection-observers-algo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+"use strict";
+
+async_test(t => {
+  const io = new IntersectionObserver(function(entries, observer) {
+    t.step(() => {
+      assert_equals(this, io);
+      assert_equals(arguments.length, 2);
+      assert_true(Array.isArray(entries));
+      assert_equals(entries.length, 1);
+      assert_true(entries[0] instanceof IntersectionObserverEntry);
+      assert_equals(observer, io);
+
+      io.disconnect();
+      t.done();
+    });
+  });
+
+  io.observe(document.body);
+}, "Callback is invoked with |this| value of IntersectionObserver and two arguments");
+</script>
