@@ -99,6 +99,12 @@ const char *get_clipboard_contents() {
   return nullptr;
 }
 
+void on_media_session_set_position_state(double duration, double position,
+                                         double playback_rate) {
+  return sServo->Delegate().OnServoMediaSessionPosition(duration, position,
+                                                        playback_rate);
+}
+
 void on_media_session_metadata(const char *title, const char *album,
                                const char *artist) {
   return sServo->Delegate().OnServoMediaSessionMetadata(
@@ -296,29 +302,32 @@ Servo::Servo(std::optional<hstring> initUrl, hstring args, GLsizei width,
         std::to_string(GetLastError()));
   }
 
-  capi::CHostCallbacks c;
-  c.on_load_started = &on_load_started;
-  c.on_load_ended = &on_load_ended;
-  c.on_title_changed = &on_title_changed;
-  c.on_url_changed = &on_url_changed;
-  c.on_history_changed = &on_history_changed;
-  c.on_animating_changed = &on_animating_changed;
-  c.on_shutdown_complete = &on_shutdown_complete;
-  c.on_allow_navigation = &on_allow_navigation;
-  c.on_ime_show = &on_ime_show;
-  c.on_ime_hide = &on_ime_hide;
-  c.get_clipboard_contents = &get_clipboard_contents;
-  c.set_clipboard_contents = &set_clipboard_contents;
-  c.on_media_session_metadata = &on_media_session_metadata;
-  c.on_media_session_playback_state_change =
-      &on_media_session_playback_state_change;
-  c.prompt_alert = &prompt_alert;
-  c.prompt_ok_cancel = &prompt_ok_cancel;
-  c.prompt_yes_no = &prompt_yes_no;
-  c.prompt_input = &prompt_input;
-  c.on_devtools_started = &on_devtools_started;
-  c.show_context_menu = &show_context_menu;
-  c.on_log_output = &on_log_output;
+  capi::CHostCallbacks c = capi::CHostCallbacks{
+      .on_load_started = &on_load_started,
+      .on_load_ended = &on_load_ended,
+      .on_title_changed = &on_title_changed,
+      .on_allow_navigation = &on_allow_navigation,
+      .on_url_changed = &on_url_changed,
+      .on_history_changed = &on_history_changed,
+      .on_animating_changed = &on_animating_changed,
+      .on_shutdown_complete = &on_shutdown_complete,
+      .on_ime_show = &on_ime_show,
+      .on_ime_hide = &on_ime_hide,
+      .get_clipboard_contents = &get_clipboard_contents,
+      .set_clipboard_contents = &set_clipboard_contents,
+      .on_media_session_metadata = &on_media_session_metadata,
+      .on_media_session_playback_state_change =
+          &on_media_session_playback_state_change,
+      .on_media_session_set_position_state =
+          &on_media_session_set_position_state,
+      .prompt_alert = &prompt_alert,
+      .prompt_ok_cancel = &prompt_ok_cancel,
+      .prompt_yes_no = &prompt_yes_no,
+      .prompt_input = &prompt_input,
+      .on_devtools_started = &on_devtools_started,
+      .show_context_menu = &show_context_menu,
+      .on_log_output = &on_log_output,
+  };
 
   capi::register_panic_handler(&on_panic);
 

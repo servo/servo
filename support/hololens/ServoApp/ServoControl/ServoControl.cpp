@@ -548,6 +548,12 @@ void ServoControl::OnServoIMEShow(hstring text, int32_t x, int32_t y,
   });
 }
 
+void ServoControl::OnServoMediaSessionPosition(double duration, double position,
+                                               double playback_rate) {
+  RunOnUIThread(
+      [=] { mOnMediaSessionPositionEvent(duration, position, playback_rate); });
+}
+
 void ServoControl::OnServoMediaSessionMetadata(hstring title, hstring artist,
                                                hstring album) {
   RunOnUIThread([=] { mOnMediaSessionMetadataEvent(title, artist, album); });

@@ -81,6 +81,8 @@ void BrowserPage::BindServoEvents() {
   urlTextbox().GotFocus(std::bind(&BrowserPage::OnURLFocused, this, _1));
   servoView().OnMediaSessionMetadata(
       [=](hstring title, hstring artist, hstring album) {});
+  servoView().OnMediaSessionPosition(
+      [=](double duration, double position, double rate) {});
   servoView().OnMediaSessionPlaybackStateChange([=](const auto &, int state) {
     if (state == Servo::MediaSessionPlaybackState::None) {
       mediaControls().Visibility(Visibility::Collapsed);
