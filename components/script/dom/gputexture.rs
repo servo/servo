@@ -18,7 +18,9 @@ use crate::dom::gputextureview::GPUTextureView;
 use dom_struct::dom_struct;
 use std::num::NonZeroU32;
 use std::string::String;
-use webgpu::{wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView};
+use webgpu::{
+    identity::WebGPUOpResult, wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView,
+};
 
 #[dom_struct]
 pub struct GPUTexture {
@@ -138,24 +140,48 @@ impl GPUTextureMethods for GPUTexture {
         };
 
         let format = descriptor.format.unwrap_or(self.format);
+        let scope_id = self.device.use_current_scope();
+        let mut valid = true;
+        let level_count = descriptor.mipLevelCount.and_then(|count| {
+            if count == 0 {
+                valid = false;
+            }
+            NonZeroU32::new(count)
+        });
+        let array_layer_count = descriptor.arrayLayerCount.and_then(|count| {
+            if count == 0 {
+                valid = false;
+            }
+            NonZeroU32::new(count)
+        });
 
-        let desc = wgt::TextureViewDescriptor {
-            label: descriptor
-                .parent
-                .label
-                .as_ref()
-                .map(|s| String::from(s.as_ref())),
-            format: convert_texture_format(format),
-            dimension: convert_texture_view_dimension(dimension),
-            aspect: match descriptor.aspect {
-                GPUTextureAspect::All => wgt::TextureAspect::All,
-                GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
-                GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
-            },
-            base_mip_level: descriptor.baseMipLevel,
-            level_count: descriptor.mipLevelCount.and_then(NonZeroU32::new),
-            base_array_layer: descriptor.baseArrayLayer,
-            array_layer_count: descriptor.arrayLayerCount.and_then(NonZeroU32::new),
+        let desc = if valid {
+            Some(wgt::TextureViewDescriptor {
+                label: descriptor
+                    .parent
+                    .label
+                    .as_ref()
+                    .map(|s| String::from(s.as_ref())),
+                format: convert_texture_format(format),
+                dimension: convert_texture_view_dimension(dimension),
+                aspect: match descriptor.aspect {
+                    GPUTextureAspect::All => wgt::TextureAspect::All,
+                    GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
+                    GPUTextureAspect::Depth_only => wgt::TextureAspect::DepthOnly,
+                },
+                base_mip_level: descriptor.baseMipLevel,
+                level_count,
+                base_array_layer: descriptor.baseArrayLayer,
+                array_layer_count,
+            })
+        } else {
+            self.device.handle_server_msg(
+                scope_id,
+                WebGPUOpResult::ValidationError(String::from(
+                    "arrayLayerCount and mipLevelCount cannot be 0",
+                )),
+            );
+            None
         };
 
         let texture_view_id = self
@@ -163,8 +189,6 @@ impl GPUTextureMethods for GPUTexture {
             .wgpu_id_hub()
             .lock()
             .create_texture_view_id(self.device.id().0.backend());
-
-        let scope_id = self.device.use_current_scope();
 
         self.channel
             .0
