@@ -64,7 +64,7 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use dom_struct::dom_struct;
 use js::jsapi::{Heap, JSObject};
 use std::borrow::Cow;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 use std::ptr::NonNull;
 use std::rc::Rc;
@@ -83,9 +83,16 @@ struct ErrorScopeInfo {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+struct ErrorScopeMetadata {
+    id: ErrorScopeId,
+    filter: GPUErrorFilter,
+    popped: Cell<bool>,
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
 struct ScopeContext {
     error_scopes: HashMap<ErrorScopeId, ErrorScopeInfo>,
-    scope_stack: Vec<(ErrorScopeId, GPUErrorFilter)>,
+    scope_stack: Vec<ErrorScopeMetadata>,
     next_scope_id: ErrorScopeId,
 }
 
@@ -189,8 +196,8 @@ impl GPUDevice {
                     .scope_stack
                     .iter()
                     .rev()
-                    .find(|&&(id, fil)| id <= s_id && fil == filter)
-                    .map(|(id, _)| *id);
+                    .find(|meta| meta.id <= s_id && meta.filter == filter)
+                    .map(|meta| meta.id);
                 if let Some(s) = scop {
                     self.handle_error(s, err);
                 } else {
@@ -237,14 +244,19 @@ impl GPUDevice {
         };
         if remove {
             let _ = context.error_scopes.remove(&scope);
-            context.scope_stack.retain(|(id, _)| *id != scope);
+            context.scope_stack.retain(|meta| meta.id != scope);
         }
     }
 
     pub fn use_current_scope(&self) -> Option<ErrorScopeId> {
         let mut context = self.scope_context.borrow_mut();
-        let scope_id = context.scope_stack.last().copied();
-        scope_id.and_then(|(s_id, _)| {
+        let scope_id = context
+            .scope_stack
+            .iter()
+            .rev()
+            .find(|meta| !meta.popped.get())
+            .map(|meta| meta.id);
+        scope_id.and_then(|s_id| {
             context.error_scopes.get_mut(&s_id).map(|mut scope| {
                 scope.op_count += 1;
                 s_id
@@ -1017,7 +1029,11 @@ impl GPUDeviceMethods for GPUDevice {
             promise: None,
         };
         let res = context.error_scopes.insert(scope_id, err_scope);
-        context.scope_stack.push((scope_id, filter));
+        context.scope_stack.push(ErrorScopeMetadata {
+            id: scope_id,
+            filter,
+            popped: Cell::new(false),
+        });
         assert!(res.is_none());
     }
 
@@ -1025,12 +1041,14 @@ impl GPUDeviceMethods for GPUDevice {
     fn PopErrorScope(&self, comp: InRealm) -> Rc<Promise> {
         let mut context = self.scope_context.borrow_mut();
         let promise = Promise::new_in_current_realm(&self.global(), comp);
-        let scope_id = if let Some((e, _)) = context.scope_stack.last() {
-            *e
-        } else {
-            promise.reject_error(Error::Operation);
-            return promise;
-        };
+        let scope_id =
+            if let Some(meta) = context.scope_stack.iter().rev().find(|m| !m.popped.get()) {
+                meta.popped.set(true);
+                meta.id
+            } else {
+                promise.reject_error(Error::Operation);
+                return promise;
+            };
         let remove = if let Some(mut err_scope) = context.error_scopes.get_mut(&scope_id) {
             if let Some(ref e) = err_scope.error {
                 match e {
@@ -1048,7 +1066,7 @@ impl GPUDeviceMethods for GPUDevice {
         };
         if remove {
             let _ = context.error_scopes.remove(&scope_id);
-            let _ = context.scope_stack.pop();
+            context.scope_stack.retain(|meta| meta.id != scope_id);
         }
         promise
     }
