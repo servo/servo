@@ -20,7 +20,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::htmlmediaelement::HTMLMediaElement;
 use crate::dom::mediametadata::MediaMetadata;
 use crate::dom::window::Window;
-use crate::realms::{AlreadyInRealm, InRealm};
+use crate::realms::{enter_realm, InRealm};
 use dom_struct::dom_struct;
 use embedder_traits::MediaMetadata as EmbedderMediaMetadata;
 use embedder_traits::MediaSessionEvent;
@@ -80,8 +80,8 @@ impl MediaSession {
         if let Some(media) = self.media_instance.get() {
             match action {
                 MediaSessionActionType::Play => {
-                    let in_realm_proof = AlreadyInRealm::assert(&self.global());
-                    media.Play(InRealm::Already(&in_realm_proof));
+                    let realm = enter_realm(self);
+                    media.Play(InRealm::Entered(&realm));
                 },
                 MediaSessionActionType::Pause => {
                     media.Pause();
