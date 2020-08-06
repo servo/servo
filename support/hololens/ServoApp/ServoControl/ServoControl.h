@@ -152,6 +152,14 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   }
 
   winrt::event_token
+  OnMediaSessionPosition(MediaSessionPositionDelegate const &handler) {
+    return mOnMediaSessionPositionEvent.add(handler);
+  };
+  void OnMediaSessionPosition(winrt::event_token const &token) noexcept {
+    mOnMediaSessionPositionEvent.remove(token);
+  }
+
+  winrt::event_token
   OnMediaSessionMetadata(MediaSessionMetadataDelegate const &handler) {
     return mOnMediaSessionMetadataEvent.add(handler);
   };
@@ -187,6 +195,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
   virtual void OnServoMediaSessionMetadata(winrt::hstring, winrt::hstring,
                                            winrt::hstring);
   virtual void OnServoMediaSessionPlaybackStateChange(int);
+  virtual void OnServoMediaSessionPosition(double, double, double);
   virtual void OnServoPromptAlert(winrt::hstring, bool);
   virtual void OnServoShowContextMenu(std::optional<winrt::hstring>,
                                       std::vector<winrt::hstring>);
@@ -210,6 +219,7 @@ private:
   winrt::event<EventDelegate> mOnCaptureGesturesStartedEvent;
   winrt::event<EventDelegate> mOnCaptureGesturesEndedEvent;
   winrt::event<MediaSessionMetadataDelegate> mOnMediaSessionMetadataEvent;
+  winrt::event<MediaSessionPositionDelegate> mOnMediaSessionPositionEvent;
   winrt::event<Windows::Foundation::EventHandler<int>>
       mOnMediaSessionPlaybackStateChangeEvent;
 

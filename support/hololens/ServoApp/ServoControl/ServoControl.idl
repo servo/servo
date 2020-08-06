@@ -3,6 +3,7 @@ namespace ServoApp {
   delegate void EventDelegate();
   delegate void HistoryChangedDelegate(Boolean back, Boolean forward);
   delegate void MediaSessionMetadataDelegate(String title, String artist, String album);
+  delegate void MediaSessionPositionDelegate(Double duration, Double position, Double rate);
   delegate void DevtoolsStatusChangedDelegate(DevtoolsStatus status, UInt32 port, String token);
 
   enum DevtoolsStatus {
@@ -42,6 +43,7 @@ namespace ServoApp {
       event Windows.Foundation.EventHandler<String> OnServoPanic;
       event Windows.Foundation.EventHandler<String> OnURLChanged;
       event MediaSessionMetadataDelegate OnMediaSessionMetadata;
+      event MediaSessionPositionDelegate OnMediaSessionPosition;
       event Windows.Foundation.EventHandler<int> OnMediaSessionPlaybackStateChange;
       Windows.Foundation.Collections.IVector<Pref> Preferences { get; };
       Pref GetPref(String key);

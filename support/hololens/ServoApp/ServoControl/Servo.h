@@ -124,6 +124,7 @@ public:
   virtual void OnServoIMEHide() = 0;
   virtual void OnServoDevtoolsStarted(bool, const unsigned int, hstring) = 0;
   virtual void OnServoMediaSessionMetadata(hstring, hstring, hstring) = 0;
+  virtual void OnServoMediaSessionPosition(double, double, double) = 0;
   virtual void OnServoMediaSessionPlaybackStateChange(int) = 0;
   virtual void OnServoPromptAlert(hstring, bool) = 0;
   virtual void OnServoShowContextMenu(std::optional<hstring>,
