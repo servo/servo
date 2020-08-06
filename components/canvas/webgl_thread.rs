@@ -827,22 +827,30 @@ impl WebGLThread {
 
             debug!("Swapping {:?}", context_id);
             swap_chain
-                .swap_buffers(&mut self.device, &mut data.ctx)
+                .swap_buffers(
+                    &mut self.device,
+                    &mut data.ctx,
+                    if data.attributes.preserve_drawing_buffer {
+                        surfman_chains::PreserveBuffer::Yes(&*data.gl)
+                    } else {
+                        surfman_chains::PreserveBuffer::No
+                    },
+                )
                 .unwrap();
             debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
 
-            // TODO: if preserveDrawingBuffer is true, then blit the front buffer to the back buffer
-            // https://github.com/servo/servo/issues/24604
-            debug!("Clearing {:?}", context_id);
-            let alpha = data
-                .state
-                .requested_flags
-                .contains(ContextAttributeFlags::ALPHA);
-            let clear_color = [0.0, 0.0, 0.0, !alpha as i32 as f32];
-            swap_chain
-                .clear_surface(&mut self.device, &mut data.ctx, &*data.gl, clear_color)
-                .unwrap();
-            debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
+            if !data.attributes.preserve_drawing_buffer {
+                debug!("Clearing {:?}", context_id);
+                let alpha = data
+                    .state
+                    .requested_flags
+                    .contains(ContextAttributeFlags::ALPHA);
+                let clear_color = [0.0, 0.0, 0.0, !alpha as i32 as f32];
+                swap_chain
+                    .clear_surface(&mut self.device, &mut data.ctx, &*data.gl, clear_color)
+                    .unwrap();
+                debug_assert_eq!(data.gl.get_error(), gl::NO_ERROR);
+            }
 
             // Rebind framebuffers as appropriate.
             debug!("Rebinding {:?}", context_id);

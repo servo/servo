@@ -147,7 +147,7 @@ impl WebrenderSurfman {
         let ref mut device = self.0.device.borrow_mut();
         let ref mut context = self.0.context.borrow_mut();
         if let Some(ref swap_chain) = self.0.swap_chain {
-            return swap_chain.swap_buffers(device, context);
+            return swap_chain.swap_buffers(device, context, surfman_chains::PreserveBuffer::No);
         }
         let mut surface = device.unbind_surface_from_context(context)?.unwrap();
         device.present_surface(context, &mut surface)?;
