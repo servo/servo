@@ -864,6 +864,7 @@ install them, let us know by filing a bug!")
                 not target
                 or ("armv7" in target and "android" in target)
                 or "x86_64" in target
+                or "uwp" in target
             ):
                 media_stack = "gstreamer"
             else:
