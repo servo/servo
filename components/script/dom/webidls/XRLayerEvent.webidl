@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // https://immersive-web.github.io/layers/#xrlayerevent-interface
-
-// [SecureContext, Exposed=Window]
-// interface XRLayerEvent : Event {
-//   constructor(DOMString type, XRLayerEventInit eventInitDict);
-//   [SameObject] readonly attribute XRLayer layer;
-// };
+[SecureContext, Exposed=Window, Pref="dom.webxr.layers.enabled"]
+interface XRLayerEvent : Event {
+  constructor(DOMString type, XRLayerEventInit eventInitDict);
+  [SameObject] readonly attribute XRLayer layer;
+};
 
 dictionary XRLayerEventInit : EventInit {
   required XRLayer layer;
