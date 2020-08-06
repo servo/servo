@@ -1,0 +1,199 @@
+<!DOCTYPE HTML>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script type="text/javascript" src="../pointerevent_support.js"></script>
+<style>
+div.box {
+  margin: 10px;
+  padding: 50px;
+  float: left;
+}
+</style>
+<h1>Verifies the effect of pointer event prevent-default on following pointer & mouse events.</h1>
+<div id="target" class="box" style="background-color:green;">
+</div>
+
+<script>
+var receivedEvents = [];
+var mouseEventList = ["mousedown", "mouseup", "mouseenter", "mouseleave", "mouseover", "mouseout", "mousemove"];
+var pointerEventList = ["pointerdown", "pointerup", "pointerenter", "pointerleave", "pointerover", "pointerout", "pointermove"];
+
+var preventDefaultList = ["none"].concat(pointerEventList);
+var eventToPreventDefault = "";
+var seqNo = 0;
+
+function init() {
+  var targetDiv = document.getElementById("target");
+
+  mouseEventList.forEach(function(eventName) {
+    targetDiv.addEventListener(eventName, function(event) {
+      ++seqNo;
+      receivedEvents.push(`${seqNo}.${eventName}@target`);
+    });
+  });
+
+  pointerEventList.forEach(function(eventName) {
+    targetDiv.addEventListener(eventName, function(event) {
+      var preventDefaultMsg = "";
+      if (event.type == eventToPreventDefault) {
+        event.preventDefault();
+        preventDefaultMsg = "_prevented_default";
+      }
+      ++seqNo;
+      receivedEvents.push(`${seqNo}.${eventName}@target${preventDefaultMsg}`);
+    });
+  });
+}
+
+var expectedEvents = new Map([
+  ["none", ["1.pointerover@target", "2.pointerenter@target", "3.mouseover@target",
+            "4.mouseenter@target", "5.pointermove@target", "6.mousemove@target",
+            "7.pointerdown@target", "8.mousedown@target", "9.pointerup@target",
+            "10.mouseup@target", "11.pointerdown@target", "12.mousedown@target",
+            "13.pointermove@target", "14.mousemove@target", "15.pointerout@target",
+            "16.pointerleave@target", "17.mouseout@target", "18.mouseleave@target",
+            "19.pointerover@target", "20.pointerenter@target", "21.mouseover@target",
+            "22.mouseenter@target", "23.pointermove@target", "24.mousemove@target",
+            "25.pointerup@target", "26.mouseup@target", "27.pointerout@target",
+            "28.pointerleave@target", "29.mouseout@target", "30.mouseleave@target"
+            ]],
+  ["pointerdown", ["1.pointerover@target", "2.pointerenter@target", "3.mouseover@target",
+            "4.mouseenter@target", "5.pointermove@target", "6.mousemove@target",
+            "7.pointerdown@target_prevented_default", "8.pointerup@target",
+            "9.pointerdown@target_prevented_default",
+            "10.pointermove@target", "11.pointerout@target", "12.pointerleave@target",
+            "13.mouseout@target", "14.mouseleave@target", "15.pointerover@target",
+            "16.pointerenter@target", "17.mouseover@target", "18.mouseenter@target",
+            "19.pointermove@target", "20.pointerup@target", "21.pointerout@target",
+            "22.pointerleave@target", "23.mouseout@target", "24.mouseleave@target"
+            ]],
+  ["pointerup", ["1.pointerover@target", "2.pointerenter@target", "3.mouseover@target",
+            "4.mouseenter@target", "5.pointermove@target", "6.mousemove@target",
+            "7.pointerdown@target", "8.mousedown@target", "9.pointerup@target_prevented_default",
+            "10.mouseup@target", "11.pointerdown@target", "12.mousedown@target",
+            "13.pointermove@target", "14.mousemove@target", "15.pointerout@target",
+            "16.pointerleave@target", "17.mouseout@target", "18.mouseleave@target",
+            "19.pointerover@target", "20.pointerenter@target", "21.mouseover@target",
+            "22.mouseenter@target", "23.pointermove@target", "24.mousemove@target",
+            "25.pointerup@target_prevented_default", "26.mouseup@target", "27.pointerout@target",
+            "28.pointerleave@target", "29.mouseout@target", "30.mouseleave@target"]],
+  ["pointerenter", ["1.pointerover@target", "2.pointerenter@target_prevented_default", "3.mouseover@target",
+            "4.mouseenter@target", "5.pointermove@target", "6.mousemove@target",
+            "7.pointerdown@target", "8.mousedown@target", "9.pointerup@target",
+            "10.mouseup@target", "11.pointerdown@target", "12.mousedown@target",
+            "13.pointermove@target", "14.mousemove@target", "15.pointerout@target",
+            "16.pointerleave@target", "17.mouseout@target", "18.mouseleave@target",
+            "19.pointerover@target", "20.pointerenter@target_prevented_default", "21.mouseover@target",
+            "22.mouseenter@target", "23.pointermove@target", "24.mousemove@target",
+            "25.pointerup@target", "26.mouseup@target", "27.pointerout@target",
+            "28.pointerleave@target", "29.mouseout@target", "30.mouseleave@target"]],
+  ["pointerleave", ["1.pointerover@target", "2.pointerenter@target", "3.mouseover@target",
+            "4.mouseenter@target", "5.pointermove@target", "6.mousemove@target",
+            "7.pointerdown@target", "8.mousedown@target", "9.pointerup@target",
+            "10.mouseup@target", "11.pointerdown@target", "12.mousedown@target",
+            "13.pointermove@target", "14.mousemove@target", "15.pointerout@target",
+            "16.pointerleave@target_prevented_default", "17.mouseout@target", "18.mouseleave@target",
+            "19.pointerover@target", "20.pointerenter@target", "21.mouseover@target",
+            "22.mouseenter@target", "23.pointermove@target", "24.mousemove@target",
+            "25.pointerup@target", "26.mouseup@target", "27.pointerout@target",
+            "28.pointerleave@target_prevented_default", "29.mouseout@target", "30.mouseleave@target"]],
+  ["pointerover", ["1.pointerover@target_prevented_default", "2.pointerenter@target", "3.mouseover@target",
+            "4.mouseenter@target", "5.pointermove@target", "6.mousemove@target",
+            "7.pointerdown@target", "8.mousedown@target", "9.pointerup@target",
+            "10.mouseup@target", "11.pointerdown@target", "12.mousedown@target",
+            "13.pointermove@target", "14.mousemove@target", "15.pointerout@target",
+            "16.pointerleave@target", "17.mouseout@target", "18.mouseleave@target",
+            "19.pointerover@target_prevented_default", "20.pointerenter@target", "21.mouseover@target",
+            "22.mouseenter@target", "23.pointermove@target", "24.mousemove@target",
+            "25.pointerup@target", "26.mouseup@target", "27.pointerout@target",
+            "28.pointerleave@target", "29.mouseout@target", "30.mouseleave@target"]],
+  ["pointerout", ["1.pointerover@target", "2.pointerenter@target", "3.mouseover@target",
+            "4.mouseenter@target", "5.pointermove@target", "6.mousemove@target",
+            "7.pointerdown@target", "8.mousedown@target", "9.pointerup@target",
+            "10.mouseup@target", "11.pointerdown@target", "12.mousedown@target",
+            "13.pointermove@target", "14.mousemove@target", "15.pointerout@target_prevented_default",
+            "16.pointerleave@target", "17.mouseout@target", "18.mouseleave@target",
+            "19.pointerover@target", "20.pointerenter@target", "21.mouseover@target",
+            "22.mouseenter@target", "23.pointermove@target", "24.mousemove@target",
+            "25.pointerup@target", "26.mouseup@target", "27.pointerout@target_prevented_default",
+            "28.pointerleave@target", "29.mouseout@target", "30.mouseleave@target"]],
+  ["pointermove", ["1.pointerover@target", "2.pointerenter@target", "3.mouseover@target",
+            "4.mouseenter@target", "5.pointermove@target_prevented_default", "6.mousemove@target",
+            "7.pointerdown@target", "8.mousedown@target", "9.pointerup@target",
+            "10.mouseup@target", "11.pointerdown@target", "12.mousedown@target",
+            "13.pointermove@target_prevented_default", "14.mousemove@target", "15.pointerout@target",
+            "16.pointerleave@target", "17.mouseout@target", "18.mouseleave@target",
+            "19.pointerover@target", "20.pointerenter@target", "21.mouseover@target",
+            "22.mouseenter@target", "23.pointermove@target_prevented_default", "24.mousemove@target",
+            "25.pointerup@target", "26.mouseup@target", "27.pointerout@target",
+            "28.pointerleave@target", "29.mouseout@target", "30.mouseleave@target"]]
+]);
+
+async function runTestForDefaultEvent(preventDefaultEvent) {
+    promise_test((test)=>
+    new Promise(async (resolve, reject)=>{
+        test.add_cleanup(()=>{
+          receivedEvents = [];
+          seqNo = 0;
+          eventToPreventDefault = "";
+        });
+        eventToPreventDefault = preventDefaultEvent;
+
+        try{
+          // if awaited Promise rejects then fail the test
+          await performActions(test, preventDefaultEvent);
+        }
+        catch(e){
+          reject(e);
+        }
+        test.step(()=>{
+          assert_array_equals(expectedEvents.get(preventDefaultEvent), receivedEvents);});
+        resolve();
+    }), `Verifies the effect of pointer event prevent-default on ${preventDefaultEvent}`);
+}
+
+async function runTests(){
+  // create one test for each event in preventDefaultList
+  // run all tests one by one
+  preventDefaultList.forEach(preventDefaultEvent=>runTestForDefaultEvent(preventDefaultEvent));
+}
+
+function performActions(test, preventDefaultEvent){
+  let targetDiv = document.getElementById("target");
+  let rect = targetDiv.getBoundingClientRect();
+  let x1 = Math.ceil(rect.left - 3);
+  let y1 = Math.ceil(rect.top - 5);
+  let x2 = Math.ceil(rect.left + 3);
+  let y2 = Math.ceil(rect.top + 5);
+
+  let eventWatcher = new EventWatcher(test, targetDiv, ["mouseleave"], ()=>waitForAnimationFrames(900));
+  // wait for all expected events to happen.
+  // Because each test ends with mouseleave and there are 2 mouseleave events,
+  // we use EventWatcher to wait for the two mouseleave events to happen
+  let donePromise = eventWatcher.wait_for(["mouseleave", "mouseleave"], { record: 'all' });
+  let actionsPromise = new test_driver.Actions()
+                .pointerMove(0, 0)
+                // start with mouse outside target
+                .pointerMove(x1, y1)
+                // move into target and click
+                .pointerMove(x2, y2)
+                .pointerDown()
+                .pointerUp()
+                // drag out of and into target & release within target
+                .pointerDown()
+                .pointerMove(x2+5, y2+5)
+                .pointerMove(x1, y1)
+                .pointerMove(x2, y2)
+                .pointerUp()
+                // move outside target again
+                .pointerMove(x1, y1)
+                .send();
+  return Promise.all([donePromise, actionsPromise]);
+}
+
+init();
+runTests();
+</script>

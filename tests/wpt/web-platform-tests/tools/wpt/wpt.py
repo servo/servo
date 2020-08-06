@@ -38,6 +38,8 @@ def load_commands():
                     "requirements": [os.path.join(base_dir, item)
                                      for item in props.get("requirements", [])]
                 }
+                if rv[command]["install"] or rv[command]["requirements"]:
+                    assert rv[command]["virtualenv"]
     return rv
 
 

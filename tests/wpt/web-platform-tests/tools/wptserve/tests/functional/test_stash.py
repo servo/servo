@@ -1,3 +1,4 @@
+import sys
 import unittest
 import uuid
 
@@ -9,6 +10,8 @@ from wptserve.stash import StashServer
 from .base import TestUsingServer
 
 
+@pytest.mark.skipif(sys.version_info >= (3, 8) and sys.platform == 'darwin',
+                    reason="multiprocessing test hangs in Python 3.8 on macOS (#24880)")
 class TestResponseSetCookie(TestUsingServer):
     def run(self, result=None):
         with StashServer(None, authkey=str(uuid.uuid4())):

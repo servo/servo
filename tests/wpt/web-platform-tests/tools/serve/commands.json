@@ -12,7 +12,6 @@
     "parser": "get_parser",
     "help": "Run wptserve server for WAVE",
     "virtualenv": true,
-    "install": ["ua-parser"],
     "requirements": ["../wave/requirements.txt"]
   }
 }
