@@ -6,6 +6,7 @@ use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::browsing_context::{BrowsingContextActor, BrowsingContextActorMsg};
 use crate::actors::root::RootActor;
 use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 use serde_json::{Map, Value};
 use std::net::TcpStream;
 
@@ -48,13 +49,14 @@ impl Actor for TabDescriptorActor {
         msg_type: &str,
         _msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "getTarget" => {
                 let frame = registry
                     .find::<BrowsingContextActor>(&self.browsing_context_actor)
                     .encodable();
-                stream.write_json_packet(&GetTargetReply {
+                let _ = stream.write_json_packet(&GetTargetReply {
                     from: self.name(),
                     frame,
                 });

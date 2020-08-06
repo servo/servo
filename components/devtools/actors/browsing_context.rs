@@ -17,6 +17,7 @@ use crate::actors::tab::TabDescriptorActor;
 use crate::actors::thread::ThreadActor;
 use crate::actors::timeline::TimelineActor;
 use crate::protocol::JsonPacketStream;
+use crate::StreamId;
 use devtools_traits::DevtoolScriptControlMsg::{self, WantsLiveNotifications};
 use devtools_traits::DevtoolsPageInfo;
 use devtools_traits::NavigationState;
@@ -24,6 +25,7 @@ use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::{BrowsingContextId, PipelineId};
 use serde_json::{Map, Value};
 use std::cell::{Cell, RefCell};
+use std::collections::HashMap;
 use std::net::TcpStream;
 
 #[derive(Serialize)]
@@ -118,7 +120,7 @@ pub struct BrowsingContextActorMsg {
     manifestActor: String,*/
 }
 
-pub struct BrowsingContextActor {
+pub(crate) struct BrowsingContextActor {
     pub name: String,
     pub title: RefCell<String>,
     pub url: RefCell<String>,
@@ -131,7 +133,7 @@ pub struct BrowsingContextActor {
     pub styleSheets: String,
     pub thread: String,
     pub tab: String,
-    pub streams: RefCell<Vec<TcpStream>>,
+    pub streams: RefCell<HashMap<StreamId, TcpStream>>,
     pub browsing_context_id: BrowsingContextId,
     pub active_pipeline: Cell<PipelineId>,
     pub script_chan: IpcSender<DevtoolScriptControlMsg>,
@@ -148,6 +150,7 @@ impl Actor for BrowsingContextActor {
         msg_type: &str,
         msg: &Map<String, Value>,
         stream: &mut TcpStream,
+        id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(match msg_type {
             "reconfigure" => {
@@ -160,7 +163,7 @@ impl Actor for BrowsingContextActor {
                         }
                     }
                 }
-                stream.write_json_packet(&ReconfigureReply { from: self.name() });
+                let _ = stream.write_json_packet(&ReconfigureReply { from: self.name() });
                 ActorMessageStatus::Processed
             },
 
@@ -181,26 +184,26 @@ impl Actor for BrowsingContextActor {
                         watchpoints: false,
                     },
                 };
-                self.streams.borrow_mut().push(stream.try_clone().unwrap());
-                stream.write_json_packet(&msg);
+
+                if stream.write_json_packet(&msg).is_err() {
+                    return Ok(ActorMessageStatus::Processed);
+                }
+                self.streams
+                    .borrow_mut()
+                    .insert(id, stream.try_clone().unwrap());
                 self.script_chan
                     .send(WantsLiveNotifications(self.active_pipeline.get(), true))
                     .unwrap();
                 ActorMessageStatus::Processed
             },
 
-            //FIXME: The current implementation won't work for multiple connections. Need to ensure
-            //       that the correct stream is removed.
             "detach" => {
                 let msg = BrowsingContextDetachedReply {
                     from: self.name(),
                     type_: "detached".to_owned(),
                 };
-                self.streams.borrow_mut().pop();
-                stream.write_json_packet(&msg);
-                self.script_chan
-                    .send(WantsLiveNotifications(self.active_pipeline.get(), false))
-                    .unwrap();
+                let _ = stream.write_json_packet(&msg);
+                self.cleanup(id);
                 ActorMessageStatus::Processed
             },
 
@@ -215,7 +218,7 @@ impl Actor for BrowsingContextActor {
                         title: self.title.borrow().clone(),
                     }],
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
@@ -224,12 +227,21 @@ impl Actor for BrowsingContextActor {
                     from: self.name(),
                     workers: vec![],
                 };
-                stream.write_json_packet(&msg);
+                let _ = stream.write_json_packet(&msg);
                 ActorMessageStatus::Processed
             },
 
             _ => ActorMessageStatus::Ignored,
         })
+    }
+
+    fn cleanup(&self, id: StreamId) {
+        self.streams.borrow_mut().remove(&id);
+        if self.streams.borrow().is_empty() {
+            self.script_chan
+                .send(WantsLiveNotifications(self.active_pipeline.get(), false))
+                .unwrap();
+        }
     }
 }
 
@@ -284,7 +296,7 @@ impl BrowsingContextActor {
             styleSheets: styleSheets.name(),
             tab: tabdesc.name(),
             thread: thread.name(),
-            streams: RefCell::new(Vec::new()),
+            streams: RefCell::new(HashMap::new()),
             browsing_context_id: id,
             active_pipeline: Cell::new(pipeline),
         };
@@ -347,8 +359,8 @@ impl BrowsingContextActor {
             state: state.to_owned(),
             isFrameSwitching: false,
         };
-        for stream in &mut *self.streams.borrow_mut() {
-            stream.write_json_packet(&msg);
+        for stream in self.streams.borrow_mut().values_mut() {
+            let _ = stream.write_json_packet(&msg);
         }
     }
 

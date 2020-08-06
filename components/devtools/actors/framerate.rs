@@ -4,6 +4,7 @@
 
 use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::actors::timeline::HighResolutionStamp;
+use crate::StreamId;
 use devtools_traits::DevtoolScriptControlMsg;
 use ipc_channel::ipc::IpcSender;
 use msg::constellation_msg::PipelineId;
@@ -32,6 +33,7 @@ impl Actor for FramerateActor {
         _msg_type: &str,
         _msg: &Map<String, Value>,
         _stream: &mut TcpStream,
+        _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
         Ok(ActorMessageStatus::Ignored)
     }
