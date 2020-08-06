@@ -4,9 +4,9 @@
 </head>
 <body>
   <p>${reason}</p>
-  <pre id="bytes">${bytes}</pre>
   <button id="leave" onclick="history.back()">Go back (recommended)</button>
   <button id="allow">Allow certificate temporarily</button>
+  <pre id="bytes">${bytes}</pre>
   <script>
     let bytes = document.getElementById('bytes').textContent;
     let button = document.getElementById('allow');
