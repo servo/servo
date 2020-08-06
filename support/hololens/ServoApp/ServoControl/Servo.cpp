@@ -377,8 +377,13 @@ void Servo::GoHome() {
       ApplicationData::Current().LocalSettings();
   auto prefs = localSettings.Containers().Lookup(L"servoUserPrefs");
   auto home_pref = prefs.Values().Lookup(L"shell.homepage");
-  auto home =
-      home_pref ? unbox_value<hstring>(home_pref) : FALLBACK_DEFAULT_URL;
+  auto home = home_pref ? unbox_value<hstring>(home_pref) :
+#ifdef OVERRIDE_DEFAULT_URL
+                        OVERRIDE_DEFAULT_URL
+#else
+                        FALLBACK_DEFAULT_URL
+#endif
+      ;
   LoadUri(home);
 }
 
