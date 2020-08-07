@@ -101,6 +101,10 @@ impl Fragment {
                 Visibility::Hidden => (),
                 Visibility::Collapse => (),
             },
+            Fragment::Float(f) => {
+                // FIXME(pcwalton): Wrong painting order!
+                BuilderForBoxFragment::new(&f.box_fragment, containing_block).build(builder)
+            },
             Fragment::AbsoluteOrFixedPositioned(_) => {},
             Fragment::Anonymous(_) => {},
             Fragment::Image(i) => match i.style.get_inherited_box().visibility {

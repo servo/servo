@@ -12,8 +12,8 @@ use crate::formatting_contexts::{
     IndependentFormattingContext, IndependentLayout, NonReplacedFormattingContext,
 };
 use crate::fragments::{
-    AbsoluteOrFixedPositionedFragment, AnonymousFragment, BoxFragment, CollapsedBlockMargins,
-    CollapsedMargin, Fragment, Tag,
+    AbsoluteOrFixedPositionedFragment, BoxFragment, CollapsedBlockMargins, CollapsedMargin,
+    Fragment, Tag,
 };
 use crate::geom::flow_relative::{Rect, Sides, Vec2};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
@@ -131,6 +131,7 @@ impl BlockContainer {
                 positioning_context,
                 containing_block,
                 tree_rank,
+                float_context,
             ),
         }
     }
@@ -164,7 +165,11 @@ fn layout_block_level_children(
     mut float_context: Option<&mut FloatContext>,
     collapsible_with_parent_start_margin: CollapsibleWithParentStartMargin,
 ) -> FlowLayout {
-    fn place_block_level_fragment(fragment: &mut Fragment, placement_state: &mut PlacementState) {
+    fn place_block_level_fragment(
+        fragment: &mut Fragment,
+        placement_state: &mut PlacementState,
+        mut float_context: Option<&mut FloatContext>,
+    ) {
         match fragment {
             Fragment::Box(fragment) => {
                 let fragment_block_margins = &fragment.block_margins_collapsed_with_children;
@@ -200,6 +205,14 @@ fn layout_block_level_children(
                 placement_state.current_block_direction_position +=
                     placement_state.current_margin.solve() + fragment_block_size;
                 placement_state.current_margin = fragment_block_margins.end;
+
+                // Update float ceiling if necessary.
+                // https://drafts.csswg.org/css2/#propdef-float
+                if let Some(ref mut float_context) = float_context {
+                    float_context.current_block_position = float_context.containing_block_position +
+                        placement_state.current_block_direction_position;
+                    float_context.lower_ceiling(float_context.current_block_position);
+                }
             },
             Fragment::AbsoluteOrFixedPositioned(fragment) => {
                 let offset = Vec2 {
@@ -212,7 +225,7 @@ fn layout_block_level_children(
                     .borrow_mut()
                     .adjust_offsets(offset);
             },
-            Fragment::Anonymous(_) => {},
+            Fragment::Anonymous(_) | Fragment::Float(_) => {},
             _ => unreachable!(),
         }
     }
@@ -231,6 +244,7 @@ fn layout_block_level_children(
         current_margin: CollapsedMargin::zero(),
         current_block_direction_position: Length::zero(),
     };
+
     let fragments = positioning_context.adjust_static_positions(tree_rank, |positioning_context| {
         if float_context.is_some() || !layout_context.use_rayon {
             // Because floats are involved, we do layout for this block formatting context
@@ -247,7 +261,11 @@ fn layout_block_level_children(
                         tree_rank,
                         float_context.as_mut().map(|c| &mut **c),
                     );
-                    place_block_level_fragment(&mut fragment, &mut placement_state);
+                    place_block_level_fragment(
+                        &mut fragment,
+                        &mut placement_state,
+                        float_context.as_mut().map(|c| &mut **c),
+                    );
                     fragment
                 })
                 .collect()
@@ -273,7 +291,7 @@ fn layout_block_level_children(
                 )
                 .collect();
             for fragment in &mut fragments {
-                place_block_level_fragment(fragment, &mut placement_state)
+                place_block_level_fragment(fragment, &mut placement_state, None)
             }
             fragments
         }
@@ -377,12 +395,12 @@ impl BlockLevelBox {
                     position: box_.borrow().context.style().clone_position(),
                 })
             },
-            BlockLevelBox::OutOfFlowFloatBox(_box_) => {
-                // FIXME: call layout_maybe_position_relative_fragment here
-                Fragment::Anonymous(AnonymousFragment::no_op(
-                    containing_block.style.writing_mode,
-                ))
-            },
+            BlockLevelBox::OutOfFlowFloatBox(box_) => Fragment::Float(box_.layout(
+                layout_context,
+                positioning_context,
+                containing_block,
+                float_context,
+            )),
         }
     }
 
@@ -423,7 +441,7 @@ fn layout_in_flow_non_replaced_block_level(
     style: &Arc<ComputedValues>,
     block_level_kind: NonReplacedContents,
     tree_rank: usize,
-    float_context: Option<&mut FloatContext>,
+    mut float_context: Option<&mut FloatContext>,
 ) -> BoxFragment {
     let pbm = style.padding_border_margin(containing_block);
     let box_size = style.content_box_size(containing_block, &pbm);
@@ -477,6 +495,21 @@ fn layout_in_flow_non_replaced_block_level(
         block_size,
         style,
     };
+
+    // We make a new float context to reflect the fact that we're the containing block for our
+    // kids.
+    let mut float_context_for_children = match float_context {
+        None => None,
+        Some(ref float_context) => {
+            let mut new_float_context = (*float_context).clone();
+            new_float_context.containing_block_position = new_float_context.current_block_position;
+            new_float_context.left_wall +=
+                pbm.padding.inline_start + pbm.border.inline_start + margin.inline_start;
+            new_float_context.right_wall = new_float_context.left_wall + inline_size;
+            Some(new_float_context)
+        },
+    };
+
     // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
     assert_eq!(
         containing_block.style.writing_mode, containing_block_for_children.style.writing_mode,
@@ -501,12 +534,20 @@ fn layout_in_flow_non_replaced_block_level(
                 positioning_context,
                 &containing_block_for_children,
                 tree_rank,
-                float_context,
+                float_context_for_children.as_mut(),
                 CollapsibleWithParentStartMargin(start_margin_can_collapse_with_children),
             );
             fragments = flow_layout.fragments;
             content_block_size = flow_layout.content_block_size;
             let mut collapsible_margins_in_children = flow_layout.collapsible_margins_in_children;
+
+            // Pull out the floats placed by our children.
+            if let Some(float_context_for_children) = float_context_for_children.take() {
+                let this_float_context =
+                    float_context.as_mut().expect("Where's our float context?");
+                this_float_context.bands = float_context_for_children.bands;
+                this_float_context.ceiling = float_context_for_children.ceiling;
+            }
 
             if start_margin_can_collapse_with_children {
                 block_margins_collapsed_with_children

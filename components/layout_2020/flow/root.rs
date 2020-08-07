@@ -473,6 +473,7 @@ impl FragmentTree {
                 Fragment::Text(fragment) => fragment
                     .rect
                     .to_physical(fragment.parent_style.writing_mode, &containing_block),
+                Fragment::Float(_) |
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Image(_) |
                 Fragment::Anonymous(_) => return None,
@@ -502,6 +503,7 @@ impl FragmentTree {
                 Fragment::Box(fragment) if fragment.tag.node() == requested_node => {
                     (&fragment.style, fragment.padding_rect())
                 },
+                Fragment::Float(_) |
                 Fragment::AbsoluteOrFixedPositioned(_) |
                 Fragment::Box(_) |
                 Fragment::Text(_) |

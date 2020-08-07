@@ -251,6 +251,16 @@ impl<T> flow_relative::Sides<T> {
         self.block_start + self.block_end
     }
 
+    pub fn sum(&self) -> flow_relative::Vec2<T::Output>
+    where
+        T: Add + Copy,
+    {
+        flow_relative::Vec2 {
+            inline: self.inline_sum(),
+            block: self.block_sum(),
+        }
+    }
+
     pub fn to_physical(&self, mode: WritingMode) -> PhysicalSides<T>
     where
         T: Clone,
@@ -287,6 +297,18 @@ impl<T> flow_relative::Sides<T> {
             }
         }
         PhysicalSides::new(top, right, bottom, left)
+    }
+}
+
+impl<T> flow_relative::Sides<T>
+where
+    T: Copy,
+{
+    pub fn start_offset(&self) -> flow_relative::Vec2<T> {
+        flow_relative::Vec2 {
+            inline: self.inline_start,
+            block: self.block_start,
+        }
     }
 }
 

@@ -341,6 +341,12 @@ struct FloatInput {
     // The float may be placed no higher than this line. This simulates the effect of line boxes
     // per CSS 2.1 § 9.5.1 rule 6.
     ceiling: u32,
+    /// The distance from the logical left side of the block formatting context to the logical
+    /// left side of the current containing block.
+    left_wall: Length,
+    /// The distance from the logical *left* side of the block formatting context to the logical
+    /// right side of this object's containing block.
+    right_wall: Length,
 }
 
 impl Arbitrary for FloatInput {
@@ -367,10 +373,10 @@ impl Arbitrary for FloatInput {
                     FloatSide::Right
                 },
                 clear: new_clear_side(clear),
-                left_wall: Length::new(left_wall as f32),
-                right_wall: Length::new(right_wall as f32),
             },
             ceiling,
+            left_wall: Length::new(left_wall as f32),
+            right_wall: Length::new(right_wall as f32),
         }
     }
 
@@ -389,12 +395,12 @@ impl Arbitrary for FloatInput {
             this.info.clear = new_clear_side(clear_side);
             shrunk = true;
         }
-        if let Some(left_wall) = self.info.left_wall.px().shrink().next() {
-            this.info.left_wall = Length::new(left_wall);
+        if let Some(left_wall) = self.left_wall.px().shrink().next() {
+            this.left_wall = Length::new(left_wall);
             shrunk = true;
         }
-        if let Some(right_wall) = self.info.right_wall.px().shrink().next() {
-            this.info.right_wall = Length::new(right_wall);
+        if let Some(right_wall) = self.right_wall.px().shrink().next() {
+            this.right_wall = Length::new(right_wall);
             shrunk = true;
         }
         if let Some(ceiling) = self.ceiling.shrink().next() {
@@ -430,6 +436,8 @@ struct PlacedFloat {
     origin: Vec2<Length>,
     info: PlacementInfo,
     ceiling: Length,
+    left_wall: Length,
+    right_wall: Length,
 }
 
 impl Drop for FloatPlacement {
@@ -442,8 +450,12 @@ impl Drop for FloatPlacement {
         eprintln!("Failing float placement:");
         for placed_float in &self.placed_floats {
             eprintln!(
-                "   * {:?} @ {:?}, {:?}",
-                placed_float.info, placed_float.origin, placed_float.ceiling
+                "   * {:?} @ {:?}, T {:?} L {:?} R {:?}",
+                placed_float.info,
+                placed_float.origin,
+                placed_float.ceiling,
+                placed_float.left_wall,
+                placed_float.right_wall,
             );
         }
         eprintln!("Bands:\n{:?}\n", self.float_context.bands);
@@ -466,10 +478,18 @@ impl FloatPlacement {
         for float in floats {
             let ceiling = Length::new(float.ceiling as f32);
             float_context.lower_ceiling(ceiling);
+            float_context.left_wall = float.left_wall;
+            float_context.right_wall = float.right_wall;
+            let placement_offset = Vec2 {
+                inline: float.left_wall,
+                block: Length::zero(),
+            };
             placed_floats.push(PlacedFloat {
-                origin: float_context.add_float(&float.info),
+                origin: &float_context.add_float(&float.info) + &placement_offset,
                 info: float.info,
                 ceiling,
+                left_wall: float.left_wall,
+                right_wall: float.right_wall,
             })
         }
         FloatPlacement {
@@ -488,9 +508,9 @@ impl FloatPlacement {
 fn check_floats_rule_1(placement: &FloatPlacement) {
     for placed_float in &placement.placed_floats {
         match placed_float.info.side {
-            FloatSide::Left => assert!(placed_float.origin.inline >= placed_float.info.left_wall),
+            FloatSide::Left => assert!(placed_float.origin.inline >= placed_float.left_wall),
             FloatSide::Right => {
-                assert!(placed_float.rect().max_inline_position() <= placed_float.info.right_wall)
+                assert!(placed_float.rect().max_inline_position() <= placed_float.right_wall)
             },
         }
     }
@@ -596,12 +616,12 @@ fn check_floats_rule_7(placement: &FloatPlacement) {
         // Only consider floats that stick out.
         match placed_float.info.side {
             FloatSide::Left => {
-                if placed_float.rect().max_inline_position() <= placed_float.info.right_wall {
+                if placed_float.rect().max_inline_position() <= placed_float.right_wall {
                     continue;
                 }
             },
             FloatSide::Right => {
-                if placed_float.origin.inline >= placed_float.info.left_wall {
+                if placed_float.origin.inline >= placed_float.left_wall {
                     continue;
                 }
             },
