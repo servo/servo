@@ -144,9 +144,8 @@ mod media_platform {
 
     #[cfg(feature = "uwp")]
     fn set_gstreamer_log_handler() {
-        use gstreamer::{debug_add_log_function, debug_remove_default_log_function, DebugLevel};
+        use gstreamer::{debug_add_log_function, DebugLevel};
 
-        debug_remove_default_log_function();
         debug_add_log_function(|cat, level, file, function, line, _, message| {
             let message = format!(
                 "{:?} {:?} {:?}:{:?}:{:?} {:?}",

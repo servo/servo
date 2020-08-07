@@ -287,6 +287,10 @@ Servo::Servo(std::optional<hstring> initUrl, hstring args, GLsizei width,
   sServo = this; // FIXME;
 
   auto current = ApplicationData::Current();
+  auto gstLog = std::wstring(current.LocalFolder().Path()) + L"\\gst.log";
+  SetEnvironmentVariable(L"GST_DEBUG_FILE", gstLog.c_str());
+  // SetEnvironmentVariableA("GST_DEBUG", "4");
+
   auto filePath = std::wstring(current.LocalFolder().Path()) + L"\\stdout.txt";
   sLogHandle =
       CreateFile2(filePath.c_str(), GENERIC_WRITE, 0, CREATE_ALWAYS, nullptr);
