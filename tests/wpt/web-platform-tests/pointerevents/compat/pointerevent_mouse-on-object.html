@@ -39,10 +39,13 @@ promise_test(async() => {
   done_clicked = false;
   receivedEvents = [];
 
-  await new test_driver.Actions().pointerMove(rect.left+5, rect.top+5).pointerDown(0).pointerUp(0).send().then(() => {
-            return clickInTarget("mouse", done);
-  });
-  await resolveWhen(()=>{return done_clicked;});
+  await new test_driver.Actions()
+        .pointerMove(Math.ceil(rect.left+5), Math.ceil(rect.top+5))
+        .pointerDown()
+        .pointerUp()
+        .send()
+        .then(() => clickInTarget("mouse", done));
+  await resolveWhen(() => done_clicked);
 
   assert_array_equals(receivedEvents, ["pointermove", "mousemove", "pointerdown", "mousedown", "pointerup", "mouseup"],
                       "Click on object should result in the correct sequence of events");
@@ -52,10 +55,14 @@ promise_test(async() => {
   done_clicked = false;
   receivedEvents = [];
 
-  await new test_driver.Actions().pointerMove(rect.left+5, rect.top+5).pointerDown(0).pointerMove(rect.left-5, rect.top-5).pointerUp(0).send().then(() => {
-            return clickInTarget("mouse", done);
-  });
-  await resolveWhen(()=>{return done_clicked;});
+  await new test_driver.Actions()
+        .pointerMove(Math.ceil(rect.left+5), Math.ceil(rect.top+5))
+        .pointerDown()
+        .pointerMove(Math.ceil(rect.left-5), Math.ceil(rect.top-5))
+        .pointerUp()
+        .send()
+        .then(() => clickInTarget("mouse", done));
+  await resolveWhen(() => done_clicked);
 
   assert_array_equals(receivedEvents, ["pointermove", "mousemove", "pointerdown", "mousedown", "pointermove", "mousemove", "pointerup", "mouseup"],
                       "Drag from object should result in the correct sequence of events");

@@ -19,6 +19,7 @@
 
 import sys
 
+from collections import OrderedDict
 from inspect import getmembers
 from six import text_type
 
@@ -108,638 +109,780 @@ class Keys(object):
 
 ALL_KEYS = getmembers(Keys, lambda x: type(x) == text_type)
 
-ALL_EVENTS = {
-    "ADD": {
-        "code": "NumpadAdd",
-        "ctrl": False,
-        "key": "+",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue025",
-    },
-    "ALT": {
-        "code": "AltLeft",
-        "ctrl": False,
-        "key": "Alt",
-        "location": 1,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue00a",
-    },
-    "BACKSPACE": {
-        "code": "Backspace",
-        "ctrl": False,
-        "key": "Backspace",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue003",
-    },
-    "CANCEL": {
-        "code": "",
-        "ctrl": False,
-        "key": "Cancel",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue001",
-    },
-    "CLEAR": {
-        "code": "",
-        "ctrl": False,
-        "key": "Clear",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue005",
-    },
-    "CONTROL": {
-        "code": "ControlLeft",
-        "ctrl": True,
-        "key": "Control",
-        "location": 1,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue009",
-    },
-    "DECIMAL": {
-        "code": "NumpadDecimal",
-        "ctrl": False,
-        "key": ".",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue028",
-    },
-    "DELETE": {
-        "code": "Delete",
-        "ctrl": False,
-        "key": "Delete",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue017",
-    },
-    "DIVIDE": {
-        "code": "NumpadDivide",
-        "ctrl": False,
-        "key": "/",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue029",
-    },
-    "DOWN": {
-        "code": "ArrowDown",
-        "ctrl": False,
-        "key": "ArrowDown",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue015",
-    },
-    "END": {
-        "code": "End",
-        "ctrl": False,
-        "key": "End",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue010",
-    },
-    "ENTER": {
-        "code": "NumpadEnter",
-        "ctrl": False,
-        "key": "Enter",
-        "location": 1,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue007",
-    },
-    "EQUALS": {
-        "code": "",
-        "ctrl": False,
-        "key": "=",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue019",
-    },
-    "ESCAPE": {
-        "code": "Escape",
-        "ctrl": False,
-        "key": "Escape",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue00c",
-    },
-    "F1": {
-        "code": "F1",
-        "ctrl": False,
-        "key": "F1",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue031",
-    },
-    "F10": {
-        "code": "F10",
-        "ctrl": False,
-        "key": "F10",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue03a",
-    },
-    "F11": {
-        "code": "F11",
-        "ctrl": False,
-        "key": "F11",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue03b",
-    },
-    "F12": {
-        "code": "F12",
-        "ctrl": False,
-        "key": "F12",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue03c",
-    },
-    "F2": {
-        "code": "F2",
-        "ctrl": False,
-        "key": "F2",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue032",
-    },
-    "F3": {
-        "code": "F3",
-        "ctrl": False,
-        "key": "F3",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue033",
-    },
-    "F4": {
-        "code": "F4",
-        "ctrl": False,
-        "key": "F4",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue034",
-    },
-    "F5": {
-        "code": "F5",
-        "ctrl": False,
-        "key": "F5",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue035",
-    },
-    "F6": {
-        "code": "F6",
-        "ctrl": False,
-        "key": "F6",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue036",
-    },
-    "F7": {
-        "code": "F7",
-        "ctrl": False,
-        "key": "F7",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue037",
-    },
-    "F8": {
-        "code": "F8",
-        "ctrl": False,
-        "key": "F8",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue038",
-    },
-    "F9": {
-        "code": "F9",
-        "ctrl": False,
-        "key": "F9",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue039",
-    },
-    "HELP": {
-        "code": "Help",
-        "ctrl": False,
-        "key": "Help",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue002",
-    },
-    "HOME": {
-        "code": "Home",
-        "ctrl": False,
-        "key": "Home",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue011",
-    },
-    "INSERT": {
-        "code": "Insert",
-        "ctrl": False,
-        "key": "Insert",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue016",
-    },
-    "LEFT": {
-        "code": "ArrowLeft",
-        "ctrl": False,
-        "key": "ArrowLeft",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue012",
-    },
-    "META": {
-        "code": "MetaLeft",
-        "ctrl": False,
-        "key": "Meta",
-        "location": 1,
-        "meta": True,
-        "shift": False,
-        "value": u"\ue03d",
-    },
-    "MULTIPLY": {
-        "code": "NumpadMultiply",
-        "ctrl": False,
-        "key": "*",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue024",
-    },
-    "NULL": {
-        "code": "",
-        "ctrl": False,
-        "key": "Unidentified",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue000",
-    },
-    "NUMPAD0": {
-        "code": "Numpad0",
-        "ctrl": False,
-        "key": "0",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue01a",
-    },
-    "NUMPAD1": {
-        "code": "Numpad1",
-        "ctrl": False,
-        "key": "1",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue01b",
-    },
-    "NUMPAD2": {
-        "code": "Numpad2",
-        "ctrl": False,
-        "key": "2",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue01c",
-    },
-    "NUMPAD3": {
-        "code": "Numpad3",
-        "ctrl": False,
-        "key": "3",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue01d",
-    },
-    "NUMPAD4": {
-        "code": "Numpad4",
-        "ctrl": False,
-        "key": "4",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue01e",
-    },
-    "NUMPAD5": {
-        "code": "Numpad5",
-        "ctrl": False,
-        "key": "5",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue01f",
-    },
-    "NUMPAD6": {
-        "code": "Numpad6",
-        "ctrl": False,
-        "key": "6",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue020",
-    },
-    "NUMPAD7": {
-        "code": "Numpad7",
-        "ctrl": False,
-        "key": "7",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue021",
-    },
-    "NUMPAD8": {
-        "code": "Numpad8",
-        "ctrl": False,
-        "key": "8",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue022",
-    },
-    "NUMPAD9": {
-        "code": "Numpad9",
-        "ctrl": False,
-        "key": "9",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue023",
-    },
-    "PAGE_DOWN": {
-        "code": "PageDown",
-        "ctrl": False,
-        "key": "PageDown",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue00f",
-    },
-    "PAGE_UP": {
-        "code": "PageUp",
-        "ctrl": False,
-        "key": "PageUp",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue00e",
-    },
-    "PAUSE": {
-        "code": "",
-        "ctrl": False,
-        "key": "Pause",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue00b",
-    },
-    "RETURN": {
-        "code": "Enter",
-        "ctrl": False,
-        "key": "Enter",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue006",
-    },
-    "RIGHT": {
-        "code": "ArrowRight",
-        "ctrl": False,
-        "key": "ArrowRight",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue014",
-    },
-    "R_ALT": {
-        "code": "AltRight",
-        "ctrl": False,
-        "key": "Alt",
-        "location": 2,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue052",
-    },
-    "R_ARROWDOWN": {
-        "code": "Numpad2",
-        "ctrl": False,
-        "key": "ArrowDown",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue05b",
-    },
-    "R_ARROWLEFT": {
-        "code": "Numpad4",
-        "ctrl": False,
-        "key": "ArrowLeft",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue058",
-    },
-    "R_ARROWRIGHT": {
-        "code": "Numpad6",
-        "ctrl": False,
-        "key": "ArrowRight",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue05a",
-    },
-    "R_ARROWUP": {
-        "code": "Numpad8",
-        "ctrl": False,
-        "key": "ArrowUp",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue059",
-    },
-    "R_CONTROL": {
-        "code": "ControlRight",
-        "ctrl": True,
-        "key": "Control",
-        "location": 2,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue051",
-    },
-    "R_DELETE": {
-        "code": "NumpadDecimal",
-        "ctrl": False,
-        "key": "Delete",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue05d",
-    },
-    "R_END": {
-        "code": "Numpad1",
-        "ctrl": False,
-        "key": "End",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue056",
-    },
-    "R_HOME": {
-        "code": "Numpad7",
-        "ctrl": False,
-        "key": "Home",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue057",
-    },
-    "R_INSERT": {
-        "code": "Numpad0",
-        "ctrl": False,
-        "key": "Insert",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue05c",
-    },
-    "R_META": {
-        "code": "MetaRight",
-        "ctrl": False,
-        "key": "Meta",
-        "location": 2,
-        "meta": True,
-        "shift": False,
-        "value": u"\ue053",
-    },
-    "R_PAGEDOWN": {
-        "code": "Numpad3",
-        "ctrl": False,
-        "key": "PageDown",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue055",
-    },
-    "R_PAGEUP": {
-        "code": "Numpad9",
-        "ctrl": False,
-        "key": "PageUp",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue054",
-    },
-    "R_SHIFT": {
-        "code": "ShiftRight",
-        "ctrl": False,
-        "key": "Shift",
-        "location": 2,
-        "meta": False,
-        "shift": True,
-        "value": u"\ue050",
-    },
-    "SEMICOLON": {
-        "code": "",
-        "ctrl": False,
-        "key": ";",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue018",
-    },
-    "SEPARATOR": {
-        "code": "NumpadComma",
-        "ctrl": False,
-        "key": ",",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue026",
-    },
-    "SHIFT": {
-        "code": "ShiftLeft",
-        "ctrl": False,
-        "key": "Shift",
-        "location": 1,
-        "meta": False,
-        "shift": True,
-        "value": u"\ue008",
-    },
-    "SPACE": {
-        "code": "Space",
-        "ctrl": False,
-        "key": " ",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue00d",
-    },
-    "SUBTRACT": {
-        "code": "NumpadSubtract",
-        "ctrl": False,
-        "key": "-",
-        "location": 3,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue027",
-    },
-    "TAB": {
-        "code": "Tab",
-        "ctrl": False,
-        "key": "Tab",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue004",
-    },
-    "UP": {
-        "code": "ArrowUp",
-        "ctrl": False,
-        "key": "ArrowUp",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue013",
-    },
-    "ZENKAKUHANKAKU": {
-        "code": "",
-        "ctrl": False,
-        "key": "ZenkakuHankaku",
-        "location": 0,
-        "meta": False,
-        "shift": False,
-        "value": u"\ue040",
-    }
-}
+ALL_EVENTS = OrderedDict(
+    [
+        ("ADD", OrderedDict(
+            [
+                ("code", "NumpadAdd"),
+                ("ctrl", False),
+                ("key", "+"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue025")
+            ]
+        )),
+        ("ALT", OrderedDict(
+            [
+                ("code", "AltLeft"),
+                ("ctrl", False),
+                ("key", "Alt"),
+                ("location", 1),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue00a")
+            ]
+        )),
+        ("BACKSPACE", OrderedDict(
+            [
+                ("code", "Backspace"),
+                ("ctrl", False),
+                ("key", "Backspace"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue003")
+            ]
+        )),
+        ("CANCEL", OrderedDict(
+            [
+                ("code", ""),
+                ("ctrl", False),
+                ("key", "Cancel"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue001")
+            ]
+        )),
+        ("CLEAR", OrderedDict(
+            [
+                ("code", ""),
+                ("ctrl", False),
+                ("key", "Clear"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue005")
+            ]
+        )),
+        ("CONTROL", OrderedDict(
+            [
+                ("code", "ControlLeft"),
+                ("ctrl", True),
+                ("key", "Control"),
+                ("location", 1),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue009")
+            ]
+        )),
+        ("DECIMAL", OrderedDict(
+            [
+                ("code", "NumpadDecimal"),
+                ("ctrl", False),
+                ("key", "."),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue028")
+            ]
+        )),
+        ("DELETE", OrderedDict(
+            [
+                ("code", "Delete"),
+                ("ctrl", False),
+                ("key", "Delete"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue017")
+            ]
+        )),
+        ("DIVIDE", OrderedDict(
+            [
+                ("code", "NumpadDivide"),
+                ("ctrl", False),
+                ("key", "/"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue029")
+            ]
+        )),
+        ("DOWN", OrderedDict(
+            [
+                ("code", "ArrowDown"),
+                ("ctrl", False),
+                ("key", "ArrowDown"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue015")
+            ]
+        )),
+        ("END", OrderedDict(
+            [
+                ("code", "End"),
+                ("ctrl", False),
+                ("key", "End"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue010")
+            ]
+        )),
+        ("ENTER", OrderedDict(
+            [
+                ("code", "NumpadEnter"),
+                ("ctrl", False),
+                ("key", "Enter"),
+                ("location", 1),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue007")
+            ]
+        )),
+        ("EQUALS", OrderedDict(
+            [
+                ("code", ""),
+                ("ctrl", False),
+                ("key", "="),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue019")
+            ]
+        )),
+        ("ESCAPE", OrderedDict(
+            [
+                ("code", "Escape"),
+                ("ctrl", False),
+                ("key", "Escape"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue00c")
+            ]
+        )),
+        ("F1", OrderedDict(
+            [
+                ("code", "F1"),
+                ("ctrl", False),
+                ("key", "F1"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue031")
+            ]
+        )),
+        ("F10", OrderedDict(
+            [
+                ("code", "F10"),
+                ("ctrl", False),
+                ("key", "F10"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue03a")
+            ]
+        )),
+        ("F11", OrderedDict(
+            [
+                ("code", "F11"),
+                ("ctrl", False),
+                ("key", "F11"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue03b")
+            ]
+        )),
+        ("F12", OrderedDict(
+            [
+                ("code", "F12"),
+                ("ctrl", False),
+                ("key", "F12"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue03c")
+            ]
+        )),
+        ("F2", OrderedDict(
+            [
+                ("code", "F2"),
+                ("ctrl", False),
+                ("key", "F2"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue032")
+            ]
+        )),
+        ("F3", OrderedDict(
+            [
+                ("code", "F3"),
+                ("ctrl", False),
+                ("key", "F3"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue033")
+            ]
+        )),
+        ("F4", OrderedDict(
+            [
+                ("code", "F4"),
+                ("ctrl", False),
+                ("key", "F4"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue034")
+            ]
+        )),
+        ("F5", OrderedDict(
+            [
+                ("code", "F5"),
+                ("ctrl", False),
+                ("key", "F5"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue035")
+            ]
+        )),
+        ("F6", OrderedDict(
+            [
+                ("code", "F6"),
+                ("ctrl", False),
+                ("key", "F6"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue036")
+            ]
+        )),
+        ("F7", OrderedDict(
+            [
+                ("code", "F7"),
+                ("ctrl", False),
+                ("key", "F7"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue037")
+            ]
+        )),
+        ("F8", OrderedDict(
+            [
+                ("code", "F8"),
+                ("ctrl", False),
+                ("key", "F8"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue038")
+            ]
+        )),
+        ("F9", OrderedDict(
+            [
+                ("code", "F9"),
+                ("ctrl", False),
+                ("key", "F9"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue039")
+            ]
+        )),
+        ("HELP", OrderedDict(
+            [
+                ("code", "Help"),
+                ("ctrl", False),
+                ("key", "Help"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue002")
+            ]
+        )),
+        ("HOME", OrderedDict(
+            [
+                ("code", "Home"),
+                ("ctrl", False),
+                ("key", "Home"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue011")
+            ]
+        )),
+        ("INSERT", OrderedDict(
+            [
+                ("code", "Insert"),
+                ("ctrl", False),
+                ("key", "Insert"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue016")
+            ]
+        )),
+        ("LEFT", OrderedDict(
+            [
+                ("code", "ArrowLeft"),
+                ("ctrl", False),
+                ("key", "ArrowLeft"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue012")
+            ]
+        )),
+        ("META", OrderedDict(
+            [
+                ("code", "MetaLeft"),
+                ("ctrl", False),
+                ("key", "Meta"),
+                ("location", 1),
+                ("meta", True),
+                ("shift", False),
+                ("value", u"\ue03d")
+            ]
+        )),
+        ("MULTIPLY", OrderedDict(
+            [
+                ("code", "NumpadMultiply"),
+                ("ctrl", False),
+                ("key", "*"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue024")
+            ]
+        )),
+        ("NULL", OrderedDict(
+            [
+                ("code", ""),
+                ("ctrl", False),
+                ("key", "Unidentified"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue000")
+            ]
+        )),
+        ("NUMPAD0", OrderedDict(
+            [
+                ("code", "Numpad0"),
+                ("ctrl", False),
+                ("key", "0"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue01a")
+            ]
+        )),
+        ("NUMPAD1", OrderedDict(
+            [
+                ("code", "Numpad1"),
+                ("ctrl", False),
+                ("key", "1"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue01b")
+            ]
+        )),
+        ("NUMPAD2", OrderedDict(
+            [
+                ("code", "Numpad2"),
+                ("ctrl", False),
+                ("key", "2"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue01c")
+            ]
+        )),
+        ("NUMPAD3", OrderedDict(
+            [
+                ("code", "Numpad3"),
+                ("ctrl", False),
+                ("key", "3"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue01d")
+            ]
+        )),
+        ("NUMPAD4", OrderedDict(
+            [
+                ("code", "Numpad4"),
+                ("ctrl", False),
+                ("key", "4"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue01e")
+            ]
+        )),
+        ("NUMPAD5", OrderedDict(
+            [
+                ("code", "Numpad5"),
+                ("ctrl", False),
+                ("key", "5"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue01f")
+            ]
+        )),
+        ("NUMPAD6", OrderedDict(
+            [
+                ("code", "Numpad6"),
+                ("ctrl", False),
+                ("key", "6"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue020")
+            ]
+        )),
+        ("NUMPAD7", OrderedDict(
+            [
+                ("code", "Numpad7"),
+                ("ctrl", False),
+                ("key", "7"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue021")
+            ]
+        )),
+        ("NUMPAD8", OrderedDict(
+            [
+                ("code", "Numpad8"),
+                ("ctrl", False),
+                ("key", "8"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue022")
+            ]
+        )),
+        ("NUMPAD9", OrderedDict(
+            [
+                ("code", "Numpad9"),
+                ("ctrl", False),
+                ("key", "9"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue023")
+            ]
+        )),
+        ("PAGE_DOWN", OrderedDict(
+            [
+                ("code", "PageDown"),
+                ("ctrl", False),
+                ("key", "PageDown"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue00f")
+            ]
+        )),
+        ("PAGE_UP", OrderedDict(
+            [
+                ("code", "PageUp"),
+                ("ctrl", False),
+                ("key", "PageUp"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue00e")
+            ]
+        )),
+        ("PAUSE", OrderedDict(
+            [
+                ("code", ""),
+                ("ctrl", False),
+                ("key", "Pause"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue00b")
+            ]
+        )),
+        ("RETURN", OrderedDict(
+            [
+                ("code", "Enter"),
+                ("ctrl", False),
+                ("key", "Enter"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue006")
+            ]
+        )),
+        ("RIGHT", OrderedDict(
+            [
+                ("code", "ArrowRight"),
+                ("ctrl", False),
+                ("key", "ArrowRight"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue014")
+            ]
+        )),
+        ("R_ALT", OrderedDict(
+            [
+                ("code", "AltRight"),
+                ("ctrl", False),
+                ("key", "Alt"),
+                ("location", 2),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue052")
+            ]
+        )),
+        ("R_ARROWDOWN", OrderedDict(
+            [
+                ("code", "Numpad2"),
+                ("ctrl", False),
+                ("key", "ArrowDown"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue05b")
+            ]
+        )),
+        ("R_ARROWLEFT", OrderedDict(
+            [
+                ("code", "Numpad4"),
+                ("ctrl", False),
+                ("key", "ArrowLeft"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue058")
+            ]
+        )),
+        ("R_ARROWRIGHT", OrderedDict(
+            [
+                ("code", "Numpad6"),
+                ("ctrl", False),
+                ("key", "ArrowRight"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue05a")
+            ]
+        )),
+        ("R_ARROWUP", OrderedDict(
+            [
+                ("code", "Numpad8"),
+                ("ctrl", False),
+                ("key", "ArrowUp"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue059")
+            ]
+        )),
+        ("R_CONTROL", OrderedDict(
+            [
+                ("code", "ControlRight"),
+                ("ctrl", True),
+                ("key", "Control"),
+                ("location", 2),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue051")
+            ]
+        )),
+        ("R_DELETE", OrderedDict(
+            [
+                ("code", "NumpadDecimal"),
+                ("ctrl", False),
+                ("key", "Delete"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue05d")
+            ]
+        )),
+        ("R_END", OrderedDict(
+            [
+                ("code", "Numpad1"),
+                ("ctrl", False),
+                ("key", "End"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue056")
+            ]
+        )),
+        ("R_HOME", OrderedDict(
+            [
+                ("code", "Numpad7"),
+                ("ctrl", False),
+                ("key", "Home"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue057")
+            ]
+        )),
+        ("R_INSERT", OrderedDict(
+            [
+                ("code", "Numpad0"),
+                ("ctrl", False),
+                ("key", "Insert"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue05c")
+            ]
+        )),
+        ("R_META", OrderedDict(
+            [
+                ("code", "MetaRight"),
+                ("ctrl", False),
+                ("key", "Meta"),
+                ("location", 2),
+                ("meta", True),
+                ("shift", False),
+                ("value", u"\ue053")
+            ]
+        )),
+        ("R_PAGEDOWN", OrderedDict(
+            [
+                ("code", "Numpad3"),
+                ("ctrl", False),
+                ("key", "PageDown"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue055")
+            ]
+        )),
+        ("R_PAGEUP", OrderedDict(
+            [
+                ("code", "Numpad9"),
+                ("ctrl", False),
+                ("key", "PageUp"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue054")
+            ]
+        )),
+        ("R_SHIFT", OrderedDict(
+            [
+                ("code", "ShiftRight"),
+                ("ctrl", False),
+                ("key", "Shift"),
+                ("location", 2),
+                ("meta", False),
+                ("shift", True),
+                ("value", u"\ue050")
+            ]
+        )),
+        ("SEMICOLON", OrderedDict(
+            [
+                ("code", ""),
+                ("ctrl", False),
+                ("key", ";"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue018")
+            ]
+        )),
+        ("SEPARATOR", OrderedDict(
+            [
+                ("code", "NumpadComma"),
+                ("ctrl", False),
+                ("key", ","),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue026")
+            ]
+        )),
+        ("SHIFT", OrderedDict(
+            [
+                ("code", "ShiftLeft"),
+                ("ctrl", False),
+                ("key", "Shift"),
+                ("location", 1),
+                ("meta", False),
+                ("shift", True),
+                ("value", u"\ue008")
+            ]
+        )),
+        ("SPACE", OrderedDict(
+            [
+                ("code", "Space"),
+                ("ctrl", False),
+                ("key", " "),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue00d")
+            ]
+        )),
+        ("SUBTRACT", OrderedDict(
+            [
+                ("code", "NumpadSubtract"),
+                ("ctrl", False),
+                ("key", "-"),
+                ("location", 3),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue027")
+            ]
+        )),
+        ("TAB", OrderedDict(
+            [
+                ("code", "Tab"),
+                ("ctrl", False),
+                ("key", "Tab"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue004")
+            ]
+        )),
+        ("UP", OrderedDict(
+            [
+                ("code", "ArrowUp"),
+                ("ctrl", False),
+                ("key", "ArrowUp"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue013")
+            ]
+        )),
+        ("ZENKAKUHANKAKU", OrderedDict(
+            [
+                ("code", ""),
+                ("ctrl", False),
+                ("key", "ZenkakuHankaku"),
+                ("location", 0),
+                ("meta", False),
+                ("shift", False),
+                ("value", u"\ue040")
+            ]
+        ))
+    ]
+)
 
 ALTERNATIVE_KEY_NAMES = {
     "ADD": "Add",

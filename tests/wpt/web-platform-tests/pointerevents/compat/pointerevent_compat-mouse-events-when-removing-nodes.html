@@ -64,18 +64,16 @@ function createGreenBoxAndAddListeners() {
 
 function performActions() {
   var rect = document.getElementById("green").getBoundingClientRect();
-  var x1 = rect.left + 5;
-  var y1 = rect.top + 5;
+  var x1 = Math.ceil(rect.left + 5);
+  var y1 = Math.ceil(rect.top + 5);
 
   return new test_driver.Actions()
               .pointerMove(0, 0)
-              .pointerMove(rect.left + 5, rect.top + 5)
-              .pointerDown(0)
-              .pointerUp(0)
+              .pointerMove(x1, y1)
+              .pointerDown()
+              .pointerUp()
               .send()
-              .then( () => {
-    return resolveWhen( () => receivedEvents.length == 6 );
-  });
+              .then( () => resolveWhen( () => receivedEvents.length == 6 ) );
 }
 
 function testScenario(targetEvent, expectedEvents, description) {
