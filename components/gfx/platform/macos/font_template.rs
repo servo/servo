@@ -23,7 +23,7 @@ use std::fs::{self, File};
 use std::io::{Error as IoError, Read};
 use std::ops::Deref;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use webrender_api::NativeFontHandle;
 
 /// Platform specific font representation for mac.
@@ -43,7 +43,7 @@ pub struct FontTemplateData {
     ctfont: CachedCTFont,
 
     pub identifier: Atom,
-    pub font_data: Option<Arc<Vec<u8>>>,
+    pub font_data: RwLock<Option<Arc<Vec<u8>>>>,
 }
 
 impl fmt::Debug for FontTemplateData {
@@ -55,6 +55,8 @@ impl fmt::Debug for FontTemplateData {
                 "font_data",
                 &self
                     .font_data
+                    .read()
+                    .unwrap()
                     .as_ref()
                     .map(|bytes| format!("[{} bytes]", bytes.len())),
             )
@@ -70,7 +72,7 @@ impl FontTemplateData {
         Ok(FontTemplateData {
             ctfont: CachedCTFont(Mutex::new(HashMap::new())),
             identifier: identifier.to_owned(),
-            font_data: font_data.map(Arc::new),
+            font_data: RwLock::new(font_data.map(Arc::new)),
         })
     }
 
@@ -82,7 +84,8 @@ impl FontTemplateData {
             // If you pass a zero font size to one of the Core Text APIs, it'll replace it with
             // 12.0. We don't want that! (Issue #10492.)
             let clamped_pt_size = pt_size.max(0.01);
-            let ctfont = match self.font_data {
+            let mut font_data = self.font_data.write().unwrap();
+            let ctfont = match *font_data {
                 Some(ref bytes) => {
                     let fontprov = CGDataProvider::from_buffer(bytes.clone());
                     let cgfont_result = CGFont::from_data_provider(fontprov);
@@ -114,8 +117,10 @@ impl FontTemplateData {
                         let descriptor = descriptors.get(0).unwrap();
                         let font_path = Path::new(&descriptor.font_path().unwrap()).to_owned();
                         fs::read(&font_path).ok().and_then(|bytes| {
-                            let fontprov = CGDataProvider::from_buffer(Arc::new(bytes));
+                            let font_bytes = Arc::new(bytes);
+                            let fontprov = CGDataProvider::from_buffer(font_bytes.clone());
                             CGFont::from_data_provider(fontprov).ok().map(|cgfont| {
+                                *font_data = Some(font_bytes);
                                 core_text::font::new_from_CGFont(&cgfont, clamped_pt_size)
                             })
                         })
@@ -137,9 +142,17 @@ impl FontTemplateData {
             return font_data;
         }
 
+        // This is spooky action at a distance, but getting a CTFont from this template
+        // will (in the common case) bring the bytes into memory if they were not there
+        // already. This also helps work around intermittent panics like
+        // https://github.com/servo/servo/issues/24622 that occur for unclear reasons.
+        let ctfont = self.ctfont(0.0);
+        if let Some(font_data) = self.bytes_if_in_memory() {
+            return font_data;
+        }
+
         let path = ServoUrl::parse(
-            &*self
-                .ctfont(0.0)
+            &*ctfont
                 .expect("No Core Text font available!")
                 .url()
                 .expect("No URL for Core Text font!")
@@ -161,7 +174,11 @@ impl FontTemplateData {
     /// Returns a clone of the bytes in this font if they are in memory. This function never
     /// performs disk I/O.
     pub fn bytes_if_in_memory(&self) -> Option<Vec<u8>> {
-        self.font_data.as_ref().map(|bytes| (**bytes).clone())
+        self.font_data
+            .read()
+            .unwrap()
+            .as_ref()
+            .map(|bytes| (**bytes).clone())
     }
 
     /// Returns the native font that underlies this font template, if applicable.

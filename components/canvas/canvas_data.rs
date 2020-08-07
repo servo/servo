@@ -523,16 +523,10 @@ impl<'a> CanvasData<'a> {
                         .first(font_context)
                         .expect("couldn't find font");
                     let font = font.borrow_mut();
-                    // Retrieving bytes from font template seems to panic for some core text fonts.
-                    // This check avoids having to obtain bytes from the font template data if they
-                    // are not already in the memory.
-                    if let Some(bytes) = font.handle.template().bytes_if_in_memory() {
-                        Font::from_bytes(Arc::new(bytes), 0)
-                            .ok()
-                            .or_else(|| load_system_font_from_style(Some(style)))
-                    } else {
-                        load_system_font_from_style(Some(style))
-                    }
+                    let template = font.handle.template();
+                    Font::from_bytes(Arc::new(template.bytes()), 0)
+                        .ok()
+                        .or_else(|| load_system_font_from_style(Some(style)))
                 })
             },
         );
