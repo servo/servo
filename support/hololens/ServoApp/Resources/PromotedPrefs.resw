@@ -117,7 +117,7 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="dom.webxr.hands.enabled"><value>WebXR: Enable XRJointPose (hands joints positions)</value></data>
+  <data name="dom.webxr.hands.enabled"><value>WebXR: Enable articulated hand input</value></data>
   <data name="dom.webxr.layers.enabled"><value>WebXR: Enable composition layers</value></data>
   <data name="dom.webxr.sessionavailable"><value>WebXR: Enable "sessionavailable" event</value></data>
   <data name="dom.webxr.first_person_observer_view"><value>WebXR: Enable first person observer view</value></data>
