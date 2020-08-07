@@ -33,13 +33,14 @@ impl GPUComputePassEncoder {
     fn new_inherited(
         channel: WebGPU,
         parent: &GPUCommandEncoder,
+        compute_pass: Option<ComputePass>,
         label: Option<USVString>,
     ) -> Self {
         Self {
             channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
-            compute_pass: DomRefCell::new(Some(ComputePass::new(parent.id().0))),
+            compute_pass: DomRefCell::new(compute_pass),
             command_encoder: Dom::from_ref(parent),
         }
     }
@@ -48,10 +49,16 @@ impl GPUComputePassEncoder {
         global: &GlobalScope,
         channel: WebGPU,
         parent: &GPUCommandEncoder,
+        compute_pass: Option<ComputePass>,
         label: Option<USVString>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUComputePassEncoder::new_inherited(channel, parent, label)),
+            Box::new(GPUComputePassEncoder::new_inherited(
+                channel,
+                parent,
+                compute_pass,
+                label,
+            )),
             global,
         )
     }
@@ -88,24 +95,23 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-endpass
     fn EndPass(&self) {
-        if let Some(compute_pass) = self.compute_pass.borrow_mut().take() {
-            self.channel
-                .0
-                .send((
-                    self.command_encoder.device().use_current_scope(),
-                    WebGPURequest::RunComputePass {
-                        command_encoder_id: self.command_encoder.id().0,
-                        device_id: self.command_encoder.device().id().0,
-                        compute_pass,
-                    },
-                ))
-                .expect("Failed to send RunComputePass");
+        let compute_pass = self.compute_pass.borrow_mut().take();
+        self.channel
+            .0
+            .send((
+                self.command_encoder.device().use_current_scope(),
+                WebGPURequest::RunComputePass {
+                    command_encoder_id: self.command_encoder.id().0,
+                    device_id: self.command_encoder.device().id().0,
+                    compute_pass,
+                },
+            ))
+            .expect("Failed to send RunComputePass");
 
-            self.command_encoder.set_state(
-                GPUCommandEncoderState::Open,
-                GPUCommandEncoderState::EncodingComputePass,
-            );
-        }
+        self.command_encoder.set_state(
+            GPUCommandEncoderState::Open,
+            GPUCommandEncoderState::EncodingComputePass,
+        );
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpuprogrammablepassencoder-setbindgroup

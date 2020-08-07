@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use smallvec::SmallVec;
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::num::NonZeroU64;
 use std::ptr;
@@ -77,6 +77,7 @@ pub enum WebGPURequest {
     CommandEncoderFinish {
         command_encoder_id: id::CommandEncoderId,
         device_id: id::DeviceId,
+        is_error: bool,
         // TODO(zakorgy): Serialize CommandBufferDescriptor in wgpu-core
         // wgpu::command::CommandBufferDescriptor,
     },
@@ -207,12 +208,12 @@ pub enum WebGPURequest {
     RunComputePass {
         command_encoder_id: id::CommandEncoderId,
         device_id: id::DeviceId,
-        compute_pass: ComputePass,
+        compute_pass: Option<ComputePass>,
     },
     RunRenderPass {
         command_encoder_id: id::CommandEncoderId,
         device_id: id::DeviceId,
-        render_pass: RenderPass,
+        render_pass: Option<RenderPass>,
     },
     Submit {
         queue_id: id::QueueId,
@@ -337,6 +338,8 @@ struct WGPU<'a> {
     // Presentation Buffers with pending mapping
     present_buffer_maps:
         HashMap<id::BufferId, Rc<BufferMapInfo<'a, (Option<ErrorScopeId>, WebGPURequest)>>>,
+    //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
+    error_command_buffers: HashSet<id::CommandBufferId>,
     webrender_api: webrender_api::RenderApi,
     webrender_document: webrender_api::DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -368,6 +371,7 @@ impl<'a> WGPU<'a> {
             _invalid_adapters: Vec::new(),
             buffer_maps: HashMap::new(),
             present_buffer_maps: HashMap::new(),
+            error_command_buffers: HashSet::new(),
             webrender_api: webrender_api_sender.create_api(),
             webrender_document,
             external_images,
@@ -450,14 +454,20 @@ impl<'a> WGPU<'a> {
                     WebGPURequest::CommandEncoderFinish {
                         command_encoder_id,
                         device_id,
+                        is_error,
                     } => {
                         let global = &self.global;
-                        let result = gfx_select!(command_encoder_id => global.command_encoder_finish(
-                            command_encoder_id,
-                            &wgt::CommandBufferDescriptor::default()
-                        ));
+                        let result = if is_error {
+                            Err(String::from("Invalid GPUCommandEncoder"))
+                        } else {
+                            gfx_select!(command_encoder_id => global.command_encoder_finish(
+                                command_encoder_id,
+                                &wgt::CommandBufferDescriptor::default()
+                            ))
+                            .map_err(|e| format!("{:?}", e))
+                        };
                         if result.is_err() {
-                            let _ = gfx_select!(command_encoder_id => global.command_buffer_error(command_encoder_id));
+                            self.error_command_buffers.insert(command_encoder_id);
                         }
                         self.send_result(device_id, scope_id, result);
                     },
@@ -967,10 +977,14 @@ impl<'a> WGPU<'a> {
                         compute_pass,
                     } => {
                         let global = &self.global;
-                        let result = gfx_select!(command_encoder_id => global.command_encoder_run_compute_pass(
-                            command_encoder_id,
-                            &compute_pass
-                        ));
+                        let result = if let Some(pass) = compute_pass {
+                            gfx_select!(command_encoder_id => global.command_encoder_run_compute_pass(
+                                command_encoder_id,
+                                &pass
+                            )).map_err(|e| format!("{:?}", e))
+                        } else {
+                            Err(String::from("Invalid ComputePass"))
+                        };
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::RunRenderPass {
@@ -979,10 +993,14 @@ impl<'a> WGPU<'a> {
                         render_pass,
                     } => {
                         let global = &self.global;
-                        let result = gfx_select!(command_encoder_id => global.command_encoder_run_render_pass(
-                            command_encoder_id,
-                            &render_pass
-                        ));
+                        let result = if let Some(pass) = render_pass {
+                            gfx_select!(command_encoder_id => global.command_encoder_run_render_pass(
+                                command_encoder_id,
+                                &pass
+                            )).map_err(|e| format!("{:?}", e))
+                        } else {
+                            Err(String::from("Invalid RenderPass"))
+                        };
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::Submit {
@@ -990,7 +1008,15 @@ impl<'a> WGPU<'a> {
                         command_buffers,
                     } => {
                         let global = &self.global;
-                        let result = gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers));
+                        let cmd_id = command_buffers
+                            .iter()
+                            .find(|id| self.error_command_buffers.contains(id));
+                        let result = if cmd_id.is_some() {
+                            Err(String::from("Invalid command buffer submitted"))
+                        } else {
+                            gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers))
+                                .map_err(|e| format!("{:?}", e))
+                        };
                         self.send_result(queue_id, scope_id, result);
                     },
                     WebGPURequest::SwapChainPresent {

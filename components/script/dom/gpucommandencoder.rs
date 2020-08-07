@@ -125,14 +125,32 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         &self,
         descriptor: &GPUComputePassDescriptor,
     ) -> DomRoot<GPUComputePassEncoder> {
+        let scope_id = self.device.use_current_scope();
         self.set_state(
             GPUCommandEncoderState::EncodingComputePass,
             GPUCommandEncoderState::Open,
         );
+        let (compute_pass, res) = if !self.valid.get() {
+            (
+                None,
+                WebGPUOpResult::ValidationError(String::from(
+                    "CommandEncoder is not in Open State",
+                )),
+            )
+        } else {
+            (
+                Some(wgpu_com::ComputePass::new(self.encoder.0)),
+                WebGPUOpResult::Success,
+            )
+        };
+
+        self.device.handle_server_msg(scope_id, res);
+
         GPUComputePassEncoder::new(
             &self.global(),
             self.channel.clone(),
             &self,
+            compute_pass,
             descriptor.parent.label.as_ref().cloned(),
         )
     }
@@ -142,102 +160,118 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         &self,
         descriptor: &GPURenderPassDescriptor,
     ) -> DomRoot<GPURenderPassEncoder> {
+        let scope_id = self.device.use_current_scope();
         self.set_state(
             GPUCommandEncoderState::EncodingRenderPass,
             GPUCommandEncoderState::Open,
         );
 
-        let depth_stencil = descriptor.depthStencilAttachment.as_ref().map(|depth| {
-            let (depth_load_op, clear_depth) = match depth.depthLoadValue {
-                GPULoadOpOrFloat::GPULoadOp(_) => (wgpu_com::LoadOp::Load, 0.0f32),
-                GPULoadOpOrFloat::Float(f) => (wgpu_com::LoadOp::Clear, *f),
-            };
-            let (stencil_load_op, clear_stencil) = match depth.stencilLoadValue {
-                GPUStencilLoadValue::GPULoadOp(_) => (wgpu_com::LoadOp::Load, 0u32),
-                GPUStencilLoadValue::RangeEnforcedUnsignedLong(l) => (wgpu_com::LoadOp::Clear, l),
-            };
-            let depth_channel = wgpu_com::PassChannel {
-                load_op: depth_load_op,
-                store_op: match depth.depthStoreOp {
-                    GPUStoreOp::Store => wgpu_com::StoreOp::Store,
-                    GPUStoreOp::Clear => wgpu_com::StoreOp::Clear,
-                },
-                clear_value: clear_depth,
-                read_only: depth.depthReadOnly,
-            };
-            let stencil_channel = wgpu_com::PassChannel {
-                load_op: stencil_load_op,
-                store_op: match depth.stencilStoreOp {
-                    GPUStoreOp::Store => wgpu_com::StoreOp::Store,
-                    GPUStoreOp::Clear => wgpu_com::StoreOp::Clear,
-                },
-                clear_value: clear_stencil,
-                read_only: depth.stencilReadOnly,
-            };
-            wgpu_com::DepthStencilAttachmentDescriptor {
-                attachment: depth.attachment.id().0,
-                depth: depth_channel,
-                stencil: stencil_channel,
-            }
-        });
+        let (render_pass, res) = if !self.valid.get() {
+            (
+                None,
+                WebGPUOpResult::ValidationError(String::from(
+                    "CommandEncoder is not in Open State",
+                )),
+            )
+        } else {
+            let depth_stencil = descriptor.depthStencilAttachment.as_ref().map(|depth| {
+                let (depth_load_op, clear_depth) = match depth.depthLoadValue {
+                    GPULoadOpOrFloat::GPULoadOp(_) => (wgpu_com::LoadOp::Load, 0.0f32),
+                    GPULoadOpOrFloat::Float(f) => (wgpu_com::LoadOp::Clear, *f),
+                };
+                let (stencil_load_op, clear_stencil) = match depth.stencilLoadValue {
+                    GPUStencilLoadValue::GPULoadOp(_) => (wgpu_com::LoadOp::Load, 0u32),
+                    GPUStencilLoadValue::RangeEnforcedUnsignedLong(l) => {
+                        (wgpu_com::LoadOp::Clear, l)
+                    },
+                };
+                let depth_channel = wgpu_com::PassChannel {
+                    load_op: depth_load_op,
+                    store_op: match depth.depthStoreOp {
+                        GPUStoreOp::Store => wgpu_com::StoreOp::Store,
+                        GPUStoreOp::Clear => wgpu_com::StoreOp::Clear,
+                    },
+                    clear_value: clear_depth,
+                    read_only: depth.depthReadOnly,
+                };
+                let stencil_channel = wgpu_com::PassChannel {
+                    load_op: stencil_load_op,
+                    store_op: match depth.stencilStoreOp {
+                        GPUStoreOp::Store => wgpu_com::StoreOp::Store,
+                        GPUStoreOp::Clear => wgpu_com::StoreOp::Clear,
+                    },
+                    clear_value: clear_stencil,
+                    read_only: depth.stencilReadOnly,
+                };
+                wgpu_com::DepthStencilAttachmentDescriptor {
+                    attachment: depth.attachment.id().0,
+                    depth: depth_channel,
+                    stencil: stencil_channel,
+                }
+            });
 
-        let desc = wgpu_com::RenderPassDescriptor {
-            color_attachments: Cow::Owned(
-                descriptor
-                    .colorAttachments
-                    .iter()
-                    .map(|color| {
-                        let (load_op, clear_value) = match color.loadValue {
-                            GPUColorLoad::GPULoadOp(_) => {
-                                (wgpu_com::LoadOp::Load, wgt::Color::TRANSPARENT)
-                            },
-                            GPUColorLoad::DoubleSequence(ref s) => {
-                                let mut w = s.clone();
-                                if w.len() < 3 {
-                                    w.resize(3, Finite::wrap(0.0f64));
-                                }
-                                w.resize(4, Finite::wrap(1.0f64));
-                                (
+            let desc = wgpu_com::RenderPassDescriptor {
+                color_attachments: Cow::Owned(
+                    descriptor
+                        .colorAttachments
+                        .iter()
+                        .map(|color| {
+                            let (load_op, clear_value) = match color.loadValue {
+                                GPUColorLoad::GPULoadOp(_) => {
+                                    (wgpu_com::LoadOp::Load, wgt::Color::TRANSPARENT)
+                                },
+                                GPUColorLoad::DoubleSequence(ref s) => {
+                                    let mut w = s.clone();
+                                    if w.len() < 3 {
+                                        w.resize(3, Finite::wrap(0.0f64));
+                                    }
+                                    w.resize(4, Finite::wrap(1.0f64));
+                                    (
+                                        wgpu_com::LoadOp::Clear,
+                                        wgt::Color {
+                                            r: *w[0],
+                                            g: *w[1],
+                                            b: *w[2],
+                                            a: *w[3],
+                                        },
+                                    )
+                                },
+                                GPUColorLoad::GPUColorDict(ref d) => (
                                     wgpu_com::LoadOp::Clear,
                                     wgt::Color {
-                                        r: *w[0],
-                                        g: *w[1],
-                                        b: *w[2],
-                                        a: *w[3],
+                                        r: *d.r,
+                                        g: *d.g,
+                                        b: *d.b,
+                                        a: *d.a,
                                     },
-                                )
-                            },
-                            GPUColorLoad::GPUColorDict(ref d) => (
-                                wgpu_com::LoadOp::Clear,
-                                wgt::Color {
-                                    r: *d.r,
-                                    g: *d.g,
-                                    b: *d.b,
-                                    a: *d.a,
+                                ),
+                            };
+                            let channel = wgpu_com::PassChannel {
+                                load_op,
+                                store_op: match color.storeOp {
+                                    GPUStoreOp::Store => wgpu_com::StoreOp::Store,
+                                    GPUStoreOp::Clear => wgpu_com::StoreOp::Clear,
                                 },
-                            ),
-                        };
-                        let channel = wgpu_com::PassChannel {
-                            load_op,
-                            store_op: match color.storeOp {
-                                GPUStoreOp::Store => wgpu_com::StoreOp::Store,
-                                GPUStoreOp::Clear => wgpu_com::StoreOp::Clear,
-                            },
-                            clear_value,
-                            read_only: false,
-                        };
-                        wgpu_com::ColorAttachmentDescriptor {
-                            attachment: color.attachment.id().0,
-                            resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
-                            channel,
-                        }
-                    })
-                    .collect::<Vec<_>>(),
-            ),
-            depth_stencil_attachment: depth_stencil.as_ref(),
+                                clear_value,
+                                read_only: false,
+                            };
+                            wgpu_com::ColorAttachmentDescriptor {
+                                attachment: color.attachment.id().0,
+                                resolve_target: color.resolveTarget.as_ref().map(|t| t.id().0),
+                                channel,
+                            }
+                        })
+                        .collect::<Vec<_>>(),
+                ),
+                depth_stencil_attachment: depth_stencil.as_ref(),
+            };
+            (
+                Some(wgpu_com::RenderPass::new(self.encoder.0, desc)),
+                WebGPUOpResult::Success,
+            )
         };
 
-        let render_pass = wgpu_com::RenderPass::new(self.encoder.0, desc);
+        self.device.handle_server_msg(scope_id, res);
 
         GPURenderPassEncoder::new(
             &self.global(),
@@ -257,10 +291,9 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination_offset: GPUSize64,
         size: GPUSize64,
     ) {
-        let valid = *self.state.borrow() == GPUCommandEncoderState::Open;
         let scope_id = self.device.use_current_scope();
 
-        if !valid {
+        if !(*self.state.borrow() == GPUCommandEncoderState::Open) {
             self.device.handle_server_msg(
                 scope_id,
                 WebGPUOpResult::ValidationError(String::from(
@@ -299,10 +332,9 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination: &GPUTextureCopyView,
         copy_size: GPUExtent3D,
     ) {
-        let valid = *self.state.borrow() == GPUCommandEncoderState::Open;
         let scope_id = self.device.use_current_scope();
 
-        if !valid {
+        if !(*self.state.borrow() == GPUCommandEncoderState::Open) {
             self.device.handle_server_msg(
                 scope_id,
                 WebGPUOpResult::ValidationError(String::from(
@@ -341,10 +373,9 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination: &GPUBufferCopyView,
         copy_size: GPUExtent3D,
     ) {
-        let valid = *self.state.borrow() == GPUCommandEncoderState::Open;
         let scope_id = self.device.use_current_scope();
 
-        if !valid {
+        if !(*self.state.borrow() == GPUCommandEncoderState::Open) {
             self.device.handle_server_msg(
                 scope_id,
                 WebGPUOpResult::ValidationError(String::from(
@@ -383,10 +414,9 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         destination: &GPUTextureCopyView,
         copy_size: GPUExtent3D,
     ) {
-        let valid = *self.state.borrow() == GPUCommandEncoderState::Open;
         let scope_id = self.device.use_current_scope();
 
-        if !valid {
+        if !(*self.state.borrow() == GPUCommandEncoderState::Open) {
             self.device.handle_server_msg(
                 scope_id,
                 WebGPUOpResult::ValidationError(String::from(
@@ -423,6 +453,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
                 WebGPURequest::CommandEncoderFinish {
                     command_encoder_id: self.encoder.0,
                     device_id: self.device.id().0,
+                    is_error: !self.valid.get(),
                     // TODO(zakorgy): We should use `_descriptor` here after it's not empty
                     // and the underlying wgpu-core struct is serializable
                 },
