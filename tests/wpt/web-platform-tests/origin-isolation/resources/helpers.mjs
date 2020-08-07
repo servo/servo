@@ -79,12 +79,18 @@ export function testSameAgentCluster(testFrames, testLabelPrefix) {
 
     promise_test(async () => {
       const frameWindow = frames[testFrames[1]];
+      const frameElement = document.querySelectorAll("iframe")[testFrames[1]];
 
       // Must not throw
       frameWindow.document;
 
       // Must not throw
       frameWindow.location.href;
+
+      assert_not_equals(frameElement.contentDocument, null, "contentDocument");
+
+      const whatHappened = await accessFrameElement(frameWindow);
+      assert_equals(whatHappened, "frameElement accessed successfully");
     }, `${prefix}setting document.domain must give sync access`);
   } else {
     // Between the two children at the index given by testFrames[0] and
@@ -101,6 +107,9 @@ export function testSameAgentCluster(testFrames, testLabelPrefix) {
 
       const whatHappened2 = await accessLocationHrefBetween(testFrames);
       assert_equals(whatHappened2, "accessed location.href successfully");
+
+      // We don't test contentDocument/frameElement for these because accessing
+      // those via siblings has to go through the parent anyway.
     }, `${prefix}setting document.domain must give sync access`);
   }
 }
@@ -130,13 +139,20 @@ export function testDifferentAgentClusters(testFrames, testLabelPrefix) {
 
     promise_test(async () => {
       const frameWindow = frames[testFrames[1]];
+      const frameElement = document.querySelectorAll("iframe")[testFrames[1]];
 
       assert_throws_dom("SecurityError", DOMException, () => {
         frameWindow.document;
       });
+
       assert_throws_dom("SecurityError", DOMException, () => {
         frameWindow.location.href;
       });
+
+      assert_equals(frameElement.contentDocument, null, "contentDocument");
+
+      const whatHappened = await accessFrameElement(frameWindow);
+      assert_equals(whatHappened, "null");
     }, `${prefix}setting document.domain must not give sync access`);
   } else {
     // Between the two children at the index given by testFrames[0] and
@@ -153,6 +169,9 @@ export function testDifferentAgentClusters(testFrames, testLabelPrefix) {
 
       const whatHappened2 = await accessLocationHrefBetween(testFrames);
       assert_equals(whatHappened2, "SecurityError");
+
+      // We don't test contentDocument/frameElement for these because accessing
+      // those via siblings has to go through the parent anyway.
     }, `${prefix}setting document.domain must not give sync access`);
   }
 }
@@ -261,6 +280,11 @@ async function accessLocationHrefBetween(testFrames) {
 
   sourceFrame.postMessage({ command: "access location.href", indexIntoParentFrameOfDestination }, "*");
   return waitForMessage(sourceFrame);
+}
+
+async function accessFrameElement(frameWindow) {
+  frameWindow.postMessage({ command: "access frameElement" }, "*");
+  return waitForMessage(frameWindow);
 }
 
 function waitForMessage(expectedSource) {

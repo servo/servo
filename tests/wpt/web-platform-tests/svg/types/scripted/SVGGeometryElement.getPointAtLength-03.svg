@@ -8,7 +8,6 @@
   <script><![CDATA[
   test(function() {
     var pathElement = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    pathElement.setAttribute("d", 'M0,20 L400,20 L640,20');
     assert_throws_dom("InvalidStateError", function() { pathElement.getPointAtLength(700) });
   }, document.title + " with SVGPathElement");
 

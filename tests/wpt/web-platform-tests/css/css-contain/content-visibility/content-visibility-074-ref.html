@@ -1,0 +1,35 @@
+<!doctype HTML>
+<html>
+<meta charset="utf8">
+<title>CSS Content Visibility: toggling auto with composited descedant (reference)</title>
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+
+<style>
+#a { will-change: transform; }
+#b { height: 15000px; }
+#c {
+  width: 800px;
+  height: 600px;
+}
+#d {
+  will-change: transform;
+  top: 0px;
+  width: 500px;
+  height: 500px;
+  background: green;
+}
+.contain {
+  contain: layout style paint;
+}
+
+</style>
+
+<div id="a">
+</div>
+<div id="b">
+  <div id="c" class=contain>
+    <div id="d"></div>
+    </div>
+  </div>
+</div>
