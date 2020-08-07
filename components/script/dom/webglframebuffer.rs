@@ -205,6 +205,9 @@ impl WebGLFramebuffer {
     }
 
     pub fn is_deleted(&self) -> bool {
+        // TODO: if a framebuffer has an attachment which is invalid due to
+        // being outside a webxr rAF, should this make the framebuffer invalid?
+        // https://github.com/immersive-web/layers/issues/196
         self.is_deleted.get()
     }
 
@@ -447,6 +450,9 @@ impl WebGLFramebuffer {
         } else {
             self.status.get()
         }
+        // TODO: if a framebuffer has an attachment which is invalid due to
+        // being outside a webxr rAF, should this make the framebuffer incomplete?
+        // https://github.com/immersive-web/layers/issues/196
     }
 
     pub fn check_status_for_rendering(&self) -> CompleteForRendering {
@@ -496,6 +502,10 @@ impl WebGLFramebuffer {
                 .initialize_framebuffer(clear_bits);
             self.is_initialized.set(true);
         }
+
+        // TODO: if a framebuffer has an attachment which is invalid due to
+        // being outside a webxr rAF, should this make the framebuffer incomplete?
+        // https://github.com/immersive-web/layers/issues/196
 
         CompleteForRendering::Complete
     }

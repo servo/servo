@@ -3563,7 +3563,7 @@ impl WebGLRenderingContextMethods for WebGLRenderingContext {
     // https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8
     fn IsTexture(&self, texture: Option<&WebGLTexture>) -> bool {
         texture.map_or(false, |tex| {
-            self.validate_ownership(tex).is_ok() && tex.target().is_some() && !tex.is_deleted()
+            self.validate_ownership(tex).is_ok() && tex.target().is_some() && !tex.is_invalid()
         })
     }
 

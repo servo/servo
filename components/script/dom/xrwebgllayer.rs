@@ -193,10 +193,11 @@ impl XRWebGLLayer {
         let framebuffer = self.framebuffer.as_ref()?;
         let context = framebuffer.upcast::<WebGLObject>().context();
         let sub_images = frame.get_sub_images(self.layer_id()?)?;
+        let session = self.session();
         // TODO: Cache this texture
         let color_texture_id =
             WebGLTextureId::maybe_new(sub_images.sub_image.as_ref()?.color_texture)?;
-        let color_texture = WebGLTexture::new_webxr(context, color_texture_id);
+        let color_texture = WebGLTexture::new_webxr(context, color_texture_id, session);
         let target = self.texture_target();
 
         // Save the current bindings
@@ -230,7 +231,8 @@ impl XRWebGLLayer {
         if let Some(id) = sub_images.sub_image.as_ref()?.depth_stencil_texture {
             // TODO: Cache this texture
             let depth_stencil_texture_id = WebGLTextureId::maybe_new(id)?;
-            let depth_stencil_texture = WebGLTexture::new_webxr(context, depth_stencil_texture_id);
+            let depth_stencil_texture =
+                WebGLTexture::new_webxr(context, depth_stencil_texture_id, session);
             framebuffer
                 .texture2d_even_if_opaque(
                     constants::DEPTH_STENCIL_ATTACHMENT,
