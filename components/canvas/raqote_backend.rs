@@ -527,11 +527,33 @@ impl GenericDrawTarget for raqote::DrawTarget {
         pattern: &canvas_data::Pattern,
         options: &DrawOptions,
     ) {
-        self.draw_text(
+        let mut start = pathfinder_geometry::vector::vec2f(start.x, start.y);
+        let mut ids = Vec::new();
+        let mut positions = Vec::new();
+        for c in text.chars() {
+            let id = match font.glyph_for_char(c) {
+                Some(id) => id,
+                None => {
+                    warn!("Skipping non-existent glyph {}", c);
+                    continue;
+                },
+            };
+            ids.push(id);
+            positions.push(Point2D::new(start.x(), start.y()));
+            let advance = match font.advance(id) {
+                Ok(advance) => advance,
+                Err(e) => {
+                    warn!("Skipping glyph {} with missing advance: {:?}", c, e);
+                    continue;
+                },
+            };
+            start += advance * point_size / 24. / 96.;
+        }
+        self.draw_glyphs(
             font,
             point_size,
-            text,
-            start,
+            &ids,
+            &positions,
             &pattern.source(),
             options.as_raqote(),
         );

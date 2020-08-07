@@ -544,6 +544,7 @@ dependencies = [
  "log",
  "lyon_geom 0.14.1",
  "num-traits",
+ "pathfinder_geometry",
  "pixels",
  "raqote",
  "servo_arc",
