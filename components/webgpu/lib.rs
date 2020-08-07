@@ -20,7 +20,7 @@ use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use smallvec::SmallVec;
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::num::NonZeroU64;
 use std::ptr;
@@ -77,6 +77,7 @@ pub enum WebGPURequest {
     CommandEncoderFinish {
         command_encoder_id: id::CommandEncoderId,
         device_id: id::DeviceId,
+        is_error: bool,
         // TODO(zakorgy): Serialize CommandBufferDescriptor in wgpu-core
         // wgpu::command::CommandBufferDescriptor,
     },
@@ -118,12 +119,12 @@ pub enum WebGPURequest {
     CreateBindGroupLayout {
         device_id: id::DeviceId,
         bind_group_layout_id: id::BindGroupLayoutId,
-        descriptor: wgt::BindGroupLayoutDescriptor<'static>,
+        descriptor: Option<wgt::BindGroupLayoutDescriptor<'static>>,
     },
     CreateBuffer {
         device_id: id::DeviceId,
         buffer_id: id::BufferId,
-        descriptor: wgt::BufferDescriptor<Option<String>>,
+        descriptor: Option<wgt::BufferDescriptor<Option<String>>>,
     },
     CreateCommandEncoder {
         device_id: id::DeviceId,
@@ -146,7 +147,7 @@ pub enum WebGPURequest {
     CreateRenderPipeline {
         device_id: id::DeviceId,
         render_pipeline_id: id::RenderPipelineId,
-        descriptor: RenderPipelineDescriptor<'static>,
+        descriptor: Option<RenderPipelineDescriptor<'static>>,
     },
     CreateSampler {
         device_id: id::DeviceId,
@@ -169,13 +170,13 @@ pub enum WebGPURequest {
     CreateTexture {
         device_id: id::DeviceId,
         texture_id: id::TextureId,
-        descriptor: wgt::TextureDescriptor<Option<String>>,
+        descriptor: Option<wgt::TextureDescriptor<Option<String>>>,
     },
     CreateTextureView {
         texture_id: id::TextureId,
         texture_view_id: id::TextureViewId,
         device_id: id::DeviceId,
-        descriptor: wgt::TextureViewDescriptor<Option<String>>,
+        descriptor: Option<wgt::TextureViewDescriptor<Option<String>>>,
     },
     DestroyBuffer(id::BufferId),
     DestroySwapChain {
@@ -207,12 +208,12 @@ pub enum WebGPURequest {
     RunComputePass {
         command_encoder_id: id::CommandEncoderId,
         device_id: id::DeviceId,
-        compute_pass: ComputePass,
+        compute_pass: Option<ComputePass>,
     },
     RunRenderPass {
         command_encoder_id: id::CommandEncoderId,
         device_id: id::DeviceId,
-        render_pass: RenderPass,
+        render_pass: Option<RenderPass>,
     },
     Submit {
         queue_id: id::QueueId,
@@ -337,6 +338,8 @@ struct WGPU<'a> {
     // Presentation Buffers with pending mapping
     present_buffer_maps:
         HashMap<id::BufferId, Rc<BufferMapInfo<'a, (Option<ErrorScopeId>, WebGPURequest)>>>,
+    //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
+    error_command_buffers: HashSet<id::CommandBufferId>,
     webrender_api: webrender_api::RenderApi,
     webrender_document: webrender_api::DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -368,6 +371,7 @@ impl<'a> WGPU<'a> {
             _invalid_adapters: Vec::new(),
             buffer_maps: HashMap::new(),
             present_buffer_maps: HashMap::new(),
+            error_command_buffers: HashSet::new(),
             webrender_api: webrender_api_sender.create_api(),
             webrender_document,
             external_images,
@@ -450,12 +454,21 @@ impl<'a> WGPU<'a> {
                     WebGPURequest::CommandEncoderFinish {
                         command_encoder_id,
                         device_id,
+                        is_error,
                     } => {
                         let global = &self.global;
-                        let result = gfx_select!(command_encoder_id => global.command_encoder_finish(
-                            command_encoder_id,
-                            &wgt::CommandBufferDescriptor::default()
-                        ));
+                        let result = if is_error {
+                            Err(String::from("Invalid GPUCommandEncoder"))
+                        } else {
+                            gfx_select!(command_encoder_id => global.command_encoder_finish(
+                                command_encoder_id,
+                                &wgt::CommandBufferDescriptor::default()
+                            ))
+                            .map_err(|e| format!("{:?}", e))
+                        };
+                        if result.is_err() {
+                            self.error_command_buffers.insert(command_encoder_id);
+                        }
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CopyBufferToBuffer {
@@ -534,6 +547,9 @@ impl<'a> WGPU<'a> {
                         let global = &self.global;
                         let result = gfx_select!(bind_group_id =>
                             global.device_create_bind_group(device_id, &descriptor, bind_group_id));
+                        if result.is_err() {
+                            let _ = gfx_select!(bind_group_id => global.bind_group_error(bind_group_id));
+                        }
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CreateBindGroupLayout {
@@ -542,9 +558,18 @@ impl<'a> WGPU<'a> {
                         descriptor,
                     } => {
                         let global = &self.global;
-                        let result = gfx_select!(bind_group_layout_id =>
-                            global.device_create_bind_group_layout(device_id, &descriptor, bind_group_layout_id));
-                        self.send_result(device_id, scope_id, result);
+                        if let Some(desc) = descriptor {
+                            let result = gfx_select!(bind_group_layout_id =>
+                                global.device_create_bind_group_layout(device_id, &desc, bind_group_layout_id));
+                            if result.is_err() {
+                                let _ = gfx_select!(bind_group_layout_id =>
+                                    global.bind_group_layout_error(bind_group_layout_id));
+                            }
+                            self.send_result(device_id, scope_id, result);
+                        } else {
+                            let _ = gfx_select!(bind_group_layout_id =>
+                                global.bind_group_layout_error(bind_group_layout_id));
+                        }
                     },
                     WebGPURequest::CreateBuffer {
                         device_id,
@@ -552,17 +577,24 @@ impl<'a> WGPU<'a> {
                         descriptor,
                     } => {
                         let global = &self.global;
-                        let st;
-                        let label = match descriptor.label {
-                            Some(ref s) => {
-                                st = CString::new(s.as_bytes()).unwrap();
-                                st.as_ptr()
-                            },
-                            None => ptr::null(),
-                        };
-                        let result = gfx_select!(buffer_id =>
-                            global.device_create_buffer(device_id, &descriptor.map_label(|_| label), buffer_id));
-                        self.send_result(device_id, scope_id, result);
+                        if let Some(desc) = descriptor {
+                            let st;
+                            let label = match desc.label {
+                                Some(ref s) => {
+                                    st = CString::new(s.as_bytes()).unwrap();
+                                    st.as_ptr()
+                                },
+                                None => ptr::null(),
+                            };
+                            let result = gfx_select!(buffer_id =>
+                            global.device_create_buffer(device_id, &desc.map_label(|_| label), buffer_id));
+                            if result.is_err() {
+                                let _ = gfx_select!(buffer_id => global.buffer_error(buffer_id));
+                            }
+                            self.send_result(device_id, scope_id, result);
+                        } else {
+                            let _ = gfx_select!(buffer_id => global.buffer_error(buffer_id));
+                        }
                     },
                     WebGPURequest::CreateCommandEncoder {
                         device_id,
@@ -581,6 +613,9 @@ impl<'a> WGPU<'a> {
                         let desc = wgt::CommandEncoderDescriptor { label };
                         let result = gfx_select!(command_encoder_id =>
                             global.device_create_command_encoder(device_id, &desc, command_encoder_id));
+                        if result.is_err() {
+                            let _ = gfx_select!(command_encoder_id => global.command_encoder_error(command_encoder_id));
+                        }
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CreateComputePipeline {
@@ -591,6 +626,10 @@ impl<'a> WGPU<'a> {
                         let global = &self.global;
                         let result = gfx_select!(compute_pipeline_id =>
                             global.device_create_compute_pipeline(device_id, &descriptor, compute_pipeline_id));
+                        if result.is_err() {
+                            let _ = gfx_select!(compute_pipeline_id =>
+                                global.compute_pipeline_error(compute_pipeline_id));
+                        }
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CreateContext(sender) => {
@@ -611,18 +650,28 @@ impl<'a> WGPU<'a> {
                         let global = &self.global;
                         let result = gfx_select!(pipeline_layout_id =>
                             global.device_create_pipeline_layout(device_id, &descriptor, pipeline_layout_id));
+                        if result.is_err() {
+                            let _ = gfx_select!(pipeline_layout_id => global.pipeline_layout_error(pipeline_layout_id));
+                        }
                         self.send_result(device_id, scope_id, result);
                     },
-                    //TODO: consider https://github.com/gfx-rs/wgpu/issues/684
                     WebGPURequest::CreateRenderPipeline {
                         device_id,
                         render_pipeline_id,
                         descriptor,
                     } => {
                         let global = &self.global;
-                        let result = gfx_select!(render_pipeline_id =>
-                            global.device_create_render_pipeline(device_id, &descriptor, render_pipeline_id));
-                        self.send_result(device_id, scope_id, result);
+                        if let Some(desc) = descriptor {
+                            let result = gfx_select!(render_pipeline_id =>
+                            global.device_create_render_pipeline(device_id, &desc, render_pipeline_id));
+                            if result.is_err() {
+                                let _ = gfx_select!(render_pipeline_id =>
+                                    global.render_pipeline_error(render_pipeline_id));
+                            }
+                            self.send_result(device_id, scope_id, result);
+                        } else {
+                            let _ = gfx_select!(render_pipeline_id => global.render_pipeline_error(render_pipeline_id));
+                        }
                     },
                     WebGPURequest::CreateSampler {
                         device_id,
@@ -643,6 +692,9 @@ impl<'a> WGPU<'a> {
                             &descriptor.map_label(|_| label),
                             sampler_id
                         ));
+                        if result.is_err() {
+                            let _ = gfx_select!(sampler_id => global.sampler_error(sampler_id));
+                        }
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CreateShaderModule {
@@ -655,6 +707,10 @@ impl<'a> WGPU<'a> {
                             wgpu_core::pipeline::ShaderModuleSource::SpirV(Cow::Owned(program));
                         let result = gfx_select!(program_id =>
                             global.device_create_shader_module(device_id, source, program_id));
+                        if result.is_err() {
+                            let _ =
+                                gfx_select!(program_id => global.shader_module_error(program_id));
+                        }
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CreateSwapChain {
@@ -705,20 +761,27 @@ impl<'a> WGPU<'a> {
                         descriptor,
                     } => {
                         let global = &self.global;
-                        let st;
-                        let label = match descriptor.label {
-                            Some(ref s) => {
-                                st = CString::new(s.as_bytes()).unwrap();
-                                st.as_ptr()
-                            },
-                            None => ptr::null(),
-                        };
-                        let result = gfx_select!(texture_id => global.device_create_texture(
-                            device_id,
-                            &descriptor.map_label(|_| label),
-                            texture_id
-                        ));
-                        self.send_result(device_id, scope_id, result);
+                        if let Some(desc) = descriptor {
+                            let st;
+                            let label = match desc.label {
+                                Some(ref s) => {
+                                    st = CString::new(s.as_bytes()).unwrap();
+                                    st.as_ptr()
+                                },
+                                None => ptr::null(),
+                            };
+                            let result = gfx_select!(texture_id => global.device_create_texture(
+                                device_id,
+                                &desc.map_label(|_| label),
+                                texture_id
+                            ));
+                            if result.is_err() {
+                                let _ = gfx_select!(texture_id => global.texture_error(texture_id));
+                            }
+                            self.send_result(device_id, scope_id, result);
+                        } else {
+                            let _ = gfx_select!(texture_id => global.texture_error(texture_id));
+                        }
                     },
                     WebGPURequest::CreateTextureView {
                         texture_id,
@@ -727,24 +790,31 @@ impl<'a> WGPU<'a> {
                         descriptor,
                     } => {
                         let global = &self.global;
-                        let st;
-                        let label = match descriptor.label {
-                            Some(ref s) => {
-                                st = CString::new(s.as_bytes()).unwrap();
-                                st.as_ptr()
-                            },
-                            None => ptr::null(),
-                        };
-                        let result = gfx_select!(texture_view_id => global.texture_create_view(
-                            texture_id,
-                            Some(&descriptor.map_label(|_| label)),
-                            texture_view_id
-                        ));
-                        self.send_result(device_id, scope_id, result);
+                        if let Some(desc) = descriptor {
+                            let st;
+                            let label = match desc.label {
+                                Some(ref s) => {
+                                    st = CString::new(s.as_bytes()).unwrap();
+                                    st.as_ptr()
+                                },
+                                None => ptr::null(),
+                            };
+                            let result = gfx_select!(texture_view_id => global.texture_create_view(
+                                texture_id,
+                                Some(&desc.map_label(|_| label)),
+                                texture_view_id
+                            ));
+                            if result.is_err() {
+                                let _ = gfx_select!(texture_view_id => global.texture_view_error(texture_view_id));
+                            }
+                            self.send_result(device_id, scope_id, result);
+                        } else {
+                            let _ = gfx_select!(texture_view_id => global.texture_view_error(texture_view_id));
+                        }
                     },
                     WebGPURequest::DestroyBuffer(buffer) => {
                         let global = &self.global;
-                        gfx_select!(buffer => global.buffer_destroy(buffer, false));
+                        gfx_select!(buffer => global.buffer_drop(buffer, false));
                     },
                     WebGPURequest::DestroySwapChain {
                         external_id,
@@ -758,10 +828,10 @@ impl<'a> WGPU<'a> {
                             .unwrap();
                         let global = &self.global;
                         for b_id in data.available_buffer_ids.iter() {
-                            gfx_select!(b_id => global.buffer_destroy(*b_id, false));
+                            gfx_select!(b_id => global.buffer_drop(*b_id, false));
                         }
                         for b_id in data.queued_buffer_ids.iter() {
-                            gfx_select!(b_id => global.buffer_destroy(*b_id, false));
+                            gfx_select!(b_id => global.buffer_drop(*b_id, false));
                         }
                         for b_id in data.unassigned_buffer_ids.iter() {
                             if let Err(e) = self.script_sender.send(WebGPUMsg::FreeBuffer(*b_id)) {
@@ -775,7 +845,7 @@ impl<'a> WGPU<'a> {
                     },
                     WebGPURequest::DestroyTexture(texture) => {
                         let global = &self.global;
-                        gfx_select!(texture => global.texture_destroy(texture));
+                        gfx_select!(texture => global.texture_drop(texture));
                     },
                     WebGPURequest::Exit(sender) => {
                         if let Err(e) = self.script_sender.send(WebGPUMsg::Exit) {
@@ -816,6 +886,9 @@ impl<'a> WGPU<'a> {
                             &descriptor.map_label(|_| label),
                             render_bundle_id
                         ));
+                        if result.is_err() {
+                            let _ = gfx_select!(render_bundle_id => global.render_bundle_error(render_bundle_id));
+                        }
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::RequestAdapter {
@@ -823,15 +896,13 @@ impl<'a> WGPU<'a> {
                         options,
                         ids,
                     } => {
-                        let adapter_id = match self.global.pick_adapter(
+                        let adapter_id = match self.global.request_adapter(
                             &options,
                             wgpu::instance::AdapterInputs::IdSet(&ids, |id| id.backend()),
                         ) {
-                            Some(id) => id,
-                            None => {
-                                if let Err(e) =
-                                    sender.send(Err("Failed to get webgpu adapter".to_string()))
-                                {
+                            Ok(id) => id,
+                            Err(w) => {
+                                if let Err(e) = sender.send(Err(format!("{:?}", w))) {
                                     warn!(
                                     "Failed to send response to WebGPURequest::RequestAdapter ({})",
                                     e
@@ -843,7 +914,8 @@ impl<'a> WGPU<'a> {
                         let adapter = WebGPUAdapter(adapter_id);
                         self.adapters.push(adapter);
                         let global = &self.global;
-                        let info = gfx_select!(adapter_id => global.adapter_get_info(adapter_id));
+                        let info =
+                            gfx_select!(adapter_id => global.adapter_get_info(adapter_id)).unwrap();
                         if let Err(e) = sender.send(Ok(WebGPUResponse::RequestAdapter {
                             adapter_name: info.name,
                             adapter_id: adapter,
@@ -872,6 +944,7 @@ impl<'a> WGPU<'a> {
                         )) {
                             Ok(id) => id,
                             Err(e) => {
+                                let _ = gfx_select!(device_id => global.device_error(device_id));
                                 if let Err(w) = sender.send(Err(format!("{:?}", e))) {
                                     warn!(
                                     "Failed to send response to WebGPURequest::RequestDevice ({})",
@@ -904,10 +977,14 @@ impl<'a> WGPU<'a> {
                         compute_pass,
                     } => {
                         let global = &self.global;
-                        let result = gfx_select!(command_encoder_id => global.command_encoder_run_compute_pass(
-                            command_encoder_id,
-                            &compute_pass
-                        ));
+                        let result = if let Some(pass) = compute_pass {
+                            gfx_select!(command_encoder_id => global.command_encoder_run_compute_pass(
+                                command_encoder_id,
+                                &pass
+                            )).map_err(|e| format!("{:?}", e))
+                        } else {
+                            Err(String::from("Invalid ComputePass"))
+                        };
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::RunRenderPass {
@@ -916,10 +993,14 @@ impl<'a> WGPU<'a> {
                         render_pass,
                     } => {
                         let global = &self.global;
-                        let result = gfx_select!(command_encoder_id => global.command_encoder_run_render_pass(
-                            command_encoder_id,
-                            &render_pass
-                        ));
+                        let result = if let Some(pass) = render_pass {
+                            gfx_select!(command_encoder_id => global.command_encoder_run_render_pass(
+                                command_encoder_id,
+                                &pass
+                            )).map_err(|e| format!("{:?}", e))
+                        } else {
+                            Err(String::from("Invalid RenderPass"))
+                        };
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::Submit {
@@ -927,7 +1008,15 @@ impl<'a> WGPU<'a> {
                         command_buffers,
                     } => {
                         let global = &self.global;
-                        let result = gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers));
+                        let cmd_id = command_buffers
+                            .iter()
+                            .find(|id| self.error_command_buffers.contains(id));
+                        let result = if cmd_id.is_some() {
+                            Err(String::from("Invalid command buffer submitted"))
+                        } else {
+                            gfx_select!(queue_id => global.queue_submit(queue_id, &command_buffers))
+                                .map_err(|e| format!("{:?}", e))
+                        };
                         self.send_result(queue_id, scope_id, result);
                     },
                     WebGPURequest::SwapChainPresent {

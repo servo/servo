@@ -35,7 +35,7 @@ pub struct GPURenderPassEncoder {
 impl GPURenderPassEncoder {
     fn new_inherited(
         channel: WebGPU,
-        render_pass: RenderPass,
+        render_pass: Option<RenderPass>,
         parent: &GPUCommandEncoder,
         label: Option<USVString>,
     ) -> Self {
@@ -43,7 +43,7 @@ impl GPURenderPassEncoder {
             channel,
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
-            render_pass: DomRefCell::new(Some(render_pass)),
+            render_pass: DomRefCell::new(render_pass),
             command_encoder: Dom::from_ref(parent),
         }
     }
@@ -51,7 +51,7 @@ impl GPURenderPassEncoder {
     pub fn new(
         global: &GlobalScope,
         channel: WebGPU,
-        render_pass: RenderPass,
+        render_pass: Option<RenderPass>,
         parent: &GPUCommandEncoder,
         label: Option<USVString>,
     ) -> DomRoot<Self> {
@@ -126,27 +126,27 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-setblendcolor
     fn SetBlendColor(&self, color: GPUColor) {
-        let colors = match color {
-            GPUColor::GPUColorDict(d) => wgt::Color {
-                r: *d.r,
-                g: *d.g,
-                b: *d.b,
-                a: *d.a,
-            },
-            GPUColor::DoubleSequence(mut s) => {
-                if s.len() < 3 {
-                    s.resize(3, Finite::wrap(0.0f64));
-                }
-                s.resize(4, Finite::wrap(1.0f64));
-                wgt::Color {
-                    r: *s[0],
-                    g: *s[1],
-                    b: *s[2],
-                    a: *s[3],
-                }
-            },
-        };
         if let Some(render_pass) = self.render_pass.borrow_mut().as_mut() {
+            let colors = match color {
+                GPUColor::GPUColorDict(d) => wgt::Color {
+                    r: *d.r,
+                    g: *d.g,
+                    b: *d.b,
+                    a: *d.a,
+                },
+                GPUColor::DoubleSequence(mut s) => {
+                    if s.len() < 3 {
+                        s.resize(3, Finite::wrap(0.0f64));
+                    }
+                    s.resize(4, Finite::wrap(1.0f64));
+                    wgt::Color {
+                        r: *s[0],
+                        g: *s[1],
+                        b: *s[2],
+                        a: *s[3],
+                    }
+                },
+            };
             wgpu_render::wgpu_render_pass_set_blend_color(render_pass, &colors);
         }
     }
@@ -160,24 +160,23 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-endpass
     fn EndPass(&self) {
-        if let Some(render_pass) = self.render_pass.borrow_mut().take() {
-            self.channel
-                .0
-                .send((
-                    self.command_encoder.device().use_current_scope(),
-                    WebGPURequest::RunRenderPass {
-                        command_encoder_id: self.command_encoder.id().0,
-                        device_id: self.command_encoder.device().id().0,
-                        render_pass,
-                    },
-                ))
-                .expect("Failed to send RunRenderPass");
+        let render_pass = self.render_pass.borrow_mut().take();
+        self.channel
+            .0
+            .send((
+                self.command_encoder.device().use_current_scope(),
+                WebGPURequest::RunRenderPass {
+                    command_encoder_id: self.command_encoder.id().0,
+                    device_id: self.command_encoder.device().id().0,
+                    render_pass,
+                },
+            ))
+            .expect("Failed to send RunRenderPass");
 
-            self.command_encoder.set_state(
-                GPUCommandEncoderState::Open,
-                GPUCommandEncoderState::EncodingRenderPass,
-            );
-        }
+        self.command_encoder.set_state(
+            GPUCommandEncoderState::Open,
+            GPUCommandEncoderState::EncodingRenderPass,
+        );
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline
