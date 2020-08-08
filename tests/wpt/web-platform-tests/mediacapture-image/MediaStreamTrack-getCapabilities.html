@@ -77,8 +77,6 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
           'focusMode');
     }
 
-    assert_true(capabilities.exposureCompensation instanceof
-                MediaSettingsRange);
     assert_equals(capabilities.exposureCompensation.max,
                   mockCapabilities.exposureCompensation.max);
     assert_equals(capabilities.exposureCompensation.min,
@@ -86,8 +84,6 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
     assert_equals(capabilities.exposureCompensation.step,
                   mockCapabilities.exposureCompensation.step);
 
-    assert_true(capabilities.exposureTime instanceof
-                MediaSettingsRange);
     assert_equals(capabilities.exposureTime.max,
                   mockCapabilities.exposureTime.max);
     assert_equals(capabilities.exposureTime.min,
@@ -95,8 +91,6 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
     assert_equals(capabilities.exposureTime.step,
                   mockCapabilities.exposureTime.step);
 
-    assert_true(capabilities.colorTemperature instanceof
-                MediaSettingsRange);
     assert_equals(capabilities.colorTemperature.max,
                   mockCapabilities.colorTemperature.max);
     assert_equals(capabilities.colorTemperature.min,
@@ -104,12 +98,10 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
     assert_equals(capabilities.colorTemperature.step,
                   mockCapabilities.colorTemperature.step);
 
-    assert_true(capabilities.iso instanceof MediaSettingsRange);
     assert_equals(capabilities.iso.max, mockCapabilities.iso.max);
     assert_equals(capabilities.iso.min, mockCapabilities.iso.min);
     assert_equals(capabilities.iso.step, mockCapabilities.iso.step);
 
-    assert_true(capabilities.brightness instanceof MediaSettingsRange);
     assert_equals(capabilities.brightness.max,
                   mockCapabilities.brightness.max);
     assert_equals(capabilities.brightness.min,
@@ -117,7 +109,6 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
     assert_equals(capabilities.brightness.step,
                   mockCapabilities.brightness.step);
 
-    assert_true(capabilities.contrast instanceof MediaSettingsRange);
     assert_equals(capabilities.contrast.max,
                   mockCapabilities.contrast.max);
     assert_equals(capabilities.contrast.min,
@@ -125,7 +116,6 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
     assert_equals(capabilities.contrast.step,
                   mockCapabilities.contrast.step);
 
-    assert_true(capabilities.saturation instanceof MediaSettingsRange);
     assert_equals(capabilities.saturation.max,
                   mockCapabilities.saturation.max);
     assert_equals(capabilities.saturation.min,
@@ -133,7 +123,6 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
     assert_equals(capabilities.saturation.step,
                   mockCapabilities.saturation.step);
 
-    assert_true(capabilities.sharpness instanceof MediaSettingsRange);
     assert_equals(capabilities.sharpness.max,
                   mockCapabilities.sharpness.max);
     assert_equals(capabilities.sharpness.min,
@@ -141,7 +130,6 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
     assert_equals(capabilities.sharpness.step,
                   mockCapabilities.sharpness.step);
 
-    assert_true(capabilities.focusDistance instanceof MediaSettingsRange);
     assert_equals(capabilities.focusDistance.max,
                   mockCapabilities.focusDistance.max);
     assert_equals(capabilities.focusDistance.min,
@@ -150,17 +138,14 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
                   mockCapabilities.focusDistance.step);
 
     if (ptzPermission === 'granted') {
-      assert_true(capabilities.pan instanceof MediaSettingsRange);
       assert_equals(capabilities.pan.max, mockCapabilities.pan.max);
       assert_equals(capabilities.pan.min, mockCapabilities.pan.min);
       assert_equals(capabilities.pan.step, mockCapabilities.pan.step);
 
-      assert_true(capabilities.tilt instanceof MediaSettingsRange);
       assert_equals(capabilities.tilt.max, mockCapabilities.tilt.max);
       assert_equals(capabilities.tilt.min, mockCapabilities.tilt.min);
       assert_equals(capabilities.tilt.step, mockCapabilities.tilt.step);
 
-      assert_true(capabilities.zoom instanceof MediaSettingsRange);
       assert_equals(capabilities.zoom.max, mockCapabilities.zoom.max);
       assert_equals(capabilities.zoom.min, mockCapabilities.zoom.min);
       assert_equals(capabilities.zoom.step, mockCapabilities.zoom.step);

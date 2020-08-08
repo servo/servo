@@ -1,3 +1,4 @@
+importScripts('/resources/test-only-api.js');
 importScripts('/webusb/resources/usb-helpers.js');
 'use strict';
 

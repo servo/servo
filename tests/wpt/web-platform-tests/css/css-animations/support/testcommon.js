@@ -202,6 +202,21 @@ function fastEventsTimeout() {
 };
 
 /**
+ * Timeout function used for tests with EventWatchers. The client agent has no
+ * strict requirement for how long it takes to resolve the ready promise. Once
+ * the promise is resolved a secondary timeout promise is armed that may have
+ * a tight deadline measured in animation frames.
+ */
+function armTimeoutWhenReady(animation, timeoutPromise) {
+  return () => {
+    if (animation.pending)
+      return animation.ready.then(() => { return timeoutPromise(); });
+    else
+      return timeoutPromise();
+  };
+}
+
+/**
  * Wrapper that takes a sequence of N animations and returns:
  *
  *   Promise.all([animations[0].ready, animations[1].ready, ... animations[N-1].ready]);
