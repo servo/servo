@@ -185,6 +185,7 @@ pub enum WebGPURequest {
     },
     DestroyTexture(id::TextureId),
     Exit(IpcSender<()>),
+    FreeCommandBuffer(id::CommandBufferId),
     FreeDevice(id::DeviceId),
     RenderBundleEncoderFinish {
         render_bundle_encoder: RenderBundleEncoder,
@@ -855,6 +856,9 @@ impl<'a> WGPU<'a> {
                             warn!("Failed to send response to WebGPURequest::Exit ({})", e)
                         }
                         return;
+                    },
+                    WebGPURequest::FreeCommandBuffer(command_buffer_id) => {
+                        self.error_command_buffers.remove(&command_buffer_id);
                     },
                     WebGPURequest::FreeDevice(device_id) => {
                         let device = WebGPUDevice(device_id);
