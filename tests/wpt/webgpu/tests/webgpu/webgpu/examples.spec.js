@@ -89,12 +89,13 @@ g.test('gpu,async').fn(async t => {
 
 g.test('gpu,buffers').fn(async t => {
   const data = new Uint32Array([0, 1234, 0]);
-  const [src, map] = t.device.createBufferMapped({
+  const src = t.device.createBuffer({
+    mappedAtCreation: true,
     size: 12,
     usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
   });
 
-  new Uint32Array(map).set(data);
+  new Uint32Array(src.getMappedRange()).set(data);
   src.unmap();
 
   // Use the expectContents helper to check the actual contents of a GPUBuffer.

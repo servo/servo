@@ -29,8 +29,8 @@ g.test('submitting_with_a_mapped_buffer_is_disallowed').fn(async t => {
   // Submitting when the buffer has never been mapped should succeed
   t.queue.submit([getCommandBuffer()]);
 
-  // Map the buffer, submitting when the buffer is mapped should fail
-  await buffer.mapWriteAsync();
+  // Map the buffer, submitting when the buffer is mapped (even with no getMappedRange) should fail
+  await buffer.mapAsync(GPUMapMode.WRITE);
   t.queue.submit([]);
 
   t.expectValidationError(() => {

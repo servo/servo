@@ -10,6 +10,23 @@ function numericKeysOf(obj) {
   return Object.keys(obj).map(n => Number(n));
 }
 
+// Buffers
+
+export const kBufferUsageInfo = {
+  [GPUBufferUsage.MAP_READ]: {},
+  [GPUBufferUsage.MAP_WRITE]: {},
+  [GPUBufferUsage.COPY_SRC]: {},
+  [GPUBufferUsage.COPY_DST]: {},
+  [GPUBufferUsage.INDEX]: {},
+  [GPUBufferUsage.VERTEX]: {},
+  [GPUBufferUsage.UNIFORM]: {},
+  [GPUBufferUsage.STORAGE]: {},
+  [GPUBufferUsage.INDIRECT]: {},
+  [GPUBufferUsage.QUERY_RESOLVE]: {},
+};
+
+export const kBufferUsages = numericKeysOf(kBufferUsageInfo);
+
 // Textures
 
 export const kTextureFormatInfo = {
@@ -476,12 +493,12 @@ export const kTextureComponentTypes = keysOf(kTextureComponentTypeInfo);
 // Texture View
 
 export const kTextureViewDimensionInfo = {
-  '1d': {},
-  '2d': {},
-  '2d-array': {},
-  cube: {},
-  'cube-array': {},
-  '3d': {},
+  '1d': { storage: true },
+  '2d': { storage: true },
+  '2d-array': { storage: true },
+  cube: { storage: false },
+  'cube-array': { storage: false },
+  '3d': { storage: true },
 };
 
 export const kTextureViewDimensions = keysOf(kTextureViewDimensionInfo);
