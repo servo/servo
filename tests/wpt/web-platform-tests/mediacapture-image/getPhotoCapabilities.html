@@ -22,17 +22,14 @@ image_capture_test(async (t, imageCaptureTest) => {
   assert_true(typeof capturer.getPhotoCapabilities == 'function');
 
   let capabilities = await capturer.getPhotoCapabilities();
-  assert_true(capabilities instanceof PhotoCapabilities);
 
   assert_equals(capabilities.redEyeReduction, 'controllable',
                 'redEyeReduction');
 
-  assert_true(capabilities.imageHeight instanceof MediaSettingsRange);
   assert_equals(capabilities.imageHeight.max, mockCapabilities.height.max);
   assert_equals(capabilities.imageHeight.min, mockCapabilities.height.min);
   assert_equals(capabilities.imageHeight.step, mockCapabilities.height.step);
 
-  assert_true(capabilities.imageWidth instanceof MediaSettingsRange);
   assert_equals(capabilities.imageWidth.max, mockCapabilities.width.max);
   assert_equals(capabilities.imageWidth.min, mockCapabilities.width.min);
   assert_equals(capabilities.imageWidth.step, mockCapabilities.width.step);

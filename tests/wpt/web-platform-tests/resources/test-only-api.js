@@ -23,7 +23,7 @@ function loadScript(path) {
     script.async = false;
     const p = new Promise((resolve, reject) => {
       script.onload = () => { resolve(); };
-      script.onerror = e => { reject(e); };
+      script.onerror = e => { reject(`Error loading ${path}`); };
     })
     document.head.appendChild(script);
     return p;

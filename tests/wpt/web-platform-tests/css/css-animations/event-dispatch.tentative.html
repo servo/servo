@@ -18,12 +18,14 @@
 
 const setupAnimation = (t, animationStyle) => {
   const div = addDiv(t, { style: 'animation: ' + animationStyle });
+  const animation = div.getAnimations()[0];
+  const timeoutPromise = armTimeoutWhenReady(animation, fastEventsTimeout);
+
   const watcher = new EventWatcher(t, div, [ 'animationstart',
                                              'animationiteration',
                                              'animationend',
                                              'animationcancel' ],
-                                   fastEventsTimeout);
-  const animation = div.getAnimations()[0];
+                                   timeoutPromise);
 
   return { animation, watcher, div };
 };
