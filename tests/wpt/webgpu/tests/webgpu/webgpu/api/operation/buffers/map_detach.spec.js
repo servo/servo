@@ -20,7 +20,7 @@ class F extends GPUTest {
 
 export const g = makeTestGroup(F);
 
-g.test('mapWriteAsync')
+g.test('mapAsync,write')
   .params([
     { unmap: true, destroy: false }, //
     { unmap: false, destroy: true },
@@ -28,11 +28,12 @@ g.test('mapWriteAsync')
   ])
   .fn(async t => {
     const buffer = t.device.createBuffer({ size: 4, usage: GPUBufferUsage.MAP_WRITE });
-    const arrayBuffer = await buffer.mapWriteAsync();
+    await buffer.mapAsync(GPUMapMode.WRITE);
+    const arrayBuffer = buffer.getMappedRange();
     t.checkDetach(buffer, arrayBuffer, t.params.unmap, t.params.destroy);
   });
 
-g.test('mapReadAsync')
+g.test('mapAsync,read')
   .params([
     { unmap: true, destroy: false }, //
     { unmap: false, destroy: true },
@@ -40,7 +41,8 @@ g.test('mapReadAsync')
   ])
   .fn(async t => {
     const buffer = t.device.createBuffer({ size: 4, usage: GPUBufferUsage.MAP_READ });
-    const arrayBuffer = await buffer.mapReadAsync();
+    await buffer.mapAsync(GPUMapMode.READ);
+    const arrayBuffer = buffer.getMappedRange();
     t.checkDetach(buffer, arrayBuffer, t.params.unmap, t.params.destroy);
   });
 
@@ -52,11 +54,13 @@ g.test('create_mapped')
   ])
   .fn(async t => {
     const desc = {
+      mappedAtCreation: true,
       size: 4,
       usage: GPUBufferUsage.MAP_WRITE,
     };
 
-    const [buffer, arrayBuffer] = t.device.createBufferMapped(desc);
+    const buffer = t.device.createBuffer(desc);
+    const arrayBuffer = buffer.getMappedRange();
 
     const view = new Uint8Array(arrayBuffer);
     t.expect(arrayBuffer.byteLength === 4);

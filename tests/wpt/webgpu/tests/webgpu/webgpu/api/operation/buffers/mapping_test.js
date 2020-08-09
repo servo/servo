@@ -1,19 +1,20 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
- **/ import { GPUTest } from '../../../gpu_test.js';
+ **/ import { assert } from '../../../../common/framework/util/util.js';
+import { GPUTest } from '../../../gpu_test.js';
 export class MappingTest extends GPUTest {
-  checkMapWrite(buffer, mappedContents, size) {
+  checkMapWrite(buffer, offset, mappedContents, size) {
     this.checkMapWriteZeroed(mappedContents, size);
 
     const mappedView = new Uint32Array(mappedContents);
     const expected = new Uint32Array(new ArrayBuffer(size));
-    this.expect(mappedView.byteLength === size);
+    assert(mappedView.byteLength === size);
     for (let i = 0; i < mappedView.length; ++i) {
       mappedView[i] = expected[i] = i + 1;
     }
     buffer.unmap();
 
-    this.expectContents(buffer, expected);
+    this.expectContents(buffer, expected, offset);
   }
 
   checkMapWriteZeroed(arrayBuffer, expectedSize) {

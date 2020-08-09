@@ -53,11 +53,7 @@
        []
       ],
       "fixture.js": [
-       "191e2fc42d98ad2c2dce06adf7414e6d0c1e042d",
-       []
-      ],
-      "glsl.js": [
-       "7571416d886c2061245e262fcd06c45534472232",
+       "fcff2a6bb9fac5fd35d4129f611e3ccb0a4864e3",
        []
       ],
       "gpu": {
@@ -89,7 +85,7 @@
        ]
       },
       "params_builder.js": [
-       "ab548de07844b48af7a54e08cd0dab676f2f5ba6",
+       "f585e3a2184fd821e9a4ce4266c1d277b4c5965d",
        []
       ],
       "params_utils.js": [
@@ -102,11 +98,15 @@
         []
        ],
        "encode_selectively.js": [
-        "c621808e284ae6315e921b96f75f3cae10d78eb0",
+        "62cb55ee039b7cc04dfdf751ce2241ba5864cac6",
+        []
+       ],
+       "json_param_value.js": [
+        "1bb32d06dfdf95be6953faac150b767585198cf7",
         []
        ],
        "parseQuery.js": [
-        "5a438c2bbb0beed622c030cc6748bd5c394ea2dd",
+        "6c10baab0b2f97dc09e633201dae6618842fbd69",
         []
        ],
        "query.js": [
@@ -118,7 +118,7 @@
         []
        ],
        "stringify_params.js": [
-        "931c5534f6172c801b39d9e24c05e4ef4e8d8938",
+        "b9c9cde7067b8cfc2fe2ad59d9d3c7fde3d38733",
         []
        ],
        "validQueryPart.js": [
@@ -161,7 +161,7 @@
        ]
       },
       "version.js": [
-       "de50e581c26d8d5f2b6e91da39571cd8b21f1591",
+       "4d5e72c0442fdbdd4d5ceeefa14dcbaafae4ffaa",
        []
       ]
      },
@@ -186,42 +186,24 @@
       ]
      }
     },
-    "third_party": {
-     "glslang_js": {
-      "lib": {
-       "glslang.js": [
-        "21bd32eafa285c95c87c14056e1e0f253549dedd",
-        []
-       ],
-       "glslang.wasm": [
-        "d951d65e063a930ad0d841848367f7b8cc6b2703",
-        []
-       ]
-      }
-     }
-    },
     "webgpu": {
      "api": {
       "operation": {
        "buffers": {
-        "create_mapped.spec.js": [
-         "0f950439b9d272d36b93bd76208af9461105f9fd",
-         []
-        ],
         "map.spec.js": [
-         "19e1a2cc7c5c54a2e37c85dad35cc4fcfb8ac321",
+         "f751b721d5f87013334e9e240ca517c6447a84f5",
          []
         ],
         "map_detach.spec.js": [
-         "61f2d7aa9fbadaa6b6d2810314ec6b6c20f3f99d",
+         "aca8dc46e5797b9c31ee682e7ce04d12a2644b79",
          []
         ],
         "map_oom.spec.js": [
-         "f80fa767c08c5642c1add2612ac9895b16d1de19",
+         "205f1147ed2b4304e21f8713126e69227ae48d3b",
          []
         ],
         "mapping_test.js": [
-         "ad2be711d40a44f2b64a5f5c27ab5d32afee24a4",
+         "45ce419a69d4accb2ac1b36f82a2065ce16a900e",
          []
         ]
        },
@@ -230,27 +212,13 @@
          "7f4dd29b24ff8280b7aaede344b42bb5edca4d19",
          []
         ],
-        "compute": {
-         "basic.spec.js": [
-          "865601f869bac456d5de6678c75bc21fa8b3c722",
-          []
-         ]
-        },
         "copies.spec.js": [
-         "29d0bd58ee9c9cfdc8e244a7fbef0585c564b7f8",
+         "a6ecc3c9c2973b1f46704f77d255d9f185cabc31",
          []
         ],
         "render": {
          "basic.spec.js": [
           "d3913ef5752b277c62e4f451923231c6d55ff947",
-          []
-         ],
-         "rendering.spec.js": [
-          "60e843a6973fa1b84e6eddf9c5a2308d1f848141",
-          []
-         ],
-         "storeop.spec.js": [
-          "cd0c9d6145e11e0046f8ea6bb001f9518c972601",
           []
          ]
         }
@@ -261,27 +229,13 @@
        ],
        "render_pass": {
         "storeOp.spec.js": [
-         "678a462925021a32db5d33baa33701259bcf7d7c",
-         []
-        ]
-       },
-       "render_pipeline": {
-        "culling_tests.spec.js": [
-         "a10a987520d089208b5aa49f3c329533188b379c",
+         "c02e99db655933431cf8f310c21eac4febaf380d",
          []
         ]
        },
        "resource_init": {
         "copied_texture_clear.spec.js": [
          "28fb5b368e317ef68ba6a3ec854729c3ca8cfb0e",
-         []
-        ],
-        "depth_stencil_attachment_clear.spec.js": [
-         "06004eadf3486eb59ccdc0588a7982ea3275d68c",
-         []
-        ],
-        "sampled_texture_clear.spec.js": [
-         "5ee102a37ffcda076fc001a4e15db176b07fe4d3",
          []
         ],
         "texture_zero_init_test.js": [
@@ -296,15 +250,11 @@
         []
        ],
        "createBindGroupLayout.spec.js": [
-        "778ca6fb1b71e7f611722e0d90ce816bb062b90e",
+        "9c0df538b278aaa38d11f3922b749799f72f4c3f",
         []
        ],
        "createPipelineLayout.spec.js": [
         "689ddaec883cd639f6cf94ab4d3005a4c4512db5",
-        []
-       ],
-       "createRenderPipeline.spec.js": [
-        "4a72faacd6c09555c3c1dac8424513f7b33a8c64",
         []
        ],
        "createTexture.spec.js": [
@@ -315,40 +265,38 @@
         "d5b16563c13d9429bb1da58b9c5dd18279904f3d",
         []
        ],
-       "encoding": {
-        "cmds": {
-         "index_access.spec.js": [
-          "b0eb5c7bc6cfcdf4479a6365b8b54c362424a696",
-          []
-         ]
-        }
-       },
        "error_scope.spec.js": [
         "5523237daeba5d0c1c292dd3da8dead86a99f8e4",
         []
        ],
        "fences.spec.js": [
-        "e2d4c7eb92220c98411c7e8f72be718c261a78b9",
+        "cc04848410fed9f20b863aadbedf3482787b6de9",
         []
        ],
        "queue_submit.spec.js": [
-        "2860a4f53188e1cc02774f0635c70962ecf9e52e",
+        "4e77076e35089cbdd9ae1ffe04c8f13fd6663f1d",
         []
        ],
        "render_pass": {
+        "resolve.spec.js": [
+         "78965d9155e999ee19c3e97315502b11676ea838",
+         []
+        ],
         "storeOp.spec.js": [
-         "c43c6547bc8f268af93031db7173185768f6d2b3",
+         "e63540a9ca8afdc536200ebcfc8e955674b7a018",
          []
         ]
        },
-       "render_pass.spec.js": [
-        "b9db03bc86f19fd1ad5c847153cfcc6399f0450b",
-        []
-       ],
        "render_pass_descriptor.spec.js": [
         "6b2b8c54b784620b65d213b9cddf4b803fbeba3a",
         []
        ],
+       "resource_usages": {
+        "textureUsageInRender.spec.js": [
+         "6322ec25ee537584030c322ab99ec3d69e02b30e",
+         []
+        ]
+       },
        "setBindGroup.spec.js": [
         "fca85a83b0e5cf94d7950139c021ca6954e0e2ad",
         []
@@ -365,10 +313,6 @@
         "f79a24044952c705004d254c81c31fd60967c54e",
         []
        ],
-       "setVertexBuffer.spec.js": [
-        "a7a173991eb3ff786af945af19e0e35ac56fc624",
-        []
-       ],
        "setViewport.spec.js": [
         "e2ef691b821825b9fa3c9fa5072dc734ec34d236",
         []
@@ -376,23 +320,19 @@
        "validation_test.js": [
         "d816fd0594bd5097f4a7e3d2de91c3e0aa6e3f7b",
         []
-       ],
-       "vertex_state.spec.js": [
-        "7a30e3a013aeada0469fa8d85c69c14c26921dbb",
-        []
        ]
       }
      },
      "capability_info.js": [
-      "df73575693bdf29f824ce6aeb144ec062aa2fb36",
+      "2e4264fe229c11bb387d300cebce6a4e69780cd1",
       []
      ],
      "examples.spec.js": [
-      "0d741fec3c2917808a885fa9a76a0300003c5382",
+      "32825367009ab0c4427821a013e913480ba38863",
       []
      ],
      "gpu_test.js": [
-      "a0163bb3ef38fe73f75b673f1507d92cc280b032",
+      "92f0e41840bd8e74eda57bbeda60757af798e2f9",
       []
      ],
      "idl": {
@@ -408,21 +348,9 @@
       ]
      },
      "listing.js": [
-      "51bba64a493acad8c8f0bbc515fb621ef538b839",
+      "8736de378a6a02235dfff5796f4fe4a963769001",
       []
      ],
-     "shader": {
-      "execution": {
-       "robust_access.spec.js": [
-        "0fe4a36ad10ee86a945a0546daac568882884fda",
-        []
-       ],
-       "robust_access_vertex.spec.js": [
-        "05b83fd049c98e4902096b467cf9f0aaa3fb4d51",
-        []
-       ]
-      }
-     },
      "util": {
       "conversion.js": [
        "bdba99cf7619ec4d66a5890f5566f68bbc6ed82d",
@@ -434,7 +362,7 @@
       ],
       "texture": {
        "layout.js": [
-        "cb9a883bd805e23b0c1769e78844fafd8717585f",
+        "26d82a7be0aea4483b4b72d6faa2b9233a5f0039",
         []
        ],
        "subresource.js": [
@@ -455,7 +383,7 @@
        ]
       },
       "copyImageBitmapToTexture.spec.js": [
-       "b37e311d280f2d3cea3d85767075cc51f3f2a124",
+       "1432ff05e1daa192d5898bf1c7f42e84008b23b4",
        []
       ],
       "reftests": {
@@ -464,7 +392,7 @@
         []
        ],
        "canvas_complex.js": [
-        "e1aa3a25f88d26abdd381db249b03a6e84421fd5",
+        "f2271d0debafde3681e6a4865ccd5c91817c94f9",
         []
        ],
        "gpu_ref_test.js": [
@@ -489,15 +417,7 @@
   "testharness": {
    "webgpu": {
     "cts.html": [
-     "0e637156fa95e5039db18c62136f73595b92c087",
-     [
-      "webgpu/cts.html?q=webgpu:api,operation,buffers,create_mapped:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:api,operation,buffers,map:*",
-      {}
-     ],
+     "e87ceb79a409fc3e3ddcccf38e48b865740e0809",
      [
       "webgpu/cts.html?q=webgpu:api,operation,buffers,map_detach:*",
       {}
@@ -511,10 +431,6 @@
       {}
      ],
      [
-      "webgpu/cts.html?q=webgpu:api,operation,command_buffer,compute,basic:*",
-      {}
-     ],
-     [
       "webgpu/cts.html?q=webgpu:api,operation,command_buffer,copies:*",
       {}
      ],
@@ -523,35 +439,11 @@
       {}
      ],
      [
-      "webgpu/cts.html?q=webgpu:api,operation,command_buffer,render,rendering:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:api,operation,command_buffer,render,storeop:*",
-      {}
-     ],
-     [
       "webgpu/cts.html?q=webgpu:api,operation,fences:*",
       {}
      ],
      [
       "webgpu/cts.html?q=webgpu:api,operation,render_pass,storeOp:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:api,operation,render_pipeline,culling_tests:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:api,operation,resource_init,copied_texture_clear:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:api,operation,resource_init,depth_stencil_attachment_clear:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:api,operation,resource_init,sampled_texture_clear:*",
       {}
      ],
      [
@@ -567,10 +459,6 @@
       {}
      ],
      [
-      "webgpu/cts.html?q=webgpu:api,validation,encoding,cmds,index_access:*",
-      {}
-     ],
-     [
       "webgpu/cts.html?q=webgpu:api,validation,error_scope:*",
       {}
      ],
@@ -583,15 +471,19 @@
       {}
      ],
      [
+      "webgpu/cts.html?q=webgpu:api,validation,render_pass,resolve:*",
+      {}
+     ],
+     [
       "webgpu/cts.html?q=webgpu:api,validation,render_pass,storeOp:*",
       {}
      ],
      [
-      "webgpu/cts.html?q=webgpu:api,validation,render_pass:*",
+      "webgpu/cts.html?q=webgpu:api,validation,render_pass_descriptor:*",
       {}
      ],
      [
-      "webgpu/cts.html?q=webgpu:api,validation,render_pass_descriptor:*",
+      "webgpu/cts.html?q=webgpu:api,validation,resource_usages,textureUsageInRender:*",
       {}
      ],
      [
@@ -611,10 +503,6 @@
       {}
      ],
      [
-      "webgpu/cts.html?q=webgpu:api,validation,setVertexBuffer:*",
-      {}
-     ],
-     [
       "webgpu/cts.html?q=webgpu:api,validation,setViewport:*",
       {}
      ],
@@ -624,14 +512,6 @@
      ],
      [
       "webgpu/cts.html?q=webgpu:idl,constants,flags:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:shader,execution,robust_access:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:shader,execution,robust_access_vertex:*",
       {}
      ],
      [

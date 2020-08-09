@@ -14,7 +14,6 @@
   return obj;
 }
 import { Fixture } from '../common/framework/fixture.js';
-import { compileGLSL, initGLSL } from '../common/framework/glsl.js';
 import { DevicePool, TestOOMedShouldAttemptGC } from '../common/framework/gpu/device_pool.js';
 import { attemptGarbageCollection } from '../common/framework/util/collect_garbage.js';
 import { assert } from '../common/framework/util/util.js';
@@ -43,7 +42,6 @@ export class GPUTest extends Fixture {
 
   async init() {
     await super.init();
-    await initGLSL();
 
     const device = await devicePool.acquire();
     const queue = device.defaultQueue;
@@ -77,24 +75,14 @@ export class GPUTest extends Fixture {
     }
   }
 
-  makeShaderModule(stage, code) {
-    // If both are provided, always choose WGSL. (Can change this if needed.)
-    if ('wgsl' in code) {
-      return this.device.createShaderModule({ code: code.wgsl });
-    } else {
-      const spirv = compileGLSL(code.glsl, stage, false);
-      return this.device.createShaderModule({ code: spirv });
-    }
-  }
-
-  createCopyForMapRead(src, start, size) {
+  createCopyForMapRead(src, srcOffset, size) {
     const dst = this.device.createBuffer({
       size,
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
     });
 
     const c = this.device.createCommandEncoder();
-    c.copyBufferToBuffer(src, start, dst, 0, size);
+    c.copyBufferToBuffer(src, srcOffset, dst, 0, size);
 
     this.queue.submit([c.finish()]);
 
@@ -103,16 +91,13 @@ export class GPUTest extends Fixture {
 
   // TODO: add an expectContents for textures, which logs data: uris on failure
 
-  expectContents(src, expected) {
-    this.expectSubContents(src, 0, expected);
-  }
-
-  expectSubContents(src, start, expected) {
-    const dst = this.createCopyForMapRead(src, start, expected.buffer.byteLength);
+  expectContents(src, expected, srcOffset = 0) {
+    const dst = this.createCopyForMapRead(src, srcOffset, expected.buffer.byteLength);
 
     this.eventualAsyncExpectation(async niceStack => {
       const constructor = expected.constructor;
-      const actual = new constructor(await dst.mapReadAsync());
+      await dst.mapAsync(GPUMapMode.READ);
+      const actual = new constructor(dst.getMappedRange());
       const check = this.checkBuffer(actual, expected);
       if (check !== undefined) {
         niceStack.message = check;
@@ -223,38 +208,12 @@ got [${failedByteActualValues.join(', ')}]`;
     this.expectContents(buffer, new Uint8Array(arrayBuffer));
   }
 
-  // TODO: Add check for values of depth/stencil, probably through sampling of shader
-  // TODO(natashalee): Can refactor this and expectSingleColor to use a similar base expect
-  expectSinglePixelIn2DTexture(src, format, { x, y }, { exp, slice = 0, layout }) {
-    const { byteLength, bytesPerRow, rowsPerImage, mipSize } = getTextureCopyLayout(
-      format,
-      '2d',
-      [1, 1, 1],
-      layout
-    );
+  expectGPUError(filter, fn, shouldError = true) {
+    // If no error is expected, we let the scope surrounding the test catch it.
+    if (!shouldError) {
+      return fn();
+    }
 
-    const buffer = this.device.createBuffer({
-      size: byteLength,
-      usage: GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST,
-    });
-
-    const commandEncoder = this.device.createCommandEncoder();
-    commandEncoder.copyTextureToBuffer(
-      {
-        texture: src,
-        mipLevel: layout === null || layout === void 0 ? void 0 : layout.mipLevel,
-        origin: { x, y, z: slice },
-      },
-      { buffer, bytesPerRow, rowsPerImage },
-      mipSize
-    );
-
-    this.queue.submit([commandEncoder.finish()]);
-
-    this.expectContents(buffer, exp);
-  }
-
-  expectGPUError(filter, fn) {
     this.device.pushErrorScope(filter);
     const returnValue = fn();
     const promise = this.device.popErrorScope();

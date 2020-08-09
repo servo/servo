@@ -13,7 +13,7 @@ use crate::dom::gpubuffer::GPUBuffer;
 use dom_struct::dom_struct;
 use std::collections::HashSet;
 use std::hash::{Hash, Hasher};
-use webgpu::{WebGPU, WebGPUCommandBuffer};
+use webgpu::{WebGPU, WebGPUCommandBuffer, WebGPURequest};
 
 impl Eq for DomRoot<GPUBuffer> {}
 impl Hash for DomRoot<GPUBuffer> {
@@ -64,6 +64,20 @@ impl GPUCommandBuffer {
             )),
             global,
         )
+    }
+}
+
+impl Drop for GPUCommandBuffer {
+    fn drop(&mut self) {
+        if let Err(e) = self.channel.0.send((
+            None,
+            WebGPURequest::FreeCommandBuffer(self.command_buffer.0),
+        )) {
+            warn!(
+                "Failed to send FreeCommandBuffer({:?}) ({})",
+                self.command_buffer.0, e
+            );
+        }
     }
 }
 

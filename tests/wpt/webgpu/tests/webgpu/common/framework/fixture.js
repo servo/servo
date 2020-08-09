@@ -88,6 +88,19 @@ export class Fixture {
     }
   }
 
+  shouldResolve(p, msg) {
+    this.eventualAsyncExpectation(async niceStack => {
+      const m = msg ? ': ' + msg : '';
+      try {
+        await p;
+        niceStack.message = 'resolved as expected' + m;
+      } catch (ex) {
+        niceStack.message = `REJECTED${m}\n${ex.message}`;
+        this.rec.expectationFailed(niceStack);
+      }
+    });
+  }
+
   shouldReject(expectedName, p, msg) {
     this.eventualAsyncExpectation(async niceStack => {
       const m = msg ? ': ' + msg : '';
@@ -96,7 +109,7 @@ export class Fixture {
         niceStack.message = 'DID NOT REJECT' + m;
         this.rec.expectationFailed(niceStack);
       } catch (ex) {
-        niceStack.message = m;
+        niceStack.message = 'rejected as expected' + m;
         this.expectErrorValue(expectedName, ex, niceStack);
       }
     });

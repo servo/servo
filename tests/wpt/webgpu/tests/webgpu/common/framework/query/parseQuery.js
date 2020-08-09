@@ -3,6 +3,7 @@
  **/ import { badParamValueChars, paramKeyIsPublic } from '../params_utils.js';
 import { assert } from '../util/util.js';
 
+import { parseParamValue } from './json_param_value.js';
 import {
   TestQueryMultiFile,
   TestQueryMultiTest,
@@ -124,5 +125,5 @@ function parseSingleParamValue(s) {
     `param value must not match ${badParamValueChars} - was ${s}`
   );
 
-  return s === 'undefined' ? undefined : JSON.parse(s);
+  return parseParamValue(s);
 }

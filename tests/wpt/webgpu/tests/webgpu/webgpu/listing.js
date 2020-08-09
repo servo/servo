@@ -31,15 +31,6 @@ export const listing = [
       "api",
       "operation",
       "buffers",
-      "create_mapped"
-    ],
-    "description": ""
-  },
-  {
-    "file": [
-      "api",
-      "operation",
-      "buffers",
       "map"
     ],
     "description": ""
@@ -76,16 +67,6 @@ export const listing = [
       "api",
       "operation",
       "command_buffer",
-      "compute",
-      "basic"
-    ],
-    "description": "Basic command buffer compute tests."
-  },
-  {
-    "file": [
-      "api",
-      "operation",
-      "command_buffer",
       "copies"
     ],
     "description": "copy{Buffer,Texture}To{Buffer,Texture} tests."
@@ -104,26 +85,6 @@ export const listing = [
     "file": [
       "api",
       "operation",
-      "command_buffer",
-      "render",
-      "rendering"
-    ],
-    "description": ""
-  },
-  {
-    "file": [
-      "api",
-      "operation",
-      "command_buffer",
-      "render",
-      "storeop"
-    ],
-    "description": "renderPass store op test that drawn quad is either stored or cleared based on storeop"
-  },
-  {
-    "file": [
-      "api",
-      "operation",
       "fences"
     ],
     "description": ""
@@ -135,16 +96,7 @@ export const listing = [
       "render_pass",
       "storeOp"
     ],
-    "description": "API Operation Tests for RenderPass StoreOp.\n\n  Test Coverage Needed:\n\n  - Test that a render pass has correct output for combinations of:\n    - All color attachments from '0' to 'MAX_COLOR_ATTACHMENTS' with combinations of:\n      - storeOp set to {'clear', 'store', 'undefined}\n      - All color renderable formats\n      - mip level set to {'0', mip > '0'}\n      - array layer set to {'0', layer > '1'} for 2D textures\n      - depth slice set to {'0', slice > '0'} for 3D textures\n    - With and without a depthStencilAttachment that has the combinations of:\n      - depthStoreOp set to {'clear', 'store', 'undefined'}\n      - stencilStoreOp set to {'clear', 'store', 'undefined'}\n      - All depth/stencil formats\n      - mip level set to {'0', mip > '0'}\n      - array layer set to {'0', layer > '1'} for 2D textures\n      - depth slice set to {'0', slice > '0'} for 3D textures"
-  },
-  {
-    "file": [
-      "api",
-      "operation",
-      "render_pipeline",
-      "culling_tests"
-    ],
-    "description": "Test culling and rasterizaion state.\n\nTest coverage:\nTest all culling combinations of GPUFrontFace and GPUCullMode show the correct output.\n\nUse 2 triangles with different winding orders:\n\n- Test that the counter-clock wise triangle has correct output for:\n  - All FrontFaces (ccw, cw)\n  - All CullModes (none, front, back)\n  - All depth stencil attachment types (none, depth24plus, depth32float, depth24plus-stencil8)\n  - Some primitive topologies (triangle-list, TODO: triangle-strip)\n\n- Test that the clock wise triangle has correct output for:\n  - All FrontFaces (ccw, cw)\n  - All CullModes (none, front, back)\n  - All depth stencil attachment types (none, depth24plus, depth32float, depth24plus-stencil8)\n  - Some primitive topologies (triangle-list, TODO: triangle-strip)"
+    "description": "API Operation Tests for RenderPass StoreOp.\n\n  Test Coverage:\n\n  - Tests that color and depth-stencil store operations {'clear', 'store'} work correctly for a\n    render pass with both a color attachment and depth-stencil attachment.\n      TODO: use depth24plus-stencil8\n\n  - Tests that store operations {'clear', 'store'} work correctly for a render pass with multiple\n    color attachments.\n      TODO: test with more interesting loadOp values\n\n  - Tests that store operations {'clear', 'store'} work correctly for a render pass with a color\n    attachment for:\n      - All renderable color formats\n      - mip level set to {'0', mip > '0'}\n      - array layer set to {'0', layer > '1'} for 2D textures\n      TODO: depth slice set to {'0', slice > '0'} for 3D textures\n\n  - Tests that store operations {'clear', 'store'} work correctly for a render pass with a\n    depth-stencil attachment for:\n      - All renderable depth-stencil formats\n      - mip level set to {'0', mip > '0'}\n      - array layer set to {'0', layer > '1'} for 2D textures\n      TODO: test depth24plus and depth24plus-stencil8 formats\n      TODO: test that depth and stencil aspects are set seperately\n      TODO: depth slice set to {'0', slice > '0'} for 3D textures\n      TODO: test with more interesting loadOp values"
   },
   {
     "file": [
@@ -154,24 +106,6 @@ export const listing = [
       "copied_texture_clear"
     ],
     "description": "Test uninitialized textures are initialized to zero when copied."
-  },
-  {
-    "file": [
-      "api",
-      "operation",
-      "resource_init",
-      "depth_stencil_attachment_clear"
-    ],
-    "description": "Test uninitialized textures are initialized to zero when used as a depth/stencil attachment."
-  },
-  {
-    "file": [
-      "api",
-      "operation",
-      "resource_init",
-      "sampled_texture_clear"
-    ],
-    "description": "Test uninitialized textures are initialized to zero when sampled."
   },
   {
     "file": [
@@ -215,14 +149,6 @@ export const listing = [
     "file": [
       "api",
       "validation",
-      "createRenderPipeline"
-    ],
-    "description": "createRenderPipeline validation tests."
-  },
-  {
-    "file": [
-      "api",
-      "validation",
       "createTexture"
     ],
     "description": "createTexture validation tests."
@@ -234,16 +160,6 @@ export const listing = [
       "createView"
     ],
     "description": "createView validation tests."
-  },
-  {
-    "file": [
-      "api",
-      "validation",
-      "encoding",
-      "cmds",
-      "index_access"
-    ],
-    "description": "indexed draws validation tests."
   },
   {
     "file": [
@@ -273,9 +189,10 @@ export const listing = [
     "file": [
       "api",
       "validation",
-      "render_pass"
+      "render_pass",
+      "resolve"
     ],
-    "description": "render pass validation tests."
+    "description": "API Validation Tests for RenderPass Resolve.\n\n  Test Coverage:\n    - When resolveTarget is not null:\n      - Test that the colorAttachment is multisampled:\n        - A single sampled colorAttachment should generate an error.\n      - Test that the resolveTarget is single sampled:\n        - A multisampled resolveTarget should generate an error.\n      - Test that the resolveTarget has usage OUTPUT_ATTACHMENT:\n        - A resolveTarget without usage OUTPUT_ATTACHMENT should generate an error.\n      - Test that the resolveTarget's texture view describes a single subresource:\n        - A resolveTarget texture view with base mip {0, base mip > 0} and mip count of 1 should be\n          valid.\n          - An error should be generated when the resolve target view mip count is not 1 and base\n            mip is {0, base mip > 0}.\n        - A resolveTarget texture view with base array layer {0, base array layer > 0} and array\n          layer count of 1 should be valid.\n          - An error should be generated when the resolve target view array layer count is not 1 and\n            base array layer is {0, base array layer > 0}.\n      - Test that the resolveTarget's format is the same as the colorAttachment:\n        - An error should be generated when the resolveTarget's format does not match the\n          colorAttachment's format.\n      - Test that the resolveTarget's size is the same the colorAttachment:\n        - An error should be generated when the resolveTarget's height or width are not equal to\n          the colorAttachment's height or width."
   },
   {
     "file": [
@@ -284,7 +201,7 @@ export const listing = [
       "render_pass",
       "storeOp"
     ],
-    "description": "API Validation Tests for RenderPass StoreOp.\n\n  Test Coverage Needed:\n\n  - Test that when depthReadOnly is true, depthStoreOp must be 'store'\n\n  - Test that when stencilReadOnly is true, stencilStoreOp must be 'store'"
+    "description": "API Validation Tests for RenderPass StoreOp.\n\nTest Coverage:\n  - Tests that when depthReadOnly is true, depthStoreOp must be 'store'.\n    - When depthReadOnly is true and depthStoreOp is 'clear', an error should be generated.\n\n  - Tests that when stencilReadOnly is true, stencilStoreOp must be 'store'.\n    - When stencilReadOnly is true and stencilStoreOp is 'clear', an error should be generated.\n\n  - Tests that the depthReadOnly value matches the stencilReadOnly value.\n    - When depthReadOnly does not match stencilReadOnly, an error should be generated.\n\n  - Tests that depthReadOnly and stencilReadOnly default to false."
   },
   {
     "file": [
@@ -293,6 +210,15 @@ export const listing = [
       "render_pass_descriptor"
     ],
     "description": "render pass descriptor validation tests."
+  },
+  {
+    "file": [
+      "api",
+      "validation",
+      "resource_usages",
+      "textureUsageInRender"
+    ],
+    "description": "Texture Usages Validation Tests in Render Pass.\n\nTest Coverage:\n - Tests that read and write usages upon the same texture subresource, or different subresources\n   of the same texture. Different subresources of the same texture includes different mip levels,\n   different array layers, and different aspects.\n   - When read and write usages are binding to the same texture subresource, an error should be\n     generated. Otherwise, no error should be generated."
   },
   {
     "file": [
@@ -330,25 +256,9 @@ export const listing = [
     "file": [
       "api",
       "validation",
-      "setVertexBuffer"
-    ],
-    "description": "setVertexBuffer validation tests."
-  },
-  {
-    "file": [
-      "api",
-      "validation",
       "setViewport"
     ],
     "description": "setViewport validation tests."
-  },
-  {
-    "file": [
-      "api",
-      "validation",
-      "vertex_state"
-    ],
-    "description": "vertexState validation tests."
   },
   {
     "file": [
@@ -382,22 +292,6 @@ export const listing = [
       "execution"
     ],
     "readme": "Tests that check the result of valid shader execution."
-  },
-  {
-    "file": [
-      "shader",
-      "execution",
-      "robust_access"
-    ],
-    "description": "Tests to check array clamping in shaders is correctly implemented including vector / matrix indexing"
-  },
-  {
-    "file": [
-      "shader",
-      "execution",
-      "robust_access_vertex"
-    ],
-    "description": "Test vertex attributes behave correctly (no crash / data leak) when accessed out of bounds\n\nTest coverage:\n\nThe following will be parameterized (all combinations tested):\n\n1) Draw call indexed? (false / true)\n  - Run the draw call using an index buffer\n\n2) Draw call indirect? (false / true)\n  - Run the draw call using an indirect buffer\n\n3) Draw call parameter (vertexCount, firstVertex, indexCount, firstIndex, baseVertex, instanceCount,\n  firstInstance)\n  - The parameter which will go out of bounds. Filtered depending on if the draw call is indexed.\n\n4) Attribute type (float, vec2, vec3, vec4)\n  - The input attribute type in the vertex shader\n\n5) Error scale (1, 4, 10^2, 10^4, 10^6)\n  - Offset to add to the correct draw call parameter\n\n6) Additional vertex buffers (0, +4)\n  - Tests that no OOB occurs if more vertex buffers are used\n\nThe tests will also have another vertex buffer bound for an instanced attribute, to make sure\ninstanceCount / firstInstance are tested.\n\nThe tests will include multiple attributes per vertex buffer.\n\nThe vertex buffers will be filled by repeating a few chosen values until the end of the buffer.\n\nThe test will run a render pipeline which verifies the following:\n1) All vertex attribute values occur in the buffer or are zero\n2) All gl_VertexIndex values are within the index buffer or 0\n\nTODO:\n\nA suppression may be needed for d3d12 on tests that have non-zero baseVertex, since d3d12 counts\nfrom 0 instead of from baseVertex (will fail check for gl_VertexIndex).\n\nVertex buffer contents could be randomized to prevent the case where a previous test creates\na similar buffer to ours and the OOB-read seems valid. This should be deterministic, which adds\nmore complexity that we may not need."
   },
   {
     "file": [

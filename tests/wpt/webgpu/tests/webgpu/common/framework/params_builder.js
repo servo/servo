@@ -16,7 +16,30 @@ function _defineProperty(obj, key, value) {
 }
 import { publicParamsEquals } from './params_utils.js';
 import { assert } from './util/util.js';
-// https://stackoverflow.com/a/56375136
+/** Forces a type to resolve its type definitions, to make it readable/debuggable. */
+
+function typeAssert() {}
+{
+  {
+    typeAssert();
+    typeAssert();
+    typeAssert();
+    typeAssert();
+    typeAssert();
+
+    typeAssert();
+
+    typeAssert();
+    typeAssert();
+    typeAssert();
+    typeAssert();
+    typeAssert();
+
+    // Unexpected test results - hopefully okay to ignore these
+    typeAssert();
+    typeAssert();
+  }
+}
 
 export function poptions(name, values) {
   const iter = makeReusableIterable(function* () {
