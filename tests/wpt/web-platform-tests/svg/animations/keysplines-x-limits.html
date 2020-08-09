@@ -22,6 +22,26 @@
     <animate attributeName="x" values="0; 250" dur="5s"
              keyTimes="0; 1" keySplines="0 0 2 1" calcMode="spline"/>
   </rect>
+  <rect x="10" width="10" height="10" y="50" fill="blue">
+     <animateMotion values="0,50; 250,50" dur="5s" keyPoints="0; 1"
+                    keyTimes="0; 1" keySplines="-10 0 1 1"
+                    calcMode="spline"/>
+  </rect>
+  <rect x="10" width="10" height="10" y="60" fill="blue">
+     <animateMotion values="0,60; 250,60" dur="5s" keyPoints="0; 1"
+                    keyTimes="0; 1" keySplines="10 0 1 1"
+                    calcMode="spline"/>
+  </rect>
+  <rect x="10" width="10" height="10" y="70" fill="blue">
+     <animateMotion values="0,70; 250,70" dur="5s" keyPoints="0; 1"
+                    keyTimes="0; 1" keySplines="0 0 -10 1"
+                    calcMode="spline"/>
+  </rect>
+  <rect x="10" width="10" height="10" y="80" fill="blue">
+     <animateMotion values="0,80; 250,80" dur="5s" keyPoints="0; 1"
+                    keyTimes="0; 1" keySplines="0 0 10 1"
+                    calcMode="spline"/>
+  </rect>
 </svg>
 <script>
   async_test(t => {
@@ -36,6 +56,10 @@
         assert_equals(rects[2].getBBox().x, 10, 'first control point x greater than one');
         assert_equals(rects[3].getBBox().x, 10, 'second control point x less than zero');
         assert_equals(rects[4].getBBox().x, 10, 'second control point x greater than one');
+        assert_equals(rects[5].getBBox().x, 10, 'first control point x less than zero');
+        assert_equals(rects[6].getBBox().x, 10, 'first control point x greater than one');
+        assert_equals(rects[7].getBBox().x, 10, 'second control point x less than zero');
+        assert_equals(rects[8].getBBox().x, 10, 'second control point x greater than one');
       }));
     });
   });
