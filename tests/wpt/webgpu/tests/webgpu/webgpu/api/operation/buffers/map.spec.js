@@ -32,8 +32,12 @@ const kCases = [
 ];
 
 function reifyMapRange(bufferSize, range) {
-  const offset = range[0] ?? 0;
-  return [offset, range[1] ?? bufferSize - offset];
+  var _range$, _range$2;
+  const offset = (_range$ = range[0]) !== null && _range$ !== void 0 ? _range$ : 0;
+  return [
+    offset,
+    (_range$2 = range[1]) !== null && _range$2 !== void 0 ? _range$2 : bufferSize - offset,
+  ];
 }
 
 g.test('mapAsync,write')
@@ -86,6 +90,7 @@ g.test('mappedAtCreation')
       .combine(pbool('mappable'))
   )
   .fn(async t => {
+    var _range$3;
     const { size, range, mappable } = t.params;
     const [, rangeSize] = reifyMapRange(size, range);
 
@@ -96,5 +101,10 @@ g.test('mappedAtCreation')
     });
 
     const arrayBuffer = buffer.getMappedRange(...range);
-    t.checkMapWrite(buffer, range[0] ?? 0, arrayBuffer, rangeSize);
+    t.checkMapWrite(
+      buffer,
+      (_range$3 = range[0]) !== null && _range$3 !== void 0 ? _range$3 : 0,
+      arrayBuffer,
+      rangeSize
+    );
   });

@@ -161,7 +161,7 @@
        ]
       },
       "version.js": [
-       "7b1785ec171eb58b928815765f369cf72d1a1e4c",
+       "4d5e72c0442fdbdd4d5ceeefa14dcbaafae4ffaa",
        []
       ]
      },
@@ -191,7 +191,7 @@
       "operation": {
        "buffers": {
         "map.spec.js": [
-         "476ef48f4be2351bada4f3bcc737d3a51bc0454c",
+         "f751b721d5f87013334e9e240ca517c6447a84f5",
          []
         ],
         "map_detach.spec.js": [
@@ -417,11 +417,7 @@
   "testharness": {
    "webgpu": {
     "cts.html": [
-     "ad914da28ee10849b37c5a691a28c4d357f8835c",
-     [
-      "webgpu/cts.html?q=webgpu:api,operation,buffers,map:*",
-      {}
-     ],
+     "e87ceb79a409fc3e3ddcccf38e48b865740e0809",
      [
       "webgpu/cts.html?q=webgpu:api,operation,buffers,map_detach:*",
       {}
@@ -448,10 +444,6 @@
      ],
      [
       "webgpu/cts.html?q=webgpu:api,operation,render_pass,storeOp:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:api,operation,resource_init,copied_texture_clear:*",
       {}
      ],
      [
