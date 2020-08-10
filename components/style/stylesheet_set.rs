@@ -5,11 +5,11 @@
 //! A centralized set of stylesheets for a document.
 
 use crate::dom::TElement;
-use crate::invalidation::stylesheets::StylesheetInvalidationSet;
+use crate::invalidation::stylesheets::{StylesheetInvalidationSet, RuleChangeKind};
 use crate::media_queries::Device;
 use crate::selector_parser::SnapshotMap;
 use crate::shared_lock::SharedRwLockReadGuard;
-use crate::stylesheets::{Origin, OriginSet, OriginSetIterator, PerOrigin, StylesheetInDocument};
+use crate::stylesheets::{CssRule, Origin, OriginSet, OriginSetIterator, PerOrigin, StylesheetInDocument};
 use std::{mem, slice};
 
 /// Entry for a StylesheetSet.
@@ -438,6 +438,56 @@ macro_rules! sheet_set_methods {
             let collection = self.collection_for(&sheet, guard);
             collection.remove(&sheet)
         }
+
+        /// Notify the set that a rule from a given stylesheet has changed
+        /// somehow.
+        pub fn rule_changed(
+            &mut self,
+            device: Option<&Device>,
+            sheet: &S,
+            rule: &CssRule,
+            guard: &SharedRwLockReadGuard,
+            change_kind: RuleChangeKind,
+        ) {
+            if let Some(device) = device {
+                let quirks_mode = sheet.quirks_mode(guard);
+                self.invalidations.rule_changed(
+                    sheet,
+                    rule,
+                    guard,
+                    device,
+                    quirks_mode,
+                    change_kind,
+                );
+            }
+
+            let validity = match change_kind {
+                // Insertion / Removals need to rebuild both the cascade and
+                // invalidation data. For generic changes this is conservative,
+                // could be optimized on a per-case basis.
+                RuleChangeKind::Generic |
+                RuleChangeKind::Insertion |
+                RuleChangeKind::Removal => DataValidity::FullyInvalid,
+                // TODO(emilio): This, in theory, doesn't need to invalidate
+                // style data, if the rule we're modifying is actually in the
+                // CascadeData already.
+                //
+                // But this is actually a bit tricky to prove, because when we
+                // copy-on-write a stylesheet we don't bother doing a rebuild,
+                // so we may still have rules from the original stylesheet
+                // instead of the cloned one that we're modifying. So don't
+                // bother for now and unconditionally rebuild, it's no worse
+                // than what we were already doing anyway.
+                //
+                // Maybe we could record whether we saw a clone in this flush,
+                // and if so do the conservative thing, otherwise just
+                // early-return.
+                RuleChangeKind::StyleRuleDeclarations => DataValidity::FullyInvalid,
+            };
+
+            let collection = self.collection_for(&sheet, guard);
+            collection.set_data_validity_at_least(validity);
+        }
     };
 }
 
@@ -485,6 +535,7 @@ where
 
     /// Returns whether the given set has changed from the last flush.
     pub fn has_changed(&self) -> bool {
+        !self.invalidations.is_empty() ||
         self.collections
             .iter_origins()
             .any(|(collection, _)| collection.dirty)
