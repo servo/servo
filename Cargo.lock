@@ -862,7 +862,6 @@ dependencies = [
  "canvas_traits",
  "compositing",
  "crossbeam-channel",
- "debugger",
  "devtools_traits",
  "embedder_traits",
  "euclid",
@@ -1215,15 +1214,6 @@ checksum = "48b5f0f36f1eebe901b0e6bee369a77ed3396334bf3f09abd46454a576f71819"
 dependencies = [
  "libc",
  "libdbus-sys",
-]
-
-[[package]]
-name = "debugger"
-version = "0.0.1"
-dependencies = [
- "crossbeam-channel",
- "log",
- "ws",
 ]
 
 [[package]]
@@ -3223,7 +3213,6 @@ dependencies = [
  "compositing",
  "constellation",
  "crossbeam-channel",
- "debugger",
  "devtools",
  "devtools_traits",
  "embedder_traits",

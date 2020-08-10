@@ -50,7 +50,7 @@
 //! * The font cache, image cache, and resource manager, which load
 //!   and cache shared fonts, images, or other resources.
 //! * The service worker manager.
-//! * The devtools, debugger and webdriver servers.
+//! * The devtools and webdriver servers.
 //!
 //! The constellation passes messages between the threads, and updates its state
 //! to track the evolving state of the browsing context tree.
@@ -357,10 +357,6 @@ pub struct Constellation<Message, LTF, STF, SWF> {
     font_cache_thread: FontCacheThread,
 
     /// A channel for the constellation to send messages to the
-    /// debugger thread.
-    debugger_chan: Option<debugger::Sender>,
-
-    /// A channel for the constellation to send messages to the
     /// devtools thread.
     devtools_chan: Option<Sender<DevtoolsControlMsg>>,
 
@@ -525,9 +521,6 @@ pub struct InitialConstellationState {
 
     /// A channel through which messages can be sent to the compositor.
     pub compositor_proxy: CompositorProxy,
-
-    /// A channel to the debugger, if applicable.
-    pub debugger_chan: Option<debugger::Sender>,
 
     /// A channel to the developer tools, if applicable.
     pub devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -872,7 +865,6 @@ where
                     compositor_proxy: state.compositor_proxy,
                     active_browser_id: None,
                     browsers: HashMap::new(),
-                    debugger_chan: state.debugger_chan,
                     devtools_chan: state.devtools_chan,
                     bluetooth_thread: state.bluetooth_thread,
                     public_resource_threads: state.public_resource_threads,
@@ -2737,10 +2729,6 @@ where
             .send(net_traits::CoreResourceMsg::Exit(core_sender))
         {
             warn!("Exit resource thread failed ({})", e);
-        }
-
-        if let Some(ref chan) = self.debugger_chan {
-            debugger::shutdown_server(chan);
         }
 
         if let Some(ref chan) = self.devtools_chan {
