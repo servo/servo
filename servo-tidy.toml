@@ -64,7 +64,6 @@ packages = [
   "core-foundation",
   "core-foundation-sys",
   "core-graphics",
-  "core-text",
   "lyon_geom",
 
   # Duplicated by webrender debugger via ws

@@ -1009,18 +1009,6 @@ dependencies = [
 
 [[package]]
 name = "core-text"
-version = "13.3.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db84654ad95211c082cf9795f6f83dc17d0ae6c985ac1b906369dc7384ed346d"
-dependencies = [
- "core-foundation 0.6.4",
- "core-graphics 0.17.3",
- "foreign-types",
- "libc",
-]
-
-[[package]]
-name = "core-text"
 version = "15.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "131b3fd1f8bd5db9f2b398fa4fdb6008c64afc04d447c306ac2c7e98fba2a61d"
@@ -1593,7 +1581,7 @@ dependencies = [
  "byteorder",
  "core-foundation 0.7.0",
  "core-graphics 0.19.0",
- "core-text 15.0.0",
+ "core-text",
  "dirs",
  "dwrote",
  "float-ord",
@@ -1884,12 +1872,12 @@ dependencies = [
  "byteorder",
  "core-foundation 0.7.0",
  "core-graphics 0.19.0",
- "core-text 15.0.0",
+ "core-text",
  "dwrote",
  "euclid",
  "fnv",
  "fontsan",
- "freetype 0.4.1",
+ "freetype 0.5.1",
  "gfx_traits",
  "harfbuzz-sys",
  "ipc-channel",
@@ -2504,15 +2492,15 @@ checksum = "63d68db75012a85555434ee079e7e6337931f87a087ab2988becbadf64673a7f"
 
 [[package]]
 name = "harfbuzz-sys"
-version = "0.3.4"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "212d74cab8498b2d15700b694fb38f77562869d05e1f8b602dd05221a1ca2d63"
+checksum = "8c50680ef38c3c83947499b5df4f340db5b436807dfa2b21330d86254e2e4dd6"
 dependencies = [
  "cc",
- "core-graphics 0.17.3",
- "core-text 13.3.2",
+ "core-graphics 0.19.0",
+ "core-text",
  "foreign-types",
- "freetype 0.4.1",
+ "freetype 0.5.1",
  "pkg-config",
 ]
 
@@ -6497,12 +6485,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-script"
-version = "0.3.0"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09f03ad95feb4fde244d79985bfd79eb34ff2702fedb441d2ba3f4ff813efd19"
-dependencies = [
- "harfbuzz-sys",
-]
+checksum = "79bf4d5fc96546fdb73f9827097810bbda93b11a6770ff3a54e1f445d4135787"
 
 [[package]]
 name = "unicode-segmentation"
@@ -6861,7 +6846,7 @@ dependencies = [
  "cfg-if",
  "core-foundation 0.7.0",
  "core-graphics 0.19.0",
- "core-text 15.0.0",
+ "core-text",
  "cstr",
  "dwrote",
  "euclid",
