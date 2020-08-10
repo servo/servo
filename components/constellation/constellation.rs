@@ -1082,9 +1082,12 @@ where
         let (event_loop, host) = match sandbox {
             IFrameSandboxState::IFrameSandboxed => (None, None),
             IFrameSandboxState::IFrameUnsandboxed => {
-                // If this is an about:blank load, it must share the creator's event loop.
-                // This must match the logic in the script thread when determining the proper origin.
-                if load_data.url.as_str() != "about:blank" {
+                // If this is an about:blank or about:srcdoc load, it must share the creator's
+                // event loop. This must match the logic in the script thread when determining
+                // the proper origin.
+                if load_data.url.as_str() != "about:blank" &&
+                    load_data.url.as_str() != "about:srcdoc"
+                {
                     match reg_host(&load_data.url) {
                         None => (None, None),
                         Some(host) => {
