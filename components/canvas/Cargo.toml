@@ -25,7 +25,7 @@ euclid = "0.20"
 font-kit = "0.10"
 fnv = "1.0"
 gfx = { path = "../gfx" }
-gleam = "0.11"
+gleam = "0.12"
 half = "1"
 ipc-channel = "0.14"
 log = "0.4"
