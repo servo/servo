@@ -97,6 +97,9 @@ pub struct Pipeline {
 
     /// Has this pipeline received a notification that it is completely loaded?
     pub completely_loaded: bool,
+
+    /// The title of this pipeline's document.
+    pub title: String,
 }
 
 /// Initial setup data needed to construct a pipeline.
@@ -379,6 +382,7 @@ impl Pipeline {
             history_state_id: None,
             history_states: HashSet::new(),
             completely_loaded: false,
+            title: String::new(),
         };
 
         pipeline.notify_visibility(is_visible);

@@ -282,6 +282,8 @@ pub enum ScriptMsg {
     ),
     /// Get WebGPU channel
     GetWebGPUChan(IpcSender<WebGPU>),
+    /// Notify the constellation of a pipeline's document's title.
+    TitleChanged(PipelineId, String),
 }
 
 impl fmt::Debug for ScriptMsg {
@@ -341,6 +343,7 @@ impl fmt::Debug for ScriptMsg {
             MediaSessionEvent(..) => "MediaSessionEvent",
             RequestAdapter(..) => "RequestAdapter",
             GetWebGPUChan(..) => "GetWebGPUChan",
+            TitleChanged(..) => "TitleChanged",
         };
         write!(formatter, "ScriptMsg::{}", variant)
     }

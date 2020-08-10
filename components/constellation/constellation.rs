@@ -112,7 +112,10 @@ use compositing::compositor_thread::Msg as ToCompositorMsg;
 use compositing::compositor_thread::WebrenderMsg;
 use compositing::{ConstellationMsg as FromCompositorMsg, SendableFrameTree};
 use crossbeam_channel::{after, never, unbounded, Receiver, Sender};
-use devtools_traits::{ChromeToDevtoolsControlMsg, DevtoolsControlMsg};
+use devtools_traits::{
+    ChromeToDevtoolsControlMsg, DevtoolsControlMsg, DevtoolsPageInfo, NavigationState,
+    ScriptToDevtoolsControlMsg,
+};
 use embedder_traits::{Cursor, EmbedderMsg, EmbedderProxy, EventLoopWaker};
 use embedder_traits::{MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::{default::Size2D as UntypedSize2D, Size2D};
@@ -1934,6 +1937,11 @@ where
                 BrowsingContextId::from(source_top_ctx_id),
                 FromScriptMsg::GetWebGPUChan(sender),
             ),
+            FromScriptMsg::TitleChanged(pipeline, title) => {
+                if let Some(pipeline) = self.pipelines.get_mut(&pipeline) {
+                    pipeline.title = title;
+                }
+            },
         }
     }
 
@@ -3935,6 +3943,21 @@ where
             old_pipeline.notify_visibility(false);
         }
         if let Some(new_pipeline) = self.pipelines.get(&new_pipeline_id) {
+            if let Some(ref chan) = self.devtools_chan {
+                let state = NavigationState::Start(new_pipeline.url.clone());
+                let _ = chan.send(DevtoolsControlMsg::FromScript(
+                    ScriptToDevtoolsControlMsg::Navigate(browsing_context_id, state),
+                ));
+                let page_info = DevtoolsPageInfo {
+                    title: new_pipeline.title.clone(),
+                    url: new_pipeline.url.clone(),
+                };
+                let state = NavigationState::Stop(new_pipeline.id, page_info);
+                let _ = chan.send(DevtoolsControlMsg::FromScript(
+                    ScriptToDevtoolsControlMsg::Navigate(browsing_context_id, state),
+                ));
+            }
+
             new_pipeline.notify_visibility(true);
         }
 
