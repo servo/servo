@@ -67,6 +67,13 @@ packages = [
   "core-graphics",
   "core-text",
   "lyon_geom",
+
+  # Duplicated by webrender debugger via ws
+  "digest",
+  "generic-array",
+  "opaque-debug",
+  "sha-1",
+  "block-buffer",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
