@@ -340,6 +340,8 @@ impl StylesheetInvalidationSet {
         data.hint.contains(RestyleHint::RESTYLE_SELF) || any_children_invalid
     }
 
+    /// TODO(emilio): Reuse the bucket stuff from selectormap? That handles
+    /// :is() / :where() etc.
     fn scan_component(
         component: &Component<SelectorImpl>,
         invalidation: &mut Option<Invalidation>,
@@ -349,7 +351,7 @@ impl StylesheetInvalidationSet {
                 ref name,
                 ref lower_name,
             }) => {
-                if invalidation.as_ref().map_or(true, |s| !s.is_id_or_class()) {
+                if invalidation.is_none() {
                     *invalidation = Some(Invalidation::LocalName {
                         name: name.clone(),
                         lower_name: lower_name.clone(),
@@ -357,12 +359,12 @@ impl StylesheetInvalidationSet {
                 }
             },
             Component::Class(ref class) => {
-                if invalidation.as_ref().map_or(true, |s| !s.is_id()) {
+                if invalidation.as_ref().map_or(true, |s| !s.is_id_or_class()) {
                     *invalidation = Some(Invalidation::Class(class.clone()));
                 }
             },
             Component::ID(ref id) => {
-                if invalidation.is_none() {
+                if invalidation.as_ref().map_or(true, |s| !s.is_id()) {
                     *invalidation = Some(Invalidation::ID(id.clone()));
                 }
             },
