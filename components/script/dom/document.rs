@@ -464,12 +464,6 @@ impl CollectionFilter for AnchorsFilter {
     }
 }
 
-enum ElementLookupResult {
-    None,
-    One(DomRoot<Element>),
-    Many,
-}
-
 #[allow(non_snake_case)]
 impl Document {
     pub fn note_node_with_dirty_descendants(&self, node: &Node) {
@@ -2852,75 +2846,6 @@ impl Document {
             .drain()
             .for_each(|(_, context)| context.send_swap_chain_present());
     }
-
-    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
-    // (This takes the filter as a method so the window named getter can use it too)
-    pub fn supported_property_names_impl(
-        &self,
-        nameditem_filter: fn(&Node, &Atom) -> bool,
-    ) -> Vec<DOMString> {
-        // The tricky part here is making sure we return the names in
-        // tree order, without just resorting to a full tree walkthrough.
-
-        let mut first_elements_with_name: HashMap<&Atom, &Dom<Element>> = HashMap::new();
-
-        // Get the first-in-tree-order element for each name in the name_map
-        let name_map = self.name_map.borrow();
-        name_map.iter().for_each(|(name, value)| {
-            if let Some(first) = value
-                .iter()
-                .find(|n| nameditem_filter((***n).upcast::<Node>(), &name))
-            {
-                first_elements_with_name.insert(name, first);
-            }
-        });
-
-        // Get the first-in-tree-order element for each name in the id_map;
-        // if we already had one from the name_map, figure out which of
-        // the two is first.
-        let id_map = self.id_map.borrow();
-        id_map.iter().for_each(|(name, value)| {
-            if let Some(first) = value
-                .iter()
-                .find(|n| nameditem_filter((***n).upcast::<Node>(), &name))
-            {
-                match first_elements_with_name.get(&name) {
-                    None => {
-                        first_elements_with_name.insert(name, first);
-                    },
-                    Some(el) => {
-                        if *el != first && first.upcast::<Node>().is_before(el.upcast::<Node>()) {
-                            first_elements_with_name.insert(name, first);
-                        }
-                    },
-                }
-            }
-        });
-
-        // first_elements_with_name now has our supported property names
-        // as keys, and the elements to order on as values.
-        let mut sortable_vec: Vec<(&Atom, &Dom<Element>)> = first_elements_with_name
-            .iter()
-            .map(|(k, v)| (*k, *v))
-            .collect();
-        sortable_vec.sort_unstable_by(|a, b| {
-            if a.1 == b.1 {
-                // This can happen if an img has an id different from its name,
-                // spec does not say which string to put first.
-                a.0.cmp(&b.0)
-            } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
-                Ordering::Less
-            } else {
-                Ordering::Greater
-            }
-        });
-
-        // And now that they're sorted, we can return the keys
-        sortable_vec
-            .iter()
-            .map(|(k, _v)| DOMString::from(&***k))
-            .collect()
-    }
 }
 
 fn is_character_value_key(key: &Key) -> bool {
@@ -3846,79 +3771,16 @@ impl Document {
         )
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:determine-the-value-of-a-named-property
-    // Support method for steps 1-3:
-    // Count if there are 0, 1, or >1 elements that match the name.
-    // (This takes the filter as a method so the window named getter can use it too)
-    fn look_up_named_elements(
-        &self,
-        name: &Atom,
-        nameditem_filter: fn(&Node, &Atom) -> bool,
-    ) -> ElementLookupResult {
-        // We might match because of either id==name or name==name, so there
-        // are two sets of nodes to look through, but we don't need a
-        // full tree traversal.
-        let id_map = self.id_map.borrow();
-        let name_map = self.name_map.borrow();
-        let id_vec = id_map.get(&name);
-        let name_vec = name_map.get(&name);
+    pub fn get_elements_with_id(&self, id: &Atom) -> Ref<[Dom<Element>]> {
+        Ref::map(self.id_map.borrow(), |map| {
+            map.get(id).map(|vec| &**vec).unwrap_or_default()
+        })
+    }
 
-        // If nothing can possibly have the name, exit fast
-        if id_vec.is_none() && name_vec.is_none() {
-            return ElementLookupResult::None;
-        }
-
-        let one_from_id_map = if let Some(id_vec) = id_vec {
-            let mut elements = id_vec
-                .iter()
-                .filter(|n| nameditem_filter((***n).upcast::<Node>(), &name))
-                .peekable();
-            if let Some(first) = elements.next() {
-                if elements.peek().is_none() {
-                    Some(first)
-                } else {
-                    return ElementLookupResult::Many;
-                }
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-
-        let one_from_name_map = if let Some(name_vec) = name_vec {
-            let mut elements = name_vec
-                .iter()
-                .filter(|n| nameditem_filter((***n).upcast::<Node>(), &name))
-                .peekable();
-            if let Some(first) = elements.next() {
-                if elements.peek().is_none() {
-                    Some(first)
-                } else {
-                    return ElementLookupResult::Many;
-                }
-            } else {
-                None
-            }
-        } else {
-            None
-        };
-
-        // We now have two elements, or one element, or the same
-        // element twice, or no elements.
-        match (one_from_id_map, one_from_name_map) {
-            (Some(one), None) | (None, Some(one)) => {
-                ElementLookupResult::One(DomRoot::from_ref(&one))
-            },
-            (Some(one), Some(other)) => {
-                if one == other {
-                    ElementLookupResult::One(DomRoot::from_ref(&one))
-                } else {
-                    ElementLookupResult::Many
-                }
-            },
-            (None, None) => ElementLookupResult::None,
-        }
+    pub fn get_elements_with_name(&self, name: &Atom) -> Ref<[Dom<Element>]> {
+        Ref::map(self.name_map.borrow(), |map| {
+            map.get(name).map(|vec| &**vec).unwrap_or_default()
+        })
     }
 
     #[allow(unrooted_must_root)]
@@ -4843,45 +4705,74 @@ impl DocumentMethods for Document {
     #[allow(unsafe_code)]
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter
     fn NamedGetter(&self, _cx: JSContext, name: DOMString) -> Option<NonNull<JSObject>> {
+        if name.is_empty() {
+            return None;
+        }
+        let name = Atom::from(name);
+
+        // Step 1.
+        let elements_with_name = self.get_elements_with_name(&name);
+        let name_iter = elements_with_name
+            .iter()
+            .filter(|elem| is_named_element_with_name_attribute(elem));
+        let elements_with_id = self.get_elements_with_id(&name);
+        let id_iter = elements_with_id
+            .iter()
+            .filter(|elem| is_named_element_with_id_attribute(elem));
+        let mut elements = name_iter.chain(id_iter);
+
+        let first = elements.next()?;
+
+        if elements.next().is_none() {
+            // Step 2.
+            if let Some(nested_window_proxy) = first
+                .downcast::<HTMLIFrameElement>()
+                .and_then(|iframe| iframe.GetContentWindow())
+            {
+                unsafe {
+                    return Some(NonNull::new_unchecked(
+                        nested_window_proxy.reflector().get_jsobject().get(),
+                    ));
+                }
+            }
+
+            // Step 3.
+            unsafe {
+                return Some(NonNull::new_unchecked(
+                    first.reflector().get_jsobject().get(),
+                ));
+            }
+        }
+
+        // Step 4.
         #[derive(JSTraceable, MallocSizeOf)]
         struct NamedElementFilter {
             name: Atom,
         }
         impl CollectionFilter for NamedElementFilter {
             fn filter(&self, elem: &Element, _root: &Node) -> bool {
-                elem.upcast::<Node>().is_document_named_item(&self.name)
+                let type_ = match elem.upcast::<Node>().type_id() {
+                    NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
+                    _ => return false,
+                };
+                match type_ {
+                    HTMLElementTypeId::HTMLFormElement | HTMLElementTypeId::HTMLIFrameElement => {
+                        elem.get_name().as_ref() == Some(&self.name)
+                    },
+                    HTMLElementTypeId::HTMLImageElement => elem.get_name().map_or(false, |name| {
+                        name == *self.name ||
+                            !name.is_empty() && elem.get_id().as_ref() == Some(&self.name)
+                    }),
+                    // TODO: Handle exposed objects.
+                    _ => false,
+                }
             }
         }
-
-        let name = Atom::from(name);
-
-        match self.look_up_named_elements(&name, Node::is_document_named_item) {
-            ElementLookupResult::None => {
-                return None;
-            },
-            ElementLookupResult::One(element) => {
-                if let Some(nested_proxy) = element
-                    .downcast::<HTMLIFrameElement>()
-                    .and_then(|iframe| iframe.GetContentWindow())
-                {
-                    unsafe {
-                        return Some(NonNull::new_unchecked(
-                            nested_proxy.reflector().get_jsobject().get(),
-                        ));
-                    }
-                }
-                unsafe {
-                    return Some(NonNull::new_unchecked(
-                        element.reflector().get_jsobject().get(),
-                    ));
-                }
-            },
-            ElementLookupResult::Many => {},
-        };
-
-        // Step 4.
-        let filter = NamedElementFilter { name: name };
-        let collection = HTMLCollection::create(self.window(), self.upcast(), Box::new(filter));
+        let collection = HTMLCollection::create(
+            self.window(),
+            self.upcast(),
+            Box::new(NamedElementFilter { name }),
+        );
         unsafe {
             Some(NonNull::new_unchecked(
                 collection.reflector().get_jsobject().get(),
@@ -4891,7 +4782,55 @@ impl DocumentMethods for Document {
 
     // https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names
     fn SupportedPropertyNames(&self) -> Vec<DOMString> {
-        self.supported_property_names_impl(Node::is_document_named_item)
+        let mut names_with_first_named_element_map: HashMap<&Atom, &Element> = HashMap::new();
+
+        let name_map = self.name_map.borrow();
+        for (name, elements) in &*name_map {
+            let mut name_iter = elements
+                .iter()
+                .filter(|elem| is_named_element_with_name_attribute(elem));
+            if let Some(first) = name_iter.next() {
+                names_with_first_named_element_map.insert(name, first);
+            }
+        }
+        let id_map = self.id_map.borrow();
+        for (id, elements) in &*id_map {
+            let mut id_iter = elements
+                .iter()
+                .filter(|elem| is_named_element_with_id_attribute(elem));
+            if let Some(first) = id_iter.next() {
+                match names_with_first_named_element_map.entry(id) {
+                    Vacant(entry) => drop(entry.insert(first)),
+                    Occupied(mut entry) => {
+                        if first.upcast::<Node>().is_before(entry.get().upcast()) {
+                            *entry.get_mut() = first;
+                        }
+                    },
+                }
+            }
+        }
+
+        let mut names_with_first_named_element_vec: Vec<(&Atom, &Element)> =
+            names_with_first_named_element_map
+                .iter()
+                .map(|(k, v)| (*k, *v))
+                .collect();
+        names_with_first_named_element_vec.sort_unstable_by(|a, b| {
+            if a.1 == b.1 {
+                // This can happen if an img has an id different from its name,
+                // spec does not say which string to put first.
+                a.0.cmp(&b.0)
+            } else if a.1.upcast::<Node>().is_before(b.1.upcast::<Node>()) {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        });
+
+        names_with_first_named_element_vec
+            .iter()
+            .map(|(k, _v)| DOMString::from(&***k))
+            .collect()
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-document-clear
@@ -5365,4 +5304,23 @@ pub enum ReflowTriggerCondition {
     DirtyDescendants,
     PendingRestyles,
     PaintPostponed,
+}
+
+fn is_named_element_with_name_attribute(elem: &Element) -> bool {
+    let type_ = match elem.upcast::<Node>().type_id() {
+        NodeTypeId::Element(ElementTypeId::HTMLElement(type_)) => type_,
+        _ => return false,
+    };
+    match type_ {
+        HTMLElementTypeId::HTMLFormElement |
+        HTMLElementTypeId::HTMLIFrameElement |
+        HTMLElementTypeId::HTMLImageElement => true,
+        // TODO: Handle exposed objects.
+        _ => false,
+    }
+}
+
+fn is_named_element_with_id_attribute(elem: &Element) -> bool {
+    // TODO: Handle exposed objects.
+    elem.is::<HTMLImageElement>() && elem.get_name().map_or(false, |name| !name.is_empty())
 }
