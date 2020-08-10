@@ -112,7 +112,7 @@ pub trait HostTrait {
     /// Throbber stops spinning.
     fn on_load_ended(&self);
     /// Page title has changed.
-    fn on_title_changed(&self, title: String);
+    fn on_title_changed(&self, title: Option<String>);
     /// Allow Navigation.
     fn on_allow_navigation(&self, url: String) -> bool;
     /// Page URL has changed.
@@ -590,16 +590,6 @@ impl ServoGlue {
         for (browser_id, event) in self.servo.get_events() {
             match event {
                 EmbedderMsg::ChangePageTitle(title) => {
-                    let fallback_title: String = if let Some(ref current_url) = self.current_url {
-                        current_url.to_string()
-                    } else {
-                        String::from("Untitled")
-                    };
-                    let title = match title {
-                        Some(ref title) if title.len() > 0 => &**title,
-                        _ => &fallback_title,
-                    };
-                    let title = format!("{} - Servo", title);
                     self.callbacks.host_callbacks.on_title_changed(title);
                 },
                 EmbedderMsg::AllowNavigationRequest(pipeline_id, url) => {

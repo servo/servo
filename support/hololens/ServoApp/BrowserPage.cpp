@@ -6,6 +6,7 @@
 #include "strutils.h"
 #include "BrowserPage.h"
 #include "BrowserPage.g.cpp"
+#include "Bookmark.g.cpp"
 #include "ConsoleLog.g.cpp"
 #include "Devtools/Client.h"
 
@@ -43,9 +44,19 @@ BrowserPage::BrowserPage() {
 }
 
 void BrowserPage::BindServoEvents() {
-  servoView().OnURLChanged(
-      [=](const auto &, hstring url) { urlTextbox().Text(url); });
-  servoView().OnTitleChanged([=](const auto &, hstring title) {});
+  servoView().OnURLChanged([=](const auto &, hstring url) {
+    mCurrentUrl = url;
+    urlTextbox().Text(url);
+    UpdateBookmarkPanel();
+  });
+  servoView().OnTitleChanged([=](const auto &, hstring title) {
+    if (title.size() > 0) {
+      mCurrentTitle = {title};
+    } else {
+      mCurrentTitle = {};
+    }
+    UpdateBookmarkPanel();
+  });
   servoView().OnHistoryChanged([=](bool back, bool forward) {
     backButton().IsEnabled(back);
     forwardButton().IsEnabled(forward);
@@ -55,6 +66,8 @@ void BrowserPage::BindServoEvents() {
     CheckCrashReport();
   });
   servoView().OnLoadStarted([=] {
+    mCurrentUrl = {};
+    mCurrentTitle = {};
     urlbarLoadingIndicator().IsActive(true);
     transientLoadingIndicator().IsIndeterminate(true);
     reloadButton().IsEnabled(false);
@@ -63,6 +76,7 @@ void BrowserPage::BindServoEvents() {
     stopButton().Visibility(Visibility::Visible);
     devtoolsButton().IsEnabled(true);
     CheckCrashReport();
+    UpdateBookmarkPanel();
   });
   servoView().OnLoadEnded([=] {
     urlbarLoadingIndicator().IsActive(false);
@@ -72,6 +86,22 @@ void BrowserPage::BindServoEvents() {
     stopButton().IsEnabled(false);
     stopButton().Visibility(Visibility::Collapsed);
   });
+  bookmarkPanel().Opening([=](const auto &, const auto &) {
+    if (!mCurrentUrl.has_value()) {
+      return;
+    }
+    hstring url = *mCurrentUrl;
+    auto resourceLoader = ResourceLoader::GetForCurrentView();
+    if (!mBookmarks.Contains(url)) {
+      auto label = resourceLoader.GetString(L"bookmarkPanel/addedTitle");
+      bookmarkPanelLabel().Text(label);
+      mBookmarks.Set(url, bookmarkPanelTitle().Text());
+    } else {
+      auto label = resourceLoader.GetString(L"bookmarkPanel/editTitle");
+      bookmarkPanelLabel().Text(label);
+    }
+    bookmarkPanelTitle().SelectAll();
+  });
   servoView().OnCaptureGesturesStarted([=] {
     servoView().Focus(FocusState::Programmatic);
     navigationBar().IsHitTestVisible(false);
@@ -80,9 +110,9 @@ void BrowserPage::BindServoEvents() {
       [=] { navigationBar().IsHitTestVisible(true); });
   urlTextbox().GotFocus(std::bind(&BrowserPage::OnURLFocused, this, _1));
   servoView().OnMediaSessionMetadata(
-      [=](hstring title, hstring artist, hstring album) {});
+      [=](hstring /*title*/, hstring /*artist*/, hstring /*album*/) {});
   servoView().OnMediaSessionPosition(
-      [=](double duration, double position, double rate) {});
+      [=](double /*duration*/, double /*position*/, double /*rate*/) {});
   servoView().OnMediaSessionPlaybackStateChange([=](const auto &, int state) {
     if (state == Servo::MediaSessionPlaybackState::None) {
       mediaControls().Visibility(Visibility::Collapsed);
@@ -106,6 +136,10 @@ void BrowserPage::BindServoEvents() {
       [=](const auto &, const VisibilityChangedEventArgs &args) {
         servoView().ChangeVisibility(args.Visible());
       });
+
+  auto obsBM =
+      mBookmarks.TemplateSource().as<IObservableVector<IInspectable>>();
+  obsBM.VectorChanged(std::bind(&BrowserPage::OnBookmarkDBChanged, this));
 }
 
 void BrowserPage::OnURLFocused(IInspectable const &) {
@@ -424,6 +458,57 @@ void BrowserPage::OnDevtoolsButtonClicked(IInspectable const &,
   } else {
     ShowToolbox();
   }
+}
+
+void BrowserPage::OnBookmarkDBChanged() {
+  Dispatcher().RunAsync(CoreDispatcherPriority::High,
+                        [=] { UpdateBookmarkPanel(); });
+}
+
+void BrowserPage::UpdateBookmarkPanel() {
+  if (mCurrentUrl.has_value()) {
+    bookmarkButton().IsEnabled(true);
+    if (mBookmarks.Contains(*mCurrentUrl)) {
+      bookmarkPanelIcon().Symbol(Controls::Symbol::SolidStar);
+      auto name = mBookmarks.GetName(*mCurrentUrl);
+      bookmarkPanelTitle().Text(name);
+    } else {
+      bookmarkPanelIcon().Symbol(Controls::Symbol::OutlineStar);
+      auto label = mCurrentTitle.value_or(*mCurrentUrl);
+      bookmarkPanelTitle().Text(label);
+    }
+  } else {
+    bookmarkButton().IsEnabled(false);
+  }
+  if (mBookmarks.TemplateSource().Size() == 0) {
+    bookmarkToolbar().Visibility(Visibility::Collapsed);
+  } else {
+    bookmarkToolbar().Visibility(Visibility::Visible);
+  }
+}
+
+void BrowserPage::OnBookmarkEdited(IInspectable const &,
+                                   Input::KeyRoutedEventArgs const &e) {
+  if (e.Key() == Windows::System::VirtualKey::Enter) {
+    UpdateBookmark();
+  }
+}
+
+void BrowserPage::OnBookmarkClicked(IInspectable const &sender,
+                                    RoutedEventArgs const &) {
+  auto button = sender.as<Controls::Button>();
+  auto url = winrt::unbox_value<hstring>(button.Tag());
+  servoView().LoadURIOrSearch(url);
+}
+
+void BrowserPage::RemoveBookmark() {
+  mBookmarks.Delete(*mCurrentUrl);
+  bookmarkPanel().Hide();
+}
+
+void BrowserPage::UpdateBookmark() {
+  mBookmarks.Set(*mCurrentUrl, bookmarkPanelTitle().Text());
+  bookmarkPanel().Hide();
 }
 
 void BrowserPage::OnJSInputEdited(IInspectable const &,

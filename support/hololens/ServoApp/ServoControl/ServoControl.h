@@ -39,7 +39,7 @@ struct ServoControl : ServoControlT<ServoControl>, public servo::ServoDelegate {
 
   ServoControl();
 
-  Windows::Foundation::Collections::IVector<ServoApp::Pref> Preferences();
+  IVector<ServoApp::Pref> Preferences();
 
   void GoBack();
   void GoForward();

@@ -764,10 +764,15 @@ impl HostTrait for HostCallbacks {
         (self.0.on_load_ended)();
     }
 
-    fn on_title_changed(&self, title: String) {
+    fn on_title_changed(&self, title: Option<String>) {
         debug!("on_title_changed");
-        let title = CString::new(title).expect("Can't create string");
-        (self.0.on_title_changed)(title.as_ptr());
+        match title {
+            None => (self.0.on_title_changed)(std::ptr::null()),
+            Some(title) => {
+                let title = CString::new(title).expect("Can't create string");
+                (self.0.on_title_changed)(title.as_ptr());
+            },
+        };
     }
 
     fn on_allow_navigation(&self, url: String) -> bool {
