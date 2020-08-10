@@ -46,7 +46,6 @@ canvas_traits = { path = "../canvas_traits" }
 compositing = { path = "../compositing", features = ["gl"] }
 constellation = { path = "../constellation" }
 crossbeam-channel = "0.4"
-debugger = { path = "../debugger" }
 devtools = { path = "../devtools" }
 devtools_traits = { path = "../devtools_traits" }
 embedder_traits = { path = "../embedder_traits" }

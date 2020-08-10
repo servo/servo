@@ -108,10 +108,6 @@ pub struct Opts {
     /// Periodically print out on which events script threads spend their processing time.
     pub profile_script_events: bool,
 
-    /// `None` to disable debugger or `Some` with a port number to start a server to listen to
-    /// remote Firefox debugger connections.
-    pub debugger_port: Option<u16>,
-
     /// Port number to start a server to listen to remote Firefox devtools connections.
     /// 0 for random port.
     pub devtools_port: u16,
@@ -484,7 +480,6 @@ pub fn default_opts() -> Opts {
         enable_subpixel_text_antialiasing: true,
         enable_canvas_antialiasing: true,
         trace_layout: false,
-        debugger_port: None,
         devtools_port: 0,
         devtools_server_enabled: false,
         webdriver_port: None,
@@ -588,12 +583,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         "F",
         "soft-fail",
         "Display about:failure on thread failure instead of exiting",
-    );
-    opts.optflagopt(
-        "",
-        "remote-debugging-port",
-        "Start remote debugger server on port",
-        "2794",
     );
     opts.optflagopt("", "devtools", "Start remote devtools server on port", "0");
     opts.optflagopt(
@@ -795,17 +784,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         bubble_inline_sizes_separately = true;
     }
 
-    let debugger_port = opt_match
-        .opt_default("remote-debugging-port", "2794")
-        .map(|port| {
-            port.parse().unwrap_or_else(|err| {
-                args_fail(&format!(
-                    "Error parsing option: --remote-debugging-port ({})",
-                    err
-                ))
-            })
-        });
-
     let (devtools_enabled, devtools_port) = if opt_match.opt_present("devtools") {
         let port = opt_match
             .opt_str("devtools")
@@ -887,7 +865,6 @@ pub fn from_cmdline_args(mut opts: Options, args: &[String]) -> ArgumentParsingR
         bubble_inline_sizes_separately: bubble_inline_sizes_separately,
         profile_script_events: debug_options.profile_script_events,
         trace_layout: debug_options.trace_layout,
-        debugger_port: debugger_port,
         devtools_port: devtools_port,
         devtools_server_enabled: devtools_enabled,
         webdriver_port: webdriver_port,

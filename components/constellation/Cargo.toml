@@ -17,7 +17,6 @@ bluetooth_traits = { path = "../bluetooth_traits" }
 canvas_traits = { path = "../canvas_traits" }
 compositing = { path = "../compositing" }
 crossbeam-channel = "0.4"
-debugger = { path = "../debugger" }
 devtools_traits = { path = "../devtools_traits" }
 embedder_traits = { path = "../embedder_traits" }
 euclid = "0.20"

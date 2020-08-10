@@ -27,7 +27,6 @@ pub use canvas;
 pub use canvas_traits;
 pub use compositing;
 pub use constellation;
-pub use debugger;
 pub use devtools;
 pub use devtools_traits;
 pub use embedder_traits;
@@ -354,8 +353,6 @@ where
         );
         let mem_profiler_chan = profile_mem::Profiler::create(opts.mem_profiler_period);
 
-        let debugger_chan = opts.debugger_port.map(|port| debugger::start_server(port));
-
         let devtools_chan = if opts.devtools_server_enabled {
             Some(devtools::start_server(
                 opts.devtools_port,
@@ -500,7 +497,6 @@ where
             compositor_proxy.clone(),
             time_profiler_chan.clone(),
             mem_profiler_chan.clone(),
-            debugger_chan,
             devtools_chan,
             webrender_document,
             webrender_api_sender,
@@ -857,7 +853,6 @@ fn create_constellation(
     compositor_proxy: CompositorProxy,
     time_profiler_chan: time::ProfilerChan,
     mem_profiler_chan: mem::ProfilerChan,
-    debugger_chan: Option<debugger::Sender>,
     devtools_chan: Option<Sender<devtools_traits::DevtoolsControlMsg>>,
     webrender_document: webrender_api::DocumentId,
     webrender_api_sender: webrender_api::RenderApiSender,
@@ -899,7 +894,6 @@ fn create_constellation(
     let initial_state = InitialConstellationState {
         compositor_proxy,
         embedder_proxy,
-        debugger_chan,
         devtools_chan,
         bluetooth_thread,
         font_cache_thread,
