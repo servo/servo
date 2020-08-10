@@ -547,7 +547,7 @@ dependencies = [
  "fnv",
  "font-kit",
  "gfx",
- "gleam 0.11.0",
+ "gleam 0.12.1",
  "half",
  "ipc-channel",
  "log",
@@ -728,9 +728,9 @@ dependencies = [
 
 [[package]]
 name = "cmake"
-version = "0.1.41"
+version = "0.1.44"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c84c596dcf125d6781f58e3f4254677ec2a6d8aa56e8501ac277100990b3229"
+checksum = "0e56268c17a6248366d66d4a47a3381369d068cce8409bb1716ed77ea32163bb"
 dependencies = [
  "cc",
 ]
@@ -823,7 +823,7 @@ dependencies = [
  "embedder_traits",
  "euclid",
  "gfx_traits",
- "gleam 0.11.0",
+ "gleam 0.12.1",
  "image",
  "ipc-channel",
  "keyboard-types",
@@ -997,6 +997,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "core-graphics"
+version = "0.22.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f6082396a349fa49674ba1bda4077332a18bf150e8fa75745ece07085e29a113"
+dependencies = [
+ "bitflags",
+ "core-foundation 0.9.0",
+ "core-graphics-types",
+ "foreign-types",
+ "libc",
+]
+
+[[package]]
 name = "core-graphics-types"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1010,24 +1023,12 @@ dependencies = [
 
 [[package]]
 name = "core-text"
-version = "13.3.2"
+version = "19.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "db84654ad95211c082cf9795f6f83dc17d0ae6c985ac1b906369dc7384ed346d"
+checksum = "04dfae50af11e72657fe7174cddb1ecddc5398037f7f6f39533ad69207c9a4e2"
 dependencies = [
- "core-foundation 0.6.4",
- "core-graphics 0.17.3",
- "foreign-types",
- "libc",
-]
-
-[[package]]
-name = "core-text"
-version = "15.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "131b3fd1f8bd5db9f2b398fa4fdb6008c64afc04d447c306ac2c7e98fba2a61d"
-dependencies = [
- "core-foundation 0.7.0",
- "core-graphics 0.19.0",
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
  "foreign-types",
  "libc",
 ]
@@ -1215,16 +1216,6 @@ checksum = "48b5f0f36f1eebe901b0e6bee369a77ed3396334bf3f09abd46454a576f71819"
 dependencies = [
  "libc",
  "libdbus-sys",
-]
-
-[[package]]
-name = "deflate"
-version = "0.7.20"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "707b6a7b384888a70c8d2e8650b3e60170dfc6a67bb4aa67b6dfca57af4bedb4"
-dependencies = [
- "adler32",
- "byteorder",
 ]
 
 [[package]]
@@ -1596,15 +1587,15 @@ checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
 
 [[package]]
 name = "font-kit"
-version = "0.7.1"
+version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "76ab2cdc792b545c49acb23aafa1cdc9381ea96140741f10bac596fd1bd1aa4f"
+checksum = "1f9042cb45150fb2b2a012fc03d0f1d2071f18e90397b9d2a5ec8ade8464bf20"
 dependencies = [
  "bitflags",
  "byteorder",
- "core-foundation 0.7.0",
- "core-graphics 0.19.0",
- "core-text 15.0.0",
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
+ "core-text",
  "dirs",
  "dwrote",
  "float-ord",
@@ -1646,12 +1637,23 @@ checksum = "00b0228411908ca8685dba7fc2cdd70ec9990a6e753e89b6ac91a84c40fbaf4b"
 
 [[package]]
 name = "freetype"
-version = "0.4.1"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "11926b2b410b469d0e9399eca4cbbe237a9ef02176c485803b29216307e8e028"
+checksum = "bee38378a9e3db1cc693b4f88d166ae375338a0ff75cb8263e1c601d51f35dc6"
 dependencies = [
+ "freetype-sys",
  "libc",
- "servo-freetype-sys",
+]
+
+[[package]]
+name = "freetype-sys"
+version = "0.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a37d4011c0cc628dfa766fcc195454f4b068d7afdc2adfd28861191d866e731a"
+dependencies = [
+ "cmake",
+ "libc",
+ "pkg-config",
 ]
 
 [[package]]
@@ -1872,9 +1874,9 @@ dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
- "core-foundation 0.7.0",
- "core-graphics 0.19.0",
- "core-text 15.0.0",
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
+ "core-text",
  "dwrote",
  "euclid",
  "fnv",
@@ -2103,9 +2105,9 @@ dependencies = [
 
 [[package]]
 name = "gleam"
-version = "0.11.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9a13b5bb12ab457c15400b43cbba5971df5c1898b6a9c30cc8c52cb01baa112"
+checksum = "3fdef5b9df6d3a261b80a5ac55e13bf93945725df2463c1b0a2e5a527dce0d37"
 dependencies = [
  "gl_generator 0.14.0",
 ]
@@ -2494,13 +2496,13 @@ checksum = "63d68db75012a85555434ee079e7e6337931f87a087ab2988becbadf64673a7f"
 
 [[package]]
 name = "harfbuzz-sys"
-version = "0.3.4"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "212d74cab8498b2d15700b694fb38f77562869d05e1f8b602dd05221a1ca2d63"
+checksum = "bf8c27ca13930dc4ffe474880040fe9e0f03c2121600dc9c95423624cab3e467"
 dependencies = [
  "cc",
- "core-graphics 0.17.3",
- "core-text 13.3.2",
+ "core-graphics 0.22.0",
+ "core-text",
  "foreign-types",
  "freetype",
  "pkg-config",
@@ -2745,7 +2747,7 @@ dependencies = [
  "num-iter",
  "num-rational 0.3.0",
  "num-traits",
- "png 0.16.6",
+ "png",
  "scoped_threadpool",
  "tiff",
 ]
@@ -2769,15 +2771,6 @@ checksum = "5b88cd59ee5f71fea89a62248fc8f387d44400cefe05ef548466d61ced9029a7"
 dependencies = [
  "autocfg",
  "hashbrown",
-]
-
-[[package]]
-name = "inflate"
-version = "0.4.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1cdb29978cc5797bd8dcc8e5bf7de604891df2a8dc576973d71a281e916db2ff"
-dependencies = [
- "adler32",
 ]
 
 [[package]]
@@ -3222,7 +3215,7 @@ dependencies = [
  "gaol",
  "gfx",
  "gfx_traits",
- "gleam 0.11.0",
+ "gleam 0.12.1",
  "gstreamer",
  "ipc-channel",
  "keyboard-types",
@@ -4212,7 +4205,7 @@ dependencies = [
 [[package]]
 name = "peek-poke"
 version = "0.2.0"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
 dependencies = [
  "euclid",
  "peek-poke-derive",
@@ -4221,7 +4214,7 @@ dependencies = [
 [[package]]
 name = "peek-poke-derive"
 version = "0.2.1"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
 dependencies = [
  "proc-macro2 1.0.17",
  "quote 1.0.2",
@@ -4368,25 +4361,13 @@ dependencies = [
 
 [[package]]
 name = "png"
-version = "0.15.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ef859a23054bbfee7811284275ae522f0434a3c8e7f4b74bd4a35ae7e1c4a283"
-dependencies = [
- "bitflags",
- "crc32fast",
- "deflate 0.7.20",
- "inflate",
-]
-
-[[package]]
-name = "png"
 version = "0.16.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c150bf7479fafe3dd8740dbe48cc33b2a3efb7b0fe3483aced8bbc39f6d0238d"
 dependencies = [
  "bitflags",
  "crc32fast",
- "deflate 0.8.6",
+ "deflate",
  "miniz_oxide 0.3.7",
 ]
 
@@ -4596,15 +4577,14 @@ checksum = "a871f1e45a3a3f0c73fb60343c811238bb5143a81642e27c2ac7aac27ff01a63"
 
 [[package]]
 name = "raqote"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "501c19caa439857ed7bea975fa4c3c10ee9a24e33c2640030c3ac14b58f39f77"
+version = "0.8.1-alpha.0"
+source = "git+https://github.com/jdm/raqote?branch=fkup#ff5d2d1aa7813dbcacb0d028cf7d17c82a35d9d4"
 dependencies = [
  "euclid",
  "font-kit",
  "lyon_geom 0.15.0",
  "pathfinder_geometry",
- "png 0.15.3",
+ "png",
  "sw-composite",
  "typed-arena",
 ]
@@ -5160,9 +5140,9 @@ dependencies = [
 
 [[package]]
 name = "servo-fontconfig"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a088f8d775a5c5314aae09bd77340bc9c67d72b9a45258be34c83548b4814cd9"
+checksum = "0b47fef69c52fb55838c756949c60595f0b855daa4e82fc52ad99ff3e03e2c70"
 dependencies = [
  "libc",
  "servo-fontconfig-sys",
@@ -5170,22 +5150,12 @@ dependencies = [
 
 [[package]]
 name = "servo-fontconfig-sys"
-version = "4.0.9"
+version = "5.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62b3e166450f523f4db06c14f02a2d39e76d49b5d8cbd224338d93e3595c156c"
+checksum = "e36b879db9892dfa40f95da1c38a835d41634b825fbd8c4c418093d53c24b388"
 dependencies = [
  "expat-sys",
- "pkg-config",
- "servo-freetype-sys",
-]
-
-[[package]]
-name = "servo-freetype-sys"
-version = "4.0.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2c4ccb6d0d32d277d3ef7dea86203d8210945eb7a45fba89dd445b3595dd0dfc"
-dependencies = [
- "cmake",
+ "freetype-sys",
  "pkg-config",
 ]
 
@@ -6509,12 +6479,9 @@ dependencies = [
 
 [[package]]
 name = "unicode-script"
-version = "0.3.0"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "09f03ad95feb4fde244d79985bfd79eb34ff2702fedb441d2ba3f4ff813efd19"
-dependencies = [
- "harfbuzz-sys",
-]
+checksum = "79bf4d5fc96546fdb73f9827097810bbda93b11a6770ff3a54e1f445d4135787"
 
 [[package]]
 name = "unicode-segmentation"
@@ -6862,7 +6829,7 @@ dependencies = [
 [[package]]
 name = "webrender"
 version = "0.61.0"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
 dependencies = [
  "backtrace",
  "base64 0.10.1",
@@ -6871,15 +6838,15 @@ dependencies = [
  "build-parallel",
  "byteorder",
  "cfg-if",
- "core-foundation 0.7.0",
- "core-graphics 0.19.0",
- "core-text 15.0.0",
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
+ "core-text",
  "cstr",
  "dwrote",
  "euclid",
  "freetype",
  "fxhash",
- "gleam 0.11.0",
+ "gleam 0.12.1",
  "glslopt",
  "image",
  "lazy_static",
@@ -6906,13 +6873,13 @@ dependencies = [
 [[package]]
 name = "webrender_api"
 version = "0.61.0"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
 dependencies = [
  "app_units",
  "bitflags",
  "byteorder",
- "core-foundation 0.7.0",
- "core-graphics 0.19.0",
+ "core-foundation 0.9.0",
+ "core-graphics 0.22.0",
  "derive_more",
  "euclid",
  "malloc_size_of_derive",
@@ -6927,7 +6894,7 @@ dependencies = [
 [[package]]
 name = "webrender_build"
 version = "0.0.1"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
 dependencies = [
  "bitflags",
  "lazy_static",
@@ -7106,7 +7073,7 @@ dependencies = [
 [[package]]
 name = "wr_malloc_size_of"
 version = "0.0.1"
-source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#34d968adeda2e06b057a13d14a88df5766b38eda"
+source = "git+https://github.com/jdm/webrender?branch=crash-backtrace#920168aff79a7cf52980b0c90965a591f2f4204a"
 dependencies = [
  "app_units",
  "euclid",

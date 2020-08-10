@@ -20,7 +20,7 @@ euclid = "0.20"
 fnv = "1.0"
 fontsan = { git = "https://github.com/servo/fontsan" }
 gfx_traits = { path = "../gfx_traits" }
-harfbuzz-sys = "0.3"
+harfbuzz-sys = "0.5"
 ipc-channel = "0.14"
 lazy_static = "1"
 libc = "0.2"
@@ -37,22 +37,22 @@ style = { path = "../style", features = ["servo"] }
 time = "0.1.12"
 ucd = "0.1.1"
 unicode-bidi = { version = "0.3", features = ["with_serde"] }
-unicode-script = { version = "0.3", features = ["harfbuzz"] }
+unicode-script = "0.5"
 webrender_api = { git = "https://github.com/servo/webrender" }
 xi-unicode = "0.1.0"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 byteorder = "1.0"
-core-foundation = "0.7"
-core-graphics = "0.19"
-core-text = "15.0"
+core-foundation = "0.9"
+core-graphics = "0.22"
+core-text = "19.0"
 
 [target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies]
-freetype = "0.4"
+freetype = "0.7"
 servo_allocator = { path = "../allocator" }
 
 [target.'cfg(target_os = "linux")'.dependencies]
-servo-fontconfig = "0.4"
+servo-fontconfig = "0.5"
 
 [target.'cfg(target_os = "android")'.dependencies]
 xml-rs = "0.8"

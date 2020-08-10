@@ -29,7 +29,7 @@ use style::properties::ComputedValues;
 use style::values::generics::text::LineHeight;
 use style::values::specified::text::{TextTransform, TextTransformCase};
 use unicode_bidi as bidi;
-use unicode_script::{get_script, Script};
+use unicode_script::Script;
 use xi_unicode::LineBreakLeafIter;
 
 /// Returns the concatenated text of a list of unscanned text fragments.
@@ -259,7 +259,7 @@ impl TextRunScanner {
                         //
                         // TODO: Special handling of paired punctuation characters.
                         // http://www.unicode.org/reports/tr24/#Common
-                        let script = get_script(character);
+                        let script = Script::from(character);
                         let compatible_script = is_compatible(script, run_info.script);
                         if compatible_script && !is_specific(run_info.script) && is_specific(script)
                         {
