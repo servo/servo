@@ -83,11 +83,12 @@
 
     <Grid VerticalAlignment="Stretch">
         <Grid.RowDefinitions>
-            <RowDefinition Height="auto"/>
-            <RowDefinition Height="*" MinHeight="200"/>
-            <RowDefinition Height="auto"/>
-            <RowDefinition Height="auto"/>
-            <RowDefinition Height="auto"/>
+            <RowDefinition Height="auto"/> <!-- navigation bar -->
+            <RowDefinition Height="auto"/> <!-- bookmarks bar -->
+            <RowDefinition Height="*" MinHeight="200"/> <!-- Servo -->
+            <RowDefinition Height="auto"/> <!-- devtools tabs -->
+            <RowDefinition Height="auto"/> <!-- loading indicator for transient mode -->
+            <RowDefinition Height="auto"/> <!-- media controls -->
         </Grid.RowDefinitions>
         <Grid Grid.Row="0" x:Name="navigationBar" Background="{ThemeResource InkToolbarButtonBackgroundThemeBrush}">
             <Grid.ColumnDefinitions>
@@ -130,6 +131,24 @@
                 </TextBox.KeyboardAccelerators>
             </TextBox>
             <StackPanel Orientation="Horizontal" Grid.Column="2">
+                <Button Style="{StaticResource NavigationBarButton}" x:Uid="bookmarkButton" x:Name="bookmarkButton" IsTabStop="true" IsEnabled="false">
+                    <SymbolIcon x:Name="bookmarkPanelIcon" Symbol="OutlineStar"/>
+                    <Button.KeyboardAccelerators>
+                        <KeyboardAccelerator Key="B" Modifiers="Control" />
+                    </Button.KeyboardAccelerators>
+                    <Button.Flyout>
+                        <Flyout x:Name="bookmarkPanel">
+                          <StackPanel Orientation="Vertical" MinWidth="200">
+                            <TextBlock x:Name="bookmarkPanelLabel"/>
+                            <TextBox x:Name="bookmarkPanelTitle" VerticalAlignment="Center" IsSpellCheckEnabled="False" KeyUp="OnBookmarkEdited" />
+                            <StackPanel Orientation="Horizontal">
+                              <Button Margin="4" x:Uid="rmBookmarkButton" Click="OnRemoveBookmarkButtonClicked"/>
+                              <Button Margin="4" x:Uid="upBookmarkButton" Click="OnUpdateBookmarkButtonClicked"/>
+                            </StackPanel>
+                          </StackPanel>
+                        </Flyout>
+                    </Button.Flyout>
+                </Button>
                 <Button Style="{StaticResource NavigationBarButton}" x:Name="devtoolsButton" IsEnabled="false" x:Uid="devtoolsButton" IsTabStop="true" Click="OnDevtoolsButtonClicked">
                     <!-- EC7A is the "DeveloperTools" symbol, not exported in the symbol list for some reason -->
                     <FontIcon FontFamily="{StaticResource SymbolThemeFontFamily}" Glyph="&#xEC7A;"/>
@@ -137,8 +156,24 @@
                 <ProgressRing x:Name="urlbarLoadingIndicator" Margin="10,0"/>
             </StackPanel>
         </Grid>
-        <local:ServoControl Grid.Row="1" TabIndex="0" x:Name="servoView"/>
-        <muxc:TabView x:Name="toolbox" IsAddTabButtonVisible="False" Grid.Row="2" Visibility="Collapsed" Height="300">
+
+        <ItemsControl ItemsSource="{x:Bind Bookmarks}" Grid.Row="1" x:Name="bookmarkToolbar">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="local:Bookmark">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Tag="{x:Bind Url}" ToolTipService.ToolTip="{x:Bind Url}" Background="Transparent" Content="{x:Bind Name}" Click="OnBookmarkClicked"/>
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Padding="4" Background="{ThemeResource InkToolbarButtonBackgroundThemeBrush}"/>
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+        </ItemsControl>
+
+        <local:ServoControl Grid.Row="2" TabIndex="0" x:Name="servoView"/>
+        <muxc:TabView x:Name="toolbox" IsAddTabButtonVisible="False" Grid.Row="3" Visibility="Collapsed" Height="300">
             <muxc:TabView.TabStripFooter>
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -216,8 +251,8 @@
               </Grid>
             </muxc:TabViewItem>
         </muxc:TabView>
-        <ProgressBar x:Name="transientLoadingIndicator" Visibility="Collapsed" Grid.Row="3"/>
-        <CommandBar Grid.Row="4" x:Name="mediaControls" Visibility="Collapsed">
+        <ProgressBar x:Name="transientLoadingIndicator" Visibility="Collapsed" Grid.Row="4"/>
+        <CommandBar Grid.Row="5" x:Name="mediaControls" Visibility="Collapsed">
             <AppBarButton Icon="Play" x:Uid="playButton" x:Name="playButton" Visibility="Collapsed" Click="OnMediaControlsPlayClicked"/>
             <AppBarButton Icon="Pause" x:Uid="pauseButton" x:Name="pauseButton" Click="OnMediaControlsPauseClicked"/>
         </CommandBar>

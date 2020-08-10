@@ -5,6 +5,7 @@ namespace ServoApp
     {
         BrowserPage();
         Windows.Foundation.Collections.IObservableVector<IInspectable> ConsoleLogs{ get; };
+        Windows.Foundation.Collections.IObservableVector<IInspectable> Bookmarks{ get; };
     }
 
     runtimeclass ConsoleLog
@@ -14,5 +15,12 @@ namespace ServoApp
         String Glyph{ get; };
         String Body{ get; };
         String Source{ get; };
+    }
+
+    runtimeclass Bookmark
+    {
+        Bookmark(String name, String url);
+        String Name{ get; };
+        String Url{ get; };
     }
 }
