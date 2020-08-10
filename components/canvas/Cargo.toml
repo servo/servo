@@ -31,6 +31,7 @@ ipc-channel = "0.14"
 log = "0.4"
 lyon_geom = "0.14"
 num-traits = "0.2"
+pathfinder_geometry = "0.5"
 pixels = { path = "../pixels" }
 raqote = { version = "0.8", features = ["text"] }
 servo_arc = { path = "../servo_arc" }
