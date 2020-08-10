@@ -32,7 +32,6 @@ packages = [
   "arrayvec",
   "base64",
   "cocoa",
-  "deflate",
   "gleam",
   "libloading",
   "metal",
