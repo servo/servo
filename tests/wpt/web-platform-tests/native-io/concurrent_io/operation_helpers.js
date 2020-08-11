@@ -64,4 +64,15 @@ const kOperations = [];
     assertUnchanged: () => {},
   };
   kOperations.push(kOpGetLength);
+
+  const kOpFlush = {
+    name: 'flush',
+    prepare: () => {},
+    assertRejection: async (testCase, file) => {
+      await promise_rejects_dom(testCase, 'InvalidStateError',
+                                file.flush());
+    },
+    assertUnchanged: () => {},
+  };
+  kOperations.push(kOpFlush);
 })();

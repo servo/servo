@@ -570,3 +570,56 @@ def test_reftest_screenshots(capfd):
         "foo.html: DATA1",
         "foo-ref.html: DATA2",
     ]
+
+
+def test_process_output_crashing_test(capfd):
+    """Test that chromedriver logs are preserved for crashing tests"""
+
+    # Set up the handler.
+    output = StringIO()
+    logger = structuredlog.StructuredLogger("test_a")
+    logger.add_handler(handlers.StreamHandler(output, ChromiumFormatter()))
+
+    logger.suite_start(["t1", "t2", "t3"], run_info={}, time=123)
+
+    logger.test_start("t1")
+    logger.process_output(100, "This message should be recorded", "/some/path/to/chromedriver --some-flag")
+    logger.process_output(101, "This message should not be recorded", "/some/other/process --another-flag")
+    logger.process_output(100, "This message should also be recorded", "/some/path/to/chromedriver --some-flag")
+    logger.test_end("t1", status="CRASH", expected="CRASH")
+
+    logger.test_start("t2")
+    logger.process_output(100, "Another message for the second test", "/some/path/to/chromedriver --some-flag")
+    logger.test_end("t2", status="CRASH", expected="PASS")
+
+    logger.test_start("t3")
+    logger.process_output(100, "This test fails", "/some/path/to/chromedriver --some-flag")
+    logger.process_output(100, "But the output should not be captured", "/some/path/to/chromedriver --some-flag")
+    logger.process_output(100, "Because it does not crash", "/some/path/to/chromedriver --some-flag")
+    logger.test_end("t3", status="FAIL", expected="PASS")
+
+    logger.suite_end()
+
+    # check nothing got output to stdout/stderr
+    # (note that mozlog outputs exceptions during handling to stderr!)
+    captured = capfd.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+    # check the actual output of the formatter
+    output.seek(0)
+    output_json = json.load(output)
+
+    test_obj = output_json["tests"]["t1"]
+    assert test_obj["artifacts"]["wpt_crash_log"] == [
+        "This message should be recorded",
+        "This message should also be recorded"
+    ]
+
+    test_obj = output_json["tests"]["t2"]
+    assert test_obj["artifacts"]["wpt_crash_log"] == [
+        "Another message for the second test"
+    ]
+
+    test_obj = output_json["tests"]["t3"]
+    assert "wpt_crash_log" not in test_obj["artifacts"]

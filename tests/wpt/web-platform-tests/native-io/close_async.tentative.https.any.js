@@ -95,3 +95,18 @@ promise_test(async testCase => {
   await promise_rejects_dom(testCase, 'InvalidStateError', file.getLength());
   assert_equals(await closePromise, undefined);
 }, 'NativeIOFile.getLength fails immediately after calling NativeIOFile.close');
+
+promise_test(async testCase => {
+  const file = await createFile(testCase, 'file_name');
+  assert_equals(await file.close(), undefined);
+
+  await promise_rejects_dom(testCase, 'InvalidStateError', file.flush());
+}, 'NativeIOFile.flush fails after NativeIOFile.close settles');
+
+promise_test(async testCase => {
+  const file = await createFile(testCase, 'file_name');
+  const closePromise = file.close();
+
+  await promise_rejects_dom(testCase, 'InvalidStateError', file.flush());
+  assert_equals(await closePromise, undefined);
+}, 'NativeIOFile.flush fails immediately after calling NativeIOFile.close');

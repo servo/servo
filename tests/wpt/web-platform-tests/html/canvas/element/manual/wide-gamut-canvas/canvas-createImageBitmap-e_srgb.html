@@ -285,31 +285,33 @@ function initializeTestCanvasTransparent(canvasColorSpace, canvasPixelFormat)
 
 // HTMLImageElement - Opaque sRGB
 // File formats: AVIF, Bitmap, GIF, ICO, JPEG, PNG, WEBP
-promise_test(function() {
-    return Promise.all(['avif', 'bmp', 'gif', 'ico', 'jpg', 'png', 'webp'].map(
-        ext => new Promise((resolve,reject) => {
+['avif', 'bmp', 'gif', 'ico', 'jpg', 'png', 'webp'].forEach(ext => {
+    promise_test(function() {
+        return new Promise((resolve,reject) => {
             var image = new Image();
             image.onload = function() {
                 resolve(image);
             }
             image.src = 'resources/pattern-srgb.' + ext;
-        }).then(testImageBitmapOpaque)));
-}, 'createImageBitmap in e-sRGB from an opaque sRGB HTMLImageElement (AVIF, \
-BMP, GIF, ICO, JPG, PNG, WEBP) with resize.');
+        }).then(testImageBitmapOpaque);
+    }, 'createImageBitmap in e-sRGB from an opaque sRGB HTMLImageElement (' + ext +
+        ') with resize.');
+});
 
 // HTMLImageElement - Transparent sRGB
 // File formats: AVIF, Bitmap, ICO, PNG, WEBP
-promise_test(function() {
-    return Promise.all(['avif', 'bmp', 'ico', 'png', 'webp'].map(
-        ext => new Promise((resolve,reject) => {
+['avif', 'bmp', 'ico', 'png', 'webp'].forEach(ext => {
+    promise_test(function() {
+        return new Promise((resolve,reject) => {
             var image = new Image();
             image.onload = function() {
                 resolve(image);
             }
             image.src = 'resources/pattern-srgb-transparent.' + ext;
-        }).then(testImageBitmapFromTransparentImage)));
-}, 'createImageBitmap in e-sRGB from a transparent sRGB HTMLImageElement \
-(AVIF, BMP, ICO, PNG, WEBP) with resize.');
+        }).then(testImageBitmapFromTransparentImage);
+    }, 'createImageBitmap in e-sRGB from a transparent sRGB HTMLImageElement (' + ext +
+        ') with resize.');
+});
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -370,9 +372,9 @@ promise_test(function() {
 
 // Blob from file - Opaque sRGB
 // File formats: AVIF, Bitmap, GIF, ICO, JPEG, PNG, WEBP
-promise_test(function() {
-    return Promise.all(['avif', 'bmp', 'gif', 'ico', 'jpg', 'png', 'webp'].map(
-        ext => new Promise((resolve, reject) => {
+['avif', 'bmp', 'gif', 'ico', 'jpg', 'png', 'webp'].forEach(ext => {
+    promise_test(function() {
+        return new Promise((resolve, reject) => {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", 'resources/pattern-srgb.' + ext);
             xhr.responseType = 'blob';
@@ -380,15 +382,15 @@ promise_test(function() {
             xhr.onload = function() {
                 resolve(xhr.response);
             };
-        }).then(testImageBitmapOpaque)));
-}, 'createImageBitmap in e-sRGB from an opaque sRGB Blob (AVIF, BMP, GIF, ICO, \
-JPG, PNG, WEBP) with resize.');
+        }).then(testImageBitmapOpaque);
+    }, 'createImageBitmap in e-sRGB from an opaque sRGB Blob (' + ext + ') with resize.');
+});
 
 // Blob form file - Transparent sRGB
 // File formats: AVIF, Bitmap, ICO, PNG, WEBP
-promise_test(function() {
-    return Promise.all(['avif', 'bmp', 'ico', 'png', 'webp'].map(
-        ext => new Promise((resolve, reject) => {
+['avif', 'bmp', 'ico', 'png', 'webp'].forEach(ext => {
+    promise_test(function() {
+        return new Promise((resolve, reject) => {
             var xhr = new XMLHttpRequest();
             xhr.open("GET", 'resources/pattern-srgb-transparent.' + ext);
             xhr.responseType = 'blob';
@@ -396,9 +398,9 @@ promise_test(function() {
             xhr.onload = function() {
                 resolve(xhr.response);
             };
-        }).then(testImageBitmapFromTransparentImage)));
-}, 'createImageBitmap in e-sRGB from a transparent sRGB Blob (AVIF, BMP, ICO, \
-PNG, WEBP) with resize.');
+        }).then(testImageBitmapFromTransparentImage);
+    }, 'createImageBitmap in e-sRGB from a transparent sRGB Blob (' + ext + ') with resize.');
+});
 
 // Color managed blob from canvas
 function testCreateImageBitmapFromColorManagedBlob(pixelFormat, isTransparent) {

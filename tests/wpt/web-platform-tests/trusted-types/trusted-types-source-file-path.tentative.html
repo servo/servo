@@ -38,7 +38,7 @@ function futureScript(url) {
 
 promise_test(async t => {
   let future_violation = futureViolation();
-  assert_throws_js(TypeError, () => {
+  assert_throws_js(TypeError, _ => {
     document.getElementById("to-be-modified").innerHTML = "'test'";
   });
   let violation = await future_violation;
@@ -64,9 +64,7 @@ promise_test(async t => {
   let future_violation = futureViolation();
   assert_throws_js(TypeError, () => setInnerHtml(toBeModified, "'test'"));
   let violation = await future_violation;
-  // TODO(https://crbug.com/1113163): Consider exposing the full path of the
-  // cross-origin script here instead of just its origin.
-  assert_equals(violation.sourceFile, script_origin);
+  assert_equals(violation.sourceFile, script_src);
 }, "cross-origin script")
 
 // TODO(arthursonzogni): Check what happens with redirects. Do we report the

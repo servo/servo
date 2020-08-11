@@ -24,6 +24,10 @@ test(() => {
 [
   '%s',
   'foo/%s',
+  `%s${location.href}`,
+  location.href.replace(location.protocol,
+    `${location.protocol[0]}%s${location.protocol.substring(1)}`),
+  location.href.replace(location.protocol, `${location.protocol}%s`),
   location.href + '/%s',
   location.href + '#%s',
   location.href + '?foo=%s',
@@ -45,6 +49,10 @@ test(() => {
 [
   '',
   '%S',
+  'http://%s.com',
+  'http://%s.example.com',
+  location.href.replace(location.hostname, `%s${location.hostname}`),
+  location.href.replace(location.port, `%s${location.port}`),
   location.href + '',
   location.href + '/%',
   location.href + '/%a',
@@ -64,8 +72,6 @@ test(() => {
 });
 
 [
-  'http://%s.com',
-  'http://%s.example.com',
   'http://example.com/%s',
   'https://example.com/%s',
   'http://foobar.example.com/%s',
