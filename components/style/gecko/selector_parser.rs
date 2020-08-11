@@ -350,7 +350,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
 
     #[inline]
     fn parse_part(&self) -> bool {
-        self.chrome_rules_enabled() || static_prefs::pref!("layout.css.shadow-parts.enabled")
+        true
     }
 
     fn parse_non_ts_pseudo_class(
