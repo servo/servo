@@ -98,12 +98,12 @@ pub struct BrowsingContextActorMsg {
     outerWindowID: u32,
     browsingContextId: u32,
     consoleActor: String,
-    emulationActor: String,
+    /*emulationActor: String,
     inspectorActor: String,
     timelineActor: String,
     profilerActor: String,
     performanceActor: String,
-    styleSheetsActor: String,
+    styleSheetsActor: String,*/
     traits: BrowsingContextTraits,
     // Part of the official protocol, but not yet implemented.
     /*storageActor: String,
@@ -326,12 +326,12 @@ impl BrowsingContextActor {
             //FIXME: shouldn't ignore pipeline namespace field
             outerWindowID: self.active_pipeline.get().index.0.get(),
             consoleActor: self.console.clone(),
-            emulationActor: self.emulation.clone(),
+            /*emulationActor: self.emulation.clone(),
             inspectorActor: self.inspector.clone(),
             timelineActor: self.timeline.clone(),
             profilerActor: self.profiler.clone(),
             performanceActor: self.performance.clone(),
-            styleSheetsActor: self.styleSheets.clone(),
+            styleSheetsActor: self.styleSheets.clone(),*/
         }
     }
 
