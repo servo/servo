@@ -480,6 +480,7 @@ impl ComputedValuesExt for ComputedValues {
 impl From<stylo::Display> for Display {
     fn from(packed: stylo::Display) -> Self {
         let outside = packed.outside();
+        let inside = packed.inside();
         let outside = match outside {
             stylo::DisplayOutside::Block => DisplayOutside::Block,
             stylo::DisplayOutside::Inline => DisplayOutside::Inline,
@@ -502,9 +503,11 @@ impl From<stylo::Display> for Display {
                 return Display::GeneratingBox(DisplayGeneratingBox::Internal(internal));
             },
             // This should not be a value of DisplayInside, but oh well
+            // special-case display: contents because we still want it to work despite the early return
+            stylo::DisplayOutside::None if inside == stylo::DisplayInside::Contents => return Display::Contents,
             stylo::DisplayOutside::None => return Display::None,
         };
-        let inside = match packed.inside() {
+        let inside = match inside {
             stylo::DisplayInside::Flow => DisplayInside::Flow {
                 is_list_item: packed.is_list_item(),
             },
