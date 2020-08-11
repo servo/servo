@@ -127,6 +127,21 @@ impl CanvasContextState {
     }
 }
 
+pub(crate) struct RemoteCanvasState {
+    ipc_renderer: IpcSender<CanvasMsg>,
+    canvas_id: CanvasId,
+}
+
+impl RemoteCanvasState {
+    pub fn get_ipc_renderer(&self) -> &IpcSender<CanvasMsg> {
+        &self.ipc_renderer
+    }
+
+    pub fn get_canvas_id(&self) -> CanvasId {
+        self.canvas_id.clone()
+    }
+}
+
 #[unrooted_must_root_lint::must_root]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct CanvasState {
@@ -147,7 +162,32 @@ pub(crate) struct CanvasState {
 }
 
 impl CanvasState {
-    pub(crate) fn new(global: &GlobalScope, size: Size2D<u64>) -> CanvasState {
+    pub(crate) fn new(global: &GlobalScope, remote_canvas_state: RemoteCanvasState) -> CanvasState {
+        // Worklets always receive a unique origin. This messes with fetching
+        // cached images in the case of paint worklets, since the image cache
+        // is keyed on the origin requesting the image data.
+        let origin = if global.is::<PaintWorkletGlobalScope>() {
+            global.api_base_url().origin()
+        } else {
+            global.origin().immutable().clone()
+        };
+        CanvasState {
+            ipc_renderer: remote_canvas_state.ipc_renderer,
+            canvas_id: remote_canvas_state.canvas_id,
+            state: DomRefCell::new(CanvasContextState::new()),
+            origin_clean: Cell::new(true),
+            image_cache: global.image_cache(),
+            base_url: global.api_base_url(),
+            missing_image_urls: DomRefCell::new(Vec::new()),
+            saved_states: DomRefCell::new(Vec::new()),
+            origin,
+        }
+    }
+
+    pub(crate) fn remote_canvas_state(
+        global: &GlobalScope,
+        size: Size2D<u64>,
+    ) -> RemoteCanvasState {
         debug!("Creating new canvas rendering context.");
         let (sender, receiver) =
             profiled_ipc::channel(global.time_profiler_chan().clone()).unwrap();
@@ -158,24 +198,9 @@ impl CanvasState {
             .unwrap();
         let (ipc_renderer, canvas_id) = receiver.recv().unwrap();
         debug!("Done.");
-        // Worklets always receive a unique origin. This messes with fetching
-        // cached images in the case of paint worklets, since the image cache
-        // is keyed on the origin requesting the image data.
-        let origin = if global.is::<PaintWorkletGlobalScope>() {
-            global.api_base_url().origin()
-        } else {
-            global.origin().immutable().clone()
-        };
-        CanvasState {
+        RemoteCanvasState {
             ipc_renderer: ipc_renderer,
             canvas_id: canvas_id,
-            state: DomRefCell::new(CanvasContextState::new()),
-            origin_clean: Cell::new(true),
-            image_cache: global.image_cache(),
-            base_url: global.api_base_url(),
-            missing_image_urls: DomRefCell::new(Vec::new()),
-            saved_states: DomRefCell::new(Vec::new()),
-            origin,
         }
     }
 

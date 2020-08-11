@@ -63,15 +63,17 @@ impl CanvasRenderingContext2D {
         canvas: Option<&HTMLCanvasElement>,
         size: Size2D<u32>,
     ) -> CanvasRenderingContext2D {
-        let canvas_state =
-            CanvasState::new(global, Size2D::new(size.width as u64, size.height as u64));
-        let canvas_id = canvas_state.get_canvas_id();
-        let ipc_renderer = canvas_state.get_ipc_renderer().clone();
+        let remote_canvas_state = CanvasState::remote_canvas_state(
+            global,
+            Size2D::new(size.width as u64, size.height as u64),
+        );
+        let canvas_id = remote_canvas_state.get_canvas_id();
+        let ipc_renderer = remote_canvas_state.get_ipc_renderer().clone();
 
         CanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas: canvas.map(Dom::from_ref),
-            canvas_state: canvas_state,
+            canvas_state: CanvasState::new(global, remote_canvas_state),
             droppable_fields: CanvasRenderingContext2DDroppableFields {
                 canvas_id: canvas_id,
                 ipc_renderer: ipc_renderer,

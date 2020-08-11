@@ -49,7 +49,10 @@ impl OffscreenCanvasRenderingContext2D {
             reflector_: Reflector::new(),
             canvas: Dom::from_ref(canvas),
             htmlcanvas: htmlcanvas.map(Dom::from_ref),
-            canvas_state: CanvasState::new(global, canvas.get_size()),
+            canvas_state: CanvasState::new(
+                global,
+                CanvasState::remote_canvas_state(global, canvas.get_size()),
+            ),
         }
     }
 
