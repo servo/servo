@@ -1,5 +1,10 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
 #include "pch.h"
 #include "Servo.h"
+#include "Crash.h"
 #include <EGL/egl.h>
 #include "../DefaultUrl.h"
 
@@ -27,7 +32,10 @@ void on_url_changed(const char *curl) {
   sServo->Delegate().OnServoURLChanged(url);
 }
 
-void wakeup() { sServo->Delegate().WakeUp(); }
+void wakeup() {
+  if (sServo != nullptr)
+    sServo->Delegate().WakeUp();
+}
 
 bool on_allow_navigation(const char *url) {
   return sServo->Delegate().OnServoAllowNavigation(char2hstring(url));
@@ -47,28 +55,7 @@ void on_panic(const char *cbacktrace) {
   auto backtrace = char2hstring(cbacktrace);
 
   try {
-    // Making all sync operations sync, as we are crashing.
-    auto storageFolder = ApplicationData::Current().LocalFolder();
-    auto stdout_txt = storageFolder.GetFileAsync(L"stdout.txt").get();
-    auto crash_txt =
-        storageFolder
-            .CreateFileAsync(L"crash-report.txt",
-                             CreationCollisionOption::ReplaceExisting)
-            .get();
-    auto out = FileIO::ReadTextAsync(stdout_txt).get();
-    FileIO::WriteTextAsync(crash_txt, L"--- CUSTOM MESSAGE ---\r\n").get();
-    FileIO::AppendTextAsync(crash_txt,
-                            L"Feel free to add details here before reporting")
-        .get();
-    FileIO::AppendTextAsync(
-        crash_txt, L"\r\n--- CURRENT URL (remove if sensitive) ---\r\n")
-        .get();
-    FileIO::AppendTextAsync(crash_txt, sServo->CurrentUrl()).get();
-    FileIO::AppendTextAsync(crash_txt, L"\r\n--- BACKTRACE ---\r\n").get();
-    FileIO::AppendTextAsync(crash_txt, backtrace).get();
-    FileIO::AppendTextAsync(crash_txt, L"\r\n--- STDOUT ---\r\n").get();
-    FileIO::AppendTextAsync(crash_txt, out).get();
-    FileIO::AppendTextAsync(crash_txt, L"\r\n").get();
+    WriteCrashReport(backtrace, sServo->CurrentUrl());
   } catch (...) {
     log(L"Failed to log panic to crash report");
   }

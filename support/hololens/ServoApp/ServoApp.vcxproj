@@ -125,6 +125,7 @@
   <ItemGroup>
     <ClInclude Include="Bookmarks.h" />
     <ClInclude Include="Devtools\Client.h" />
+    <ClInclude Include="ServoControl\Crash.h" />
     <ClInclude Include="ServoControl\Keys.h" />
     <ClInclude Include="strutils.h" />
     <ClInclude Include="pch.h" />
@@ -974,6 +975,7 @@
       <DependentUpon>BrowserPage.xaml</DependentUpon>
     </ClCompile>
     <ClCompile Include="$(GeneratedFilesDir)module.g.cpp" />
+    <ClCompile Include="ServoControl\Crash.cpp" />
     <ClCompile Include="ServoControl\OpenGLES.cpp" />
     <ClCompile Include="ServoControl\Servo.cpp" />
     <ClCompile Include="ServoControl\ServoControl.cpp" />

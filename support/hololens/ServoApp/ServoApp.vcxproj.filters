@@ -25,6 +25,9 @@
       <Filter>Devtools</Filter>
     </ClCompile>
     <ClCompile Include="Bookmarks.cpp" />
+    <ClCompile Include="ServoControl\Crash.cpp">
+      <Filter>ServoControl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
@@ -48,6 +51,9 @@
       <Filter>ServoControl</Filter>
     </ClInclude>
     <ClInclude Include="Bookmarks.h" />
+    <ClInclude Include="ServoControl\Crash.h">
+      <Filter>ServoControl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Image Include="Assets\Wide310x150Logo.scale-200.png">
