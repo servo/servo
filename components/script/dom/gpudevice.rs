@@ -5,6 +5,8 @@
 #![allow(unsafe_code)]
 
 use crate::dom::bindings::cell::DomRefCell;
+use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
+use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
 use crate::dom::bindings::codegen::Bindings::GPUBindGroupBinding::{
     GPUBindGroupDescriptor, GPUBindingResource,
 };
@@ -32,6 +34,7 @@ use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
     GPUTextureDimension, GPUTextureFormat,
 };
 use crate::dom::bindings::codegen::Bindings::GPUTextureViewBinding::GPUTextureViewDimension;
+use crate::dom::bindings::codegen::Bindings::GPUUncapturedErrorEventBinding::GPUUncapturedErrorEventInit;
 use crate::dom::bindings::codegen::Bindings::GPUValidationErrorBinding::{
     GPUError, GPUErrorFilter,
 };
@@ -57,6 +60,7 @@ use crate::dom::gpurenderpipeline::GPURenderPipeline;
 use crate::dom::gpusampler::GPUSampler;
 use crate::dom::gpushadermodule::GPUShaderModule;
 use crate::dom::gputexture::GPUTexture;
+use crate::dom::gpuuncapturederrorevent::GPUUncapturedErrorEvent;
 use crate::dom::gpuvalidationerror::GPUValidationError;
 use crate::dom::promise::Promise;
 use crate::realms::InRealm;
@@ -76,7 +80,7 @@ use webgpu::{self, identity::WebGPUOpResult, wgt, ErrorScopeId, WebGPU, WebGPURe
 #[derive(JSTraceable, MallocSizeOf)]
 struct ErrorScopeInfo {
     op_count: u64,
-    #[ignore_malloc_size_of = "defined in webgpu"]
+    #[ignore_malloc_size_of = "Because it is non-owning"]
     error: Option<GPUError>,
     #[ignore_malloc_size_of = "promises are hard"]
     promise: Option<Rc<Promise>>,
@@ -201,12 +205,14 @@ impl GPUDevice {
                 if let Some(s) = scop {
                     self.handle_error(s, err);
                 } else {
-                    // Fire UncapturedErrorEvent.
+                    self.fire_uncaptured_error(err);
                 }
             }
             self.try_remove_scope(s_id);
         } else {
-            // Fire UncapturedErrorEvent if result is Error
+            if let Err((err, _)) = result {
+                self.fire_uncaptured_error(err);
+            }
         }
     }
 
@@ -228,10 +234,7 @@ impl GPUDevice {
             if let Some(ref promise) = err_scope.promise {
                 if !promise.is_fulfilled() {
                     if let Some(ref e) = err_scope.error {
-                        match e {
-                            GPUError::GPUValidationError(v) => promise.resolve_native(&v),
-                            GPUError::GPUOutOfMemoryError(w) => promise.resolve_native(&w),
-                        }
+                        promise.resolve_native(e);
                     } else if err_scope.op_count == 0 {
                         promise.resolve_native(&None::<GPUError>);
                     }
@@ -246,6 +249,18 @@ impl GPUDevice {
             let _ = context.error_scopes.remove(&scope);
             context.scope_stack.retain(|meta| meta.id != scope);
         }
+    }
+
+    fn fire_uncaptured_error(&self, err: GPUError) {
+        let ev = GPUUncapturedErrorEvent::new(
+            &self.global(),
+            DOMString::from("uncapturederror"),
+            &GPUUncapturedErrorEventInit {
+                error: err,
+                parent: EventInit::empty(),
+            },
+        );
+        let _ = self.eventtarget.DispatchEvent(ev.event());
     }
 
     pub fn use_current_scope(&self) -> Option<ErrorScopeId> {
@@ -1051,10 +1066,7 @@ impl GPUDeviceMethods for GPUDevice {
             };
         let remove = if let Some(mut err_scope) = context.error_scopes.get_mut(&scope_id) {
             if let Some(ref e) = err_scope.error {
-                match e {
-                    GPUError::GPUValidationError(ref v) => promise.resolve_native(&v),
-                    GPUError::GPUOutOfMemoryError(ref w) => promise.resolve_native(&w),
-                }
+                promise.resolve_native(e);
             } else if err_scope.op_count == 0 {
                 promise.resolve_native(&None::<GPUError>);
             }
@@ -1070,6 +1082,9 @@ impl GPUDeviceMethods for GPUDevice {
         }
         promise
     }
+
+    // https://gpuweb.github.io/gpuweb/#dom-gpudevice-onuncapturederror
+    event_handler!(uncapturederror, GetOnuncapturederror, SetOnuncapturederror);
 }
 
 fn convert_address_mode(address_mode: GPUAddressMode) -> wgt::AddressMode {

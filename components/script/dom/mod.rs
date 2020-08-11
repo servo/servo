@@ -349,6 +349,7 @@ pub mod gpuswapchain;
 pub mod gputexture;
 pub mod gputextureusage;
 pub mod gputextureview;
+pub mod gpuuncapturederrorevent;
 pub mod gpuvalidationerror;
 pub mod hashchangeevent;
 pub mod headers;
