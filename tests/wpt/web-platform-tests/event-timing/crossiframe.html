@@ -43,13 +43,14 @@
 
     assert_less_than(childFrameData.processingStart, childFrameData.clickDone,
         "The entry's processing start should be before than the child frame's clickDone.");
-    assert_greater_than(childFrameData.startTime, childFrameData.clickTimeMin,
-        "The entry's start time should be later than the child frame's \
-        clickTimeMin.");
   }
 
   promise_test(async t => {
     assert_implements(window.PerformanceEventTiming, "Event Timing is not supported");
+    // Wait for load event so we can interact with the iframe.
+    await new Promise(resolve => {
+      window.addEventListener('load', resolve);
+    });
     clickTimeMin = performance.now();
     let observedMouseDown = false;
     const observerPromise = new Promise(resolve => {
@@ -66,15 +67,17 @@
         resolve();
       })).observe({type: 'event'});
     });
-    await clickAndBlockMain('button');
-    clickDone = performance.now();
-    await observerPromise;
+    clickAndBlockMain('button').then(() => {
+      clickDone = performance.now();
+    });
     const childFrameEntriesPromise = new Promise(resolve => {
       window.addEventListener("message", (event) => {
-        resolve(event.data);
+        t.step(() => {
+          validateChildFrameEntries(event.data);
+        });
+        resolve();
       }, false);
     });
-
     let iframe = document.getElementById('iframe');
     const iframeX = document.getElementById('iframe').offsetLeft;
     const iframeY = document.getElementById('iframe').offsetTop;
@@ -84,10 +87,7 @@
         .pointerDown()
         .pointerUp()
     actions.send();
-    const childFrameData = await childFrameEntriesPromise;
-    t.step(() => {
-      validateChildFrameEntries(childFrameData);
-    });
+    return Promise.all([observerPromise, childFrameEntriesPromise]);
   }, "Event Timing: entries should only be observable by its own frame.");
 
 </script>

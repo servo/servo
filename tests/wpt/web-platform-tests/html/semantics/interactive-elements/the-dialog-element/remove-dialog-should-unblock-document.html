@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body id="body">
+    <dialog>
+        This is a dialog
+    </dialog>
+    <input />
+<script>
+"use strict";
+function testFocus(element, expectFocus) {
+    var focusedElement = null;
+    element.addEventListener('focus', function() { focusedElement = element; }, false);
+    element.focus();
+    var theElement = element;
+    assert_equals(focusedElement === theElement, expectFocus, element.id);
+}
+
+test(function() {
+    var dialog = document.querySelector('dialog');
+    dialog.showModal();
+
+    var input = document.querySelector('input');
+    testFocus(input, false);
+
+    dialog.remove();
+    testFocus(input, true);
+}, "Test that removing dialog unblocks the document.");
+</script>
+</body>
+</html>

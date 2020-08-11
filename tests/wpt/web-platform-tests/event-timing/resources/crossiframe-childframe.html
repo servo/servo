@@ -5,7 +5,6 @@
 <div style="width: 300px; height: 300px" id='iframe_div' onmousedown="mainThreadBusy(120)">
 <script>
 (async () => {
-  const clickTimeMin = performance.now();
   const observerPromise = new Promise(resolve => {
     new PerformanceObserver(entryList => {
       const mouseDowns = entryList.getEntriesByName('mousedown');
@@ -31,7 +30,6 @@
     "processingEnd": entry.processingEnd,
     "duration": entry.duration,
     // Other values
-    "clickTimeMin": clickTimeMin,
     "clickDone" : clickDone,
     "target": entry.target.id,
   }, '*');

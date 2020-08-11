@@ -3998,5 +3998,5 @@ span.ok, span.timeout, span.error {\
 }\
 ";
 
-})(this);
+})(self);
 // vim: set expandtab shiftwidth=4 tabstop=4:

@@ -38,6 +38,9 @@ class ChromiumFormatter(base.BaseFormatter):
         # List of tests that have failing subtests.
         self.tests_with_subtest_fails = set()
 
+        # Browser log for the current test under execution.
+        self.test_log = []
+
     def _append_test_message(self, test, subtest, status, expected, message):
         """
         Appends the message data for a test.
@@ -90,6 +93,9 @@ class ChromiumFormatter(base.BaseFormatter):
             self._append_artifact(cur_dict, "wpt_subtest_failure", "true")
         if wpt_actual != actual:
             self._append_artifact(cur_dict, "wpt_actual_status", wpt_actual)
+        if wpt_actual == 'CRASH':
+            for line in self.test_log:
+                self._append_artifact(cur_dict, "wpt_crash_log", line)
         for message in messages:
             self._append_artifact(cur_dict, "log", message)
 
@@ -129,13 +135,9 @@ class ChromiumFormatter(base.BaseFormatter):
             return "SKIP"
         if status == "EXTERNAL-TIMEOUT":
             return "TIMEOUT"
-        if status in ("ERROR", "CRASH", "PRECONDITION_FAILED"):
-            # CRASH in WPT means a browser crash, which Chromium treats as a
-            # test failure.
+        if status in ("ERROR", "PRECONDITION_FAILED"):
             return "FAIL"
         if status == "INTERNAL-ERROR":
-            # CRASH in Chromium refers to an error in the test runner not the
-            # browser.
             return "CRASH"
         # Any other status just gets returned as-is.
         return status
@@ -218,6 +220,9 @@ class ChromiumFormatter(base.BaseFormatter):
         # Update the count of how many tests ran with each status.
         self.num_failures_by_status[actual_status] += 1
 
+        # New test, new browser logs.
+        self.test_log = []
+
     def suite_end(self, data):
         # Create the final result dictionary
         final_result = {
@@ -230,3 +235,7 @@ class ChromiumFormatter(base.BaseFormatter):
             "tests": self.tests
         }
         return json.dumps(final_result)
+
+    def process_output(self, data):
+        if 'command' in data and 'chromedriver' in data['command']:
+            self.test_log.append(data['data'])
