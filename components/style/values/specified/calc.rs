@@ -517,26 +517,8 @@ impl CalcNode {
         name: &CowRcStr<'i>,
         location: cssparser::SourceLocation,
     ) -> Result<MathFunction, ParseError<'i>> {
-        // TODO(emilio): Unify below when the pref for math functions is gone.
-        if name.eq_ignore_ascii_case("calc") {
-            return Ok(MathFunction::Calc);
-        }
-
-        #[cfg(feature = "gecko")]
-        fn comparison_functions_enabled() -> bool {
-            static_prefs::pref!("layout.css.comparison-functions.enabled")
-        }
-
-        #[cfg(feature = "servo")]
-        fn comparison_functions_enabled() -> bool {
-            false
-        }
-
-        if !comparison_functions_enabled() {
-            return Err(location.new_unexpected_token_error(Token::Function(name.clone())));
-        }
-
         Ok(match_ignore_ascii_case! { &*name,
+            "calc" => MathFunction::Calc,
             "min" => MathFunction::Min,
             "max" => MathFunction::Max,
             "clamp" => MathFunction::Clamp,
