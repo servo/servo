@@ -22,11 +22,9 @@ let property= [
   ["closed"      , w => w.closed             ] ,
   ["focus"       , w => w.focus()            ] ,
   ["frames"      , w => w.frames             ] ,
-  ["indexed"     , w => w[0]                 ] ,
   ["length"      , w => w.length             ] ,
   ["location"    , w => w.location           ] ,
   ["location"    , w => w.location = "#"     ] ,
-  ["named"       , w => w["test"]            ] ,
   ["opener"      , w => w.opener             ] ,
   ["opener"      , w => w.opener = ""        ] ,
   ["postMessage" , w => w.postMessage("")    ] ,
@@ -40,19 +38,19 @@ origin.forEach(([origin_name, origin]) => {
   property.forEach(([property, op]) =>  {
     promise_test(async t => {
       const report_token = token();
-      const executor_token = token();
-      const callback_token = token();
+      const openee_token = token();
+      const opener_token = token(); // The current test window.
 
       const reportTo = reportToHeaders(report_token);
-      const openee_url = origin+ executor_path +
-        reportTo.header + reportTo.coopReportOnlySameOriginHeader + coep_header +
-        `&uuid=${executor_token}`;
+      const openee_url = origin + executor_path + reportTo.header +
+        reportTo.coopReportOnlySameOriginHeader + coep_header +
+        `&uuid=${openee_token}`;
       const openee = window.open(openee_url);
-      t.add_cleanup(() => send(executor_token, "window.close()"))
+      t.add_cleanup(() => send(openee_token, "window.close()"))
 
       // 1. Make sure the new document to be loaded.
-      send(executor_token, `send("${callback_token}", "Ready");`);
-      let reply = await receive(callback_token);
+      send(openee_token, `send("${opener_token}", "Ready");`);
+      let reply = await receive(opener_token);
       assert_equals(reply, "Ready");
 
       // 2. Try to access the openee. This shouldn't work because of COOP+COEP.

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test for 'secure-payment-confirmation' payment method</title>
+<link rel="help" href="https://github.com/rsolomakhin/secure-payment-confirmation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+const details = {total:
+    {label: 'Total', amount: {value: '0.01', currency: 'USD'}}};
+
+test(() => {
+  new PaymentRequest([{
+    supportedMethods: 'secure-payment-confirmation',
+    data: {
+       // All valid parameters.
+       action: 'authenticate',
+       instrumentId: 'x',
+       networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+       timeout: 60000,
+       fallbackUrl: 'https://fallback.example/url'
+    },
+  }], details);
+}, 'Valid payment method data does not throw exceptions.');
+
+test(() => {
+  new PaymentRequest([{
+    supportedMethods: 'secure-payment-confirmation',
+    data: {
+       // Omitted action field.
+       instrumentId: 'x',
+       networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+       timeout: 60000,
+       fallbackUrl: 'https://fallback.example/url'
+    },
+  }], details);
+}, 'The action field is optional.');
+
+test(() => {
+  new PaymentRequest([{
+    supportedMethods: 'secure-payment-confirmation',
+    data: {
+       action: 'authenticate',
+       instrumentId: 'x',
+       networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+       // Omitted timeout field.
+       fallbackUrl: 'https://fallback.example/url'
+    },
+  }], details);
+}, 'The timeout field is optional.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        // Invalid action parameter.
+        action: 'authorize',
+        instrumentId: 'x',
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details);
+  });
+}, 'Invalid action parameter throws an exception.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        // Omitted instrumentId field.
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details);
+  });
+}, 'The instrumentId field is required.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        instrumentId: 'x',
+        // Omitted instrumentId field.
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details);
+  });
+}, 'The networkData field is required.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        instrumentId: 'x',
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        // Omitted fallbackUrl field.
+      },
+    }], details);
+  });
+}, 'The fallbackUrl field is required.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        // Empty instrumentId field.
+        instrumentId: '',
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details);
+  });
+}, 'Empty instrumentId field throws exception.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        instrumentId: 'x',
+        // Null networkData field.
+        networkData: null,
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details);
+  });
+}, 'Null networkData field throws exception.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        instrumentId: 'x',
+        // Empty networkData field.
+        networkData: [],
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details);
+  });
+}, 'Empty networkData field throws exception.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        instrumentId: 'x',
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        // Timeout longer than 1 hour.
+        timeout: 1000 * 60 * 60 + 1,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details);
+  });
+}, 'Timeout longer than 1 hour throws exception.');
+</script>

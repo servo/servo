@@ -18,18 +18,17 @@ const coep_header = '|header(Cross-Origin-Embedder-Policy,require-corp)';
 
 promise_test(async t => {
   const report_token = token();
-  const executor_token = token();
-  const callback_token = token();
+  const openee_token = token();
 
   const reportTo = reportToHeaders(report_token);
   const openee_url = cross_origin + executor_path +
     reportTo.header + reportTo.coopReportOnlySameOriginHeader + coep_header +
-    `&uuid=${executor_token}`;
+    `&uuid=${openee_token}`;
   const openee = window.open(openee_url);
-  t.add_cleanup(() => send(executor_token, "window.close()"))
+  t.add_cleanup(() => send(openee_token, "window.close()"))
 
   // 1. Try to access the opener. A report is sent, because of COOP-RO+COEP.
-  send(executor_token, `
+  send(openee_token, `
     tryAccess(opener);
   `);
 

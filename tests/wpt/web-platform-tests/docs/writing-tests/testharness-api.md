@@ -515,7 +515,7 @@ properties of the test harness (enumerated in the following section).
 Both setup functions recognize the following properties:
 
 `explicit_done` - Wait for an explicit call to done() before declaring all
-tests complete (see below; implicitly true for single page tests)
+tests complete (see below; always true for single page tests)
 
 `output_document` - The document to which results should be logged. By default
 this is the current document but could be an ancestor document in some cases
