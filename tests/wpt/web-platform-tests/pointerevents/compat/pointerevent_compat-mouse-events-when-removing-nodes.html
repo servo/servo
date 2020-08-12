@@ -5,12 +5,17 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
 <script type="text/javascript" src="../pointerevent_support.js"></script>
-
+<!-- There are significant differences in how browsers fire pointer events and
+compat mouse events when elements are removed from the dom.
+There is a discussion about the order of pointer events and mouse compat events
+for this scenario in the pointer event working group (See link below)-->
+<link rel="help" href="https://github.com/w3c/pointerevents/issues/285">
 <style>
 div.box {
   margin: 5px;
   padding: 20px;
   float: left;
+  background-color:green;
 }
 #grey {
   width: 50px;
@@ -22,12 +27,14 @@ div.box {
 
 <div id="grey" class="box" style="background-color:grey">
 </div>
+<button id="done">Done</button>
 
 <div id="console"></div>
 
 <script>
 
 var receivedEvents = [];
+var done_clicked = false;
 
 var eventList = ["mousedown", "mouseup", "mousemove",
                  "pointerdown", "pointerup", "pointermove"];
@@ -62,6 +69,9 @@ function createGreenBoxAndAddListeners() {
   });
 }
 
+var done_button = document.getElementById("done");
+done_button.addEventListener("click",()=>done_clicked=true);
+
 function performActions() {
   var rect = document.getElementById("green").getBoundingClientRect();
   var x1 = Math.ceil(rect.left + 5);
@@ -73,13 +83,13 @@ function performActions() {
               .pointerDown()
               .pointerUp()
               .send()
-              .then( () => resolveWhen( () => receivedEvents.length == 6 ) );
+              .then(()=> test_driver.click(done_button));
 }
 
 function testScenario(targetEvent, expectedEvents, description) {
   promise_test(async () => {
-    removeNodeEvent = targetEvent;
     receivedEvents = [];
+    removeNodeEvent = targetEvent;
     createGreenBoxAndAddListeners();
 
     await performActions();

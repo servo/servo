@@ -2,7 +2,7 @@
 <title>Worklet Animation sets keyframes</title>
 <link rel="help" href="https://drafts.css-houdini.org/css-animationworklet/">
 <meta name="assert" content="Can update the keyframes for an effect while the animation is running">
-<link rel="match" href="worklet-animation-set-keyframes-ref.html">
+<link rel="match" href="references/translated-box-ref.html">
 
 <script src="/web-animations/testcommon.js"></script>
 <script src="/common/reftest-wait.js"></script>
@@ -21,12 +21,12 @@
 <script>
   registerConstantLocalTimeAnimator(500).then(()=>{
     const keyframes_before = [
-      { transform: 'translateY(0)' },
-      { transform: 'translateY(200px)' }
-    ];
-    const keyframes_after = [
       { transform: 'translateX(0)' },
       { transform: 'translateX(200px)' }
+    ];
+    const keyframes_after = [
+      { transform: 'translateY(0)' },
+      { transform: 'translateY(200px)' }
     ];
 
     const box = document.getElementById('box');

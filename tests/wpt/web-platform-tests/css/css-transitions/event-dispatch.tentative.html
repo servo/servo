@@ -414,4 +414,22 @@ promise_test(async t => {
   await waitForAnimationFrames(2);
 }, 'Cancel the transition after clearing the target effect');
 
+promise_test(async t => {
+  const { transition, watcher, div } = setupTransition(t, 'margin-left 100s');
+
+  // Seek to After phase.
+  transition.finish();
+  const events = await watcher.wait_for(
+    ['transitionrun', 'transitionstart', 'transitionend'],
+    {
+      record: 'all',
+    }
+  );
+
+  transition.cancel();
+
+  // Then wait a couple of frames and check that no event was dispatched
+  await waitForAnimationFrames(2);
+}, 'Cancel the transition after it finishes');
+
 </script>

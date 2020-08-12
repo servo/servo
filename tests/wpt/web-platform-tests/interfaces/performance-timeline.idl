@@ -20,7 +20,8 @@ interface PerformanceEntry {
 };
 
 callback PerformanceObserverCallback = void (PerformanceObserverEntryList entries,
-                                             PerformanceObserver observer);
+                                             PerformanceObserver observer,
+                                             optional boolean hasDroppedEntry = false);
 [Exposed=(Window,Worker)]
 interface PerformanceObserver {
   constructor(PerformanceObserverCallback callback);

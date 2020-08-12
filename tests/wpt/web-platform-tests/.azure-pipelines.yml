@@ -37,7 +37,7 @@ jobs:
   displayName: 'affected tests: Safari Technology Preview'
   condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -54,7 +54,7 @@ jobs:
   displayName: 'affected tests without changes: Safari Technology Preview'
   condition: eq(variables['Build.Reason'], 'PullRequest')
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -91,7 +91,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_infrastructure']
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -120,7 +120,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   variables:
     HYPOTHESIS_PROFILE: ci
   steps:
@@ -138,7 +138,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -154,7 +154,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.tools_unittest']
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -170,7 +170,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   variables:
     HYPOTHESIS_PROFILE: ci
   steps:
@@ -188,7 +188,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -204,7 +204,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wptrunner_unittest']
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -220,7 +220,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   variables:
     HYPOTHESIS_PROFILE: ci
   steps:
@@ -242,7 +242,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   steps:
   # full checkout required
   - task: UsePythonVersion@0
@@ -262,7 +262,7 @@ jobs:
   dependsOn: decision
   condition: dependencies.decision.outputs['test_jobs.wpt_integration']
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   steps:
   # full checkout required
   - task: UsePythonVersion@0
@@ -595,7 +595,7 @@ jobs:
     parallel: 5 # chosen to make runtime ~2h
   timeoutInMinutes: 180
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   steps:
   - task: UsePythonVersion@0
     inputs:
@@ -633,7 +633,7 @@ jobs:
     parallel: 5 # chosen to make runtime ~2h
   timeoutInMinutes: 180
   pool:
-    vmImage: 'macOS-10.14'
+    vmImage: 'macOS-10.15'
   steps:
   - task: UsePythonVersion@0
     inputs:
