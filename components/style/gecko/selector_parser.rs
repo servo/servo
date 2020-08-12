@@ -352,6 +352,12 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
         true
     }
 
+    #[inline]
+    fn is_is_alias(&self, function: &str) -> bool {
+        static_prefs::pref!("layout.css.moz-any-is-is.enabled") &&
+            function.eq_ignore_ascii_case("-moz-any")
+    }
+
     fn parse_non_ts_pseudo_class(
         &self,
         location: SourceLocation,
