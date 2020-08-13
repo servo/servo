@@ -30,7 +30,20 @@ typedef [StringContext=TrustedScriptURL] USVString ScriptURLString;
   SecureContext
 ] interface TrustedTypePolicyFactory : EventTarget {
     TrustedTypePolicy createPolicy(DOMString policyName, optional TrustedTypePolicyOptions policyOptions = {});
-    // All the policy object names that have been created
+    boolean isHTML(any checkedObject);
+    boolean isScript(any checkedObject);
+    boolean isScriptURL(any checkedObject);
+    readonly attribute TrustedHTML emptyHTML;
+    readonly attribute TrustedScript emptyScript;
+    DOMString? getAttributeType(DOMString tagName, DOMString attribute,
+        optional DOMString elementNS, optional DOMString attrNs);
+    DOMString? getPropertyType(DOMString tagName, DOMString property,
+        optional DOMString elementNS);
+
+    readonly attribute TrustedTypePolicy defaultPolicy;
+    object? getTypeMapping(optional DOMString ns);
+
+    attribute EventHandler onbeforecreatepolicy;
 };
 
 [

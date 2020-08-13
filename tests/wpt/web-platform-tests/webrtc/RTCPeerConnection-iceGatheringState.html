@@ -137,8 +137,12 @@
     await pc1.setLocalDescription(await pc1.createOffer());
     await pc2.setRemoteDescription(pc1.localDescription);
     await pc2.setLocalDescription(await pc2.createAnswer());
+    assert_equals(pc2.getTransceivers().length, 0,
+                 'PC2 transceivers should be invisible after negotiation');
     await iceGatheringStateTransitions(pc2, 'new');
     await pc1.setRemoteDescription(pc2.localDescription);
+    assert_equals(pc1.getTransceivers().length, 0,
+                 'PC1 transceivers should be invisible after negotiation');
     await iceGatheringStateTransitions(pc1, 'new');
   }, 'renegotiation that closes all transports should result in ICE gathering state "new"');
 

@@ -15,9 +15,7 @@ def test_null_parameter_value(session, http):
         assert_error(Response.from_http(response), "invalid argument")
 
 
-def test_null_response_value(session, create_window):
-    new_handle = create_window()
-
-    response = switch_to_window(session, new_handle)
+def test_null_response_value(session):
+    response = switch_to_window(session, session.new_window())
     value = assert_success(response)
     assert value is None

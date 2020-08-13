@@ -4,10 +4,10 @@ from webdriver.error import NoSuchAlertException, NoSuchWindowException
 
 
 @pytest.fixture(name="session")
-def fixture_session(capabilities, session, create_window):
+def fixture_session(capabilities, session):
     """Prevent dialog rate limits by running the test in a new window."""
     original_handle = session.window_handle
-    session.window_handle = create_window()
+    session.window_handle = session.new_window()
 
     yield session
 
@@ -17,7 +17,7 @@ def fixture_session(capabilities, session, create_window):
         pass
 
     try:
-        session.close()
+        session.window.close()
     except NoSuchWindowException:
         pass
 

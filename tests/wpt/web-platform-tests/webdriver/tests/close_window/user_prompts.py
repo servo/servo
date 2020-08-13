@@ -11,10 +11,10 @@ def close(session):
 
 
 @pytest.fixture
-def check_user_prompt_closed_without_exception(session, create_dialog, create_window):
+def check_user_prompt_closed_without_exception(session, create_dialog):
     def check_user_prompt_closed_without_exception(dialog_type, retval):
         original_handle = session.window_handle
-        new_handle = create_window()
+        new_handle = session.new_window()
         session.window_handle = new_handle
 
         create_dialog(dialog_type, text=dialog_type)
@@ -34,9 +34,9 @@ def check_user_prompt_closed_without_exception(session, create_dialog, create_wi
 
 
 @pytest.fixture
-def check_user_prompt_closed_with_exception(session, create_dialog, create_window):
+def check_user_prompt_closed_with_exception(session, create_dialog):
     def check_user_prompt_closed_with_exception(dialog_type, retval):
-        new_handle = create_window()
+        new_handle = session.new_window()
         session.window_handle = new_handle
 
         create_dialog(dialog_type, text=dialog_type)
@@ -52,9 +52,9 @@ def check_user_prompt_closed_with_exception(session, create_dialog, create_windo
 
 
 @pytest.fixture
-def check_user_prompt_not_closed_but_exception(session, create_dialog, create_window):
+def check_user_prompt_not_closed_but_exception(session, create_dialog):
     def check_user_prompt_not_closed_but_exception(dialog_type):
-        new_handle = create_window()
+        new_handle = session.new_window()
         session.window_handle = new_handle
 
         create_dialog(dialog_type, text=dialog_type)

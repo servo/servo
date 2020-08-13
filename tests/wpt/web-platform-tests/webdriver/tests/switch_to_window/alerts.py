@@ -11,10 +11,10 @@ def switch_to_window(session, handle):
         {"handle": handle})
 
 
-def test_retain_tab_modal_status(session, create_window):
+def test_retain_tab_modal_status(session):
     handle = session.window_handle
 
-    new_handle = create_window()
+    new_handle = session.new_window()
     response = switch_to_window(session, new_handle)
     assert_success(response)
 

@@ -242,6 +242,15 @@ class Window(object):
     def __init__(self, session):
         self.session = session
 
+    @command
+    def close(self):
+        handles = self.session.send_session_command("DELETE", "window")
+        if handles is not None and len(handles) == 0:
+            # With no more open top-level browsing contexts, the session is closed.
+            self.session.session_id = None
+
+        return handles
+
     @property
     @command
     def rect(self):
@@ -548,6 +557,13 @@ class Session(object):
     def source(self):
         return self.send_session_command("GET", "source")
 
+    @command
+    def new_window(self, type_hint=None):
+        body = {"type": type_hint}
+        value = self.send_session_command("POST", "window/new", body)
+
+        return value["handle"]
+
     @property
     @command
     def window_handle(self):
@@ -568,15 +584,6 @@ class Session(object):
             body = {"id": frame}
 
         return self.send_session_command("POST", url, body)
-
-    @command
-    def close(self):
-        handles = self.send_session_command("DELETE", "window")
-        if handles is not None and len(handles) == 0:
-            # With no more open top-level browsing contexts, the session is closed.
-            self.session_id = None
-
-        return handles
 
     @property
     @command

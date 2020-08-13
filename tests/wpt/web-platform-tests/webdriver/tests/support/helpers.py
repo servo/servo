@@ -70,7 +70,7 @@ def cleanup_session(session):
         for window in _windows(session, exclude=[current_window]):
             session.window_handle = window
             if len(session.handles) > 1:
-                session.close()
+                session.window.close()
 
         session.window_handle = current_window
 

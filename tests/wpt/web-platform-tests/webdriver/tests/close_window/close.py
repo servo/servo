@@ -15,10 +15,10 @@ def test_no_browsing_context(session, closed_window):
     assert_error(response, "no such window")
 
 
-def test_close_browsing_context(session, create_window):
+def test_close_browsing_context(session):
     original_handles = session.handles
 
-    new_handle = create_window()
+    new_handle = session.new_window()
     session.window_handle = new_handle
 
     response = close(session)
@@ -27,10 +27,10 @@ def test_close_browsing_context(session, create_window):
     assert new_handle not in handles
 
 
-def test_close_browsing_context_with_dismissed_beforeunload_prompt(session, create_window):
+def test_close_browsing_context_with_dismissed_beforeunload_prompt(session):
     original_handles = session.handles
 
-    new_handle = create_window()
+    new_handle = session.new_window()
     session.window_handle = new_handle
 
     session.url = inline("""

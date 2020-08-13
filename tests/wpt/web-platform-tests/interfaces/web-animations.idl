@@ -24,7 +24,7 @@ interface Animation : EventTarget {
                 optional AnimationTimeline? timeline);
              attribute DOMString                id;
              attribute AnimationEffect?         effect;
-    readonly attribute AnimationTimeline?       timeline;
+             attribute AnimationTimeline?       timeline;
              attribute double?                  startTime;
              attribute double?                  currentTime;
              attribute double                   playbackRate;

@@ -60,7 +60,7 @@ test(t => {
     new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
                   null);
   animation.startTime = document.timeline.currentTime;
-  assert_equals(animation.playState, 'idle');
+  assert_equals(animation.playState, 'running');
 
   animation.timeline = document.timeline;
 
@@ -73,7 +73,7 @@ test(t => {
     new Animation(new KeyframeEffect(createDiv(t), null, 100 * MS_PER_SEC),
                   null);
   animation.startTime = document.timeline.currentTime - 200 * MS_PER_SEC;
-  assert_equals(animation.playState, 'idle');
+  assert_equals(animation.playState, 'running');
 
   animation.timeline = document.timeline;
 

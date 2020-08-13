@@ -707,6 +707,11 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     await createDataChannelPair(t, options, pc1);
   }, `addTrack, then creating ${mode}, should negotiate properly when max-bundle is used`);
 
+/*
+This test is disabled until https://github.com/w3c/webrtc-pc/issues/2562
+has been resolved; it presupposes that stopping the first transceiver
+breaks the transport.
+
   promise_test(async t => {
     const pc1 = new RTCPeerConnection({bundlePolicy: "max-bundle"});
     const pc2 = new RTCPeerConnection();
@@ -726,6 +731,7 @@ for (const options of [{}, {negotiated: true, id: 0}]) {
     await dc1Closed;
   }, `Stopping the bundle-tag when there is a ${mode} in the bundle ` +
      `should kill the DataChannel`);
+*/
 }
 
 /*

@@ -112,7 +112,7 @@ class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
         for handle in handles:
             try:
                 self.webdriver.window_handle = handle
-                self.webdriver.close()
+                self.webdriver.window.close()
             except client.NoSuchWindowException:
                 pass
         self.webdriver.window_handle = self.runner_handle
