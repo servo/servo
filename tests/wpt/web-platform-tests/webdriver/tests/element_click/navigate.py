@@ -1,7 +1,6 @@
-import pytest
-
-from tests.support.asserts import assert_error, assert_success
+from tests.support.asserts import assert_success
 from tests.support.inline import inline
+
 
 def element_click(session, element):
     return session.transport.send(
@@ -93,12 +92,14 @@ def test_link_hash(session):
             """, args=(element,)) is True
 
 
-def test_link_closes_window(session, create_window):
-    new_handle = create_window()
+def test_link_closes_window(session, url):
+    new_handle = session.new_window()
     session.window_handle = new_handle
 
-    session.url = inline("""<a href="/webdriver/tests/element_click/support/close_window.html">asdf</a>""")
+    session.url = inline("""<a href="javascript:window.close()">Close me</a>""")
     element = session.find.css("a", all=False)
+
     response = element_click(session, element)
     assert_success(response)
+
     assert new_handle not in session.handles

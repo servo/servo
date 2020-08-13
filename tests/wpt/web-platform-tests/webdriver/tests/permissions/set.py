@@ -100,10 +100,10 @@ def test_set_to_state(session, url, state, realmSetting):
     {}
 ])
 @pytest.mark.capabilities({"acceptInsecureCerts": True})
-def test_set_to_state_cross_realm(session, create_window, url, state, realmSetting):
+def test_set_to_state_cross_realm(session, url, state, realmSetting):
     session.url = url("/common/blank.html", protocol="https")
     original_window = session.window_handle
-    session.window_handle = create_window()
+    session.window_handle = session.new_window()
     session.url = url("/common/blank.html", protocol="https")
     parameters = { "descriptor": { "name": "geolocation" }, "state": state }
     parameters.update(realmSetting)

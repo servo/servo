@@ -88,18 +88,6 @@ def create_frame(session):
 
 
 @pytest.fixture
-def create_window(session):
-    """Open new window and return the window handle."""
-    def create_window():
-        windows_before = session.handles
-        name = session.execute_script("window.open()")
-        assert len(session.handles) == len(windows_before) + 1
-        new_windows = list(set(session.handles) - set(windows_before))
-        return new_windows.pop()
-    return create_window
-
-
-@pytest.fixture
 def http(configuration):
     return HTTPRequest(configuration["host"], configuration["port"])
 
@@ -224,13 +212,13 @@ def create_dialog(session):
 
 
 @pytest.fixture
-def closed_window(session, create_window):
+def closed_window(session):
     original_handle = session.window_handle
+    new_handle = session.new_window()
 
-    new_handle = create_window()
     session.window_handle = new_handle
 
-    session.close()
+    session.window.close()
     assert new_handle not in session.handles, "Unable to close window {}".format(new_handle)
 
     yield new_handle

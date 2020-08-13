@@ -6,12 +6,11 @@ def get_window_handles(session):
         "GET", "session/{session_id}/window/handles".format(**vars(session)))
 
 
-def test_no_browsing_context(session, create_window):
+def test_no_browsing_context(session):
     window_handles = session.handles
 
-    new_handle = create_window()
-    session.window_handle = new_handle
-    session.close()
+    session.window_handle = session.new_window()
+    session.window.close()
 
     response = get_window_handles(session)
     assert_success(response, window_handles)
@@ -26,9 +25,9 @@ def test_single_window(session):
     assert value[0] == session.window_handle
 
 
-def test_multiple_windows(session, create_window):
+def test_multiple_windows(session):
     original_handle = session.window_handle
-    new_handle = create_window()
+    new_handle = session.new_window()
 
     response = get_window_handles(session)
     value = assert_success(response)
