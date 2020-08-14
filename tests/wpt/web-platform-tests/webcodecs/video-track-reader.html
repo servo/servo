@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<title>Test the VideoTrackReader API.</title>
+<body></body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<script>
+
+var testVideo = {
+  url: getVideoURI('/media/movie_5'),
+  height: 240,
+  width: 320,
+}
+
+async function getMediaStream() {
+  let video = document.createElement('video');
+  document.body.appendChild(video);
+  video.src = testVideo.url;
+  await video.play();
+
+  return video.captureStream();
+}
+
+async_test(async function(t) {
+  let stream = await getMediaStream();
+  let vtr = new VideoTrackReader(stream.getVideoTracks()[0]);
+
+  t.done();
+}, 'Test we can construct a VideoTrackReader.');
+
+async_test(async function(t) {
+  let stream = await getMediaStream();
+  let vtr = new VideoTrackReader(stream.getVideoTracks()[0]);
+
+  let numberFrames = 0;
+
+  vtr.start(t.step_func((frame) => {
+    assert_equals(frame.codedWidth, testVideo.width);
+    assert_equals(frame.codedHeight, testVideo.height);
+    assert_not_equals(frame.timestamp, null);
+    frame.destroy();
+
+    if (++numberFrames == 5){
+      vtr.stop();
+      t.done();
+    }
+  }));
+
+}, 'Test we can start and stop a VideoTrackReader.');
+
+async_test(async function(t) {
+  let stream = await getMediaStream();
+  let vtr = new VideoTrackReader(stream.getVideoTracks()[0]);
+
+  let stoppedOnce = false;
+
+  vtr.start(t.step_func(() => {
+    if(!stoppedOnce) {
+      vtr.stop();
+      vtr.start(t.step_func_done());
+      stoppedOnce = true;
+    } else {
+      assert_unreached("A stopped callback should never be called again");
+    }
+  }));
+
+}, 'Test we can restart a stopped VideoTrackReader.');
+
+async_test(async function(t) {
+  let stream = await getMediaStream();
+  let track = stream.getVideoTracks()[0];
+
+  let vtr_a = new VideoTrackReader(track);
+  let vtr_b = new VideoTrackReader(track);
+
+  let receivedFrame_a = false;
+  let receivedFrame_b = false;
+
+  vtr_a.start(t.step_func(() => {
+    receivedFrame_a = true;
+
+    if (receivedFrame_a && receivedFrame_b)
+      t.done();
+  }));
+
+  vtr_b.start(t.step_func(() => {
+    receivedFrame_b = true;
+
+    if (receivedFrame_a && receivedFrame_b)
+      t.done();
+  }));
+
+}, 'Test we can create multiple VideoTrackReaders from the same track.');
+
+async_test(async function(t) {
+  let stream = await getMediaStream();
+  let audioTrack = stream.getAudioTracks()[0];
+
+  assert_throws_js(TypeError, () => {
+    let vtr = new VideoTrackReader(audioTrack);
+  })
+
+  t.done();
+}, 'Test creating a VideoTrackReaders from an audio track throws.');
+
+async_test(async function(t) {
+  let stream = await getMediaStream();
+  let vtr = new VideoTrackReader(stream.getVideoTracks()[0]);
+
+  assert_throws_dom("InvalidStateError", () => {
+    vtr.stop();
+  })
+
+  t.done();
+}, 'Test stopping a stopped VideoTrackReader throws.');
+
+async_test(async function(t) {
+  let stream = await getMediaStream();
+  let vtr = new VideoTrackReader(stream.getVideoTracks()[0]);
+
+  vtr.start(() => {});
+
+  assert_throws_dom("InvalidStateError", () => {
+    vtr.start(() => {});
+  })
+
+  t.done();
+}, 'Test starting a started VideoTrackReader throws.');
+
+</script>
+</html>

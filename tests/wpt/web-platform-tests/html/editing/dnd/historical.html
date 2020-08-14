@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<title>Historical drag-and-drop features</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  const potentialBadLocations = [
+    window,
+    document,
+    HTMLElement.prototype,
+    SVGElement.prototype,
+    Document.prototype,
+    HTMLDocument.prototype,
+    Element.prototype
+  ];
+  for (const location of potentialBadLocations) {
+    assert_false("ondragexit" in location,
+      `${location.constructor.name} must not have a property "ondragexit"`);
+  }
+}, `ondragexit must not be present on the GlobalEventHandlers locations`);
+</script>

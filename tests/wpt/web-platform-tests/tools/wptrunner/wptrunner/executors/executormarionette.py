@@ -56,6 +56,24 @@ def do_delayed_imports():
         from marionette_driver import marionette, errors
 
 
+def _switch_to_window(marionette, handle):
+    """Switch to the specified window; subsequent commands will be
+    directed at the new window.
+
+    This is a workaround for issue 24924[0]; marionettedriver 3.1.0 dropped the
+    'name' parameter from its switch_to_window command, but it is still needed
+    for at least Firefox 79.
+
+    [0]: https://github.com/web-platform-tests/wpt/issues/24924
+
+    :param marionette: The Marionette instance
+    :param handle: The id of the window to switch to.
+    """
+    marionette._send_message("WebDriver:SwitchToWindow",
+                             {"handle": handle, "name": handle, "focus": True})
+    marionette.window = handle
+
+
 class MarionetteBaseProtocolPart(BaseProtocolPart):
     def __init__(self, parent):
         super(MarionetteBaseProtocolPart, self).__init__(parent)
@@ -83,7 +101,7 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
         return self.marionette.current_window_handle
 
     def set_window(self, handle):
-        self.marionette.switch_to_window(handle)
+        _switch_to_window(self.marionette, handle)
 
     def load(self, url):
         self.marionette.navigate(url)
@@ -171,13 +189,13 @@ class MarionetteTestharnessProtocolPart(TestharnessProtocolPart):
         for handle in handles:
             try:
                 self.logger.info("Closing window %s" % handle)
-                self.marionette.switch_to_window(handle)
+                _switch_to_window(self.marionette, handle)
                 self.dismiss_alert(lambda: self.marionette.close())
             except errors.NoSuchWindowException:
                 # We might have raced with the previous test to close this
                 # window, skip it.
                 pass
-        self.marionette.switch_to_window(runner_handle)
+        _switch_to_window(self.marionette, runner_handle)
         return runner_handle
 
     def close_old_windows(self, url_protocol):
@@ -489,7 +507,7 @@ class MarionetteCoverageProtocolPart(CoverageProtocolPart):
     def dump(self):
         if len(self.marionette.window_handles):
             handle = self.marionette.window_handles[0]
-            self.marionette.switch_to_window(handle)
+            _switch_to_window(self.marionette, handle)
 
         script = """
             var callback = arguments[arguments.length - 1];
@@ -585,7 +603,7 @@ class MarionettePrintProtocolPart(PrintProtocolPart):
 
     def pdf_to_png(self, pdf_base64, page_ranges):
         handle = self.marionette.current_window_handle
-        self.marionette.switch_to_window(self.runner_handle)
+        _switch_to_window(self.marionette, self.runner_handle)
         try:
             rv = self.marionette.execute_async_script("""
 let callback = arguments[arguments.length - 1];
@@ -594,7 +612,7 @@ render('%s').then(result => callback(result))""" % pdf_base64, new_sandbox=False
             rv = [item for i, item in enumerate(rv) if i + 1 in page_numbers]
             return rv
         finally:
-            self.marionette.switch_to_window(handle)
+            _switch_to_window(self.marionette, handle)
 
 class MarionetteProtocol(Protocol):
     implements = [MarionetteBaseProtocolPart,
@@ -883,7 +901,7 @@ class MarionetteRefTestExecutor(RefTestExecutor):
             if self.protocol.marionette and self.protocol.marionette.session_id:
                 handles = self.protocol.marionette.window_handles
                 if handles:
-                    self.protocol.marionette.switch_to_window(handles[0])
+                    _switch_to_window(self.protocol.marionette, handles[0])
             super(MarionetteRefTestExecutor, self).teardown()
         except Exception:
             # Ignore errors during teardown
@@ -903,8 +921,8 @@ class MarionetteRefTestExecutor(RefTestExecutor):
         if not isinstance(self.implementation, InternalRefTestImplementation):
             if self.close_after_done and self.has_window:
                 self.protocol.marionette.close()
-                self.protocol.marionette.switch_to_window(
-                    self.protocol.marionette.window_handles[-1])
+                _switch_to_window(self.protocol.marionette,
+                                 self.protocol.marionette.window_handles[-1])
                 self.has_window = False
 
             if not self.has_window:
@@ -1012,7 +1030,7 @@ class InternalRefTestImplementation(RefTestImplementation):
                 # focus
                 handles = self.executor.protocol.marionette.window_handles
                 if handles:
-                    self.executor.protocol.marionette.switch_to_window(handles[0])
+                    _switch_to_window(self.executor.protocol.marionette, handles[0])
         except Exception:
             # Ignore errors during teardown
             self.logger.warning(traceback.format_exc())

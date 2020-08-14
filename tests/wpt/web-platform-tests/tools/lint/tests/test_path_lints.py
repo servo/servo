@@ -7,6 +7,7 @@ from ..lint import check_path
 from .base import check_errors
 import pytest
 
+
 def test_allowed_path_length():
     basename = 29 * "test/"
 
@@ -28,6 +29,7 @@ def test_forbidden_path_length():
         errors = check_path("/foo/", filename)
         check_errors(errors)
         assert errors == [("PATH LENGTH", message, filename, None)]
+
 
 @pytest.mark.parametrize("path_ending,generated", [(".worker.html", ".worker.js"),
                                                    (".any.worker.html", ".any.js"),
@@ -70,6 +72,7 @@ def test_ahem_copy(path):
 
     assert errors == [expected_error]
 
+
 @pytest.mark.parametrize("path", ["ahem.woff",
                                   "ahem.ttff",
                                   "support/ahem.woff",
@@ -78,6 +81,16 @@ def test_ahem_copy_negative(path):
     errors = check_path("/foo/", path)
 
     assert errors == []
+
+
+def test_mojom_js_file():
+    path = "resources/fake_device.mojom.js"
+    errors = check_path("/foo/", path)
+    assert errors == [("MOJOM-JS",
+                       "Don't check *.mojom.js files into WPT",
+                       path,
+                       None)]
+
 
 @pytest.mark.parametrize("path", ["css/foo.tentative/bar.html",
                                   "css/.tentative/bar.html",
@@ -94,6 +107,7 @@ def test_tentative_directories(path):
 
     assert errors == [expected_error]
 
+
 @pytest.mark.parametrize("path", ["css/bar.html",
                                   "css/tentative/baz.html"])
 def test_tentative_directories_negative(path):
@@ -101,6 +115,7 @@ def test_tentative_directories_negative(path):
     errors = check_path("/foo/", path)
 
     assert errors == []
+
 
 @pytest.mark.parametrize("path", ["elsewhere/.gitignore",
                                   "else/where/.gitignore"
@@ -119,6 +134,7 @@ def test_gitignore_file(path):
     errors = check_path("/foo/", path)
 
     assert errors == [expected_error]
+
 
 @pytest.mark.parametrize("path", [".gitignore",
                                   "elsewhere/.gitignores",

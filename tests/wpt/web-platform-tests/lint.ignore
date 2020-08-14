@@ -726,6 +726,12 @@ MISSING DEPENDENCY: web-nfc/resources/nfc-helpers.js
 MISSING DEPENDENCY: webusb/resources/usb-helpers.js
 MISSING DEPENDENCY: webxr/resources/webxr_util.js
 
+# TODO(Hexcles): delete these files once we include them in mojojs.zip.
+MOJOM-JS: resources/chromium/image_capture.mojom.js
+MOJOM-JS: resources/chromium/sensor_provider.mojom.js
+MOJOM-JS: resources/chromium/mojo_web_test_helper_test.mojom.js
+MOJOM-JS: resources/chromium/sensor.mojom.js
+
 # Tests that are false positives for using Ahem as a system font
 AHEM SYSTEM FONT: acid/acid3/test.html
 AHEM SYSTEM FONT: resource-timing/resources/all_resource_types.htm

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ElementInternals.shadowRoot</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://github.com/w3c/webcomponents/issues/871">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+
+test(() => {
+  let constructed = false;
+  customElements.define('custom-open', class extends HTMLElement {
+    constructor() {
+      super();
+      const elementInternals = this.attachInternals();
+      assert_equals(elementInternals.shadowRoot, null);
+      const shadow = this.attachShadow({mode: 'open'});
+      assert_equals(elementInternals.shadowRoot, shadow);
+      constructed = true;
+    }
+  });
+  const element = document.createElement('custom-open');
+  assert_true(constructed);
+}, 'ElementInternals.shadowRoot allows access to open shadow root');
+
+test(() => {
+  let constructed = false;
+  customElements.define('custom-closed', class extends HTMLElement {
+    constructor() {
+      super();
+      const elementInternals = this.attachInternals();
+      assert_equals(elementInternals.shadowRoot, null);
+      const shadow = this.attachShadow({mode: 'closed'});
+      assert_equals(elementInternals.shadowRoot, shadow);
+      assert_equals(this.shadowRoot, null);
+      constructed = true;
+    }
+  });
+  const element = document.createElement('custom-closed');
+  assert_true(constructed);
+}, 'ElementInternals.shadowRoot allows access to closed shadow root');
+
+</script>
