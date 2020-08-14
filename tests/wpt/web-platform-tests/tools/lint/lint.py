@@ -198,6 +198,13 @@ def check_gitignore_file(repo_root, path):
     return [rules.GitIgnoreFile.error(path)]
 
 
+def check_mojom_js(repo_root, path):
+    # type: (Text, Text) -> List[rules.Error]
+    if path.endswith(".mojom.js"):
+        return [rules.MojomJSFile.error(path)]
+    return []
+
+
 def check_ahem_copy(repo_root, path):
     # type: (Text, Text) -> List[rules.Error]
     lpath = path.lower()
@@ -997,8 +1004,9 @@ def lint(repo_root, paths, output_format, ignore_glob=None):
                 logger.info(line)
     return sum(itervalues(error_count))
 
+
 path_lints = [check_file_type, check_path_length, check_worker_collision, check_ahem_copy,
-              check_tentative_directories, check_gitignore_file]
+              check_mojom_js, check_tentative_directories, check_gitignore_file]
 all_paths_lints = [check_css_globally_unique, check_unique_testharness_basenames]
 file_lints = [check_regexp_line, check_parsed, check_python_ast, check_script_metadata,
               check_ahem_system_font]

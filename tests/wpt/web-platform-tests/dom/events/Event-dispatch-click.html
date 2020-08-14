@@ -209,6 +209,38 @@ async_test(t => {
   input.dispatchEvent(new MouseEvent('click'));
 }, `disconnected radio should be checked from dispatchEvent(new MouseEvent('click'))`);
 
+test(() => {
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.disabled = true;
+  input.dispatchEvent(new MouseEvent("click"));
+  assert_true(input.checked);
+}, `disabled checkbox should be checked from dispatchEvent(new MouseEvent("click"))`);
+
+test(() => {
+  const input = document.createElement("input");
+  input.type = "radio";
+  input.disabled = true;
+  input.dispatchEvent(new MouseEvent("click"));
+  assert_true(input.checked);
+}, `disabled radio should be checked from dispatchEvent(new MouseEvent("click"))`);
+
+async_test(t => {
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.disabled = true;
+  input.onclick = t.step_func_done();
+  input.dispatchEvent(new MouseEvent("click"));
+}, `disabled checkbox should fire onclick`);
+
+async_test(t => {
+  const input = document.createElement("input");
+  input.type = "radio";
+  input.disabled = true;
+  input.onclick = t.step_func_done();
+  input.dispatchEvent(new MouseEvent("click"));
+}, `disabled radio should fire onclick`);
+
 async_test(function(t) {
   var form = document.createElement("form")
   var didSubmit = false

@@ -81,6 +81,18 @@ class GitIgnoreFile(Rule):
     description = ".gitignore found outside the root"
 
 
+class MojomJSFile(Rule):
+    name = "MOJOM-JS"
+    description = "Don't check *.mojom.js files into WPT"
+    to_fix = """
+        Check if the file is already included in mojojs.zip:
+        https://source.chromium.org/chromium/chromium/src/+/master:chrome/tools/build/linux/FILES.cfg
+        If yes, use `loadMojoResources` from `resources/test-only-api.js` to load
+        it; if not, contact ecosystem-infra@chromium.org for adding new files
+        to mojojs.zip.
+    """
+
+
 class AhemCopy(Rule):
     name = "AHEM COPY"
     description = "Don't add extra copies of Ahem, use /fonts/Ahem.ttf"
