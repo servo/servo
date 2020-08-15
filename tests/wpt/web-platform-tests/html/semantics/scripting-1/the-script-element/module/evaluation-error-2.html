@@ -9,6 +9,7 @@
     window.log = [];
 
     window.addEventListener("error", ev => log.push(ev.error));
+    window.addEventListener("onunhandledrejection", unreachable);
 
     const test_load = async_test(
         "Test that ill-founded cyclic dependencies cause ReferenceError " +
@@ -16,12 +17,18 @@
         "exceptions are remembered.\n");
     window.addEventListener("load", test_load.step_func_done(ev => {
       const exn = log[1];
-      assert_array_equals(log, ["cycle-tdz-access-a", exn, exn, exn]);
+      assert_array_equals(log,
+          ["cycle-tdz-access-a", exn, "load", exn, "load", exn, "load"]);
       assert_equals(exn.constructor, ReferenceError);
     }));
 
+    function logLoad() { log.push("load"); }
+
     function unreachable() { log.push("unexpected"); }
 </script>
-<script type="module" src="cycle-tdz-access.js" async onerror="unreachable()"></script>
-<script type="module" src="cycle-tdz-access.js" nomodule onerror="unreachable()"></script>
-<script type="module" src="cycle-tdz-access.js" onerror="unreachable()"></script>
+<script type="module" src="cycle-tdz-access.js" async onerror="unreachable()"
+    onload="logLoad()"></script>
+<script type="module" src="cycle-tdz-access.js" nomodule onerror="unreachable()"
+    onload="logLoad()"></script>
+<script type="module" src="cycle-tdz-access.js" onerror="unreachable()"
+    onload="logLoad()"></script>

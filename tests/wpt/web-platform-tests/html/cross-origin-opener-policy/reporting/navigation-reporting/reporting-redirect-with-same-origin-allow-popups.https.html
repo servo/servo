@@ -103,10 +103,8 @@ function redirect_test( popup_origin ) {
         "navigation-to-document");
     assert_not_equals(report, "timeout", "Report not received");
     assert_equals(report.type, "coop");
-    assert_equals(report.url, openee_redirect_url.replace(/"/g, '%22'));
-    assert_equals(report.body["disposition"], "enforce");
-    assert_equals(report.body["effective-policy"], "same-origin-allow-popups");
-    assert_equals(report.body["document-uri"], openee_url);
+    assert_equals(report.body.disposition, "enforce");
+    assert_equals(report.body.effectivePolicy, "same-origin-allow-popups");
   }, `${popup_origin.name} openee redirected to same-origin with same-origin-allow-popups`);
 }
 

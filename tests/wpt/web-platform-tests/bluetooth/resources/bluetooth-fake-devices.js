@@ -452,7 +452,7 @@ async function getBlocklistDevice(setupOptionsOverride = {}) {
 }
 
 /**
- * Returns an object containing a Blocklist Test BluetoothRemoveGattService and
+ * Returns an object containing a Blocklist Test BluetoothRemoteGattService and
  * its corresponding FakeRemoteGATTService.
  * @returns {Promise<{device: BluetoothDevice, fake_peripheral: FakePeripheral,
  *     fake_blocklist_test_service: FakeRemoteGATTService,

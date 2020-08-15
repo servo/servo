@@ -5,6 +5,12 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="../../testcommon.js"></script>
+<style>
+@keyframes opacity-animation {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+</style>
 <div id="log"></div>
 <script>
 'use strict';
@@ -84,4 +90,23 @@ async_test(t => {
   }));
 }, 'Performs a microtask checkpoint after updating timelins');
 
+async_test(t => {
+  const div = createDiv(t);
+  let readyPromiseRan = false;
+  let finishedPromiseRan = false;
+  div.style.animation = 'opacity-animation 1ms';
+  let anim = div.getAnimations()[0];
+  anim.ready.then(t.step_func(() => {
+    readyPromiseRan = true;
+  }));
+  div.addEventListener('animationstart', t.step_func(() => {
+    assert_true(readyPromiseRan, 'It should run ready promise before animationstart event');
+  }));
+  anim.finished.then(t.step_func(() => {
+    finishedPromiseRan = true;
+  }));
+  div.addEventListener('animationend', t.step_func_done(() => {
+    assert_true(finishedPromiseRan, 'It should run finished promise before animationend event');
+  }));
+}, 'Runs finished promise before animation events');
 </script>

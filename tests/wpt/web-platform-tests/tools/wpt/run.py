@@ -312,6 +312,7 @@ class FirefoxAndroid(BrowserSetup):
 class Chrome(BrowserSetup):
     name = "chrome"
     browser_cls = browser.Chrome
+    experimental_channels = ("dev", "canary", "nightly")
 
     def setup_kwargs(self, kwargs):
         browser_channel = kwargs["browser_channel"]
@@ -321,9 +322,14 @@ class Chrome(BrowserSetup):
                 kwargs["binary"] = binary
             else:
                 raise WptrunError("Unable to locate Chrome binary")
-        if browser_channel == "nightly":
+        # TODO(Hexcles): Enable this everywhere when Chrome 86 becomes stable.
+        if browser_channel in self.experimental_channels:
             try:
-                self.browser.install_mojojs(self.venv.path)
+                self.browser.install_mojojs(
+                    dest=self.venv.path,
+                    channel=browser_channel,
+                    browser_binary=kwargs["binary"],
+                )
                 kwargs["enable_mojojs"] = True
                 logger.info("MojoJS enabled")
             except Exception as e:
@@ -350,7 +356,7 @@ class Chrome(BrowserSetup):
                 kwargs["webdriver_binary"] = webdriver_binary
             else:
                 raise WptrunError("Unable to locate or install chromedriver binary")
-        if browser_channel in ("dev", "canary", "nightly"):
+        if browser_channel in self.experimental_channels:
             logger.info("Automatically turning on experimental features for Chrome Dev/Canary or Chromium trunk")
             kwargs["binary_args"].append("--enable-experimental-web-platform-features")
             # HACK(Hexcles): work around https://github.com/web-platform-tests/wpt/issues/16448

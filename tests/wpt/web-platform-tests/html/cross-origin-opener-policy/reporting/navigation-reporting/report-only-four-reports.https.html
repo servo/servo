@@ -28,10 +28,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "document-uri": `${location.href}`,
-            "effective-policy": "same-origin-allow-popups",
-            "navigation-uri": /uuid=EXECUTOR_UUID$/, // next document URL
-            "violation-type": "navigation-from-document"
+            "documentURI": `${location.href}`,
+            "effectivePolicy": "same-origin-allow-popups",
+            "navigationURI": /uuid=EXECUTOR_UUID$/, // next document URL
+            "type": "navigation-from-document"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -42,10 +42,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "reporting",
-            "document-uri": `${location.href}`,
-            "effective-policy": "same-origin-plus-coep",
-            "navigation-uri": /uuid=EXECUTOR_UUID$/, // next document URL
-            "violation-type": "navigation-from-document"
+            "documentURI": `${location.href}`,
+            "effectivePolicy": "same-origin-plus-coep",
+            "navigationURI": /uuid=EXECUTOR_UUID$/, // next document URL
+            "type": "navigation-from-document"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -56,10 +56,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "document-uri": /uuid=EXECUTOR_UUID$/,
-            "effective-policy": "same-origin-allow-popups",
-            "navigation-uri": `${location.origin}/`, // referrer
-            "violation-type": "navigation-to-document"
+            "documentURI": /uuid=EXECUTOR_UUID$/,
+            "effectivePolicy": "same-origin-allow-popups",
+            "navigationURI": `${location.origin}/`, // referrer
+            "type": "navigation-to-document"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
@@ -70,10 +70,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "reporting",
-            "document-uri": /uuid=EXECUTOR_UUID$/,
-            "effective-policy": "same-origin-plus-coep",
-            "navigation-uri": `${location.origin}/`, // referrer
-            "violation-type": "navigation-to-document"
+            "documentURI": /uuid=EXECUTOR_UUID$/,
+            "effectivePolicy": "same-origin-plus-coep",
+            "navigationURI": `${location.origin}/`, // referrer
+            "type": "navigation-to-document"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"

@@ -69,37 +69,29 @@ let testBasicProperties = function(overlayElement, session, fakeDeviceController
   });
 };
 
-let testFullscreen = function(overlayElement, session, fakeDeviceController, t) {
+let testFullscreen = async function(overlayElement, session, fakeDeviceController, t) {
   // If the browser implements DOM Overlay using Fullscreen API,
   // it must not be possible to change the DOM Overlay element by using
   // Fullscreen API, and attempts to do so must be rejected.
   // Since this is up to the UA, this test also passes if the fullscreen
   // element is different from the overlay element.
 
-  let rafPromise = new Promise((resolve) => {
-    session.requestAnimationFrame((time, xrFrame) => {
-      resolve();
-    });
-  });
-  let promises = [rafPromise];
+  // Wait for a rAF call before proceeding.
+  await new Promise((resolve) => session.requestAnimationFrame(resolve));
 
-  if (document.fullscreenElement == overlayElement) {
-    let elem = document.getElementById('div_other');
-    assert_true(elem != null);
-    assert_not_equals(elem, overlayElement);
+  assert_implements_optional(document.fullscreenElement == overlayElement,
+                             "WebXR DOM overlay is not using Fullscreen API");
+  let elem = document.getElementById('div_other');
+  assert_not_equals(elem, null);
+  assert_not_equals(elem, overlayElement);
 
-    let fullscreenPromise = new Promise((resolve, reject) => {
-      elem.requestFullscreen().then(() => {
-        assert_unreached("fullscreen change should be blocked");
-        reject();
-      }).catch(() => {
-        resolve();
-      });
-    });
-    promises.push(fullscreenPromise);
+  try {
+    await elem.requestFullscreen();
+    assert_unreached("fullscreen change should be blocked");
+  } catch {
+    // pass if the call rejects
   }
-
-  return Promise.all(promises);
+  // This is an async function, its return value is automatically a promise.
 };
 
 let watcherStep = new Event("watcherstep");

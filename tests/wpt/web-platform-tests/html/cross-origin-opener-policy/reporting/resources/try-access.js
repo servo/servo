@@ -8,13 +8,13 @@ function tryAccess(w) {
 }
 
 function assert_source_location_found(report) {
-  assert_true(report.body["source-file"].includes("try-access.js"));
-  assert_equals(report.body["lineno"], 6);
-  assert_equals(report.body["colno"], 7);
+  assert_true(report.body.sourceFile.includes("try-access.js"));
+  assert_equals(report.body.lineNumber, 6);
+  assert_equals(report.body.columnNumber, 7);
 }
 
 function assert_source_location_missing(report) {
-  assert_equals(report.body["source-file"], undefined);
-  assert_equals(report.body["lineno"], undefined);
-  assert_equals(report.body["colno"], undefined);
+  assert_equals(report.body.sourceFile, undefined);
+  assert_equals(report.body.lineNumber, undefined);
+  assert_equals(report.body.columnNumber, undefined);
 }

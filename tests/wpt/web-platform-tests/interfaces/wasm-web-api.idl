@@ -3,6 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: WebAssembly Web API (https://webassembly.github.io/spec/web-api/)
 
+[Exposed=(Window,Worker)]
 partial namespace WebAssembly {
   Promise<Module> compileStreaming(Promise<Response> source);
   Promise<WebAssemblyInstantiatedSource> instantiateStreaming(

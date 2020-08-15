@@ -17,8 +17,8 @@ function isCoopOpenerBreakageReport(report) {
   if (report.type != "coop")
     return false;
 
-  if (report.body["violation-type"] != "navigation-from-document" &&
-      report.body["violation-type"] != "navigation-to-document") {
+  if (report.body.type != "navigation-from-document" &&
+      report.body.type != "navigation-to-document") {
     return false;
   }
 
@@ -98,14 +98,14 @@ function replaceFromRegexOrString(str, match, value) {
 // EXECUTOR_UUID: the uuid generated with token().
 function replaceValuesInExpectedReport(expectedReport, executorUuid) {
   if (expectedReport.report.body !== undefined) {
-    if (expectedReport.report.body["document-uri"] !== undefined) {
-      expectedReport.report.body["document-uri"] = replaceFromRegexOrString(
-          expectedReport.report.body["document-uri"], "EXECUTOR_UUID",
+    if (expectedReport.report.body.documentURI !== undefined) {
+      expectedReport.report.body.documentURI = replaceFromRegexOrString(
+          expectedReport.report.body.documentURI, "EXECUTOR_UUID",
           executorUuid);
     }
-    if (expectedReport.report.body["navigation-uri"] !== undefined) {
-      expectedReport.report.body["navigation-uri"] = replaceFromRegexOrString(
-          expectedReport.report.body["navigation-uri"], "EXECUTOR_UUID",
+    if (expectedReport.report.body.navigationURI !== undefined) {
+      expectedReport.report.body.navigationURI = replaceFromRegexOrString(
+          expectedReport.report.body.navigationURI, "EXECUTOR_UUID",
           executorUuid);
     }
   }

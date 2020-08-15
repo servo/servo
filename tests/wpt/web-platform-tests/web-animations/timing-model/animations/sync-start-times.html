@@ -13,6 +13,10 @@
     position: absolute;
     top: 40px;
     width: 40px;
+    /* To ensure Chrome to render the two boxes (one actively
+       animating and the other not) with the same subpixel offset
+       when there is subpixel translation during animation. */
+    will-change: transform;
   }
   #box-1 {
     background: blue;

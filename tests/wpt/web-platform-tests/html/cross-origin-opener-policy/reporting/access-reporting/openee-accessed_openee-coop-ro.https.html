@@ -43,10 +43,10 @@ promise_test(async t => {
   assert_not_equals(report, "timeout", "Report not received");
   assert_equals(report.type, "coop");
   assert_equals(report.url, openee_url.replace(/"/g, '%22'));
-  assert_equals(report.body["violation-type"], "access-to-coop-page");
-  assert_equals(report.body["disposition"], "reporting");
-  assert_equals(report.body["effective-policy"], "same-origin-plus-coep");
-  assert_equals(report.body["property"], "blur");
+  assert_equals(report.body.type, "access-to-coop-page");
+  assert_equals(report.body.disposition, "reporting");
+  assert_equals(report.body.effectivePolicy, "same-origin-plus-coep");
+  assert_equals(report.body.property, "blur");
   assert_source_location_missing(report);
   // TODO(arthursonzogni): Add check for report > body > blocked-window-url
 }, "Opener accesses openee (COOP-RO+COEP). Report to openee");

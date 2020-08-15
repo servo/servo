@@ -3,7 +3,7 @@
 // (https://github.com/tidoust/reffy-reports)
 // Source: Streams Standard (https://streams.spec.whatwg.org/)
 
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=(Window,Worker,Worklet), Transferable]
 interface ReadableStream {
   constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 
@@ -58,16 +58,20 @@ callback UnderlyingSourceCancelCallback = Promise<void> (optional any reason);
 
 enum ReadableStreamType { "bytes" };
 
+interface mixin ReadableStreamGenericReader {
+  readonly attribute Promise<void> closed;
+
+  Promise<void> cancel(optional any reason);
+};
+
 [Exposed=(Window,Worker,Worklet)]
 interface ReadableStreamDefaultReader {
   constructor(ReadableStream stream);
 
-  readonly attribute Promise<void> closed;
-
-  Promise<void> cancel(optional any reason);
   Promise<ReadableStreamDefaultReadResult> read();
   void releaseLock();
 };
+ReadableStreamDefaultReader includes ReadableStreamGenericReader;
 
 dictionary ReadableStreamDefaultReadResult {
  any value;
@@ -78,12 +82,10 @@ dictionary ReadableStreamDefaultReadResult {
 interface ReadableStreamBYOBReader {
   constructor(ReadableStream stream);
 
-  readonly attribute Promise<void> closed;
-
-  Promise<void> cancel(optional any reason);
   Promise<ReadableStreamBYOBReadResult> read(ArrayBufferView view);
   void releaseLock();
 };
+ReadableStreamBYOBReader includes ReadableStreamGenericReader;
 
 dictionary ReadableStreamBYOBReadResult {
  ArrayBufferView value;
@@ -117,7 +119,7 @@ interface ReadableStreamBYOBRequest {
   void respondWithNewView(ArrayBufferView view);
 };
 
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=(Window,Worker,Worklet), Transferable]
 interface WritableStream {
   constructor(optional object underlyingSink, optional QueuingStrategy strategy = {});
 
@@ -160,7 +162,7 @@ interface WritableStreamDefaultController {
   void error(optional any e);
 };
 
-[Exposed=(Window,Worker,Worklet)]
+[Exposed=(Window,Worker,Worklet), Transferable]
 interface TransformStream {
   constructor(optional object transformer,
               optional QueuingStrategy writableStrategy = {},

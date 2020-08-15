@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test the properties of input and change events</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<fieldset id="clickable">
+  <input type="checkbox">
+  <input type="radio">
+</fieldset>
+
+<fieldset id="typeable">
+  <input type="text">
+  <input type="search">
+  <input type="tel">
+  <input type="url">
+  <input type="email">
+  <input type="password">
+  <input type="number">
+  <textarea></textarea>
+</fieldset>
+
+<select>
+  <option>1</option>
+  <option>2</option>
+</select>
+
+<!-- Not going to test the more complicated input types like date or color for now... -->
+
+<button id="click-me-to-unfocus-other-things">Clickable</button>
+
+<script>
+"use strict";
+const clickMeToUnfocusOtherThings = document.querySelector("#click-me-to-unfocus-other-things");
+
+for (const el of document.querySelector("#clickable").children) {
+  test(() => {
+    let inputEvent, changeEvent;
+    el.oninput = e => inputEvent = e;
+    el.onchange = e => changeEvent = e;
+
+    el.click();
+
+    assert_event(inputEvent, { bubbles: true, cancelable: false, composed: true });
+    assert_event(changeEvent, { bubbles: true, cancelable: false, composed: false });
+  }, `${el.outerHTML} click()`);
+}
+
+for (const el of document.querySelector("#typeable").children) {
+  promise_test(async () => {
+    let inputEvent, changeEvent;
+    el.oninput = e => inputEvent = e;
+    el.onchange = e => changeEvent = e;
+
+    await test_driver.send_keys(el, "1"); // has to be a number so <input type=number> works
+    await test_driver.click(clickMeToUnfocusOtherThings);
+
+    assert_event(inputEvent, { bubbles: true, cancelable: false, composed: true });
+    assert_event(changeEvent, { bubbles: true, cancelable: false, composed: false });
+  }, `${el.outerHTML} typing`);
+}
+
+promise_test(async () => {
+  const el = document.querySelector("select");
+
+  let inputEvent, changeEvent;
+  el.oninput = e => inputEvent = e;
+  el.onchange = e => changeEvent = e;
+
+  // TODO: this doesn't seem to work in Safari/on Macs. Or maybe Safari is legitimately failing.
+  // Someone with a Mac should investigate.
+  await test_driver.send_keys(el, "\uE015"); // down arrow key
+  await test_driver.click(clickMeToUnfocusOtherThings);
+
+  assert_event(inputEvent, { bubbles: true, cancelable: false, composed: true });
+  assert_event(changeEvent, { bubbles: true, cancelable: false, composed: false });
+}, `<select> pressing down arrow`);
+
+function assert_event(e, { bubbles, cancelable, composed }) {
+  assert_equals(e.bubbles, bubbles, `${e.type} bubbles`);
+  assert_equals(e.cancelable, cancelable, `${e.type} cancelable`);
+  assert_equals(e.composed, composed, `${e.type} composed`);
+}
+</script>
