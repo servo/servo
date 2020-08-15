@@ -63,6 +63,21 @@ class ChromeXRTest {
   }
 
   simulateUserActivation(callback) {
+    if (window.top !== window) {
+      // test_driver.click only works for the toplevel frame. This alternate
+      // Chrome-specific method is sufficient for starting an XR session in an
+      // iframe, and is used in platform-specific tests.
+      //
+      // TODO(https://github.com/web-platform-tests/wpt/issues/20282): use
+      // a cross-platform method if available.
+      xr_debug('simulateUserActivation', 'use eventSender');
+      document.addEventListener('click', callback);
+      eventSender.mouseMoveTo(0, 0);
+      eventSender.mouseDown();
+      eventSender.mouseUp();
+      document.removeEventListener('click', callback);
+      return;
+    }
     const button = document.createElement('button');
     button.textContent = 'click to continue test';
     button.style.display = 'block';

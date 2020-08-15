@@ -38,7 +38,7 @@ const receiveReport = async function(uuid, type) {
     reports = JSON.parse(reports);
 
     for(report of reports) {
-      if (report?.["body"]?.["violation-type"] == type)
+      if (report?.body?.type == type)
         return report;
     }
   }

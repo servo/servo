@@ -24,7 +24,7 @@ let tests = [
     []
   ],
   // Open a cross-origin popup with a same-origin COOP. Produces two
-  // reports (one from and one to). The from report has an effective-policy of
+  // reports (one from and one to). The from report has an effectivePolicy of
   // same-origin (corresponding to the current document), both pages being
   // cross origin, the next/pervious document urls are not available and the
   // initial document url/referrer are used instead.
@@ -40,10 +40,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "document-uri": `${location.href}`,
-            "effective-policy": "same-origin",
-            "navigation-uri": /uuid=EXECUTOR_UUID$/, // initial navigation URL (equal to the next document url in that case)
-            "violation-type": "navigation-from-document"
+            "documentURI": `${location.href}`,
+            "effectivePolicy": "same-origin",
+            "navigationURI": /uuid=EXECUTOR_UUID$/, // initial navigation URL (equal to the next document url in that case)
+            "type": "navigation-from-document"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -54,10 +54,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "document-uri": /uuid=EXECUTOR_UUID$/,
-            "effective-policy": "same-origin",
-            "navigation-uri": '', // referrer (empty due to the Referrer Policy)
-            "violation-type": "navigation-to-document"
+            "documentURI": /uuid=EXECUTOR_UUID$/,
+            "effectivePolicy": "same-origin",
+            "navigationURI": '', // referrer (empty due to the Referrer Policy)
+            "type": "navigation-to-document"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
@@ -80,10 +80,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "document-uri": `${location.href}`,
-            "effective-policy": "same-origin",
-            "navigation-uri": /uuid=EXECUTOR_UUID$/,
-            "violation-type": "navigation-from-document"
+            "documentURI": `${location.href}`,
+            "effectivePolicy": "same-origin",
+            "navigationURI": /uuid=EXECUTOR_UUID$/,
+            "type": "navigation-from-document"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -94,10 +94,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "document-uri": /uuid=EXECUTOR_UUID$/,
-            "effective-policy": "unsafe-none",
-            "navigation-uri": `${location.href}`,
-            "violation-type": "navigation-to-document"
+            "documentURI": /uuid=EXECUTOR_UUID$/,
+            "effectivePolicy": "unsafe-none",
+            "navigationURI": `${location.href}`,
+            "type": "navigation-to-document"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
@@ -108,7 +108,7 @@ let tests = [
   // Open a same-origin popup with a same-origin COOP and COEP. The difference
   // of COEP values leads to the browsing context group switch and produces two
   // reports. This verifies that the navigation-to-document report has an
-  // effective-policy of same-origin-plus-coep.
+  // effectivePolicy of same-origin-plus-coep.
   [
     SAME_ORIGIN,
     `same-origin; report-to="${popupReportEndpoint.name}"`,
@@ -121,10 +121,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "document-uri": `${location.href}`,
-            "effective-policy": "same-origin",
-            "navigation-uri": /uuid=EXECUTOR_UUID$/, // Next document URL
-            "violation-type": "navigation-from-document"
+            "documentURI": `${location.href}`,
+            "effectivePolicy": "same-origin",
+            "navigationURI": /uuid=EXECUTOR_UUID$/, // Next document URL
+            "type": "navigation-from-document"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -135,10 +135,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "document-uri": /uuid=EXECUTOR_UUID$/,
-            "effective-policy": "same-origin-plus-coep",
-            "navigation-uri": `${location.href}`, // Previous document URL
-            "violation-type": "navigation-to-document"
+            "documentURI": /uuid=EXECUTOR_UUID$/,
+            "effectivePolicy": "same-origin-plus-coep",
+            "navigationURI": `${location.href}`, // Previous document URL
+            "type": "navigation-to-document"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
@@ -162,10 +162,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "document-uri": `${location.href}`,
-            "effective-policy": "same-origin",
-            "navigation-uri": /uuid=EXECUTOR_UUID$/, // initial navigation URL
-            "violation-type": "navigation-from-document"
+            "documentURI": `${location.href}`,
+            "effectivePolicy": "same-origin",
+            "navigationURI": /uuid=EXECUTOR_UUID$/, // initial navigation URL
+            "type": "navigation-from-document"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -176,10 +176,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "document-uri": /uuid=EXECUTOR_UUID$/,
-            "effective-policy": "unsafe-none",
-            "navigation-uri": '', // referrer, as per the no-referrer policy.
-            "violation-type": "navigation-to-document"
+            "documentURI": /uuid=EXECUTOR_UUID$/,
+            "effectivePolicy": "unsafe-none",
+            "navigationURI": '', // referrer, as per the no-referrer policy.
+            "type": "navigation-to-document"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
@@ -203,10 +203,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "document-uri": `${location.href}`,
-            "effective-policy": "same-origin",
-            "navigation-uri": /uuid=EXECUTOR_UUID$/,
-            "violation-type": "navigation-from-document"
+            "documentURI": `${location.href}`,
+            "effectivePolicy": "same-origin",
+            "navigationURI": /uuid=EXECUTOR_UUID$/,
+            "type": "navigation-from-document"
           },
           "url": `${location.href}`,
           "type": "coop"

@@ -119,11 +119,11 @@
             }
         },
         {
-            "href": "gopher://example.net:1234",
+            "href": "https://example.net:1234",
             "new_value": "file",
             "expected": {
-                "href": "gopher://example.net:1234",
-                "protocol": "gopher:"
+                "href": "https://example.net:1234/",
+                "protocol": "https:"
             }
         },
         {
@@ -145,7 +145,7 @@
         },
         {
             "href": "file:///test",
-            "new_value": "gopher",
+            "new_value": "https",
             "expected": {
                 "href": "file:///test",
                 "protocol": "file:"

@@ -198,6 +198,11 @@ promise_test(async t => {
 
     scroller.scrollTop = maxScroll;
     await animation.finished;
+
+    // Wait for next frame to allow the animation to send finish events. The
+    // finished promise fires before events are sent.
+    await waitForNextFrame();
+
     assert_true(sent_finish_event,
                  "Animation finished event is sent on reaching max scroll.");
 }, 'Sending animation finished events by finished animation on reverse ' +
