@@ -73,7 +73,7 @@ use std::collections::HashMap;
 use std::ptr::NonNull;
 use std::rc::Rc;
 use webgpu::wgpu::{
-    binding_model as wgpu_bind, command::RenderBundleEncoder, pipeline as wgpu_pipe,
+    binding_model as wgpu_bind, command as wgpu_com, pipeline as wgpu_pipe, resource as wgpu_res,
 };
 use webgpu::{self, identity::WebGPUOpResult, wgt, ErrorScopeId, WebGPU, WebGPURequest};
 
@@ -320,12 +320,17 @@ impl GPUDeviceMethods for GPUDevice {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-createbuffer
     fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> DomRoot<GPUBuffer> {
-        let desc = wgt::BufferUsage::from_bits(descriptor.usage).map(|usg| wgt::BufferDescriptor {
-            label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
-            size: descriptor.size,
-            usage: usg,
-            mapped_at_creation: descriptor.mappedAtCreation,
-        });
+        let desc =
+            wgt::BufferUsage::from_bits(descriptor.usage).map(|usg| wgpu_res::BufferDescriptor {
+                label: descriptor
+                    .parent
+                    .label
+                    .as_ref()
+                    .map(|s| Cow::Owned(s.to_string())),
+                size: descriptor.size as wgt::BufferAddress,
+                usage: usg,
+                mapped_at_creation: descriptor.mappedAtCreation,
+            });
         let id = self
             .global()
             .wgpu_id_hub()
@@ -464,14 +469,19 @@ impl GPUDeviceMethods for GPUDevice {
                     },
                 };
 
-                wgt::BindGroupLayoutEntry::new(bind.binding, visibility, ty)
+                wgt::BindGroupLayoutEntry {
+                    binding: bind.binding,
+                    visibility: visibility,
+                    ty,
+                    count: None,
+                }
             })
             .collect::<Vec<_>>();
 
         let scope_id = self.use_current_scope();
 
         let desc = if valid {
-            Some(wgt::BindGroupLayoutDescriptor {
+            Some(wgpu_bind::BindGroupLayoutDescriptor {
                 label: descriptor
                     .parent
                     .label
@@ -518,7 +528,12 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPUPipelineLayoutDescriptor,
     ) -> DomRoot<GPUPipelineLayout> {
-        let desc = wgt::PipelineLayoutDescriptor {
+        let desc = wgpu_bind::PipelineLayoutDescriptor {
+            label: descriptor
+                .parent
+                .label
+                .as_ref()
+                .map(|s| Cow::Owned(s.to_string())),
             bind_group_layouts: Cow::Owned(
                 descriptor
                     .bindGroupLayouts
@@ -673,7 +688,13 @@ impl GPUDeviceMethods for GPUDevice {
         let scope_id = self.use_current_scope();
 
         let desc = wgpu_pipe::ComputePipelineDescriptor {
-            layout: descriptor.parent.layout.id().0,
+            label: descriptor
+                .parent
+                .parent
+                .label
+                .as_ref()
+                .map(|s| Cow::Owned(s.to_string())),
+            layout: Some(descriptor.parent.layout.id().0),
             compute_stage: wgpu_pipe::ProgrammableStageDescriptor {
                 module: descriptor.computeStage.module.id().0,
                 entry_point: Cow::Owned(descriptor.computeStage.entryPoint.to_string()),
@@ -718,7 +739,11 @@ impl GPUDeviceMethods for GPUDevice {
                 WebGPURequest::CreateCommandEncoder {
                     device_id: self.device.0,
                     command_encoder_id,
-                    label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
+                    label: descriptor
+                        .parent
+                        .label
+                        .as_ref()
+                        .map(|l| Cow::Owned(l.to_string())),
                 },
             ))
             .expect("Failed to create WebGPU command encoder");
@@ -739,8 +764,12 @@ impl GPUDeviceMethods for GPUDevice {
     fn CreateTexture(&self, descriptor: &GPUTextureDescriptor) -> DomRoot<GPUTexture> {
         let size = convert_texture_size_to_dict(&descriptor.size);
         let desc =
-            wgt::TextureUsage::from_bits(descriptor.usage).map(|usg| wgt::TextureDescriptor {
-                label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
+            wgt::TextureUsage::from_bits(descriptor.usage).map(|usg| wgpu_res::TextureDescriptor {
+                label: descriptor
+                    .parent
+                    .label
+                    .as_ref()
+                    .map(|l| Cow::Owned(l.to_string())),
                 size: convert_texture_size_to_wgt(&size),
                 mip_level_count: descriptor.mipLevelCount,
                 sample_count: descriptor.sampleCount,
@@ -803,11 +832,17 @@ impl GPUDeviceMethods for GPUDevice {
             .lock()
             .create_sampler_id(self.device.0.backend());
         let compare_enable = descriptor.compare.is_some();
-        let desc = wgt::SamplerDescriptor {
-            label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
-            address_mode_u: convert_address_mode(descriptor.addressModeU),
-            address_mode_v: convert_address_mode(descriptor.addressModeV),
-            address_mode_w: convert_address_mode(descriptor.addressModeW),
+        let desc = wgpu_res::SamplerDescriptor {
+            label: descriptor
+                .parent
+                .label
+                .as_ref()
+                .map(|s| Cow::Owned(s.to_string())),
+            address_modes: [
+                convert_address_mode(descriptor.addressModeU),
+                convert_address_mode(descriptor.addressModeV),
+                convert_address_mode(descriptor.addressModeW),
+            ],
             mag_filter: convert_filter_mode(descriptor.magFilter),
             min_filter: convert_filter_mode(descriptor.minFilter),
             mipmap_filter: convert_filter_mode(descriptor.mipmapFilter),
@@ -872,7 +907,13 @@ impl GPUDeviceMethods for GPUDevice {
 
         let desc = if valid {
             Some(wgpu_pipe::RenderPipelineDescriptor {
-                layout: descriptor.parent.layout.id().0,
+                label: descriptor
+                    .parent
+                    .parent
+                    .label
+                    .as_ref()
+                    .map(|s| Cow::Owned(s.to_string())),
+                layout: Some(descriptor.parent.layout.id().0),
                 vertex_stage: wgpu_pipe::ProgrammableStageDescriptor {
                     module: descriptor.vertexStage.module.id().0,
                     entry_point: Cow::Owned(descriptor.vertexStage.entryPoint.to_string()),
@@ -911,23 +952,27 @@ impl GPUDeviceMethods for GPUDevice {
                         format: convert_texture_format(dss_desc.format),
                         depth_write_enabled: dss_desc.depthWriteEnabled,
                         depth_compare: convert_compare_function(dss_desc.depthCompare),
-                        stencil_front: wgt::StencilStateFaceDescriptor {
-                            compare: convert_compare_function(dss_desc.stencilFront.compare),
-                            fail_op: convert_stencil_op(dss_desc.stencilFront.failOp),
-                            depth_fail_op: convert_stencil_op(dss_desc.stencilFront.depthFailOp),
-                            pass_op: convert_stencil_op(dss_desc.stencilFront.passOp),
+                        stencil: wgt::StencilStateDescriptor {
+                            front: wgt::StencilStateFaceDescriptor {
+                                compare: convert_compare_function(dss_desc.stencilFront.compare),
+                                fail_op: convert_stencil_op(dss_desc.stencilFront.failOp),
+                                depth_fail_op: convert_stencil_op(
+                                    dss_desc.stencilFront.depthFailOp,
+                                ),
+                                pass_op: convert_stencil_op(dss_desc.stencilFront.passOp),
+                            },
+                            back: wgt::StencilStateFaceDescriptor {
+                                compare: convert_compare_function(dss_desc.stencilBack.compare),
+                                fail_op: convert_stencil_op(dss_desc.stencilBack.failOp),
+                                depth_fail_op: convert_stencil_op(dss_desc.stencilBack.depthFailOp),
+                                pass_op: convert_stencil_op(dss_desc.stencilBack.passOp),
+                            },
+                            read_mask: dss_desc.stencilReadMask,
+                            write_mask: dss_desc.stencilWriteMask,
                         },
-                        stencil_back: wgt::StencilStateFaceDescriptor {
-                            compare: convert_compare_function(dss_desc.stencilBack.compare),
-                            fail_op: convert_stencil_op(dss_desc.stencilBack.failOp),
-                            depth_fail_op: convert_stencil_op(dss_desc.stencilBack.depthFailOp),
-                            pass_op: convert_stencil_op(dss_desc.stencilBack.passOp),
-                        },
-                        stencil_read_mask: dss_desc.stencilReadMask,
-                        stencil_write_mask: dss_desc.stencilWriteMask,
                     }
                 }),
-                vertex_state: wgt::VertexStateDescriptor {
+                vertex_state: wgpu_pipe::VertexStateDescriptor {
                     index_format: match vs_desc.indexFormat {
                         GPUIndexFormat::Uint16 => wgt::IndexFormat::Uint16,
                         GPUIndexFormat::Uint32 => wgt::IndexFormat::Uint32,
@@ -936,7 +981,7 @@ impl GPUDeviceMethods for GPUDevice {
                         vs_desc
                             .vertexBuffers
                             .iter()
-                            .map(|buffer| wgt::VertexBufferDescriptor {
+                            .map(|buffer| wgpu_pipe::VertexBufferDescriptor {
                                 stride: buffer.arrayStride,
                                 step_mode: match buffer.stepMode {
                                     GPUInputStepMode::Vertex => wgt::InputStepMode::Vertex,
@@ -1002,7 +1047,7 @@ impl GPUDeviceMethods for GPUDevice {
         &self,
         descriptor: &GPURenderBundleEncoderDescriptor,
     ) -> DomRoot<GPURenderBundleEncoder> {
-        let desc = wgt::RenderBundleEncoderDescriptor {
+        let desc = wgpu_com::RenderBundleEncoderDescriptor {
             label: descriptor
                 .parent
                 .label
@@ -1022,7 +1067,8 @@ impl GPUDeviceMethods for GPUDevice {
         };
 
         // Handle error gracefully
-        let render_bundle_encoder = RenderBundleEncoder::new(&desc, self.device.0, None).unwrap();
+        let render_bundle_encoder =
+            wgpu_com::RenderBundleEncoder::new(&desc, self.device.0, None).unwrap();
 
         GPURenderBundleEncoder::new(
             &self.global(),
