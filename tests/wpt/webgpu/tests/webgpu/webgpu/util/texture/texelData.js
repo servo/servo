@@ -14,7 +14,7 @@
   return obj;
 }
 import { assert, unreachable } from '../../../common/framework/util/util.js';
-import { kTextureFormatInfo } from '../../capability_info.js';
+import { kUncompressedTextureFormatInfo } from '../../capability_info.js';
 import {
   assertInIntegerRange,
   float32ToFloatBits,
@@ -333,7 +333,7 @@ class TexelDataRepresentationImpl {
       ];
     }
 
-    const bytesPerBlock = kTextureFormatInfo[this.format].bytesPerBlock;
+    const bytesPerBlock = kUncompressedTextureFormatInfo[this.format].bytesPerBlock;
     assert(!!bytesPerBlock);
 
     const data = new ArrayBuffer(bytesPerBlock);

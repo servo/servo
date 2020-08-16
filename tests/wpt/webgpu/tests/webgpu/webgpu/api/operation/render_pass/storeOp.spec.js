@@ -30,7 +30,11 @@
       TODO: test with more interesting loadOp values`;
 import { params, poptions } from '../../../../common/framework/params_builder.js';
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { kTextureFormatInfo, kTextureFormats } from '../../../capability_info.js';
+import {
+  kEncodableTextureFormatInfo,
+  kEncodableTextureFormats,
+  kSizedDepthStencilFormats,
+} from '../../../capability_info.js';
 import { GPUTest } from '../../../gpu_test.js';
 
 // Test with a zero and non-zero mip.
@@ -140,20 +144,16 @@ g.test('render_pass_store_op,color_attachment_with_depth_stencil_attachment')
 g.test('render_pass_store_op,color_attachment_only')
   .params(
     params()
-      .combine(poptions('colorFormat', kTextureFormats))
-      // Filter out any depth/stencil or non-renderable formats
-      .filter(
-        ({ colorFormat }) =>
-          kTextureFormatInfo[colorFormat].color && kTextureFormatInfo[colorFormat].renderable
-      )
+      .combine(poptions('colorFormat', kEncodableTextureFormats))
+      // Filter out any non-renderable formats
+      .filter(({ colorFormat }) => kEncodableTextureFormatInfo[colorFormat].renderable)
       .combine(poptions('storeOperation', kStoreOps))
       .combine(poptions('mipLevel', kMipLevel))
       .combine(poptions('arrayLayer', kArrayLayers))
   )
   .fn(t => {
-    const kColorFormat = 'rgba8unorm';
     const colorAttachment = t.device.createTexture({
-      format: kColorFormat,
+      format: t.params.colorFormat,
       size: { width: kWidth, height: kHeight, depth: t.params.arrayLayer + 1 },
       mipLevelCount: kMipLevelCount,
       usage: GPUTextureUsage.COPY_SRC | GPUTextureUsage.OUTPUT_ATTACHMENT,
@@ -194,7 +194,7 @@ g.test('render_pass_store_op,color_attachment_only')
       expectedValue = { R: 1.0, G: 0.0, B: 0.0, A: 1.0 };
     }
 
-    t.expectSingleColor(colorAttachment, kColorFormat, {
+    t.expectSingleColor(colorAttachment, t.params.colorFormat, {
       size: [kHeight, kWidth, 1],
       slice: t.params.arrayLayer,
       exp: expectedValue,
@@ -266,15 +266,8 @@ g.test('render_pass_store_op,multiple_color_attachments')
 g.test('render_pass_store_op,depth_stencil_attachment_only')
   .params(
     params()
-      .combine(poptions('depthStencilFormat', kTextureFormats))
-      // Filter out color and non-renderable formats.
-      .filter(
-        ({ depthStencilFormat }) =>
-          (kTextureFormatInfo[depthStencilFormat].depth ||
-            kTextureFormatInfo[depthStencilFormat].stencil) &&
-          kTextureFormatInfo[depthStencilFormat].renderable &&
-          kTextureFormatInfo[depthStencilFormat].copyable
-      )
+      // TODO: Also test unsized depth/stencil formats
+      .combine(poptions('depthStencilFormat', kSizedDepthStencilFormats))
       .combine(poptions('storeOperation', kStoreOps))
       .combine(poptions('mipLevel', kMipLevel))
       .combine(poptions('arrayLayer', kArrayLayers))

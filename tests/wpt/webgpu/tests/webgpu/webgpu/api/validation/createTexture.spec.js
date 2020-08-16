@@ -5,7 +5,7 @@ createTexture validation tests.
 `;
 import { poptions } from '../../../common/framework/params_builder.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
-import { kTextureFormatInfo, kTextureFormats } from '../../capability_info.js';
+import { kAllTextureFormats, kAllTextureFormatInfo } from '../../capability_info.js';
 
 import { ValidationTest } from './validation_test.js';
 
@@ -130,10 +130,10 @@ g.test('it_is_invalid_to_submit_a_destroyed_texture_before_and_after_encode')
   });
 
 g.test('it_is_invalid_to_have_an_output_attachment_texture_with_non_renderable_format')
-  .params(poptions('format', kTextureFormats))
+  .params(poptions('format', kAllTextureFormats))
   .fn(async t => {
     const format = t.params.format;
-    const info = kTextureFormatInfo[format];
+    const info = kAllTextureFormatInfo[format];
 
     const descriptor = t.getDescriptor({ width: 1, height: 1, format });
 

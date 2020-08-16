@@ -36,7 +36,10 @@ class F extends Fixture {
     super.init();
     const gpu = getGPU();
     const adapter = await gpu.requestAdapter();
-    this._device = await adapter.requestDevice();
+    assert(adapter !== null);
+    const device = await adapter.requestDevice();
+    assert(device !== null);
+    this._device = device;
   }
 
   createErrorBuffer() {

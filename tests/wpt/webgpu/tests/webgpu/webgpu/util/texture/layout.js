@@ -1,7 +1,7 @@
 /**
  * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
  **/ import { assert, unreachable } from '../../../common/framework/util/util.js';
-import { kTextureFormatInfo } from '../../capability_info.js';
+import { kSizedTextureFormatInfo } from '../../capability_info.js';
 import { align, isAligned } from '../math.js';
 
 export const kBytesPerRowAlignment = 256;
@@ -30,8 +30,7 @@ export function getTextureCopyLayout(format, dimension, size, options = kDefault
 
   const mipSize = getMipSizePassthroughLayers(dimension, size, mipLevel);
 
-  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
-  assert(!!bytesPerBlock && !!blockWidth && !!blockHeight);
+  const { blockWidth, blockHeight, bytesPerBlock } = kSizedTextureFormatInfo[format];
 
   assert(isAligned(mipSize[0], blockWidth));
   const minBytesPerRow = (mipSize[0] / blockWidth) * bytesPerBlock;
@@ -73,8 +72,7 @@ export function fillTextureDataWithTexelValue(
   size,
   options = kDefaultLayoutOptions
 ) {
-  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
-  assert(!!bytesPerBlock && !!blockWidth && !!blockHeight);
+  const { blockWidth, blockHeight, bytesPerBlock } = kSizedTextureFormatInfo[format];
   assert(bytesPerBlock === texelValue.byteLength);
 
   const { byteLength, rowsPerImage, bytesPerRow } = getTextureCopyLayout(

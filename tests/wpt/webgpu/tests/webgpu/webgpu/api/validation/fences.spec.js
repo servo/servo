@@ -4,6 +4,7 @@
 fences validation tests.
 `;
 import { makeTestGroup } from '../../../common/framework/test_group.js';
+import { assert } from '../../../common/framework/util/util.js';
 
 import { ValidationTest } from './validation_test.js';
 
@@ -60,6 +61,7 @@ g.test('signal_a_fence_on_a_different_device_than_it_was_created_on_is_invalid')
   const fence = t.queue.createFence();
 
   const anotherDevice = await t.device.adapter.requestDevice();
+  assert(anotherDevice !== null);
   const anotherQueue = anotherDevice.defaultQueue;
 
   t.expectValidationError(() => {
@@ -71,6 +73,7 @@ g.test('signal_a_fence_on_a_different_device_does_not_update_fence_signaled_valu
   const fence = t.queue.createFence({ initialValue: 1 });
 
   const anotherDevice = await t.device.adapter.requestDevice();
+  assert(anotherDevice !== null);
   const anotherQueue = anotherDevice.defaultQueue;
 
   t.expectValidationError(() => {

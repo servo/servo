@@ -21,9 +21,7 @@ use servo_config::pref;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
-use std::ffi::CString;
 use std::num::NonZeroU64;
-use std::ptr;
 use std::rc::Rc;
 use std::slice;
 use std::sync::{Arc, Mutex};
@@ -33,13 +31,19 @@ use webrender_traits::{
     WebrenderImageSource,
 };
 use wgpu::{
-    binding_model::BindGroupDescriptor,
-    command::{BufferCopyView, ComputePass, RenderBundleEncoder, RenderPass, TextureCopyView},
+    binding_model::{BindGroupDescriptor, BindGroupLayoutDescriptor, PipelineLayoutDescriptor},
+    command::{
+        BufferCopyView, ComputePass, RenderBundleDescriptor, RenderBundleEncoder, RenderPass,
+        TextureCopyView,
+    },
     device::HostMap,
     id,
     instance::RequestAdapterOptions,
     pipeline::{ComputePipelineDescriptor, RenderPipelineDescriptor},
-    resource::{BufferMapAsyncStatus, BufferMapOperation},
+    resource::{
+        BufferDescriptor, BufferMapAsyncStatus, BufferMapOperation, SamplerDescriptor,
+        TextureDescriptor, TextureViewDescriptor,
+    },
 };
 
 pub type ErrorScopeId = NonZeroU64;
@@ -119,19 +123,19 @@ pub enum WebGPURequest {
     CreateBindGroupLayout {
         device_id: id::DeviceId,
         bind_group_layout_id: id::BindGroupLayoutId,
-        descriptor: Option<wgt::BindGroupLayoutDescriptor<'static>>,
+        descriptor: Option<BindGroupLayoutDescriptor<'static>>,
     },
     CreateBuffer {
         device_id: id::DeviceId,
         buffer_id: id::BufferId,
-        descriptor: Option<wgt::BufferDescriptor<Option<String>>>,
+        descriptor: Option<BufferDescriptor<'static>>,
     },
     CreateCommandEncoder {
         device_id: id::DeviceId,
         // TODO(zakorgy): Serialize CommandEncoderDescriptor in wgpu-core
         // wgpu::command::CommandEncoderDescriptor,
         command_encoder_id: id::CommandEncoderId,
-        label: Option<String>,
+        label: Option<Cow<'static, str>>,
     },
     CreateComputePipeline {
         device_id: id::DeviceId,
@@ -142,7 +146,7 @@ pub enum WebGPURequest {
     CreatePipelineLayout {
         device_id: id::DeviceId,
         pipeline_layout_id: id::PipelineLayoutId,
-        descriptor: wgt::PipelineLayoutDescriptor<'static, id::BindGroupLayoutId>,
+        descriptor: PipelineLayoutDescriptor<'static>,
     },
     CreateRenderPipeline {
         device_id: id::DeviceId,
@@ -152,7 +156,7 @@ pub enum WebGPURequest {
     CreateSampler {
         device_id: id::DeviceId,
         sampler_id: id::SamplerId,
-        descriptor: wgt::SamplerDescriptor<Option<String>>,
+        descriptor: SamplerDescriptor<'static>,
     },
     CreateShaderModule {
         device_id: id::DeviceId,
@@ -170,13 +174,13 @@ pub enum WebGPURequest {
     CreateTexture {
         device_id: id::DeviceId,
         texture_id: id::TextureId,
-        descriptor: Option<wgt::TextureDescriptor<Option<String>>>,
+        descriptor: Option<TextureDescriptor<'static>>,
     },
     CreateTextureView {
         texture_id: id::TextureId,
         texture_view_id: id::TextureViewId,
         device_id: id::DeviceId,
-        descriptor: Option<wgt::TextureViewDescriptor<Option<String>>>,
+        descriptor: Option<TextureViewDescriptor<'static>>,
     },
     DestroyBuffer(id::BufferId),
     DestroySwapChain {
@@ -189,7 +193,7 @@ pub enum WebGPURequest {
     FreeDevice(id::DeviceId),
     RenderBundleEncoderFinish {
         render_bundle_encoder: RenderBundleEncoder,
-        descriptor: wgt::RenderBundleDescriptor<Option<String>>,
+        descriptor: RenderBundleDescriptor<'static>,
         render_bundle_id: id::RenderBundleId,
         device_id: id::DeviceId,
     },
@@ -579,16 +583,8 @@ impl<'a> WGPU<'a> {
                     } => {
                         let global = &self.global;
                         if let Some(desc) = descriptor {
-                            let st;
-                            let label = match desc.label {
-                                Some(ref s) => {
-                                    st = CString::new(s.as_bytes()).unwrap();
-                                    st.as_ptr()
-                                },
-                                None => ptr::null(),
-                            };
                             let result = gfx_select!(buffer_id =>
-                            global.device_create_buffer(device_id, &desc.map_label(|_| label), buffer_id));
+                                global.device_create_buffer(device_id, &desc, buffer_id));
                             if result.is_err() {
                                 let _ = gfx_select!(buffer_id => global.buffer_error(buffer_id));
                             }
@@ -603,14 +599,6 @@ impl<'a> WGPU<'a> {
                         label,
                     } => {
                         let global = &self.global;
-                        let st;
-                        let label = match label {
-                            Some(ref s) => {
-                                st = CString::new(s.as_bytes()).unwrap();
-                                st.as_ptr()
-                            },
-                            None => ptr::null(),
-                        };
                         let desc = wgt::CommandEncoderDescriptor { label };
                         let result = gfx_select!(command_encoder_id =>
                             global.device_create_command_encoder(device_id, &desc, command_encoder_id));
@@ -626,7 +614,7 @@ impl<'a> WGPU<'a> {
                     } => {
                         let global = &self.global;
                         let result = gfx_select!(compute_pipeline_id =>
-                            global.device_create_compute_pipeline(device_id, &descriptor, compute_pipeline_id));
+                            global.device_create_compute_pipeline(device_id, &descriptor, compute_pipeline_id, None));
                         if result.is_err() {
                             let _ = gfx_select!(compute_pipeline_id =>
                                 global.compute_pipeline_error(compute_pipeline_id));
@@ -664,7 +652,7 @@ impl<'a> WGPU<'a> {
                         let global = &self.global;
                         if let Some(desc) = descriptor {
                             let result = gfx_select!(render_pipeline_id =>
-                            global.device_create_render_pipeline(device_id, &desc, render_pipeline_id));
+                            global.device_create_render_pipeline(device_id, &desc, render_pipeline_id, None));
                             if result.is_err() {
                                 let _ = gfx_select!(render_pipeline_id =>
                                     global.render_pipeline_error(render_pipeline_id));
@@ -680,17 +668,9 @@ impl<'a> WGPU<'a> {
                         descriptor,
                     } => {
                         let global = &self.global;
-                        let st;
-                        let label = match descriptor.label {
-                            Some(ref s) => {
-                                st = CString::new(s.as_bytes()).unwrap();
-                                st.as_ptr()
-                            },
-                            None => ptr::null(),
-                        };
                         let result = gfx_select!(sampler_id => global.device_create_sampler(
                             device_id,
-                            &descriptor.map_label(|_| label),
+                            &descriptor,
                             sampler_id
                         ));
                         if result.is_err() {
@@ -763,17 +743,9 @@ impl<'a> WGPU<'a> {
                     } => {
                         let global = &self.global;
                         if let Some(desc) = descriptor {
-                            let st;
-                            let label = match desc.label {
-                                Some(ref s) => {
-                                    st = CString::new(s.as_bytes()).unwrap();
-                                    st.as_ptr()
-                                },
-                                None => ptr::null(),
-                            };
                             let result = gfx_select!(texture_id => global.device_create_texture(
                                 device_id,
-                                &desc.map_label(|_| label),
+                                &desc,
                                 texture_id
                             ));
                             if result.is_err() {
@@ -792,17 +764,9 @@ impl<'a> WGPU<'a> {
                     } => {
                         let global = &self.global;
                         if let Some(desc) = descriptor {
-                            let st;
-                            let label = match desc.label {
-                                Some(ref s) => {
-                                    st = CString::new(s.as_bytes()).unwrap();
-                                    st.as_ptr()
-                                },
-                                None => ptr::null(),
-                            };
                             let result = gfx_select!(texture_view_id => global.texture_create_view(
                                 texture_id,
-                                Some(&desc.map_label(|_| label)),
+                                &desc,
                                 texture_view_id
                             ));
                             if result.is_err() {
@@ -877,17 +841,9 @@ impl<'a> WGPU<'a> {
                         device_id,
                     } => {
                         let global = &self.global;
-                        let st;
-                        let label = match descriptor.label {
-                            Some(ref s) => {
-                                st = CString::new(s.as_bytes()).unwrap();
-                                st.as_ptr()
-                            },
-                            None => ptr::null(),
-                        };
                         let result = gfx_select!(render_bundle_id => global.render_bundle_encoder_finish(
                             render_bundle_encoder,
-                            &descriptor.map_label(|_| label),
+                            &descriptor,
                             render_bundle_id
                         ));
                         if result.is_err() {
@@ -1051,7 +1007,7 @@ impl<'a> WGPU<'a> {
                                     let buffer_size =
                                         (buffer_stride * size.height as u32) as wgt::BufferAddress;
                                     let buffer_desc = wgt::BufferDescriptor {
-                                        label: ptr::null(),
+                                        label: None,
                                         size: buffer_size,
                                         usage: wgt::BufferUsage::MAP_READ |
                                             wgt::BufferUsage::COPY_DST,
@@ -1079,7 +1035,7 @@ impl<'a> WGPU<'a> {
 
                         let buffer_size =
                             (size.height as u32 * buffer_stride) as wgt::BufferAddress;
-                        let comm_desc = wgt::CommandEncoderDescriptor { label: ptr::null() };
+                        let comm_desc = wgt::CommandEncoderDescriptor { label: None };
                         let _ = gfx_select!(encoder_id => global.device_create_command_encoder(
                             device_id,
                             &comm_desc,

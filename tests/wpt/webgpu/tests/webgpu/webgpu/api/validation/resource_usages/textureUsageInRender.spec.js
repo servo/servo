@@ -4,15 +4,31 @@
 Texture Usages Validation Tests in Render Pass.
 
 Test Coverage:
- - Tests that read and write usages upon the same texture subresource, or different subresources
-   of the same texture. Different subresources of the same texture includes different mip levels,
-   different array layers, and different aspects.
-   - When read and write usages are binding to the same texture subresource, an error should be
-     generated. Otherwise, no error should be generated.
+
+  - For each combination of two texture usages:
+    - For various subresource ranges (different mip levels or array layers) that overlap a given
+      subresources or not for color formats:
+      - Check that an error is generated when read-write or write-write usages are binding to the
+        same texture subresource. Otherwise, no error should be generated. One exception is race
+        condition upon two writeonly-storage-texture usages, which is valid.
+
+  - For each combination of two texture usages:
+    - For various aspects (all, depth-only, stencil-only) that overlap a given subresources or not
+      for depth/stencil formats:
+      - Check that an error is generated when read-write or write-write usages are binding to the
+        same aspect. Otherwise, no error should be generated.
+
+  - Test combinations of two shader stages:
+    - Texture usages in bindings with invisible shader stages should be tracked. Invisible shader
+      stages include shader stage with visibility none and compute shader stage in render pass.
 `;
 import { poptions, params } from '../../../../common/framework/params_builder.js';
 import { makeTestGroup } from '../../../../common/framework/test_group.js';
-import { kTextureFormatInfo, kShaderStages } from '../../../capability_info.js';
+import {
+  kShaderStages,
+  kDepthStencilFormats,
+  kDepthStencilFormatInfo,
+} from '../../../capability_info.js';
 import { ValidationTest } from '../validation_test.js';
 
 class TextureUsageTracking extends ValidationTest {
@@ -40,65 +56,183 @@ class TextureUsageTracking extends ValidationTest {
 
 export const g = makeTestGroup(TextureUsageTracking);
 
-const READ_BASE_LEVEL = 3;
-const READ_BASE_LAYER = 0;
+const BASE_LEVEL = 3;
+const BASE_LAYER = 0;
+const TOTAL_LEVELS = 6;
+const TOTAL_LAYERS = 2;
 
-g.test('readwrite_upon_subresources')
-  .params([
-    // read and write usages are binding to the same texture subresource.
-    {
-      writeBaseLevel: READ_BASE_LEVEL,
-      writeBaseLayer: READ_BASE_LAYER,
-      _success: false,
-    },
+g.test('subresources_and_binding_types_combination_for_color')
+  .params(
+    params()
+      .combine([
+        // Two texture usages are binding to the same texture subresource.
+        {
+          baseLevel: BASE_LEVEL,
+          baseLayer: BASE_LAYER,
+          levelCount: 1,
+          layerCount: 1,
+          _resourceSuccess: false,
+        },
 
-    // read and write usages are binding to different mip levels of the same texture.
-    {
-      writeBaseLevel: READ_BASE_LEVEL + 1,
-      writeBaseLayer: READ_BASE_LAYER,
-      _success: true,
-    },
+        // Two texture usages are binding to different mip levels of the same texture.
+        {
+          baseLevel: BASE_LEVEL + 1,
+          baseLayer: BASE_LAYER,
+          levelCount: 1,
+          layerCount: 1,
+          _resourceSuccess: true,
+        },
 
-    // read and write usages are binding to different array layers of the same texture.
-    {
-      writeBaseLevel: READ_BASE_LEVEL,
-      writeBaseLayer: READ_BASE_LAYER + 1,
-      _success: true,
-    },
-  ])
+        // Two texture usages are binding to different array layers of the same texture.
+        {
+          baseLevel: BASE_LEVEL,
+          baseLayer: BASE_LAYER + 1,
+          levelCount: 1,
+          layerCount: 1,
+          _resourceSuccess: true,
+        },
+
+        // The second texture usage contains the whole mip chain where the first texture usage is using.
+        {
+          baseLevel: 0,
+          baseLayer: BASE_LAYER,
+          levelCount: TOTAL_LEVELS,
+          layerCount: 1,
+          _resourceSuccess: false,
+        },
+
+        // The second texture usage contains the all layers where the first texture usage is using.
+        {
+          baseLevel: BASE_LEVEL,
+          baseLayer: 0,
+          levelCount: 1,
+          layerCount: TOTAL_LAYERS,
+          _resourceSuccess: false,
+        },
+      ])
+      .combine([
+        {
+          type0: 'sampled-texture',
+          type1: 'sampled-texture',
+          _usageSuccess: true,
+        },
+
+        {
+          type0: 'sampled-texture',
+          type1: 'readonly-storage-texture',
+          _usageSuccess: true,
+        },
+
+        {
+          type0: 'sampled-texture',
+          type1: 'writeonly-storage-texture',
+          _usageSuccess: false,
+        },
+
+        {
+          type0: 'sampled-texture',
+          type1: 'render-target',
+          _usageSuccess: false,
+        },
+
+        {
+          type0: 'readonly-storage-texture',
+          type1: 'readonly-storage-texture',
+          _usageSuccess: true,
+        },
+
+        {
+          type0: 'readonly-storage-texture',
+          type1: 'writeonly-storage-texture',
+          _usageSuccess: false,
+        },
+
+        {
+          type0: 'readonly-storage-texture',
+          type1: 'render-target',
+          _usageSuccess: false,
+        },
+
+        // Race condition upon multiple writable storage texture is valid.
+        {
+          type0: 'writeonly-storage-texture',
+          type1: 'writeonly-storage-texture',
+          _usageSuccess: true,
+        },
+
+        {
+          type0: 'writeonly-storage-texture',
+          type1: 'render-target',
+          _usageSuccess: false,
+        },
+      ])
+  )
   .fn(async t => {
-    const { writeBaseLevel, writeBaseLayer, _success } = t.params;
+    const {
+      baseLevel,
+      baseLayer,
+      levelCount,
+      layerCount,
+      type0,
+      type1,
+      _usageSuccess,
+      _resourceSuccess,
+    } = t.params;
 
-    const texture = t.createTexture({ arrayLayerCount: 2, mipLevelCount: 6 });
+    const texture = t.createTexture({
+      arrayLayerCount: TOTAL_LAYERS,
+      mipLevelCount: TOTAL_LEVELS,
+      usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.STORAGE | GPUTextureUsage.OUTPUT_ATTACHMENT,
+    });
 
-    const sampleView = texture.createView({
-      baseMipLevel: READ_BASE_LEVEL,
+    const view0 = texture.createView({
+      baseMipLevel: BASE_LEVEL,
       mipLevelCount: 1,
-      baseArrayLayer: READ_BASE_LAYER,
+      baseArrayLayer: BASE_LAYER,
       arrayLayerCount: 1,
     });
 
-    const renderView = texture.createView({
-      baseMipLevel: writeBaseLevel,
-      mipLevelCount: 1,
-      baseArrayLayer: writeBaseLayer,
-      arrayLayerCount: 1,
+    const view1Dimension = layerCount !== 1 ? '2d-array' : '2d';
+    const view1 = texture.createView({
+      dimension: view1Dimension,
+      baseMipLevel: baseLevel,
+      mipLevelCount: levelCount,
+      baseArrayLayer: baseLayer,
+      arrayLayerCount: layerCount,
     });
 
-    const bindGroupLayout = t.device.createBindGroupLayout({
-      entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT, type: 'sampled-texture' }],
-    });
+    // TODO: Add two 'render-target' usages for color attachments.
+    const bglEntries = [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.FRAGMENT,
+        type: type0,
+        storageTextureFormat: type0 === 'sampled-texture' ? undefined : 'rgba8unorm',
+      },
+    ];
 
+    const bgEntries = [{ binding: 0, resource: view0 }];
+    if (type1 !== 'render-target') {
+      bglEntries.push({
+        binding: 1,
+        visibility: GPUShaderStage.FRAGMENT,
+        type: type1,
+        viewDimension: view1Dimension,
+        storageTextureFormat: type1 === 'sampled-texture' ? undefined : 'rgba8unorm',
+      });
+
+      bgEntries.push({ binding: 1, resource: view1 });
+    }
     const bindGroup = t.device.createBindGroup({
-      entries: [{ binding: 0, resource: sampleView }],
-      layout: bindGroupLayout,
+      entries: bgEntries,
+      layout: t.device.createBindGroupLayout({ entries: bglEntries }),
     });
 
     const encoder = t.device.createCommandEncoder();
     const pass = encoder.beginRenderPass({
       colorAttachments: [
         {
-          attachment: renderView,
+          attachment: type1 === 'render-target' ? view1 : t.createTexture().createView(),
           loadValue: { r: 0.0, g: 1.0, b: 0.0, a: 1.0 },
           storeOp: 'store',
         },
@@ -108,41 +242,71 @@ g.test('readwrite_upon_subresources')
     pass.setBindGroup(0, bindGroup);
     pass.endPass();
 
+    const success = _resourceSuccess || _usageSuccess;
     t.expectValidationError(() => {
       encoder.finish();
-    }, !_success);
+    }, !success);
   });
 
-g.test('readwrite_upon_aspects')
+g.test('subresources_and_binding_types_combination_for_aspect')
   .params(
     params()
-      .combine(poptions('format', ['depth32float', 'depth24plus', 'depth24plus-stencil8']))
-      .combine(poptions('readAspect', ['all', 'depth-only', 'stencil-only']))
-      .combine(poptions('writeAspect', ['all', 'depth-only', 'stencil-only']))
+      .combine(poptions('format', kDepthStencilFormats))
+      .combine(poptions('aspect0', ['all', 'depth-only', 'stencil-only']))
+      .combine(poptions('aspect1', ['all', 'depth-only', 'stencil-only']))
       .unless(
-        ({ format, readAspect, writeAspect }) =>
-          // TODO: Exclude depth-only aspect once WebGPU supports stencil-only texture format(s).
-          (readAspect === 'stencil-only' && !kTextureFormatInfo[format].stencil) ||
-          (writeAspect === 'stencil-only' && !kTextureFormatInfo[format].stencil)
+        ({ format, aspect0, aspect1 }) =>
+          (aspect0 === 'stencil-only' && !kDepthStencilFormatInfo[format].stencil) ||
+          (aspect1 === 'stencil-only' && !kDepthStencilFormatInfo[format].stencil)
       )
+      .unless(
+        ({ format, aspect0, aspect1 }) =>
+          (aspect0 === 'depth-only' && !kDepthStencilFormatInfo[format].depth) ||
+          (aspect1 === 'depth-only' && !kDepthStencilFormatInfo[format].depth)
+      )
+      .combine([
+        {
+          type0: 'sampled-texture',
+          type1: 'sampled-texture',
+          _usageSuccess: true,
+        },
+
+        {
+          type0: 'sampled-texture',
+          type1: 'render-target',
+          _usageSuccess: false,
+        },
+      ])
   )
   .fn(async t => {
-    const { format, readAspect, writeAspect } = t.params;
+    const { format, aspect0, aspect1, type0, type1, _usageSuccess } = t.params;
 
-    const view = t.createTexture({ format }).createView();
+    const texture = t.createTexture({ format });
+    const view0 = texture.createView({ aspect: aspect0 });
+    const view1 = texture.createView({ aspect: aspect1 });
 
-    const bindGroupLayout = t.device.createBindGroupLayout({
-      entries: [{ binding: 0, visibility: GPUShaderStage.FRAGMENT, type: 'sampled-texture' }],
-    });
+    const bglEntries = [
+      {
+        binding: 0,
+        visibility: GPUShaderStage.FRAGMENT,
+        type: type0,
+      },
+    ];
 
+    const bgEntries = [{ binding: 0, resource: view0 }];
+    if (type1 !== 'render-target') {
+      bglEntries.push({
+        binding: 1,
+        visibility: GPUShaderStage.FRAGMENT,
+        type: type1,
+      });
+
+      bgEntries.push({ binding: 1, resource: view1 });
+    }
     const bindGroup = t.device.createBindGroup({
-      entries: [{ binding: 0, resource: view }],
-      layout: bindGroupLayout,
+      entries: bgEntries,
+      layout: t.device.createBindGroupLayout({ entries: bglEntries }),
     });
-
-    const success =
-      (readAspect === 'depth-only' && writeAspect === 'stencil-only') ||
-      (readAspect === 'stencil-only' && writeAspect === 'depth-only');
 
     const encoder = t.device.createCommandEncoder();
     const pass = encoder.beginRenderPass({
@@ -154,17 +318,25 @@ g.test('readwrite_upon_aspects')
         },
       ],
 
-      depthStencilAttachment: {
-        attachment: view,
-        depthStoreOp: 'clear',
-        depthLoadValue: 'load',
-        stencilStoreOp: 'clear',
-        stencilLoadValue: 'load',
-      },
+      depthStencilAttachment:
+        type1 !== 'render-target'
+          ? undefined
+          : {
+              attachment: view1,
+              depthStoreOp: 'clear',
+              depthLoadValue: 'load',
+              stencilStoreOp: 'clear',
+              stencilLoadValue: 'load',
+            },
     });
 
     pass.setBindGroup(0, bindGroup);
     pass.endPass();
+
+    const disjointAspects =
+      (aspect0 === 'depth-only' && aspect1 === 'stencil-only') ||
+      (aspect0 === 'stencil-only' && aspect1 === 'depth-only');
+    const success = disjointAspects || _usageSuccess;
 
     t.expectValidationError(() => {
       encoder.finish();

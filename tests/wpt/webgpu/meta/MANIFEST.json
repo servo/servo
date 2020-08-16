@@ -58,7 +58,7 @@
       ],
       "gpu": {
        "device_pool.js": [
-        "c6be73f9918be979816bf02978e8429ce8b4d63d",
+        "f72b6b734c671ff0316fadfec49e0a93bd16fd10",
         []
        ],
        "implementation.js": [
@@ -102,7 +102,7 @@
         []
        ],
        "json_param_value.js": [
-        "1bb32d06dfdf95be6953faac150b767585198cf7",
+        "921b3ddce6aacde8e3b05d4133dc07ffb90842f8",
         []
        ],
        "parseQuery.js": [
@@ -161,7 +161,7 @@
        ]
       },
       "version.js": [
-       "4d5e72c0442fdbdd4d5ceeefa14dcbaafae4ffaa",
+       "794e3cdef44214801f15234a61aaf5af338f97fc",
        []
       ]
      },
@@ -229,7 +229,7 @@
        ],
        "render_pass": {
         "storeOp.spec.js": [
-         "c02e99db655933431cf8f310c21eac4febaf380d",
+         "83ae8657c1c822b6cfc8f511089de88dfd2d8fdc",
          []
         ]
        },
@@ -239,18 +239,36 @@
          []
         ],
         "texture_zero_init_test.js": [
-         "e3c21011bb288492bd137be9e2e43b5efd02aa36",
+         "381d7dcb0a8e9574834629223308c7ef0e375b4b",
          []
         ]
        }
       },
       "validation": {
+       "copyBufferToBuffer.spec.js": [
+        "5fd4877383a47b1e3ca27af8e0843781dbf5a443",
+        []
+       ],
+       "copy_between_linear_data_and_texture": {
+        "copyBetweenLinearDataAndTexture.js": [
+         "0db6e68d4af6e395ba07157fd4b1ed0c567fd182",
+         []
+        ],
+        "copyBetweenLinearDataAndTexture_dataRelated.spec.js": [
+         "be1395b664276f13a728a60acee835d96753e6e1",
+         []
+        ],
+        "copyBetweenLinearDataAndTexture_textureRelated.spec.js": [
+         "bef71943fae2bc6f0dcaa4ae53b744190ccdc00c",
+         []
+        ]
+       },
        "createBindGroup.spec.js": [
         "fa585038e39ff6208787ee89bc177bdb13cdc385",
         []
        ],
        "createBindGroupLayout.spec.js": [
-        "9c0df538b278aaa38d11f3922b749799f72f4c3f",
+        "43fd923687b68d9214305b04ea1573e044245928",
         []
        ],
        "createPipelineLayout.spec.js": [
@@ -258,7 +276,7 @@
         []
        ],
        "createTexture.spec.js": [
-        "a9c7a8be01e03bcda1aa2f96374c30c0ce0bbe45",
+        "ceff54e136ff321bf22a8647790c3263404f6afc",
         []
        ],
        "createView.spec.js": [
@@ -266,11 +284,11 @@
         []
        ],
        "error_scope.spec.js": [
-        "5523237daeba5d0c1c292dd3da8dead86a99f8e4",
+        "64575540e8bde1545565389108067bf4b078cae9",
         []
        ],
        "fences.spec.js": [
-        "cc04848410fed9f20b863aadbedf3482787b6de9",
+        "b50ebae572d9af8f4edd3f82c051877b6068374e",
         []
        ],
        "queue_submit.spec.js": [
@@ -293,7 +311,7 @@
        ],
        "resource_usages": {
         "textureUsageInRender.spec.js": [
-         "6322ec25ee537584030c322ab99ec3d69e02b30e",
+         "12efa65ce2d9e9ed67cb2be398a0466424d38015",
          []
         ]
        },
@@ -318,13 +336,13 @@
         []
        ],
        "validation_test.js": [
-        "d816fd0594bd5097f4a7e3d2de91c3e0aa6e3f7b",
+        "c6cd14779bbb7b95e37bdb93d3f5be33902be6c2",
         []
        ]
       }
      },
      "capability_info.js": [
-      "2e4264fe229c11bb387d300cebce6a4e69780cd1",
+      "10a8c5aa4b62c05830eabb33734d866939258ade",
       []
      ],
      "examples.spec.js": [
@@ -332,23 +350,23 @@
       []
      ],
      "gpu_test.js": [
-      "92f0e41840bd8e74eda57bbeda60757af798e2f9",
+      "f350131af3babe9729dec35261f7c445e2bf41d2",
       []
      ],
      "idl": {
       "constants": {
        "flags.spec.js": [
-        "1de75c84e5daeaafd3ac47b31b6011223b03e360",
+        "51b80aa8aa23cb987079f6dd228bb0bb68816624",
         []
        ]
       },
       "idl_test.js": [
-       "231fc0945f87fe6aede03ec7a03c1ecaf7fe04db",
+       "3943563d2ac2c779e6cfb0ab033b92bca24e5749",
        []
       ]
      },
      "listing.js": [
-      "8736de378a6a02235dfff5796f4fe4a963769001",
+      "3134cf0dd5693705ed82f0828f4dbd93fedf358e",
       []
      ],
      "util": {
@@ -357,12 +375,12 @@
        []
       ],
       "math.js": [
-       "a76f1a00158ab50df82c74187de859dfbef41d60",
+       "4761467b586691662834dd0fbf3e86643a5eb823",
        []
       ],
       "texture": {
        "layout.js": [
-        "26d82a7be0aea4483b4b72d6faa2b9233a5f0039",
+        "c3c610bf0d93ebe66abf81d8f2017deba62641a3",
         []
        ],
        "subresource.js": [
@@ -370,7 +388,7 @@
         []
        ],
        "texelData.js": [
-        "8a827c47d21e1c1a89e081b2e70d1759c9208b0e",
+        "eadaa09633022e6c82355b07a4798c802c56a8e8",
         []
        ]
       }
@@ -383,7 +401,7 @@
        ]
       },
       "copyImageBitmapToTexture.spec.js": [
-       "1432ff05e1daa192d5898bf1c7f42e84008b23b4",
+       "9df5ff94419baa92ff27f8b39cdc0ee99439dc06",
        []
       ],
       "reftests": {
@@ -396,7 +414,7 @@
         []
        ],
        "gpu_ref_test.js": [
-        "dd58b543b01ec86c1a820d9d661a5c3f9b68b323",
+        "a45002835df48518eacb8d7887791ee200c3e3c1",
         []
        ],
        "ref": {
@@ -417,7 +435,7 @@
   "testharness": {
    "webgpu": {
     "cts.html": [
-     "e87ceb79a409fc3e3ddcccf38e48b865740e0809",
+     "28d69b38d20367b4c61e72e834f518a11e8de411",
      [
       "webgpu/cts.html?q=webgpu:api,operation,buffers,map_detach:*",
       {}
@@ -444,6 +462,18 @@
      ],
      [
       "webgpu/cts.html?q=webgpu:api,operation,render_pass,storeOp:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,copyBufferToBuffer:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,copy_between_linear_data_and_texture,copyBetweenLinearDataAndTexture_dataRelated:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,validation,copy_between_linear_data_and_texture,copyBetweenLinearDataAndTexture_textureRelated:*",
       {}
      ],
      [

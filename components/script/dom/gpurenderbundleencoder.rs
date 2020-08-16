@@ -15,6 +15,7 @@ use crate::dom::gpudevice::GPUDevice;
 use crate::dom::gpurenderbundle::GPURenderBundle;
 use crate::dom::gpurenderpipeline::GPURenderPipeline;
 use dom_struct::dom_struct;
+use std::borrow::Cow;
 use webgpu::{
     wgpu::command::{bundle_ffi as wgpu_bundle, RenderBundleEncoder},
     wgt, WebGPU, WebGPURenderBundle, WebGPURequest,
@@ -184,7 +185,11 @@ impl GPURenderBundleEncoderMethods for GPURenderBundleEncoder {
     /// https://gpuweb.github.io/gpuweb/#dom-gpurenderbundleencoder-finish
     fn Finish(&self, descriptor: &GPURenderBundleDescriptor) -> DomRoot<GPURenderBundle> {
         let desc = wgt::RenderBundleDescriptor {
-            label: descriptor.parent.label.as_ref().map(|s| s.to_string()),
+            label: descriptor
+                .parent
+                .label
+                .as_ref()
+                .map(|l| Cow::Owned(l.to_string())),
         };
         let encoder = self.render_bundle_encoder.borrow_mut().take().unwrap();
         let render_bundle_id = self

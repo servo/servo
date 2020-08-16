@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::{
     GPUExtent3DDict, GPUTextureDimension, GPUTextureFormat, GPUTextureMethods,
 };
 use crate::dom::bindings::codegen::Bindings::GPUTextureViewBinding::{
-    GPUTextureAspect, GPUTextureViewDescriptor, GPUTextureViewDimension,
+    GPUTextureAspect, GPUTextureViewDescriptor,
 };
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -16,10 +16,12 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpudevice::{convert_texture_format, convert_texture_view_dimension, GPUDevice};
 use crate::dom::gputextureview::GPUTextureView;
 use dom_struct::dom_struct;
+use std::borrow::Cow;
 use std::num::NonZeroU32;
 use std::string::String;
 use webgpu::{
-    identity::WebGPUOpResult, wgt, WebGPU, WebGPURequest, WebGPUTexture, WebGPUTextureView,
+    identity::WebGPUOpResult, wgpu::resource, wgt, WebGPU, WebGPURequest, WebGPUTexture,
+    WebGPUTextureView,
 };
 
 #[dom_struct]
@@ -123,23 +125,6 @@ impl GPUTextureMethods for GPUTexture {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gputexture-createview
     fn CreateView(&self, descriptor: &GPUTextureViewDescriptor) -> DomRoot<GPUTextureView> {
-        let dimension = if let Some(d) = descriptor.dimension {
-            d
-        } else {
-            match self.dimension {
-                GPUTextureDimension::_1d => GPUTextureViewDimension::_1d,
-                GPUTextureDimension::_2d => {
-                    if self.texture_size.depth > 1 && descriptor.arrayLayerCount.is_none() {
-                        GPUTextureViewDimension::_2d_array
-                    } else {
-                        GPUTextureViewDimension::_2d
-                    }
-                },
-                GPUTextureDimension::_3d => GPUTextureViewDimension::_3d,
-            }
-        };
-
-        let format = descriptor.format.unwrap_or(self.format);
         let scope_id = self.device.use_current_scope();
         let mut valid = true;
         let level_count = descriptor.mipLevelCount.and_then(|count| {
@@ -156,14 +141,16 @@ impl GPUTextureMethods for GPUTexture {
         });
 
         let desc = if valid {
-            Some(wgt::TextureViewDescriptor {
+            Some(resource::TextureViewDescriptor {
                 label: descriptor
                     .parent
                     .label
                     .as_ref()
-                    .map(|s| String::from(s.as_ref())),
-                format: convert_texture_format(format),
-                dimension: convert_texture_view_dimension(dimension),
+                    .map(|l| Cow::Owned(l.to_string())),
+                format: descriptor.format.map(|fr| convert_texture_format(fr)),
+                dimension: descriptor
+                    .dimension
+                    .map(|dm| convert_texture_view_dimension(dm)),
                 aspect: match descriptor.aspect {
                     GPUTextureAspect::All => wgt::TextureAspect::All,
                     GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
