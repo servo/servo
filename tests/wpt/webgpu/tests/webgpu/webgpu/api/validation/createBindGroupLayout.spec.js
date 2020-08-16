@@ -14,10 +14,10 @@ import {
   kShaderStageCombinations,
   kTextureBindingTypeInfo,
   kTextureComponentTypes,
-  kTextureFormats,
-  kTextureFormatInfo,
   kTextureViewDimensions,
   kTextureViewDimensionInfo,
+  kAllTextureFormats,
+  kAllTextureFormatInfo,
 } from '../../capability_info.js';
 
 import { ValidationTest } from './validation_test.js';
@@ -83,7 +83,7 @@ g.test('bindingTypeSpecific_optional_members')
         ...poptions('textureComponentType', kTextureComponentTypes),
         ...pbool('multisampled'),
         ...poptions('viewDimension', kTextureViewDimensions),
-        ...poptions('storageTextureFormat', kTextureFormats),
+        ...poptions('storageTextureFormat', kAllTextureFormats),
       ])
   )
   .fn(t => {
@@ -115,7 +115,10 @@ g.test('bindingTypeSpecific_optional_members')
       if (viewDimension !== undefined && !kTextureViewDimensionInfo[viewDimension].storage) {
         success = false;
       }
-      if (storageTextureFormat !== undefined && !kTextureFormatInfo[storageTextureFormat].storage) {
+      if (
+        storageTextureFormat !== undefined &&
+        !kAllTextureFormatInfo[storageTextureFormat].storage
+      ) {
         success = false;
       }
     }

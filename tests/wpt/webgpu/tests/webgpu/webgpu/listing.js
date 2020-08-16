@@ -125,6 +125,40 @@ export const listing = [
     "file": [
       "api",
       "validation",
+      "copyBufferToBuffer"
+    ],
+    "description": "copyBufferToBuffer tests.\n\nTest Plan:\n* Buffer is valid/invalid\n  - the source buffer is invalid\n  - the destination buffer is invalid\n* Buffer usages\n  - the source buffer is created without GPUBufferUsage::COPY_SRC\n  - the destination buffer is created without GPUBufferUsage::COPY_DEST\n* CopySize\n  - copySize is not a multiple of 4\n  - copySize is 0\n* copy offsets\n  - sourceOffset is not a multiple of 4\n  - destinationOffset is not a multiple of 4\n* Arthimetic overflow\n  - (sourceOffset + copySize) is overflow\n  - (destinationOffset + copySize) is overflow\n* Out of bounds\n  - (sourceOffset + copySize) > size of source buffer\n  - (destinationOffset + copySize) > size of destination buffer\n* Source buffer and destination buffer are the same buffer"
+  },
+  {
+    "file": [
+      "api",
+      "validation",
+      "copy_between_linear_data_and_texture"
+    ],
+    "readme": "writeTexture + copyBufferToTexture + copyTextureToBuffer validation tests.\n\nTest coverage:\n* resource usages:\n\t- texture_usage_must_be_valid: for GPUTextureUsage::COPY_SRC, GPUTextureUsage::COPY_DST flags.\n\t- TODO: buffer_usage_must_be_valid\n\n* textureCopyView:\n\t- texture_must_be_valid: for valid, destroyed, error textures.\n\t- sample_count_must_be_1: for sample count 1 and 4.\n\t- mip_level_must_be_in_range: for various combinations of mipLevel and mipLevelCount.\n\t- texel_block_alignment_on_origin: for all formats and coordinates.\n\n* bufferCopyView:\n\t- TODO: buffer_must_be_valid\n\t- TODO: bytes_per_row_alignment\n\n* linear texture data:\n\t- bound_on_rows_per_image: for various combinations of copyDepth (1, >1), copyHeight, rowsPerImage.\n\t- offset_plus_required_bytes_in_copy_overflow\n\t- required_bytes_in_copy: testing minimal data size and data size too small for various combinations of bytesPerRow, rowsPerImage, copyExtent and offset. for the copy method, bytesPerRow is computed as bytesInACompleteRow aligned to be a multiple of 256 + bytesPerRowPadding * 256.\n\t- texel_block_alignment_on_rows_per_image: for all formats.\n\t- texel_block_alignment_on_offset: for all formats.\n\t- bound_on_bytes_per_row: for all formats and various combinations of bytesPerRow and copyExtent. for writeTexture, bytesPerRow is computed as (blocksPerRow * blockWidth * bytesPerBlock + additionalBytesPerRow) and copyExtent.width is computed as copyWidthInBlocks * blockWidth. for the copy methods, both values are mutliplied by 256.\n\t- bound_on_offset: for various combinations of offset and dataSize.\n\n* texture copy range:\n\t- 1d_texture: copyExtent.height isn't 1, copyExtent.depth isn't 1.\n\t- texel_block_alignment_on_size: for all formats and coordinates.\n\t- texture_range_conditons: for all coordinate and various combinations of origin, copyExtent, textureSize and mipLevel.\n\nTODO: more test coverage for 1D and 3D textures."
+  },
+  {
+    "file": [
+      "api",
+      "validation",
+      "copy_between_linear_data_and_texture",
+      "copyBetweenLinearDataAndTexture_dataRelated"
+    ],
+    "description": ""
+  },
+  {
+    "file": [
+      "api",
+      "validation",
+      "copy_between_linear_data_and_texture",
+      "copyBetweenLinearDataAndTexture_textureRelated"
+    ],
+    "description": ""
+  },
+  {
+    "file": [
+      "api",
+      "validation",
       "createBindGroup"
     ],
     "description": "createBindGroup validation tests."
@@ -218,7 +252,7 @@ export const listing = [
       "resource_usages",
       "textureUsageInRender"
     ],
-    "description": "Texture Usages Validation Tests in Render Pass.\n\nTest Coverage:\n - Tests that read and write usages upon the same texture subresource, or different subresources\n   of the same texture. Different subresources of the same texture includes different mip levels,\n   different array layers, and different aspects.\n   - When read and write usages are binding to the same texture subresource, an error should be\n     generated. Otherwise, no error should be generated."
+    "description": "Texture Usages Validation Tests in Render Pass.\n\nTest Coverage:\n\n  - For each combination of two texture usages:\n    - For various subresource ranges (different mip levels or array layers) that overlap a given\n      subresources or not for color formats:\n      - Check that an error is generated when read-write or write-write usages are binding to the\n        same texture subresource. Otherwise, no error should be generated. One exception is race\n        condition upon two writeonly-storage-texture usages, which is valid.\n\n  - For each combination of two texture usages:\n    - For various aspects (all, depth-only, stencil-only) that overlap a given subresources or not\n      for depth/stencil formats:\n      - Check that an error is generated when read-write or write-write usages are binding to the\n        same aspect. Otherwise, no error should be generated.\n\n  - Test combinations of two shader stages:\n    - Texture usages in bindings with invisible shader stages should be tracked. Invisible shader\n      stages include shader stage with visibility none and compute shader stage in render pass."
   },
   {
     "file": [

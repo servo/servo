@@ -7,3 +7,5 @@
 export function isAligned(n, alignment) {
   return n === align(n, alignment);
 }
+
+export const kMaxSafeMultipleOf8 = Number.MAX_SAFE_INTEGER - 7;

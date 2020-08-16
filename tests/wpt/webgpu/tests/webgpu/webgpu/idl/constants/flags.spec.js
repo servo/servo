@@ -3,57 +3,83 @@
  **/ export const description = `
 Test the values of flags interfaces (e.g. GPUTextureUsage).
 `;
+import { poptions } from '../../../common/framework/params_builder.js';
 import { makeTestGroup } from '../../../common/framework/test_group.js';
 import { IDLTest } from '../idl_test.js';
 
 export const g = makeTestGroup(IDLTest);
 
-g.test('BufferUsage').fn(t => {
-  const expected = {
-    MAP_READ: 0x0001,
-    MAP_WRITE: 0x0002,
-    COPY_SRC: 0x0004,
-    COPY_DST: 0x0008,
-    INDEX: 0x0010,
-    VERTEX: 0x0020,
-    UNIFORM: 0x0040,
-    STORAGE: 0x0080,
-    INDIRECT: 0x0100,
-  };
+const kBufferUsageExp = {
+  MAP_READ: 0x0001,
+  MAP_WRITE: 0x0002,
+  COPY_SRC: 0x0004,
+  COPY_DST: 0x0008,
+  INDEX: 0x0010,
+  VERTEX: 0x0020,
+  UNIFORM: 0x0040,
+  STORAGE: 0x0080,
+  INDIRECT: 0x0100,
+  QUERY_RESOLVE: 0x0200,
+};
 
-  t.assertMembers(GPUBufferUsage, expected);
+g.test('BufferUsage,count').fn(t => {
+  t.assertMemberCount(GPUBufferUsage, kBufferUsageExp);
 });
+g.test('BufferUsage,values')
+  .params(poptions('key', Object.keys(kBufferUsageExp)))
+  .fn(t => {
+    const { key } = t.params;
+    t.assertMember(GPUBufferUsage, kBufferUsageExp, key);
+  });
 
-g.test('TextureUsage').fn(t => {
-  const expected = {
-    COPY_SRC: 0x01,
-    COPY_DST: 0x02,
-    SAMPLED: 0x04,
-    STORAGE: 0x08,
-    OUTPUT_ATTACHMENT: 0x10,
-  };
+const kTextureUsageExp = {
+  COPY_SRC: 0x01,
+  COPY_DST: 0x02,
+  SAMPLED: 0x04,
+  STORAGE: 0x08,
+  OUTPUT_ATTACHMENT: 0x10,
+};
 
-  t.assertMembers(GPUTextureUsage, expected);
+g.test('TextureUsage,count').fn(t => {
+  t.assertMemberCount(GPUTextureUsage, kTextureUsageExp);
 });
+g.test('TextureUsage,values')
+  .params(poptions('key', Object.keys(kTextureUsageExp)))
+  .fn(t => {
+    const { key } = t.params;
+    t.assertMember(GPUTextureUsage, kTextureUsageExp, key);
+  });
 
-g.test('ColorWrite').fn(t => {
-  const expected = {
-    RED: 0x1,
-    GREEN: 0x2,
-    BLUE: 0x4,
-    ALPHA: 0x8,
-    ALL: 0xf,
-  };
+const kColorWriteExp = {
+  RED: 0x1,
+  GREEN: 0x2,
+  BLUE: 0x4,
+  ALPHA: 0x8,
+  ALL: 0xf,
+};
 
-  t.assertMembers(GPUColorWrite, expected);
+g.test('ColorWrite,count').fn(t => {
+  t.assertMemberCount(GPUColorWrite, kColorWriteExp);
 });
+g.test('ColorWrite,values')
+  .params(poptions('key', Object.keys(kColorWriteExp)))
+  .fn(t => {
+    const { key } = t.params;
+    t.assertMember(GPUColorWrite, kColorWriteExp, key);
+  });
 
-g.test('ShaderStage').fn(t => {
-  const expected = {
-    VERTEX: 0x1,
-    FRAGMENT: 0x2,
-    COMPUTE: 0x4,
-  };
+const kShaderStageExp = {
+  VERTEX: 0x1,
+  FRAGMENT: 0x2,
+  COMPUTE: 0x4,
+};
 
-  t.assertMembers(GPUShaderStage, expected);
+g.test('ShaderStage,count').fn(t => {
+  t.assertMemberCount(GPUShaderStage, kShaderStageExp);
 });
+g.test('ShaderStage,values')
+  .params(poptions('key', Object.keys(kShaderStageExp)))
+  .fn(t => {
+    const { key } = t.params;
+    t.assertMember(GPUShaderStage, kShaderStageExp, key);
+  });
