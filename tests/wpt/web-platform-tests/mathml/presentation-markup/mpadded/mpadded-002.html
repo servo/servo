@@ -48,8 +48,8 @@
 
     test(function() {
       var mpadded = getBox("percentages");
-      assert_equals(mpadded.width, contentWidth / 2, "width");
-      assert_approx_equals(getBox("baseline").bottom - mpadded.top, contentHeight / 3, epsilon, "height");
+      assert_equals(mpadded.width, contentWidth, "width");
+      assert_approx_equals(getBox("baseline").bottom - mpadded.top, contentHeight, epsilon, "height");
       assert_approx_equals(mpadded.bottom - getBox("baseline").bottom, contentDepth, epsilon, "depth");
     }, "Percentage calculation for width, height and depth");
 
@@ -133,7 +133,7 @@ div.shrink-wrap {
       <mpadded id="height0" height="25px"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
       <mpadded id="height1" height="50px"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
       <mpadded id="height2" height="75px"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
-      <mpadded id="percentages" width="50%" height="33%" depth="100%"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
+      <mpadded id="percentages" width="50%" height="33%" depth="10%"><mspace width="100px" depth="125px" height="150px" style="background: black; opacity: .5"/></mpadded>
     </math>
   </p>
   <p>
