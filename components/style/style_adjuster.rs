@@ -162,6 +162,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///        user-select: none;
     ///        pointer-events: none;
     ///        cursor: default;
+    ///
+    /// NOTE: If this or the pointer-events tweak is removed, then
+    /// minimal-xul.css and the scrollbar style caching need to be tweaked.
     fn adjust_for_inert(&mut self) {
         use properties::longhands::_moz_inert::computed_value::T as Inert;
         use properties::longhands::_moz_user_focus::computed_value::T as UserFocus;
