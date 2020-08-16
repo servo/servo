@@ -159,6 +159,24 @@ promise_test(t => {
 
 test(() => {
   assert_throws_js(TypeError, () => new WritableStream({
+    start: 'test'
+  }), 'constructor should throw');
+}, 'start: non-function start method');
+
+test(() => {
+  assert_throws_js(TypeError, () => new WritableStream({
+    write: 'test'
+  }), 'constructor should throw');
+}, 'write: non-function write method');
+
+test(() => {
+  assert_throws_js(TypeError, () => new WritableStream({
+    close: 'test'
+  }), 'constructor should throw');
+}, 'close: non-function close method');
+
+test(() => {
+  assert_throws_js(TypeError, () => new WritableStream({
     abort: { apply() {} }
   }), 'constructor should throw');
 }, 'abort: non-function abort method with .apply');

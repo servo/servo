@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<title>Test the VideoTrackReader API.</title>
+<body>
+  <img id='frame_image' src="pattern.png">
+</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<script>
+
+async function generateBitmap(width, height) {
+  return createImageBitmap(document.getElementById('frame_image'),
+                                  { resizeWidth: width,
+                                    resizeHeight: height });
+}
+
+async function createVideoFrame(width, height, timestamp) {
+  let bitmap = await generateBitmap(width, height);
+  return new VideoFrame(bitmap, { timestamp: timestamp });
+}
+
+// Calls done after giving async output/error callbacks a final chance to run.
+async function asyncDone(test) {
+  test.step_timeout(test.done.bind(test), 0);
+}
+
+async_test(async (t) => {
+  // VideoEncoderInit lacks required fields.
+  assert_throws_js(TypeError, () => { new VideoEncoder({}); });
+
+  // VideoEncoderInit has required fields.
+  let encoder = new VideoEncoder({
+    output(chunk) { assert_unreached("Unexpected output");  },
+    error(error) { assert_unreached("Unexpected error:" + error); },
+  });
+  encoder.close();
+
+  asyncDone(t);
+}, 'Test VideoEncoder construction');
+
+async_test(async (t) => {
+  let encoder = new VideoEncoder({
+    output(chunk) { assert_unreached("Unexpected output");  },
+    error(error) { assert_unreached("Unexpected error:" + error); },
+  });
+
+  const requiredConfigPairs = {
+    codec: 'vp8',
+    framerate: 25,
+    width: 640,
+    height: 480
+  };
+  let incrementalConfig = {};
+
+  for (let key in requiredConfigPairs) {
+    // Configure  should fail while required keys are missing.
+    assert_throws_js(TypeError, () => { encoder.configure(incrementalConfig); });
+    incrementalConfig[key] = requiredConfigPairs[key];
+  }
+
+  // Configure should pass once incrementalConfig meets all requirements.
+  encoder.configure(incrementalConfig);
+
+  encoder.configure(incrementalConfig);
+
+  encoder.close();
+
+  asyncDone(t);
+}, 'Test VideoEncoder.configure()');
+
+async_test(async (t) => {
+  let encoder = new VideoEncoder({
+    output(chunk) { assert_unreached("Unexpected output"); },
+    error(error) { assert_unreached("Unexpected error:" + error); },
+  });
+
+  let videoFrame = await createVideoFrame(640, 480, 0);
+
+  assert_throws_dom('InvalidStateError',
+                    () => { encoder.encode(videoFrame); },
+                    'first encode');
+
+  // Once more for good measure.
+  assert_throws_dom('InvalidStateError',
+                    () => { encoder.encode(videoFrame); },
+                    'second encode');
+
+  encoder.close();
+
+  asyncDone(t);
+}, 'Test encode() before configure() throws InvalidStateError.');
+
+async_test(async (t) => {
+  let output_chunks = [];
+  let encoder = new VideoEncoder({
+    output(chunk) { output_chunks.push(chunk); },
+    error(error) { assert_unreached("Unexpected error:" + error); },
+  });
+
+  // No encodes yet.
+  assert_equals(encoder.encodeQueueSize, 0);
+
+  const config = {
+    codec: 'vp8',
+    framerate: 25,
+    width: 640,
+    height: 480
+  };
+  encoder.configure(config);
+
+  // Still no encodes.
+  assert_equals(encoder.encodeQueueSize, 0);
+
+  let frame1 = await createVideoFrame(640, 480, 0);
+  let frame2 = await createVideoFrame(640, 480, 33333);
+
+  encoder.encode(frame1);
+  encoder.encode(frame2);
+
+  // Could be 0, 1, or 2. We can't guarantee this check runs before the UA has
+  // processed the encodes.
+  assert_true(encoder.encodeQueueSize >= 0 && encoder.encodeQueueSize <= 2)
+
+  await encoder.flush();
+
+  // We can guarantee that all encodes are processed after a flush.
+  assert_equals(encoder.encodeQueueSize, 0);
+
+  assert_equals(output_chunks.length, 2);
+  assert_equals(output_chunks[0].timestamp, frame1.timestamp);
+  assert_equals(output_chunks[1].timestamp, frame2.timestamp);
+
+  encoder.close();
+
+  asyncDone(t);
+}, 'Test successful configure(), encode(), and flush()');
+</script>
+</html>
