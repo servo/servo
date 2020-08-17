@@ -197,7 +197,7 @@ class FileHandler(object):
             raise HTTPException(404)
 
     def get_headers(self, request, path):
-        rv = (self.load_headers(request, os.path.join(os.path.split(path)[0], "__dir__")) +
+        rv = (self.load_headers(request, os.path.join(os.path.dirname(path), "__dir__")) +
               self.load_headers(request, path))
 
         if not any(key.lower() == b"content-type" for (key, _) in rv):

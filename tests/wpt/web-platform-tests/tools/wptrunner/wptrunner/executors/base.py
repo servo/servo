@@ -16,7 +16,7 @@ from ..testrunner import Stop
 from .actions import actions
 from .protocol import Protocol, BaseProtocolPart
 
-here = os.path.split(__file__)[0]
+here = os.path.dirname(__file__)
 
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,

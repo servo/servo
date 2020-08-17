@@ -12,7 +12,7 @@ errors = None
 marionette = None
 pytestrunner = None
 
-here = os.path.join(os.path.split(__file__)[0])
+here = os.path.dirname(__file__)
 
 from .base import (CallbackHandler,
                    CrashtestExecutor,

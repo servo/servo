@@ -11,7 +11,7 @@ import textwrap
 
 from setuptools import setup, find_packages
 
-here = os.path.split(__file__)[0]
+here = os.path.dirname(__file__)
 
 PACKAGE_NAME = 'wptrunner'
 PACKAGE_VERSION = '1.14'

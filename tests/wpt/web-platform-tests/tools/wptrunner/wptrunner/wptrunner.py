@@ -19,7 +19,7 @@ from .font import FontInstaller
 from .testrunner import ManagerGroup
 from .browsers.base import NullBrowser
 
-here = os.path.split(__file__)[0]
+here = os.path.dirname(__file__)
 
 logger = None
 

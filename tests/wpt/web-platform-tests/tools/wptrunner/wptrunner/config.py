@@ -3,7 +3,7 @@ import os
 import sys
 from collections import OrderedDict
 
-here = os.path.split(__file__)[0]
+here = os.path.dirname(__file__)
 
 class ConfigDict(dict):
     def __init__(self, base_path, *args, **kwargs):
@@ -19,7 +19,7 @@ class ConfigDict(dict):
 
 def read(config_path):
     config_path = os.path.abspath(config_path)
-    config_root = os.path.split(config_path)[0]
+    config_root = os.path.dirname(config_path)
     parser = SafeConfigParser()
     success = parser.read(config_path)
     assert config_path in success, success

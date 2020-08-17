@@ -1,7 +1,7 @@
 import os
 from six.moves import cPickle as pickle  # noqa: N813
 
-here = os.path.abspath(os.path.split(__file__)[0])
+here = os.path.abspath(os.path.dirname(__file__))
 
 class BaseState(object):
     def __new__(cls, logger):

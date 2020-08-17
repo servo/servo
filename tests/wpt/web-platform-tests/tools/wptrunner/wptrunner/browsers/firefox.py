@@ -30,7 +30,7 @@ from ..executors.executormarionette import (MarionetteTestharnessExecutor,  # no
 from ..process import cast_env
 
 
-here = os.path.join(os.path.split(__file__)[0])
+here = os.path.dirname(__file__)
 
 __wptrunner__ = {"product": "firefox",
                  "check_args": "check_args",

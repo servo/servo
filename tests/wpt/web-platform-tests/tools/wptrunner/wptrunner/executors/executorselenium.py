@@ -24,7 +24,7 @@ from .protocol import (BaseProtocolPart,
                        TestDriverProtocolPart)
 from ..testrunner import Stop
 
-here = os.path.join(os.path.split(__file__)[0])
+here = os.path.dirname(__file__)
 
 webdriver = None
 exceptions = None

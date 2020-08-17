@@ -14,7 +14,7 @@ from __future__ import print_function
 import os
 import sys
 
-here = os.path.abspath(os.path.split(__file__)[0])
+here = os.path.abspath(os.path.dirname(__file__))
 repo_root = os.path.abspath(os.path.join(here, os.pardir, os.pardir))
 
 sys.path.insert(0, os.path.join(repo_root, "tools"))

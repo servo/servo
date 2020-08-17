@@ -20,7 +20,7 @@ def assetName(path):
 def basepath(path):
   """ Returns the path part of os.path.split.
   """
-  return os.path.split(path)[0]
+  return os.path.dirname(path)
 
 def isPathInsideBase(path, base=''):
   path = os.path.normpath(path)

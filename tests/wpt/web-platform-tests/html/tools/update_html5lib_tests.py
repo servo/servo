@@ -37,7 +37,7 @@ When you are done, type "deactivate" to deactivate the virtual environment.
 TESTS_PATH = "html/syntax/parsing/"
 
 def get_paths():
-    script_path = os.path.split(os.path.abspath(__file__))[0]
+    script_path = os.path.dirname(os.path.abspath(__file__))
     repo_base = get_repo_base(script_path)
     tests_path = os.path.join(repo_base, TESTS_PATH)
     return script_path, tests_path
@@ -47,7 +47,7 @@ def get_repo_base(path):
         if os.path.exists(os.path.join(path, ".git")):
             return path
         else:
-            path = os.path.split(path)[0]
+            path = os.path.dirname(path)
 
 def get_expected(data):
     data = "#document\n" + data
@@ -100,7 +100,7 @@ def make_tests(script_dir, out_dir, input_file_name, test_data):
 
 def write_test_file(script_dir, out_dir, tests, file_name, template_file_name):
     file_name = os.path.join(out_dir, file_name + ".html")
-    short_name = os.path.split(file_name)[1]
+    short_name = os.path.basename(file_name)
 
     with open(os.path.join(script_dir, template_file_name), "r") as f:
         template = MarkupTemplate(f)
@@ -139,7 +139,7 @@ def main():
                         os.path.join("tree-construction", "scripted")))))
 
     for (scripted, test_file) in test_iterator:
-        input_file_name = os.path.splitext(os.path.split(test_file)[1])[0]
+        input_file_name = os.path.splitext(os.path.basename(test_file))[0]
         if scripted:
             input_file_name = "scripted_" + input_file_name
         test_data = support.TestData(test_file)

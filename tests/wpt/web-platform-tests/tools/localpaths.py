@@ -1,7 +1,7 @@
 import os
 import sys
 
-here = os.path.abspath(os.path.split(__file__)[0])
+here = os.path.abspath(os.path.dirname(__file__))
 
 sys.path.insert(0, os.path.join(here))
 sys.path.insert(0, os.path.join(here, "wptserve"))
