@@ -30,7 +30,6 @@
         "computed::LengthPercentageOrAuto::auto()",
         engines="gecko servo-2013 servo-2020",
         spec="https://drafts.csswg.org/css-logical-props/#propdef-inset-%s" % side,
-        alias="offset-%s:layout.css.offset-logical-properties.enabled" % side,
         animation_value_type="ComputedValue",
         logical=True,
         logical_group="inset",
