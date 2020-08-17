@@ -13,7 +13,7 @@ from ..executors.executorservodriver import (ServoWebDriverTestharnessExecutor, 
                                              ServoWebDriverRefTestExecutor)  # noqa: F401
 from ..process import cast_env
 
-here = os.path.join(os.path.split(__file__)[0])
+here = os.path.dirname(__file__)
 
 __wptrunner__ = {
     "product": "servodriver",

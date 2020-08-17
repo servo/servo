@@ -6,7 +6,7 @@ import plistlib
 from shutil import copy2, rmtree
 from subprocess import call, check_output
 
-HERE = os.path.split(__file__)[0]
+HERE = os.path.dirname(__file__)
 SYSTEM = platform.system().lower()
 
 

@@ -3,7 +3,7 @@ import os
 
 from wptserve.utils import isomorphic_decode
 
-here = os.path.split(os.path.abspath(isomorphic_decode(__file__)))[0]
+here = os.path.dirname(os.path.abspath(isomorphic_decode(__file__)))
 
 def main(request, response):
     auth = imp.load_source(u"", os.path.join(here,

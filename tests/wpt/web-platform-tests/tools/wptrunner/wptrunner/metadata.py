@@ -320,7 +320,7 @@ def write_new_expected(metadata_path, expected):
         manifest_str = wptmanifest.serialize(expected.node,
                                              skip_empty_data=True)
         assert manifest_str != ""
-        dir = os.path.split(path)[0]
+        dir = os.path.dirname(path)
         if not os.path.exists(dir):
             os.makedirs(dir)
         tmp_path = path + ".tmp"

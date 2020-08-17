@@ -20,7 +20,7 @@ from ..executors import executor_kwargs as base_executor_kwargs
 from ..executors.executorselenium import (SeleniumTestharnessExecutor,  # noqa: F401
                                           SeleniumRefTestExecutor)  # noqa: F401
 
-here = os.path.split(__file__)[0]
+here = os.path.dirname(__file__)
 # Number of seconds to wait between polling operations when detecting status of
 # Sauce Connect sub-process.
 sc_poll_period = 1

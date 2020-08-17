@@ -7,7 +7,7 @@ from six import iteritems
 
 from ..wptcommandline import require_arg  # noqa: F401
 
-here = os.path.split(__file__)[0]
+here = os.path.dirname(__file__)
 
 
 def inherit(super_module, child_globals, product_name):

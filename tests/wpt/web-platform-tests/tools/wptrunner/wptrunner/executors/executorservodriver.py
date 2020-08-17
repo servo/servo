@@ -16,7 +16,7 @@ from ..webdriver_server import wait_for_service
 webdriver = None
 ServoCommandExtensions = None
 
-here = os.path.join(os.path.split(__file__)[0])
+here = os.path.dirname(__file__)
 
 
 def do_delayed_imports():

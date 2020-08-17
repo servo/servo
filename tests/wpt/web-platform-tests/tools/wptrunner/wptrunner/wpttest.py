@@ -135,7 +135,7 @@ class RunInfo(dict):
             if path in dirs:
                 break
             dirs.add(str(path))
-            path = os.path.split(path)[0]
+            path = os.path.dirname(path)
 
         mozinfo.find_and_update_from_json(*dirs)
 

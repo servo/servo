@@ -31,6 +31,6 @@ def main(request, response):
         elif handler == b"redirect":
             return run_other(request, response, os.path.join(request.doc_root, u"common", u"redirect.py"))
         else:
-            return run_other(request, response, os.path.join(os.path.split(isomorphic_decode(__file__))[0], isomorphic_decode(handler) + u".py"))
+            return run_other(request, response, os.path.join(os.path.dirname(isomorphic_decode(__file__)), isomorphic_decode(handler) + u".py"))
     else:
         return
