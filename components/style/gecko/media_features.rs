@@ -313,8 +313,8 @@ fn eval_prefers_reduced_motion(device: &Device, query_value: Option<PrefersReduc
 #[repr(u8)]
 #[allow(missing_docs)]
 enum PrefersContrast {
-    High,
-    Low,
+    More,
+    Less,
     NoPreference,
     Forced,
 }
@@ -326,12 +326,11 @@ enum PrefersContrast {
 #[derive(Clone, Copy, Debug, FromPrimitive, PartialEq)]
 #[repr(u8)]
 pub enum ContrastPref {
-    /// High contrast is prefered. Corresponds to an accessibility theme
+    /// More contrast is prefered. Corresponds to an accessibility theme
     /// being enabled or firefox forcing high contrast colors.
-    High,
-    /// Low contrast is prefered. Corresponds to the
-    /// browser.display.prefers_low_contrast pref being true.
-    Low,
+    More,
+    /// Low contrast is prefered.
+    Less,
     /// The default value if neither high or low contrast is enabled.
     NoPreference,
 }
@@ -344,8 +343,8 @@ fn eval_prefers_contrast(device: &Device, query_value: Option<PrefersContrast>) 
     if let Some(query_value) = query_value {
         match query_value {
             PrefersContrast::Forced => forced_colors,
-            PrefersContrast::High => contrast_pref == ContrastPref::High,
-            PrefersContrast::Low => contrast_pref == ContrastPref::Low,
+            PrefersContrast::More => contrast_pref == ContrastPref::More,
+            PrefersContrast::Less => contrast_pref == ContrastPref::Less,
             PrefersContrast::NoPreference => contrast_pref == ContrastPref::NoPreference,
         }
     } else {
