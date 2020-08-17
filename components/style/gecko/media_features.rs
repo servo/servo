@@ -353,6 +353,26 @@ fn eval_prefers_contrast(device: &Device, query_value: Option<PrefersContrast>) 
     }
 }
 
+/// Possible values for the forced-colors media query.
+/// https://drafts.csswg.org/mediaqueries-5/#forced-colors
+#[derive(Clone, Copy, Debug, FromPrimitive, PartialEq, Parse, ToCss)]
+#[repr(u8)]
+pub enum ForcedColors {
+    /// Page colors are not being forced.
+    None,
+    /// Page colors are being forced.
+    Active,
+}
+
+/// https://drafts.csswg.org/mediaqueries-5/#forced-colors
+fn eval_forced_colors(device: &Device, query_value: Option<ForcedColors>) -> bool {
+    let forced = !device.use_document_colors();
+    match query_value {
+        Some(query_value) => forced == (query_value == ForcedColors::Active),
+        None => forced,
+    }
+}
+
 #[derive(Clone, Copy, Debug, FromPrimitive, Parse, ToCss)]
 #[repr(u8)]
 enum OverflowBlock {
@@ -593,7 +613,7 @@ macro_rules! system_metric_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [MediaFeatureDescription; 54] = [
+pub static MEDIA_FEATURES: [MediaFeatureDescription; 55] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -720,6 +740,12 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 54] = [
         // layout.css.prefers-contrast.enabled preference. See
         // disabed_by_pref in media_feature_expression.rs for how that
         // is done.
+        ParsingRequirements::empty(),
+    ),
+    feature!(
+        atom!("forced-colors"),
+        AllowsRanges::No,
+        keyword_evaluator!(eval_forced_colors, ForcedColors),
         ParsingRequirements::empty(),
     ),
     feature!(

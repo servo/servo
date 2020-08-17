@@ -224,6 +224,9 @@ fn disabled_by_pref(feature: &Atom, context: &ParserContext) -> bool {
         if *feature == atom!("-moz-touch-enabled") {
             return !static_prefs::pref!("layout.css.moz-touch-enabled.enabled");
         }
+        if *feature == atom!("forced-colors") {
+            return !static_prefs::pref!("layout.css.forced-colors.enabled");
+        }
         // prefers-contrast is always enabled in the ua and chrome. On
         // the web it is hidden behind a preference.
         if *feature == atom!("prefers-contrast") {
