@@ -51,6 +51,96 @@ test(() => {
 }, 'The timeout field is optional.');
 
 test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        instrumentId: 'x',
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }, {supportedMethods: 'basic-card'}], details);
+  });
+}, 'Extra payment method not allowed afterward.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{supportedMethods: 'basic-card'}, {
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        instrumentId: 'x',
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details);
+  });
+}, 'Extra payment method not allowed beforehand.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        instrumentId: 'x',
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details, {requestShipping: true});
+  });
+}, 'Cannot request shipping information.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        instrumentId: 'x',
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details, {requestPayerName: true});
+  });
+}, 'Cannot request payer name.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        instrumentId: 'x',
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details, {requestPayerEmail: true});
+  });
+}, 'Cannot request payer email.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        instrumentId: 'x',
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details, {requestPayerPhone: true});
+  });
+}, 'Cannot request payer phone.');
+
+test(() => {
   assert_throws_js(TypeError, () => {
     new PaymentRequest([{
       supportedMethods: 'secure-payment-confirmation',

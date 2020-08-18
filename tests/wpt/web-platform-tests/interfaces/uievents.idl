@@ -162,3 +162,9 @@ partial interface KeyboardEvent {
   readonly attribute unsigned long charCode;
   readonly attribute unsigned long keyCode;
 };
+
+partial dictionary KeyboardEventInit {
+  // The following support legacy user agents
+  unsigned long charCode = 0;
+  unsigned long keyCode = 0;
+};

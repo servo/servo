@@ -2,6 +2,8 @@ import base64
 
 import pytest
 
+from six import ensure_binary
+
 from tests.support.asserts import assert_error, assert_success
 from tests.support.inline import inline
 
@@ -13,8 +15,8 @@ def do_print(session, options):
 
 
 def assert_pdf(data):
-    assert data.startswith("%PDF-"), "Decoded data starts with the PDF signature"
-    assert data.endswith("%%EOF\n"), "Decoded data ends with the EOF flag"
+    assert data.startswith(b"%PDF-"), "Decoded data starts with the PDF signature"
+    assert data.endswith(b"%%EOF\n"), "Decoded data ends with the EOF flag"
 
 
 def test_no_browsing_context(session, closed_window):
@@ -31,7 +33,7 @@ def test_html_document(session):
         "shrinkToFit": False
     })
     value = assert_success(response)
-    pdf = base64.decodestring(value)
+    pdf = base64.decodestring(ensure_binary(value))
     # TODO: Test that the output is reasonable
     assert_pdf(pdf)
 
