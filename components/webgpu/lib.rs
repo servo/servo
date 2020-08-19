@@ -36,7 +36,7 @@ use wgpu::{
         BufferCopyView, ComputePass, RenderBundleDescriptor, RenderBundleEncoder, RenderPass,
         TextureCopyView,
     },
-    device::HostMap,
+    device::{HostMap, ImplicitPipelineIds},
     id,
     instance::RequestAdapterOptions,
     pipeline::{ComputePipelineDescriptor, RenderPipelineDescriptor},
@@ -141,6 +141,7 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         compute_pipeline_id: id::ComputePipelineId,
         descriptor: ComputePipelineDescriptor<'static>,
+        implicit_ids: Option<(id::PipelineLayoutId, Vec<id::BindGroupLayoutId>)>,
     },
     CreateContext(IpcSender<webrender_api::ExternalImageId>),
     CreatePipelineLayout {
@@ -152,6 +153,7 @@ pub enum WebGPURequest {
         device_id: id::DeviceId,
         render_pipeline_id: id::RenderPipelineId,
         descriptor: Option<RenderPipelineDescriptor<'static>>,
+        implicit_ids: Option<(id::PipelineLayoutId, Vec<id::BindGroupLayoutId>)>,
     },
     CreateSampler {
         device_id: id::DeviceId,
@@ -611,13 +613,34 @@ impl<'a> WGPU<'a> {
                         device_id,
                         compute_pipeline_id,
                         descriptor,
+                        implicit_ids,
                     } => {
                         let global = &self.global;
-                        let result = gfx_select!(compute_pipeline_id =>
-                            global.device_create_compute_pipeline(device_id, &descriptor, compute_pipeline_id, None));
+                        let bgls = implicit_ids
+                            .as_ref()
+                            .map_or(Vec::with_capacity(0), |(_, bgls)| bgls.clone());
+                        let implicit =
+                            implicit_ids
+                                .as_ref()
+                                .map(|(layout, _)| ImplicitPipelineIds {
+                                    root_id: *layout,
+                                    group_ids: bgls.as_slice(),
+                                });
+                        let result = gfx_select!(compute_pipeline_id => global.device_create_compute_pipeline(
+                            device_id,
+                            &descriptor,
+                            compute_pipeline_id,
+                            implicit
+                        ));
                         if result.is_err() {
                             let _ = gfx_select!(compute_pipeline_id =>
                                 global.compute_pipeline_error(compute_pipeline_id));
+                            if let Some((layout, bgls)) = implicit_ids {
+                                let _ = gfx_select!(layout => global.pipeline_layout_error(layout));
+                                bgls.iter().for_each(|&bgl| {
+                                    let _ = gfx_select!(bgl => global.bind_group_layout_error(bgl));
+                                });
+                            }
                         }
                         self.send_result(device_id, scope_id, result);
                     },
@@ -648,14 +671,32 @@ impl<'a> WGPU<'a> {
                         device_id,
                         render_pipeline_id,
                         descriptor,
+                        implicit_ids,
                     } => {
                         let global = &self.global;
+                        let bgls = implicit_ids
+                            .as_ref()
+                            .map_or(Vec::with_capacity(0), |(_, bgls)| bgls.clone());
+                        let implicit =
+                            implicit_ids
+                                .as_ref()
+                                .map(|(layout, _)| ImplicitPipelineIds {
+                                    root_id: *layout,
+                                    group_ids: bgls.as_slice(),
+                                });
                         if let Some(desc) = descriptor {
                             let result = gfx_select!(render_pipeline_id =>
-                            global.device_create_render_pipeline(device_id, &desc, render_pipeline_id, None));
+                            global.device_create_render_pipeline(device_id, &desc, render_pipeline_id, implicit));
                             if result.is_err() {
                                 let _ = gfx_select!(render_pipeline_id =>
                                     global.render_pipeline_error(render_pipeline_id));
+                                if let Some((layout, bgls)) = implicit_ids {
+                                    let _ =
+                                        gfx_select!(layout => global.pipeline_layout_error(layout));
+                                    bgls.iter().for_each(|&bgl| {
+                                        let _ = gfx_select!(bgl => global.bind_group_layout_error(bgl));
+                                    });
+                                }
                             }
                             self.send_result(device_id, scope_id, result);
                         } else {

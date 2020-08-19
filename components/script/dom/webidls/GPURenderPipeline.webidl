@@ -7,6 +7,7 @@
 interface GPURenderPipeline {
 };
 GPURenderPipeline includes GPUObjectBase;
+GPURenderPipeline includes GPUPipelineBase;
 
 dictionary GPURenderPipelineDescriptor : GPUPipelineDescriptorBase {
     required GPUProgrammableStageDescriptor vertexStage;

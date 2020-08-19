@@ -7,6 +7,7 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventInit;
 use crate::dom::bindings::codegen::Bindings::EventTargetBinding::EventTargetMethods;
+use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::GPULimits;
 use crate::dom::bindings::codegen::Bindings::GPUBindGroupBinding::{
     GPUBindGroupDescriptor, GPUBindingResource,
 };
@@ -18,6 +19,7 @@ use crate::dom::bindings::codegen::Bindings::GPUComputePipelineBinding::GPUCompu
 use crate::dom::bindings::codegen::Bindings::GPUDeviceBinding::{
     GPUCommandEncoderDescriptor, GPUDeviceMethods,
 };
+use crate::dom::bindings::codegen::Bindings::GPUObjectBaseBinding::GPUObjectDescriptorBase;
 use crate::dom::bindings::codegen::Bindings::GPUPipelineLayoutBinding::GPUPipelineLayoutDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPURenderBundleEncoderBinding::GPURenderBundleEncoderDescriptor;
 use crate::dom::bindings::codegen::Bindings::GPURenderPipelineBinding::{
@@ -73,7 +75,9 @@ use std::collections::HashMap;
 use std::ptr::NonNull;
 use std::rc::Rc;
 use webgpu::wgpu::{
-    binding_model as wgpu_bind, command as wgpu_com, pipeline as wgpu_pipe, resource as wgpu_res,
+    binding_model as wgpu_bind, command as wgpu_com,
+    id::{BindGroupLayoutId, PipelineLayoutId},
+    pipeline as wgpu_pipe, resource as wgpu_res,
 };
 use webgpu::{self, identity::WebGPUOpResult, wgt, ErrorScopeId, WebGPU, WebGPURequest};
 
@@ -278,6 +282,38 @@ impl GPUDevice {
             })
         })
     }
+
+    fn get_pipeline_layout_data(
+        &self,
+        layout: &Option<DomRoot<GPUPipelineLayout>>,
+    ) -> (
+        Option<PipelineLayoutId>,
+        Option<(PipelineLayoutId, Vec<BindGroupLayoutId>)>,
+        Vec<webgpu::WebGPUBindGroupLayout>,
+    ) {
+        if let Some(ref layout) = layout {
+            (Some(layout.id().0), None, layout.bind_group_layouts())
+        } else {
+            let layout_id = self
+                .global()
+                .wgpu_id_hub()
+                .lock()
+                .create_pipeline_layout_id(self.device.0.backend());
+            let max_bind_grps = GPULimits::empty().maxBindGroups;
+            let mut bgls = Vec::with_capacity(max_bind_grps as usize);
+            let mut bgl_ids = Vec::with_capacity(max_bind_grps as usize);
+            for _ in 0..max_bind_grps {
+                let bgl = self
+                    .global()
+                    .wgpu_id_hub()
+                    .lock()
+                    .create_bind_group_layout_id(self.device.0.backend());
+                bgls.push(webgpu::WebGPUBindGroupLayout(bgl));
+                bgl_ids.push(bgl);
+            }
+            (None, Some((layout_id, bgl_ids)), bgls)
+        }
+    }
 }
 
 impl GPUDeviceMethods for GPUDevice {
@@ -322,11 +358,7 @@ impl GPUDeviceMethods for GPUDevice {
     fn CreateBuffer(&self, descriptor: &GPUBufferDescriptor) -> DomRoot<GPUBuffer> {
         let desc =
             wgt::BufferUsage::from_bits(descriptor.usage).map(|usg| wgpu_res::BufferDescriptor {
-                label: descriptor
-                    .parent
-                    .label
-                    .as_ref()
-                    .map(|s| Cow::Owned(s.to_string())),
+                label: convert_label(&descriptor.parent),
                 size: descriptor.size as wgt::BufferAddress,
                 usage: usg,
                 mapped_at_creation: descriptor.mappedAtCreation,
@@ -482,11 +514,7 @@ impl GPUDeviceMethods for GPUDevice {
 
         let desc = if valid {
             Some(wgpu_bind::BindGroupLayoutDescriptor {
-                label: descriptor
-                    .parent
-                    .label
-                    .as_ref()
-                    .map(|s| Cow::Owned(s.to_string())),
+                label: convert_label(&descriptor.parent),
                 entries: Cow::Owned(entries),
             })
         } else {
@@ -529,11 +557,7 @@ impl GPUDeviceMethods for GPUDevice {
         descriptor: &GPUPipelineLayoutDescriptor,
     ) -> DomRoot<GPUPipelineLayout> {
         let desc = wgpu_bind::PipelineLayoutDescriptor {
-            label: descriptor
-                .parent
-                .label
-                .as_ref()
-                .map(|s| Cow::Owned(s.to_string())),
+            label: convert_label(&descriptor.parent),
             bind_group_layouts: Cow::Owned(
                 descriptor
                     .bindGroupLayouts
@@ -563,11 +587,17 @@ impl GPUDeviceMethods for GPUDevice {
             ))
             .expect("Failed to create WebGPU PipelineLayout");
 
+        let bgls = descriptor
+            .bindGroupLayouts
+            .iter()
+            .map(|each| each.id())
+            .collect::<Vec<_>>();
         let pipeline_layout = webgpu::WebGPUPipelineLayout(pipeline_layout_id);
         GPUPipelineLayout::new(
             &self.global(),
             pipeline_layout,
             descriptor.parent.label.as_ref().cloned(),
+            bgls,
         )
     }
 
@@ -597,11 +627,7 @@ impl GPUDeviceMethods for GPUDevice {
             .collect::<Vec<_>>();
 
         let desc = wgpu_bind::BindGroupDescriptor {
-            label: descriptor
-                .parent
-                .label
-                .as_ref()
-                .map(|l| Cow::Owned(l.to_string())),
+            label: convert_label(&descriptor.parent),
             layout: descriptor.layout.id().0,
             entries: Cow::Owned(entries),
         };
@@ -686,15 +712,11 @@ impl GPUDeviceMethods for GPUDevice {
             .create_compute_pipeline_id(self.device.0.backend());
 
         let scope_id = self.use_current_scope();
+        let (layout, implicit_ids, bgls) = self.get_pipeline_layout_data(&descriptor.parent.layout);
 
         let desc = wgpu_pipe::ComputePipelineDescriptor {
-            label: descriptor
-                .parent
-                .parent
-                .label
-                .as_ref()
-                .map(|s| Cow::Owned(s.to_string())),
-            layout: Some(descriptor.parent.layout.id().0),
+            label: convert_label(&descriptor.parent.parent),
+            layout,
             compute_stage: wgpu_pipe::ProgrammableStageDescriptor {
                 module: descriptor.computeStage.module.id().0,
                 entry_point: Cow::Owned(descriptor.computeStage.entryPoint.to_string()),
@@ -709,6 +731,7 @@ impl GPUDeviceMethods for GPUDevice {
                     device_id: self.device.0,
                     compute_pipeline_id,
                     descriptor: desc,
+                    implicit_ids,
                 },
             ))
             .expect("Failed to create WebGPU ComputePipeline");
@@ -718,6 +741,7 @@ impl GPUDeviceMethods for GPUDevice {
             &self.global(),
             compute_pipeline,
             descriptor.parent.parent.label.as_ref().cloned(),
+            bgls,
         )
     }
 
@@ -739,11 +763,7 @@ impl GPUDeviceMethods for GPUDevice {
                 WebGPURequest::CreateCommandEncoder {
                     device_id: self.device.0,
                     command_encoder_id,
-                    label: descriptor
-                        .parent
-                        .label
-                        .as_ref()
-                        .map(|l| Cow::Owned(l.to_string())),
+                    label: convert_label(&descriptor.parent),
                 },
             ))
             .expect("Failed to create WebGPU command encoder");
@@ -765,11 +785,7 @@ impl GPUDeviceMethods for GPUDevice {
         let size = convert_texture_size_to_dict(&descriptor.size);
         let desc =
             wgt::TextureUsage::from_bits(descriptor.usage).map(|usg| wgpu_res::TextureDescriptor {
-                label: descriptor
-                    .parent
-                    .label
-                    .as_ref()
-                    .map(|l| Cow::Owned(l.to_string())),
+                label: convert_label(&descriptor.parent),
                 size: convert_texture_size_to_wgt(&size),
                 mip_level_count: descriptor.mipLevelCount,
                 sample_count: descriptor.sampleCount,
@@ -833,11 +849,7 @@ impl GPUDeviceMethods for GPUDevice {
             .create_sampler_id(self.device.0.backend());
         let compare_enable = descriptor.compare.is_some();
         let desc = wgpu_res::SamplerDescriptor {
-            label: descriptor
-                .parent
-                .label
-                .as_ref()
-                .map(|s| Cow::Owned(s.to_string())),
+            label: convert_label(&descriptor.parent),
             address_modes: [
                 convert_address_mode(descriptor.addressModeU),
                 convert_address_mode(descriptor.addressModeV),
@@ -904,16 +916,12 @@ impl GPUDeviceMethods for GPUDevice {
                 })
                 .collect::<Vec<_>>(),
         );
+        let (layout, implicit_ids, bgls) = self.get_pipeline_layout_data(&descriptor.parent.layout);
 
         let desc = if valid {
             Some(wgpu_pipe::RenderPipelineDescriptor {
-                label: descriptor
-                    .parent
-                    .parent
-                    .label
-                    .as_ref()
-                    .map(|s| Cow::Owned(s.to_string())),
-                layout: Some(descriptor.parent.layout.id().0),
+                label: convert_label(&descriptor.parent.parent),
+                layout,
                 vertex_stage: wgpu_pipe::ProgrammableStageDescriptor {
                     module: descriptor.vertexStage.module.id().0,
                     entry_point: Cow::Owned(descriptor.vertexStage.entryPoint.to_string()),
@@ -1028,6 +1036,7 @@ impl GPUDeviceMethods for GPUDevice {
                     device_id: self.device.0,
                     render_pipeline_id,
                     descriptor: desc,
+                    implicit_ids,
                 },
             ))
             .expect("Failed to create WebGPU render pipeline");
@@ -1037,8 +1046,8 @@ impl GPUDeviceMethods for GPUDevice {
         GPURenderPipeline::new(
             &self.global(),
             render_pipeline,
-            self.device,
             descriptor.parent.parent.label.as_ref().cloned(),
+            bgls,
         )
     }
 
@@ -1048,11 +1057,7 @@ impl GPUDeviceMethods for GPUDevice {
         descriptor: &GPURenderBundleEncoderDescriptor,
     ) -> DomRoot<GPURenderBundleEncoder> {
         let desc = wgpu_com::RenderBundleEncoderDescriptor {
-            label: descriptor
-                .parent
-                .label
-                .as_ref()
-                .map(|s| Cow::Owned(s.to_string())),
+            label: convert_label(&descriptor.parent),
             color_formats: Cow::Owned(
                 descriptor
                     .colorFormats
@@ -1322,4 +1327,8 @@ pub fn convert_texture_size_to_wgt(size: &GPUExtent3DDict) -> wgt::Extent3d {
         height: size.height,
         depth: size.depth,
     }
+}
+
+pub fn convert_label(parent: &GPUObjectDescriptorBase) -> Option<Cow<'static, str>> {
+    parent.label.as_ref().map(|s| Cow::Owned(s.to_string()))
 }

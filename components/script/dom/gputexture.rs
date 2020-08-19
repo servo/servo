@@ -13,10 +13,11 @@ use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::gpudevice::{convert_texture_format, convert_texture_view_dimension, GPUDevice};
+use crate::dom::gpudevice::{
+    convert_label, convert_texture_format, convert_texture_view_dimension, GPUDevice,
+};
 use crate::dom::gputextureview::GPUTextureView;
 use dom_struct::dom_struct;
-use std::borrow::Cow;
 use std::num::NonZeroU32;
 use std::string::String;
 use webgpu::{
@@ -142,15 +143,9 @@ impl GPUTextureMethods for GPUTexture {
 
         let desc = if valid {
             Some(resource::TextureViewDescriptor {
-                label: descriptor
-                    .parent
-                    .label
-                    .as_ref()
-                    .map(|l| Cow::Owned(l.to_string())),
-                format: descriptor.format.map(|fr| convert_texture_format(fr)),
-                dimension: descriptor
-                    .dimension
-                    .map(|dm| convert_texture_view_dimension(dm)),
+                label: convert_label(&descriptor.parent),
+                format: descriptor.format.map(convert_texture_format),
+                dimension: descriptor.dimension.map(convert_texture_view_dimension),
                 aspect: match descriptor.aspect {
                     GPUTextureAspect::All => wgt::TextureAspect::All,
                     GPUTextureAspect::Stencil_only => wgt::TextureAspect::StencilOnly,
