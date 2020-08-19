@@ -241,6 +241,54 @@ async_test(t => {
   input.dispatchEvent(new MouseEvent("click"));
 }, `disabled radio should fire onclick`);
 
+async_test(t => {
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.disabled = true;
+  input.onclick = t.step_func(ev => {
+    assert_true(input.checked);
+    ev.preventDefault();
+    queueMicrotask(t.step_func_done(() => {
+      assert_false(input.checked);
+    }));
+  });
+  input.dispatchEvent(new MouseEvent("click", { cancelable: true }));
+}, `disabled checkbox should get legacy-canceled-activation behavior`);
+
+async_test(t => {
+  const input = document.createElement("input");
+  input.type = "radio";
+  input.disabled = true;
+  input.onclick = t.step_func(ev => {
+    assert_true(input.checked);
+    ev.preventDefault();
+    queueMicrotask(t.step_func_done(() => {
+      assert_false(input.checked);
+    }));
+  });
+  input.dispatchEvent(new MouseEvent("click", { cancelable: true }));
+}, `disabled radio should get legacy-canceled-activation behavior`);
+
+test(t => {
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.disabled = true;
+  const ev = new MouseEvent("click", { cancelable: true });
+  ev.preventDefault();
+  input.dispatchEvent(ev);
+  assert_false(input.checked);
+}, `disabled checkbox should get legacy-canceled-activation behavior 2`);
+
+test(t => {
+  const input = document.createElement("input");
+  input.type = "radio";
+  input.disabled = true;
+  const ev = new MouseEvent("click", { cancelable: true });
+  ev.preventDefault();
+  input.dispatchEvent(ev);
+  assert_false(input.checked);
+}, `disabled radio should get legacy-canceled-activation behavior 2`);
+
 async_test(function(t) {
   var form = document.createElement("form")
   var didSubmit = false

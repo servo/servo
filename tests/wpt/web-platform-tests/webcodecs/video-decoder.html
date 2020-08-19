@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<title>Test the VideoDecoder API.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// Calls done after giving async output/error callbacks a final chance to run.
+async function asyncDone(test) {
+  test.step_timeout(test.step_func_done(), 0);
+}
+
+async_test(async (t) => {
+  // VideoDecoderInit lacks required fields.
+  assert_throws_js(TypeError, () => { new VideoDecoder({}); });
+
+  // VideoDecoderInit has required fields.
+  let decoder = new VideoDecoder({
+    output(chunk) { t.unreached_func("Unexpected output").call(); },
+    error(error) { t.unreached_func("Unexpected error:" + error).call(); },
+  });
+
+  asyncDone(t);
+}, 'Test VideoDecoder construction');
+
+async_test(async (t) => {
+  let decoder = new VideoDecoder({
+    output(chunk) { t.unreached_func("Unexpected output").call(); },
+    error(error) { t.unreached_func("Unexpected error:" + error).call(); },
+  });
+
+
+  let config = {};
+
+  // Bogus codec rejected.
+  config.codec = 'bogus';
+  assert_throws_js(TypeError, () => { decoder.configure(config); });
+
+  // Audio codec rejected.
+  config.codec = 'vorbis';
+  assert_throws_js(TypeError, () => { decoder.configure(config); });
+
+  // Ambiguous codec rejected.
+  config.codec = 'vp9';
+  assert_throws_js(TypeError, () => { decoder.configure(config); });
+
+  // Codec with mime type rejected.
+  config.codec = 'video/webm; codecs="vp9"';
+  assert_throws_js(TypeError, () => { decoder.configure(config); });
+
+  // Valid unambiguous codec accepted.
+  config.codec = 'vp09.00.10.08';
+  decoder.configure(config);
+
+  asyncDone(t);
+}, 'Test VideoDecoder.configure() codec validity');
+</script>
+</html>

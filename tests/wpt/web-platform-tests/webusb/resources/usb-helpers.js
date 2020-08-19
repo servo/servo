@@ -33,15 +33,15 @@ async function loadChromiumResources() {
 
 function usb_test(func, name, properties) {
   promise_test(async () => {
+    assert_implements(navigator.usb, 'missing navigator.usb');
     if (navigator.usb.test === undefined) {
       // Try loading a polyfill for the WebUSB Testing API.
       if (isChromiumBased) {
         await loadChromiumResources();
         await loadScript('/resources/chromium/webusb-test.js');
-      } else {
-        assert_implements(false, "missing navigator.usb.test");
       }
     }
+    assert_implements(navigator.usb.test, 'missing navigator.usb.test after initialization');
 
     await navigator.usb.test.initialize();
     try {

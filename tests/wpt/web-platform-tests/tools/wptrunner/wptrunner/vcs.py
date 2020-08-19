@@ -57,4 +57,4 @@ def is_git_root(path, log_error=True):
         rv = git("rev-parse", "--show-cdup", repo=path, log_error=log_error)
     except subprocess.CalledProcessError:
         return False
-    return rv == "\n"
+    return rv == b"\n"

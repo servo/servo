@@ -56,3 +56,10 @@ test(testCase => {
 
   assert_throws_dom('InvalidStateError', () => file.flush());
 }, 'NativeIOFileSync.flush fails after NativeIOFileSync.close');
+
+test(testCase => {
+  const file = createFileSync(testCase, 'file_name');
+  assert_equals(undefined, file.close());
+
+  assert_throws_dom('InvalidStateError', () => file.setLength(4));
+}, 'NativeIOFileSync.setLength fails after NativeIOFileSync.close');

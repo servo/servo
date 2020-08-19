@@ -10,7 +10,7 @@
 import {
   insertIframe,
   testSameAgentCluster,
-  testOriginIsolationRestricted
+  testGetter
 } from "../resources/helpers.mjs";
 
 promise_setup(async () => {
@@ -20,6 +20,6 @@ promise_setup(async () => {
 // Since they're same-origin, and the parent loaded without isolation, the
 // child's request for isolation gets ignored, and both end up site-keyed.
 testSameAgentCluster([self, 0]);
-testOriginIsolationRestricted(self, false, "parent");
-testOriginIsolationRestricted(0, false, "child");
+testGetter(self, false, "parent");
+testGetter(0, false, "child");
 </script>

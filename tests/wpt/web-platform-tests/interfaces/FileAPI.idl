@@ -54,12 +54,12 @@ interface FileList {
 interface FileReader: EventTarget {
   constructor();
   // async read methods
-  void readAsArrayBuffer(Blob blob);
-  void readAsBinaryString(Blob blob);
-  void readAsText(Blob blob, optional DOMString encoding);
-  void readAsDataURL(Blob blob);
+  undefined readAsArrayBuffer(Blob blob);
+  undefined readAsBinaryString(Blob blob);
+  undefined readAsText(Blob blob, optional DOMString encoding);
+  undefined readAsDataURL(Blob blob);
 
-  void abort();
+  undefined abort();
 
   // states
   const unsigned short EMPTY = 0;
@@ -96,5 +96,5 @@ interface FileReaderSync {
 [Exposed=(Window,DedicatedWorker,SharedWorker)]
 partial interface URL {
   static DOMString createObjectURL((Blob or MediaSource) obj);
-  static void revokeObjectURL(DOMString url);
+  static undefined revokeObjectURL(DOMString url);
 };

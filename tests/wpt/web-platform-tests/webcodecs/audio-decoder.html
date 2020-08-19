@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<title>Test the AudioDecoder API.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+// Calls done after giving async output/error callbacks a final chance to run.
+async function asyncDone(test) {
+  test.step_timeout(test.step_func_done(), 0);
+}
+
+async_test(async (t) => {
+  // AudioDecoderInit lacks required fields.
+  assert_throws_js(TypeError, () => { new AudioDecoder({}); });
+
+  // AudioDecoderInit has required fields.
+  let decoder = new AudioDecoder({
+    output(chunk) { t.unreached_func("Unexpected output").call(); },
+    error(error) { t.unreached_func("Unexpected error:" + error).call(); },
+  });
+
+  asyncDone(t);
+}, 'Test AudioDecoder construction');
+
+async_test(async (t) => {
+  let decoder = new AudioDecoder({
+    output(chunk) { t.unreached_func("Unexpected output").call(); },
+    error(error) { t.unreached_func("Unexpected error:" + error).call(); },
+  });
+
+  let config = {
+    sampleRate: 48000,
+    numberOfChannels: 2
+  }
+
+  // Empty codec rejected.
+  config.codec = '';
+  assert_throws_js(TypeError, () => { decoder.configure(config); });
+
+  // Invalid codec rejected.
+  config.codec = 'bogus';
+  assert_throws_js(TypeError, () => { decoder.configure(config); });
+
+  // Video codec rejected.
+  config.codec = 'vp8';
+  assert_throws_js(TypeError, () => { decoder.configure(config); });
+
+  // Codec with mime type rejected.
+  config.codec = 'audio/webm; codecs="opus"';
+  assert_throws_js(TypeError, () => { decoder.configure(config); });
+
+  // Valid audio codec accepted.
+  config.codec = 'opus';
+  decoder.configure(config);
+
+  asyncDone(t);
+}, 'Test AudioDecoder.configure() codec validity');
+</script>
+</html>

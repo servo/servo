@@ -177,28 +177,28 @@ export function testDifferentAgentClusters(testFrames, testLabelPrefix) {
 }
 
 /**
- * Creates a promise_test() to check the value of the originIsolationRestricted
- * getter in the given testFrame.
+ * Creates a promise_test() to check the value of the originIsolated getter in
+ * the given testFrame.
  * @param {Window|number} testFrame - Either self, or a frame index to test.
- * @param {boolean} expected - The expected value for originIsolationRestricted.
+ * @param {boolean} expected - The expected value for originIsolated.
  * @param {string=} testLabelPrefix - A prefix used in the test names. This can
  *   be omitted if the function is only used once in a test file.
  */
-export function testOriginIsolationRestricted(testFrame, expected, testLabelPrefix) {
+export function testGetter(testFrame, expected, testLabelPrefix) {
   const prefix = testLabelPrefix === undefined ? "" : `${testLabelPrefix}: `;
 
   if (testFrame === self) {
     // Need to use promise_test() even though it's sync because we use
     // promise_setup() in many tests.
     promise_test(async () => {
-      assert_equals(self.originIsolationRestricted, expected);
-    }, `${prefix}originIsolationRestricted must equal ${expected}`);
+      assert_equals(self.originIsolated, expected);
+    }, `${prefix}originIsolated must equal ${expected}`);
   } else {
     promise_test(async () => {
       const frameWindow = frames[testFrame];
-      const result = await getOriginIsolationRestricted(frameWindow);
+      const result = await accessOriginIsolated(frameWindow);
       assert_equals(result, expected);
-    }, `${prefix}originIsolationRestricted must equal ${expected}`);
+    }, `${prefix}originIsolated must equal ${expected}`);
   }
 }
 
@@ -241,10 +241,10 @@ export async function setBothDocumentDomains(frameWindow) {
   assert_equals(whatHappened, "document.domain is set");
 }
 
-async function getOriginIsolationRestricted(frameWindow) {
+async function accessOriginIsolated(frameWindow) {
   // This function is coupled to ./send-origin-isolation-header.py, which ensures
   // that sending such a message will result in a message back.
-  frameWindow.postMessage({ command: "get originIsolationRestricted" }, "*");
+  frameWindow.postMessage({ command: "get originIsolated" }, "*");
   return waitForMessage(frameWindow);
 }
 

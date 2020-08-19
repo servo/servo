@@ -39,6 +39,7 @@ const kOperations = [];
     },
   };
   kOperations.push(kOpRead);
+
   const kOpWrite = {
     name: 'write',
     prepare: () => {
@@ -54,6 +55,7 @@ const kOperations = [];
     assertUnchanged: () => {},
   };
   kOperations.push(kOpWrite);
+
   const kOpGetLength = {
     name: 'getLength',
     prepare: () => {},
@@ -75,4 +77,15 @@ const kOperations = [];
     assertUnchanged: () => {},
   };
   kOperations.push(kOpFlush);
+
+  const kOpSetLength = {
+    name: 'setLength',
+    prepare: () => {},
+    assertRejection: async (testCase, file, readBytes) => {
+      return promise_rejects_dom(testCase, 'InvalidStateError',
+                                file.setLength(2));
+    },
+    assertUnchanged: () => {},
+  };
+  kOperations.push(kOpSetLength);
 })();
