@@ -9,21 +9,27 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use dom_struct::dom_struct;
-use webgpu::WebGPUPipelineLayout;
+use webgpu::{WebGPUBindGroupLayout, WebGPUPipelineLayout};
 
 #[dom_struct]
 pub struct GPUPipelineLayout {
     reflector_: Reflector,
     label: DomRefCell<Option<USVString>>,
     pipeline_layout: WebGPUPipelineLayout,
+    bind_group_layouts: Vec<WebGPUBindGroupLayout>,
 }
 
 impl GPUPipelineLayout {
-    fn new_inherited(pipeline_layout: WebGPUPipelineLayout, label: Option<USVString>) -> Self {
+    fn new_inherited(
+        pipeline_layout: WebGPUPipelineLayout,
+        label: Option<USVString>,
+        bgls: Vec<WebGPUBindGroupLayout>,
+    ) -> Self {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
             pipeline_layout,
+            bind_group_layouts: bgls,
         }
     }
 
@@ -31,9 +37,14 @@ impl GPUPipelineLayout {
         global: &GlobalScope,
         pipeline_layout: WebGPUPipelineLayout,
         label: Option<USVString>,
+        bgls: Vec<WebGPUBindGroupLayout>,
     ) -> DomRoot<Self> {
         reflect_dom_object(
-            Box::new(GPUPipelineLayout::new_inherited(pipeline_layout, label)),
+            Box::new(GPUPipelineLayout::new_inherited(
+                pipeline_layout,
+                label,
+                bgls,
+            )),
             global,
         )
     }
@@ -42,6 +53,10 @@ impl GPUPipelineLayout {
 impl GPUPipelineLayout {
     pub fn id(&self) -> WebGPUPipelineLayout {
         self.pipeline_layout
+    }
+
+    pub fn bind_group_layouts(&self) -> Vec<WebGPUBindGroupLayout> {
+        self.bind_group_layouts.clone()
     }
 }
 

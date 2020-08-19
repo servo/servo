@@ -7,9 +7,10 @@
 interface GPUComputePipeline {
 };
 GPUComputePipeline includes GPUObjectBase;
+GPUComputePipeline includes GPUPipelineBase;
 
 dictionary GPUPipelineDescriptorBase : GPUObjectDescriptorBase {
-    required GPUPipelineLayout layout;
+    GPUPipelineLayout layout;
 };
 
 dictionary GPUProgrammableStageDescriptor {
@@ -19,4 +20,8 @@ dictionary GPUProgrammableStageDescriptor {
 
 dictionary GPUComputePipelineDescriptor : GPUPipelineDescriptorBase {
     required GPUProgrammableStageDescriptor computeStage;
+};
+
+interface mixin GPUPipelineBase {
+    [Throws] GPUBindGroupLayout getBindGroupLayout(unsigned long index);
 };
