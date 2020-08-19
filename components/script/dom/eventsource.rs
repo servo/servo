@@ -56,6 +56,20 @@ enum ReadyState {
     Closed = 2,
 }
 
+#[derive(JSTraceable, MallocSizeOf)]
+struct EventSourceDroppableFields {
+    canceller: DomRefCell<FetchCanceller>,
+}
+
+// https://html.spec.whatwg.org/multipage/#garbage-collection-2
+impl Drop for EventSourceDroppableFields {
+    fn drop(&mut self) {
+        // If an EventSource object is garbage collected while its connection is still open,
+        // the user agent must abort any instance of the fetch algorithm opened by this EventSource.
+        self.canceller.borrow_mut().cancel();
+    }
+}
+
 #[dom_struct]
 pub struct EventSource {
     eventtarget: EventTarget,
@@ -67,7 +81,7 @@ pub struct EventSource {
 
     ready_state: Cell<ReadyState>,
     with_credentials: bool,
-    canceller: DomRefCell<FetchCanceller>,
+    droppable_fields: EventSourceDroppableFields,
 }
 
 enum ParserState {
@@ -455,7 +469,9 @@ impl EventSource {
 
             ready_state: Cell::new(ReadyState::Connecting),
             with_credentials: with_credentials,
-            canceller: DomRefCell::new(Default::default()),
+            droppable_fields: EventSourceDroppableFields {
+                canceller: DomRefCell::new(Default::default()),
+            },
         }
     }
 
@@ -468,7 +484,7 @@ impl EventSource {
 
     // https://html.spec.whatwg.org/multipage/#sse-processing-model:fail-the-connection-3
     pub fn cancel(&self) {
-        self.canceller.borrow_mut().cancel();
+        self.droppable_fields.canceller.borrow_mut().cancel();
         self.fail_the_connection();
     }
 
@@ -577,7 +593,7 @@ impl EventSource {
                 listener.notify_fetch(message.to().unwrap());
             }),
         );
-        let cancel_receiver = ev.canceller.borrow_mut().initialize();
+        let cancel_receiver = ev.droppable_fields.canceller.borrow_mut().initialize();
         global
             .core_resource_thread()
             .send(CoreResourceMsg::Fetch(
@@ -587,15 +603,6 @@ impl EventSource {
             .unwrap();
         // Step 13
         Ok(ev)
-    }
-}
-
-// https://html.spec.whatwg.org/multipage/#garbage-collection-2
-impl Drop for EventSource {
-    fn drop(&mut self) {
-        // If an EventSource object is garbage collected while its connection is still open,
-        // the user agent must abort any instance of the fetch algorithm opened by this EventSource.
-        self.canceller.borrow_mut().cancel();
     }
 }
 
@@ -628,7 +635,7 @@ impl EventSourceMethods for EventSource {
     fn Close(&self) {
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
-        self.canceller.borrow_mut().cancel();
+        self.droppable_fields.canceller.borrow_mut().cancel();
         self.ready_state.set(ReadyState::Closed);
     }
 }
