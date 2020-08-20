@@ -564,7 +564,10 @@ impl StylesheetInvalidationSet {
                 let rules =
                     EffectiveRulesIterator::effective_children(device, quirks_mode, guard, rule);
                 for rule in rules {
-                    self.collect_invalidations_for_rule(rule, guard, device, quirks_mode)
+                    self.collect_invalidations_for_rule(rule, guard, device, quirks_mode);
+                    if self.fully_invalid {
+                        break;
+                    }
                 }
             },
         }
