@@ -292,6 +292,7 @@ impl GPUCommandEncoderMethods for GPUCommandEncoder {
         size: GPUSize64,
     ) {
         let scope_id = self.device.use_current_scope();
+        println!("CopyBufferToBuffer scope_id {:?}", scope_id);
 
         if !(*self.state.borrow() == GPUCommandEncoderState::Open) {
             self.device.handle_server_msg(

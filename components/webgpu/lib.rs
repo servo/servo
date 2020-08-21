@@ -496,6 +496,7 @@ impl<'a> WGPU<'a> {
                             destination_offset,
                             size
                         ));
+                        println!("CopyBufferToBuffer result {:?}", result);
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CopyBufferToTexture {
@@ -593,6 +594,7 @@ impl<'a> WGPU<'a> {
                             self.send_result(device_id, scope_id, result);
                         } else {
                             let _ = gfx_select!(buffer_id => global.buffer_error(buffer_id));
+                            println!("CreateBuffer error {:?}", buffer_id);
                         }
                     },
                     WebGPURequest::CreateCommandEncoder {
