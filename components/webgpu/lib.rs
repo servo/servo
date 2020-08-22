@@ -20,7 +20,9 @@ use serde::{Deserialize, Serialize};
 use servo_config::pref;
 use smallvec::SmallVec;
 use std::borrow::Cow;
-use std::collections::{HashMap, HashSet};
+use std::cell::RefCell;
+use std::collections::hash_map::Entry;
+use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::rc::Rc;
 use std::slice;
@@ -87,7 +89,6 @@ pub enum WebGPURequest {
     },
     CopyBufferToBuffer {
         command_encoder_id: id::CommandEncoderId,
-        device_id: id::DeviceId,
         source_id: id::BufferId,
         source_offset: wgt::BufferAddress,
         destination_id: id::BufferId,
@@ -96,21 +97,18 @@ pub enum WebGPURequest {
     },
     CopyBufferToTexture {
         command_encoder_id: id::CommandEncoderId,
-        device_id: id::DeviceId,
         source: BufferCopyView,
         destination: TextureCopyView,
         copy_size: wgt::Extent3d,
     },
     CopyTextureToBuffer {
         command_encoder_id: id::CommandEncoderId,
-        device_id: id::DeviceId,
         source: TextureCopyView,
         destination: BufferCopyView,
         copy_size: wgt::Extent3d,
     },
     CopyTextureToTexture {
         command_encoder_id: id::CommandEncoderId,
-        device_id: id::DeviceId,
         source: TextureCopyView,
         destination: TextureCopyView,
         copy_size: wgt::Extent3d,
@@ -214,12 +212,10 @@ pub enum WebGPURequest {
     },
     RunComputePass {
         command_encoder_id: id::CommandEncoderId,
-        device_id: id::DeviceId,
         compute_pass: Option<ComputePass>,
     },
     RunRenderPass {
         command_encoder_id: id::CommandEncoderId,
-        device_id: id::DeviceId,
         render_pass: Option<RenderPass>,
     },
     Submit {
@@ -346,7 +342,7 @@ struct WGPU<'a> {
     present_buffer_maps:
         HashMap<id::BufferId, Rc<BufferMapInfo<'a, (Option<ErrorScopeId>, WebGPURequest)>>>,
     //TODO: Remove this (https://github.com/gfx-rs/wgpu/issues/867)
-    error_command_buffers: HashSet<id::CommandBufferId>,
+    error_command_encoders: RefCell<HashMap<id::CommandEncoderId, String>>,
     webrender_api: webrender_api::RenderApi,
     webrender_document: webrender_api::DocumentId,
     external_images: Arc<Mutex<WebrenderExternalImageRegistry>>,
@@ -378,7 +374,7 @@ impl<'a> WGPU<'a> {
             _invalid_adapters: Vec::new(),
             buffer_maps: HashMap::new(),
             present_buffer_maps: HashMap::new(),
-            error_command_buffers: HashSet::new(),
+            error_command_encoders: RefCell::new(HashMap::new()),
             webrender_api: webrender_api_sender.create_api(),
             webrender_document,
             external_images,
@@ -466,6 +462,12 @@ impl<'a> WGPU<'a> {
                         let global = &self.global;
                         let result = if is_error {
                             Err(String::from("Invalid GPUCommandEncoder"))
+                        } else if let Some(err) = self
+                            .error_command_encoders
+                            .borrow()
+                            .get(&command_encoder_id)
+                        {
+                            Err(err.clone())
                         } else {
                             gfx_select!(command_encoder_id => global.command_encoder_finish(
                                 command_encoder_id,
@@ -474,13 +476,12 @@ impl<'a> WGPU<'a> {
                             .map_err(|e| format!("{:?}", e))
                         };
                         if result.is_err() {
-                            self.error_command_buffers.insert(command_encoder_id);
+                            self.encoder_record_error(command_encoder_id, result.clone());
                         }
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CopyBufferToBuffer {
                         command_encoder_id,
-                        device_id,
                         source_id,
                         source_offset,
                         destination_id,
@@ -496,12 +497,10 @@ impl<'a> WGPU<'a> {
                             destination_offset,
                             size
                         ));
-                        println!("CopyBufferToBuffer result {:?}", result);
-                        self.send_result(device_id, scope_id, result);
+                        self.encoder_record_error(command_encoder_id, result);
                     },
                     WebGPURequest::CopyBufferToTexture {
                         command_encoder_id,
-                        device_id,
                         source,
                         destination,
                         copy_size,
@@ -513,11 +512,10 @@ impl<'a> WGPU<'a> {
                             &destination,
                             &copy_size
                         ));
-                        self.send_result(device_id, scope_id, result);
+                        self.encoder_record_error(command_encoder_id, result);
                     },
                     WebGPURequest::CopyTextureToBuffer {
                         command_encoder_id,
-                        device_id,
                         source,
                         destination,
                         copy_size,
@@ -529,11 +527,10 @@ impl<'a> WGPU<'a> {
                             &destination,
                             &copy_size
                         ));
-                        self.send_result(device_id, scope_id, result);
+                        self.encoder_record_error(command_encoder_id, result);
                     },
                     WebGPURequest::CopyTextureToTexture {
                         command_encoder_id,
-                        device_id,
                         source,
                         destination,
                         copy_size,
@@ -545,7 +542,7 @@ impl<'a> WGPU<'a> {
                             &destination,
                             &copy_size
                         ));
-                        self.send_result(device_id, scope_id, result);
+                        self.encoder_record_error(command_encoder_id, result);
                     },
                     WebGPURequest::CreateBindGroup {
                         device_id,
@@ -594,7 +591,6 @@ impl<'a> WGPU<'a> {
                             self.send_result(device_id, scope_id, result);
                         } else {
                             let _ = gfx_select!(buffer_id => global.buffer_error(buffer_id));
-                            println!("CreateBuffer error {:?}", buffer_id);
                         }
                     },
                     WebGPURequest::CreateCommandEncoder {
@@ -865,7 +861,9 @@ impl<'a> WGPU<'a> {
                         return;
                     },
                     WebGPURequest::FreeCommandBuffer(command_buffer_id) => {
-                        self.error_command_buffers.remove(&command_buffer_id);
+                        self.error_command_encoders
+                            .borrow_mut()
+                            .remove(&command_buffer_id);
                     },
                     WebGPURequest::FreeDevice(device_id) => {
                         let device = WebGPUDevice(device_id);
@@ -976,7 +974,6 @@ impl<'a> WGPU<'a> {
                     },
                     WebGPURequest::RunComputePass {
                         command_encoder_id,
-                        device_id,
                         compute_pass,
                     } => {
                         let global = &self.global;
@@ -988,11 +985,10 @@ impl<'a> WGPU<'a> {
                         } else {
                             Err(String::from("Invalid ComputePass"))
                         };
-                        self.send_result(device_id, scope_id, result);
+                        self.encoder_record_error(command_encoder_id, result);
                     },
                     WebGPURequest::RunRenderPass {
                         command_encoder_id,
-                        device_id,
                         render_pass,
                     } => {
                         let global = &self.global;
@@ -1004,7 +1000,7 @@ impl<'a> WGPU<'a> {
                         } else {
                             Err(String::from("Invalid RenderPass"))
                         };
-                        self.send_result(device_id, scope_id, result);
+                        self.encoder_record_error(command_encoder_id, result);
                     },
                     WebGPURequest::Submit {
                         queue_id,
@@ -1013,7 +1009,7 @@ impl<'a> WGPU<'a> {
                         let global = &self.global;
                         let cmd_id = command_buffers
                             .iter()
-                            .find(|id| self.error_command_buffers.contains(id));
+                            .find(|id| self.error_command_encoders.borrow().contains_key(id));
                         let result = if cmd_id.is_some() {
                             Err(String::from("Invalid command buffer submitted"))
                         } else {
@@ -1274,6 +1270,18 @@ impl<'a> WGPU<'a> {
             },
         }) {
             warn!("Failed to send WebGPUOpResult ({})", w);
+        }
+    }
+
+    fn encoder_record_error<U, T: std::fmt::Debug>(
+        &self,
+        encoder_id: id::CommandEncoderId,
+        result: Result<U, T>,
+    ) {
+        if let Err(e) = result {
+            if let Entry::Vacant(v) = self.error_command_encoders.borrow_mut().entry(encoder_id) {
+                v.insert(format!("{:?}", e));
+            }
         }
     }
 }

@@ -178,7 +178,6 @@ impl GPUDevice {
     }
 
     pub fn handle_server_msg(&self, scope: Option<ErrorScopeId>, result: WebGPUOpResult) {
-        println!("handle_server_msg {:?}, {:?}", scope, result);
         let result = match result {
             WebGPUOpResult::Success => Ok(()),
             WebGPUOpResult::ValidationError(m) => {
@@ -222,7 +221,6 @@ impl GPUDevice {
     }
 
     fn handle_error(&self, scope: ErrorScopeId, error: GPUError) {
-        println!("handle_error {}", scope);
         let mut context = self.scope_context.borrow_mut();
         if let Some(mut err_scope) = context.error_scopes.get_mut(&scope) {
             if err_scope.error.is_none() {
@@ -234,7 +232,6 @@ impl GPUDevice {
     }
 
     fn try_remove_scope(&self, scope: ErrorScopeId) {
-        println!("try_remove_scope {}", scope);
         let mut context = self.scope_context.borrow_mut();
         let remove = if let Some(mut err_scope) = context.error_scopes.get_mut(&scope) {
             err_scope.op_count -= 1;
@@ -253,7 +250,6 @@ impl GPUDevice {
             false
         };
         if remove {
-            println!("remove {}", scope);
             let _ = context.error_scopes.remove(&scope);
             context.scope_stack.retain(|meta| meta.id != scope);
         }
@@ -374,7 +370,6 @@ impl GPUDeviceMethods for GPUDevice {
             .create_buffer_id(self.device.0.backend());
 
         let scope_id = self.use_current_scope();
-        println!("CreateBuffer scope {:?}", scope_id);
         if desc.is_none() {
             self.handle_server_msg(
                 scope_id,
@@ -780,7 +775,6 @@ impl GPUDeviceMethods for GPUDevice {
             self.channel.clone(),
             &self,
             encoder,
-            true,
             descriptor.parent.label.as_ref().cloned(),
         )
     }
@@ -1093,7 +1087,6 @@ impl GPUDeviceMethods for GPUDevice {
     fn PushErrorScope(&self, filter: GPUErrorFilter) {
         let mut context = self.scope_context.borrow_mut();
         let scope_id = context.next_scope_id;
-        println!("PushErrorScope {}", scope_id);
         context.next_scope_id = ErrorScopeId::new(scope_id.get() + 1).unwrap();
         let err_scope = ErrorScopeInfo {
             op_count: 0,
@@ -1121,7 +1114,6 @@ impl GPUDeviceMethods for GPUDevice {
                 promise.reject_error(Error::Operation);
                 return promise;
             };
-        println!("PopErrorScope {}", scope_id);
         let remove = if let Some(mut err_scope) = context.error_scopes.get_mut(&scope_id) {
             if let Some(ref e) = err_scope.error {
                 promise.resolve_native(e);
@@ -1135,7 +1127,6 @@ impl GPUDeviceMethods for GPUDevice {
             false
         };
         if remove {
-            println!("PopErrorScope remove {}", scope_id);
             let _ = context.error_scopes.remove(&scope_id);
             context.scope_stack.retain(|meta| meta.id != scope_id);
         }

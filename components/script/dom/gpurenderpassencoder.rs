@@ -164,10 +164,9 @@ impl GPURenderPassEncoderMethods for GPURenderPassEncoder {
         self.channel
             .0
             .send((
-                self.command_encoder.device().use_current_scope(),
+                None,
                 WebGPURequest::RunRenderPass {
                     command_encoder_id: self.command_encoder.id().0,
-                    device_id: self.command_encoder.device().id().0,
                     render_pass,
                 },
             ))
