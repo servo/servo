@@ -1127,17 +1127,20 @@ impl<'a> WGPU<'a> {
                             status: BufferMapAsyncStatus,
                             userdata: *mut u8,
                         ) {
-                            let info =
-                                Rc::from_raw(userdata as *const BufferMapInfo<WebGPURequest>);
+                            let info = Rc::from_raw(
+                                userdata
+                                    as *const BufferMapInfo<(Option<ErrorScopeId>, WebGPURequest)>,
+                            );
                             match status {
                                 BufferMapAsyncStatus::Success => {
-                                    if let Err(e) =
-                                        info.sender.send(WebGPURequest::UpdateWebRenderData {
+                                    if let Err(e) = info.sender.send((
+                                        None,
+                                        WebGPURequest::UpdateWebRenderData {
                                             buffer_id: info.buffer_id,
                                             buffer_size: info.size,
                                             external_id: info.external_id.unwrap(),
-                                        })
-                                    {
+                                        },
+                                    )) {
                                         warn!("Could not send UpdateWebRenderData ({})", e);
                                     }
                                 },
