@@ -26,9 +26,29 @@ function parseQueryImpl(s) {
   // Undo encodeURIComponentSelectively
   s = decodeURIComponent(s);
 
-  // bigParts are: suite, group, test, params (note kBigSeparator could appear in params)
-  const [suite, fileString, testString, paramsString] = s.split(kBigSeparator, 4);
-  assert(fileString !== undefined, `filter string must have at least one ${kBigSeparator}`);
+  // bigParts are: suite, file, test, params (note kBigSeparator could appear in params)
+  let suite;
+  let fileString;
+  let testString;
+  let paramsString;
+  {
+    const i1 = s.indexOf(kBigSeparator);
+    assert(i1 !== -1, `query string must have at least one ${kBigSeparator}`);
+    suite = s.substring(0, i1);
+    const i2 = s.indexOf(kBigSeparator, i1 + 1);
+    if (i2 === -1) {
+      fileString = s.substring(i1 + 1);
+    } else {
+      fileString = s.substring(i1 + 1, i2);
+      const i3 = s.indexOf(kBigSeparator, i2 + 1);
+      if (i3 === -1) {
+        testString = s.substring(i2 + 1);
+      } else {
+        testString = s.substring(i2 + 1, i3);
+        paramsString = s.substring(i3 + 1);
+      }
+    }
+  }
 
   const { parts: file, wildcard: filePathHasWildcard } = parseBigPart(fileString, kPathSeparator);
 

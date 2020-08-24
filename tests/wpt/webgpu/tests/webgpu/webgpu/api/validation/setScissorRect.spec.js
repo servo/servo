@@ -38,7 +38,7 @@ g.test('use_of_setScissorRect')
     { x: 0, y: 0, width: 0, height: 1, _success: false }, // Width of zero is not allowed
     { x: 0, y: 0, width: 1, height: 0, _success: false }, // Height of zero is not allowed
     { x: 0, y: 0, width: 0, height: 0, _success: false }, // Both width and height of zero are not allowed
-    { x: 0, y: 0, width: TEXTURE_WIDTH + 1, height: TEXTURE_HEIGHT + 1, _success: true }, // Scissor larger than the framebuffer is allowed
+    { x: 0, y: 0, width: TEXTURE_WIDTH + 1, height: TEXTURE_HEIGHT + 1, _success: false }, // Scissor larger than the framebuffer is not allowed
   ])
   .fn(async t => {
     const { x, y, width, height, _success } = t.params;

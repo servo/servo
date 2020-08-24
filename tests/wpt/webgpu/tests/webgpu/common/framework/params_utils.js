@@ -3,6 +3,9 @@
  **/ import { comparePublicParamsPaths, Ordering } from './query/compare.js';
 import { kWildcard, kParamSeparator, kParamKVSeparator } from './query/separators.js';
 // Consider adding more types here if needed
+//
+// TODO: This type isn't actually used to constrain what you're allowed to do in `.params()`, so
+// it's not really serving its purpose. Figure out how to fix that?
 
 export function paramKeyIsPublic(key) {
   return !key.startsWith('_');

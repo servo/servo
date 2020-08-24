@@ -17,6 +17,8 @@
   ret = ret.replace(/%3D/g, '='); // for params (k=v)
   ret = ret.replace(/%5B/g, '['); // for JSON arrays
   ret = ret.replace(/%5D/g, ']'); // for JSON arrays
+  ret = ret.replace(/%7B/g, '{'); // for JSON objects
+  ret = ret.replace(/%7D/g, '}'); // for JSON objects
   ret = ret.replace(/%E2%9C%97/g, '✗'); // for jsUndefinedMagicValue
   return ret;
 }

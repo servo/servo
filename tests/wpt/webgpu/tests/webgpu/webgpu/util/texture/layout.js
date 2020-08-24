@@ -32,7 +32,10 @@ export function getTextureCopyLayout(format, dimension, size, options = kDefault
 
   const { blockWidth, blockHeight, bytesPerBlock } = kSizedTextureFormatInfo[format];
 
-  assert(isAligned(mipSize[0], blockWidth));
+  // We align mipSize to be the physical size of the texture subresource.
+  mipSize[0] = align(mipSize[0], blockWidth);
+  mipSize[1] = align(mipSize[1], blockHeight);
+
   const minBytesPerRow = (mipSize[0] / blockWidth) * bytesPerBlock;
   const alignedMinBytesPerRow = align(minBytesPerRow, kBytesPerRowAlignment);
   if (bytesPerRow !== undefined) {
