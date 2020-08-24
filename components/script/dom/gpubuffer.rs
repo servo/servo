@@ -184,6 +184,7 @@ impl GPUBufferMethods for GPUBuffer {
             GPUBufferState::Mapped | GPUBufferState::MappedAtCreation => {
                 self.Unmap();
             },
+            GPUBufferState::Destroyed => return,
             _ => {},
         };
         if let Err(e) = self

@@ -18,6 +18,7 @@ use crate::dom::gpudevice::{
 };
 use crate::dom::gputextureview::GPUTextureView;
 use dom_struct::dom_struct;
+use std::cell::Cell;
 use std::num::NonZeroU32;
 use std::string::String;
 use webgpu::{
@@ -40,6 +41,7 @@ pub struct GPUTexture {
     dimension: GPUTextureDimension,
     format: GPUTextureFormat,
     texture_usage: u32,
+    destroyed: Cell<bool>,
 }
 
 impl GPUTexture {
@@ -67,6 +69,7 @@ impl GPUTexture {
             dimension,
             format,
             texture_usage,
+            destroyed: Cell::new(false),
         }
     }
 
@@ -197,6 +200,9 @@ impl GPUTextureMethods for GPUTexture {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gputexture-destroy
     fn Destroy(&self) {
+        if self.destroyed.get() {
+            return;
+        }
         if let Err(e) = self
             .channel
             .0
@@ -207,5 +213,6 @@ impl GPUTextureMethods for GPUTexture {
                 self.texture.0, e
             );
         };
+        self.destroyed.set(true);
     }
 }

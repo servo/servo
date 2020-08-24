@@ -21,7 +21,6 @@ use servo_config::pref;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::RefCell;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::rc::Rc;
@@ -475,9 +474,7 @@ impl<'a> WGPU<'a> {
                             ))
                             .map_err(|e| format!("{:?}", e))
                         };
-                        if result.is_err() {
-                            self.encoder_record_error(command_encoder_id, result.clone());
-                        }
+                        self.encoder_record_error(command_encoder_id, result.clone());
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CopyBufferToBuffer {
@@ -1282,9 +1279,10 @@ impl<'a> WGPU<'a> {
         result: Result<U, T>,
     ) {
         if let Err(e) = result {
-            if let Entry::Vacant(v) = self.error_command_encoders.borrow_mut().entry(encoder_id) {
-                v.insert(format!("{:?}", e));
-            }
+            self.error_command_encoders
+                .borrow_mut()
+                .entry(encoder_id)
+                .or_insert_with(|| format!("{:?}", e));
         }
     }
 }
