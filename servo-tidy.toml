@@ -31,14 +31,17 @@ rand = [
 packages = [
   "arrayvec",
   "base64",
+  "cloudabi",
   "cocoa",
   "gleam",
   "libloading",
+  "lock_api",
   "metal",
   "miniz_oxide",
   "num-rational",
   "parking_lot",
   "parking_lot_core",
+  "ron",
   "wayland-sys",
 
   # https://github.com/servo/servo/issues/26933

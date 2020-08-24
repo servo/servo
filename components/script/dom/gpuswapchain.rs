@@ -90,7 +90,6 @@ impl GPUSwapChainMethods for GPUSwapChain {
     /// https://gpuweb.github.io/gpuweb/#dom-gpuswapchain-getcurrenttexture
     fn GetCurrentTexture(&self) -> DomRoot<GPUTexture> {
         self.context.mark_as_dirty();
-        //self.context.send_swap_chain_present();
         DomRoot::from_ref(&*self.texture)
     }
 }

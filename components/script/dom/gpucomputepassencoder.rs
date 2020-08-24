@@ -99,10 +99,9 @@ impl GPUComputePassEncoderMethods for GPUComputePassEncoder {
         self.channel
             .0
             .send((
-                self.command_encoder.device().use_current_scope(),
+                None,
                 WebGPURequest::RunComputePass {
                     command_encoder_id: self.command_encoder.id().0,
-                    device_id: self.command_encoder.device().id().0,
                     compute_pass,
                 },
             ))

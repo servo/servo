@@ -775,7 +775,6 @@ impl GPUDeviceMethods for GPUDevice {
             self.channel.clone(),
             &self,
             encoder,
-            true,
             descriptor.parent.label.as_ref().cloned(),
         )
     }
