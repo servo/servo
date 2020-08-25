@@ -439,7 +439,7 @@
   "testharness": {
    "webgpu": {
     "cts.html": [
-     "f9e2eea69df8fc4a53584d0b9a7cde3e688e52b4",
+     "63357f7e996ecadde32f6816dc131b94e9ab976c",
      [
       "webgpu/cts.html?q=webgpu:api,operation,buffers,map_detach:*",
       {}
@@ -490,10 +490,6 @@
      ],
      [
       "webgpu/cts.html?q=webgpu:api,validation,createPipelineLayout:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:api,validation,createTexture:*",
       {}
      ],
      [
