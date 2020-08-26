@@ -313,11 +313,6 @@ impl ::selectors::parser::NonTSPseudoClass for NonTSPseudoClass {
         )
     }
 
-    #[inline]
-    fn has_zero_specificity(&self) -> bool {
-        false
-    }
-
     fn visit<V>(&self, _: &mut V) -> bool
     where
         V: SelectorVisitor<Impl = Self::Impl>,

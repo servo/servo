@@ -98,7 +98,6 @@ macro_rules! apply_non_ts_list {
                 ("-moz-last-node", MozLastNode, _, _),
                 ("-moz-only-whitespace", MozOnlyWhitespace, _, _),
                 ("-moz-native-anonymous", MozNativeAnonymous, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
-                ("-moz-native-anonymous-no-specificity", MozNativeAnonymousNoSpecificity, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-use-shadow-tree-root", MozUseShadowTreeRoot, _, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS),
                 ("-moz-is-html", MozIsHTML, _, _),
                 ("-moz-placeholder", MozPlaceholder, _, _),
