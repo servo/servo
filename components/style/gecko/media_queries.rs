@@ -206,6 +206,15 @@ impl Device {
         self.reset_computed_values();
     }
 
+    /// Returns whether this document is in print preview.
+    pub fn is_print_preview(&self) -> bool {
+        let pc = match self.pres_context() {
+            Some(pc) => pc,
+            None => return false,
+        };
+        pc.mType == structs::nsPresContext_nsPresContextType_eContext_PrintPreview
+    }
+
     /// Returns the current media type of the device.
     pub fn media_type(&self) -> MediaType {
         let pc = match self.pres_context() {
