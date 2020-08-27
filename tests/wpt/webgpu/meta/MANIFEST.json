@@ -89,7 +89,7 @@
        []
       ],
       "params_utils.js": [
-       "a95d01b9c8058076af5cf49d4ab82b5c74367a5b",
+       "d4ffd25372d2d3e975c683ca8a17c2c82d5c8687",
        []
       ],
       "query": {
@@ -98,7 +98,7 @@
         []
        ],
        "encode_selectively.js": [
-        "62cb55ee039b7cc04dfdf751ce2241ba5864cac6",
+        "cb365deb4bb688e8ae5eebdef24a2ffcb3d857ef",
         []
        ],
        "json_param_value.js": [
@@ -106,7 +106,7 @@
         []
        ],
        "parseQuery.js": [
-        "6c10baab0b2f97dc09e633201dae6618842fbd69",
+        "8bfd88bc9b66a41e08b3283b13b65bb3da0c10fe",
         []
        ],
        "query.js": [
@@ -161,7 +161,7 @@
        ]
       },
       "version.js": [
-       "794e3cdef44214801f15234a61aaf5af338f97fc",
+       "74eef63b8a1fa6042d1d8352b25eaf95d4b25985",
        []
       ]
      },
@@ -223,6 +223,10 @@
          ]
         }
        },
+       "copyBetweenLinearDataAndTexture.spec.js": [
+        "d2b89189e2c65d50f4f6f0c20f32a7f6512c5b35",
+        []
+       ],
        "fences.spec.js": [
         "98f913008b8af33e1dc866f5714388d4ec9e050d",
         []
@@ -311,7 +315,7 @@
        ],
        "resource_usages": {
         "textureUsageInRender.spec.js": [
-         "12efa65ce2d9e9ed67cb2be398a0466424d38015",
+         "b036245663df8d684067eff7c79861253205dbca",
          []
         ]
        },
@@ -324,7 +328,7 @@
         []
        ],
        "setScissorRect.spec.js": [
-        "7934c007286c8c4e9702eaaadb14b288a78e8fb1",
+        "c049e92e70e3ad9a5f71f88a863e5a86cc74fc4e",
         []
        ],
        "setStencilReference.spec.js": [
@@ -350,7 +354,7 @@
       []
      ],
      "gpu_test.js": [
-      "f350131af3babe9729dec35261f7c445e2bf41d2",
+      "21cb10f1429e495b2f32b1d51a09b8584f63707d",
       []
      ],
      "idl": {
@@ -366,7 +370,7 @@
       ]
      },
      "listing.js": [
-      "3134cf0dd5693705ed82f0828f4dbd93fedf358e",
+      "cbb23b30ec894c103a957f944b18be1e019ed571",
       []
      ],
      "util": {
@@ -380,7 +384,7 @@
       ],
       "texture": {
        "layout.js": [
-        "c3c610bf0d93ebe66abf81d8f2017deba62641a3",
+        "927798985fc772a4c9e9ea7a62335ab693b43991",
         []
        ],
        "subresource.js": [
@@ -435,7 +439,7 @@
   "testharness": {
    "webgpu": {
     "cts.html": [
-     "28d69b38d20367b4c61e72e834f518a11e8de411",
+     "63357f7e996ecadde32f6816dc131b94e9ab976c",
      [
       "webgpu/cts.html?q=webgpu:api,operation,buffers,map_detach:*",
       {}
@@ -454,6 +458,10 @@
      ],
      [
       "webgpu/cts.html?q=webgpu:api,operation,command_buffer,render,basic:*",
+      {}
+     ],
+     [
+      "webgpu/cts.html?q=webgpu:api,operation,copyBetweenLinearDataAndTexture:*",
       {}
      ],
      [
@@ -482,10 +490,6 @@
      ],
      [
       "webgpu/cts.html?q=webgpu:api,validation,createPipelineLayout:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:api,validation,createTexture:*",
       {}
      ],
      [

@@ -18,6 +18,7 @@ import { DevicePool, TestOOMedShouldAttemptGC } from '../common/framework/gpu/de
 import { attemptGarbageCollection } from '../common/framework/util/collect_garbage.js';
 import { assert } from '../common/framework/util/util.js';
 
+import { align } from './util/math.js';
 import { fillTextureDataWithTexelValue, getTextureCopyLayout } from './util/texture/layout.js';
 import { getTexelDataRepresentation } from './util/texture/texelData.js';
 
@@ -76,6 +77,9 @@ export class GPUTest extends Fixture {
   }
 
   createCopyForMapRead(src, srcOffset, size) {
+    assert(srcOffset % 4 === 0);
+    assert(size % 4 === 0);
+
     const dst = this.device.createBuffer({
       size,
       usage: GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST,
@@ -91,14 +95,31 @@ export class GPUTest extends Fixture {
 
   // TODO: add an expectContents for textures, which logs data: uris on failure
 
+  // Offset and size passed to createCopyForMapRead must be divisible by 4. For that
+  // we might need to copy more bytes from the buffer than we want to map.
+  // begin and end values represent the part of the copied buffer that stores the contents
+  // we initially wanted to map.
+  // The copy will not cause an OOB error because the buffer size must be 4-aligned.
+  createAlignedCopyForMapRead(src, size, offset) {
+    const alignedOffset = Math.floor(offset / 4) * 4;
+    const offsetDifference = offset - alignedOffset;
+    const alignedSize = align(size + offsetDifference, 4);
+    const dst = this.createCopyForMapRead(src, alignedOffset, alignedSize);
+    return { dst, begin: offsetDifference, end: offsetDifference + size };
+  }
+
   expectContents(src, expected, srcOffset = 0) {
-    const dst = this.createCopyForMapRead(src, srcOffset, expected.buffer.byteLength);
+    const { dst, begin, end } = this.createAlignedCopyForMapRead(
+      src,
+      expected.byteLength,
+      srcOffset
+    );
 
     this.eventualAsyncExpectation(async niceStack => {
       const constructor = expected.constructor;
       await dst.mapAsync(GPUMapMode.READ);
       const actual = new constructor(dst.getMappedRange());
-      const check = this.checkBuffer(actual, expected);
+      const check = this.checkBuffer(actual.subarray(begin, end), expected);
       if (check !== undefined) {
         niceStack.message = check;
         this.rec.expectationFailed(niceStack);

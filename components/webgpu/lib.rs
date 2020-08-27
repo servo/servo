@@ -21,7 +21,6 @@ use servo_config::pref;
 use smallvec::SmallVec;
 use std::borrow::Cow;
 use std::cell::RefCell;
-use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::rc::Rc;
@@ -475,9 +474,7 @@ impl<'a> WGPU<'a> {
                             ))
                             .map_err(|e| format!("{:?}", e))
                         };
-                        if result.is_err() {
-                            self.encoder_record_error(command_encoder_id, result.clone());
-                        }
+                        self.encoder_record_error(command_encoder_id, &result);
                         self.send_result(device_id, scope_id, result);
                     },
                     WebGPURequest::CopyBufferToBuffer {
@@ -497,7 +494,7 @@ impl<'a> WGPU<'a> {
                             destination_offset,
                             size
                         ));
-                        self.encoder_record_error(command_encoder_id, result);
+                        self.encoder_record_error(command_encoder_id, &result);
                     },
                     WebGPURequest::CopyBufferToTexture {
                         command_encoder_id,
@@ -512,7 +509,7 @@ impl<'a> WGPU<'a> {
                             &destination,
                             &copy_size
                         ));
-                        self.encoder_record_error(command_encoder_id, result);
+                        self.encoder_record_error(command_encoder_id, &result);
                     },
                     WebGPURequest::CopyTextureToBuffer {
                         command_encoder_id,
@@ -527,7 +524,7 @@ impl<'a> WGPU<'a> {
                             &destination,
                             &copy_size
                         ));
-                        self.encoder_record_error(command_encoder_id, result);
+                        self.encoder_record_error(command_encoder_id, &result);
                     },
                     WebGPURequest::CopyTextureToTexture {
                         command_encoder_id,
@@ -542,7 +539,7 @@ impl<'a> WGPU<'a> {
                             &destination,
                             &copy_size
                         ));
-                        self.encoder_record_error(command_encoder_id, result);
+                        self.encoder_record_error(command_encoder_id, &result);
                     },
                     WebGPURequest::CreateBindGroup {
                         device_id,
@@ -985,7 +982,7 @@ impl<'a> WGPU<'a> {
                         } else {
                             Err(String::from("Invalid ComputePass"))
                         };
-                        self.encoder_record_error(command_encoder_id, result);
+                        self.encoder_record_error(command_encoder_id, &result);
                     },
                     WebGPURequest::RunRenderPass {
                         command_encoder_id,
@@ -1000,7 +997,7 @@ impl<'a> WGPU<'a> {
                         } else {
                             Err(String::from("Invalid RenderPass"))
                         };
-                        self.encoder_record_error(command_encoder_id, result);
+                        self.encoder_record_error(command_encoder_id, &result);
                     },
                     WebGPURequest::Submit {
                         queue_id,
@@ -1279,12 +1276,13 @@ impl<'a> WGPU<'a> {
     fn encoder_record_error<U, T: std::fmt::Debug>(
         &self,
         encoder_id: id::CommandEncoderId,
-        result: Result<U, T>,
+        result: &Result<U, T>,
     ) {
-        if let Err(e) = result {
-            if let Entry::Vacant(v) = self.error_command_encoders.borrow_mut().entry(encoder_id) {
-                v.insert(format!("{:?}", e));
-            }
+        if let Err(ref e) = result {
+            self.error_command_encoders
+                .borrow_mut()
+                .entry(encoder_id)
+                .or_insert_with(|| format!("{:?}", e));
         }
     }
 }
