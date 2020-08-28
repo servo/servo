@@ -419,7 +419,6 @@ impl ModuleTree {
         url: ServoUrl,
         options: ScriptFetchOptions,
     ) -> Result<ModuleObject, RethrowError> {
-
         let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
         let compile_options =

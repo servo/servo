@@ -2594,8 +2594,7 @@ impl GlobalScope {
                     rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
                     match code {
                         SourceCode::Text(text_code) => {
-                            let options =
-                                CompileOptionsWrapper::new(*cx, filename, line_number);
+                            let options = CompileOptionsWrapper::new(*cx, filename, line_number);
 
                             debug!("compiling dom string");
                             compiled_script.set(Compile1(
