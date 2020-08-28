@@ -70,7 +70,6 @@ use net_traits::{FetchResponseListener, NetworkError};
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
 use servo_url::ServoUrl;
 use std::collections::{HashMap, HashSet};
-use std::ffi;
 use std::mem;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -420,12 +419,11 @@ impl ModuleTree {
         url: ServoUrl,
         options: ScriptFetchOptions,
     ) -> Result<ModuleObject, RethrowError> {
-        let url_cstr = ffi::CString::new(url.as_str().as_bytes()).unwrap();
 
         let _ac = JSAutoRealm::new(*global.get_cx(), *global.reflector().get_jsobject());
 
         let compile_options =
-            unsafe { CompileOptionsWrapper::new(*global.get_cx(), url_cstr.as_ptr(), 1) };
+            unsafe { CompileOptionsWrapper::new(*global.get_cx(), url.as_str(), 1) };
 
         unsafe {
             rooted!(in(*global.get_cx()) let mut module_script = CompileModuleDontInflate(

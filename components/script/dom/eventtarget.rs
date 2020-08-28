@@ -511,7 +511,6 @@ impl EventTarget {
 
         // Step 3.9
 
-        let url_serialized = CString::new(handler.url.to_string()).unwrap();
         let name = CString::new(format!("on{}", &**ty)).unwrap();
 
         // Step 3.9, subsection ParameterList
@@ -528,7 +527,7 @@ impl EventTarget {
 
         let cx = window.get_cx();
         let options = unsafe {
-            CompileOptionsWrapper::new(*cx, url_serialized.as_ptr(), handler.line as u32)
+            CompileOptionsWrapper::new(*cx, &handler.url.to_string(), handler.line as u32)
         };
 
         // Step 3.9, subsection Scope steps 1-6
