@@ -118,7 +118,6 @@ use std::borrow::Cow;
 use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::collections::{HashMap, VecDeque};
-use std::ffi::CString;
 use std::mem;
 use std::ops::Index;
 use std::rc::Rc;
@@ -2586,7 +2585,6 @@ impl GlobalScope {
             self.time_profiler_chan().clone(),
             || {
                 let cx = self.get_cx();
-                let filename = CString::new(filename).unwrap();
 
                 let ar = enter_realm(&*self);
 
@@ -2596,8 +2594,7 @@ impl GlobalScope {
                     rooted!(in(*cx) let mut compiled_script = std::ptr::null_mut::<JSScript>());
                     match code {
                         SourceCode::Text(text_code) => {
-                            let options =
-                                CompileOptionsWrapper::new(*cx, filename.as_ptr(), line_number);
+                            let options = CompileOptionsWrapper::new(*cx, filename, line_number);
 
                             debug!("compiling dom string");
                             compiled_script.set(Compile1(

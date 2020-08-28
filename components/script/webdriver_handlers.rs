@@ -48,7 +48,7 @@ use ipc_channel::ipc::{self, IpcSender};
 use js::jsapi::{HandleValueArray, JSAutoRealm, JSContext, JSType, JS_IsExceptionPending};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers::{JS_CallFunctionName, JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue};
-use js::rust::{Handle, HandleObject, HandleValue};
+use js::rust::{HandleObject, HandleValue};
 use msg::constellation_msg::BrowsingContextId;
 use msg::constellation_msg::PipelineId;
 use net_traits::CookieSource::{NonHTTP, HTTP};
@@ -256,7 +256,7 @@ pub unsafe fn jsval_to_webdriver(
                 &mut HandleValueArray::new(),
                 value.handle_mut(),
             ) {
-                jsval_to_webdriver(cx, global_scope, Handle::new(&value))
+                jsval_to_webdriver(cx, global_scope, value.handle())
             } else {
                 throw_dom_exception(SafeJSContext::from_ptr(cx), global_scope, Error::JSFailed);
                 Err(WebDriverJSError::JSError)
