@@ -38,7 +38,7 @@ impl ::selectors::parser::PseudoElement for PseudoElement {
                 PseudoElement::After |
                 PseudoElement::Marker |
                 PseudoElement::Placeholder |
-                PseudoElement::FileChooserButton
+                PseudoElement::FileSelectorButton
         )
     }
 
@@ -164,8 +164,8 @@ impl PseudoElement {
             PseudoElement::MozFocusOuter => {
                 static_prefs::pref!("layout.css.moz-focus-outer.enabled")
             },
-            PseudoElement::FileChooserButton => {
-                static_prefs::pref!("layout.css.file-chooser-button.enabled")
+            PseudoElement::FileSelectorButton => {
+                static_prefs::pref!("layout.css.file-selector-button.enabled")
             },
             _ => (self.flags() & structs::CSS_PSEUDO_ELEMENT_ENABLED_IN_UA_SHEETS_AND_CHROME) == 0,
         }
