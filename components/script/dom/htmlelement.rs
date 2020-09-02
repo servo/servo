@@ -28,7 +28,7 @@ use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
 use crate::dom::htmllabelelement::HTMLLabelElement;
 use crate::dom::htmltextareaelement::HTMLTextAreaElement;
 use crate::dom::node::{document_from_node, window_from_node};
-use crate::dom::node::{Node, ShadowIncluding};
+use crate::dom::node::{Node, SuppressObserver, ShadowIncluding};
 use crate::dom::text::Text;
 use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
@@ -498,7 +498,7 @@ impl HTMLElementMethods for HTMLElement {
         }
 
         // Step 7.
-        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>());
+        Node::replace_all(Some(fragment.upcast()), self.upcast::<Node>(), SuppressObserver::Unsuppressed);
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-translate

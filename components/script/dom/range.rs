@@ -24,7 +24,7 @@ use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::element::Element;
 use crate::dom::htmlscriptelement::HTMLScriptElement;
-use crate::dom::node::{Node, ShadowIncluding, UnbindContext};
+use crate::dom::node::{Node, ShadowIncluding, SuppressObserver, UnbindContext};
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
 use crate::dom::window::Window;
@@ -946,7 +946,7 @@ impl RangeMethods for Range {
         let fragment = self.ExtractContents()?;
 
         // Step 4.
-        Node::replace_all(None, new_parent);
+        Node::replace_all(None, new_parent, SuppressObserver::Unsuppressed);
 
         // Step 5.
         self.InsertNode(new_parent)?;

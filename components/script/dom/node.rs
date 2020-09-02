@@ -210,7 +210,7 @@ impl NodeFlags {
 /// <https://dom.spec.whatwg.org/#concept-node-insert>
 /// <https://dom.spec.whatwg.org/#concept-node-remove>
 #[derive(Clone, Copy, MallocSizeOf)]
-enum SuppressObserver {
+pub enum SuppressObserver {
     Suppressed,
     Unsuppressed,
 }
@@ -2106,7 +2106,7 @@ impl Node {
     }
 
     // https://dom.spec.whatwg.org/#concept-node-replace-all
-    pub fn replace_all(node: Option<&Node>, parent: &Node) {
+    pub fn replace_all(node: Option<&Node>, parent: &Node, suppress_observers: SuppressObserver) {
         parent.owner_doc().add_script_and_layout_blocker();
         // Step 1.
         if let Some(node) = node {
@@ -2140,14 +2140,16 @@ impl Node {
             added_nodes,
         ));
 
-        if !removed_nodes.is_empty() || !added_nodes.is_empty() {
-            let mutation = Mutation::ChildList {
-                added: Some(added_nodes),
-                removed: Some(removed_nodes.r()),
-                prev: None,
-                next: None,
-            };
-            MutationObserver::queue_a_mutation_record(&parent, mutation);
+        if let SuppressObserver::Unsuppressed = suppress_observers {
+            if !removed_nodes.is_empty() || !added_nodes.is_empty() {
+                let mutation = Mutation::ChildList {
+                    added: Some(added_nodes),
+                    removed: Some(removed_nodes.r()),
+                    prev: None,
+                    next: None,
+                };
+                MutationObserver::queue_a_mutation_record(&parent, mutation);
+            }
         }
         parent.owner_doc().remove_script_and_layout_blocker();
     }
@@ -2155,10 +2157,10 @@ impl Node {
     // https://dom.spec.whatwg.org/multipage/#string-replace-all
     pub fn string_replace_all(string: DOMString, parent: &Node) {
         if string.len() == 0 {
-            Node::replace_all(None, parent);
+            Node::replace_all(None, parent, SuppressObserver::Unsuppressed);
         } else {
             let text = Text::new(string, &document_from_node(parent));
-            Node::replace_all(Some(text.upcast::<Node>()), parent);
+            Node::replace_all(Some(text.upcast::<Node>()), parent, SuppressObserver::Unsuppressed);
         };
     }
 
@@ -2600,7 +2602,7 @@ impl NodeMethods for Node {
                 };
 
                 // Step 3.
-                Node::replace_all(node.as_deref(), self);
+                Node::replace_all(node.as_deref(), self, SuppressObserver::Unsuppressed);
             },
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();

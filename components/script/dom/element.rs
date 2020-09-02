@@ -71,7 +71,7 @@ use crate::dom::mutationobserver::{Mutation, MutationObserver};
 use crate::dom::namednodemap::NamedNodeMap;
 use crate::dom::node::{document_from_node, window_from_node};
 use crate::dom::node::{BindContext, NodeDamage, NodeFlags, UnbindContext};
-use crate::dom::node::{ChildrenMutation, LayoutNodeHelpers, Node, ShadowIncluding};
+use crate::dom::node::{ChildrenMutation, LayoutNodeHelpers, Node, SuppressObserver, ShadowIncluding};
 use crate::dom::nodelist::NodeList;
 use crate::dom::promise::Promise;
 use crate::dom::raredata::ElementRareData;
@@ -2536,7 +2536,7 @@ impl ElementMethods for Element {
         // Step 1.
         let frag = self.parse_fragment(value)?;
 
-        Node::replace_all(Some(frag.upcast()), &target);
+        Node::replace_all(Some(frag.upcast()), &target, SuppressObserver::Unsuppressed);
         Ok(())
     }
 

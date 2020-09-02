@@ -79,7 +79,7 @@ use crate::dom::location::Location;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::node::{self, document_from_node, window_from_node, CloneChildrenFlag};
-use crate::dom::node::{Node, NodeDamage, NodeFlags, ShadowIncluding};
+use crate::dom::node::{Node, NodeDamage, NodeFlags, SuppressObserver, ShadowIncluding};
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
@@ -5015,8 +5015,7 @@ impl DocumentMethods for Document {
         }
 
         // Step 11
-        // TODO: https://github.com/servo/servo/issues/21936
-        Node::replace_all(None, self.upcast::<Node>());
+        Node::replace_all(None, self.upcast::<Node>(), SuppressObserver::Suppressed);
 
         // Specs and tests are in a state of flux about whether
         // we want to clear the selection when we remove the contents;
