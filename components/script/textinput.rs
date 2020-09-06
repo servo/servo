@@ -468,7 +468,17 @@ impl<T: ClipboardProvider> TextInput<T> {
             len_of_first_n_code_units(&*insert, allowed_to_insert_count);
         let to_insert = &insert[..last_char_index];
 
-        let (start, end) = self.sorted_selection_bounds();
+        let (start, mut end) = self.sorted_selection_bounds();
+
+        if start == end &&
+            end.line < self.lines.len() - 1 &&
+            self.edit_point != TextPoint::default() &&
+            insert.len_utf8() == UTF8Bytes(0)
+        {
+            end.line += 1;
+            end.index = UTF8Bytes(0);
+        }
+
         let UTF8Bytes(start_offset) = start.index;
         let UTF8Bytes(end_offset) = end.index;
 
@@ -564,7 +574,11 @@ impl<T: ClipboardProvider> TextInput<T> {
             .count();
         self.edit_point.line = target_line as usize;
         // NOTE: this adjusts to the nearest complete Unicode codepoint, rather than grapheme cluster
-        self.edit_point.index = len_of_first_n_chars(&self.lines[self.edit_point.line], col);
+        if col == 0 && select == Selection::Selected {
+            self.edit_point.index = self.current_line_length();
+        } else {
+            self.edit_point.index = len_of_first_n_chars(&self.lines[self.edit_point.line], col);
+        }
         if let Some(origin) = self.selection_origin {
             if ((self.selection_direction == SelectionDirection::None ||
                 self.selection_direction == SelectionDirection::Forward) &&
