@@ -2975,6 +2975,27 @@ impl ComputedValues {
         self.custom_properties.as_ref()
     }
 
+    /// Returns whether we have the same custom properties as another style.
+    ///
+    /// This should effectively be just:
+    ///
+    ///   self.custom_properties() == other.custom_properties()
+    ///
+    /// But that's not really the case because IndexMap equality doesn't
+    /// consider ordering, which we have to account for. Also, for the same
+    /// reason, IndexMap equality comparisons are slower than needed.
+    ///
+    /// See https://github.com/bluss/indexmap/issues/153
+    pub fn custom_properties_equal(&self, other: &Self) -> bool {
+        match (self.custom_properties(), other.custom_properties()) {
+            (Some(l), Some(r)) => {
+                l.len() == r.len() && l.iter().zip(r.iter()).all(|((k1, v1), (k2, v2))| k1 == k2 && v1 == v2)
+            },
+            (None, None) => true,
+            _ => false,
+        }
+    }
+
 % for prop in data.longhands:
     /// Gets the computed value of a given property.
     #[inline(always)]
