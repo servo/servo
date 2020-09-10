@@ -1844,31 +1844,6 @@ pub enum Appearance {
     Count,
 }
 
-/// The effect of `appearance: button` on an element.
-#[derive(
-    Clone,
-    Copy,
-    Debug,
-    Eq,
-    Hash,
-    MallocSizeOf,
-    Parse,
-    PartialEq,
-    SpecifiedValueInfo,
-    ToCss,
-    ToComputedValue,
-    ToResolvedValue,
-    ToShmem,
-)]
-#[repr(u8)]
-pub enum ButtonAppearance {
-    /// `appearance: button` means the element is rendered with button
-    /// appearance.
-    Allow,
-    /// `appearance: button` is treated like `appearance: auto`.
-    Disallow,
-}
-
 /// A kind of break between two boxes.
 ///
 /// https://drafts.csswg.org/css-break/#break-between
