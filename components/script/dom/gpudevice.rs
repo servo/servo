@@ -945,6 +945,7 @@ impl GPUDeviceMethods for GPUDevice {
                     depth_bias: rs_desc.depthBias,
                     depth_bias_slope_scale: *rs_desc.depthBiasSlopeScale,
                     depth_bias_clamp: *rs_desc.depthBiasClamp,
+                    ..Default::default()
                 }),
                 primitive_topology: match descriptor.primitiveTopology {
                     GPUPrimitiveTopology::Point_list => wgt::PrimitiveTopology::PointList,
