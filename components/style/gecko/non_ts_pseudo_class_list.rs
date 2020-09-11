@@ -92,8 +92,6 @@ macro_rules! apply_non_ts_list {
                 ("-moz-meter-sub-optimum", MozMeterSubOptimum, IN_SUB_OPTIMUM_STATE, _),
                 ("-moz-meter-sub-sub-optimum", MozMeterSubSubOptimum, IN_SUB_SUB_OPTIMUM_STATE, _),
 
-                ("-moz-user-disabled", MozUserDisabled, IN_USER_DISABLED_STATE, PSEUDO_CLASS_ENABLED_IN_UA_SHEETS_AND_CHROME),
-
                 ("-moz-first-node", MozFirstNode, _, _),
                 ("-moz-last-node", MozLastNode, _, _),
                 ("-moz-only-whitespace", MozOnlyWhitespace, _, _),

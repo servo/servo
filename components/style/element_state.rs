@@ -53,8 +53,6 @@ bitflags! {
         const IN_MOZ_UI_INVALID_STATE = 1 << 13;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-broken
         const IN_BROKEN_STATE = 1 << 14;
-        /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-user-disabled
-        const IN_USER_DISABLED_STATE = 1 << 15;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-suppressed
         const IN_SUPPRESSED_STATE = 1 << 16;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-loading
