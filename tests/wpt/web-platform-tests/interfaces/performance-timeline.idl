@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Performance Timeline Level 2 (https://w3c.github.io/performance-timeline/)
 
 partial interface Performance {
@@ -19,14 +19,14 @@ interface PerformanceEntry {
   [Default] object toJSON();
 };
 
-callback PerformanceObserverCallback = void (PerformanceObserverEntryList entries,
+callback PerformanceObserverCallback = undefined (PerformanceObserverEntryList entries,
                                              PerformanceObserver observer,
                                              optional boolean hasDroppedEntry = false);
 [Exposed=(Window,Worker)]
 interface PerformanceObserver {
   constructor(PerformanceObserverCallback callback);
-  void observe (optional PerformanceObserverInit options = {});
-  void disconnect ();
+  undefined observe (optional PerformanceObserverInit options = {});
+  undefined disconnect ();
   PerformanceEntryList takeRecords();
   [SameObject] static readonly attribute FrozenArray<DOMString> supportedEntryTypes;
 };

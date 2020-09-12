@@ -8,7 +8,7 @@
   </head>
   <body>
     <script>
-async_test(async function (t) {
+promise_test(async function (t) {
   var ifr = document.createElement("iframe");
   document.body.appendChild(ifr);
 
@@ -34,8 +34,6 @@ async_test(async function (t) {
       resolve();
     }
   });
-
-  t.done();
 }, "navigation.name updated when iframe URL changes");
     </script>
   </body>

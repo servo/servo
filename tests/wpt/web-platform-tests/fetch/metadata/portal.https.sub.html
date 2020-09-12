@@ -5,6 +5,7 @@
 <script src=/resources/testdriver-vendor.js></script>
 <script src=/fetch/metadata/resources/helper.js></script>
 <script src=/common/utils.js></script>
+<script src=/portals/resources/stash-utils.sub.js></script>
 <body>
 <script>
   const USER = true;
@@ -15,12 +16,12 @@
       assert_implements("HTMLPortalElement" in window, "Portals are not supported.");
 
       let p = document.createElement('portal');
-      p.addEventListener('message', t.step_func(e => {
-        assert_header_equals(e.data, expectations, `{{host}} -> ${host} portal`);
-        t.done();
+      const key = token();
+      StashUtils.takeValue(key).then(t.step_func_done(value => {
+        assert_header_equals(value, expectations, `{{host}} -> ${host} portal`);
       }));
 
-      let url = `https://${host}/fetch/metadata/resources/post-to-owner.py`;
+      let url = `https://${host}/fetch/metadata/resources/post-to-owner.py?key=${key}`;
       p.src = url;
       document.body.appendChild(p);
     }, `{{host}} -> ${host} portal`);

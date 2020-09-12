@@ -203,9 +203,6 @@ async function getAllStats(t, pc) {
   return stats;
 }
 
-let succeed;
-const success = new Promise(r => succeed = r);
-
 promise_test(async t => {
   const pc1 = new RTCPeerConnection();
   t.add_cleanup(() => pc1.close());
@@ -229,39 +226,40 @@ promise_test(async t => {
   // accessible metric of implementation progress by dictionary member. We count
   // whether we've seen each dictionary's mandatory members in getStats().
 
-  for (const stat of stats.values()) {
-    let dictName = dictionaryNames[stat.type];
-    if (!dictName) continue;
-    if (typeof dictName == "object") {
-      dictName = dictName[stat.kind];
-    }
-    assert_equals(typeof dictName, "string", "Test error. String.");
-    if (dictName && mandatory[dictName]) {
-      do {
-        const memberNames = mandatory[dictName];
-        const remainingNames = remaining[dictName];
-        assert_true(memberNames.length > 0, "Test error. Parent not found.");
-        for (const memberName of memberNames) {
-          if (memberName in stat) {
-            assert_not_equals(stat[memberName], undefined, "Not undefined");
-            remainingNames.delete(memberName);
-          }
-        }
-        dictName = parents[dictName];
-      } while (dictName);
-    }
-  }
-  succeed();
-}, 'getStats succeeds');
+  test(t => {
+    for (const stat of stats.values()) {
+      let dictName = dictionaryNames[stat.type];
+      if (!dictName) continue;
+      if (typeof dictName == "object") {
+        dictName = dictName[stat.kind];
+      }
 
-for (const dictName in mandatory) {
-  for (const memberName of mandatory[dictName]) {
-    promise_test(async t => {
-      await success;
-      assert_true(!remaining[dictName].has(memberName),
-                  `Is ${memberName} present`);
-    }, `${dictName}'s ${memberName}`);
+      assert_equals(typeof dictName, "string", "Test error. String.");
+      if (dictName && mandatory[dictName]) {
+        do {
+          const memberNames = mandatory[dictName];
+          const remainingNames = remaining[dictName];
+          assert_true(memberNames.length > 0, "Test error. Parent not found.");
+          for (const memberName of memberNames) {
+            if (memberName in stat) {
+              assert_not_equals(stat[memberName], undefined, "Not undefined");
+              remainingNames.delete(memberName);
+            }
+          }
+          dictName = parents[dictName];
+        } while (dictName);
+      }
+    }
+  }, "Validating stats");
+
+  for (const dictName in mandatory) {
+    for (const memberName of mandatory[dictName]) {
+      test(t => {
+        assert_true(!remaining[dictName].has(memberName),
+                    `Is ${memberName} present`);
+      }, `${dictName}'s ${memberName}`);
+    }
   }
-}
+}, 'getStats succeeds');
 
 </script>

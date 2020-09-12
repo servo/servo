@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Web NFC (https://w3c.github.io/web-nfc/)
 
 [SecureContext, Exposed=Window]
@@ -47,7 +47,7 @@ typedef (DOMString or BufferSource or NDEFMessageInit) NDEFMessageSource;
 interface NDEFWriter {
   constructor();
 
-  Promise<void> write(NDEFMessageSource message, optional NDEFWriteOptions options={});
+  Promise<undefined> write(NDEFMessageSource message, optional NDEFWriteOptions options={});
 };
 
 [SecureContext, Exposed=Window]
@@ -57,7 +57,7 @@ interface NDEFReader : EventTarget {
   attribute EventHandler onerror;
   attribute EventHandler onreading;
 
-  Promise<void> scan(optional NDEFScanOptions options={});
+  Promise<undefined> scan(optional NDEFScanOptions options={});
 };
 
 [SecureContext, Exposed=Window]

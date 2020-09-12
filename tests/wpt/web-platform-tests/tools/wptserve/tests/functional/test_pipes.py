@@ -42,6 +42,14 @@ class TestHeader(TestUsingServer):
         resp = self.request("/document.txt", query="pipe=header(Refresh,3;url=http://example.com)")
         self.assertEqual(resp.info()["Refresh"], "3;url=http://example.com")
 
+    def test_escape_comma(self):
+        resp = self.request("/document.txt", query="pipe=header(Expires,Thu\,%2014%20Aug%201986%2018:00:00%20GMT)")
+        self.assertEqual(resp.info()["Expires"], "Thu, 14 Aug 1986 18:00:00 GMT")
+
+    def test_escape_parenthesis(self):
+        resp = self.request("/document.txt", query="pipe=header(User-Agent,Mozilla/5.0%20(X11;%20Linux%20x86_64;%20rv:12.0\)")
+        self.assertEqual(resp.info()["User-Agent"], "Mozilla/5.0 (X11; Linux x86_64; rv:12.0)")
+
 class TestSlice(TestUsingServer):
     def test_both_bounds(self):
         resp = self.request("/document.txt", query="pipe=slice(1,10)")

@@ -51,7 +51,7 @@ function runGenericSensorTests(sensorName,
   }
 
   sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     sensorProvider.setGetSensorShouldFail(sensorName, true);
     const sensor = new sensorType;
     const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
@@ -64,7 +64,7 @@ function runGenericSensorTests(sensorName,
   }, `${sensorName}: Test that onerror is sent when sensor is not supported.`);
 
   sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     sensorProvider.setPermissionsDenied(sensorName, true);
     const sensor = new sensorType;
     const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
@@ -78,7 +78,7 @@ function runGenericSensorTests(sensorName,
  granted.`);
 
   sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const sensor = new sensorType({frequency: 560});
     const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
     sensor.start();
@@ -93,7 +93,7 @@ function runGenericSensorTests(sensorName,
   }, `${sensorName}: Test that onerror is send when start() call has failed.`);
 
   sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const sensor = new sensorType({frequency: 560});
     const sensorWatcher = new EventWatcher(t, sensor, ["activate", "error"]);
     sensor.start();
@@ -108,7 +108,7 @@ function runGenericSensorTests(sensorName,
   }, `${sensorName}: Test that frequency is capped to allowed maximum.`);
 
   sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const maxSupportedFrequency = 5;
     sensorProvider.setMaximumSupportedFrequency(maxSupportedFrequency);
     const sensor = new sensorType({frequency: 50});
@@ -126,7 +126,7 @@ function runGenericSensorTests(sensorName,
  frequency.`);
 
   sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const minSupportedFrequency = 2;
     sensorProvider.setMinimumSupportedFrequency(minSupportedFrequency);
     const sensor = new sensorType({frequency: -1});
@@ -144,7 +144,7 @@ function runGenericSensorTests(sensorName,
  frequency.`);
 
   promise_test(async t => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const iframe = document.createElement('iframe');
     iframe.allow = featurePolicies.join(' \'none\'; ') + ' \'none\';';
     iframe.srcdoc = '<script>' +
@@ -171,7 +171,7 @@ function runGenericSensorTests(sensorName,
  disallowed to use feature policy.`);
 
   promise_test(async t => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const iframe = document.createElement('iframe');
     iframe.allow = featurePolicies.join(';') + ';';
     iframe.srcdoc = '<script>' +
@@ -198,7 +198,7 @@ function runGenericSensorTests(sensorName,
  allowed to use feature policy.`);
 
   sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
     sensor.start();
@@ -219,7 +219,7 @@ function runGenericSensorTests(sensorName,
  valid.`);
 
   sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const sensor1 = new sensorType();
     const sensorWatcher1 = new EventWatcher(t, sensor1, ["reading", "error"]);
     sensor1.start();
@@ -249,7 +249,7 @@ function runGenericSensorTests(sensorName,
   }, `${sensorName}: sensor reading is correct.`);
 
   sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
     sensor.start();
@@ -268,7 +268,7 @@ function runGenericSensorTests(sensorName,
   }, `${sensorName}: sensor timestamp is updated when time passes.`);
 
   sensor_test(async t => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["activate", "error"]);
     assert_false(sensor.activated);
@@ -284,18 +284,7 @@ function runGenericSensorTests(sensorName,
  states are correct.`);
 
   sensor_test(async t => {
-    assert_true(sensorName in self);
-    const sensor = new sensorType();
-    const sensorWatcher = new EventWatcher(t, sensor, ["activate", "error"]);
-    const start_return = sensor.start();
-
-    await sensorWatcher.wait_for("activate");
-    assert_equals(start_return, undefined);
-    sensor.stop();
-  }, `${sensorName}: sensor.start() returns undefined.`);
-
-  sensor_test(async t => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["activate", "error"]);
     sensor.start();
@@ -308,18 +297,7 @@ function runGenericSensorTests(sensorName,
  started sensor.`);
 
   sensor_test(async t => {
-    assert_true(sensorName in self);
-    const sensor = new sensorType();
-    const sensorWatcher = new EventWatcher(t, sensor, ["activate", "error"]);
-    sensor.start();
-
-    await sensorWatcher.wait_for("activate");
-    const stop_return = sensor.stop();
-    assert_equals(stop_return, undefined);
-  }, `${sensorName}: sensor.stop() returns undefined.`);
-
-  sensor_test(async t => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["activate", "error"]);
     sensor.start();
@@ -332,7 +310,7 @@ function runGenericSensorTests(sensorName,
  stopped sensor.`);
 
   sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const sensor = new sensorType();
     const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
     sensor.start();
@@ -367,7 +345,7 @@ function runGenericSensorTests(sensorName,
 
 //  TBD file a WPT issue: visibilityChangeWatcher times out.
 //  sensor_test(async (t, sensorProvider) => {
-//    assert_true(sensorName in self);
+//    assert_implements(sensorName in self, `${sensorName} is not supported.`);
 //    const sensor = new sensorType();
 //    const sensorWatcher = new EventWatcher(t, sensor, ["reading", "error"]);
 //    const visibilityChangeWatcher = new EventWatcher(t, document,
@@ -392,48 +370,41 @@ function runGenericSensorTests(sensorName,
 //  }, `${sensorName}: sensor readings can not be fired on the background tab.`);
 
   sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
-    const fastSensor = new sensorType({frequency: 60});
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
+
+    const fastSensor = new sensorType({ frequency: 60 });
+    t.add_cleanup(() => { fastSensor.stop(); });
+    let eventWatcher = new EventWatcher(t, fastSensor, "activate");
     fastSensor.start();
+
+    // Wait for |fastSensor| to be activated so that the call to
+    // getSamplingFrequency() below works.
+    await eventWatcher.wait_for("activate");
 
     const mockSensor = await sensorProvider.getCreatedSensor(sensorName);
     await mockSensor.setSensorReading(readings);
 
-    return new Promise((resolve, reject) => {
-      let fastSensorNotifiedCounter = 0;
-      let slowSensorNotifiedCounter = 0;
+    // We need |fastSensorFrequency| because 60Hz might be higher than a sensor
+    // type's maximum allowed frequency.
+    const fastSensorFrequency = mockSensor.getSamplingFrequency();
+    const slowSensorFrequency = fastSensorFrequency * 0.25;
 
-      fastSensor.onreading = () => {
-        if (fastSensorNotifiedCounter === 0) {
-          // For Magnetometer and ALS, the maximum frequency is less than 60Hz
-          // we make "slow" sensor 4 times slower than the actual applied
-          // frequency, so that the "fast" sensor will immediately overtake it
-          // despite the notification adjustments.
-          const slowFrequency = mockSensor.getSamplingFrequency() * 0.25;
-          const slowSensor = new sensorType({frequency: slowFrequency});
-          slowSensor.onreading = () => {
-            // Skip the initial notification that always comes immediately.
-            if (slowSensorNotifiedCounter === 2) {
-              fastSensor.stop();
-              slowSensor.stop();
+    const slowSensor = new sensorType({ frequency: slowSensorFrequency });
+    t.add_cleanup(() => { slowSensor.stop(); });
+    eventWatcher = new EventWatcher(t, slowSensor, "activate");
+    slowSensor.start();
 
-              try {
-                assert_greater_than(fastSensorNotifiedCounter, 3,
-                    "Fast sensor overtakes the slow one");
-                resolve();
-              } catch (e) {
-                reject(e);
-              }
-            }
-            slowSensorNotifiedCounter++;
-          }
-          slowSensor.onerror = reject;
-          slowSensor.start();
-        }
-        fastSensorNotifiedCounter++;
-      }
-      fastSensor.onerror = reject;
-    });
+    // Wait for |slowSensor| to be activated before we check if the mock
+    // platform sensor's sampling frequency has changed.
+    await eventWatcher.wait_for("activate");
+    assert_equals(mockSensor.getSamplingFrequency(), fastSensorFrequency);
+
+    // Now stop |fastSensor| and verify that the sampling frequency has dropped
+    // to the one |slowSensor| had requested.
+    fastSensor.stop();
+    return t.step_wait(() => {
+      return mockSensor.getSamplingFrequency() === slowSensorFrequency;
+    }, "Sampling frequency has dropped to slowSensor's requested frequency");
   }, `${sensorName}: frequency hint works.`);
 
 //  Re-enable after https://github.com/w3c/sensors/issues/361 is fixed.
@@ -450,7 +421,7 @@ function runGenericSensorTests(sensorName,
 // option.`);
 
   test(() => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const invalidFreqs = [
       "invalid",
       NaN,
@@ -471,7 +442,7 @@ function runGenericSensorTests(sensorName,
   }
 
   sensor_test(async (t, sensorProvider) => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const sensor1 = new sensorType({frequency: 60});
     const sensor2 = new sensorType({frequency: 60, referenceFrame: "screen"});
     const sensorWatcher1 = new EventWatcher(t, sensor1, ["reading", "error"]);
@@ -503,7 +474,7 @@ function runGenericSensorTests(sensorName,
  is 'screen'.`);
 
   test(() => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const invalidRefFrames = [
       "invalid",
       null,

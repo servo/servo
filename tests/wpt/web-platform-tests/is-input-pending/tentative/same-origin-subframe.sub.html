@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/input-onmessage.js"></script>
+<script src="../resources/pending-input-utils.js"></script>
+</head>
+<body>
+  <iframe src="../resources/blank.html"></iframe>
+  <p>Ensure that a parent frame can detect events on one of its same-origin subframes.</p>
+  <script>
+    window.addEventListener('load', () => {
+      PendingInputUtils.testDetectDiscretePendingInput(window, () => {
+        return new test_driver.Actions()
+          .pointerMove(10, 10)
+          .pointerDown()
+          .pointerUp();
+      }, 'can detect same-origin iframe events in parent');
+      PendingInputUtils.testDetectDiscretePendingInput(frames[0], () => {
+        return new test_driver.Actions()
+          .pointerMove(10, 10)
+          .pointerDown()
+          .pointerUp();
+      }, 'can detect same-origin iframe events in subframe');
+    });
+  </script>
+</body>
+</html>

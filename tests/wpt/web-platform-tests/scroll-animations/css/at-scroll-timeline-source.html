@@ -64,7 +64,9 @@
   }
   #container > div {
     width: 0px;
-    animation: expand 10s linear;
+    animation-name: expand;
+    animation-duration: 10s;
+    animation-timing-function: linear;
   }
   /* Ensure stable expectations if feature is not supported */
   @supports not (animation-timeline:foo) {

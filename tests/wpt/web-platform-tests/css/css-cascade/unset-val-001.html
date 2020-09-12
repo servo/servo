@@ -4,6 +4,7 @@
   <meta charset="utf-8">
   <title>CSS Cascade: the "unset" value</title>
   <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
   <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#inherit-initial">
   <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#inherit-initial">
   <link rel="match" href="reference/ref-filled-green-100px-square.xht">
@@ -16,15 +17,17 @@
 }
 .under {
   background-color: green;
+  margin-bottom: -100px;
 }
 .outer {
   color: green;
+  background: red;
 }
 .inner {
-  position: absolute;
   color: red;
   background-color: red;
   font-size: 40px;
+  text-align: center;
 }
 .inner {
   color: unset;/* inherit from .outer */
@@ -35,9 +38,9 @@
 <body>
   <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
 
-  <div class="outer">
-    <div class="inner square">WW</div>
+  <div class="outer square">
     <div class="under square"></div>
+    <div class="inner square">XX</div>
   </div>
 </body>
 </html>

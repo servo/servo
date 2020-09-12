@@ -22,38 +22,38 @@
 // the test times out.
 
 async function signalSettlementTime(t, v, sender, signal, backgroundTrack) {
-  const detectionStream = await getNoiseStream({video: {signal: signal}});
+  const detectionStream = await getNoiseStream({video: {signal}});
   const [detectionTrack] = detectionStream.getTracks();
-  await sender.replaceTrack(detectionTrack);
-  const framesBefore = v.getVideoPlaybackQuality().totalVideoFrames;
-  await detectSignal(t, v, signal);
-  const framesAfter = v.getVideoPlaybackQuality().totalVideoFrames;
-  await sender.replaceTrack(backgroundTrack);
-  await detectSignal(t, v, 100);
-  detectionStream.getTracks().forEach(track => track.stop());
-  return (framesAfter - framesBefore);
+  try {
+    await sender.replaceTrack(detectionTrack);
+    const framesBefore = v.getVideoPlaybackQuality().totalVideoFrames;
+    await detectSignal(t, v, signal);
+    const framesAfter = v.getVideoPlaybackQuality().totalVideoFrames;
+    await sender.replaceTrack(backgroundTrack);
+    await detectSignal(t, v, 100);
+    return framesAfter - framesBefore;
+  } finally {
+    detectionTrack.stop();
+  }
 }
 
 promise_test(async t => {
   const v = document.createElement('video');
   v.autoplay = true;
   const pc1 = new RTCPeerConnection();
-  t.add_cleanup(() => pc1.close());
   const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
   t.add_cleanup(() => pc2.close());
   const stream1 = await getNoiseStream({video: {signal: 100}});
-  t.add_cleanup(() => stream1.getTracks().forEach(track => track.stop()));
   const [track1] = stream1.getTracks();
+  t.add_cleanup(() => track1.stop());
+
   const sender = pc1.addTrack(track1);
-  pc2.ontrack = t.step_func((e) => {
-    v.srcObject = new MediaStream([e.track]);
-  });
-  const metadataToBeLoaded = new Promise((resolve) => {
-    v.addEventListener('loadedmetadata', resolve);
-  });
+  const haveTrackEvent = new Promise(r => pc2.ontrack = r);
   exchangeIceCandidates(pc1, pc2);
-  exchangeOfferAnswer(pc1, pc2);
-  await metadataToBeLoaded;
+  await exchangeOfferAnswer(pc1, pc2);
+  v.srcObject = new MediaStream([(await haveTrackEvent).track]);
+  await new Promise(r => v.onloadedmetadata = r);
   // The basic signal is a track with signal 100. We replace this
   // with tracks with signal from 0 to 255 and see if they are all
   // reliably detected.

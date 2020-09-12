@@ -18,6 +18,8 @@ function xr_promise_test(name, func, properties) {
     // Perform any required test setup:
     xr_debug(name, 'setup');
 
+    assert_implements(navigator.xr, 'missing navigator.xr');
+
     // Only set up once.
     if (!navigator.xr.test) {
       // Load test-only API helpers.
@@ -37,8 +39,6 @@ function xr_promise_test(name, func, properties) {
       } else if (isWebKitBased) {
         // WebKit setup
         await setupWebKitWebXRTestAPI();
-      } else {
-        assert_implements(false, "missing navigator.xr.test");
       }
     }
 
@@ -47,11 +47,7 @@ function xr_promise_test(name, func, properties) {
     // setup properly. Either way, the fact that xr_promise_test is being used
     // means that the tests expect navigator.xr.test to be set. By rejecting now
     // we can hopefully provide a clearer indication of what went wrong.
-    if (!navigator.xr.test) {
-      // We can't use assert_true here because it causes the wpt testharness
-      // to treat this as a test page and not as a test.
-      return Promise.reject("No navigator.xr.test object found, even after attempted load");
-    }
+    assert_implements(navigator.xr.test, 'missing navigator.xr.test, even after attempted load');
 
     // Ensure that any devices are disconnected when done. If this were done in
     // a .then() for the success case, a test that expected failure would
@@ -200,7 +196,7 @@ function forEachWebxrObject(callback) {
 
 // Code for loading test API in Chromium.
 async function loadChromiumResources() {
-  let chromiumResources = [
+  const chromiumResources = [
     '/gen/mojo/public/mojom/base/time.mojom.js',
     '/gen/mojo/public/mojom/base/shared_memory.mojom.js',
     '/gen/mojo/public/mojom/base/unguessable_token.mojom.js',
@@ -217,22 +213,26 @@ async function loadChromiumResources() {
     '/gen/ui/display/mojom/display.mojom.js',
     '/gen/device/gamepad/public/mojom/gamepad.mojom.js',
     '/gen/device/vr/public/mojom/vr_service.mojom.js',
+  ];
+
+  let extraResources = [
     '/resources/chromium/webxr-test-math-helper.js',
     '/resources/chromium/webxr-test.js',
-    // Required only by resources/chromium/webxr-test.js
     '/resources/testdriver.js',
     '/resources/testdriver-vendor.js',
   ];
-
   // This infrastructure is also used by Chromium-specific internal tests that
   // may need additional resources (e.g. internal API extensions), this allows
   // those tests to rely on this infrastructure while ensuring that no tests
   // make it into public WPTs that rely on APIs outside of the webxr test API.
   if (typeof(additionalChromiumResources) !== 'undefined') {
-    chromiumResources = chromiumResources.concat(additionalChromiumResources);
+    extraResources = extraResources.concat(additionalChromiumResources);
   }
 
   await loadMojoResources(chromiumResources);
+  for (const path of extraResources) {
+    await loadScript(path);
+  }
 
   xr_debug = navigator.xr.test.Debug;
 }

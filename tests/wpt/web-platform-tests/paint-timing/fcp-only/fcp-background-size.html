@@ -22,7 +22,17 @@
 <script src="../resources/utils.js"></script>
 <div id="main"></div>
 <script>
-    test_fcp("First contentful paint fires due to background size.");
+    // Load the image into memory first to make sure it's decoded.
+    function load_image() {
+      const img = document.createElement("img");
+      img.src = "../resources/circles.png";
+
+      return new Promise(resolve => {
+        img.onload = async () => resolve();
+      });
+    }
+
+    test_fcp("First contentful paint fires due to background size.", load_image);
 </script>
 </body>
 </html>

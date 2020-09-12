@@ -4,7 +4,7 @@
 
   // Sends two messages to its creator:
   // (1) The result of showDirectoryPicker().
-  // (2) The result of getOriginPrivateDirectory().
+  // (2) The result of navigator.storage.getDirectory().
 
   function post_message(data) {
     if (window.parent !== null) {
@@ -27,13 +27,13 @@
   }
 
   try {
-    window.getOriginPrivateDirectory()
+    navigator.storage.getDirectory()
       .then(() => {
-        post_message('getOriginPrivateDirectory(): FULFILLED');
+        post_message('navigator.storage.getDirectory(): FULFILLED');
       }).catch(error => {
-        post_message(`getOriginPrivateDirectory(): REJECTED: ${error.name}`);
+        post_message(`navigator.storage.getDirectory(): REJECTED: ${error.name}`);
       });
   } catch (error) {
-    post_message(`getOriginPrivateDirectory(): EXCEPTION: ${error.name}`);
+    post_message(`navigator.storage.getDirectory(): EXCEPTION: ${error.name}`);
   }
 </script>

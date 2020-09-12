@@ -17,5 +17,5 @@ def main(request, response):
     <title>Helper page for origin isolation tests</title>
 
     <body>
-    <script type="module" src="child-frame-script.mjs"></script>
+    <script type="module" src="send-header-page-script.mjs"></script>
     """

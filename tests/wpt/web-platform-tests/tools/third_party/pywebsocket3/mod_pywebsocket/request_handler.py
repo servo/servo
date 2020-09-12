@@ -208,7 +208,7 @@ class WebSocketRequestHandler(CGIHTTPServer.CGIHTTPRequestHandler):
             return False
 
         if self._options.use_basic_auth:
-            auth = self.headers.getheader('Authorization')
+            auth = self.headers.get('Authorization')
             if auth != self._options.basic_auth_credential:
                 self.send_response(401)
                 self.send_header('WWW-Authenticate',

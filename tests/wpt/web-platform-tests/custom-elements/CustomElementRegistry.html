@@ -655,7 +655,8 @@ promise_test(function () {
 }, 'customElements.whenDefined must return a rejected promise when the given name is not a valid custom element name');
 
 promise_test(function () {
-    customElements.define('preexisting-custom-element', class extends HTMLElement { });
+    class PreexistingCustomElement extends HTMLElement { };
+    customElements.define('preexisting-custom-element', PreexistingCustomElement);
 
     var promise = customElements.whenDefined('preexisting-custom-element');
     promise.then(function (value) { promise.resolved = value; }, function (value) { promise.rejected = value; });
@@ -665,8 +666,8 @@ promise_test(function () {
 
     return Promise.resolve().then(function () {
         assert_true('resolved' in promise, 'The promise returned by "whenDefined" must be resolved when a custom element is defined');
-        assert_equals(promise.resolved, undefined,
-            'The promise returned by "whenDefined" must be resolved with "undefined" when a custom element is defined');
+        assert_equals(promise.resolved, PreexistingCustomElement,
+            'The promise returned by "whenDefined" must be resolved with the constructor of the element when a custom element is defined');
         assert_false('rejected' in promise, 'The promise returned by "whenDefined" must not be rejected when a custom element is defined');
     });
 }, 'customElements.whenDefined must return a resolved promise when the registry contains the entry with the given name');
@@ -688,16 +689,17 @@ promise_test(function () {
 
     return Promise.resolve().then(function () {
         assert_true('resolved' in promise1, 'The promise returned by "whenDefined" must be resolved when a custom element is defined');
-        assert_equals(promise1.resolved, undefined, 'The promise returned by "whenDefined" must be resolved with "undefined" when a custom element is defined');
+        assert_equals(promise1.resolved, AnotherExistingCustomElement, 'The promise returned by "whenDefined" must be resolved with the constructor of the element when a custom element is defined');
         assert_false('rejected' in promise1, 'The promise returned by "whenDefined" must not be rejected when a custom element is defined');
 
         assert_true('resolved' in promise2, 'The promise returned by "whenDefined" must be resolved when a custom element is defined');
-        assert_equals(promise2.resolved, undefined, 'The promise returned by "whenDefined" must be resolved with "undefined" when a custom element is defined');
+        assert_equals(promise2.resolved, AnotherExistingCustomElement, 'The promise returned by "whenDefined" must be resolved with the constructor of the element when a custom element is defined');
         assert_false('rejected' in promise2, 'The promise returned by "whenDefined" must not be rejected when a custom element is defined');
     });
 }, 'customElements.whenDefined must return a new resolved promise each time invoked when the registry contains the entry with the given name');
 
 promise_test(function () {
+    class ElementDefinedAfterWhenDefined extends HTMLElement { };
     var promise = customElements.whenDefined('element-defined-after-whendefined');
     promise.then(function (value) { promise.resolved = value; }, function (value) { promise.rejected = value; });
 
@@ -710,7 +712,7 @@ promise_test(function () {
         assert_false('rejected' in promise, 'The promise returned by "whenDefined" must not be rejected until the element is defined');
         assert_equals(customElements.whenDefined('element-defined-after-whendefined'), promise,
             '"whenDefined" must return the same unresolved promise before the custom element is defined');
-        customElements.define('element-defined-after-whendefined', class extends HTMLElement { });
+        customElements.define('element-defined-after-whendefined', ElementDefinedAfterWhenDefined);
         assert_false('resolved' in promise, 'The promise returned by "whenDefined" must not be resolved until the end of the next microtask');
         assert_false('rejected' in promise, 'The promise returned by "whenDefined" must not be rejected until the end of the next microtask');
 
@@ -721,17 +723,33 @@ promise_test(function () {
         assert_false('rejected' in promiseAfterDefine, 'The promise returned by "whenDefined" must not be rejected until the end of the next microtask');
     }).then(function () {
         assert_true('resolved' in promise, 'The promise returned by "whenDefined" must be resolved when a custom element is defined');
-        assert_equals(promise.resolved, undefined,
-            'The promise returned by "whenDefined" must be resolved with "undefined" when a custom element is defined');
+        assert_equals(promise.resolved, ElementDefinedAfterWhenDefined,
+            'The promise returned by "whenDefined" must be resolved with the constructor of the element when a custom element is defined');
         assert_false('rejected' in promise, 'The promise returned by "whenDefined" must not be rejected when a custom element is defined');
 
         assert_true('resolved' in promiseAfterDefine, 'The promise returned by "whenDefined" must be resolved when a custom element is defined');
-        assert_equals(promiseAfterDefine.resolved, undefined,
-            'The promise returned by "whenDefined" must be resolved with "undefined" when a custom element is defined');
+        assert_equals(promiseAfterDefine.resolved, ElementDefinedAfterWhenDefined,
+            'The promise returned by "whenDefined" must be resolved with the constructor of the element when a custom element is defined');
         assert_false('rejected' in promiseAfterDefine, 'The promise returned by "whenDefined" must not be rejected when a custom element is defined');
     });
 }, 'A promise returned by customElements.whenDefined must be resolved by "define"');
 
+promise_test(function () {
+    class ResolvedCustomElement extends HTMLElement {};
+    customElements.define('resolved-custom-element', ResolvedCustomElement);
+    return customElements.whenDefined('resolved-custom-element').then(function (value) {
+        assert_true(value === ResolvedCustomElement, 'The promise returned by "whenDefined" must resolve with the defined class');
+    });
+}, 'A promise returned by customElements.whenDefined must be resolved with the defined class');
+
+promise_test(function () {
+    var promise = customElements.whenDefined('not-resolved-yet-custom-element').then(function (value) {
+        assert_true(value === NotResolvedYetCustomElement, 'The promise returned by "whenDefined" must resolve with the defined class once such class is defined');
+    });
+    class NotResolvedYetCustomElement extends HTMLElement {};
+    customElements.define('not-resolved-yet-custom-element', NotResolvedYetCustomElement);
+    return promise;
+}, 'A promise returned by customElements.whenDefined must be resolved with the defined class once such class is defined');
 </script>
 </body>
 </html>

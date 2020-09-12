@@ -5,11 +5,13 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/stash-utils.sub.js"></script>
+<script src="/common/utils.js"></script>
 <body>
   <input id="input"/>
   <script>
     const sameOriginUrl = "resources/portal-post-message-portal.html"
-    const crossOriginUrl = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-post-message-portal.html"
+    const crossOriginUrl = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-post-message-x-origin-portal.html"
 
     async function createAndInsertPortal(portalSrc) {
       assert_implements("HTMLPortalElement" in self);
@@ -52,15 +54,6 @@
     }, "postMessage message received by portalHost");
 
     promise_test(async () => {
-      var portal = await createAndInsertPortal(crossOriginUrl);
-      var message = "test message";
-      var {origin, data, sourceIsPortalHost} = await postMessage(portal, message, "*");
-      assert_equals(data, message);
-      assert_equals(origin, window.location.origin);
-      assert_true(sourceIsPortalHost);
-    }, "postMessage message received by portalHost in cross-origin portal");
-
-    promise_test(async () => {
       var portal = await createAndInsertPortal(sameOriginUrl);
       var message = "test message";
       var {data} = await postMessage(portal, message);
@@ -71,14 +64,6 @@
                                      "http://{{host}}:{{ports[http][0]}}");
       assert_equals(data, message);
     }, "postMessage received by portal host in same-origin portal for multiple valid target origins");
-
-    promise_test(async () => {
-      var portal = await createAndInsertPortal(crossOriginUrl);
-      var message = "test message";
-      var {data} = await postMessage(portal, message,
-          "http://{{hosts[alt][www]}}:{{ports[http][0]}}");
-      assert_equals(data, message);
-    }, "postMessage received by portal host in cross-origin portal when target origin is specified");
 
     promise_test(async () => {
       var portal = await createAndInsertPortal(sameOriginUrl);
@@ -100,13 +85,6 @@
       var {data} = await postMessageWithMessagePorts(portal, message, "*");
       assert_equals(data, message);
     }, "postMessage with message ports and same-origin portal");
-
-    promise_test(async () => {
-      var portal = await createAndInsertPortal(crossOriginUrl);
-      var message = "test message";
-      var {data} = await postMessageWithMessagePorts(portal, message, "*");
-      assert_equals(data, message);
-    }, "postMessage with message ports and cross-origin portal");
 
     promise_test(async () => {
       var portal = await createAndInsertPortal(sameOriginUrl);
@@ -206,26 +184,18 @@
       assert_equals(error, "InvalidStateError");
     }, "postMessage after activate throws error");
 
-    // TODO(adithyas): Use async_test instead of promise_test (for tests that
-    // use a timeout) once we implement postMessage in the other direction and
-    // no longer need to use broadcast channel.
     const TIMEOUT_DURATION_MS = 1000;
 
     promise_test(async t => {
-      var portal = await createAndInsertPortal(crossOriginUrl);
-      return new Promise((resolve, reject) => {
-        postMessage(portal, "test").then(() => { reject("message delivered"); });
-        t.step_timeout(resolve, TIMEOUT_DURATION_MS);
-      });
-    }, "message should not be delivered to cross-origin portal when targetOrigin is not specified");
+      const key = token();
+      const portal = await createAndInsertPortal(`${crossOriginUrl}?key=${key}`);
+      portal.postMessage('test message', '*');
+      t.step_timeout(() => {
+        StashUtils.putValue(key, 'passed');
+      }, TIMEOUT_DURATION_MS);
+      const result = await StashUtils.takeValue(key);
+      assert_equals(result, 'passed');
+    }, 'postMessage should be blocked for cross-origin portals');
 
-    promise_test(async t => {
-      var portal = await createAndInsertPortal(sameOriginUrl);
-      return new Promise((resolve, reject) => {
-        postMessage(portal, "test", "http://differentorigin.com:8002").then(
-          () => { reject("message delivered"); });
-        t.step_timeout(resolve, TIMEOUT_DURATION_MS);
-      });
-    }, "message should not be delivered to portal when targetOrigin does not match");
   </script>
 </body>

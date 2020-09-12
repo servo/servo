@@ -1,0 +1,187 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: test scrollbar-gutter: auto (classic scrollbars)</title>
+<link rel="author" title="Felipe Erias Morandeira" href="mailto:felipeerias@gmail.com"/>
+<link rel="help" href="https://www.w3.org/TR/css-overflow-4/#scollbar-gutter-property"/>
+<meta name="assert" content="Test scrollbar-gutter: auto with custom classic scrollbars">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<style>
+
+    .container {
+        scrollbar-gutter: auto;
+        height: 200px;
+        width: 200px;
+        margin: 1px;
+        padding: 0px;
+        border: none;
+        background: deepskyblue;
+    }
+
+    .content {
+        height: 100%;
+        width: 100%;
+        background: lightsalmon;
+    }
+
+    /* ensure that we are using classic scrollbars */
+    .classic {
+        scrollbar-width: 20px;
+        scrollbar-color: hsla(0, 0%, 20%, 0.6) hsla(0, 0%, 40%, 0.3);
+    }
+    .classic::-webkit-scrollbar {
+        width: 20px;
+        height: 20px;
+    }
+    .classic::-webkit-scrollbar-track {
+        background-color: hsla(0, 0%, 40%, 0.4);
+    }
+    .classic::-webkit-scrollbar-thumb {
+        background-color: hsla(0, 0%, 20%, 0.8);
+        border-radius: 10px;
+    }
+
+    /* writing modes */
+    .horizontal {
+        writing-mode: horizontal-tb;
+        overflow-x: auto;
+    }
+    .vertical   {
+        writing-mode: vertical-rl;
+        overflow-y: auto;
+    }
+
+    /* overflow on the block direction */
+    .horizontal.auto    { overflow-y: auto;    }
+    .horizontal.scroll  { overflow-y: scroll;  }
+    .horizontal.visible { overflow:   visible; }
+    .horizontal.hidden  { overflow-y: hidden;  }
+    .vertical.auto      { overflow-x: auto;    }
+    .vertical.scroll    { overflow-x: scroll;  }
+    .vertical.visible   { overflow:   visible; }
+    .vertical.hidden    { overflow-x: hidden;  }
+
+    /* Note: not testing with overflow: clip; */
+
+</style>
+<script type="text/javascript">
+
+    function performTest() {
+        setup({explicit_done: true});
+
+        test(function() {
+            let container = document.getElementById('container_auto_h');
+            let content = document.getElementById('content_auto_h');
+            assert_equals(container.scrollWidth, 200, "visible/auto scrollWidth");
+            assert_equals(container.clientWidth, 200, "visible/auto clientWidth");
+            assert_equals(container.clientWidth, content.clientWidth, "visible/auto clientWidth");
+            assert_equals(container.offsetWidth, content.offsetWidth, "visible/auto offsetWidth");
+        }, "Unexpected layout: overflow auto, scrollbar-gutter auto, horizontal-tb");
+
+        test(function() {
+            let container = document.getElementById('container_scroll_h');
+            let content = document.getElementById('content_scroll_h');
+            assert_equals(container.scrollWidth, 180, "scroll/auto scrollWidth");
+            assert_equals(container.clientWidth, 180, "scroll/auto clientWidth");
+            assert_equals(container.clientWidth, content.clientWidth, "scroll/auto clientWidth");
+            assert_not_equals(container.offsetWidth, content.offsetWidth, "scroll/auto offsetWidth");
+        }, "Unexpected layout: overflow scroll, scrollbar-gutter auto, horizontal-tb");
+
+        test(function() {
+            let container = document.getElementById('container_visible_h');
+            let content = document.getElementById('content_visible_h');
+            assert_equals(container.scrollWidth, 200, "visible/auto scrollWidth");
+            assert_equals(container.clientWidth, 200, "visible/auto clientWidth");
+            assert_equals(container.clientWidth, content.clientWidth, "visible/auto clientWidth");
+            assert_equals(container.offsetWidth, content.offsetWidth, "visible/auto offsetWidth");
+        }, "Unexpected layout: overflow visible, scrollbar-gutter auto, horizontal-tb");
+
+        test(function() {
+            let container = document.getElementById('container_hidden_h');
+            let content = document.getElementById('content_hidden_h');
+            assert_equals(container.scrollWidth, 200, "visible/auto scrollWidth");
+            assert_equals(container.clientWidth, 200, "visible/auto clientWidth");
+            assert_equals(container.clientWidth, content.clientWidth, "hidden/auto clientWidth");
+            assert_equals(container.offsetWidth, content.offsetWidth, "hidden/auto offsetWidth");
+        }, "Unexpected layout: overflow hidden, scrollbar-gutter auto, horizontal-tb");
+
+        test(function() {
+            let container = document.getElementById('container_auto_v');
+            let content = document.getElementById('content_auto_v');
+            assert_equals(container.scrollHeight, 200, "visible/auto scrollHeight");
+            assert_equals(container.clientHeight, 200, "visible/auto clientHeight");
+            assert_equals(container.clientHeight, content.clientHeight, "visible/auto clientHeight");
+            assert_equals(container.offsetHeight, content.offsetHeight, "visible/auto offsetHeight");
+        }, "Unexpected layout: overflow auto, scrollbar-gutter auto, vertical-rl");
+
+        test(function() {
+            let container = document.getElementById('container_scroll_v');
+            let content = document.getElementById('content_scroll_v');
+            assert_equals(container.scrollHeight, 180, "visible/auto scrollHeight");
+            assert_equals(container.clientHeight, 180, "visible/auto clientHeight");
+            assert_equals(container.clientHeight, content.clientHeight, "scroll/auto clientHeight");
+            assert_not_equals(container.offsetHeight, content.offsetHeight, "scroll/auto offsetHeight");
+        }, "Unexpected layout: overflow scroll, scrollbar-gutter auto, vertical-rl");
+
+        test(function() {
+            let container = document.getElementById('container_visible_v');
+            let content = document.getElementById('content_visible_v');
+            assert_equals(container.scrollHeight, 200, "visible/auto scrollHeight");
+            assert_equals(container.clientHeight, 200, "visible/auto clientHeight");
+            assert_equals(container.clientHeight, content.clientHeight, "visible/auto clientHeight");
+            assert_equals(container.offsetHeight, content.offsetHeight, "visible/auto offsetHeight");
+        }, "Unexpected layout: overflow visible, scrollbar-gutter auto, vertical-rl");
+
+        test(function() {
+            let container = document.getElementById('container_hidden_v');
+            let content = document.getElementById('content_hidden_v');
+            assert_equals(container.scrollHeight, 200, "visible/auto scrollHeight");
+            assert_equals(container.clientHeight, 200, "visible/auto clientHeight");
+            assert_equals(container.clientHeight, content.clientHeight, "hidden/auto clientHeight");
+            assert_equals(container.offsetHeight, content.offsetHeight, "hidden/auto offsetHeight");
+        }, "Unexpected layout: overflow hidden, scrollbar-gutter auto, vertical-rl");
+
+        done();
+    }
+
+</script>
+<body onload="performTest()">
+
+    Test scrollbar-gutter: auto, writing-mode: horizontal-tb
+
+    <div class="container classic horizontal auto" id="container_auto_h">
+        <div class="content" id="content_auto_h">overflow-y: auto</div>
+    </div>
+
+    <div class="container classic horizontal scroll" id="container_scroll_h">
+        <div class="content" id="content_scroll_h">overflow-y: scroll</div>
+    </div>
+
+    <div class="container classic horizontal visible" id="container_visible_h">
+        <div class="content" id="content_visible_h">overflow: visible</div>
+    </div>
+
+    <div class="container classic horizontal hidden" id="container_hidden_h">
+        <div class="content" id="content_hidden_h">overflow-y: hidden</div>
+    </div>
+
+    writing-mode: vertical-rl;
+
+    <div class="container classic vertical auto" id="container_auto_v">
+        <div class="content" id="content_auto_v">overflow-x: auto</div>
+    </div>
+
+    <div class="container classic vertical scroll" id="container_scroll_v">
+        <div class="content" id="content_scroll_v">overflow-x: scroll</div>
+    </div>
+
+    <div class="container classic vertical visible" id="container_visible_v">
+        <div class="content" id="content_visible_v">overflow: visible</div>
+    </div>
+
+    <div class="container classic vertical hidden" id="container_hidden_v">
+        <div class="content" id="content_hidden_v">overflow-x: hidden</div>
+    </div>
+
+</body>

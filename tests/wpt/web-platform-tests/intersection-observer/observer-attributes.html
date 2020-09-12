@@ -15,6 +15,15 @@ test(function() {
   test(function() { assert_equals(observer.rootMargin, "0px 0px 0px 0px") },
        "observer.rootMargin");
 
+  observer = new IntersectionObserver(function(e) {}, {
+    rootMargin: " ",
+    threshold: []
+  });
+  test(function() { assert_array_equals(observer.thresholds, [0]) },
+       "empty observer.thresholds");
+  test(function() { assert_equals(observer.rootMargin, "0px 0px 0px 0px") },
+       "whitespace observer.rootMargin");
+
   var rootDiv = document.getElementById("root");
   observer = new IntersectionObserver(function(e) {}, {
     root: rootDiv,

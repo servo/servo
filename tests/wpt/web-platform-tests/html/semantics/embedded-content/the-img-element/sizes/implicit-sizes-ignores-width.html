@@ -1,0 +1,19 @@
+<!doctype html>
+<title>Implicit sizes ignores width</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+img {width: auto;}
+</style>
+<img srcset="../srcset/resources/image.png 100w" sizes="400px" id="sizes">
+<img srcset="../srcset/resources/image.png 100w" width="400" id="width">
+<script>
+setup({explicit_done:true});
+onload = () => {
+  test(() => {
+    assert_equals(document.getElementById("sizes").width, 400);
+    assert_equals(document.getElementById("width").width, window.innerWidth);
+    done();
+  });
+};
+</script>

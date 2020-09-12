@@ -39,9 +39,7 @@ promise_test(async testCase => {
   }
 
   {
-    const subscriptions = [
-      { name: 'cookie-name1', matchType: 'equals', url: `${scope}/path1` },
-    ];
+    const subscriptions = [{ name: 'cookie-name1', url: `${scope}/path1` }];
     await registration.cookies.subscribe(subscriptions);
     testCase.add_cleanup(() => {
       // For non-ServiceWorker environments, registration.unregister() cleans up
@@ -54,7 +52,7 @@ promise_test(async testCase => {
   {
     const subscriptions = [
       { },  // Test the default values for subscription properties.
-      { name: 'cookie-prefix', matchType: 'starts-with' },
+      { name: 'cookie-prefix' },
     ];
     await registration.cookies.subscribe(subscriptions);
     testCase.add_cleanup(() => {
@@ -72,11 +70,8 @@ promise_test(async testCase => {
   subscriptions.sort((a, b) => CompareStrings(`${a.name}`, `${b.name}`));
 
   assert_equals(subscriptions[0].name, 'cookie-name1');
-  assert_equals('equals', subscriptions[0].matchType);
 
   assert_equals(subscriptions[1].name, 'cookie-prefix');
-  assert_equals('starts-with', subscriptions[1].matchType);
 
   assert_false('name' in subscriptions[2]);
-  assert_equals('starts-with', subscriptions[2].matchType);
 }, 'getSubscriptions returns a subscription passed to subscribe');

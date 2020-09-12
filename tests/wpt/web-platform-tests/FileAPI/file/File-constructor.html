@@ -84,7 +84,8 @@ function test_second_argument(arg2, expectedFileName, testName) {
 }
 
 test_second_argument("dummy", "dummy", "Using fileName");
-test_second_argument("dummy/foo", "dummy:foo", "Using special character in fileName");
+test_second_argument("dummy/foo", "dummy/foo",
+                     "No replacement when using special character in fileName");
 test_second_argument(null, "null", "Using null fileName");
 test_second_argument(1, "1", "Using number fileName");
 test_second_argument('', '', "Using empty string fileName");

@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Cookie Store API (https://wicg.github.io/cookie-store/)
 
 [Exposed=(ServiceWorker,Window),
@@ -12,25 +12,19 @@ interface CookieStore : EventTarget {
   Promise<CookieList> getAll(USVString name);
   Promise<CookieList> getAll(optional CookieStoreGetOptions options = {});
 
-  Promise<void> set(USVString name, USVString value);
-  Promise<void> set(CookieInit options);
+  Promise<undefined> set(USVString name, USVString value);
+  Promise<undefined> set(CookieInit options);
 
-  Promise<void> delete(USVString name);
-  Promise<void> delete(CookieStoreDeleteOptions options);
+  Promise<undefined> delete(USVString name);
+  Promise<undefined> delete(CookieStoreDeleteOptions options);
 
   [Exposed=Window]
   attribute EventHandler onchange;
 };
 
-enum CookieMatchType {
-  "equals",
-  "starts-with"
-};
-
 dictionary CookieStoreGetOptions {
   USVString name;
   USVString url;
-  CookieMatchType matchType = "equals";
 };
 
 enum CookieSameSite {
@@ -69,9 +63,9 @@ typedef sequence<CookieListItem> CookieList;
 [Exposed=(ServiceWorker,Window),
  SecureContext]
 interface CookieStoreManager {
-  Promise<void> subscribe(sequence<CookieStoreGetOptions> subscriptions);
+  Promise<undefined> subscribe(sequence<CookieStoreGetOptions> subscriptions);
   Promise<sequence<CookieStoreGetOptions>> getSubscriptions();
-  Promise<void> unsubscribe(sequence<CookieStoreGetOptions> subscriptions);
+  Promise<undefined> unsubscribe(sequence<CookieStoreGetOptions> subscriptions);
 };
 
 [Exposed=(ServiceWorker,Window)]
@@ -83,8 +77,8 @@ partial interface ServiceWorkerRegistration {
  SecureContext]
 interface CookieChangeEvent : Event {
   constructor(DOMString type, optional CookieChangeEventInit eventInitDict = {});
-  readonly attribute CookieList changed;
-  readonly attribute CookieList deleted;
+  [SameObject] readonly attribute FrozenArray<CookieListItem> changed;
+  [SameObject] readonly attribute FrozenArray<CookieListItem> deleted;
 };
 
 dictionary CookieChangeEventInit : EventInit {
@@ -95,8 +89,8 @@ dictionary CookieChangeEventInit : EventInit {
 [Exposed=ServiceWorker]
 interface ExtendableCookieChangeEvent : ExtendableEvent {
   constructor(DOMString type, optional ExtendableCookieChangeEventInit eventInitDict = {});
-  readonly attribute CookieList changed;
-  readonly attribute CookieList deleted;
+  [SameObject] readonly attribute FrozenArray<CookieListItem> changed;
+  [SameObject] readonly attribute FrozenArray<CookieListItem> deleted;
 };
 
 dictionary ExtendableCookieChangeEventInit : ExtendableEventInit {
@@ -106,11 +100,11 @@ dictionary ExtendableCookieChangeEventInit : ExtendableEventInit {
 
 [SecureContext]
 partial interface Window {
-  [Replaceable, SameObject] readonly attribute CookieStore cookieStore;
+  [SameObject] readonly attribute CookieStore cookieStore;
 };
 
 partial interface ServiceWorkerGlobalScope {
-  [Replaceable, SameObject] readonly attribute CookieStore cookieStore;
+  [SameObject] readonly attribute CookieStore cookieStore;
 
   attribute EventHandler oncookiechange;
 };

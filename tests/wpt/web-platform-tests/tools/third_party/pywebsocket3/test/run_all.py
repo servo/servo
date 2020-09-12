@@ -43,9 +43,10 @@ example, run this for making the test runner verbose.
 
 from __future__ import absolute_import
 import logging
-import optparse
+import argparse
 import os
 import re
+import six
 import sys
 import unittest
 
@@ -64,19 +65,19 @@ def _list_test_modules(directory):
 def _suite():
     loader = unittest.TestLoader()
     return loader.loadTestsFromNames(
-        _list_test_modules(os.path.join(os.path.split(__file__)[0], '.')))
+        _list_test_modules(os.path.dirname(__file__)))
 
 
 if __name__ == '__main__':
-    parser = optparse.OptionParser()
-    parser.add_option(
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
         '--log-level',
         '--log_level',
-        type='choice',
+        type=six.text_type,
         dest='log_level',
         default='warning',
         choices=['debug', 'info', 'warning', 'warn', 'error', 'critical'])
-    options, args = parser.parse_args()
+    options, args = parser.parse_known_args()
     logging.basicConfig(level=logging.getLevelName(options.log_level.upper()),
                         format='%(levelname)s %(asctime)s '
                         '%(filename)s:%(lineno)d] '

@@ -29,10 +29,9 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": `${location.href}`,
             "effectivePolicy": "unsafe-none",
-            "navigationURI": /uuid=EXECUTOR_UUID$/, // next document URL
-            "type": "navigation-from-document"
+            "nextResponseURL": /uuid=EXECUTOR_UUID$/, // next document URL
+            "type": "navigation-from-response"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -43,10 +42,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
             "effectivePolicy": "same-origin",
-            "navigationURI": `${location.href}`, // previous document url
-            "type": "navigation-to-document"
+            "previousResponseURL": `${location.href}`, // previous document url
+            "referrer": `${location.href}`, // referrer
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
@@ -71,10 +70,9 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": `${location.href}`,
             "effectivePolicy": "unsafe-none",
-            "navigationURI": /uuid=EXECUTOR_UUID$/, // next document URL
-            "type": "navigation-from-document"
+            "nextResponseURL": /uuid=EXECUTOR_UUID$/, // next document URL
+            "type": "navigation-from-response"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -96,10 +94,9 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": `${location.href}`,
             "effectivePolicy": "unsafe-none",
-            "navigationURI": /uuid=EXECUTOR_UUID$/, // initial navigation url
-            "type": "navigation-from-document"
+            "nextResponseURL": /uuid=EXECUTOR_UUID$/, // next document URL
+            "type": "navigation-from-response"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -110,10 +107,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
             "effectivePolicy": "same-origin",
-            "navigationURI": `${location.href}`, // referrer
-            "type": "navigation-to-document"
+            "previousResponseURL": ``,
+            "referrer": `${location.href}`, // referrer
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"

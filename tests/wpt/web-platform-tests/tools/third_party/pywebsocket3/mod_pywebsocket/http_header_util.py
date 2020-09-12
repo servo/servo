@@ -120,7 +120,7 @@ def consume_lws(state):
 
 
 def consume_lwses(state):
-    """Consumes *LWS from the head."""
+    r"""Consumes \*LWS from the head."""
 
     while consume_lws(state):
         pass

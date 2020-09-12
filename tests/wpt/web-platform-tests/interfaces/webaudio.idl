@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Web Audio API (https://webaudio.github.io/web-audio-api/)
 
 enum AudioContextState {
@@ -9,9 +9,9 @@ enum AudioContextState {
   "closed"
 };
 
-callback DecodeErrorCallback = void (DOMException error);
+callback DecodeErrorCallback = undefined (DOMException error);
 
-callback DecodeSuccessCallback = void (AudioBuffer decodedData);
+callback DecodeSuccessCallback = undefined (AudioBuffer decodedData);
 
 [Exposed=Window]
 interface BaseAudioContext : EventTarget {
@@ -70,9 +70,9 @@ interface AudioContext : BaseAudioContext {
   readonly attribute double baseLatency;
   readonly attribute double outputLatency;
   AudioTimestamp getOutputTimestamp ();
-  Promise<void> resume ();
-  Promise<void> suspend ();
-  Promise<void> close ();
+  Promise<undefined> resume ();
+  Promise<undefined> suspend ();
+  Promise<undefined> close ();
   MediaElementAudioSourceNode createMediaElementSource (HTMLMediaElement mediaElement);
   MediaStreamAudioSourceNode createMediaStreamSource (MediaStream mediaStream);
   MediaStreamTrackAudioSourceNode createMediaStreamTrackSource (
@@ -95,8 +95,8 @@ interface OfflineAudioContext : BaseAudioContext {
   constructor(OfflineAudioContextOptions contextOptions);
   constructor(unsigned long numberOfChannels, unsigned long length, float sampleRate);
   Promise<AudioBuffer> startRendering();
-  Promise<void> resume();
-  Promise<void> suspend(double suspendTime);
+  Promise<undefined> resume();
+  Promise<undefined> suspend(double suspendTime);
   readonly attribute unsigned long length;
   attribute EventHandler oncomplete;
 };
@@ -125,12 +125,12 @@ interface AudioBuffer {
   readonly attribute double duration;
   readonly attribute unsigned long numberOfChannels;
   Float32Array getChannelData (unsigned long channel);
-  void copyFromChannel (Float32Array destination,
-                        unsigned long channelNumber,
-                        optional unsigned long bufferOffset = 0);
-  void copyToChannel (Float32Array source,
-                      unsigned long channelNumber,
-                      optional unsigned long bufferOffset = 0);
+  undefined copyFromChannel (Float32Array destination,
+                             unsigned long channelNumber,
+                             optional unsigned long bufferOffset = 0);
+  undefined copyToChannel (Float32Array source,
+                           unsigned long channelNumber,
+                           optional unsigned long bufferOffset = 0);
 };
 
 dictionary AudioBufferOptions {
@@ -144,16 +144,16 @@ interface AudioNode : EventTarget {
   AudioNode connect (AudioNode destinationNode,
                      optional unsigned long output = 0,
                      optional unsigned long input = 0);
-  void connect (AudioParam destinationParam, optional unsigned long output = 0);
-  void disconnect ();
-  void disconnect (unsigned long output);
-  void disconnect (AudioNode destinationNode);
-  void disconnect (AudioNode destinationNode, unsigned long output);
-  void disconnect (AudioNode destinationNode,
-                   unsigned long output,
-                   unsigned long input);
-  void disconnect (AudioParam destinationParam);
-  void disconnect (AudioParam destinationParam, unsigned long output);
+  undefined connect (AudioParam destinationParam, optional unsigned long output = 0);
+  undefined disconnect ();
+  undefined disconnect (unsigned long output);
+  undefined disconnect (AudioNode destinationNode);
+  undefined disconnect (AudioNode destinationNode, unsigned long output);
+  undefined disconnect (AudioNode destinationNode,
+                        unsigned long output,
+                        unsigned long input);
+  undefined disconnect (AudioParam destinationParam);
+  undefined disconnect (AudioParam destinationParam, unsigned long output);
   readonly attribute BaseAudioContext context;
   readonly attribute unsigned long numberOfInputs;
   readonly attribute unsigned long numberOfOutputs;
@@ -205,17 +205,17 @@ interface AudioParam {
 [Exposed=Window]
 interface AudioScheduledSourceNode : AudioNode {
   attribute EventHandler onended;
-  void start(optional double when = 0);
-  void stop(optional double when = 0);
+  undefined start(optional double when = 0);
+  undefined stop(optional double when = 0);
 };
 
 [Exposed=Window]
 interface AnalyserNode : AudioNode {
   constructor (BaseAudioContext context, optional AnalyserOptions options = {});
-  void getFloatFrequencyData (Float32Array array);
-  void getByteFrequencyData (Uint8Array array);
-  void getFloatTimeDomainData (Float32Array array);
-  void getByteTimeDomainData (Uint8Array array);
+  undefined getFloatFrequencyData (Float32Array array);
+  undefined getByteFrequencyData (Uint8Array array);
+  undefined getFloatTimeDomainData (Float32Array array);
+  undefined getByteTimeDomainData (Uint8Array array);
   attribute unsigned long fftSize;
   readonly attribute unsigned long frequencyBinCount;
   attribute double minDecibels;
@@ -240,9 +240,9 @@ interface AudioBufferSourceNode : AudioScheduledSourceNode {
   attribute boolean loop;
   attribute double loopStart;
   attribute double loopEnd;
-  void start (optional double when = 0,
-              optional double offset,
-              optional double duration);
+  undefined start (optional double when = 0,
+                   optional double offset,
+                   optional double duration);
 };
 
 dictionary AudioBufferSourceOptions {
@@ -270,8 +270,8 @@ interface AudioListener {
   readonly attribute AudioParam upX;
   readonly attribute AudioParam upY;
   readonly attribute AudioParam upZ;
-  void setPosition (float x, float y, float z);
-  void setOrientation (float x, float y, float z, float xUp, float yUp, float zUp);
+  undefined setPosition (float x, float y, float z);
+  undefined setOrientation (float x, float y, float z, float xUp, float yUp, float zUp);
 };
 
 [Exposed=Window]
@@ -307,9 +307,9 @@ interface BiquadFilterNode : AudioNode {
   readonly attribute AudioParam detune;
   readonly attribute AudioParam Q;
   readonly attribute AudioParam gain;
-  void getFrequencyResponse (Float32Array frequencyHz,
-                             Float32Array magResponse,
-                             Float32Array phaseResponse);
+  undefined getFrequencyResponse (Float32Array frequencyHz,
+                                  Float32Array magResponse,
+                                  Float32Array phaseResponse);
 };
 
 dictionary BiquadFilterOptions : AudioNodeOptions {
@@ -404,9 +404,9 @@ dictionary GainOptions : AudioNodeOptions {
 [Exposed=Window]
 interface IIRFilterNode : AudioNode {
   constructor (BaseAudioContext context, IIRFilterOptions options);
-  void getFrequencyResponse (Float32Array frequencyHz,
-                             Float32Array magResponse,
-                             Float32Array phaseResponse);
+  undefined getFrequencyResponse (Float32Array frequencyHz,
+                                  Float32Array magResponse,
+                                  Float32Array phaseResponse);
 };
 
 dictionary IIRFilterOptions : AudioNodeOptions {
@@ -463,7 +463,7 @@ interface OscillatorNode : AudioScheduledSourceNode {
   attribute OscillatorType type;
   readonly attribute AudioParam frequency;
   readonly attribute AudioParam detune;
-  void setPeriodicWave (PeriodicWave periodicWave);
+  undefined setPeriodicWave (PeriodicWave periodicWave);
 };
 
 dictionary OscillatorOptions : AudioNodeOptions {
@@ -501,8 +501,8 @@ interface PannerNode : AudioNode {
   attribute double coneInnerAngle;
   attribute double coneOuterAngle;
   attribute double coneOuterGain;
-  void setPosition (float x, float y, float z);
-  void setOrientation (float x, float y, float z);
+  undefined setPosition (float x, float y, float z);
+  undefined setOrientation (float x, float y, float z);
 };
 
 dictionary PannerOptions : AudioNodeOptions {
@@ -578,8 +578,8 @@ callback AudioWorkletProcessorConstructor = AudioWorkletProcessor (object option
 
 [Global=(Worklet, AudioWorklet), Exposed=AudioWorklet]
 interface AudioWorkletGlobalScope : WorkletGlobalScope {
-  void registerProcessor (DOMString name,
-                          AudioWorkletProcessorConstructor processorCtor);
+  undefined registerProcessor (DOMString name,
+                               AudioWorkletProcessorConstructor processorCtor);
   readonly attribute unsigned long long currentFrame;
   readonly attribute double currentTime;
   readonly attribute float sampleRate;

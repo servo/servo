@@ -92,6 +92,19 @@ promise_test(async t => {
 }, 'Active -> Idle, display: none');
 
 promise_test(async t => {
+  const { animation, watcher, div } = setupAnimation(t, 'anim 100s paused');
+
+  // Seek to After phase.
+  animation.finish();
+  await watcher.wait_for(['animationstart', 'animationend']);
+
+  div.style.display = 'none';
+
+  // Wait a couple of frames and check that no event was dispatched.
+  await waitForAnimationFrames(2);
+}, 'After -> Idle, display: none');
+
+promise_test(async t => {
   const { animation, watcher } = setupAnimation(t, 'anim 100s');
 
   await watcher.wait_for('animationstart');

@@ -9,7 +9,8 @@
 <script type="module">
 import {
   insertIframe,
-  testDifferentAgentClusters
+  testDifferentAgentClusters,
+  testGetter
 } from "../resources/helpers.mjs";
 
 promise_setup(async () => {
@@ -20,4 +21,7 @@ promise_setup(async () => {
 // as is the child's non-request. So the parent ends up in the origin-keyed
 // agent cluster and the child ends up in the site-keyed one.
 testDifferentAgentClusters([self, 0]);
+
+testGetter(self, true, "parent");
+testGetter(0, false, "child");
 </script>

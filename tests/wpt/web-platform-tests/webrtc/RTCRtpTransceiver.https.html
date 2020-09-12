@@ -425,6 +425,7 @@
 
     // Remove mid attr
     offer.sdp = offer.sdp.replace("a=mid:", "a=unknownattr:");
+    offer.sdp = offer.sdp.replace("a=group:", "a=unknownattr:");
     await pc2.setRemoteDescription(offer);
 
     hasPropsAndUniqueMids(pc2.getTransceivers(),
@@ -1536,9 +1537,11 @@
       ]);
 
     trickle(t, pc2, pc1);
+    // The negotiaionneeded event is fired during processing of
+    // setLocalDescription()
+    const negotiationNeededWaiter = negotiationNeeded(pc2);
     await pc2.setLocalDescription(answer);
-
-    await negotiationNeeded(pc2);
+    await negotiationNeededWaiter;
     await iceConnected(pc1);
     await iceConnected(pc2);
 

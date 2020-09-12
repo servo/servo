@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Streams Standard (https://streams.spec.whatwg.org/)
 
 [Exposed=(Window,Worker,Worklet), Transferable]
@@ -9,10 +9,10 @@ interface ReadableStream {
 
   readonly attribute boolean locked;
 
-  Promise<void> cancel(optional any reason);
+  Promise<undefined> cancel(optional any reason);
   ReadableStreamReader getReader(optional ReadableStreamGetReaderOptions options = {});
   ReadableStream pipeThrough(ReadableWritablePair transform, optional StreamPipeOptions options = {});
-  Promise<void> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
+  Promise<undefined> pipeTo(WritableStream destination, optional StreamPipeOptions options = {});
   sequence<ReadableStream> tee();
 
   async iterable<any>(optional ReadableStreamIteratorOptions options = {});
@@ -53,15 +53,15 @@ dictionary UnderlyingSource {
 typedef (ReadableStreamDefaultController or ReadableByteStreamController) ReadableStreamController;
 
 callback UnderlyingSourceStartCallback = any (ReadableStreamController controller);
-callback UnderlyingSourcePullCallback = Promise<void> (ReadableStreamController controller);
-callback UnderlyingSourceCancelCallback = Promise<void> (optional any reason);
+callback UnderlyingSourcePullCallback = Promise<undefined> (ReadableStreamController controller);
+callback UnderlyingSourceCancelCallback = Promise<undefined> (optional any reason);
 
 enum ReadableStreamType { "bytes" };
 
 interface mixin ReadableStreamGenericReader {
-  readonly attribute Promise<void> closed;
+  readonly attribute Promise<undefined> closed;
 
-  Promise<void> cancel(optional any reason);
+  Promise<undefined> cancel(optional any reason);
 };
 
 [Exposed=(Window,Worker,Worklet)]
@@ -69,7 +69,7 @@ interface ReadableStreamDefaultReader {
   constructor(ReadableStream stream);
 
   Promise<ReadableStreamDefaultReadResult> read();
-  void releaseLock();
+  undefined releaseLock();
 };
 ReadableStreamDefaultReader includes ReadableStreamGenericReader;
 
@@ -83,7 +83,7 @@ interface ReadableStreamBYOBReader {
   constructor(ReadableStream stream);
 
   Promise<ReadableStreamBYOBReadResult> read(ArrayBufferView view);
-  void releaseLock();
+  undefined releaseLock();
 };
 ReadableStreamBYOBReader includes ReadableStreamGenericReader;
 
@@ -96,9 +96,9 @@ dictionary ReadableStreamBYOBReadResult {
 interface ReadableStreamDefaultController {
   readonly attribute unrestricted double? desiredSize;
 
-  void close();
-  void enqueue(optional any chunk);
-  void error(optional any e);
+  undefined close();
+  undefined enqueue(optional any chunk);
+  undefined error(optional any e);
 };
 
 [Exposed=(Window,Worker,Worklet)]
@@ -106,17 +106,17 @@ interface ReadableByteStreamController {
   readonly attribute ReadableStreamBYOBRequest? byobRequest;
   readonly attribute unrestricted double? desiredSize;
 
-  void close();
-  void enqueue(ArrayBufferView chunk);
-  void error(optional any e);
+  undefined close();
+  undefined enqueue(ArrayBufferView chunk);
+  undefined error(optional any e);
 };
 
 [Exposed=(Window,Worker,Worklet)]
 interface ReadableStreamBYOBRequest {
   readonly attribute ArrayBufferView? view;
 
-  void respond([EnforceRange] unsigned long long bytesWritten);
-  void respondWithNewView(ArrayBufferView view);
+  undefined respond([EnforceRange] unsigned long long bytesWritten);
+  undefined respondWithNewView(ArrayBufferView view);
 };
 
 [Exposed=(Window,Worker,Worklet), Transferable]
@@ -125,8 +125,8 @@ interface WritableStream {
 
   readonly attribute boolean locked;
 
-  Promise<void> abort(optional any reason);
-  Promise<void> close();
+  Promise<undefined> abort(optional any reason);
+  Promise<undefined> close();
   WritableStreamDefaultWriter getWriter();
 };
 
@@ -139,27 +139,27 @@ dictionary UnderlyingSink {
 };
 
 callback UnderlyingSinkStartCallback = any (WritableStreamDefaultController controller);
-callback UnderlyingSinkWriteCallback = Promise<void> (any chunk, WritableStreamDefaultController controller);
-callback UnderlyingSinkCloseCallback = Promise<void> ();
-callback UnderlyingSinkAbortCallback = Promise<void> (optional any reason);
+callback UnderlyingSinkWriteCallback = Promise<undefined> (any chunk, WritableStreamDefaultController controller);
+callback UnderlyingSinkCloseCallback = Promise<undefined> ();
+callback UnderlyingSinkAbortCallback = Promise<undefined> (optional any reason);
 
 [Exposed=(Window,Worker,Worklet)]
 interface WritableStreamDefaultWriter {
   constructor(WritableStream stream);
 
-  readonly attribute Promise<void> closed;
+  readonly attribute Promise<undefined> closed;
   readonly attribute unrestricted double? desiredSize;
-  readonly attribute Promise<void> ready;
+  readonly attribute Promise<undefined> ready;
 
-  Promise<void> abort(optional any reason);
-  Promise<void> close();
-  void releaseLock();
-  Promise<void> write(optional any chunk);
+  Promise<undefined> abort(optional any reason);
+  Promise<undefined> close();
+  undefined releaseLock();
+  Promise<undefined> write(optional any chunk);
 };
 
 [Exposed=(Window,Worker,Worklet)]
 interface WritableStreamDefaultController {
-  void error(optional any e);
+  undefined error(optional any e);
 };
 
 [Exposed=(Window,Worker,Worklet), Transferable]
@@ -181,16 +181,16 @@ dictionary Transformer {
 };
 
 callback TransformerStartCallback = any (TransformStreamDefaultController controller);
-callback TransformerFlushCallback = Promise<void> (TransformStreamDefaultController controller);
-callback TransformerTransformCallback = Promise<void> (any chunk, TransformStreamDefaultController controller);
+callback TransformerFlushCallback = Promise<undefined> (TransformStreamDefaultController controller);
+callback TransformerTransformCallback = Promise<undefined> (any chunk, TransformStreamDefaultController controller);
 
 [Exposed=(Window,Worker,Worklet)]
 interface TransformStreamDefaultController {
   readonly attribute unrestricted double? desiredSize;
 
-  void enqueue(optional any chunk);
-  void error(optional any reason);
-  void terminate();
+  undefined enqueue(optional any chunk);
+  undefined error(optional any reason);
+  undefined terminate();
 };
 
 dictionary QueuingStrategy {

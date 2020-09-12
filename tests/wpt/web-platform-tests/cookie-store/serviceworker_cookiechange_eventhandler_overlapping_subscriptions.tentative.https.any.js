@@ -35,8 +35,8 @@ promise_test(async testCase => {
   await kServiceWorkerActivatedPromise;
 
   const subscriptions = [
-    { name: 'coo', matchType: 'starts-with' },
-    { name: 'cookie', matchType: 'starts-with' },
+    { name: 'cookie-name' },
+    { url: `${kScope}/path` }
   ];
   await registration.cookies.subscribe(subscriptions);
   testCase.add_cleanup(() => registration.cookies.unsubscribe(subscriptions));

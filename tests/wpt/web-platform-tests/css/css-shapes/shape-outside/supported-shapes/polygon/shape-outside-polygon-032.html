@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>CSS Test: right float, offset polygon + margin-box + shape-margin</title>
+        <link rel="author" title="Brad Werth" href="mailto:bwerth@mozilla.com">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#funcdef-polygon">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-outside-property">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#shape-margin-property">
+        <link rel="help" href="http://www.w3.org/TR/css-shapes-1/#margin-box">
+        <link rel="match" href="reference/shape-outside-polygon-032-ref.html">
+        <meta name="flags" content="ahem" />
+        <meta name="assert" content="The test verifies that text wraps around a
+                                     right float with a shape-outside defined as
+                                     an polygon from the margin box with a shape margin.
+                                     Additionally, the shape-outside: polygon element is
+                                     offset from its containing block.">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+        @font-face {
+            font-family: Ahem;
+            src: url(support/Ahem.ttf);
+        }
+        body {
+            margin: 0;
+        }
+        #red {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            width: 240px;
+            height: 240px;
+            background-color: red;
+        }
+        #container {
+            position: absolute;
+            top: 0px;
+            left: -40px;
+            font-size: 20px;
+            font-family: Ahem;
+            line-height: 20px;
+            width: 240px;
+            height: 240px;
+            padding: 50px;
+            color: green;
+        }
+        #test-shape {
+            float: right;
+            width: 140px;
+            height: 140px;
+            margin: 10px;
+            border: 10px solid transparent;
+            padding: 10px;
+            shape-margin: 20px;
+            shape-outside: margin-box polygon(20% 20%, 90% 20%, 90% 80%, 50% 80%, 50% 70%, 70% 70%, 70% 40%, 20% 40%);
+        }
+        .ref-shape {
+            position: absolute;
+            background-color: green;
+        }
+        #ref-1 {
+            top: 70px;
+            left: 70px;
+            width: 180px;
+            height: 80px;
+        }
+        #ref-2 {
+            top: 150px;
+            left: 150px;
+            width: 100px;
+            height: 20px;
+        }
+        #ref-3 {
+            top: 170px;
+            left: 130px;
+            width: 120px;
+            height: 60px;
+        }
+    </style>
+    </head>
+    <body>
+    <p>The test passes if there is green square and no red.</p>
+    <div id="red"></div>
+    <div id="container">
+        <div id="test-shape"></div>
+        XXXXXXXXXXXX XXX XXX XXX XXX XXXXXXX XXXXXX XXXXXX XXXXXX XXXXXXXXXXXX XXXXXXXXXXXX XXXXXXXXXXXX
+    </div>
+    <div id="ref-1" class="ref-shape"></div>
+    <div id="ref-2" class="ref-shape"></div>
+    <div id="ref-3" class="ref-shape"></div>
+    </body>
+</html>

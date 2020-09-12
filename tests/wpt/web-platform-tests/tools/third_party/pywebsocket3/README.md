@@ -10,7 +10,7 @@ Run this to read the general document:
 $ pydoc mod_pywebsocket
 ```
 
-Please see [Wiki](../../wiki) for more details.
+Please see [Wiki](https://github.com/GoogleChromeLabs/pywebsocket3/wiki) for more details.
 
 # INSTALL #
 

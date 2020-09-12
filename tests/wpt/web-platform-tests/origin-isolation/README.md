@@ -24,3 +24,8 @@ Other directories have variations on this, e.g. `1-iframe/` does the same thing
 but for a single `child` instead of `child1` and `child2`, and `navigation/`
 uses `1` and `2` to represent the two different locations the single iframe will
 be navigated to.
+
+## Coverage
+
+Header parsing is covered by a few tests in the `1-iframe/` subdirectory, and
+not duplicated to all other scenarios.

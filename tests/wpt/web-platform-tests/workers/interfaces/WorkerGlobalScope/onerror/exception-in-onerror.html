@@ -59,28 +59,28 @@ for (const type of ['classic', 'module']) {
   const workerOptions = type === 'module' ? {type: 'module'}: {};
 
   const worker1 = new Worker(
-      'exception-in-onerror.js?throw-in-worker-initialization',
+      'throw.js?throw-in-toplevel&throw-in-onerror',
       workerOptions);
   expectErrors(
       worker1,
       'Throw in worker initialization: ' + type,
-      ['Throw in worker initialization', 'Throw in error handler']);
+      ['Throw in toplevel', 'Throw in error handler']);
 
   const worker2 = new Worker(
-      'exception-in-onerror.js?throw-in-setTimeout-function', workerOptions);
+      'throw.js?throw-in-setTimeout-function&throw-in-onerror', workerOptions);
   expectErrors(
       worker2,
       'Throw in setTimeout(function): ' + type,
       ['Throw in setTimeout function', 'Throw in error handler']);
 
   const worker3 = new Worker(
-      'exception-in-onerror.js?throw-in-setTimeout-string', workerOptions);
+      'throw.js?throw-in-setTimeout-string&throw-in-onerror', workerOptions);
   expectErrors(
       worker3,
       'Throw in setTimeout(string): ' + type,
       ['Throw in setTimeout string', 'Throw in error handler']);
 
-  const worker4 = new Worker('exception-in-onerror.js', workerOptions);
+  const worker4 = new Worker('throw.js?throw-in-onerror', workerOptions);
   worker4.postMessage('foo');
   expectErrors(
       worker4,

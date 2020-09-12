@@ -21,8 +21,10 @@ promise_test(async (t) => {
   const reports = (await new Promise(r => mc.port1.onmessage = r)).data;
   assert_equals(reports.length, 1);
   const report = reports[0];
-  assert_equals(report.body["blocked-url"], image_url);
+  assert_equals(report.body.blockedURL, image_url);
   assert_equals(report.body.type, "corp");
+  assert_equals(report.body.disposition, "enforce");
+  assert_equals(report.body.destination, "");
   assert_equals(report.type, "coep");
   assert_equals(report.url, worker_url);
 }, "COEP support on SharedWorker.")
@@ -35,8 +37,10 @@ promise_test(async (t) => {
   const reports = (await new Promise(r => mc.port1.onmessage = r)).data;
   assert_equals(reports.length, 1);
   const report = reports[0];
-  assert_equals(report.body["blocked-url"], image_url);
+  assert_equals(report.body.blockedURL, image_url);
   assert_equals(report.body.type, "corp");
+  assert_equals(report.body.disposition, "reporting");
+  assert_equals(report.body.destination, "");
   assert_equals(report.type, "coep");
   assert_equals(report.url, worker_url);
 }, "COEP-Report-Only support on SharedWorker.")
