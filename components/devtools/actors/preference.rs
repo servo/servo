@@ -6,6 +6,8 @@ use crate::actor::{Actor, ActorMessageStatus, ActorRegistry};
 use crate::protocol::JsonPacketStream;
 use crate::StreamId;
 use serde_json::{Map, Value};
+use servo_config::pref_util::PrefValue;
+use servo_config::prefs::pref_map;
 use std::net::TcpStream;
 
 pub struct PreferenceActor {
@@ -31,35 +33,41 @@ impl Actor for PreferenceActor {
         stream: &mut TcpStream,
         _id: StreamId,
     ) -> Result<ActorMessageStatus, ()> {
-        Ok(match msg_type {
-            "getBoolPref" => {
-                let reply = BoolReply {
+        let pref_value = pref_map().get(msg_type);
+        Ok(match pref_value {
+            PrefValue::Float(value) => {
+                let reply = FloatReply {
                     from: self.name(),
-                    value: false,
+                    value: value,
                 };
                 let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
-
-            "getCharPref" => {
-                let reply = CharReply {
-                    from: self.name(),
-                    value: "".to_owned(),
-                };
-                let _ = stream.write_json_packet(&reply);
-                ActorMessageStatus::Processed
-            },
-
-            "getIntPref" => {
+            PrefValue::Int(value) => {
                 let reply = IntReply {
                     from: self.name(),
-                    value: 0,
+                    value: value,
                 };
                 let _ = stream.write_json_packet(&reply);
                 ActorMessageStatus::Processed
             },
-
-            _ => ActorMessageStatus::Ignored,
+            PrefValue::Str(value) => {
+                let reply = CharReply {
+                    from: self.name(),
+                    value: value,
+                };
+                let _ = stream.write_json_packet(&reply);
+                ActorMessageStatus::Processed
+            },
+            PrefValue::Bool(value) => {
+                let reply = BoolReply {
+                    from: self.name(),
+                    value: value,
+                };
+                let _ = stream.write_json_packet(&reply);
+                ActorMessageStatus::Processed
+            },
+            PrefValue::Missing => ActorMessageStatus::Ignored,
         })
     }
 }
@@ -79,5 +87,11 @@ struct CharReply {
 #[derive(Serialize)]
 struct IntReply {
     from: String,
-    value: i32,
+    value: i64,
+}
+
+#[derive(Serialize)]
+struct FloatReply {
+    from: String,
+    value: f64,
 }
