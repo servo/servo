@@ -9,6 +9,7 @@
 
 promise_test(async t => {
   const screenWakeLock = await navigator.wakeLock.request('screen');
+  assert_false(screenWakeLock.released, "The released attribute is initially false")
   const screenWakeLockReleased =
       new EventWatcher(t, screenWakeLock, "release").wait_for("release");
 
@@ -16,6 +17,7 @@ promise_test(async t => {
   await eventWatcher.wait_for("visibilitychange");
   assert_true(document.hidden, "document is hidden after the visibilitychange event");
   await screenWakeLockReleased;
+  assert_true(screenWakeLock.released, "The released attribute is true after the lock is released");
   await promise_rejects_dom(t, "NotAllowedError", navigator.wakeLock.request('screen'),
       "new screen locks are not allowed when the page is not visible");
 

@@ -1,3 +1,10 @@
+MYPY = False
+if MYPY:
+    # MYPY is set to True when run under Mypy.
+    from typing import Any
+    from typing import Optional
+    from typing import Text
+
 class GitHubChecksOutputter(object):
     """Provides a method to output data to be shown in the GitHub Checks UI.
 
@@ -8,22 +15,28 @@ class GitHubChecksOutputter(object):
     See https://docs.taskcluster.net/docs/reference/integrations/github/checks#custom-text-output-in-checks
     """
     def __init__(self, path):
+        # type: (Text) -> None
         self.path = path
 
     def output(self, line):
+        # type: (Any) -> None
+        # TODO(stephenmcgruer): Once mypy 0.790 is released, we can change this
+        # to AnyStr, as that release teaches mypy about the mode flags of open.
+        # See https://github.com/python/typeshed/pull/4146
         with open(self.path, 'a') as f:
             f.write(line)
             f.write('\n')
 
 
 __outputter = None
-def get_gh_checks_outputter(kwargs):
+def get_gh_checks_outputter(filepath):
+    # type: (Optional[Text]) -> Optional[GitHubChecksOutputter]
     """Return the outputter for GitHub Checks output, if enabled.
 
-    :param kwargs: The arguments passed to the program (to look for the
-                   github_checks_text_file field)
+    :param filepath: The filepath to write GitHub Check output information to,
+                     or None if not enabled.
     """
     global __outputter
-    if kwargs['github_checks_text_file'] and __outputter is None:
-        __outputter = GitHubChecksOutputter(kwargs['github_checks_text_file'])
+    if filepath and __outputter is None:
+        __outputter = GitHubChecksOutputter(filepath)
     return __outputter

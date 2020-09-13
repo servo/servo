@@ -97,19 +97,19 @@ promise_test(async t => {
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    startScrollOffset: '20px'
+    startScrollOffset: CSS.px(20)
   });
   const percentageScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    startScrollOffset: '20%'
+    startScrollOffset: CSS.percent(20)
   });
   const calcScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    startScrollOffset: 'calc(20% - 5px)'
+    startScrollOffset: CSS.percent(20).sub(CSS.px(5))
   });
 
   // Unscrolled all timelines should read a current time of 0, as the
@@ -242,19 +242,19 @@ promise_test(async t => {
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    endScrollOffset: scrollerSize + 'px'
+    endScrollOffset: CSS.px(scrollerSize)
   });
   const inclusivePercentageScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    endScrollOffset: '100%'
+    endScrollOffset: CSS.percent(100)
   });
   const inclusiveCalcScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    endScrollOffset: 'calc(80% + ' + (0.2 * scrollerSize) + 'px)'
+    endScrollOffset: CSS.percent(80).add(CSS.px(0.2 * scrollerSize))
   });
 
   scroller.scrollTop = scrollerSize;
@@ -290,19 +290,19 @@ promise_test(async t => {
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    endScrollOffset: (scrollerSize - 20) + 'px'
+    endScrollOffset: CSS.px(scrollerSize - 20)
   });
   const percentageScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    endScrollOffset: '80%'
+    endScrollOffset: CSS.percent(80)
   });
   const calcScrollTimeline = new ScrollTimeline({
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    endScrollOffset: 'calc(80% + 5px)'
+    endScrollOffset: CSS.percent(80).add(CSS.px(5))
   });
 
   // Check the length-based ScrollTimeline.
@@ -403,8 +403,8 @@ promise_test(async t => {
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    startScrollOffset: '20px',
-    endScrollOffset: (scrollerSize - 50) + 'px'
+    startScrollOffset: CSS.px(20),
+    endScrollOffset: CSS.px(scrollerSize - 50)
   });
 
   scroller.scrollTop = 150;
@@ -427,8 +427,8 @@ promise_test(async t => {
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    startScrollOffset: '20px',
-    endScrollOffset: '20px',
+    startScrollOffset: CSS.px(20),
+    endScrollOffset: CSS.px(20)
   });
 
   scroller.scrollTop = 150;
@@ -449,8 +449,8 @@ promise_test(async t => {
     scrollSource: scroller,
     timeRange: scrollerSize,
     orientation: 'block',
-    startScrollOffset: '50px',
-    endScrollOffset: '10px',
+    startScrollOffset: CSS.px(50),
+    endScrollOffset: CSS.px(10)
   });
 
   scroller.scrollTop = 40;
@@ -462,4 +462,87 @@ promise_test(async t => {
   await waitForNextFrame();
   assert_equals(scrollTimeline.currentTime, scrollTimeline.timeRange);
 }, 'currentTime handles startScrollOffset > endScrollOffset correctly');
+
+promise_test(async t => {
+  const scroller = setupScrollTimelineTest();
+  // Set the timeRange such that currentTime maps directly to the value
+  // scrolled. The contents and scroller are square, so it suffices to compute
+  // one edge and use it for all the timelines.
+  const scrollerSize = scroller.scrollHeight - scroller.clientHeight;
+
+  const scrollTimeline = new ScrollTimeline({
+    scrollSource: scroller,
+    timeRange: scrollerSize,
+    orientation: 'block',
+    scrollOffsets: [CSS.px(10), CSS.px(20), CSS.px(40), CSS.px(70), CSS.px(90)],
+  });
+
+  var offset = 0;
+  var w = 1 / 4; // offset weight
+  var p = 0;         // progress within the offset
+
+  scroller.scrollTop = 10;
+  assert_times_equal(
+    scrollTimeline.currentTime, (offset + p) * w * scrollerSize,
+    "current time calculation when scroll = " + scroller.scrollTop);
+
+  p = (12 - 10) / (20 - 10);
+  scroller.scrollTop = 12;
+  await waitForNextFrame();
+  assert_times_equal(
+    scrollTimeline.currentTime, (offset + p) * w * scrollerSize,
+    "current time calculation when scroll = " + scroller.scrollTop);
+
+  offset = 1;
+  p = 0;
+  scroller.scrollTop = 20;
+  await waitForNextFrame();
+  assert_times_equal(
+    scrollTimeline.currentTime, (offset + p) * w * scrollerSize,
+    "current time calculation when scroll = " + scroller.scrollTop);
+
+  p = (35 - 20) / (40 - 20);
+  scroller.scrollTop = 35;
+  await waitForNextFrame();
+  assert_times_equal(
+    scrollTimeline.currentTime, (offset + p) * w * scrollerSize,
+    "current time calculation when scroll = " + scroller.scrollTop);
+
+  offset = 2;
+  p = 0;
+  scroller.scrollTop = 40;
+  await waitForNextFrame();
+  assert_times_equal(
+    scrollTimeline.currentTime, (offset + p) * w * scrollerSize,
+    "current time calculation when scroll = " + scroller.scrollTop);
+
+  p = (60 - 40) / (70 - 40);
+  scroller.scrollTop = 60;
+  await waitForNextFrame();
+  assert_times_equal(
+    scrollTimeline.currentTime, (offset + p) * w * scrollerSize,
+    "current time calculation when scroll = " + scroller.scrollTop);
+
+  offset = 3;
+  p = 0;
+  scroller.scrollTop = 70;
+  await waitForNextFrame();
+  assert_times_equal(
+    scrollTimeline.currentTime, (offset + p) * w * scrollerSize,
+    "current time calculation when scroll = " + scroller.scrollTop);
+
+  p = (80 - 70) / (90 - 70);
+  scroller.scrollTop = 80;
+  await waitForNextFrame();
+  assert_times_equal(
+    scrollTimeline.currentTime, (offset + p) * w * scrollerSize,
+    "current time calculation when scroll = " + scroller.scrollTop);
+
+  scroller.scrollTop = 90;
+  await waitForNextFrame();
+  assert_times_equal(
+    scrollTimeline.currentTime, scrollerSize,
+    "current time calculation when scroll = " + scroller.scrollTop);
+}, 'currentTime calculations when multiple scroll offsets are specified');
+
 </script>

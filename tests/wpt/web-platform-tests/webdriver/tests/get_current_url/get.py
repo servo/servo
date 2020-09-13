@@ -3,12 +3,9 @@ from six import text_type
 from tests.support import platform_name
 from tests.support.inline import inline
 from tests.support.asserts import assert_error, assert_success
-from tests.support.sync import Poll
 
+doc = inline("<p>frame")
 alert_doc = inline("<script>window.alert()</script>")
-frame_doc = inline("<p>frame")
-one_frame_doc = inline("<iframe src='%s'></iframe>" % frame_doc)
-two_frames_doc = inline("<iframe src='%s'></iframe>" % one_frame_doc)
 
 
 def get_current_url(session):
@@ -22,18 +19,18 @@ def test_no_browsing_context(session, closed_window):
 
 
 def test_get_current_url_matches_location(session):
-    url = session.execute_script("return window.location.href")
+    session.url = doc
 
     response = get_current_url(session)
-    assert_success(response, url)
+    assert_success(response, doc)
 
 
 def test_get_current_url_payload(session):
     session.start()
 
     response = get_current_url(session)
-    assert response.status == 200
-    assert isinstance(response.body["value"], text_type)
+    value = assert_success(response)
+    assert isinstance(value, text_type)
 
 
 def test_get_current_url_special_pages(session):
@@ -73,32 +70,13 @@ def test_set_malformed_url(session):
 
 
 def test_get_current_url_after_modified_location(session):
-    start = get_current_url(session)
-    session.execute_script("window.location.href = 'about:blank#wd_test_modification'")
-    Poll(session, message="URL did not change").until(
-        lambda s: get_current_url(s).body["value"] != start.body["value"])
+    session.url = doc
 
     response = get_current_url(session)
-    assert_success(response, "about:blank#wd_test_modification")
+    assert_success(response, doc)
 
-
-def test_get_current_url_nested_browsing_context(session, create_frame):
-    session.url = "about:blank#wd_from_within_frame"
-    session.switch_frame(create_frame())
+    hash_doc = "{}#foo".format(doc)
+    session.url = hash_doc
 
     response = get_current_url(session)
-    assert_success(response, "about:blank#wd_from_within_frame")
-
-
-def test_get_current_url_nested_browsing_contexts(session):
-    session.url = two_frames_doc
-    top_level_url = session.url
-
-    outer_frame = session.find.css("iframe", all=False)
-    session.switch_frame(outer_frame)
-
-    inner_frame = session.find.css("iframe", all=False)
-    session.switch_frame(inner_frame)
-
-    response = get_current_url(session)
-    assert_success(response, top_level_url)
+    assert_success(response, hash_doc)

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="author" title="Ana Sollano Kim" href="mailto:ansollan@microsoft.com">
+<link rel="help" href="href=https://www.w3.org/TR/css-break-3/#break-decoration">
+<link rel="match" href="fieldset-003-ref.html">
+<p>There should be a light blue fieldset that starts in the first column and
+  ends in the third. Its blue violet legend should only be in the first column,
+  consuming the top border. The bottom border should only be in the third column.
+</p>
+<div style="column-count:3; column-fill:auto; column-gap:10px; width: 680px; height:40px;">
+  <fieldset style="margin:0; border:60px solid pink; padding:0; width:100px; background:lightblue; height:10px;">
+    <legend style="padding:0; width:100px; height:50px; background:blueviolet;"></legend>
+  </fieldset>
+</div>

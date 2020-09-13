@@ -3,18 +3,18 @@
 <title>Tests the Idle Detection API</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/test-only-api.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
-<script src="/gen/layout_test_data/mojo/public/js/mojo_bindings.js"></script>
-<script src="/gen/mojo/public/mojom/base/string16.mojom.js"></script>
-<script src="/gen/mojo/public/mojom/base/time.mojom.js"></script>
-<script src="/gen/third_party/blink/public/mojom/idle/idle_manager.mojom.js"></script>
-<script src="mock.js"></script>
+<script src="resources/idle-detection-helper.js"></script>
 <script>
 'use strict';
 
 promise_setup(async t => {
   await test_driver.set_permission({ name: 'notifications' }, 'granted', false);
+  if (isChromiumBased) {
+    await loadChromiumResources();
+  }
 })
 
 promise_test(async t => {

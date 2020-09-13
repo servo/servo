@@ -24,7 +24,7 @@ function run_generic_sensor_iframe_tests(sensorName) {
   const featurePolicies = get_feature_policies_for_sensor(sensorName);
 
   sensor_test(async t => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const iframe = document.createElement('iframe');
     iframe.allow = featurePolicies.join(';') + ';';
     iframe.src = 'https://{{domains[www1]}}:{{ports[https][0]}}/generic-sensor/resources/iframe_sensor_handler.html';
@@ -67,7 +67,7 @@ function run_generic_sensor_iframe_tests(sensorName) {
  to cross-origin frame`);
 
   sensor_test(async t => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const iframe = document.createElement('iframe');
     iframe.allow = featurePolicies.join(';') + ';';
     iframe.src = 'https://{{host}}:{{ports[https][0]}}/generic-sensor/resources/iframe_sensor_handler.html';
@@ -131,7 +131,7 @@ function run_generic_sensor_iframe_tests(sensorName) {
  to same-origin frame`);
 
   sensor_test(async t => {
-    assert_true(sensorName in self);
+    assert_implements(sensorName in self, `${sensorName} is not supported.`);
     const iframe = document.createElement('iframe');
     iframe.allow = featurePolicies.join(';') + ';';
     iframe.src = 'https://{{host}}:{{ports[https][0]}}/generic-sensor/resources/iframe_sensor_handler.html';

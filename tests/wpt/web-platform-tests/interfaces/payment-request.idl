@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Payment Request API (https://w3c.github.io/payment-request/)
 
 [SecureContext, Exposed=Window]
@@ -13,7 +13,7 @@ interface PaymentRequest : EventTarget {
   [NewObject]
   Promise<PaymentResponse> show(optional Promise<PaymentDetailsUpdate> detailsPromise);
   [NewObject]
-  Promise<void> abort();
+  Promise<undefined> abort();
   [NewObject]
   Promise<boolean> canMakePayment();
   [NewObject]
@@ -155,9 +155,9 @@ interface PaymentResponse : EventTarget  {
   readonly attribute DOMString? payerPhone;
 
   [NewObject]
-  Promise<void> complete(optional PaymentComplete result = "unknown");
+  Promise<undefined> complete(optional PaymentComplete result = "unknown");
   [NewObject]
-  Promise<void> retry(optional PaymentValidationErrors errorFields = {});
+  Promise<undefined> retry(optional PaymentValidationErrors errorFields = {});
 
   attribute EventHandler onpayerdetailchange;
 };
@@ -180,7 +180,7 @@ interface MerchantValidationEvent : Event {
   constructor(DOMString type, optional MerchantValidationEventInit eventInitDict = {});
   readonly attribute DOMString methodName;
   readonly attribute USVString validationURL;
-  void complete(Promise<any> merchantSessionPromise);
+  undefined complete(Promise<any> merchantSessionPromise);
 };
 
 dictionary MerchantValidationEventInit : EventInit {
@@ -203,7 +203,7 @@ dictionary PaymentMethodChangeEventInit : PaymentRequestUpdateEventInit {
 [SecureContext, Exposed=Window]
 interface PaymentRequestUpdateEvent : Event {
   constructor(DOMString type, optional PaymentRequestUpdateEventInit eventInitDict = {});
-  void updateWith(Promise<PaymentDetailsUpdate> detailsPromise);
+  undefined updateWith(Promise<PaymentDetailsUpdate> detailsPromise);
 };
 
 dictionary PaymentRequestUpdateEventInit : EventInit {};

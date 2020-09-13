@@ -140,8 +140,16 @@ test(() => {
   /* web+ prefixed schemes must be followed by 1+ ascii alphas */
   'web+',
   'web+1',
+  'web+namewithid123',
+  'web+namewithtrailingspace ',
+  'web+préfixewithaccent',     // é is not ascii alpha
+  'web+Kelvinsign',            // ASCII-lower KELVIN SIGN is not k
+  'web+latinsmallletterlongſ', // ASCII-lower LATIN SMALL LETTER LONG S is not s
   'web+dots.are.forbidden',
   'web+dashes-are-forbidden',
+  'web+underscores_are_forbidden',
+  'web+spaces are forbidden',
+  'web+non*alpha*are*forbidden',
   'web+digits123areforbidden',
 ].forEach(scheme => {
   test(() => {
@@ -191,6 +199,7 @@ test(() => {
   'WebCAL',
   'WTAI',
   'web+myprotocol',
+  'web+abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ', // all alphas
   'web+UpperCasedIsLowercased',
   'WEB+seeabove',
   'WeB+SeEaBoVe'

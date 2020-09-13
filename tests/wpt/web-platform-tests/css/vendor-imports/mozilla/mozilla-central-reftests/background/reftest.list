@@ -1,4 +1,5 @@
 # background-repeat round/space test cases
+# background-repeat space is broken under SWGL (see bug 1658815)
 == background-repeat-space-1a.html background-repeat-space-1-ref.html
 == background-repeat-space-1b.html background-repeat-space-1-ref.html
 == background-repeat-space-1c.html background-repeat-space-1-ref.html

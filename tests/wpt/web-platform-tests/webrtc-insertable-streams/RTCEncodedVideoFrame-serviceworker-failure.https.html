@@ -10,7 +10,7 @@
 <script>
 "use strict";
 promise_test(async t => {
-  const caller = new RTCPeerConnection({forceEncodedVideoInsertableStreams:true});
+  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
   t.add_cleanup(() => caller.close());
   const callee = new RTCPeerConnection();
   t.add_cleanup(() => callee.close());
@@ -20,9 +20,9 @@ promise_test(async t => {
   t.add_cleanup(() => videoTrack.stop());
 
   const videoSender = caller.addTrack(videoTrack)
-  const senderStreams = videoSender.createEncodedVideoStreams();
-  const senderReader = senderStreams.readableStream.getReader();
-  const senderWriter = senderStreams.writableStream.getWriter();
+  const senderStreams = videoSender.createEncodedStreams();
+  const senderReader = senderStreams.readable.getReader();
+  const senderWriter = senderStreams.writable.getWriter();
 
   exchangeIceCandidates(caller, callee);
   await exchangeOfferAnswer(caller, callee);

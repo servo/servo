@@ -11,3 +11,14 @@ function assert_equal_to_array(table, expected, message) {
   assert_throws_js(RangeError, () => table.get(expected.length + 1),
                    `${message}: table.get(${expected.length + 1} of ${expected.length})`);
 }
+
+function assert_Table(actual, expected) {
+  assert_equals(Object.getPrototypeOf(actual), WebAssembly.Table.prototype,
+                "prototype");
+  assert_true(Object.isExtensible(actual), "extensible");
+
+  assert_equals(actual.length, expected.length, "length");
+  for (let i = 0; i < expected.length; ++i) {
+    assert_equals(actual.get(i), null, `actual.get(${i})`);
+  }
+}

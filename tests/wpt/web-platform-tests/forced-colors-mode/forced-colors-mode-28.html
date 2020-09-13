@@ -5,20 +5,23 @@
 <link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
 <link rel=match href="forced-colors-mode-28-ref.html">
 <style>
+  :root {
+    --url-image: url("resources/test-image.jpg");
+  }
   div {
     height: 20px;
     width: 10px;
   }
   #div1 {
-    background-image: url("resources/test-image.jpg");
+    background-image: var(--url-image);
     background-image: linear-gradient(red, yellow);
   }
   #div2 {
     background-image: linear-gradient(red, yellow);
-    background-image: url("resources/test-image.jpg");
+    background-image: var(--url-image);
   }
   #div3 {
-    background-image: url("resources/test-image.jpg");
+    background-image: var(--url-image);
   }
   #div4 {
     background-image: linear-gradient(red, yellow);

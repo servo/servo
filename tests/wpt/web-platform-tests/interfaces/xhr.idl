@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: XMLHttpRequest Standard (https://xhr.spec.whatwg.org/)
 
 [Exposed=(Window,DedicatedWorker,SharedWorker)]
@@ -44,14 +44,14 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   readonly attribute unsigned short readyState;
 
   // request
-  void open(ByteString method, USVString url);
-  void open(ByteString method, USVString url, boolean async, optional USVString? username = null, optional USVString? password = null);
-  void setRequestHeader(ByteString name, ByteString value);
+  undefined open(ByteString method, USVString url);
+  undefined open(ByteString method, USVString url, boolean async, optional USVString? username = null, optional USVString? password = null);
+  undefined setRequestHeader(ByteString name, ByteString value);
            attribute unsigned long timeout;
            attribute boolean withCredentials;
   [SameObject] readonly attribute XMLHttpRequestUpload upload;
-  void send(optional (Document or XMLHttpRequestBodyInit)? body = null);
-  void abort();
+  undefined send(optional (Document or XMLHttpRequestBodyInit)? body = null);
+  undefined abort();
 
   // response
   readonly attribute USVString responseURL;
@@ -59,7 +59,7 @@ interface XMLHttpRequest : XMLHttpRequestEventTarget {
   readonly attribute ByteString statusText;
   ByteString? getResponseHeader(ByteString name);
   ByteString getAllResponseHeaders();
-  void overrideMimeType(DOMString mime);
+  undefined overrideMimeType(DOMString mime);
            attribute XMLHttpRequestResponseType responseType;
   readonly attribute any response;
   readonly attribute USVString responseText;
@@ -72,14 +72,14 @@ typedef (File or USVString) FormDataEntryValue;
 interface FormData {
   constructor(optional HTMLFormElement form);
 
-  void append(USVString name, USVString value);
-  void append(USVString name, Blob blobValue, optional USVString filename);
-  void delete(USVString name);
+  undefined append(USVString name, USVString value);
+  undefined append(USVString name, Blob blobValue, optional USVString filename);
+  undefined delete(USVString name);
   FormDataEntryValue? get(USVString name);
   sequence<FormDataEntryValue> getAll(USVString name);
   boolean has(USVString name);
-  void set(USVString name, USVString value);
-  void set(USVString name, Blob blobValue, optional USVString filename);
+  undefined set(USVString name, USVString value);
+  undefined set(USVString name, Blob blobValue, optional USVString filename);
   iterable<USVString, FormDataEntryValue>;
 };
 

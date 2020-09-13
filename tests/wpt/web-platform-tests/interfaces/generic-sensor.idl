@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Generic Sensor API (https://w3c.github.io/sensors/)
 
 [SecureContext, Exposed=(DedicatedWorker, Window)]
@@ -8,8 +8,8 @@ interface Sensor : EventTarget {
   readonly attribute boolean activated;
   readonly attribute boolean hasReading;
   readonly attribute DOMHighResTimeStamp? timestamp;
-  void start();
-  void stop();
+  undefined start();
+  undefined stop();
   attribute EventHandler onreading;
   attribute EventHandler onactivate;
   attribute EventHandler onerror;

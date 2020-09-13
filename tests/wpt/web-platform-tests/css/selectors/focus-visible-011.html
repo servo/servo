@@ -41,7 +41,7 @@
       next.focus();
     });
 
-    async_test(async function(t) {
+    async_test(function(t) {
       next.addEventListener("focus", t.step_func(() => {
         assert_equals(getComputedStyle(next).outlineColor, "rgb(0, 100, 0)");
         t.done()

@@ -2,13 +2,15 @@
 <meta charset="utf-8">
 <title>CSS Basic User Interface Test: appearance: button</title>
 <link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-switching">
-<meta name="assert" content="button is treated as auto on input, textarea, list box select, meter, and progress elements.">
-<link rel="match" href="appearance-button-001-ref.html">
+<meta name="assert" content="button is an alias to auto.">
+<link rel="match" href="appearance-auto-ref.html">
 <style>
  #container { width: 500px; }
  #container > * { appearance: none; appearance: button; }
 </style>
 <div id="container">
+	<a>a</a>
+	<button>button</button>
 	<input type="text" value="input-text">
 	<input type="search" value="input-search">
 	<textarea>textarea</textarea>
@@ -19,6 +21,7 @@
 	<input type="checkbox">
 	<input type="radio">
 	<input type="color">
+	<select><option>select</option></select>
 	<select multiple><option>select-multiple</option></select>
 	<meter value=0.5></meter>
 	<progress value=0.5></progress>

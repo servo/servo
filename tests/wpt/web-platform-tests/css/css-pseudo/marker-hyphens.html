@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::marker supports 'hyphens'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hyphenation">
+<link rel="match" href="marker-hyphens-ref.html">
+<meta name="assert" content="Checks that ::marker supports 'hyphens', both explicitly set or inherited from an ancestor">
+<style>
+li {
+  list-style-position: inside;
+  width: 0;
+}
+.hyphens-manual.explicit ::marker,
+.hyphens-manual.inherit {
+  hyphens: manual;
+}
+.hyphens-none.explicit ::marker,
+.hyphens-none.inherit {
+  hyphens: none;
+}
+.marker-string {
+  list-style-type: "foo\AD bar";
+}
+.marker-content::marker {
+  content: "foo\AD bar";
+}
+</style>
+<ol class="hyphens-manual explicit">
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="hyphens-manual inherit">
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="hyphens-none explicit">
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="hyphens-none inherit">
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>

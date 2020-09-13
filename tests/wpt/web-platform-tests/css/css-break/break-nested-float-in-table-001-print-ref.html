@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<!-- Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/ -->
+<html>
+  <meta charset="utf-8">
+  <title>CSS Fragmentation Test Reference: Test for pagination of a nested float element in a table in a printing context</title>
+  <link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+  <link rel="author" title="Mozilla" href="http://www.mozilla.org/">
+
+  <style>
+  @page { size:5in 3in; margin:0.5in; }
+
+  html, body {
+    margin: 0;
+  }
+  #target {
+    background: green;
+    width: 2in;
+    height: 6in; /* Expected to cover 3 pages. */
+  }
+  </style>
+
+  <body>
+    <div id="target"></div>
+  </body>
+</html>

@@ -26,7 +26,7 @@ async_test(function(t) {
     trackElement.oncuechange = t.step_func(eventCallback);
     video.oncanplaythrough = t.step_func(eventCallback);
 
-    video.onerror = t.step_func_done(function() {
+    video.onerror = t.step_func_done(function(event) {
         assert_equals(event.target, video);
         assert_not_equals(video.error, null);
         assert_equals(video.error.code, MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED);

@@ -16,7 +16,7 @@ promise_test(async t => {
   t.add_cleanup(() => registration.unregister());
   await wait_for_state(t, registration.installing, 'activated');
   await registration.cookies.subscribe(
-      [{ name: 'cookie-name', matchType: 'equals' }]);
+      [{ name: 'cookie-name' }]);
   const original_subscriptions = await registration.cookies.getSubscriptions();
   assert_equals(original_subscriptions.length, 1,
                 'subscription count before unregistration');
@@ -39,7 +39,7 @@ promise_test(async t => {
   t.add_cleanup(() => registration.unregister());
   await wait_for_state(t, registration.installing, 'activated');
   await registration.cookies.subscribe(
-      [{ name: 'cookie-name', matchType: 'equals' }]);
+      [{ name: 'cookie-name' }]);
   const original_subscriptions = await registration.cookies.getSubscriptions();
   assert_equals(original_subscriptions.length, 1,
                 'subscription count before update');

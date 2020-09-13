@@ -1,0 +1,58 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebXR Hand Input Module - Level 1 (https://immersive-web.github.io/webxr-hand-input/)
+
+partial interface XRInputSource {
+   readonly attribute XRHand? hand;
+};
+
+interface XRHand {
+    iterable<XRJointSpace>;
+    readonly attribute unsigned long length;
+    getter XRJointSpace joint(unsigned long jointIndex);
+
+    const unsigned long WRIST = 0;
+
+    const unsigned long THUMB_METACARPAL = 1;
+    const unsigned long THUMB_PHALANX_PROXIMAL = 2;
+    const unsigned long THUMB_PHALANX_DISTAL = 3;
+    const unsigned long THUMB_PHALANX_TIP = 4;
+
+    const unsigned long INDEX_METACARPAL = 5;
+    const unsigned long INDEX_PHALANX_PROXIMAL = 6;
+    const unsigned long INDEX_PHALANX_INTERMEDIATE = 7;
+    const unsigned long INDEX_PHALANX_DISTAL = 8;
+    const unsigned long INDEX_PHALANX_TIP = 9;
+
+    const unsigned long MIDDLE_METACARPAL = 10;
+    const unsigned long MIDDLE_PHALANX_PROXIMAL = 11;
+    const unsigned long MIDDLE_PHALANX_INTERMEDIATE = 12;
+    const unsigned long MIDDLE_PHALANX_DISTAL = 13;
+    const unsigned long MIDDLE_PHALANX_TIP = 14;
+
+    const unsigned long RING_METACARPAL = 15;
+    const unsigned long RING_PHALANX_PROXIMAL = 16;
+    const unsigned long RING_PHALANX_INTERMEDIATE = 17;
+    const unsigned long RING_PHALANX_DISTAL = 18;
+    const unsigned long RING_PHALANX_TIP = 19;
+
+    const unsigned long LITTLE_METACARPAL = 20;
+    const unsigned long LITTLE_PHALANX_PROXIMAL = 21;
+    const unsigned long LITTLE_PHALANX_INTERMEDIATE = 22;
+    const unsigned long LITTLE_PHALANX_DISTAL = 23;
+    const unsigned long LITTLE_PHALANX_TIP = 24;
+};
+
+interface XRJointSpace: XRSpace {};
+
+partial interface XRFrame {
+    XRJointPose? getJointPose(XRJointSpace joint, XRSpace baseSpace);
+    void fillJointRadii(sequence<XRJointSpace> jointSpaces, Float32Array radii);
+
+    void fillPoses(sequence<XRSpace> spaces, XRSpace baseSpace, Float32Array transforms);
+};
+
+interface XRJointPose: XRPose {
+    readonly attribute float? radius;
+};

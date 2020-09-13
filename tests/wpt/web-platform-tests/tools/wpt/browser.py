@@ -649,7 +649,10 @@ class Chrome(Browser):
             # All other channels share the same path on macOS.
             return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
         if uname[0] == "Windows":
-            return os.path.expandvars(r"$SYSTEMDRIVE\Program Files (x86)\Google\Chrome\Application\chrome.exe")
+            path = os.path.expandvars(r"$SYSTEMDRIVE\Program Files (x86)\Google\Chrome\Application\chrome.exe")
+            if not os.path.exists(path):
+                path = os.path.expandvars(r"$SYSTEMDRIVE\Program Files\Google\Chrome\Application\chrome.exe")
+            return path
         self.logger.warning("Unable to find the browser binary.")
         return None
 

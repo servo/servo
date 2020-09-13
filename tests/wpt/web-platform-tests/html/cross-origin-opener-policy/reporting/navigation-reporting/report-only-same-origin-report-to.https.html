@@ -29,10 +29,9 @@ let tests = [
         "report": {
           "body": {
             "disposition": "reporting",
-            "documentURI": `${location.href}`,
             "effectivePolicy": "same-origin",
-            "navigationURI": /uuid=EXECUTOR_UUID$/, // next document URL
-            "type": "navigation-from-document"
+            "nextResponseURL": /uuid=EXECUTOR_UUID$/, // next document URL
+            "type": "navigation-from-response"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -55,10 +54,9 @@ let tests = [
         "report": {
           "body": {
             "disposition": "reporting",
-            "documentURI": `${location.href}`,
             "effectivePolicy": "same-origin",
-            "navigationURI": /uuid=EXECUTOR_UUID$/, // next document URL
-            "type": "navigation-from-document"
+            "nextResponseURL": /uuid=EXECUTOR_UUID$/, // next document URL
+            "type": "navigation-from-response"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -69,10 +67,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "reporting",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
             "effectivePolicy": "same-origin",
-            "navigationURI": `${location.origin}/`, // referrer
-            "type": "navigation-to-document"
+            "previousResponseURL": "",
+            "referrer": `${location.origin}/`, // referrer
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"

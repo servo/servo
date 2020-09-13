@@ -9,7 +9,7 @@
 <script>
     window.addEventListener("load", t.step_func(function() {
         verifyPreloadAndRTSupport();
-        verifyNumberOfResourceTimingEntries("/resources/dummy.js?pipe=trickle(d5)", 0);
+        verifyNumberOfResourceTimingEntries("resources/dummy.js?pipe=trickle(d5)", 0);
         t.done();
     }));
 </script>

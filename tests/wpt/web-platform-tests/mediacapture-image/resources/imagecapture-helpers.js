@@ -9,41 +9,31 @@
 //
 //   --enable-blink-features=MojoJS,MojoJSTest
 
-let loadChromiumResources = Promise.resolve().then(() => {
-  if (!('MojoInterfaceInterceptor' in self)) {
-    // Do nothing on non-Chromium-based browsers or when the Mojo bindings are
-    // not present in the global namespace.
-    return;
-  }
-
-  let chain = Promise.resolve();
-  [
-    '/resources/chromium/mojo_bindings.js',
-    '/resources/chromium/image_capture.mojom.js',
-    '/resources/chromium/mock-imagecapture.js',
-  ].forEach(path => {
-    // Use importScripts for workers.
-    if (typeof document === 'undefined') {
-      chain = chain.then(() => importScripts(path));
-      return;
-    }
-    let script = document.createElement('script');
-    script.src = path;
-    script.async = false;
-    chain = chain.then(() => new Promise(resolve => {
-      script.onload = () => resolve();
-    }));
-    document.head.appendChild(script);
-  });
-
-  return chain;
-});
+async function loadChromiumResources() {
+  const chromiumResources = [
+    '/gen/media/capture/mojom/image_capture.mojom.js'
+  ];
+  await loadMojoResources(chromiumResources);
+  await loadScript('/resources/chromium/mock-imagecapture.js');
+}
 
 async function initialize_image_capture_tests() {
   if (typeof ImageCaptureTest === 'undefined') {
-    await loadChromiumResources;
+    const script = document.createElement('script');
+    script.src = '/resources/test-only-api.js';
+    script.async = false;
+    const p = new Promise((resolve, reject) => {
+      script.onload = () => { resolve(); };
+      script.onerror = e => { reject(e); };
+    })
+    document.head.appendChild(script);
+    await p;
+
+    if (isChromiumBased) {
+      await loadChromiumResources();
+    }
   }
-  assert_true(typeof ImageCaptureTest !== 'undefined');
+  assert_implements(ImageCaptureTest, 'ImageCaptureTest is unavailable');
   let imageCaptureTest = new ImageCaptureTest();
   await imageCaptureTest.initialize();
   return imageCaptureTest;

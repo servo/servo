@@ -65,8 +65,8 @@ test(t => {
   animation.timeline = document.timeline;
 
   assert_equals(animation.playState, 'running');
-}, 'After setting timeline on an idle animation with a start time'
-   + ' it is running');
+}, 'After transitioning from a null timeline on an animation with a start time'
+   + ' it is still running');
 
 test(t => {
   const animation =
@@ -78,8 +78,8 @@ test(t => {
   animation.timeline = document.timeline;
 
   assert_equals(animation.playState, 'finished');
-}, 'After setting timeline on an idle animation with a sufficiently ancient'
-   + ' start time it is finished');
+}, 'After transitioning from a null timeline on an animation with a ' +
+   'sufficiently ancient start time it is finished');
 
 promise_test(async t => {
   const animation =
@@ -152,9 +152,9 @@ test(t => {
 
   animation.timeline = null;
 
-  assert_equals(animation.playState, 'idle');
+  assert_equals(animation.playState, 'running');
   assert_times_equal(animation.startTime, initialStartTime);
-}, 'After clearing timeline on finished animation it is idle');
+}, 'After clearing timeline on finished animation it is running');
 
 test(t => {
   const animation =
@@ -166,9 +166,9 @@ test(t => {
 
   animation.timeline = null;
 
-  assert_equals(animation.playState, 'idle');
+  assert_equals(animation.playState, 'running');
   assert_times_equal(animation.startTime, initialStartTime);
-}, 'After clearing timeline on running animation it is idle');
+}, 'After clearing timeline on running animation it is still running');
 
 test(t => {
   const animation =

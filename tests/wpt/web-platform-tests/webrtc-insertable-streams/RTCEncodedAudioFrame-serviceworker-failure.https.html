@@ -10,7 +10,7 @@
 <script>
 "use strict";
 promise_test(async t => {
-  const caller = new RTCPeerConnection({forceEncodedAudioInsertableStreams:true});
+  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
   t.add_cleanup(() => caller.close());
   const callee = new RTCPeerConnection();
   t.add_cleanup(() => callee.close());
@@ -20,9 +20,9 @@ promise_test(async t => {
   t.add_cleanup(() => track.stop());
 
   const sender = caller.addTrack(track)
-  const streams = sender.createEncodedAudioStreams();
-  const reader = streams.readableStream.getReader();
-  const writer = streams.writableStream.getWriter();
+  const streams = sender.createEncodedStreams();
+  const reader = streams.readable.getReader();
+  const writer = streams.writable.getWriter();
 
   exchangeIceCandidates(caller, callee);
   await exchangeOfferAnswer(caller, callee);

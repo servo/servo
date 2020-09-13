@@ -185,7 +185,34 @@ assertions don't need to be wrapped in `step` or `step_func`
 calls. However when mixing event handlers and `promise_test`, the
 event handler callback functions *do* need to be wrapped since an
 exception in these functions does not cause the promise chain to
-reject.
+reject. The best way to simplify tests and avoid confusion is to **limit the
+code in Promise "executor" functions to only track asynchronous operations**;
+place fallible assertion code in subsequent reaction handlers.
+
+For example, instead of
+
+```js
+promise_test(t => {
+  return new Promise(resolve => {
+    window.addEventListener("DOMContentLoaded", t.step_func(event => {
+      assert_true(event.bubbles, "bubbles should be true");
+      resolve();
+    }));
+  });
+}, "DOMContentLoaded");
+```
+
+Try,
+
+```js
+promise_test(() => {
+  return new Promise(resolve => {
+    window.addEventListener("DOMContentLoaded", resolve);
+  }).then(event => {
+    assert_true(event.bubbles, "bubbles should be true");
+  });
+}, "DOMContentLoaded");
+```
 
 Unlike Asynchronous Tests, Promise Tests don't start running until after the
 previous Promise Test finishes. [Under rare
@@ -407,14 +434,14 @@ These functions are preferred over `step_timeout` as they end when a condition o
 `step_wait(cond, description, timeout=3000, interval=100)` is useful inside `promise_test`, e.g.:
 
 ```js
-promise_test(t => {
+promise_test(async t => {
   // …
   await t.step_wait(() => frame.contentDocument === null, "Frame navigated to a cross-origin document");
   // …
 }, "");
 ```
 
-`step_wait_func(cond, func, description, timeout=3000, interval=100)` & `step_wait_func(cond, func, description, timeout=3000, interval=100)` are useful inside `async_test`:
+`step_wait_func(cond, func, description, timeout=3000, interval=100)` and `step_wait_func_done(cond, func, description, timeout=3000, interval=100)` are useful inside `async_test`:
 
 ```js
 async_test(t => {
@@ -839,6 +866,8 @@ asserts that `expected` is an Array, and `actual` is equal to one of the
 members i.e. `expected.indexOf(actual) != -1`
 
 ### `assert_object_equals(actual, expected, description)`
+**DEPRECATED**: see [issue #2033](https://github.com/web-platform-tests/wpt/issues/2033).
+
 asserts that `actual` is an object and not null and that all enumerable
 properties on `actual` are own properties on `expected` with the same values,
 recursing if the value is an object and not null.

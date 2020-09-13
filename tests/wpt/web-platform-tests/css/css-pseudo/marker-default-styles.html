@@ -11,7 +11,11 @@
 .decimal { list-style-type: decimal }
 .string { list-style-type: "string" }
 .marker::marker { content: "marker" }
-li { text-transform: lowercase }
+li {
+  /* These inheritable properties should not be inherited by ::marker */
+  text-transform: lowercase;
+  text-indent: 1px;
+}
 </style>
 <div id="log"></div>
 <ul>
@@ -32,6 +36,7 @@ const defaultStyles = [
   ["unicode-bidi", "isolate"],
   ["font-variant-numeric", "tabular-nums"],
   ["text-transform", "none"],
+  ["text-indent", "0px"],
 ];
 for (const target of document.querySelectorAll("li")) {
   const cs = getComputedStyle(target, "::marker");

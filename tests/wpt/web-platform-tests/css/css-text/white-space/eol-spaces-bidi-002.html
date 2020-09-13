@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text 3 test: trailing pre-wrap spaces and bidi</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="help" href="https://www.w3.org/TR/css-writing-modes/#text-direction">
+<link rel="help" href="http://www.unicode.org/reports/tr9/#L1">
+<link rel="match" href="reference/eol-spaces-bidi-002-ref.html">
+<meta name="assert" content="Use UAX9L1 to determine which space is at the end of the line, taking into account that such spaces, when pre-wrap, must hang.">
+
+<style>
+div {
+    font-family: monospace;
+    border: solid blue;
+    font-size: 1.5em;
+    white-space: pre-wrap;
+}
+.ref {
+    border-color: orange;
+    white-space: pre;
+}
+.w6 { width: 6ch; }
+.w7 { width: 7ch; }
+.w8 { width: 8ch; }
+.w9 { width: 9ch; }
+
+.blue { background: #aaaaff; }
+.red { background: #ffaaaa; }
+.green { background: #aaffaa; }
+.pink { background: #ffaaff; }
+.yellow { background: #ffffaa; }
+</style>
+
+<p>Test passes if each pair of blue / orange boxes are identical (except for the color of their border).
+
+
+<!-- not coloring the space between ا and ب in this particular case,
+   because per UAX9 L1 and css-text-3 4.1.2 point 4 bullet 2:
+   this space MUST be at the end of the line and hang,
+   but also the UA MAY collapse it's advance width.
+   Not giving it a color lets the test pass either way.
+-->
+
+<div class="w6"><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span> </span>ب<span class=yellow> </span></div>
+<div class="w6 ref"><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<br>ب<span class=yellow> </span></div>
+
+<hr>
+
+<div class="w7"><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span class=yellow> </span></div>
+<div class="w7 ref"><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span><br>ب<span class=yellow> </span></div>
+
+<hr>
+
+<!-- not coloring the last space in this particular case,
+   because per 4.1.2 point 4 bullet 2:
+   this space MUST hang,
+   but also the UA MAY collapse it's advance width.
+   So we know for sure it won't cause a line break,
+   but it may or may not be visible at the end of the line.
+   Not giving it a color lets the test pass either way.
+-->
+
+<div class="w8"><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span> </span></div>
+<div class="w8 ref"><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب</div>
+
+<hr>
+
+<div class="w9"><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span class=yellow> </span></div>
+<div class="w9 ref"><span class=pink> </span>A<span class=blue> </span>B<span class=red> </span>ا<span class=green> </span>ب<span class=yellow> </span></div>

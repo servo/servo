@@ -52,7 +52,7 @@ test(() => {
     Object.getOwnPropertyDescriptor(window, 'document')
   );
   assert_equals(trapCalls, 1);
-}, 'Window target, forwarding trap, [Unforgeable] "document" attribute');
+}, 'Window target, forwarding trap, [LegacyUnforgeable] "document" attribute');
 
 test(() => {
   const trapResult = {get() {}, set(_val) {}, enumerable: false, configurable: true};
@@ -80,7 +80,7 @@ test(() => {
     Object.getOwnPropertyDescriptor(document, 'location')
   );
   assert_equals(trapCalls, 1);
-}, 'Document target, forwarding trap, [Unforgeable] "location" attribute');
+}, 'Document target, forwarding trap, [LegacyUnforgeable] "location" attribute');
 
 test(() => {
   const trapResult = {value: 4, writable: false, enumerable: true, configurable: true};
@@ -104,7 +104,7 @@ test(() => {
   assert_equals(location.hash, '#new');
   assert_true(descriptor.enumerable);
   assert_false(descriptor.configurable);
-}, 'Location target, no trap, [Unforgeable] "hash" attribute');
+}, 'Location target, no trap, [LegacyUnforgeable] "hash" attribute');
 
 test(() => {
   let trapCalls = 0;
@@ -120,7 +120,7 @@ test(() => {
     Object.getOwnPropertyDescriptor(location, 'reload')
   );
   assert_equals(trapCalls, 1);
-}, 'Location proxy target, forwarding trap, [Unforgeable] "reload" method');
+}, 'Location proxy target, forwarding trap, [LegacyUnforgeable] "reload" method');
 </script>
 </body>
 </html>

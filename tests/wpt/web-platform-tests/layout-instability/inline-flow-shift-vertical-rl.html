@@ -31,8 +31,8 @@ promise_test(async () => {
   // or use the available width (i.e. width of the containing block).
   // Also tolerate extra 10% error.
   const text_width = inline_block.offsetWidth;
-  const expectedScoreMin = computeExpectedScore(text_width * (30 * 3 + 50), 50) * 0.9;
-  const expectedScoreMax = computeExpectedScore(200 * (30 * 3 + 50), 50) * 1.1;
+  const expectedScoreMin = computeExpectedScore(text_width * (20 * 3 + 50), 50) * 0.9;
+  const expectedScoreMax = computeExpectedScore(200 * (25 * 3 + 50), 50) * 1.1;
 
   // Observer fires after the frame is painted.
   assert_equals(watcher.score, 0);

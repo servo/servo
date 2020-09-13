@@ -63,8 +63,23 @@ test_pseudo_computed_value("::marker", "transition-duration", "2s");
 test_pseudo_computed_value("::marker", "transition-property", "display");
 test_pseudo_computed_value("::marker", "transition-timing-function", "linear");
 
-// ::marker supports `text-transform`
+// ::marker supports text properties.
+test_pseudo_computed_value("::marker", "hyphens", "none");
+test_pseudo_computed_value("::marker", "letter-spacing", "10px");
+test_pseudo_computed_value("::marker", "line-break", "anywhere");
+test_pseudo_computed_value("::marker", "overflow-wrap", "anywhere");
+test_pseudo_computed_value("::marker", "tab-size", "10px");
 test_pseudo_computed_value("::marker", "text-transform", "uppercase");
+test_pseudo_computed_value("::marker", "word-break", "break-word");
+test_pseudo_computed_value("::marker", "word-spacing", "10px");
+
+// ::marker supports inherited text decoration properties.
+test_pseudo_computed_value("::marker", "text-decoration-skip-ink", "none");
+test_pseudo_computed_value("::marker", "text-emphasis", "dot rgb(0, 255, 0)");
+test_pseudo_computed_value("::marker", "text-emphasis-color", "rgb(0, 255, 0)");
+test_pseudo_computed_value("::marker", "text-emphasis-position", "under left");
+test_pseudo_computed_value("::marker", "text-emphasis-style", "dot");
+test_pseudo_computed_value("::marker", "text-shadow", "rgb(0, 255, 0) 1px 2px 3px");
 
 // ::marker does NOT support layout properties
 test_pseudo_computed_value("::marker", "display", "none", ["block", "inline", "inline-block"]);

@@ -12,7 +12,9 @@
 		<link rel="match" href="reference/mix-blend-mode-svg-rectangle-ref.html">
 	</head>
 	<body>
-		<p>There should be no red rectangle on the screen. <br>
+		<!-- The white background is to prevent alpha-blending differences in Chrome
+		     for the antialiased pixels of the text. -->
+		<p style="background: white">There should be no red rectangle on the screen. <br>
 		   Test passes if you see a black rectangle.</p>
 		<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="400px" height="400px" >
 			<rect x="0" y="0" width="100" height="100" fill="aqua"/>

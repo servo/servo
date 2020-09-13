@@ -552,7 +552,6 @@ class PerMessageDeflateTest(unittest.TestCase):
         compressed_empty = compressed_empty[:-4]
         expected += b'\x80%c' % len(compressed_empty)
         expected += compressed_empty
-        print('%r' % expected)
         self.assertEqual(expected, request.connection.written_data())
 
     def test_send_message_fragmented_empty_last_frame(self):
@@ -732,7 +731,6 @@ class PerMessageDeflateTest(unittest.TestCase):
 
             frame_count += 1
 
-        print("Chunk sizes: %r" % chunk_sizes)
         self.assertTrue(len(chunk_sizes) > 10)
 
         # Close frame
@@ -834,9 +832,7 @@ class PerMessageDeflateTest(unittest.TestCase):
                     compress = None
                     finish_used = True
 
-        print("Chunk sizes: %r" % chunk_sizes)
         self.assertTrue(len(chunk_sizes) > 10)
-        print("Methods: %r" % methods)
         self.assertTrue(sync_used)
         self.assertTrue(finish_used)
 

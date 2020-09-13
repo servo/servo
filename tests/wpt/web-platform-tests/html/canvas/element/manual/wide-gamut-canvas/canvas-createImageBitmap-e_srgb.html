@@ -44,8 +44,9 @@ function testPixels(ctx, tests, sourceType)
         tolerance = 0.03;
     for (var i = 0; i < tests.length; i++) {
         actual = ctx.getImageData(tests[i][0], tests[i][1], 1, 1).dataUnion;
+        assert_implements(actual, 'ImageData dataUnion not supported');
         expected = tests[i][2];
-        assert_true(actual.length === expected.length);
+        assert_equals(actual.length, expected.length);
         for (var j = 0; j < actual.length; j++)
            assert_approx_equals(actual[j], expected[j], tolerance, tests[i][3]);
     }
@@ -171,7 +172,9 @@ function compareBitmaps(bitmap1, bitmap2)
     ctx1.drawImage(bitmap1, 0, 0);
     ctx2.drawImage(bitmap2, 0, 0);
     var data1 = ctx1.getImageData(0, 0, 50, 50).dataUnion;
+    assert_implements(data1, 'ImageData dataUnion not supported');
     var data2 = ctx2.getImageData(0, 0, 50, 50).dataUnion;
+    assert_implements(data2, 'ImageData dataUnion not supported');
     var dataMatched = true;
     for (var i = 0; i < data1.length; i++) {
         if (data1[i] != data2[i]) {
@@ -286,14 +289,11 @@ function initializeTestCanvasTransparent(canvasColorSpace, canvasPixelFormat)
 // HTMLImageElement - Opaque sRGB
 // File formats: AVIF, Bitmap, GIF, ICO, JPEG, PNG, WEBP
 ['avif', 'bmp', 'gif', 'ico', 'jpg', 'png', 'webp'].forEach(ext => {
-    promise_test(function() {
-        return new Promise((resolve,reject) => {
-            var image = new Image();
-            image.onload = function() {
-                resolve(image);
-            }
-            image.src = 'resources/pattern-srgb.' + ext;
-        }).then(testImageBitmapOpaque);
+    promise_test(async () => {
+        const image = new Image();
+        image.src = 'resources/pattern-srgb.' + ext;
+        await image.decode();
+        await testImageBitmapOpaque(image);
     }, 'createImageBitmap in e-sRGB from an opaque sRGB HTMLImageElement (' + ext +
         ') with resize.');
 });
@@ -301,14 +301,11 @@ function initializeTestCanvasTransparent(canvasColorSpace, canvasPixelFormat)
 // HTMLImageElement - Transparent sRGB
 // File formats: AVIF, Bitmap, ICO, PNG, WEBP
 ['avif', 'bmp', 'ico', 'png', 'webp'].forEach(ext => {
-    promise_test(function() {
-        return new Promise((resolve,reject) => {
-            var image = new Image();
-            image.onload = function() {
-                resolve(image);
-            }
-            image.src = 'resources/pattern-srgb-transparent.' + ext;
-        }).then(testImageBitmapFromTransparentImage);
+    promise_test(async () => {
+        const image = new Image();
+        image.src = 'resources/pattern-srgb-transparent.' + ext;
+        await image.decode();
+        await testImageBitmapFromTransparentImage(image);
     }, 'createImageBitmap in e-sRGB from a transparent sRGB HTMLImageElement (' + ext +
         ') with resize.');
 });
@@ -316,56 +313,54 @@ function initializeTestCanvasTransparent(canvasColorSpace, canvasPixelFormat)
 ////////////////////////////////////////////////////////////////////////////////
 
 // SVG Image - sRGB
-promise_test(function() {
-    return new Promise((resolve, reject) => {
-        var image = new Image();
-        image.onload = function() {
-            resolve(image);
-        }
-        image.src = 'resources/pattern-srgb.svg'
-    }).then(testImageBitmapFromSVG);
+promise_test(async () => {
+    const image = new Image();
+    image.src = 'resources/pattern-srgb.svg'
+    await image.decode();
+    await testImageBitmapFromSVG(image);
 }, 'createImageBitmap in e-sRGB from a sRGB SVG image with resize.');
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // HTMLVideoElement - sRGB
-promise_test(function() {
-    return new Promise((resolve, reject) => {
-        var video = document.createElement("video");
-        video.oncanplaythrough = function() {
-            resolve(video);
-        }
-        video.preload = "auto";
-        video.src = 'resources/pattern-srgb-fullcolor.ogv'
-    }).then(testImageBitmapVideoSource);
+promise_test(async () => {
+    var video = document.createElement("video");
+    assert_implements_optional(video.canPlayType("video/ogg"), "video/ogg not supported");
+    video.preload = "auto";
+    video.src = 'resources/pattern-srgb-fullcolor.ogv'
+    await new Promise((resolve, reject) => {
+        video.onloadeddata = resolve;
+        video.onerror = reject;
+    });
+    await testImageBitmapVideoSource(video);
 }, 'createImageBitmap in e-sRGB from a sRGB HTMLVideoElement with resize.');
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // HTMLCanvasElement - Opaque sRGB
-promise_test(function() {
+promise_test(async () => {
     var testCanvas = initializeTestCanvas('srgb', 'uint8');
-    return testImageBitmapOpaque(testCanvas);
+    await testImageBitmapOpaque(testCanvas);
 }, 'createImageBitmap in e-sRGB from an opaque sRGB HTMLCanvasElement with resize.');
 
 // HTMLCanvasElement - Opaque e-sRGB
-promise_test(function() {
+promise_test(async () => {
     var testCanvas = initializeTestCanvas('srgb', 'float16');
-    return testImageBitmapOpaque(testCanvas);
+    await testImageBitmapOpaque(testCanvas);
 }, 'createImageBitmap in e-sRGB from an opaque e-sRGB HTMLCanvasElement with resize.');
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // HTMLCanvasElement - Transparent sRGB
-promise_test(function() {
+promise_test(async () => {
     var testCanvas = initializeTestCanvasTransparent('srgb', 'uint8');
-    return testImageBitmapTransparent(testCanvas);
+    await testImageBitmapTransparent(testCanvas);
 }, 'createImageBitmap in e-sRGB from a transparent sRGB HTMLCanvasElement with resize.');
 
 // HTMLCanvasElement - Transparent e-sRGB
-promise_test(function() {
+promise_test(async () => {
     var testCanvas = initializeTestCanvasTransparent('srgb', 'float16');
-    return testImageBitmapTransparent(testCanvas);
+    await testImageBitmapTransparent(testCanvas);
 }, 'createImageBitmap in e-sRGB from a transparent e-sRGB HTMLCanvasElement with resize.');
 
 //////////////////////////////////////////////////////////////////////////////
@@ -373,60 +368,48 @@ promise_test(function() {
 // Blob from file - Opaque sRGB
 // File formats: AVIF, Bitmap, GIF, ICO, JPEG, PNG, WEBP
 ['avif', 'bmp', 'gif', 'ico', 'jpg', 'png', 'webp'].forEach(ext => {
-    promise_test(function() {
-        return new Promise((resolve, reject) => {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", 'resources/pattern-srgb.' + ext);
-            xhr.responseType = 'blob';
-            xhr.send();
-            xhr.onload = function() {
-                resolve(xhr.response);
-            };
-        }).then(testImageBitmapOpaque);
+    promise_test(async () => {
+        const response = await fetch('resources/pattern-srgb.' + ext);
+        assert_true(response.ok);
+        const blob = await response.blob();
+        await testImageBitmapOpaque(blob);
     }, 'createImageBitmap in e-sRGB from an opaque sRGB Blob (' + ext + ') with resize.');
 });
 
 // Blob form file - Transparent sRGB
 // File formats: AVIF, Bitmap, ICO, PNG, WEBP
 ['avif', 'bmp', 'ico', 'png', 'webp'].forEach(ext => {
-    promise_test(function() {
-        return new Promise((resolve, reject) => {
-            var xhr = new XMLHttpRequest();
-            xhr.open("GET", 'resources/pattern-srgb-transparent.' + ext);
-            xhr.responseType = 'blob';
-            xhr.send();
-            xhr.onload = function() {
-                resolve(xhr.response);
-            };
-        }).then(testImageBitmapFromTransparentImage);
+    promise_test(async () => {
+        const response = await fetch('resources/pattern-srgb-transparent.' + ext);
+        assert_true(response.ok);
+        const blob = await response.blob();
+        await testImageBitmapFromTransparentImage(blob);
     }, 'createImageBitmap in e-sRGB from a transparent sRGB Blob (' + ext + ') with resize.');
 });
 
 // Color managed blob from canvas
 function testCreateImageBitmapFromColorManagedBlob(pixelFormat, isTransparent) {
-    let canvasPixelFormat = 'uint8';
-    if (pixelFormat == 'uint16')
-        canvasPixelFormat = 'float16';
-    var testCanvas;
-    if (isTransparent)
-      testCanvas = initializeTestCanvasTransparent('srgb', canvasPixelFormat);
-    else
-      testCanvas = initializeTestCanvas('srgb', canvasPixelFormat);
-    var encodeOptions = {};
-    encodeOptions.quality = 1;
-    encodeOptions.type = 'image/png';
-    encodeOptions.pixelFormat = pixelFormat;
-
-    var t = async_test('createImageBitmap in e-sRGB from color managed Blob' +
-        ' with resize. blobPixelFormat: ' + pixelFormat +
-        ', transparency: ' + isTransparent);
-    testCanvas.convertToBlob(encodeOptions).then(
-        t.step_func_done(function(blob) {
-            if (isTransparent)
-                testImageBitmapTransparent(blob);
-            else
-                testImageBitmapOpaque(blob);
-        }));
+    promise_test(async () => {
+        let canvasPixelFormat = 'uint8';
+        if (pixelFormat == 'uint16')
+            canvasPixelFormat = 'float16';
+        let testCanvas;
+        if (isTransparent)
+            testCanvas = initializeTestCanvasTransparent('srgb', canvasPixelFormat);
+        else
+            testCanvas = initializeTestCanvas('srgb', canvasPixelFormat);
+        const blob = await testCanvas.convertToBlob({
+            quality: 1,
+            type: 'image/png',
+            pixelFormat,
+        });
+        if (isTransparent)
+            await testImageBitmapTransparent(blob);
+        else
+            await testImageBitmapOpaque(blob);
+    }, 'createImageBitmap in e-sRGB from color managed Blob' +
+       ' with resize. blobPixelFormat: ' + pixelFormat +
+       ', transparency: ' + isTransparent);
 }
 
 function runAllCreateImageBitmapFromColorManagedBlobTests() {
@@ -444,67 +427,67 @@ runAllCreateImageBitmapFromColorManagedBlobTests();
 ////////////////////////////////////////////////////////////////////////////////
 
 // ImageData - Opaque sRGB
-promise_test(function() {
+promise_test(async () => {
     var canvas = initializeTestCanvas('srgb', 'uint8');
     var ctx = canvas.getContext('2d');
     var data = ctx.getImageData(0, 0, 20, 20);
-    return testImageBitmapOpaque(data);
+    await testImageBitmapOpaque(data);
 }, 'createImageBitmap in e-sRGB from an opaque sRGB ImageData with resize.');
 
 // ImageData - Opaque e-sRGB
-promise_test(function() {
+promise_test(async () => {
     var canvas = initializeTestCanvas('srgb', 'float16');
     var ctx = canvas.getContext('2d',
         {colorSpace: 'srgb', pixelFormat:'float16'});
     var data = ctx.getImageData(0, 0, 20, 20);
-    return testImageBitmapOpaque(data);
+    await testImageBitmapOpaque(data);
 }, 'createImageBitmap in e-sRGB from an opaque e-sRGB ImageData with resize.');
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // ImageData - Transparent sRGB
-promise_test(function() {
+promise_test(async () => {
     var canvas = initializeTestCanvasTransparent('srgb', 'uint8');
     var ctx = canvas.getContext('2d');
     var data = ctx.getImageData(0, 0, 20, 20);
-    return testImageBitmapTransparent(data);
+    await testImageBitmapTransparent(data);
 }, 'createImageBitmap in e-sRGB from a transparent sRGB ImageData with resize.');
 
 // ImageData - Transparent e-sRGB
-promise_test(function() {
+promise_test(async () => {
     var canvas = initializeTestCanvasTransparent('srgb', 'float16');
     var ctx = canvas.getContext('2d',
         {colorSpace: 'srgb', pixelFormat:'float16'});
     var data = ctx.getImageData(0, 0, 20, 20);
-    return testImageBitmapTransparent(data);
+    await testImageBitmapTransparent(data);
 }, 'createImageBitmap in e-sRGB from a transparent e-sRGB ImageData with resize.');
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // ImageBitmap - Opaque sRGB
-promise_test(function() {
+promise_test(async () => {
     var testCanvas = initializeTestCanvas('srgb', 'uint8');
-    return createImageBitmap(testCanvas).then(testImageBitmapOpaque);
+    await createImageBitmap(testCanvas).then(testImageBitmapOpaque);
 }, 'createImageBitmap in e-sRGB from an opaque sRGB ImageBitmap with resize.');
 
 // ImageBitmap - Opaque e-sRGB
-promise_test(function() {
+promise_test(async () => {
     var testCanvas = initializeTestCanvas('srgb', 'float16');
-    return createImageBitmap(testCanvas).then(testImageBitmapOpaque);
+    await createImageBitmap(testCanvas).then(testImageBitmapOpaque);
 }, 'createImageBitmap in e-sRGB from an opaque e-sRGB ImageBitmap with resize.');
 
 ////////////////////////////////////////////////////////////////////////////////
 
 // ImageBitmap - Transparent sRGB
-promise_test(function() {
+promise_test(async () => {
     var testCanvas = initializeTestCanvasTransparent('srgb', 'uint8');
-    return createImageBitmap(testCanvas).then(testImageBitmapTransparent);
+    await createImageBitmap(testCanvas).then(testImageBitmapTransparent);
 }, 'createImageBitmap in e-sRGB from a transparent sRGB ImageBitmap with resize.');
 
 // ImageBitmap - Transparent e-sRGB
-promise_test(function() {
+promise_test(async () => {
     var testCanvas = initializeTestCanvasTransparent('srgb', 'float16');
-    return createImageBitmap(testCanvas).then(testImageBitmapTransparent);
+    await createImageBitmap(testCanvas).then(testImageBitmapTransparent);
 }, 'createImageBitmap in e-sRGB from a transparent e-sRGB ImageBitmap with resize.');
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -529,15 +512,15 @@ function initializeOffscreenCanvas(canvasColorSpace, canvasPixelFormat)
 }
 
 //OffscreenCanvas - Opaque sRGB
-promise_test(function() {
+promise_test(async () => {
     var offscreen = initializeOffscreenCanvas('srgb', 'uint8');
-    return testImageBitmapOpaque(offscreen);
+    await testImageBitmapOpaque(offscreen);
 }, 'createImageBitmap in e-sRGB from an opaque sRGB OffscreenCanvas with resize.');
 
 //OffscreenCanvas - Opaque e-sRGB
-promise_test(function() {
+promise_test(async () => {
     var offscreen = initializeOffscreenCanvas('srgb', 'float16');
-    return testImageBitmapOpaque(offscreen);
+    await testImageBitmapOpaque(offscreen);
 }, 'createImageBitmap in e-sRGB from an opaque e-sRGB OffscreenCanvas with resize.');
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -562,15 +545,15 @@ function initializeOffscreenCanvasTransparent(canvasColorSpace, canvasPixelForma
 }
 
 //OffscreenCanvas - Transparent sRGB
-promise_test(function() {
+promise_test(async () => {
     var offscreen = initializeOffscreenCanvasTransparent('srgb', 'uint8');
-    return testImageBitmapTransparent(offscreen);
+    await testImageBitmapTransparent(offscreen);
 }, 'createImageBitmap in e-sRGB from a transparent sRGB OffscreenCanvas with resize.');
 
 //OffscreenCanvas - Transparent e-sRGB
-promise_test(function() {
+promise_test(async () => {
     var offscreen = initializeOffscreenCanvasTransparent('srgb', 'float16');
-    return testImageBitmapTransparent(offscreen);
+    await testImageBitmapTransparent(offscreen);
 }, 'createImageBitmap in e-sRGB from a transparent e-sRGB OffscreenCanvas with resize.');
 
 ////////////////////////////////////////////////////////////////////////////////
