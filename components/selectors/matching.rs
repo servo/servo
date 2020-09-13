@@ -751,7 +751,7 @@ where
                 &NamespaceConstraint::Specific(&crate::parser::namespace_empty_string::<E::Impl>()),
                 local_name,
                 &AttrSelectorOperation::WithValue {
-                    operator: operator,
+                    operator,
                     case_sensitivity: case_sensitivity.to_unconditional(is_html),
                     expected_value: value,
                 },
@@ -780,9 +780,9 @@ where
                         case_sensitivity,
                         ref expected_value,
                     } => AttrSelectorOperation::WithValue {
-                        operator: operator,
+                        operator,
                         case_sensitivity: case_sensitivity.to_unconditional(is_html),
-                        expected_value: expected_value,
+                        expected_value,
                     },
                 },
             )

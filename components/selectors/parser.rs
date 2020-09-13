@@ -661,7 +661,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     pub fn iter_from(&self, offset: usize) -> SelectorIter<Impl> {
         let iter = self.0.slice[offset..].iter();
         SelectorIter {
-            iter: iter,
+            iter,
             next_combinator: None,
         }
     }
@@ -1961,16 +1961,16 @@ where
                 return Ok(Component::AttributeOther(Box::new(
                     AttrSelectorWithOptionalNamespace {
                         namespace: Some(namespace),
-                        local_name: local_name,
-                        local_name_lower: local_name_lower,
+                        local_name,
+                        local_name_lower,
                         operation: ParsedAttrSelectorOperation::Exists,
                         never_matches: false,
                     },
                 )));
             } else {
                 return Ok(Component::AttributeInNoNamespaceExists {
-                    local_name: local_name,
-                    local_name_lower: local_name_lower,
+                    local_name,
+                    local_name_lower,
                 });
             }
         },
@@ -2034,19 +2034,19 @@ where
                 local_name_lower,
                 never_matches,
                 operation: ParsedAttrSelectorOperation::WithValue {
-                    operator: operator,
-                    case_sensitivity: case_sensitivity,
+                    operator,
+                    case_sensitivity,
                     expected_value: value,
                 },
             },
         )))
     } else {
         Ok(Component::AttributeInNoNamespace {
-            local_name: local_name,
-            operator: operator,
-            value: value,
-            case_sensitivity: case_sensitivity,
-            never_matches: never_matches,
+            local_name,
+            operator,
+            value,
+            case_sensitivity,
+            never_matches,
         })
     }
 }
