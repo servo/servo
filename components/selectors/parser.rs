@@ -2691,6 +2691,10 @@ pub mod tests {
             true
         }
 
+        fn is_and_where_error_recovery(&self) -> ParseErrorRecovery {
+            ParseErrorRecovery::DiscardList
+        }
+
         fn parse_part(&self) -> bool {
             true
         }
