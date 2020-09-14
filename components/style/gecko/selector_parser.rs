@@ -14,7 +14,7 @@ use crate::string_cache::{Atom, Namespace, WeakAtom, WeakNamespace};
 use crate::values::serialize_atom_identifier;
 use cssparser::{BasicParseError, BasicParseErrorKind, Parser};
 use cssparser::{CowRcStr, SourceLocation, ToCss, Token};
-use selectors::parser::SelectorParseErrorKind;
+use selectors::parser::{SelectorParseErrorKind, ParseErrorRecovery};
 use selectors::parser::{self as selector_parser, Selector};
 use selectors::visitor::SelectorVisitor;
 use selectors::SelectorList;
@@ -339,6 +339,15 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     #[inline]
     fn parse_is_and_where(&self) -> bool {
         true
+    }
+
+    #[inline]
+    fn is_and_where_error_recovery(&self) -> ParseErrorRecovery {
+        if static_prefs::pref!("layout.css.is-and-where-better-error-recovery.enabled") {
+            ParseErrorRecovery::IgnoreInvalidSelector
+        } else {
+            ParseErrorRecovery::DiscardList
+        }
     }
 
     #[inline]
