@@ -143,6 +143,7 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         executor_kwargs["capabilities"] = capabilities
     executor_kwargs["debug"] = run_info_data["debug"]
     executor_kwargs["ccov"] = run_info_data.get("ccov", False)
+    executor_kwargs["browser_version"] = run_info_data.get("browser_version")
     return executor_kwargs
 
 
@@ -187,18 +188,22 @@ def run_info_extras(**kwargs):
     if sw_e10s_override is not None:
         rv["sw-e10s"] = sw_e10s_override
 
-    rv.update(run_info_browser_version(kwargs["binary"]))
+    rv.update(run_info_browser_version(**kwargs))
+
     return rv
 
 
-def run_info_browser_version(binary):
+def run_info_browser_version(**kwargs):
     try:
-        version_info = mozversion.get_version(binary)
+        version_info = mozversion.get_version(kwargs["binary"])
     except mozversion.errors.VersionError:
         version_info = None
     if version_info:
-        return {"browser_build_id": version_info.get("application_buildid", None),
-                "browser_changeset": version_info.get("application_changeset", None)}
+        rv = {"browser_build_id": version_info.get("application_buildid", None),
+              "browser_changeset": version_info.get("application_changeset", None)}
+        if "browser_version" not in kwargs:
+            rv["browser_version"] = version_info.get("application_version")
+        return rv
     return {}
 
 

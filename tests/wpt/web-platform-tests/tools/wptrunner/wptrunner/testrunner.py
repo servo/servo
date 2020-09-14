@@ -645,8 +645,12 @@ class TestRunnerManager(threading.Thread):
         known_intermittent = test.known_intermittent()
         status = status_subns.get(file_result.status, file_result.status)
 
-        if self.browser.check_crash(test.id):
-            status = "CRASH"
+        if self.browser.check_crash(test.id) and status != "CRASH":
+            if test.test_type == "crashtest":
+                self.logger.info("Found a crash dump file; changing status to CRASH")
+                status = "CRASH"
+            else:
+                self.logger.warning("Found a crash dump; should change status from %s to CRASH but this causes instability" % (status,))
 
         self.test_count += 1
         is_unexpected = expected != status and status not in known_intermittent

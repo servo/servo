@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: WebUSB API (https://wicg.github.io/webusb/)
 
 dictionary USBDeviceFilter {
@@ -66,20 +66,20 @@ interface USBDevice {
   readonly attribute USBConfiguration? configuration;
   readonly attribute FrozenArray<USBConfiguration> configurations;
   readonly attribute boolean opened;
-  Promise<void> open();
-  Promise<void> close();
-  Promise<void> selectConfiguration(octet configurationValue);
-  Promise<void> claimInterface(octet interfaceNumber);
-  Promise<void> releaseInterface(octet interfaceNumber);
-  Promise<void> selectAlternateInterface(octet interfaceNumber, octet alternateSetting);
+  Promise<undefined> open();
+  Promise<undefined> close();
+  Promise<undefined> selectConfiguration(octet configurationValue);
+  Promise<undefined> claimInterface(octet interfaceNumber);
+  Promise<undefined> releaseInterface(octet interfaceNumber);
+  Promise<undefined> selectAlternateInterface(octet interfaceNumber, octet alternateSetting);
   Promise<USBInTransferResult> controlTransferIn(USBControlTransferParameters setup, unsigned short length);
   Promise<USBOutTransferResult> controlTransferOut(USBControlTransferParameters setup, optional BufferSource data);
-  Promise<void> clearHalt(USBDirection direction, octet endpointNumber);
+  Promise<undefined> clearHalt(USBDirection direction, octet endpointNumber);
   Promise<USBInTransferResult> transferIn(octet endpointNumber, unsigned long length);
   Promise<USBOutTransferResult> transferOut(octet endpointNumber, BufferSource data);
   Promise<USBIsochronousInTransferResult> isochronousTransferIn(octet endpointNumber, sequence<unsigned long> packetLengths);
   Promise<USBIsochronousOutTransferResult> isochronousTransferOut(octet endpointNumber, BufferSource data, sequence<unsigned long> packetLengths);
-  Promise<void> reset();
+  Promise<undefined> reset();
 };
 
 enum USBRequestType {

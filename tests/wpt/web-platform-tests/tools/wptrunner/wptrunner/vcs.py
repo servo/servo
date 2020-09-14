@@ -3,6 +3,8 @@ from functools import partial
 
 from mozlog import get_default_logger
 
+from wptserve.utils import isomorphic_decode
+
 logger = None
 
 def vcs(bin_name):
@@ -23,7 +25,9 @@ def vcs(bin_name):
 
         proc_kwargs = {}
         if repo is not None:
-            proc_kwargs["cwd"] = repo
+            # Make sure `cwd` is str type to work in different sub-versions of Python 3.
+            # Before 3.8, bytes were not accepted on Windows for `cwd`.
+            proc_kwargs["cwd"] = isomorphic_decode(repo)
         if stdout is not None:
             proc_kwargs["stdout"] = stdout
         if stdin is not None:
@@ -57,4 +61,4 @@ def is_git_root(path, log_error=True):
         rv = git("rev-parse", "--show-cdup", repo=path, log_error=log_error)
     except subprocess.CalledProcessError:
         return False
-    return rv == "\n"
+    return rv == b"\n"

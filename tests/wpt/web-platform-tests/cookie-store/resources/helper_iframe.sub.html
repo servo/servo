@@ -10,7 +10,7 @@
   //
   // Read a cookie.
   //   Command: { existingCookieName: 'cookie-name' }
-  //   Response: Result of cookieStore.get():
+  //   Response: Result of cookieStore.get('cookie-name'):
   //     { frameCookie: { name: 'cookie-name', value: 'cookie-value' } }
   window.addEventListener('message', async function (event) {
     const { opname } = event.data;

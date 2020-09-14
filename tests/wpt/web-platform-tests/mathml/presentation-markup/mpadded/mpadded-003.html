@@ -53,18 +53,34 @@
           assert_approx_equals(shifts.voffset, 0, epsilon);
 
           shifts = GetShifts(mpaddeds[2]);
+          assert_approx_equals(shifts.lspace, 0, epsilon, "positive lspace percentage");
+          assert_approx_equals(shifts.voffset, 0, epsilon);
+
+          shifts = GetShifts(mpaddeds[3]);
+          assert_approx_equals(shifts.lspace, 0, epsilon, "negative lspace percentage");
+          assert_approx_equals(shifts.voffset, 0, epsilon);
+
+          shifts = GetShifts(mpaddeds[4]);
           assert_approx_equals(shifts.lspace, 0, epsilon);
           assert_approx_equals(shifts.voffset, 10, epsilon, "positive voffset");
 
-          shifts = GetShifts(mpaddeds[3]);
+          shifts = GetShifts(mpaddeds[5]);
           assert_approx_equals(shifts.lspace, 0, epsilon);
           assert_approx_equals(shifts.voffset, -10, epsilon, "negative voffset");
 
-          shifts = GetShifts(mpaddeds[4]);
+          shifts = GetShifts(mpaddeds[6]);
+          assert_approx_equals(shifts.lspace, 0, epsilon);
+          assert_approx_equals(shifts.voffset, 0, epsilon, "positive voffset percentage");
+
+          shifts = GetShifts(mpaddeds[7]);
+          assert_approx_equals(shifts.lspace, 0, epsilon);
+          assert_approx_equals(shifts.voffset, 0, epsilon, "negative voffset percentage");
+
+          shifts = GetShifts(mpaddeds[8]);
           assert_approx_equals(shifts.lspace, 5, epsilon);
           assert_approx_equals(shifts.voffset, 10, epsilon);
 
-          shifts = GetShifts(mpaddeds[5]);
+          shifts = GetShifts(mpaddeds[9]);
           assert_approx_equals(shifts.lspace, 5, epsilon);
           assert_approx_equals(shifts.voffset, -10, epsilon);
       }, "content is shifted by the specified lspace/voffset");
@@ -148,8 +164,12 @@ div.shrink-wrap {
     <math>
       <mpadded lspace="5px"  style="background: black"><mspace width="10px" depth="15px" height="20px" style="background: green; opacity: .5"/></mpadded>
       <mpadded lspace="-5px" style="background: black"><mspace width="10px" depth="15px" height="20px" style="background: green; opacity: .5"/></mpadded>
+      <mpadded lspace="5%"  style="background: black"><mspace width="10px" depth="15px" height="20px" style="background: green; opacity: .5"/></mpadded>
+      <mpadded lspace="-5%"  style="background: black"><mspace width="10px" depth="15px" height="20px" style="background: green; opacity: .5"/></mpadded>
       <mpadded voffset="10px" style="background: black"><mspace width="10px" depth="15px" height="20px" style="background: green; opacity: .5"/></mpadded>
       <mpadded voffset="-10px" style="background: black"><mspace width="10px" depth="15px" height="20px" style="background: green; opacity: .5"/></mpadded>
+      <mpadded voffset="10%" style="background: black"><mspace width="10px" depth="15px" height="20px" style="background: green; opacity: .5"/></mpadded>
+      <mpadded voffset="-10%" style="background: black"><mspace width="10px" depth="15px" height="20px" style="background: green; opacity: .5"/></mpadded>
       <mpadded lspace="5px" voffset="10px" style="background: black"><mspace width="10px" depth="15px" height="20px" style="background: green; opacity: .5"/></mpadded>
       <mpadded lspace="5px" voffset="-10px" style="background: black"><mspace width="10px" depth="15px" height="20px" style="background: green; opacity: .5"/></mpadded>
     </math>

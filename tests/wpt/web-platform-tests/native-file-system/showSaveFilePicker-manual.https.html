@@ -14,7 +14,7 @@
       'show a file picker.<br />Please make a copy of native-file-system/resources/data/testfile.txt in a writable directory and pick that file');
     const file = await self.showSaveFilePicker({
       multiple: false, types: [
-        { description: 'Text files', accept: { 'text/plain': ['txt'] } },
+        { description: 'Text files', accept: { 'text/plain': ['.txt'] } },
       ],
     });
     assert_true(file instanceof FileSystemHandle);

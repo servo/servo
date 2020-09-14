@@ -7,7 +7,8 @@ The tests are designed to be run from your local computer.
 Running the tests requires `python`, `pip` and `virtualenv`, as well as updating
 the system `hosts` file.
 
-Note that Python 2.7 is required. Using Python 3 is not supported.
+Python 3 is supported and preferred, but for now it is still possible to use
+Python 2.7 if necessary.
 
 The required setup is different depending on your operating system.
 
@@ -21,6 +22,10 @@ On Debian or Ubuntu:
 ```bash
 sudo apt-get install python python-pip virtualenv
 ```
+
+It is important to have a package that provides a `python` binary. On Fedora,
+for example, that means installing the `python-unversioned-command` package. On
+Ubuntu Focal and later, the package is called `python-is-python3`.
 
 ### macOS Setup
 

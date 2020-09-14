@@ -113,6 +113,18 @@ def _unmasked_frame_check_procedure(client):
     client.assert_connection_closed()
 
 
+def _check_handshake_with_basic_auth(client):
+    client.connect()
+
+    client.send_message(_GOODBYE_MESSAGE)
+    client.assert_receive(_GOODBYE_MESSAGE)
+
+    client.assert_receive_close()
+    client.send_close()
+
+    client.assert_connection_closed()
+
+
 class EndToEndTestBase(unittest.TestCase):
     """Base class for end-to-end tests that launch pywebsocket standalone
     server as a separate process, connect to it using the client_for_testing
@@ -121,7 +133,7 @@ class EndToEndTestBase(unittest.TestCase):
     """
     def setUp(self):
         self.server_stderr = None
-        self.top_dir = os.path.join(os.path.split(__file__)[0], '..')
+        self.top_dir = os.path.join(os.path.dirname(__file__), '..')
         os.putenv('PYTHONPATH', os.path.pathsep.join(sys.path))
         self.standalone_command = os.path.join(self.top_dir, 'mod_pywebsocket',
                                                'standalone.py')
@@ -146,7 +158,7 @@ class EndToEndTestBase(unittest.TestCase):
                                 stdout=stdout,
                                 stderr=stderr)
 
-    def _run_server(self):
+    def _run_server(self, extra_args=[]):
         args = [
             self.standalone_command, '-H', 'localhost', '-V', 'localhost',
             '-p',
@@ -160,6 +172,8 @@ class EndToEndTestBase(unittest.TestCase):
         if log_level != logging.NOTSET:
             args.append('--log-level')
             args.append(logging.getLevelName(log_level).lower())
+
+        args += extra_args
 
         return self._run_python_command(args, stderr=self.server_stderr)
 
@@ -187,8 +201,11 @@ class EndToEndHyBiTest(EndToEndTestBase):
     def setUp(self):
         EndToEndTestBase.setUp(self)
 
-    def _run_test_with_client_options(self, test_function, options):
-        server = self._run_server()
+    def _run_test_with_options(self,
+                               test_function,
+                               options,
+                               server_options=[]):
+        server = self._run_server(server_options)
         try:
             # TODO(tyoshino): add some logic to poll the server until it
             # becomes ready
@@ -203,7 +220,7 @@ class EndToEndHyBiTest(EndToEndTestBase):
             self._close_server(server)
 
     def _run_test(self, test_function):
-        self._run_test_with_client_options(test_function, self._options)
+        self._run_test_with_options(test_function, self._options)
 
     def _run_permessage_deflate_test(self, offer, response_checker,
                                      test_function):
@@ -227,8 +244,11 @@ class EndToEndHyBiTest(EndToEndTestBase):
         finally:
             self._close_server(server)
 
-    def _run_close_with_code_and_reason_test(self, test_function, code,
-                                             reason):
+    def _run_close_with_code_and_reason_test(self,
+                                             test_function,
+                                             code,
+                                             reason,
+                                             server_options=[]):
         server = self._run_server()
         try:
             time.sleep(_SERVER_WARMUP_IN_SEC)
@@ -528,16 +548,21 @@ class EndToEndHyBiTest(EndToEndTestBase):
 
         self._run_test(test_function)
 
-    # TODO(toyoshim): Add tests to verify invalid absolute uri handling like
-    # host unmatch, port unmatch and invalid port description (':' without port
-    # number).
-
     def test_absolute_uri(self):
         """Tests absolute uri request."""
 
         options = self._options
         options.resource = 'ws://localhost:%d/echo' % options.server_port
-        self._run_test_with_client_options(_echo_check_procedure, options)
+        self._run_test_with_options(_echo_check_procedure, options)
+
+    def test_invalid_absolute_uri(self):
+        """Tests invalid absolute uri request."""
+
+        options = self._options
+        options.resource = 'ws://invalidlocalhost:%d/echo' % options.server_port
+        options.server_stderr = subprocess.PIPE
+
+        self._run_http_fallback_test(options, 404)
 
     def test_origin_check(self):
         """Tests http fallback on origin check fail."""
@@ -549,12 +574,56 @@ class EndToEndHyBiTest(EndToEndTestBase):
         self.server_stderr = subprocess.PIPE
         self._run_http_fallback_test(options, 403)
 
+    def test_invalid_resource(self):
+        """Tests invalid resource path."""
+
+        options = self._options
+        options.resource = '/no_resource'
+
+        self.server_stderr = subprocess.PIPE
+        self._run_http_fallback_test(options, 404)
+
+    def test_fragmentized_resource(self):
+        """Tests resource name with fragment"""
+
+        options = self._options
+        options.resource = '/echo#fragment'
+
+        self.server_stderr = subprocess.PIPE
+        self._run_http_fallback_test(options, 400)
+
     def test_version_check(self):
         """Tests http fallback on version check fail."""
 
         options = self._options
         options.version = 99
         self._run_http_fallback_test(options, 400)
+
+    def test_basic_auth_connection(self):
+        """Test successful basic auth"""
+
+        options = self._options
+        options.use_basic_auth = True
+
+        self.server_stderr = subprocess.PIPE
+        self._run_test_with_options(_check_handshake_with_basic_auth,
+                                    options,
+                                    server_options=['--basic-auth'])
+
+    def test_invalid_basic_auth_connection(self):
+        """Tests basic auth with invalid credentials"""
+
+        options = self._options
+        options.use_basic_auth = True
+        options.basic_auth_credential = 'invalid:test'
+
+        self.server_stderr = subprocess.PIPE
+
+        with self.assertRaises(client_for_testing.HttpStatusException) as e:
+            self._run_test_with_options(_check_handshake_with_basic_auth,
+                                        options,
+                                        server_options=['--basic-auth'])
+            self.assertEqual(101, e.exception.status)
 
 
 class EndToEndTestWithEchoClient(EndToEndTestBase):

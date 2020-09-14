@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - :visited outline and column color.</title>
+<style>
+  a {
+    forced-color-adjust: none;
+    outline-color: VisitedText;
+    outline-style: solid;
+    column-count: 3;
+    column-gap: 40px;
+    column-rule-color: VisitedText;
+    column-rule-style: solid;
+  }
+</style>
+<a href="">
+  The outline-color and column-rule-color should be overridden when forced colors
+  mode is enabled.
+</a>

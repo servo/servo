@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Selection API (https://w3c.github.io/selection-api/)
 
 [Exposed=Window]
@@ -13,19 +13,19 @@ interface Selection {
   readonly attribute unsigned long rangeCount;
   readonly attribute DOMString type;
   Range getRangeAt(unsigned long index);
-  void addRange(Range range);
-  void removeRange(Range range);
-  void removeAllRanges();
-  void empty();
-  void collapse(Node? node, optional unsigned long offset = 0);
-  void setPosition(Node? node, optional unsigned long offset = 0);
-  void collapseToStart();
-  void collapseToEnd();
-  void extend(Node node, optional unsigned long offset = 0);
-  void setBaseAndExtent(Node anchorNode, unsigned long anchorOffset, Node focusNode, unsigned long focusOffset);
-  void selectAllChildren(Node node);
+  undefined addRange(Range range);
+  undefined removeRange(Range range);
+  undefined removeAllRanges();
+  undefined empty();
+  undefined collapse(Node? node, optional unsigned long offset = 0);
+  undefined setPosition(Node? node, optional unsigned long offset = 0);
+  undefined collapseToStart();
+  undefined collapseToEnd();
+  undefined extend(Node node, optional unsigned long offset = 0);
+  undefined setBaseAndExtent(Node anchorNode, unsigned long anchorOffset, Node focusNode, unsigned long focusOffset);
+  undefined selectAllChildren(Node node);
   [CEReactions]
-  void deleteFromDocument();
+  undefined deleteFromDocument();
   boolean containsNode(Node node, optional boolean allowPartialContainment = false);
   stringifier DOMString ();
 };

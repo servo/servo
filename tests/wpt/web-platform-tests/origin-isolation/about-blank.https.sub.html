@@ -12,7 +12,7 @@ import {
   setBothDocumentDomains,
   testSameAgentCluster,
   testDifferentAgentClusters,
-  testOriginIsolationRestricted
+  testGetter
 } from "./resources/helpers.mjs";
 
 promise_setup(async () => {
@@ -26,9 +26,9 @@ testSameAgentCluster([self, 0], "parent to about:blank");
 testDifferentAgentClusters([0, 1], "about:blank to child2");
 testDifferentAgentClusters([1, 0], "child2 to about:blank");
 
-testOriginIsolationRestricted(self, true, "parent");
-testOriginIsolationRestricted(0, true, "about:blank");
-testOriginIsolationRestricted(1, false, "child2");
+testGetter(self, true, "parent");
+testGetter(0, true, "about:blank");
+testGetter(1, false, "child2");
 
 async function insertAboutBlankIframe() {
   const iframe = document.createElement("iframe");
@@ -37,7 +37,7 @@ async function insertAboutBlankIframe() {
   // Now create and add the script, but don't navigate anywhere (since we want
   // to stay on the initial about:blank).
   // We need to absolutize the URL to since about:blank doesn't have a base URL.
-  const scriptURL = (new URL("./resources/child-frame-script.mjs", import.meta.url)).href;
+  const scriptURL = (new URL("./resources/send-header-page-script.mjs", import.meta.url)).href;
   const script = iframe.contentDocument.createElement("script");
   script.type = "module";
   script.src = scriptURL;

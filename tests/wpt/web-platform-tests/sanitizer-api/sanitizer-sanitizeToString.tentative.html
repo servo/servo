@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="support/testcases.sub.js"></script>
+</head>
+
+<body>
+<script>
+    const s = new Sanitizer({});
+
+    testcases.forEach(c => test(t => {
+        assert_equals(s.sanitizeToString(c.value), c.result);
+    }, "SanitizerAPI sanitizeToString function for " + c.message));
+</script>
+</body>
+</html>

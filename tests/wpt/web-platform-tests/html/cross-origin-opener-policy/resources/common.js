@@ -49,8 +49,16 @@ function url_test(t, url, channelName, hasOpener, openerDOMAccess, callback) {
   });
 }
 
+function percent_encode(objectOrString) {
+  if (typeof objectOrString === "object") {
+    return objectOrString.percentEncoded;
+  }
+  return encodeURIComponent(objectOrString);
+}
+
 function coop_coep_test(t, host, coop, coep, channelName, hasOpener, openerDOMAccess, callback) {
-  url_test(t, `${host.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${encodeURIComponent(coop)}&coep=${coep}&channel=${channelName}`, channelName, hasOpener, openerDOMAccess, callback);
+  const coopPercentEncoded = percent_encode(coop);
+  url_test(t, `${host.origin}/html/cross-origin-opener-policy/resources/coop-coep.py?coop=${coopPercentEncoded}&coep=${coep}&channel=${encodeURIComponent(channelName)}`, channelName, hasOpener, openerDOMAccess, callback);
 }
 
 function coop_test(t, host, coop, channelName, hasOpener, callback) {
@@ -59,11 +67,12 @@ function coop_test(t, host, coop, channelName, hasOpener, callback) {
 
 function run_coop_tests(documentCOOPValueTitle, testArray) {
   for (const test of testArray) {
+    let coopName = typeof test[1] === "object" ? test[1].percentEncoded : test[1];
     async_test(t => {
       coop_test(t, test[0], test[1],
-                `${documentCOOPValueTitle}_to_${test[0].name}_${test[1].replace(/ /g,"-")}`,
+                `${documentCOOPValueTitle}_to_${test[0].name}_${coopName.replace(/ /g,"-")}`,
                 test[2], () => { t.done(); });
-    }, `${documentCOOPValueTitle} document opening popup to ${test[0].origin} with COOP: "${test[1]}"`);
+    }, `${documentCOOPValueTitle} document opening popup to ${test[0].origin} with COOP: ${format_value(coopName)}`);
   }
 }
 
@@ -91,5 +100,19 @@ function run_coop_test_iframe (documentTitle, iframe_origin, popup_origin, popup
               assert_equals(payload.name, expects_name? name:"", 'name');
       });
       document.body.append(frame);
-  }, `${documentTitle} with ${iframe_origin.name} iframe opening popup a ${popup_origin.name} with COOP: ${popup_coop}`);
+  }, `${documentTitle} with ${iframe_origin.name} iframe opening popup a ${popup_origin.name} with COOP: ${format_value(popup_coop)}`);
+}
+
+// Wait until the page is fully loaded before navigating
+// so that it creates a history entry properly.
+function fullyLoaded() {
+  return new Promise((resolve, reject) => {
+    addEventListener('load', () => {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          resolve();
+        });
+      });
+    });
+  });
 }

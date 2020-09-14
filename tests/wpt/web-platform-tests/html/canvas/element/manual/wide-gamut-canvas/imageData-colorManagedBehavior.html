@@ -336,29 +336,6 @@ function runTestCreateImageDataDWHC(canvasColorSettings, imageData) {
                       "ImageData should be transparent black");
 }
 
-var testScenariosCreateImageDataDWHC = [];
-for (var i = 0; i < canvasColorSettingsSet.length; i++) {
-  for (var j = 0; j < imageDataColorSettingsSet.length; j++) {
-    message = "Test createImageData(data, width, height, imageDataColorSettings): " +
-              canvasColorSettingsSet[i].name + " canvas, " +
-              imageDataColorSettingsSet[j].name + " ImageData";
-    testScenariosCreateImageDataDWHC.
-        push([message, canvasColorSettingsSet[i].colorSettings,
-              imageDataColorSettingsSet[j].imageData]);
-  }
-}
-
-function runTestCreateImageDataDWHCTests() {
-  for (var i = 0; i < testScenariosCreateImageDataDWHC.length; i++){
-    var t = test(function() {
-      runTestCreateImageDataDWHC(
-        testScenariosCreateImageDataDWHC[i][1],
-        testScenariosCreateImageDataDWHC[i][2]);
-    }, testScenariosCreateImageDataDWHC[i][0]);
-  }
-}
-runTestCreateImageDataDWHCTests();
-
 ////////////////////////////////////////////////////////////////////////////////
 
 </script>

@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<title>Clip Path: should be correctly rotated by transform with will-change:transform</title>
+<link rel="help" href="http://www.w3.org/TR/css-masking-1/#the-clip-path">
+<link rel="match" href="clip-path-rotated-will-change-transform-ref.html">
+<style>div { width: 200px; height: 200px; position: absolute; }</style>
+<div style="transform: rotate(45deg); clip-path: inset(31px)">
+  <div style="will-change: transform; background: red"></div>
+</div>
+<div style="transform: rotate(45deg); will-change: transform">
+  <div style="top: 30px; left: 30px; width: 140px; height: 140px; background: green"></div>
+</div>

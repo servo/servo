@@ -1,0 +1,10 @@
+<!doctype html>
+<title>Dynamic placeholder attribute changes after addition shouldn't crash</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1662483">
+<input type="text">
+<script>
+  let input = document.querySelector("input");
+  input.getBoundingClientRect();
+  input.placeholder = "Foo";
+  input.placeholder = "Bar";
+</script>

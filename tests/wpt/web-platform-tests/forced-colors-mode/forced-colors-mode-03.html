@@ -6,10 +6,12 @@
 <script src="/resources/testharnessreport.js"></script>
 <style>
   #a {
+    background-color: purple;
     color: orange;
     forced-color-adjust: auto;
   }
   #b {
+    background-color: purple;
     color: orange;
     forced-color-adjust: none;
   }
@@ -36,7 +38,7 @@
 
     assert_equals(getComputedStyle(a).backgroundColor, "rgb(255, 255, 0)");
 
-    assert_equals(getComputedStyle(b).backgroundColor, "rgb(255, 255, 0)");
+    assert_equals(getComputedStyle(b).backgroundColor, "rgb(128, 0, 128)");
 
   }, "Checks that default highlighted text style does not get overridden in forced colors mode.");
 </script>

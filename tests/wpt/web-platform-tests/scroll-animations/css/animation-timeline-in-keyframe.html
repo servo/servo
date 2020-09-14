@@ -7,11 +7,10 @@
 <style>
   @keyframes test {
     from { width: 100px; animation-timeline: foo; }
-    to { width: 100px: animation-timeline: foo; }
+    to { width: 100px; animation-timeline: foo; }
   }
   #target {
     width: 50px;
-    animation-timeline: bar;
     animation-name: test;
     animation-duration: 1s;
     animation-play-state: paused;
@@ -23,6 +22,6 @@ test(() => {
   let style = getComputedStyle(document.getElementById('target'));
   // Checking 'width' verifies that the animation is applied at all.
   assert_equals(style.width, '100px');
-  assert_equals(style.animationTimeline, 'bar');
+  assert_equals(style.animationTimeline, 'auto');
 }, 'The animation-timeline property may not be used in keyframes');
 </script>

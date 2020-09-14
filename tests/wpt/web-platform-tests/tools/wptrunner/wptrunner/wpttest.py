@@ -101,7 +101,7 @@ class RunInfo(dict):
         except (OSError, subprocess.CalledProcessError):
             rev = None
         if rev:
-            self["revision"] = rev
+            self["revision"] = rev.decode("utf-8")
 
         self["python_version"] = sys.version_info.major
         self["product"] = product

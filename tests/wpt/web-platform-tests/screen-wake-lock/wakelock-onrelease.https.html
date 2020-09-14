@@ -5,17 +5,19 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
-async_test(async t => {
+promise_test(async t => {
   await test_driver.set_permission({name: 'screen-wake-lock'}, 'granted', false);
 
   const lock = await navigator.wakeLock.request("screen");
-  lock.onrelease = t.step_func_done((ev) => {
+  return new Promise(resolve => {
+    lock.onrelease = resolve;
+    lock.release();
+  }).then(ev => {
     assert_class_string(ev, "Event", "release() must fire an Event object");
     assert_equals(ev.target, lock, "The event's target must be the lock that was acquired");
     assert_true(ev.isTrusted);
     assert_false(ev.bubbles);
     assert_false(ev.cancelable);
   });
-  await lock.release();
 }, "Test onreleased event's basic properties");
 </script>

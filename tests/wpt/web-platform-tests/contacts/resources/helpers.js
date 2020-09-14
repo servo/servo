@@ -8,31 +8,16 @@
 // these tests the browser must be run with these options:
 //
 //   --enable-blink-features=MojoJS,MojoJSTest
-const loadChromiumResources = async () => {
-  if (!window.MojoInterfaceInterceptor) {
-    // Do nothing on non-Chromium-based browsers or when the Mojo bindings are
-    // not present in the global namespace.
-    return;
-  }
+async function loadChromiumResources() {
 
-  const resources = [
-    '/gen/layout_test_data/mojo/public/js/mojo_bindings.js',
+  const chromiumResources = [
     '/gen/third_party/blink/public/mojom/contacts/contacts_manager.mojom.js',
-    '/resources/chromium/contacts_manager_mock.js',
+    '/gen/components/payments/mojom/payment_request_data.mojom.js',
   ];
 
-  await Promise.all(resources.map(path => {
-    const script = document.createElement('script');
-    script.src = path;
-    script.async = false;
-    const promise = new Promise((resolve, reject) => {
-      script.onload = resolve;
-      script.onerror = reject;
-    });
-    document.head.appendChild(script);
-    return promise;
-  }));
-};
+  await loadMojoResources(chromiumResources);
+  await loadScript('/resources/chromium/contacts_manager_mock.js');
+}
 
 // User Agents must provide their own implementation of `WebContacts`,
 // which must contain the following this interface:
@@ -42,12 +27,11 @@ const loadChromiumResources = async () => {
 // }
 async function createWebContactsTest() {
   if (typeof WebContactsTest === 'undefined') {
-    await loadChromiumResources();
+    if (isChromiumBased) {
+      await loadChromiumResources();
+    }
   }
-  assert_true(
-    typeof WebContactsTest !== 'undefined',
-    'Mojo testing interface is not available.'
-  );
+  assert_implements(WebContactsTest, 'WebContactsTest is unavailable.');
   return new WebContactsTest();
 }
 

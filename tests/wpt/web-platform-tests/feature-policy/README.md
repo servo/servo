@@ -5,7 +5,7 @@ This directory contains a framework to test features with feature policy.
 
 When adding a new feature to feature policy, the following cases should be tested:
 * feature enabled by header policy [HTTP tests]
-    + test when feature is enabled by feature policy HTTP headerr;
+    + test when feature is enabled by feature policy HTTP header;
 * feature disabled by header policy [HTTP tests]
     + test when feature is disabled by feature policy HTTP header;
 * feature enabled on self origin by header policy [HTTP tests]

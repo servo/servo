@@ -11,7 +11,8 @@ idl_test(
     idlArray.add_objects({
       WorkerLocation: ['self.location'],
       WorkerNavigator: ['self.navigator'],
-      WebSocket: ['new WebSocket("ws://foo")'],
+      EventSource: ['new EventSource("http://invalid")'],
+      WebSocket: ['new WebSocket("ws://invalid")'],
       CloseEvent: ['new CloseEvent("close")'],
       Worker: [],
       MessageEvent: ['new MessageEvent("message", { data: 5 })'],

@@ -21,8 +21,8 @@
       'show a file picker.<br />Please select native-file-system/resources/data/testfile.txt');
     const files = await self.showOpenFilePicker({
       multiple: false, types: [
-        { description: 'Text files', accept: { ' text/plain ': ['txt'] } },
-        { description: 'Images', accept: { '  image/*  ': ['jpg', 'jpeg', 'png'] } },
+        { description: 'Text files', accept: { ' text/plain ': ['.txt'] } },
+        { description: 'Images', accept: { '  image/*  ': ['.jpg', '.jpeg', '.png'] } },
       ],
     });
     assert_true(Array.isArray(files));

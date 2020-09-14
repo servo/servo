@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<style>
+#spacer {
+  width: 200%;
+  height: 200%;
+}
+</style>
+<body>
+<script>
+  window.addEventListener("message", onMessageReceived);
+
+  function test(api, args) {
+    let did_throw = false;
+    try {
+     document[api](args);
+    } catch(e) {
+      did_throw = true;
+    }
+    return did_throw;
+  }
+
+  function onMessageReceived(e) {
+    let msg = e.data;
+
+    msg.did_throw_exception = test(msg.api, msg.args);
+    if (msg.query) {
+      let el = document.querySelector(msg.query);
+      msg.value = el ? el.innerHTML : false;
+    }
+    ackMessage(msg, e.source);
+  }
+
+  function ackMessage(msg, source) {
+    source.postMessage(msg, "*");
+  }
+</script>
+</body>

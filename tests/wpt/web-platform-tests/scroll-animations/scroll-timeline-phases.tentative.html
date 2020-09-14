@@ -58,7 +58,7 @@
   for (const test_case_key in test_cases){
     const test_case = test_cases[test_case_key];
     promise_test(async t => {
-      const timeline = createScrollTimelineWithOffsets(t, "20%", "80%");
+      const timeline = createScrollTimelineWithOffsets(t, CSS.percent(20), CSS.percent(80));
       const scroller = timeline.scrollSource;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
 
@@ -111,7 +111,7 @@
     const test_case =
       test_cases_start_offset_greater_than_end_offset[test_case_key];
     promise_test(async t => {
-      const timeline = createScrollTimelineWithOffsets(t, "80%", "20%");
+      const timeline = createScrollTimelineWithOffsets(t, CSS.percent(80), CSS.percent(20));
       const scroller = timeline.scrollSource;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
 
@@ -154,7 +154,7 @@
     const test_case =
       test_cases_start_offset_equal_to_end_offset[test_case_key];
     promise_test(async t => {
-      const timeline = createScrollTimelineWithOffsets(t, "50%", "50%");
+      const timeline = createScrollTimelineWithOffsets(t, CSS.percent(50), CSS.percent(50));
       const scroller = timeline.scrollSource;
       const maxScroll = scroller.scrollHeight - scroller.clientHeight;
 

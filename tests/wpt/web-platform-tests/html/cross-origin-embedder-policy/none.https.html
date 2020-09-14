@@ -11,6 +11,7 @@ const HOST = get_host_info();
 const BASE = new URL("resources", location).pathname;
 
 async_test(t => {
+  t.step_timeout(t.unreached_func('timeout'), 10 * 1000);
   const frame = document.createElement("iframe");
   t.add_cleanup(() => frame.remove());
   frame.onload = t.step_func_done(() => {
@@ -22,6 +23,7 @@ async_test(t => {
 }, `"none" top-level: navigating a frame to "none" should succeed`);
 
 async_test(t => {
+  t.step_timeout(t.unreached_func('timeout'), 10 * 1000);
   const frame = document.createElement("iframe");
   t.add_cleanup(() => frame.remove());
   const blank = "/common/blank.html";
@@ -42,6 +44,7 @@ async_test(t => {
 }, `"none" top-level: navigating a frame from "require-corp" to "none" should succeed`);
 
 async_test(t => {
+  t.step_timeout(t.unreached_func('timeout'), 10 * 1000);
   const w = window.open(`resources/navigate-none.sub.html?to=navigate-require-corp.sub.html`, "window_name");
   t.add_cleanup(() => w.close());
 
@@ -53,6 +56,7 @@ async_test(t => {
 }, `"none" top-level: navigating a frame back from "require-corp" should succeed`);
 
 async_test(t => {
+  t.step_timeout(t.unreached_func('timeout'), 10 * 1000);
   let pageLoaded = false;
   const bc = new BroadcastChannel(token());
   let finished = false;
@@ -83,6 +87,7 @@ async_test(t => {
 }, `"require-corp" top-level noopener popup: navigating to "none" should succeed`);
 
 async_test(t => {
+  t.step_timeout(t.unreached_func('timeout'), 10 * 1000);
   const frame = document.createElement("iframe");
   const id = token();
   t.add_cleanup(() => frame.remove());

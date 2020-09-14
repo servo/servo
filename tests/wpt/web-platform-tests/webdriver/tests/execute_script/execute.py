@@ -4,6 +4,7 @@ from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
 from tests.support.inline import inline
+from tests.support.sync import Poll
 
 
 def execute_script(session, script, args=None):
@@ -26,6 +27,24 @@ def test_null_parameter_value(session, http):
 def test_no_browsing_context(session, closed_window):
     response = execute_script(session, "return 1;")
     assert_error(response, "no such window")
+
+
+def test_opening_new_window_keeps_current_window_handle(session):
+    original_handle = session.window_handle
+    original_handles = session.handles
+
+    url = inline("""<a href="javascript:window.open();">open window</a>""")
+    session.url = url
+    session.find.css("a", all=False).click()
+    wait = Poll(
+        session,
+        timeout=5,
+        message="No new window has been opened")
+    new_handles = wait.until(lambda s: set(s.handles) - set(original_handles))
+
+    assert len(new_handles) == 1
+    assert session.window_handle == original_handle
+    assert session.url == url
 
 
 def test_ending_comment(session):

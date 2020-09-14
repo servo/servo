@@ -1,7 +1,10 @@
 if (self.importScripts) {
     importScripts('/resources/testharness.js');
+    importScripts('/common/get-host-info.sub.js');
     importScripts('../resources/test-helpers.js');
 }
+
+const { REMOTE_HOST } = get_host_info();
 
 cache_test(function(cache, test) {
     return promise_rejects_js(
@@ -103,6 +106,21 @@ cache_test(function(cache, test) {
       cache.addAll(requests),
       'Cache.addAll should reject with TypeError if any request fails');
   }, 'Cache.addAll with 206 response');
+
+cache_test(function(cache, test) {
+    var urls = ['../resources/fetch-status.py?status=206',
+                '../resources/fetch-status.py?status=200'];
+    var requests = urls.map(function(url) {
+        var cross_origin_url = new URL(url, location.href);
+        cross_origin_url.hostname = REMOTE_HOST;
+        return new Request(cross_origin_url.href, { mode: 'no-cors' });
+      });
+    return promise_rejects_js(
+      test,
+      TypeError,
+      cache.addAll(requests),
+      'Cache.addAll should reject with TypeError if any request fails');
+  }, 'Cache.addAll with opaque-filtered 206 response');
 
 cache_test(function(cache, test) {
     return promise_rejects_js(

@@ -13,7 +13,7 @@ import {
   setBothDocumentDomains,
   testSameAgentCluster,
   testDifferentAgentClusters,
-  testOriginIsolationRestricted
+  testGetter
 } from "../resources/helpers.mjs";
 
 let frame1;
@@ -25,8 +25,8 @@ promise_setup(async () => {
 // so it gets isolated too.
 
 testSameAgentCluster([self, 0], "Before: parent to child");
-testOriginIsolationRestricted(self, true, "before parent");
-testOriginIsolationRestricted(0, true, "before child");
+testGetter(self, true, "before parent");
+testGetter(0, true, "before child");
 
 promise_test(async () => {
   await navigateIframe(frame1, "{{hosts[][]}}:{{ports[https][1]}}");
@@ -36,6 +36,6 @@ promise_test(async () => {
 // Since the new page is different-origin, its non-request should be respected.
 
 testDifferentAgentClusters([self, 0], "After: parent to child");
-testOriginIsolationRestricted(self, true, "after parent");
-testOriginIsolationRestricted(0, false, "after child");
+testGetter(self, true, "after parent");
+testGetter(0, false, "after child");
 </script>

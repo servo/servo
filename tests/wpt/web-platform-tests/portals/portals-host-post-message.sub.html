@@ -26,34 +26,22 @@
       return waitForResponse;
     }
 
-    const crossOriginUrl = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-host-post-message.sub.html";
+    const sameOriginUrl = "resources/portal-host-post-message.html";
+    const crossOriginUrl = "http://{{hosts[alt][www]}}:{{ports[http][0]}}/portals/resources/portal-host-post-message-x-origin.html";
 
     promise_test(async () => {
-      var {data, origin} = await createPortalAndLoopMessage(
-          "resources/portal-host-post-message.sub.html", ["test", "*"]);
+      var {data, origin} = await createPortalAndLoopMessage(sameOriginUrl,
+                                                            ["test", "*"]);
       assert_equals(data, "test");
       assert_equals(origin, "http://{{host}}:{{ports[http][0]}}");
     }, "Message received after postMessage from portal host");
 
     promise_test(async () => {
-      var {data, origin} = await createPortalAndLoopMessage(
-          crossOriginUrl, ["test", "*"]);
-      assert_equals(data, "test");
-      assert_equals(origin, "http://{{hosts[alt][www]}}:{{ports[http][0]}}");
-    }, "Message received after postMessage from portal host in cross-origin-portal");
-
-    promise_test(async () => {
-      var {data, origin} = await createPortalAndLoopMessage(
-          "resources/portal-host-post-message.sub.html", ["test"]);
+      var {data, origin} = await createPortalAndLoopMessage(sameOriginUrl,
+                                                            ["test"]);
       assert_equals(data, "test");
       assert_equals(origin, "http://{{host}}:{{ports[http][0]}}");
     }, "Message received from same-origin portal host with no target origin specified");
-
-    promise_test(async () => {
-      var {data, origin} = await createPortalAndLoopMessage(
-         crossOriginUrl, ["test", "http://{{host}}:{{ports[http][0]}}"]);
-      assert_equals(data, "test");
-    }, "Message received from cross-origin portal host with target origin correctly specified");
 
     promise_test(async () => {
       var message = {
@@ -64,10 +52,7 @@
           prop4_1: "value4_1"
         }
       };
-      var {data} = await createPortalAndLoopMessage(
-        "resources/portal-host-post-message.sub.html", [message]);
-      assert_object_equals(data, message);
-      var {data} = await createPortalAndLoopMessage(crossOriginUrl,
+      var {data} = await createPortalAndLoopMessage(sameOriginUrl,
                                                     [message, "*"]);
       assert_object_equals(data, message);
     }, "postMessage with object message");
@@ -82,58 +67,39 @@
         });
       }
 
-      var {ports} = await createPortalAndLoopMessage(
-        "resources/portal-host-post-message.sub.html",
-        {type: "message-port"});
-      await checkPort(ports[0]);
-
-      var {ports} = await createPortalAndLoopMessage(
-        crossOriginUrl,
-        {type: "message-port"});
+      var {ports} = await createPortalAndLoopMessage(sameOriginUrl, {
+        type: "message-port"
+      });
       await checkPort(ports[0]);
     }, "postMessage with message ports");
 
     promise_test(async () => {
-      var {data} = await createPortalAndLoopMessage(
-        "resources/portal-host-post-message.sub.html", {
-          type: "array-buffer-without-transfer",
-          array: [0, 1, 2, 3, 4]
-      });
-      assert_array_equals([0, 1, 2, 3, 4], new Int8Array(data.arrayBuffer));
-
-      var {data} = await createPortalAndLoopMessage(crossOriginUrl, {
-          type: "array-buffer-without-transfer",
-          array: [0, 1, 2, 3, 4]
+      var {data} = await createPortalAndLoopMessage(sameOriginUrl, {
+        type: "array-buffer-without-transfer",
+        array: [0, 1, 2, 3, 4]
       });
       assert_array_equals([0, 1, 2, 3, 4], new Int8Array(data.arrayBuffer));
     }, "postMessage with array buffer without transfer");
 
     promise_test(async () => {
-      var {data} = await createPortalAndLoopMessage(
-        "resources/portal-host-post-message.sub.html", {
-          type: "array-buffer-with-transfer",
-          array: [0, 1, 2, 3, 4]
-      });
-      assert_array_equals([0, 1, 2, 3, 4], new Int8Array(data.arrayBuffer));
-
-      var {data} = await createPortalAndLoopMessage(crossOriginUrl, {
-          type: "array-buffer-with-transfer",
-          array: [0, 1, 2, 3, 4]
+      var {data} = await createPortalAndLoopMessage(sameOriginUrl, {
+        type: "array-buffer-with-transfer",
+        array: [0, 1, 2, 3, 4]
       });
       assert_array_equals([0, 1, 2, 3, 4], new Int8Array(data.arrayBuffer));
     }, "postMessage with array buffer with transfer");
 
     promise_test(async () => {
-      var {data} = await createPortalAndLoopMessage(
-        "resources/portal-host-post-message.sub.html",
-        {type: "invalid-message"});
+      var {data} = await createPortalAndLoopMessage(sameOriginUrl, {
+        type: "invalid-message"
+      });
       assert_equals(data.errorType, "DataCloneError");
     }, "postMessage should throw error when serialization fails");
 
     promise_test(async () => {
-      var {data} = await createPortalAndLoopMessage(
-        "resources/portal-host-post-message.sub.html",
-        {type: "invalid-port"});
+      var {data} = await createPortalAndLoopMessage(sameOriginUrl,{
+        type: "invalid-port"
+      });
       assert_equals(data.errorType, "TypeError");
     }, "postMessage with invalid transferable should throw error");
 
@@ -166,18 +132,14 @@
       return waitForMessages;
     }, "postMessage before and after portal navigation should work");
 
-    async_test(t => {
-      createPortalAndLoopMessage("resources/portal-host-post-message.sub.html",
-          ["test", "http://{{hosts[alt][www]}}:{{ports[http][0]}}"])
-          .then(t.step_func(() => { assert_unreached("message delivered"); }));
-      t.step_timeout(t.done, 2000);
-    }, "Message should not be received from portal host with target set to different origin");
+    const TIMEOUT_DURATION_MS = 1000;
 
-    async_test(t => {
-      createPortalAndLoopMessage(crossOriginUrl, ["test"]).then(t.step_func(() => {
-        assert_unreached("message delivered");
-      }));
-      t.step_timeout(t.done, 2000);
-    }, "Message should not be received cross origin-portal host with no target origin set");
+    promise_test(t => new Promise((resolve, reject) => {
+      const portal = document.createElement('portal');
+      portal.src = crossOriginUrl;
+      portal.onmessage = () => reject('should not have received message');
+      document.body.appendChild(portal);
+      t.step_timeout(resolve, TIMEOUT_DURATION_MS);
+    }), "postMessage from portal host in cross-origin-portal should be blocked");
   </script>
 </body>

@@ -427,6 +427,8 @@ class Session(object):
         if self.session_id is not None:
             return
 
+        self.transport.close()
+
         body = {"capabilities": {}}
 
         if self.requested_capabilities is not None:
@@ -452,6 +454,7 @@ class Session(object):
             pass
         finally:
             self.session_id = None
+            self.transport.close()
 
     def send_command(self, method, url, body=None, timeout=None):
         """

@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/common.js"></script>
+
+<div id=log></div>
+<script>
+
+let tests = [
+  // popup Origin, popup COOP, expect opener
+
+  // None of the following should be recognized as "same-origin" (hence the
+  // "expected opener" value of `true`).
+  [SAME_ORIGIN, { percentEncoded: "same%FForigin" }, true], // non-ASCII byte
+  [SAME_ORIGIN, "same-origin;", true],
+  [SAME_ORIGIN, "\u000bsame-origin\u000b", true], // vertical tab
+  [SAME_ORIGIN, "\u000csame-origin\u000c", true], // form feed
+  [SAME_ORIGIN, "\u000dsame-origin\u000d", true], // carriage return
+  [SAME_ORIGIN, "Same-origin", true],
+  [SAME_ORIGIN, "same-origin;\tfoo=bar", true],
+  [SAME_ORIGIN, "same-origin ;foo=bar", true],
+  [SAME_ORIGIN, "same-origin; foo=bar;", true],
+  [SAME_ORIGIN, "\"same-origin\"", true], // HTTP structured fields "string" item
+  [SAME_ORIGIN, ":c2FtZS1vcmlnaW4=:", true], // HTTP structured fields "byte sequence" item
+  [SAME_ORIGIN, "?1", true], // HTTP structured fields "boolean" item
+  [SAME_ORIGIN, "1", true], // HTTP structured fields "integer or decimal" item
+  [SAME_ORIGIN, "$same-origin", true], // the item type is unrecognized
+  [SAME_ORIGIN, "same-origin same-origin", true],
+  [SAME_ORIGIN, "same-origin,same-origin", true],
+  [SAME_ORIGIN, "*same-origin ", true],
+
+  // All of the following should be recognized as "same-origin" (hence the
+  // "expected opener" value of `false`).
+  [SAME_ORIGIN, " same-origin", false],
+  [SAME_ORIGIN, "same-origin ", false],
+  [SAME_ORIGIN, "\tsame-origin", false],
+  [SAME_ORIGIN, "same-origin\t", false],
+  [SAME_ORIGIN, "same-origin;same-origin", false],
+  [SAME_ORIGIN, "same-origin; foo=bar", false],
+];
+
+run_coop_tests("unspecified", tests);
+
+async_test((t) => {
+  const channelName = `none_to_${SAME_ORIGIN.name}_duplicated-header`;
+  const url = `${SAME_ORIGIN.origin}/html/cross-origin-opener-policy/resources/coop-same-origin-repeated.asis?channel=${channelName}`;
+
+  url_test(t, url, channelName, true);
+}, `unspecified document opening popup to ${SAME_ORIGIN.origin} with repeated COOP header`);
+</script>

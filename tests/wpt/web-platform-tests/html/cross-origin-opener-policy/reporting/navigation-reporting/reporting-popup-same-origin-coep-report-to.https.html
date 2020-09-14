@@ -38,10 +38,9 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": `${location.href}`,
             "effectivePolicy": "same-origin-plus-coep",
-            "navigationURI": /uuid=EXECUTOR_UUID$/, // next destination url
-            "type": "navigation-from-document"
+            "nextResponseURL": /uuid=EXECUTOR_UUID$/, // next destination url
+            "type": "navigation-from-response"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -52,10 +51,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
             "effectivePolicy": "same-origin",
-            "navigationURI": `${location.href}`, // previous document url
-            "type": "navigation-to-document"
+            "previousResponseURL": `${location.href}`, // previous document url
+            "referrer": `${location.origin}/`, // referrer (origin, as dictated by the referrer policy)
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
@@ -80,10 +79,9 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": `${location.href}`,
             "effectivePolicy": "same-origin-plus-coep",
-            "navigationURI": /uuid=EXECUTOR_UUID$/, // initial navigation url
-            "type": "navigation-from-document"
+            "nextResponseURL": /uuid=EXECUTOR_UUID$/, // initial navigation url
+            "type": "navigation-from-response"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -94,10 +92,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
             "effectivePolicy": "same-origin-plus-coep",
-            "navigationURI": `${location.origin}/`, // referrer (origin, as dictated by the referrer policy)
-            "type": "navigation-to-document"
+            "previousResponseURL": ``,
+            "referrer": `${location.origin}/`, // referrer (origin, as dictated by the referrer policy)
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
@@ -119,10 +117,9 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": `${location.href}`,
             "effectivePolicy": "same-origin-plus-coep",
-            "navigationURI": /uuid=EXECUTOR_UUID$/, // next destination url
-            "type": "navigation-from-document"
+            "nextResponseURL": /uuid=EXECUTOR_UUID$/, // initial navigation url
+            "type": "navigation-from-response"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -144,10 +141,9 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": `${location.href}`,
             "effectivePolicy": "same-origin-plus-coep",
-            "navigationURI": /uuid=EXECUTOR_UUID$/, // next destination url
-            "type": "navigation-from-document"
+            "nextResponseURL": /uuid=EXECUTOR_UUID$/, // initial navigation url
+            "type": "navigation-from-response"
           },
           "url": `${location.href}`,
           "type": "coop"
@@ -158,10 +154,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "reporting",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
             "effectivePolicy": "same-origin-plus-coep",
-            "navigationURI": `${location.origin}/`, // referrer (origin, as dictated by the referrer policy)
-            "type": "navigation-to-document"
+            "previousResponseURL": ``,
+            "referrer": `${location.origin}/`, // referrer (origin, as dictated by the referrer policy)
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"

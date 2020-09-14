@@ -1,0 +1,11 @@
+// https://wicg.github.io/sanitizer-api/
+
+[
+  Exposed=Window
+] interface Sanitizer {
+  [RaisesException] constructor(optional SanitizerConfig sanitizerConfig = {});
+  [CallWith=ScriptState, RaisesException] DocumentFragment sanitize(DOMString input);
+  [CallWith=ScriptState, RaisesException] DOMString sanitizeToString(DOMString input);
+};
+
+dictionary SanitizerConfig {};

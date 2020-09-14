@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+
+ <html lang="en">
+
+  <meta charset="UTF-8">
+
+  <title>CSS Pseudo-Elements Test: ::selection overlay drawn over the ::spelling-error overlay</title>
+
+  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/">
+  <link rel="help" href="https://www.w3.org/TR/css-pseudo-4/#highlight-painting">
+  <link rel="match" href="reference/selection-overlay-and-spelling-001-ref.html">
+
+  <meta content="" name="flags">
+  <meta name="assert" content="In this test, the div::selection pseudo-element must be drawn over the div::spelling-error overlay.">
+
+  <!--
+
+  The initial version of this test was relying on color
+  composition and was predicting a lime-green-ish (#7FBF80:
+  slightly desaturated lime green) background color for "Txet".
+
+  "#7fbf80 color description : Slightly desaturated lime green"
+  https://www.colorhexa.com/7fbf80
+
+  This test does not rely on color composition but the
+  test nevertheless verifies the ::selection overlay drawn
+  over the ::grammar-error overlay.
+
+  Chromium 83+'s selection highlight will vertically
+  extend to line box top and bottom... which is
+  under an eventual discussion in
+  https://github.com/w3c/csswg-drafts/issues/5395
+  One easy way to work around this issue
+  would be to set 'line-height' to '1' instead of
+  '90px'.
+
+  -->
+
+  <style>
+  div
+    {
+      font-size: 60px;
+      line-height: 1;
+      /*
+      We deliberately set line-height to 1 in order
+      to avoid/work around a possible difference
+      of rendering of highlight overlay among browsers.
+      In Chrome 80+, the selection highlight
+      overlay will extent vertically to include line
+      box top and line box bottom. This is not
+      the case in Firefox 68+.
+      */
+    }
+
+  div::selection
+    {
+      background-color: rgba(0%, 50%, 100%, 0.5);
+      /*
+      a very lite blue color
+      according to
+      https://www.colorhexa.com/7fbfff
+      */
+      color: yellow;
+    }
+
+  div::spelling-error
+    {
+      background-color: yellow;
+      color: red;
+    }
+  </style>
+
+  <script>
+  function startTest()
+  {
+  var targetRange = document.createRange();
+  /* We first create an empty range */
+  targetRange.selectNodeContents(document.getElementById("test"));
+  /* Then we set the range boundaries to the children of div#test */
+  window.getSelection().addRange(targetRange);
+  /* Finally, we now select such range of content */
+  }
+  </script>
+
+  <body onload="startTest();">
+
+  <p>PREREQUISITE: User agent needs to have an enabled and capable spelling error module. If it does not, then this test does not apply to such user agent.
+
+  <p>Test passes
+
+  <ul>
+    <li>if each glyph of "Txet sample" is yellow
+    <li>if "Txet" has a desaturated lime green background
+    <li>if " sample" has a very lite blue background and
+    <li>if there is no red.
+  </ul>
+
+  <!--
+  The bad spelling of Txet is intentional and part of this test
+  -->
+
+  <div id="test">Txet sample</div>

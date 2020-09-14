@@ -31,7 +31,7 @@ function loadScript(path) {
 }
 
 /**
- * A helper for Chromium-based browsers to load Mojo JS bindingds
+ * A helper for Chromium-based browsers to load Mojo JS bindings
  *
  * This is an async function that works in both workers and windows. It first
  * loads mojo_bindings.js, disables automatic dependency loading, and loads all
@@ -39,12 +39,16 @@ function loadScript(path) {
  * successfully, or rejects if any exception is raised. If testharness.js is
  * used, an uncaught exception will terminate the test with a harness error
  * (unless `allow_uncaught_exception` is true), which is usually the desired
- * behaviour. Only call this function if isChromiumBased === true.
+ * behaviour.
+ *
+ * This function also works with Blink web tests loaded from file://, in which
+ * case file:// will be prepended to all '/gen/...' URLs.
+ *
+ * Only call this function if isChromiumBased === true.
  *
  * @param {Array.<string>} resources - A list of scripts to load: Mojo JS
  *   bindings should be of the form '/gen/../*.mojom.js', the ordering of which
- *   does not matter. Do not include mojo_bindings.js in this list. You may
- *   include other non-mojom.js scripts for convenience.
+ *   does not matter. Do not include mojo_bindings.js in this list.
  * @returns {Promise}
  */
 async function loadMojoResources(resources) {
@@ -55,14 +59,26 @@ async function loadMojoResources(resources) {
     return;
   }
 
-  // We want to load mojo_bindings.js separately to set mojo.config.
-  if (resources.some(p => p.endsWith('/mojo_bindings.js'))) {
-    throw new Error('Do not load mojo_bindings.js explicitly.');
+  let genPrefix = '';
+  if (self.location.pathname.includes('/web_tests/')) {
+    // Blink internal web tests
+    genPrefix = 'file://';
   }
-  await loadScript('/gen/layout_test_data/mojo/public/js/mojo_bindings.js');
+
+  for (const path of resources) {
+    // We want to load mojo_bindings.js separately to set mojo.config.
+    if (path.endsWith('/mojo_bindings.js')) {
+      throw new Error('Do not load mojo_bindings.js explicitly.');
+    }
+    if (! /^\/gen\/.*\.mojom\.js$/.test(path)) {
+      throw new Error(`Unrecognized resource path: ${path}`);
+    }
+  }
+
+  await loadScript(genPrefix + '/gen/layout_test_data/mojo/public/js/mojo_bindings.js');
   mojo.config.autoLoadMojomDeps = false;
 
   for (const path of resources) {
-    await loadScript(path);
+    await loadScript(genPrefix + path);
   }
 }

@@ -29,10 +29,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
             "effectivePolicy": "same-origin",
-            "navigationURI": `${location.href}`, // referrer
-            "type": "navigation-to-document"
+            "previousResponseURL": "",
+            "referrer": `${location.href}`, // referrer
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
@@ -56,10 +56,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
             "effectivePolicy": "unsafe-none",
-            "navigationURI": `${location.href}`,
-            "type": "navigation-to-document"
+            "previousResponseURL": `${location.href}`,
+            "referrer": `${location.href}`, // referrer
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
@@ -83,10 +83,9 @@ let tests = [
         "report": {
           "body": {
             "disposition": "enforce",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
-            "effectivePolicy": "unsafe-none",
-            "navigationURI": `${location.href}`, // referrer
-            "type": "navigation-to-document"
+            "previousResponseURL": "",
+            "referrer": `${location.href}`, // referrer
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
