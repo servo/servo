@@ -2,43 +2,48 @@
 <html>
 <head>
   <meta charset="utf-8">
-  <title>CSS Cascade: "all" shorthand property excludes "direction"</title>
+  <title>CSS Cascade: "all" shorthand property excludes "direction" and "unicode-bidi"</title>
+  <link rel="author" title="Elika J. Etemad" href="http://fantasai.inkedblade.net/contact">
   <link rel="author" title="Chris Rebert" href="http://chrisrebert.com">
   <link rel="help" href="http://www.w3.org/TR/css-cascade-3/#all-shorthand">
   <link rel="help" href="http://www.w3.org/TR/css-cascade-4/#all-shorthand">
   <link rel="match" href="all-prop-001-ref.html">
   <meta name="flags" content="">
-  <meta name="assert" content="The 'direction' property should not be included in the properties that the 'all' shorthand is expanded to.">
+  <meta name="assert" content="Test passes if 'all' resets properties other than 'direction' and 'unicode-bidi'.">
   <style>
-.outer {
-  direction: rtl;/* should not get overridden by 'all' */
-  all: initial;/* if incorrectly implemented, this causes direction:initial; which is the same as direction:ltr; */
-  /* need these to trump 'all': */
-  position: relative;
-  display: block;
+.test {
+  /* these must not be overridden */
+  direction: rtl;
+  unicode-bidi: bidi-override;
 }
-.square {
-  width: 100px;
-  height: 100px;
+
+.test, bdo {
+  /* all of these must be overridden */
+  border: solid red;
+  background: red;
+  color: red;
+  text-decoration: line-through;
+  font: bold italic small-caps 20px monospace;
+  outline: solid red;
+  float: left;
+  letter-spacing: 1em;
+  display: list-item;
+  text-align: center;
+  width: 0.5em;
+  margin: 10em;
+  overflow: scroll;
 }
-.green {
-  background-color: green;
-}
-.above-right {
-  position: absolute;
-  right: 0;
-}
-.red {
-  background-color: red;
+
+.test, bdo {
+  all: initial;
+  /* if incorrectly implemented, this causes direction: initial; unicode-bidi: initial;
+     which is the same as direction:ltr; unicode-bidi: normal */
 }
   </style>
 </head>
 <body>
-  <p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+  <p>Test passes if the digits are <strong>in order</strong> and there is <strong>no red</strong>.</p>
 
-  <div class="outer">
-    <div class="square green above-right"></div>
-    <div class="square red"></div>
-  </div>
+  <div class="test"><bdo dir=rtl>987 <span>654</span></bdo> 321</div>
 </body>
 </html>

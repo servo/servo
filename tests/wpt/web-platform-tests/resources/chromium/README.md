@@ -1,4 +1,7 @@
-This directory contains Chromium-specific test resources.
+This directory contains Chromium-specific test resources, including mocks for
+test-only APIs implemented with
+[MojoJS](https://chromium.googlesource.com/chromium/src/+/master/mojo/public/js/README.md).
 
-The files `mojo_bindings.js` and `*.mojom.js` are manually copied from the
-Chromium build process's generated files and should not be edited manually.
+Please do **not** copy `*.mojom.js` into this directory. Follow this doc if you
+want to add new MojoJS-backed mocks:
+https://chromium.googlesource.com/chromium/src/+/master/docs/testing/web_platform_tests.md#mojojs

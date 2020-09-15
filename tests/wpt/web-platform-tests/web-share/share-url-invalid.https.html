@@ -11,15 +11,60 @@
   <body>
     <script>
       promise_test(async t => {
-        const url = "http://example.com:65536";
-        await test_driver.bless(
-          "web share",
-          () => {
-            return promise_rejects_js(t, TypeError, navigator.share({ url }));
-          },
-          "share with an invalid URL"
-        );
+        await test_driver.bless();
+        const promise = navigator.share({ url: "http://a.com:65536" });
+        return promise_rejects_js(t, TypeError, promise);
       }, "share() rejects when URL is invalid");
+
+      promise_test(async t => {
+        await test_driver.bless();
+        const promise = navigator.share({ url: "file:///etc/passwd" });
+        return promise_rejects_js(t, TypeError, promise);
+      }, "share() rejects file:// URLs");
+
+      promise_test(async t => {
+        await test_driver.bless();
+        const promise = navigator.share({ url: "wss://a.com/" });
+        return promise_rejects_js(t, TypeError, promise);
+      }, "share() rejects wss: URLs");
+
+      promise_test(async t => {
+        await test_driver.bless();
+        const promise = navigator.share({ url: "about:config" });
+        return promise_rejects_js(t, TypeError, promise);
+      }, "share() rejects about: URLs");
+
+      promise_test(async t => {
+        await test_driver.bless();
+        const promise = navigator.share({ url: "chrome://about" });
+        return promise_rejects_js(t, TypeError, promise);
+      }, "share() rejects chrome: URLs");
+
+      promise_test(async t => {
+        await test_driver.bless();
+        const file = new File([], "text/plain");
+        const promise = navigator.share({ url: URL.createObjectURL(file) });
+        return promise_rejects_js(t, TypeError, promise);
+      }, "share() rejects blob: URLs");
+
+      promise_test(async t => {
+        const encoder = new TextEncoder();
+        const encoded = encoder.encode(
+          `<meta http-equiv="refresh" content="1;url=http://example.com/">`
+        );
+        const file = new File(encoded, "text/html");
+        const url = URL.createObjectURL(file);
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        const dataURL = await new Promise(resolve => {
+          reader.addEventListener("load", () => {
+            resolve(reader.result);
+          });
+        });
+        await test_driver.bless();
+        const promise = navigator.share({ url: dataURL });
+        return promise_rejects_js(t, TypeError, promise);
+      }, "share() rejects data: URLs");
     </script>
   </body>
 </html>

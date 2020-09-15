@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>Testing evaluation order</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  const worker = new SharedWorker(
+      "evaluation-order-1-nothrow-worker-setup.js");
+  fetch_tests_from_worker(worker);
+</script>

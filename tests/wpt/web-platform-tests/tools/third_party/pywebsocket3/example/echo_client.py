@@ -51,7 +51,7 @@ import base64
 import codecs
 from hashlib import sha1
 import logging
-from optparse import OptionParser
+import argparse
 import os
 import random
 import re
@@ -602,76 +602,78 @@ def main():
     if six.PY2:
         sys.stdout = codecs.getwriter('utf-8')(sys.stdout)
 
-    parser = OptionParser()
+    parser = argparse.ArgumentParser()
     # We accept --command_line_flag style flags which is the same as Google
     # gflags in addition to common --command-line-flag style flags.
-    parser.add_option('-s',
-                      '--server-host',
-                      '--server_host',
-                      dest='server_host',
-                      type='string',
-                      default='localhost',
-                      help='server host')
-    parser.add_option('-p',
-                      '--server-port',
-                      '--server_port',
-                      dest='server_port',
-                      type='int',
-                      default=_UNDEFINED_PORT,
-                      help='server port')
-    parser.add_option('-o',
-                      '--origin',
-                      dest='origin',
-                      type='string',
-                      default=None,
-                      help='origin')
-    parser.add_option('-r',
-                      '--resource',
-                      dest='resource',
-                      type='string',
-                      default='/echo',
-                      help='resource path')
-    parser.add_option('-m',
-                      '--message',
-                      dest='message',
-                      type='string',
-                      help=('comma-separated messages to send. '
-                            '%s will force close the connection from server.' %
-                            _GOODBYE_MESSAGE))
-    parser.add_option('-q',
-                      '--quiet',
-                      dest='verbose',
-                      action='store_false',
-                      default=True,
-                      help='suppress messages')
-    parser.add_option('-t',
-                      '--tls',
-                      dest='use_tls',
-                      action='store_true',
-                      default=False,
-                      help='use TLS (wss://).')
-    parser.add_option('-k',
-                      '--socket-timeout',
-                      '--socket_timeout',
-                      dest='socket_timeout',
-                      type='int',
-                      default=_TIMEOUT_SEC,
-                      help='Timeout(sec) for sockets')
-    parser.add_option('--use-permessage-deflate',
-                      '--use_permessage_deflate',
-                      dest='use_permessage_deflate',
-                      action='store_true',
-                      default=False,
-                      help='Use the permessage-deflate extension.')
-    parser.add_option('--log-level',
-                      '--log_level',
-                      type='choice',
-                      dest='log_level',
-                      default='warn',
-                      choices=['debug', 'info', 'warn', 'error', 'critical'],
-                      help='Log level.')
+    parser.add_argument('-s',
+                        '--server-host',
+                        '--server_host',
+                        dest='server_host',
+                        type=six.text_type,
+                        default='localhost',
+                        help='server host')
+    parser.add_argument('-p',
+                        '--server-port',
+                        '--server_port',
+                        dest='server_port',
+                        type=int,
+                        default=_UNDEFINED_PORT,
+                        help='server port')
+    parser.add_argument('-o',
+                        '--origin',
+                        dest='origin',
+                        type=six.text_type,
+                        default=None,
+                        help='origin')
+    parser.add_argument('-r',
+                        '--resource',
+                        dest='resource',
+                        type=six.text_type,
+                        default='/echo',
+                        help='resource path')
+    parser.add_argument(
+        '-m',
+        '--message',
+        dest='message',
+        type=six.text_type,
+        default=u'Hello,\u65e5\u672c',
+        help=('comma-separated messages to send. '
+              '%s will force close the connection from server.' %
+              _GOODBYE_MESSAGE))
+    parser.add_argument('-q',
+                        '--quiet',
+                        dest='verbose',
+                        action='store_false',
+                        default=True,
+                        help='suppress messages')
+    parser.add_argument('-t',
+                        '--tls',
+                        dest='use_tls',
+                        action='store_true',
+                        default=False,
+                        help='use TLS (wss://).')
+    parser.add_argument('-k',
+                        '--socket-timeout',
+                        '--socket_timeout',
+                        dest='socket_timeout',
+                        type=int,
+                        default=_TIMEOUT_SEC,
+                        help='Timeout(sec) for sockets')
+    parser.add_argument('--use-permessage-deflate',
+                        '--use_permessage_deflate',
+                        dest='use_permessage_deflate',
+                        action='store_true',
+                        default=False,
+                        help='Use the permessage-deflate extension.')
+    parser.add_argument('--log-level',
+                        '--log_level',
+                        type=six.text_type,
+                        dest='log_level',
+                        default='warn',
+                        choices=['debug', 'info', 'warn', 'error', 'critical'],
+                        help='Log level.')
 
-    (options, unused_args) = parser.parse_args()
+    options = parser.parse_args()
 
     logging.basicConfig(level=logging.getLevelName(options.log_level.upper()))
 
@@ -681,11 +683,6 @@ def main():
             options.server_port = common.DEFAULT_WEB_SOCKET_SECURE_PORT
         else:
             options.server_port = common.DEFAULT_WEB_SOCKET_PORT
-
-    # optparse doesn't seem to handle non-ascii default values.
-    # Set default message here.
-    if not options.message:
-        options.message = u'Hello,\u65e5\u672c'  # "Japan" in Japanese
 
     EchoClient(options).run()
 

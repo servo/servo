@@ -1,6 +1,6 @@
 importScripts("/resources/testharness.js");
 
-async_test(async function() {
+async_test(function() {
   const worker = new Worker('resources/worker_with_images.js');
   worker.onmessage = this.step_func_done((event) => {
     const childNumEntries = event.data;

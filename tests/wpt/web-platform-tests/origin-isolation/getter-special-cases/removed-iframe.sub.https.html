@@ -1,12 +1,8 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<title>window.originIsolationRestricted for a removed frame</title>
+<title>window.originIsolated for a removed frame</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-
-<!-- TODO(domenic): update this to test window.originIsolated, not
-     window.originIsolationRestricted. See
-     https://github.com/WICG/origin-isolation/pull/34. -->
 
 <div id="log"></div>
 
@@ -24,8 +20,8 @@ promise_test(async () => {
 
   const frameWindow = iframe.contentWindow;
 
-  assert_equals(frameWindow.originIsolationRestricted, true, "before");
+  assert_equals(frameWindow.originIsolated, true, "before");
   iframe.remove();
-  assert_equals(frameWindow.originIsolationRestricted, true, "after");
-}, "Removing the iframe does not change originIsolationRestricted");
+  assert_equals(frameWindow.originIsolated, true, "after");
+}, "Removing the iframe does not change originIsolated");
 </script>

@@ -27,3 +27,38 @@
     assert_equals(mixedList.length, 0, "getEntriesByName('" + location2 + "').length");
 
   }, "getEntriesByName values are case sensitive");
+
+  async_test(function (t) {
+    // Test type/buffered case sensitivity.
+    observer = new PerformanceObserver(
+      t.step_func(function (entryList, obs) {
+        assert_unreached("Observer(type) should not be called.");
+      })
+    );
+    observer.observe({type: "Mark"});
+    observer.observe({type: "Measure"});
+    observer.observe({type: "MARK"});
+    observer.observe({type: "MEASURE"});
+    observer.observe({type: "Mark", buffered: true});
+    observer.observe({type: "Measure", buffered: true});
+    observer.observe({type: "MARK", buffered: true});
+    observer.observe({type: "MEASURE", buffered: true});
+    self.performance.mark("mark1");
+    self.performance.measure("measure1");
+
+    // Test entryTypes case sensitivity.
+    observer = new PerformanceObserver(
+      t.step_func(function (entryList, obs) {
+        assert_unreached("Observer(entryTypes) should not be called.");
+      })
+    );
+    observer.observe({entryTypes: ["Mark", "Measure"]});
+    observer.observe({entryTypes: ["MARK", "MEASURE"]});
+    self.performance.mark("mark1");
+    self.performance.measure("measure1");
+
+    t.step_timeout(function() {
+      t.done();
+    }, 1000);
+
+  }, "observe() and case sensitivity for types/entryTypes and buffered.");

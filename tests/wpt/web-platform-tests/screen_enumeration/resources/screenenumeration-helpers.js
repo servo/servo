@@ -6,45 +6,40 @@
 //
 //   --enable-blink-features=MojoJS,MojoJSTest
 
-const loadChromiumResources = async () => {
-  if (!("MojoInterfaceInterceptor" in self)) {
-    // Do nothing on non-Chromium-based browsers or when the Mojo bindings are
-    // not present in the global namespace.
-    return;
-  }
-
-  const resources = [
-    "/gen/layout_test_data/mojo/public/js/mojo_bindings.js",
-    "/gen/ui/gfx/mojom/color_space.mojom.js",
-    "/gen/ui/gfx/mojom/buffer_types.mojom.js",
-    "/gen/ui/gfx/mojom/display_color_spaces.mojom.js",
-    "/gen/ui/gfx/geometry/mojom/geometry.mojom.js",
-    "/gen/ui/display/mojom/display.mojom.js",
-    "/gen/third_party/blink/public/mojom/screen_enumeration/screen_enumeration.mojom.js",
-    "/resources/testdriver.js",
-    "/resources/testdriver-vendor.js",
-    "/resources/chromium/mock-screenenumeration.js",
+async function loadChromiumResources() {
+  const chromiumResources = [
+    '/gen/ui/gfx/mojom/color_space.mojom.js',
+    '/gen/ui/gfx/mojom/buffer_types.mojom.js',
+    '/gen/ui/gfx/mojom/display_color_spaces.mojom.js',
+    '/gen/ui/gfx/geometry/mojom/geometry.mojom.js',
+    '/gen/ui/display/mojom/display.mojom.js',
+    '/gen/third_party/blink/public/mojom/screen_enumeration/screen_enumeration.mojom.js'
   ];
-  await Promise.all(resources.map(path => {
-    const script = document.createElement("script");
-    script.src = path;
-    script.async = false;
-    const promise = new Promise((resolve, reject) => {
-      script.onload = resolve;
-      script.onerror = reject;
-    });
-    document.head.appendChild(script);
-    return promise;
-  }));
 
-};
+  await loadMojoResources(chromiumResources);
+  await loadScript('/resources/testdriver.js');
+  await loadScript('/resources/testdriver-vendor.js');
+  await loadScript('/resources/chromium/mock-screenenumeration.js');
+}
 
 async function initialize_screen_enumeration_tests() {
-  if (typeof ScreenEnumerationTest === "undefined")
-    await loadChromiumResources();
+  if (typeof ScreenEnumerationTest === "undefined") {
+    const script = document.createElement('script');
+    script.src = '/resources/test-only-api.js';
+    script.async = false;
+    const p = new Promise((resolve, reject) => {
+      script.onload = () => { resolve(); };
+      script.onerror = e => { reject(e); };
+    });
+    document.head.appendChild(script);
+    await p;
 
-  assert_true(typeof ScreenEnumerationTest !== "undefined",
-              "Screen Enumeration testing interface is not available.");
+    if (isChromiumBased) {
+      await loadChromiumResources();
+    }
+  }
+  assert_implements(ScreenEnumerationTest,
+                    'Screen Enumeration testing interface is not available.');
   let enumTest = new ScreenEnumerationTest();
   await enumTest.initialize();
   return enumTest;

@@ -528,6 +528,7 @@ class H2HandlerCopy(object):
         self.h2_stream_id = req_frame.stream_id
         self.server = handler.server
         self.protocol_version = handler.protocol_version
+        self.client_address = handler.client_address
         self.raw_requestline = ''
         self.rfile = rfile
         self.request = handler.request

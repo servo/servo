@@ -172,7 +172,7 @@
     assert_equals(candidate.protocol, 'udp', 'protocol');
     assert_equals(candidate.port, 58041, 'port');
     assert_equals(candidate.type, 'host', 'type');
-    assert_equals(candidate.tcpType, '', 'tcpType');
+    assert_equals(candidate.tcpType, null, 'tcpType');
     assert_equals(candidate.relatedAddress, null, 'relatedAddress');
     assert_equals(candidate.relatedPort, null, 'relatedPort');
   }, 'new RTCIceCandidate({ ... }) with nondefault values for all fields');

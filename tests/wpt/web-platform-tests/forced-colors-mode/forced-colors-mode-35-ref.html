@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - :visited fill/stroke.
+</title>
+<style>
+  a {
+    fill: VisitedText;
+    forced-color-adjust: none;
+  }
+</style>
+<a href="">
+  The triangle below should not preserve the blue/green fill/stroke colors
+  in forced colors mode.
+  <svg height="600" width="600">
+    <path d="M150 0 L75 200 L225 200 Z" />
+  </svg>
+</a>

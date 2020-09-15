@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Geolocation API Specification (https://w3c.github.io/geolocation-api/)
 
 partial interface Navigator {
@@ -9,7 +9,7 @@ partial interface Navigator {
 
 [Exposed=Window]
 interface Geolocation {
-  void getCurrentPosition(PositionCallback successCallback,
+  undefined getCurrentPosition(PositionCallback successCallback,
                           optional PositionErrorCallback errorCallback,
                           optional PositionOptions options = {});
 
@@ -17,12 +17,12 @@ interface Geolocation {
                       optional PositionErrorCallback errorCallback,
                       optional PositionOptions options = {});
 
-  void clearWatch(long watchId);
+  undefined clearWatch(long watchId);
 };
 
-callback PositionCallback = void (GeolocationPosition position);
+callback PositionCallback = undefined (GeolocationPosition position);
 
-callback PositionErrorCallback = void (GeolocationPositionError positionError);
+callback PositionErrorCallback = undefined (GeolocationPositionError positionError);
 
 dictionary PositionOptions {
   boolean enableHighAccuracy = false;

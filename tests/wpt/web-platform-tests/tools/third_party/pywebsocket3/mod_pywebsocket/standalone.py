@@ -157,8 +157,9 @@ from __future__ import absolute_import
 from six.moves import configparser
 import base64
 import logging
-import optparse
+import argparse
 import os
+import six
 import sys
 import traceback
 
@@ -174,188 +175,192 @@ _DEFAULT_REQUEST_QUEUE_SIZE = 128
 
 
 def _build_option_parser():
-    parser = optparse.OptionParser()
+    parser = argparse.ArgumentParser()
 
-    parser.add_option('--config',
-                      dest='config_file',
-                      type='string',
-                      default=None,
-                      help=('Path to configuration file. See the file comment '
-                            'at the top of this file for the configuration '
-                            'file format'))
-    parser.add_option('-H',
-                      '--server-host',
-                      '--server_host',
-                      dest='server_host',
-                      default='',
-                      help='server hostname to listen to')
-    parser.add_option('-V',
-                      '--validation-host',
-                      '--validation_host',
-                      dest='validation_host',
-                      default=None,
-                      help='server hostname to validate in absolute path.')
-    parser.add_option('-p',
-                      '--port',
-                      dest='port',
-                      type='int',
-                      default=common.DEFAULT_WEB_SOCKET_PORT,
-                      help='port to listen to')
-    parser.add_option('-P',
-                      '--validation-port',
-                      '--validation_port',
-                      dest='validation_port',
-                      type='int',
-                      default=None,
-                      help='server port to validate in absolute path.')
-    parser.add_option('-w',
-                      '--websock-handlers',
-                      '--websock_handlers',
-                      dest='websock_handlers',
-                      default='.',
-                      help=('The root directory of WebSocket handler files. '
-                            'If the path is relative, --document-root is used '
-                            'as the base.'))
-    parser.add_option('-m',
-                      '--websock-handlers-map-file',
-                      '--websock_handlers_map_file',
-                      dest='websock_handlers_map_file',
-                      default=None,
-                      help=('WebSocket handlers map file. '
-                            'Each line consists of alias_resource_path and '
-                            'existing_resource_path, separated by spaces.'))
-    parser.add_option('-s',
-                      '--scan-dir',
-                      '--scan_dir',
-                      dest='scan_dir',
-                      default=None,
-                      help=('Must be a directory under --websock-handlers. '
-                            'Only handlers under this directory are scanned '
-                            'and registered to the server. '
-                            'Useful for saving scan time when the handler '
-                            'root directory contains lots of files that are '
-                            'not handler file or are handler files but you '
-                            'don\'t want them to be registered. '))
-    parser.add_option('--allow-handlers-outside-root-dir',
-                      '--allow_handlers_outside_root_dir',
-                      dest='allow_handlers_outside_root_dir',
-                      action='store_true',
-                      default=False,
-                      help=('Scans WebSocket handlers even if their canonical '
-                            'path is not under --websock-handlers.'))
-    parser.add_option('-d',
-                      '--document-root',
-                      '--document_root',
-                      dest='document_root',
-                      default='.',
-                      help='Document root directory.')
-    parser.add_option('-x',
-                      '--cgi-paths',
-                      '--cgi_paths',
-                      dest='cgi_paths',
-                      default=None,
-                      help=('CGI paths relative to document_root.'
-                            'Comma-separated. (e.g -x /cgi,/htbin) '
-                            'Files under document_root/cgi_path are handled '
-                            'as CGI programs. Must be executable.'))
-    parser.add_option('-t',
-                      '--tls',
-                      dest='use_tls',
-                      action='store_true',
-                      default=False,
-                      help='use TLS (wss://)')
-    parser.add_option('-k',
-                      '--private-key',
-                      '--private_key',
-                      dest='private_key',
-                      default='',
-                      help='TLS private key file.')
-    parser.add_option('-c',
-                      '--certificate',
-                      dest='certificate',
-                      default='',
-                      help='TLS certificate file.')
-    parser.add_option('--tls-client-auth',
-                      dest='tls_client_auth',
-                      action='store_true',
-                      default=False,
-                      help='Requests TLS client auth on every connection.')
-    parser.add_option('--tls-client-cert-optional',
-                      dest='tls_client_cert_optional',
-                      action='store_true',
-                      default=False,
-                      help=('Makes client certificate optional even though '
-                            'TLS client auth is enabled.'))
-    parser.add_option('--tls-client-ca',
-                      dest='tls_client_ca',
-                      default='',
-                      help=('Specifies a pem file which contains a set of '
-                            'concatenated CA certificates which are used to '
-                            'validate certificates passed from clients'))
-    parser.add_option('--basic-auth',
-                      dest='use_basic_auth',
-                      action='store_true',
-                      default=False,
-                      help='Requires Basic authentication.')
-    parser.add_option('--basic-auth-credential',
-                      dest='basic_auth_credential',
-                      default='test:test',
-                      help='Specifies the credential of basic authentication '
-                      'by username:password pair (e.g. test:test).')
-    parser.add_option('-l',
-                      '--log-file',
-                      '--log_file',
-                      dest='log_file',
-                      default='',
-                      help='Log file.')
+    parser.add_argument(
+        '--config',
+        dest='config_file',
+        type=six.text_type,
+        default=None,
+        help=('Path to configuration file. See the file comment '
+              'at the top of this file for the configuration '
+              'file format'))
+    parser.add_argument('-H',
+                        '--server-host',
+                        '--server_host',
+                        dest='server_host',
+                        default='',
+                        help='server hostname to listen to')
+    parser.add_argument('-V',
+                        '--validation-host',
+                        '--validation_host',
+                        dest='validation_host',
+                        default=None,
+                        help='server hostname to validate in absolute path.')
+    parser.add_argument('-p',
+                        '--port',
+                        dest='port',
+                        type=int,
+                        default=common.DEFAULT_WEB_SOCKET_PORT,
+                        help='port to listen to')
+    parser.add_argument('-P',
+                        '--validation-port',
+                        '--validation_port',
+                        dest='validation_port',
+                        type=int,
+                        default=None,
+                        help='server port to validate in absolute path.')
+    parser.add_argument(
+        '-w',
+        '--websock-handlers',
+        '--websock_handlers',
+        dest='websock_handlers',
+        default='.',
+        help=('The root directory of WebSocket handler files. '
+              'If the path is relative, --document-root is used '
+              'as the base.'))
+    parser.add_argument('-m',
+                        '--websock-handlers-map-file',
+                        '--websock_handlers_map_file',
+                        dest='websock_handlers_map_file',
+                        default=None,
+                        help=('WebSocket handlers map file. '
+                              'Each line consists of alias_resource_path and '
+                              'existing_resource_path, separated by spaces.'))
+    parser.add_argument('-s',
+                        '--scan-dir',
+                        '--scan_dir',
+                        dest='scan_dir',
+                        default=None,
+                        help=('Must be a directory under --websock-handlers. '
+                              'Only handlers under this directory are scanned '
+                              'and registered to the server. '
+                              'Useful for saving scan time when the handler '
+                              'root directory contains lots of files that are '
+                              'not handler file or are handler files but you '
+                              'don\'t want them to be registered. '))
+    parser.add_argument(
+        '--allow-handlers-outside-root-dir',
+        '--allow_handlers_outside_root_dir',
+        dest='allow_handlers_outside_root_dir',
+        action='store_true',
+        default=False,
+        help=('Scans WebSocket handlers even if their canonical '
+              'path is not under --websock-handlers.'))
+    parser.add_argument('-d',
+                        '--document-root',
+                        '--document_root',
+                        dest='document_root',
+                        default='.',
+                        help='Document root directory.')
+    parser.add_argument('-x',
+                        '--cgi-paths',
+                        '--cgi_paths',
+                        dest='cgi_paths',
+                        default=None,
+                        help=('CGI paths relative to document_root.'
+                              'Comma-separated. (e.g -x /cgi,/htbin) '
+                              'Files under document_root/cgi_path are handled '
+                              'as CGI programs. Must be executable.'))
+    parser.add_argument('-t',
+                        '--tls',
+                        dest='use_tls',
+                        action='store_true',
+                        default=False,
+                        help='use TLS (wss://)')
+    parser.add_argument('-k',
+                        '--private-key',
+                        '--private_key',
+                        dest='private_key',
+                        default='',
+                        help='TLS private key file.')
+    parser.add_argument('-c',
+                        '--certificate',
+                        dest='certificate',
+                        default='',
+                        help='TLS certificate file.')
+    parser.add_argument('--tls-client-auth',
+                        dest='tls_client_auth',
+                        action='store_true',
+                        default=False,
+                        help='Requests TLS client auth on every connection.')
+    parser.add_argument('--tls-client-cert-optional',
+                        dest='tls_client_cert_optional',
+                        action='store_true',
+                        default=False,
+                        help=('Makes client certificate optional even though '
+                              'TLS client auth is enabled.'))
+    parser.add_argument('--tls-client-ca',
+                        dest='tls_client_ca',
+                        default='',
+                        help=('Specifies a pem file which contains a set of '
+                              'concatenated CA certificates which are used to '
+                              'validate certificates passed from clients'))
+    parser.add_argument('--basic-auth',
+                        dest='use_basic_auth',
+                        action='store_true',
+                        default=False,
+                        help='Requires Basic authentication.')
+    parser.add_argument(
+        '--basic-auth-credential',
+        dest='basic_auth_credential',
+        default='test:test',
+        help='Specifies the credential of basic authentication '
+        'by username:password pair (e.g. test:test).')
+    parser.add_argument('-l',
+                        '--log-file',
+                        '--log_file',
+                        dest='log_file',
+                        default='',
+                        help='Log file.')
     # Custom log level:
     # - FINE: Prints status of each frame processing step
-    parser.add_option('--log-level',
-                      '--log_level',
-                      type='choice',
-                      dest='log_level',
-                      default='warn',
-                      choices=[
-                          'fine', 'debug', 'info', 'warning', 'warn', 'error',
-                          'critical'
-                      ],
-                      help='Log level.')
-    parser.add_option(
+    parser.add_argument('--log-level',
+                        '--log_level',
+                        type=six.text_type,
+                        dest='log_level',
+                        default='warn',
+                        choices=[
+                            'fine', 'debug', 'info', 'warning', 'warn',
+                            'error', 'critical'
+                        ],
+                        help='Log level.')
+    parser.add_argument(
         '--deflate-log-level',
         '--deflate_log_level',
-        type='choice',
+        type=six.text_type,
         dest='deflate_log_level',
         default='warn',
         choices=['debug', 'info', 'warning', 'warn', 'error', 'critical'],
         help='Log level for _Deflater and _Inflater.')
-    parser.add_option('--thread-monitor-interval-in-sec',
-                      '--thread_monitor_interval_in_sec',
-                      dest='thread_monitor_interval_in_sec',
-                      type='int',
-                      default=-1,
-                      help=('If positive integer is specified, run a thread '
-                            'monitor to show the status of server threads '
-                            'periodically in the specified inteval in '
-                            'second. If non-positive integer is specified, '
-                            'disable the thread monitor.'))
-    parser.add_option('--log-max',
-                      '--log_max',
-                      dest='log_max',
-                      type='int',
-                      default=_DEFAULT_LOG_MAX_BYTES,
-                      help='Log maximum bytes')
-    parser.add_option('--log-count',
-                      '--log_count',
-                      dest='log_count',
-                      type='int',
-                      default=_DEFAULT_LOG_BACKUP_COUNT,
-                      help='Log backup count')
-    parser.add_option('-q',
-                      '--queue',
-                      dest='request_queue_size',
-                      type='int',
-                      default=_DEFAULT_REQUEST_QUEUE_SIZE,
-                      help='request queue size')
+    parser.add_argument('--thread-monitor-interval-in-sec',
+                        '--thread_monitor_interval_in_sec',
+                        dest='thread_monitor_interval_in_sec',
+                        type=int,
+                        default=-1,
+                        help=('If positive integer is specified, run a thread '
+                              'monitor to show the status of server threads '
+                              'periodically in the specified inteval in '
+                              'second. If non-positive integer is specified, '
+                              'disable the thread monitor.'))
+    parser.add_argument('--log-max',
+                        '--log_max',
+                        dest='log_max',
+                        type=int,
+                        default=_DEFAULT_LOG_MAX_BYTES,
+                        help='Log maximum bytes')
+    parser.add_argument('--log-count',
+                        '--log_count',
+                        dest='log_count',
+                        type=int,
+                        default=_DEFAULT_LOG_BACKUP_COUNT,
+                        help='Log backup count')
+    parser.add_argument('-q',
+                        '--queue',
+                        dest='request_queue_size',
+                        type=int,
+                        default=_DEFAULT_REQUEST_QUEUE_SIZE,
+                        help='request queue size')
 
     return parser
 
@@ -364,7 +369,7 @@ def _parse_args_and_config(args):
     parser = _build_option_parser()
 
     # First, parse options without configuration file.
-    temporary_options, temporary_args = parser.parse_args(args=args)
+    temporary_options, temporary_args = parser.parse_known_args(args=args)
     if temporary_args:
         logging.critical('Unrecognized positional arguments: %r',
                          temporary_args)
@@ -390,7 +395,7 @@ def _parse_args_and_config(args):
             args = args_from_config
         else:
             args = args_from_config + args
-        return parser.parse_args(args=args)
+        return parser.parse_known_args(args=args)
     else:
         return temporary_options, temporary_args
 

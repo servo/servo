@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Fetch Standard (https://fetch.spec.whatwg.org/)
 
 typedef (sequence<sequence<ByteString>> or record<ByteString, ByteString>) HeadersInit;
@@ -9,11 +9,11 @@ typedef (sequence<sequence<ByteString>> or record<ByteString, ByteString>) Heade
 interface Headers {
   constructor(optional HeadersInit init);
 
-  void append(ByteString name, ByteString value);
-  void delete(ByteString name);
+  undefined append(ByteString name, ByteString value);
+  undefined delete(ByteString name);
   ByteString? get(ByteString name);
   boolean has(ByteString name);
-  void set(ByteString name, ByteString value);
+  undefined set(ByteString name, ByteString value);
   iterable<ByteString, ByteString>;
 };
 

@@ -25,9 +25,7 @@ promise_test(async testCase => {
   }
 
   {
-    const subscriptions = [
-      { name: 'cookie-name', matchType: 'equals' }
-    ];
+    const subscriptions = [{ name: 'cookie-name' }];
     await self.registration.cookies.subscribe(subscriptions);
     testCase.add_cleanup(() => registration.cookies.unsubscribe(subscriptions));
   }
@@ -36,7 +34,6 @@ promise_test(async testCase => {
   assert_equals(subscriptions.length, 1);
 
   assert_equals(subscriptions[0].name, 'cookie-name');
-  assert_equals(subscriptions[0].matchType, 'equals');
   assert_equals(subscriptions[0].url, registration.scope);
 }, 'cookieStore.subscribe without url in option');
 
@@ -62,7 +59,7 @@ promise_test(async testCase => {
 
   await promise_rejects_js(testCase, TypeError,
       registration.cookies.subscribe(
-          { name: 'cookie-name', matchType: 'equals', url: '/wrong/path' }));
+          { name: 'cookie-name', url: '/wrong/path' }));
 }, 'cookieStore.subscribe with invalid url path in option');
 
 promise_test(async testCase => {
@@ -86,9 +83,7 @@ promise_test(async testCase => {
   }
 
   {
-    const subscriptions = [
-      { name: 'cookie-name', matchType: 'equals' }
-    ];
+    const subscriptions = [{ name: 'cookie-name' }];
     // Call subscribe for same subscription multiple times to verify that it is
     // idempotent.
     await self.registration.cookies.subscribe(subscriptions);
@@ -101,7 +96,6 @@ promise_test(async testCase => {
   assert_equals(subscriptions.length, 1);
 
   assert_equals(subscriptions[0].name, 'cookie-name');
-  assert_equals(subscriptions[0].matchType, 'equals');
   assert_equals(subscriptions[0].url, registration.scope);
 }, 'cookieStore.subscribe is idempotent');
 
@@ -127,8 +121,8 @@ promise_test(async testCase => {
 
   {
     const subscriptions = [
-      { name: 'cookie-name1', matchType: 'equals' },
-      { name: 'cookie-name2', matchType: 'equals' }
+      { name: 'cookie-name1' },
+      { name: 'cookie-name2' },
     ];
     await self.registration.cookies.subscribe(subscriptions);
     testCase.add_cleanup(() => registration.cookies.unsubscribe(subscriptions));
@@ -144,6 +138,5 @@ promise_test(async testCase => {
   assert_equals(subscriptions.length, 1);
 
   assert_equals(subscriptions[0].name, 'cookie-name2');
-  assert_equals(subscriptions[0].matchType, 'equals');
   assert_equals(subscriptions[0].url, registration.scope);
 }, 'CookieStore.unsubscribe is idempotent');

@@ -13,6 +13,13 @@
     "help": "Output a hosts file to stdout",
     "virtualenv": false
   },
+  "regen-certs": {
+    "path": "regen_certs.py",
+    "script": "run",
+    "parser": "get_parser",
+    "help": "Regenerate the WPT certificates",
+    "virtualenv": false
+  },
   "tc-download": {
     "path": "tc/download.py",
     "script": "run",

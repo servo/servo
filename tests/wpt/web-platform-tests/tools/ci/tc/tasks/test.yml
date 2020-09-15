@@ -13,10 +13,7 @@ components:
     extra:
       github:
         customCheckRun:
-          # We set both textArtifactName and annotationsArtifactName due
-          # to https://github.com/taskcluster/taskcluster/issues/3191
           textArtifactName: public/results/checkrun.md
-          annotationsArtifactName: public/results/checkrun.md
 
   wpt-testharness:
     chunks: 16
@@ -386,7 +383,7 @@ tasks:
         - trigger-pr
       description: >-
         Lint for wpt-specific requirements
-      command: "./wpt lint --all"
+      command: "./wpt lint --all --github-checks-text-file=/home/test/artifacts/checkrun.md"
 
   - update-built:
       use:

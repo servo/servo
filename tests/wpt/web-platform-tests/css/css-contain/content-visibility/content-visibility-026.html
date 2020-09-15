@@ -16,9 +16,14 @@
 .hidden {
   content-visibility: hidden;
 }
+.spacer {
+  height: 10000px;
+}
 </style>
 <div id="container"></div>
-<div id="async_container"></div>
+<div id="onscreen_container"></div>
+<div class=spacer></div>
+<div id="offscreen_container"></div>
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -37,30 +42,53 @@ test(() => {
 }, "content-visibility: hidden adds contain: size layout style;");
 
 async_test((t) => {
-  setUp(async_container);
-  async_container.classList.add("auto");
-  t.step(() => assert_equals(getComputedStyle(async_container).contain, "size layout style paint"));
-  // Considering this as frame 1:
-  // At frame 2, the container has size-containment, and intersection
-  //   observations will be delivered at the end of that frame.
-  // At frame 3, the container still has size-containment, because visiblility
-  //   switch happens after rAF-callbacks have run.
-  // At frame 4, the container is no longer size-contained since it is visible.
-  requestAnimationFrame(() => {
-    // Frame 2 checks:
-    t.step(() => assert_equals(getComputedStyle(async_container).contain, "size layout style paint"));
+  setUp(onscreen_container);
+  setUp(offscreen_container);
 
+  function runTest() {
+    onscreen_container.classList.add("auto");
+    offscreen_container.classList.add("auto");
+
+    t.step(() => assert_equals(getComputedStyle(onscreen_container).contain, "size layout style paint", "initial onscreen"));
+    t.step(() => assert_equals(getComputedStyle(offscreen_container).contain, "size layout style paint", "initial offscreen"));
+    // Considering this as frame 1, at the end of the frame intersection observation will happen
+    // and determine that on-screen is visible and off-screen is not. The on-screen switch will
+    // happen synchronously since this is the first time we check, so for the remainder of the
+    // frames, on-screen should not have a size containment.
+
+    // For off-screen container:
+    // At frame 2, we verify that it has size containment.
+    // At frame 3, we scroll it into view and verify it has size containment. At the end of the frame
+    //    we will determine that it is visible and schedule a visibility switch to happen at the next
+    //    frame (at post-rAF timing).
+    // At frame 4, we still have size containment until after rAF callbacks.
+    // At frame 5, the container is no longer size-contained since it is visible.
     requestAnimationFrame(() => {
-      // Frame 3 checks:
-      t.step(() => assert_equals(getComputedStyle(async_container).contain, "size layout style paint"));
+      // Frame 2 checks:
+      t.step(() => assert_equals(getComputedStyle(onscreen_container).contain, "layout style paint", "frame 2 onscreen"));
+      t.step(() => assert_equals(getComputedStyle(offscreen_container).contain, "size layout style paint", "frame 2 offscreen"));
 
       requestAnimationFrame(() => {
-        // Frame 4 checks:
-        t.step(() => assert_equals(getComputedStyle(async_container).contain, "layout style paint"));
-        t.done();
+        offscreen_container.scrollIntoView();
+
+        // Frame 3 checks:
+        t.step(() => assert_equals(getComputedStyle(offscreen_container).contain, "size layout style paint", "frame 3"));
+
+        requestAnimationFrame(() => {
+          // Frame 4 checks:
+          t.step(() => assert_equals(getComputedStyle(offscreen_container).contain, "size layout style paint", "frame 4"));
+
+          requestAnimationFrame(() => {
+            // Frame 5 checks:
+            t.step(() => assert_equals(getComputedStyle(offscreen_container).contain, "layout style paint", "frame 5"));
+            t.done();
+          });
+        });
       });
     });
-  });
+  }
+  // rAF to ensure we know where we are in the lifecycle.
+  requestAnimationFrame(runTest);
 }, "content-visibility: auto adds contain: size layout style paint;");
 
 test(() => {

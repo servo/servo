@@ -1,19 +1,19 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Intersection Observer (https://w3c.github.io/IntersectionObserver/)
 
-callback IntersectionObserverCallback = void (sequence<IntersectionObserverEntry> entries, IntersectionObserver observer);
+callback IntersectionObserverCallback = undefined (sequence<IntersectionObserverEntry> entries, IntersectionObserver observer);
 
 [Exposed=Window]
 interface IntersectionObserver {
   constructor(IntersectionObserverCallback callback, optional IntersectionObserverInit options = {});
-  readonly attribute Node? root;
+  readonly attribute (Element or Document)? root;
   readonly attribute DOMString rootMargin;
   readonly attribute FrozenArray<double> thresholds;
-  void observe(Element target);
-  void unobserve(Element target);
-  void disconnect();
+  undefined observe(Element target);
+  undefined unobserve(Element target);
+  undefined disconnect();
   sequence<IntersectionObserverEntry> takeRecords();
 };
 

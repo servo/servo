@@ -91,6 +91,14 @@ whereas:
 Will cause example.html to be returned with both text/html and
 text/plain content-type headers.
 
+If the comma (`,`) or closing parenthesis (`)`) characters appear in the header
+value, those characters  must be escaped with a backslash (`\`):
+
+    example?pipe=header(Expires,Thu\,%2014%20Aug%201986%2018:00:00%20GMT)
+
+(Note that the programming environment from which the request is issued may
+require that the backslash character itself be escaped.)
+
 ### `slice`
 
 Used to send only part of a response body. Takes the start and,

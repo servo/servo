@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Resize Observer (https://drafts.csswg.org/resize-observer/)
 
 enum ResizeObserverBoxOptions {
@@ -14,12 +14,12 @@ dictionary ResizeObserverOptions {
 [Exposed=(Window)]
 interface ResizeObserver {
     constructor(ResizeObserverCallback callback);
-    void observe(Element target, optional ResizeObserverOptions options);
-    void unobserve(Element target);
-    void disconnect();
+    undefined observe(Element target, optional ResizeObserverOptions options = {});
+    undefined unobserve(Element target);
+    undefined disconnect();
 };
 
-callback ResizeObserverCallback = void (sequence<ResizeObserverEntry> entries, ResizeObserver observer);
+callback ResizeObserverCallback = undefined (sequence<ResizeObserverEntry> entries, ResizeObserver observer);
 
 [Exposed=Window]
 interface ResizeObserverEntry {
@@ -30,6 +30,7 @@ interface ResizeObserverEntry {
     readonly attribute FrozenArray<ResizeObserverSize> devicePixelContentBoxSize;
 };
 
+[Exposed=Window]
 interface ResizeObserverSize {
     readonly attribute unrestricted double inlineSize;
     readonly attribute unrestricted double blockSize;

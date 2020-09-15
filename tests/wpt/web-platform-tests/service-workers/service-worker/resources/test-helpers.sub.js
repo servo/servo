@@ -92,56 +92,66 @@ function wait_for_update(test, registration) {
     }));
 }
 
-function wait_for_state(test, worker, state) {
-  if (!worker || worker.state == undefined) {
-    return Promise.reject(new Error(
-      'wait_for_state must be passed a ServiceWorker'));
-  }
-  if (worker.state === state)
-    return Promise.resolve(state);
-
-  if (state === 'installing') {
-    switch (worker.state) {
+// Return true if |state_a| is more advanced than |state_b|.
+function is_state_advanced(state_a, state_b) {
+  if (state_b === 'installing') {
+    switch (state_a) {
       case 'installed':
       case 'activating':
       case 'activated':
       case 'redundant':
-        return Promise.reject(new Error(
-          'worker is ' + worker.state + ' but waiting for ' + state));
+        return true;
     }
   }
 
-  if (state === 'installed') {
-    switch (worker.state) {
+  if (state_b === 'installed') {
+    switch (state_a) {
       case 'activating':
       case 'activated':
       case 'redundant':
-        return Promise.reject(new Error(
-          'worker is ' + worker.state + ' but waiting for ' + state));
+        return true;
     }
   }
 
-  if (state === 'activating') {
-    switch (worker.state) {
+  if (state_b === 'activating') {
+    switch (state_a) {
       case 'activated':
       case 'redundant':
-        return Promise.reject(new Error(
-          'worker is ' + worker.state + ' but waiting for ' + state));
+        return true;
     }
   }
 
-  if (state === 'activated') {
-    switch (worker.state) {
+  if (state_b === 'activated') {
+    switch (state_a) {
       case 'redundant':
-        return Promise.reject(new Error(
-          'worker is ' + worker.state + ' but waiting for ' + state));
+        return true;
     }
   }
+  return false;
+}
 
-  return new Promise(test.step_func(function(resolve) {
+function wait_for_state(test, worker, state) {
+  if (!worker || worker.state == undefined) {
+    return Promise.reject(new Error(
+      'wait_for_state needs a ServiceWorker object to be passed.'));
+  }
+  if (worker.state === state)
+    return Promise.resolve(state);
+
+  if (is_state_advanced(worker.state, state)) {
+    return Promise.reject(new Error(
+      `Waiting for ${state} but the worker is already ${worker.state}.`));
+  }
+  return new Promise(test.step_func(function(resolve, reject) {
       worker.addEventListener('statechange', test.step_func(function() {
           if (worker.state === state)
             resolve(state);
+
+          if (is_state_advanced(worker.state, state)) {
+            reject(new Error(
+              `The state of the worker becomes ${worker.state} while waiting` +
+                `for ${state}.`));
+          }
         }));
     }));
 }

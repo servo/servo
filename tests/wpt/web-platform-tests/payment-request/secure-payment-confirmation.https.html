@@ -16,7 +16,7 @@ test(() => {
     data: {
        // All valid parameters.
        action: 'authenticate',
-       instrumentId: 'x',
+       credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
        timeout: 60000,
        fallbackUrl: 'https://fallback.example/url'
@@ -29,7 +29,7 @@ test(() => {
     supportedMethods: 'secure-payment-confirmation',
     data: {
        // Omitted action field.
-       instrumentId: 'x',
+       credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
        timeout: 60000,
        fallbackUrl: 'https://fallback.example/url'
@@ -42,7 +42,7 @@ test(() => {
     supportedMethods: 'secure-payment-confirmation',
     data: {
        action: 'authenticate',
-       instrumentId: 'x',
+       credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
        // Omitted timeout field.
        fallbackUrl: 'https://fallback.example/url'
@@ -51,13 +51,103 @@ test(() => {
 }, 'The timeout field is optional.');
 
 test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }, {supportedMethods: 'basic-card'}], details);
+  });
+}, 'Extra payment method not allowed afterward.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{supportedMethods: 'basic-card'}, {
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details);
+  });
+}, 'Extra payment method not allowed beforehand.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details, {requestShipping: true});
+  });
+}, 'Cannot request shipping information.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details, {requestPayerName: true});
+  });
+}, 'Cannot request payer name.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details, {requestPayerEmail: true});
+  });
+}, 'Cannot request payer email.');
+
+test(() => {
+  assert_throws_js(RangeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details, {requestPayerPhone: true});
+  });
+}, 'Cannot request payer phone.');
+
+test(() => {
   assert_throws_js(TypeError, () => {
     new PaymentRequest([{
       supportedMethods: 'secure-payment-confirmation',
       data: {
         // Invalid action parameter.
         action: 'authorize',
-        instrumentId: 'x',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
         networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
         timeout: 60000,
         fallbackUrl: 'https://fallback.example/url'
@@ -72,14 +162,14 @@ test(() => {
       supportedMethods: 'secure-payment-confirmation',
       data: {
         action: 'authenticate',
-        // Omitted instrumentId field.
+        // Omitted credentialIds field.
         networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
         timeout: 60000,
         fallbackUrl: 'https://fallback.example/url'
       },
     }], details);
   });
-}, 'The instrumentId field is required.');
+}, 'The credentialIds field is required.');
 
 test(() => {
   assert_throws_js(TypeError, () => {
@@ -87,8 +177,8 @@ test(() => {
       supportedMethods: 'secure-payment-confirmation',
       data: {
         action: 'authenticate',
-        instrumentId: 'x',
-        // Omitted instrumentId field.
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        // Omitted networkData field.
         timeout: 60000,
         fallbackUrl: 'https://fallback.example/url'
       },
@@ -102,7 +192,7 @@ test(() => {
       supportedMethods: 'secure-payment-confirmation',
       data: {
         action: 'authenticate',
-        instrumentId: 'x',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
         networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
         timeout: 60000,
         // Omitted fallbackUrl field.
@@ -117,15 +207,16 @@ test(() => {
       supportedMethods: 'secure-payment-confirmation',
       data: {
         action: 'authenticate',
-        // Empty instrumentId field.
-        instrumentId: '',
+        relyingPartyId: 'relying-party.example',
+        // Empty credentialIds field.
+        credentialIds: [],
         networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
         timeout: 60000,
         fallbackUrl: 'https://fallback.example/url'
       },
     }], details);
   });
-}, 'Empty instrumentId field throws exception.');
+}, 'Empty credentialIds field throws exception.');
 
 test(() => {
   assert_throws_js(TypeError, () => {
@@ -133,7 +224,7 @@ test(() => {
       supportedMethods: 'secure-payment-confirmation',
       data: {
         action: 'authenticate',
-        instrumentId: 'x',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
         // Null networkData field.
         networkData: null,
         timeout: 60000,
@@ -149,7 +240,7 @@ test(() => {
       supportedMethods: 'secure-payment-confirmation',
       data: {
         action: 'authenticate',
-        instrumentId: 'x',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
         // Empty networkData field.
         networkData: [],
         timeout: 60000,
@@ -165,7 +256,7 @@ test(() => {
       supportedMethods: 'secure-payment-confirmation',
       data: {
         action: 'authenticate',
-        instrumentId: 'x',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
         networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
         // Timeout longer than 1 hour.
         timeout: 1000 * 60 * 60 + 1,
@@ -174,4 +265,53 @@ test(() => {
     }], details);
   });
 }, 'Timeout longer than 1 hour throws exception.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        // Large credentialIds value.
+        credentialIds: [Uint8Array.from(
+            'x'.repeat(1024 * 1024), c => c.charCodeAt(0))],
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details);
+  });
+}, 'Large credentialIds value throws exception.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        // Large networkData value.
+        networkData: Uint8Array.from('x'.repeat(1024 * 1024), c => c.charCodeAt(0)),
+        timeout: 60000,
+        fallbackUrl: 'https://fallback.example/url'
+      },
+    }], details);
+  });
+}, 'Large networkData value throws exception.');
+
+test(() => {
+  assert_throws_js(TypeError, () => {
+    new PaymentRequest([{
+      supportedMethods: 'secure-payment-confirmation',
+      data: {
+        action: 'authenticate',
+        credentialIds: [Uint8Array.from('x', c => c.charCodeAt(0))],
+        networkData: Uint8Array.from('x', c => c.charCodeAt(0)),
+        timeout: 60000,
+        // Large fallbackUrl value.
+        fallbackUrl: 'https://fallback.example/ur' + 'l'.repeat(1024 * 1024)
+      },
+    }], details);
+  });
+}, 'Large fallbackUrl value throws exception.');
 </script>

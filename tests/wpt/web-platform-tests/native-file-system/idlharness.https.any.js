@@ -6,7 +6,7 @@
 
 idl_test(
   ['native-file-system'],
-  ['streams', 'html', 'dom'],
+  ['storage', 'permissions', 'streams', 'html', 'dom'],
   idl_array => {
     idl_array.add_objects({
       // TODO: Add instances of FileSystemHandle, FileSystemFileHandle,

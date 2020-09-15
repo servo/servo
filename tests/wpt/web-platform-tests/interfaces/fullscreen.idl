@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Fullscreen API Standard (https://fullscreen.spec.whatwg.org/)
 
 enum FullscreenNavigationUI {
@@ -14,7 +14,7 @@ dictionary FullscreenOptions {
 };
 
 partial interface Element {
-  Promise<void> requestFullscreen(optional FullscreenOptions options = {});
+  Promise<undefined> requestFullscreen(optional FullscreenOptions options = {});
 
   attribute EventHandler onfullscreenchange;
   attribute EventHandler onfullscreenerror;
@@ -24,7 +24,7 @@ partial interface Document {
   [LegacyLenientSetter] readonly attribute boolean fullscreenEnabled;
   [LegacyLenientSetter, Unscopable] readonly attribute boolean fullscreen; // historical
 
-  Promise<void> exitFullscreen();
+  Promise<undefined> exitFullscreen();
 
   attribute EventHandler onfullscreenchange;
   attribute EventHandler onfullscreenerror;

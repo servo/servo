@@ -106,6 +106,7 @@ PRINT STATEMENT: webdriver/tests/support/helpers.py
 
 # semi-legitimate use of console.*
 CONSOLE: console/*
+CONSOLE: js/builtins/weakrefs/resources/maybe-garbage-collect.js
 CONSOLE: resources/check-layout-th.js
 CONSOLE: resources/chromium/*
 CONSOLE: streams/resources/test-utils.js
@@ -218,7 +219,6 @@ SET TIMEOUT: webvtt/*
 SET TIMEOUT: workers/*
 SET TIMEOUT: xhr/resources/init.htm
 SET TIMEOUT: xhr/resources/xmlhttprequest-timeout.js
-SET TIMEOUT: focus/support/focus-restoration-in-different-site-iframes-outer.sub.html
 
 # generate_tests implementation and sample usage
 GENERATE_TESTS: resources/test/tests/functional/generate-callback.html
@@ -714,23 +714,19 @@ WEB-PLATFORM.TEST:web-bundle/subresource-loading/subresource-loading-from-web-bu
 # Tests that depend on resources in /gen/ in Chromium:
 # https://github.com/web-platform-tests/wpt/issues/16455
 # Please consult with ecosystem-infra@chromium.org before adding more.
-MISSING DEPENDENCY: resources/test-only-api.js
+MISSING DEPENDENCY: bluetooth/resources/bluetooth-test.js
 MISSING DEPENDENCY: contacts/resources/helpers.js
 MISSING DEPENDENCY: credential-management/support/otpcredential-helper.js
 MISSING DEPENDENCY: generic-sensor/resources/generic-sensor-helpers.js
-MISSING DEPENDENCY: idle-detection/interceptor.https.html
+MISSING DEPENDENCY: idle-detection/resources/idle-detection-helper.js
+MISSING DEPENDENCY: mediacapture-image/resources/imagecapture-helpers.js
 MISSING DEPENDENCY: orientation-event/resources/orientation-event-helpers.js
+MISSING DEPENDENCY: resources/test-only-api.js
 MISSING DEPENDENCY: screen_enumeration/resources/screenenumeration-helpers.js
 MISSING DEPENDENCY: shape-detection/resources/shapedetection-helpers.js
 MISSING DEPENDENCY: web-nfc/resources/nfc-helpers.js
 MISSING DEPENDENCY: webusb/resources/usb-helpers.js
 MISSING DEPENDENCY: webxr/resources/webxr_util.js
-
-# TODO(Hexcles): delete these files once we include them in mojojs.zip.
-MOJOM-JS: resources/chromium/image_capture.mojom.js
-MOJOM-JS: resources/chromium/sensor_provider.mojom.js
-MOJOM-JS: resources/chromium/mojo_web_test_helper_test.mojom.js
-MOJOM-JS: resources/chromium/sensor.mojom.js
 
 # Tests that are false positives for using Ahem as a system font
 AHEM SYSTEM FONT: acid/acid3/test.html

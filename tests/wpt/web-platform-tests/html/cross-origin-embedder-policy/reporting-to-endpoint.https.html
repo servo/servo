@@ -44,7 +44,7 @@ const reportsForReportOnly = [];
 pollReports('endpoint', reports);
 pollReports('report-only-endpoint', reportsForReportOnly);
 
-function checkCorpReportExistence(reports, blockedUrl, contextUrl) {
+function checkCorpReportExistence(reports, blockedUrl, contextUrl, destination, disposition) {
   blockedUrl = new URL(blockedUrl, location).href;
   contextUrl = new URL(contextUrl, location).href;
   for (const report of reports) {
@@ -52,14 +52,16 @@ function checkCorpReportExistence(reports, blockedUrl, contextUrl) {
         report.body.type !== 'corp') {
       continue;
     }
-    if (report.body['blocked-url'] === blockedUrl) {
+    if (report.body.blockedURL === blockedUrl &&
+        report.body.disposition === disposition) {
+      assert_equals(report.body.destination, destination);
       return;
     }
   }
-  assert_unreached(`A report whose blocked-url is ${blockedUrl} and url is ${contextUrl} is not found.`);
+  assert_unreached(`A report whose blockedURL is ${blockedUrl} and url is ${contextUrl} is not found.`);
 }
 
-function checkNavigationReportExistence(reports, blockedUrl, contextUrl) {
+function checkNavigationReportExistence(reports, blockedUrl, contextUrl, disposition) {
   blockedUrl = new URL(blockedUrl, location).href;
   contextUrl = new URL(contextUrl, location).href;
   for (const report of reports) {
@@ -67,105 +69,90 @@ function checkNavigationReportExistence(reports, blockedUrl, contextUrl) {
         report.body.type !== 'navigation') {
       continue;
     }
-    if (report.body['blocked-url'] === blockedUrl) {
+    if (report.body.blockedURL === blockedUrl &&
+        report.body.disposition === disposition) {
       return;
     }
   }
-  assert_unreached(`A report whose blocked-url is ${blockedUrl} and url is ${contextUrl} is not found.`);
+  assert_unreached(`A report whose blockedURL is ${blockedUrl} and url is ${contextUrl} is not found.`);
 }
 
-async_test(async (t) => {
-  try {
-    const iframe = document.createElement('iframe');
-    t.add_cleanup(() => iframe.remove());
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  t.add_cleanup(() => iframe.remove());
 
-    iframe.src = `resources/reporting-empty-frame.html`
-    document.body.appendChild(iframe);
-    await new Promise(resolve => {
-      iframe.addEventListener('load', resolve, {once: true});
-    });
+  iframe.src = `resources/reporting-empty-frame.html`
+  document.body.appendChild(iframe);
+  await new Promise(resolve => {
+    iframe.addEventListener('load', resolve, {once: true});
+  });
 
-    const url = `${REMOTE_ORIGIN}/common/text-plain.txt?${token()}`;
-    const init = { mode: 'no-cors', cache: 'no-store' };
-    // The response comes from cross-origin, and doesn't have a CORP
-    // header, so it is blocked.
-    iframe.contentWindow.fetch(url, init).catch(() => {});
+  const url = `${REMOTE_ORIGIN}/common/text-plain.txt?${token()}`;
+  const init = { mode: 'no-cors', cache: 'no-store' };
+  // The response comes from cross-origin, and doesn't have a CORP
+  // header, so it is blocked.
+  iframe.contentWindow.fetch(url, init).catch(() => {});
 
-    // Wait 3 seconds for reports to settle.
-    await wait(3000);
+  // Wait 3 seconds for reports to settle.
+  await wait(3000);
 
-    checkCorpReportExistence(reports, url, iframe.src);
-    checkCorpReportExistence(reportsForReportOnly, url, iframe.src);
-
-    t.done();
-  } catch (e) {
-    t.step(() => { throw e });
-  }
+  checkCorpReportExistence(reports, url, iframe.src, '', 'enforce');
+  checkCorpReportExistence(
+      reportsForReportOnly, url, iframe.src, '', 'reporting');
 }, 'subresource CORP');
 
-async_test(async (t) => {
-  try {
-    const iframe = document.createElement('iframe');
-    t.add_cleanup(() => iframe.remove());
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  t.add_cleanup(() => iframe.remove());
 
-    iframe.src = `resources/reporting-empty-frame.html`
-    document.body.appendChild(iframe);
-    await new Promise(resolve => {
-      iframe.addEventListener('load', resolve, {once: true});
-    });
+  iframe.src = `resources/reporting-empty-frame.html`
+  document.body.appendChild(iframe);
+  await new Promise(resolve => {
+    iframe.addEventListener('load', resolve, {once: true});
+  });
 
-    const w = iframe.contentWindow;
+  const w = iframe.contentWindow;
 
-    function attachFrame(url) {
-      const frame = w.document.createElement('iframe');
-      frame.src = url;
-      w.document.body.appendChild(frame);
-    }
-
-    const url = `${REMOTE_ORIGIN}/common/blank.html?${token()}`;
-    // The nested frame comes from cross-origin and doesn't have a CORP
-    // header, so it is blocked.
-    attachFrame(url);
-
-    // Wait 3 seconds for reports to settle.
-    await wait(3000);
-
-    checkCorpReportExistence(reports, url, iframe.src);
-    checkCorpReportExistence(reportsForReportOnly, url, iframe.src);
-
-    t.done();
-  } catch (e) {
-    t.step(() => { throw e });
+  function attachFrame(url) {
+    const frame = w.document.createElement('iframe');
+    frame.src = url;
+    w.document.body.appendChild(frame);
   }
+
+  const url = `${REMOTE_ORIGIN}/common/blank.html?${token()}`;
+  // The nested frame comes from cross-origin and doesn't have a CORP
+  // header, so it is blocked.
+  attachFrame(url);
+
+  // Wait 3 seconds for reports to settle.
+  await wait(3000);
+
+  checkCorpReportExistence(reports, url, iframe.src, 'iframe', 'enforce');
+  checkCorpReportExistence(
+      reportsForReportOnly, url, iframe.src, 'iframe', 'reporting');
 }, 'navigation CORP');
 
-async_test(async (t) => {
-  try {
-    const iframe = document.createElement('iframe');
-    t.add_cleanup(() => iframe.remove());
+promise_test(async (t) => {
+  const iframe = document.createElement('iframe');
+  t.add_cleanup(() => iframe.remove());
 
-    iframe.src = 'resources/reporting-empty-frame.html';
-    const targetUrl = `/common/blank.html?${token()}`;
-    iframe.addEventListener('load', () => {
-      const nested = iframe.contentDocument.createElement('iframe');
-      nested.src = targetUrl;
-      // |nested| doesn't have COEP whereas |iframe| has, so it is blocked.
-      iframe.contentDocument.body.appendChild(nested);
-    }, {once: true});
+  iframe.src = 'resources/reporting-empty-frame.html';
+  const targetUrl = `/common/blank.html?${token()}`;
+  iframe.addEventListener('load', t.step_func(() => {
+    const nested = iframe.contentDocument.createElement('iframe');
+    nested.src = targetUrl;
+    // |nested| doesn't have COEP whereas |iframe| has, so it is blocked.
+    iframe.contentDocument.body.appendChild(nested);
+  }), {once: true});
 
-    document.body.appendChild(iframe);
+  document.body.appendChild(iframe);
 
-    // Wait 3 seconds for reports to settle.
-    await wait(3000);
+  // Wait 3 seconds for reports to settle.
+  await wait(3000);
 
-    checkNavigationReportExistence(reports, targetUrl, iframe.src);
-    checkNavigationReportExistence(
-      reportsForReportOnly, targetUrl, iframe.src);
-
-    t.done();
-  } catch (e) {
-    t.step(() => { throw e });
-  }
+  checkNavigationReportExistence(reports, targetUrl, iframe.src, 'enforce');
+  checkNavigationReportExistence(
+    reportsForReportOnly, targetUrl, iframe.src, 'reporting');
 }, 'COEP violation on nested frame navigation');
 
 </script>$

@@ -31,6 +31,9 @@ if not exist tools\wptserve\ ( mklink /d tools\wptserve ..\..\tools\wptserve )
 if not exist tools\certs\ ( mklink /d tools\certs ..\..\tools\certs )
 if not exist tools\wptrunner\ ( mklink /d tools\wptrunner ..\..\tools\wptrunner )
 
+if not exist tools\third_party\ ( mkdir tools\third_party )
+if not exist tools\third_party\pywebsocket3\ ( mklink /d tools\third_party\pywebsocket3 ..\..\..\tools\third_party\pywebsocket3 )
+
 %SPHINXBUILD% -M %1 %SOURCEDIR% %BUILDDIR% %SPHINXOPTS%
 goto end
 

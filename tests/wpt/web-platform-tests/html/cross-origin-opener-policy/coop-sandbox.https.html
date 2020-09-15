@@ -29,6 +29,19 @@
   }, `<iframe sandbox="${sandboxValue}"> ${document.title}`);
 });
 
+// Verify that the popup does not have sandboxing flags set
+async_test(t => {
+  const frame = document.createElement("iframe");
+  const channel = new BroadcastChannel(token());
+  channel.onmessage = t.step_func_done();
+  t.add_cleanup(() => frame.remove());
+  frame.sandbox = "allow-popups allow-scripts allow-popups-to-escape-sandbox";
+  frame.srcdoc = `<script>
+window.open("resources/coop-coep.py?coop=same-origin&coep=&channel=${channel.name}");
+<\/script>`;
+  document.body.append(frame);
+}, `<iframe sandbox="allow-popups allow-scripts allow-popups-to-escape-sandbox"> ${document.title}`);
+
 async_test(t => {
   const frame = document.createElement("iframe");
   const channel = new BroadcastChannel(token());

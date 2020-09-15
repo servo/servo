@@ -4,7 +4,7 @@ importScripts("/resources/testharness.js");
 importScripts("/resources/WebIDLParser.js", "/resources/idlharness.js");
 
 idl_test(
-    ['../idle-detection/idle-detection'],
+    ['idle-detection.tentative'],
     ['dom', 'html'],
     async (idl_array, t) => {
       self.idle = new IdleDetector();

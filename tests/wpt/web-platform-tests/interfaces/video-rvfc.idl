@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: HTMLVideoElement.requestVideoFrameCallback() (https://wicg.github.io/video-rvfc/)
 
 dictionary VideoFrameMetadata {
@@ -19,9 +19,9 @@ dictionary VideoFrameMetadata {
   unsigned long rtpTimestamp;
 };
 
-callback VideoFrameRequestCallback = void(DOMHighResTimeStamp now, VideoFrameMetadata metadata);
+callback VideoFrameRequestCallback = undefined(DOMHighResTimeStamp now, VideoFrameMetadata metadata);
 
 partial interface HTMLVideoElement {
     unsigned long requestVideoFrameCallback(VideoFrameRequestCallback callback);
-    void cancelVideoFrameCallback(unsigned long handle);
+    undefined cancelVideoFrameCallback(unsigned long handle);
 };

@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: UI Events (https://w3c.github.io/uievents/)
 
 [Exposed=Window]
@@ -161,4 +161,10 @@ partial interface KeyboardEvent {
   // The following support legacy user agents
   readonly attribute unsigned long charCode;
   readonly attribute unsigned long keyCode;
+};
+
+partial dictionary KeyboardEventInit {
+  // The following support legacy user agents
+  unsigned long charCode = 0;
+  unsigned long keyCode = 0;
 };

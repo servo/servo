@@ -11,6 +11,7 @@ import {
   insertIframe,
   testSameAgentCluster,
   testDifferentAgentClusters,
+  testGetter
 } from "../resources/helpers.mjs";
 
 promise_setup(async () => {
@@ -29,4 +30,8 @@ testSameAgentCluster([self, 0], "Parent to child1");
 testDifferentAgentClusters([self, 1], "Parent to child2");
 testDifferentAgentClusters([0, 1], "child1 to child2");
 testDifferentAgentClusters([1, 0], "child2 to child1");
+
+testGetter(self, false, "parent");
+testGetter(0, false, "child1");
+testGetter(1, true, "child2");
 </script>

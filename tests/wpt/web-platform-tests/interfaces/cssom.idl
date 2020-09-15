@@ -1,5 +1,5 @@
 // GENERATED PREAMBLE - DO NOT EDIT
-// This preamble was added by reffy-reports for web-platform-tests.
+// This preamble was added by webref for web-platform-tests.
 // CSSOMString is an implementation-defined type of either DOMString or
 // USVString in CSSOM: https://drafts.csswg.org/cssom/#cssomstring-type
 // For web-platform-tests, use DOMString because USVString has additional
@@ -8,8 +8,8 @@
 typedef DOMString CSSOMString;
 
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: CSS Object Model (CSSOM) (https://drafts.csswg.org/cssom/)
 
 [Exposed=Window]
@@ -17,8 +17,8 @@ interface MediaList {
   stringifier attribute [LegacyNullToEmptyString] CSSOMString mediaText;
   readonly attribute unsigned long length;
   getter CSSOMString? item(unsigned long index);
-  void appendMedium(CSSOMString medium);
-  void deleteMedium(CSSOMString medium);
+  undefined appendMedium(CSSOMString medium);
+  undefined deleteMedium(CSSOMString medium);
 };
 
 [Exposed=Window]
@@ -37,13 +37,13 @@ interface CSSStyleSheet : StyleSheet {
   readonly attribute CSSRule? ownerRule;
   [SameObject] readonly attribute CSSRuleList cssRules;
   unsigned long insertRule(CSSOMString rule, optional unsigned long index = 0);
-  void deleteRule(unsigned long index);
+  undefined deleteRule(unsigned long index);
 };
 
 partial interface CSSStyleSheet {
   [SameObject] readonly attribute CSSRuleList rules;
   long addRule(optional DOMString selector = "undefined", optional DOMString style = "undefined", optional unsigned long index);
-  void removeRule(optional unsigned long index = 0);
+  undefined removeRule(optional unsigned long index = 0);
 };
 
 [Exposed=Window]
@@ -102,7 +102,7 @@ interface CSSImportRule : CSSRule {
 interface CSSGroupingRule : CSSRule {
   [SameObject] readonly attribute CSSRuleList cssRules;
   unsigned long insertRule(CSSOMString rule, optional unsigned long index = 0);
-  void deleteRule(unsigned long index);
+  undefined deleteRule(unsigned long index);
 };
 
 [Exposed=Window]
@@ -130,7 +130,7 @@ interface CSSStyleDeclaration {
   getter CSSOMString item(unsigned long index);
   CSSOMString getPropertyValue(CSSOMString property);
   CSSOMString getPropertyPriority(CSSOMString property);
-  [CEReactions] void setProperty(CSSOMString property, [LegacyNullToEmptyString] CSSOMString value, optional [LegacyNullToEmptyString] CSSOMString priority = "");
+  [CEReactions] undefined setProperty(CSSOMString property, [LegacyNullToEmptyString] CSSOMString value, optional [LegacyNullToEmptyString] CSSOMString priority = "");
   [CEReactions] CSSOMString removeProperty(CSSOMString property);
   readonly attribute CSSRule? parentRule;
   [CEReactions] attribute [LegacyNullToEmptyString] CSSOMString cssFloat;

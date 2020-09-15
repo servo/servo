@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title></title>
+<script>
+'use strict';
+const params = new URL(location).searchParams;
+const bc = new BroadcastChannel(params.get('channel_name'));
+const win = open(params.get('resource'), params.get('resource_name'));
+
+bc.onmessage = () => {
+  win.close();
+  close();
+};
+const id = setInterval(() => {
+  if (win.location.href !== 'about:blank') {
+    clearInterval(id);
+    bc.postMessage({name: win.name || null, closed: win.closed});
+  }
+}, 100);
+</script>

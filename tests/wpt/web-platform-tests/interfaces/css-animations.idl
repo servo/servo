@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: CSS Animations Level 1 (https://drafts.csswg.org/css-animations/)
 
 [Exposed=Window]
@@ -32,8 +32,8 @@ interface CSSKeyframesRule : CSSRule {
            attribute CSSOMString name;
   readonly attribute CSSRuleList cssRules;
 
-  void             appendRule(CSSOMString rule);
-  void             deleteRule(CSSOMString select);
+  undefined        appendRule(CSSOMString rule);
+  undefined        deleteRule(CSSOMString select);
   CSSKeyframeRule? findRule(CSSOMString select);
 };
 

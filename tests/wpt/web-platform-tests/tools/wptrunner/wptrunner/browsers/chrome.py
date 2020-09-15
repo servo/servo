@@ -1,3 +1,4 @@
+from . import chrome_spki_certs
 from .base import Browser, ExecutorBrowser, require_arg
 from .base import get_timeout_multiplier   # noqa: F401
 from ..webdriver_server import ChromeDriverServer
@@ -22,7 +23,6 @@ __wptrunner__ = {"product": "chrome",
                  "env_extras": "env_extras",
                  "env_options": "env_options",
                  "timeout_multiplier": "get_timeout_multiplier",}
-
 
 def check_args(**kwargs):
     require_arg(kwargs, "webdriver_binary")
@@ -67,7 +67,11 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     # Here we set a few Chrome flags that are always passed.
     # ChromeDriver's "acceptInsecureCerts" capability only controls the current
     # browsing context, whereas the CLI flag works for workers, too.
-    chrome_options["args"] = ["--ignore-certificate-errors"]
+    chrome_options["args"] = []
+
+    chrome_options["args"].append("--ignore-certificate-errors-spki-list=%s" %
+                                  ','.join(chrome_spki_certs.IGNORE_CERTIFICATE_ERRORS_SPKI_LIST))
+
     # Allow audio autoplay without a user gesture.
     chrome_options["args"].append("--autoplay-policy=no-user-gesture-required")
     # Allow WebRTC tests to call getUserMedia.

@@ -77,9 +77,13 @@ promise_test(async (t) => {
 
 promise_test(async (t) => {
   const URL = remote(
-    '/common/blank.html?pipe=header(access-control-allow-origin,*');
+    '/common/blank.html?pipe=header(access-control-allow-origin,*)');
   await fetch(URL, {mode: 'cors'});
 }, 'making a cross-origin request with CORS');
 
+promise_test(async (t) => {
+  const URL = remote('/fetch/api/resources/preflight.py?allow_headers=hoge');
+  await fetch(URL, {mode: 'cors', headers: {'hoge': 'fuga'}});
+}, 'making a cross-origin request with CORS-preflight');
 </script>
 </html>

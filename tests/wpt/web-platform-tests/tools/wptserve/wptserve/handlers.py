@@ -407,7 +407,7 @@ class AsIsHandler(object):
         path = filesystem_path(self.base_path, request, self.url_base)
 
         try:
-            with open(path) as f:
+            with open(path, 'rb') as f:
                 response.writer.write_raw_content(f.read())
             wrap_pipeline(path, request, response)
             response.close_connection = True

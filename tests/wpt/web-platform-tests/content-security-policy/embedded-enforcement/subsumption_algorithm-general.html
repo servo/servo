@@ -41,15 +41,49 @@
         "required_csp": "frame-src http://c.com:443 http://b.com", 
         "returned_csp": "frame-src http://b.com:80 http://c.com:443", 
         "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Host wildcard *.a.com does not match a.com",
+        "required_csp": "frame-src http://*.a.com",
+        "returned_csp": "frame-src http://a.com",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Host intersection with wildcards is computed correctly.",
+        "required_csp": "frame-sr 'none'",
+        "returned_csp": "frame-src http://a.com",
+        "returned_csp_2": "frame-src http://*.a.com",
+        "expected": IframeLoad.EXPECT_LOAD },
       { "name": "Iframe should load even if the ports are different but are default for the protocols.", 
         "required_csp": "frame-src http://b.com:80", 
         "returned_csp": "child-src https://b.com:443", 
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Iframe should block if intersection allows sources which are not in required_csp.",
+        "required_csp": "style-src http://*.example.com:*",
+        "returned_csp": "style-src http://*.com:*",
+        "returned_csp_2": "style-src http://*.com http://*.example.com:*",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Iframe should block if intersection allows sources which are not in required_csp (other ordering).",
+        "required_csp": "style-src http://*.example.com:*",
+        "returned_csp": "style-src http://*.com:*",
+        "returned_csp_2": "style-src http://*.example.com:* http://*.com",
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Iframe should load if intersection allows only sources which are in required_csp.",
+        "required_csp": "style-src http://*.example.com",
+        "returned_csp": "style-src http://*.example.com:*",
+        "returned_csp_2": "style-src http://*.com",
+        "expected": IframeLoad.EXPECT_LOAD },
+      { "name": "Iframe should block if plugin-types directive is not subsumed.",
+        "required_csp": "plugin-types application/pdf",
+        "returned_csp": null,
+        "expected": IframeLoad.EXPECT_BLOCK },
+      { "name": "Iframe should load if plugin-types directive is subsumed.",
+        "required_csp": "plugin-types application/pdf application/x-java-applet",
+        "returned_csp": "plugin-types application/pdf",
         "expected": IframeLoad.EXPECT_LOAD },
     ];
 
     tests.forEach(test => {
       async_test(t =>  {
         var url = generateUrlWithPolicies(Host.CROSS_ORIGIN, test.returned_csp);
+        if (test.returned_csp_2)
+          url.searchParams.append("policy2", test.returned_csp_2);
         assert_iframe_with_csp(t, url, test.required_csp, test.expected, test.name, null);
       }, test.name);
     });

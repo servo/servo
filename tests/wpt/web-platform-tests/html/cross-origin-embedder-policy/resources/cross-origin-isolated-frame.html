@@ -1,0 +1,10 @@
+<!doctype html>
+<html>
+<body>
+<script>
+self.addEventListener('message', (e) => {
+  e.data.port.postMessage(self.crossOriginIsolated);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Cross-Origin-Opener-Policy forces browsing context switch in various popup document types</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<p>These tests create a "parent" popup window which is an HTML document with a
+specific Cross-Origin-Opener-Policy. The parent creates a "child" popup window
+which is a non-HTML document with a Cross-Origin-Opener-Policy of its own. The
+parent waits for the child's location to change from "<code>about:blank</code>"
+and then inspects its <code>name</code> and <code>closed</code> properties
+which it reports back to the test context.</p>
+
+<p>The HTTP `Refresh` header is used to ensure the child eventually closes
+itself (since proper observance of COOP will prevent the parent from closing
+the child in some cases).</p>
+
+<script>
+'use strict';
+
+const coop_resource_test = ({parentCoop, resourceCoop, resource, resourceName, validate}) => {
+  async_test((t) => {
+    const bc = new BroadcastChannel(token());
+    bc.onmessage = t.step_func_done(({data}) => validate(data));
+    const childLocation = resource +
+      `?pipe=header(Refresh,2;url=/html/cross-origin-opener-policy/resources/resource-cleanup.html?channel=${bc.name})` +
+      (resourceCoop ? `|header(Cross-Origin-Opener-Policy,${resourceCoop})` : '');
+    const parentLocation = 'resources/resource-popup.html' +
+      `?channel_name=${bc.name}` +
+      `&resource=${encodeURIComponent(childLocation)}` +
+      `&resource_name=${resourceName}` +
+      (parentCoop ? `&pipe=header(Cross-Origin-Opener-Policy,${parentCoop})` : '');
+
+    open(parentLocation);
+
+    t.add_cleanup(() => {
+      // Close the "parent" popup and the "child" popup if it has already
+      // redirected to the HTML document.
+      bc.postMessage(null);
+      // Prepare to close the "child" popup in the case that it has not yet
+      // redirected to the the HTML document.
+      bc.onmessage = () => bc.postMessage(null);
+    });
+  }, `${resource} - parent COOP: "${parentCoop}"; child COOP: "${resourceCoop}"`);
+};
+
+const resources = [
+  '/common/dummy.xml',
+  '/images/red.png',
+  '/common/text-plain.txt',
+  '/media/2x2-green.mp4',
+];
+
+for (const resource of resources) {
+  coop_resource_test({
+    parentCoop: '',
+    resourceCoop: 'same-origin',
+    resource,
+    resourceName: 'foobar',
+    validate(data) {
+      assert_equals(data.name, null);
+      assert_equals(data.closed, true);
+    }
+  });
+
+  coop_resource_test({
+    parentCoop: 'same-origin',
+    resourceCoop: '',
+    resource,
+    resourceName: 'foobar',
+    validate(data) {
+      assert_equals(data.name, null);
+      assert_equals(data.closed, true);
+    }
+  });
+
+  coop_resource_test({
+    parentCoop: 'same-origin',
+    resourceCoop: 'same-origin',
+    resource,
+    resourceName: 'foobar',
+    validate(data) {
+      assert_equals(data.name, 'foobar');
+      assert_equals(data.closed, false);
+    }
+  });
+}
+</script>
+</html>

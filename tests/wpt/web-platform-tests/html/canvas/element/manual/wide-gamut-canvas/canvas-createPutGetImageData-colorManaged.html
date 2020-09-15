@@ -76,17 +76,6 @@ runGetImageDataTests();
 
 // Test putImageData when the canvas is color managed.
 
-var dataU8 = new Uint8ClampedArray(4 * xWidth * xHeight);
-var dataU16 = new Uint16Array(4 * xWidth * xHeight);
-var dataF32 = new Float32Array(4 * xWidth * xHeight);
-function prepareDataArrays() {
-  for (i = 0; i < 4 * xWidth * xHeight; i++) {
-    dataU8[i] = (i % 4 == 3) ? 255 : i % 256;
-    dataU16[i] = dataU8[i] * 257;
-    dataF32[i] = dataU8[i] / 255.0;
-  }
-}
-
 var testScenariosPutImageData = [];
 function prepareTestScenariosPutImageData() {
   var colorSpaces = ["srgb"];
@@ -108,25 +97,24 @@ function prepareTestScenariosPutImageData() {
         }
 }
 
-function createAndPutImageData(data, imageDataColorSettings, canvasColorSettings) {
+function createAndPutImageData(imageDataColorSettings, canvasColorSettings) {
   // create color managed canvas
   var aCanvas = document.createElement("canvas");
   aCanvas.width = xWidth;
   aCanvas.height = xHeight;
   var ctx = aCanvas.getContext('2d', canvasColorSettings);
   // create color managed ImageData
-  var imageData = ctx.createImageData(data, xWidth, xHeight, imageDataColorSettings);
+  var imageData = ctx.createImageData(xWidth, xHeight, imageDataColorSettings);
   // put image data into canvas. test succeeds if this does not crash.
   ctx.putImageData(imageData, 0, 0);
 }
 
 function runTestPutImageData(imageDataColorSettings, canvasColorSettings) {
-  createAndPutImageData(dataU8, imageDataColorSettings, canvasColorSettings);
-  createAndPutImageData(dataU16, imageDataColorSettings, canvasColorSettings);
-  createAndPutImageData(dataF32, imageDataColorSettings, canvasColorSettings);
+  createAndPutImageData(imageDataColorSettings, canvasColorSettings);
+  createAndPutImageData(imageDataColorSettings, canvasColorSettings);
+  createAndPutImageData(imageDataColorSettings, canvasColorSettings);
 }
 
-prepareDataArrays();
 prepareTestScenariosPutImageData();
 
 function runPutImageDataTests() {

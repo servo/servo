@@ -8,15 +8,15 @@
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
 test(t => {
-  assert_equals(typeof(window.location.fragmentDirective), 'object', 'window.location.fragmentDirective is defined');
-}, 'Scroll to text is feature detectable via window.location.fragmentDirective');
+  assert_equals(typeof(document.fragmentDirective), 'object', 'document.fragmentDirective is defined');
+}, 'Scroll to text is feature detectable via document.fragmentDirective');
 
 test(t =>{
-  window.location.fragmentDirective = 'text=test';
-  assert_equals(window.scrollY, 0, 'Setting window.location.fragmentDirective did not have an effect on scroll position');
-  assert_equals(typeof(window.location.fragmentDirective), 'object', 'window.location.fragmentDirective is still an object type');
-  assert_equals(Object.keys(window.location.fragmentDirective).length, 0, 'window.location.fragmentDirective has no properties');
-}, 'Setting window.location.fragmentDirective has no effect');
+  document.fragmentDirective = 'text=test';
+  assert_equals(window.scrollY, 0, 'Setting document.fragmentDirective did not have an effect on scroll position');
+  assert_equals(typeof(document.fragmentDirective), 'object', 'document.fragmentDirective is still an object type');
+  assert_equals(Object.keys(document.fragmentDirective).length, 0, 'document.fragmentDirective has no properties');
+}, 'Setting document.fragmentDirective has no effect');
 </script>
 <style>
   body {

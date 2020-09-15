@@ -940,6 +940,7 @@ def get_parser():
     parser.add_argument("--no-h2", action="store_false", dest="h2", default=None,
                         help="Disable the HTTP/2.0 server")
     parser.add_argument("--quic-transport", action="store_true", help="Enable QUIC server for WebTransport")
+    parser.add_argument("--exit-after-start", action="store_true", help="Exit after starting servers")
     parser.set_defaults(report=False)
     parser.set_defaults(is_wave=False)
     return parser
@@ -990,7 +991,7 @@ def run(config_cls=ConfigBuilder, route_builder=None, **kwargs):
             signal.signal(signal.SIGINT, handle_signal)
 
             while (all(subproc.is_alive() for subproc in iter_procs(servers)) and
-                   not received_signal.is_set()):
+                   not received_signal.is_set() and not kwargs["exit_after_start"]):
                 for subproc in iter_procs(servers):
                     subproc.join(1)
 
