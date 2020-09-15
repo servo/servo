@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>::marker supports 'word-break'</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com" />
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#marker-pseudo">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#word-break-property">
+<link rel="match" href="marker-word-break-ref.html">
+<meta name="assert" content="Checks that ::marker supports 'word-break', both explicitly set or inherited from an ancestor">
+<style>
+ol {
+  float: left;
+  width: 50px;
+}
+li {
+  list-style-position: inside;
+  width: 0;
+}
+.word-break-keep-all.explicit ::marker,
+.word-break-keep-all.inherit {
+  word-break: keep-all;
+}
+.word-break-break-all.explicit ::marker,
+.word-break-break-all.inherit {
+  word-break: break-all;
+}
+.marker-disc {
+  list-style-type: disc;
+}
+.marker-decimal {
+  list-style-type: decimal;
+}
+.marker-string {
+  list-style-type: "ab";
+}
+.marker-content::marker {
+  content: "cd";
+}
+</style>
+<ol class="word-break-keep-all explicit">
+  <li class="marker-disc"></li>
+  <li class="marker-decimal"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="word-break-keep-all inherit">
+  <li class="marker-disc"></li>
+  <li class="marker-decimal"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="word-break-break-all explicit">
+  <li class="marker-disc"></li>
+  <li class="marker-decimal"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>
+<ol class="word-break-break-all inherit">
+  <li class="marker-disc"></li>
+  <li class="marker-decimal"></li>
+  <li class="marker-string"></li>
+  <li class="marker-content"></li>
+</ol>

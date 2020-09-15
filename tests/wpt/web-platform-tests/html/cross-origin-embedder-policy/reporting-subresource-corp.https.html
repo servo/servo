@@ -21,11 +21,13 @@ function wait(ms) {
   return new Promise(resolve => step_timeout(resolve, ms));
 }
 
-function checkReport(report, contextUrl, blockedUrl) {
+function checkReport(report, contextUrl, blockedUrl, disposition, destination) {
   assert_equals(report.type, 'coep');
   assert_equals(report.url, contextUrl);
   assert_equals(report.body.type, 'corp');
-  assert_equals(report.body['blocked-url'], blockedUrl);
+  assert_equals(report.body.blockedURL, blockedUrl);
+  assert_equals(report.body.disposition, disposition);
+  assert_equals(report.body.destination, destination);
 }
 
 async function fetchInFrame(t, frameUrl, url) {
@@ -146,20 +148,18 @@ const CASES = [{
   name: 'blocked due to COEP',
   url: `${REMOTE_ORIGIN}/common/text-plain.txt`,
   check: (reports, contextUrl, url) => {
-    // One for COEP, one for COEP-RO.
     assert_equals(reports.length, 2);
-    checkReport(reports[0], contextUrl, url);
-    checkReport(reports[1], contextUrl, url);
+    checkReport(reports[0], contextUrl, url, 'reporting', '');
+    checkReport(reports[1], contextUrl, url, 'enforce', '');
   }
 }, {
   name: 'blocked during redirect',
   url: `${ORIGIN}/common/redirect.py?location=` +
        encodeURIComponent(`${REMOTE_ORIGIN}/common/text-plain.txt`),
   check: (reports, contextUrl, url) => {
-    // One for COEP, one for COEP-RO.
     assert_equals(reports.length, 2);
-    checkReport(reports[0], contextUrl, url);
-    checkReport(reports[1], contextUrl, url);
+    checkReport(reports[0], contextUrl, url, 'reporting', '');
+    checkReport(reports[1], contextUrl, url, 'enforce', '');
   },
 }];
 
@@ -172,5 +172,30 @@ for (const env of ENVIRONMENTS) {
     }, `[${env.tag}] ${testcase.name}`);
   }
 }
+
+// A test for a non-empty destination.
+promise_test(async (t) => {
+  const reports = [];
+  const frame = await with_iframe(FRAME_URL);
+  t.add_cleanup(() => frame.remove());
+
+  const observer = new frame.contentWindow.ReportingObserver((rs) => {
+    for (const report of rs) {
+      reports.push(report.toJSON());
+    }
+  });
+  observer.observe();
+  const url = `${REMOTE_ORIGIN}/common/utils.js`;
+  const script = frame.contentDocument.createElement('script');
+  script.src = url;
+  frame.contentDocument.body.appendChild(script);
+
+  // Wait 200ms for reports to settle.
+  await wait(200);
+
+  assert_equals(reports.length, 2);
+  checkReport(reports[0], FRAME_URL, url, 'reporting', 'script');
+  checkReport(reports[1], FRAME_URL, url, 'enforce', 'script');
+}, 'destination: script');
 
 </script>

@@ -1,0 +1,56 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>
+  Async Clipboard write ([image/svg+xml ClipboardItem]) -> read and write svg tests
+</title>
+<link rel="help" href="https://w3c.github.io/clipboard-apis/#async-clipboard-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+'use strict';
+// This function removes extra spaces between tags in svg. For example, the
+// following html: "<svg> <g> </g>   </svg>" would turn into this
+//           html: "<svg> <g> </g>   </svg>"
+// We remove the extra spaces because in svg they are considered equivalent,
+// but when we are comparing for equality the spaces make a difference.
+function reformatSvg(svg) {
+  const parser = new DOMParser();
+  const svgString =
+        parser.parseFromString(svg, 'text/html').documentElement.innerHTML;
+  const reformattedString = svgString.replace(/\>\s*\</g, '> <');
+  return reformattedString;
+}
+
+async function readWriteTest(textInput) {
+  await test_driver.set_permission({name: 'clipboard-read'}, 'granted');
+  await test_driver.set_permission({name: 'clipboard-write'}, 'granted');
+  const blobInput = new Blob([textInput], {type: 'image/svg+xml'});
+  const clipboardItem = new ClipboardItem({'image/svg+xml': blobInput});
+  await navigator.clipboard.write([clipboardItem]);
+  const clipboardItems =
+      await navigator.clipboard.read({type: 'image/svg+xml'});
+
+  const svg = clipboardItems[0];
+  assert_equals(svg.types.length, 1);
+  assert_equals(svg.types[0], 'image/svg+xml');
+
+  const blobOutput = await svg.getType('image/svg+xml');
+  assert_equals(blobOutput.type, 'image/svg+xml');
+
+  const blobText = await (new Response(blobOutput)).text();
+  const outputSvg = reformatSvg(blobText);
+  const inputSvg = reformatSvg(textInput);
+  assert_equals(outputSvg, inputSvg);
+}
+const testCases = ['<svg></svg>',
+                   '<svg> <circle cx="50" cy="50" r="40" /> </svg>'];
+
+promise_test(async t => {
+  for (const testCase of testCases) {
+    await readWriteTest(testCase);
+  }
+}, 'Verify read and write of some image/svg+xml content');
+
+</script>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>X-Frame-Options invalid values</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.sub.js"></script>
+
+<body>
+<script>
+"use strict";
+
+xfo_simple_tests({
+  headerValue: `INVALID`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
+
+xfo_simple_tests({
+  headerValue: `ALLOW-FROM https://example.com/`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
+
+xfo_simple_tests({
+  headerValue: `ALLOW-FROM=https://example.com/`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
+
+xfo_simple_tests({
+  headerValue: `ALLOWALL`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
+
+xfo_simple_tests({
+  headerValue: `"DENY"`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
+
+xfo_simple_tests({
+  headerValue: `"SAMEORIGIN"`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
+
+xfo_simple_tests({
+  headerValue: `"SAMEORIGIN,DENY"`,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
+
+xfo_simple_tests({
+  headerValue: ``,
+  sameOriginAllowed: true,
+  crossOriginAllowed: true
+});
+</script>

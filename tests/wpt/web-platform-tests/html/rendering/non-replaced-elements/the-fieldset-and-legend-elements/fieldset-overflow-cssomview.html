@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+fieldset {
+  height: 200px;
+  overflow: scroll;
+  padding: 0;
+}
+
+.content {
+  height: 400px;
+}
+</style>
+
+<fieldset>
+  <legend>Legend</legend>
+  <div class="content"></div>
+</fieldset>
+
+<script>
+test(() => {
+  const fieldset = document.querySelector('fieldset');
+  assert_equals(getComputedStyle(fieldset)['overflow-x'], 'scroll');
+  assert_equals(getComputedStyle(fieldset)['overflow-y'], 'scroll');
+  assert_equals(fieldset.scrollHeight, 400);
+  fieldset.scrollTop = 500;
+  assert_greater_than_equal(fieldset.scrollTop, 200);
+}, 'Test cssom-view API for FIELDSET');
+</script>

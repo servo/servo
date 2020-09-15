@@ -1,3 +1,4 @@
+// META: script=/resources/test-only-api.js
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
 // META: script=resources/helpers.js

@@ -656,7 +656,7 @@ addTest(function(win) {
   var desc = Object.getOwnPropertyDescriptor(window, "onmouseenter");
   var f = () => {};
 
-  // Check that it has [LenientThis] behavior
+  // Check that it has [LegacyLenientThis] behavior
   assert_equals(desc.get.call({}), undefined, "getter should return undefined");
   desc.set.call({}, f); // Should not throw.
 
@@ -669,14 +669,14 @@ addTest(function(win) {
   assert_equals(desc.get.call(B), null, "Should have been reset");
 
   // Check that applying it to a cross-origin window throws instead of doing
-  // the [LenientThis] behavior.
+  // the [LegacyLenientThis] behavior.
   assert_throws_dom("SecurityError", () => {
     desc.get.call(win);
   }, "Should throw when getting cross-origin");
   assert_throws_dom("SecurityError", () => {
     desc.set.call(win, f);
   }, "Should throw when setting cross-origin");
-}, "LenientThis behavior");
+}, "LegacyLenientThis behavior");
 
 // We do a fresh load of the subframes for each test to minimize side-effects.
 // It would be nice to reload ourselves as well, but we can't do that without

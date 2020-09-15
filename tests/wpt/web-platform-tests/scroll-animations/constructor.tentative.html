@@ -25,6 +25,16 @@
 <script>
 'use strict';
 
+function formatOffset(v) {
+  if (typeof(v) == 'object')
+    return `${v.constructor.name}(${v.toString()})`;
+  return `'${v.toString()}'`;
+}
+
+function assert_offsets_equal(a, b) {
+  assert_equals(formatOffset(a), formatOffset(b));
+}
+
 test(t => {
   assert_array_equals(new ScrollTimeline({timeRange: 100}).scrollOffsets, []);
 }, 'A ScrollTimeline created with the default scrollOffsets should default to []');
@@ -34,7 +44,9 @@ test(t => {
 }, 'A ScrollTimeline created with empty scrollOffsets should resolve to []');
 
 test(t => {
-  assert_array_equals(new ScrollTimeline({timeRange: 100, scrollOffsets: ['20%', 'auto']}).scrollOffsets, ['20%', 'auto']);
+  let offsets = new ScrollTimeline({timeRange: 100, scrollOffsets: [CSS.percent(20), 'auto']}).scrollOffsets;
+  assert_offsets_equal(offsets[0], CSS.percent(20));
+  assert_offsets_equal(offsets[1], new CSSKeywordValue('auto'));
 }, 'A ScrollTimeline created with last \'auto\' offset in scrollOffsets should be allowed.');
 
 test(t => {
@@ -52,8 +64,8 @@ test(t => {
 }, 'Creating a ScrollTimeline with an scrollOffsets value of [\'auto\'] should throw');
 
 const gValidScrollOffsetValues = [
-  0,
-  'calc(100% - 80px)',
+  CSS.px(0),
+  CSS.percent(100).sub(CSS.px(80)),
 ];
 
 const gValidScrollOffsetSuffixes = [
@@ -83,21 +95,24 @@ for (let offset of gValidScrollOffsetValues) {
     const scrollTimeline = new ScrollTimeline(
         {timeRange: 100, scrollOffsets: [offset, offset]});
 
-    // Special case for 0; this is a valid value, but like computed style will
-    // be output as '0px' when queried.
-    if (offset === 0) offset = '0px';
+    // Special case for 'auto'. This is valid input because of CSSKeywordish,
+    // but when read back we expect a real CSSKeywordValue.
+    if (offset === 'auto')
+      offset = new CSSKeywordValue('auto');
 
-    assert_array_equals(scrollTimeline.scrollOffsets, [offset, offset]);
+    assert_offsets_equal(scrollTimeline.scrollOffsets[0], offset);
+    assert_offsets_equal(scrollTimeline.scrollOffsets[1], offset);
   }, '\'' + offset + '\' is a valid scroll offset value');
 }
 
 for (const suffix of gValidScrollOffsetSuffixes) {
   test(function() {
-    const offset = '75' + suffix;
+    const offset = new CSSUnitValue(75, suffix);
     const scrollTimeline = new ScrollTimeline(
         {timeRange: 100, scrollOffsets: [offset, offset]});
 
-    assert_array_equals(scrollTimeline.scrollOffsets, [offset, offset]);
+    assert_offsets_equal(scrollTimeline.scrollOffsets[0], offset);
+    assert_offsets_equal(scrollTimeline.scrollOffsets[1], offset);
   }, '\'' + suffix + '\' is a valid scroll offset unit');
 }
 
@@ -111,8 +126,14 @@ const gInvalidScrollOffsetValues = [
   'rgb(0, 128, 0)',
   'url("http://www.example.com/pinkish.gif")',
   'this_is_garbage',
+  CSS.number(0),
   // Multiple valid values.
   '100px 5%',
+  // Values that would be valid if represented with CSS Typed OM:
+   0,
+   '10px',
+   '10%',
+   'calc(100% - 80px)',
 ];
 
 const gInvalidScrollOffsetSuffixes = [
@@ -129,7 +150,7 @@ for (const offset of gInvalidScrollOffsetValues) {
           {timeRange: 100, scrollOffsets: ['0px', offset]})
     };
     assert_throws_js(TypeError, constructorFunc);
-  }, '\'' + offset + '\' is an invalid scroll offset value in scrollOffsets');
+  }, formatOffset(offset) + ' is an invalid scroll offset value in scrollOffsets');
 }
 
 for (const suffix of gInvalidScrollOffsetSuffixes) {

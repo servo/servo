@@ -398,7 +398,7 @@ const trackFactories = {
     return dst.stream.getAudioTracks()[0];
   },
 
-  video({width = 640, height = 480, signal = null} = {}) {
+  video({width = 640, height = 480, signal} = {}) {
     const canvas = Object.assign(
       document.createElement("canvas"), {width, height}
     );
@@ -406,15 +406,17 @@ const trackFactories = {
     const stream = canvas.captureStream();
 
     let count = 0;
-    setInterval(() => {
+    const interval = setInterval(() => {
       ctx.fillStyle = `rgb(${count%255}, ${count*count%255}, ${count%255})`;
       count += 1;
       ctx.fillRect(0, 0, width, height);
-      // If signal is set, add a constant-color box to the video frame
-      // at coordinates 10 to 30 in both X and Y direction.
-      if (signal !== null) {
+      // If signal is set (0-255), add a constant-color box of that luminance to
+      // the video frame at coordinates 20 to 60 in both X and Y direction.
+      // (big enough to avoid color bleed from surrounding video in some codecs,
+      // for more stable tests).
+      if (signal != undefined) {
         ctx.fillStyle = `rgb(${signal}, ${signal}, ${signal})`;
-        ctx.fillRect(10, 10, 20, 20);
+        ctx.fillRect(20, 20, 40, 40);
       }
     }, 100);
 
@@ -423,25 +425,34 @@ const trackFactories = {
     } else {
       document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(canvas);
-      });
+      }, {once: true});
     }
 
-    return stream.getVideoTracks()[0];
+    // Implement track.stop() for performance in some tests on some platforms
+    const track = stream.getVideoTracks()[0];
+    const nativeStop = track.stop;
+    track.stop = function stop() {
+      clearInterval(interval);
+      nativeStop.apply(this);
+      if (document.body && canvas.parentElement == document.body) {
+        document.body.removeChild(canvas);
+      }
+    };
+    return track;
   }
 };
 
 // Get the signal from a video element inserted by createNoiseStream
 function getVideoSignal(v) {
-  if (v.videoWidth < 21 || v.videoHeight < 21) {
-    return null;
+  if (v.videoWidth < 60 || v.videoHeight < 60) {
+    throw new Error('getVideoSignal: video too small for test');
   }
   const canvas = document.createElement("canvas");
-  canvas.width = v.videoWidth;
-  canvas.height = v.videoHeight;
+  canvas.width = canvas.height = 60;
   const context = canvas.getContext('2d');
-  context.drawImage(v, 0, 0, v.videoWidth, v.videoHeight);
-  // Extract pixel value at position 20, 20
-  const pixel = context.getImageData(20, 20, 1, 1);
+  context.drawImage(v, 0, 0);
+  // Extract pixel value at position 40, 40
+  const pixel = context.getImageData(40, 40, 1, 1);
   // Use luma reconstruction to get back original value according to
   // ITU-R rec BT.709
   return (pixel.data[0] * 0.21 + pixel.data[1] * 0.72 + pixel.data[2] * 0.07);
@@ -449,8 +460,9 @@ function getVideoSignal(v) {
 
 async function detectSignal(t, v, value) {
   while (true) {
-    const signal = getVideoSignal(v);
-    if (signal !== null && signal < value + 1 && signal > value - 1) {
+    const signal = getVideoSignal(v).toFixed();
+    // allow off-by-two pixel error (observed in some implementations)
+    if (value - 2 <= signal && signal <= value + 2) {
       return;
     }
     // We would like to wait for each new frame instead here,
@@ -527,8 +539,12 @@ async function exchangeOffer(caller, callee) {
 }
 // Performs an answer exchange caller -> callee.
 async function exchangeAnswer(caller, callee) {
-  await callee.setLocalDescription(await callee.createAnswer());
-  await caller.setRemoteDescription(callee.localDescription);
+  // Note that caller's remote description must be set first; if not,
+  // there's a chance that candidates from callee arrive at caller before
+  // it has a remote description to apply them to.
+  const answer = await callee.createAnswer();
+  await caller.setRemoteDescription(answer);
+  await callee.setLocalDescription(answer);
 }
 async function exchangeOfferAnswer(caller, callee) {
   await exchangeOffer(caller, callee);

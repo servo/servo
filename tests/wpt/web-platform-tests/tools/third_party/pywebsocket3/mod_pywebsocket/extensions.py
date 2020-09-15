@@ -273,6 +273,7 @@ class PerMessageDeflateExtensionProcessor(ExtensionProcessorInterface):
 
         If this method has been called with True and an offer without the
         client_max_window_bits extension parameter is received,
+
         - (When processing the permessage-deflate extension) this processor
           declines the request.
         - (When processing the permessage-compress extension) this processor

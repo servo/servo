@@ -29,10 +29,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "reporting",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
             "effectivePolicy": "same-origin-plus-coep",
-            "navigationURI": `${location.href}`,
-            "type": "navigation-to-document"
+            "previousResponseURL": `${location.href}`,
+            "referrer": `${location.origin}/`,
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
@@ -55,10 +55,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "reporting",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
             "effectivePolicy": "same-origin-plus-coep",
-            "navigationURI": `${location.href}`,
-            "type": "navigation-to-document"
+            "previousResponseURL": `${location.href}`,
+            "referrer": `${location.origin}/`,
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"

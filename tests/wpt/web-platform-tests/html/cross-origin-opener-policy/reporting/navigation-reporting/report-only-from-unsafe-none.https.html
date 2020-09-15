@@ -28,10 +28,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "reporting",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
             "effectivePolicy": "same-origin",
-            "navigationURI": `${location.href}`, // previous documnent url
-            "type": "navigation-to-document"
+            "previousResponseURL": `${location.href}`, // previous documnent url
+            "referrer": `${location.origin}/`, // referrer (origin, as dictated by the referrer policy)
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"
@@ -53,10 +53,10 @@ let tests = [
         "report": {
           "body": {
             "disposition": "reporting",
-            "documentURI": /uuid=EXECUTOR_UUID$/,
             "effectivePolicy": "same-origin",
-            "navigationURI": `${location.origin}/`, // referrer (origin, as dictated by the referrer policy)
-            "type": "navigation-to-document"
+            "previousResponseURL": "",
+            "referrer": `${location.origin}/`, // referrer (origin, as dictated by the referrer policy)
+            "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
           "type": "coop"

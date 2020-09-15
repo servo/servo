@@ -1,4 +1,5 @@
 importScripts("/resources/testharness.js");
+importScripts("/resources/test-only-api.js");
 importScripts("resources/shapedetection-helpers.js");
 
 'use strict';

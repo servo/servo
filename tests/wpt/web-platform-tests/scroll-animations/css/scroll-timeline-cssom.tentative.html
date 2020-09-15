@@ -163,7 +163,19 @@ test_offsets('', 'auto');
 test_offsets('red', 'auto');
 test_offsets('#fff', 'auto');
 test_offsets('unset', 'auto');
-test_offsets('selector(#foo)', 'auto');
+test_offsets('unknown(#foo)', 'auto');
+test_offsets('start', 'auto');
+test_offsets('end', 'auto');
+test_offsets('3', 'auto');
+test_offsets('selector(#foo)');
+test_offsets(' selector(#foo)', 'selector(#foo)');
+test_offsets('selector(#foo) start');
+test_offsets('selector(#foo) start 3');
+test_offsets('selector(#foo) 3');
+test_offsets('selector(#foo) 3.5');
+test_offsets('selector(#foo) end');
+test_offsets('selector(#foo) end 3');
+test_offsets('selector(#foo) 3 end', 'selector(#foo) end 3');
 
 // CSSScrollTimelineRule.timeRange
 

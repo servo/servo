@@ -10,7 +10,7 @@
 import {
   insertIframe,
   testDifferentAgentClusters,
-  testOriginIsolationRestricted
+  testGetter
 } from "../resources/helpers.mjs";
 
 promise_setup(async () => {
@@ -22,6 +22,6 @@ promise_setup(async () => {
 // agent cluster and the child ends up in the site-keyed one.
 testDifferentAgentClusters([self, 0]);
 
-testOriginIsolationRestricted(self, true, "parent");
-testOriginIsolationRestricted(0, false, "child");
+testGetter(self, true, "parent");
+testGetter(0, false, "child");
 </script>

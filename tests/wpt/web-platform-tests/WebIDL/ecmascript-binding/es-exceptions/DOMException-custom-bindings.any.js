@@ -27,7 +27,7 @@ test(() => {
   const getter = Object.getOwnPropertyDescriptor(DOMException.prototype, "message").get;
 
   assert_throws_js(TypeError, () => getter.apply({}));
-}, "message getter performs brand checks (i.e. is not [LenientThis]");
+}, "message getter performs brand checks (i.e. is not [LegacyLenientThis])");
 
 test(() => {
   const e = new DOMException("message", "name");
@@ -44,7 +44,7 @@ test(() => {
   const getter = Object.getOwnPropertyDescriptor(DOMException.prototype, "name").get;
 
   assert_throws_js(TypeError, () => getter.apply({}));
-}, "name getter performs brand checks (i.e. is not [LenientThis]");
+}, "name getter performs brand checks (i.e. is not [LegacyLenientThis])");
 
 test(() => {
   const e = new DOMException("message", "name");
@@ -61,7 +61,7 @@ test(() => {
   const getter = Object.getOwnPropertyDescriptor(DOMException.prototype, "code").get;
 
   assert_throws_js(TypeError, () => getter.apply({}));
-}, "code getter performs brand checks (i.e. is not [LenientThis]");
+}, "code getter performs brand checks (i.e. is not [LegacyLenientThis])");
 
 test(() => {
   const e = new DOMException("message", "InvalidCharacterError");

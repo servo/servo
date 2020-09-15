@@ -8,42 +8,33 @@
 // these tests the browser must be run with these options:
 //
 //   --enable-blink-features=MojoJS,MojoJSTest
-const loadChromiumResources = async () => {
-  if (!('MojoInterfaceInterceptor' in self)) {
-    // Do nothing on non-Chromium-based browsers or when the Mojo bindings are
-    // not present in the global namespace.
-    return;
-  }
-
-  const resources = [
-    '/gen/layout_test_data/mojo/public/js/mojo_bindings.js',
+async function loadChromiumResources() {
+  const chromiumResources = [
     '/gen/mojo/public/mojom/base/string16.mojom.js',
     '/gen/services/device/public/mojom/sensor.mojom.js',
     '/gen/services/device/public/mojom/sensor_provider.mojom.js',
-    '/resources/chromium/generic_sensor_mocks.js',
   ];
-
-  await Promise.all(resources.map(path => {
-    const script = document.createElement('script');
-    script.src = path;
-    script.async = false;
-    const promise = new Promise((resolve, reject) => {
-      script.onload = resolve;
-      script.onerror = reject;
-    });
-    document.head.appendChild(script);
-    return promise;
-  }));
-};
+  await loadMojoResources(chromiumResources);
+  await loadScript('/resources/chromium/generic_sensor_mocks.js');
+}
 
 async function initialize_generic_sensor_tests() {
   if (typeof GenericSensorTest === 'undefined') {
-    await loadChromiumResources();
+    const script = document.createElement('script');
+    script.src = '/resources/test-only-api.js';
+    script.async = false;
+    const p = new Promise((resolve, reject) => {
+      script.onload = () => { resolve(); };
+      script.onerror = e => { reject(e); };
+    })
+    document.head.appendChild(script);
+    await p;
+
+    if (isChromiumBased) {
+      await loadChromiumResources();
+    }
   }
-  assert_true(
-    typeof GenericSensorTest !== 'undefined',
-    'Mojo testing interface is not available.'
-  );
+  assert_implements(GenericSensorTest, 'GenericSensorTest is unavailable.');
   let sensorTest = new GenericSensorTest();
   await sensorTest.initialize();
   return sensorTest;

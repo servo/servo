@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM -  CSSFontFaceRule interface</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#cssfontfacerule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @font-face {
+    src: local("foo");
+    font-family: foo;
+    font-weight: bold;
+  }
+</style>
+<script>
+test(function() {
+  // TODO: The exact serialization isn't consistent across browsers
+  // (Firefox doesn't preserve ordering of the descriptors, WebKit/Blink does).
+  let rule = document.styleSheets[0].cssRules[0];
+  assert_false(rule.cssText.includes('\n'));
+}, "CSSFontFaceRule.cssText doesn't serialize with newlines");
+</script>

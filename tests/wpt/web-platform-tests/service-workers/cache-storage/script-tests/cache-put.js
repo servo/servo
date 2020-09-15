@@ -1,10 +1,12 @@
 if (self.importScripts) {
     importScripts('/resources/testharness.js');
+    importScripts('/common/get-host-info.sub.js');
     importScripts('../resources/test-helpers.js');
 }
 
 var test_url = 'https://example.com/foo';
 var test_body = 'Hello world!';
+const { REMOTE_HOST } = get_host_info();
 
 cache_test(function(cache) {
     var request = new Request(test_url);
@@ -128,6 +130,23 @@ cache_test(function(cache, test) {
           return promise_rejects_js(test, TypeError, cache.put(request, fetch_result));
         });
   }, 'Cache.put with HTTP 206 response');
+
+cache_test(function(cache, test) {
+    var test_url = new URL('../resources/fetch-status.py?status=206', location.href);
+    test_url.hostname = REMOTE_HOST;
+    var request = new Request(test_url.href, { mode: 'no-cors' });
+    var response;
+    return fetch(request)
+      .then(function(fetch_result) {
+          assert_equals(fetch_result.type, 'opaque',
+              'Test framework error: The response type should be opaque.');
+          assert_equals(fetch_result.status, 0,
+              'Test framework error: The status code should be 0 for an ' +
+              ' opaque-filtered response. This is actually HTTP 206.');
+          response = fetch_result.clone();
+          return promise_rejects_js(test, TypeError, cache.put(request, fetch_result));
+        });
+  }, 'Cache.put with opaque-filtered HTTP 206 response');
 
 cache_test(function(cache) {
     var test_url = new URL('../resources/fetch-status.py?status=500', location.href).href;

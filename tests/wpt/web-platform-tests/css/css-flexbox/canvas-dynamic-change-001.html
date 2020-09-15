@@ -6,6 +6,7 @@
 <link href="support/flexbox.css" rel="stylesheet">
 <style>
 .red {
+  width: 600px;
   height: 400px;
   background: red;
 }
@@ -20,7 +21,10 @@ canvas {
 
 <div class="red">
   <div class="flexbox column">
-    <canvas id="canvas" data-expected-height="400"></canvas>
+    <!-- The height=400 attribute makes the aspect ratio be 300x400. 300 from
+         the fallback width of replaced elements. 400 from the attribute.
+	 After stretching to 600px wide, the height should be 800px. -->
+    <canvas id="canvas" data-expected-height="800"></canvas>
   </div>
 </div>
 

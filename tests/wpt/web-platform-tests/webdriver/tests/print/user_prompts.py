@@ -3,6 +3,8 @@ import base64
 
 import pytest
 
+from six import ensure_binary
+
 from tests.support.asserts import assert_dialog_handled, assert_error, assert_success
 from tests.support.inline import inline
 from printcmd import do_print, assert_pdf
@@ -18,7 +20,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
         response = do_print(session, {})
         value = assert_success(response)
 
-        pdf = base64.decodestring(value)
+        pdf = base64.decodestring(ensure_binary(value))
         assert_dialog_handled(session, expected_text=dialog_type, expected_retval=retval)
 
         assert_pdf(pdf)

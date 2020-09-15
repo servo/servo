@@ -73,8 +73,7 @@
         : {video: device_id_constraint};
 
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      assert_equals(stream.getTracks()[0].getSettings().groupId,
-                    device.groupId);
+      assert_true(stream.getTracks()[0].getSettings().groupId === device.groupId, "device groupId");
       assert_greater_than(device.groupId.length, 0);
     }
   }, 'groupId is correctly reported by getSettings() for all input devices');

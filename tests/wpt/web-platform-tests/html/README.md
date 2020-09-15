@@ -17,3 +17,4 @@ For historical reasons, parts of HTML have their own directories:
 * [/websockets](/websockets)
 * [/webstorage](/webstorage)
 * [/workers](/workers)
+* [/x-frame-options](/x-frame-options)

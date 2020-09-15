@@ -32,7 +32,7 @@ async function assertFirstContentfulPaint(t) {
   });
 }
 
-async function test_fcp(label) {
+async function test_fcp(label, before_assert_fcp_func) {
   setup({"hide_test_state": true});
   const style = document.createElement('style');
   document.head.appendChild(style);
@@ -43,6 +43,9 @@ async function test_fcp(label) {
     await assertNoFirstContentfulPaint(t);
     main.className = 'preFCP';
     await assertNoFirstContentfulPaint(t);
+    if (before_assert_fcp_func) {
+      await before_assert_fcp_func();
+    }
     main.className = 'contentful';
     await assertFirstContentfulPaint(t);
   }, label);

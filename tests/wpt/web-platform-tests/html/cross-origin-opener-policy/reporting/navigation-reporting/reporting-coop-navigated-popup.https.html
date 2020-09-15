@@ -54,10 +54,9 @@ promise_test( async t => {
       "report": {
         "body": {
           "disposition": "enforce",
-          "documentURI": RegExp(`uuid=${noCoopToken}$`),
           "effectivePolicy": "unsafe-none",
-          "navigationURI": RegExp(`uuid=${coopToken}$`),
-          "type": "navigation-from-document"
+          "nextResponseURL": RegExp(`uuid=${coopToken}$`),
+          "type": "navigation-from-response"
         },
         "url": RegExp(`uuid=${noCoopToken}$`),
         "type": "coop"
@@ -68,10 +67,10 @@ promise_test( async t => {
       "report": {
         "body": {
           "disposition": "enforce",
-          "documentURI": RegExp(`uuid=${coopToken}$`),
           "effectivePolicy": "same-origin",
-          "navigationURI": RegExp(`uuid=${noCoopToken}$`),
-          "type": "navigation-to-document"
+          "previousResponseURL": RegExp(`uuid=${noCoopToken}$`),
+          "referrer": RegExp(`uuid=${noCoopToken}$`),
+          "type": "navigation-to-response"
         },
         "url": RegExp(`uuid=${coopToken}$`),
         "type": "coop"

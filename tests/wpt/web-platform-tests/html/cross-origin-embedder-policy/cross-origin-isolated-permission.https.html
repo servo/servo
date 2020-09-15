@@ -1,0 +1,61 @@
+<!doctype html>
+<title>crossOriginIsolated permission</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+const {ORIGIN, HTTPS_REMOTE_ORIGIN} = get_host_info();
+const PATH =
+  new URL('resources/cross-origin-isolated-frame.html', location).pathname;
+const PIPE =
+  '?pipe=' +
+  '|header(cross-origin-embedder-policy,require-corp)' +
+  '|header(cross-origin-resource-policy,cross-origin)';
+
+async function getCrossOriginIsolatedFor(t, url) {
+  const frame = document.createElement('iframe');
+  t.add_cleanup(() => frame.remove());
+  frame.src = url;
+  document.body.append(frame);
+
+  frame.addEventListener('error', t.unreached_func('frame.error'));
+  await new Promise((resolve) => {
+    frame.addEventListener('load', resolve);
+  });
+
+  const mc = new MessageChannel();
+  frame.contentWindow.postMessage({port: mc.port2}, '*', [mc.port2]);
+
+  const e = await new Promise((resolve) => {
+    mc.port1.onmessage = resolve;
+  });
+  assert_equals(typeof(e.data), 'boolean');
+  return e.data;
+}
+
+function generateTest(origin, value, expectation) {
+  // We use async_test, not promise_test here to run tests in parallel.
+  async_test((t) => {
+    let pipe = PIPE;
+    if (value !== undefined) {
+      pipe += `|header(permissions-policy,cross-origin-isolated=${value})`
+    }
+    const url = `${origin}${PATH}${pipe}`;
+    (async () => {
+      assert_equals(await getCrossOriginIsolatedFor(t, url), expectation);
+    })().then(() => t.done(), (e) => t.step(() => {throw e;}));
+  }, `origin = ${origin}, value = ${value}`);
+}
+
+generateTest(ORIGIN, undefined, true);
+generateTest(ORIGIN, '*', true);
+generateTest(ORIGIN, "'self'", true);
+generateTest(ORIGIN, "'none'", false);
+generateTest(HTTPS_REMOTE_ORIGIN, undefined, false);
+generateTest(HTTPS_REMOTE_ORIGIN, '*', true);
+generateTest(HTTPS_REMOTE_ORIGIN, "'self'", false);
+generateTest(HTTPS_REMOTE_ORIGIN, "'none'", false);
+</script>
+</body>
+</html>

@@ -6,17 +6,35 @@
 <iframe id="listening-iframe" src="resources/subframe-sending-paint.html"></iframe>
 <script>
 setup({"hide_test_state": true});
+var entriesExpectToReceive = [
+    {
+        'entryType': 'paint',
+        'name': 'first-paint'
+    },
+    {
+        'entryType': 'paint',
+        'name': 'first-contentful-paint'
+    }
+];
 async_test(function (t) {
     assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
     let paintingIframeHasDispatchedEntries = false;
     window.addEventListener('message', t.step_func(e => {
         if (!paintingIframeHasDispatchedEntries) {
             // Check paint-timing entries from the painting iframe.
-            assert_equals(e.data, '2 paint first-paint paint first-contentful-paint');
-            paintingIframeHasDispatchedEntries = true;
-            // Ask the listening iframe to send its paint-timing entries.
-            document.getElementById('listening-iframe').
-                contentWindow.postMessage('', '*');
+            for (let i = 0; i < entriesExpectToReceive.length; i++) {
+                if (entriesExpectToReceive[i].entryType == e.data.entryType &&
+                    entriesExpectToReceive[i].name == e.data.name) {
+                    entriesExpectToReceive.splice(i, 1);
+                    break;
+                }
+            }
+            if (entriesExpectToReceive.length == 0) {
+                paintingIframeHasDispatchedEntries = true;
+                // Ask the listening iframe to send its paint-timing entries.
+                document.getElementById('listening-iframe').
+                    contentWindow.postMessage('', '*');
+            }
             return;
         }
         // Check the paint-timing entries from the listening iframe.

@@ -7,40 +7,35 @@
 // these tests the browser must be run with these options:
 //
 //   --enable-blink-features=MojoJS,MojoJSTest
-let loadChromiumResources = Promise.resolve().then(() => {
-  if (!window.MojoInterfaceInterceptor) {
-    // Do nothing on non-Chromium-based browsers or when the Mojo bindings are
-    // not present in the global namespace.
-    return;
-  }
 
-  let chain = Promise.resolve();
-  [
-    '/gen/layout_test_data/mojo/public/js/mojo_bindings.js',
-    '/gen/services/device/public/mojom/nfc.mojom.js',
-    '/resources/testdriver.js',
-    '/resources/testdriver-vendor.js',
-    '/resources/chromium/nfc-mock.js',
-  ].forEach(path => {
-    let script = document.createElement('script');
-    script.src = path;
-    script.async = false;
-    chain = chain.then(() => new Promise(resolve => {
-      script.onload = resolve;
-    }));
-    document.head.appendChild(script);
-  });
+async function loadChromiumResources() {
+  const chromiumResources = [
+  '/gen/services/device/public/mojom/nfc.mojom.js',
+  ];
 
-  return chain;
-});
+  await loadMojoResources(chromiumResources);
+  await loadScript('/resources/testdriver.js');
+  await loadScript('/resources/testdriver-vendor.js');
+  await loadScript('/resources/chromium/nfc-mock.js');
+}
 
 async function initialize_nfc_tests() {
   if (typeof WebNFCTest === 'undefined') {
-    await loadChromiumResources;
+    const script = document.createElement('script');
+    script.src = '/resources/test-only-api.js';
+    script.async = false;
+    const p = new Promise((resolve, reject) => {
+      script.onload = () => { resolve(); };
+      script.onerror = e => { reject(e); };
+    })
+    document.head.appendChild(script);
+    await p;
+
+    if (isChromiumBased) {
+      await loadChromiumResources();
+    }
   }
-  assert_true(
-      typeof WebNFCTest !== 'undefined',
-      'WebNFC testing interface is not available.');
+  assert_implements( WebNFCTest, 'WebNFC testing interface is unavailable.');
   let NFCTest = new WebNFCTest();
   await NFCTest.initialize();
   return NFCTest;
@@ -152,10 +147,6 @@ function createUrlRecord(url, isAbsUrl) {
     return createRecord('absolute-url', url, test_record_id);
   }
   return createRecord('url', url, test_record_id);
-}
-
-function createNDEFWriteOptions(ignoreRead) {
-  return {ignoreRead};
 }
 
 // Compares NDEFMessageSource that was provided to the API

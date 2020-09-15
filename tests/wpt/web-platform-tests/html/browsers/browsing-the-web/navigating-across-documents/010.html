@@ -8,7 +8,7 @@
 <a target="test" onclick="document.forms[0].submit()" href="href.html">Test</a>
 <script>
 var t = async_test();
-t.step(function() {document.getElementsByTagName("a")[0].click()});
+onload = t.step_func(function() {document.getElementsByTagName("a")[0].click()});
 onmessage = t.step_func(
   function(e) {
     assert_equals(e.data, "href");

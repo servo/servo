@@ -17,8 +17,8 @@ function isCoopOpenerBreakageReport(report) {
   if (report.type != "coop")
     return false;
 
-  if (report.body.type != "navigation-from-document" &&
-      report.body.type != "navigation-to-document") {
+  if (report.body.type != "navigation-from-response" &&
+      report.body.type != "navigation-to-response") {
     return false;
   }
 
@@ -98,14 +98,19 @@ function replaceFromRegexOrString(str, match, value) {
 // EXECUTOR_UUID: the uuid generated with token().
 function replaceValuesInExpectedReport(expectedReport, executorUuid) {
   if (expectedReport.report.body !== undefined) {
-    if (expectedReport.report.body.documentURI !== undefined) {
-      expectedReport.report.body.documentURI = replaceFromRegexOrString(
-          expectedReport.report.body.documentURI, "EXECUTOR_UUID",
+    if (expectedReport.report.body.nextResponseURL !== undefined) {
+      expectedReport.report.body.nextResponseURL = replaceFromRegexOrString(
+          expectedReport.report.body.nextResponseURL, "EXECUTOR_UUID",
           executorUuid);
     }
-    if (expectedReport.report.body.navigationURI !== undefined) {
-      expectedReport.report.body.navigationURI = replaceFromRegexOrString(
-          expectedReport.report.body.navigationURI, "EXECUTOR_UUID",
+    if (expectedReport.report.body.previousResponseURL !== undefined) {
+      expectedReport.report.body.previousResponseURL = replaceFromRegexOrString(
+          expectedReport.report.body.previousResponseURL, "EXECUTOR_UUID",
+          executorUuid);
+    }
+    if (expectedReport.report.body.referrer !== undefined) {
+      expectedReport.report.body.referrer = replaceFromRegexOrString(
+          expectedReport.report.body.referrer, "EXECUTOR_UUID",
           executorUuid);
     }
   }

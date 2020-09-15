@@ -70,11 +70,7 @@
                         });
                         var result = computedStyle(transition, 'transition-duration');
                         assert_equals(result, values[key], "Expected computed value");
-                    }, "parse '" + key + "'",
-                    {
-                        // mark tests that fail as such
-                        flags: invalidTests[key] ? "invalid" : ""
-                    });
+                    }, "parse '" + key + "'");
                 }
             }
         </script>

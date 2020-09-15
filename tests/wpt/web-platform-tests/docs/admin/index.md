@@ -10,13 +10,23 @@ infrastructure which makes the project possible.
    :titlesonly:
 
    ../README
-   ../tools/wptserve/docs/index.rst
    ../tools/wptrunner/README
+   ../tools/wptserve/docs/index.rst
+   pywebsocket3
 
 .. toctree::
    :hidden:
 
    ../tools/wptserve/README
+   ../tools/third_party/pywebsocket3/README
+```
+
+### Indices and tables
+
+```eval_rst
+* :ref:`modindex`
+* :ref:`genindex`
+* :ref:`search`
 ```
 
 ## Secrets

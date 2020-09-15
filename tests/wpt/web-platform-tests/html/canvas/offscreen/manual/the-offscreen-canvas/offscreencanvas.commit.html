@@ -14,7 +14,7 @@ function verifyPlaceholder(placeholder, expectedR, expectedG, expectedB, expecte
     _assertPixel(canvas, 5,5, expectedR, expectedG, expectedB, expectedA, "5,5", expectedClrStr);
 }
 
-test(function() {
+async_test(function(t) {
     var placeholder = document.createElement('canvas');
     placeholder.width = placeholder.height = 10;
     var offscreenCanvas = placeholder.transferControlToOffscreen();
@@ -25,8 +25,9 @@ test(function() {
     // place holder contents should still be transparent black at this moment.
     verifyPlaceholder(placeholder, 0,0,0,0, "0,0,0,0");
     // Set timeout acts as a sync barrier to allow commit to propagate
-    setTimeout(function() {
+    t.step_timeout(function() {
         verifyPlaceholder(placeholder, 0,255,0,255, "0,255,0,255");
+        t.done();
     }, 0);
 }, "Test that calling OffscreenCanvas's commit pushes its contents to its placeholder.");
 

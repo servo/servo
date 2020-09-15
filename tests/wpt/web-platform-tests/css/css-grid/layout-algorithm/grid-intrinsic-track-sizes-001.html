@@ -40,49 +40,54 @@ function checkTrackSizes(span, trackList, expectedCols, expectedRows) {
   TestingUtils.testGridTemplateColumnsRows("grid", trackList, trackList, expectedCols, expectedRows);
 }
 
-// Item spanning a single track
-checkTrackSizes(1, "auto", "120px");
-checkTrackSizes(1, "min-content", "30px", "40px");
-checkTrackSizes(1, "max-content", "60px", "30px");
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+  // Item spanning a single track
+  checkTrackSizes(1, "auto", "120px");
+  checkTrackSizes(1, "min-content", "30px", "40px");
+  checkTrackSizes(1, "max-content", "60px", "30px");
 
-checkTrackSizes(1, "minmax(0, auto)", "120px");
-checkTrackSizes(1, "minmax(0, min-content)", "30px", "40px");
-checkTrackSizes(1, "minmax(0, max-content)", "60px", "30px");
+  checkTrackSizes(1, "minmax(0, auto)", "120px");
+  checkTrackSizes(1, "minmax(0, min-content)", "30px", "40px");
+  checkTrackSizes(1, "minmax(0, max-content)", "60px", "30px");
 
-checkTrackSizes(1, "minmax(auto, 10px)", "12px");
-checkTrackSizes(1, "minmax(min-content, 10px)", "30px", "40px");
-checkTrackSizes(1, "minmax(max-content, 10px)", "60px", "30px");
+  checkTrackSizes(1, "minmax(auto, 10px)", "12px");
+  checkTrackSizes(1, "minmax(min-content, 10px)", "30px", "40px");
+  checkTrackSizes(1, "minmax(max-content, 10px)", "60px", "30px");
 
-// Item spanning two identical tracks
+  // Item spanning two identical tracks
 
-checkTrackSizes(2, "auto auto", "60px 60px");
-checkTrackSizes(2, "min-content min-content", "15px 15px", "20px 20px");
-checkTrackSizes(2, "max-content max-content", "30px 30px", "15px 15px");
+  checkTrackSizes(2, "auto auto", "60px 60px");
+  checkTrackSizes(2, "min-content min-content", "15px 15px", "20px 20px");
+  checkTrackSizes(2, "max-content max-content", "30px 30px", "15px 15px");
 
-checkTrackSizes(2, "minmax(0, auto) minmax(0, auto)", "60px 60px");
-checkTrackSizes(2, "minmax(0, min-content) minmax(0, min-content)", "15px 15px", "20px 20px");
-checkTrackSizes(2, "minmax(0, max-content) minmax(0, max-content)", "30px 30px", "15px 15px");
+  checkTrackSizes(2, "minmax(0, auto) minmax(0, auto)", "60px 60px");
+  checkTrackSizes(2, "minmax(0, min-content) minmax(0, min-content)", "15px 15px", "20px 20px");
+  checkTrackSizes(2, "minmax(0, max-content) minmax(0, max-content)", "30px 30px", "15px 15px");
 
-checkTrackSizes(2, "minmax(auto, 4px) minmax(auto, 4px)", "6px 6px");
-checkTrackSizes(2, "minmax(auto, 10px) minmax(auto, 10px)", "10px 10px");
-checkTrackSizes(2, "minmax(min-content, 10px) minmax(min-content, 10px)", "15px 15px", "20px 20px");
-checkTrackSizes(2, "minmax(max-content, 10px) minmax(max-content, 10px)", "30px 30px", "15px 15px");
+  checkTrackSizes(2, "minmax(auto, 4px) minmax(auto, 4px)", "6px 6px");
+  checkTrackSizes(2, "minmax(auto, 10px) minmax(auto, 10px)", "10px 10px");
+  checkTrackSizes(2, "minmax(min-content, 10px) minmax(min-content, 10px)", "15px 15px", "20px 20px");
+  checkTrackSizes(2, "minmax(max-content, 10px) minmax(max-content, 10px)", "30px 30px", "15px 15px");
 
-// Item spanning a fixed track also
-checkTrackSizes(2, "20px auto", "20px 100px");
-checkTrackSizes(2, "20px min-content", "20px 10px", "20px 20px");
-checkTrackSizes(2, "20px max-content", "20px 40px", "20px 10px");
+  // Item spanning a fixed track also
+  checkTrackSizes(2, "20px auto", "20px 100px");
+  checkTrackSizes(2, "20px min-content", "20px 10px", "20px 20px");
+  checkTrackSizes(2, "20px max-content", "20px 40px", "20px 10px");
 
-checkTrackSizes(2, "20px minmax(0, auto)", "20px 100px");
-checkTrackSizes(2, "20px minmax(0, min-content)", "20px 10px", "20px 20px");
-checkTrackSizes(2, "20px minmax(0, max-content)", "20px 40px", "20px 10px");
+  checkTrackSizes(2, "20px minmax(0, auto)", "20px 100px");
+  checkTrackSizes(2, "20px minmax(0, min-content)", "20px 10px", "20px 20px");
+  checkTrackSizes(2, "20px minmax(0, max-content)", "20px 40px", "20px 10px");
 
-checkTrackSizes(2, "20px minmax(auto, 30px)", "20px 30px");
-checkTrackSizes(2, "20px minmax(min-content, 6px)", "20px 10px", "20px 20px");
-checkTrackSizes(2, "20px minmax(min-content, 40px)", "20px 40px", "20px 40px");
-checkTrackSizes(2, "20px minmax(max-content, 6px)", "20px 40px", "20px 10px");
-checkTrackSizes(2, "20px minmax(max-content, 30px)", "20px 40px", "20px 30px");
+  checkTrackSizes(2, "20px minmax(auto, 30px)", "20px 30px");
+  checkTrackSizes(2, "20px minmax(min-content, 6px)", "20px 10px", "20px 20px");
+  checkTrackSizes(2, "20px minmax(min-content, 40px)", "20px 40px", "20px 40px");
+  checkTrackSizes(2, "20px minmax(max-content, 6px)", "20px 40px", "20px 10px");
+  checkTrackSizes(2, "20px minmax(max-content, 30px)", "20px 40px", "20px 30px");
 
-// Item spanning two mismatched intrinsic tracks
-checkTrackSizes(2, "max-content min-content", "45px 15px", "15px 15px");
+  // Item spanning two mismatched intrinsic tracks
+  checkTrackSizes(2, "max-content min-content", "45px 15px", "15px 15px");
+
+  done();
+});
 </script>

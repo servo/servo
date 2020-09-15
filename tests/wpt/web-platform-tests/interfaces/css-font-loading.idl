@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: CSS Font Loading Module Level 3 (https://drafts.csswg.org/css-font-loading/)
 
 typedef (ArrayBuffer or ArrayBufferView) BinaryData;
@@ -50,7 +50,7 @@ interface FontFaceSetLoadEvent : Event {
 
 enum FontFaceSetLoadStatus { "loading", "loaded" };
 
-callback ForEachCallback = void (FontFace font, long index, FontFaceSet self);
+callback ForEachCallback = undefined (FontFace font, long index, FontFaceSet self);
 
 [Exposed=(Window,Worker)]
 interface FontFaceSet : EventTarget {
@@ -60,7 +60,7 @@ interface FontFaceSet : EventTarget {
   setlike<FontFace>;
   FontFaceSet add(FontFace font);
   boolean delete(FontFace font);
-  void clear();
+  undefined clear();
 
   // events for when loading state changes
   attribute EventHandler onloading;

@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+<html>
+<title>CSS Text Test: tab-size: bloc container</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.neat">
+<link rel="help" href="http://www.w3.org/TR/css-text-3/#tab-size">
+<link rel="match" href="tab-size-integer-004-ref.html">
+<meta name="assert" content="Integer tab sizes are based on the nearest block container ancestor, not on the tab itself">
+<style>
+div {
+    white-space: pre;
+    tab-size: 2; /* Overridden, as tab-size applies to inline boxes */
+}
+span {
+    tab-size: 4;
+
+    /* Various factors that are taken into account in the calculation of the tab size,
+       but do not matter here because it must be calculated based on the block container
+       rather than the inline.
+    */
+    font-size: 2em;
+    font-family: monospace;
+    letter-spacing: 5px;
+    word-spacing: 5px;
+}
+</style>
+
+<p>Test passes if the two “X” letters bellow are vertically algined.
+
+<div><span>&#09;X<span></div>
+<div class=ref>    <span>X<span></div>

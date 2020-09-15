@@ -26,6 +26,15 @@ if (!window.assert_times_equal) {
 }
 
 // Allow implementations to substitute an alternative method for comparing
+// times based on their precision requirements.
+if (!window.assert_time_greater_than_equal) {
+ window.assert_time_greater_than_equal = (actual, expected, description) => {
+    assert_greater_than_equal(actual, expected - 2 * TIME_PRECISION,
+                              description);
+  };
+}
+
+// Allow implementations to substitute an alternative method for comparing
 // a time value based on its precision requirements with a fixed value.
 if (!window.assert_time_equals_literal) {
   window.assert_time_equals_literal = (actual, expected, description) => {

@@ -5,7 +5,7 @@ import sys
 from collections import OrderedDict
 from distutils.spawn import find_executable
 from datetime import timedelta
-from six import iterkeys, itervalues, iteritems
+from six import ensure_text, iterkeys, itervalues, iteritems
 
 from . import config
 from . import wpttest
@@ -350,7 +350,7 @@ scheme host and port.""")
 
     taskcluster_group = parser.add_argument_group("Taskcluster-specific")
     taskcluster_group.add_argument("--github-checks-text-file",
-                                   dest="github_checks_text_file",
+                                   type=ensure_text,
                                    help="Path to GitHub checks output file")
 
     webkit_group = parser.add_argument_group("WebKit-specific")

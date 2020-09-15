@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8"/>
+    <title>lspace/rspace default value for unknown operators</title>
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#operator-fence-separator-or-accent-mo">
+    <meta name="assert" content="Verifies that the default lspace/rspace are 0.2777777777777778em for entries that are not in the operator dictionary.">
+    <link rel="match" href="mo-not-in-dictionary-lspace-rspace-ref.html">
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+    <style>
+      math {
+          font: 100px/1 Ahem;
+      }
+      mo {
+          color: blue;
+      }
+    </style>
+  </head>
+  <body>
+    <p>This test passes if on each row, the space around the blue rectangle
+      is 0.2777777777777778em.</p>
+    <p>
+      <math>
+        <mrow>
+          <mn>p</mn>
+          <mo>X</mo> <!-- Single character -->
+          <mn>p</mn>
+        </mrow>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mrow>
+          <mn>p</mn>
+          <mo>XX</mo> <!-- Multiple characters -->
+          <mn>p</mn>
+        </mrow>
+      </math>
+    </p>
+    <p>
+      <math>
+        <mrow>
+          <mn>p</mn>
+          <mo form="infix">X</mo> <!-- Explicit form -->
+          <mn>p</mn>
+        </mrow>
+      </math>
+    </p>
+    <script src="/mathml/support/feature-detection.js"></script>
+    <script>MathMLFeatureDetection.ensure_for_match_reftest("has_operator_spacing");</script>
+  </body>
+</html>

@@ -1,6 +1,6 @@
 // GENERATED CONTENT - DO NOT EDIT
-// Content was automatically extracted by Reffy into reffy-reports
-// (https://github.com/tidoust/reffy-reports)
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: CSS Typed OM Level 1 (https://drafts.css-houdini.org/css-typed-om-1/)
 
 [Exposed=(Window, Worker, PaintWorklet, LayoutWorklet)]
@@ -23,10 +23,10 @@ interface StylePropertyMapReadOnly {
 
 [Exposed=Window]
 interface StylePropertyMap : StylePropertyMapReadOnly {
-    void set(USVString property, (CSSStyleValue or USVString)... values);
-    void append(USVString property, (CSSStyleValue or USVString)... values);
-    void delete(USVString property);
-    void clear();
+    undefined set(USVString property, (CSSStyleValue or USVString)... values);
+    undefined append(USVString property, (CSSStyleValue or USVString)... values);
+    undefined delete(USVString property);
+    undefined clear();
 };
 
 partial interface Element {

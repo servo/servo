@@ -3,8 +3,8 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Web Platform Test Server
-========================
+wptserve: Web Platform Test Server
+==================================
 
 A python-based HTTP server specifically targeted at being used for
 testing the web platform. This means that extreme flexibility —
@@ -24,12 +24,4 @@ Contents:
    stash
    handlers
    pipes
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
 
