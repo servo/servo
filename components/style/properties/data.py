@@ -773,6 +773,7 @@ class PropertyRestrictions:
         return set([
             "color",
             "text-combine-upright",
+            "text-transform",
             "unicode-bidi",
             "direction",
             "content",
