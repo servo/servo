@@ -110,7 +110,7 @@ fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function
                 continue;
             },
         };
-        let recur_into_subtree = match t.kind {
+        let recur_into_subtree = match t.kind() {
             ty::Adt(did, substs) => {
                 let has_attr = |did, name| has_lint_attr(sym, &cx.tcx.get_attrs(did), name);
                 if has_attr(did.did, sym.must_root) {
@@ -121,7 +121,7 @@ fn is_unrooted_ty(sym: &Symbols, cx: &LateContext, ty: &ty::TyS, in_new_function
                 } else if match_def_path(cx, did.did, &[sym.alloc, sym.rc, sym.Rc]) {
                     // Rc<Promise> is okay
                     let inner = substs.type_at(0);
-                    if let ty::Adt(did, _) = inner.kind {
+                    if let ty::Adt(did, _) = inner.kind() {
                         if has_attr(did.did, sym.allow_unrooted_in_rc) {
                             false
                         } else {
