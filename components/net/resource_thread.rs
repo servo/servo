@@ -99,7 +99,7 @@ pub fn new_core_resource_thread(
                 user_agent,
                 devtools_chan,
                 time_profiler_chan,
-                embedder_proxy,
+                embedder_proxy.clone(),
                 certificate_path.clone(),
             );
 
@@ -110,7 +110,14 @@ pub fn new_core_resource_thread(
             };
 
             mem_profiler_chan.run_with_memory_reporting(
-                || (channel_manager.start(public_setup_port, private_setup_port, report_port)),
+                || {
+                    (channel_manager.start(
+                        public_setup_port,
+                        private_setup_port,
+                        report_port,
+                        embedder_proxy.clone(),
+                    ))
+                },
                 String::from("network-cache-reporter"),
                 report_chan,
                 |report_chan| report_chan,
@@ -129,6 +136,7 @@ struct ResourceChannelManager {
 fn create_http_states(
     config_dir: Option<&Path>,
     certificate_path: Option<String>,
+    embedder_proxy: EmbedderProxy,
 ) -> (Arc<HttpState>, Arc<HttpState>) {
     let mut hsts_list = HstsList::from_servo_preload();
     let mut auth_cache = AuthCache::new();
@@ -166,6 +174,7 @@ fn create_http_states(
         ),
         extra_certs,
         connection_certs,
+        embedder_proxy: Mutex::new(embedder_proxy.clone()),
     };
 
     let extra_certs = ExtraCerts::new();
@@ -189,6 +198,7 @@ fn create_http_states(
         ),
         extra_certs,
         connection_certs,
+        embedder_proxy: Mutex::new(embedder_proxy.clone()),
     };
 
     (Arc::new(http_state), Arc::new(private_http_state))
@@ -201,10 +211,12 @@ impl ResourceChannelManager {
         public_receiver: IpcReceiver<CoreResourceMsg>,
         private_receiver: IpcReceiver<CoreResourceMsg>,
         memory_reporter: IpcReceiver<ReportsChan>,
+        embedder_proxy: EmbedderProxy,
     ) {
         let (public_http_state, private_http_state) = create_http_states(
             self.config_dir.as_ref().map(Deref::deref),
             self.certificate_path.clone(),
+            embedder_proxy.clone(),
         );
 
         let mut rx_set = IpcReceiverSet::new().unwrap();

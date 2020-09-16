@@ -16,6 +16,7 @@ use devtools_traits::{
     ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
 };
 use devtools_traits::{HttpResponse as DevtoolsHttpResponse, NetworkEvent};
+use embedder_traits::{EmbedderMsg, EmbedderProxy, PromptDefinition, PromptOrigin};
 use headers::authorization::Basic;
 use headers::{AccessControlAllowCredentials, AccessControlAllowHeaders, HeaderMapExt};
 use headers::{
@@ -26,8 +27,8 @@ use headers::{AccessControlAllowOrigin, AccessControlMaxAge};
 use headers::{CacheControl, ContentEncoding, ContentLength};
 use headers::{IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent};
 use http::header::{
-    self, HeaderName, HeaderValue, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
-    CONTENT_TYPE,
+    self, HeaderName, HeaderValue, AUTHORIZATION, CONTENT_ENCODING, CONTENT_LANGUAGE,
+    CONTENT_LOCATION, CONTENT_TYPE,
 };
 use http::{HeaderMap, Request as HyperRequest};
 use hyper::header::TRANSFER_ENCODING;
@@ -93,10 +94,11 @@ pub struct HttpState {
     pub client: Client<Connector, Body>,
     pub extra_certs: ExtraCerts,
     pub connection_certs: ConnectionCerts,
+    pub embedder_proxy: Mutex<EmbedderProxy>,
 }
 
 impl HttpState {
-    pub fn new(tls_config: TlsConfig) -> HttpState {
+    pub fn new(tls_config: TlsConfig, embedder_proxy: Mutex<EmbedderProxy>) -> HttpState {
         HttpState {
             hsts_list: RwLock::new(HstsList::new()),
             cookie_jar: RwLock::new(CookieStorage::new(150)),
@@ -110,6 +112,7 @@ impl HttpState {
             ),
             extra_certs: ExtraCerts::new(),
             connection_certs: ConnectionCerts::new(),
+            embedder_proxy: embedder_proxy,
         }
     }
 }
@@ -1417,6 +1420,35 @@ fn http_network_or_cache_fetch(
         *done_chan = None;
     }
 
+    fn prompt_user_for_credentials(
+        context: &FetchContext,
+    ) -> std::option::Option<std::string::String> {
+        let local_embedder_proxy: EmbedderProxy;
+        {
+            local_embedder_proxy = context.state.embedder_proxy.lock().unwrap().clone();
+        }
+        let (name_sender, name_receiver) = ipc::channel().unwrap();
+        let name_prompt = PromptDefinition::Input("Name".to_string(), "".to_string(), name_sender);
+        let name_msg = (
+            None,
+            EmbedderMsg::Prompt(name_prompt, PromptOrigin::Trusted),
+        );
+        local_embedder_proxy.send(name_msg);
+        let name_str = name_receiver.recv().unwrap()?;
+
+        let (pass_sender, pass_receiver) = ipc::channel().unwrap();
+        let pass_prompt =
+            PromptDefinition::Input("Password".to_string(), "".to_string(), pass_sender);
+        let pass_msg = (
+            None,
+            EmbedderMsg::Prompt(pass_prompt, PromptOrigin::Trusted),
+        );
+        local_embedder_proxy.send(pass_msg);
+        let pass_str = pass_receiver.recv().unwrap()?;
+
+        serde::export::Some(base64::encode(&format!("{}:{}", name_str, pass_str)))
+    }
+
     wait_for_cached_response(done_chan, &mut response);
 
     // Step 6
@@ -1569,12 +1601,11 @@ fn http_network_or_cache_fetch(
 
         // Substep 3
         if !http_request.use_url_credentials || authentication_fetch_flag {
-            // FIXME: Prompt the user for username and password from the window
-
-            // Wrong, but will have to do until we are able to prompt the user
-            // otherwise this creates an infinite loop
-            // We basically pretend that the user declined to enter credentials
-            return response;
+            let loc_str = prompt_user_for_credentials(context).unwrap();
+            let temp_str = format!("Basic {}", loc_str);
+            http_request
+                .headers
+                .insert(header::AUTHORIZATION, temp_str.clone().parse().unwrap());
         }
 
         // Make sure this is set to None,
@@ -1603,17 +1634,20 @@ fn http_network_or_cache_fetch(
         // Step 2
         // TODO: Spec says requires testing on Proxy-Authenticate headers
 
-        // Step 3
-        // FIXME: Prompt the user for proxy authentication credentials
-
-        // Wrong, but will have to do until we are able to prompt the user
-        // otherwise this creates an infinite loop
-        // We basically pretend that the user declined to enter credentials
-        return response;
+        let loc_str = prompt_user_for_credentials(context).unwrap();
+        let temp_str = format!("Basic {}", loc_str);
+        http_request
+            .headers
+            .insert(header::AUTHORIZATION, temp_str.clone().parse().unwrap());
 
         // Step 4
-        // return http_network_or_cache_fetch(request, authentication_fetch_flag,
-        //                                    cors_flag, done_chan, context);
+        return http_network_or_cache_fetch(
+            http_request,
+            authentication_fetch_flag,
+            cors_flag,
+            done_chan,
+            context,
+        );
     }
 
     // Step 12
