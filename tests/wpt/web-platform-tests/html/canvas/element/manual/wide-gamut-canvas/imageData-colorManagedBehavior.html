@@ -51,7 +51,7 @@ function checkImageDataColorSettings(canvasColorSettings, imageData) {
 
 function checkImageDataColorValues(canvasColorSettings, imageData, isBlank = '',
   width = xWidth, height = xHeight, isWCG_U8toSRGB_U8 = '') {
-  var data = imageData.dataUnion;
+  var data = imageData.data;
   if (isBlank === 'isBlank') {
     testBlankPixels(data, width, height);
   } else {
@@ -105,10 +105,10 @@ function PreparePredefinedImageDataObjects() {
 
   for (var i = 0; i < xWidth * xHeight; i++)
     for (var j = 0; j < 4; j++) {
-      srgbImageDataU8.dataUnion[i*4+j] = srgbPixels[i][j];
-      e_srgbImageDataU16.dataUnion[i*4+j] =
+      srgbImageDataU8.data[i*4+j] = srgbPixels[i][j];
+      e_srgbImageDataU16.data[i*4+j] =
           Math.round(e_srgbPixels[i][j] * 65535);
-      e_srgbImageDataF32.dataUnion[i*4+j] = e_srgbPixels[i][j];
+      e_srgbImageDataF32.data[i*4+j] = e_srgbPixels[i][j];
     }
 }
 
@@ -282,7 +282,7 @@ function runTestCreateImageDataWHC(canvasColorSettings, imageDataColorSettings) 
                 imageDataColorSettings.storageFormat,
                 "storageFormat should match");
   var blankData = new Array(4 * width * height).fill(0);
-  assert_array_equals(imageData.dataUnion, blankData,
+  assert_array_equals(imageData.data, blankData,
                       "ImageData should be transparent black");
 }
 
@@ -317,7 +317,7 @@ runTestCreateImageDataWHCTests();
 // CanvasColorSpace which is given in imageDataColorSettings.
 
 function runTestCreateImageDataDWHC(canvasColorSettings, imageData) {
-  var data = imageData.dataUnion;
+  var data = imageData.data;
   width = xWidth;
   height = xHeight;
   var colorSettings = imageData.getColorSettings();
@@ -332,7 +332,7 @@ function runTestCreateImageDataDWHC(canvasColorSettings, imageData) {
   assert_equals(newColorSettings.storageFormat,
                 colorSettings.storageFormat,
                 "storageFormat should match");
-  assert_array_equals(newImageData.dataUnion, imageData.dataUnion,
+  assert_array_equals(newImageData.data, imageData.data,
                       "ImageData should be transparent black");
 }
 

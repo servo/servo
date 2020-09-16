@@ -90,8 +90,8 @@ function initializeOffscreenCanvasTransparent(canvasColorSpace, canvasPixelForma
 
 function testPixels(testCtx, refCtx, pixelFormat, isTrnasparent)
 {
-    var actual = testCtx.getImageData(0, 0, 4, 4).dataUnion;
-    var expected = refCtx.getImageData(0, 0, 4, 4).dataUnion;
+    var actual = testCtx.getImageData(0, 0, 4, 4).data;
+    var expected = refCtx.getImageData(0, 0, 4, 4).data;
 
     var tolerance = 4;
     if (pixelFormat === 'float16')

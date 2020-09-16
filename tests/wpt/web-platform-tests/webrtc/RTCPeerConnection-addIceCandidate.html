@@ -2,6 +2,7 @@
 <title>Test RTCPeerConnection.prototype.addIceCandidate</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="RTCPeerConnection-helper.js"></script>
 <script>
   'use strict';
 
@@ -224,18 +225,20 @@ a=rtcp-rsize
       pc.addIceCandidate({usernameFragment: "no such ufrag"}));
   }, 'addIceCandidate({usernameFragment: "no such ufrag"}) should not work');
 
-  promise_test(t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
 
     t.add_cleanup(() => pc.close());
 
-    return pc.setRemoteDescription(sessionDesc)
-    .then(() => pc.addIceCandidate({
+    await pc.setRemoteDescription(sessionDesc)
+    await pc.addIceCandidate({
       candidate: candidateStr1,
       sdpMid: sdpMid1,
       sdpMLineIndex: sdpMLineIndex1,
       usernameFragement: usernameFragment1
-    }));
+    });
+    assert_candidate_line_after(pc.remoteDescription.sdp,
+                                mediaLine1, candidateStr1);
   }, 'Add ICE candidate after setting remote description should succeed');
 
   promise_test(t => {
@@ -256,7 +259,6 @@ a=rtcp-rsize
     const pc = new RTCPeerConnection();
 
     t.add_cleanup(() => pc.close());
-
     return pc.setRemoteDescription(sessionDesc)
       .then(() => pc.addIceCandidate({
         candidate: candidateStr1,

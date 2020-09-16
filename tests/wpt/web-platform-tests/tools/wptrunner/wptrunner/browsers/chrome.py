@@ -69,7 +69,6 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     # browsing context, whereas the CLI flag works for workers, too.
     chrome_options["args"] = []
 
-    chrome_options["args"].append("--ignore-certificate-errors")
     chrome_options["args"].append("--ignore-certificate-errors-spki-list=%s" %
                                   ','.join(chrome_spki_certs.IGNORE_CERTIFICATE_ERRORS_SPKI_LIST))
 

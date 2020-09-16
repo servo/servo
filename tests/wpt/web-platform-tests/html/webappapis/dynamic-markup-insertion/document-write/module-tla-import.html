@@ -6,17 +6,20 @@
 <script>
 async_test(t => {
   const iframe = document.createElement("iframe");
-
   iframe.onerror = t.unreached_func("Error loading iframe");
-  let testEndWasCalled = false;
-  document.addEventListener("documentWriteDone", t.step_func(() => {
+
+  let onLoadWasCalled = false;
+
+  iframe.onload = t.step_func(() => {
+    onLoadWasCalled = true;
     assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
-    testEndWasCalled = true;
-  }));
-  iframe.onload = t.step_func_done(() => {
-    assert_true(testEndWasCalled, 'documentWriteDone event was not sent');
-    assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
+    // Don't call the event handler another time after document.write.
+    iframe.onload = null;
   });
+  document.addEventListener("documentWriteDone", t.step_func_done(() => {
+    assert_true(onLoadWasCalled, "onload must be called");
+    assert_equals(iframe.contentDocument.body.textContent, "document.write body contents\n");
+  }));
 
   iframe.src = "module-tla-import-iframe.html";
   document.body.appendChild(iframe);

@@ -169,6 +169,10 @@ class Request(object):
     Regexp match object from matching the request path to the route
     selected for the request.
 
+    .. attribute:: client_address
+
+    Contains a tuple of the form (host, port) representing the client's address.
+
     .. attribute:: protocol_version
 
     HTTP version specified in the request.
@@ -245,6 +249,7 @@ class Request(object):
     def __init__(self, request_handler):
         self.doc_root = request_handler.server.router.doc_root
         self.route_match = None  # Set by the router
+        self.client_address = request_handler.client_address
 
         self.protocol_version = request_handler.protocol_version
         self.method = request_handler.command

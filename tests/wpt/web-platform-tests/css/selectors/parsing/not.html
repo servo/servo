@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: The negation pseudo-class</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-3/#negation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test_valid_selector('button:not([disabled])');
+  test_valid_selector('*:not(foo)',
+      ['*:not(foo)', ':not(foo)']);
+  test_valid_selector(':not(:link):not(:visited)');
+  test_valid_selector('*|*:not(*)', ':not(*)');
+  test_valid_selector(':not(:hover)');
+  test_valid_selector(':not(*|*)', ':not(*)');
+  test_valid_selector('foo:not(bar)');
+</script>

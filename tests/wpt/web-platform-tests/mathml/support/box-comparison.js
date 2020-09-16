@@ -71,23 +71,24 @@ function compareSizeWithAndWithoutStyle(tag, style) {
     if (!FragmentHelper.isValidChildOfMrow(tag))
         throw `Invalid argument: ${tag}`;
 
+    // FIXME <mrow> only needed as workaround for https://bugzilla.mozilla.org/show_bug.cgi?id=1658135
     document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;">\
-<div style="display: inline-block"><math>${MathMLFragments[tag]}</math></div>\
-<div style="display: inline-block"><math>${MathMLFragments[tag]}</math></div>\
+<div style="display: inline-block"><math><mrow>${MathMLFragments[tag]}</mrow></math></div>\
+<div style="display: inline-block"><math><mrow>${MathMLFragments[tag]}</mrow></math></div>\
 </div>`);
     var div = document.body.lastElementChild;
 
     var styleDiv = div.firstElementChild;
-    var styleMath = styleDiv.firstElementChild;
-    var styleElement = FragmentHelper.element(styleMath);
+    var styleParent = styleDiv.firstElementChild.firstElementChild;
+    var styleElement = FragmentHelper.element(styleParent);
     styleElement.setAttribute("style", style);
-    var styleMathBox = styleMath.getBoundingClientRect();
+    var styleParentBox = styleParent.getBoundingClientRect();
     var styleElementBox = styleElement.getBoundingClientRect();
 
     var noStyleDiv = div.lastElementChild;
-    var noStyleMath = noStyleDiv.firstElementChild;
-    var noStyleElement = FragmentHelper.element(noStyleMath);
-    var noStyleMathBox = noStyleMath.getBoundingClientRect();
+    var noStyleParent = noStyleDiv.firstElementChild.firstElementChild;
+    var noStyleElement = FragmentHelper.element(noStyleParent);
+    var noStyleParentBox = noStyleParent.getBoundingClientRect();
     var noStyleElementBox = noStyleElement.getBoundingClientRect();
 
     var preferredWidthDelta =
@@ -98,8 +99,8 @@ function compareSizeWithAndWithoutStyle(tag, style) {
 
     return {
         preferred_width_delta: preferredWidthDelta,
-        width_delta: styleMathBox.width - noStyleMathBox.width,
-        height_delta: styleMathBox.height - noStyleMathBox.height,
+        width_delta: styleParentBox.width - noStyleParentBox.width,
+        height_delta: styleParentBox.height - noStyleParentBox.height,
         element_width_delta: styleElementBox.width - noStyleElementBox.width,
         element_height_delta: styleElementBox.height - noStyleElementBox.height
     };

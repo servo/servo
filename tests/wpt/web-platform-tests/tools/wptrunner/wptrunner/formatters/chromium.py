@@ -41,20 +41,38 @@ class ChromiumFormatter(base.BaseFormatter):
         # Browser log for the current test under execution.
         self.test_log = []
 
-    def _append_test_message(self, test, subtest, status, expected, message):
+    def _append_test_message(self, test, subtest, wpt_actual_status, message):
         """
-        Appends the message data for a test.
+        Appends the message data for a test or subtest.
         :param str test: the name of the test
-        :param str subtest: the name of the subtest with the message
-        :param str status: the subtest status
-        :param str expected: the expected subtest statuses
+        :param str subtest: the name of the subtest with the message. Will be
+                            None if this is called for a test.
+        :param str wpt_actual_status: the test status as reported by WPT
         :param str message: the string to append to the message for this test
 
         Example:
-        [subtest foo] [FAIL expected PASS] message
+          [test_or_subtest_name]
+            expected: FAIL
+            message: some test message eg assert failure
         """
-        self.messages[test].append("[%s] [%s expected %s] %s" %
-                                   (subtest, status, expected, message))
+        # NOTE: throughout this function we output a key called "expected" but
+        # fill it in with the actual status. This is by design. The goal of this
+        # output is to look exactly like WPT's expectation metadata so that it
+        # can be easily diff-ed.
+        if subtest:
+            result = "  [%s]\n    expected: %s\n" % (subtest, wpt_actual_status)
+            if message:
+                result += "    message: %s\n" % message
+            self.messages[test].append(result)
+        else:
+            # No subtest, so this is the top-level test. The result must be
+            # prepended to the list of messages, so that the message for the
+            # test comes before any subtest messages.
+            test_name_last_part = test.split("/")[-1]
+            result = "[%s]\n  expected: %s\n" % (test_name_last_part, wpt_actual_status)
+            if message:
+                result += "  message: %s\n" % message
+            self.messages[test].insert(0, result)
 
     def _append_artifact(self, cur_dict, artifact_name, artifact_value):
         """
@@ -175,15 +193,18 @@ class ChromiumFormatter(base.BaseFormatter):
 
     def test_status(self, data):
         test_name = data["test"]
-        actual_status = self._map_status_name(data["status"])
+        wpt_actual_status = data["status"]
+        actual_status = self._map_status_name(wpt_actual_status)
         expected_statuses = self._get_expected_status_from_data(actual_status, data)
 
         is_unexpected = actual_status not in expected_statuses
         if is_unexpected and test_name not in self.tests_with_subtest_fails:
             self.tests_with_subtest_fails.add(test_name)
-        self._append_test_message(test_name, data.get("subtest", ""),
-                                  actual_status, expected_statuses,
-                                  data.get("message", ""))
+        # We should always get a subtest in the data dict, but it's technically
+        # possible that it's missing. Be resilient here.
+        subtest_name = data.get("subtest", "UNKNOWN SUBTEST")
+        self._append_test_message(test_name, subtest_name,
+                                  wpt_actual_status, data.get("message", ""))
 
     def test_end(self, data):
         test_name = data["test"]
@@ -203,8 +224,7 @@ class ChromiumFormatter(base.BaseFormatter):
             if actual_status == "PASS":
                 actual_status = "FAIL"
 
-        self._append_test_message(test_name, "",
-                                  actual_status, expected_statuses,
+        self._append_test_message(test_name, None, wpt_actual_status,
                                   data.get("message", ""))
         self._store_test_result(test_name,
                                 actual_status,

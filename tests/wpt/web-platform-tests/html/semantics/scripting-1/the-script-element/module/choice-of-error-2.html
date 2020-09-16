@@ -9,6 +9,7 @@
     window.log = [];
 
     window.addEventListener("error", ev => log.push(ev.error));
+    window.addEventListener("onunhandledrejection", unreachable);
 
     const test_load = async_test(
         "Instantiation errors in different files should be reported " +

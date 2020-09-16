@@ -4,7 +4,7 @@ from wptserve.utils import isomorphic_decode
 
 def main(request, response):
 
-    key = request.GET['id']
+    key = request.GET[b'id']
     alreadyServedRequest = False
     try:
       alreadyServedRequest = request.server.stash.take(key)
@@ -19,10 +19,10 @@ def main(request, response):
       pass
 
     response.writer.write_status(200)
-    response.writer.write_header(b"etag", "abcdef")
+    response.writer.write_header(b"etag", b"abcdef")
     response.writer.write_header(b"content-length", len(body))
-    response.writer.write_header(b"content-type", "image/png")
-    response.writer.write_header(b"cache-control", "public, max-age=31536000, no-cache")
+    response.writer.write_header(b"content-type", b"image/png")
+    response.writer.write_header(b"cache-control", b"public, max-age=31536000, no-cache")
     response.writer.end_headers()
 
     response.writer.write(body)
