@@ -10,7 +10,9 @@ async_test(t => {
 
   const iframe = document.createElement("iframe");
 
+  iframe.onunhandledrejection = t.unreached_func("Unhandled promise rejection detected");
   iframe.onerror = t.unreached_func("Error loading iframe");
+
   let onLoadWasCalled = false;
   iframe.onload = t.step_func(() => {
     assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");

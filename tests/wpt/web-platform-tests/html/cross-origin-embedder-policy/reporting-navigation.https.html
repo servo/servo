@@ -110,40 +110,38 @@ for (const testcase of CASES) {
     function desc(s) {
       return s === '' ? '(none)' : s;
     }
-    async_test(async (t) => {
-      try {
-        const targetUrl = REMOTE_FRAME_URL + testcase.target;
-        const parent =
-          await loadFrames(t, testcase.parent, withEmptyFrame, targetUrl);
-
+    // These tests are very slow, so they must be run in parallel using
+    // async_test.
+    async_test(t => {
+      const targetUrl = REMOTE_FRAME_URL + testcase.target;
+      loadFrames(t, testcase.parent, withEmptyFrame, targetUrl)
+          .then(t.step_func(parent => {
         const contextUrl = parent.src ? parent.src : 'about:blank';
-        const reports = await observeReports(parent.contentWindow);
-        assert_equals(reports.length, testcase.reports.length);
-
-        for (let i = 0; i < reports.length; i += 1) {
-          const report = reports[i];
-          switch (testcase.reports[i]) {
-            case 'CORP':
-              checkCorpReport(report, contextUrl, targetUrl, 'enforce');
-              break;
-            case 'CORP-RO':
-              checkCorpReport(report, contextUrl, targetUrl, 'reporting');
-              break;
-            case 'NAV':
-              checkCoepMismatchReport(report, contextUrl, targetUrl, 'enforce');
-              break;
-            case 'NAV-RO':
-              checkCoepMismatchReport(report, contextUrl, targetUrl, 'reporting');
-              break;
-            default:
-              assert_unreached(
-                'Unexpected report expeaction: ' + testcase.reports[i]);
+        observeReports(parent.contentWindow).then(t.step_func(reports => {
+          assert_equals(reports.length, testcase.reports.length);
+          for (let i = 0; i < reports.length; i += 1) {
+            const report = reports[i];
+            switch (testcase.reports[i]) {
+              case 'CORP':
+                checkCorpReport(report, contextUrl, targetUrl, 'enforce');
+                break;
+              case 'CORP-RO':
+                checkCorpReport(report, contextUrl, targetUrl, 'reporting');
+                break;
+              case 'NAV':
+                checkCoepMismatchReport(report, contextUrl, targetUrl, 'enforce');
+                break;
+              case 'NAV-RO':
+                checkCoepMismatchReport(report, contextUrl, targetUrl, 'reporting');
+                break;
+              default:
+                assert_unreached(
+                  'Unexpected report expeaction: ' + testcase.reports[i]);
+            }
           }
-        }
-        t.done();
-      } catch (e) {
-        t.step(() => { throw e; });
-      }
+          t.done();
+        })).catch(t.step_func(e => { throw e; }));
+      })).catch(t.step_func(e => { throw e; }));
     }, `parent: ${desc(testcase.parent)}, target: ${desc(testcase.target)}, ` +
        `with empty frame: ${withEmptyFrame}`);
   }

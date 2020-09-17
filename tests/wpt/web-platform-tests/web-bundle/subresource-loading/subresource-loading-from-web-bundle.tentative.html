@@ -16,6 +16,18 @@
     }, "Subresource loading with WebBundle");
 
     promise_test(async () => {
+      const response = await fetch('http://web-platform.test:8001/root.js');
+      const text = await response.text();
+      assert_equals(text, "export * from './submodule.js';\n");
+    }, "Subresource loading with WebBundle (Fetch API)");
+
+    promise_test(t => {
+      const url =
+          '/common/redirect.py?location=http://web-platform.test:8001/root.js';
+      return promise_rejects_js(t, TypeError, import(url));
+    }, "Subresource loading with WebBundle shouldn't affect redirect");
+
+    promise_test(async () => {
       const link = document.createElement("link");
       link.rel = "webbundle";
       link.href = "../resources/wbn/dynamic1.wbn";

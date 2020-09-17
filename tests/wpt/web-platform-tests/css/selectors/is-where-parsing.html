@@ -5,18 +5,22 @@
 <link rel="help" href="https://drafts.csswg.org/selectors-4/#zero-matches">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<style id="test-sheet">
+  random-selector { color: blue; }
+</style>
 <script>
+  let rule = document.getElementById("test-sheet").sheet.cssRules[0];
   function assert_valid(expected_valid, pattern, description) {
     test(function() {
       for (let pseudo of ["is", "where"]) {
-        let valid = false;
         let selector = pattern.replace("{}", ":" + pseudo)
-        try {
-          document.querySelector(selector);
-          valid = true;
-        } catch (ex) {}
-
-        assert_equals(valid, expected_valid, `${description}: ${selector}`);
+        rule.selectorText = "random-selector";
+        rule.selectorText = selector;
+        (expected_valid ? assert_equals : assert_not_equals)(
+          rule.selectorText,
+          selector,
+          `${description}: ${selector}`
+        );
       }
     }, description);
   }

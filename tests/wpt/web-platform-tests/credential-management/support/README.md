@@ -8,10 +8,13 @@ and the underlying operating system and mock its behavior.
 
 Usage:
 
-1. Include `<script src="./support/otpcredential-helper.js"></script>` in your
-test
-2. Set expectations
+1. Include the following in your test:
+```html
+<script src="/resources/test-only-api.js"></script>
+<script src="support/otpcredential-helper.js"></script>
 ```
+2. Set expectations
+```javascript
 await expect(receive).andReturn(() => {
   // mock behavior
 })

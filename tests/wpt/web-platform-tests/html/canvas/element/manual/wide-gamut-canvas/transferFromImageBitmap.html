@@ -41,7 +41,7 @@ function generateExpectedResult(testScenario, canvas)
     ctx.fillRect(0, 1, 1, 1);
     ctx.fillStyle = generateFillStyle(27, 27, 27, testScenario.alpha);
     ctx.fillRect(1, 1, 1, 1);
-    return ctx.getImageData(0, 0, 2, 2).dataUnion;
+    return ctx.getImageData(0, 0, 2, 2).data;
 }
 
 function generateTestName(testScenario) {
@@ -79,7 +79,7 @@ function runTransferFromImageBitmapTest(testScenario) {
                 {colorSpace: testScenario.colorSpace,
                  pixelFormat: testScenario.pixelFormat});
             ctx.drawImage(dstCanvas, 0, 0);
-            var actualPixels = ctx.getImageData(0, 0, 2, 2).dataUnion;
+            var actualPixels = ctx.getImageData(0, 0, 2, 2).data;
             testPixels(actualPixels, expectedPixels, testScenario);
         });
        }, generateTestName(testScenario));

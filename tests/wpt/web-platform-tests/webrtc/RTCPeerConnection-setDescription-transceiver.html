@@ -248,18 +248,14 @@
     const offer = await pc1.createOffer();
     await pc1.setLocalDescription(offer);
 
-    assert_false(pc1.getTransceivers()[0].stopped, 'Transceiver is not stopped');
-
     await pc2.setRemoteDescription(offer);
     pc2.getTransceivers()[0].stop();
     const answer = await pc2.createAnswer();
 
     await pc1.setRemoteDescription(answer);
 
-    assert_true(pc1.getTransceivers()[0].stopped, 'Transceiver is stopped');
-    assert_equals(pc1.getReceivers().length, 0, 'getReceivers does not expose a receiver of a stopped transceiver');
-    assert_equals(pc1.getSenders().length, 0, 'getSenders does not expose a sender of a stopped transceiver');
-  }, 'setRemoteDescription should stop the transceiver if its corresponding m section is rejected');
+    assert_equals(pc1.getTransceivers()[0].currentDirection, 'inactive', 'A stopped m-line should give an inactive transceiver');
+  }, 'setRemoteDescription should set transceiver inactive if its corresponding m section is rejected');
 
   /*
     TODO

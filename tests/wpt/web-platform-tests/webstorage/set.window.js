@@ -43,7 +43,7 @@
             assert_equals(storage[key], proto);
             assert_equals(storage.getItem(key), null);
             assert_equals(storage[key] = value, value);
-            // Hidden because no [LegacyOverrideBuiltins].
+            // Hidden because no [LegacyOverrideBuiltIns].
             assert_equals(storage[key], proto);
             assert_equals(Object.getOwnPropertyDescriptor(storage, key), undefined);
             assert_equals(storage.getItem(key), value);
@@ -62,7 +62,7 @@
 
             storage.setItem(key, existing);
 
-            // Hidden because no [LegacyOverrideBuiltins].
+            // Hidden because no [LegacyOverrideBuiltIns].
             assert_equals(storage[key], proto);
             assert_equals(Object.getOwnPropertyDescriptor(storage, key), undefined);
             assert_equals(storage.getItem(key), existing);
@@ -93,7 +93,7 @@
             assert_equals(storage[key], proto);
             assert_equals(storage.getItem(key), null);
             assert_equals(storage[key] = value, value);
-            // Property is hidden because no [LegacyOverrideBuiltins].
+            // Property is hidden because no [LegacyOverrideBuiltIns].
             assert_equals(storage[key], proto);
             assert_equals(Object.getOwnPropertyDescriptor(storage, key), undefined);
             assert_equals(storage.getItem(key), value);

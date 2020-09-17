@@ -43,8 +43,8 @@ function testPixels(ctx, tests, sourceType)
     if (sourceType === 'video')
         tolerance = 0.03;
     for (var i = 0; i < tests.length; i++) {
-        actual = ctx.getImageData(tests[i][0], tests[i][1], 1, 1).dataUnion;
-        assert_implements(actual, 'ImageData dataUnion not supported');
+        actual = ctx.getImageData(tests[i][0], tests[i][1], 1, 1).data;
+        assert_implements(actual, 'ImageData data not supported');
         expected = tests[i][2];
         assert_equals(actual.length, expected.length);
         for (var j = 0; j < actual.length; j++)
@@ -171,10 +171,10 @@ function compareBitmaps(bitmap1, bitmap2)
     ctx2.clearRect(0, 0, canvas2.width, canvas2.height);
     ctx1.drawImage(bitmap1, 0, 0);
     ctx2.drawImage(bitmap2, 0, 0);
-    var data1 = ctx1.getImageData(0, 0, 50, 50).dataUnion;
-    assert_implements(data1, 'ImageData dataUnion not supported');
-    var data2 = ctx2.getImageData(0, 0, 50, 50).dataUnion;
-    assert_implements(data2, 'ImageData dataUnion not supported');
+    var data1 = ctx1.getImageData(0, 0, 50, 50).data;
+    assert_implements(data1, 'ImageData data not supported');
+    var data2 = ctx2.getImageData(0, 0, 50, 50).data;
+    assert_implements(data2, 'ImageData data not supported');
     var dataMatched = true;
     for (var i = 0; i < data1.length; i++) {
         if (data1[i] != data2[i]) {

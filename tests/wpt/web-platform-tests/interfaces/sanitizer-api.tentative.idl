@@ -8,4 +8,6 @@
   [CallWith=ScriptState, RaisesException] DOMString sanitizeToString(DOMString input);
 };
 
-dictionary SanitizerConfig {};
+dictionary SanitizerConfig {
+  sequence<DOMString>? dropElements;
+};

@@ -2,6 +2,8 @@ import time
 import json
 import re
 
+from wptserve.utils import isomorphic_decode
+
 def retrieve_from_stash(request, key, timeout, min_count, default_value):
   t0 = time.time()
   while time.time() - t0 < timeout:
@@ -44,7 +46,7 @@ def main(request, response):
   new_reports = json.loads(request.body)
   for report in new_reports:
     report[u"metadata"] = {
-      b"content_type": request.headers[b"Content-Type"],
+      u"content_type": isomorphic_decode(request.headers[b"Content-Type"]),
     }
   with request.server.stash.lock:
     reports = request.server.stash.take(key=key)
