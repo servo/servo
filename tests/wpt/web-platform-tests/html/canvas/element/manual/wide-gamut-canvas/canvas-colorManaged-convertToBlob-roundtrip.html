@@ -78,7 +78,7 @@ function runConvertToBlobTest(testScenario) {
     var ctx = srcCanvas.getContext('2d', testScenario.canvasColorParam);
     var compositeOverBlack = (testScenario.encodeOptions.type == "image/jpeg");
     drawPatternOnCanvsa(ctx, testScenario.alpha, compositeOverBlack);
-    var refPixels = ctx.getImageData(0, 0, 2, 2).dataUnion;
+    var refPixels = ctx.getImageData(0, 0, 2, 2).data;
 
     var t = async_test("Test canvas convertToBlob(): " +
         testScenarioToString(testScenario));
@@ -88,7 +88,7 @@ function runConvertToBlobTest(testScenario) {
         var dstCanvas = createCanvas(testScenario);
         var dstCtx = dstCanvas.getContext('2d', testScenario.canvasColorParam);
         dstCtx.drawImage(image, 0, 0);
-        var actualPixels = dstCtx.getImageData(0, 0, 2, 2).dataUnion;
+        var actualPixels = dstCtx.getImageData(0, 0, 2, 2).data;
         testPixels(actualPixels, refPixels, testScenario);
     });
 

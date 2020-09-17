@@ -199,7 +199,6 @@
           direction: "sendrecv",
           mid: null,
           currentDirection: null,
-          stopped: false
         },
         {
           receiver: {track: {kind: "video", readyState: "live", muted: true}},
@@ -207,7 +206,6 @@
           direction: "sendrecv",
           mid: null,
           currentDirection: null,
-          stopped: false
         }
       ]);
   };
@@ -232,7 +230,6 @@
           direction: "sendrecv",
           mid: null,
           currentDirection: null,
-          stopped: false
         },
         {
           receiver: {track: {kind: "video"}},
@@ -240,7 +237,6 @@
           direction: "sendrecv",
           mid: null,
           currentDirection: null,
-          stopped: false
         }
       ]);
   };
@@ -265,7 +261,6 @@
           direction: "sendrecv",
           mid: null,
           currentDirection: null,
-          stopped: false
         },
         {
           receiver: {track: {kind: "video"}},
@@ -273,7 +268,6 @@
           direction: "sendrecv",
           mid: null,
           currentDirection: null,
-          stopped: false
         }
       ]);
   };
@@ -293,7 +287,6 @@
           direction: "recvonly",
           mid: null,
           currentDirection: null,
-          stopped: false
         },
         {
           receiver: {track: {kind: "video"}},
@@ -301,7 +294,6 @@
           direction: "recvonly",
           mid: null,
           currentDirection: null,
-          stopped: false
         }
       ]);
   };
@@ -336,7 +328,6 @@
           sender: {track: null},
           direction: "recvonly",
           currentDirection: null,
-          stopped: false
         }
       ]);
   };
@@ -365,7 +356,6 @@
           // rtcweb-jsep says this is recvonly, w3c-webrtc does not...
           direction: "recvonly",
           currentDirection: null,
-          stopped: false
         }
       ]);
   };
@@ -435,7 +425,6 @@
           sender: {track: null},
           direction: "recvonly",
           currentDirection: null,
-          stopped: false
         }
       ]);
 
@@ -466,7 +455,6 @@
           sender: {track: {kind: "audio"}},
           direction: "sendrecv",
           currentDirection: null,
-          stopped: false
         }
       ]);
 
@@ -486,7 +474,6 @@
           sender: {track: {kind: "audio"}},
           direction: "sendrecv",
           currentDirection: "sendonly",
-          stopped: false,
           mid: lastMid
         }
       ]);
@@ -500,7 +487,6 @@
           sender: {track: {kind: "audio"}},
           direction: "sendrecv",
           currentDirection: "sendonly",
-          stopped: false,
           mid: lastMid
         }
       ]);
@@ -1253,15 +1239,14 @@
     assert_equals(pc1.getSenders().length, 0, 'getSenders does not expose a sender of a stopped transceiver');
 
     await onended;
-
+    // The transceiver has [[stopping]] = true, [[stopped]] = false
     hasPropsAndUniqueMids(pc1.getTransceivers(),
       [
         {
           sender: {track: {kind: "audio"}},
           receiver: {track: {kind: "audio", readyState: "ended"}},
-          stopped: true,
-          currentDirection: null,
-          direction: "sendrecv"
+          currentDirection: "sendrecv",
+          direction: "stopped"
         }
       ]);
 
@@ -1297,15 +1282,16 @@
 
     await onended;
 
+    // pc2's transceiver was stopped remotely, so has
+    // [[stopping]] = true, [[stopped]] = true.
     hasProps(pc2.getTransceivers(),
       [
         {
           sender: {track: {kind: "audio"}},
           receiver: {track: {kind: "audio", readyState: "ended"}},
-          stopped: true,
           mid: null,
-          currentDirection: null,
-          direction: "sendrecv"
+          currentDirection: "stopped",
+          direction: "stopped"
         }
       ]);
 
@@ -1335,13 +1321,14 @@
 
     let offer = await pc1.createOffer();
 
-    pc1.getTransceivers()[0].stop();
-
+    const transceiverThatWasStopped = pc1.getTransceivers()[0];
+    transceiverThatWasStopped.stop();
     await pc2.setRemoteDescription(offer)
     trickle(t, pc1, pc2);
     await pc1.setLocalDescription(offer);
 
     let answer = await pc2.createAnswer();
+    const negotiationNeededAwaiter = negotiationNeeded(pc1);
     const trackEvents = await setRemoteDescriptionReturnTrackEvents(pc1, answer);
     // Spec language doesn't say anything about checking whether the transceiver
     // is stopped here.
@@ -1353,16 +1340,20 @@
         }
       ]);
 
+    assert_equals(transceiverThatWasStopped, pc1.getTransceivers()[0]);
+    // The transceiver should still be [[stopping]]=true, [[stopped]]=false.
     hasPropsAndUniqueMids(pc1.getTransceivers(),
       [
         {
-          stopped: true,
+          currentDirection: "sendrecv",
+          direction: "stopped"
         }
       ]);
 
-    await negotiationNeeded(pc1);
+    await negotiationNeededAwaiter;
 
     trickle(t, pc2, pc1);
+
     await pc2.setLocalDescription(answer);
 
     await iceConnected(pc1);
@@ -1374,22 +1365,8 @@
     answer = await pc2.createAnswer();
     await pc2.setLocalDescription(answer);
     await pc1.setRemoteDescription(answer);
-
-    hasProps(pc1.getTransceivers(),
-      [
-        {
-          stopped: true,
-          mid: null
-        }
-      ]);
-
-    hasProps(pc2.getTransceivers(),
-      [
-        {
-          stopped: true,
-          mid: null
-        }
-      ]);
+    assert_equals(pc1.getTransceivers().length, 0);
+    assert_equals(pc2.getTransceivers().length, 0);
   };
 
   const checkStopAfterSetLocalOffer = async t => {
@@ -1413,6 +1390,7 @@
     pc1.getTransceivers()[0].stop();
 
     let answer = await pc2.createAnswer();
+    const negotiationNeededAwaiter = negotiationNeeded(pc1);
     const trackEvents = await setRemoteDescriptionReturnTrackEvents(pc1, answer);
     // Spec language doesn't say anything about checking whether the transceiver
     // is stopped here.
@@ -1427,10 +1405,11 @@
     hasPropsAndUniqueMids(pc1.getTransceivers(),
       [
         {
-          stopped: true,
+          direction: "stopped",
+          currentDirection: "sendrecv"
         }
       ]);
-    await negotiationNeeded(pc1);
+    await negotiationNeededAwaiter;
 
     trickle(t, pc2, pc1);
     await pc2.setLocalDescription(answer);
@@ -1445,21 +1424,8 @@
     await pc2.setLocalDescription(answer);
     await pc1.setRemoteDescription(answer);
 
-    hasProps(pc1.getTransceivers(),
-      [
-        {
-          stopped: true,
-          mid: null
-        }
-      ]);
-
-    hasProps(pc2.getTransceivers(),
-      [
-        {
-          stopped: true,
-          mid: null
-        }
-      ]);
+    assert_equals(pc1.getTransceivers().length, 0);
+    assert_equals(pc2.getTransceivers().length, 0);
   };
 
   const checkStopAfterSetRemoteOffer = async t => {
@@ -1479,22 +1445,35 @@
     await pc2.setRemoteDescription(offer)
     await pc1.setLocalDescription(offer);
 
-    // Stop on _answerer_side now. Should take effect in answer.
+    // Stop on _answerer_ side now. Should not stop transceiver in answer,
+    // but cause firing of negotiationNeeded at pc2, and disabling
+    // of the transceiver with direction = inactive in answer.
     pc2.getTransceivers()[0].stop();
+    assert_equals(pc2.getTransceivers()[0].direction, 'stopped');
 
     const answer = await pc2.createAnswer();
     const trackEvents = await setRemoteDescriptionReturnTrackEvents(pc1, answer);
     hasProps(trackEvents, []);
 
-    hasProps(pc1.getTransceivers(),
+    hasProps(pc2.getTransceivers(),
       [
         {
-          stopped: true,
-          mid: null
+          direction: "stopped",
+          currentDirection: null,
         }
       ]);
 
+    const negotiationNeededAwaiter = negotiationNeeded(pc2);
     await pc2.setLocalDescription(answer);
+    hasProps(pc2.getTransceivers(),
+      [
+        {
+          direction: "stopped",
+          currentDirection: "inactive",
+        }
+      ]);
+
+    await negotiationNeededAwaiter;
   };
 
   const checkStopAfterCreateAnswer = async t => {
@@ -1532,16 +1511,25 @@
     hasPropsAndUniqueMids(pc2.getTransceivers(),
       [
         {
-          stopped: true,
+          direction: "stopped",
+          currentDirection: null,
         }
       ]);
 
     trickle(t, pc2, pc1);
-    // The negotiaionneeded event is fired during processing of
+    // The negotiationneeded event is fired during processing of
     // setLocalDescription()
-    const negotiationNeededWaiter = negotiationNeeded(pc2);
+    const negotiationNeededAwaiter = negotiationNeeded(pc2);
     await pc2.setLocalDescription(answer);
-    await negotiationNeededWaiter;
+    hasPropsAndUniqueMids(pc2.getTransceivers(),
+      [
+        {
+          direction: "stopped",
+          currentDirection: "sendrecv",
+        }
+      ]);
+
+    await negotiationNeededAwaiter;
     await iceConnected(pc1);
     await iceConnected(pc2);
 
@@ -1552,19 +1540,22 @@
     await pc2.setLocalDescription(answer);
     await pc1.setRemoteDescription(answer);
 
+    // Since this offer/answer exchange was initiated from pc1,
+    // pc2 still doesn't get to say that it has a stopped transceiver,
+    // but does get to set it to inactive.
     hasProps(pc1.getTransceivers(),
       [
         {
-          stopped: true,
-          mid: null
+          direction: "sendrecv",
+          currentDirection: "inactive",
         }
       ]);
 
     hasProps(pc2.getTransceivers(),
       [
         {
-          stopped: true,
-          mid: null
+          direction: "stopped",
+          currentDirection: "inactive",
         }
       ]);
   };
@@ -1607,7 +1598,8 @@
     hasPropsAndUniqueMids(pc2.getTransceivers(),
       [
         {
-          stopped: true,
+          direction: "stopped",
+          currentDirection: "sendrecv",
         }
       ]);
 
@@ -1615,28 +1607,17 @@
     await iceConnected(pc1);
     await iceConnected(pc2);
 
-    offer = await pc1.createOffer();
-    await pc1.setLocalDescription(offer);
-    await pc2.setRemoteDescription(offer);
-    answer = await pc2.createAnswer();
-    await pc2.setLocalDescription(answer);
-    await pc1.setRemoteDescription(answer);
+    // Initiate an offer/answer exchange from pc2 in order
+    // to negotiate the stopped transceiver.
+    offer = await pc2.createOffer();
+    await pc2.setLocalDescription(offer);
+    await pc1.setRemoteDescription(offer);
+    answer = await pc1.createAnswer();
+    await pc1.setLocalDescription(answer);
+    await pc2.setRemoteDescription(answer);
 
-    hasProps(pc1.getTransceivers(),
-      [
-        {
-          stopped: true,
-          mid: null
-        }
-      ]);
-
-    hasProps(pc2.getTransceivers(),
-      [
-        {
-          stopped: true,
-          mid: null
-        }
-      ]);
+    assert_equals(pc1.getTransceivers().length, 0);
+    assert_equals(pc2.getTransceivers().length, 0);
   };
 
   const checkStopAfterClose = async t => {
@@ -1683,7 +1664,6 @@
           sender: {track},
           direction: "sendrecv",
           currentDirection: null,
-          stopped: false
         }
       ]);
 
@@ -1703,7 +1683,6 @@
           direction: "sendonly",
           mid: null,
           currentDirection: null,
-          stopped: false
         }
       ]);
 
@@ -1713,7 +1692,11 @@
     pc.getTransceivers()[0].stop();
     await pc.setLocalDescription({type: "rollback"});
 
-    hasProps(pc.getTransceivers(), [{ stopped: true }]);
+    hasProps(pc.getTransceivers(), [
+      {
+        direction: "stopped",
+      }
+    ]);
   };
 
   const checkRollbackAndSetRemoteOfferWithDifferentType = async t => {
@@ -1744,7 +1727,6 @@
           direction: "sendrecv",
           mid: null,
           currentDirection: null,
-          stopped: false
         }
       ]);
 
@@ -1756,7 +1738,6 @@
           direction: "sendrecv",
           mid: null,
           currentDirection: null,
-          stopped: false
         }
       ]);
 
@@ -1770,14 +1751,12 @@
           direction: "sendrecv",
           mid: null,
           currentDirection: null,
-          stopped: false
         },
         {
           receiver: {track: {kind: "video"}},
           sender: {track: null},
           direction: "recvonly",
           currentDirection: "recvonly",
-          stopped: false
         }
       ]);
 
@@ -1788,7 +1767,6 @@
           sender: {track: videoTrack},
           direction: "sendrecv",
           currentDirection: "sendonly",
-          stopped: false
         }
       ]);
 
@@ -1823,7 +1801,6 @@
 
     hasProps(removedTransceiver,
       {
-        stopped: true,
         mid: null,
         currentDirection: null
       }
@@ -1834,7 +1811,6 @@
     hasProps(removedTransceiver,
       {
         receiver: {track: {readyState: "ended"}},
-        stopped: true,
         mid: null,
         currentDirection: null
       }
@@ -1849,7 +1825,6 @@
           sender: {track: null},
           direction: "recvonly",
           currentDirection: null,
-          stopped: false
         }
       ]);
 
@@ -1869,7 +1844,6 @@
           direction: "sendrecv",
           mid: mid0,
           currentDirection: null,
-          stopped: false
         }
       ]);
 
@@ -1889,7 +1863,6 @@
           direction: "recvonly",
           mid: mid0,
           currentDirection: null,
-          stopped: false
         }
       ]);
 
@@ -1903,7 +1876,6 @@
           direction: "sendrecv",
           mid: mid0,
           currentDirection: null,
-          stopped: false
         }
       ]);
 
@@ -1917,7 +1889,6 @@
           direction: "sendrecv",
           mid: null,
           currentDirection: null,
-          stopped: false
         }
       ]);
 
@@ -1954,7 +1925,6 @@
           direction: "sendrecv",
           mid: mid0,
           currentDirection: "sendrecv",
-          stopped: false
         }
       ]);
 
@@ -1990,21 +1960,20 @@
           direction: "sendrecv",
           mid: null,
           currentDirection: null,
-          stopped: true
         }
       ]);
 
     // stop() cannot be rolled back!
+    // Transceiver should have [[stopping]]=true, [[stopped]]=false
     await pc2.setRemoteDescription({type: "rollback"});
     hasProps(pc2.getTransceivers(),
       [
         {
           receiver: {track: {kind: "audio"}},
           sender: {track: {kind: "audio"}},
-          direction: "sendrecv",
+          direction: "stopped",
           mid: null,
-          currentDirection: null,
-          stopped: true
+          currentDirection: "sendrecv",
         }
       ]);
   };
@@ -2062,7 +2031,6 @@
         {
           mid: null,
           currentDirection: null,
-          stopped: true
         }
       ]);
 
@@ -2071,7 +2039,6 @@
         {
           mid: null,
           currentDirection: null,
-          stopped: true
         }
       ]);
 
@@ -2087,7 +2054,6 @@
     hasProps(pc1.getTransceivers(),
       [
         {
-          stopped: true
         },
         {
           sender: {track: track2}
@@ -2103,7 +2069,6 @@
     hasProps(pc2.getTransceivers(),
       [
         {
-          stopped: true
         },
         {
           sender: {track}
@@ -2181,7 +2146,6 @@
         },
         {
           mid: null,
-          stopped: true
         },
         {
           sender: {track: null},
@@ -2206,7 +2170,6 @@
       [
         {},
         {
-          stopped: true
         },
         {
           mid: mid1,

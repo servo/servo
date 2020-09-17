@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Clip property</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#css-styling">
+<link rel="match" href="clip-path-ref.html"/>
+<meta name="assert" content="Verify that the clip property works on MathML elements.">
+</head>
+<body>
+  <p>Rectangles should be clipped to a polygon.</p>
+  <div>
+    <math><mspace width="200px" height="200px" style="background: green; clip-path: polygon(10% 10%, 90% 10%, 90% 90%, 10% 90%)"/></math>
+  </div>
+  <div style="position: absolute; top: 300px; width: 200px; height: 200px">
+    <math style="position: absolute; clip-path: polygon(10% 10%, 90% 10%, 90% 90%, 10% 90%)"><mspace width="200px" height="200px" style="background: green"/></math>
+  </div>
+  <script src="/mathml/support/feature-detection.js"></script>
+  <script>MathMLFeatureDetection.ensure_for_match_reftest("has_mspace");</script>
+</body>
+</html>

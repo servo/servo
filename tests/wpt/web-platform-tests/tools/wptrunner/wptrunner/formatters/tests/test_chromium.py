@@ -158,15 +158,15 @@ def test_subtest_messages(capfd):
 
     t1_artifacts = output_json["tests"]["t1"]["artifacts"]
     assert t1_artifacts["log"] == [
-        "[t1_a] [FAIL expected PASS] t1_a_message",
-        "[t1_b] [PASS expected PASS] t1_b_message",
-        "[] [FAIL expected PASS] ",
+        "[t1]\n  expected: PASS\n",
+        "  [t1_a]\n    expected: FAIL\n    message: t1_a_message\n",
+        "  [t1_b]\n    expected: PASS\n    message: t1_b_message\n",
     ]
     assert t1_artifacts["wpt_subtest_failure"] == ["true"]
     t2_artifacts = output_json["tests"]["t2"]["artifacts"]
     assert t2_artifacts["log"] == [
-        "[t2_a] [PASS expected PASS] ",
-        "[] [TIMEOUT expected PASS] t2_message",
+        "[t2]\n  expected: TIMEOUT\n  message: t2_message\n",
+        "  [t2_a]\n    expected: PASS\n",
     ]
     assert "wpt_subtest_failure" not in t2_artifacts.keys()
 
@@ -195,7 +195,7 @@ def test_subtest_failure(capfd):
 
     # The test status is reported as a pass here because the harness was able to
     # run the test to completion.
-    logger.test_end("t1", status="PASS", expected="PASS")
+    logger.test_end("t1", status="PASS", expected="PASS", message="top_message")
     logger.suite_end()
 
     # check nothing got output to stdout/stderr
@@ -211,10 +211,10 @@ def test_subtest_failure(capfd):
     test_obj = output_json["tests"]["t1"]
     t1_artifacts = test_obj["artifacts"]
     assert t1_artifacts["log"] == [
-        "[t1_a] [FAIL expected PASS] t1_a_message",
-        "[t1_b] [PASS expected PASS] t1_b_message",
-        "[t1_c] [TIMEOUT expected PASS] t1_c_message",
-        "[] [FAIL expected PASS] ",
+        "[t1]\n  expected: PASS\n  message: top_message\n",
+        "  [t1_a]\n    expected: FAIL\n    message: t1_a_message\n",
+        "  [t1_b]\n    expected: PASS\n    message: t1_b_message\n",
+        "  [t1_c]\n    expected: TIMEOUT\n    message: t1_c_message\n",
     ]
     assert t1_artifacts["wpt_subtest_failure"] == ["true"]
     # The status of the test in the output is a failure because subtests failed,
@@ -252,7 +252,7 @@ def test_expected_subtest_failure(capfd):
 
     # The test status is reported as a pass here because the harness was able to
     # run the test to completion.
-    logger.test_end("t1", status="PASS", expected="PASS")
+    logger.test_end("t1", status="OK", expected="OK")
     logger.suite_end()
 
     # check nothing got output to stdout/stderr
@@ -267,11 +267,12 @@ def test_expected_subtest_failure(capfd):
 
     test_obj = output_json["tests"]["t1"]
     t1_log = test_obj["artifacts"]["log"]
+    print("Lpz t1log=%s" % t1_log)
     assert t1_log == [
-        "[t1_a] [FAIL expected FAIL] t1_a_message",
-        "[t1_b] [PASS expected PASS] t1_b_message",
-        "[t1_c] [TIMEOUT expected TIMEOUT] t1_c_message",
-        "[] [PASS expected PASS] ",
+        "[t1]\n  expected: OK\n",
+        "  [t1_a]\n    expected: FAIL\n    message: t1_a_message\n",
+        "  [t1_b]\n    expected: PASS\n    message: t1_b_message\n",
+        "  [t1_c]\n    expected: TIMEOUT\n    message: t1_c_message\n",
     ]
     # The status of the test in the output is a pass because the subtest
     # failures were all expected.
@@ -316,8 +317,8 @@ def test_unexpected_subtest_pass(capfd):
     test_obj = output_json["tests"]["t1"]
     t1_artifacts = test_obj["artifacts"]
     assert t1_artifacts["log"] == [
-        "[t1_a] [PASS expected FAIL] t1_a_message",
-        "[] [FAIL expected PASS] ",
+        "[t1]\n  expected: PASS\n",
+        "  [t1_a]\n    expected: PASS\n    message: t1_a_message\n",
     ]
     assert t1_artifacts["wpt_subtest_failure"] == ["true"]
     # Since the subtest status is unexpected, we fail the test. But we report

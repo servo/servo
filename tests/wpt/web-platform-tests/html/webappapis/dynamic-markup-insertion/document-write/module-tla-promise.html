@@ -9,18 +9,14 @@ async_test(t => {
   document.test = t;
 
   const iframe = document.createElement("iframe");
-
   iframe.onerror = t.unreached_func("Error loading iframe");
-  let onLoadWasCalled = false;
-  iframe.onload = t.step_func(() => {
-    assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
-    iframe.onload = null;
-    onLoadWasCalled = true;
-  });
-  document.addEventListener("documentWriteDone", t.step_func_done(() => {
-    assert_true(onLoadWasCalled);
+
+  document.addEventListener("documentWriteDone", t.step_func(() => {
     assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
   }));
+  iframe.onload = t.step_func_done(() => {
+    assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
+  });
 
   iframe.src = "module-tla-promise-iframe.html";
   document.body.appendChild(iframe);

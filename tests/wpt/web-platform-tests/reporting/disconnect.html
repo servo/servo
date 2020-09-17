@@ -7,19 +7,20 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script>
-  async_test(async function(test) {
-    var observer = new ReportingObserver(function(reports, observer) {
-      test.step(function() {
-        assert_equals(reports.length, 1);
-        assert_equals(reports[0].body.message, "Test message.");
-      });
-      test.done();
+promise_test(async test => {
+    let observer;
+    const reportsPromise = new Promise(resolve => {
+      observer = new ReportingObserver(resolve);
+      observer.observe();
     });
-    observer.observe();
 
     // The observer should still receive this report even though disconnect()
     // is called immediately afterwards.
-    await test_driver.generate_test_report("Test message.");
-    observer.disconnect();
+    await test_driver.generate_test_report("Test message.")
+        .then(() => { observer.disconnect(); });
+
+    const reports = await reportsPromise;
+    assert_equals(reports.length, 1);
+    assert_equals(reports[0].body.message, "Test message.");
   }, "Disconnect");
 </script>

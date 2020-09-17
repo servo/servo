@@ -13,9 +13,12 @@
       d.appendChild(fragment);
       return d.innerHTML;
     }
-    const s = new Sanitizer({});
 
     testcases.forEach(c => test(t => {
+        let s = new Sanitizer(c.config_input);
+        assert_true(s.creationOptions instanceof Object);
+        assert_object_equals(s.creationOptions, c.config_value);
+
         fragment = s.sanitize(c.value);
         assert_true(fragment instanceof DocumentFragment);
         assert_equals(getString(fragment), c.result);

@@ -14,7 +14,7 @@ function checkImageData(canvasColorSettings, imageData) {
     assert_equals(imageData.data.length, 4 * xWidth * xHeight);
   } else {
     assert_equals("float32", imageDataColorSettings.storageFormat);
-    assert_equals(imageData.dataUnion.length, 4 * xWidth * xHeight);
+    assert_equals(imageData.data.length, 4 * xWidth * xHeight);
   }
 }
 

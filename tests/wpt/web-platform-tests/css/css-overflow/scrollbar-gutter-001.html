@@ -73,10 +73,11 @@
         test(function() {
             let container = document.getElementById('container_auto_h');
             let content = document.getElementById('content_auto_h');
-            assert_equals(container.scrollWidth, 200, "visible/auto scrollWidth");
-            assert_equals(container.clientWidth, 200, "visible/auto clientWidth");
-            assert_equals(container.clientWidth, content.clientWidth, "visible/auto clientWidth");
-            assert_equals(container.offsetWidth, content.offsetWidth, "visible/auto offsetWidth");
+            assert_equals(container.scrollWidth, 200, "auto/auto scrollWidth");
+            assert_equals(container.clientWidth, 200, "auto/auto clientWidth");
+            assert_equals(container.offsetLeft, content.offsetLeft, "auto/auto offsetLeft");
+            assert_equals(container.clientWidth, content.clientWidth, "auto/auto clientWidth");
+            assert_equals(container.offsetWidth, content.offsetWidth, "auto/auto offsetWidth");
         }, "Unexpected layout: overflow auto, scrollbar-gutter auto, horizontal-tb");
 
         test(function() {
@@ -84,6 +85,7 @@
             let content = document.getElementById('content_scroll_h');
             assert_equals(container.scrollWidth, 180, "scroll/auto scrollWidth");
             assert_equals(container.clientWidth, 180, "scroll/auto clientWidth");
+            assert_equals(container.offsetLeft, content.offsetLeft, "scroll/auto offsetLeft");
             assert_equals(container.clientWidth, content.clientWidth, "scroll/auto clientWidth");
             assert_not_equals(container.offsetWidth, content.offsetWidth, "scroll/auto offsetWidth");
         }, "Unexpected layout: overflow scroll, scrollbar-gutter auto, horizontal-tb");
@@ -93,6 +95,7 @@
             let content = document.getElementById('content_visible_h');
             assert_equals(container.scrollWidth, 200, "visible/auto scrollWidth");
             assert_equals(container.clientWidth, 200, "visible/auto clientWidth");
+            assert_equals(container.offsetLeft, content.offsetLeft, "visible/auto offsetLeft");
             assert_equals(container.clientWidth, content.clientWidth, "visible/auto clientWidth");
             assert_equals(container.offsetWidth, content.offsetWidth, "visible/auto offsetWidth");
         }, "Unexpected layout: overflow visible, scrollbar-gutter auto, horizontal-tb");
@@ -100,26 +103,31 @@
         test(function() {
             let container = document.getElementById('container_hidden_h');
             let content = document.getElementById('content_hidden_h');
-            assert_equals(container.scrollWidth, 200, "visible/auto scrollWidth");
-            assert_equals(container.clientWidth, 200, "visible/auto clientWidth");
+            assert_equals(container.scrollWidth, 200, "hidden/auto scrollWidth");
+            assert_equals(container.clientWidth, 200, "hidden/auto clientWidth");
+            assert_equals(container.offsetLeft, content.offsetLeft, "hidden/auto offsetLeft");
             assert_equals(container.clientWidth, content.clientWidth, "hidden/auto clientWidth");
             assert_equals(container.offsetWidth, content.offsetWidth, "hidden/auto offsetWidth");
         }, "Unexpected layout: overflow hidden, scrollbar-gutter auto, horizontal-tb");
 
+        // vertical
+
         test(function() {
             let container = document.getElementById('container_auto_v');
             let content = document.getElementById('content_auto_v');
-            assert_equals(container.scrollHeight, 200, "visible/auto scrollHeight");
-            assert_equals(container.clientHeight, 200, "visible/auto clientHeight");
-            assert_equals(container.clientHeight, content.clientHeight, "visible/auto clientHeight");
-            assert_equals(container.offsetHeight, content.offsetHeight, "visible/auto offsetHeight");
+            assert_equals(container.scrollHeight, 200, "auto/auto scrollHeight");
+            assert_equals(container.clientHeight, 200, "auto/auto clientHeight");
+            assert_equals(container.offsetTop, content.offsetTop, "auto/auto offsetTop");
+            assert_equals(container.clientHeight, content.clientHeight, "auto/auto clientHeight");
+            assert_equals(container.offsetHeight, content.offsetHeight, "auto/auto offsetHeight");
         }, "Unexpected layout: overflow auto, scrollbar-gutter auto, vertical-rl");
 
         test(function() {
             let container = document.getElementById('container_scroll_v');
             let content = document.getElementById('content_scroll_v');
-            assert_equals(container.scrollHeight, 180, "visible/auto scrollHeight");
-            assert_equals(container.clientHeight, 180, "visible/auto clientHeight");
+            assert_equals(container.scrollHeight, 180, "scroll/auto scrollHeight");
+            assert_equals(container.clientHeight, 180, "scroll/auto clientHeight");
+            assert_equals(container.offsetTop, content.offsetTop, "scroll/auto offsetTop");
             assert_equals(container.clientHeight, content.clientHeight, "scroll/auto clientHeight");
             assert_not_equals(container.offsetHeight, content.offsetHeight, "scroll/auto offsetHeight");
         }, "Unexpected layout: overflow scroll, scrollbar-gutter auto, vertical-rl");
@@ -129,6 +137,7 @@
             let content = document.getElementById('content_visible_v');
             assert_equals(container.scrollHeight, 200, "visible/auto scrollHeight");
             assert_equals(container.clientHeight, 200, "visible/auto clientHeight");
+            assert_equals(container.offsetTop, content.offsetTop, "visible/auto offsetTop");
             assert_equals(container.clientHeight, content.clientHeight, "visible/auto clientHeight");
             assert_equals(container.offsetHeight, content.offsetHeight, "visible/auto offsetHeight");
         }, "Unexpected layout: overflow visible, scrollbar-gutter auto, vertical-rl");
@@ -136,8 +145,9 @@
         test(function() {
             let container = document.getElementById('container_hidden_v');
             let content = document.getElementById('content_hidden_v');
-            assert_equals(container.scrollHeight, 200, "visible/auto scrollHeight");
-            assert_equals(container.clientHeight, 200, "visible/auto clientHeight");
+            assert_equals(container.scrollHeight, 200, "hidden/auto scrollHeight");
+            assert_equals(container.clientHeight, 200, "hidden/auto clientHeight");
+            assert_equals(container.offsetTop, content.offsetTop, "hidden/auto offsetTop");
             assert_equals(container.clientHeight, content.clientHeight, "hidden/auto clientHeight");
             assert_equals(container.offsetHeight, content.offsetHeight, "hidden/auto offsetHeight");
         }, "Unexpected layout: overflow hidden, scrollbar-gutter auto, vertical-rl");

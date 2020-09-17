@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<title>Test that video.rVFC callbacks started before an XRSession work.</title>
+<body>
+    <canvas/>
+</body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/media.js"></script>
+<script src="../webxr/resources/webxr_util.js"></script>
+<script src="../webxr/resources/webxr_test_constants.js"></script>
+<script>
+
+// Start the video.rVFC callbacks before starting the XR Session.
+let video = document.createElement('video');
+video.src = getVideoURI('/media/movie_5');
+
+var numberVFCs = 0;
+let videoCallback = () => {
+    numberVFCs++;
+    video.requestVideoFrameCallback(videoCallback);
+}
+
+video.requestVideoFrameCallback(videoCallback);
+video.play();
+
+let testFunction = async function(session, fakeDeviceController, t) {
+    let watcherDone = new Event("watcherdone");
+    let eventWatcher = new EventWatcher(t, session, ["end", "watcherdone"]);
+    let eventPromise = eventWatcher.wait_for(["end", "watcherdone"]);
+
+    numberVFCs = 0;
+
+    function onXRFrame(time, frame) {
+        if(numberVFCs >= 2) {
+            // Make sure video.rVFCs are still coming through before ending the
+            // session.
+            session.end();
+        }
+
+        session.requestAnimationFrame(onXRFrame);
+    }
+
+    function onSessionEnd(event) {
+        // Make sure we are still getting rVFC callbacks after the session end.
+        numberVFCs = 0;
+        t.step_wait_func(() => numberVFCs >= 2,
+                         () => session.dispatchEvent(watcherDone),
+                         "Time out waiting for VFC callbacks");
+    }
+
+    session.addEventListener("end", onSessionEnd, false);
+    session.requestAnimationFrame(onXRFrame);
+
+    return eventPromise;
+}
+
+xr_session_promise_test('Make sure video.rVFC works during a non-immersive session',
+    testFunction, TRACKED_IMMERSIVE_DEVICE, 'inline');
+
+video.currentTime = 0;
+
+xr_session_promise_test('Make sure video.rVFC works during an immersive session',
+    testFunction, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');
+
+</script>
+</html>

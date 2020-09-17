@@ -48,9 +48,9 @@ interface XRJointSpace: XRSpace {};
 
 partial interface XRFrame {
     XRJointPose? getJointPose(XRJointSpace joint, XRSpace baseSpace);
-    void fillJointRadii(sequence<XRJointSpace> jointSpaces, Float32Array radii);
+    boolean fillJointRadii(sequence<XRJointSpace> jointSpaces, Float32Array radii);
 
-    void fillPoses(sequence<XRSpace> spaces, XRSpace baseSpace, Float32Array transforms);
+    boolean fillPoses(sequence<XRSpace> spaces, XRSpace baseSpace, Float32Array transforms);
 };
 
 interface XRJointPose: XRPose {

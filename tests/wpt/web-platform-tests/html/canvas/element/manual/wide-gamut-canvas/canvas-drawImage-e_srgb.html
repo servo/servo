@@ -16,7 +16,7 @@ function testPixels(ctx, tests)
 {
     var actual, expected, tolerance = 0.01;
     for (var i = 0; i < tests.length; i++) {
-      actual = ctx.getImageData(tests[i].x, tests[i].y, 1, 1).dataUnion;
+      actual = ctx.getImageData(tests[i].x, tests[i].y, 1, 1).data;
       expected = tests[i].color;
       assert_true(actual.length === expected.length);
       for (var j = 0; j < actual.length; j++)

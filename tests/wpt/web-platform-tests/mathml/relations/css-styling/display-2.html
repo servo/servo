@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Verify that one can override the layout of MathML elements with the CSS display property</title>
+<link rel="help" href="https://mathml-refresh.github.io/mathml-core/#layout-algorithms">
+<meta name="assert" content="Verify that one can override the display of a MathML element.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/mathml/support/layout-comparison.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<style>
+  mfrac {
+      padding: 0;
+  }
+</style>
+<script>
+  const Xsize = 25;
+  const templates = {
+      "block display": `<math style="display: block;">XXX</math>`,
+      "block display with contrained width": `<math style="display: block; width: ${2*Xsize}px;">XXX</math>`,
+      "list display inside display block": `<math style="display: block">\
+  <mmultiscripts style="display: list-item;">X</mmultiscripts>\
+  <maction style="display: list-item;">X</maction>\
+  <mpadded style="display: list-item;">X</mpadded>\
+</math>`,
+      "inline display": `<math style="display: inline;">XXX</math>`,
+      "inline-block display": `<math style="display: inline-block">XXX</math>`,
+      "table display (math)": `<math style="display: table">\
+  <mfrac style='display: table-row'>\
+    <msub style='display: table-cell'>X</msub>\
+    <msup style='display: table-cell'>X</msup>\
+    <msubsup style='display: table-cell'>X</msubsup>\
+  </mfrac>\
+  <mtable style='display: table-row'>\
+    <munder style='display: table-cell'>X</munder>\
+    <mover style='display: table-cell'>X</mover>\
+    <munderover style='display: table-cell'>X</munderover>\
+  </mtable>\
+</math>`,
+      "table display (mrow)": `<math display="block">\
+<mrow style="display: table">\
+  <mfrac style='display: table-row'>\
+    <msub style='display: table-cell'>X</msub>\
+    <msup style='display: table-cell'>X</msup>\
+    <msubsup style='display: table-cell'>X</msubsup>\
+  </mfrac>\
+  <mtable style='display: table-row'>\
+    <munder style='display: table-cell'>X</munder>\
+    <mover style='display: table-cell'>X</mover>\
+    <munderover style='display: table-cell'>X</munderover>\
+  </mtable>\
+</mrow></math>`,
+      "inline-table display (math)": `<math style="display: inline-table">\
+  <mfrac style='display: table-row'>\
+    <msub style='display: table-cell'>X</msub>\
+    <msup style='display: table-cell'>X</msup>\
+    <msubsup style='display: table-cell'>X</msubsup>\
+  </mfrac>\
+  <mtable style='display: table-row'>\
+    <munder style='display: table-cell'>X</munder>\
+    <mover style='display: table-cell'>X</mover>\
+    <munderover style='display: table-cell'>X</munderover>\
+  </mtable>\
+</math>`,
+      "inline-table display (mrow)": `<math display="block">\
+<mrow style="display: inline-table">\
+  <mfrac style='display: table-row'>\
+    <msub style='display: table-cell'>X</msub>\
+    <msup style='display: table-cell'>X</msup>\
+    <msubsup style='display: table-cell'>X</msubsup>\
+  </mfrac>\
+  <mtable style='display: table-row'>\
+    <munder style='display: table-cell'>X</munder>\
+    <mover style='display: table-cell'>X</mover>\
+    <munderover style='display: table-cell'>X</munderover>\
+  </mtable>\
+</mrow></math>`,
+      "flexbox display (math)": `<math style="display: flex; flex-direction: column;">XXX</math>`,
+      "flexbox display (mrow)": `<math display="block"><mrow style="display: flex; flex-direction: column;">XXX</mrow></math>`,
+      "grid display (math)": `<math style="display: grid; grid-gap: 2px; grid-template-columns: ${Xsize}px ${Xsize}px ${Xsize}px;>">XXXXXXXXX</math>`,
+      "grid display (mrow)": `<math display="block"><mrow style="display: grid; grid-gap: 2px; grid-template-columns: ${Xsize}px ${Xsize}px ${Xsize}px;>">XXXXXXXXX</mrow></math>`,
+      "ruby display (math)": `<math style="display: ruby;">\
+<mrow style="display: ruby-base;">X</mrow>\
+<mrow style="display: ruby-text">XX</mrow>\
+</math>`,
+      "ruby display (mrow)": `<math display="block"><mrow style="display: ruby;">\
+<mrow style="display: ruby-base;">X</mrow>\
+<mrow style="display: ruby-text">XX</mrow>\
+</mrow></math>`,
+      "block display with column width (math)": `<math style="display: block; column-width: ${2*Xsize}px">\
+    <mrow>XXXX</mrow><mrow>XXXX</mrow><mrow>XXXX</mrow>\
+</math>`,
+      "block display with column width (mrow)": `<math style="display: block"><mrow style="display: block; column-width: ${2*Xsize}px">\
+    <mrow>XXXX</mrow><mrow>XXXX</mrow><mrow>XXXX</mrow>\
+</mrow></math>`,
+  };
+
+  setup({ explicit_done: true });
+  window.addEventListener("load", runTests);
+
+  function runTests() {
+
+      for (let key in templates) {
+          if (!templates.hasOwnProperty(key))
+              continue;
+          let mathtest = templates[key].
+              replace(/X/g, `<mspace style="display: inline-block; width: ${Xsize}px; height: ${Xsize}px; background: black"></mspace>`);
+          let reference = mathtest.
+              replace(/maction|math|mfrac|mmultiscripts|mover|mover|mpadded|mrow|mspace|msubsup|msub|msup|mtable|munderover|munder/g, "div");
+          document.body.insertAdjacentHTML("beforeend", `<div style="position: absolute;">\
+<div><span>${key}:</span>${mathtest}</div>\
+<div><span>${key}:</span>${reference}</div>\
+</div>`);
+          let div = document.body.lastElementChild;
+          let elementDiv = div.firstElementChild;
+          let referenceDiv = div.lastElementChild;
+
+          test(function() {
+              const epsilon = 1;
+              compareLayout(elementDiv, referenceDiv, epsilon);
+          }, `${key}`);
+
+          div.style = "display: none;"; // Hide the div after measurement.
+      }
+
+      done();
+  }
+</script>
+</head>
+<body>
+  <div id="log"></div>
+</body>
+</html>
