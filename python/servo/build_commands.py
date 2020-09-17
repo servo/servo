@@ -273,7 +273,6 @@ class MachCommands(CommandBase):
         if uwp:
             # Ensure libstd is ready for the new UWP target.
             check_call(["rustup", "component", "add", "rust-src"])
-            env['RUST_SYSROOT'] = path.expanduser('~\\.xargo')
 
             # Don't try and build a desktop port.
             libsimpleservo = True
