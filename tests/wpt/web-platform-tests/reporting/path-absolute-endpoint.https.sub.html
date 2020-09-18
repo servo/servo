@@ -38,7 +38,7 @@
           assert_equals(reports[0].body.sample, "");
           assert_equals(reports[0].body.disposition, "enforce");
           assert_equals(reports[0].body.statusCode, 0);
-          assert_equals(reports[0].body.lineNumber, 66);
+          assert_equals(reports[0].body.lineNumber, 61);
           assert_equals(reports[0].body.columnNumber, 0);
         });
 
@@ -51,17 +51,12 @@
     onload='t.unreached_func("The image should not have loaded");'
     onerror='t.done();'>
   <script>
-    async_test(async (t) => {
-      try {
-        const endpoint = `${base_url}/reporting/resources/report.py`;
-        const id = 'd0d517bf-891b-457a-b970-8b2b2c81a0bf';
-        await wait(3000);
-        const reports = await pollReports(endpoint, id);
-        checkReportExists(reports, 'csp-violation', location.href);
-        t.done();
-      } catch (e) {
-        t.step(() => { throw e; });
-      }
+    promise_test(async t => {
+      const endpoint = `${base_url}/reporting/resources/report.py`;
+      const id = 'd0d517bf-891b-457a-b970-8b2b2c81a0bf';
+      await wait(3000);
+      const reports = await pollReports(endpoint, id);
+      checkReportExists(reports, 'csp-violation', location.href);
     }, "Reporting endpoints received reports.");
   </script>
 

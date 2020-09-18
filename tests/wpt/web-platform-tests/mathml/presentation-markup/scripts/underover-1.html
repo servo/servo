@@ -8,8 +8,10 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
 <style>
   math, mspace, mo {
+    font-family: Ahem;
     font-size: 10px;
   }
 </style>
@@ -26,7 +28,7 @@
   }
 
   setup({ explicit_done: true });
-  window.addEventListener("load", runTests);
+  window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
 
   function runTests() {
     test(function() {
@@ -85,13 +87,13 @@
     test(function() {
       assert_true(MathMLFeatureDetection.has_mspace());
 
-      var e = 3.2;
+      var e = 4;
       for (var i = 0; i <= 3; i++) {
-        assert_approx_equals(getBox("under" + i).height, getBox("under" + i + "base").height + getBox("under" + i + "under").height + e, e, "munder " + i + ": height is determined by the sum of heights of base and script plus some spacing.");
-        assert_approx_equals(getBox("over" + i).height, getBox("over" + i + "base").height + getBox("over" + i + "over").height + e, e, "mover " + i + ": height is determined by the sum of heights of base and script plus some spacing.");
+        assert_approx_equals(getBox("under" + i).height, getBox("under" + i + "base").height + getBox("under" + i + "under").height, e, "munder " + i + ": height is determined by the sum of heights of base and script plus some spacing.");
+        assert_approx_equals(getBox("over" + i).height, getBox("over" + i + "base").height + getBox("over" + i + "over").height, e, "mover " + i + ": height is determined by the sum of heights of base and script plus some spacing.");
       }
       for (var i = 0; i <= 5; i++) {
-        assert_approx_equals(getBox("underover" + i).height, getBox("underover" + i + "base").height + getBox("underover" + i + "under").height + getBox("underover" + i + "over").height + e, e, "munderover " + i + ": height is determined by the sum heights of base and scripts");
+        assert_approx_equals(getBox("underover" + i).height, getBox("underover" + i + "base").height + getBox("underover" + i + "under").height + getBox("underover" + i + "over").height, e, "munderover " + i + ": height is determined by the sum heights of base and scripts");
       }
     }, "Height of scripted elements");
 

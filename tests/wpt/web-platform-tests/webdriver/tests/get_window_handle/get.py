@@ -6,9 +6,14 @@ def get_window_handle(session):
         "GET", "session/{session_id}/window".format(**vars(session)))
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = get_window_handle(session)
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    response = get_window_handle(session)
+    assert_success(response, session.window_handle)
 
 
 def test_basic(session):

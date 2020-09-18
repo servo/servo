@@ -436,7 +436,6 @@ interface HTMLIFrameElement : HTMLElement {
   [SameObject, PutForwards=value] readonly attribute DOMTokenList sandbox;
   [CEReactions] attribute DOMString allow;
   [CEReactions] attribute boolean allowFullscreen;
-  [CEReactions] attribute boolean allowPaymentRequest;
   [CEReactions] attribute DOMString width;
   [CEReactions] attribute DOMString height;
   [CEReactions] attribute DOMString referrerPolicy;

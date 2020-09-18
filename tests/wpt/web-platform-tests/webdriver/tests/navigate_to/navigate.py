@@ -23,9 +23,18 @@ def test_null_response_value(session):
     assert value is None
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = navigate_to(session, "foo")
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    doc = inline("<p>foo")
+
+    response = navigate_to(session, doc)
+    assert_success(response)
+
+    assert session.url == doc
 
 
 def test_file_protocol(session, server_config):

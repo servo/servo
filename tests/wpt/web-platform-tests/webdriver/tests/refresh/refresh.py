@@ -19,9 +19,25 @@ def test_null_response_value(session):
     assert value is None
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = refresh(session)
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    url = inline("<div id=foo>")
+
+    session.url = url
+    element = session.find.css("#foo", all=False)
+
+    response = refresh(session)
+    assert_success(response)
+
+    with pytest.raises(StaleElementReferenceException):
+        element.property("id")
+
+    assert session.url == url
+    assert session.find.css("#foo", all=False)
 
 
 def test_basic(session):

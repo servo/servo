@@ -8,6 +8,11 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script>
+/*
+ * Chromium note: this requires build bots with H264 support. See
+ *   https://bugs.chromium.org/p/chromium/issues/detail?id=840659
+ * for details on how to enable support.
+ */
 promise_test(async t => {
   assert_implements('getCapabilities' in RTCRtpSender, 'RTCRtpSender.getCapabilities not supported');
   assert_implements(RTCRtpSender.getCapabilities('video').codecs.find(c => c.mimeType === 'video/H264'), 'H264 not supported');

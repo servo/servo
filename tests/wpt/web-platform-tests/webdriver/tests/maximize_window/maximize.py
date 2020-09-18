@@ -9,9 +9,14 @@ def maximize(session):
         "POST", "session/{session_id}/window/maximize".format(**vars(session)))
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = maximize(session)
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    response = maximize(session)
+    assert_success(response)
 
 
 def test_fully_exit_fullscreen(session):
