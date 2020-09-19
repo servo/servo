@@ -16,20 +16,20 @@
 <a id="anchor" target="test" onclick="document.forms[0].submit()">Test</a>
 
 <script>
-async_test(async t => {
+async_test(t => {
   const iframe = document.querySelector('iframe');
-  const iframeLoadPromise = new Promise(resolve => iframe.onload = resolve);
-  iframe.src = '/';
-  await iframeLoadPromise;
-
-  const anchor = document.getElementById('anchor');
-  anchor.href = '/#';
-  t.step(() => anchor.click());
-  window.onmessage = t.step_func(event => {
-    if (typeof event.data === 'string' && event.data.includes('navigation')) {
-      assert_equals(event.data, 'form navigation');
-      t.done();
-    }
+  iframe.onload = t.step_func(() => {
+    const anchor = document.getElementById('anchor');
+    anchor.href = '/#';
+    anchor.click();
+    window.onmessage = t.step_func(event => {
+      if (typeof event.data === 'string' && event.data.includes('navigation')) {
+        assert_equals(event.data, 'form navigation');
+        t.done();
+      }
+    });
   });
+
+  iframe.src = '/';
 });
 </script>

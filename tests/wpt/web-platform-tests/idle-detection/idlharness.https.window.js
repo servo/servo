@@ -11,7 +11,7 @@ idl_test(
     ['idle-detection.tentative'],
     ['dom', 'html'],
     async (idl_array, t) => {
-      await test_driver.set_permission({ name: 'notifications' }, 'granted', false);
+      await test_driver.set_permission({ name: 'idle-detection' }, 'granted', false);
 
       self.idle = new IdleDetector();
       let watcher = new EventWatcher(t, self.idle, ["change"]);

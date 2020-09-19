@@ -212,6 +212,32 @@ def create_dialog(session):
 
 
 @pytest.fixture
+def closed_frame(session, url):
+    original_handle = session.window_handle
+    new_handle = session.new_window()
+
+    session.window_handle = new_handle
+
+    session.url = url("/webdriver/tests/support/html/frames.html")
+
+    subframe = session.find.css("#sub-frame", all=False)
+    session.switch_frame(subframe)
+
+    deleteframe = session.find.css("#delete-frame", all=False)
+    session.switch_frame(deleteframe)
+
+    button = session.find.css("#remove-parent", all=False)
+    button.click()
+
+    yield
+
+    session.window.close()
+    assert new_handle not in session.handles, "Unable to close window {}".format(new_handle)
+
+    session.window_handle = original_handle
+
+
+@pytest.fixture
 def closed_window(session):
     original_handle = session.window_handle
     new_handle = session.new_window()

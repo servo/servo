@@ -363,3 +363,17 @@ function assert_properties_equal(properties, expected_properties) {
     assert_equals(properties[key], expected_properties[key]);
   }
 }
+
+/**
+ * Asserts that |data_map| contains |expected_key|, and that the uint8 values
+ * for |expected_key| matches |expected_value|.
+ */
+function assert_data_maps_equal(data_map, expected_key, expected_value) {
+  assert_true(data_map.has(expected_key));
+
+  const value = new Uint8Array(data_map.get(expected_key).buffer);
+  assert_equals(value.length, expected_value.length);
+  for (let i = 0; i < value.length; ++i) {
+    assert_equals(value[i], expected_value[i]);
+  }
+}

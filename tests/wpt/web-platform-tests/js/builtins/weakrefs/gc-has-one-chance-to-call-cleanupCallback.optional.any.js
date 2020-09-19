@@ -27,10 +27,9 @@ info: |
 
 
 let cleanupCallback = 0;
-let called = 0;
+let holdings = [];
 function cb(holding) {
-  assert_equals(holding, 'a');
-  called += 1;
+  holdings.push(holding);
 }
 
 let finalizationRegistry = new FinalizationRegistry(function() {
@@ -64,7 +63,7 @@ promise_test(() => {
     // cleanupCallback already ran, then cb won't be called.
     let expectedCalled = cleanupCallback === 1 ? 0 : 1;
     // This asserts the registered object was emptied in the previous GC.
-    assert_equals(called, expectedCalled, 'cleanupSome callback for the first time');
+    assert_equals(holdings.length, expectedCalled, 'cleanupSome callback for the first time');
 
     // At this point, we can't assert if cleanupCallback was called, because it's
     // optional. Although, we can finally assert it's not gonna be called anymore
@@ -83,7 +82,7 @@ promise_test(() => {
 
     finalizationRegistry.cleanupSome(cb);
 
-    assert_equals(called, expectedCalled, 'cleanupSome callback is not called anymore, no empty cells');
+    assert_equals(holdings.length, expectedCalled, 'cleanupSome callback is not called anymore, no empty cells');
     assert_equals(cleanupCallback, 0, 'cleanupCallback is not called again #1');
 
     await maybeGarbageCollectAsync();
@@ -91,10 +90,14 @@ promise_test(() => {
 
     finalizationRegistry.cleanupSome(cb);
 
-    assert_equals(called, expectedCalled, 'cleanupSome callback is not called again #2');
+    assert_equals(holdings.length, expectedCalled, 'cleanupSome callback is not called again #2');
     assert_equals(cleanupCallback, 0, 'cleanupCallback is not called again #2');
-    await maybeGarbageCollectAsync();
-
     assert_equals(ticks, 3, 'ticks is 3');
+
+    if (holdings.length) {
+      assert_array_equals(holdings, ['a']);
+    }
+
+    await maybeGarbageCollectAsync();
   })().catch(resolveGarbageCollection);
 }, 'cleanupCallback has only one optional chance to be called for a GC that cleans up a registered target.');

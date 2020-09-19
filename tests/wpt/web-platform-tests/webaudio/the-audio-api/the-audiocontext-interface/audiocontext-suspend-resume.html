@@ -129,7 +129,7 @@
             should(() => context = new AudioContext(), 'Create online context')
                 .notThrow();
 
-            should(context.state, 'context.state').beEqualTo('running');
+            should(context.state, 'context.state').beEqualTo('suspended');
             should(context.resume(), 'context.resume')
                 .beResolved()
                 .then(() => {

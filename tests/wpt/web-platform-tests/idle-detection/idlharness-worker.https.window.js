@@ -4,7 +4,7 @@
 'use strict';
 
 promise_test(async t => {
-  await test_driver.set_permission({ name: 'notifications' }, 'granted', false);
+  await test_driver.set_permission({name: 'idle-detection'}, 'granted', false);
 
   await fetch_tests_from_worker(new Worker('resources/idlharness-worker.js'));
 }, 'Run idlharness tests in a worker.');

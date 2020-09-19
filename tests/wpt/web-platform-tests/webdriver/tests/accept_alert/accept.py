@@ -18,9 +18,14 @@ def test_null_response_value(session, url):
     assert value is None
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_level_browsing_context(session, closed_window):
     response = accept_alert(session)
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    response = accept_alert(session)
+    assert_error(response, "no such alert")
 
 
 def test_no_user_prompt(session):
@@ -42,7 +47,11 @@ def test_accept_confirm(session):
 
 
 def test_accept_prompt(session):
-    session.url = inline("<script>window.result = window.prompt('Enter Your Name: ', 'Federer');</script>")
+    session.url = inline("""
+        <script>
+          window.result = window.prompt('Enter Your Name: ', 'Federer');
+        </script>
+        """)
     response = accept_alert(session)
     assert_success(response)
     assert session.execute_script("return window.result") == "Federer"

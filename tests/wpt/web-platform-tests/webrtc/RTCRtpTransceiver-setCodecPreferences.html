@@ -29,6 +29,11 @@
           codecs does not fulfill these requirements, the user agent MUST throw
           an InvalidModificationError.
    */
+  /*
+   * Chromium note: this requires build bots with H264 support. See
+   *   https://bugs.chromium.org/p/chromium/issues/detail?id=840659
+   * for details on how to enable support.
+   */
 
   test((t) => {
     const pc = new RTCPeerConnection();

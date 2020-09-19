@@ -19,9 +19,16 @@ def assert_pdf(data):
     assert data.endswith(b"%%EOF\n"), "Decoded data ends with the EOF flag"
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = do_print(session, {})
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    response = do_print(session, {})
+    value = assert_success(response)
+    pdf = base64.decodestring(value)
+    assert_pdf(pdf)
 
 
 def test_html_document(session):

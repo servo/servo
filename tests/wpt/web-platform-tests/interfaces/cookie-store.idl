@@ -70,7 +70,7 @@ interface CookieStoreManager {
 
 [Exposed=(ServiceWorker,Window)]
 partial interface ServiceWorkerRegistration {
-  readonly attribute CookieStoreManager cookies;
+  [SameObject] readonly attribute CookieStoreManager cookies;
 };
 
 [Exposed=Window,
