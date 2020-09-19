@@ -584,14 +584,35 @@ pub trait TElement:
         traversal_flags: TraversalFlags,
     ) -> bool {
         if traversal_flags.for_animation_only() {
-            // In animation-only restyle we never touch snapshots and don't
-            // care about them. But we can't assert '!self.handled_snapshot()'
+            // In animation-only restyle we never touch snapshots and don't care
+            // about them. But we can't assert '!self.handled_snapshot()'
             // here since there are some cases that a second animation-only
             // restyle which is a result of normal restyle (e.g. setting
             // animation-name in normal restyle and creating a new CSS
             // animation in a SequentialTask) is processed after the normal
             // traversal in that we had elements that handled snapshot.
-            return data.has_styles() && !data.hint.has_animation_hint_or_recascade();
+            if !data.has_styles() {
+                return false;
+            }
+
+            if !data.hint.has_animation_hint_or_recascade() {
+                return true;
+            }
+
+            // FIXME: This should ideally always return false, but it is a hack
+            // to work around our weird animation-only traversal
+            // stuff: If we're display: none and the rules we could match could
+            // change, we consider our style up-to-date. This is because
+            // re-cascading with and old style doesn't guarantee returning the
+            // correct animation style (that's bug 1393323). So if our display
+            // changed, and it changed from display: none, we would incorrectly
+            // forget about it and wouldn't be able to correctly style our
+            // descendants later.
+            if data.styles.is_display_none() && data.hint.match_self() {
+                return true;
+            }
+
+            return false;
         }
 
         if self.has_snapshot() && !self.handled_snapshot() {
