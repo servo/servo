@@ -14,6 +14,11 @@ def test_null_response_value(session, none_chain):
     assert_success(response, None)
 
 
-def test_no_browsing_context(session, closed_window, none_chain):
+def test_no_top_browsing_context(session, closed_window, none_chain):
+    response = perform_actions(session, [none_chain.pause(0).dict])
+    assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame, none_chain):
     response = perform_actions(session, [none_chain.pause(0).dict])
     assert_error(response, "no such window")

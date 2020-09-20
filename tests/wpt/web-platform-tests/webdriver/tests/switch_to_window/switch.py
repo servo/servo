@@ -19,3 +19,35 @@ def test_null_response_value(session):
     response = switch_to_window(session, session.new_window())
     value = assert_success(response)
     assert value is None
+
+
+def test_no_top_browsing_context(session):
+    original_handle = session.window_handle
+    new_handle = session.new_window()
+
+    session.window.close()
+    assert original_handle not in session.handles, "Unable to close window"
+
+    response = switch_to_window(session, new_handle)
+    assert_success(response)
+
+    assert session.window_handle == new_handle
+
+
+def test_no_browsing_context(session, url):
+    new_handle = session.new_window()
+
+    session.url = url("/webdriver/tests/support/html/frames.html")
+    subframe = session.find.css("#sub-frame", all=False)
+    session.switch_frame(subframe)
+
+    deleteframe = session.find.css("#delete-frame", all=False)
+    session.switch_frame(deleteframe)
+
+    button = session.find.css("#remove-parent", all=False)
+    button.click()
+
+    response = switch_to_window(session, new_handle)
+    assert_success(response)
+
+    assert session.window_handle == new_handle

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>table is flex item</title>
+<link rel="author" title="David Grogan" href="mailto:dgrogan@chromium.org">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#layout-algorithm" title="9. Flex Layout Algorithm">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#used-min-width-of-table">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="Table's specified width does not count as another min-width for the purposes of the flexbox algorithm.">
+
+<p>Test passes if there is a filled green square.</p>
+
+<!-- This test passed until Chrome 84 but has been broken since. Firefox also fails it. -->
+
+<div style="display: flex;">
+  <div style="display: table; width: 500px; height: 100px; background: green; flex: 0 0 100px;"></div>
+</div>

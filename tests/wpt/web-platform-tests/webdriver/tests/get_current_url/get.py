@@ -13,9 +13,16 @@ def get_current_url(session):
         "GET", "session/{session_id}/url".format(**vars(session)))
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = get_current_url(session)
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    session.url = doc
+
+    response = get_current_url(session)
+    assert_success(response, doc)
 
 
 def test_get_current_url_matches_location(session):

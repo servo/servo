@@ -79,4 +79,29 @@ promise_test(async (t)=> {
 
     assert_true(offer.sdp.includes("a=inactive"), "The audio m-section should be inactive");
 }, "A stopped inactive transceiver should generate an inactive m-section in the offer");
+
+promise_test(async (t) => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver("audio");
+  await exchangeOfferAnswer(pc1, pc2);
+  pc1.getTransceivers()[0].stop();
+  await exchangeOfferAnswer(pc1, pc2);
+  await pc1.setLocalDescription(await pc1.createOffer());
+}, 'If a track is stopped locally, setting a locally generated answer should still work');
+
+promise_test(async (t) => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver("audio");
+  await exchangeOfferAnswer(pc1, pc2);
+  pc2.getTransceivers()[0].stop();
+  await exchangeOfferAnswer(pc2, pc1);
+  await pc1.setLocalDescription(await pc1.createOffer());
+}, 'If a track is stopped remotely, setting a locally generated answer should still work');
+
 </script>

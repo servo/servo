@@ -21,9 +21,16 @@ def test_null_parameter_value(session, http):
         assert_error(Response.from_http(response), "invalid argument")
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = set_window_rect(session, {})
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    response = set_window_rect(session, {"width": 750, "height": 700})
+    value = assert_success(response)
+    assert value["width"] == 750
+    assert value["height"] == 700
 
 
 @pytest.mark.parametrize("rect", [

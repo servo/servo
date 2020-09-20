@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>RTCPeerConnection Insertable Streams - Video</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../webrtc/RTCPeerConnection-helper.js"></script>
+<script src="./RTCPeerConnection-insertable-streams.js"></script>
+</head>
+<body>
+<script>
+async function testVideoFlow(t, negotiationFunction) {
+  const caller = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => caller.close());
+  const callee = new RTCPeerConnection({encodedInsertableStreams:true});
+  t.add_cleanup(() => callee.close());
+
+  const stream = await navigator.mediaDevices.getUserMedia({video:true});
+  const videoTrack = stream.getVideoTracks()[0];
+  t.add_cleanup(() => videoTrack.stop());
+
+  const videoSender = caller.addTrack(videoTrack)
+  const senderStreams = videoSender.createEncodedStreams();
+  const senderReader = senderStreams.readable.getReader();
+  const senderWriter = senderStreams.writable.getWriter();
+
+  const frameInfos = [];
+  const numFramesPassthrough = 5;
+  const numFramesReplaceData = 5;
+  const numFramesModifyData = 5;
+  const numFramesToSend = numFramesPassthrough + numFramesReplaceData + numFramesModifyData;
+
+  const ontrackPromise = new Promise(resolve => {
+    callee.ontrack = t.step_func(() => {
+      const videoReceiver = callee.getReceivers().find(r => r.track.kind === 'video');
+      assert_true(videoReceiver !== undefined);
+
+      const receiverStreams =
+          videoReceiver.createEncodedStreams();
+      const receiverReader = receiverStreams.readable.getReader();
+      const receiverWriter = receiverStreams.writable.getWriter();
+
+      const maxFramesToReceive = numFramesToSend;
+      let numVerifiedFrames = 0;
+      for (let i = 0; i < maxFramesToReceive; i++) {
+        receiverReader.read().then(t.step_func(result => {
+          verifyNonstandardAdditionalDataIfPresent(result.value);
+          if (frameInfos[numVerifiedFrames] &&
+              areFrameInfosEqual(result.value, frameInfos[numVerifiedFrames])) {
+            numVerifiedFrames++;
+          } else {
+            // Receiving unexpected frames is an indication that
+            // frames are not passed correctly between sender and receiver.
+            assert_unreached("Incorrect frame received");
+          }
+
+          if (numVerifiedFrames == numFramesToSend)
+            resolve();
+        }));
+      }
+    });
+  });
+
+  exchangeIceCandidates(caller, callee);
+  await negotiationFunction(caller, callee);
+
+  // Pass frames as they come from the encoder.
+  for (let i = 0; i < numFramesPassthrough; i++) {
+    const result = await senderReader.read();
+    const metadata = result.value.getMetadata();
+    assert_true(containsVideoMetadata(metadata));
+    verifyNonstandardAdditionalDataIfPresent(result.value);
+    frameInfos.push({
+      timestamp: result.value.timestamp,
+      type: result.value.type,
+      data: result.value.data,
+      metadata: metadata,
+      getMetadata() { return this.metadata; }
+    });
+    senderWriter.write(result.value);
+  }
+
+  // Replace frame data with arbitrary buffers.
+  for (let i = 0; i < numFramesReplaceData; i++) {
+    const result = await senderReader.read();
+    const metadata = result.value.getMetadata();
+    assert_true(containsVideoMetadata(metadata));
+    const buffer = new ArrayBuffer(100);
+    const int8View = new Int8Array(buffer);
+    int8View.fill(i);
+
+    result.value.data = buffer;
+    frameInfos.push({
+      timestamp: result.value.timestamp,
+      type: result.value.type,
+      data: result.value.data,
+      metadata: metadata,
+      getMetadata() { return this.metadata; }
+    });
+    senderWriter.write(result.value);
+  }
+
+  // Modify frame data.
+  for (let i = 0; i < numFramesReplaceData; i++) {
+    const result = await senderReader.read();
+    const metadata = result.value.getMetadata();
+    assert_true(containsVideoMetadata(metadata));
+    const int8View = new Int8Array(result.value.data);
+    int8View.fill(i);
+
+    frameInfos.push({
+      timestamp: result.value.timestamp,
+      type: result.value.type,
+      data: result.value.data,
+      metadata: metadata,
+      getMetadata() { return this.metadata; }
+    });
+    senderWriter.write(result.value);
+  }
+
+  return ontrackPromise;
+}
+
+promise_test(async t => {
+  return testVideoFlow(t, exchangeOfferAnswer);
+}, 'Frames flow correctly using insertable streams');
+
+promise_test(async t => {
+  return testVideoFlow(t, exchangeOfferAnswerReverse);
+}, 'Frames flow correctly using insertable streams when receiver starts negotiation');
+
+
+</script>
+</body>
+</html>

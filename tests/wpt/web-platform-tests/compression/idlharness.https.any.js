@@ -7,7 +7,7 @@
 
 idl_test(
   ['compression'],
-  [],
+  ['streams'],
   idl_array => {
     idl_array.add_objects({
       CompressionStream: ['new CompressionStream("deflate")'],

@@ -97,6 +97,14 @@ var GenericSensorTest = (() => {
       this.notifyOnReadingChange_ = notifyOnReadingChange;
     }
 
+    resume() {
+      this.startReading();
+    }
+
+    suspend() {
+      this.stopReading();
+    }
+
     // Mock functions
 
     // Resets mock Sensor state.
@@ -167,6 +175,10 @@ var GenericSensorTest = (() => {
     getSamplingFrequency() {
        assert_true(this.requestedFrequencies_.length > 0);
        return this.requestedFrequencies_[0];
+    }
+
+    isReadingData() {
+      return this.sensorReadingTimerId_ != null;
     }
   }
 

@@ -2,7 +2,7 @@ import pytest
 
 import webdriver.protocol as protocol
 
-from webdriver import NoSuchElementException, StaleElementReferenceException
+from webdriver import StaleElementReferenceException
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_same_element, assert_success
@@ -37,15 +37,34 @@ def test_null_response_value(session):
     assert value is None
 
 
+@pytest.mark.parametrize("id", [
+    None,
+    0,
+    {"element-6066-11e4-a52e-4f735466cecf": "foo"},
+])
+def test_no_top_browsing_context(session, closed_window, id):
+    response = switch_to_frame(session, id)
+    assert_error(response, "no such window")
+
+
+@pytest.mark.parametrize("id", [
+    None,
+    0,
+    {"element-6066-11e4-a52e-4f735466cecf": "foo"},
+])
+def test_no_browsing_context(session, closed_frame, id):
+    response = switch_to_frame(session, id)
+    if id is None:
+        assert_success(response)
+        session.find.css("#delete", all=False)
+    else:
+        assert_error(response, "no such window")
+
+
 @pytest.mark.parametrize("value", ["foo", True, [], {}])
 def test_frame_id_invalid_types(session, value):
     response = switch_to_frame(session, value)
     assert_error(response, "invalid argument")
-
-
-def test_no_browsing_context(session, closed_window):
-    response = switch_to_frame(session, 1)
-    assert_error(response, "no such window")
 
 
 def test_frame_id_null(session):
@@ -70,22 +89,3 @@ def test_frame_id_null(session):
 
     frame = session.find.css("iframe", all=False)
     assert_same_element(session, frame, frame1)
-
-
-def test_frame_deleted(session, url):
-    session.url = url("/webdriver/tests/support/html/frames.html")
-    frame = session.find.css("iframe", all=False)
-
-    response = switch_to_frame(session, frame)
-    assert_success(response)
-
-    input = session.find.css("input", all=False)
-    input.click()
-
-    response = switch_to_frame(session, None)
-    assert_success(response)
-
-    with pytest.raises(NoSuchElementException):
-        session.find.css("iframe", all=False)
-
-    session.find.css("#delete", all=False)

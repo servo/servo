@@ -194,29 +194,6 @@ partial dictionary AuthenticationExtensionsClientOutputs {
     CredentialPropertiesOutput credProps;
 };
 
-dictionary AuthenticationExtensionsPRFValues {
-    required ArrayBuffer first;
-    ArrayBuffer second;
-};
-
-dictionary AuthenticationExtensionsPRFInputs {
-    AuthenticationExtensionsPRFValues eval;
-    record<USVString, AuthenticationExtensionsPRFValues> evalByCredential;
-};
-
-partial dictionary AuthenticationExtensionsClientInputs {
-    AuthenticationExtensionsPRFInputs prf;
-};
-
-dictionary AuthenticationExtensionsPRFOutputs {
-    boolean enabled;
-    AuthenticationExtensionsPRFValues results;
-};
-
-partial dictionary AuthenticationExtensionsClientOutputs {
-    AuthenticationExtensionsPRFOutputs prf;
-};
-
 partial dictionary AuthenticationExtensionsClientInputs {
     AuthenticationExtensionsLargeBlobInputs largeBlob;
 };

@@ -4,7 +4,7 @@
 // Source: Early detection of input events (https://wicg.github.io/is-input-pending/)
 
 dictionary IsInputPendingOptionsInit {
-  boolean includeContinuous = "false";
+  boolean includeContinuous = false;
 };
 
 [Exposed=Window]

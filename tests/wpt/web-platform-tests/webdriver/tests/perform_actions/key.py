@@ -11,7 +11,12 @@ def test_null_response_value(session, key_chain):
     assert value is None
 
 
-def test_no_browsing_context(session, closed_window, key_chain):
+def test_no_top_browsing_context(session, closed_window, key_chain):
+    with pytest.raises(NoSuchWindowException):
+        key_chain.key_up("a").perform()
+
+
+def test_no_browsing_context(session, closed_frame, key_chain):
     with pytest.raises(NoSuchWindowException):
         key_chain.key_up("a").perform()
 

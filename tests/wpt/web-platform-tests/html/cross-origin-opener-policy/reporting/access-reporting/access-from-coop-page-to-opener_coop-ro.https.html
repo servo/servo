@@ -1,6 +1,6 @@
 <title>
   COOP reports are sent when the openee used COOP-RO+COEP and then tries to
-  access its opener.
+  access its same-origin opener.
 </title>
 <meta name=timeout content=long>
 <script src=/resources/testharness.js></script>
@@ -13,7 +13,7 @@
 
 const directory = "/html/cross-origin-opener-policy/reporting";
 const executor_path = directory + "/resources/executor.html?pipe=";
-const cross_origin = get_host_info().HTTPS_REMOTE_ORIGIN;
+const same_origin = get_host_info().HTTPS_ORIGIN;
 const coep_header = '|header(Cross-Origin-Embedder-Policy,require-corp)';
 
 promise_test(async t => {
@@ -21,7 +21,7 @@ promise_test(async t => {
   const openee_token = token();
 
   const reportTo = reportToHeaders(report_token);
-  const openee_url = cross_origin + executor_path +
+  const openee_url = same_origin + executor_path +
     reportTo.header + reportTo.coopReportOnlySameOriginHeader + coep_header +
     `&uuid=${openee_token}`;
   const openee = window.open(openee_url);

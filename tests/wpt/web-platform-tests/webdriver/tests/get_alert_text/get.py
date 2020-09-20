@@ -12,9 +12,14 @@ def get_alert_text(session):
         "GET", "session/{session_id}/alert/text".format(**vars(session)))
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = get_alert_text(session)
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    response = get_alert_text(session)
+    assert_error(response, "no such alert")
 
 
 def test_no_user_prompt(session):
