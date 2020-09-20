@@ -38,6 +38,7 @@ use script_traits::{
     LoadOrigin, UpdatePipelineIdReason, WindowSizeData,
 };
 use script_traits::{NewLayoutInfo, ScriptMsg};
+use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::cell::Cell;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -530,8 +531,20 @@ impl HTMLIFrameElementMethods for HTMLIFrameElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-sandbox
     fn Sandbox(&self) -> DomRoot<DOMTokenList> {
-        self.sandbox
-            .or_init(|| DOMTokenList::new(self.upcast::<Element>(), &local_name!("sandbox")))
+        self.sandbox.or_init(|| {
+            DOMTokenList::new(
+                self.upcast::<Element>(),
+                &local_name!("sandbox"),
+                Some(vec![
+                    Atom::from("allow-same-origin"),
+                    Atom::from("allow-forms"),
+                    Atom::from("allow-pointer-lock"),
+                    Atom::from("allow-popups"),
+                    Atom::from("allow-scripts"),
+                    Atom::from("allow-top-navigation"),
+                ]),
+            )
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-iframe-contentwindow

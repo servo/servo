@@ -450,8 +450,17 @@ impl HTMLFormElementMethods for HTMLFormElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
     fn RelList(&self) -> DomRoot<DOMTokenList> {
-        self.rel_list
-            .or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
+        self.rel_list.or_init(|| {
+            DOMTokenList::new(
+                self.upcast(),
+                &local_name!("rel"),
+                Some(vec![
+                    Atom::from("noopener"),
+                    Atom::from("noreferrer"),
+                    Atom::from("opener"),
+                ]),
+            )
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names

@@ -20,6 +20,8 @@ interface DOMTokenList {
   boolean toggle(DOMString token, optional boolean force);
   [CEReactions, Throws]
   boolean replace(DOMString token, DOMString newToken);
+  [Pure, Throws]
+  boolean supports(DOMString token);
 
   [CEReactions, Pure]
   stringifier attribute DOMString value;
