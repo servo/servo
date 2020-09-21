@@ -390,8 +390,9 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 if parsed_url.host().is_some() {
                     if let Some(user_str) = username {
                         parsed_url.set_username(&user_str.0).unwrap();
-                        let password = password.as_ref().map(|pass_str| &*pass_str.0);
-                        parsed_url.set_password(password).unwrap();
+                    }
+                    if let Some(pass_str) = password {
+                        parsed_url.set_password(Some(&pass_str.0)).unwrap();
                     }
                 }
 
