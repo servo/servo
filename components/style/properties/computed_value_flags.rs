@@ -42,17 +42,17 @@ bitflags! {
         /// A flag used to mark styles which are a pseudo-element or under one.
         const IS_IN_PSEUDO_ELEMENT_SUBTREE = 1 << 4;
 
-        /// Whether this style inherits the `display` property.
+        /// Whether this style's `display` property depends on our parent style.
         ///
         /// This is important because it may affect our optimizations to avoid
         /// computing the style of pseudo-elements, given whether the
         /// pseudo-element is generated depends on the `display` value.
-        const INHERITS_DISPLAY = 1 << 6;
+        const DISPLAY_DEPENDS_ON_INHERITED_STYLE = 1 << 6;
 
-        /// Whether this style inherits the `content` property.
+        /// Whether this style's `content` depends on our parent style.
         ///
         /// Important because of the same reason.
-        const INHERITS_CONTENT = 1 << 7;
+        const CONTENT_DEPENDS_ON_INHERITED_STYLE = 1 << 7;
 
         /// Whether the child explicitly inherits any reset property.
         const INHERITS_RESET_STYLE = 1 << 8;

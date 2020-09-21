@@ -3646,11 +3646,11 @@ impl<'a> StyleBuilder<'a> {
         self.add_flags(ComputedValueFlags::INHERITS_RESET_STYLE);
 
         % if property.ident == "content":
-        self.add_flags(ComputedValueFlags::INHERITS_CONTENT);
+        self.add_flags(ComputedValueFlags::CONTENT_DEPENDS_ON_INHERITED_STYLE);
         % endif
 
         % if property.ident == "display":
-        self.add_flags(ComputedValueFlags::INHERITS_DISPLAY);
+        self.add_flags(ComputedValueFlags::DISPLAY_DEPENDS_ON_INHERITED_STYLE);
         % endif
 
         if self.${property.style_struct.ident}.ptr_eq(inherited_struct) {

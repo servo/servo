@@ -478,6 +478,25 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
                 .rule_cache_conditions
                 .borrow_mut()
                 .set_uncacheable();
+
+            // NOTE(emilio): We only really need to add the `display` /
+            // `content` flag if the CSS variable has not been specified on our
+            // declarations, but we don't have that information at this point,
+            // and it doesn't seem like an important enough optimization to
+            // warrant it.
+            match declaration.id {
+                LonghandId::Display => {
+                    self.context
+                        .builder
+                        .add_flags(ComputedValueFlags::DISPLAY_DEPENDS_ON_INHERITED_STYLE);
+                },
+                LonghandId::Content => {
+                    self.context
+                        .builder
+                        .add_flags(ComputedValueFlags::CONTENT_DEPENDS_ON_INHERITED_STYLE);
+                },
+                _ => {},
+            }
         }
 
         Cow::Owned(declaration.value.substitute_variables(
