@@ -1263,11 +1263,12 @@ pub fn parse_style_attribute(
     url_data: &UrlExtraData,
     error_reporter: Option<&dyn ParseErrorReporter>,
     quirks_mode: QuirksMode,
+    rule_type: CssRuleType,
 ) -> PropertyDeclarationBlock {
     let context = ParserContext::new(
         Origin::Author,
         url_data,
-        Some(CssRuleType::Style),
+        Some(rule_type),
         ParsingMode::DEFAULT,
         quirks_mode,
         error_reporter,
@@ -1291,11 +1292,12 @@ pub fn parse_one_declaration_into(
     error_reporter: Option<&dyn ParseErrorReporter>,
     parsing_mode: ParsingMode,
     quirks_mode: QuirksMode,
+    rule_type: CssRuleType,
 ) -> Result<(), ()> {
     let context = ParserContext::new(
         Origin::Author,
         url_data,
-        Some(CssRuleType::Style),
+        Some(rule_type),
         parsing_mode,
         quirks_mode,
         error_reporter,

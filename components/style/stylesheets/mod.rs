@@ -299,7 +299,7 @@ impl CssRule {
 }
 
 #[allow(missing_docs)]
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, FromPrimitive, PartialEq)]
 pub enum CssRuleType {
     // https://drafts.csswg.org/cssom/#the-cssrule-interface
     Style = 1,

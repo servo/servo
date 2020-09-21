@@ -542,10 +542,12 @@ impl NonCustomPropertyId {
         false
     }
 
-    fn allowed_in(self, context: &ParserContext) -> bool {
+    /// Returns whether a given rule allows a given property.
+    #[inline]
+    pub fn allowed_in_rule(self, rule_type: CssRuleType) -> bool {
         debug_assert!(
             matches!(
-                context.rule_type(),
+                rule_type,
                 CssRuleType::Keyframe | CssRuleType::Page | CssRuleType::Style
             ),
             "Declarations are only expected inside a keyframe, page, or style rule."
@@ -559,14 +561,16 @@ impl NonCustomPropertyId {
             "DISALLOWED_IN_PAGE_RULE",
             lambda p: not p.allowed_in_page_rule
         )}
-        match context.rule_type() {
-            CssRuleType::Keyframe if DISALLOWED_IN_KEYFRAME_BLOCK.contains(self) => {
-                return false;
-            }
-            CssRuleType::Page if DISALLOWED_IN_PAGE_RULE.contains(self) => {
-                return false;
-            }
-            _ => {}
+        match rule_type {
+            CssRuleType::Keyframe => !DISALLOWED_IN_KEYFRAME_BLOCK.contains(self),
+            CssRuleType::Page => !DISALLOWED_IN_PAGE_RULE.contains(self),
+            _ => true
+        }
+    }
+
+    fn allowed_in(self, context: &ParserContext) -> bool {
+        if !self.allowed_in_rule(context.rule_type()) {
+            return false;
         }
 
         self.allowed_in_ignoring_rule_type(context)
