@@ -7,7 +7,12 @@ def get_page_source(session):
         "GET", "session/{session_id}/source".format(**vars(session)))
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
+    response = get_page_source(session)
+    assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
     response = get_page_source(session)
     assert_error(response, "no such window")
 

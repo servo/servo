@@ -11,7 +11,12 @@ def get_active_element(session):
         "GET", "session/{session_id}/element/active".format(**vars(session)))
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
+    response = get_active_element(session)
+    assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
     response = get_active_element(session)
     assert_error(response, "no such window")
 

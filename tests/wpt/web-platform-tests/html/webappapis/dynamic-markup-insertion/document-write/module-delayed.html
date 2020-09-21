@@ -10,16 +10,17 @@ async_test(t => {
   const iframe = document.createElement("iframe");
 
   iframe.onerror = t.unreached_func("Error loading iframe");
+
   let onLoadWasCalled = false;
   iframe.onload = t.step_func(() => {
+    onLoadWasCalled = true;
     assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
     // Don't call the event handler another time after document.write.
     iframe.onload = null;
-    onLoadWasCalled = true;
   });
   document.addEventListener("documentWriteDone", t.step_func_done(() => {
-    assert_equals(iframe.onload, null);
-    assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
+    assert_true(onLoadWasCalled, "onload must be called");
+    assert_equals(iframe.contentDocument.body.textContent, "document.write body contents\n");
   }));
 
   iframe.src = "module-delayed-iframe.html";

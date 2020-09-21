@@ -3,12 +3,8 @@
 // (https://github.com/w3c/webref)
 // Source: Accessible Rich Internet Applications (WAI-ARIA) 1.2 (https://w3c.github.io/aria/)
 
-interface mixin AccessibilityRole {
-  attribute DOMString role;
-};
-Element includes AccessibilityRole;
-
-interface mixin AriaAttributes {
+interface mixin ARIAMixin {
+  attribute DOMString? role;
 
   attribute DOMString ariaAtomic;
   attribute DOMString ariaAutoComplete;
@@ -59,4 +55,5 @@ interface mixin AriaAttributes {
   attribute DOMString ariaValueNow;
   attribute DOMString ariaValueText;
 };
-Element includes AriaAttributes;
+
+Element includes ARIAMixin;

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/cookies/resources/cookie-helper.sub.js"></script>
+<script>
+  function schemeful_navigation_test(target, expectedSameSiteStatus, title) {
+    promise_test(async function(t) {
+      let value = "" + Math.random();
+      document.cookie = `samesite_strict=${value}; sameSite=strict; path=/`;
+      document.cookie = `samesite_lax=${value}; sameSite=lax; path=/`;
+
+      let url = target + "/cookies/schemeful-same-site/resources/navigateToInsecurePostToParent.html";
+
+      await new Promise((resolve, reject) => {
+          window.onmessage = t.step_func(e => {
+            if (e.source == window.open("", "testwindow" + value)) {
+              e.source.close();
+              const cookies = e.data;
+
+              assert_equals(cookies["samesite_lax"], value, "SameSite=lax cookies can be sent in both cases");
+              if (expectedSameSiteStatus === SameSiteStatus.STRICT) {
+                assert_equals(cookies["samesite_strict"], value, "SameSite=strict cookies can be sent to same-scheme navigations");
+              } else if (expectedSameSiteStatus === SameSiteStatus.LAX) {
+                assert_not_equals(cookies["samesite_strict"], value, "SameSite=strict cookies cannot be sent to cross-scheme navigations");
+              }
+
+              resolve();
+            }
+            else {reject();}
+          });
+
+          var w = window.open(url, "testwindow" + value);
+        });
+
+    },title);}
+
+  schemeful_navigation_test(INSECURE_ORIGIN, SameSiteStatus.STRICT, "Navigate same-scheme");
+  schemeful_navigation_test(SECURE_ORIGIN, SameSiteStatus.LAX, "Navigate cross-scheme");
+</script>

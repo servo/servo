@@ -7,7 +7,7 @@ onmessage = async e => {
 
   // Use a reasonable time to wait after dispatching events, since we want to be
   // able to test for cases where isInputPending returns false.
-  const DISPATCH_WAIT_TIME_MS = 200;
+  const DISPATCH_WAIT_TIME_MS = 500;
 
   // Wait a reasonable amount of time for the event to be enqueued.
   const end = performance.now() + DISPATCH_WAIT_TIME_MS;

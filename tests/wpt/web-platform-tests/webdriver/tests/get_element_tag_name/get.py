@@ -9,7 +9,12 @@ def get_element_tag_name(session, element_id):
             element_id=element_id))
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
+    response = get_element_tag_name(session, "foo")
+    assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
     response = get_element_tag_name(session, "foo")
     assert_error(response, "no such window")
 
