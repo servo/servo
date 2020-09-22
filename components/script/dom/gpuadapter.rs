@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::{
-    GPUAdapterMethods, GPUDeviceDescriptor,
+    GPUAdapterMethods, GPUDeviceDescriptor, GPUExtensionName, GPULimits,
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
@@ -80,10 +80,39 @@ impl GPUAdapterMethods for GPUAdapter {
     fn RequestDevice(&self, descriptor: &GPUDeviceDescriptor, comp: InRealm) -> Rc<Promise> {
         let promise = Promise::new_in_current_realm(&self.global(), comp);
         let sender = response_async(&promise, self);
+        let mut features = wgt::Features::empty();
+        for &ext in descriptor.extensions.iter() {
+            if ext == GPUExtensionName::Depth_clamping {
+                features.insert(wgt::Features::DEPTH_CLAMPING);
+            } else if ext == GPUExtensionName::Texture_compression_bc {
+                features.insert(wgt::Features::TEXTURE_COMPRESSION_BC)
+            }
+        }
+
         let desc = wgt::DeviceDescriptor {
-            features: wgt::Features::empty(),
+            features,
             limits: wgt::Limits {
                 max_bind_groups: descriptor.limits.maxBindGroups,
+                max_dynamic_uniform_buffers_per_pipeline_layout: descriptor
+                    .limits
+                    .maxDynamicUniformBuffersPerPipelineLayout,
+                max_dynamic_storage_buffers_per_pipeline_layout: descriptor
+                    .limits
+                    .maxDynamicStorageBuffersPerPipelineLayout,
+                max_sampled_textures_per_shader_stage: descriptor
+                    .limits
+                    .maxSampledTexturesPerShaderStage,
+                max_samplers_per_shader_stage: descriptor.limits.maxSamplersPerShaderStage,
+                max_storage_buffers_per_shader_stage: descriptor
+                    .limits
+                    .maxStorageBuffersPerShaderStage,
+                max_storage_textures_per_shader_stage: descriptor
+                    .limits
+                    .maxStorageTexturesPerShaderStage,
+                max_uniform_buffers_per_shader_stage: descriptor
+                    .limits
+                    .maxUniformBuffersPerShaderStage,
+                max_uniform_buffer_binding_size: descriptor.limits.maxUniformBufferBindingSize,
                 ..Default::default()
             },
             shader_validation: true,
@@ -122,15 +151,38 @@ impl AsyncWGPUListener for GPUAdapter {
             Ok(WebGPUResponse::RequestDevice {
                 device_id,
                 queue_id,
-                _descriptor,
+                descriptor,
                 label,
             }) => {
+                let limits = GPULimits {
+                    maxBindGroups: descriptor.limits.max_bind_groups,
+                    maxDynamicStorageBuffersPerPipelineLayout: descriptor
+                        .limits
+                        .max_dynamic_storage_buffers_per_pipeline_layout,
+                    maxDynamicUniformBuffersPerPipelineLayout: descriptor
+                        .limits
+                        .max_dynamic_uniform_buffers_per_pipeline_layout,
+                    maxSampledTexturesPerShaderStage: descriptor
+                        .limits
+                        .max_sampled_textures_per_shader_stage,
+                    maxSamplersPerShaderStage: descriptor.limits.max_samplers_per_shader_stage,
+                    maxStorageBuffersPerShaderStage: descriptor
+                        .limits
+                        .max_storage_buffers_per_shader_stage,
+                    maxStorageTexturesPerShaderStage: descriptor
+                        .limits
+                        .max_storage_textures_per_shader_stage,
+                    maxUniformBufferBindingSize: descriptor.limits.max_uniform_buffer_binding_size,
+                    maxUniformBuffersPerShaderStage: descriptor
+                        .limits
+                        .max_uniform_buffers_per_shader_stage,
+                };
                 let device = GPUDevice::new(
                     &self.global(),
                     self.channel.clone(),
                     &self,
                     Heap::default(),
-                    Heap::default(),
+                    limits,
                     device_id,
                     queue_id,
                     label,

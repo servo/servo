@@ -9,6 +9,7 @@ use crate::dom::bindings::codegen::Bindings::GPUCommandEncoderBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::GPUQueueBinding::GPUQueueMethods;
 use crate::dom::bindings::codegen::Bindings::GPUTextureBinding::GPUExtent3D;
+use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer as BufferSource;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -20,8 +21,6 @@ use crate::dom::gpucommandencoder::{convert_texture_cv, convert_texture_data_lay
 use crate::dom::gpudevice::{convert_texture_size_to_dict, convert_texture_size_to_wgt, GPUDevice};
 use dom_struct::dom_struct;
 use ipc_channel::ipc::IpcSharedMemory;
-use js::rust::CustomAutoRooterGuard;
-use js::typedarray::ArrayBuffer;
 use webgpu::{identity::WebGPUOpResult, wgt, WebGPU, WebGPUQueue, WebGPURequest};
 
 #[dom_struct]
@@ -104,11 +103,14 @@ impl GPUQueueMethods for GPUQueue {
         &self,
         buffer: &GPUBuffer,
         buffer_offset: GPUSize64,
-        data: CustomAutoRooterGuard<ArrayBuffer>,
+        data: BufferSource,
         data_offset: GPUSize64,
         size: Option<GPUSize64>,
     ) -> Fallible<()> {
-        let bytes = data.to_vec();
+        let bytes = match data {
+            BufferSource::ArrayBufferView(d) => d.to_vec(),
+            BufferSource::ArrayBuffer(d) => d.to_vec(),
+        };
         let content_size = if let Some(s) = size {
             s
         } else {
@@ -146,12 +148,15 @@ impl GPUQueueMethods for GPUQueue {
     fn WriteTexture(
         &self,
         destination: &GPUTextureCopyView,
-        data: CustomAutoRooterGuard<ArrayBuffer>,
+        data: BufferSource,
         data_layout: &GPUTextureDataLayout,
         size: GPUExtent3D,
     ) -> Fallible<()> {
-        let bytes = data.to_vec();
-        let valid = data_layout.offset <= data.len() as u64;
+        let (bytes, len) = match data {
+            BufferSource::ArrayBufferView(d) => (d.to_vec(), d.len() as u64),
+            BufferSource::ArrayBuffer(d) => (d.to_vec(), d.len() as u64),
+        };
+        let valid = data_layout.offset <= len;
 
         if !valid {
             return Err(Error::Operation);

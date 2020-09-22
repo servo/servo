@@ -16,8 +16,9 @@ dictionary GPUSamplerDescriptor : GPUObjectDescriptorBase {
     GPUFilterMode minFilter = "nearest";
     GPUFilterMode mipmapFilter = "nearest";
     float lodMinClamp = 0;
-    float lodMaxClamp = 0xfffff; // TODO: Update this. Value in spec was too big
+    float lodMaxClamp = 0xfffff; // TODO: What should this be? Was Number.MAX_VALUE.
     GPUCompareFunction compare;
+    unsigned short maxAnisotropy = 1;
 };
 
 enum GPUAddressMode {

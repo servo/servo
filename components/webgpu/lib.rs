@@ -61,7 +61,7 @@ pub enum WebGPUResponse {
     RequestDevice {
         device_id: WebGPUDevice,
         queue_id: WebGPUQueue,
-        _descriptor: wgt::DeviceDescriptor,
+        descriptor: wgt::DeviceDescriptor,
         label: Option<String>,
     },
     BufferMapAsync(IpcSharedMemory),
@@ -960,7 +960,7 @@ impl<'a> WGPU<'a> {
                         if let Err(e) = sender.send(Ok(WebGPUResponse::RequestDevice {
                             device_id: device,
                             queue_id: queue,
-                            _descriptor: descriptor,
+                            descriptor,
                             label,
                         })) {
                             warn!(

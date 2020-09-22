@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::GPULimits;
 use crate::dom::bindings::codegen::Bindings::GPURenderPipelineBinding::GPURenderPipelineMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
+use crate::dom::gpudevice::GPUDevice;
 use dom_struct::dom_struct;
 use std::string::String;
 use webgpu::{WebGPUBindGroupLayout, WebGPURenderPipeline};
@@ -21,6 +21,7 @@ pub struct GPURenderPipeline {
     label: DomRefCell<Option<USVString>>,
     render_pipeline: WebGPURenderPipeline,
     bind_group_layouts: Vec<WebGPUBindGroupLayout>,
+    device: Dom<GPUDevice>,
 }
 
 impl GPURenderPipeline {
@@ -28,12 +29,14 @@ impl GPURenderPipeline {
         render_pipeline: WebGPURenderPipeline,
         label: Option<USVString>,
         bgls: Vec<WebGPUBindGroupLayout>,
+        device: &GPUDevice,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
             render_pipeline,
             bind_group_layouts: bgls,
+            device: Dom::from_ref(device),
         }
     }
 
@@ -42,12 +45,14 @@ impl GPURenderPipeline {
         render_pipeline: WebGPURenderPipeline,
         label: Option<USVString>,
         bgls: Vec<WebGPUBindGroupLayout>,
+        device: &GPUDevice,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPURenderPipeline::new_inherited(
                 render_pipeline,
                 label,
                 bgls,
+                device,
             )),
             global,
         )
@@ -73,7 +78,8 @@ impl GPURenderPipelineMethods for GPURenderPipeline {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout
     fn GetBindGroupLayout(&self, index: u32) -> Fallible<DomRoot<GPUBindGroupLayout>> {
-        if index > self.bind_group_layouts.len() as u32 || index > GPULimits::empty().maxBindGroups
+        if index > self.bind_group_layouts.len() as u32 ||
+            index > self.device.limits().maxBindGroups
         {
             return Err(Error::Range(String::from("Index out of bounds")));
         }

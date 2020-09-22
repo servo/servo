@@ -72,7 +72,7 @@ use js::jsapi::{Heap, JSObject};
 use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
-use std::ptr::NonNull;
+use std::ptr::{self, NonNull};
 use std::rc::Rc;
 use webgpu::wgpu::{
     binding_model as wgpu_bind, command as wgpu_com,
@@ -112,8 +112,8 @@ pub struct GPUDevice {
     adapter: Dom<GPUAdapter>,
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
-    #[ignore_malloc_size_of = "mozjs"]
-    limits: Heap<*mut JSObject>,
+    #[ignore_malloc_size_of = "Because it is non-owning"]
+    limits: GPULimits,
     label: DomRefCell<Option<USVString>>,
     device: webgpu::WebGPUDevice,
     default_queue: Dom<GPUQueue>,
@@ -127,7 +127,7 @@ impl GPUDevice {
         channel: WebGPU,
         adapter: &GPUAdapter,
         extensions: Heap<*mut JSObject>,
-        limits: Heap<*mut JSObject>,
+        limits: GPULimits,
         device: webgpu::WebGPUDevice,
         queue: &GPUQueue,
         label: Option<String>,
@@ -155,7 +155,7 @@ impl GPUDevice {
         channel: WebGPU,
         adapter: &GPUAdapter,
         extensions: Heap<*mut JSObject>,
-        limits: Heap<*mut JSObject>,
+        limits: GPULimits,
         device: webgpu::WebGPUDevice,
         queue: webgpu::WebGPUQueue,
         label: Option<String>,
@@ -175,6 +175,10 @@ impl GPUDevice {
 impl GPUDevice {
     pub fn id(&self) -> webgpu::WebGPUDevice {
         self.device
+    }
+
+    pub fn limits(&self) -> &GPULimits {
+        &self.limits
     }
 
     pub fn handle_server_msg(&self, scope: Option<ErrorScopeId>, result: WebGPUOpResult) {
@@ -299,7 +303,7 @@ impl GPUDevice {
                 .wgpu_id_hub()
                 .lock()
                 .create_pipeline_layout_id(self.device.0.backend());
-            let max_bind_grps = GPULimits::empty().maxBindGroups;
+            let max_bind_grps = self.limits.maxBindGroups;
             let mut bgls = Vec::with_capacity(max_bind_grps as usize);
             let mut bgl_ids = Vec::with_capacity(max_bind_grps as usize);
             for _ in 0..max_bind_grps {
@@ -328,8 +332,12 @@ impl GPUDeviceMethods for GPUDevice {
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-limits
-    fn Limits(&self, _cx: SafeJSContext) -> NonNull<JSObject> {
-        NonNull::new(self.extensions.get()).unwrap()
+    fn Limits(&self, cx: SafeJSContext) -> NonNull<JSObject> {
+        rooted!(in (*cx) let mut limits = ptr::null_mut::<JSObject>());
+        unsafe {
+            self.limits.to_jsobject(*cx, limits.handle_mut());
+        }
+        NonNull::new(limits.get()).unwrap()
     }
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpudevice-defaultqueue
@@ -439,17 +447,17 @@ impl GPUDeviceMethods for GPUDevice {
                 };
                 let ty = match bind.type_ {
                     GPUBindingType::Uniform_buffer => wgt::BindingType::UniformBuffer {
-                        dynamic: bind.hasDynamicOffset,
-                        min_binding_size: wgt::BufferSize::new(bind.minBufferBindingSize),
+                        dynamic: bind.hasDynamicOffset.unwrap_or(false),
+                        min_binding_size: bind.minBufferBindingSize.and_then(wgt::BufferSize::new),
                     },
                     GPUBindingType::Storage_buffer => wgt::BindingType::StorageBuffer {
-                        dynamic: bind.hasDynamicOffset,
-                        min_binding_size: wgt::BufferSize::new(bind.minBufferBindingSize),
+                        dynamic: bind.hasDynamicOffset.unwrap_or(false),
+                        min_binding_size: bind.minBufferBindingSize.and_then(wgt::BufferSize::new),
                         readonly: false,
                     },
                     GPUBindingType::Readonly_storage_buffer => wgt::BindingType::StorageBuffer {
-                        dynamic: bind.hasDynamicOffset,
-                        min_binding_size: wgt::BufferSize::new(bind.minBufferBindingSize),
+                        dynamic: bind.hasDynamicOffset.unwrap_or(false),
+                        min_binding_size: bind.minBufferBindingSize.and_then(wgt::BufferSize::new),
                         readonly: true,
                     },
                     GPUBindingType::Sampled_texture => wgt::BindingType::SampledTexture {
@@ -458,16 +466,17 @@ impl GPUDeviceMethods for GPUDevice {
                             .map_or(wgt::TextureViewDimension::D2, |v| {
                                 convert_texture_view_dimension(v)
                             }),
-                        component_type: if let Some(c) = bind.textureComponentType {
-                            match c {
-                                GPUTextureComponentType::Float => wgt::TextureComponentType::Float,
-                                GPUTextureComponentType::Sint => wgt::TextureComponentType::Sint,
-                                GPUTextureComponentType::Uint => wgt::TextureComponentType::Uint,
-                            }
-                        } else {
-                            wgt::TextureComponentType::Float
-                        },
-                        multisampled: bind.multisampled,
+                        component_type: convert_texture_component_type(bind.textureComponentType),
+                        multisampled: false,
+                    },
+                    GPUBindingType::Multisampled_texture => wgt::BindingType::SampledTexture {
+                        dimension: bind
+                            .viewDimension
+                            .map_or(wgt::TextureViewDimension::D2, |v| {
+                                convert_texture_view_dimension(v)
+                            }),
+                        component_type: convert_texture_component_type(bind.textureComponentType),
+                        multisampled: true,
                     },
                     GPUBindingType::Readonly_storage_texture => wgt::BindingType::StorageTexture {
                         dimension: bind
@@ -742,6 +751,7 @@ impl GPUDeviceMethods for GPUDevice {
             compute_pipeline,
             descriptor.parent.parent.label.as_ref().cloned(),
             bgls,
+            &self,
         )
     }
 
@@ -1048,6 +1058,7 @@ impl GPUDeviceMethods for GPUDevice {
             render_pipeline,
             descriptor.parent.parent.label.as_ref().cloned(),
             bgls,
+            &self,
         )
     }
 
@@ -1273,7 +1284,6 @@ pub fn convert_texture_format(format: GPUTextureFormat) -> wgt::TextureFormat {
         GPUTextureFormat::Bgra8unorm => wgt::TextureFormat::Bgra8Unorm,
         GPUTextureFormat::Bgra8unorm_srgb => wgt::TextureFormat::Bgra8UnormSrgb,
         GPUTextureFormat::Rgb10a2unorm => wgt::TextureFormat::Rgb10a2Unorm,
-        GPUTextureFormat::Rg11b10float => wgt::TextureFormat::Rg11b10Float,
         GPUTextureFormat::Rg32uint => wgt::TextureFormat::Rg32Uint,
         GPUTextureFormat::Rg32sint => wgt::TextureFormat::Rg32Sint,
         GPUTextureFormat::Rg32float => wgt::TextureFormat::Rg32Float,
@@ -1286,6 +1296,34 @@ pub fn convert_texture_format(format: GPUTextureFormat) -> wgt::TextureFormat {
         GPUTextureFormat::Depth32float => wgt::TextureFormat::Depth32Float,
         GPUTextureFormat::Depth24plus => wgt::TextureFormat::Depth24Plus,
         GPUTextureFormat::Depth24plus_stencil8 => wgt::TextureFormat::Depth24PlusStencil8,
+        GPUTextureFormat::Bc1_rgba_unorm => wgt::TextureFormat::Bc1RgbaUnorm,
+        GPUTextureFormat::Bc1_rgba_unorm_srgb => wgt::TextureFormat::Bc1RgbaUnormSrgb,
+        GPUTextureFormat::Bc2_rgba_unorm => wgt::TextureFormat::Bc2RgbaUnorm,
+        GPUTextureFormat::Bc2_rgba_unorm_srgb => wgt::TextureFormat::Bc2RgbaUnormSrgb,
+        GPUTextureFormat::Bc3_rgba_unorm => wgt::TextureFormat::Bc3RgbaUnorm,
+        GPUTextureFormat::Bc3_rgba_unorm_srgb => wgt::TextureFormat::Bc3RgbaUnormSrgb,
+        GPUTextureFormat::Bc4_r_unorm => wgt::TextureFormat::Bc4RUnorm,
+        GPUTextureFormat::Bc4_r_snorm => wgt::TextureFormat::Bc4RSnorm,
+        GPUTextureFormat::Bc5_rg_unorm => wgt::TextureFormat::Bc5RgUnorm,
+        GPUTextureFormat::Bc5_rg_snorm => wgt::TextureFormat::Bc5RgSnorm,
+        GPUTextureFormat::Bc6h_rgb_ufloat => wgt::TextureFormat::Bc6hRgbUfloat,
+        GPUTextureFormat::Bc7_rgba_unorm => wgt::TextureFormat::Bc7RgbaUnorm,
+        GPUTextureFormat::Bc7_rgba_unorm_srgb => wgt::TextureFormat::Bc7RgbaUnormSrgb,
+    }
+}
+
+fn convert_texture_component_type(
+    ty: Option<GPUTextureComponentType>,
+) -> wgt::TextureComponentType {
+    if let Some(c) = ty {
+        match c {
+            GPUTextureComponentType::Float => wgt::TextureComponentType::Float,
+            GPUTextureComponentType::Sint => wgt::TextureComponentType::Sint,
+            GPUTextureComponentType::Uint => wgt::TextureComponentType::Uint,
+            GPUTextureComponentType::Depth_comparison => wgt::TextureComponentType::DepthComparison,
+        }
+    } else {
+        wgt::TextureComponentType::Float
     }
 }
 
