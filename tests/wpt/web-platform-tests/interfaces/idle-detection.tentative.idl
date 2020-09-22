@@ -21,5 +21,6 @@ enum ScreenIdleState {
   readonly attribute UserIdleState? userState;
   readonly attribute ScreenIdleState? screenState;
   attribute EventHandler onchange;
+  [Exposed=Window] static Promise<PermissionState> requestPermission();
   Promise<any> start(optional IdleOptions options = {});
 };

@@ -21,6 +21,10 @@
 
   // https://github.com/w3c/payment-request/pull/765
   ["languageCode", "PaymentAddress"],
+
+  //https://github.com/whatwg/html/pull/5915
+  ["allowPaymentRequest", "HTMLIFrameElement"],
+
 ].forEach(([member, interf]) => {
   test(() => {
     assert_false(member in window[interf].prototype);

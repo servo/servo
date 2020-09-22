@@ -16,7 +16,7 @@ in the constraints parameter rejects with a TypeError.</p>
 <script>
 var t = async_test("Tests that getUserMedia is rejected with a TypeError when used with an unknown constraint");
 t.step(function () {
-  navigator.mediaDevices.getUserMedia({})
+  navigator.mediaDevices.getUserMedia({doesnotexist:true})
     .then(t.step_func(function () {
       assert_unreached("This should never be triggered since the constraints parameter only contains an unrecognized constraint");
     }), t.step_func(function (error) {

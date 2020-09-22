@@ -5,7 +5,7 @@
 'use strict';
 
 promise_setup(async t => {
-  await test_driver.set_permission({ name: 'notifications' }, 'granted', false);
+  await test_driver.set_permission({name: 'idle-detection'}, 'granted', false);
 })
 
 promise_test(async t => {

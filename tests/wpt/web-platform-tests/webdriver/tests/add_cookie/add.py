@@ -34,7 +34,17 @@ def test_null_response_value(session, url):
     assert value is None
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
+    new_cookie = {
+        "name": "hello",
+        "value": "world",
+    }
+
+    response = add_cookie(session, new_cookie)
+    assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
     new_cookie = {
         "name": "hello",
         "value": "world",

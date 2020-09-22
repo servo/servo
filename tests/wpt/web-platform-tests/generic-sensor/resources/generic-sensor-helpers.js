@@ -36,7 +36,6 @@ async function initialize_generic_sensor_tests() {
       await loadChromiumResources();
     }
   }
-  assert_implements(GenericSensorTest, 'GenericSensorTest is unavailable.');
 
   let sensorTest = new GenericSensorTest();
   await sensorTest.initialize();

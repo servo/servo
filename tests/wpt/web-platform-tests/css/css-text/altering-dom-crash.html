@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Text Test: Altering the DOM generates empty text elements that cause line-breaking to crash</title>
+<link rel="help" href="https://crbug.com/972992">
+<style>
+    body {
+        width: 5pt;
+        hyphens: none;
+    }
+</style>
+<body onload=jsfuzzer()>
+    <table id="table1">x</table>
+    <content contenteditable="plaintext-only">
+</body>
+<script>
+    function jsfuzzer() {
+        document.all[0].appendChild(table1);
+    }
+</script>

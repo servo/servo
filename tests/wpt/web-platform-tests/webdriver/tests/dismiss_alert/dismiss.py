@@ -18,9 +18,14 @@ def test_null_response_value(session, url):
     assert value is None
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = dismiss_alert(session)
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    response = dismiss_alert(session)
+    assert_error(response, "no such alert")
 
 
 def test_no_user_prompt(session):

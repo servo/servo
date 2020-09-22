@@ -17,9 +17,16 @@ def test_payload(session):
     assert isinstance(value, text_type)
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = get_title(session)
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    session.url = inline("<title>Foo</title>")
+
+    response = get_title(session)
+    assert_success(response, "Foo")
 
 
 def test_with_duplicated_title(session):

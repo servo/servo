@@ -13,7 +13,12 @@ def get_element_css_value(session, element_id, prop):
     )
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
+    response = get_element_css_value(session, "foo", "bar")
+    assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
     response = get_element_css_value(session, "foo", "bar")
     assert_error(response, "no such window")
 

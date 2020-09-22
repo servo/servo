@@ -1,63 +1,68 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>iframe sensor tester</title>
-<script src="/resources/testharness.js"></script>
 <script src="/generic-sensor/resources/generic-sensor-helpers.js"></script>
 <script>
   let mockBackend = null;
-  // Minimum frequency supported by the mock backend is 5Hz. Using 200ms
-  // update period + 50ms threshold.
-  const maxUpdatePeriod = 250;
   let sensor = null;
-  let lastTimestamp = null;
+  let sensorType = null;
 
-  window.onmessage = (e) => {
+  function postReply(event, reply) {
+    event.source.postMessage({ command: event.data.command, result: reply }, '*');
+  }
+
+  window.onmessage = async (e) => {
     if (e.data.command === 'create_sensor') {
-      assert_equals(sensor, null);
-      initialize_generic_sensor_tests().then((backend) => {
-        mockBackend = backend;
-        try {
-          sensor = new self[e.data.type]();
-          e.source.postMessage({command: e.data.command,
-                                result: 'success'}, '*');
-        } catch (error) {
-          e.source.postMessage({command: e.data.command, result: error}, '*');
-        }
-      });
-    } else if (e.data.command === 'start_sensor') {
-      assert_not_equals(sensor, null);
+      if (sensor) {
+        postReply(e, 'success');
+        return;
+      }
+
       try {
-        sensor.start();
-        sensor.onreading = () => lastTimestamp = sensor.timestamp;
-        let onReadingListener = () => {
-          e.source.postMessage({command: e.data.command,
-                                result: 'success'}, '*');
-        }
-        sensor.addEventListener('reading', onReadingListener, {once: true});
+        mockBackend = await initialize_generic_sensor_tests();
+        sensor = new self[e.data.type]();
+        sensorType = e.data.type;
+
+        postReply(e, 'success');
       } catch (error) {
-        e.source.postMessage({command: e.data.command, result: error}, '*');
+        postReply(e, error);
+      }
+    } else if (e.data.command === 'start_sensor') {
+      if (!sensor) {
+        postReply(e, '"create_sensor" must be called first');
+        return;
+      }
+
+      try {
+        sensor.addEventListener('reading', () => {
+          postReply(e, 'success');
+        }, { once: true });
+        sensor.start();
+      } catch (error) {
+        postReply(e, error);
       }
     } else if (e.data.command === 'is_sensor_suspended') {
-      let cachedTimestamp = lastTimestamp;
-      let timeoutId = setTimeout(() => {
-        e.source.postMessage({command: e.data.command,
-                              result: cachedTimestamp === lastTimestamp}, '*');
-      }, maxUpdatePeriod);
-
-      let suspendListener = () => {
-        clearTimeout(timeoutId);
-        e.source.postMessage({command: e.data.command,
-                              result: cachedTimestamp === lastTimestamp}, '*');
+      if (!mockBackend) {
+        postReply(e, '"create_sensor" must be called first');
+        return;
       }
-      sensor.addEventListener('reading', suspendListener, {once: true});
+
+      try {
+        const mockPlatformSensor = await mockBackend.getSensorProvider().getCreatedSensor(sensorType);
+        postReply(e, !mockPlatformSensor.isReadingData());
+      } catch (error) {
+        postReply(e, error);
+      }
     } else if (e.data.command === 'reset_sensor_backend') {
       if (sensor) {
         sensor.stop();
+        await mockBackend.reset();
+
+        sensor = null;
+        mockBackend = null;
       }
-      mockBackend.reset().then(() => {
-        e.source.postMessage({command: e.data.command,
-                              result: 'success'}, '*');
-      });
+
+      postReply(e, 'success');
     }
   }
 </script>

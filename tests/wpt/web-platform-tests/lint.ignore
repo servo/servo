@@ -184,7 +184,7 @@ SET TIMEOUT: html/canvas/offscreen/the-offscreen-canvas/*
 SET TIMEOUT: html/canvas/offscreen/manual/the-offscreen-canvas/*
 SET TIMEOUT: old-tests/submission/Microsoft/history/history_000.htm
 SET TIMEOUT: paint-timing/resources/subframe-painting.html
-SET TIMEOUT: payment-request/allowpaymentrequest/setting-allowpaymentrequest-timing.https.sub.html
+SET TIMEOUT: payment-request/allowpayment/setting-allowpaymentrequest-timing.https.sub.html
 SET TIMEOUT: portals/resources/portals-adopt-predecessor-portal.html
 SET TIMEOUT: preload/single-download-preload.html
 SET TIMEOUT: resize-observer/resources/iframe.html
@@ -301,7 +301,7 @@ SET TIMEOUT: css/css-fonts/font-display/font-display-change-ref.html
 SET TIMEOUT: css/css-fonts/font-display/font-display-feature-policy-01.tentative.html
 SET TIMEOUT: css/css-fonts/font-display/font-display-feature-policy-02.tentative.html
 SET TIMEOUT: css/css-fonts/font-display/font-display-preload.html
-SET TIMEOUT: document-policy/font-display/font-display-document-policy-01.tentative.html
+SET TIMEOUT: document-policy/font-display/override-to-optional.tentative.html
 SET TIMEOUT: feature-policy/experimental-features/resources/focus-without-user-activation-iframe-tentative.html
 SET TIMEOUT: html/browsers/windows/auxiliary-browsing-contexts/resources/close-opener.html
 SET TIMEOUT: html/cross-origin-embedder-policy/resources/navigate-none.sub.html

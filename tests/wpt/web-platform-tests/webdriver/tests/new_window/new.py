@@ -17,9 +17,21 @@ def test_null_parameter_value(session, http):
         assert_error(Response.from_http(response), "invalid argument")
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = new_window(session)
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    original_handles = session.handles
+
+    response = new_window(session)
+    value = assert_success(response)
+    handles = session.handles
+    assert len(handles) == len(original_handles) + 1
+    assert value["handle"] in handles
+    assert value["handle"] not in original_handles
+    assert value["type"] in ["tab", "window"]
 
 
 @pytest.mark.parametrize("type_hint", [True, 42, 4.2, [], {}])

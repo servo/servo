@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>Test Worker.terminate() for a worker that tries to run forever after top-level script evaluation is started.</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// The tests here are to provide execution coverage for the code paths for
+// forcible worker termination.
+// Currently, no specific expectation are set here, i.e. expectation here is
+// not to crush, not to cause assertion failures, etc.
+
+async_test((t) => {
+  const worker = new Worker('support/Worker-run-forever.js');
+  worker.onmessage = () => {
+    worker.terminate();
+    // To make the worker forcibly terminated, because in Chromium worker is
+    // forcibly terminated after 2 seconds.
+    t.step_timeout(function() { t.done(); }, 4000);
+  };
+}, 'Worker is terminated during top-level script evaluation');
+
+async_test((t) => {
+  const worker = new Worker('support/Worker-run-forever-during-importScripts.js');
+  worker.onmessage = () => {
+    worker.terminate();
+    t.step_timeout(function() { t.done(); }, 4000);
+  };
+}, 'Worker is terminated during importScripts() call');
+
+async_test((t) => {
+  const worker = new Worker('support/Worker-run-forever-during-nested-importScripts.js');
+  worker.onmessage = () => {
+    worker.terminate();
+    t.step_timeout(function() { t.done(); }, 4000);
+  };
+}, 'Worker is terminated during nested importScripts() call');
+</script>
