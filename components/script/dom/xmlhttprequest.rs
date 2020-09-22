@@ -154,6 +154,7 @@ pub struct XMLHttpRequest {
     request_body_len: Cell<usize>,
     sync: Cell<bool>,
     upload_complete: Cell<bool>,
+    upload_listener: Cell<bool>,
     send_flag: Cell<bool>,
 
     timeout_cancel: DomRefCell<Option<OneshotTimerHandle>>,
@@ -200,6 +201,7 @@ impl XMLHttpRequest {
             request_body_len: Cell::new(0),
             sync: Cell::new(false),
             upload_complete: Cell::new(false),
+            upload_listener: Cell::new(false),
             send_flag: Cell::new(false),
 
             timeout_cancel: DomRefCell::new(None),
@@ -420,6 +422,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 self.sync.set(!asynch);
                 *self.request_headers.borrow_mut() = HeaderMap::new();
                 self.send_flag.set(false);
+                self.upload_listener.set(false);
                 *self.status_text.borrow_mut() = ByteString::new(vec![]);
                 self.status.set(0);
 
@@ -633,16 +636,23 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 .map_or(0, |e| e.total_bytes.unwrap_or(0)),
         );
 
+        // Step 5
+        // If we dont have data to upload, we dont want to emit events
+        let has_handlers = self.upload.upcast::<EventTarget>().has_handlers();
+        self.upload_listener.set(has_handlers && data.is_some());
+
         // todo preserved headers?
 
-        // Step 6
-        self.upload_complete.set(false);
         // Step 7
-        self.upload_complete.set(extracted_or_serialized.is_none());
+        self.upload_complete.set(false);
         // Step 8
+        // FIXME handle the 'timed out flag'
+        // Step 9
+        self.upload_complete.set(extracted_or_serialized.is_none());
+        // Step 10
         self.send_flag.set(true);
 
-        // Step 9
+        // Step 11
         if !self.sync.get() {
             // If one of the event handlers below aborts the fetch by calling
             // abort or open we will need the current generation id to detect it.
@@ -653,7 +663,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
                 return Ok(());
             }
             // Substep 2
-            if !self.upload_complete.get() {
+            if !self.upload_complete.get() && self.upload_listener.get() {
                 self.dispatch_upload_progress_event(atom!("loadstart"), Ok(Some(0)));
                 if self.generation_id.get() != gen_id {
                     return Ok(());
@@ -661,9 +671,8 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
             }
         }
 
-        // Step 5
+        // Step 6
         //TODO - set referrer_policy/referrer_url in request
-        let has_handlers = self.upload.upcast::<EventTarget>().has_handlers();
         let credentials_mode = if self.with_credentials.get() {
             CredentialsMode::Include
         } else {
@@ -694,7 +703,7 @@ impl XMLHttpRequestMethods for XMLHttpRequest {
         .destination(Destination::None)
         .synchronous(self.sync.get())
         .mode(RequestMode::CorsMode)
-        .use_cors_preflight(has_handlers)
+        .use_cors_preflight(self.upload_listener.get())
         .credentials_mode(credentials_mode)
         .use_url_credentials(use_url_credentials)
         .origin(self.global().origin().immutable().clone())
@@ -1100,7 +1109,7 @@ impl XMLHttpRequest {
                 // Substep 1
                 self.upload_complete.set(true);
                 // Substeps 2-4
-                if !self.sync.get() {
+                if !self.sync.get() && self.upload_listener.get() {
                     self.dispatch_upload_progress_event(atom!("progress"), Ok(None));
                     return_if_fetch_was_terminated!();
                     self.dispatch_upload_progress_event(atom!("load"), Ok(None));
@@ -1203,10 +1212,12 @@ impl XMLHttpRequest {
                 let upload_complete = &self.upload_complete;
                 if !upload_complete.get() {
                     upload_complete.set(true);
-                    self.dispatch_upload_progress_event(Atom::from(errormsg), Err(()));
-                    return_if_fetch_was_terminated!();
-                    self.dispatch_upload_progress_event(atom!("loadend"), Err(()));
-                    return_if_fetch_was_terminated!();
+                    if self.upload_listener.get() {
+                        self.dispatch_upload_progress_event(Atom::from(errormsg), Err(()));
+                        return_if_fetch_was_terminated!();
+                        self.dispatch_upload_progress_event(atom!("loadend"), Err(()));
+                        return_if_fetch_was_terminated!();
+                    }
                 }
                 self.dispatch_response_progress_event(Atom::from(errormsg));
                 return_if_fetch_was_terminated!();
