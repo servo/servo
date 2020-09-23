@@ -19,7 +19,7 @@
     <script src='/resources/testharnessreport.js'></script>
     <script>
       test(function () {
-          assert_true(undefined !== navigator.vibrate, "navigator.vibrate exists");
+          assert_not_equals(undefined, navigator.vibrate, "navigator.vibrate exists");
       }, "vibrate() is present on navigator");
     </script>
   </body>

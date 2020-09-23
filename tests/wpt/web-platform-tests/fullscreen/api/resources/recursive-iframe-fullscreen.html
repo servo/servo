@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Recursive IFrame Fullscreen API success reporter</title>
+<body>
+<script>
+let child_frame = null;
+let fullscreen_events = [];
+document.onfullscreenchange = () => { fullscreen_events.push(true); };
+document.onfullscreenerror = () => { fullscreen_events.push(false); };
+
+function send_report() {
+  window.top.postMessage({"action": "report", "report": {
+    "api": "fullscreen",
+    "events": fullscreen_events,
+    "frame": window.name,
+    "fullscreenElementIsNull": document.fullscreenElement === null
+  }}, "*");
+};
+
+function create_child_frame({src, name, allow_fullscreen}) {
+  child_frame = document.createElement("iframe");
+  child_frame.allow = allow_fullscreen ? "fullscreen" : "";
+  child_frame.name = name;
+  child_frame.style.width = "100%";
+  child_frame.style.height = "100%";
+  child_frame.src = src;
+  document.body.appendChild(child_frame);
+}
+
+function trusted_click(callback, container)
+{
+    let document = container.ownerDocument;
+    let button = document.createElement("button");
+    button.textContent = "click to continue test";
+    button.style.display = "block";
+    button.style.fontSize = "20px";
+    button.style.padding = "10px";
+    button.onclick = function() {
+        callback();
+        container.removeChild(button);
+    };
+    container.insertBefore(button, container.firstChild);
+}
+
+function go_fullscreen() {
+  trusted_click(() => {
+    document.body.requestFullscreen().then(() => {
+      window.top.postMessage({"action": "ready"}, "*");
+    });
+  }, document.body);
+}
+
+window.addEventListener('message', e => {
+  switch (e.data.action) {
+    case "requestReport":
+      send_report();
+      // If we have children tell them to report as well.
+      if (child_frame) { child_frame.contentWindow.postMessage(e.data, "*"); }
+      break;
+    case "requestFullscreen":
+      if (e.data.fullscreen.name == window.name) {
+        go_fullscreen(e.data);
+      } else if (child_frame) { child_frame.contentWindow.postMessage(e.data, "*"); }
+      break;
+    case "addIframe":
+      if (child_frame) {
+        child_frame.contentWindow.postMessage(e.data, "*");
+      } else {
+        create_child_frame(e.data.iframe);
+      }
+      break;
+  }
+});
+
+window.onload = function () {
+  window.top.postMessage({"action": "ready"}, "*")
+}
+</script>

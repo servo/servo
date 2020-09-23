@@ -73,7 +73,7 @@
             testElement.style.fontStretch = testStretch;
             testElement.style.fontFamily = testFamily;
 
-            assert_true(masterWidth == testElement.offsetWidth, "Unexpected font on test element");
+            assert_equals(masterWidth, testElement.offsetWidth, "Unexpected font on test element");
         }
 
         var descriptorPriorityCases = [

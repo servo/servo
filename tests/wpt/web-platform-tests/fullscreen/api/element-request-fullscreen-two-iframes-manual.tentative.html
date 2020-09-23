@@ -35,7 +35,7 @@ promise_test(async (test) => {
         // TODO(mustaq): We need a better explanation here to cover the tree-order
         // idea of the spec.
         assert_true(order[0] == 'a' || order[0] == 'b', 'first id seen is a or b');
-        assert_true(order[1] == 'a', 'second id seen is a');
+        assert_equals(order[1], 'a', 'second id seen is a');
       }
       resolve();
     });

@@ -57,7 +57,7 @@
             connection = c;
             assert_equals(connection.state, 'connecting', 'The initial state of the presentation connection is "connecting".');
             assert_true(!!connection.id, 'The connection ID is set.');
-            assert_true(typeof connection.id === 'string', 'The connection ID is a string.');
+            assert_equals(typeof connection.id, 'string', 'The connection ID is a string.');
             assert_true(connection instanceof PresentationConnection, 'The connection is an instance of PresentationConnection.');
 
             const eventWatcher = new EventWatcher(t, request, 'connectionavailable');

@@ -42,7 +42,7 @@ function testClickingOnInlineElement(detailsId, targetId, expected, testName) {
   const promise = new Promise((resolve, reject) => {
     window.onhashchange = test.step_func_done(() => {
       assert_false(details.open);
-      assert_true(location.hash === expected);
+      assert_equals(location.hash, expected);
       resolve();
     });
   });

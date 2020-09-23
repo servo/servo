@@ -11,7 +11,7 @@ async_test(function(t) {
     const worker = new SharedWorker('support/WorkerSendingPerformanceNow.js');
     worker.port.onmessage = t.step_func(event => {
         const results = event.data;
-        assert_true(results.length == 4);
+        assert_equals(results.length, 4);
         assert_equals(results[0], 'undefined',
           'workerStart not defined on the Worker object');
         assert_equals(results[1], 'object', 'self.performance is defined');

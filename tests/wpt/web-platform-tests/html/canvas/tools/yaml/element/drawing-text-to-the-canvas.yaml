@@ -665,6 +665,29 @@
         }), 500);
     });
 
+- name: 2d.text.measure.fontBoundingBox.ahem
+  desc: Testing fontBoundingBox for font ahem
+  testing:
+  - 2d.text.measure.fontBoundingBox
+  fonts:
+  - Ahem
+  code: |
+    deferTest();
+    var f = new FontFace("Ahem", "/fonts/Ahem.ttf");
+    document.fonts.add(f);
+    document.fonts.ready.then(() => {
+        step_timeout(t.step_func_done(function () {
+            ctx.font = '50px Ahem';
+            ctx.direction = 'ltr';
+            ctx.align = 'left'
+            @assert ctx.measureText('A').fontBoundingBoxAscent === 40;
+            @assert ctx.measureText('A').fontBoundingBoxDescent === 10;
+
+            @assert ctx.measureText('ABCD').fontBoundingBoxAscent === 40;
+            @assert ctx.measureText('ABCD').fontBoundingBoxDescent === 10;
+        }), 500);
+    });
+
 - name: 2d.text.measure.emHeights
   desc: Testing emHeights
   testing:

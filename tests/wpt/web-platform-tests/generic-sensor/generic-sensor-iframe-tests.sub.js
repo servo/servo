@@ -1,4 +1,4 @@
-async function send_message_to_iframe(iframe, message, reply) {
+function send_message_to_iframe(iframe, message, reply) {
   if (reply === undefined) {
     reply = 'success';
   }
@@ -32,6 +32,10 @@ function run_generic_sensor_iframe_tests(sensorName) {
     // Create sensor inside cross-origin nested browsing context.
     const iframeLoadWatcher = new EventWatcher(t, iframe, 'load');
     document.body.appendChild(iframe);
+    t.add_cleanup(async () => {
+      await send_message_to_iframe(iframe, { command: 'reset_sensor_backend' });
+      iframe.parentNode.removeChild(iframe);
+    });
     await iframeLoadWatcher.wait_for('load');
     await send_message_to_iframe(iframe, {command: 'create_sensor',
                                           type: sensorName});
@@ -49,7 +53,6 @@ function run_generic_sensor_iframe_tests(sensorName) {
     // the top level browsing context are suspended.
     iframe.contentWindow.focus();
     await send_message_to_iframe(iframe, {command: 'start_sensor'});
-    assert_equals(cachedTimeStamp, sensor.timestamp);
 
     // Focus on the main frame, verify that sensor reading updates are resumed.
     window.focus();
@@ -59,10 +62,6 @@ function run_generic_sensor_iframe_tests(sensorName) {
 
     // Verify that sensor in cross-origin frame is suspended.
     await send_message_to_iframe(iframe, {command: 'is_sensor_suspended'}, true);
-    await send_message_to_iframe(iframe, {command: 'reset_sensor_backend'});
-
-    // Remove iframe from main document.
-    iframe.parentNode.removeChild(iframe);
   }, `${sensorName}: sensor is suspended and resumed when focus traverses from\
  to cross-origin frame`);
 
@@ -75,6 +74,10 @@ function run_generic_sensor_iframe_tests(sensorName) {
     // Create sensor inside same-origin nested browsing context.
     const iframeLoadWatcher = new EventWatcher(t, iframe, 'load');
     document.body.appendChild(iframe);
+    t.add_cleanup(async () => {
+      await send_message_to_iframe(iframe, { command: 'reset_sensor_backend' });
+      iframe.parentNode.removeChild(iframe);
+    });
     await iframeLoadWatcher.wait_for('load');
     await send_message_to_iframe(iframe, {command: 'create_sensor',
                                           type: sensorName});
@@ -123,10 +126,6 @@ function run_generic_sensor_iframe_tests(sensorName) {
     await sensorWatcher.wait_for('reading');
     assert_greater_than(sensor.timestamp, cachedTimeStamp);
     sensor.stop();
-    await send_message_to_iframe(iframe, {command: 'reset_sensor_backend'});
-
-    // Remove iframe from main document.
-    iframe.parentNode.removeChild(iframe);
   }, `${sensorName}: sensor is not suspended when focus traverses from\
  to same-origin frame`);
 

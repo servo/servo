@@ -118,7 +118,7 @@
                         var after = document.getElementById('target0').style.touchAction;
 
                         test(function() {
-                            assert_true(before != after, "touch-action was changed");
+                            assert_not_equals(before, after, "touch-action was changed");
                         }, "touch-action was changed");
 
                         styleIsChanged = true;

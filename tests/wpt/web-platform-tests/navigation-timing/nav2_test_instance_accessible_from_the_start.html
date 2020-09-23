@@ -4,7 +4,7 @@
 <script>
 test(function() {
   var navigationTiming2 = window.performance.getEntriesByType('navigation')[0];
-  assert_true(navigationTiming2 !== undefined);
+  assert_not_equals(navigationTiming2, undefined);
   assert_equals(navigationTiming2.entryType, "navigation");
   assert_equals(navigationTiming2.startTime, 0);
   assert_equals(navigationTiming2.initiatorType, "navigation");

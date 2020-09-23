@@ -11,14 +11,14 @@
   <h:script src="/resources/testharnessreport.js"/>
   <script><![CDATA[
   test(function() {
-    assert_true(window.SVGAnimatedPathData === undefined);
+    assert_equals(window.SVGAnimatedPathData, undefined);
 
     var track = document.getElementById('track');
     assert_equals(track.__proto__, SVGPathElement.prototype);
-    assert_true(track.pathSegList === undefined);
-    assert_true(track.normalizedPathSegList === undefined);
-    assert_true(track.animatedPathSegList === undefined);
-    assert_true(track.animatedNormalizedPathSegList === undefined);
+    assert_equals(track.pathSegList, undefined);
+    assert_equals(track.normalizedPathSegList, undefined);
+    assert_equals(track.animatedPathSegList, undefined);
+    assert_equals(track.animatedNormalizedPathSegList, undefined);
   });
   ]]></script>
 </svg>

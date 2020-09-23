@@ -28,7 +28,7 @@ async_test(t => {
 
   actions.send()
     .then(() => {
-      assert_true(text_box.value == "pass");
+      assert_equals(text_box.value, "pass");
       t.done();
     })
     .catch(t.unreached_func("Actions sequence failed"));

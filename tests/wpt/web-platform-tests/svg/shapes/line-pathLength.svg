@@ -12,7 +12,7 @@
   <script><![CDATA[
   test(function() {
     var interval = document.getElementById('interval');
-    assert_true(interval.pathLength !== undefined, "pathLength is defined for SVGLineElement");
+    assert_not_equals(interval.pathLength, undefined, "pathLength is defined for SVGLineElement");
     assert_equals(interval.pathLength.baseVal, 25);
   }, 'line supports pathLength attribute');
   ]]></script>

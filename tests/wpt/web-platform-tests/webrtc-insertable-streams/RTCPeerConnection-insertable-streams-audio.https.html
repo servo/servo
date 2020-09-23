@@ -33,7 +33,7 @@ async function testAudioFlow(t, negotiationFunction) {
   const ontrackPromise = new Promise(resolve => {
     callee.ontrack = t.step_func(() => {
       const audioReceiver = callee.getReceivers().find(r => r.track.kind === 'audio');
-      assert_true(audioReceiver !== undefined);
+      assert_not_equals(audioReceiver, undefined);
 
       const receiverStreams =
           audioReceiver.createEncodedStreams();
@@ -151,7 +151,7 @@ promise_test(async t => {
   const ontrackPromise = new Promise(resolve => {
     callee.ontrack = t.step_func(() => {
       const audioReceiver = callee.getReceivers().find(r => r.track.kind === 'audio');
-      assert_true(audioReceiver !== undefined);
+      assert_not_equals(audioReceiver, undefined);
       assert_throws_dom("InvalidStateError", () => audioReceiver.createEncodedStreams());
       resolve();
     });

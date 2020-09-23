@@ -24,6 +24,6 @@
       test(function() {
           assert_equals(window.getComputedStyle(element).display,
                         element.getAttribute('data-expected'));
-      }, `computed display on <${element.tagName} style="${element.getAttribute('style')}">`);
+      }, `computed display on <${element.localName} style="${element.getAttribute('style')}">`);
   });
 </script>

@@ -15,7 +15,7 @@ async_test(t => {
         target.requestPointerLock();
         document.addEventListener('mouseup', t.step_func(() => {
             target.remove();
-            assert_true(document.pointerLockElement === null, 'Pointer lock exited!');
+            assert_equals(document.pointerLockElement, null, 'Pointer lock exited!');
             t.done();
         }));
     }));

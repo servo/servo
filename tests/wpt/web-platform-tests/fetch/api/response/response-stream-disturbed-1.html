@@ -39,7 +39,7 @@ promise_test(function() {
 promise_test(function() {
     return createResponseWithReadableStream(function(response) {
         return response.json().then(function(json) {
-            assert_true(typeof json === "object");
+            assert_equals(typeof json, "object");
         });
     });
 }, "Getting json after getting the Response body - not disturbed, not locked");

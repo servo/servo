@@ -125,19 +125,19 @@ function testSurroundContents(i, j) {
       "Unexpected exception thrown when setting up Range for simulated surroundContents()");
     assert_equals(typeof actualRange, "object",
       "typeof Range produced in actual iframe");
-    assert_false(actualRange === null,
+    assert_not_equals(actualRange, null,
       "Range produced in actual iframe was null");
     assert_equals(typeof expectedRange, "object",
       "typeof Range produced in expected iframe");
-    assert_false(expectedRange === null,
+    assert_not_equals(expectedRange, null,
       "Range produced in expected iframe was null");
     assert_equals(typeof actualNode, "object",
       "typeof Node produced in actual iframe");
-    assert_false(actualNode === null,
+    assert_not_equals(actualNode, null,
       "Node produced in actual iframe was null");
     assert_equals(typeof expectedNode, "object",
       "typeof Node produced in expected iframe");
-    assert_false(expectedNode === null,
+    assert_not_equals(expectedNode, null,
       "Node produced in expected iframe was null");
 
     // We want to test that the trees containing the ranges are equal, and
@@ -222,19 +222,19 @@ function testSurroundContents(i, j) {
       "Unexpected exception thrown when setting up Range for simulated surroundContents()");
     assert_equals(typeof actualRange, "object",
       "typeof Range produced in actual iframe");
-    assert_false(actualRange === null,
+    assert_not_equals(actualRange, null,
       "Range produced in actual iframe was null");
     assert_equals(typeof expectedRange, "object",
       "typeof Range produced in expected iframe");
-    assert_false(expectedRange === null,
+    assert_not_equals(expectedRange, null,
       "Range produced in expected iframe was null");
     assert_equals(typeof actualNode, "object",
       "typeof Node produced in actual iframe");
-    assert_false(actualNode === null,
+    assert_not_equals(actualNode, null,
       "Node produced in actual iframe was null");
     assert_equals(typeof expectedNode, "object",
       "typeof Node produced in expected iframe");
-    assert_false(expectedNode === null,
+    assert_not_equals(expectedNode, null,
       "Node produced in expected iframe was null");
 
     for (var k = 0; k < actualRoots.length; k++) {

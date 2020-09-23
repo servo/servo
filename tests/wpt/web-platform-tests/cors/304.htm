@@ -29,7 +29,7 @@ function req(url, id, t, ready) {
   client.onreadystatechange = function() {
     if (client.readyState == client.DONE) {
       t.step(function() {
-        assert_true(client.status != 299, "req " + id + " server says: " + client.responseText)
+        assert_not_equals(client.status, 299, "req " + id + " server says: " + client.responseText)
       })
       ready(client)
     }

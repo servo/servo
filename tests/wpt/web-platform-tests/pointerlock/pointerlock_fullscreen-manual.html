@@ -97,7 +97,7 @@
 
                 scriptExitFullscreenTest.step(function() {
                     assert_true(FullscreenElement() === null, "fullscreen is sucessfully exited");
-                    assert_true(document.pointerLockElement === test_element, "pointer is still locked at the target element");
+                    assert_equals(document.pointerLockElement, test_element, "pointer is still locked at the target element");
                 });
                 scriptExitFullscreenTest.done();
                 document.exitPointerLock();
@@ -114,7 +114,7 @@
                 if(gestureExit_fs) {
                 // second test, fullscreen and pointer lock both exited
                     gestureExitFullscreenTest.step(function() {
-                        assert_true(document.pointerLockElement === null, "pointer is sucessfully exited");
+                        assert_equals(document.pointerLockElement, null, "pointer is sucessfully exited");
                         assert_true(FullscreenElement() === null, "fullscreen is sucessfully exited");
                 });
                 gestureExitFullscreenTest.done();
@@ -132,7 +132,7 @@
             if(gestureExit_pl) {
             // second test, fullscreen and pointer lock both exited
                 gestureExitFullscreenTest.step(function() {
-                    assert_true(document.pointerLockElement === null, "pointer is sucessfully exited");
+                    assert_equals(document.pointerLockElement, null, "pointer is sucessfully exited");
                     assert_true(FullscreenElement() === null, "fullscreen is sucessfully exited");
                 });
 

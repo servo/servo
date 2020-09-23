@@ -20,7 +20,7 @@ var allowedCharacters = /^[\u0021\u0023-\u0027\u002A-\u002B\u002D-\u002E\u0030-\
 if (window.navigator.mediaDevices && window.navigator.mediaDevices.getUserMedia) {
   navigator.mediaDevices.getUserMedia({video:true}).then(function (stream) {
     t.step(function () {
-       assert_true(stream.id.length === 36, "the media stream id has 36 characters");
+       assert_equals(stream.id.length, 36, "the media stream id has 36 characters");
        assert_regexp_match(stream.id, allowedCharacters, "the media stream id uses the set of allowed characters");
     });
     t.done();

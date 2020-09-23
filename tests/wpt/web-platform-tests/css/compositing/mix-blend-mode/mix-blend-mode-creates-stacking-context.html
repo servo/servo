@@ -22,7 +22,7 @@
                 for (var i = 0; i < blendModes.length; ++i) {
                     blender.style.mixBlendMode = blendModes[i];
                     var blenderStyle = window.getComputedStyle(blender);
-                    assert_true(blenderStyle.zIndex !== "auto");
+                    assert_not_equals(blenderStyle.zIndex, "auto");
                 }
             });
         </script>

@@ -53,7 +53,7 @@ let testBasicProperties = function(overlayElement, session, fakeDeviceController
                   ["screen", "floating", "head-locked"]);
 
   // Verify SameObject property for domOverlayState
-  assert_true(session.domOverlayState === session.domOverlayState);
+  assert_equals(session.domOverlayState, session.domOverlayState);
 
   // The overlay element should have a transparent background.
   assert_equals(window.getComputedStyle(overlayElement).backgroundColor,

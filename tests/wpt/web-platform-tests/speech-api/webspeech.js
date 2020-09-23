@@ -51,7 +51,7 @@ function CountTest(name, min, max) {
     this.asyncTest.step(function() {
       notes.innerHTML += cTest.name + ' occurred ' + cTest.sum + ' times.<br>';
       if (cTest.min == cTest.max) {
-        assert_true(cTest.sum == cTest.min, cTest.name + ' occurred ' +
+        assert_equals(cTest.sum, cTest.min, cTest.name + ' occurred ' +
           cTest.sum + ' times and should have occurred ' +
           cTest.min + ' times.');
       } else {

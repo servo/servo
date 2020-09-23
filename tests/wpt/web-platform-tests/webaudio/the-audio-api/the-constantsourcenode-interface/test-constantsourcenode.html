@@ -8,13 +8,13 @@ test(function(t) {
   var ac = new AudioContext();
 
   var csn = ac.createConstantSource();
-  assert_true(csn.offset.value == 1.0, "Default offset is 1.0");
+  assert_equals(csn.offset.value, 1.0, "Default offset is 1.0");
 
   csn = new ConstantSourceNode(ac);
-  assert_true(csn.offset.value == 1.0, "Default offset is 1.0");
+  assert_equals(csn.offset.value, 1.0, "Default offset is 1.0");
 
   csn = new ConstantSourceNode(ac, {offset: -0.25});
-  assert_true(csn.offset.value == -0.25, "Offset can be set during construction");
+  assert_equals(csn.offset.value, -0.25, "Offset can be set during construction");
 }, "ConstantSourceNode can be constructed");
 
 test(function(t) {
@@ -44,7 +44,7 @@ async_test(function(t) {
   csn.stop(1024/44100)
   csn.onended = function(e) {
     t.step(function() {
-      assert_true(e.type == "ended", "Event type should be 'ended', received: " + e.type);
+      assert_equals(e.type, "ended", "Event type should be 'ended', received: " + e.type);
     });
     t.done();
   }
@@ -63,9 +63,9 @@ async_test(function(t) {
       var result = e.renderedBuffer.getChannelData(0);
       for (var i = 0; i < 2048; ++i) {
         if (i >= 512 && i < 1024) {
-          assert_true(result[i] == 1.0, "sample " + i + " should equal 1.0");
+          assert_equals(result[i], 1.0, "sample " + i + " should equal 1.0");
         } else {
-          assert_true(result[i] == 0.0, "sample " + i + " should equal 0.0");
+          assert_equals(result[i], 0.0, "sample " + i + " should equal 0.0");
         }
       }
     });
@@ -86,7 +86,7 @@ async_test(function(t) {
     t.step(function() {
       var result = e.renderedBuffer.getChannelData(0);
       for (var i = 0; i < 2048; ++i) {
-        assert_true(result[i] == 0.25, "sample " + i + " should equal 0.25");
+        assert_equals(result[i], 0.25, "sample " + i + " should equal 0.25");
       }
     });
     t.done();

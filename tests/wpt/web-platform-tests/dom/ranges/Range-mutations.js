@@ -63,7 +63,7 @@ function doTests(sourceTests, descFn, testFn) {
       function(params) { return function() {
         var evaledParams = params.map(eval);
         for (var i = 0; i < evaledParams.length; i++) {
-          assert_true(typeof evaledParams[i] != "undefined",
+          assert_not_equals(typeof evaledParams[i], "undefined",
             "Test bug: " + params[i] + " is undefined");
         }
         return testFn.apply(null, evaledParams);
@@ -79,7 +79,7 @@ function doTests(sourceTests, descFn, testFn) {
       function(params) { return function(selectedRange) {
         var evaledParams = params.slice(0, len - 4).map(eval);
         for (var i = 0; i < evaledParams.length; i++) {
-          assert_true(typeof evaledParams[i] != "undefined",
+          assert_not_equals(typeof evaledParams[i], "undefined",
             "Test bug: " + params[i] + " is undefined");
         }
         // Override input range with the one that was actually selected when computing the expected result.

@@ -68,7 +68,7 @@
   } }
 
   function expect_blocked_uri(s) { return e => {
-    assert_true(e.blockedURI === s,
+    assert_equals(e.blockedURI, s,
                 `expected "${e.blockedURI}" to be "${s}".`);
     return e;
   } }

@@ -51,7 +51,7 @@ promise_test(async () => {
   button.removeAttribute("value");
   button.click();
   assert_false(dialog.open, "dialog should be closed now");
-  assert_false(dialog.returnValue === undefined, "returnValue should not be set");
+  assert_not_equals(dialog.returnValue, undefined, "returnValue should not be set");
 }, "no returnValue when there's no result.");
 
 promise_test(async () => {

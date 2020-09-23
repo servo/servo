@@ -23,7 +23,7 @@ async_test(t => {
       // have not seen the transition from null -> 'b' but just see the
       // resulting 'a' transition twice.
       assert_true(order[0] == 'a' || order[0] == 'b', 'first id seen is a or b');
-      assert_true(order[1] == 'a', 'second id seen is b');
+      assert_equals(order[1], 'a', 'second id seen is b');
       t.done();
     }
   });

@@ -24,7 +24,7 @@ async_test(t => {
     assert_equals(animA.replaceState, 'removed');
     assert_equals(event.currentTime, 1);
     assert_true(finishedTimelineTime != null, 'finished event fired');
-    assert_true(event.timelineTime == finishedTimelineTime,
+    assert_equals(event.timelineTime, finishedTimelineTime,
                 'timeline time is set');
   });
 

@@ -139,7 +139,7 @@ promise_test(async t => {
   assert_equals(animation.currentTime, null);
 
   const readyPromise = animation.ready;
-  assert_true(originalReadyPromise != readyPromise,
+  assert_not_equals(originalReadyPromise, readyPromise,
               'Canceling an animation should create a new ready promise');
 
   animation.pause();

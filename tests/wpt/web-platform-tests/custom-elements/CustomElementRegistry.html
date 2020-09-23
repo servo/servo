@@ -738,13 +738,13 @@ promise_test(function () {
     class ResolvedCustomElement extends HTMLElement {};
     customElements.define('resolved-custom-element', ResolvedCustomElement);
     return customElements.whenDefined('resolved-custom-element').then(function (value) {
-        assert_true(value === ResolvedCustomElement, 'The promise returned by "whenDefined" must resolve with the defined class');
+        assert_equals(value, ResolvedCustomElement, 'The promise returned by "whenDefined" must resolve with the defined class');
     });
 }, 'A promise returned by customElements.whenDefined must be resolved with the defined class');
 
 promise_test(function () {
     var promise = customElements.whenDefined('not-resolved-yet-custom-element').then(function (value) {
-        assert_true(value === NotResolvedYetCustomElement, 'The promise returned by "whenDefined" must resolve with the defined class once such class is defined');
+        assert_equals(value, NotResolvedYetCustomElement, 'The promise returned by "whenDefined" must resolve with the defined class once such class is defined');
     });
     class NotResolvedYetCustomElement extends HTMLElement {};
     customElements.define('not-resolved-yet-custom-element', NotResolvedYetCustomElement);

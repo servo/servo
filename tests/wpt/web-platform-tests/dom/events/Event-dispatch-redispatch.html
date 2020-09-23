@@ -47,7 +47,7 @@ window.addEventListener("load", loadEvent => {
     assert_true(contentLoadedEvent.isTrusted, "Received DOMContentLoaded event should be trusted before redispatching");
     buttonElement.dispatchEvent(contentLoadedEvent);
     assert_false(contentLoadedEvent.isTrusted, "Received DOMContentLoaded event shouldn't be trusted after redispatching");
-    assert_true(untrustedContentLoadedEvent !== undefined, "Untrusted DOMContentLoaded event should've been fired");
+    assert_not_equals(untrustedContentLoadedEvent, undefined, "Untrusted DOMContentLoaded event should've been fired");
     test_contentLoaded_redispatching.done();
   });
 }, {capture: true, once: true});
@@ -114,7 +114,7 @@ async function testMouseUpAndClickEvent() {
       .send()
       .then(() => {
         test_mouseup_redispatching.step(() => {
-          assert_true(clickEvent !== undefined, "mouseup and click events should've been fired");
+          assert_not_equals(clickEvent, undefined, "mouseup and click events should've been fired");
         });
         test_mouseup_redispatching.done();
         test_redispatching_of_dispatching_event.done();

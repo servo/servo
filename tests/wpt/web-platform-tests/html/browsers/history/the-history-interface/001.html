@@ -220,7 +220,7 @@ function reportload() {
             assert_equals( iframe.contentWindow.history.state && iframe.contentWindow.history.state.strdata, 'string data' );
         }, 'history.state should also reference a clone of the original object');
         test(function () {
-            assert_false( cloneobj === iframe.contentWindow.history.state );
+            assert_not_equals( cloneobj, iframe.contentWindow.history.state );
         }, 'history.state should be a clone of the original object, not a reference to it');
         /*
         behaviour is not defined per spec, and no known implementations do this
@@ -265,16 +265,16 @@ function reportload() {
             assert_equals( ev.state.looped, ev.state );
         }, 'state data should cope with circular object references');
         test(function () {
-            assert_false( cloneobj === ev.state );
+            assert_not_equals( cloneobj, ev.state );
         }, 'state data should be a clone of the original object, not a reference to it');
         test(function () {
             assert_equals( iframe.contentWindow.history.state && iframe.contentWindow.history.state.strdata, 'string data' );
         }, 'history.state should also reference a clone of the original object (2)');
         test(function () {
-            assert_false( cloneobj === iframe.contentWindow.history.state );
+            assert_not_equals( cloneobj, iframe.contentWindow.history.state );
         }, 'history.state should be a clone of the original object, not a reference to it (2)');
         test(function () {
-            assert_true( iframe.contentWindow.history.state === ev.state );
+            assert_equals( iframe.contentWindow.history.state, ev.state );
         }, 'history.state should be identical to the object passed to the event handler unless history.state is updated');
         try {
             iframe.contentWindow.persistval = true;

@@ -17,7 +17,7 @@ async_test(t => {
   // load fires. We expect this code to be run before document load and hence
   // the above assertion is sufficient.
   // If the following assertion fails, this test needs to be redesigned.
-  assert_true(document.readyState !== 'complete',
+  assert_not_equals(document.readyState, 'complete',
     'Test is running prior to document load');
 
   // Test that the document timeline's current time is measured from

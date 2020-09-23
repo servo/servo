@@ -12,8 +12,8 @@
   <script><![CDATA[
     test(function() {
       var interval = document.getElementById('interval');
-      assert_true(interval.getTotalLength !== undefined, 'getTotalLength is defined for SVGLineElement');
-      assert_true(interval.getPointAtLength !== undefined, 'getPointAtLength is defined for SVGLineElement');
+      assert_not_equals(interval.getTotalLength, undefined, 'getTotalLength is defined for SVGLineElement');
+      assert_not_equals(interval.getPointAtLength, undefined, 'getPointAtLength is defined for SVGLineElement');
       assert_equals(interval.getTotalLength(), 200, 'total length');
 
       var point = interval.getPointAtLength(10);

@@ -31,7 +31,7 @@ for (const method of methods) {
       return WebAssembly[method](response);
     })
     .catch(err => {
-      assert_true(err.name === "AbortError");
+      assert_equals(err.name, "AbortError");
     });
   }, `${method}() asynchronously racing with abort should succeed or reject with AbortError`);
 }

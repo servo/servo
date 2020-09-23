@@ -35,7 +35,7 @@
             node2.port.onmessage = resolve;
           });
           context.close();
-          assert_true(e.data == "ok",
+          assert_equals(e.data, "ok",
                       `Microtask checkpoints are performed
                        in between render quantum`);
         }, "test");

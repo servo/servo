@@ -77,7 +77,7 @@ self.onmessage = function(e) {
                  .then(client => client.navigate("redirect.py?Redirect=" + url))
                  .then(client => {
                    clientUrl = (client && client.url) || ""
-                   assert_true(client === null);
+                   assert_equals(client, null);
                  })
                  .catch(unreached_rejection(t));
     }, "Redirecting to another origin should resolve with null");

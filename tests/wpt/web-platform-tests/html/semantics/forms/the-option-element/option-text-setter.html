@@ -15,10 +15,10 @@ test(() => {
     option.text = "baz";
     assert_equals(textChild.nodeValue, "bar", 'Verify that the text child node does not have an updated value.');
     assert_false(textChild.isConnected, 'Verify that the text child node is not in the document.');
-    assert_false(textChild == option.firstChild, 'Verify that text child node was replaced by a different text child node.');
+    assert_not_equals(textChild, option.firstChild, 'Verify that text child node was replaced by a different text child node.');
     assert_equals(option.firstChild.nodeValue, "baz", 'Verify that the new text child node does equal the updated value.');
     assert_equals(option.text, "baz", 'Verify that option text getter returns the updated value.');
     option.text = "";
-    assert_true(option.firstChild == null, 'Verify that after setting to empty string there are no child text nodes.');
+    assert_equals(option.firstChild, null, 'Verify that after setting to empty string there are no child text nodes.');
 }, 'Verify that using HTMLOptionElement.text setter does not update the existing text child node.');
 </script>

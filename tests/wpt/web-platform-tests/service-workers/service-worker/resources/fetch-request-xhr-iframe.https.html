@@ -161,7 +161,7 @@ function form_data_test() {
           '\r\n' +
           'file content\r\n' +
           '--' + boundary + '--\r\n';
-        assert_true(response.body === expected_body, "form data response content is as expected");
+        assert_equals(response.body, expected_body, "form data response content is as expected");
       });
 }
 

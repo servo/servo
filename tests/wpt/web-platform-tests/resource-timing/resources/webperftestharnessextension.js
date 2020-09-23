@@ -27,7 +27,7 @@ function test_method_exists(method, method_name, properties)
         msg = 'performance.' + method.name + ' is supported!';
     else
         msg = 'performance.' + method_name + ' is supported!';
-    wp_test(function() { assert_true(typeof method === 'function', msg); }, msg, properties);
+    wp_test(function() { assert_equals(typeof method, 'function', msg); }, msg, properties);
 }
 
 function test_noless_than(value, greater_than, msg, properties)

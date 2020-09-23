@@ -35,7 +35,7 @@ promise_test(async t => {
 
   // NOTE: Not assert_equals(), as we don't want log the randomly generated
   // clientIds, since they would not match any failure expectation files.
-  assert_true(lock_client_id === sw_client_id,
+  assert_equals(lock_client_id, sw_client_id,
               'clientIds should match, but are different');
 
   await registration.unregister();

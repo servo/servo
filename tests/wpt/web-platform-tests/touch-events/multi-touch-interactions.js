@@ -96,8 +96,8 @@ function run() {
         if(!touchstart_received) {
             // Check event ordering TA: 1.6.1
             test_touchstart.step(function() {
-                assert_true(touchmove_received==0, "touchstart precedes touchmove");
-                assert_true(touchend_received==0, "touchstart precedes touchend");
+                assert_equals(touchmove_received, 0, "touchstart precedes touchmove");
+                assert_equals(touchend_received, 0, "touchstart precedes touchend");
             });
             test_touchstart.done();
             test_mousedown.done(); // If we got here, then the mouse event test is not needed.
@@ -137,7 +137,7 @@ function run() {
 
             // TA: 1.3.4.3
             test(function() {
-                assert_true(ev.touches.length==ev.changedTouches.length, "touches and changedTouches have the same length");
+                assert_equals(ev.touches.length, ev.changedTouches.length, "touches and changedTouches have the same length");
             }, "touchstart #" + touchstart_received + ": touches and changedTouches have the same length");
         } else {
             // TA: 1.3.3.6
@@ -156,7 +156,7 @@ function run() {
             test(function() {
                 var diff_in_touches = ev.touches.length - last_touches.length;
                 assert_true(diff_in_touches > 0, "touches.length is larger than last received touches.length");
-                assert_true(diff_in_touches == ev.changedTouches.length, "change in touches.length equals changedTouches.length");
+                assert_equals(diff_in_touches, ev.changedTouches.length, "change in touches.length equals changedTouches.length");
             }, "touchstart #" + touchstart_received + ": change in touches.length is valid");
 
             // TA: 1.3.4.5
@@ -219,7 +219,7 @@ function run() {
 
             // TA: 1.4.4.2
             test(function() {
-                assert_true(ev.touches.length==last_touches.length, "length of touches is same as length of last received touches");
+                assert_equals(ev.touches.length, last_touches.length, "length of touches is same as length of last received touches");
                 check_list_subset_of_targetlist(ev.touches, "touches", last_touches, "last received touches");
             }, "touchmove #" + touchmove_received + ": touches must be same as last received touches");
 

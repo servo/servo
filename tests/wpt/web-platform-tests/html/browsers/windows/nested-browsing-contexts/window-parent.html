@@ -27,7 +27,7 @@ async_test(t => {
     var frame2Window = iframe2.contentWindow;
     assert_equals(frameWindow.parent, window);
     assert_equals(frame2Window.parent, frameWindow);
-    assert_false(frame2Window.parent === window);
+    assert_not_equals(frame2Window.parent, window);
   });
 
   var nestFrame = function () {

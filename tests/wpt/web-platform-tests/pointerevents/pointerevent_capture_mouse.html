@@ -103,7 +103,7 @@
                     if(isPointerCapture) {
                         if(!pointermoveCaptureGot0) {
                             test(function() {
-                                assert_true(event.relatedTarget==null, "relatedTarget is null when the capture is set")
+                                assert_equals(event.relatedTarget, null, "relatedTarget is null when the capture is set")
                             }, "relatedTarget is null when the capture is set. relatedTarget is " + event.relatedTarget);
                             test(function() {
                                 assert_true((event.clientX < target0.getBoundingClientRect().left)||

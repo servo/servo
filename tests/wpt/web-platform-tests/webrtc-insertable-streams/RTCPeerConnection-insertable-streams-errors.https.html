@@ -38,7 +38,7 @@ promise_test(async t => {
   const ontrackPromise = new Promise(resolve => {
     callee.ontrack = t.step_func(() => {
       const videoReceiver = callee.getReceivers().find(r => r.track.kind === 'video');
-      assert_true(videoReceiver !== undefined);
+      assert_not_equals(videoReceiver, undefined);
       assert_throws_dom("InvalidStateError", () => videoReceiver.createEncodedStreams());
       resolve();
     });

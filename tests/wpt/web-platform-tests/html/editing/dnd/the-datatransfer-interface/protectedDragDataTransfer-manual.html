@@ -97,7 +97,7 @@
                           "over_dt mustbe protected during dragover");
           }, "dragover event status");
           test(function() {
-            assert_true(drag_dt != over_dt,
+            assert_not_equals(drag_dt, over_dt,
                         "drag_dt must be a different DataTransfer object than over_dt");
           }, "dragover event identity");
         }

@@ -288,7 +288,7 @@
       removeTrack
         12. Update the negotiation-needed flag for connection.
   */
-  async_test(async t => {
+  promise_test(async t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
 
@@ -296,20 +296,20 @@
     t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
     const [track] = stream.getTracks();
     const sender = pc.addTrack(track, stream);
-    pc.onnegotiationneeded = t.step_func(async () => {
-      pc.onnegotiationneeded = t.step_func(async () => {
-        assert_unreached('onnegotiationneeded misfired');
-      });
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
 
-      const answer = await generateAnswer(offer);
-      await pc.setRemoteDescription(answer);
-
-      pc.removeTrack(sender);
-      await new Promise(resolve => pc.onnegotiationneeded = resolve)
-      t.done();
+    await new Promise(resolve => pc.onnegotiationneeded = resolve);
+    pc.onnegotiationneeded = t.step_func(() => {
+      assert_unreached('onnegotiationneeded misfired');
     });
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    const answer = await generateAnswer(offer);
+    await pc.setRemoteDescription(answer);
+
+    pc.removeTrack(sender);
+    await new Promise(resolve => pc.onnegotiationneeded = resolve)
   }, 'removeTrack should cause negotiationneeded to fire on the caller');
 
   /*
@@ -318,7 +318,7 @@
       removeTrack
         12. Update the negotiation-needed flag for connection.
   */
-  async_test(async t => {
+  promise_test(async t => {
     const caller = new RTCPeerConnection();
     t.add_cleanup(() => caller.close());
     caller.addTransceiver('audio', {direction:'recvonly'});
@@ -332,18 +332,17 @@
     const [track] = stream.getTracks();
     const sender = callee.addTrack(track, stream);
 
-    callee.onnegotiationneeded = t.step_func(async () => {
-      callee.onnegotiationneeded = t.step_func(async () => {
-        assert_unreached('onnegotiationneeded misfired');
-      });
-      await callee.setRemoteDescription(offer);
-      const answer = await callee.createAnswer();
-      callee.setLocalDescription(answer);
-
-      callee.removeTrack(sender);
-      await new Promise(resolve => callee.onnegotiationneeded = resolve)
-      t.done();
+    await new Promise(resolve => callee.onnegotiationneeded = resolve);
+    callee.onnegotiationneeded = t.step_func(() => {
+      assert_unreached('onnegotiationneeded misfired');
     });
+
+    await callee.setRemoteDescription(offer);
+    const answer = await callee.createAnswer();
+    callee.setLocalDescription(answer);
+
+    callee.removeTrack(sender);
+    await new Promise(resolve => callee.onnegotiationneeded = resolve)
   }, 'removeTrack should cause negotiationneeded to fire on the callee');
 
   /*

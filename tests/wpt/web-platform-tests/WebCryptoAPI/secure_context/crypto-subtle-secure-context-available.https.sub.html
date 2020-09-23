@@ -7,7 +7,7 @@
 <body>
   <script>
     async_test(function(t) {
-      assert_true(typeof crypto.subtle !== 'undefined');
+      assert_not_equals(typeof crypto.subtle, 'undefined');
       t.done();
     }, "Secure context window has access to crypto.subtle");
     async_test(function(t) {

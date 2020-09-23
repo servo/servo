@@ -87,8 +87,8 @@
             posY = window.screenY;
 
             requestPointerLockTest.step(function() {
-                assert_true(pointerlockchangeIsFiredonRequest === true, "pointerlockchange is fired when requesting pointerlock");
-                assert_true(document.pointerLockElement === locktarget, "pointer is locked at the target element");
+                assert_equals(pointerlockchangeIsFiredonRequest, true, "pointerlockchange is fired when requesting pointerlock");
+                assert_equals(document.pointerLockElement, locktarget, "pointer is locked at the target element");
             });
 
             lock_log.innerHTML = "Pointer is locked on the target element;";
@@ -100,7 +100,7 @@
             locktarget.requestPointerLock(); // To re-enter pointer lock
 
             exitPointerLockTest.step(function() {
-                assert_true(document.pointerLockElement === null, "pointer is unlocked");
+                assert_equals(document.pointerLockElement, null, "pointer is unlocked");
                 assert_equals(posX, window.screenX, "mouse cursor X is at the same location that it was when pointer lock was entered");
                 assert_equals(posY, window.screenY, "mouse cursor Y is at the same location that it was when pointer lock was entered");
             });
@@ -112,7 +112,7 @@
 
         function runReEnterPointerLockTest() {
             reenterPointerLockTest.step(function() {
-                assert_true(document.pointerLockElement === locktarget, "Pointer is locked again without engagement gesture");
+                assert_equals(document.pointerLockElement, locktarget, "Pointer is locked again without engagement gesture");
             });
 
             lock_log.innerHTML = "Status: Exited pointer lock; Please click the 'Repeat Lock' button and exit the lock.";

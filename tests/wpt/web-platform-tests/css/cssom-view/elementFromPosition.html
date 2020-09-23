@@ -83,22 +83,22 @@
         })();
         test( function () {
             var elem = document.elementFromPoint( 0, 0 );
-            assert_true( elem.nodeName == 'HTML' );
+            assert_equals( elem.nodeName, 'HTML' );
         }, 'Point (0, 0), return root element(HTML)' );
 
         test( function () {
             var elem = document.elementFromPoint( -1000, 0 );
-            assert_true( elem == null, 'negative x, return null' );
+            assert_equals( elem, null, 'negative x, return null' );
         }, ' test negative x ');
 
         test( function () {
             var elem = document.elementFromPoint( 0, -1000 );
-            assert_true( elem == null, 'negative y, return null' );
+            assert_equals( elem, null, 'negative y, return null' );
         }, ' test negative y ');
 
         test( function () {
             var elem = document.elementFromPoint( 100000, 0 );
-            assert_true( elem == null );
+            assert_equals( elem, null );
         }, 'test outside of viewport');
 
         test( function () {
