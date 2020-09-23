@@ -86,7 +86,7 @@
           current_test.step(function(){
             // once receiving a pointer down and the pointer is captured,
             // no other mousedown should send pointerdown events during the test
-            assert_true(currentPhase === PhaseEnum.WaitingForDown,
+            assert_equals(currentPhase, PhaseEnum.WaitingForDown,
               "Current Phase should be " + PhaseEnum.WaitingForDown);
             currentPhase = PhaseEnum.WaitingForUp;
             events.push("target@pointerdown");
@@ -100,9 +100,9 @@
         box.releasePointerCapture(e.pointerId);
         if(window.promise_test){
           current_test.step(function(){
-            assert_true(event.buttons === 0,
+            assert_equals(event.buttons, 0,
              'pointerup should happen when all buttons are released.');
-            assert_true(currentPhase === PhaseEnum.WaitingForUp,
+            assert_equals(currentPhase, PhaseEnum.WaitingForUp,
               "Current Phase should be " + PhaseEnum.WaitingForUp);
             currentPhase = PhaseEnum.UpDone;
             events.push("target@pointerup");
@@ -119,10 +119,10 @@
         if(window.promise_test){
           current_test.step(function(){
             events.push("target@lostpointercapture");
-            assert_true(currentPhase === PhaseEnum.UpDone,
+            assert_equals(currentPhase, PhaseEnum.UpDone,
               "Current Phase should be " + PhaseEnum.UpDone + "." +
               'lostpointercapture should happen after pointerup event.');
-            assert_true(event.buttons === 0,
+            assert_equals(event.buttons, 0,
              'lostpointercapture should happen when all buttons are released.');
             assert_array_equals(events, ["target@pointerdown",
               "target@pointerup", "target@lostpointercapture"]);

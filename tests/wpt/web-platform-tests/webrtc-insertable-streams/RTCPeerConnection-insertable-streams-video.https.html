@@ -33,7 +33,7 @@ async function testVideoFlow(t, negotiationFunction) {
   const ontrackPromise = new Promise(resolve => {
     callee.ontrack = t.step_func(() => {
       const videoReceiver = callee.getReceivers().find(r => r.track.kind === 'video');
-      assert_true(videoReceiver !== undefined);
+      assert_not_equals(videoReceiver, undefined);
 
       const receiverStreams =
           videoReceiver.createEncodedStreams();

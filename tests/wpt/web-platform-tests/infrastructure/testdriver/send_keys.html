@@ -15,7 +15,7 @@ async_test(t => {
   test_driver
     .send_keys(text_box, input_text)
     .then(() => {
-      assert_true(text_box.value == input_text);
+      assert_equals(text_box.value, input_text);
       t.done();
     })
     .catch(t.unreached_func("send keys failed"));

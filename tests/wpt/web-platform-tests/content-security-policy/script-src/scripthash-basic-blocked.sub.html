@@ -3,7 +3,7 @@
 
 <head>
     <!-- Programmatically converted from a WebKit Reftest, please forgive resulting idiosyncracies.-->
-    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-abc' 'sha256-k7iO9DPkNQ7PcwPP+8XyYuRiCJ0p76Ofveol9g3mFNs=' 'sha256-EgE/bwVJ+ZLL9F5hNjDqD4C7nlFFrdDaKeNIJ2cUem4='; connect-src 'self';">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'nonce-abc' 'sha256-3iveTSiUbmzN7COYvdDwyaXXzJ3SrjKlTaOvQ/GdRpo=' 'sha256-EgE/bwVJ+ZLL9F5hNjDqD4C7nlFFrdDaKeNIJ2cUem4='; connect-src 'self';">
     <title>scripthash-basic-blocked</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
@@ -26,7 +26,7 @@
                 }
                 for (var i = 0; i < expected_alerts.length; i++) {
                     if (expected_alerts[i] == msg) {
-                        assert_true(expected_alerts[i] == msg);
+                        assert_equals(expected_alerts[i], msg);
                         expected_alerts.splice(i, 1);
                         if (expected_alerts.length == 0) {
                             t_alert.done();

@@ -258,7 +258,6 @@ dictionary RTCDataChannelStats : RTCStats {
              DOMString           label;
              DOMString           protocol;
              unsigned short      dataChannelIdentifier;
-             required DOMString  transportId;
              required RTCDataChannelState state;
              unsigned long       messagesSent;
              unsigned long long  bytesSent;
@@ -287,6 +286,7 @@ dictionary RTCTransportStats : RTCStats {
 };
 
 dictionary RTCSctpTransportStats : RTCStats {
+            DOMString transportId;
             double smoothedRoundTripTime;
             unsigned long congestionWindow;
             unsigned long receiverWindow;

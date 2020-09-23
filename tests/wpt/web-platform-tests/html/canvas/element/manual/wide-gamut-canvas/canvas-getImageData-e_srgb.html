@@ -14,7 +14,7 @@ on e-sRGB canvas and getting e-sRGB image data.');
 
 function assert_array_approx_equals(actual, expected, epsilon)
 {
-  assert_true(actual.length === expected.length);
+  assert_equals(actual.length, expected.length);
   for (var i=0; i < actual.length; i++)
     assert_approx_equals(actual[i], expected[i], epsilon);
 }

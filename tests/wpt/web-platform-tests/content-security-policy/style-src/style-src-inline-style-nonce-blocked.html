@@ -28,7 +28,7 @@
       t.step(function() {
         var contentEl = document.getElementById("content");
         var marginLeftVal = getComputedStyle(contentEl).getPropertyValue('margin-left');
-        assert_false(marginLeftVal == "2px");
+        assert_not_equals(marginLeftVal, "2px");
         t.done();
       });
     </script>

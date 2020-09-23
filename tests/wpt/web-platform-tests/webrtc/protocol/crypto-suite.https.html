@@ -45,7 +45,7 @@ const acceptableValues = {
 };
 
 function verifyStat(name, transportStats) {
-  assert_true(typeof transportStats !== 'undefined');
+  assert_not_equals(typeof transportStats, 'undefined');
   assert_true(name in transportStats, 'Value present:');
   assert_true(acceptableValues[name].has(transportStats[name]));
 }

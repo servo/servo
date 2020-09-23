@@ -25,8 +25,8 @@ ALL_TESTS = u"all-tests.html.py-str"
 
 
 def dump_file(directory, filename):
-  """Reads a file into a string."""
-  return open(path.join(directory, filename), u"r").read()
+  """Reads a file into a byte string."""
+  return open(path.join(directory, filename), "rb").read()
 
 
 class CookieTestResponse(object):
@@ -48,7 +48,7 @@ class CookieTestResponse(object):
     """Returns a full HTML document which contains the expectation."""
     html_frame = dump_file(self.__resources_dir, EXPECTATION_HTML_SCAFFOLD)
     expected_data = dump_file(self.__test_files_dir, self.__expectation_file)
-    return html_frame.format(**{u'data' : expected_data})
+    return html_frame.replace(b"{data}", expected_data)
 
 def find_all_test_files(root):
   """Retrieves all files from the test-files/ folder and returns them as
@@ -58,7 +58,7 @@ def find_all_test_files(root):
   for file in listdir(path.join(root, DEFAULT_RESOURCE_DIR, DEFAULT_TEST_DIR)):
     if file.endswith(u'-test'):
       name = file.replace(u'-test', u'')
-      all_files.append(line_template.format(**{u'filename' : name}))
+      all_files.append(line_template.format(filename=name).encode())
   all_files.sort()
   return all_files
 
@@ -66,7 +66,7 @@ def generate_for_all_tests(root):
   """Returns an HTML document which loads and executes all tests in the
   test-files/ directory."""
   html_frame = dump_file(path.join(root, DEFAULT_RESOURCE_DIR), ALL_TESTS)
-  return html_frame % u'\n'.join(find_all_test_files(root))
+  return html_frame % b'\n'.join(find_all_test_files(root))
 
 def main(request, response):
   if b"debug" in request.GET:
@@ -75,7 +75,7 @@ def main(request, response):
     response.writer.end_headers()
     html_frame = dump_file(path.join(request.doc_root, DEFAULT_RESOURCE_DIR),
                            DEBUGGING_HTML_SCAFFOLD)
-    test_file = html_frame % (isomorphic_decode(request.GET[b'debug']))
+    test_file = html_frame % (request.GET[b'debug'])
     response.writer.write_content(test_file)
     return
 

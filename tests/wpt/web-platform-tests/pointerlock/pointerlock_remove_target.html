@@ -74,7 +74,7 @@
                 status_log.innerHTML = "Pointer lock exited!";
 
                 removeTargetTest.step(function() {
-                    assert_true(document.pointerLockElement === null, "Pointer lock exited!");
+                    assert_equals(document.pointerLockElement, null, "Pointer lock exited!");
                 });
 
                 removeTargetTest.done();

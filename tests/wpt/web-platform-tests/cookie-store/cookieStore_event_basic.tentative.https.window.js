@@ -13,8 +13,8 @@ promise_test(async testCase => {
   const event = await eventPromise;
   assert_true(event instanceof CookieChangeEvent);
 
-  assert_true(event.changed === event.changed);
-  assert_true(event.deleted === event.deleted);
+  assert_equals(event.changed, event.changed);
+  assert_equals(event.deleted, event.deleted);
 
   assert_equals(event.type, 'change');
   assert_equals(event.changed.length, 1);

@@ -3,11 +3,11 @@
 promise_test(async t => {
   const iterator = navigator.fonts.query();
 
-  await promise_rejects_dom(t, 'NotAllowedError', (async () => {
+  await promise_rejects_dom(t, 'SecurityError', (async () => {
                               for await (const f of iterator) {
                               }
                             })());
-}, 'iteration fails if there is no user activation');
+}, 'iteration fails if there is no sticky user activation');
 
 font_access_test(async t => {
   const iterator = navigator.fonts.query();

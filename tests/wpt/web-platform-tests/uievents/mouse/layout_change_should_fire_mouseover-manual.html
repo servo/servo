@@ -60,7 +60,7 @@
 
             function checkEventSequence() {
                 var result = eventList.join();
-                assert_true(result == 'mouseover,mouseenter');
+                assert_equals(result, 'mouseover,mouseenter');
                 testMouseOver.done();
             }
 

@@ -45,7 +45,7 @@
           assert_true(event.userActivation.hasBeenActive);
           child.contentWindow.postMessage('report-no-activation', "*");
         } else if (event.data == 'child-report-no-activation') {
-          assert_true(event.userActivation === null);
+          assert_equals(event.userActivation, null);
           t.done();
         }
       }));

@@ -12,6 +12,6 @@ foo { color: blue; }
 </style>
 <script>
 test(()=>{
-    assert_true(document.styleSheets[0].cssRules.length == 1)
+    assert_equals(document.styleSheets[0].cssRules.length, 1)
 }, "@charset isn't a valid rule and shouldn't show up in the OM");
 </script>

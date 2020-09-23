@@ -732,6 +732,7 @@ MISSING DEPENDENCY: webxr/resources/webxr_util.js
 AHEM SYSTEM FONT: acid/acid3/test.html
 AHEM SYSTEM FONT: resource-timing/resources/all_resource_types.htm
 AHEM SYSTEM FONT: resource-timing/resources/iframe-reload-TAO.sub.html
+AHEM SYSTEM FONT: html/canvas/element/drawing-text-to-the-canvas/2d.text.measure.fontBoundingBox.ahem.html
 
 # TODO: The following should be deleted along with the Ahem web font cleanup
 # PR (https://github.com/web-platform-tests/wpt/pull/18702)

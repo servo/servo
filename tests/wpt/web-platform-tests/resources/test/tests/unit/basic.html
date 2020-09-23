@@ -28,7 +28,7 @@
             WebIDL2.parse("I'm a syntax error");
             throw new Error("Web IDL didn't throw");
         } catch (e) {
-            assert_true(e.name === "WebIDLParseError");
+            assert_equals(e.name, "WebIDLParseError");
         }
     }, 'WebIDL2 parse method should bail on incorrect WebIDL');
     test(function() {

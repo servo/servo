@@ -81,7 +81,7 @@
                           } else if (second_entry_pointer_id === -1) {
                               second_entry_pointer_id = pointer_id;
                               test(function () {
-                                  assert_true(first_entry_pointer_id !== second_entry_pointer_id);
+                                  assert_not_equals(first_entry_pointer_id, second_entry_pointer_id);
                               }, "Different pointing devices");
                           }
                       } else if (event.type === "pointerleave") {

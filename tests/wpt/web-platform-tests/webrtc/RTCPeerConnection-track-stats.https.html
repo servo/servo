@@ -235,7 +235,7 @@
     t.add_cleanup(() => callee.close());
     let receivingTrack;
     callee.ontrack = trackEvent => {
-      assert_true(receivingTrack == undefined, 'ontrack has not fired before');
+      assert_equals(receivingTrack, undefined, 'ontrack has not fired before');
       receivingTrack = trackEvent.track;
     };
     return getUserMediaTracksAndStreams(1)
@@ -396,7 +396,7 @@
       assert_true(trackStats.objectDeleted);
       let outboundStats = findStatsByTypeAndMember(report, 'outbound-rtp',
                                                    'trackId', trackStats.id);
-      assert_true(outboundStats == null,
+      assert_equals(outboundStats, null,
                   'The outbound RTP stream should no longer reference the ' +
                   'original attachment');
       t.done();

@@ -26,7 +26,7 @@ if (expected_logs.length == 0) {
             }
             for (var i = 0; i < expected_logs.length; i++) {
                 if (expected_logs[i] == msg) {
-                    assert_true(expected_logs[i] == msg);
+                    assert_equals(expected_logs[i], msg);
                     expected_logs.splice(i, 1);
                     if (expected_logs.length == 0) {
                         t_log.done();

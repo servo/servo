@@ -92,7 +92,7 @@ test(function() {
   observer.observe(elem, {attributes: true});
   function assert_no_record(action) {
     let records = observer.takeRecords();
-    assert_true(records.length == 0, "expect no record after " + action);
+    assert_equals(records.length, 0, "expect no record after " + action);
   }
   style.setProperty("z-index", "invalid");
   assert_no_record("setting invalid value to property");

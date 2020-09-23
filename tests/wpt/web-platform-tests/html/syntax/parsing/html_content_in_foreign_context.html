@@ -15,13 +15,13 @@ test(function() {
   	  const wrapper = document.createElement('div');
   	  const html = `<${c}><${e}></${c}`
   	  wrapper.innerHTML = html;
-  	  assert_false(wrapper.innerHTML == html, "The inner HTML should get mutated");
+  	  assert_not_equals(wrapper.innerHTML, html, "The inner HTML should get mutated");
 
   	  const tagname = e[0]=='/' ? e.substr(1) : e;
   	  const element = wrapper.getElementsByTagName(tagname)[0];
-  	  assert_true(element !== undefined,`Unable to locate the ${e} node in ${c}`)
+  	  assert_not_equals(element, undefined,`Unable to locate the ${e} node in ${c}`)
   	  const parent = element.parentNode
-  	  assert_true(element.parentNode === wrapper,`The ${e} tag did not exit the ${c}`)
+  	  assert_equals(element.parentNode, wrapper,`The ${e} tag did not exit the ${c}`)
   	});
   });
 }, "HTML namespace nodes should exit foreign contexts");

@@ -86,7 +86,7 @@ function validateSctpTransport(sctp) {
   assert_equals(sctp.state, 'connecting', 'RTCSctpTransport should be in the connecting state');
 
   // Note: Yes, Number.POSITIVE_INFINITY is also a 'number'
-  assert_true(typeof sctp.maxMessageSize === 'number',
+  assert_equals(typeof sctp.maxMessageSize, 'number',
     'Expect sctp.maxMessageSize to be a number');
 }
 

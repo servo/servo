@@ -6,7 +6,7 @@ test(function(t) {
 
 promise_test(function(t) {
     return navigator.storage.estimate().then(function(result) {
-        assert_true(typeof result === 'object');
+        assert_equals(typeof result, 'object');
         assert_true('usage' in result);
         assert_equals(typeof result.usage, 'number');
         assert_true('quota' in result);

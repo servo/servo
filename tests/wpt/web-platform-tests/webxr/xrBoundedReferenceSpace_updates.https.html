@@ -27,7 +27,7 @@ let testFunction = function(session, fakeDeviceController, t) {
           t.step(() => {
               // A bounded space may be created if no bounds have been set but the system has the capability to support bounded-floor
               // A lack of bounds is indicated by an empty boundsGeometry
-              assert_true(referenceSpace.boundsGeometry.length == 0);
+              assert_equals(referenceSpace.boundsGeometry.length, 0);
           });
 
           function onFrame(time, xrFrame) {

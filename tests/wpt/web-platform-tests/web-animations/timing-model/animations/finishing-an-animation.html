@@ -311,7 +311,7 @@ promise_test(async t => {
   assert_equals(animation.currentTime, null);
 
   const resolvedFinishPromise = animation.finished;
-  assert_true(originalFinishPromise != resolvedFinishPromise,
+  assert_not_equals(originalFinishPromise, resolvedFinishPromise,
                'Canceling an animation should create a new finished promise');
 
   animation.finish();

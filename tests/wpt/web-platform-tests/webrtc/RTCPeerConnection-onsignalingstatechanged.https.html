@@ -49,7 +49,7 @@ promise_test(async t => {
 
   pc2.onsignalingstatechange = t.unreached_func();
   pc2.close();
-  assert_true(pc2.signalingState === 'closed');
+  assert_equals(pc2.signalingState, 'closed');
   await new Promise(r => t.step_timeout(r, 100));
 }, 'Closing a PeerConnection should not fire signalingstatechange event');
 

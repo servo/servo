@@ -90,22 +90,22 @@
               assert_true(sourceBuffer != null, "New SourceBuffer returned");
 
               sourceBuffer.appendWindowStart = "";
-              assert_true(sourceBuffer.appendWindowStart == 0, "appendWindowStart is 0");
+              assert_equals(sourceBuffer.appendWindowStart, 0, "appendWindowStart is 0");
 
               sourceBuffer.appendWindowStart = "10";
-              assert_true(sourceBuffer.appendWindowStart == 10, "appendWindowStart is 10");
+              assert_equals(sourceBuffer.appendWindowStart, 10, "appendWindowStart is 10");
 
               sourceBuffer.appendWindowStart = null;
-              assert_true(sourceBuffer.appendWindowStart == 0, "appendWindowStart is 0");
+              assert_equals(sourceBuffer.appendWindowStart, 0, "appendWindowStart is 0");
 
               sourceBuffer.appendWindowStart = true;
-              assert_true(sourceBuffer.appendWindowStart == 1, "appendWindowStart is 1");
+              assert_equals(sourceBuffer.appendWindowStart, 1, "appendWindowStart is 1");
 
               sourceBuffer.appendWindowStart = false;
-              assert_true(sourceBuffer.appendWindowStart == 0, "appendWindowStart is 0");
+              assert_equals(sourceBuffer.appendWindowStart, 0, "appendWindowStart is 0");
 
               sourceBuffer.appendWindowEnd = "100";
-              assert_true(sourceBuffer.appendWindowEnd == 100, "appendWindowEnd is 100");
+              assert_equals(sourceBuffer.appendWindowEnd, 100, "appendWindowEnd is 100");
 
               test.done();
 

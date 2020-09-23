@@ -19,7 +19,7 @@ image_capture_test(async (t, imageCaptureTest) => {
 
   let mockCapabilities = imageCaptureTest.mockImageCapture().state();
   let capturer = new ImageCapture(stream.getVideoTracks()[0]);
-  assert_true(typeof capturer.getPhotoCapabilities == 'function');
+  assert_equals(typeof capturer.getPhotoCapabilities, 'function');
 
   let capabilities = await capturer.getPhotoCapabilities();
 

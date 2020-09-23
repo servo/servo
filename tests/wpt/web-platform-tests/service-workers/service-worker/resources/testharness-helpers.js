@@ -28,7 +28,7 @@ self.assert_object_equals = function(actual, expected, description) {
       assert_equals(actual, expected, prefix);
       return;
     }
-    assert_true(typeof expected === 'object', prefix);
+    assert_equals(typeof expected, 'object', prefix);
     assert_equals(object_stack.indexOf(actual), -1,
                   prefix + ' must not contain cyclic references.');
 
@@ -107,7 +107,7 @@ function assert_array_objects_equals(actual, expected, description) {
 // FIXME: Remove assert_will_be_idl_attribute once we complete the transition
 // of moving the DOM attributes to prototype chains.  (http://crbug.com/43394)
 function assert_will_be_idl_attribute(object, attribute_name, description) {
-  assert_true(typeof object === "object", description);
+  assert_equals(typeof object, "object", description);
 
   assert_true("hasOwnProperty" in object, description);
 

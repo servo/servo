@@ -93,10 +93,10 @@ let testFunction =
       { x: 0.0, y: 0.0, z: 1.0, w: 1.0 });
   inverse_transform = transform.inverse;
   t.step(() => {
-    assert_true(transform.inverse === inverse_transform);
-    assert_true(inverse_transform.inverse === transform);
-    assert_true(transform.inverse.inverse === transform);
-    assert_true(transform.inverse.inverse.inverse === inverse_transform);
+    assert_equals(transform.inverse, inverse_transform);
+    assert_equals(inverse_transform.inverse, transform);
+    assert_equals(transform.inverse.inverse, transform);
+    assert_equals(transform.inverse.inverse.inverse, inverse_transform);
   });
 
   resolve();

@@ -43,7 +43,7 @@ test(function() {
   var expected = {};
   Object.defineProperty(actual, 'a', { value: 1, enumerable: false });
 
-  assert_true(actual.a !== expected.a);
+  assert_not_equals(actual.a, expected.a);
   assert_object_equals(actual, expected);
 }, 'non-enumerable properties in actual value ignored');
 
@@ -52,7 +52,7 @@ test(function() {
   var expected = {};
   Object.defineProperty(expected, 'a', { value: 1, enumerable: false });
 
-  assert_true(actual.a !== expected.a);
+  assert_not_equals(actual.a, expected.a);
   assert_object_equals(actual, expected);
 }, 'non-enumerable properties in expected value ignored');
 

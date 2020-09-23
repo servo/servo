@@ -1582,6 +1582,8 @@ interface ElementInternals {
   readonly attribute NodeList labels;
 };
 
+ElementInternals includes ARIAMixin;
+
 dictionary ValidityStateFlags {
   boolean valueMissing = false;
   boolean typeMismatch = false;

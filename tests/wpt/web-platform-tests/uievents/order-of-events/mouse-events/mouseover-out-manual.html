@@ -64,14 +64,14 @@ var outer_out = 0;
 
 
 inner.addEventListener("mouseover", t.step_func(function(e) {
-  assert_true(inner_over == inner_out, "mouseover is received before mouseout");
+  assert_equals(inner_over, inner_out, "mouseover is received before mouseout");
 
   switch (inner_over) {
     case 0:
-      assert_true(outer_own_over == 1, "should have triggered a mouseover in the outer before");
+      assert_equals(outer_own_over, 1, "should have triggered a mouseover in the outer before");
       break;
     case 1:
-      assert_true(outer_own_over == 1, "should have not triggered a mouseover in the outer before");
+      assert_equals(outer_own_over, 1, "should have not triggered a mouseover in the outer before");
       break;
     default:
       assert_true(false, "should not get more than two mouseovers");
@@ -81,11 +81,11 @@ inner.addEventListener("mouseover", t.step_func(function(e) {
 }), false);
 
 inner.addEventListener("mouseout", t.step_func(function(e) {
-  assert_true(inner_over == inner_out + 1, "mouseout is received after mouseover");
+  assert_equals(inner_over, inner_out + 1, "mouseout is received after mouseover");
 
   switch (inner_out) {
     case 0:
-      assert_true(outer_own_out == 1, "mouseout should have been received in the parent when hovering over this element");
+      assert_equals(outer_own_out, 1, "mouseout should have been received in the parent when hovering over this element");
       break;
     case 1:
       break;
@@ -98,10 +98,10 @@ inner.addEventListener("mouseout", t.step_func(function(e) {
 
 outer.addEventListener("mouseover", t.step_func(function(e) {
   if (e.target == outer) {
-    assert_true(outer_own_over == outer_own_out, "outer: mouseover is received before mouseout");
+    assert_equals(outer_own_over, outer_own_out, "outer: mouseover is received before mouseout");
     outer_own_over++;
   } else {
-    assert_true(outer_over - outer_own_over == inner_over - 1, "mouseover: should only receive this via bubbling");
+    assert_equals(outer_over - outer_own_over, inner_over - 1, "mouseover: should only receive this via bubbling");
   }
 
   outer_over++;
@@ -109,15 +109,15 @@ outer.addEventListener("mouseover", t.step_func(function(e) {
 
 outer.addEventListener('mouseout', t.step_func(function(e) {
   if (e.target == outer) {
-    assert_true(outer_own_over == outer_own_out + 1, "outer: mouseout is received after mouseover");
+    assert_equals(outer_own_over, outer_own_out + 1, "outer: mouseout is received after mouseover");
     if (outer_own_out == 1) {
-      assert_true(inner_out == 2, "inner should be done now");
+      assert_equals(inner_out, 2, "inner should be done now");
       t.done();
     }
 
     outer_own_out++;
   } else {
-    assert_true(outer_out - outer_own_out == inner_out - 1, "mouseout: should only receive this via bubbling");
+    assert_equals(outer_out - outer_own_out, inner_out - 1, "mouseout: should only receive this via bubbling");
   }
 
   outer_out++;

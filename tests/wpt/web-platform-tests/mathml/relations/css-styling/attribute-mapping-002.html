@@ -69,11 +69,11 @@
           }, `scriptlevel on the ${tag} element is mapped to font-size: scriptlevel(...)`);
 
           test(function() {
-              assert_equals(style.getPropertyValue("math-style"), "inline", "no attribute");
+              assert_equals(style.getPropertyValue("math-style"), "compact", "no attribute");
               element.setAttribute("displaystyle", "true");
-              assert_equals(style.getPropertyValue("math-style"), "display", "attribute specified");
+              assert_equals(style.getPropertyValue("math-style"), "normal", "attribute specified");
               element.setAttribute("displaystyle", "TrUe");
-              assert_equals(style.getPropertyValue("math-style"), "display", "case insensitive");
+              assert_equals(style.getPropertyValue("math-style"), "normal", "case insensitive");
           }, `displaystyle on the ${tag} element is mapped to CSS math-style`);
       });
 

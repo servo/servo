@@ -52,31 +52,31 @@
                 });
 
                 on_event(lightgreen, "mousedown", function (event) {
-                    test.step(function() {assert_true(button === -1, "There must only be one mouse down event.");});
-                    test.step(function() {assert_true(event.button != 0, "Must not be primary button.");});
+                    test.step(function() {assert_equals(button, -1, "There must only be one mouse down event.");});
+                    test.step(function() {assert_not_equals(event.button, 0, "Must not be primary button.");});
                     button = event.button;
                 });
                 on_event(lightyellow, "click", function (event) {
-                    test.step(function() {assert_true(event.button === button, "Button must be the same as mousedown.");});
+                    test.step(function() {assert_equals(event.button, button, "Button must be the same as mousedown.");});
                 });
                 on_event(lightyellow, "mousemove", function (event) {
                     if (button != -1) {
-                        test.step(function() {assert_true(event.button === 0, "Button must be un-initialized for mousemove.");});
+                        test.step(function() {assert_equals(event.button, 0, "Button must be un-initialized for mousemove.");});
                     }
                 });
                 on_event(lightgreen, "mouseleave", function (event) {
                     if (button != -1) {
-                        test.step(function() {assert_true(event.button === 0, "Button must be un-initialized for mouseleave.");});
+                        test.step(function() {assert_equals(event.button, 0, "Button must be un-initialized for mouseleave.");});
                     }
                 });
                 on_event(lightblue, "mouseenter", function (event) {
                     if (button != -1) {
-                        test.step(function() {assert_true(event.button === 0, "Button must be un-initialized for mouseenter.");});
+                        test.step(function() {assert_equals(event.button, 0, "Button must be un-initialized for mouseenter.");});
                     }
                 });
                 on_event(lightblue, "mouseup", function (event) {
                     if (button != -1) {
-                        test.step(function() {assert_true(event.button === button, "Button must be the same as mousedown.");});
+                        test.step(function() {assert_equals(event.button, button, "Button must be the same as mousedown.");});
                         test.done();
                     }
                 });

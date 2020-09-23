@@ -95,8 +95,8 @@
 
         test(function() {
             var ruleWithPage = ruleList[3];
-            ruleWithPage.style = "background-color: green;"
-            assert_equals(ruleWithPage.style.cssText, "background-color: green;");
+            ruleWithPage.style = "margin-top: 10px;"
+            assert_equals(ruleWithPage.style.cssText, "margin-top: 10px;");
         }, "CSSStyleDeclaration cssText attribute should be updated due to [PutForwards]");
 
         test(function() {

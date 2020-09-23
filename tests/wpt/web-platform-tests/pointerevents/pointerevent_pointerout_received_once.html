@@ -46,7 +46,7 @@
 
                     step_timeout(function() {
                         test(function() {
-                            assert_true(pointeroutCounter == 1, "pointerout received just once")
+                            assert_equals(pointeroutCounter, 1, "pointerout received just once")
                         }, "pointerout received just once");
                         actions_promise.then( () => {
                             done();

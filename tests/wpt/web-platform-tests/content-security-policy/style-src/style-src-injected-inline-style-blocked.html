@@ -30,9 +30,9 @@
         // this is why in this test we check both to make sure neither way worked
 
         var marginLeftVal = getComputedStyle(contentEl).getPropertyValue('margin-left');
-        assert_false(marginLeftVal == "2px");
+        assert_not_equals(marginLeftVal, "2px");
         var marginRightVal = getComputedStyle(contentEl).getPropertyValue('margin-right');
-        assert_false(marginRightVal == "2px");
+        assert_not_equals(marginRightVal, "2px");
       });
     </script>
 

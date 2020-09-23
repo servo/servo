@@ -8,7 +8,7 @@
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#radicals-msqrt-mroot">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#displaystyle-and-scriptlevel-in-scripts">
 <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#user-agent-stylesheet">
-<meta name="assert" content="Verify default calculation of math-superscript-shift-style on MathML elements">
+<meta name="assert" content="Verify default calculation of math-shift on MathML elements">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
@@ -137,6 +137,14 @@
           assert_cramped("mmultiscripts-004", true, "pre-subscript");
           assert_cramped("mmultiscripts-005", false, "post-superscript");
       }, "mmultiscripts");
+
+      test(function() {
+          assert_true(MathMLFeatureDetection.has_mspace());
+          assert_cramped("css-001", false);
+          assert_cramped("css-002", true);
+          assert_cramped("css-003", true);
+          assert_cramped("css-004", false);
+      }, "element with specified CSS math-style");
 
       done();
   }
@@ -586,6 +594,32 @@
         <mn>11</mn>
         <mn>12</mn>
       </mmultiscripts>
+    </math>
+  </p>
+  <p>
+    <math id="css-001" style="math-shift: normal">
+      <msup class="testedElement">
+        <mspace height="2em" width="2em"/>
+        <mspace height="1em" width="1em"/>
+      </msup>
+    </math>
+    <math id="css-002" style="math-shift: compact">
+      <msup class="testedElement">
+        <mspace height="2em" width="2em"/>
+        <mspace height="1em" width="1em"/>
+      </msup>
+    </math>
+    <math id="css-003" style="math-shift: normal">
+      <msup class="testedElement" style="math-shift: compact">
+        <mspace height="2em" width="2em"/>
+        <mspace height="1em" width="1em"/>
+      </msup>
+    </math>
+    <math id="css-004" style="math-shift: compact">
+      <msup class="testedElement" style="math-shift: normal">
+        <mspace height="2em" width="2em"/>
+        <mspace height="1em" width="1em"/>
+      </msup>
     </math>
   </p>
 </body>

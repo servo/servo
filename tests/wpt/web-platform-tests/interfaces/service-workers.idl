@@ -7,8 +7,8 @@
 interface ServiceWorker : EventTarget {
   readonly attribute USVString scriptURL;
   readonly attribute ServiceWorkerState state;
-  void postMessage(any message, sequence<object> transfer);
-  void postMessage(any message, optional PostMessageOptions options = {});
+  undefined postMessage(any message, sequence<object> transfer);
+  undefined postMessage(any message, optional PostMessageOptions options = {});
 
   // event
   attribute EventHandler onstatechange;
@@ -34,7 +34,7 @@ interface ServiceWorkerRegistration : EventTarget {
   readonly attribute USVString scope;
   readonly attribute ServiceWorkerUpdateViaCache updateViaCache;
 
-  [NewObject] Promise<void> update();
+  [NewObject] Promise<undefined> update();
   [NewObject] Promise<boolean> unregister();
 
   // event
@@ -65,7 +65,7 @@ interface ServiceWorkerContainer : EventTarget {
   [NewObject] Promise<any> getRegistration(optional USVString clientURL = "");
   [NewObject] Promise<FrozenArray<ServiceWorkerRegistration>> getRegistrations();
 
-  void startMessages();
+  undefined startMessages();
 
   // events
   attribute EventHandler oncontrollerchange;
@@ -81,9 +81,9 @@ dictionary RegistrationOptions {
 
 [SecureContext, Exposed=(Window,Worker)]
 interface NavigationPreloadManager {
-  Promise<void> enable();
-  Promise<void> disable();
-  Promise<void> setHeaderValue(ByteString value);
+  Promise<undefined> enable();
+  Promise<undefined> disable();
+  Promise<undefined> setHeaderValue(ByteString value);
   Promise<NavigationPreloadState> getState();
 };
 
@@ -98,7 +98,7 @@ interface ServiceWorkerGlobalScope : WorkerGlobalScope {
   [SameObject] readonly attribute ServiceWorkerRegistration registration;
   [SameObject] readonly attribute ServiceWorker serviceWorker;
 
-  [NewObject] Promise<void> skipWaiting();
+  [NewObject] Promise<undefined> skipWaiting();
 
   attribute EventHandler oninstall;
   attribute EventHandler onactivate;
@@ -114,8 +114,8 @@ interface Client {
   readonly attribute FrameType frameType;
   readonly attribute DOMString id;
   readonly attribute ClientType type;
-  void postMessage(any message, sequence<object> transfer);
-  void postMessage(any message, optional PostMessageOptions options = {});
+  undefined postMessage(any message, sequence<object> transfer);
+  undefined postMessage(any message, optional PostMessageOptions options = {});
 };
 
 [Exposed=ServiceWorker]
@@ -140,7 +140,7 @@ interface Clients {
   [NewObject] Promise<any> get(DOMString id);
   [NewObject] Promise<FrozenArray<Client>> matchAll(optional ClientQueryOptions options = {});
   [NewObject] Promise<WindowClient?> openWindow(USVString url);
-  [NewObject] Promise<void> claim();
+  [NewObject] Promise<undefined> claim();
 };
 
 dictionary ClientQueryOptions {
@@ -158,7 +158,7 @@ enum ClientType {
 [Exposed=ServiceWorker]
 interface ExtendableEvent : Event {
   constructor(DOMString type, optional ExtendableEventInit eventInitDict = {});
-  void waitUntil(Promise<any> f);
+  undefined waitUntil(Promise<any> f);
 };
 
 dictionary ExtendableEventInit : EventInit {
@@ -173,9 +173,9 @@ interface FetchEvent : ExtendableEvent {
   readonly attribute DOMString clientId;
   readonly attribute DOMString resultingClientId;
   readonly attribute DOMString replacesClientId;
-  readonly attribute Promise<void> handled;
+  readonly attribute Promise<undefined> handled;
 
-  void respondWith(Promise<Response> r);
+  undefined respondWith(Promise<Response> r);
 };
 
 dictionary FetchEventInit : ExtendableEventInit {
@@ -184,7 +184,7 @@ dictionary FetchEventInit : ExtendableEventInit {
   DOMString clientId = "";
   DOMString resultingClientId = "";
   DOMString replacesClientId = "";
-  Promise<void> handled;
+  Promise<undefined> handled;
 };
 
 [Exposed=ServiceWorker]
@@ -213,9 +213,9 @@ partial interface mixin WindowOrWorkerGlobalScope {
 interface Cache {
   [NewObject] Promise<any> match(RequestInfo request, optional CacheQueryOptions options = {});
   [NewObject] Promise<FrozenArray<Response>> matchAll(optional RequestInfo request, optional CacheQueryOptions options = {});
-  [NewObject] Promise<void> add(RequestInfo request);
-  [NewObject] Promise<void> addAll(sequence<RequestInfo> requests);
-  [NewObject] Promise<void> put(RequestInfo request, Response response);
+  [NewObject] Promise<undefined> add(RequestInfo request);
+  [NewObject] Promise<undefined> addAll(sequence<RequestInfo> requests);
+  [NewObject] Promise<undefined> put(RequestInfo request, Response response);
   [NewObject] Promise<boolean> delete(RequestInfo request, optional CacheQueryOptions options = {});
   [NewObject] Promise<FrozenArray<Request>> keys(optional RequestInfo request, optional CacheQueryOptions options = {});
 };

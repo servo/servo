@@ -39,24 +39,24 @@
                 // Test button and buttons
                 if (event.type == 'pointerdown') {
                     test(function() {
-                        assert_true(event.button == 0, "Button attribute is 0")
+                        assert_equals(event.button, 0, "Button attribute is 0")
                     }, pointerTestName + "'s button attribute is 0 when left mouse button is pressed.");
                     test(function() {
-                        assert_true(event.buttons == 1, "Buttons attribute is 1")
+                        assert_equals(event.buttons, 1, "Buttons attribute is 1")
                     }, pointerTestName + "'s buttons attribute is 1 when left mouse button is pressed.");
                 } else if (event.type == 'pointerup') {
                     test(function() {
-                        assert_true(event.button == 0, "Button attribute is 0")
+                        assert_equals(event.button, 0, "Button attribute is 0")
                     }, pointerTestName + "'s button attribute is 0 when left mouse button is just released.");
                     test(function() {
-                        assert_true(event.buttons == 0, "Buttons attribute is 0")
+                        assert_equals(event.buttons, 0, "Buttons attribute is 0")
                     }, pointerTestName + "'s buttons attribute is 0 when left mouse button is just released.");
                 } else {
                     test(function() {
-                        assert_true(event.button == -1, "Button attribute is -1")
+                        assert_equals(event.button, -1, "Button attribute is -1")
                     }, pointerTestName + "'s button is -1 when mouse buttons are in released state.");
                     test(function() {
-                        assert_true(event.buttons == 0, "Buttons attribute is 0")
+                        assert_equals(event.buttons, 0, "Buttons attribute is 0")
                     }, pointerTestName + "'s buttons is 0 when mouse buttons are in released state.");
                 }
 

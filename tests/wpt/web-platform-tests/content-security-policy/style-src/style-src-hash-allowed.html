@@ -28,7 +28,7 @@
       function make_assert(contentId) {
         var contentEl = document.getElementById(contentId);
         var marginLeftVal = getComputedStyle(contentEl).getPropertyValue('margin-left');
-        assert_true(marginLeftVal == "2px")
+        assert_equals(marginLeftVal, "2px")
       }
       t.step(function() {
         make_assert("content1");

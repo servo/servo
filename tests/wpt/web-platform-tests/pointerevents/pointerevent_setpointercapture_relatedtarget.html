@@ -94,7 +94,7 @@
                     detected_pointertypes[ event.pointerType ] = true;
                     if(!isPointeroverGot) {
                         test(function() {
-                            assert_true(isPointerCapture==false, "pointerover shouldn't trigger for this target when capture is enabled");
+                            assert_equals(isPointerCapture, false, "pointerover shouldn't trigger for this target when capture is enabled");
                         }, "pointerover shouldn't trigger for the purple rectangle while the black rectangle has capture");
                         isPointeroverGot = true;
                         event_log.push('pointerover@target1');

@@ -15,9 +15,9 @@
 <script src=/resources/testharnessreport.js></script>
 <script>
 test(function () {
-  assert_true(undefined !== navigator.mediaDevices.getUserMedia, "navigator.mediaDevices.getUserMedia exists.");
+  assert_not_equals(navigator.mediaDevices.getUserMedia, undefined, "navigator.mediaDevices.getUserMedia exists.");
   // TODO: do some stuff with it
-  assert_true(undefined !== navigator.mediaDevices.getSupportedConstraints, "navigator.mediaDevices.getSupportedConstraints exists.");
+  assert_not_equals(navigator.mediaDevices.getSupportedConstraints, undefined, "navigator.mediaDevices.getSupportedConstraints exists.");
   var list = navigator.mediaDevices.getSupportedConstraints();
   // TODO: we are supposed to check that all values returned can be used in a constraint ....
   // NOTE: the current list of attributes that may or may not be here

@@ -110,8 +110,8 @@
               assert_true(sourceBuffer != null, "New SourceBuffer returned");
 
               mediaSource.removeSourceBuffer(sourceBuffer);
-              assert_true(mediaSource.sourceBuffers.length == 0, "MediaSource.sourceBuffers is empty");
-              assert_true(mediaSource.activeSourceBuffers.length == 0, "MediaSource.activesourceBuffers is empty");
+              assert_equals(mediaSource.sourceBuffers.length, 0, "MediaSource.sourceBuffers is empty");
+              assert_equals(mediaSource.activeSourceBuffers.length, 0, "MediaSource.activesourceBuffers is empty");
 
               assert_throws_dom("InvalidStateError", function()
               {
