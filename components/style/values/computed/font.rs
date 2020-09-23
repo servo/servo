@@ -819,14 +819,14 @@ impl ToComputedValue for specified::MozScriptLevel {
     type ComputedValue = MozScriptLevel;
 
     fn to_computed_value(&self, cx: &Context) -> i8 {
-        use crate::properties::longhands::_moz_math_display::SpecifiedValue as DisplayValue;
+        use crate::properties::longhands::math_style::SpecifiedValue as MathStyleValue;
         use std::{cmp, i8};
 
         let int = match *self {
             specified::MozScriptLevel::Auto => {
                 let parent = cx.builder.get_parent_font().clone__moz_script_level() as i32;
-                let display = cx.builder.get_parent_font().clone__moz_math_display();
-                if display == DisplayValue::Inline {
+                let style = cx.builder.get_parent_font().clone_math_style();
+                if style == MathStyleValue::Compact {
                     parent + 1
                 } else {
                     parent
