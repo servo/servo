@@ -78,15 +78,13 @@ impl GPURenderPipelineMethods for GPURenderPipeline {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout
     fn GetBindGroupLayout(&self, index: u32) -> Fallible<DomRoot<GPUBindGroupLayout>> {
-        if index > self.bind_group_layouts.len() as u32 ||
-            index > self.device.limits().maxBindGroups
-        {
+        if index > self.bind_group_layouts.len() as u32 {
             return Err(Error::Range(String::from("Index out of bounds")));
         }
-        return Ok(GPUBindGroupLayout::new(
+        Ok(GPUBindGroupLayout::new(
             &self.global(),
             self.bind_group_layouts[index as usize],
             None,
-        ));
+        ))
     }
 }
