@@ -10,7 +10,7 @@ interface CustomElementRegistry {
 
   any get(DOMString name);
 
-  Promise<void> whenDefined(DOMString name);
+  Promise<CustomElementConstructor> whenDefined(DOMString name);
 
   [CEReactions] void upgrade(Node root);
 };

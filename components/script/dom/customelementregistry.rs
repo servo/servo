@@ -395,7 +395,13 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
 
         // Step 16, 16.3
         if let Some(promise) = self.when_defined.borrow_mut().remove(&name) {
-            promise.resolve_native(&UndefinedValue());
+            unsafe {
+                rooted!(in(*cx) let mut constructor = UndefinedValue());
+                definition
+                    .constructor
+                    .to_jsval(*cx, constructor.handle_mut());
+                promise.resolve_native(&constructor.get());
+            }
         }
         Ok(())
     }
@@ -416,6 +422,7 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
+    #[allow(unsafe_code)]
     fn WhenDefined(&self, name: DOMString, comp: InRealm) -> Rc<Promise> {
         let global_scope = self.window.upcast::<GlobalScope>();
         let name = LocalName::from(&*name);
@@ -428,10 +435,17 @@ impl CustomElementRegistryMethods for CustomElementRegistry {
         }
 
         // Step 2
-        if self.definitions.borrow().contains_key(&name) {
-            let promise = Promise::new_in_current_realm(&global_scope, comp);
-            promise.resolve_native(&UndefinedValue());
-            return promise;
+        if let Some(definition) = self.definitions.borrow().get(&LocalName::from(&*name)) {
+            unsafe {
+                let cx = global_scope.get_cx();
+                rooted!(in(*cx) let mut constructor = UndefinedValue());
+                definition
+                    .constructor
+                    .to_jsval(*cx, constructor.handle_mut());
+                let promise = Promise::new_in_current_realm(&global_scope, comp);
+                promise.resolve_native(&constructor.get());
+                return promise;
+            }
         }
 
         // Step 3
