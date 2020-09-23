@@ -9,7 +9,7 @@
     <script>
       function doTest() {
         let off = new OfflineAudioContext(1, 512, 48000);
-        let b = new Audiobuffer({sampleRate: off.sampleRate, length: 1});
+        let b = new AudioBuffer({sampleRate: off.sampleRate, length: 1});
         b.getChannelData(0)[0] = 1;
         let impulse = new AudioBufferSourceNode(off, {buffer: b});
         impulse.start(0);

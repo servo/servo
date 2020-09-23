@@ -3,11 +3,6 @@
 // (https://github.com/w3c/webref)
 // Source: Compression Streams (https://wicg.github.io/compression/)
 
-interface mixin GenericTransformStream {
-  readonly attribute ReadableStream readable;
-  readonly attribute WritableStream writable;
-};
-
 [Exposed=(Window,Worker)]
 interface CompressionStream {
   constructor(DOMString format);

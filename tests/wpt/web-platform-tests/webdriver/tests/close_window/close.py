@@ -10,9 +10,28 @@ def close(session):
         "DELETE", "session/{session_id}/window".format(**vars(session)))
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = close(session)
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, url):
+    new_handle = session.new_window()
+
+    session.url = url("/webdriver/tests/support/html/frames.html")
+
+    subframe = session.find.css("#sub-frame", all=False)
+    session.switch_frame(subframe)
+
+    frame = session.find.css("#delete-frame", all=False)
+    session.switch_frame(frame)
+
+    button = session.find.css("#remove-parent", all=False)
+    button.click()
+
+    response = close(session)
+    handles = assert_success(response)
+    assert handles == [new_handle]
 
 
 def test_close_browsing_context(session):

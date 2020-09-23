@@ -10,9 +10,19 @@ def take_screenshot(session):
         "GET", "session/{session_id}/screenshot".format(**vars(session)))
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = take_screenshot(session)
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    session.url = inline("<input>")
+
+    response = take_screenshot(session)
+    value = assert_success(response)
+
+    assert_png(value)
+    assert png_dimensions(value) == viewport_dimensions(session)
 
 
 def test_format_and_dimensions(session):

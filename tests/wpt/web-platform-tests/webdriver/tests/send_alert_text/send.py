@@ -39,9 +39,14 @@ def test_invalid_input(session, page, text):
     assert_error(response, "invalid argument")
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = send_alert_text(session, "Federer")
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    response = send_alert_text(session, "Federer")
+    assert_error(response, "no such alert")
 
 
 def test_no_user_prompt(session):

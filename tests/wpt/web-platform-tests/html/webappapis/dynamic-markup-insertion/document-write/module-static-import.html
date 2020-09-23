@@ -6,15 +6,16 @@
 <script>
 async_test(t => {
   const iframe = document.createElement("iframe");
+
   iframe.onerror = t.unreached_func("Error loading iframe");
 
   let testEndWasCalled = false;
   document.addEventListener("documentWriteDone", t.step_func(() => {
-    assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
     testEndWasCalled = true;
+    assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
   }));
   iframe.onload = t.step_func_done(() => {
-    assert_true(testEndWasCalled);
+    assert_true(testEndWasCalled, "onload must be called");
     assert_equals(iframe.contentDocument.body.textContent, "Initial body contents\n");
   });
 

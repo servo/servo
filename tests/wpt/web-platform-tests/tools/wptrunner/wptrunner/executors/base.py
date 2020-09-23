@@ -37,6 +37,12 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
         executor_kwargs["webdriver_binary"] = kwargs.get("webdriver_binary")
         executor_kwargs["webdriver_args"] = kwargs.get("webdriver_args")
 
+    # By default the executor may try to cleanup windows after a test (to best
+    # associate any problems with the test causing them). If the user might
+    # want to view the results, however, the executor has to skip that cleanup.
+    if kwargs["pause_after_test"] or kwargs["pause_on_unexpected"]:
+        executor_kwargs["cleanup_after_test"] = False
+
     return executor_kwargs
 
 

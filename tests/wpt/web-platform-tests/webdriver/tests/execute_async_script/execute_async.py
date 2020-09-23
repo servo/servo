@@ -21,7 +21,12 @@ def test_null_parameter_value(session, http):
         assert_error(Response.from_http(response), "invalid argument")
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
+    response = execute_async_script(session, "argument[0](1);")
+    assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
     response = execute_async_script(session, "argument[0](1);")
     assert_error(response, "no such window")
 

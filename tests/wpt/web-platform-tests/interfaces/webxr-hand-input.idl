@@ -54,5 +54,5 @@ partial interface XRFrame {
 };
 
 interface XRJointPose: XRPose {
-    readonly attribute float? radius;
+    readonly attribute float radius;
 };

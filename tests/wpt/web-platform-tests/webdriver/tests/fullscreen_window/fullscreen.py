@@ -7,9 +7,14 @@ def fullscreen(session):
         "POST", "session/{session_id}/window/fullscreen".format(**vars(session)))
 
 
-def test_no_browsing_context(session, closed_window):
+def test_no_top_browsing_context(session, closed_window):
     response = fullscreen(session)
     assert_error(response, "no such window")
+
+
+def test_no_browsing_context(session, closed_frame):
+    response = fullscreen(session)
+    assert_success(response)
 
 
 def test_fullscreen(session):
