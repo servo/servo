@@ -72,13 +72,16 @@ function run_fp_tests_enabled(sensorName) {
     );
   }, `${sensorName}: ${header} allows same-origin iframes.`);
 
+  // Set allow="feature;feature;..." on iframe element to delegate features
+  // under test to cross origin subframe.
   async_test(t => {
     assert_implements(sensorName in self, `${sensorName} is not supported.`);
     test_feature_availability(
       desc,
       t,
       cross_origin_src + sensorName,
-      expect_feature_available_default
+      expect_feature_available_default,
+      feature_policies[sensorName].join(";")
     );
   }, `${sensorName}: ${header} allows cross-origin iframes.`);
 }

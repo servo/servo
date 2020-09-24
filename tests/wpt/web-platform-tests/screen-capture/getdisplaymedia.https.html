@@ -80,15 +80,15 @@ promise_test(async t => {
 }, `getDisplayMedia(${j(constraints)}) must succeed with video maybe audio`));
 
 [
- {video: {width: {max: 360}}},
- {video: {height: {max: 240}}},
- {video: {width: {max: 360}, height: {max: 240}}},
- {video: {frameRate: {max: 4}}},
- {video: {frameRate: {max: 4}, width: {max: 360}}},
- {video: {frameRate: {max: 4}, height: {max: 240}}},
- {video: {frameRate: {max: 4}, width: {max: 360}, height: {max: 240}}},
+ {width: {max: 360}},
+ {height: {max: 240}},
+ {width: {max: 360}, height: {max: 240}},
+ {frameRate: {max: 4}},
+ {frameRate: {max: 4}, width: {max: 360}},
+ {frameRate: {max: 4}, height: {max: 240}},
+ {frameRate: {max: 4}, width: {max: 360}, height: {max: 240}},
 ].forEach(constraints => promise_test(async t => {
-  const stream = await getDisplayMedia(constraints);
+  const stream = await getDisplayMedia({video: constraints});
   t.add_cleanup(() => stopTracks(stream));
   const {width, height, frameRate} = stream.getTracks()[0].getSettings();
   assert_greater_than_equal(width, 1);
@@ -103,7 +103,46 @@ promise_test(async t => {
   if (constraints.frameRate) {
     assert_less_than_equal(frameRate, constraints.frameRate.max);
   }
-}, `getDisplayMedia(${j(constraints)}) must be constrained`));
+}, `getDisplayMedia({video: ${j(constraints)}}) must be constrained`));
+
+const someSizes = [
+ {width: 160},
+ {height: 120},
+ {width: 80},
+ {height: 60},
+ {width: 158},
+ {height: 118},
+];
+
+someSizes.forEach(constraints => promise_test(async t => {
+  const stream = await getDisplayMedia({video: constraints});
+  t.add_cleanup(() => stopTracks(stream));
+  const {width, height, frameRate} = stream.getTracks()[0].getSettings();
+  if (constraints.width) {
+    assert_equals(width, constraints.width);
+  } else {
+    assert_equals(height, constraints.height);
+  }
+  assert_greater_than_equal(frameRate, 1);
+}, `getDisplayMedia({video: ${j(constraints)}}) must be downscaled precisely`));
+
+promise_test(async t => {
+  const video = {height: 240};
+  const stream = await getDisplayMedia({video});
+  t.add_cleanup(() => stopTracks(stream));
+  const [track] = stream.getVideoTracks();
+  const {height} = track.getSettings();
+  assert_equals(height, video.height);
+  for (const constraints of someSizes) {
+    await track.applyConstraints(constraints);
+    const {width, height} = track.getSettings();
+    if (constraints.width) {
+      assert_equals(width, constraints.width);
+    } else {
+      assert_equals(height, constraints.height);
+    }
+  }
+}, `applyConstraints(width or height) must downscale precisely`);
 
 [
  {video: {width: {max: 0}}},

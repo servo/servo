@@ -28,12 +28,15 @@
     );
   }, 'Feature-Policy header {"screen-wake-lock" : ["*"]} allows same-origin iframes.');
 
+  // Set allow="screen-wake-lock" on iframe element to delegate
+  // 'screen-wake-lock' to cross origin subframe.
   async_test(t => {
     test_feature_availability(
       'navigator.wakeLock.request("screen")',
       t,
       cross_origin_src,
-      expect_feature_available_default
+      expect_feature_available_default,
+      'screen-wake-lock'
     );
   }, 'Feature-Policy header {"screen-wake-lock" : ["*"]} allows cross-origin iframes.');
 

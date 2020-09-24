@@ -18,7 +18,7 @@ window.onmessage = function(e) {
     } else {
         opener.step_timeout(function() {
             opener.postMessage(getLog() + e.data, "*");
-        }, 1000);
+        }, 1500);
     }
 };
 window.onload = function() {

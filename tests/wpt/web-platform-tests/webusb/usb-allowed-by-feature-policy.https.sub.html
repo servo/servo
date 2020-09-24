@@ -27,15 +27,17 @@ async_test(t => {
       expect_feature_available_default);
 }, header + ' allows workers in same-origin iframes.');
 
+// Set allow="usb" on iframe element to delegate 'usb' to cross origin subframe.
 async_test(t => {
   test_feature_availability('usb.getDevices()', t, cross_origin_src,
-      expect_feature_available_default);
+      expect_feature_available_default, 'usb');
 }, header + ' allows cross-origin iframes.');
 
+// Set allow="usb" on iframe element to delegate 'usb' to cross origin subframe.
 async_test(t => {
   test_feature_availability('usb.getDevices()', t,
       cross_origin_worker_frame_src,
-      expect_feature_available_default);
+      expect_feature_available_default, 'usb');
 }, header + ' allows workers in cross-origin iframes.');
 
 fetch_tests_from_worker(new Worker(

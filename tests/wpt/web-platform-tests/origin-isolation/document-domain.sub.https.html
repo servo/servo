@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Setting document.domain does not change same-originness</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  Other tests check that using document.domain doesn't allow cross-origin
+  access. This test ensures a different, more subtle property: that origin
+  isolation makes document.domain into a no-op in other ways.
+-->
+
+<iframe src="resources/frame.html"></iframe>
+
+<script type="module">
+setup({ explicit_done: true });
+
+window.onload = () => {
+  test(() => {
+    // Normally, setting document.domain to itself would change the domain
+    // component of the origin. Since the iframe does *not* set document.domain,
+    // the two would then be considered cross-origin.
+    document.domain = document.domain;
+
+    // However, because we're using origin isolation, this shouldn't have any
+    // impact. The test fails if this throws, and passes if it succeeds.
+    frames[0].document;
+  }, "Setting document.domain must not change same-originness");
+
+  test(() => {
+    assert_throws_dom("SecurityError", () => {
+      document.domain = "{{hosts[][nonexistent]}}";
+    });
+  }, "The registrable domain suffix check must happen before the bail-out");
+
+  done();
+};
+</script>

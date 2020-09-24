@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<title>Test attachment to dedicated worker MediaSource</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+
+async_test((t) => {
+  const video = document.createElement('video');
+  document.body.appendChild(video);
+
+  // TODO(https://crbug.com/878133): Enable attachment success by
+  // completing the CrossThreadAttachment implementation. Currently,
+  // a custom Chromium MediaError.message is confirmed.
+  video.onerror = t.step_func(() => {
+    assert_not_equals(video.error, null);
+    assert_equals(video.error.message, "MEDIA_ELEMENT_ERROR: Unable to attach MediaSource");
+    t.done();
+  });
+
+  let worker = new Worker("mediasource-worker-util.js");
+  worker.onerror = t.unreached_func("worker error");
+  worker.onmessage = t.step_func((e) => {
+    if (e.data.substr(0,6) == "Error:") {
+      assert_unreached("Worker error: " + e.data);
+    } else {
+      const url = e.data;
+      assert_true(url.match(/^blob:.+/) != null);
+      video.src = url;
+    }
+  });
+}, "Test worker MediaSource attachment (currently should fail to attach)");
+
+// TODO(https://crbug.com/878133): Test multiple attachments to same worker
+// MediaSource racing each other: precisely one should win the race.
+
+</script>
+</body>
+</html>

@@ -13,12 +13,23 @@ const PIPE =
   '|header(cross-origin-embedder-policy,require-corp)' +
   '|header(cross-origin-resource-policy,cross-origin)';
 
-async function getCrossOriginIsolatedFor(t, url) {
-  const frame = document.createElement('iframe');
-  t.add_cleanup(() => frame.remove());
-  frame.src = url;
-  document.body.append(frame);
+async function getCrossOriginIsolatedFor(t, origin, value) {
+  const parentFrame = document.createElement('iframe');
+  t.add_cleanup(() => parentFrame.remove());
+  let pipe = PIPE;
+  if (value !== undefined) {
+    pipe += `|header(permissions-policy,cross-origin-isolated=${value})`;
+  }
+  parentFrame.src = `${PATH}${pipe}`;
+  document.body.append(parentFrame);
 
+  await new Promise((resolve) => {
+    parentFrame.addEventListener('load', resolve);
+  });
+
+  const frame = parentFrame.contentDocument.createElement('iframe');
+  frame.src = `${origin}${PATH}${PIPE}`;
+  parentFrame.contentDocument.body.append(frame);
   frame.addEventListener('error', t.unreached_func('frame.error'));
   await new Promise((resolve) => {
     frame.addEventListener('load', resolve);
@@ -35,27 +46,26 @@ async function getCrossOriginIsolatedFor(t, url) {
 }
 
 function generateTest(origin, value, expectation) {
+  async function run(t) {
+    assert_equals(
+      await getCrossOriginIsolatedFor(t, origin, value), expectation);
+  }
   // We use async_test, not promise_test here to run tests in parallel.
   async_test((t) => {
-    let pipe = PIPE;
-    if (value !== undefined) {
-      pipe += `|header(permissions-policy,cross-origin-isolated=${value})`
-    }
-    const url = `${origin}${PATH}${pipe}`;
-    (async () => {
-      assert_equals(await getCrossOriginIsolatedFor(t, url), expectation);
-    })().then(() => t.done(), (e) => t.step(() => {throw e;}));
+    run(t).then(() => t.done(), (e) => t.step(() => {throw e;}));
   }, `origin = ${origin}, value = ${value}`);
 }
 
 generateTest(ORIGIN, undefined, true);
 generateTest(ORIGIN, '*', true);
-generateTest(ORIGIN, "'self'", true);
-generateTest(ORIGIN, "'none'", false);
+generateTest(ORIGIN, "self", true);
+// We need the backslash to escape the close parenthesis in a wpt pipe.
+generateTest(ORIGIN, "(\\)", false);
 generateTest(HTTPS_REMOTE_ORIGIN, undefined, false);
 generateTest(HTTPS_REMOTE_ORIGIN, '*', true);
-generateTest(HTTPS_REMOTE_ORIGIN, "'self'", false);
-generateTest(HTTPS_REMOTE_ORIGIN, "'none'", false);
+generateTest(HTTPS_REMOTE_ORIGIN, "self", false);
+// We need the backslash to escape the close parenthesis in a wpt pipe.
+generateTest(HTTPS_REMOTE_ORIGIN, "(\\)", false);
 </script>
 </body>
 </html>

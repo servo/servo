@@ -5,5 +5,8 @@
 <script src="resources/test-helpers.sub.js"></script>
 <script src="resources/registration-tests-script.js"></script>
 <script>
-registration_tests_script((script, options) => navigator.serviceWorker.register(script, options));
+registration_tests_script(
+    (script, options) => navigator.serviceWorker.register(script, options),
+    'classic'
+);
 </script>

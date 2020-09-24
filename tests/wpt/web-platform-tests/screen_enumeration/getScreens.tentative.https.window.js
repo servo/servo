@@ -39,25 +39,26 @@ promise_test(async t => {
   await promise_rejects_dom(t, 'NotAllowedError', self.getScreens());
 }, 'getScreens() rejects the promise with permission denied');
 
-async_test(async t => {
+promise_test(async t => {
   await test_driver.set_permission({name: 'window-placement'}, 'granted');
   let iframe = document.body.appendChild(document.createElement('iframe'));
   assert_greater_than((await iframe.contentWindow.getScreens()).length, 0);
 
-  iframe.contentWindow.onunload = t.step_func(async () => {
-    // TODO(crbug.com/1106132): This should reject or resolve; not hang.
-    // assert_greater_than((await iframe.contentWindow.getScreens()).length, 0);
-
-    let iframeGetScreens = iframe.contentWindow.getScreens;
-    let constructor = iframe.contentWindow.DOMException;
-    assert_not_equals(iframeGetScreens, undefined);
-    assert_not_equals(constructor, undefined);
-
-    await t.step_wait(() => !iframe.contentWindow, "execution context invalid");
-    assert_equals(iframe.contentWindow, null);
-    await promise_rejects_dom(t, 'InvalidStateError', constructor, iframeGetScreens());
-    t.done();
+  let iframeGetScreens;
+  let constructor;
+  await new Promise(resolve => {
+    iframe.contentWindow.onunload = () => {
+      // Grab these before the contentWindow is removed.
+      iframeGetScreens = iframe.contentWindow.getScreens;
+      constructor = iframe.contentWindow.DOMException;
+      resolve();
+    };
+    document.body.removeChild(iframe);
   });
+  assert_not_equals(iframeGetScreens, undefined);
+  assert_not_equals(constructor, undefined);
 
-  document.body.removeChild(iframe);
+  await t.step_wait(() => !iframe.contentWindow, "execution context invalid");
+  assert_equals(iframe.contentWindow, null);
+  await promise_rejects_dom(t, 'InvalidStateError', constructor, iframeGetScreens());
 }, "getScreens() resolves for attached iframe; rejects for detached iframe");

@@ -1,6 +1,6 @@
 // Registration tests that mostly exercise the service worker script contents or
 // response.
-function registration_tests_script(register_method) {
+function registration_tests_script(register_method, type) {
   promise_test(function(t) {
       var script = 'resources/invalid-chunked-encoding.py';
       var scope = 'resources/scope/invalid-chunked-encoding/';
@@ -46,14 +46,16 @@ function registration_tests_script(register_method) {
           'Registration of script including uncaught exception should fail.');
     }, 'Registering script including uncaught exception');
 
-  promise_test(function(t) {
-      var script = 'resources/malformed-worker.py?import-malformed-script';
-      var scope = 'resources/scope/import-malformed-script';
-      return promise_rejects_js(t,
-          TypeError,
-          register_method(script, {scope: scope}),
-          'Registration of script importing malformed script should fail.');
-    }, 'Registering script importing malformed script');
+  if (type === 'classic') {
+    promise_test(function(t) {
+        var script = 'resources/malformed-worker.py?import-malformed-script';
+        var scope = 'resources/scope/import-malformed-script';
+        return promise_rejects_js(t,
+            TypeError,
+            register_method(script, {scope: scope}),
+            'Registration of script importing malformed script should fail.');
+      }, 'Registering script importing malformed script');
+  }
 
   promise_test(function(t) {
       var script = 'resources/no-such-worker.js';
@@ -64,14 +66,16 @@ function registration_tests_script(register_method) {
           'Registration of non-existent script should fail.');
     }, 'Registering non-existent script');
 
-  promise_test(function(t) {
-      var script = 'resources/malformed-worker.py?import-no-such-script';
-      var scope = 'resources/scope/import-no-such-script';
-      return promise_rejects_js(t,
-          TypeError,
-          register_method(script, {scope: scope}),
-          'Registration of script importing non-existent script should fail.');
-    }, 'Registering script importing non-existent script');
+  if (type === 'classic') {
+    promise_test(function(t) {
+        var script = 'resources/malformed-worker.py?import-no-such-script';
+        var scope = 'resources/scope/import-no-such-script';
+        return promise_rejects_js(t,
+            TypeError,
+            register_method(script, {scope: scope}),
+            'Registration of script importing non-existent script should fail.');
+      }, 'Registering script importing non-existent script');
+  }
 
   promise_test(function(t) {
       var script = 'resources/malformed-worker.py?caught-exception';

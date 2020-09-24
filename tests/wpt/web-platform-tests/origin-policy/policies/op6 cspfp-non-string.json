@@ -11,7 +11,7 @@
   },
   "features": {
     "policy": [
-      "camera 'self' https://example.com/"
+      "camera 'none'"
     ]
   }
 }

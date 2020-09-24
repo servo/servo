@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>math-depth</title>
+    <meta charset="utf-8">
+    <link rel="help" href="https://mathml-refresh.github.io/mathml-core/#the-math-script-level-property">
+    <meta name="assert" content="Check the computed value of math-depth">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script>
+      function mathDepth(id) {
+          return window.getComputedStyle(document.getElementById(id)).
+              getPropertyValue("math-depth");
+      }
+      setup({ explicit_done: true });
+      window.addEventListener("load", function() {
+          test(function() {
+              assert_equals(mathDepth("initial"), "0");
+              assert_equals(mathDepth("initialFrom11"), "0");
+          }, "Initial value of math-depth");
+          test(function() {
+              assert_equals(mathDepth("inherited11"), "11");
+              assert_equals(mathDepth("inherited-7"), "-7");
+          }, "Inherited values of math-depth");
+          test(function() {
+              assert_equals(mathDepth("inherited9specifiedAutoInline"), "10");
+              assert_equals(mathDepth("inherited9specifiedAutoDisplay"), "9");
+          }, "Specified math-depth: auto-add");
+          test(function() {
+              assert_equals(mathDepth("specified11"), "11");
+              assert_equals(mathDepth("specified-7"), "-7");
+          }, "Specified math-depth: <integer>");
+          test(function() {
+              assert_equals(mathDepth("specifiedAdd10From5"), "15");
+              assert_equals(mathDepth("specifiedAdd-15From5"), "-10");
+          }, "Specified math-depth: add(<integer>)");
+          done();
+      });
+    </script>
+  </head>
+  <body>
+    <div id="log"></div>
+    <div id="initial"></div>
+    <div id="specified11" style="math-depth: 11">
+      <div id="initialFrom11" style="math-depth: initial"></div>
+      <div id="inherited11"></div>
+    </div>
+    <div id="specified-7" style="math-depth: -7">
+      <div id="inherited-7"></div>
+    </div>
+    <div style="math-depth: 9">
+      <div style="math-style: compact">
+        <div id="inherited9specifiedAutoInline" style="math-depth: auto-add" ></div>
+      </div>
+      <div style="math-style: normal">
+        <div id="inherited9specifiedAutoDisplay" style="math-depth: auto-add" ></div>
+      </div>
+    </div>
+    <div style="math-depth: 5">
+      <div id="specifiedAdd10From5" style="math-depth: add(10)"></div>
+      <div id="specifiedAdd-15From5" style="math-depth: add(-15)"></div>
+    </div>
+  </body>
+</html>
