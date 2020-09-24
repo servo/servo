@@ -4753,6 +4753,11 @@ impl DocumentMethods for Document {
         self.upcast::<Node>().append(nodes)
     }
 
+    // https://dom.spec.whatwg.org/#dom-parentnode-replacechildren
+    fn ReplaceChildren(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        self.upcast::<Node>().replace_children(nodes)
+    }
+
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     fn QuerySelector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         let root = self.upcast::<Node>();
