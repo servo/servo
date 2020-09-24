@@ -2736,13 +2736,6 @@ impl Activatable for HTMLInputElement {
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior
     fn legacy_pre_activation_behavior(&self) -> Option<InputActivationState> {
-        if !self.is_mutable() &&
-            self.input_type() != InputType::Checkbox &&
-            self.input_type() != InputType::Radio
-        {
-            return None;
-        }
-
         let ty = self.input_type();
         match ty {
             InputType::Checkbox => {
@@ -2777,12 +2770,6 @@ impl Activatable for HTMLInputElement {
     // https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior
     fn legacy_canceled_activation_behavior(&self, cache: Option<InputActivationState>) {
         // Step 1
-        if !self.is_mutable() &&
-            self.input_type() != InputType::Checkbox &&
-            self.input_type() != InputType::Radio
-        {
-            return;
-        }
         let ty = self.input_type();
         let cache = match cache {
             Some(cache) => {
