@@ -247,6 +247,7 @@ ${helpers.single_keyword(
     has_effect_on_gecko_scrollbars=False,
     animation_value_type="none",
     enabled_in="ua",
+    needs_conversion=True,
 )}
 
 ${helpers.single_keyword(
