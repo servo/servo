@@ -13,9 +13,9 @@
     ]
   },
   "features": {
-    "policy": "camera 'self' https://example.com/"
+    "policy": "geolocation 'none'"
   },
   "features": {
-    "policy": "geolocation 'self' https://example.com/"
+    "policy": "camera 'none'"
   }
 }

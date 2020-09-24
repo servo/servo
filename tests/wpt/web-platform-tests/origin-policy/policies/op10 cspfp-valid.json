@@ -8,6 +8,6 @@
     ]
   },
   "features": {
-    "policy": "camera 'self' https://example.com/; geolocation 'self' https://example.com/"
+    "policy": "camera 'none'; geolocation 'self' https://example.com/"
   }
 }

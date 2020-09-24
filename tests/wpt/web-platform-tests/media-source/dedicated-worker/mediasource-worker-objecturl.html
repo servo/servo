@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<title>Test MediaSource object and objectUrl creation and revocation, with MediaSource in dedicated worker</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+async_test((t) => {
+  let worker = new Worker("mediasource-worker-util.js");
+  worker.onmessage = t.step_func((e) => {
+    if (e.data.substr(0,6) == "Error:") {
+      assert_unreached("Worker error: " + e.data);
+    } else {
+      const url = e.data;
+      assert_true(url.match(/^blob:.+/) != null);
+      URL.revokeObjectURL(url);
+      t.done();
+    }
+  });
+}, "Test main context revocation of worker MediaSource object URL");
+
+// Run some tests directly in another dedicated worker and get their results
+// merged into those from this page.
+fetch_tests_from_worker(new Worker("mediasource-worker-objecturl.js"));
+
+</script>
+</html>

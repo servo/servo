@@ -42,6 +42,12 @@
 
       promise_test(async t => {
         await test_driver.bless();
+        const promise = navigator.share({ url: "javascript:window.alert('error')" });
+        return promise_rejects_js(t, TypeError, promise);
+      }, "share() rejects javascript: URLs");
+
+      promise_test(async t => {
+        await test_driver.bless();
         const file = new File([], "text/plain");
         const promise = navigator.share({ url: URL.createObjectURL(file) });
         return promise_rejects_js(t, TypeError, promise);

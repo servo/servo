@@ -24,7 +24,6 @@ interface PaymentRequest : EventTarget {
   readonly attribute DOMString? shippingOption;
   readonly attribute PaymentShippingType? shippingType;
 
-  attribute EventHandler onmerchantvalidation;
   attribute EventHandler onshippingaddresschange;
   attribute EventHandler onshippingoptionchange;
   attribute EventHandler onpaymentmethodchange;
@@ -173,19 +172,6 @@ dictionary PayerErrors {
   DOMString email;
   DOMString name;
   DOMString phone;
-};
-
-[SecureContext, Exposed=Window]
-interface MerchantValidationEvent : Event {
-  constructor(DOMString type, optional MerchantValidationEventInit eventInitDict = {});
-  readonly attribute DOMString methodName;
-  readonly attribute USVString validationURL;
-  undefined complete(Promise<any> merchantSessionPromise);
-};
-
-dictionary MerchantValidationEventInit : EventInit {
-  DOMString methodName = "";
-  USVString validationURL = "";
 };
 
 [SecureContext, Exposed=Window]

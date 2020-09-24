@@ -9,15 +9,25 @@
   <g stroke="red" stroke-width="100">
     <g transform="translate(50, 50)">
       <rect/>
+      <rect width="10"/>
+      <rect height="10"/>
+      <rect width="10%"/>
+      <rect height="10%"/>
       <rect width="0" height="10"/>
       <rect width="-10" height="10"/>
       <rect height="0" width="10"/>
       <rect height="-10" width="10"/>
       <rect style="width: 0"/>
+      <rect style="width: 10px"/>
+      <rect style="width: 10%"/>
+      <rect style="width: calc(10%+10px)"/>
       <rect style="width: 0" height="10"/>
       <rect style="width: -10px"/>
       <rect style="width: -10px" height="10"/>
       <rect style="height: 0"/>
+      <rect style="height: 10px"/>
+      <rect style="height: 10%"/>
+      <rect style="height: calc(10%+10px)"/>
       <rect style="height: 0" width="10"/>
       <rect style="height: -10px"/>
       <rect style="height: -10px" width="10"/>

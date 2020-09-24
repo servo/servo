@@ -17,24 +17,29 @@ promise_test(async t => {
   assert_equals(typeof await self.isMultiScreen(), 'boolean');
 }, 'isMultiScreen() returns a boolean value with permission denied');
 
-async_test(async t => {
+promise_test(async t => {
   let iframe = document.body.appendChild(document.createElement('iframe'));
   assert_equals(typeof await iframe.contentWindow.isMultiScreen(), 'boolean');
 
-  iframe.contentWindow.onunload = t.step_func(async () => {
-    // TODO(crbug.com/1106132): This should reject or resolve; not hang.
-    // assert_equals(typeof await iframe.contentWindow.isMultiScreen(), 'boolean');
-
-    let iframeIsMultiScreen = iframe.contentWindow.isMultiScreen;
-    let constructor = iframe.contentWindow.DOMException;
-    assert_not_equals(iframeIsMultiScreen, undefined);
-    assert_not_equals(constructor, undefined);
-
-    await t.step_wait(() => !iframe.contentWindow, "execution context invalid");
-    assert_equals(iframe.contentWindow, null);
-    await promise_rejects_dom(t, 'InvalidStateError', constructor, iframeIsMultiScreen());
-    t.done();
+  let iframeIsMultiScreen;
+  let constructor;
+  await new Promise(resolve => {
+    iframe.contentWindow.onunload = () => {
+      // Grab these before the contentWindow is removed.
+      iframeIsMultiScreen = iframe.contentWindow.isMultiScreen;
+      constructor = iframe.contentWindow.DOMException;
+      resolve();
+    };
+    document.body.removeChild(iframe);
   });
 
-  document.body.removeChild(iframe);
+
+  // TODO(crbug.com/1106132): This should reject or resolve; not hang.
+  // assert_equals(typeof await iframe.contentWindow.isMultiScreen(), 'boolean');
+  assert_not_equals(iframeIsMultiScreen, undefined);
+  assert_not_equals(constructor, undefined);
+
+  await t.step_wait(() => !iframe.contentWindow, "execution context invalid");
+  assert_equals(iframe.contentWindow, null);
+  await promise_rejects_dom(t, 'InvalidStateError', constructor, iframeIsMultiScreen());
 }, "isMultiScreen() resolves for attached iframe; rejects for detached iframe");

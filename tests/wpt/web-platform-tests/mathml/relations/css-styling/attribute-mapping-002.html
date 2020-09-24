@@ -43,30 +43,26 @@
           }, `mathvariant on the ${tag} element is mapped to CSS text-transform`)
 
           test(function() {
-              var epsilon = .1
-              var fontSizeAtScriptLevelZero = fontSize(window.getComputedStyle(container));
-              var inheritedSize = fontSize(window.getComputedStyle(element.parentNode));
-
               // none and mprescripts appear as scripts
-              assert_approx_equals(fontSize(style), tag === "none" || tag === "mprescripts" ? inheritedSize * .71 : inheritedSize, epsilon, "no attribute");
+              assert_equals(style.getPropertyValue("math-depth"), tag === "none" || tag === "mprescripts" ? 1 : 0, "no attribute");
 
               var absoluteScriptlevel = 2;
               element.setAttribute("scriptlevel", absoluteScriptlevel);
-              assert_approx_equals(fontSize(style), fontSizeAtScriptLevelZero * Math.pow(.71, absoluteScriptlevel), epsilon, "attribute specified (<U>)");
+              assert_equals(style.getPropertyValue("math-depth"), absoluteScriptlevel, "attribute specified (<U>)");
 
               var positiveScriptlevelDelta = 1;
               element.setAttribute("scriptlevel", `+${positiveScriptlevelDelta}`);
-              assert_approx_equals(fontSize(style), inheritedSize * Math.pow(.71, positiveScriptlevelDelta), epsilon, "attribute specified (+<U>)");
+              assert_equals(style.getPropertyValue("math-depth"), positiveScriptlevelDelta, epsilon, "attribute specified (+<U>)");
 
               var negativeScriptlevelDelta = -3;
       element.setAttribute("scriptlevel", negativeScriptlevelDelta);
-              assert_approx_equals(fontSize(style), inheritedSize * Math.pow(.71, negativeScriptlevelDelta), epsilon, "attribute specified (-<U>)");
+              assert_approx_equals(style.getPropertyValue("math-depth"), negativeScriptlevelDelta, "attribute specified (-<U>)");
 
               element.setAttribute("scriptlevel", absoluteScriptlevel);
               element.setAttribute("mathsize", "42px");
               assert_approx_equals(fontSize(style), 42, epsilon, "mathsize wins over scriptlevel");
 
-          }, `scriptlevel on the ${tag} element is mapped to font-size: scriptlevel(...)`);
+          }, `scriptlevel on the ${tag} element is mapped to math-depth(...)`);
 
           test(function() {
               assert_equals(style.getPropertyValue("math-style"), "compact", "no attribute");
