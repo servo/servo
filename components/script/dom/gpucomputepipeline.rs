@@ -3,14 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use crate::dom::bindings::cell::DomRefCell;
-use crate::dom::bindings::codegen::Bindings::GPUAdapterBinding::GPULimits;
 use crate::dom::bindings::codegen::Bindings::GPUComputePipelineBinding::GPUComputePipelineMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::USVString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::gpubindgrouplayout::GPUBindGroupLayout;
+use crate::dom::gpudevice::GPUDevice;
 use dom_struct::dom_struct;
 use std::string::String;
 use webgpu::{WebGPUBindGroupLayout, WebGPUComputePipeline};
@@ -21,6 +21,7 @@ pub struct GPUComputePipeline {
     label: DomRefCell<Option<USVString>>,
     compute_pipeline: WebGPUComputePipeline,
     bind_group_layouts: Vec<WebGPUBindGroupLayout>,
+    device: Dom<GPUDevice>,
 }
 
 impl GPUComputePipeline {
@@ -28,12 +29,14 @@ impl GPUComputePipeline {
         compute_pipeline: WebGPUComputePipeline,
         label: Option<USVString>,
         bgls: Vec<WebGPUBindGroupLayout>,
+        device: &GPUDevice,
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
             label: DomRefCell::new(label),
             compute_pipeline,
             bind_group_layouts: bgls,
+            device: Dom::from_ref(device),
         }
     }
 
@@ -42,12 +45,14 @@ impl GPUComputePipeline {
         compute_pipeline: WebGPUComputePipeline,
         label: Option<USVString>,
         bgls: Vec<WebGPUBindGroupLayout>,
+        device: &GPUDevice,
     ) -> DomRoot<Self> {
         reflect_dom_object(
             Box::new(GPUComputePipeline::new_inherited(
                 compute_pipeline,
                 label,
                 bgls,
+                device,
             )),
             global,
         )
@@ -73,14 +78,13 @@ impl GPUComputePipelineMethods for GPUComputePipeline {
 
     /// https://gpuweb.github.io/gpuweb/#dom-gpupipelinebase-getbindgrouplayout
     fn GetBindGroupLayout(&self, index: u32) -> Fallible<DomRoot<GPUBindGroupLayout>> {
-        if index > self.bind_group_layouts.len() as u32 || index > GPULimits::empty().maxBindGroups
-        {
+        if index > self.bind_group_layouts.len() as u32 {
             return Err(Error::Range(String::from("Index out of bounds")));
         }
-        return Ok(GPUBindGroupLayout::new(
+        Ok(GPUBindGroupLayout::new(
             &self.global(),
             self.bind_group_layouts[index as usize],
             None,
-        ));
+        ))
     }
 }

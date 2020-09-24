@@ -13,13 +13,13 @@ interface GPUQueue {
     [Throws] void writeBuffer(
         GPUBuffer buffer,
         GPUSize64 bufferOffset,
-        /*[AllowShared]*/ ArrayBuffer data,
+        /*[AllowShared]*/ BufferSource data,
         optional GPUSize64 dataOffset = 0,
         optional GPUSize64 size);
 
     [Throws] void writeTexture(
       GPUTextureCopyView destination,
-      /*[AllowShared]*/ ArrayBuffer data,
+      /*[AllowShared]*/ BufferSource data,
       GPUTextureDataLayout dataLayout,
       GPUExtent3D size);
 

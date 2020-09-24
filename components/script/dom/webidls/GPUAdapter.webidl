@@ -18,8 +18,12 @@ dictionary GPUDeviceDescriptor : GPUObjectDescriptorBase {
 };
 
 enum GPUExtensionName {
+    "depth-clamping",
+    "depth24unorm-stencil8",
+    "depth32float-stencil8",
+    "pipeline-statistics-query",
     "texture-compression-bc",
-    "pipeline-statistics-query"
+    "timestamp-query",
 };
 
 dictionary GPULimits {

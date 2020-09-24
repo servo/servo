@@ -5,5 +5,6 @@
 // https://gpuweb.github.io/gpuweb/#gpucommandbuffer
 [Exposed=(Window, DedicatedWorker), Serializable, Pref="dom.webgpu.enabled"]
 interface GPUCommandBuffer {
+    //readonly attribute Promise<double> executionTime;
 };
 GPUCommandBuffer includes GPUObjectBase;

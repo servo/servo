@@ -439,7 +439,7 @@
   "testharness": {
    "webgpu": {
     "cts.html": [
-     "63357f7e996ecadde32f6816dc131b94e9ab976c",
+     "c5bc2536ab14b1174b7c01f35c85cfc6e62f5418",
      [
       "webgpu/cts.html?q=webgpu:api,operation,buffers,map_detach:*",
       {}
@@ -461,15 +461,7 @@
       {}
      ],
      [
-      "webgpu/cts.html?q=webgpu:api,operation,copyBetweenLinearDataAndTexture:*",
-      {}
-     ],
-     [
       "webgpu/cts.html?q=webgpu:api,operation,fences:*",
-      {}
-     ],
-     [
-      "webgpu/cts.html?q=webgpu:api,operation,render_pass,storeOp:*",
       {}
      ],
      [

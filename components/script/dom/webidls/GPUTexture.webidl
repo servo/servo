@@ -57,8 +57,9 @@ enum GPUTextureFormat {
     "bgra8unorm",
     "bgra8unorm-srgb",
     // Packed 32-bit formats
+    //"rgb9e5ufloat",
     "rgb10a2unorm",
-    "rg11b10float",
+    //"rg11b10ufloat",
 
     // 64-bit formats
     "rg32uint",
@@ -74,15 +75,42 @@ enum GPUTextureFormat {
     "rgba32float",
 
     // Depth and stencil formats
-    "depth32float",
+    //"stencil8",
+    //"depth16unorm",
     "depth24plus",
-    "depth24plus-stencil8"
+    "depth24plus-stencil8",
+    "depth32float",
+
+    // BC compressed formats usable if "texture-compression-bc" is both
+    // supported by the device/user agent and enabled in requestDevice.
+    "bc1-rgba-unorm",
+    "bc1-rgba-unorm-srgb",
+    "bc2-rgba-unorm",
+    "bc2-rgba-unorm-srgb",
+    "bc3-rgba-unorm",
+    "bc3-rgba-unorm-srgb",
+    "bc4-r-unorm",
+    "bc4-r-snorm",
+    "bc5-rg-unorm",
+    "bc5-rg-snorm",
+    "bc6h-rgb-ufloat",
+    //"bc6h-rgb-float",
+    "bc7-rgba-unorm",
+    "bc7-rgba-unorm-srgb",
+
+    // "depth24unorm-stencil8" extension
+    //"depth24unorm-stencil8",
+
+    // "depth32float-stencil8" extension
+    //"depth32float-stencil8",
 };
 
 enum GPUTextureComponentType {
     "float",
     "sint",
-    "uint"
+    "uint",
+    // Texture is used with comparison sampling only.
+    "depth-comparison"
 };
 
 dictionary GPUExtent3DDict {

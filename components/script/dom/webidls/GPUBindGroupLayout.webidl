@@ -16,11 +16,10 @@ dictionary GPUBindGroupLayoutEntry {
     required GPUIndex32 binding;
     required GPUShaderStageFlags visibility;
     required GPUBindingType type;
-    boolean hasDynamicOffset = false;
-    GPUSize64 minBufferBindingSize = 0;
+    boolean hasDynamicOffset;
+    GPUSize64 minBufferBindingSize;
     GPUTextureViewDimension viewDimension;
     GPUTextureComponentType textureComponentType;
-    boolean multisampled = false;
     GPUTextureFormat storageTextureFormat;
 };
 
@@ -31,6 +30,7 @@ enum GPUBindingType {
     "sampler",
     "comparison-sampler",
     "sampled-texture",
+    "multisampled-texture",
     "readonly-storage-texture",
     "writeonly-storage-texture"
 };
