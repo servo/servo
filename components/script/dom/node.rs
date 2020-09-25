@@ -934,6 +934,18 @@ impl Node {
         self.AppendChild(&node).map(|_| ())
     }
 
+    // https://dom.spec.whatwg.org/#dom-parentnode-replacechildren
+    pub fn replace_children(&self, nodes: Vec<NodeOrString>) -> ErrorResult {
+        // Step 1.
+        let doc = self.owner_doc();
+        let node = doc.node_from_nodes_and_strings(nodes)?;
+        // Step 2.
+        Node::ensure_pre_insertion_validity(&node, self, None)?;
+        // Step 3.
+        Node::replace_all(Some(&node), self);
+        Ok(())
+    }
+
     // https://dom.spec.whatwg.org/#dom-parentnode-queryselector
     pub fn query_selector(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
         // Step 1.
