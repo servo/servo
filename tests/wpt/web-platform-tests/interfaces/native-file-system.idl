@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Native File System (https://wicg.github.io/native-file-system/)
+// Source: File System Access (https://wicg.github.io/file-system-access/)
 
 enum FileSystemPermissionMode {
   "read",

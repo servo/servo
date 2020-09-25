@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Insert color-scheme meta tags</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#meta-color-scheme">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/compute-root-color-scheme.js"></script>
+<script>
+  function createMeta(content) {
+    const meta = document.createElement("meta");
+    meta.setAttribute("name", "color-scheme");
+    meta.setAttribute("content", content);
+    return meta;
+  }
+
+  assert_root_color_scheme("normal", "Initial color-scheme");
+
+  document.head.appendChild(createMeta("light"));
+  assert_root_color_scheme("light", "Inserted meta color-scheme applies");
+
+  document.head.insertBefore(createMeta("dark"), document.head.lastChild);
+  assert_root_color_scheme("dark", "Inserted meta color-scheme before existing in head applies");
+</script>

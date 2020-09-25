@@ -6,6 +6,15 @@
   <script src="resources/webxr_test_constants.js"></script>
   <canvas id="webgl-canvas"></canvas>
   <script>
+    xr_promise_test("Creating a webglCanvasContext with no device",
+      (t) => {
+        let webglCanvas = document.createElement('canvas');
+        let gl = webglCanvas.getContext('webgl');
+
+        assert_false(gl.getContextAttributes().xrCompatible);
+        return promise_rejects_dom(t, "InvalidStateError", gl.makeXRCompatible());
+      });
+
     xr_promise_test("An XR-compatible webglCanvasContext can be created",
       (t) => {
         let gl = null;
@@ -26,6 +35,5 @@
             assert_true(offscreenGl.getContextAttributes().xrCompatible);
           });
       });
-
   </script>
 </body>

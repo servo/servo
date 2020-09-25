@@ -3,24 +3,28 @@
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
 <body>
 <script>
 const {ORIGIN, HTTPS_REMOTE_ORIGIN} = get_host_info();
-const PATH =
+const FRAME_PATH =
   new URL('resources/cross-origin-isolated-frame.html', location).pathname;
+const WORKER_URL =
+  new URL('resources/cross-origin-isolated-worker.js', location).href;
 const PIPE =
   '?pipe=' +
   '|header(cross-origin-embedder-policy,require-corp)' +
   '|header(cross-origin-resource-policy,cross-origin)';
 
-async function getCrossOriginIsolatedFor(t, origin, value) {
+async function getCrossOriginIsolatedForFrame(t, origin, value) {
   const parentFrame = document.createElement('iframe');
   t.add_cleanup(() => parentFrame.remove());
   let pipe = PIPE;
   if (value !== undefined) {
     pipe += `|header(permissions-policy,cross-origin-isolated=${value})`;
   }
-  parentFrame.src = `${PATH}${pipe}`;
+  parentFrame.src = `${FRAME_PATH}${pipe}`;
   document.body.append(parentFrame);
 
   await new Promise((resolve) => {
@@ -28,7 +32,7 @@ async function getCrossOriginIsolatedFor(t, origin, value) {
   });
 
   const frame = parentFrame.contentDocument.createElement('iframe');
-  frame.src = `${origin}${PATH}${PIPE}`;
+  frame.src = `${origin}${FRAME_PATH}${PIPE}`;
   parentFrame.contentDocument.body.append(frame);
   frame.addEventListener('error', t.unreached_func('frame.error'));
   await new Promise((resolve) => {
@@ -37,35 +41,149 @@ async function getCrossOriginIsolatedFor(t, origin, value) {
 
   const mc = new MessageChannel();
   frame.contentWindow.postMessage({port: mc.port2}, '*', [mc.port2]);
-
-  const e = await new Promise((resolve) => {
-    mc.port1.onmessage = resolve;
-  });
-  assert_equals(typeof(e.data), 'boolean');
-  return e.data;
+  return (await new Promise(r => mc.port1.onmessage = r)).data;
 }
 
-function generateTest(origin, value, expectation) {
+async function getCrossOriginIsolatedForDedicatedWorker(t, scheme, value) {
+  const frame = document.createElement('iframe');
+  t.add_cleanup(() => frame.remove());
+  let pipe = PIPE;
+  if (value !== undefined) {
+    pipe += `|header(permissions-policy,cross-origin-isolated=${value})`
+  }
+  frame.src = `${FRAME_PATH}${pipe}`;
+  document.body.append(frame);
+
+  frame.addEventListener('error', t.unreached_func('frame.error'));
+  await new Promise((resolve) => {
+    frame.addEventListener('load', resolve);
+  });
+
+  let workerURL;
+  if (scheme === 'https') {
+    workerURL = `${WORKER_URL}${PIPE}`;
+  } else if (scheme === 'data') {
+    const res = await fetch(WORKER_URL);
+    const text = await res.text();
+
+    workerURL = `data:application/javascript;base64,${btoa(text)}`;
+  } else if (scheme === 'blob') {
+    const res = await fetch(WORKER_URL);
+    const blob = await res.blob();
+
+    workerURL = URL.createObjectURL(blob);
+  } else {
+    assert_unreached('scheme should be one of "https", "data" and "blob".');
+  }
+
+  const worker = new frame.contentWindow.Worker(workerURL);
+  const mc = new MessageChannel();
+  worker.postMessage({port: mc.port2}, [mc.port2]);
+  return (await new Promise(r => mc.port1.onmessage = r)).data;
+}
+
+async function getCrossOriginIsolatedForSharedWorker(t, withCoopCoep) {
+  const workerURL = `${WORKER_URL}${withCoopCoep ? PIPE : ''}`;
+  const worker = new SharedWorker(workerURL);
+  worker.addEventListener('error', t.unreached_func('worker.error'));
+
+  const mc = new MessageChannel();
+  worker.port.postMessage({port: mc.port2}, [mc.port2]);
+  return (await new Promise(r => mc.port1.onmessage = r)).data;
+}
+
+async function getCrossOriginIsolatedForServiceWorker(t, withCoopCoep) {
+  // As we don't want the service worker to control any page, generate a
+  // one-time scope.
+  const SCOPE = new URL(`resources/${token()}.html`, location).pathname;
+  const workerURL = `${WORKER_URL}${withCoopCoep ? PIPE : ''}`;
+  const reg =
+    await service_worker_unregister_and_register(t, workerURL, SCOPE);
+  t.add_cleanup(() => reg.unregister());
+  const worker = reg.installing;
+
+  const mc = new MessageChannel();
+  worker.postMessage({port: mc.port2}, [mc.port2]);
+  return (await new Promise(r => mc.port1.onmessage = r)).data;
+}
+
+function generateFrameTest(origin, value, expectation) {
   async function run(t) {
     assert_equals(
-      await getCrossOriginIsolatedFor(t, origin, value), expectation);
+      await getCrossOriginIsolatedForFrame(t, origin, value), expectation);
   }
   // We use async_test, not promise_test here to run tests in parallel.
   async_test((t) => {
     run(t).then(() => t.done(), (e) => t.step(() => {throw e;}));
-  }, `origin = ${origin}, value = ${value}`);
+  }, `frame: origin = ${origin}, value = ${value}`);
 }
 
-generateTest(ORIGIN, undefined, true);
-generateTest(ORIGIN, '*', true);
-generateTest(ORIGIN, "self", true);
+function generateDedicatedWorkerTest(scheme, value, expectation) {
+  async function run(t) {
+    assert_equals(
+      await getCrossOriginIsolatedForDedicatedWorker(t, scheme, value),
+      expectation);
+  }
+  // We use async_test, not promise_test here to run tests in parallel.
+  async_test((t) => {
+    run(t).then(() => t.done(), (e) => t.step(() => {throw e;}));
+  }, `dedicated worker: scheme = ${scheme}, value = ${value}`);
+}
+
+function generateSharedWorkerTest(withCoopCoep) {
+  async function run(t) {
+    assert_equals(
+      await getCrossOriginIsolatedForSharedWorker(t, withCoopCoep),
+      withCoopCoep);
+  }
+  // We use async_test, not promise_test here to run tests in parallel.
+  async_test((t) => {
+    run(t).then(() => t.done(), (e) => t.step(() => {throw e;}));
+  }, `shared worker: withCoopCoep = ${withCoopCoep}`);
+}
+
+function generateServiceWorkerTest(withCoopCoep) {
+  // Here we use promise_test as we want to use a cleanup callback that returns
+  // a promise.
+  promise_test(async (t) => {
+    assert_equals(
+      await getCrossOriginIsolatedForServiceWorker(t, withCoopCoep),
+      withCoopCoep);
+  }, `service worker: withCoopCoep = ${withCoopCoep}`);
+}
+
+generateFrameTest(ORIGIN, undefined, true);
+generateFrameTest(ORIGIN, '*', true);
+generateFrameTest(ORIGIN, 'self', true);
 // We need the backslash to escape the close parenthesis in a wpt pipe.
-generateTest(ORIGIN, "(\\)", false);
-generateTest(HTTPS_REMOTE_ORIGIN, undefined, false);
-generateTest(HTTPS_REMOTE_ORIGIN, '*', true);
-generateTest(HTTPS_REMOTE_ORIGIN, "self", false);
+generateFrameTest(ORIGIN, '(\\)', false);
+generateFrameTest(HTTPS_REMOTE_ORIGIN, undefined, false);
+generateFrameTest(HTTPS_REMOTE_ORIGIN, '*', true);
+generateFrameTest(HTTPS_REMOTE_ORIGIN, 'self', false);
+// We need the backslash to escape the close parenthesis in a  wpt pipe.
+generateFrameTest(HTTPS_REMOTE_ORIGIN, '(\\)', false);
+
+generateDedicatedWorkerTest('https', undefined, true);
+generateDedicatedWorkerTest('https', '*', true);
+generateDedicatedWorkerTest('https', 'self', true);
 // We need the backslash to escape the close parenthesis in a wpt pipe.
-generateTest(HTTPS_REMOTE_ORIGIN, "(\\)", false);
+generateDedicatedWorkerTest('https', '(\\)', false);
+generateDedicatedWorkerTest('data', undefined, false);
+generateDedicatedWorkerTest('data', '*', false);
+generateDedicatedWorkerTest('data', 'self', false);
+// We need the backslash to escape the close parenthesis in a wpt pipe.
+generateDedicatedWorkerTest('data', '(\\)', false);
+generateDedicatedWorkerTest('blob', undefined, true);
+generateDedicatedWorkerTest('blob', '*', true);
+generateDedicatedWorkerTest('blob', 'self', true);
+// We need the backslash to escape the close parenthesis in a wpt pipe.
+generateDedicatedWorkerTest('blob', '(\\)', false);
+
+generateSharedWorkerTest(false);
+generateSharedWorkerTest(true);
+
+generateServiceWorkerTest(false);
+generateServiceWorkerTest(true);
 </script>
 </body>
 </html>

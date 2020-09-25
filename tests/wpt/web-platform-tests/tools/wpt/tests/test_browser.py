@@ -24,6 +24,68 @@ def test_all_browser_abc():
             assert not inspect.isabstract(cls), "%s is abstract" % name
 
 
+@mock.patch('tools.wpt.browser.find_executable')
+def test_chrome_find_webdriver(mocked_find_executable):
+    # Cannot find ChromeDriver
+    chrome = browser.Chrome(logger)
+    mocked_find_executable.return_value = None
+    assert chrome.find_webdriver() is None
+
+    # ChromeDriver binary cannot be called.
+    chrome = browser.Chrome(logger)
+    mocked_find_executable.return_value = '/usr/bin/chromedriver'
+    chrome.webdriver_version = mock.MagicMock(return_value=None)
+    assert chrome.find_webdriver() is None
+
+    # Browser binary cannot be called.
+    chrome = browser.Chrome(logger)
+    mocked_find_executable.return_value = '/usr/bin/chromedriver'
+    chrome.webdriver_version = mock.MagicMock(return_value='70.0.1')
+    chrome.version = mock.MagicMock(return_value=None)
+    assert chrome.find_webdriver(browser_binary='/usr/bin/chrome') == '/usr/bin/chromedriver'
+
+    # Browser version matches.
+    chrome = browser.Chrome(logger)
+    mocked_find_executable.return_value = '/usr/bin/chromedriver'
+    chrome.webdriver_version = mock.MagicMock(return_value='70.0.1')
+    chrome.version = mock.MagicMock(return_value='70.1.5')
+    assert chrome.find_webdriver(browser_binary='/usr/bin/chrome') == '/usr/bin/chromedriver'
+
+    # Browser version doesn't match.
+    chrome = browser.Chrome(logger)
+    mocked_find_executable.return_value = '/usr/bin/chromedriver'
+    chrome.webdriver_version = mock.MagicMock(return_value='70.0.1')
+    chrome.version = mock.MagicMock(return_value='69.0.1')
+    assert chrome.find_webdriver(browser_binary='/usr/bin/chrome') is None
+
+
+# On Windows, webdriver_version directly calls _get_fileversion, so there is no
+# logic to test there.
+@pytest.mark.skipif(sys.platform.startswith('win'), reason='just uses _get_fileversion on Windows')
+@mock.patch('tools.wpt.browser.call')
+def test_chrome_webdriver_version(mocked_call):
+    chrome = browser.Chrome(logger)
+    webdriver_binary = '/usr/bin/chromedriver'
+
+    # Working cases.
+    mocked_call.return_value = 'ChromeDriver 84.0.4147.30'
+    assert chrome.webdriver_version(webdriver_binary) == '84.0.4147.30'
+    mocked_call.return_value = 'ChromeDriver 87.0.1 (abcd1234-refs/branch-heads/4147@{#310})'
+    assert chrome.webdriver_version(webdriver_binary) == '87.0.1'
+
+    # Various invalid version strings
+    mocked_call.return_value = 'Chrome 84.0.4147.30 (dev)'
+    assert chrome.webdriver_version(webdriver_binary) is None
+    mocked_call.return_value = 'ChromeDriver New 84.0.4147.30'
+    assert chrome.webdriver_version(webdriver_binary) is None
+    mocked_call.return_value = ''
+    assert chrome.webdriver_version(webdriver_binary) is None
+
+    # The underlying subprocess call throws.
+    mocked_call.side_effect = subprocess.CalledProcessError(5, 'cmd', output='Call failed')
+    assert chrome.webdriver_version(webdriver_binary) is None
+
+
 @mock.patch('subprocess.check_output')
 def test_safari_version(mocked_check_output):
     safari = browser.Safari(logger)

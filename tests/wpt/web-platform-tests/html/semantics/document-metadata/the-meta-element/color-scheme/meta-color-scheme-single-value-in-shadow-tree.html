@@ -1,0 +1,18 @@
+<!doctype html>
+<title>Meta color-scheme in shadow-tree should not apply</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#meta-color-scheme">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/compute-root-color-scheme.js"></script>
+<script>
+  const host = document.createElement("div");
+  host.id = "host";
+  document.head.appendChild(host);
+  const root = host.attachShadow({mode:"open"});
+  const meta = document.createElement("meta");
+  meta.setAttribute("name", "color-scheme");
+  meta.setAttribute("content", "dark");
+  root.appendChild(meta);
+
+  assert_root_color_scheme("normal", "Meta color-scheme in shadow tree does not apply.");
+</script>

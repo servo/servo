@@ -186,6 +186,33 @@ promise_test(async t => {
   assert_array_equals(pc2IceStates.events, ['new', 'checking', 'connected']);
 }, 'Explicit offer/answer exchange gives a connection');
 
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  pc1.createDataChannel('datachannel');
+  pc1.onicecandidate = assert_unreached;
+  const offer = await pc1.createOffer();
+  await pc1.setLocalDescription(offer);
+  await new Promise(resolve => {
+    pc1.onicecandidate = resolve;
+  });
+}, 'Candidates always arrive after setLocalDescription(offer) resolves');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  t.add_cleanup(() => pc2.close());
+  pc1.createDataChannel('datachannel');
+  pc2.onicecandidate = assert_unreached;
+  const offer = await pc1.createOffer();
+  await pc2.setRemoteDescription(offer);
+  await pc2.setLocalDescription(await pc2.createAnswer());
+  await new Promise(resolve => {
+    pc2.onicecandidate = resolve;
+  });
+}, 'Candidates always arrive after setLocalDescription(answer) resolves');
+
 </script>
 </body>
 </html>

@@ -23,7 +23,7 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     let track;
-    return getUserMediaTracksAndStreams(1)
+    getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       track = tracks[0];
@@ -49,7 +49,7 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     let stream;
-    return getUserMediaTracksAndStreams(1)
+    getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       let track = tracks[0];
@@ -72,7 +72,7 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     let track;
-    return getUserMediaTracksAndStreams(1)
+    getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       track = tracks[0];
@@ -100,7 +100,7 @@
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
     let stream;
-    return getUserMediaTracksAndStreams(1)
+    getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       let track = tracks[0];
@@ -130,7 +130,7 @@
     t.add_cleanup(() => pc.close());
     let track;
     let stream;
-    return getUserMediaTracksAndStreams(1)
+    getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       track = tracks[0];
@@ -165,7 +165,7 @@
     t.add_cleanup(() => pc.close());
     let track;
     let stream;
-    return getUserMediaTracksAndStreams(1)
+    getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       track = tracks[0];
@@ -203,7 +203,7 @@
     const callee = new RTCPeerConnection();
     t.add_cleanup(() => callee.close());
     let sendingTrack;
-    return getUserMediaTracksAndStreams(1)
+    getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       sendingTrack = tracks[0];
@@ -238,7 +238,7 @@
       assert_equals(receivingTrack, undefined, 'ontrack has not fired before');
       receivingTrack = trackEvent.track;
     };
-    return getUserMediaTracksAndStreams(1)
+    getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       caller.addTrack(tracks[0], streams[0]);
@@ -271,7 +271,7 @@
     let sendingTrack1;
     let sendingTrack2;
     let sender;
-    return getUserMediaTracksAndStreams(2)
+    getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       sendingTrack1 = tracks[0];
@@ -301,7 +301,7 @@
     let sendingTrack1;
     let sendingTrack2;
     let sender;
-    return getUserMediaTracksAndStreams(2)
+    getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       sendingTrack1 = tracks[0];
@@ -339,7 +339,7 @@
     let sendingTrack1;
     let sendingTrack2;
     let sender;
-    return getUserMediaTracksAndStreams(2)
+    getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       sendingTrack1 = tracks[0];
@@ -376,7 +376,7 @@
     let sendingTrack1;
     let sendingTrack2;
     let sender;
-    return getUserMediaTracksAndStreams(2)
+    getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
       t.add_cleanup(() => tracks.forEach(track => track.stop()));
       sendingTrack1 = tracks[0];

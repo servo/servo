@@ -782,3 +782,11 @@ TESTHARNESS-IN-OTHER-TYPE: svg/svg-in-svg/svg-in-svg-circular-filter-reference-c
 
 PRINT STATEMENT: webdriver/tests/print/printcmd.py
 PRINT STATEMENT: webdriver/tests/print/user_prompts.py
+
+DUPLICATE-BASENAME-PATH: acid/acid3/empty.html
+DUPLICATE-BASENAME-PATH: acid/acid3/empty.xml
+DUPLICATE-BASENAME-PATH: dom/nodes/Document-createElement-namespace-tests/*
+DUPLICATE-BASENAME-PATH: dom/nodes/ParentNode-querySelector-All-content.html
+DUPLICATE-BASENAME-PATH: dom/nodes/ParentNode-querySelector-All-content.xht
+DUPLICATE-BASENAME-PATH: svg/struct/reftests/reference/green-100x100.html
+DUPLICATE-BASENAME-PATH: svg/struct/reftests/reference/green-100x100.svg

@@ -865,8 +865,67 @@ class SourceFile(object):
     @property
     def type(self):
         # type: () -> Text
+        possible_types = self.possible_types
+        if len(possible_types) == 1:
+            return possible_types.pop()
+
         rv, _ = self.manifest_items()
         return rv
+
+    @property
+    def possible_types(self):
+        # type: () -> Set[Text]
+        """Determines the set of possible types without reading the file"""
+
+        if self.items_cache:
+            return {self.items_cache[0]}
+
+        if self.name_is_non_test:
+            return {SupportFile.item_type}
+
+        if self.name_is_manual:
+            return {ManualTest.item_type}
+
+        if self.name_is_conformance:
+            return {ConformanceCheckerTest.item_type}
+
+        if self.name_is_conformance_support:
+            return {SupportFile.item_type}
+
+        if self.name_is_webdriver:
+            return {WebDriverSpecTest.item_type}
+
+        if self.name_is_visual:
+            return {VisualTest.item_type}
+
+        if self.name_is_crashtest:
+            return {CrashTest.item_type}
+
+        if self.name_is_print_reftest:
+            return {PrintRefTest.item_type}
+
+        if self.name_is_multi_global:
+            return {TestharnessTest.item_type}
+
+        if self.name_is_worker:
+            return {TestharnessTest.item_type}
+
+        if self.name_is_window:
+            return {TestharnessTest.item_type}
+
+        if self.markup_type is None:
+            return {SupportFile.item_type}
+
+        if not self.name_is_reference:
+            return {ManualTest.item_type,
+                    TestharnessTest.item_type,
+                    RefTest.item_type,
+                    VisualTest.item_type,
+                    SupportFile.item_type}
+
+        return {TestharnessTest.item_type,
+                RefTest.item_type,
+                SupportFile.item_type}
 
     def manifest_items(self):
         # type: () -> Tuple[Text, List[ManifestItem]]
@@ -1070,6 +1129,7 @@ class SourceFile(object):
                     self.rel_path
                 )]
 
+        assert rv[0] in self.possible_types
         assert len(rv[1]) == len(set(rv[1]))
 
         self.items_cache = rv

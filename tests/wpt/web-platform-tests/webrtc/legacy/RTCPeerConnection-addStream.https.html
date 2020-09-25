@@ -27,7 +27,7 @@
     t.add_cleanup(() => pc.close());
     let track;
     let stream;
-    return getUserMediaTracksAndStreams(1)
+    getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
       track = tracks[0];
       stream = streams[0];

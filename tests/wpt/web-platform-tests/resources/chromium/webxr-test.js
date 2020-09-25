@@ -217,8 +217,13 @@ class MockVRService {
   // Only handles asynchronous calls to makeXrCompatible. Synchronous calls are
   // not supported in Javascript.
   makeXrCompatible() {
+    if (this.runtimes_.length == 0) {
+      return Promise.resolve({
+        xrCompatibleResult: device.mojom.XrCompatibleResult.kNoDeviceAvailable
+      });
+    }
     return Promise.resolve({
-      xr_compatible_result: device.mojom.XrCompatibleResult.kAlreadyCompatible
+      xrCompatibleResult: device.mojom.XrCompatibleResult.kAlreadyCompatible
     });
   }
 }
