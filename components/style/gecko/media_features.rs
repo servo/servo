@@ -559,19 +559,6 @@ fn eval_system_metric(
     query_value.map_or(supports_metric, |v| v == supports_metric)
 }
 
-fn eval_moz_touch_enabled(
-    device: &Device,
-    query_value: Option<bool>,
-    _: Option<RangeOrOperator>,
-) -> bool {
-    eval_system_metric(
-        device,
-        query_value,
-        atom!("-moz-touch-enabled"),
-        /* accessible_from_content = */ true,
-    )
-}
-
 fn eval_moz_os_version(
     device: &Device,
     query_value: Option<Atom>,
@@ -613,7 +600,7 @@ macro_rules! system_metric_feature {
 /// to support new types in these entries and (2) ensuring that either
 /// nsPresContext::MediaFeatureValuesChanged is called when the value that
 /// would be returned by the evaluator function could change.
-pub static MEDIA_FEATURES: [MediaFeatureDescription; 56] = [
+pub static MEDIA_FEATURES: [MediaFeatureDescription; 55] = [
     feature!(
         atom!("width"),
         AllowsRanges::Yes,
@@ -840,13 +827,4 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 56] = [
     system_metric_feature!(atom!("-moz-gtk-csd-close-button")),
     system_metric_feature!(atom!("-moz-gtk-csd-reversed-placement")),
     system_metric_feature!(atom!("-moz-system-dark-theme")),
-    // This is the only system-metric media feature that's accessible to
-    // content as of today.
-    // FIXME(emilio): Restrict (or remove?) when bug 1035774 lands.
-    feature!(
-        atom!("-moz-touch-enabled"),
-        AllowsRanges::No,
-        Evaluator::BoolInteger(eval_moz_touch_enabled),
-        ParsingRequirements::empty(),
-    ),
 ];
