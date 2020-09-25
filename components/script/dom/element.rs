@@ -3309,6 +3309,10 @@ impl Element {
                 let element = self.downcast::<HTMLLabelElement>().unwrap();
                 Some(element as &dyn Activatable)
             },
+            NodeTypeId::Element(ElementTypeId::HTMLElement(HTMLElementTypeId::HTMLElement)) => {
+                let element = self.downcast::<HTMLElement>().unwrap();
+                Some(element as &dyn Activatable)
+            },
             _ => None,
         };
         element.and_then(|elem| {
