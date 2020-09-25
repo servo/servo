@@ -2728,21 +2728,14 @@ impl Activatable for HTMLInputElement {
             // https://html.spec.whatwg.org/multipage/#reset-button-state-%28type=reset%29:activation-behaviour-2
             // https://html.spec.whatwg.org/multipage/#checkbox-state-%28type=checkbox%29:activation-behaviour-2
             // https://html.spec.whatwg.org/multipage/#radio-button-state-%28type=radio%29:activation-behaviour-2
-            InputType::Submit |
-            InputType::Reset |
-            InputType::File |
-            InputType::Checkbox |
-            InputType::Radio => self.is_mutable(),
+            InputType::Submit | InputType::Reset | InputType::File => self.is_mutable(),
+            InputType::Checkbox | InputType::Radio => true,
             _ => false,
         }
     }
 
     // https://dom.spec.whatwg.org/#eventtarget-legacy-pre-activation-behavior
     fn legacy_pre_activation_behavior(&self) -> Option<InputActivationState> {
-        if !self.is_mutable() {
-            return None;
-        }
-
         let ty = self.input_type();
         match ty {
             InputType::Checkbox => {
@@ -2777,9 +2770,6 @@ impl Activatable for HTMLInputElement {
     // https://dom.spec.whatwg.org/#eventtarget-legacy-canceled-activation-behavior
     fn legacy_canceled_activation_behavior(&self, cache: Option<InputActivationState>) {
         // Step 1
-        if !self.is_mutable() {
-            return;
-        }
         let ty = self.input_type();
         let cache = match cache {
             Some(cache) => {
