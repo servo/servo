@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>This page helps exhibit a crash bug when window.open()ed</title>
+
+<iframe src="https://{{hosts[][www]}}:{{ports[https][0]}}/origin-isolation/resources/send-origin-isolation-header.py"></iframe>
+<iframe src="https://{{hosts[][www]}}:{{ports[https][0]}}/origin-isolation/resources/send-origin-isolation-header.py?header=?1"></iframe>

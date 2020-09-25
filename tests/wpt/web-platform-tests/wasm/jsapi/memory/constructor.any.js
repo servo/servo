@@ -76,7 +76,7 @@ test(() => {
       switch (x) {
         case "shared":
           return false;
-        case "minimum":
+        case "initial":
         case "maximum":
           return 0;
         default:

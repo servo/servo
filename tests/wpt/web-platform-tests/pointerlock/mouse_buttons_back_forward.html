@@ -32,15 +32,28 @@
               }
             });
 
+            document.addEventListener("pointerlockchange", function() {
+              assert_equals(document.pointerLockElement, document.body);
+
+              // Inject mouse input
+              var actions = new test_driver.Actions();
+              actions.pointerMove(1, 1)
+                .pointerDown({button: actions.ButtonType.BACK})
+                .pointerUp({button: actions.ButtonType.BACK})
+                .pointerDown({button: actions.ButtonType.FORWARD})
+                .pointerUp({button: actions.ButtonType.FORWARD})
+                .send();
+            }, { once: true });
+
+            document.addEventListener("pointerlockerror", function() {
+              assert_unreached("Pointer lock error");
+            });
+
             // Inject mouse input
             var actions = new test_driver.Actions();
             actions.pointerMove(1, 1)
               .pointerDown({button: actions.ButtonType.LEFT})
               .pointerUp({button: actions.ButtonType.LEFT})
-              .pointerDown({button: actions.ButtonType.BACK})
-              .pointerUp({button: actions.ButtonType.BACK})
-              .pointerDown({button: actions.ButtonType.FORWARD})
-              .pointerUp({button: actions.ButtonType.FORWARD})
               .send();
         </script>
 

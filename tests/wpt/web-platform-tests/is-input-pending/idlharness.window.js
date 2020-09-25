@@ -8,7 +8,6 @@ idl_test(
   ['html', 'dom'],
   async idl_array => {
     idl_array.add_objects({
-      IsInputPendingOptions: ['new IsInputPendingOptions'],
       Scheduling: ['navigator.scheduling'],
     });
   }

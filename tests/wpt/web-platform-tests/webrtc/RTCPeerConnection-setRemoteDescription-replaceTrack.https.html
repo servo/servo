@@ -13,7 +13,7 @@
   async_test(t => {
     const caller = new RTCPeerConnection();
     t.add_cleanup(() => caller.close());
-    return getUserMediaTracksAndStreams(2)
+    getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
       const sender = caller.addTrack(tracks[0], streams[0]);
       return sender.replaceTrack(tracks[1])
@@ -30,7 +30,7 @@
   async_test(t => {
     const caller = new RTCPeerConnection();
     t.add_cleanup(() => caller.close());
-    return getUserMediaTracksAndStreams(1)
+    getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
       const sender = caller.addTrack(tracks[0], streams[0]);
       return sender.replaceTrack(null)
@@ -47,7 +47,7 @@
   async_test(t => {
     const caller = new RTCPeerConnection();
     t.add_cleanup(() => caller.close());
-    return getUserMediaTracksAndStreams(2)
+    getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
       const sender = caller.addTrack(tracks[0], streams[0]);
       assert_equals(sender.track, tracks[0]);
@@ -66,7 +66,7 @@
     const expectedException = 'InvalidStateError';
     const caller = new RTCPeerConnection();
     t.add_cleanup(() => caller.close());
-    return getUserMediaTracksAndStreams(2)
+    getUserMediaTracksAndStreams(2)
     .then(t.step_func(([tracks, streams]) => {
       const sender = caller.addTrack(tracks[0], streams[0]);
       caller.close();

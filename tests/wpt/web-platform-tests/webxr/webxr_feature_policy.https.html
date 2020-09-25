@@ -78,4 +78,20 @@ xr_promise_test(
   });
 
 });
+
+xr_promise_test(
+"Validate xr compatibility requests without xr-spatial-tracking policy",
+(t) => {
+  let canvas = document.createElement('canvas');
+  let gl = canvas.getContext('webgl', {xrCompatible: true});
+
+  t.step(() => {
+    assert_false(gl.getContextAttributes().xrCompatible,
+      "xrCompatibility shouldn't be set when requested without feature policy");
+  });
+
+  return promise_rejects_dom(t, "SecurityError",
+    gl.makeXRCompatible(),
+    "makeXRCompatible should reject without feature policy");
+});
 </script>

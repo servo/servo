@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="author" title="Benjamin Beaudry" href="mailto:bebeaudr@microsoft.com">
+<link rel="help" href="href=https://www.w3.org/TR/css-break-3/#break-decoration">
+<link rel="match" href="out-of-flow-in-multicolum-001-ref.html">
+
+<p>The abs element should be split equally into the two columns - no red!</p>
+<style>
+  #multicol {
+      column-count: 2;
+      column-fill: auto;
+      column-gap: 16px;
+      column-rule:16px white solid;
+      width: 100px;
+      height: 40px;
+      background: gray;
+  }
+
+  .abs {
+      position: absolute;
+      top: 0px;
+      width: 100%;
+      height: 20px;
+      background: green;
+  }
+
+  .below-abs {
+    height: 20px;
+    background: red;
+  }
+</style>
+<div id="container">
+  <div id="multicol">
+      <div style="width:100px; height:30px;"></div>
+      <div style="position: relative;">
+        <div class="below-abs"></div>
+        <div class="abs"></div>
+      </div>
+  </div>
+</div>

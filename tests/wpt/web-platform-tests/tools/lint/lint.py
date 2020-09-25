@@ -367,7 +367,7 @@ def check_unique_testharness_basenames(repo_root, paths):
     file_dict = defaultdict(list)
     for path in paths:
         source_file = SourceFile(repo_root, path, "/")
-        if source_file.type != "testharness":
+        if "testharness" not in source_file.possible_types:
             continue
         file_name, file_extension = os.path.splitext(path)
         file_dict[file_name].append(file_extension)

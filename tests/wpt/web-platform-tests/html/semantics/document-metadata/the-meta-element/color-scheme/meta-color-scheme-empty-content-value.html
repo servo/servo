@@ -1,0 +1,10 @@
+<!doctype html>
+<title>Meta color-scheme - empty content value</title>
+<meta name="color-scheme" content="">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#meta-color-scheme">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/compute-root-color-scheme.js"></script>
+<script>
+  assert_root_color_scheme("normal", "Meta color-scheme with empty content attribute has no effect.");
+</script>

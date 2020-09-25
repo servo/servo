@@ -2,8 +2,8 @@
 onmessage = async e => {
   if (e.data !== 'check-input') return;
 
-  const discreteOptions = new IsInputPendingOptions({ includeContinuous: false });
-  const continuousOptions = new IsInputPendingOptions({ includeContinuous: true });
+  const discreteOptions = { includeContinuous: false };
+  const continuousOptions = { includeContinuous: true };
 
   // Use a reasonable time to wait after dispatching events, since we want to be
   // able to test for cases where isInputPending returns false.
