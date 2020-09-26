@@ -18,7 +18,7 @@ const send = function(uuid, message) {
 }
 
 const receive = async function(uuid) {
-  const timeout = 3000;
+  const timeout = 2500;
   const retry_delay = 100;
   for(let i = 0; i * retry_delay < timeout; ++i) {
     let response = await fetch(dispatcher_url + `?uuid=${uuid}`);

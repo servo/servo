@@ -13,10 +13,11 @@
 
 const directory = "/html/cross-origin-opener-policy/reporting";
 const executor_path = directory + "/resources/executor.html?pipe=";
+const redirect_path = directory + "/resources/redirect.py?";
 const same_origin = get_host_info().HTTPS_ORIGIN;
 const coep_header = '|header(Cross-Origin-Embedder-Policy,require-corp)';
 
-promise_test(async t => {
+let runTest = (openee_redirect, name) => promise_test(async t => {
   // The test window.
   const this_window_token = token();
 
@@ -29,9 +30,12 @@ promise_test(async t => {
     `&uuid=${opener_token}`;
 
   // The "openee" window. This is same origin with the "opener".
-  const openee_report_token= token();
+  const openee_report_token = token();
   const openee_token = token();
   const openee_url = same_origin + executor_path + `&uuid=${openee_token}`;
+  const openee_redirect_url = same_origin + redirect_path + openee_url
+  const openee_requested_url = openee_redirect ? openee_redirect_url
+                                               : openee_url;
 
   // 1. Create the opener window.
   let opener_window_proxy = window.open(opener_url);
@@ -39,7 +43,7 @@ promise_test(async t => {
 
   // 2. The opener opens it openee.
   send(opener_token, `
-    openee = window.open("${openee_url}");
+    openee = window.open("${openee_requested_url}");
     send("${this_window_token}", "ACK 1");
   `);
   assert_equals("ACK 1", await receive(this_window_token));
@@ -66,7 +70,9 @@ promise_test(async t => {
   assert_equals(report.body.effectivePolicy, "same-origin-plus-coep");
   assert_equals(report.body.property, "blur");
   assert_source_location_found(report);
-  // TODO(arthursonzogni): Check the window-blocked-url.
-}, "Opener (COOP-RO+COEP) accesses openee. Report to opener");
+}, name);
+
+runTest(false, "access-from-coop-page-to-openee, same-origin");
+runTest(true , "access-from-coop-page-to-openee, same-origin + redirect");
 
 </script>

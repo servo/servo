@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1">
+<link rel="help" href="https://drafts.csswg.org/css-align/#baseline-export">
+<meta name="assert" content="The first column has no baseline. The column after the spanner does have one, but we're not supposed to look beyond the first column (and any spanners).">
+<link rel="match" href="baseline-007-ref.html">
+<p>There should be a green square below.</p>
+<div style="display:flex; align-items:baseline;">
+  <div style="width:50px; height:100px; background:green;"></div>
+  <div style="columns:3; width:50px; line-height:40px; background:green;">
+    <div style="height:90px;"></div>
+    <div style="column-span:all; height:30px;"></div>
+    <br>
+  </div>
+</div>

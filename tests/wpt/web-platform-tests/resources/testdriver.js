@@ -15,7 +15,8 @@
     }
 
     function getPointerInteractablePaintTree(element) {
-        if (!window.document.contains(element)) {
+        let elementDocument = element.ownerDocument;
+        if (!elementDocument.contains(element)) {
             return [];
         }
 
@@ -27,10 +28,10 @@
 
         var centerPoint = getInViewCenterPoint(rectangles[0]);
 
-        if ("elementsFromPoint" in document) {
-            return document.elementsFromPoint(centerPoint[0], centerPoint[1]);
-        } else if ("msElementsFromPoint" in document) {
-            var rv = document.msElementsFromPoint(centerPoint[0], centerPoint[1]);
+        if ("elementsFromPoint" in elementDocument) {
+            return elementDocument.elementsFromPoint(centerPoint[0], centerPoint[1]);
+        } else if ("msElementsFromPoint" in elementDocument) {
+            var rv = elementDocument.msElementsFromPoint(centerPoint[0], centerPoint[1]);
             return Array.prototype.slice.call(rv ? rv : []);
         } else {
             throw new Error("document.elementsFromPoint unsupported");
@@ -95,14 +96,6 @@
          *                    the cases the WebDriver command errors
          */
         click: function(element) {
-            if (window.top !== window) {
-                return Promise.reject(new Error("can only click in top-level window"));
-            }
-
-            if (!window.document.contains(element)) {
-                return Promise.reject(new Error("element in different document or shadow tree"));
-            }
-
             if (!inView(element)) {
                 element.scrollIntoView({behavior: "instant",
                                         block: "end",
@@ -135,14 +128,6 @@
          *                    the cases the WebDriver command errors
          */
         send_keys: function(element, keys) {
-            if (window.top !== window) {
-                return Promise.reject(new Error("can only send keys in top-level window"));
-            }
-
-            if (!window.document.contains(element)) {
-                return Promise.reject(new Error("element in different document or shadow tree"));
-            }
-
             if (!inView(element)) {
                 element.scrollIntoView({behavior: "instant",
                                         block: "end",
@@ -176,7 +161,7 @@
         /**
          * Send a sequence of actions
          *
-         * This function sends a sequence of actions to the top level window
+         * This function sends a sequence of actions
          * to perform. It is modeled after the behaviour of {@link
          * https://w3c.github.io/webdriver/#actions|WebDriver Actions Command}
          *

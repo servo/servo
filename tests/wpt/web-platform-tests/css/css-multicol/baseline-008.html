@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-1">
+<link rel="help" href="https://drafts.csswg.org/css-align/#baseline-export">
+<meta name="assert" content="According to the spec, a multicol container has no last baseline, only a first baseline. So, when aligning with an inline-block, the block-end outer edge of the multicol is what's used for alignment.">
+<link rel="match" href="baseline-008-ref.html">
+<style>
+  .part {
+      display: inline-block;
+      width: 50px;
+      height: 100px;
+      background: green;
+  }
+  .multicol {
+      columns: 2;
+      column-fill: auto;
+  }
+</style>
+<p>There should be a green square below.</p>
+<div class="part"></div><div class="part multicol">
+  <br>
+</div>
