@@ -963,7 +963,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
     fn handle_mathml_scriptlevel_if_needed(&mut self) {
         use crate::values::generics::NonNegative;
 
-        if !self.seen.contains(LonghandId::MozScriptLevel) &&
+        if !self.seen.contains(LonghandId::MathDepth) &&
            !self.seen.contains(LonghandId::MozScriptMinSize) &&
            !self.seen.contains(LonghandId::MozScriptSizeMultiplier) {
             return;
@@ -980,7 +980,7 @@ impl<'a, 'b: 'a> Cascade<'a, 'b> {
             let parent_font = builder.get_parent_font().gecko();
 
             let delta =
-                font.mScriptLevel.saturating_sub(parent_font.mScriptLevel);
+                font.mMathDepth.saturating_sub(parent_font.mMathDepth);
 
             if delta == 0 {
                 return;

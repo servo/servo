@@ -360,7 +360,7 @@ class Longhand(object):
                 "MasonryAutoFlow",
                 "MozForceBrokenImageIcon",
                 "MozListReversed",
-                "MozScriptLevel",
+                "MathDepth",
                 "MozScriptMinSize",
                 "MozScriptSizeMultiplier",
                 "TextDecorationSkipInk",

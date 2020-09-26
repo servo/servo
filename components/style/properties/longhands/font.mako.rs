@@ -228,14 +228,15 @@ ${helpers.predefined_type(
 )}
 
 ${helpers.predefined_type(
-    "-moz-script-level",
-    "MozScriptLevel",
+    "math-depth",
+    "MathDepth",
     "0",
     engines="gecko",
+    gecko_pref="layout.css.math-depth.enabled",
+    has_effect_on_gecko_scrollbars=False,
     animation_value_type="none",
     enabled_in="ua",
-    gecko_ffi_name="mScriptLevel",
-    spec="Internal (not web-exposed)",
+    spec="https://mathml-refresh.github.io/mathml-core/#the-math-script-level-property",
 )}
 
 ${helpers.single_keyword(

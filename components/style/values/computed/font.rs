@@ -811,20 +811,20 @@ impl ToComputedValue for specified::MozScriptMinSize {
     }
 }
 
-/// The computed value of the -moz-script-level property.
-pub type MozScriptLevel = i8;
+/// The computed value of the math-depth property.
+pub type MathDepth = i8;
 
 #[cfg(feature = "gecko")]
-impl ToComputedValue for specified::MozScriptLevel {
-    type ComputedValue = MozScriptLevel;
+impl ToComputedValue for specified::MathDepth {
+    type ComputedValue = MathDepth;
 
     fn to_computed_value(&self, cx: &Context) -> i8 {
         use crate::properties::longhands::math_style::SpecifiedValue as MathStyleValue;
         use std::{cmp, i8};
 
         let int = match *self {
-            specified::MozScriptLevel::Auto => {
-                let parent = cx.builder.get_parent_font().clone__moz_script_level() as i32;
+            specified::MathDepth::Auto => {
+                let parent = cx.builder.get_parent_font().clone_math_depth() as i32;
                 let style = cx.builder.get_parent_font().clone_math_style();
                 if style == MathStyleValue::Compact {
                     parent + 1
@@ -832,17 +832,17 @@ impl ToComputedValue for specified::MozScriptLevel {
                     parent
                 }
             },
-            specified::MozScriptLevel::Relative(rel) => {
-                let parent = cx.builder.get_parent_font().clone__moz_script_level();
+            specified::MathDepth::Relative(rel) => {
+                let parent = cx.builder.get_parent_font().clone_math_depth();
                 parent as i32 + rel
             },
-            specified::MozScriptLevel::MozAbsolute(abs) => abs,
+            specified::MathDepth::MozAbsolute(abs) => abs,
         };
         cmp::min(int, i8::MAX as i32) as i8
     }
 
     fn from_computed_value(other: &i8) -> Self {
-        specified::MozScriptLevel::MozAbsolute(*other as i32)
+        specified::MathDepth::MozAbsolute(*other as i32)
     }
 }
 
