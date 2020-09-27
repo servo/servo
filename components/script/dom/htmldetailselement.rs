@@ -11,7 +11,7 @@ use crate::dom::document::Document;
 use crate::dom::element::AttributeMutation;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlelement::HTMLElement;
-use crate::dom::node::{window_from_node, Node};
+use crate::dom::node::{window_from_node, Node, NodeDamage};
 use crate::dom::virtualmethods::VirtualMethods;
 use crate::task_source::TaskSource;
 use dom_struct::dom_struct;
@@ -49,6 +49,10 @@ impl HTMLDetailsElement {
             document,
         )
     }
+
+    pub fn toggle(&self) {
+        self.SetOpen(!self.Open());
+    }
 }
 
 impl HTMLDetailsElementMethods for HTMLDetailsElement {
@@ -83,6 +87,7 @@ impl VirtualMethods for HTMLDetailsElement {
                 }),
                 window.upcast(),
             );
+            self.upcast::<Node>().dirty(NodeDamage::OtherNodeDamage)
         }
     }
 }

@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use crate::dom::activation::Activatable;
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::EventHandlerNonNull;
 use crate::dom::bindings::codegen::Bindings::EventHandlerBinding::OnErrorEventHandlerNonNull;
@@ -19,9 +20,11 @@ use crate::dom::document::{Document, FocusType};
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::domstringmap::DOMStringMap;
 use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::htmlbodyelement::HTMLBodyElement;
 use crate::dom::htmlbrelement::HTMLBRElement;
+use crate::dom::htmldetailselement::HTMLDetailsElement;
 use crate::dom::htmlframesetelement::HTMLFrameSetElement;
 use crate::dom::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::htmlinputelement::{HTMLInputElement, InputType};
@@ -783,6 +786,49 @@ impl HTMLElement {
 
         None
     }
+
+    // https://html.spec.whatwg.org/multipage/#the-summary-element:activation-behaviour
+    pub fn summary_activation_behavior(&self) {
+        // Step 1
+        if !self.is_summary_for_its_parent_details() {
+            return;
+        }
+
+        // Step 2
+        let parent_details = self.upcast::<Node>().GetParentNode().unwrap();
+
+        // Step 3
+        parent_details
+            .downcast::<HTMLDetailsElement>()
+            .unwrap()
+            .toggle();
+    }
+
+    // https://html.spec.whatwg.org/multipage/#summary-for-its-parent-details
+    fn is_summary_for_its_parent_details(&self) -> bool {
+        // Step 1
+        let summary_node = self.upcast::<Node>();
+        if !summary_node.has_parent() {
+            return false;
+        }
+
+        // Step 2
+        let parent = &summary_node.GetParentNode().unwrap();
+
+        // Step 3
+        if !parent.is::<HTMLDetailsElement>() {
+            return false;
+        }
+
+        // Step 4 & 5
+        let first_summary_element = parent
+            .child_elements()
+            .find(|el| el.local_name() == &local_name!("summary"));
+        match first_summary_element {
+            Some(first_summary) => &*first_summary == self.upcast::<Element>(),
+            None => false,
+        }
+    }
 }
 
 impl VirtualMethods for HTMLElement {
@@ -817,5 +863,20 @@ impl VirtualMethods for HTMLElement {
                 .unwrap()
                 .parse_plain_attribute(name, value),
         }
+    }
+}
+
+impl Activatable for HTMLElement {
+    fn as_element(&self) -> &Element {
+        self.upcast::<Element>()
+    }
+
+    fn is_instance_activatable(&self) -> bool {
+        self.as_element().local_name() == &local_name!("summary")
+    }
+
+    // Basically used to make the HTMLSummaryElement activatable (which has no IDL definition)
+    fn activation_behavior(&self, _event: &Event, _target: &EventTarget) {
+        self.summary_activation_behavior();
     }
 }
