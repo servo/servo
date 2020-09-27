@@ -1,0 +1,135 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="/resources/testharness.js"></script>
+  <title>Restrictions on return value from `async_test`</title>
+</head>
+<body>
+<script>
+function makeTest(...bodies) {
+  const closeScript = '<' + '/script>';
+  let src = `
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Document title</title>
+<script src="/resources/testharness.js?${Math.random()}">${closeScript}
+</head>
+
+<body>
+<div id="log"></div>`;
+  bodies.forEach((body) => {
+    src += '<script>(' + body + ')();' + closeScript;
+  });
+
+  const iframe = document.createElement('iframe');
+
+  document.body.appendChild(iframe);
+  iframe.contentDocument.write(src);
+
+  return new Promise((resolve) => {
+    window.addEventListener('message', function onMessage(e) {
+      if (e.source !== iframe.contentWindow) {
+        return;
+      }
+      if (!e.data || e.data.type !=='complete') {
+        return;
+      }
+      window.removeEventListener('message', onMessage);
+      resolve(e.data);
+    });
+
+    iframe.contentDocument.close();
+  }).then(({ tests, status }) => {
+    const summary = {
+      harness: {
+        status: getEnumProp(status, status.status),
+        message: status.message
+      },
+      tests: {}
+    };
+
+    tests.forEach((test) => {
+      summary.tests[test.name] = getEnumProp(test, test.status);
+    });
+
+    return summary;
+  });
+}
+
+function getEnumProp(object, value) {
+  for (let property in object) {
+    if (!/^[A-Z]+$/.test(property)) {
+      continue;
+    }
+
+    if (object[property] === value) {
+      return property;
+    }
+  }
+}
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        async_test((t) => {t.done(); return undefined;}, 'before');
+        async_test((t) => {t.done(); return null;}, 'null');
+        async_test((t) => {t.done(); return undefined;}, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness.status, 'ERROR');
+      assert_equals(
+        harness.message,
+        'Test named "null" passed a function to `async_test` that returned a value.'
+      );
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.null, 'PASS');
+      // This test did not get the chance to start.
+      assert_equals(tests.after, undefined);
+    });
+}, 'test returning `null`');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        async_test((t) => {t.done(); return undefined;}, 'before');
+        async_test((t) => {t.done(); return {};}, 'object');
+        async_test((t) => {t.done(); return undefined;}, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness.status, 'ERROR');
+      assert_equals(
+        harness.message,
+        'Test named "object" passed a function to `async_test` that returned a value.'
+      );
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.object, 'PASS');
+      // This test did not get the chance to start.
+      assert_equals(tests.after, undefined);
+    });
+}, 'test returning an ordinary object');
+
+promise_test(() => {
+  return makeTest(
+      () => {
+        async_test((t) => {t.done(); return undefined;}, 'before');
+        async_test((t) => {t.done(); return Promise.resolve(5);}, 'thenable');
+        async_test((t) => {t.done(); return undefined;}, 'after');
+      }
+    ).then(({harness, tests}) => {
+      assert_equals(harness.status, 'ERROR');
+      assert_equals(
+        harness.message,
+        'Test named "thenable" passed a function to `async_test` that returned a value. ' +
+        'Consider using `promise_test` instead when using Promises or async/await.'
+      );
+      assert_equals(tests.before, 'PASS');
+      assert_equals(tests.thenable, 'PASS');
+      // This test did not get a chance to start.
+      assert_equals(tests.after, undefined);
+    });
+}, 'test returning a thenable object');
+</script>
+</body>
+</html>

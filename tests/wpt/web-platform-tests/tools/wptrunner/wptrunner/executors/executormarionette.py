@@ -429,9 +429,6 @@ class MarionetteSelectorProtocolPart(SelectorProtocolPart):
     def elements_by_selector(self, selector):
         return self.marionette.find_elements("css selector", selector)
 
-    def elements_by_selector_and_frame(self, element_selector, frame):
-        return self.marionette.find_elements("css selector", element_selector)
-
 
 class MarionetteClickProtocolPart(ClickProtocolPart):
     def setup(self):
@@ -471,6 +468,24 @@ class MarionetteTestDriverProtocolPart(TestDriverProtocolPart):
         if message:
             obj["message"] = str(message)
         self.parent.base.execute_script("window.postMessage(%s, '*')" % json.dumps(obj))
+
+    def switch_to_window(self, window_id):
+        if window_id is None:
+            return
+
+        for window_handle in self.marionette.window_handles:
+            _switch_to_window(self.marionette, window_handle)
+            try:
+                handle_window_id = self.marionette.execute_script("return window.name")
+            except errors.JavascriptException:
+                continue
+            if str(handle_window_id) == window_id:
+                return
+
+        raise Exception("Window with id %s not found" % window_id)
+
+    def switch_to_frame(self, frame_number):
+        self.marionette.switch_to_frame(frame_number)
 
 
 class MarionetteCoverageProtocolPart(CoverageProtocolPart):

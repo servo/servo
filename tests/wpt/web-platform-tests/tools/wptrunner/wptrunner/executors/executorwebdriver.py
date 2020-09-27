@@ -177,9 +177,6 @@ class WebDriverSelectorProtocolPart(SelectorProtocolPart):
     def elements_by_selector(self, selector):
         return self.webdriver.find.css(selector)
 
-    def elements_by_selector_and_frame(self, element_selector, frame):
-        return self.webdriver.find.css(element_selector, frame=frame)
-
 
 class WebDriverClickProtocolPart(ClickProtocolPart):
     def setup(self):
@@ -225,6 +222,24 @@ class WebDriverTestDriverProtocolPart(TestDriverProtocolPart):
         if message:
             obj["message"] = str(message)
         self.webdriver.execute_script("window.postMessage(%s, '*')" % json.dumps(obj))
+
+    def switch_to_window(self, window_id):
+        if window_id is None:
+            return
+
+        for window_handle in self.webdriver.handles:
+            self.webdriver.window_handle = window_handle
+            try:
+                handle_window_id = self.webdriver.execute_script("return window.name")
+            except client.JavascriptErrorException:
+                continue
+            if str(handle_window_id) == window_id:
+                return
+
+        raise Exception("Window with id %s not found" % window_id)
+
+    def switch_to_frame(self, frame_number):
+        self.webdriver.switch_frame(frame_number)
 
 
 class WebDriverGenerateTestReportProtocolPart(GenerateTestReportProtocolPart):

@@ -180,3 +180,15 @@ function sameOriginContexts(children) {
   }
   return result;
 }
+
+async function createWorker(bytes) {
+  const worker = new Worker('resources/worker.js');
+  let resolve_promise;
+  const promise = new Promise(resolve => resolve_promise = resolve);
+  worker.onmessage = function (message) {
+    assert_equals(message.data, 'ready');
+    resolve_promise();
+  }
+  worker.postMessage({bytes});
+  return promise;
+}

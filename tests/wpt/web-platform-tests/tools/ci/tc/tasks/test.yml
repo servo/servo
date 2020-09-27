@@ -317,6 +317,8 @@ tasks:
               --channel=${vars.channel}
               --verify
               --verify-no-chaos-mode
+              --verify-repeat-loop=0
+              --verify-repeat-restart=10
               --github-checks-text-file="/home/test/artifacts/checkrun.md"
 
         - wpt-${vars.browser}-${vars.channel}-results:

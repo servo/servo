@@ -6,6 +6,7 @@ import ast
 import io
 import json
 import logging
+import multiprocessing
 import os
 import re
 import subprocess
@@ -34,6 +35,7 @@ if MYPY:
     from typing import Callable
     from typing import Dict
     from typing import IO
+    from typing import Iterator
     from typing import Iterable
     from typing import List
     from typing import Optional
@@ -42,6 +44,7 @@ if MYPY:
     from typing import Text
     from typing import Tuple
     from typing import Type
+    from typing import TypeVar
 
     # The Ignorelist is a two level dictionary. The top level is indexed by
     # error names (e.g. 'TRAILING WHITESPACE'). Each of those then has a map of
@@ -50,10 +53,24 @@ if MYPY:
     # ignores the error.
     Ignorelist = Dict[Text, Dict[Text, Set[Optional[int]]]]
 
+    # Define an arbitrary typevar
+    T = TypeVar("T")
+
     try:
         from xml.etree import cElementTree as ElementTree
     except ImportError:
         from xml.etree import ElementTree as ElementTree  # type: ignore
+
+
+if sys.version_info >= (3, 7):
+    from contextlib import nullcontext
+else:
+    from contextlib import contextmanager
+
+    @contextmanager
+    def nullcontext(enter_result=None):
+        # type: (Optional[T]) -> Iterator[Optional[T]]
+        yield enter_result
 
 
 logger = None  # type: Optional[logging.Logger]
@@ -793,8 +810,8 @@ def check_all_paths(repo_root, paths):
     return errors
 
 
-def check_file_contents(repo_root, path, f):
-    # type: (Text, Text, IO[bytes]) -> List[rules.Error]
+def check_file_contents(repo_root, path, f=None):
+    # type: (Text, Text, Optional[IO[bytes]]) -> List[rules.Error]
     """
     Runs lints that check the file contents.
 
@@ -803,12 +820,18 @@ def check_file_contents(repo_root, path, f):
     :param f: a file-like object with the file contents
     :returns: a list of errors found in ``f``
     """
+    with io.open(os.path.join(repo_root, path), 'rb') if f is None else nullcontext(f) as real_f:
+        assert real_f is not None  # Py2: prod mypy -2 into accepting this isn't None
+        errors = []
+        for file_fn in file_lints:
+            errors.extend(file_fn(repo_root, path, real_f))
+            real_f.seek(0)
+        return errors
 
-    errors = []
-    for file_fn in file_lints:
-        errors.extend(file_fn(repo_root, path, f))
-        f.seek(0)
-    return errors
+
+def check_file_contents_apply(args):
+    # type: (Tuple[Text, Text]) -> List[rules.Error]
+    return check_file_contents(*args)
 
 
 def output_errors_text(log, errors):
@@ -964,6 +987,10 @@ def main(**kwargs_str):
     return lint(repo_root, paths, output_format, ignore_glob, github_checks_outputter)
 
 
+# best experimental guess at a decent cut-off for using the parallel path
+MIN_FILES_FOR_PARALLEL = 80
+
+
 def lint(repo_root, paths, output_format, ignore_glob=None, github_checks_outputter=None):
     # type: (Text, List[Text], Text, Optional[List[Text]], Optional[GitHubChecksOutputter]) -> int
     error_count = defaultdict(int)  # type: Dict[Text, int]
@@ -1005,26 +1032,47 @@ def lint(repo_root, paths, output_format, ignore_glob=None, github_checks_output
 
         return (errors[-1][0], path)
 
-    for path in paths[:]:
+    to_check_content = []
+    skip = set()
+
+    for path in paths:
         abs_path = os.path.join(repo_root, path)
         if not os.path.exists(abs_path):
-            paths.remove(path)
+            skip.add(path)
             continue
 
         if any(fnmatch.fnmatch(path, file_match) for file_match in skipped_files):
-            paths.remove(path)
+            skip.add(path)
             continue
 
         errors = check_path(repo_root, path)
         last = process_errors(errors) or last
 
         if not os.path.isdir(abs_path):
-            with io.open(abs_path, 'rb') as test_file:
-                errors = check_file_contents(repo_root, path, test_file)
-                last = process_errors(errors) or last
+            to_check_content.append((repo_root, path))
 
-    errors = check_all_paths(repo_root, paths)
-    last = process_errors(errors) or last
+    paths = [p for p in paths if p not in skip]
+
+    if len(to_check_content) >= MIN_FILES_FOR_PARALLEL:
+        pool = multiprocessing.Pool()
+        # submit this job first, as it's the longest running
+        all_paths_result = pool.apply_async(check_all_paths, (repo_root, paths))
+        # each item tends to be quick, so pass things in large chunks to avoid too much IPC overhead
+        errors_it = pool.imap_unordered(check_file_contents_apply, to_check_content, chunksize=40)
+        pool.close()
+        for errors in errors_it:
+            last = process_errors(errors) or last
+
+        errors = all_paths_result.get()
+        pool.join()
+        last = process_errors(errors) or last
+    else:
+        for item in to_check_content:
+            errors = check_file_contents(*item)
+            last = process_errors(errors) or last
+
+        errors = check_all_paths(repo_root, paths)
+        last = process_errors(errors) or last
 
     if output_format in ("normal", "markdown"):
         output_error_count(error_count)

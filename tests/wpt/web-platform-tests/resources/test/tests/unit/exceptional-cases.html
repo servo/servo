@@ -127,7 +127,7 @@ promise_test(() => {
         async_test((t) => {
           setTimeout(() => {
             setTimeout(() => t.done(), 0);
-            async_test((t) => setTimeout(t.done.bind(t), 0), 'after');
+            async_test((t) => { setTimeout(t.done.bind(t), 0); }, 'after');
             throw new Error('this error is expected');
           }, 0);
         }, 'during');
@@ -205,7 +205,7 @@ if ('onunhandledrejection' in window) {
 
             window.addEventListener('unhandledrejection', () => {
             setTimeout(() => t.done(), 0);
-              async_test((t) => setTimeout(t.done.bind(t), 0), 'after');
+              async_test((t) => { setTimeout(t.done.bind(t), 0); }, 'after');
               t.done();
             });
           }, 'during');
@@ -261,10 +261,10 @@ if ('onunhandledrejection' in window) {
     return makeTest(
         () => {
           setup({ explicit_done: true });
-          async_test((t) => setTimeout(t.done.bind(t), 0), 'before');
+          async_test((t) => { setTimeout(t.done.bind(t), 0); }, 'before');
           Promise.reject(new Error('this error is expected'));
           window.addEventListener('unhandledrejection', () => {
-            async_test((t) => setTimeout(t.done.bind(t), 0), 'after');
+            async_test((t) => { setTimeout(t.done.bind(t), 0); }, 'after');
             done();
           });
         }

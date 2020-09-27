@@ -180,8 +180,6 @@ SET TIMEOUT: media-source/mediasource-util.js
 SET TIMEOUT: media-source/URL-createObjectURL-revoke.html
 SET TIMEOUT: mixed-content/generic/sanity-checker.js
 SET TIMEOUT: navigation-timing/*
-SET TIMEOUT: html/canvas/offscreen/the-offscreen-canvas/*
-SET TIMEOUT: html/canvas/offscreen/manual/the-offscreen-canvas/*
 SET TIMEOUT: old-tests/submission/Microsoft/history/history_000.htm
 SET TIMEOUT: paint-timing/resources/subframe-painting.html
 SET TIMEOUT: payment-request/allowpayment/setting-allowpaymentrequest-timing.https.sub.html
@@ -618,6 +616,8 @@ CSS-COLLIDING-SUPPORT-NAME: css/css-shapes/shape-outside/shape-image/support/ani
 CSS-COLLIDING-SUPPORT-NAME: css/css-display/support/util.js
 CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-1.png
 CSS-COLLIDING-SUPPORT-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/ui3/support/replaced-min-max-1.png
+CSS-COLLIDING-REF-NAME: css/css-multicol/baseline-001-ref.html
+CSS-COLLIDING-REF-NAME: css/css-grid/subgrid/baseline-001-ref.html
 
 CSS-COLLIDING-TEST-NAME: css/css-contain/inheritance.html
 CSS-COLLIDING-TEST-NAME: css/css-contain/content-visibility/inheritance.html
@@ -691,14 +691,9 @@ MISSING-LINK: css/filter-effects/*.any.js
 
 # Tests that use WebKit/Blink testing APIs
 LAYOUTTESTS APIS: import-maps/common/resources/common-test-helper.js
-LAYOUTTESTS APIS: resources/test-only-api.js
 LAYOUTTESTS APIS: resources/chromium/enable-hyperlink-auditing.js
 LAYOUTTESTS APIS: resources/chromium/generic_sensor_mocks.js
-LAYOUTTESTS APIS: resources/chromium/nfc-mock.js
 LAYOUTTESTS APIS: resources/chromium/webxr-test.js
-LAYOUTTESTS APIS: web-nfc/NDEFReader-document-hidden-manual.https.html
-LAYOUTTESTS APIS: web-nfc/NDEFReader_scan.https.html
-LAYOUTTESTS APIS: web-nfc/NDEFWriter_write.https.html
 LAYOUTTESTS APIS: webxr/resources/webxr_util.js
 
 # Signed Exchange files have hard-coded URLs in the certUrl field
@@ -733,6 +728,7 @@ AHEM SYSTEM FONT: acid/acid3/test.html
 AHEM SYSTEM FONT: resource-timing/resources/all_resource_types.htm
 AHEM SYSTEM FONT: resource-timing/resources/iframe-reload-TAO.sub.html
 AHEM SYSTEM FONT: html/canvas/element/drawing-text-to-the-canvas/2d.text.measure.fontBoundingBox.ahem.html
+AHEM SYSTEM FONT: css/css-font-loading/fontface-override-descriptors.html
 
 # TODO: The following should be deleted along with the Ahem web font cleanup
 # PR (https://github.com/web-platform-tests/wpt/pull/18702)
@@ -744,7 +740,6 @@ TESTHARNESS-IN-OTHER-TYPE: html/canvas/element/manual/wide-gamut-canvas/imagedat
 TESTHARNESS-IN-OTHER-TYPE: css/CSS2/floats-clear/adjoining-float-new-fc-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/CSS2/floats/floats-saturated-position-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/CSS2/linebox/video-needs-layout-crash.html
-TESTHARNESS-IN-OTHER-TYPE: css/css-animations/keyframes-remove-documentElement-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/css-break/break-before-with-no-fragmentation-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/css-multicol/abspos-in-multicol-with-spanner-crash.html
 TESTHARNESS-IN-OTHER-TYPE: css/css-multicol/extremely-tall-multicol-with-extremely-tall-child-crash.html

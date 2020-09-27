@@ -245,28 +245,18 @@ class SelectorProtocolPart(ProtocolPart):
 
     name = "select"
 
-    def element_by_selector(self, element_selector, frame="window"):
-        elements = self.elements_by_selector_and_frame(element_selector, frame)
-        frame_name = "window"
-        if (frame != "window"):
-            frame_name = frame.id
+    def element_by_selector(self, element_selector):
+        elements = self.elements_by_selector(element_selector)
         if len(elements) == 0:
-            raise ValueError("Selector '%s' in frame '%s' matches no elements" % (element_selector, frame_name))
+            raise ValueError("Selector '%s' matches no elements" % (element_selector,))
         elif len(elements) > 1:
-            raise ValueError("Selector '%s' in frame '%s' matches multiple elements" % (element_selector, frame_name))
+            raise ValueError("Selector '%s' matches multiple elements" % (element_selector,))
         return elements[0]
 
     @abstractmethod
     def elements_by_selector(self, selector):
         """Select elements matching a CSS selector
 
-        :param str selector: The CSS selector
-        :returns: A list of protocol-specific handles to elements"""
-        pass
-
-    @abstractmethod
-    def elements_by_selector_and_frame(self, element_selector, frame):
-        """Select elements matching a CSS selector
         :param str selector: The CSS selector
         :returns: A list of protocol-specific handles to elements"""
         pass
@@ -360,6 +350,18 @@ class TestDriverProtocolPart(ProtocolPart):
         :param str status: Either "failure" or "success" depending on whether the
                            previous command succeeded.
         :param str message: Additional data to add to the message."""
+        pass
+
+    def switch_to_window(self, wptrunner_id):
+        """Switch to a window given a wptrunner window id
+
+        :param str wptrunner_id: window id"""
+        pass
+
+    def switch_to_frame(self, index):
+        """Switch to a frame in the current window
+
+        :param int index: Frame id"""
         pass
 
 

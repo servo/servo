@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta name=timeout content=long>
 <body>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
@@ -27,15 +28,19 @@ async_test(t => {
       expect_feature_available_default);
 }, header + ' allows workers in same-origin iframes.');
 
+// Set allow="serial" on iframe element to delegate 'serial' to cross origin
+// subframe.
 async_test(t => {
   test_feature_availability('serial.getPorts()', t, cross_origin_src,
-      expect_feature_available_default);
+      expect_feature_available_default, 'serial');
 }, header + ' allows cross-origin iframes.');
 
+// Set allow="serial" on iframe element to delegate 'serial' to cross origin
+// subframe.
 async_test(t => {
   test_feature_availability('serial.getPorts()', t,
       cross_origin_worker_frame_src,
-      expect_feature_available_default);
+      expect_feature_available_default, 'serial');
 }, header + ' allows workers in cross-origin iframes.');
 
 fetch_tests_from_worker(new Worker(

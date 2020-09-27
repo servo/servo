@@ -81,7 +81,7 @@ promise_test(() => {
       assert_equals(harness.status, 'ERROR');
       assert_equals(
         harness.message,
-        'Test named "null" inappropriately returned a value'
+        'Test named "null" passed a function to `test` that returned a value.'
       );
       assert_equals(tests.before, 'PASS');
       assert_equals(tests.null, 'PASS');
@@ -100,7 +100,7 @@ promise_test(() => {
       assert_equals(harness.status, 'ERROR');
       assert_equals(
         harness.message,
-        'Test named "object" inappropriately returned a value'
+        'Test named "object" passed a function to `test` that returned a value.'
       );
       assert_equals(tests.before, 'PASS');
       assert_equals(tests.object, 'PASS');
@@ -112,14 +112,15 @@ promise_test(() => {
   return makeTest(
       () => {
         test(() => undefined, 'before');
-        test(() => ({ then() {} }), 'thenable');
+        test(() => Promise.resolve(5), 'thenable');
         test(() => undefined, 'after');
       }
     ).then(({harness, tests}) => {
       assert_equals(harness.status, 'ERROR');
       assert_equals(
         harness.message,
-        'Test named "thenable" inappropriately returned a value, consider using `promise_test` instead'
+        'Test named "thenable" passed a function to `test` that returned a value. ' +
+        'Consider using `promise_test` instead when using Promises or async/await.'
       );
       assert_equals(tests.before, 'PASS');
       assert_equals(tests.thenable, 'PASS');
@@ -143,7 +144,7 @@ promise_test(() => {
       assert_equals(harness.status, 'ERROR');
       assert_equals(
         harness.message,
-        'Test named "restricted" inappropriately returned a value'
+        'Test named "restricted" passed a function to `test` that returned a value.'
       );
       assert_equals(tests.before, 'PASS');
       assert_equals(tests.restricted, 'PASS');
