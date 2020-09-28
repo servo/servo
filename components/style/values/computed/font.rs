@@ -35,6 +35,7 @@ use style_traits::{CssWriter, ParseError, ToCss};
 use to_shmem::{self, SharedMemoryBuilder, ToShmem};
 
 pub use crate::values::computed::Length as MozScriptMinSize;
+pub use crate::values::specified::Integer as SpecifiedInteger;
 pub use crate::values::specified::font::{FontSynthesis, MozScriptSizeMultiplier};
 pub use crate::values::specified::font::{XLang, XTextZoom};
 
@@ -823,7 +824,7 @@ impl ToComputedValue for specified::MathDepth {
         use std::{cmp, i8};
 
         let int = match *self {
-            specified::MathDepth::Auto => {
+            specified::MathDepth::AutoAdd => {
                 let parent = cx.builder.get_parent_font().clone_math_depth() as i32;
                 let style = cx.builder.get_parent_font().clone_math_style();
                 if style == MathStyleValue::Compact {
@@ -832,17 +833,18 @@ impl ToComputedValue for specified::MathDepth {
                     parent
                 }
             },
-            specified::MathDepth::Relative(rel) => {
+            specified::MathDepth::Add(rel) => {
                 let parent = cx.builder.get_parent_font().clone_math_depth();
-                parent as i32 + rel
+                parent as i32 + rel.to_computed_value(cx)
             },
-            specified::MathDepth::MozAbsolute(abs) => abs,
+            specified::MathDepth::Absolute(abs) => abs.to_computed_value(cx),
         };
         cmp::min(int, i8::MAX as i32) as i8
     }
 
     fn from_computed_value(other: &i8) -> Self {
-        specified::MathDepth::MozAbsolute(*other as i32)
+        let computed_value = *other as i32;
+        specified::MathDepth::Absolute(SpecifiedInteger::from_computed_value(&computed_value))
     }
 }
 

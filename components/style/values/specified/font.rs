@@ -2304,38 +2304,36 @@ impl Parse for MozScriptMinSize {
     }
 }
 
+/// A value for the `math-depth` property.
+/// https://mathml-refresh.github.io/mathml-core/#the-math-script-level-property
 #[cfg_attr(feature = "gecko", derive(MallocSizeOf))]
 #[derive(Clone, Copy, Debug, PartialEq, SpecifiedValueInfo, ToCss, ToShmem)]
-/// Changes the scriptlevel in effect for the children.
-/// Ref: https://wiki.mozilla.org/MathML:mstyle
-///
-/// The main effect of scriptlevel is to control the font size.
-/// https://www.w3.org/TR/MathML3/chapter3.html#presm.scriptlevel
 pub enum MathDepth {
-    /// Change `font-size` relatively.
-    Relative(i32),
-    /// Change `font-size` absolutely.
-    ///
-    /// Should only be serialized by presentation attributes, so even though
-    /// serialization for this would look the same as for the `Relative`
-    /// variant, it is unexposed, so no big deal.
+    /// Increment math-depth if math-style is compact.
+    AutoAdd,
+
+    /// Add the function's argument to math-depth.
     #[css(function)]
-    MozAbsolute(i32),
-    /// Change `font-size` automatically.
-    Auto,
+    Add(Integer),
+
+    /// Set math-depth to the specified value.
+    Absolute(Integer),
 }
 
 impl Parse for MathDepth {
     fn parse<'i, 't>(
-        _: &ParserContext,
+        context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<MathDepth, ParseError<'i>> {
-        // We don't bother to handle calc here.
-        if let Ok(i) = input.try_parse(|i| i.expect_integer()) {
-            return Ok(MathDepth::Relative(i));
+        if input.try_parse(|i| i.expect_ident_matching("auto-add")).is_ok() {
+            return Ok(MathDepth::AutoAdd);
         }
-        input.expect_ident_matching("auto")?;
-        Ok(MathDepth::Auto)
+        if let Ok(math_depth_value) = input.try_parse(|input| Integer::parse(context, input)) {
+            return Ok(MathDepth::Absolute(math_depth_value));
+        }
+        input.expect_function_matching("add")?;
+        let math_depth_delta_value = input.parse_nested_block(|input| Integer::parse(context, input))?;
+        Ok(MathDepth::Add(math_depth_delta_value))
     }
 }
 
