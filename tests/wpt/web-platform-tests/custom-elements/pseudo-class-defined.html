@@ -96,14 +96,17 @@ test(function () {
     var log = [];
     var instance = document.createElement('my-custom-element-2');
     document.body.appendChild(instance);
+    assert_false(instance.matches(":defined"), "Prior to definition, instance should not match :defined");
     customElements.define('my-custom-element-2',class extends HTMLElement {
         constructor() {
+            assert_false(instance.matches(":defined"), "During construction, prior to super(), instance should not match :defined");
             super();
             log.push([this, 'begin']);
-            assert_false(this.matches(":defined"), "During construction, this should not match :defined");
+            assert_false(this.matches(":defined"), "During construction, after super(), this should not match :defined");
             log.push([this, 'end']);
         }
     });
+    assert_true(instance.matches(":defined"), "After construction, instance should match :defined");
     assert_equals(log.length, 2);
     assert_array_equals(log[0], [instance, 'begin']);
     assert_array_equals(log[1], [instance, 'end']);

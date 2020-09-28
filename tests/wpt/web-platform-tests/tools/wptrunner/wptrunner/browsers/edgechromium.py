@@ -39,7 +39,7 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
     executor_kwargs["supports_eager_pageload"] = False
 
     capabilities = {
-        "goog:chromeOptions": {
+        "ms:edgeOptions": {
             "prefs": {
                 "profile": {
                     "default_content_setting_values": {
@@ -58,13 +58,13 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
 
     for (kwarg, capability) in [("binary", "binary"), ("binary_args", "args")]:
         if kwargs[kwarg] is not None:
-            capabilities["goog:chromeOptions"][capability] = kwargs[kwarg]
+            capabilities["ms:edgeOptions"][capability] = kwargs[kwarg]
 
     if kwargs["headless"]:
-        if "args" not in capabilities["goog:chromeOptions"]:
-            capabilities["goog:chromeOptions"]["args"] = []
-        if "--headless" not in capabilities["goog:chromeOptions"]["args"]:
-            capabilities["goog:chromeOptions"]["args"].append("--headless")
+        if "args" not in capabilities["ms:edgeOptions"]:
+            capabilities["ms:edgeOptions"]["args"] = []
+        if "--headless" not in capabilities["ms:edgeOptions"]["args"]:
+            capabilities["ms:edgeOptions"]["args"].append("--headless")
 
     executor_kwargs["capabilities"] = capabilities
 

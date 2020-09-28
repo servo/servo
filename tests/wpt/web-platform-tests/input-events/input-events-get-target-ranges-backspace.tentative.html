@@ -163,6 +163,21 @@ function checkBeforeinputAndInputEventsOnNOOP() {
       "input event shouldn't be fired when the key operation does not cause modifying the DOM tree");
 }
 
+promise_test(async () => {
+  reset();
+  editor.innerHTML = "<p>abc</p>";
+  selection.collapse(editor.firstChild.firstChild, 0);
+  await sendBackspaceKey();
+  assert_equals(editor.innerHTML, "<p>abc</p>");
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: editor.firstChild.firstChild,
+    startOffset: 0,
+    endContainer: editor.firstChild.firstChild,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDoNothing();
+}, 'Backspace at "<p>[]abc</p>"');
+
 // Simply deletes the previous ASCII character of caret position.
 promise_test(async () => {
   reset();

@@ -211,6 +211,54 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Delete at "<p>[]abc</p>"');
 
+promise_test(async () => {
+  reset();
+  editor.innerHTML = "<p>abc</p>";
+  let abc = editor.querySelector("p").firstChild;
+  selection.collapse(abc, 3);
+  await sendDeleteKey();
+  assert_equals(editor.innerHTML, "<p>abc</p>");
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: abc,
+    endOffset: 3,
+  });
+  checkGetTargetRangesOfInputOnDoNothing();
+}, 'Delete at "<p>abc[]</p>"');
+
+promise_test(async () => {
+  reset();
+  editor.innerHTML = "<p>abc<br></p>";
+  let abc = editor.querySelector("p").firstChild;
+  selection.collapse(abc, 3);
+  await sendDeleteKey();
+  assert_equals(editor.innerHTML, "<p>abc<br></p>");
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: abc,
+    startOffset: 3,
+    endContainer: abc,
+    endOffset: 3,
+  });
+  checkGetTargetRangesOfInputOnDoNothing();
+}, 'Delete at "<p>abc[]<br></p>"');
+
+promise_test(async () => {
+  reset();
+  editor.innerHTML = `<p><img src="${kImgSrc}"><br></p>`;
+  let p = editor.querySelector("p");
+  selection.collapse(p, 1);
+  await sendDeleteKey();
+  assert_equals(editor.innerHTML, `<p><img src="${kImgSrc}"><br></p>`);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: p,
+    startOffset: 1,
+    endContainer: p,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDoNothing();
+}, 'Delete at "<p><img>[]<br></p>"');
+
 // Should delete the `<span>` element because it becomes empty.
 // However, we need discussion whether the `<span>` element should be
 // contained by a range of `getTargetRanges()`.
@@ -565,6 +613,25 @@ promise_test(async () => {
   });
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Delete at "<p>abc[]<br></p><p>def</p>"');
+
+promise_test(async () => {
+  reset();
+  editor.innerHTML = `<p><img src="${kImgSrc}"><br></p><p>def</p>`;
+  let p1 = editor.firstChild;
+  let img = p1.firstChild;
+  let p2 = p1.nextSibling;
+  let def = p2.firstChild;
+  selection.collapse(p1, 1);
+  await sendDeleteKey();
+  assert_equals(editor.innerHTML, `<p><img src="${kImgSrc}">def</p>`);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: p1,
+    startOffset: 1,
+    endContainer: def,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, `Delete at "<p><img>{}<br></p><p>def</p>"`);
 
 promise_test(async () => {
   reset();
@@ -943,6 +1010,23 @@ promise_test(async () => {
 
 promise_test(async () => {
   reset();
+  editor.innerHTML = `<div><img src="${kImgSrc}"><br><hr>def</div>`;
+  let div = editor.querySelector("div");
+  let img = div.firstChild;
+  selection.collapse(div, 1);
+  await sendDeleteKey();
+  assert_equals(editor.innerHTML, `<div><img src="${kImgSrc}">def</div>`);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: div,
+    startOffset: 1,
+    endContainer: div,
+    endOffset: 3,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<div><img>{}<br><hr>def</div>"');
+
+promise_test(async () => {
+  reset();
   editor.innerHTML = `<div>abc<hr>def</div>`;
   let div = editor.querySelector("div");
   let abc = div.firstChild;
@@ -1069,6 +1153,46 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Delete at "<div>abc[<p>]def<br>ghi</p></div>"');
 
+promise_test(async () => {
+  reset();
+  editor.innerHTML = "<div>abc<br><p>def<br>ghi</p></div>";
+  let div = editor.firstChild;
+  let p = editor.querySelector("p");
+  let def = p.firstChild;
+  let abc = div.firstChild;
+  selection.collapse(abc, 3);
+  await sendDeleteKey();
+  assert_in_array(editor.innerHTML, ["<div>abcdef<p>ghi</p></div>",
+                                     "<div>abcdef<br><p>ghi</p></div>"]);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: div,
+    startOffset: 1,
+    endContainer: def,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<div>abc[]<br><p>def<br>ghi</p></div>"');
+
+promise_test(async () => {
+  reset();
+  editor.innerHTML = `<div><img src="${kImgSrc}"><br><p>def<br>ghi</p></div>`;
+  let div = editor.firstChild;
+  let p = editor.querySelector("p");
+  let def = p.firstChild;
+  let abc = div.firstChild;
+  selection.collapse(div, 1);
+  await sendDeleteKey();
+  assert_in_array(editor.innerHTML, [`<div><img src="${kImgSrc}">def<p>ghi</p></div>`,
+                                     `<div><img src="${kImgSrc}">def<br><p>ghi</p></div>`]);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: div,
+    startOffset: 1,
+    endContainer: def,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<div><img>{}<br><p>def<br>ghi</p></div>"');
+
 // Joining parent block and child block should remove invisible preceding
 // white-spaces of the child block and invisible leading white-spaces in
 // the child block, and they should be contained in a range of
@@ -1181,6 +1305,44 @@ promise_test(async () => {
   });
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Delete at "<div><p>abc[]</p>def</div>"');
+
+promise_test(async () => {
+  reset();
+  editor.innerHTML = "<div><p>abc<br></p>def</div>";
+  let p = editor.querySelector("p");
+  let abc = p.firstChild;
+  let def = p.nextSibling;
+  selection.collapse(abc, 3);
+  await sendDeleteKey();
+  assert_in_array(editor.innerHTML, ["<div><p>abcdef</p></div>",
+                                     "<div><p>abcdef<br></p></div>"]);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: p,
+    startOffset: 1,
+    endContainer: def,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<div><p>abc[]<br></p>def</div>"');
+
+promise_test(async () => {
+  reset();
+  editor.innerHTML = `<div><p><img src="${kImgSrc}"><br></p>def</div>`;
+  let p = editor.querySelector("p");
+  let abc = p.firstChild;
+  let def = p.nextSibling;
+  selection.collapse(p, 1);
+  await sendDeleteKey();
+  assert_in_array(editor.innerHTML, [`<div><p><img src="${kImgSrc}">def</p></div>`,
+                                     `<div><p><img src="${kImgSrc}">def<br></p></div>`]);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: p,
+    startOffset: 1,
+    endContainer: def,
+    endOffset: 0,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<div><p><img>{}<br></p>def</div>"');
 
 promise_test(async () => {
   reset();

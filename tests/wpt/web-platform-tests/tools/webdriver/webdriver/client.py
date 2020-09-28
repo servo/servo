@@ -244,10 +244,6 @@ class Actions(object):
         """
         body = {"actions": [] if actions is None else actions}
         actions = self.session.send_session_command("POST", "actions", body)
-        """WebDriver window should be set to the top level window when wptrunner
-        processes the next event.
-        """
-        self.session.switch_frame(None)
         return actions
 
     @command
@@ -347,9 +343,7 @@ class Find(object):
         self.session = session
 
     @command
-    def css(self, element_selector, all=True, frame="window"):
-        if (frame != "window"):
-            self.session.switch_frame(frame)
+    def css(self, element_selector, all=True):
         elements = self._find_element("css selector", element_selector, all)
         return elements
 

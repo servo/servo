@@ -118,6 +118,9 @@ enum XREye {
   readonly attribute XREye eye;
   readonly attribute Float32Array projectionMatrix;
   [SameObject] readonly attribute XRRigidTransform transform;
+  readonly attribute double? recommendedViewportScale;
+
+  undefined requestViewportScale(double? scale);
 };
 
 [SecureContext, Exposed=Window] interface XRViewport {
