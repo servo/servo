@@ -4,9 +4,9 @@
 // Source: Scalable Video Coding (SVC) Extension for WebRTC (https://w3c.github.io/webrtc-svc/)
 
 partial dictionary RTCRtpEncodingParameters {
-             DOMString           scalabilityMode;
+             DOMString scalabilityMode;
 };
 
 partial dictionary RTCRtpCodecCapability {
-             sequence<DOMString>           scalabilityModes;
+             sequence<DOMString> scalabilityModes;
 };

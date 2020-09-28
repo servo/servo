@@ -14,6 +14,9 @@ dictionary FontFaceDescriptors {
   CSSOMString featureSettings = "normal";
   CSSOMString variationSettings = "normal";
   CSSOMString display = "auto";
+  CSSOMString ascentOverride = "normal";
+  CSSOMString descentOverride = "normal";
+  CSSOMString lineGapOverride = "normal";
 };
 
 enum FontFaceLoadStatus { "unloaded", "loading", "loaded", "error" };
@@ -31,6 +34,9 @@ interface FontFace {
   attribute CSSOMString featureSettings;
   attribute CSSOMString variationSettings;
   attribute CSSOMString display;
+  attribute CSSOMString ascentOverride;
+  attribute CSSOMString descentOverride;
+  attribute CSSOMString lineGapOverride;
 
   readonly attribute FontFaceLoadStatus status;
 

@@ -1,5 +1,6 @@
 from tests.support.asserts import assert_success
 from tests.support.inline import inline
+from tests.support.sync import Poll
 
 
 def element_click(session, element):
@@ -92,7 +93,34 @@ def test_link_hash(session):
             """, args=(element,)) is True
 
 
-def test_link_closes_window(session, url):
+def test_link_open_target_in_new_window(session, url):
+    orig_handles = session.handles
+
+    session.url = inline("""
+        <a href="{}" target="_blank">Open in new window</a>
+    """.format(inline("<p id=foo")))
+    element = session.find.css("a", all=False)
+
+    response = element_click(session, element)
+    assert_success(response)
+
+    def find_new_handle(session):
+        new_handles = list(set(session.handles) - set(orig_handles))
+        if new_handles and len(new_handles) == 1:
+            return new_handles[0]
+        return None
+
+    wait = Poll(
+        session,
+        timeout=5,
+        message="No new window has been opened")
+    new_handle = wait.until(find_new_handle)
+
+    session.window_handle = new_handle
+    session.find.css("#foo")
+
+
+def test_link_closes_window(session):
     new_handle = session.new_window()
     session.window_handle = new_handle
 
