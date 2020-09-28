@@ -1,0 +1,57 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Serial API (https://wicg.github.io/serial/)
+
+[Exposed=Window, SecureContext]
+partial interface Navigator {
+  [SameObject] readonly attribute Serial serial;
+};
+
+[Exposed=DedicatedWorker, SecureContext]
+partial interface WorkerNavigator {
+  [SameObject] readonly attribute Serial serial;
+};
+
+[Exposed=(DedicatedWorker, Window), SecureContext]
+interface Serial : EventTarget {
+  attribute EventHandler onconnect;
+  attribute EventHandler ondisconnect;
+  Promise<sequence<SerialPort>> getPorts();
+  [Exposed=Window] Promise<SerialPort> requestPort(optional SerialOptions options = {});
+};
+
+[Exposed=(DedicatedWorker,Window), SecureContext]
+interface SerialPort {
+  Promise<void> open(optional SerialOptions options = {});
+  readonly attribute ReadableStream in;
+  readonly attribute WritableStream out;
+  SerialPortInfo getInfo();
+};
+
+[Exposed=(DedicatedWorker,Window), SecureContext]
+interface SerialPortInfo {
+  maplike<DOMString, DOMString?>;
+};
+
+dictionary SerialOptions {
+  long baudRate = 9600;
+  octet dataBits = 8;
+  octet stopBits = 1;
+  ParityType parity = "none";
+  long bufferSize = 255;
+  FlowControlType flowControl = "none";
+};
+
+enum ParityType {
+  "none",
+  "even",
+  "odd",
+  "mark",
+  "space"
+};
+
+enum FlowControlType {
+  "none",
+  "hardware"
+};
