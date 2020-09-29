@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selection.modify() tests</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+
+<div>Test, these are <strong id="strong"> strong </strong> <em id="em"> italic </em> normal.</div>
+
+<script>
+const selection = getSelection();
+test(() => {
+  selection.collapse(strong.childNodes[0], 4);
+  selection.modify("extend", "backward", "word")
+  assert_equals(selection.focusNode, strong.childNodes[0]);
+  assert_equals(selection.focusOffset, 1);
+  selection.collapse(em.childNodes[0], 4);
+  selection.modify("extend", "backward", "word")
+  assert_equals(selection.focusNode, em.childNodes[0]);
+  assert_equals(selection.focusOffset, 1);
+}, "Stop at previous word boundary when whitespaces are trimmed");
+</script>

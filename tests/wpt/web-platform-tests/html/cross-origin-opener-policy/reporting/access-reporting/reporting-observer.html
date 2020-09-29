@@ -186,7 +186,6 @@ promise_test(async t => {
   send(opener_iframe_token, `tryAccess(openee);`);
 
   let reports = await receive(this_window_token);
-  assert_not_equals(reports, "timeout", "No report received.");
   reports = JSON.parse(reports);
   assert_equals(reports.length, 1, "No report received.");
   assert_equals(reports[0].type, "coop-access-violation");
@@ -248,7 +247,7 @@ promise_test(async t => {
   //    from the main document aren't notified.
   send(opener_iframe_token, `tryAccess(openee);`);
 
-  let reports = await receive(this_window_token);
+  let reports = await receive(this_window_token, 2000);
   assert_equals(reports, "timeout", "Unexpected report received.");
 }, "Access from cross-site iframe")
 

@@ -7,7 +7,7 @@
 'use strict';
 
 idl_test(
-  ['shape-detection-api', 'text-detection-api.tentative'],
+  ['shape-detection-api', 'text-detection-api'],
   ['dom', 'geometry'],
   async idl_array => {
     idl_array.add_objects({

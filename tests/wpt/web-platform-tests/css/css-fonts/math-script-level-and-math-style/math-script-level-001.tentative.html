@@ -34,6 +34,18 @@
               assert_equals(mathDepth("specifiedAdd10From5"), "15");
               assert_equals(mathDepth("specifiedAdd-15From5"), "-10");
           }, "Specified math-depth: add(<integer>)");
+          test(function() {
+              assert_equals(mathDepth("invalidKeywordFrom3"), "3");
+              assert_equals(mathDepth("invalidFloatFrom3"), "3");
+              assert_equals(mathDepth("invalidCalcFrom3"), "3");
+              assert_equals(mathDepth("invalidAddCalcFrom3"), "3");
+              assert_equals(mathDepth("invalidAddFloatFrom3"), "3");
+          }, "Specified math-depth: invalid expressions");
+          test(function() {
+              const cssVariable = 3;
+              assert_equals(mathDepth("specifiedCalcFrom9"), `${Math.round(cssVariable/2)+10}`);
+              assert_equals(mathDepth("specifiedAddCalcFrom9"), `${9+(3*4-5)}`);
+          }, "Specified math-depth: calc() expressions");
           done();
       });
     </script>
@@ -59,6 +71,17 @@
     <div style="math-depth: 5">
       <div id="specifiedAdd10From5" style="math-depth: add(10)"></div>
       <div id="specifiedAdd-15From5" style="math-depth: add(-15)"></div>
+    </div>
+    <div style="math-depth: 3;">
+      <div id="invalidKeywordFrom3" style="math-depth: auto"></div>
+      <div id="invalidFloatFrom3" style="math-depth: 3.14"></div>
+      <div id="invalidCalcFrom3" style="math-depth: 1,2"></div>
+      <div id="invalidAddCalcFrom3" style="math-depth: add(3,4)"></div>
+      <div id="invalidAddFloatFrom3" style="math-depth: add(3.14)"></div>
+    </div>
+    <div style="math-depth: 9;">
+      <div id="specifiedCalcFrom9" style="--css-variable: 3; math-depth: calc(var(--css-variable)/2 + 10)"></div>
+      <div id="specifiedAddCalcFrom9" style="math-depth: add(calc(3*4 - 5))"></div>
     </div>
   </body>
 </html>

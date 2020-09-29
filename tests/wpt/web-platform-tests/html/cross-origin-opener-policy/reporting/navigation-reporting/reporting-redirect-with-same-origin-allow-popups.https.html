@@ -101,7 +101,6 @@ function redirect_test( popup_origin ) {
     let report = await receiveReport(
         opener_report_token,
         "navigation-to-response");
-    assert_not_equals(report, "timeout", "Report not received");
     assert_equals(report.type, "coop");
     assert_equals(report.body.disposition, "enforce");
     assert_equals(report.body.effectivePolicy, "same-origin-allow-popups");

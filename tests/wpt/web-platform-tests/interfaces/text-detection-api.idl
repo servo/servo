@@ -1,13 +1,13 @@
-// Content was manually copied April 1 2020
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
 // Source: Accelerated Text Detection in Images (https://wicg.github.io/shape-detection-api/text.html)
-// This is currently a sister informative spec of Shape Detection API,
-// so it could not be merged into /interfaces/shape-detection-api.idl
 
 [
-    Constructor,
     Exposed=(Window,Worker),
     SecureContext
 ] interface TextDetector {
+    constructor();
     Promise<sequence<DetectedText>> detect(ImageBitmapSource image);
 };
 
