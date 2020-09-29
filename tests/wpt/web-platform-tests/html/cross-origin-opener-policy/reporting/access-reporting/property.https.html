@@ -58,7 +58,6 @@ origin.forEach(([origin_name, origin]) => {
 
       // 3. Check a reports is sent to the opener.
       let report = await receiveReport(report_token, "access-to-coop-page")
-      assert_not_equals(report, "timeout", "Report not received");
       assert_equals(report.body.property, property);
 
     }, `${origin_name} > ${op}`);

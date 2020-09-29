@@ -1,18 +1,30 @@
 <!doctype html>
 <meta charset=utf-8>
-<title>Control charcters must be visible: U+000D</title>
+<title>U+000D must be treated the same as U+0020</title>
 <link rel=author title="Florian Rivoal" href="https://florian.rivoal.net">
 <link rel=help href="https://drafts.csswg.org/css-text-3/#white-space-processing">
-<link rel=mismatch href="reference/control-chars-000-ref.html">
+<link rel=match href="reference/control-chars-00D-ref.html">
 <meta name=flags content="">
-<meta name=assert content="U+000D, which is in the unicode category CC, must be visible">
+<meta name=assert content="U+000D must be treated as U+0020">
 <style>
 div {
-  font-size: 4em;
+  font-size: 2em;
+  font-family: monospace;
+  color: blue;
+  width: 4ch;
 }
-div::after { content: "\000D" } /* Injecting via CSS, to avoid any mangling by the html parser */
+#ref {
+    color: orange;
+}
+.p {white-space: pre;}
+.pw {white-space: pre-wrap;}
+.pl {white-space: pre-line;}
+.bs {white-space: break-spaces;}
+.nw {white-space: nowrap;}
 </style>
 
-<p>Test passes if there is a visible character below.
+<p>Test passes if blue charaters are arranged exactly in the same way as the orange ones.
 
-<div></div>
+<div>A&#x0D;&#x0D;&#x0D;&#x0D;&#x0D;&#x0D;B&#x0D;C<span class=p>&#x0D;&#x0D;&#x0D;</span>D<span class=pw>&#x0D;&#x0D;&#x0D;</span>E<span class=pl>&#x0D;&#x0D;&#x0D;&#x0D;&#x0D;&#x0D;</span>F<span class=bs>&#x0D;&#x0D;&#x0D;</span>G<span class=nw>&#x0D;&#x0D;&#x0D;&#x0D;&#x0D;</span>H</div>
+
+<div id=ref>A      B C<span class=p>   </span>D<span class=pw>   </span>E<span class=pl>      </span>F<span class=bs>   </span>G<span class=nw>     </span>H</div>

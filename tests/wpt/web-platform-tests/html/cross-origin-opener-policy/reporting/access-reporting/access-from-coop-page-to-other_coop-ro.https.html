@@ -75,7 +75,6 @@ promise_test(async t => {
   // 6. Check a report is sent to the openee.
   let report =
     await receiveReport(report_token, "access-from-coop-page-to-other")
-  assert_not_equals(report, "timeout", "Report not received");
   assert_equals(report.type, "coop");
   assert_equals(report.url, opener_url.replace(/"/g, '%22'));
   assert_equals(report.body.disposition, "reporting");
