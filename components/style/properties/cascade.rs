@@ -385,6 +385,8 @@ fn tweak_when_ignoring_colors(
     declaration: &mut Cow<PropertyDeclaration>,
     declarations_to_apply_unless_overriden: &mut DeclarationsToApplyUnlessOverriden,
 ) {
+    use crate::values::specified::Color;
+
     if !longhand_id.ignored_when_document_colors_disabled() {
         return;
     }
@@ -401,21 +403,53 @@ fn tweak_when_ignoring_colors(
         return;
     }
 
+    fn alpha_channel(color: &Color) -> u8 {
+        match *color {
+            // Seems safe enough to assume that the default color and system
+            // colors are opaque in HCM, though maybe we shouldn't asume the
+            // later?
+            #[cfg(feature = "gecko")]
+            Color::InheritFromBodyQuirk | Color::System(..) => 255,
+            // We don't have the actual color here, but since except for color:
+            // transparent we force opaque text colors, it seems sane to do
+            // this. You can technically fool this bit of code with:
+            //
+            //   color: transparent; background-color: currentcolor;
+            //
+            // but this is best-effort, and that seems unlikely to happen in
+            // practice.
+            Color::CurrentColor => 255,
+            // Complex colors are results of interpolation only and probably
+            // shouldn't show up around here in HCM, but we've always treated
+            // them as opaque effectively so keep doing it.
+            Color::Complex { .. } => 255,
+            Color::Numeric { ref parsed, .. } => parsed.alpha,
+        }
+    }
+
     // A few special-cases ahead.
     match **declaration {
-        // We honor color and background-color: transparent, and
-        // "revert-or-initial" otherwise.
         PropertyDeclaration::BackgroundColor(ref color) => {
-            if !color.is_transparent() {
-                let color = builder.device.default_background_color();
+            // For background-color, we revert or initial-with-preserved-alpha
+            // otherwise, this is needed to preserve semi-transparent
+            // backgrounds.
+            //
+            // FIXME(emilio, bug 1666059): We revert for alpha == 0, but maybe
+            // should consider not doing that even if it causes some issues like
+            // bug 1625036, or finding a performant way to preserve the original
+            // widget background color's rgb channels but not alpha...
+            let alpha = alpha_channel(color);
+            if alpha != 0 {
+                let mut color = builder.device.default_background_color();
+                color.alpha = alpha;
                 declarations_to_apply_unless_overriden.push(
                     PropertyDeclaration::BackgroundColor(color.into())
                 )
             }
         }
         PropertyDeclaration::Color(ref color) => {
-            // otherwise.
-            if color.0.is_transparent() {
+            // We honor color: transparent, and "revert-or-initial" otherwise.
+            if alpha_channel(&color.0) == 0 {
                 return;
             }
             // If the inherited color would be transparent, but we would
