@@ -12,6 +12,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/mathml/support/feature-detection.js"></script>
+<script src="/mathml/support/feature-detection-operators.js"></script>
 <script src="/mathml/support/operator-dictionary.js"></script>
 <script src="./support/operator-dictionary-tests.js"></script>
 <link rel="stylesheet" href="./support/operator-dictionary-tests.css"/>
@@ -20,7 +21,7 @@
   window.addEventListener("load", () => { document.fonts.ready.then(runTests); });
   async function runTests() {
       let json = await fetchOperatorDictionary();
-      OperatorDictionaryTests.run(json, "largeop", 3);
+      await OperatorDictionaryTests.run(json, "largeop", 3);
       done();
   }
 </script>

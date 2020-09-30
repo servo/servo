@@ -326,7 +326,10 @@ def test_tests_affected_idlharness(capsys, manifest_dir):
         wpt.main(argv=["tests-affected", "--metadata", manifest_dir, "%s~..%s" % (commit, commit)])
     assert excinfo.value.code == 0
     out, err = capsys.readouterr()
-    assert "webrtc-identity/idlharness.https.window.js\nwebrtc-stats/idlharness.window.js\nwebrtc/idlharness.https.window.js\n" == out
+    assert ("webrtc-identity/idlharness.https.window.js\n" +
+            "webrtc-insertable-streams/idlharness.https.window.js\n" +
+            "webrtc-stats/idlharness.window.js\n" +
+            "webrtc/idlharness.https.window.js\n") == out
 
 
 @pytest.mark.slow  # this updates the manifest

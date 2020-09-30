@@ -1,9 +1,31 @@
 def main(request, response):
     """Send a response with the Origin-Isolation header given in the "header"
-    query parameter, or no header if that is not provided. In either case, the
-    response will listen for message and messageerror events and echo them back
-    to the parent. See ./helpers.mjs for how these handlers are used.
+    query parameter, or no header if that is not provided. Other query
+    parameters (only their presence/absence matters) are "send-loaded-message"
+    and "redirect-first", which modify the behavior a bit.
+
+    In either case, the response will listen for various messages posted and
+    coordinate with the sender. See ./helpers.mjs for how these handlers are
+    used.
     """
+
+    if b"redirect-first" in request.GET:
+      # Create a new query string, which is the same as the one we're given but
+      # with the redirect-first component stripped out. This allows tests to use
+      # any value (or no value) for the other query params, in combination with
+      # redirect-first.
+      query_string_pieces = []
+      if b"header" in request.GET:
+        query_string_pieces.append(b"header=" + request.GET.first(b"header"))
+      if b"send-loaded-message" in request.GET:
+        query_string_pieces.append(b"send-loaded-message")
+      query_string = "?" + "&".join(query_string_pieces)
+
+      return (
+        302,
+        [(b"Location", b"/origin-isolation/resources/send-origin-isolation-header.py" + query_string)],
+        u""
+      )
 
     if b"header" in request.GET:
       header = request.GET.first(b"header")
