@@ -6,11 +6,15 @@
  * @param {string} host - The host used to calculate the iframe's src=""
  * @param {string=} header - The value of the Origin-Isolation header that the
  *   iframe will set. Omit this to set no header.
+ * @param {object=} options - Rarely-used options.
+ * @param {boolean=} options.redirectFirst - Whether to do a 302 redirect first
+ *   before arriving at the isolated page. The redirecting page will not set
+ *   the Origin-Isolation header.
  * @returns {HTMLIFrameElement} The created iframe element
  */
-export async function insertIframe(host, header) {
+export async function insertIframe(host, header, { redirectFirst = false } = {}) {
   const iframe = document.createElement("iframe");
-  const navigatePromise = navigateIframe(iframe, host, header);
+  const navigatePromise = navigateIframe(iframe, host, header, { redirectFirst });
   document.body.append(iframe);
   await navigatePromise;
   await setBothDocumentDomains(iframe.contentWindow);
@@ -24,11 +28,15 @@ export async function insertIframe(host, header) {
  * @param {string} host - The host to calculate the iframe's new src=""
  * @param {string=} header - The value of the Origin-Isolation header that the
  *   newly-navigated-to page will set. Omit this to set no header.
+ * @param {object=} options - Rarely-used options.
+ * @param {boolean=} options.redirectFirst - Whether to do a 302 redirect first
+ *   before arriving at the isolated page. The redirecting page will not set
+ *   the Origin-Isolation header.
  * @returns {Promise} a promise fulfilled when the load event fires, or rejected
  *   if the error event fires
  */
-export function navigateIframe(iframeEl, host, header) {
-  const url = getSendHeaderURL(host, header);
+export function navigateIframe(iframeEl, host, header, { redirectFirst = false } = {}) {
+  const url = getSendHeaderURL(host, header, { redirectFirst });
 
   const waitPromise = waitForIframe(iframeEl, url);
   iframeEl.src = url;
@@ -324,7 +332,7 @@ async function accessOriginIsolated(frameWindow) {
   return waitForMessage(frameWindow);
 }
 
-function getSendHeaderURL(host, header, { sendLoadedMessage = false } = {}) {
+function getSendHeaderURL(host, header, { sendLoadedMessage = false, redirectFirst = false } = {}) {
   const url = new URL("send-origin-isolation-header.py", import.meta.url);
   url.host = host;
   if (header !== undefined) {
@@ -332,6 +340,9 @@ function getSendHeaderURL(host, header, { sendLoadedMessage = false } = {}) {
   }
   if (sendLoadedMessage) {
     url.searchParams.set("send-loaded-message", "");
+  }
+  if (redirectFirst) {
+    url.searchParams.set("redirect-first", "");
   }
 
   return url.href;

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<title>CSS Text Decoration Test: text-decoration-style: dashed invalidation on style change</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/">
+<meta name="assert" content="text-decoration-style: dashed should be correctly invalidated on style change.">
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="match" href="reference/text-decoration-invalidation-dashed-ref.html">
+<style>
+    div {
+        display: block;
+        margin-top: 30px;
+        margin-bottom: 30px;
+        will-change: transform;
+    }
+    .underline {
+        text-decoration-line: underline;
+        text-decoration-color: green;
+        text-decoration-style: dashed;
+        text-decoration-thickness: 5px;
+    }
+    .overline {
+        text-decoration-line: overline;
+        text-decoration-color: green;
+        text-decoration-style: dashed;
+        text-decoration-thickness: 5px;
+    }
+    .throughline {
+        text-decoration-line: line-through;
+        text-decoration-color: green;
+        text-decoration-style: dashed;
+        text-decoration-thickness: 5px;
+    }
+</style>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+</head>
+<body>
+<div id="top-underline-div" class="underline">
+There should be no sign of an underline when the test completes.
+</div>
+<div id="bottom-underline-div" >
+There should be a 5px green dashed underline when the test completes.
+</div>
+<div id="top-overline-div" class="overline">
+There should be no sign of an overline when the test completes.
+</div>
+<div id="bottom-overline-div" >
+There should be a 5px green dashed overline when the test completes.
+</div>
+<div id="top-throughline-div" class="throughline">
+There should be no sign of an through-line when the test completes.
+</div>
+<div id="bottom-throughline-div" >
+There should be a 5px green dashed through-line when the test completes.
+</div>
+</body>
+<script>
+async function runTest() {
+  document.getElementById('top-underline-div').classList.remove("underline");
+  document.getElementById('bottom-underline-div').classList.add("underline");
+  document.getElementById('top-overline-div').classList.remove("overline");
+  document.getElementById('bottom-overline-div').classList.add("overline");
+  document.getElementById('top-throughline-div').classList.remove("throughline");
+  document.getElementById('bottom-throughline-div').classList.add("throughline");
+  takeScreenshot();
+}
+onload = () => {
+  waitForAtLeastOneFrame().then(() => { runTest() });
+}
+</script>
+</html>

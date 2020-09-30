@@ -69,7 +69,7 @@ async_test((t) => {
       t.step(() => assert_equals(getComputedStyle(offscreen_container).contain, "size layout style paint", "frame 2 offscreen"));
 
       requestAnimationFrame(() => {
-        offscreen_container.scrollIntoView();
+        window.scrollBy(0, 10000);
 
         // Frame 3 checks:
         t.step(() => assert_equals(getComputedStyle(offscreen_container).contain, "size layout style paint", "frame 3"));

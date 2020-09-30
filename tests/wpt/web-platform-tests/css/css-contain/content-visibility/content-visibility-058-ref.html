@@ -35,7 +35,7 @@
 </style>
 
 <div class=spacer></div>
-<div id=container class="container size_contained">
+<div id=container class="container">
   <div class=child></div>
   <div id=target></div>
 </div>
@@ -45,7 +45,6 @@
 
 function runReference() {
   document.getElementById("target").scrollIntoView(true /* alignToTop */);
-  document.getElementById("container").classList.remove("size_contained");
   requestAnimationFrame(takeScreenshot);
 }
 
