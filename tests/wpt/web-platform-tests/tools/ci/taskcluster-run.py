@@ -20,6 +20,8 @@ def get_browser_args(product, channel):
         return ["--install-browser", "--processes=12"]
     if product == "chrome" and channel == "nightly":
         return ["--install-browser", "--install-webdriver"]
+    if product == "webkitgtk_minibrowser":
+        return ["--install-browser"]
     return []
 
 

@@ -47,6 +47,9 @@ let runTest = (openee_redirect, name) => promise_test(async t => {
   assert_equals(report.body.effectivePolicy, "same-origin-plus-coep");
   assert_equals(report.body.property, "blur");
   assert_source_location_found(report);
+  assert_equals(report.body.openerURL, "");
+  assert_equals(report.body.openeeURL, undefined);
+  assert_equals(report.body.otherDocumentURL, undefined);
 }, name);
 
 runTest(false, "access-from-coop-page-to-opener, cross-origin");

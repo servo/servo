@@ -7,7 +7,7 @@ tasks:
     run_task:
       $if: 'tasks_for == "github-push"'
       then:
-        $if: 'event.ref in ["refs/heads/master", "refs/heads/epochs/daily", "refs/heads/epochs/weekly", "refs/heads/triggers/chrome_stable", "refs/heads/triggers/chrome_beta", "refs/heads/triggers/chrome_dev", "refs/heads/triggers/chrome_nightly", "refs/heads/triggers/firefox_stable", "refs/heads/triggers/firefox_beta", "refs/heads/triggers/firefox_nightly", "refs/heads/triggers/webkitgtk_minibrowser_stable", "refs/heads/triggers/webkitgtk_minibrowser_nightly", "refs/heads/triggers/servo_nightly"]'
+        $if: 'event.ref in ["refs/heads/master", "refs/heads/epochs/daily", "refs/heads/epochs/weekly", "refs/heads/triggers/chrome_stable", "refs/heads/triggers/chrome_beta", "refs/heads/triggers/chrome_dev", "refs/heads/triggers/chrome_nightly", "refs/heads/triggers/firefox_stable", "refs/heads/triggers/firefox_beta", "refs/heads/triggers/firefox_nightly", "refs/heads/triggers/webkitgtk_minibrowser_stable", "refs/heads/triggers/webkitgtk_minibrowser_beta", "refs/heads/triggers/webkitgtk_minibrowser_nightly", "refs/heads/triggers/servo_nightly"]'
         then: true
         else: false
       else:

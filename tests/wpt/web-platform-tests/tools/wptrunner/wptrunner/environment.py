@@ -55,7 +55,7 @@ class TestEnvironment(object):
     websockets servers"""
     def __init__(self, test_paths, testharness_timeout_multipler,
                  pause_after_test, debug_info, options, ssl_config, env_extras,
-                 enable_quic=False, serve_mojojs=False):
+                 enable_quic=False, mojojs_path=None):
         self.test_paths = test_paths
         self.server = None
         self.config_ctx = None
@@ -72,7 +72,7 @@ class TestEnvironment(object):
         self.env_extras_cms = None
         self.ssl_config = ssl_config
         self.enable_quic = enable_quic
-        self.serve_mojojs = serve_mojojs
+        self.mojojs_path = mojojs_path
 
     def __enter__(self):
         self.config_ctx = self.build_config()
@@ -217,9 +217,8 @@ class TestEnvironment(object):
         if "/" not in self.test_paths:
             del route_builder.mountpoint_routes["/"]
 
-        if self.serve_mojojs:
-            # TODO(Hexcles): Properly pass venv.path in.
-            route_builder.add_mount_point("/gen/", "_venv2/mojojs/gen")
+        if self.mojojs_path:
+            route_builder.add_mount_point("/gen/", self.mojojs_path)
 
         return route_builder.get_routes()
 

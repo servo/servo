@@ -43,16 +43,10 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-import time
 import zipfile
-from socket import error as SocketError  # NOQA: N812
-import errno
-try:
-    from urllib2 import urlopen
-except ImportError:
-    # Python 3 case
-    from urllib.request import urlopen
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from wpt.utils import get_download_to_descriptor
 
 root = os.path.abspath(
     os.path.join(os.path.dirname(__file__),
@@ -153,77 +147,10 @@ def install_chrome(channel):
     dest = os.path.join("/tmp", deb_archive)
     deb_url = "https://dl.google.com/linux/direct/%s" % deb_archive
     with open(dest, "w") as f:
-        download_url_to_descriptor(f, deb_url)
+        get_download_to_descriptor(f, deb_url)
 
     run(["sudo", "apt-get", "-qqy", "update"])
     run(["sudo", "gdebi", "-qn", "/tmp/%s" % deb_archive])
-
-
-def install_webkitgtk_from_apt_repository(channel):
-    # Configure webkitgtk.org/debian repository for $channel and pin it with maximum priority
-    run(["sudo", "apt-key", "adv", "--fetch-keys", "https://webkitgtk.org/debian/apt.key"])
-    with open("/tmp/webkitgtk.list", "w") as f:
-        f.write("deb [arch=amd64] https://webkitgtk.org/apt bionic-wpt-webkit-updates %s\n" % channel)
-    run(["sudo", "mv", "/tmp/webkitgtk.list", "/etc/apt/sources.list.d/"])
-    with open("/tmp/99webkitgtk", "w") as f:
-        f.write("Package: *\nPin: origin webkitgtk.org\nPin-Priority: 1999\n")
-    run(["sudo", "mv", "/tmp/99webkitgtk", "/etc/apt/preferences.d/"])
-    # Install webkit2gtk from the webkitgtk.org/apt repository for $channel
-    run(["sudo", "apt-get", "-qqy", "update"])
-    run(["sudo", "apt-get", "-qqy", "upgrade"])
-    run(["sudo", "apt-get", "-qqy", "-t", "bionic-wpt-webkit-updates", "install", "webkit2gtk-driver"])
-
-
-def download_url_to_descriptor(fd, url, max_retries=5):
-    """Download an URL in chunks and saves it to a file descriptor (truncating it)
-    It doesn't close the descriptor, but flushes it on success.
-    It retries the download in case of ECONNRESET up to max_retries."""
-    if max_retries < 1:
-        max_retries = 1
-    wait = 2
-    for current_retry in range(1, max_retries+1):
-        try:
-            print("INFO: Downloading %s Try %d/%d" % (url, current_retry, max_retries))
-            resp = urlopen(url)
-            # We may come here in a retry, ensure to truncate fd before start writing.
-            fd.seek(0)
-            fd.truncate(0)
-            while True:
-                chunk = resp.read(16*1024)
-                if not chunk:
-                    break  # Download finished
-                fd.write(chunk)
-            fd.flush()
-            # Success
-            return
-        except SocketError as e:
-            if current_retry < max_retries and e.errno == errno.ECONNRESET:
-                # Retry
-                print("ERROR: Connection reset by peer. Retrying after %ds..." % wait)
-                time.sleep(wait)
-                wait *= 2
-            else:
-                # Maximum retries or unknown error
-                raise
-
-
-def install_webkitgtk_from_tarball_bundle(channel):
-    with tempfile.NamedTemporaryFile(suffix=".tar.xz") as temp_tarball:
-        download_url = "https://webkitgtk.org/built-products/nightly/webkitgtk-nightly-build-last.tar.xz"
-        download_url_to_descriptor(temp_tarball, download_url)
-        run(["sudo", "tar", "xfa", temp_tarball.name, "-C", "/"])
-    # Install dependencies
-    run(["sudo", "apt-get", "-qqy", "update"])
-    run(["sudo", "/opt/webkitgtk/nightly/install-dependencies"])
-
-
-def install_webkitgtk(channel):
-    if channel in ("experimental", "dev", "nightly"):
-        install_webkitgtk_from_tarball_bundle(channel)
-    elif channel in ("beta", "stable"):
-        install_webkitgtk_from_apt_repository(channel)
-    else:
-        raise ValueError("Unrecognized release channel: %s" % channel)
 
 
 def start_xvfb():
@@ -270,7 +197,7 @@ def download_artifacts(artifacts):
         base_url = task_url(artifact["task"])
         if artifact["task"] not in artifact_list_by_task:
             with tempfile.TemporaryFile() as f:
-                download_url_to_descriptor(f, base_url + "/artifacts")
+                get_download_to_descriptor(f, base_url + "/artifacts")
                 f.seek(0)
                 artifacts_data = json.load(f)
             artifact_list_by_task[artifact["task"]] = artifacts_data
@@ -290,7 +217,7 @@ def download_artifacts(artifacts):
                 if not os.path.exists(dest_dir):
                     os.makedirs(dest_dir)
                 with open(dest_path, "wb") as f:
-                    download_url_to_descriptor(f, url)
+                    get_download_to_descriptor(f, url)
 
                 if artifact.get("extract"):
                     unpack(dest_path)
@@ -327,9 +254,6 @@ def setup_environment(args):
         # later in taskcluster-run.py.
         if args.channel != "nightly":
             install_chrome(args.channel)
-    elif "webkitgtk_minibrowser" in args.browser:
-        assert args.channel is not None
-        install_webkitgtk(args.channel)
 
     if args.xvfb:
         start_xvfb()
@@ -436,7 +360,7 @@ def fetch_event_data():
         return None
 
     with tempfile.TemporaryFile() as f:
-        download_url_to_descriptor(f, task_url(task_id))
+        get_download_to_descriptor(f, task_url(task_id))
         f.seek(0)
         task_data = json.load(f)
     event_data = task_data.get("extra", {}).get("github_event")

@@ -322,16 +322,21 @@ class Chrome(BrowserSetup):
                 kwargs["binary"] = binary
             else:
                 raise WptrunError("Unable to locate Chrome binary")
+
+        if kwargs["mojojs_path"]:
+            kwargs["enable_mojojs"] = True
+            logger.info("--mojojs-path is provided, enabling MojoJS")
         # TODO(Hexcles): Enable this everywhere when Chrome 86 becomes stable.
-        if browser_channel in self.experimental_channels:
+        elif browser_channel in self.experimental_channels:
             try:
-                self.browser.install_mojojs(
+                path = self.browser.install_mojojs(
                     dest=self.venv.path,
                     channel=browser_channel,
                     browser_binary=kwargs["binary"],
                 )
+                kwargs["mojojs_path"] = path
                 kwargs["enable_mojojs"] = True
-                logger.info("MojoJS enabled")
+                logger.info("MojoJS enabled automatically (mojojs_path: %s)" % path)
             except Exception as e:
                 logger.error("Cannot enable MojoJS: %s" % e)
 
@@ -662,18 +667,19 @@ class WebKitGTKMiniBrowser(BrowserSetup):
     browser_cls = browser.WebKitGTKMiniBrowser
 
     def install(self, channel=None):
-        raise NotImplementedError
+        if self.prompt_install(self.name):
+            return self.browser.install(self.venv.path, channel, self.prompt)
 
     def setup_kwargs(self, kwargs):
         if kwargs["binary"] is None:
-            binary = self.browser.find_binary(channel=kwargs["browser_channel"])
+            binary = self.browser.find_binary(venv_path=self.venv.path, channel=kwargs["browser_channel"])
 
             if binary is None:
                 raise WptrunError("Unable to find MiniBrowser binary")
             kwargs["binary"] = binary
 
         if kwargs["webdriver_binary"] is None:
-            webdriver_binary = self.browser.find_webdriver(channel=kwargs["browser_channel"])
+            webdriver_binary = self.browser.find_webdriver(venv_path=self.venv.path, channel=kwargs["browser_channel"])
 
             if webdriver_binary is None:
                 raise WptrunError("Unable to find WebKitWebDriver in PATH")

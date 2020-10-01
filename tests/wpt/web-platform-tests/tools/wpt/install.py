@@ -7,7 +7,8 @@ latest_channels = {
     'chrome_android': 'dev',
     'edgechromium': 'dev',
     'safari': 'preview',
-    'servo': 'nightly'
+    'servo': 'nightly',
+    'webkitgtk_minibrowser': 'nightly'
 }
 
 channel_by_name = {

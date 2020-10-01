@@ -51,6 +51,18 @@ ctx.font = '10px inherit';
 _assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
 
 ctx.font = '20px serif';
+ctx.font = '10px revert';
+_assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
+
+ctx.font = '20px serif';
+ctx.font = 'var(--x)';
+_assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
+
+ctx.font = '20px serif';
+ctx.font = 'var(--x, 10px serif)';
+_assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
+
+ctx.font = '20px serif';
 ctx.font = '1em serif; background: green; margin: 10px';
 _assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
 

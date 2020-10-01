@@ -9,7 +9,6 @@
   <style>
   div
     {
-      background-color: yellow;
       color: green;
       float: left;
       font-size: 32px;
@@ -28,17 +27,24 @@
 
   div.mixed
     {
+      background-color: yellow;
       text-orientation: mixed;
     }
 
   div.sideways
     {
+      background-color: yellow;
       text-orientation: sideways;
     }
 
   div.upright
     {
       text-orientation: upright;
+    }
+
+  div.upright > span
+    {
+      background-color: yellow;
     }
   </style>
 
@@ -48,10 +54,10 @@
 
   <div class="vrl sideways">Selected Text</div>
 
-  <div class="vrl upright">Selected Text</div>
+  <div class="vrl upright"><span>Selected Text</span></div>
 
   <div class="vlr mixed">Selected Text</div>
 
   <div class="vlr sideways">Selected Text</div>
 
-  <div class="vlr upright">Selected Text</div>
+  <div class="vlr upright"><span>Selected Text</span></div>

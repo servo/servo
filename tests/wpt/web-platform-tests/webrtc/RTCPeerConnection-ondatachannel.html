@@ -255,7 +255,7 @@ promise_test(async (t) => {
   const dc1 = pc1.createDataChannel('test', {
     ordered: false,
     maxRetransmits: 1,
-    protocol: 'custom',
+    protocol: 'custom'
   });
 
   assert_equals(dc1.label, 'test');

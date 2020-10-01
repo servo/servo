@@ -48,29 +48,7 @@
   async_test(t => {
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    let stream;
-    getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      t.add_cleanup(() => tracks.forEach(track => track.stop()));
-      let track = tracks[0];
-      stream = streams[0];
-      pc.addTrack(track, stream);
-      return pc.getStats();
-    }))
-    .then(t.step_func(report => {
-      let streamStats = findStatsByTypeAndId(report, 'stream', stream.id);
-      assert_true(streamStats != null, 'Has stats for stream');
-      validateRtcStats(report, streamStats);
-      t.done();
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
-  }, 'addTrack() without setLocalDescription() yields media stream stats');
 
-  async_test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
     let track;
     getUserMediaTracksAndStreams(1)
     .then(t.step_func(([tracks, streams]) => {
@@ -95,107 +73,6 @@
       assert_unreached(reason);
     }));
   }, 'addTrack() with setLocalDescription() yields track stats');
-
-  async_test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
-    let stream;
-    getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      t.add_cleanup(() => tracks.forEach(track => track.stop()));
-      let track = tracks[0];
-      stream = streams[0];
-      pc.addTrack(track, stream);
-      return pc.createOffer();
-    }))
-    .then(t.step_func(offer => {
-      return pc.setLocalDescription(offer);
-    }))
-    .then(t.step_func(() => {
-      return pc.getStats();
-    }))
-    .then(t.step_func(report => {
-      let streamStats = findStatsByTypeAndId(report, 'stream', stream.id);
-      assert_true(streamStats != null, 'Has stats for stream');
-      validateRtcStats(report, streamStats);
-      t.done();
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
-  }, 'addTrack() with setLocalDescription() yields media stream stats');
-
-  async_test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
-    let track;
-    let stream;
-    getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      t.add_cleanup(() => tracks.forEach(track => track.stop()));
-      track = tracks[0];
-      stream = streams[0];
-      pc.addTrack(track, stream);
-      return pc.createOffer();
-    }))
-    .then(t.step_func(offer => {
-      return pc.setLocalDescription(offer);
-    }))
-    .then(t.step_func(() => {
-      return pc.getStats();
-    }))
-    .then(t.step_func(report => {
-      let trackStats = findStatsByTypeAndId(report, 'track', track.id);
-      let streamStats = findStatsByTypeAndId(report, 'stream', stream.id);
-      assert_true(trackStats != null && streamStats != null,
-                  'Has stats for track and stream');
-      assert_array_equals(streamStats.trackIds, [ trackStats.id ],
-                          'streamStats.trackIds == [ trackStats.id ]');
-      validateRtcStats(report, trackStats);
-      validateRtcStats(report, streamStats);
-      t.done();
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
-  }, 'addTrack(): Media stream stats references track stats');
-
-  async_test(t => {
-    const pc = new RTCPeerConnection();
-    t.add_cleanup(() => pc.close());
-    let track;
-    let stream;
-    getUserMediaTracksAndStreams(1)
-    .then(t.step_func(([tracks, streams]) => {
-      t.add_cleanup(() => tracks.forEach(track => track.stop()));
-      track = tracks[0];
-      stream = streams[0];
-      stream.addTrack(track);
-      for (const track of stream.getTracks())
-        pc.addTrack(track, stream);
-      return pc.createOffer();
-    }))
-    .then(t.step_func(offer => {
-      return pc.setLocalDescription(offer);
-    }))
-    .then(t.step_func(() => {
-      return pc.getStats();
-    }))
-    .then(t.step_func(report => {
-      let trackStats = findStatsByTypeAndId(report, 'track', track.id);
-      let streamStats = findStatsByTypeAndId(report, 'stream', stream.id);
-      assert_true(trackStats != null && streamStats != null,
-                  'Has stats for track and stream');
-      assert_array_equals(streamStats.trackIds, [ trackStats.id ],
-                          'streamStats.trackIds == [ trackStats.id ]');
-      validateRtcStats(report, trackStats);
-      validateRtcStats(report, streamStats);
-      t.done();
-    }))
-    .catch(t.step_func(reason => {
-      assert_unreached(reason);
-    }));
-  }, 'Media stream stats references track stats');
 
   async_test(t => {
     const caller = new RTCPeerConnection();

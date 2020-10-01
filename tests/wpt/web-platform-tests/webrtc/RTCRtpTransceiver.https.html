@@ -1235,9 +1235,8 @@
       stoppedTransceiver.receiver.track.onended = resolve;
     });
     stoppedTransceiver.stop();
-    assert_equals(pc1.getReceivers().length, 0, 'getReceivers does not expose a receiver of a stopped transceiver');
-    assert_equals(pc1.getSenders().length, 0, 'getSenders does not expose a sender of a stopped transceiver');
-
+    assert_equals(pc1.getReceivers().length, 1, 'getReceivers exposes a receiver of a stopped transceiver before negotiation');
+    assert_equals(pc1.getSenders().length, 1, 'getSenders exposes a sender of a stopped transceiver before negotiation');
     await onended;
     // The transceiver has [[stopping]] = true, [[stopped]] = false
     hasPropsAndUniqueMids(pc1.getTransceivers(),
@@ -1273,30 +1272,38 @@
     offer = await pc1.createOffer();
     await pc1.setLocalDescription(offer);
 
-    stoppedTransceiver = pc2.getTransceivers()[0];
+    const stoppedCalleeTransceiver = pc2.getTransceivers()[0];
     onended = new Promise(resolve => {
-      stoppedTransceiver.receiver.track.onended = resolve;
+      stoppedCalleeTransceiver.receiver.track.onended = resolve;
     });
 
     await pc2.setRemoteDescription(offer);
 
     await onended;
-
-    // pc2's transceiver was stopped remotely, so has
-    // [[stopping]] = true, [[stopped]] = true.
+    // pc2's transceiver was stopped remotely.
+    // The track ends when setRemeoteDescription(offer) is set.
     hasProps(pc2.getTransceivers(),
       [
         {
           sender: {track: {kind: "audio"}},
           receiver: {track: {kind: "audio", readyState: "ended"}},
-          mid: null,
           currentDirection: "stopped",
-          direction: "stopped"
+          direction: "sendrecv"
         }
       ]);
+    // After setLocalDescription(answer), the transceiver has
+    // [[stopping]] = true, [[stopped]] = true, and is removed from pc2.
+    const stoppingAnswer = await pc2.createAnswer();
+    await pc2.setLocalDescription(stoppingAnswer);
+    assert_equals(pc2.getTransceivers().length, 0);
+    assert_equals(pc2.getReceivers().length, 0, 'getReceivers does not expose a receiver of a stopped transceiver after negotiation');
+    assert_equals(pc2.getSenders().length, 0, 'getSenders does not expose a sender of a stopped transceiver after negotiation');
 
     // Shouldn't throw either
     stoppedTransceiver.stop();
+    await pc1.setRemoteDescription(stoppingAnswer);
+    assert_equals(pc1.getReceivers().length, 0, 'getReceivers does not expose a receiver of a stopped transceiver after negotiation');
+    assert_equals(pc1.getSenders().length, 0, 'getSenders does not expose a sender of a stopped transceiver after negotiation');
 
     pc1.close();
     pc2.close();
@@ -1897,6 +1904,8 @@
 
     // After all this SRD/rollback, we should still get the track event
     let trackEvents = await setRemoteDescriptionReturnTrackEvents(pc2, offer);
+
+    assert_equals(trackEvents.length, 1);
     hasProps(trackEvents,
       [
         {
@@ -1910,6 +1919,7 @@
 
     // Make sure all this rollback hasn't messed up the signaling
     trackEvents = await setRemoteDescriptionReturnTrackEvents(pc1, answer);
+    assert_equals(trackEvents.length, 1);
     hasProps(trackEvents,
       [
         {
@@ -1939,6 +1949,8 @@
 
     trackEvents =
       await setRemoteDescriptionReturnTrackEvents(pc2, {type: "rollback"});
+
+    assert_equals(trackEvents.length, 1, 'track event from remote rollback');
     hasProps(trackEvents,
       [
         {

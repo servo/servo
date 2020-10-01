@@ -26,7 +26,7 @@ let testFunction =
     assert_greater_than(nativeScale, 0);
 
     // The native scale should be the inverse for the default framebuffer scale.
-    assert_approx_equals(nativeScale, 1/fakeDeviceController.displayInfo_.webxrDefaultFramebufferScale, FLOAT_EPSILON);
+    assert_approx_equals(nativeScale, 1/fakeDeviceController.defaultFramebufferScale_, FLOAT_EPSILON);
   });
 
   webglLayer = new XRWebGLLayer(session, gl, { framebufferScaleFactor: nativeScale });

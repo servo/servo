@@ -24,12 +24,17 @@ const mandatory = {
     "packetsLost",
     "jitter",
     "packetsDiscarded",
+    "framesDropped"
   ],
   RTCInboundRtpStreamStats: [
-    "trackId",
     "receiverId",
     "remoteId",
     "framesDecoded",
+    "nackCount",
+    "framesReceived",
+    "bytesReceived",
+    "totalAudioEnergy",
+    "totalSamplesDuration"
   ],
   RTCRemoteInboundRtpStreamStats: [
     "localId",
@@ -40,10 +45,11 @@ const mandatory = {
     "bytesSent"
   ],
   RTCOutboundRtpStreamStats: [
-    "trackId",
     "senderId",
     "remoteId",
     "framesEncoded",
+    "nackCount",
+    "framesSent"
   ],
   RTCRemoteOutboundRtpStreamStats: [
     "localId",
@@ -54,6 +60,7 @@ const mandatory = {
     "dataChannelsClosed",
   ],
   RTCDataChannelStats: [
+    "label",
     "protocol",
     "dataChannelIdentifier",
     "state",
@@ -62,35 +69,34 @@ const mandatory = {
     "messagesReceived",
     "bytesReceived",
   ],
-  RTCMediaStreamStats: [
-    "streamIdentifer",
-    "trackIds",
+  RTCMediaSourceStats: [
+    "trackIdentifier",
+     "kind"
+  ],
+  RTCAudioSourceStats: [
+    "totalAudioEnergy",
+     "totalSamplesDuration"
+  ],
+  RTCVideoSourceStats: [
+    "width",
+    "height",
+    "framesPerSecond"
   ],
   RTCMediaHandlerStats: [
     "trackIdentifier",
-    "remoteSource",
-    "ended",
   ],
   RTCAudioHandlerStats: [
-    "audioLevel",
   ],
   RTCVideoHandlerStats: [
-    "frameWidth",
-    "frameHeight",
-    "framesPerSecond",
   ],
   RTCVideoSenderStats: [
-    "framesSent",
   ],
   RTCVideoReceiverStats: [
-    "framesReceived",
-    "framesDecoded",
-    "framesDropped",
-    "partialFramesLost",
   ],
   RTCCodecStats: [
     "payloadType",
     "codecType",
+    "mimeType",
     "clockRate",
     "channels",
     "sdpFmtpLine",
@@ -98,7 +104,6 @@ const mandatory = {
   RTCTransportStats: [
     "bytesSent",
     "bytesReceived",
-    "rtcpTransportStatsId",
     "selectedCandidatePairId",
     "localCertificateId",
     "remoteCertificateId",
@@ -108,12 +113,11 @@ const mandatory = {
     "localCandidateId",
     "remoteCandidateId",
     "state",
-    "priority",
     "nominated",
     "bytesSent",
     "bytesReceived",
     "totalRoundTripTime",
-    "currentRoundTripTime",
+    "currentRoundTripTime"
   ],
   RTCIceCandidateStats: [
     "address",
@@ -141,7 +145,10 @@ const dictionaryNames = {
   "csrc": "RTCRtpContributingSourceStats",
   "peer-connection": "RTCPeerConnectionStats",
   "data-channel": "RTCDataChannelStats",
-  "stream": "RTCMediaStreamStats",
+  "media-source": {
+    audio: "RTCAudioSourceStats",
+    video: "RTCVideoSourceStats"
+  },
   "track": {
     video: "RTCSenderVideoTrackAttachmentStats",
     audio: "RTCSenderAudioTrackAttachmentStats"
@@ -166,10 +173,12 @@ const dictionaryNames = {
 const parents = {
   RTCVideoHandlerStats: "RTCMediaHandlerStats",
   RTCVideoSenderStats: "RTCVideoHandlerStats",
+  RTCVideoSourceStats: "RTCMediaSourceStats",
   RTCSenderVideoTrackAttachmentStats: "RTCVideoSenderStats",
   RTCVideoReceiverStats: "RTCVideoHandlerStats",
   RTCAudioHandlerStats: "RTCMediaHandlerStats",
   RTCAudioSenderStats: "RTCAudioHandlerStats",
+  RTCAudioSourceStats: "RTCMediaSourceStats",
   RTCSenderAudioTrackAttachmentStats: "RTCAudioSenderStats",
   RTCAudioReceiverStats: "RTCAudioHandlerStats",
   RTCReceivedRtpStreamStats: "RTCRtpStreamStats",

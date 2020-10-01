@@ -16,7 +16,29 @@
 runPropertyTests('display', [
   { syntax: 'none' },
   { syntax: 'block' },
-  // and other keywords
+  { syntax: 'inline' },
+  { syntax: 'flow-root' },
+  { syntax: 'table' },
+  { syntax: 'flex' },
+  { syntax: 'grid' },
+  { syntax: 'list-item' },
+  { syntax: 'table-row-group' },
+  { syntax: 'table-header-group' },
+  { syntax: 'table-footer-group' },
+  { syntax: 'table-row' },
+  { syntax: 'table-cell' },
+  { syntax: 'table-column-group' },
+  { syntax: 'table-column' },
+  { syntax: 'table-caption' },
+  { syntax: 'contents' },
+  { syntax: 'inline-block' },
+  { syntax: 'inline-table' },
+  { syntax: 'inline-flex' },
+  { syntax: 'inline-grid' },
+]);
+
+runUnsupportedPropertyTests('display', [
+  'block math', 'math block', 'inline math', 'math inline'
 ]);
 
 </script>
