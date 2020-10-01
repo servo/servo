@@ -104,6 +104,18 @@
     @assert ctx.font === '20px serif';
 
     ctx.font = '20px serif';
+    ctx.font = '10px revert';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = 'var(--x)';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
+    ctx.font = 'var(--x, 10px serif)';
+    @assert ctx.font === '20px serif';
+
+    ctx.font = '20px serif';
     ctx.font = '1em serif; background: green; margin: 10px';
     @assert ctx.font === '20px serif';
 

@@ -207,6 +207,12 @@ tasks:
                 - trigger-weekly
                 - trigger-push
             - vars:
+                browser: webkitgtk_minibrowser
+                channel: beta
+              use:
+                - trigger-weekly
+                - trigger-push
+            - vars:
                 browser: servo
                 channel: nightly
               use:

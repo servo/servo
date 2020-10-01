@@ -5,8 +5,11 @@ import shutil
 import stat
 import subprocess
 import tarfile
+import time
 import zipfile
 from io import BytesIO
+from socket import error as SocketError  # NOQA: N812
+from six.moves.urllib.request import urlopen
 
 MYPY = False
 if MYPY:
@@ -100,6 +103,41 @@ def get(url):
     return resp
 
 
+def get_download_to_descriptor(fd, url, max_retries=5):
+    """Download an URL in chunks and saves it to a file descriptor (truncating it)
+    It doesn't close the descriptor, but flushes it on success.
+    It retries the download in case of ECONNRESET up to max_retries.
+    This function is meant to download big files directly to the disk without
+    caching the whole file in memory.
+    """
+    if max_retries < 1:
+        max_retries = 1
+    wait = 2
+    for current_retry in range(1, max_retries+1):
+        try:
+            logger.info("Downloading %s Try %d/%d" % (url, current_retry, max_retries))
+            resp = urlopen(url)
+            # We may come here in a retry, ensure to truncate fd before start writing.
+            fd.seek(0)
+            fd.truncate(0)
+            while True:
+                chunk = resp.read(16*1024)
+                if not chunk:
+                    break  # Download finished
+                fd.write(chunk)
+            fd.flush()
+            # Success
+            return
+        except SocketError as e:
+            if current_retry < max_retries and e.errno == errno.ECONNRESET:
+                # Retry
+                logger.error("Connection reset by peer. Retrying after %ds..." % wait)
+                time.sleep(wait)
+                wait *= 2
+            else:
+                # Maximum retries or unknown error
+                raise
+
 def rmtree(path):
     # This works around two issues:
     # 1. Cannot delete read-only files owned by us (e.g. files extracted from tarballs)
@@ -114,3 +152,13 @@ def rmtree(path):
             raise
 
     return shutil.rmtree(path, onerror=handle_remove_readonly)
+
+
+def sha256sum(file_path):
+    """Computes the SHA256 hash sum of a file"""
+    from hashlib import sha256
+    hash = sha256()
+    with open(file_path, 'rb') as f:
+        for chunk in iter(lambda: f.read(4096), b''):
+            hash.update(chunk)
+    return hash.hexdigest()

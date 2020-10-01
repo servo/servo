@@ -11,6 +11,7 @@
 -->
 
 <iframe src="resources/frame.html"></iframe>
+<iframe src="//{{domains[www1]}}:{{location[port]}}/origin-isolation/resources/frame.html"></iframe>
 
 <script type="module">
 setup({ explicit_done: true });
@@ -32,6 +33,19 @@ window.onload = () => {
       document.domain = "{{hosts[][nonexistent]}}";
     });
   }, "The registrable domain suffix check must happen before the bail-out");
+
+  async_test(t => {
+    frames[1].postMessage({
+      type: "set document.domain",
+      newValue: "{{host}}"
+    }, "*");
+
+    window.onmessage = t.step_func_done(e => {
+      assert_equals(e.data.type, "new document.domain");
+      assert_equals(e.data.result, "{{domains[www1]}}");
+    });
+  }, "Having an origin-isolated subdomain child try to set document.domain " +
+     "must not change the document.domain value it sees");
 
   done();
 };

@@ -13,6 +13,9 @@
   </style>
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
   <script>
     setup({explicit_timeout: true});
   </script>
@@ -35,6 +38,7 @@
   <script>
     var wheelbox = document.getElementById("wheelbox");
     var test_wheel_scrolling = async_test("wheel scrolling test");
+    var actions_promise;
 
     EventRecorder.configure({
       mergeEventTypes: ['wheel'],
@@ -47,7 +51,10 @@
       e.stopPropagation();
       this.className = "green";
       endTest();
-      test_wheel_scrolling.done();
+      // Make sure the test finishes after all the input actions are completed.
+      actions_promise.then( () => {
+        test_wheel_scrolling.done();
+      });
     });
 
     function endTest() {
@@ -62,6 +69,11 @@
     }
 
     EventRecorder.start();
+
+    // Inject wheel inputs.
+    actions_promise = new test_driver.Actions()
+        .scroll(0, 0, 0, 10, {origin: wheelbox})
+        .send();
   </script>
 
 <section id="lipsum">

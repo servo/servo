@@ -2,12 +2,63 @@ import json
 import select
 
 from six import text_type, PY3
+from six.moves.collections_abc import Mapping
 from six.moves.http_client import HTTPConnection
 from six.moves.urllib import parse as urlparse
 
 from . import error
 
 """Implements HTTP transport for the WebDriver wire protocol."""
+
+
+missing = object()
+
+
+class ResponseHeaders(Mapping):
+    """Read-only dictionary-like API for accessing response headers.
+
+    This class:
+      * Normalizes the header keys it is built with to lowercase (such that
+        iterating the items will return lowercase header keys).
+      * Has case-insensitive header lookup.
+      * Always returns all header values that have the same name, separated by
+        commas.
+
+    It does not ensure header types (e.g. binary vs string).
+    """
+    def __init__(self, items):
+        self.headers_dict = {}
+        for key, value in items:
+            key = key.lower()
+            if key not in self.headers_dict:
+                self.headers_dict[key] = []
+            self.headers_dict[key].append(value)
+
+    def __getitem__(self, key):
+        """Get all headers of a certain (case-insensitive) name. If there is
+        more than one, the values are returned comma separated"""
+        values = self.headers_dict[key.lower()]
+        if len(values) == 1:
+            return values[0]
+        else:
+            return ", ".join(values)
+
+    def get_list(self, key, default=missing):
+        """Get all the header values for a particular field name as a list"""
+        try:
+            return self.headers_dict[key.lower()]
+        except KeyError:
+            if default is not missing:
+                return default
+            else:
+                raise
+
+    def __iter__(self):
+        for item in self.headers_dict:
+            yield item
+
+    def __len__(self):
+        return len(self.headers_dict)
 
 
 class Response(object):
@@ -40,7 +91,7 @@ class Response(object):
     def from_http(cls, http_response, decoder=json.JSONDecoder, **kwargs):
         try:
             body = json.load(http_response, cls=decoder, **kwargs)
-            headers = dict(http_response.getheaders())
+            headers = ResponseHeaders(http_response.getheaders())
         except ValueError:
             raise ValueError("Failed to decode response body as JSON:\n" +
                 http_response.read())

@@ -82,6 +82,9 @@ promise_test(async t => {
   assert_equals(report.body.effectivePolicy, "same-origin-plus-coep");
   assert_equals(report.body.property, "blur");
   assert_source_location_found(report);
+  assert_equals(report.body.openerURL, undefined);
+  assert_equals(report.body.openeeURL, undefined);
+  assert_equals(report.body.otherDocumentURL, "");
 }, "access-from-coop-page-to-other (COOP-RO)");
 
 </script>
