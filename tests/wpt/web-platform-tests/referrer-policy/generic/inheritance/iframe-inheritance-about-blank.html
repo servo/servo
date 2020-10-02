@@ -42,7 +42,7 @@ window.addEventListener("message", msg => {
     // inherits its parent's referrer policy, the URL should be restricted to
     // its origin.
     testFetchURLReferrer.step_func_done(() => {
-      assert_equals(referrer, location.origin);
+      assert_equals(referrer, location.origin + '/');
     })();
   } else if (test_name === "testDocumentReferrer") {
     // The referrer of the initial document in an about:blank iframe is set to

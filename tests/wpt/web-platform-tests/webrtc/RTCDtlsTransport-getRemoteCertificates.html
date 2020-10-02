@@ -42,23 +42,13 @@
     const pc2 = new RTCPeerConnection();
     t.add_cleanup(() => pc2.close());
 
-    pc1.createDataChannel('test');
+    pc1.addTrack(trackFactories.audio());
     exchangeIceCandidates(pc1, pc2);
 
     exchangeOfferAnswer(pc1, pc2)
     .then(t.step_func(() => {
-      // pc.sctp is set when set*Description(answer) is called
-      const sctpTransport1 = pc1.sctp;
-      const sctpTransport2 = pc2.sctp;
-
-      assert_true(sctpTransport1 instanceof RTCSctpTransport,
-        'Expect pc.sctp to be set to valid RTCSctpTransport');
-
-      assert_true(sctpTransport2 instanceof RTCSctpTransport,
-        'Expect pc.sctp to be set to valid RTCSctpTransport');
-
-      const dtlsTransport1 = sctpTransport1.transport;
-      const dtlsTransport2 = sctpTransport2.transport;
+      const dtlsTransport1 = pc1.getSenders()[0].transport;
+      const dtlsTransport2 = pc2.getReceivers()[0].transport;
 
       const testedTransports = new Set();
 

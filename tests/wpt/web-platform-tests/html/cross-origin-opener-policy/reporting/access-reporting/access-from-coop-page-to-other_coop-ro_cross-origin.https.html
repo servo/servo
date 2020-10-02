@@ -85,6 +85,7 @@ promise_test(async t => {
   assert_equals(report.body.openerURL, undefined);
   assert_equals(report.body.openeeURL, undefined);
   assert_equals(report.body.otherDocumentURL, "");
+  assert_equals(report.body.referrer, undefined);
 }, "access-from-coop-page-to-other (COOP-RO)");
 
 </script>
