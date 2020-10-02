@@ -14,9 +14,6 @@ idl_test(
       Navigator: ['navigator'],
       // TODO: HIDConnectionEvent
       // TODO: HIDInputReportEvent
-      // TODO: HIDReportItem
-      // TODO: HIDReportInfo
-      // TODO: HIDCollectionInfo
       // TODO: HIDDevice
     });
   }

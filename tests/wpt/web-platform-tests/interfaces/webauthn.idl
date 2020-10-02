@@ -198,9 +198,15 @@ partial dictionary AuthenticationExtensionsClientInputs {
     AuthenticationExtensionsLargeBlobInputs largeBlob;
 };
 
+enum LargeBlobSupport {
+  "required",
+  "preferred",
+};
+
 dictionary AuthenticationExtensionsLargeBlobInputs {
+    DOMString support;
     boolean read;
-    ArrayBuffer write;
+    BufferSource write;
 };
 
 partial dictionary AuthenticationExtensionsClientOutputs {
@@ -208,6 +214,7 @@ partial dictionary AuthenticationExtensionsClientOutputs {
 };
 
 dictionary AuthenticationExtensionsLargeBlobOutputs {
+    boolean supported;
     ArrayBuffer blob;
     boolean written;
 };
