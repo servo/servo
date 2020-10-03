@@ -1017,6 +1017,7 @@ class MockRuntime {
             displayInfo: this.displayInfo_,
             enabledFeatures: enabled_features,
             defaultFramebufferScale: this.defaultFramebufferScale_,
+            supportsViewportScaling: true
           }
         });
       } else {

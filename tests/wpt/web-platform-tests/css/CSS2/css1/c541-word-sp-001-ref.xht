@@ -1,36 +1,21 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
-
  <head>
-
-  <title>CSS Reftest Reference</title>
-
-  <link rel="author" title="Gérard Talbot" href="http://www.gtalbot.org/BrowserBugsSection/css21testsuite/" />
-
+  <title>test reference</title>
+  <meta name="flags" content="ahem" />
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
   <style type="text/css"><![CDATA[
-  div
-  {
-  background-color: aqua;
-  margin-left: 50px;
-  width: 300px;
-  }
-
-  img {vertical-align: bottom;}
-
-  img.left-and-right-sides {margin-left: 25px;}
-
-  img.central {margin: 0px 25px;}
-  ]]>
-  </style>
-
+   div { font: 25px/1 Ahem; width: 12em; background: yellow; color: aqua; margin: 0 0 0 2em; }
+  ]]></style>
+  <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#spacing-props" title="16.4 Letter and word spacing: the 'letter-spacing' and 'word-spacing' properties"/>
  </head>
-
  <body>
-
   <p>There should be a stripy pattern of yellow and aqua below (each vertical stripe should be straight and unbroken).</p>
-
-  <div><img src="support/swatch-yellow.png" width="50" height="150" alt="Image download support must be enabled" class="left-and-right-sides" /><img src="support/swatch-yellow.png" width="50" height="150" alt="Image download support must be enabled" class="central" /><img src="support/swatch-yellow.png" width="25" height="150" alt="Image download support must be enabled" class="central" /><img src="support/swatch-yellow.png" width="25" height="150" alt="Image download support must be enabled" class="left-and-right-sides" /></div>
-
+  <div class="test">x&#xA0;&#xA0;x&#xA0;&#xA0;xx&#xA0;xx</div>
+  <div class="test">x&#xA0;&#xA0;x&#xA0;&#xA0;xx&#xA0;xx</div>
+  <div class="test">x&#xA0;&#xA0;x&#xA0;&#xA0;xx&#xA0;xx</div>
+  <div class="test">x&#xA0;&#xA0;x&#xA0;&#xA0;xx&#xA0;xx</div>
+  <div class="test">x&#xA0;&#xA0;x&#xA0;&#xA0;xx&#xA0;xx</div>
+  <div class="test">x&#xA0;&#xA0;x&#xA0;&#xA0;xx&#xA0;xx</div>
  </body>
 </html>

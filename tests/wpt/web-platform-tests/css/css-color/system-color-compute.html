@@ -25,6 +25,7 @@
 }
 
 .specified {
+    color: Menu;
     background-color: Menu;
     box-shadow: 2px 2px Menu;
     text-shadow: 2px 2px Menu;
@@ -37,6 +38,7 @@
 }
 
 .inherit {
+    color: inherit;
     background-color: inherit;
     box-shadow: inherit;
     text-shadow: inherit;
@@ -74,6 +76,7 @@
 
   // Test several color properties.
   const properties_to_test = [
+    "color",
     "background-color",
     "box-shadow",
     "text-shadow",
@@ -98,5 +101,11 @@
             .getPropertyValue(property);
         assert_equals(inherited_value, specified_value);
     }, "System color computes to itself on " + property);
+    test(function() {
+      let inherited_value =
+        document.getElementById("inherited").computedStyleMap()
+          .get(property);
+      assert_regexp_match(inherited_value, /menu/i);
+    }, "Inherited system color keyword is observable on " + property);
   }
 </script>

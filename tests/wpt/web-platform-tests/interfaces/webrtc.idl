@@ -519,7 +519,7 @@ interface RTCDataChannel : EventTarget {
   attribute EventHandler onclose;
   undefined close();
   attribute EventHandler onmessage;
-  attribute DOMString binaryType;
+  attribute BinaryType binaryType;
   undefined send(USVString data);
   undefined send(Blob data);
   undefined send(ArrayBuffer data);

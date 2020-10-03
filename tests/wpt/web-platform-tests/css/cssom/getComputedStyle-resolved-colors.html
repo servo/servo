@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM: resolved values of certain color properties are used values</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    background-color: Menu;
+    border: 1px solid Menu;
+    box-shadow: 1px 1px Menu;
+    caret-color: Menu;
+    color: Menu;
+    outline-color: Menu;
+  }
+</style>
+<div id="target"></div>
+<script>
+  const properties_to_test = [
+    "background-color",
+    "border-block-end-color",
+    "border-block-start-color",
+    "border-bottom-color",
+    "border-inline-end-color",
+    "border-inline-start-color",
+    "border-left-color",
+    "border-right-color",
+    "border-top-color",
+    "box-shadow",
+    "caret-color",
+    "color",
+    "outline-color",
+  ];
+
+  for (const property of properties_to_test) {
+    test(function() {
+      let resolved_value =
+        window.getComputedStyle(document.getElementById("target")).getPropertyValue(property);
+      assert_regexp_match(resolved_value, /^rgb[a]?\(/);
+    }, "The resolved value for '" + property + "' is the used value");
+  }
+</script>

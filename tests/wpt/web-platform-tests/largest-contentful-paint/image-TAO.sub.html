@@ -8,9 +8,7 @@
 <div id='my_div'></div>
 <script>
   async_test(t => {
-    if (!window.PerformanceElementTiming) {
-      assert_unreached("PerformanceElementTiming is not implemented");
-    }
+    assert_implements(window.LargestContentfulPaint, "LargestContentfulPaint is not implemented");
     const remote_img = 'http://{{domains[www]}}:{{ports[http][1]}}/element-timing/resources/TAOImage.py?'
         + 'origin=' + window.location.origin +'&tao=';
     const valid_tao = ['wildcard', 'origin', 'multi', 'multi_wildcard', 'match_origin', 'match_wildcard'];
