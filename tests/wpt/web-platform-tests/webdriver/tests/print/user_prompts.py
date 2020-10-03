@@ -7,7 +7,7 @@ from six import ensure_binary
 
 from tests.support.asserts import assert_dialog_handled, assert_error, assert_success
 from tests.support.inline import inline
-from printcmd import do_print, assert_pdf
+from .printcmd import do_print, assert_pdf
 
 
 @pytest.fixture

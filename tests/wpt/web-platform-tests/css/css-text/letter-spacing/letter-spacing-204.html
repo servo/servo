@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html  lang="en" >
+<meta charset="utf-8">
+<title>letter-spacing at element boundaries</title>
+<link rel='author' title='Elika J. Etemad' href='http://fantasai.inkedblade.net/contact'>
+<link rel='help' href='https://www.w3.org/TR/css-text-3/#letter-spacing'>
+<link rel='match' href='reference/letter-spacing-204-ref.html'>
+<meta name="assert" content="Letter spacing is not applied between atomic inlines, but is applied between a (run of) atomic inline(s) and an adjacent letter.">
+<style type='text/css'>
+  @import "/fonts/ahem.css";
+  .contain {
+    font: 20px/1 Ahem;
+    border: solid blue;
+    margin: 1em;
+    float: left; }
+  .ls1 {
+    letter-spacing: 1em;
+  }
+  .block, .table, .flex, .grid {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    background: orange;
+  }
+  .table {
+    display: inline-table;
+  }
+  .flex {
+    display: inline-flex;
+  }
+  .grid {
+    display: inline-grid;
+  }
+  .control p {
+    white-space: pre-wrap;
+  }
+  p {
+    letter-spacing: 0;
+    margin: 0;
+  }
+  span:not([class]) {
+    padding-top: 1em;
+  }
+</style>
+
+<div id='instructions'>Test passes if the pattern is identical in all blue boxes.</div>
+
+<div class="contain">
+  <p class="ls1">A<img src="support/swatch-orange.png"><img src="support/swatch-orange.png">D</p>
+  <p class="ls1">A<img class="block" src="support/swatch-orange.png"><img class="block" src="support/swatch-orange.png">D</p>
+  <p class="ls1">A<span class="block"></span><span class="block"></span>D</p>
+  <p class="ls1">A<span class="table"></span><span class="block"></span>D</p>
+  <p class="ls1">A<span class="flex"></span><span class="block"></span>D</p>
+  <p class="ls1">A<span class="grid"></span><span class="block"></span>D</p>
+</div>
+
+<div class="contain">
+  <p class="ls1">A<span><img src="support/swatch-orange.png"></span><img src="support/swatch-orange.png">D</p>
+  <p class="ls1">A<span><img class="block" src="support/swatch-orange.png"></span><img class="block" src="support/swatch-orange.png">D</p>
+  <p class="ls1">A<span><span class="block"></span></span><span class="block"></span>D</p>
+  <p class="ls1">A<span><span class="table"></span></span><span class="block"></span>D</p>
+  <p class="ls1">A<span><span class="flex"></span></span><span class="block"></span>D</p>
+  <p class="ls1">A<span><span class="grid"></span></span><span class="block"></span>D</p>
+</div>
+
+<div class="contain">
+  <p class="ls1"><span>A</span><img src="support/swatch-orange.png"><span><img src="support/swatch-orange.png"></span>D</p>
+  <p class="ls1"><span>A</span><img class="block" src="support/swatch-orange.png"><span><img class="block" src="support/swatch-orange.png"></span>D</p>
+  <p class="ls1"><span>A</span><span class="block"></span><span><span class="block"></span></span>D</p>
+  <p class="ls1"><span>A</span><span class="table"></span><span><span class="block"></span></span>D</p>
+  <p class="ls1"><span>A</span><span class="flex"></span><span><span class="block"></span></span>D</p>
+  <p class="ls1"><span>A</span><span class="grid"></span><span><span class="block"></span></span>D</p>
+</div>
+
+<div class="contain control">
+  <p>A <img src="support/swatch-orange.png"><img src="support/swatch-orange.png"> D</p>
+  <p>A <img class="block" src="support/swatch-orange.png"><img class="block" src="support/swatch-orange.png"> D</p>
+  <p>A <span class="block"></span><span class="block"></span> D</p>
+  <p>A <span class="table"></span><span class="block"></span> D</p>
+  <p>A <span class="flex"></span><span class="block"></span> D</p>
+  <p>A <span class="grid"></span><span class="block"></span> D</p>
+</div>

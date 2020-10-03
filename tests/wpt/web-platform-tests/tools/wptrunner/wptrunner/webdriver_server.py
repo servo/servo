@@ -131,7 +131,8 @@ class ChromeDriverServer(WebDriverServer):
     def make_command(self):
         return [self.binary,
                 cmd_arg("port", str(self.port)),
-                cmd_arg("url-base", self.base_path) if self.base_path else ""] + self._args
+                cmd_arg("url-base", self.base_path) if self.base_path else "",
+                cmd_arg("enable-chrome-logs")] + self._args
 
 class CWTChromeDriverServer(WebDriverServer):
     def __init__(self, logger, binary, port=None, args=None):

@@ -581,7 +581,7 @@ class Session(object):
         return self.send_session_command("GET", "source")
 
     @command
-    def new_window(self, type_hint=None):
+    def new_window(self, type_hint="tab"):
         body = {"type": type_hint}
         value = self.send_session_command("POST", "window/new", body)
 

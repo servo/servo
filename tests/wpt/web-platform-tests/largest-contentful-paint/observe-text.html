@@ -34,7 +34,7 @@ p {
     );
     observer.observe({type: 'largest-contentful-paint', buffered: true});
     beforeRender = performance.now();
-  }, 'Element with elementtiming attribute is observable.');
+  }, 'Text element is observable as a LargestContentfulPaint candidate.');
 </script>
 
 <p id='my_text'>This is important text! :)</p>

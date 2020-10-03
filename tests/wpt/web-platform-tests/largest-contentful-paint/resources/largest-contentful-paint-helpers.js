@@ -1,4 +1,4 @@
-// Receives an image PerformanceElementTiming |entry| and checks |entry|'s attribute values.
+// Receives an image LargestContentfulPaint |entry| and checks |entry|'s attribute values.
 // The |timeLowerBound| parameter is a lower bound on the loadTime value of the entry.
 // The |options| parameter may contain some string values specifying the following:
 // * 'renderTimeIs0': the renderTime should be 0 (image does not pass Timing-Allow-Origin checks).

@@ -27,7 +27,7 @@ def test_no_top_browsing_context(session, closed_window):
 def test_no_browsing_context(session, closed_frame):
     response = do_print(session, {})
     value = assert_success(response)
-    pdf = base64.decodestring(value)
+    pdf = base64.decodestring(ensure_binary(value))
     assert_pdf(pdf)
 
 
