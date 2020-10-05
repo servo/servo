@@ -16,7 +16,7 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::document::Document;
 use crate::dom::element::{
-    cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
+    cors_setting_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute, set_cross_origin_attribute, set_referrer_policy_attribute,
 };
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
@@ -1341,6 +1341,16 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     make_getter!(HtmlFor, "for");
     // https://html.spec.whatwg.org/multipage/#dom-script-htmlfor
     make_setter!(SetHtmlFor, "for");
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-referrerpolicy
+    fn GetReferrerPolicy(&self) -> Option<DOMString> {
+        reflect_referrer_policy_attribute(self.upcast::<Element>())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-referrerpolicy
+    fn SetReferrerPolicy(&self, value: Option<DOMString>) {
+        set_referrer_policy_attribute(self.upcast::<Element>(), value);
+    }
 
     // https://html.spec.whatwg.org/multipage/#dom-script-crossorigin
     fn GetCrossOrigin(&self) -> Option<DOMString> {

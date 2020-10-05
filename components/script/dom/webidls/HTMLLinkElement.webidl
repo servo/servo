@@ -12,6 +12,8 @@ interface HTMLLinkElement : HTMLElement {
   [CEReactions]
            attribute DOMString? crossOrigin;
   [CEReactions]
+           attribute DOMString? referrerPolicy;
+  [CEReactions]
            attribute DOMString rel;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
   [CEReactions]

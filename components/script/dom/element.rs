@@ -3751,6 +3751,19 @@ impl TaskOnce for ElementPerformFullscreenExit {
     }
 }
 
+pub fn reflect_referrer_policy_attribute(element: &Element) -> Option<DOMString> {
+    let attr = element.get_attribute(&ns!(), &local_name!("referrerpolicy"));
+
+    if let Some(val) = attr.map(|v| v.Value()) {
+        let referrer_policy = determine_policy_for_token(&val);
+        match referrer_policy {
+            Some(x) => return Some(DOMString::from(x.to_string())),
+            None => return None,
+        }
+    }
+    None
+}
+
 pub fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMString> {
     let attr = element.get_attribute(&ns!(), &local_name!("crossorigin"));
 
@@ -3769,6 +3782,15 @@ pub fn set_cross_origin_attribute(element: &Element, value: Option<DOMString>) {
         Some(val) => element.set_string_attribute(&local_name!("crossorigin"), val),
         None => {
             element.remove_attribute(&ns!(), &local_name!("crossorigin"));
+        },
+    }
+}
+
+pub fn set_referrer_policy_attribute(element: &Element, value: Option<DOMString>) {
+    match value {
+        Some(val) => element.set_string_attribute(&local_name!("referrerpolicy"), val),
+        None => {
+            element.remove_attribute(&ns!(), &local_name!("referrerpolicy"));
         },
     }
 }
