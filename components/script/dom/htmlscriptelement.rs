@@ -16,7 +16,8 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::document::Document;
 use crate::dom::element::{
-    cors_setting_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute, set_cross_origin_attribute, set_referrer_policy_attribute,
+    cors_setting_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
+    set_cross_origin_attribute, set_referrer_policy_attribute,
 };
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
