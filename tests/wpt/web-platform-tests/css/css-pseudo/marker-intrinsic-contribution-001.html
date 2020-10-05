@@ -56,11 +56,15 @@ function check(item, msg) {
   }, msg);
 }
 
-for (let item of document.querySelectorAll(".outside > li")) {
-  check(item, `Intrinsic contribution of outside ${item.className} marker`);
-}
+setup({ explicit_done: true });
 
-for (let item of document.querySelectorAll(".inside > li")) {
-  check(item, `Intrinsic contribution of inside ${item.className} marker`);
-}
+document.fonts.ready.then(() => {
+  for (let item of document.querySelectorAll(".outside > li")) {
+    check(item, `Intrinsic contribution of outside ${item.className} marker`);
+  }
+  for (let item of document.querySelectorAll(".inside > li")) {
+    check(item, `Intrinsic contribution of inside ${item.className} marker`);
+  }
+  done();
+});
 </script>
