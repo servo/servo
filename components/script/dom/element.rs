@@ -1953,7 +1953,7 @@ impl ElementMethods for Element {
     // https://dom.spec.whatwg.org/#dom-element-classlist
     fn ClassList(&self) -> DomRoot<DOMTokenList> {
         self.class_list
-            .or_init(|| DOMTokenList::new(self, &local_name!("class")))
+            .or_init(|| DOMTokenList::new(self, &local_name!("class"), None))
     }
 
     // https://dom.spec.whatwg.org/#dom-element-attributes

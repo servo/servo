@@ -19,8 +19,8 @@ interface HTMLAreaElement : HTMLElement {
   //         attribute DOMString download;
   // [CEReactions]
   //         attribute USVString ping;
-  // [CEReactions]
-  //         attribute DOMString rel;
+  [CEReactions]
+             attribute DOMString rel;
   [SameObject, PutForwards=value] readonly attribute DOMTokenList relList;
   // hreflang and type are not reflected
 };

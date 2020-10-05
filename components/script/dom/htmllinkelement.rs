@@ -30,6 +30,7 @@ use embedder_traits::EmbedderMsg;
 use html5ever::{LocalName, Prefix};
 use net_traits::ReferrerPolicy;
 use servo_arc::Arc;
+use servo_atoms::Atom;
 use std::borrow::ToOwned;
 use std::cell::Cell;
 use std::default::Default;
@@ -428,8 +429,29 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-link-rellist
     fn RelList(&self) -> DomRoot<DOMTokenList> {
-        self.rel_list
-            .or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
+        self.rel_list.or_init(|| {
+            DOMTokenList::new(
+                self.upcast(),
+                &local_name!("rel"),
+                Some(vec![
+                    Atom::from("alternate"),
+                    Atom::from("apple-touch-icon"),
+                    Atom::from("apple-touch-icon-precomposed"),
+                    Atom::from("canonical"),
+                    Atom::from("dns-prefetch"),
+                    Atom::from("icon"),
+                    Atom::from("import"),
+                    Atom::from("manifest"),
+                    Atom::from("modulepreload"),
+                    Atom::from("next"),
+                    Atom::from("preconnect"),
+                    Atom::from("prefetch"),
+                    Atom::from("preload"),
+                    Atom::from("prerender"),
+                    Atom::from("stylesheet"),
+                ]),
+            )
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-link-charset

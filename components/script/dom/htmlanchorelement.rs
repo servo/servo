@@ -32,6 +32,7 @@ use html5ever::{LocalName, Prefix};
 use net_traits::request::Referrer;
 use num_traits::ToPrimitive;
 use script_traits::{HistoryEntryReplacement, LoadData, LoadOrigin};
+use servo_atoms::Atom;
 use servo_url::ServoUrl;
 use std::default::Default;
 use style::attr::AttrValue;
@@ -138,8 +139,17 @@ impl HTMLAnchorElementMethods for HTMLAnchorElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-a-rellist
     fn RelList(&self) -> DomRoot<DOMTokenList> {
-        self.rel_list
-            .or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
+        self.rel_list.or_init(|| {
+            DOMTokenList::new(
+                self.upcast(),
+                &local_name!("rel"),
+                Some(vec![
+                    Atom::from("noopener"),
+                    Atom::from("noreferrer"),
+                    Atom::from("opener"),
+                ]),
+            )
+        })
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-a-coords

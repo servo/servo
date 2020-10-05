@@ -20,21 +20,35 @@ pub struct DOMTokenList {
     reflector_: Reflector,
     element: Dom<Element>,
     local_name: LocalName,
+    supported_tokens: Option<Vec<Atom>>,
 }
 
 impl DOMTokenList {
-    pub fn new_inherited(element: &Element, local_name: LocalName) -> DOMTokenList {
+    pub fn new_inherited(
+        element: &Element,
+        local_name: LocalName,
+        supported_tokens: Option<Vec<Atom>>,
+    ) -> DOMTokenList {
         DOMTokenList {
             reflector_: Reflector::new(),
             element: Dom::from_ref(element),
             local_name: local_name,
+            supported_tokens: supported_tokens,
         }
     }
 
-    pub fn new(element: &Element, local_name: &LocalName) -> DomRoot<DOMTokenList> {
+    pub fn new(
+        element: &Element,
+        local_name: &LocalName,
+        supported_tokens: Option<Vec<Atom>>,
+    ) -> DomRoot<DOMTokenList> {
         let window = window_from_node(element);
         reflect_dom_object(
-            Box::new(DOMTokenList::new_inherited(element, local_name.clone())),
+            Box::new(DOMTokenList::new_inherited(
+                element,
+                local_name.clone(),
+                supported_tokens,
+            )),
             &*window,
         )
     }
@@ -60,6 +74,25 @@ impl DOMTokenList {
         // step 2
         self.element
             .set_atomic_tokenlist_attribute(&self.local_name, atoms)
+    }
+
+    // https://dom.spec.whatwg.org/#concept-domtokenlist-validation
+    fn validation_steps(&self, token: &str) -> Fallible<bool> {
+        match &self.supported_tokens {
+            None => Err(Error::Type(
+                "This attribute has no supported tokens".to_owned(),
+            )),
+            Some(supported_tokens) => {
+                let token = Atom::from(token).to_ascii_lowercase();
+                if supported_tokens
+                    .iter()
+                    .any(|supported_token| *supported_token == token)
+                {
+                    return Ok(true);
+                }
+                Ok(false)
+            },
+        }
     }
 }
 
@@ -195,6 +228,11 @@ impl DOMTokenListMethods for DOMTokenList {
             result = true;
         }
         Ok(result)
+    }
+
+    // https://dom.spec.whatwg.org/#dom-domtokenlist-supports
+    fn Supports(&self, token: DOMString) -> Fallible<bool> {
+        self.validation_steps(&token)
     }
 
     // check-tidy: no specs after this line

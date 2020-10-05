@@ -19,6 +19,7 @@ use crate::dom::virtualmethods::VirtualMethods;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
 use html5ever::{LocalName, Prefix};
+use servo_atoms::Atom;
 use std::default::Default;
 use std::f32;
 use std::str;
@@ -303,10 +304,28 @@ impl HTMLAreaElementMethods for HTMLAreaElement {
     // https://html.spec.whatwg.org/multipage/#attr-hyperlink-target
     make_setter!(SetTarget, "target");
 
+    // https://html.spec.whatwg.org/multipage/#dom-a-rel
+    make_getter!(Rel, "rel");
+
+    // https://html.spec.whatwg.org/multipage/#dom-a-rel
+    fn SetRel(&self, rel: DOMString) {
+        self.upcast::<Element>()
+            .set_tokenlist_attribute(&local_name!("rel"), rel);
+    }
+
     // https://html.spec.whatwg.org/multipage/#dom-area-rellist
     fn RelList(&self) -> DomRoot<DOMTokenList> {
-        self.rel_list
-            .or_init(|| DOMTokenList::new(self.upcast(), &local_name!("rel")))
+        self.rel_list.or_init(|| {
+            DOMTokenList::new(
+                self.upcast(),
+                &local_name!("rel"),
+                Some(vec![
+                    Atom::from("noopener"),
+                    Atom::from("noreferrer"),
+                    Atom::from("opener"),
+                ]),
+            )
+        })
     }
 }
 
