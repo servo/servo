@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<title>:is() inside shadow pseudos</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#matches">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#host-selector">
+<link rel="help" href="https://drafts.csswg.org/css-scoping/#slotted-pseudo">
+<div class="parent1"><div id="host1" class=a><p class=e>::slotted</p></div></div>
+<div class="parent2"><div id="host2" class=b><p class=d>::slotted</p></div></div>
+<div class="parent3"><div id="host3" class=c><p class=f>::slotted</p></div></div>
+</div>
+<script>
+  let shadow1 = host1.attachShadow({ mode: 'open' });
+  let shadow2 = host2.attachShadow({ mode: 'open' });
+  let shadow3 = host3.attachShadow({ mode: 'open' });
+
+  const html = `
+    <style>
+      * { color: blue; }
+      :host(:is(.a, .b)) b { color: green; }
+      :host-context(:is(.parent1, .parent2)) i { color: green; }
+      ::slotted(:is(.e, .f)) { color: green; }
+
+      /* The following should not match: */
+      :host(:is(.z)) b { color: red; }
+      :host(:is(.a + .b)) b { color: red; }
+      :host-context(:is(.z)) i { color: red; }
+      :host-context(:is(.parent1 .parent2)) i { color: red; }
+      ::slotted(:is(.z)) { color: red; }
+      ::slotted(:is(.a > .b)) { color: red; }
+    </style>
+    <b>:host</b>
+    <i>:host-context</i>
+    <slot></slot>
+  `;
+
+  shadow1.innerHTML = html;
+  shadow2.innerHTML = html;
+  shadow3.innerHTML = html;
+
+  const getComputedColor = e => getComputedStyle(e).color;
+  const green = 'rgb(0, 128, 0)';
+  const blue = 'rgb(0, 0, 255)';
+
+  test(function() {
+    assert_equals(getComputedColor(shadow1.querySelector('b')), green);
+    assert_equals(getComputedColor(shadow2.querySelector('b')), green);
+    assert_equals(getComputedColor(shadow3.querySelector('b')), blue);
+  }, ':is() inside :host()');
+
+  test(function() {
+    assert_equals(getComputedColor(shadow1.querySelector('i')), green);
+    assert_equals(getComputedColor(shadow2.querySelector('i')), green);
+    assert_equals(getComputedColor(shadow3.querySelector('i')), blue);
+  }, ':is() inside :host-context()');
+
+  test(function() {
+    assert_equals(getComputedColor(document.querySelector('.e')), green);
+    assert_equals(getComputedColor(document.querySelector('.d')), blue);
+    assert_equals(getComputedColor(document.querySelector('.f')), green);
+  }, ':is() inside ::slotted()');
+</script>
