@@ -4,8 +4,10 @@
         <title>CSS Test: White-space 'normal' and linefeed characters</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#line-break-transform"/>
+        <link rel="match" href="white-space-processing-014-ref.xht"/>
         <meta name="flags" content="ahem may" />
-        <meta name="assert" content="Linefeed characters are transformed into spaces, zero-width space, or not rendered when 'white-space' is set to 'normal'." />
+        <meta name="assert" content="Linefeed characters are transformed into spaces, zero-width space, or not rendered when 'white-space' is set to 'normal'. Under css-text-3 rules, they must be transformed into spaces" />
         <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
         <style type="text/css">
             div

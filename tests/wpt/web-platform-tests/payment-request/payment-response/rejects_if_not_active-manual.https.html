@@ -56,7 +56,7 @@ function methodNotFullyActive(button, method, ...args) {
   const text = button.textContent.trim();
   promise_test(async t => {
     const iframe = document.createElement("iframe");
-    iframe.allowPaymentRequest = true;
+    iframe.allow = "payment";
     document.body.appendChild(iframe);
 
     // We first got to page1.html, grab a PaymentResponse instance.
@@ -87,7 +87,7 @@ function methodBecomesNotFullyActive(button, methodName, ...args) {
   const text = button.textContent.trim();
   promise_test(async t => {
     const iframe = document.createElement("iframe");
-    iframe.allowPaymentRequest = true;
+    iframe.allow = "payment";
     document.body.appendChild(iframe);
 
     // We first got to page1.html, grab a PaymentResponse instance.

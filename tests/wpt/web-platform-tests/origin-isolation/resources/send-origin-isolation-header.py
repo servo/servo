@@ -19,7 +19,7 @@ def main(request, response):
         query_string_pieces.append(b"header=" + request.GET.first(b"header"))
       if b"send-loaded-message" in request.GET:
         query_string_pieces.append(b"send-loaded-message")
-      query_string = "?" + "&".join(query_string_pieces)
+      query_string = b"?" + b"&".join(query_string_pieces)
 
       return (
         302,

@@ -8,8 +8,10 @@
 <div id="target" style="width: 100px; height: 100px; position: absolute; right: 0"></div>
 <script>
 const observer = new IntersectionObserver(records => {
-  let { rootBounds, intersectionRect } = records[0];
-  window.top.postMessage({ rootBounds, intersectionRect }, "*");
+  if (records[0].isIntersecting) {
+    let { rootBounds, intersectionRect } = records[0];
+    window.top.postMessage({ rootBounds, intersectionRect }, "*");
+  }
 }, {});
 observer.observe(document.getElementById("target"));
 </script>

@@ -13,29 +13,64 @@ const kKeyA = "a";
 const kImgSrc =
   "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEElEQVR42mNgaGD4D8YwBgAw9AX9Y9zBwwAAAABJRU5ErkJggg==";
 
-let gSelection = getSelection();
-let gEditor = document.querySelector("div[contenteditable]");
-let gBeforeinput = [];
-let gInput = [];
-gEditor.addEventListener("beforeinput", e => {
-  // NOTE: Blink makes `getTargetRanges()` return empty range after propagation,
-  //       but this test wants to check the result during propagation.
-  //       Therefore, we need to cache the result, but will assert if
-  //       `getTargetRanges()` returns different ranges after checking the
-  //       cached ranges.
-  e.cachedRanges = e.getTargetRanges();
-  gBeforeinput.push(e);
-});
-gEditor.addEventListener("input", e => {
-  e.cachedRanges = e.getTargetRanges();
-  gInput.push(e);
-});
+let gSelection, gEditor, gBeforeinput, gInput;
 
 function initializeTest(aInnerHTML) {
+  function onBeforeinput(event) {
+    // NOTE: Blink makes `getTargetRanges()` return empty range after
+    //       propagation, but this test wants to check the result during
+    //       propagation.  Therefore, we need to cache the result, but will
+    //       assert if `getTargetRanges()` returns different ranges after
+    //       checking the cached ranges.
+    event.cachedRanges = event.getTargetRanges();
+    gBeforeinput.push(event);
+  }
+  function onInput(event) {
+    event.cachedRanges = event.getTargetRanges();
+    gInput.push(event);
+  }
+  if (gEditor !== document.querySelector("div[contenteditable]")) {
+    if (gEditor) {
+      gEditor.isListeningToInputEvents = false;
+      gEditor.removeEventListener("beforeinput", onBeforeinput);
+      gEditor.removeEventListener("input", onInput);
+    }
+    gEditor = document.querySelector("div[contenteditable]");
+  }
+  gSelection = getSelection();
+  gBeforeinput = [];
+  gInput = [];
+  if (!gEditor.isListeningToInputEvents) {
+    gEditor.isListeningToInputEvents = true;
+    gEditor.addEventListener("beforeinput", onBeforeinput);
+    gEditor.addEventListener("input", onInput);
+  }
+
   gEditor.innerHTML = aInnerHTML;
   gEditor.focus();
   gBeforeinput = [];
   gInput = [];
+}
+
+function getArrayOfRangesDescription(arrayOfRanges) {
+  if (arrayOfRanges === null) {
+    return "null";
+  }
+  if (arrayOfRanges === undefined) {
+    return "undefined";
+  }
+  if (!Array.isArray(arrayOfRanges)) {
+    return "Unknown Object";
+  }
+  if (arrayOfRanges.length === 0) {
+    return "[]";
+  }
+  let result = "[";
+  for (let range of arrayOfRanges) {
+    result += `{${getRangeDescription(range)}},`;
+  }
+  result += "]";
+  return result;
 }
 
 function getRangeDescription(range) {
@@ -66,27 +101,6 @@ function getRangeDescription(range) {
     : `(${getNodeDescription(range.startContainer)}, ${
         range.startOffset
       }) - (${getNodeDescription(range.endContainer)}, ${range.endOffset})`;
-}
-
-function getArrayOfRangesDescription(arrayOfRanges) {
-  if (arrayOfRanges === null) {
-    return "null";
-  }
-  if (arrayOfRanges === undefined) {
-    return "undefined";
-  }
-  if (!Array.isArray(arrayOfRanges)) {
-    return "Unknown Object";
-  }
-  if (arrayOfRanges.length === 0) {
-    return "[]";
-  }
-  let result = "[";
-  for (let range of arrayOfRanges) {
-    result += `{${getRangeDescription(range)}},`;
-  }
-  result += "]";
-  return result;
 }
 
 function sendDeleteKey(modifier) {
@@ -140,46 +154,39 @@ function sendArrowRightKey() {
     .send();
 }
 
-function checkGetTargetRangesKeepReturningSameValue(event) {
-  // https://github.com/w3c/input-events/issues/114
-  assert_equals(
-    getArrayOfRangesDescription(event.getTargetRanges()),
-    getArrayOfRangesDescription(event.cachedRanges),
-    `${event.type}.getTargetRanges() should keep returning the same array of ranges even after its propagation finished`
-  );
-}
-
-function checkGetTargetRangesOfBeforeinputOnDeleteSomething(expectedRange) {
+function checkGetTargetRangesOfBeforeinputOnDeleteSomething(expectedRanges) {
   assert_equals(
     gBeforeinput.length,
     1,
-    "One beforeinput event should be fired if the key operation deletes something"
+    "One beforeinput event should be fired if the key operation tries to delete something"
   );
   assert_true(
     Array.isArray(gBeforeinput[0].cachedRanges),
-    "gBeforeinput[0].getTargetRanges() should return an array of StaticRange instances during propagation"
+    "gBeforeinput[0].getTargetRanges() should return an array of StaticRange instances at least during propagation"
   );
-  // Before checking the length of array of ranges, we should check the first
-  // range first because the first range data is more important than whether
-  // there are additional unexpected ranges.
-  if (gBeforeinput[0].cachedRanges.length > 0) {
+  let arrayOfExpectedRanges = Array.isArray(expectedRanges)
+    ? expectedRanges
+    : [expectedRanges];
+  // Before checking the length of array of ranges, we should check the given
+  // range first because the ranges are more important than whether there are
+  // redundant additional unexpected ranges.
+  for (
+    let i = 0;
+    i <
+    Math.max(arrayOfExpectedRanges.length, gBeforeinput[0].cachedRanges.length);
+    i++
+  ) {
     assert_equals(
-      getRangeDescription(gBeforeinput[0].cachedRanges[0]),
-      getRangeDescription(expectedRange),
-      `gBeforeinput[0].getTargetRanges() should return expected range (inputType is "${gBeforeinput[0].inputType}")`
-    );
-    assert_equals(
-      gBeforeinput[0].cachedRanges.length,
-      1,
-      "gBeforeinput[0].getTargetRanges() should return one range within an array"
+      getRangeDescription(gBeforeinput[0].cachedRanges[i]),
+      getRangeDescription(arrayOfExpectedRanges[i]),
+      `gBeforeinput[0].getTargetRanges()[${i}] should return expected range (inputType is "${gBeforeinput[0].inputType}")`
     );
   }
   assert_equals(
     gBeforeinput[0].cachedRanges.length,
-    1,
-    "One range should be returned from getTargetRanges() when the key operation deletes something"
+    arrayOfExpectedRanges.length,
+    `getTargetRanges() of beforeinput event should return ${arrayOfExpectedRanges.length} ranges`
   );
-  checkGetTargetRangesKeepReturningSameValue(gBeforeinput[0]);
 }
 
 function checkGetTargetRangesOfInputOnDeleteSomething() {
@@ -191,14 +198,13 @@ function checkGetTargetRangesOfInputOnDeleteSomething() {
   // https://github.com/w3c/input-events/issues/113
   assert_true(
     Array.isArray(gInput[0].cachedRanges),
-    "gInput[0].getTargetRanges() should return an array of StaticRange instances during propagation"
+    "gInput[0].getTargetRanges() should return an array of StaticRange instances at least during propagation"
   );
   assert_equals(
     gInput[0].cachedRanges.length,
     0,
     "gInput[0].getTargetRanges() should return empty array during propagation"
   );
-  checkGetTargetRangesKeepReturningSameValue(gInput[0]);
 }
 
 function checkGetTargetRangesOfInputOnDoNothing() {

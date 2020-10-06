@@ -183,7 +183,6 @@ SET TIMEOUT: mixed-content/generic/sanity-checker.js
 SET TIMEOUT: navigation-timing/*
 SET TIMEOUT: old-tests/submission/Microsoft/history/history_000.htm
 SET TIMEOUT: paint-timing/resources/subframe-painting.html
-SET TIMEOUT: payment-request/allowpayment/setting-allowpaymentrequest-timing.https.sub.html
 SET TIMEOUT: portals/resources/portals-adopt-predecessor-portal.html
 SET TIMEOUT: preload/single-download-preload.html
 SET TIMEOUT: resize-observer/resources/iframe.html
