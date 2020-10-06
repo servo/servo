@@ -13,9 +13,9 @@ function assert_feature_policy_supported() {
 //        "/feature-policy/resources/feature-policy-payment.html",
 //        "/feature-policy/resources/feature-policy-usb.html".
 //    expect_feature_available: a callback(data, feature_description) to
-//        verify if a feature is avaiable or unavailable as expected.
+//        verify if a feature is available or unavailable as expected.
 //        The file under the path "src" defines what "data" is sent back as a
-//        pistMessage. Inside the callback, some tests (e.g., EXPECT_EQ,
+//        postMessage. Inside the callback, some tests (e.g., EXPECT_EQ,
 //        EXPECT_TRUE, etc) are run accordingly to test a feature's
 //        availability.
 //        Example: expect_feature_available_default(data, feature_description).
@@ -24,8 +24,8 @@ function assert_feature_policy_supported() {
 //      feature (https://wicg.github.io/feature-policy/#features).
 //      See examples at:
 //      https://github.com/WICG/feature-policy/blob/master/features.md
-//    allow_attribute: Optional argument, only used for testing fullscreen or
-//      payment: either "allowfullscreen" or "allowpaymentrequest" is passed.
+//    allow_attribute: Optional argument, only used for testing fullscreen:
+//      "allowfullscreen"
 function test_feature_availability(
     feature_description, test, src, expect_feature_available, feature_name,
     allow_attribute) {

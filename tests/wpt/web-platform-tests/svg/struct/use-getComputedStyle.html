@@ -1,0 +1,14 @@
+<!doctype html>
+<title>SVG Test: Resolved positioning inside use</title>
+<link rel="help" href="https://www.w3.org/TR/SVG2/struct.html#UseElement">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg>
+  <use id="use" x="1" y="2"/>
+</svg>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(use).x, "1px", "use element should have x computed to '1px'.");
+    assert_equals(getComputedStyle(use).y, "2px", "use element should have y computed to '2px'.");
+  }, "Test that we map use element positioning to style.");
+</script>

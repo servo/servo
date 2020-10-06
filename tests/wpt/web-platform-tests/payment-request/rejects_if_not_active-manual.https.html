@@ -54,7 +54,7 @@ function getLoadedPaymentRequest(iframe, url) {
 function testAbortShowIfDocumentIsNotActive() {
   promise_test(async t => {
     const iframe = document.createElement("iframe");
-    iframe.allowPaymentRequest = true;
+    iframe.allow = "payment";
     document.body.appendChild(iframe);
     // We first got to page1.html, grab a PaymentRequest instance.
     const request1 = await getLoadedPaymentRequest(
@@ -96,7 +96,7 @@ function testAbortShowIfDocumentIsNotFullyActive() {
   promise_test(async t => {
     // We nest two iframes and wait for them to load.
     const outerIframe = document.createElement("iframe");
-    outerIframe.allowPaymentRequest = true;
+    outerIframe.allow = "payment";
     document.body.appendChild(outerIframe);
     // Load the outer iframe (we don't care about the awaited request)
     await getLoadedPaymentRequest(
@@ -106,7 +106,7 @@ function testAbortShowIfDocumentIsNotFullyActive() {
 
     // Now we create the inner iframe
     const innerIframe = outerIframe.contentDocument.createElement("iframe");
-    innerIframe.allowPaymentRequest = true;
+    innerIframe.allow = "payment";
 
     // nest them
     outerIframe.contentDocument.body.appendChild(innerIframe);

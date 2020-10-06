@@ -4,6 +4,8 @@
         <title>CSS Test: Floats and line opportunity with 'white-space'</title>
         <link rel="author" title="Microsoft" href="http://www.microsoft.com/" />
         <link rel="help" href="http://www.w3.org/TR/CSS21/text.html#white-space-model" />
+        <link rel="help" href="https://drafts.csswg.org/css-text-3/#text-encoding"/>
+        <link rel="match" href="white-space-processing-048-ref.xht"/>
         <meta name="flags" content="ahem" />
         <meta name="assert" content="A line breaking opportunity is not introduced with floats." />
         <link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
@@ -24,8 +26,7 @@
     <body>
         <p>Test passes if the blue box is below the black box.</p>
         <div id="div1">
-            <span>XXXXXX</span>
-            <div>XXX</div>
+            <span>XXX<div>XXX</div>XXX</span>
         </div>
     </body>
 </html>

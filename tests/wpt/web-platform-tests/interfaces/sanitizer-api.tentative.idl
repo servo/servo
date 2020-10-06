@@ -10,4 +10,5 @@
 
 dictionary SanitizerConfig {
   sequence<DOMString>? dropElements;
+  sequence<DOMString>? dropAttributes;
 };

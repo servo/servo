@@ -16,8 +16,6 @@ interface PaymentRequest : EventTarget {
   Promise<undefined> abort();
   [NewObject]
   Promise<boolean> canMakePayment();
-  [NewObject]
-  Promise<boolean> hasEnrolledInstrument();
 
   readonly attribute DOMString id;
   readonly attribute PaymentAddress? shippingAddress;

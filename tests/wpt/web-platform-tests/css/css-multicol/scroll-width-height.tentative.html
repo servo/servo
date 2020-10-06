@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.multi {
+  width: 400px;
+  height: 400px;
+  columns: 3;
+}
+.child {
+  inline-size: 100px;
+  block-size: 100px;
+  outline: solid black;
+}
+.grandchild {
+  inline-size: 100px;
+  block-size: 300px;
+  background: lime;
+}
+</style>
+<body onload="checkLayout('.child, .grandchild')">
+<div id=log></div>
+
+<div class="multi" style="writing-mode: horizontal-tb">
+  <div class="child" data-expected-scroll-width="100" data-expected-scroll-height="300">
+    <div class="grandchild" data-expected-scroll-width="100" data-expected-scroll-height="300"></div>
+  </div>
+</div>
+<div class="multi" style="writing-mode: vertical-rl">
+  <div class="child" data-expected-scroll-width="300" data-expected-scroll-height="100">
+    <div class="grandchild" data-expected-scroll-width="300" data-expected-scroll-height="100"></div>
+  </div>
+</div>
+<div class="multi" style="writing-mode: vertical-lr">
+  <div class="child" data-expected-scroll-width="300" data-expected-scroll-height="100">
+    <div class="grandchild" data-expected-scroll-width="300" data-expected-scroll-height="100"></div>
+  </div>
+</div>

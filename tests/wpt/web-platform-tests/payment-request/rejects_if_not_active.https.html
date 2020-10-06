@@ -51,7 +51,7 @@ function getLoadedPaymentRequest(iframe, url) {
 
 promise_test(async t => {
   const iframe = document.createElement("iframe");
-  iframe.allowPaymentRequest = true;
+  iframe.allow = "payment";
   document.body.appendChild(iframe);
   // Make a request in the iframe.
   const request = await getLoadedPaymentRequest(

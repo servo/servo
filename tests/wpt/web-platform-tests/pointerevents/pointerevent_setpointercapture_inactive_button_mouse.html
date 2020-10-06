@@ -38,8 +38,9 @@
                     detected_pointertypes[event.pointerType] = true;
                     target0.setPointerCapture(event.pointerId);
                     // After we receive a pointerover event, dispatch a pointer move to move out of target0.
+                    // https://github.com/w3c/webdriver/issues/1545
                     actions_promise.then(function() {
-                        return new test_driver.Actions().pointerMove(0, 0).send();
+                        return new test_driver.Actions().pointerMove(1, 1).send();
                     });
                 });
 

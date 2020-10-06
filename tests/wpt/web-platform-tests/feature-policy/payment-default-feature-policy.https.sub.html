@@ -32,16 +32,5 @@
         expect_feature_unavailable_default);
   }, header + ' disallows cross-origin iframes.');
 
-  async_test(t => {
-    test_feature_availability(
-        'PaymentRequest()', t, same_origin_src,
-        expect_feature_available_default, undefined, 'allowpaymentrequest');
-  }, header + ' allowpaymentrequest=true allows same-origin iframes.');
-
-  async_test(t => {
-    test_feature_availability(
-        'PaymentRequest()', t, cross_origin_src,
-        expect_feature_available_default, undefined, 'allowpaymentrequest');
-  }, header + ' allowpaymentrequest=true allows cross-origin iframes.');
   </script>
 </body>
