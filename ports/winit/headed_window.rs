@@ -259,16 +259,22 @@ impl Window {
         coords: Point2D<i32, DevicePixel>,
     ) {
         use servo::script_traits::MouseButton;
-
+        let triggered_button = match button {
+            winit::MouseButton::Left => MouseButton::Left,
+            winit::MouseButton::Right => MouseButton::Right,
+            winit::MouseButton::Middle => MouseButton::Middle,
+            // Other mouse buttons handler defaults to left.
+            _=> MouseButton::Left,
+        };
         let max_pixel_dist = 10.0 * self.servo_hidpi_factor().get();
         let event = match action {
             ElementState::Pressed => {
                 self.mouse_down_point.set(coords);
                 self.mouse_down_button.set(Some(button));
-                MouseWindowEvent::MouseDown(MouseButton::Left, coords.to_f32())
+                MouseWindowEvent::MouseDown(triggered_button, coords.to_f32())
             },
             ElementState::Released => {
-                let mouse_up_event = MouseWindowEvent::MouseUp(MouseButton::Left, coords.to_f32());
+                let mouse_up_event = MouseWindowEvent::MouseUp(triggered_button, coords.to_f32());
                 match self.mouse_down_button.get() {
                     None => mouse_up_event,
                     Some(but) if button == but => {
@@ -280,7 +286,7 @@ impl Window {
                             self.event_queue
                                 .borrow_mut()
                                 .push(WindowEvent::MouseWindowEventClass(mouse_up_event));
-                            MouseWindowEvent::Click(MouseButton::Left, coords.to_f32())
+                            MouseWindowEvent::Click(triggered_button, coords.to_f32())
                         } else {
                             mouse_up_event
                         }
@@ -411,9 +417,7 @@ impl WindowPortsMethods for Window {
             winit::WindowEvent::ReceivedCharacter(ch) => self.handle_received_character(ch),
             winit::WindowEvent::KeyboardInput { input, .. } => self.handle_keyboard_input(input),
             winit::WindowEvent::MouseInput { state, button, .. } => {
-                if button == MouseButton::Left || button == MouseButton::Right {
-                    self.handle_mouse(button, state, self.mouse_pos.get());
-                }
+               self.handle_mouse(button, state, self.mouse_pos.get());
             },
             winit::WindowEvent::CursorMoved { position, .. } => {
                 let pos = position.to_physical(self.device_hidpi_factor().get() as f64);

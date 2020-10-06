@@ -896,7 +896,7 @@ impl<Window: WindowMethods + ?Sized> IOCompositor<Window> {
             result.point_in_viewport.to_untyped(),
             Some(UntrustedNodeAddress(result.tag.0 as *const c_void)),
             Some(result.point_relative_to_item.to_untyped()),
-            MouseButton::Left as u16,
+            button as u16,
         );
 
         let pipeline_id = PipelineId::from_webrender(result.pipeline);

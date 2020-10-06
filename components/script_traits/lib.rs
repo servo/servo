@@ -493,11 +493,11 @@ pub struct TouchId(pub i32);
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub enum MouseButton {
     /// The left mouse button.
-    Left = 1,
+    Left = 0,
     /// The right mouse button.
     Right = 2,
     /// The middle mouse button.
-    Middle = 4,
+    Middle = 1,
 }
 
 /// The types of mouse events

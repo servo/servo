@@ -1244,7 +1244,7 @@ impl Document {
             false,
             false,
             false,
-            0i16,
+            _button as i16,
             pressed_mouse_buttons,
             None,
             point_in_node,
