@@ -65,6 +65,9 @@ promise_test(async t => {
   assert_source_location_found(report_access_from[0])
   assert_equals(report_access_from[0].body.type,
                 "access-from-coop-page-to-openee");
+  assert_equals(report_access_from[0].body.openeeURL, openee_url);
+  assert_equals(report_access_from[0].body.openerURL, undefined);
+  assert_equals(report_access_from[0].body.otherDocumentURL, undefined);
 
   // 5. The openee tries to access its opener. No reports for blocked access
   //    to the COOP page should be dispatched.
@@ -122,6 +125,9 @@ promise_test(async t => {
   assert_source_location_found(report_access_from[0])
   assert_equals(report_access_from[0].body.type,
                 "access-from-coop-page-to-opener");
+  assert_equals(report_access_from[0].body.openeeURL, undefined);
+  assert_equals(report_access_from[0].body.openerURL, opener_url);
+  assert_equals(report_access_from[0].body.otherDocumentURL, undefined);
 
   // 4. The opener tries to access its openee. No reports for blocked access
   //    to the COOP page should be dispatched.
@@ -198,6 +204,9 @@ promise_test(async t => {
   assert_source_location_found(reports[0]);
   assert_equals(reports[0].body.type,
                 "access-from-coop-page-to-openee");
+  assert_equals(reports[0].body.openeeURL, openee_url);
+  assert_equals(reports[0].body.openerURL, undefined);
+  assert_equals(reports[0].body.otherDocumentURL, undefined);
 }, "Access from same-origin iframe")
 
 promise_test(async t => {
