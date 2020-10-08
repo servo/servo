@@ -10,8 +10,6 @@
 <script>
     testcases.forEach(c => test(t => {
         let s = new Sanitizer(c.config_input);
-        assert_true(s.creationOptions instanceof Object);
-        assert_object_equals(s.creationOptions, c.config_value);
         assert_equals(s.sanitizeToString(c.value), c.result);
     }, "SanitizerAPI sanitizeToString function for " + c.message));
 </script>

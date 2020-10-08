@@ -19,16 +19,12 @@ promise_test(async () => {
   const parent = document.querySelector("#parent");
   parent.style.top = '100px';
 
-  // If the implementation reports child and parent separately
-  // (overlapping are should be excluded):
-  const expectedScoreMin = computeExpectedScore(300 * (300 + 100) + 100 * 100, 100);
-  // If the implementation reports parent bounding box (including child):
-  const expectedScoreMax = computeExpectedScore(300 * (400 + 100), 100);
+  const expectedScore = computeExpectedScore(300 * (400 + 100), 100);
 
   // Observer fires after the frame is painted.
   assert_equals(watcher.score, 0);
   await watcher.promise;
-  assert_between_inclusive(watcher.score, expectedScoreMin, expectedScoreMax);
+  assert_equals(watcher.score, expectedScore);
 }, 'Parent/child movement.');
 
 </script>

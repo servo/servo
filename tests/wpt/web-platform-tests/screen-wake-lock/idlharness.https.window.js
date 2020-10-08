@@ -9,7 +9,7 @@
 'use strict';
 
 idl_test(
-  ['wake-lock'],
+  ['screen-wake-lock'],
   ['dom', 'html'],
   async idl_array => {
     idl_array.add_objects({ Navigator: ['navigator'] });

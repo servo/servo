@@ -13,6 +13,7 @@ from .base import TestWrapperHandlerUsingServer
 
 from serve import serve
 
+
 class TestFileHandler(TestUsingServer):
     def test_GET(self):
         resp = self.request("/document.txt")
@@ -388,8 +389,8 @@ class TestH2Handler(TestUsingH2Server):
 
 
 class TestWorkersHandler(TestWrapperHandlerUsingServer):
-    dummy_js_files = {'foo.worker.js': b'',
-                      'foo.any.js': b''}
+    dummy_files = {'foo.worker.js': b'',
+                   'foo.any.js': b''}
 
     def test_any_worker_html(self):
         self.run_wrapper_test('foo.any.worker.html',
@@ -401,7 +402,7 @@ class TestWorkersHandler(TestWrapperHandlerUsingServer):
 
 
 class TestWindowHandler(TestWrapperHandlerUsingServer):
-    dummy_js_files = {'foo.window.js': b''}
+    dummy_files = {'foo.window.js': b''}
 
     def test_window_html(self):
         self.run_wrapper_test('foo.window.html',
@@ -409,15 +410,19 @@ class TestWindowHandler(TestWrapperHandlerUsingServer):
 
 
 class TestAnyHtmlHandler(TestWrapperHandlerUsingServer):
-    dummy_js_files = {'foo.any.js': b''}
+    dummy_files = {'foo.any.js': b'',
+                   'foo.any.js.headers': b'X-Foo: 1',
+                   '__dir__.headers': b'X-Bar: 2'}
 
     def test_any_html(self):
         self.run_wrapper_test('foo.any.html',
-                              'text/html', serve.AnyHtmlHandler)
+                              'text/html',
+                              serve.AnyHtmlHandler,
+                              headers=[('X-Foo', '1'), ('X-Bar', '2')])
 
 
 class TestSharedWorkersHandler(TestWrapperHandlerUsingServer):
-    dummy_js_files = {'foo.any.js': b'// META: global=sharedworker\n'}
+    dummy_files = {'foo.any.js': b'// META: global=sharedworker\n'}
 
     def test_any_sharedworkers_html(self):
         self.run_wrapper_test('foo.any.sharedworker.html',
@@ -425,7 +430,7 @@ class TestSharedWorkersHandler(TestWrapperHandlerUsingServer):
 
 
 class TestServiceWorkersHandler(TestWrapperHandlerUsingServer):
-    dummy_js_files = {'foo.any.js': b'// META: global=serviceworker\n'}
+    dummy_files = {'foo.any.js': b'// META: global=serviceworker\n'}
 
     def test_serviceworker_html(self):
         self.run_wrapper_test('foo.any.serviceworker.html',
@@ -433,7 +438,7 @@ class TestServiceWorkersHandler(TestWrapperHandlerUsingServer):
 
 
 class TestAnyWorkerHandler(TestWrapperHandlerUsingServer):
-    dummy_js_files = {'bar.any.js': b''}
+    dummy_files = {'bar.any.js': b''}
 
     def test_any_work_js(self):
         self.run_wrapper_test('bar.any.worker.js', 'text/javascript',

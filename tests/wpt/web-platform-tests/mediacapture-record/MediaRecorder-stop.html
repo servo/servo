@@ -115,6 +115,44 @@
             new Promise(r => t.step_timeout(r, 0))]);
     }, "MediaRecorder will fire an exception when stopped after having just been spontaneously stopped");
 
+    promise_test(async t => {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        const recorder = new MediaRecorder(stream);
+        let events = [];
+        const startPromise = new Promise(resolve => recorder.onstart = resolve);
+        const stopPromise = new Promise(resolve => recorder.onstop = resolve);
+
+        startPromise.then(() => events.push("start"));
+        stopPromise.then(() => events.push("stop"));
+
+        recorder.start();
+        recorder.stop();
+
+        await stopPromise;
+        assert_array_equals(events, ["start", "stop"]);
+    }, "MediaRecorder will fire start event even if stopped synchronously");
+
+    promise_test(async t => {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+        const recorder = new MediaRecorder(stream);
+        let events = [];
+        const startPromise = new Promise(resolve => recorder.onstart = resolve);
+        const stopPromise = new Promise(resolve => recorder.onstop = resolve);
+        const errorPromise = new Promise(resolve => recorder.onerror = resolve);
+        const dataPromise = new Promise(resolve => recorder.ondataavailable = resolve);
+
+        startPromise.then(() => events.push("start"));
+        stopPromise.then(() => events.push("stop"));
+        errorPromise.then(() => events.push("error"));
+        dataPromise.then(() => events.push("data"));
+
+        recorder.start();
+        stream.removeTrack(stream.getAudioTracks()[0]);
+
+        await stopPromise;
+        assert_array_equals(events, ["start", "error", "data", "stop"]);
+    }, "MediaRecorder will fire start event even if a track is removed synchronously");
+
 </script>
 </body>
 </html>
