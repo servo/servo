@@ -2966,7 +2966,7 @@ impl ComputedValues {
 
     /// Returns the visited style, if any.
     pub fn visited_style(&self) -> Option<<&ComputedValues> {
-        self.visited_style.as_ref().map(|s| &**s)
+        self.visited_style.as_deref()
     }
 
     /// Returns the visited rules, if applicable.

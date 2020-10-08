@@ -472,7 +472,7 @@ impl<'a, 'i> ::selectors::Parser<'i> for SelectorParser<'a> {
     }
 
     fn default_namespace(&self) -> Option<Namespace> {
-        self.namespaces.default.as_ref().map(|ns| ns.clone())
+        self.namespaces.default.clone()
     }
 
     fn namespace_for_prefix(&self, prefix: &Atom) -> Option<Namespace> {
