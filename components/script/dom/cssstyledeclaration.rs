@@ -113,8 +113,10 @@ impl CSSStyleOwner {
                 if changed {
                     // If this is changed, see also
                     // CSSStyleRule::SetSelectorText, which does the same thing.
-                    stylesheets_owner_from_node(rule.parent_stylesheet().owner().upcast::<Node>())
-                        .invalidate_stylesheets();
+                    if let Some(owner) = rule.parent_stylesheet().get_owner() {
+                        stylesheets_owner_from_node(owner.upcast::<Node>())
+                            .invalidate_stylesheets();
+                    }
                 }
                 result
             },

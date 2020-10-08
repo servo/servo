@@ -144,7 +144,7 @@ impl HTMLStyleElement {
             stylesheets_owner.remove_stylesheet(self.upcast(), s)
         }
         *self.stylesheet.borrow_mut() = Some(s.clone());
-        self.cssom_stylesheet.set(None);
+        self.clean_stylesheet_ownership();
         stylesheets_owner.add_stylesheet(self.upcast(), s);
     }
 
@@ -165,6 +165,13 @@ impl HTMLStyleElement {
                 )
             })
         })
+    }
+
+    fn clean_stylesheet_ownership(&self) {
+        if let Some(cssom_stylesheet) = self.cssom_stylesheet.get() {
+            cssom_stylesheet.set_owner(None);
+        }
+        self.cssom_stylesheet.set(None);
     }
 }
 
@@ -217,6 +224,7 @@ impl VirtualMethods for HTMLStyleElement {
 
         if context.tree_connected {
             if let Some(s) = self.stylesheet.borrow_mut().take() {
+                self.clean_stylesheet_ownership();
                 stylesheets_owner_from_node(self).remove_stylesheet(self.upcast(), &s)
             }
         }
