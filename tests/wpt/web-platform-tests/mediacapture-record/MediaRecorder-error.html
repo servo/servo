@@ -38,7 +38,7 @@
         let recorder = new MediaRecorder(video);
         recorder.onerror = t.step_func(mediaRecorderErrorEvent => {
             assert_true(mediaRecorderErrorEvent instanceof MediaRecorderErrorEvent, 'the type of event should be MediaRecorderErrorEvent');
-            assert_equals(mediaRecorderErrorEvent.error.name, 'UnknownError', 'the type of error should be UnknownError when track has been added or removed');
+            assert_equals(mediaRecorderErrorEvent.error.name, 'InvalidModificationError', 'the type of error should be InvalidModificationError when track has been added or removed');
             assert_true(mediaRecorderErrorEvent.isTrusted, 'isTrusted should be true when the event is created by C++');
             assert_equals(recorder.state, "inactive", "MediaRecorder has been stopped after adding a track to stream");
             t.done();
@@ -57,7 +57,7 @@
         let recorder = new MediaRecorder(video);
         recorder.onerror = t.step_func(mediaRecorderErrorEvent => {
             assert_true(mediaRecorderErrorEvent instanceof MediaRecorderErrorEvent, 'the type of event should be MediaRecorderErrorEvent');
-            assert_equals(mediaRecorderErrorEvent.error.name, 'UnknownError', 'the type of error should be UnknownError when track has been added or removed');
+            assert_equals(mediaRecorderErrorEvent.error.name, 'InvalidModificationError', 'the type of error should be InvalidModificationError when track has been added or removed');
             assert_true(mediaRecorderErrorEvent.isTrusted, 'isTrusted should be true when the event is created by C++');
             assert_equals(recorder.state, "inactive", "MediaRecorder has been stopped after removing a track from stream");
             t.done();

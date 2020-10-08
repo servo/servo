@@ -957,6 +957,8 @@ def create_parser():
                         "working directory, not just files that changed")
     parser.add_argument("--github-checks-text-file", type=ensure_text,
                         help="Path to GitHub checks output file for Taskcluster runs")
+    parser.add_argument("-j", "--jobs", type=int, default=0,
+                        help="Level to parallelism to use (defaults to 0, which detects the number of CPUs)")
     return parser
 
 
@@ -984,17 +986,22 @@ def main(**kwargs_str):
 
     github_checks_outputter = get_gh_checks_outputter(kwargs["github_checks_text_file"])
 
-    return lint(repo_root, paths, output_format, ignore_glob, github_checks_outputter)
+    jobs = kwargs.get("jobs", 0)
+
+    return lint(repo_root, paths, output_format, ignore_glob, github_checks_outputter, jobs)
 
 
 # best experimental guess at a decent cut-off for using the parallel path
 MIN_FILES_FOR_PARALLEL = 80
 
 
-def lint(repo_root, paths, output_format, ignore_glob=None, github_checks_outputter=None):
-    # type: (Text, List[Text], Text, Optional[List[Text]], Optional[GitHubChecksOutputter]) -> int
+def lint(repo_root, paths, output_format, ignore_glob=None, github_checks_outputter=None, jobs=0):
+    # type: (Text, List[Text], Text, Optional[List[Text]], Optional[GitHubChecksOutputter], int) -> int
     error_count = defaultdict(int)  # type: Dict[Text, int]
     last = None
+
+    if jobs == 0:
+        jobs = multiprocessing.cpu_count()
 
     with io.open(os.path.join(repo_root, "lint.ignore"), "r") as f:
         ignorelist, skipped_files = parse_ignorelist(f)
@@ -1053,8 +1060,8 @@ def lint(repo_root, paths, output_format, ignore_glob=None, github_checks_output
 
     paths = [p for p in paths if p not in skip]
 
-    if len(to_check_content) >= MIN_FILES_FOR_PARALLEL:
-        pool = multiprocessing.Pool()
+    if jobs > 1 and len(to_check_content) >= MIN_FILES_FOR_PARALLEL:
+        pool = multiprocessing.Pool(jobs)
         # submit this job first, as it's the longest running
         all_paths_result = pool.apply_async(check_all_paths, (repo_root, paths))
         # each item tends to be quick, so pass things in large chunks to avoid too much IPC overhead
