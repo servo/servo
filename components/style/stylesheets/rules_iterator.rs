@@ -60,7 +60,7 @@ fn children_of_rule<'a, C>(
     quirks_mode: QuirksMode,
     guard: &'a SharedRwLockReadGuard<'_>,
     effective: &mut bool,
-) -> slice::Iter<'a, CssRule>
+) -> Option<slice::Iter<'a, CssRule>>
 where
     C: NestedRuleIterationCondition + 'static,
 {
@@ -73,38 +73,38 @@ where
         CssRule::Viewport(_) |
         CssRule::Keyframes(_) |
         CssRule::Page(_) |
-        CssRule::FontFeatureValues(_) => [].iter(),
+        CssRule::FontFeatureValues(_) => None,
         CssRule::Import(ref import_rule) => {
             let import_rule = import_rule.read_with(guard);
             if !C::process_import(guard, device, quirks_mode, import_rule) {
                 *effective = false;
-                return [].iter();
+                return None;
             }
-            import_rule.stylesheet.rules(guard).iter()
+            Some(import_rule.stylesheet.rules(guard).iter())
         },
         CssRule::Document(ref doc_rule) => {
             let doc_rule = doc_rule.read_with(guard);
             if !C::process_document(guard, device, quirks_mode, doc_rule) {
                 *effective = false;
-                return [].iter();
+                return None;
             }
-            doc_rule.rules.read_with(guard).0.iter()
+            Some(doc_rule.rules.read_with(guard).0.iter())
         },
         CssRule::Media(ref lock) => {
             let media_rule = lock.read_with(guard);
             if !C::process_media(guard, device, quirks_mode, media_rule) {
                 *effective = false;
-                return [].iter();
+                return None;
             }
-            media_rule.rules.read_with(guard).0.iter()
+            Some(media_rule.rules.read_with(guard).0.iter())
         },
         CssRule::Supports(ref lock) => {
             let supports_rule = lock.read_with(guard);
             if !C::process_supports(guard, device, quirks_mode, supports_rule) {
                 *effective = false;
-                return [].iter();
+                return None;
             }
-            supports_rule.rules.read_with(guard).0.iter()
+            Some(supports_rule.rules.read_with(guard).0.iter())
         },
     }
 }
@@ -135,7 +135,9 @@ where
                 continue;
             }
 
-            if !children.as_slice().is_empty() {
+            if let Some(children) = children {
+                // NOTE: It's important that `children` gets pushed even if
+                // empty, so that `skip_children()` works as expected.
                 self.stack.push(children);
             }
 
@@ -306,6 +308,6 @@ impl<'a, 'b> EffectiveRulesIterator<'a, 'b> {
         rule: &'a CssRule,
     ) -> Self {
         let children = children_of_rule::<AllRules>(rule, device, quirks_mode, guard, &mut false);
-        EffectiveRulesIterator::new(device, quirks_mode, guard, children)
+        EffectiveRulesIterator::new(device, quirks_mode, guard, children.unwrap_or([].iter()))
     }
 }
