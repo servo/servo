@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: WebRTC 1.0: Real-time Communication Between Browsers (https://w3c.github.io/webrtc-pc/)
+// Source: WebRTC 1.0: Real-Time Communication Between Browsers (https://w3c.github.io/webrtc-pc/)
 
 dictionary RTCConfiguration {
   sequence<RTCIceServer> iceServers;

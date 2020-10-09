@@ -6,8 +6,6 @@
   constructor(optional SanitizerConfig sanitizerConfig = {});
   DocumentFragment sanitize(DOMString input);
   DOMString sanitizeToString(DOMString input);
-
-  readonly attribute SanitizerConfig creationOptions;
 };
 
 dictionary SanitizerConfig {

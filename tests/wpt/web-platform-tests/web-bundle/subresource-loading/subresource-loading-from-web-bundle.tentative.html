@@ -8,22 +8,23 @@
 <script src="/resources/testharnessreport.js"></script>
 <body>
   <link id="link-web-bundle" rel="webbundle" href="../resources/wbn/subresource.wbn"
-        resources="http://web-platform.test:8001/root.js http://web-platform.test:8001/submodule.js" />
+        resources="http://web-platform.test:8001/web-bundle/resources/wbn/root.js
+                   http://web-platform.test:8001/web-bundle/resources/wbn/submodule.js" />
   <script>
     promise_test(async () => {
-      const module = await import('http://web-platform.test:8001/root.js');
+      const module = await import('http://web-platform.test:8001/web-bundle/resources/wbn/root.js');
       assert_equals(module.result, 'OK');
     }, "Subresource loading with WebBundle");
 
     promise_test(async () => {
-      const response = await fetch('http://web-platform.test:8001/root.js');
+      const response = await fetch('http://web-platform.test:8001/web-bundle/resources/wbn/root.js');
       const text = await response.text();
       assert_equals(text, "export * from './submodule.js';\n");
     }, "Subresource loading with WebBundle (Fetch API)");
 
     promise_test(t => {
       const url =
-          '/common/redirect.py?location=http://web-platform.test:8001/root.js';
+          '/common/redirect.py?location=http://web-platform.test:8001/web-bundle/resources/wbn/root.js';
       return promise_rejects_js(t, TypeError, import(url));
     }, "Subresource loading with WebBundle shouldn't affect redirect");
 
@@ -31,35 +32,35 @@
       const link = document.createElement("link");
       link.rel = "webbundle";
       link.href = "../resources/wbn/dynamic1.wbn";
-      link.resources.add('http://web-platform.test:8001/web-bundle/resources/dynamic/resource1.js',
-                         'http://web-platform.test:8001/web-bundle/resources/dynamic/resource2.js',
-                         'http://web-platform.test:8001/web-bundle/resources/dynamic/resource4.js');
+      link.resources.add('http://web-platform.test:8001/web-bundle/resources/wbn/dynamic/resource1.js',
+                         'http://web-platform.test:8001/web-bundle/resources/wbn/dynamic/resource2.js',
+                         'http://web-platform.test:8001/web-bundle/resources/wbn/dynamic/resource4.js');
       document.body.appendChild(link);
 
-      const module = await import('http://web-platform.test:8001/web-bundle/resources/dynamic/resource1.js');
+      const module = await import('http://web-platform.test:8001/web-bundle/resources/wbn/dynamic/resource1.js');
       assert_equals(module.result, 'resource1 from dynamic1.wbn');
 
       link.href = "../resources/wbn/dynamic2.wbn";
-      const module2 = await import('http://web-platform.test:8001/web-bundle/resources/dynamic/resource2.js');
+      const module2 = await import('http://web-platform.test:8001/web-bundle/resources/wbn/dynamic/resource2.js');
       assert_equals(module2.result, 'resource2 from dynamic2.wbn');
 
       // A resource not specified in the resources attribute, but in the bundle.
-      const module3 = await import('http://web-platform.test:8001/web-bundle/resources/dynamic/resource3.js');
+      const module3 = await import('http://web-platform.test:8001/web-bundle/resources/wbn/dynamic/resource3.js');
       assert_equals(module3.result, 'resource3 from network');
 
       document.body.removeChild(link);
-      const module4 = await import('http://web-platform.test:8001/web-bundle/resources/dynamic/resource4.js');
+      const module4 = await import('http://web-platform.test:8001/web-bundle/resources/wbn/dynamic/resource4.js');
       assert_equals(module4.result, 'resource4 from network');
 
       // Module scripts are stored to the Document's module map once loaded.
       // So import()ing the same module script will reuse the previously loaded
       // script.
-      const module_second = await import('http://web-platform.test:8001/web-bundle/resources/dynamic/resource1.js');
+      const module_second = await import('http://web-platform.test:8001/web-bundle/resources/wbn/dynamic/resource1.js');
       assert_equals(module_second.result, 'resource1 from dynamic1.wbn');
     }, 'Dynamically adding / updating / removing "<link rel=webbundle>"');
 
     promise_test(async () => {
-      const classic_script_url = 'http://web-platform.test:8001/web-bundle/resources/dynamic/classic_script.js';
+      const classic_script_url = 'http://web-platform.test:8001/web-bundle/resources/wbn/dynamic/classic_script.js';
       const link = document.createElement("link");
       link.rel = "webbundle";
       link.href = "../resources/wbn/dynamic1.wbn";
@@ -93,7 +94,7 @@
       const link = document.createElement('link');
       link.rel = 'webbundle';
       link.href = '../resources/wbn/dynamic1-crossorigin.wbn';
-      link.resources = 'https://web-platform.test:8444/web-bundle/resources/dynamic/resource1.js';
+      link.resources = 'https://web-platform.test:8444/web-bundle/resources/wbn/dynamic/resource1.js';
       document.body.appendChild(link);
       const module = await import(link.resources);
       assert_equals(module.result, 'resource1 from network');
@@ -101,7 +102,7 @@
 
     promise_test(async () => {
       const wbn_url = 'http://web-platform.test:8001/web-bundle/resources/wbn/subresource.wbn?test-resources-update';
-      const resource_url = 'http://web-platform.test:8001/submodule.js';
+      const resource_url = 'http://web-platform.test:8001/web-bundle/resources/wbn/submodule.js';
       const link = await addLinkAndWaitForLoad(wbn_url);
       link.resources.add(resource_url);
       const resp = await fetch(resource_url, {cache: 'no-store'});
