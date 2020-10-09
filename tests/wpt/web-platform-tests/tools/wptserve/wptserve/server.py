@@ -26,7 +26,7 @@ from .logger import get_logger
 from .request import Server, Request, H2Request
 from .response import Response, H2Response
 from .router import Router
-from .utils import HTTPException
+from .utils import HTTPException, isomorphic_decode
 from .constants import h2_headers
 
 # We need to stress test that browsers can send/receive many headers (there is
@@ -506,6 +506,8 @@ class H2Headers(dict):
     def __init__(self, headers):
         self.raw_headers = OrderedDict()
         for key, val in headers:
+            key = isomorphic_decode(key)
+            val = isomorphic_decode(val)
             self.raw_headers[key] = val
             dict.__setitem__(self, self._convert_h2_header_to_h1(key), val)
 

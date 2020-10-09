@@ -705,6 +705,7 @@ WEB-PLATFORM.TEST:signed-exchange/resources/generate-test-sxgs.sh
 WEB-PLATFORM.TEST:web-bundle/resources/generate-test-wbns.sh
 WEB-PLATFORM.TEST:web-bundle/resources/wbn/*.wbn
 WEB-PLATFORM.TEST:web-bundle/subresource-loading/subresource-loading-from-web-bundle.tentative.html
+WEB-PLATFORM.TEST:web-bundle/subresource-loading/subresource-loading-path-restriction.tentative.html
 
 # Tests that depend on resources in /gen/ in Chromium:
 # https://github.com/web-platform-tests/wpt/issues/16455

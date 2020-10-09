@@ -413,9 +413,9 @@ class H2Response(Response):
             item = None
             item_iter = self.iter_content()
             try:
-                item = item_iter.next()
+                item = next(item_iter)
                 while True:
-                    check_last = item_iter.next()
+                    check_last = next(item_iter)
                     self.writer.write_data(item, last=False)
                     item = check_last
             except StopIteration:
@@ -451,6 +451,13 @@ class H2ResponseWriter(object):
         secondary_headers = []  # Non ':' prefixed headers are to be added afterwards
 
         for header, value in headers:
+            # h2_headers are native strings
+            # header field names are strings of ASCII
+            if isinstance(header, binary_type):
+                header = header.decode('ascii')
+            # value in headers can be either string or integer
+            if isinstance(value, binary_type):
+                value = self.decode(value)
             if header in h2_headers:
                 header = ':' + header
                 formatted_headers.append((header, str(value)))
@@ -634,6 +641,15 @@ class H2ResponseWriter(object):
 
         self.content_written = True
         self.socket.sendall(raw_data)
+
+    def decode(self, data):
+        """Convert bytes to unicode according to response.encoding."""
+        if isinstance(data, binary_type):
+            return data.decode(self._response.encoding)
+        elif isinstance(data, text_type):
+            return data
+        else:
+            raise ValueError(type(data))
 
     def encode(self, data):
         """Convert unicode to bytes according to response.encoding."""

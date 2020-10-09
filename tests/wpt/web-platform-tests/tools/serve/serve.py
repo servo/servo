@@ -538,7 +538,7 @@ def start_servers(host, ports, paths, routes, bind_address, config, **kwargs):
         # If trying to start HTTP/2.0 server, check compatibility
         if scheme == 'h2' and not http2_compatible():
             logger.error('Cannot start HTTP/2.0 server as the environment is not compatible. ' +
-                         'Requires Python 2.7.10+ (< 3.0) and OpenSSL 1.0.2+')
+                         'Requires Python 2.7.10+ or 3.6+ and OpenSSL 1.0.2+')
             continue
 
         for port in ports:

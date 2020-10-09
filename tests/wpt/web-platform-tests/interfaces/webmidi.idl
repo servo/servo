@@ -46,8 +46,8 @@ dictionary MIDIOptions {
 };
 
 [SecureContext, Exposed=Window] interface MIDIOutput : MIDIPort {
-  void send(sequence<octet> data, optional DOMHighResTimeStamp timestamp = 0);
-  void clear();
+  undefined send(sequence<octet> data, optional DOMHighResTimeStamp timestamp = 0);
+  undefined clear();
 };
 
 enum MIDIPortType {

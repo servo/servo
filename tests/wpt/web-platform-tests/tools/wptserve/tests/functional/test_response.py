@@ -206,7 +206,7 @@ class TestH2Response(TestUsingH2Server):
         resp = self.conn.get_response()
 
         assert resp.status == 202
-        assert [x for x in resp.headers.items()] == [('server', 'test-h2'), ('test', 'PASS')]
+        assert [x for x in resp.headers.items()] == [(b'server', b'test-h2'), (b'test', b'PASS')]
         assert resp.read() == data
 
     def test_push(self):
@@ -248,12 +248,12 @@ class TestH2Response(TestUsingH2Server):
         resp = self.conn.get_response()
 
         assert resp.status == 202
-        assert [x for x in resp.headers.items()] == [('server', 'test-h2'), ('test', 'PASS')]
+        assert [x for x in resp.headers.items()] == [(b'server', b'test-h2'), (b'test', b'PASS')]
         assert resp.read() == data
 
         push_promise = next(self.conn.get_pushes())
         push = push_promise.get_response()
-        assert push_promise.path == '/push-test'
+        assert push_promise.path == b'/push-test'
         assert push.status == 203
         assert push.read() == push_data
 
@@ -273,7 +273,7 @@ class TestH2Response(TestUsingH2Server):
     def test_file_like_response(self):
         @wptserve.handlers.handler
         def handler(request, response):
-            content = BytesIO("Hello, world!")
+            content = BytesIO(b"Hello, world!")
             response.content = content
 
         route = ("GET", "/h2test/test_file_like_response", handler)
@@ -282,7 +282,7 @@ class TestH2Response(TestUsingH2Server):
         resp = self.conn.get_response()
 
         assert resp.status == 200
-        assert resp.read() == "Hello, world!"
+        assert resp.read() == b"Hello, world!"
 
     def test_list_response(self):
         @wptserve.handlers.handler
@@ -295,7 +295,7 @@ class TestH2Response(TestUsingH2Server):
         resp = self.conn.get_response()
 
         assert resp.status == 200
-        assert resp.read() == "helloworld"
+        assert resp.read() == b"helloworld"
 
     def test_content_longer_than_frame_size(self):
         @wptserve.handlers.handler
@@ -312,7 +312,7 @@ class TestH2Response(TestUsingH2Server):
         assert resp.status == 200
         payload_size = int(resp.headers['payload_size'][0])
         assert payload_size
-        assert resp.read() == "a" * (payload_size + 5)
+        assert resp.read() == b"a" * (payload_size + 5)
 
     def test_encode(self):
         @wptserve.handlers.handler
@@ -343,8 +343,8 @@ class TestH2Response(TestUsingH2Server):
         resp = self.conn.get_response()
 
         assert resp.status == 204
-        assert resp.headers['server'][0] == 'TEST-H2'
-        assert resp.read() == ''
+        assert resp.headers['server'][0] == b'TEST-H2'
+        assert resp.read() == b''
 
     def test_raw_header_frame_invalid(self):
         @wptserve.handlers.handler
@@ -370,7 +370,7 @@ class TestH2Response(TestUsingH2Server):
         self.server.router.register(*route)
         sid = self.conn.request(route[0], route[1])
 
-        assert self.conn.streams[sid]._read() == 'Hello world'
+        assert self.conn.streams[sid]._read() == b'Hello world'
 
     def test_raw_header_continuation_frame(self):
         @wptserve.handlers.handler
@@ -389,8 +389,8 @@ class TestH2Response(TestUsingH2Server):
         resp = self.conn.get_response()
 
         assert resp.status == 204
-        assert resp.headers['server'][0] == 'TEST-H2'
-        assert resp.read() == ''
+        assert resp.headers['server'][0] == b'TEST-H2'
+        assert resp.read() == b''
 
 if __name__ == '__main__':
     unittest.main()

@@ -10,6 +10,10 @@
   select {
     contain: size;
     color: transparent;
+    /* We make scrollbars transparent because some <option> elements can cause
+       overflow, which can cause scrollbars to be active in the test and
+       inactive in the reference.  But the test only cares about the sizing. */
+    scrollbar-color: transparent transparent;
   }
   .fsMedium {
     /* custom styling for some select elements, which is allowed to influence
