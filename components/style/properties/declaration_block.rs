@@ -1288,6 +1288,7 @@ pub fn parse_one_declaration_into(
     declarations: &mut SourcePropertyDeclaration,
     id: PropertyId,
     input: &str,
+    origin: Origin,
     url_data: &UrlExtraData,
     error_reporter: Option<&dyn ParseErrorReporter>,
     parsing_mode: ParsingMode,
@@ -1295,7 +1296,7 @@ pub fn parse_one_declaration_into(
     rule_type: CssRuleType,
 ) -> Result<(), ()> {
     let context = ParserContext::new(
-        Origin::Author,
+        origin,
         url_data,
         Some(rule_type),
         parsing_mode,

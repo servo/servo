@@ -82,27 +82,6 @@ impl<'a> ParserContext<'a> {
         }
     }
 
-    /// Create a parser context for on-the-fly parsing in CSSOM
-    #[inline]
-    pub fn new_for_cssom(
-        url_data: &'a UrlExtraData,
-        rule_type: Option<CssRuleType>,
-        parsing_mode: ParsingMode,
-        quirks_mode: QuirksMode,
-        error_reporter: Option<&'a dyn ParseErrorReporter>,
-        use_counters: Option<&'a UseCounters>,
-    ) -> Self {
-        Self::new(
-            Origin::Author,
-            url_data,
-            rule_type,
-            parsing_mode,
-            quirks_mode,
-            error_reporter,
-            use_counters,
-        )
-    }
-
     /// Create a parser context based on a previous context, but with a modified
     /// rule type.
     #[inline]
