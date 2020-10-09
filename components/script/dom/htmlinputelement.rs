@@ -1759,7 +1759,7 @@ impl HTMLInputElement {
 
             // Step 5.10: it's a hidden field named _charset_
             InputType::Hidden => {
-                if name == "_charset_" {
+                if name.to_ascii_lowercase() == "_charset_" {
                     return vec![FormDatum {
                         ty: ty.clone(),
                         name: name,
