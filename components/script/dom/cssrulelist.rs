@@ -5,7 +5,6 @@
 use crate::dom::bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::CSSRuleListBinding::CSSRuleListMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::{reflect_dom_object, DomObject, Reflector};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::csskeyframerule::CSSKeyframeRule;
@@ -13,6 +12,7 @@ use crate::dom::cssrule::CSSRule;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::htmlelement::HTMLElement;
 use crate::dom::window::Window;
+use crate::style::stylesheets::StylesheetLoader as StyleStylesheetLoader;
 use crate::stylesheet_loader::StylesheetLoader;
 use dom_struct::dom_struct;
 use servo_arc::Arc;
@@ -107,9 +107,11 @@ impl CSSRuleList {
         let owner = self
             .parent_stylesheet
             .get_owner()
-            .downcast::<HTMLElement>()
-            .unwrap();
-        let loader = StylesheetLoader::for_element(owner);
+            .map(DomRoot::downcast::<HTMLElement>)
+            .flatten();
+        let loader = owner
+            .as_ref()
+            .map(|element| StylesheetLoader::for_element(&**element));
         let new_rule = css_rules.with_raw_offset_arc(|arc| {
             arc.insert_rule(
                 &parent_stylesheet.shared_lock,
@@ -117,7 +119,7 @@ impl CSSRuleList {
                 &parent_stylesheet.contents,
                 index,
                 nested,
-                Some(&loader),
+                loader.as_ref().map(|l| l as &dyn StyleStylesheetLoader),
                 AllowImportRules::Yes,
             )
         })?;

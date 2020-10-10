@@ -117,8 +117,9 @@ impl CSSStyleRuleMethods for CSSStyleRule {
             let mut guard = self.cssrule.shared_lock().write();
             let stylerule = self.stylerule.write_with(&mut guard);
             mem::swap(&mut stylerule.selectors, &mut s);
-            stylesheets_owner_from_node(self.cssrule.parent_stylesheet().owner().upcast::<Node>())
-                .invalidate_stylesheets();
+            if let Some(owner) = self.cssrule.parent_stylesheet().get_owner() {
+                stylesheets_owner_from_node(owner.upcast::<Node>()).invalidate_stylesheets();
+            }
         }
     }
 }
