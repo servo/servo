@@ -9,6 +9,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::element::Element;
+use crate::dom::medialist::MediaList;
 use dom_struct::dom_struct;
 
 #[dom_struct]
@@ -49,6 +50,11 @@ impl StyleSheetMethods for StyleSheet {
     // https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode
     fn GetOwnerNode(&self) -> Option<DomRoot<Element>> {
         self.downcast::<CSSStyleSheet>().and_then(|s| s.get_owner())
+    }
+
+    // https://drafts.csswg.org/cssom/#dom-stylesheet-media
+    fn Media(&self) -> DomRoot<MediaList> {
+        self.downcast::<CSSStyleSheet>().unwrap().medialist()
     }
 
     // https://drafts.csswg.org/cssom/#dom-stylesheet-title
