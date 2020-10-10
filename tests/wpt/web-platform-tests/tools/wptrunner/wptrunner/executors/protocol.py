@@ -147,6 +147,11 @@ class BaseProtocolPart(ProtocolPart):
         pass
 
     @abstractmethod
+    def window_handles(self):
+        """Get a list of handles to top-level browsing contexts"""
+        pass
+
+    @abstractmethod
     def load(self, url):
         """Load a url in the current browsing context
 
@@ -343,9 +348,10 @@ class TestDriverProtocolPart(ProtocolPart):
     name = "testdriver"
 
     @abstractmethod
-    def send_message(self, message_type, status, message=None):
+    def send_message(self, cmd_id, message_type, status, message=None):
         """Send a testdriver message to the browser.
 
+        :param int cmd_id: The id of the command to which we're responding
         :param str message_type: The kind of the message.
         :param str status: Either "failure" or "success" depending on whether the
                            previous command succeeded.
@@ -356,12 +362,44 @@ class TestDriverProtocolPart(ProtocolPart):
         """Switch to a window given a wptrunner window id
 
         :param str wptrunner_id: window id"""
-        pass
+        if wptrunner_id is None:
+            return
 
-    def switch_to_frame(self, index):
+        stack = [str(item) for item in self.parent.base.window_handles()]
+        while stack:
+            item = stack.pop()
+            if item is None:
+                self._switch_to_parent_frame()
+                continue
+            elif isinstance(item, str):
+                self.parent.base.set_window(item)
+            else:
+                self._switch_to_frame(item)
+
+            try:
+                handle_window_id = self.parent.base.execute_script("return window.__wptrunner_id")
+                if str(handle_window_id) == wptrunner_id:
+                    return
+            except Exception:
+                pass
+            frame_count = self.parent.base.execute_script("return window.length")
+            # None here makes us switch back to the parent after we've processed all the subframes
+            stack.append(None)
+            if frame_count:
+                stack.extend(reversed(range(0, frame_count)))
+
+        raise Exception("Window with id %s not found" % wptrunner_id)
+
+    @abstractmethod
+    def _switch_to_frame(self, index):
         """Switch to a frame in the current window
 
         :param int index: Frame id"""
+        pass
+
+    @abstractmethod
+    def _switch_to_parent_frame(self):
+        """Switch to the parent of the current frame"""
         pass
 
 

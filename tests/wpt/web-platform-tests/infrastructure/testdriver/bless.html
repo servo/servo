@@ -43,7 +43,7 @@ promise_test(t => {
 promise_test(() => {
   return test_driver.bless('demonstrates return value without action')
     .then((value) => {
-      assert_equals(value, undefined);
+      assert_equals(value, null);
     });
 }, 'no action function provided');
 

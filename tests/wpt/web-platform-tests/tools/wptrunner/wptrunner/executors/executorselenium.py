@@ -61,6 +61,9 @@ class SeleniumBaseProtocolPart(BaseProtocolPart):
     def set_window(self, handle):
         self.webdriver.switch_to_window(handle)
 
+    def window_handles(self):
+        return self.webdriver.window_handles
+
     def load(self, url):
         self.webdriver.get(url)
 
@@ -200,8 +203,9 @@ class SeleniumTestDriverProtocolPart(TestDriverProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
 
-    def send_message(self, message_type, status, message=None):
+    def send_message(self, cmd_id, message_type, status, message=None):
         obj = {
+            "cmd_id": cmd_id,
             "type": "testdriver-%s" % str(message_type),
             "status": str(status)
         }

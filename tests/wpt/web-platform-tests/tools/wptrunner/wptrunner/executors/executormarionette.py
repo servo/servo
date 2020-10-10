@@ -103,6 +103,9 @@ class MarionetteBaseProtocolPart(BaseProtocolPart):
     def set_window(self, handle):
         _switch_to_window(self.marionette, handle)
 
+    def window_handles(self):
+        return self.marionette.window_handles
+
     def load(self, url):
         self.marionette.navigate(url)
 
@@ -460,8 +463,9 @@ class MarionetteTestDriverProtocolPart(TestDriverProtocolPart):
     def setup(self):
         self.marionette = self.parent.marionette
 
-    def send_message(self, message_type, status, message=None):
+    def send_message(self, cmd_id, message_type, status, message=None):
         obj = {
+            "cmd_id": cmd_id,
             "type": "testdriver-%s" % str(message_type),
             "status": str(status)
         }
@@ -469,23 +473,11 @@ class MarionetteTestDriverProtocolPart(TestDriverProtocolPart):
             obj["message"] = str(message)
         self.parent.base.execute_script("window.postMessage(%s, '*')" % json.dumps(obj))
 
-    def switch_to_window(self, window_id):
-        if window_id is None:
-            return
-
-        for window_handle in self.marionette.window_handles:
-            _switch_to_window(self.marionette, window_handle)
-            try:
-                handle_window_id = self.marionette.execute_script("return window.name")
-            except errors.JavascriptException:
-                continue
-            if str(handle_window_id) == window_id:
-                return
-
-        raise Exception("Window with id %s not found" % window_id)
-
-    def switch_to_frame(self, frame_number):
+    def _switch_to_frame(self, frame_number):
         self.marionette.switch_to_frame(frame_number)
+
+    def _switch_to_parent_frame(self):
+        self.marionette.switch_to_parent_frame()
 
 
 class MarionetteCoverageProtocolPart(CoverageProtocolPart):
