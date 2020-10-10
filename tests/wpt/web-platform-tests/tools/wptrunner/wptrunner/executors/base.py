@@ -691,6 +691,9 @@ class ConnectionlessBaseProtocolPart(BaseProtocolPart):
     def set_window(self, handle):
         pass
 
+    def window_handles(self):
+        return []
+
 
 class ConnectionlessProtocol(Protocol):
     implements = [ConnectionlessBaseProtocolPart]
@@ -787,6 +790,7 @@ class CallbackHandler(object):
 
     def process_action(self, url, payload):
         action = payload["action"]
+        cmd_id = payload["id"]
         self.logger.debug("Got action: %s" % action)
         try:
             action_handler = self.actions[action]
@@ -797,21 +801,21 @@ class CallbackHandler(object):
                 result = action_handler(payload)
         except self.unimplemented_exc:
             self.logger.warning("Action %s not implemented" % action)
-            self._send_message("complete", "error", "Action %s not implemented" % action)
+            self._send_message(cmd_id, "complete", "error", "Action %s not implemented" % action)
         except Exception:
             self.logger.warning("Action %s failed" % action)
             self.logger.warning(traceback.format_exc())
-            self._send_message("complete", "error")
+            self._send_message(cmd_id, "complete", "error")
             raise
         else:
             self.logger.debug("Action %s completed with result %s" % (action, result))
             return_message = {"result": result}
-            self._send_message("complete", "success", json.dumps(return_message))
+            self._send_message(cmd_id, "complete", "success", json.dumps(return_message))
 
         return False, None
 
-    def _send_message(self, message_type, status, message=None):
-        self.protocol.testdriver.send_message(message_type, status, message=message)
+    def _send_message(self, cmd_id, message_type, status, message=None):
+        self.protocol.testdriver.send_message(cmd_id, message_type, status, message=message)
 
 
 class ActionContext(object):
@@ -820,28 +824,20 @@ class ActionContext(object):
         self.protocol = protocol
         self.context = context
         self.initial_window = None
-        self.switched_frame = False
 
     def __enter__(self):
         if self.context is None:
             return
 
-        window_id = self.context[0]
-        if window_id:
-            self.initial_window = self.protocol.base.current_window
-            self.logger.debug("Switching to window %s" % window_id)
-            self.protocol.testdriver.switch_to_window(window_id)
-
-        for frame_id in self.context[1:]:
-            self.switched_frame = True
-            self.logger.debug("Switching to frame %s" % frame_id)
-            self.protocol.testdriver.switch_to_frame(frame_id)
+        self.initial_window = self.protocol.base.current_window
+        self.logger.debug("Switching to window %s" % self.context)
+        self.protocol.testdriver.switch_to_window(self.context)
 
     def __exit__(self, *args):
-        if self.initial_window is not None:
-            self.logger.debug("Switching back to initial window")
-            self.protocol.base.set_window(self.initial_window)
-            self.initial_window = None
-        elif self.switched_frame:
-            self.protocol.testdriver.switch_to_frame(None)
-        self.switched_frame = False
+        if self.context is None:
+            return
+
+        self.logger.debug("Switching back to initial window")
+        self.protocol.base.set_window(self.initial_window)
+        self.protocol.testdriver._switch_to_frame(None)
+        self.initial_window = None

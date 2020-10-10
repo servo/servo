@@ -591,5 +591,5 @@ tasks:
       use:
         - wpt-base
         - trigger-pr
-      command: "./wpt tc-sink-task"
+      command: "./wpt tc-sink-task --github-checks-text-file=/home/test/artifacts/checkrun.md"
       requires: all-resolved

@@ -1,0 +1,32 @@
+<!doctype html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<input type=text>
+<script>
+let input = document.getElementsByTagName("input")[0];
+addEventListener("load", async () => {
+    test_driver.set_test_context(parent);
+    await new test_driver.Actions()
+     .pointerMove(0, 0, {origin: input})
+     .pointerDown()
+     .pointerUp()
+     .send();
+    await new test_driver.Actions()
+     .keyDown("P")
+     .keyUp("P")
+     .keyDown("A")
+     .keyUp("A")
+     .keyDown("S")
+     .keyUp("S")
+     .keyDown("S")
+     .keyUp("S")
+     .send();
+    if (input.value === "PASS") {
+      test_driver.message_test("PASS", "*")
+    } else {
+      test_driver.message_test("FAIL", "*")
+    }
+});
+</script>

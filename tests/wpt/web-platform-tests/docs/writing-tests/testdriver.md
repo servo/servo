@@ -13,9 +13,6 @@ tests.
 testdriver.js exposes its API through the `test_driver` variable in
 the global scope.
 
-NB: presently, testdriver.js only works in the top-level test browsing
-context (and not therefore in any frame or window opened from it).
-
 ### Actions
 Usage:
 ```
@@ -25,12 +22,17 @@ let actions = new test_driver.Actions()
 actions.send()
 ```
 
-Test authors are encouraged to use the builder API to generate the sequence of actions. The builder
-API can be accessed via the `new test_driver.Actions()` object, and actions are defined in [testdriver-actions.js](https://github.com/web-platform-tests/wpt/blob/master/resources/testdriver-actions.js)
+Test authors are encouraged to use the builder API to generate the
+sequence of actions. The builder API can be accessed via the `new
+test_driver.Actions()` object, and actions are defined in
+[testdriver-actions.js](https://github.com/web-platform-tests/wpt/blob/master/resources/testdriver-actions.js)
 
-The `actions.send()` function causes the sequence of actions to be sent to the browser. It is based on the [WebDriver API](https://w3c.github.io/webdriver/#actions).
-The action can be a keyboard action, a pointer action or a pause. It returns a promise that
-resolves after the actions have been sent, or rejects if an error was thrown.
+The `actions.send()` function causes the sequence of actions to be
+sent to the browser. It is based on the [WebDriver
+API](https://w3c.github.io/webdriver/#actions).  The action can be a
+keyboard action, a pointer action or a pause. It returns a promise
+that resolves after the actions have been sent, or rejects if an error
+was thrown.
 
 
 Example:
@@ -49,7 +51,13 @@ let actions = new test_driver.Actions()
 actions.send();
 ```
 
-Calling into `send()` is going to dispatch the action sequence (via `test_driver.action_sequence`) and also returns a promise which should be handled however is appropriate in the test. The other functions in the `Actions()` object are going to modify the state of the object by adding a new action in the sequence and returning the same object. So the functions can be easily chained, as shown in the example above. Here is a list of helper functions in the `Actions` class:
+Calling into `send()` is going to dispatch the action sequence (via
+`test_driver.action_sequence`) and also returns a promise which should
+be handled however is appropriate in the test. The other functions in
+the `Actions()` object are going to modify the state of the object by
+adding a new action in the sequence and returning the same object. So
+the functions can be easily chained, as shown in the example
+above. Here is a list of helper functions in the `Actions` class:
 
 ```
 pointerDown: Create a pointerDown event for the current default pointer source
@@ -143,7 +151,7 @@ For example, to send the tab key you would send "\uE004".
 
 ### set_permission
 
-Usage: `test_driver.set_permission(descriptor, state, one_realm)`
+Usage: `test_driver.set_permission(descriptor, state, one_realm, context=null)`
  * _descriptor_: a
    [PermissionDescriptor](https://w3c.github.io/permissions/#dictdef-permissiondescriptor)
    or derived object
@@ -152,6 +160,7 @@ Usage: `test_driver.set_permission(descriptor, state, one_realm)`
    value
  * _one_realm_: a boolean that indicates whether the permission settings
    apply to only one realm
+ * context: a WindowProxy for the browsing context in which to perform the call
 
 This function causes permission requests and queries for the status of a
 certain permission type (e.g. "push", or "background-fetch") to always
@@ -164,3 +173,63 @@ Example:
 await test_driver.set_permission({ name: "background-fetch" }, "denied");
 await test_driver.set_permission({ name: "push", userVisibleOnly: true }, "granted", true);
 ```
+
+## Using testdriver in Other Browsing Contexts
+
+Testdriver can be used in browsing contexts (i.e. windows or frames)
+from which it's possible to get a reference to the top-level test
+context. There are two basic approaches depending on whether the
+context in which testdriver is used is same-origin with the test
+context, or different origin.
+
+For same-origin contexts, the context can be passed directly into the
+testdriver API calls. For functions that take an element argument this
+is done implicitly using the owner document of the element. For
+functions that don't take an element, this is done via an explicit
+context argument, which takes a WindowProxy object.
+
+Example:
+```
+let win = window.open("example.html")
+win.onload = () => {
+  await test_driver.set_permission({ name: "background-fetch" }, "denied", win);
+}
+```
+
+For the actions API, the context can be set using the `setContext`
+method on the builder:
+
+```
+let actions = new test_driver.Actions()
+    .setContext(frames[0])
+    .keyDown("p")
+    .keyUp("p");
+actions.send();
+```
+
+Note that if an action uses an element reference, the context will be
+derived from that element, and must match any explictly set
+context. Using elements in multiple contexts in a single action chain
+is not supported.
+
+
+For cross-origin cases, passing in the context id doesn't work because
+of limitations in the WebDriver protocol used to implement testdriver
+in a cross-browser fashion. Instead one may include the testdriver
+scripts directly in the relevant document, and use the
+`set_test_context` API to specify the browsing context containing
+testharness.js. Commands are then sent via postMessage to the test
+context. For convenience there is also a `message_test` function that
+can be used to send arbitary messages to the test window. For example,
+in an auxillary browsing context:
+
+
+```
+testdriver.set_test_context(window.opener)
+await testdriver.click(document.getElementsByTagName("button")[0])
+testdriver.message_test("click complete")
+```
+
+The requirement to have a handle to the test window does mean it's
+currently not possible to write tests where such handles can't be
+obtained e.g. in the case of `rel=noopener`.

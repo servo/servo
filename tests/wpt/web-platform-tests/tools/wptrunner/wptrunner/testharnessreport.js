@@ -1,11 +1,15 @@
 class MessageQueue {
   constructor() {
+    this.item_id = 0;
     this._queue = [];
   }
 
   push(item) {
+    let cmd_id = this.item_id++;
+    item.id = cmd_id;
     this._queue.push(item);
     __wptrunner_process_next_event();
+    return cmd_id;
   }
 
   shift() {

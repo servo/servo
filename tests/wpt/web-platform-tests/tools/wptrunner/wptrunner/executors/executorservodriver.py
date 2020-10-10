@@ -76,6 +76,9 @@ class ServoBaseProtocolPart(BaseProtocolPart):
     def set_window(self, handle):
         pass
 
+    def window_handles(self):
+        return []
+
     def load(self, url):
         pass
 
