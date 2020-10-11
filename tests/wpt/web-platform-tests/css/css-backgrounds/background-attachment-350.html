@@ -43,21 +43,22 @@
 
   <!--
 
-  +-----------------------+
-  |+----------+           |
-  || +------+ |           |
-  || |  red | |           | <-- bottom right of scrolling box
+(0px, 0px)              (200px, 0px)
+  +.......................+
+  |+..........+           |
+  || +......+ |           |
+  || |  red | |           | <== bottom right of scrolling box
   || |square| |           |     when background-image dimensions
   || |      | |           |     are the same as the element's
-  || +------+ |           |     viewport dimensions
-   +----------+           |
+  || +......+ |           |     viewport dimensions
+   +..........+           |
   |                       |
-  |                       |
-  |               +------+|
-  |               |  red || <-- bottom right of scrollable area
+  |               +......+|
+  |               |  red || <== bottom right of scrollable area
   |               |square||     which is outside of the viewport
   |               |      ||     area and which is clipped due
-  |               +------+|     to 'overflow: hidden'
-  +-----------------------+
+  |               +......+|     to 'overflow: hidden'
+  +.......................+
+(0px, 200px)            (200px, 200px)
 
   -->

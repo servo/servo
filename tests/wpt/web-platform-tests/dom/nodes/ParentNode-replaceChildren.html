@@ -44,6 +44,14 @@
       const parent = node.cloneNode();
       const child = document.createElement('test');
       parent.appendChild(child);
+      parent.replaceChildren();
+      assert_array_equals(parent.childNodes, []);
+    }, `${nodeName}.replaceChildren() without any argument, on a parent having a child.`);
+
+    test(() => {
+      const parent = node.cloneNode();
+      const child = document.createElement('test');
+      parent.appendChild(child);
       parent.replaceChildren(null);
       assert_equals(parent.childNodes.length, 1);
       assert_equals(parent.childNodes[0].textContent, 'null');
