@@ -26,53 +26,57 @@ function wait(ms) {
   return new Promise(resolve => step_timeout(resolve, ms));
 }
 
-async function pollReports(endpoint, reports) {
-  while (true) {
-    await wait(200);
-    const res = await fetch(`resources/report.py?endpoint=${endpoint}`, {cache: 'no-store'});
-    if (res.status !== 200) {
-      continue;
-    }
-    for (const report of await res.json()) {
-      reports.push(report);
-    }
+async function fetchReports(endpoint) {
+  const res = await fetch(`resources/report.py?endpoint=${endpoint}`, {cache: 'no-store'});
+  if (res.status == 200) {
+    return await res.json();
   }
+  return [];
 }
 
-const reports = [];
-const reportsForReportOnly = [];
-pollReports('endpoint', reports);
-pollReports('report-only-endpoint', reportsForReportOnly);
-
-function checkCorpReportExistence(reports, blockedUrl, contextUrl, destination, disposition) {
+async function checkCorpReportExistence(endpoint, blockedUrl, contextUrl, destination, disposition) {
   blockedUrl = new URL(blockedUrl, location).href;
   contextUrl = new URL(contextUrl, location).href;
-  for (const report of reports) {
-    if (report.type !== 'coep' || report.url !== contextUrl ||
-        report.body.type !== 'corp') {
-      continue;
+
+  const timeout = 3000;
+  const retryDelay = 200;
+  for (let i = 0; i * retryDelay < timeout; i++) {
+    const reports = await fetchReports(endpoint);
+    for (const report of reports) {
+      if (report.type !== 'coep' || report.url !== contextUrl ||
+          report.body.type !== 'corp') {
+        continue;
+      }
+      if (report.body.blockedURL === blockedUrl &&
+          report.body.disposition === disposition) {
+        assert_equals(report.body.destination, destination);
+        return;
+      }
     }
-    if (report.body.blockedURL === blockedUrl &&
-        report.body.disposition === disposition) {
-      assert_equals(report.body.destination, destination);
-      return;
-    }
+    await wait(retryDelay);
   }
   assert_unreached(`A report whose blockedURL is ${blockedUrl} and url is ${contextUrl} is not found.`);
 }
 
-function checkNavigationReportExistence(reports, blockedUrl, contextUrl, disposition) {
+async function checkNavigationReportExistence(endpoint, blockedUrl, contextUrl, disposition) {
   blockedUrl = new URL(blockedUrl, location).href;
   contextUrl = new URL(contextUrl, location).href;
-  for (const report of reports) {
-    if (report.type !== 'coep' || report.url !== contextUrl ||
-        report.body.type !== 'navigation') {
-      continue;
+  const timeout = 3000;
+  const retryDelay = 200;
+  for (let i = 0; i * retryDelay < timeout; i++) {
+    const reports = await fetchReports(endpoint);
+
+    for (const report of reports) {
+      if (report.type !== 'coep' || report.url !== contextUrl ||
+          report.body.type !== 'navigation') {
+        continue;
+      }
+      if (report.body.blockedURL === blockedUrl &&
+          report.body.disposition === disposition) {
+        return;
+      }
     }
-    if (report.body.blockedURL === blockedUrl &&
-        report.body.disposition === disposition) {
-      return;
-    }
+    await wait(retryDelay);
   }
   assert_unreached(`A report whose blockedURL is ${blockedUrl} and url is ${contextUrl} is not found.`);
 }
@@ -93,12 +97,9 @@ promise_test(async t => {
   // header, so it is blocked.
   iframe.contentWindow.fetch(url, init).catch(() => {});
 
-  // Wait 3 seconds for reports to settle.
-  await wait(3000);
-
-  checkCorpReportExistence(reports, url, iframe.src, '', 'enforce');
-  checkCorpReportExistence(
-      reportsForReportOnly, url, iframe.src, '', 'reporting');
+  await checkCorpReportExistence('endpoint', url, iframe.src, '', 'enforce');
+  await checkCorpReportExistence(
+      'report-only-endpoint', url, iframe.src, '', 'reporting');
 }, 'subresource CORP');
 
 promise_test(async t => {
@@ -124,12 +125,10 @@ promise_test(async t => {
   // header, so it is blocked.
   attachFrame(url);
 
-  // Wait 3 seconds for reports to settle.
-  await wait(3000);
-
-  checkCorpReportExistence(reports, url, iframe.src, 'iframe', 'enforce');
-  checkCorpReportExistence(
-      reportsForReportOnly, url, iframe.src, 'iframe', 'reporting');
+  await checkCorpReportExistence(
+      'endpoint', url, iframe.src, 'iframe', 'enforce');
+  await checkCorpReportExistence(
+      'report-only-endpoint', url, iframe.src, 'iframe', 'reporting');
 }, 'navigation CORP');
 
 promise_test(async (t) => {
@@ -147,12 +146,10 @@ promise_test(async (t) => {
 
   document.body.appendChild(iframe);
 
-  // Wait 3 seconds for reports to settle.
-  await wait(3000);
-
-  checkNavigationReportExistence(reports, targetUrl, iframe.src, 'enforce');
-  checkNavigationReportExistence(
-    reportsForReportOnly, targetUrl, iframe.src, 'reporting');
+  await checkNavigationReportExistence(
+      'endpoint', targetUrl, iframe.src, 'enforce');
+  await checkNavigationReportExistence(
+    'report-only-endpoint', targetUrl, iframe.src, 'reporting');
 }, 'COEP violation on nested frame navigation');
 
-</script>$
+</script>
