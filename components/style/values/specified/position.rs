@@ -951,13 +951,6 @@ impl Parse for Ratio {
             _ => One::one(),
         };
 
-        // The computed value of a <ratio> is the pair of numbers provided, unless
-        // both numbers are zero, in which case the computed value is the pair (1, 0)
-        // (same as 1 / 0).
-        // https://drafts.csswg.org/css-values-4/#ratios
-        if a.is_zero() && b.is_zero() {
-            return Ok(GenericRatio(One::one(), Zero::zero()));
-        }
-        return Ok(GenericRatio(a, b));
+        Ok(GenericRatio(a, b))
     }
 }

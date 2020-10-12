@@ -87,8 +87,12 @@ fn eval_aspect_ratio_for<F>(
 where
     F: FnOnce(&Device) -> Size2D<Au>,
 {
+    // A ratio of 0/0 behaves as the ratio 1/0, so we need to call used_value()
+    // to convert it if necessary.
+    // FIXME: we may need to update here once
+    // https://github.com/w3c/csswg-drafts/issues/4954 got resolved.
     let query_value = match query_value {
-        Some(v) => v,
+        Some(v) => v.used_value(),
         None => return true,
     };
 
