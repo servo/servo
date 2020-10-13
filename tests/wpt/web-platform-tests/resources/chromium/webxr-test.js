@@ -341,6 +341,17 @@ class MockRuntime {
     "immersive-ar": device.mojom.XRSessionMode.kImmersiveAr,
   };
 
+  static environmentBlendModeToMojoMap = {
+    "opaque": device.mojom.XREnvironmentBlendMode.kOpaque,
+    "alpha-blend": device.mojom.XREnvironmentBlendMode.kAlphaBlend,
+    "additive": device.mojom.XREnvironmentBlendMode.kAdditive,
+  };
+
+  static interactionModeToMojoMap = {
+    "screen-space": device.mojom.XRInteractionMode.kScreenSpace,
+    "world-space": device.mojom.XRInteractionMode.kWorldSpace,
+  };
+
   constructor(fakeDeviceInit, service) {
     this.sessionClient_ = new device.mojom.XRSessionClientPtr();
     this.presentation_provider_ = new MockXRPresentationProvider();
@@ -419,6 +430,8 @@ class MockRuntime {
     }
 
     this.defaultFramebufferScale_ = default_framebuffer_scale;
+    this.enviromentBlendMode_ = this._convertBlendModeToEnum(fakeDeviceInit.environmentBlendMode);
+    this.interactionMode_ = this._convertInteractionModeToEnum(fakeDeviceInit.interactionMode);
 
     // This appropriately handles if the coordinates are null
     this.setBoundsGeometry(fakeDeviceInit.boundsCoordinates);
@@ -439,6 +452,26 @@ class MockRuntime {
 
   _convertModesToEnum(sessionModes) {
     return sessionModes.map(mode => this._convertModeToEnum(mode));
+  }
+
+  _convertBlendModeToEnum(blendMode) {
+    if (blendMode in MockRuntime.environmentBlendModeToMojoMap) {
+      return MockRuntime.environmentBlendModeToMojoMap[blendMode];
+    } else {
+      if (this.supportedModes_.includes(device.mojom.XRSessionMode.kImmersiveAr)) {
+        return device.mojom.XREnvironmentBlendMode.kAdditive;
+      } else if (this.supportedModes_.includes(device.mojom.XRSessionMode.kImmersiveVr)) {
+        return device.mojom.XREnvironmentBlendMode.kOpaque;
+      }
+    }
+  }
+
+  _convertInteractionModeToEnum(interactionMode) {
+    if (interactionMode in MockRuntime.interactionModeToMojoMap) {
+      return MockRuntime.interactionModeToMojoMap[interactionMode];
+    } else {
+      return device.mojom.XRInteractionMode.kWorldSpace;
+    }
   }
 
   // Test API methods.
@@ -1016,8 +1049,12 @@ class MockRuntime {
             clientReceiver: clientReceiver,
             displayInfo: this.displayInfo_,
             enabledFeatures: enabled_features,
-            defaultFramebufferScale: this.defaultFramebufferScale_,
-            supportsViewportScaling: true
+            deviceConfig: {
+              defaultFramebufferScale: this.defaultFramebufferScale_,
+              supportsViewportScaling: true
+            },
+            enviromentBlendMode: this.enviromentBlendMode_,
+            interactionMode: this.interactionMode_
           }
         });
       } else {

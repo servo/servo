@@ -42,4 +42,7 @@
   assert_valid(true, "{}(div) + bar", "Combinators after");
   assert_valid(true, "::part(foo):is(:hover)", "After part with simple pseudo-class");
   assert_valid(false, "::part(foo):is([attr='value'])", "After part with invalid selector after");
+
+  assert_valid(true, ":not({}(div))", "Nested inside :not, without combinators");
+  assert_valid(true, ":not({}(div .foo))", "Nested inside :not, with combinators");
 </script>

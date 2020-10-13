@@ -520,6 +520,30 @@ policies and contribution forms [3].
             Object.prototype.toString.call(worker) == '[object ServiceWorker]';
     }
 
+    function get_test_name(func, name)
+    {
+        if (name) {
+            return name;
+        }
+
+        if (func) {
+            var func_code = func.toString();
+
+            // Try and match with brackets, but fallback to matching without
+            var arrow = func_code.match(/^\(\)\s*=>\s*(?:{(.*)}\s*|(.*))$/);
+
+            // Check for JS line separators
+            if (arrow !== null && !/[\u000A\u000D\u2028\u2029]/.test(func_code)) {
+                var trimmed = (arrow[1] || arrow[2]).trim();
+                // drop a trailing ; if it's the only one
+                if (/^[^;]*;$/.test(trimmed)) trimmed = trimmed.substring(0, trimmed.length - 1);
+                return trimmed;
+            }
+        }
+
+        return test_environment.next_default_test_name();
+    }
+
     /*
      * API functions
      */
@@ -530,7 +554,7 @@ policies and contribution forms [3].
             tests.status.message = '`test` invoked after `promise_setup`';
             tests.complete();
         }
-        var test_name = name ? name : test_environment.next_default_test_name();
+        var test_name = get_test_name(func, name);
         var test_obj = new Test(test_name, properties);
         var value = test_obj.step(func, test_obj, test_obj);
 
@@ -566,7 +590,7 @@ policies and contribution forms [3].
             name = func;
             func = null;
         }
-        var test_name = name ? name : test_environment.next_default_test_name();
+        var test_name = get_test_name(func, name);
         var test_obj = new Test(test_name, properties);
         if (func) {
             var value = test_obj.step(func, test_obj, test_obj);
@@ -603,7 +627,7 @@ policies and contribution forms [3].
             name = func;
             func = null;
         }
-        var test_name = name ? name : test_environment.next_default_test_name();
+        var test_name = get_test_name(func, name);
         var test = new Test(test_name, properties);
         test._is_promise_test = true;
 
@@ -3797,7 +3821,7 @@ policies and contribution forms [3].
     function get_title()
     {
         if ('document' in global_scope) {
-            //Don't use document.title to work around an Opera bug in XHTML documents
+            //Don't use document.title to work around an Opera/Presto bug in XHTML documents
             var title = document.getElementsByTagName("title")[0];
             if (title && title.firstChild && title.firstChild.data) {
                 return title.firstChild.data;
