@@ -4,9 +4,6 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/mediacapture-image/resources/imagecapture-helpers.js"></script>
-<body>
-<canvas id='canvas' width=10 height=10/>
-</body>
 <script>
 
 const meteringModeNames = ['none', 'manual', 'single-shot', 'continuous'];
@@ -22,16 +19,11 @@ function makeImageCaptureTest(hasPanTiltZoomPermissionGranted) {
     await test_driver.set_permission({name: 'camera', panTiltZoom: true},
         ptzPermission, false);
 
-    let canvas = document.getElementById('canvas');
-    let context = canvas.getContext('2d');
-    context.fillStyle = 'red';
-    context.fillRect(0, 0, 10, 10);
-
     let mockSettings = imageCaptureTest.mockImageCapture().state();
 
     // |stream| must be created _after_ |mock| is constructed to give the
     // latter time to override the bindings.
-    let stream = canvas.captureStream();
+    let stream = await navigator.mediaDevices.getUserMedia({video: true});
     let videoTrack = stream.getVideoTracks()[0];
 
     // |videoTrack|s settings retrieval, just like the actual capture, is a

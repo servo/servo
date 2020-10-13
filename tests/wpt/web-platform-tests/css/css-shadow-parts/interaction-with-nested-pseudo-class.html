@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>CSS Shadow Parts - Nested Pseudo Classes</title>
+<link rel="help" href="https://drafts.csswg.org/css-shadow-parts" >
+<link rel="help" href="https://drafts.csswg.org/selectors/#matches">
+<link href="https://drafts.csswg.org/selectors/#matches" rel="help">
+<link rel="match" href="interaction-with-nested-pseudo-class-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  :root { color: red; }
+  ::part(test):is(:focus) { color: green; }
+</style>
+<div id=host></div>
+<script>
+  const root = host.attachShadow({mode: 'closed'});
+  root.innerHTML = '<button part=test>Should be green on focus</button>';
+  const button = root.querySelector('button');
+  button.addEventListener('focus', takeScreenshot);
+  test_driver.bless('focus button', () => button.focus());
+</script>
+</html>
