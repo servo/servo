@@ -6,6 +6,7 @@ use crate::response::HttpsState;
 use crate::ReferrerPolicy;
 use crate::ResourceTimingType;
 use content_security_policy::{self as csp, CspList};
+use http::header::{HeaderName, AUTHORIZATION};
 use http::HeaderMap;
 use hyper::Method;
 use ipc_channel::ipc::{self, IpcReceiver, IpcSender};
@@ -676,4 +677,49 @@ pub fn is_cors_safelisted_method(m: &Method) -> bool {
         Method::GET | Method::HEAD | Method::POST => true,
         _ => false,
     }
+}
+
+/// <https://fetch.spec.whatwg.org/#cors-non-wildcard-request-header-name>
+pub fn is_cors_non_wildcard_request_header_name(name: &HeaderName) -> bool {
+    name == AUTHORIZATION
+}
+
+/// <https://fetch.spec.whatwg.org/#cors-unsafe-request-header-names>
+pub fn get_cors_unsafe_header_names(headers: &HeaderMap) -> Vec<HeaderName> {
+    // Step 1
+    let mut unsafe_names: Vec<&HeaderName> = vec![];
+    // Step 2
+    let mut potentillay_unsafe_names: Vec<&HeaderName> = vec![];
+    // Step 3
+    let mut safelist_value_size = 0;
+
+    // Step 4
+    for (name, value) in headers.iter() {
+        if !is_cors_safelisted_request_header(&name, &value) {
+            unsafe_names.push(name);
+        } else {
+            potentillay_unsafe_names.push(name);
+            safelist_value_size += value.as_ref().len();
+        }
+    }
+
+    // Step 5
+    if safelist_value_size > 1024 {
+        unsafe_names.extend_from_slice(&potentillay_unsafe_names);
+    }
+
+    // Step 6
+    return convert_header_names_to_sorted_lowercase_set(unsafe_names);
+}
+
+/// <https://fetch.spec.whatwg.org/#ref-for-convert-header-names-to-a-sorted-lowercase-set>
+pub fn convert_header_names_to_sorted_lowercase_set(
+    header_names: Vec<&HeaderName>,
+) -> Vec<HeaderName> {
+    // HeaderName does not implement the needed traits to use a BTreeSet
+    // So create a new Vec, sort, then dedup
+    let mut ordered_set = header_names.to_vec();
+    ordered_set.sort_by(|a, b| a.as_str().partial_cmp(b.as_str()).unwrap());
+    ordered_set.dedup();
+    return ordered_set.into_iter().cloned().collect();
 }
