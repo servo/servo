@@ -13,7 +13,7 @@ const Status = {};
 async function loadChromiumResources() {
   const resources = [
     '/gen/mojo/public/mojom/base/time.mojom-lite.js',
-    '/gen/third_party/blink/public/mojom/sms/sms_receiver.mojom-lite.js',
+    '/gen/third_party/blink/public/mojom/sms/webotp_service.mojom-lite.js',
   ];
 
   await loadMojoResources(resources, true);

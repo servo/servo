@@ -2,13 +2,13 @@
 
 const SmsProvider = (() => {
 
-  class MockSmsReceiver {
+  class MockWebOTPService {
 
     constructor() {
-      this.mojoReceiver_ = new blink.mojom.SmsReceiverReceiver(this);
+      this.mojoReceiver_ = new blink.mojom.WebOTPServiceReceiver(this);
 
       this.interceptor_ =
-          new MojoInterfaceInterceptor(blink.mojom.SmsReceiver.$interfaceName);
+          new MojoInterfaceInterceptor(blink.mojom.WebOTPService.$interfaceName);
 
       this.interceptor_.oninterfacerequest = (e) => {
         this.mojoReceiver_.$.bindHandle(e.handle);
@@ -35,7 +35,7 @@ const SmsProvider = (() => {
     }
   }
 
-  const mockSmsReceiver = new MockSmsReceiver();
+  const mockWebOTPService = new MockWebOTPService();
 
   class SmsProviderChromium {
     constructor() {
@@ -43,7 +43,7 @@ const SmsProvider = (() => {
     }
 
     pushReturnValuesForTesting(callName, callback) {
-      mockSmsReceiver.pushReturnValuesForTesting(callName, callback);
+      mockWebOTPService.pushReturnValuesForTesting(callName, callback);
     }
   }
 

@@ -20,15 +20,12 @@ src: local(Ahem);
 }
 </style>
 <script>
-  async_test(function(t) {
-    document.fonts.load("12px reversed-range-test").then((fonts) => {
-      t.step( () => {
-        assert_equals(fonts[0].stretch, "200% 50%", "Stretch value must be returned as specified.");
-        assert_equals(fonts[0].style, "oblique 90deg -90deg", "Style value must be returned as specified.");
-        assert_equals(fonts[0].weight, "900 100", "Weight value must be returned as specified.");
-      });
-      t.done()
-    })});
+  promise_test(async (t) => {
+    const fonts = await document.fonts.load("12px reversed-range-test");
+    assert_equals(fonts[0].stretch, "200% 50%", "Stretch value must be returned as specified.");
+    assert_equals(fonts[0].style, "oblique 90deg -90deg", "Style value must be returned as specified.");
+    assert_equals(fonts[0].weight, "900 100", "Weight value must be returned as specified.");
+  });
 </script>
 </body>
 </html>

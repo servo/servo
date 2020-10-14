@@ -137,7 +137,7 @@
         const options1 = {channelInterpretation: 'foobar'};
         should(
             () => new AudioWorkletNode(context, 'dummy', options1),
-            'Creating AudioWorkletNode with channelCountMode "foobar"')
+            'Creating AudioWorkletNode with channelInterpretation "foobar"')
             .throw(TypeError);
 
         task.done();
