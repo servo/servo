@@ -534,10 +534,11 @@ policies and contribution forms [3].
 
             // Check for JS line separators
             if (arrow !== null && !/[\u000A\u000D\u2028\u2029]/.test(func_code)) {
-                var trimmed = (arrow[1] || arrow[2]).trim();
-                // drop a trailing ; if it's the only one
-                if (/^[^;]*;$/.test(trimmed)) trimmed = trimmed.substring(0, trimmed.length - 1);
-                return trimmed;
+                var trimmed = (arrow[1] !== undefined ? arrow[1] : arrow[2]).trim();
+                // drop trailing ; if there's no earlier ones
+                trimmed = trimmed.replace(/^([^;]*)(;\s*)+$/, "$1");
+                // ignore this if it's then empty
+                if (trimmed) return trimmed;
             }
         }
 

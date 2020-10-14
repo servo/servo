@@ -21,6 +21,14 @@
   test(() => { assert_true(true, '5') });
   test(() => { assert_true(true, '6') }   );
   test(() => { assert_true(true, '7'); });
+  test(() => {});
+  test(() => { });
+  test(() => {;;;;});
+  test(() => { ; ; ; ; });
+  test(()=>{});
+  test(()=>{ });
+  test(()=>{;;;;});
+  test(()=>{ ; ; ; ; });
 </script>
 <script type="text/json" id="expected">
 {
@@ -68,6 +76,54 @@
     {
       "status_string": "PASS",
       "name": "assert_true(true, '7')",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 2",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 3",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 4",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 5",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 6",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 7",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 8",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "Tests with no title 9",
       "properties": {},
       "message": null
     }
