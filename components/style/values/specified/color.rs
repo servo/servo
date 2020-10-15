@@ -107,6 +107,16 @@ pub enum SystemColor {
     IMESelectedConvertedTextUnderline,
     #[css(skip)]
     SpellCheckerUnderline,
+    #[css(skip)]
+    ScrollbarInactive,
+    #[css(skip)]
+    ScrollbarThumb,
+    #[css(skip)]
+    ScrollbarThumbHover,
+    #[css(skip)]
+    ScrollbarThumbActive,
+    #[css(skip)]
+    ScrollbarThumbInactive,
     Activeborder,
     Activecaption,
     Appworkspace,
