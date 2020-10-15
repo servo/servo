@@ -24,6 +24,8 @@ class WPTServer(object):
     def start(self):
         self.devnull = open(os.devnull, 'w')
         wptserve_cmd = [os.path.join(self.wpt_root, 'wpt'), 'serve']
+        if sys.executable:
+            wptserve_cmd[0:0] = [sys.executable]
         logging.info('Executing %s' % ' '.join(wptserve_cmd))
         self.proc = subprocess.Popen(
             wptserve_cmd,

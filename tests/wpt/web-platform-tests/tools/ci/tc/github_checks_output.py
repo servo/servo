@@ -1,9 +1,11 @@
+import io
+from six import ensure_text
+
 MYPY = False
 if MYPY:
     # MYPY is set to True when run under Mypy.
-    from typing import Any
-    from typing import Optional
-    from typing import Text
+    from typing import AnyStr, Optional, Text
+
 
 class GitHubChecksOutputter(object):
     """Provides a method to output data to be shown in the GitHub Checks UI.
@@ -12,23 +14,27 @@ class GitHubChecksOutputter(object):
     to enable developers to quickly understand what has gone wrong. The output
     supports markdown format.
 
-    See https://docs.taskcluster.net/docs/reference/integrations/github/checks#custom-text-output-in-checks
+    https://docs.taskcluster.net/docs/reference/integrations/github/checks#custom-text-output-in-checks
     """
     def __init__(self, path):
         # type: (Text) -> None
         self.path = path
 
     def output(self, line):
-        # type: (Any) -> None
-        # TODO(stephenmcgruer): Once mypy 0.790 is released, we can change this
-        # to AnyStr, as that release teaches mypy about the mode flags of open.
-        # See https://github.com/python/typeshed/pull/4146
-        with open(self.path, 'a') as f:
-            f.write(line)
-            f.write('\n')
+        # type: (AnyStr) -> None
+        text = ensure_text(line)
+        # NOTE: mypy types the "text mode" of open() in Python 2 as BinaryIO,
+        # which makes sense as we cannot specify its encoding (it's
+        # platform-dependent), while io.open() is closer to open() in Python 3.
+        # TODO: use the built-in open() when we are Py3-only.
+        with io.open(self.path, mode="a") as f:
+            f.write(text)
+            f.write(u"\n")
 
 
 __outputter = None
+
+
 def get_gh_checks_outputter(filepath):
     # type: (Optional[Text]) -> Optional[GitHubChecksOutputter]
     """Return the outputter for GitHub Checks output, if enabled.
