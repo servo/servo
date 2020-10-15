@@ -5,7 +5,6 @@
 //! Generic types for CSS handling of specified and computed values of
 //! [`position`](https://drafts.csswg.org/css-backgrounds-3/#position)
 
-use crate::One;
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ToCss};
 
@@ -175,18 +174,26 @@ pub struct Ratio<N>(pub N, pub N);
 
 impl<N> ToCss for Ratio<N>
 where
-    N: ToCss + One + std::cmp::PartialEq,
+    N: ToCss
 {
     fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
     where
         W: Write,
     {
         self.0.to_css(dest)?;
-        // The second defaults to 1. So if it is one, we omit it in serialization.
-        if !self.1.is_one() {
-            dest.write_str(" / ")?;
-            self.1.to_css(dest)?;
-        }
+        // Even though 1 could be omitted, we don't per
+        // https://drafts.csswg.org/css-values-4/#ratio-value:
+        //
+        //     The second <number> is optional, defaulting to 1. However,
+        //     <ratio> is always serialized with both components.
+        //
+        // And for compat reasons, see bug 1669742.
+        //
+        // We serialize with spaces for consistency with all other
+        // slash-delimited things, see
+        // https://github.com/w3c/csswg-drafts/issues/4282
+        dest.write_str(" / ")?;
+        self.1.to_css(dest)?;
         Ok(())
     }
 }
