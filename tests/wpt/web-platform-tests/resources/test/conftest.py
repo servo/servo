@@ -25,6 +25,7 @@ import webdriver
 
 def pytest_addoption(parser):
     parser.addoption("--binary", action="store", default=None, help="path to browser binary")
+    parser.addoption("--headless", action="store_true", default=False, help="run browser in headless mode")
 
 
 def pytest_collect_file(path, parent):
@@ -45,9 +46,11 @@ def pytest_configure(config):
     config.proc = subprocess.Popen(["geckodriver"])
     config.add_cleanup(config.proc.kill)
 
-    capabilities = {"alwaysMatch": {"acceptInsecureCerts": True}}
+    capabilities = {"alwaysMatch": {"acceptInsecureCerts": True, "moz:firefoxOptions": {}}}
     if config.getoption("--binary"):
-        capabilities["alwaysMatch"]["moz:firefoxOptions"] = {"binary": config.getoption("--binary")}
+        capabilities["alwaysMatch"]["moz:firefoxOptions"]["binary"] = config.getoption("--binary")
+    if config.getoption("--headless"):
+        capabilities["alwaysMatch"]["moz:firefoxOptions"]["args"] = ["--headless"]
 
     config.driver = webdriver.Session("localhost", 4444,
                                       capabilities=capabilities)

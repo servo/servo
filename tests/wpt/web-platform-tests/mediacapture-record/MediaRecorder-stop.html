@@ -83,24 +83,24 @@
 
     promise_test(async t => {
         const recorder = new MediaRecorder(createVideoStream());
-        assert_throws_dom("InvalidStateError", () => { recorder.stop(); });
+        recorder.stop();
         await Promise.race([
             new Promise((_, reject) => recorder.onstop =
                 _ => reject(new Error("onstop should never have been called"))),
             new Promise(r => t.step_timeout(r, 0))]);
-    }, "MediaRecorder will fire an exception when stopped after creation");
+    }, "MediaRecorder will not fire an exception when stopped after creation");
 
     promise_test(async t => {
         const recorder = new MediaRecorder(createVideoStream());
         recorder.start();
         recorder.stop();
         let event = await new Promise(r => recorder.onstop = r);
-        assert_throws_dom("InvalidStateError", () => { recorder.stop(); });
+        recorder.stop();
         await Promise.race([
             new Promise((_, reject) => recorder.onstop =
                 _ => reject(new Error("onstop should never have been called"))),
             new Promise(r => t.step_timeout(r, 0))]);
-    }, "MediaRecorder will fire an exception when stopped after having just been stopped");
+    }, "MediaRecorder will not fire an exception when stopped after having just been stopped");
 
     promise_test(async t => {
         const stream = createVideoStream();
@@ -108,12 +108,12 @@
         recorder.start();
         stream.getVideoTracks()[0].stop();
         let event = await new Promise(r => recorder.onstop = r);
-        assert_throws_dom("InvalidStateError", () => { recorder.stop(); });
+        recorder.stop();
         await Promise.race([
             new Promise((_, reject) => recorder.onstop =
                 _ => reject(new Error("onstop should never have been called"))),
             new Promise(r => t.step_timeout(r, 0))]);
-    }, "MediaRecorder will fire an exception when stopped after having just been spontaneously stopped");
+    }, "MediaRecorder will not fire an exception when stopped after having just been spontaneously stopped");
 
     promise_test(async t => {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
