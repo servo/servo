@@ -12,7 +12,7 @@ interface StyleSheet {
   // readonly attribute StyleSheet? parentStyleSheet;
   readonly attribute DOMString? title;
 
-  // [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
+  [SameObject, PutForwards=mediaText] readonly attribute MediaList media;
   attribute boolean disabled;
 };
 

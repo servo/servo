@@ -10,6 +10,7 @@ use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::cssrulelist::{CSSRuleList, RulesSource};
 use crate::dom::element::Element;
+use crate::dom::medialist::MediaList;
 use crate::dom::node::{stylesheets_owner_from_node, Node};
 use crate::dom::stylesheet::StyleSheet;
 use crate::dom::window::Window;
@@ -99,6 +100,14 @@ impl CSSStyleSheet {
 
     pub fn set_origin_clean(&self, origin_clean: bool) {
         self.origin_clean.set(origin_clean);
+    }
+
+    pub fn medialist(&self) -> DomRoot<MediaList> {
+        MediaList::new(
+            self.global().as_window(),
+            self,
+            self.style_stylesheet().media.clone(),
+        )
     }
 }
 
