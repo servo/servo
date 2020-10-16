@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <title>Test for PaymentRequest.abort() method</title>
-<link rel="help" href="https://w3c.github.io/payment-request/#abort-method">
+<link rel="help" href="https://w3c.github.io/payment-request/#abort-method" />
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
-<script src='/resources/testdriver-vendor.js'></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
 "use strict";
 setup({
@@ -23,7 +23,7 @@ const applePay = Object.freeze({
     countryCode: "US",
     merchantCapabilities: ["supports3DS"],
     supportedNetworks: ["visa"],
-  }
+  },
 });
 const defaultMethods = Object.freeze([basicCard, applePay]);
 const defaultDetails = Object.freeze({
@@ -44,24 +44,22 @@ promise_test(async t => {
 
 promise_test(async t => {
   const request = new PaymentRequest(defaultMethods, defaultDetails);
-  const promises = new Set([request.abort(), request.abort(), request.abort()]);
+  const promises = new Set([
+    request.abort(),
+    request.abort(),
+    request.abort(),
+  ]);
   assert_equals(promises.size, 3, "Must have three unique objects");
 }, "Calling abort() multiple times is always a new object.");
 
 promise_test(async t => {
   const request = new PaymentRequest(defaultMethods, defaultDetails);
-  const [abortPromise, acceptPromise] = await test_driver.bless(
-    "show payment request",
-    () => {
-      const acceptPromise = request.show()
-      acceptPromise.catch(() => {}); // no-op, just to silence unhandled rejection in devtools.
-      const abortPromise = request.abort();
-      return [abortPromise, acceptPromise];
-    });
-
-  await abortPromise;
+  await test_driver.bless("show payment request");
+  const acceptPromise = request.show();
+  await request.abort();
   await promise_rejects_dom(t, "AbortError", acceptPromise);
   // As request is now "closed", trying to show it will fail
+  await test_driver.bless("show payment request");
   await promise_rejects_dom(t, "InvalidStateError", request.show());
 }, "The same request cannot be shown multiple times.");
 
@@ -73,22 +71,21 @@ promise_test(async t => {
   await promise_rejects_dom(t, "InvalidStateError", request.abort());
   // The request's state is "created", so let's show it
   // which changes the state to "interactive.".
-  const [abortPromise, acceptPromise] = await test_driver.bless(
-    "show payment request",
-    () => {
-      const acceptPromise = request.show()
-      // Let's set request the state to "closed" by calling .abort()
-      const abortPromise = request.abort();
-      return [abortPromise, acceptPromise];
-    });
-
-  await abortPromise;
+  await test_driver.bless("show payment request");
+  const acceptPromise = request.show();
+  // Let's set request the state to "closed" by calling .abort()
+  await request.abort();
   // The request is now "closed", so...
   await promise_rejects_dom(t, "InvalidStateError", request.abort());
   await promise_rejects_dom(t, "AbortError", acceptPromise);
 }, "Aborting a request before it is shown doesn't prevent it from being shown later.");
 </script>
 <small>
-  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
-  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
+  If you find a buggy test, please
+  <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a> and
+  tag one of the
+  <a
+    href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml"
+    >suggested reviewers</a
+  >.
 </small>

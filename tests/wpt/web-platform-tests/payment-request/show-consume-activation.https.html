@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>show() consumes user activation</title>
+    <link rel="help" href="https://w3c.github.io/payment-request/#show-method" />
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <script>
+      const defaultMethods = [
+        { supportedMethods: "basic-card" },
+        {
+          supportedMethods: "https://apple.com/apple-pay",
+          data: {
+            version: 3,
+            merchantIdentifier: "merchant.com.example",
+            countryCode: "US",
+            merchantCapabilities: ["supports3DS"],
+            supportedNetworks: ["visa"],
+          },
+        },
+      ];
+
+      const defaultDetails = {
+        total: {
+          label: "Total",
+          amount: {
+            currency: "USD",
+            value: "1.00",
+          },
+        },
+      };
+      promise_test(async t => {
+        const pr = new PaymentRequest(defaultMethods, defaultDetails);
+
+        // Not activated by user gesture, so not allowed!
+        await promise_rejects_dom(t, "NotAllowedError", pr.show());
+
+        await test_driver.bless("Calls show() method");
+
+        // Activated by user gesture, so all good.
+        const showPromise = pr.show();
+
+        // The activation has been consumed, so calling show() again would require
+        // a new gesture.
+        await promise_rejects_dom(t, "NotAllowedError", pr.show());
+
+        // Abort the payment request
+        pr.abort()
+        await promise_rejects_dom(t, "AbortError", showPromise);
+      }, "Calling share consumes user activation");
+    </script>
+  </body>
+</html>

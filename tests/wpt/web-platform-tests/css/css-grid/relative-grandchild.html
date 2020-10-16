@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1138504">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; background: red;"></div>
+<div style="display: grid; width: 100px; height: 100px;">
+  <div>
+    <div style="position: relative; height: 100px; background: green; top: -100%;"></div>
+  </div>
+</div>
