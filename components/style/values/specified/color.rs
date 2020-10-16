@@ -108,15 +108,17 @@ pub enum SystemColor {
     #[css(skip)]
     SpellCheckerUnderline,
     #[css(skip)]
-    ScrollbarInactive,
+    ThemedScrollbar,
     #[css(skip)]
-    ScrollbarThumb,
+    ThemedScrollbarInactive,
     #[css(skip)]
-    ScrollbarThumbHover,
+    ThemedScrollbarThumb,
     #[css(skip)]
-    ScrollbarThumbActive,
+    ThemedScrollbarThumbHover,
     #[css(skip)]
-    ScrollbarThumbInactive,
+    ThemedScrollbarThumbActive,
+    #[css(skip)]
+    ThemedScrollbarThumbInactive,
     Activeborder,
     Activecaption,
     Appworkspace,
