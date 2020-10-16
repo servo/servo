@@ -1,15 +1,18 @@
 <!DOCTYPE html>
-<meta charset="utf-8">
+<meta charset="utf-8" />
 <title>Test for PaymentRequest.show(optional detailsPromise) method</title>
-<link rel="help" href="https://w3c.github.io/browser-payment-api/#show-method">
+<link
+  rel="help"
+  href="https://w3c.github.io/browser-payment-api/#show-method"
+/>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script>
   // See function testBadUpdate() for test details!
   setup({
     allow_uncaught_exception: true,
-    explicit_done: true,
-    explicit_timeout: true,
   });
 
   // == TEST DATA ===
@@ -30,7 +33,7 @@
       countryCode: "US",
       merchantCapabilities: ["supports3DS"],
       supportedNetworks: ["visa"],
-    }
+    },
   });
 
   // Methods
@@ -149,7 +152,7 @@
   Object.freeze(recursiveData);
 
   const modifierWithRecursiveData = Object.freeze({
-    supportedMethods: validMethodBasicCard,
+    supportedMethods: "basic-card",
     total: validTotal,
     data: recursiveData,
   });
@@ -160,20 +163,19 @@
     The `badDetails` cause detailsPromise to reject with `expectedError`.
     */
   function testBadUpdate(testAssertion, badDetails, expectedError) {
-    promise_test(async t => {
+    promise_test(async (t) => {
       const request = new PaymentRequest(
         validMethods,
         validDetails,
         validOptions
       );
+      await test_driver.bless("Payment request");
       const detailsPromise = Promise.resolve(badDetails);
       const acceptPromise = request.show(detailsPromise);
-      let test_func;
-      if (typeof expectedError == "function") {
-        test_func = promise_rejects_js;
-      } else {
-        test_func = promise_rejects_dom;
-      }
+      const test_func =
+        typeof expectedError == "function"
+          ? promise_rejects_js
+          : promise_rejects_dom;
       await test_func(
         t,
         expectedError,
@@ -182,113 +184,70 @@
       );
     }, testAssertion);
   }
-</script>
-<h2>
-  PaymentRequest <code>.show(optional detailsPromise)</code> tests
-</h2>
-<h3>
-  Bad details - causes `detailsPromise` to reject.
-</h3>
-<p>
-  Click on each button in sequence from top to bottom without refreshing the page.
-  No payment sheet should be shown, as all provided values cause an error.
-</p>
-<p>
-  <strong>
-    If you see a payment sheet, it means the test has failed.
-  </strong>
-</p>
-<ol>
-  <li><button onclick="
-    const rejectedPromise = Promise.reject(new SyntaxError('test'))
-      .catch(err => err);
-    testBadUpdate(this.textContent, rejectedPromise, 'AbortError');
-  ">
-  Rejection of detailsPromise must abort the update with an 'AbortError' DOMException.
-  </button></li>
 
-  <li><button onclick="
-    const invalidDetails = { total: `this will cause a TypeError!` };
-    testBadUpdate(this.textContent, invalidDetails, TypeError);
-  ">
-  Total in the update is a string, so converting to IDL must abort the update with a TypeError.
-  </button></li>
+  const rejectedPromise = Promise.reject(new SyntaxError("test"));
+  testBadUpdate(
+    "Rejection of detailsPromise must abort the update with an 'AbortError' DOMException.",
+    rejectedPromise,
+    "AbortError"
+  );
 
-  <li><button onclick="
-    const invalidDetails = { total: recursiveData };
-    testBadUpdate(this.textContent, invalidDetails, TypeError);
-  ">
-  Total is recursive, so converting to IDL must abort the update with a TypeError.
-  </button></li>
+  testBadUpdate(
+    "Total in the update is a string, so converting to IDL must abort the update with a TypeError.",
+    { total: `this will cause a TypeError!` },
+    TypeError
+  );
 
-  <li><button onclick="
-    testBadUpdate(this.textContent, invalidDetailsNegativeTotal, TypeError);
-  ">
-  Updating with a negative total results in a TypeError.
-  </button></li>
+  testBadUpdate(
+    "Total is recursive, so converting to IDL must abort the update with a TypeError.",
+    { total: recursiveData },
+    TypeError
+  );
 
-  <li><button onclick="
-    const badDetails = Object.assign({}, validDetails, {
-      displayItems: invalidPaymentItems
-    });
-    testBadUpdate(this.textContent, badDetails, RangeError);
-  ">
-  Updating with a displayItem with an invalid currency results in RangeError.
-  </button></li>
+  testBadUpdate(
+    "Updating with a negative total results in a TypeError.",
+    invalidDetailsNegativeTotal,
+    TypeError
+  );
 
-  <li><button onclick="
-    const duplicateShippingOptions = [validShippingOption, validShippingOption];
-    const badDetails = Object.assign({}, validDetails, {
-      shippingOptions: duplicateShippingOptions,
-    });
-    testBadUpdate(this.textContent, badDetails, TypeError);
-  ">
-  Updating with duplicate shippingOptions (same IDs) results in a TypeError.
-  </button></li>
-  <li><button onclick="
-    const badDetails = Object.assign({}, validDetails, {
-      shippingOptions: invalidShippingOptions,
-    });
-    testBadUpdate(this.textContent, badDetails, RangeError);
-  ">
-  Updating with a shippingOption with an invalid currency value results in a RangError.
-  </button></li>
+  testBadUpdate(
+    "Updating with a displayItem with an invalid currency results in RangeError.",
+    { ...validDetails, displayItems: invalidPaymentItems },
+    RangeError
+  );
 
-  <li><button onclick="
-    // validModifier is there as to avoid false positives
-    const badModifiers = { modifiers: [modifierWithInvalidTotal, validModifier] };
-    const badDetails = Object.assign({}, validDetails, badModifiers);
-    testBadUpdate(this.textContent, badDetails, RangeError);
-  ">
-  Must throw a RangeError when a modifier's total item has an invalid currency.
-  </button></li>
+  testBadUpdate(
+    "Updating with duplicate shippingOptions (same IDs) results in a TypeError.",
+    {
+      ...validDetails,
+      shippingOptions: [validShippingOption, validShippingOption],
+    },
+    TypeError
+  );
 
-  <li><button onclick="
-    // validModifier is there as to avoid false positives
-    const badModifiers = {
+  testBadUpdate(
+    "Updating with a shippingOption with an invalid currency value results in a RangError.",
+    { ...validDetails, shippingOptions: invalidShippingOptions },
+    RangeError
+  );
+
+  testBadUpdate(
+    "Must throw a RangeError when a modifier's total item has an invalid currency.",
+    { ...validDetails, modifiers: [modifierWithInvalidTotal, validModifier] },
+    RangeError
+  );
+
+  testBadUpdate(
+    "Must throw a RangeError when a modifier display item has an invalid currency.",
+    {
+      ...validDetails,
       modifiers: [modifierWithInvalidDisplayItems, validModifier],
-    };
-    const badDetails = Object.assign({}, validDetails, badModifiers);
-    testBadUpdate(this.textContent, badDetails, RangeError);
-  ">
-  Must throw a RangeError when a modifier display item has an invalid currency.
-  </button></li>
-
-  <li><button onclick="
-    // validModifier is there as to avoid false positives
-    const badModifiers = {
-      modifiers: [modifierWithRecursiveData, validModifier],
-    };
-    const badDetails = Object.assign({}, validDetails, badModifiers);
-    testBadUpdate(this.textContent, badDetails, TypeError);
-  ">
-  Must throw as Modifier has a recursive dictionary.
-  </button></li>
-
-  <li><button onclick="done();">Done!</button></li>
-</ol>
-
-<small>
-  If you find a buggy test, please <a href="https://github.com/web-platform-tests/wpt/issues">file a bug</a>
-  and tag one of the <a href="https://github.com/web-platform-tests/wpt/blob/master/payment-request/META.yml">suggested reviewers</a>.
-</small>
+    },
+    RangeError
+  );
+  testBadUpdate(
+    "Must throw as Modifier has a recursive dictionary.",
+    { ...validDetails, modifiers: [modifierWithRecursiveData, validModifier] },
+    TypeError
+  );
+</script>

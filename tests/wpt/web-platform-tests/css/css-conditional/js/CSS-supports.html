@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS.supports</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional/#dom-css-supports">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(function() {
+    assert_equals(CSS.supports("color: red"), true);
+  }, "Single-argument form allows for declarations without enclosing parentheses");
+
+  test(function() {
+    assert_equals(CSS.supports("(color: red) and (color: blue)"), true);
+  }, "Complex conditions allowed");
+
+  test(function() {
+    assert_equals(CSS.supports("not (foobar)"), true);
+  }, "general_enclosed still parses");
+
+  test(function() {
+    assert_equals(CSS.supports("color: something-pointless var(--foo)"), true);
+  }, "Variable references always parse");
+
+  test(function() {
+    assert_equals(CSS.supports("color: something-pointless(var(--foo))"), true);
+  }, "Variable references in an unknown function always parse");
+
+  test(function() {
+    assert_equals(CSS.supports("color", "red"), true);
+  }, "two argument form succeeds for known property");
+
+  test(function() {
+    assert_equals(CSS.supports("unknownproperty", "blah"), false);
+  }, "two argument form fails for unknown property");
+
+  test(function() {
+    assert_equals(CSS.supports("width", "blah"), false);
+  }, "two argument form fails for invalid value");
+
+  test(function() {
+    assert_equals(CSS.supports("--foo", "blah"), true);
+  }, "two argument form succeeds for custom property");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(div)"), true);
+  }, "selector() function accepts a selector");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(div, div)"), false);
+  }, "selector() function doesn't accept a selector list");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(::-webkit-unknown-pseudo-element)"), false);
+  }, "selector() function rejects unknown webkit pseudo-elements.");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(::before)"), true);
+  }, "selector() function accepts known pseudo-elements");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(div + .c)"), true);
+  }, "selector() with simple combinators");
+
+  test(function() {
+    assert_equals(CSS.supports("selector(div | .c)"), false);
+  }, "selector() with unknown combinators");
+</script>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+  <title>CSS Masking: Test clip-path nonzero path interpolation with zoom</title>
+  <link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-path">
+  <link rel="match" href="reference/clip-path-path-interpolation-with-zoom-ref.html">
+  <meta name="assert" content="The clip-path property takes the basic shape
+	'path()' for clipping. Test the interpolation of nonzero
+        path function.">
+  <style>
+    @keyframes anim {
+      from {
+        clip-path: path(nonzero, 'M20,20h60 v60 h-60z M30,30 h40 v40 h-40z');
+      }
+      to {
+        clip-path: path(nonzero, 'M50,50h50 v50 h-50z M20,20 h50 v50 h-50z');
+      }
+    }
+    #rect {
+      width: 100px;
+      zoom: 3;
+      height: 100px;
+      background-color: green;
+      animation: anim 10s -5s paused linear;
+    }
+  </style>
+  <div id="rect"></div>
+</html>

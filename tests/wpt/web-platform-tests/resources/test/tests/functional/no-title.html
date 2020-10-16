@@ -15,6 +15,7 @@
   test(function(){assert_true(true, '1')});
   test(()=>assert_true(true, '2'));
   test(() => assert_true(true, '3'));
+  test(() => assert_true(true, '3'));  // test duplicate behaviour
   test(() => {
       assert_true(true, '4');
   });
@@ -52,6 +53,12 @@
     {
       "status_string": "PASS",
       "name": "assert_true(true, '3')",
+      "properties": {},
+      "message": null
+    },
+    {
+      "status_string": "PASS",
+      "name": "assert_true(true, '3') 1",
       "properties": {},
       "message": null
     },

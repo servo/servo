@@ -85,6 +85,10 @@ test(function() {
   assert_equals(CSS.escape('abcdefghijklmnopqrstuvwxyz'), 'abcdefghijklmnopqrstuvwxyz');
   assert_equals(CSS.escape('ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ');
 
+  assert_equals(CSS.escape("hello\\world"), "hello\\\\world", "Backslashes get backslash-escaped");
+  assert_equals(CSS.escape("hello\u{1234}world"), "hello\u{1234}world", "Code points greater than U+0080 are preserved");
+  assert_equals(CSS.escape("-"), "\\-", "CSS.escape: Single dash escaped");
+
   assert_equals(CSS.escape('\x20\x21\x78\x79'), '\\ \\!xy');
 }, "Various tests");
 
