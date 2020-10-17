@@ -738,4 +738,75 @@
         }), 500);
     });
 
+- name: 2d.text.drawing.style.spacing
+  desc: Testing baselines
+  testing:
+  - 2d.text.drawing.style.spacing
+  code: |
+    @assert ctx.textLetterSpacing === 0;
+    @assert ctx.textWordSpacing === 0;
+
+    ctx.textLetterSpacing = 3;
+    @assert ctx.textLetterSpacing === 3;
+    @assert ctx.textWordSpacing === 0;
+
+    ctx.textWordSpacing = 5;
+    @assert ctx.textLetterSpacing === 3;
+    @assert ctx.textWordSpacing === 5;
+
+    ctx.textLetterSpacing = -1;
+    ctx.textWordSpacing = -1;
+    @assert ctx.textLetterSpacing === -1;
+    @assert ctx.textWordSpacing === -1;
+
+- name: 2d.text.drawing.style.fontKerning
+  desc: Testing basic functionalities of fontKerning for canvas
+  testing:
+  - 2d.text.drawing.style.fontKerning
+  code: |
+    @assert ctx.fontKerning === "Auto";
+    ctx.fontKerning = "Normal";
+    @assert ctx.fontKerning === "Normal";
+    width_normal = ctx.measureText("TAWATAVA").width;
+    ctx.fontKerning = "None";
+    @assert ctx.fontKerning === "None";
+    width_none = ctx.measureText("TAWATAVA").width;
+    @assert width_normal < width_none;
+
+- name: 2d.text.drawing.style.fontKerning.with.uppercase
+  desc: Testing basic functionalities of fontKerning for canvas
+  testing:
+  - 2d.text.drawing.style.fontKerning
+  code: |
+    @assert ctx.fontKerning === "Auto";
+    ctx.fontKerning = "Normal";
+    @assert ctx.fontKerning === "Normal";
+    ctx.fontKerning = "Auto";
+    ctx.fontKerning = "normal";
+    @assert ctx.fontKerning === "Normal";
+    ctx.fontKerning = "Auto";
+    ctx.fontKerning = "noRmal";
+    @assert ctx.fontKerning === "Normal";
+    ctx.fontKerning = "Auto";
+    ctx.fontKerning = "NoRMal";
+    @assert ctx.fontKerning === "Normal";
+    ctx.fontKerning = "Auto";
+    ctx.fontKerning = "NORMAL";
+    @assert ctx.fontKerning === "Normal";
+
+    ctx.fontKerning = "None";
+    @assert ctx.fontKerning === "None";
+    ctx.fontKerning = "Auto";
+    ctx.fontKerning = "none";
+    @assert ctx.fontKerning === "None";
+    ctx.fontKerning = "Auto";
+    ctx.fontKerning = "nOne";
+    @assert ctx.fontKerning === "None";
+    ctx.fontKerning = "Auto";
+    ctx.fontKerning = "nonE";
+    @assert ctx.fontKerning === "None";
+    ctx.fontKerning = "Auto";
+    ctx.fontKerning = "NONE";
+    @assert ctx.fontKerning === "None";
+
 # TODO: shadows, alpha, composite, clip

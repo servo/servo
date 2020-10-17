@@ -1,17 +1,16 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Worklets Level 1 (https://drafts.css-houdini.org/worklets/)
+// Source: HTML Standard (https://html.spec.whatwg.org/multipage/worklets.html)
 
-[Exposed=Worklet]
-interface WorkletGlobalScope {
-};
+[Exposed=Worklet, SecureContext]
+interface WorkletGlobalScope {};
 
-[Exposed=Window]
+[Exposed=Window, SecureContext]
 interface Worklet {
-    [NewObject] Promise<undefined> addModule(USVString moduleURL, optional WorkletOptions options = {});
+  [NewObject] Promise<undefined> addModule(USVString moduleURL, optional WorkletOptions options = {});
 };
 
 dictionary WorkletOptions {
-    RequestCredentials credentials = "same-origin";
+  RequestCredentials credentials = "same-origin";
 };
