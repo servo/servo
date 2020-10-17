@@ -258,6 +258,17 @@
     }, "Trusted Type violation report: sample for custom element assignment");
   }
 
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("require-trusted-types-for 'script'"))
+        .then(expect_blocked_uri("trusted-types-sink"))
+        .then(expect_sample("Worker constructor|"))
+        .then(promise_flush());
+    expect_throws(_ => new Worker("blabla"));
+    flush();
+    return p;
+  }, "Trusted Type violation report: Worker constructor");
+
   </script>
 
   <!-- Some elements for the tests to act on. -->

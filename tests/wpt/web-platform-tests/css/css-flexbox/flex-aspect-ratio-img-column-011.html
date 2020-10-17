@@ -71,7 +71,7 @@
 </div>
 
 <div class="flexbox column" style="height: 10px;" data-expected-height="10">
-    <!-- should use min(transferred, content height) = 10px as minimum height,
-         which the image will shrink to due to default flex-shrink. -->
-    <img src="support/10x10-green.png" style="width: 100px;" data-expected-height="10">
+    <!-- should use min(transferred (100), content height (100)) = 100px as
+         minimum height, which will be final height of the image -->
+    <img src="support/10x10-green.png" style="width: 100px;" data-expected-height="100">
 </div>
