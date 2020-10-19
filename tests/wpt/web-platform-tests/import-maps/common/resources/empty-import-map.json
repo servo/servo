@@ -18,21 +18,12 @@
         "/../foo/../bar": "https://example.com/bar"
       }
     },
-    "fetch scheme absolute URLs": {
+    "HTTPS scheme absolute URLs": {
       "expectedResults": {
-        "about:fetch-scheme": "about:fetch-scheme",
         "https://fetch-scheme.net": "https://fetch-scheme.net/",
         "https:fetch-scheme.org": "https://fetch-scheme.org/",
         "https://fetch%2Dscheme.com/": "https://fetch-scheme.com/",
         "https://///fetch-scheme.com///": "https://fetch-scheme.com///"
-      }
-    },
-    "non-fetch scheme absolute URLs": {
-      "expectedResults": {
-        "mailto:non-fetch-scheme": "mailto:non-fetch-scheme",
-        "import:non-fetch-scheme": "import:non-fetch-scheme",
-        "javascript:non-fetch-scheme": "javascript:non-fetch-scheme",
-        "wss:non-fetch-scheme": "wss://non-fetch-scheme/"
       }
     },
     "valid relative URLs that are invalid as specifiers should fail": {
