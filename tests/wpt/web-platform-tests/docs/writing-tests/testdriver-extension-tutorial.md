@@ -52,79 +52,27 @@ window.test_driver_internal = {
 
     // other commands...
 
-    /**
-     * Triggers browser window to be resized and relocated
-     *
-     * This matches the behaviour of the {@link
-     * https://w3c.github.io/webdriver/#set-window-rect|WebDriver
-     * Set Window Rect command}.
-     *
-     * @param {Integer} x - The x coordinate of the top left of the window
-     * @param {Integer} y - The x coordinate of the top left of the window
-     * @param {Integer} width - The width of the window
-     * @param {Integer} height - The height of the window
-     * @returns {Promise} fulfilled after window rect is set occurs, or rejected in
-     *                    the cases the WebDriver command errors
-     */
     set_window_rect: function(x, y, width, height) {
         return Promise.reject(new Error("unimplemented"))
     }
 ```
 We will leave this unimplemented and override it in another file. Lets do that now!
 
-### [wptrunner/wptrunner/testdriver-extra.js](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/testdriver-extra.js)
+### [tools/wptrunner/wptrunner/testdriver-extra.js](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/testdriver-extra.js)
 
-This will be the default function called when invoking the test driver commands (sometimes it is overridden by testdriver-vendor.js, but this is outside the scope of this writeup).
+This will be the default function called when invoking the test driver commands (sometimes it is overridden by testdriver-vendor.js, but that is outside the scope of this tutorial). In most cases this is just boilerplate:
 
 ```javascript
 window.test_driver_internal.set_element_rect = function(x, y, width, height) {
-    const pending_promise = new Promise(function(resolve, reject) {
-        pending_resolve = resolve;
-        pending_reject = reject;
-    });
-    window.opener.postMessage(
-        {"type": "action", "action": "set_window_rect", "x": x, "y": y, "width": width, "height": height}, "*");
-    return pending_promise;
+    return create_action("set_element_rect", {x, y, width, height});
 };
 ```
-The main thing here is the `postMessage` argument. The first argument is an object with properties
- - `type`: this always has to be the string `"action"`
- - `action`: the name of the testdriver command this defines (in this case, `set_window_rect`)
- - any other things you want to pass to the next point of execution (in this case, the x, y coordinates and the width and height)
 
-<!-- The pending promise needs to be there as it is resolved when the window receives a completion message from the executor. -->
-The pending promise is out of scope of this function and is resolved when the window receives a completion message from the executor.
-This happens here in the same file:
-
-```javascript
-    let pending_resolve = null;
-    let pending_reject = null;
-    let result = null;
-    window.addEventListener("message", function(event) {
-        const data = event.data;
-
-        if (typeof data !== "object" && data !== null) {
-            return;
-        }
-
-        if (data.type !== "testdriver-complete") {
-            return;
-        }
-
-        if (data.status === "success") {
-            result = JSON.parse(data.message).result
-            pending_resolve(result);
-        } else {
-            pending_reject();
-        }
-    });
-```
-
-One limitation this introduces is that only one testdriver call can be made at one time since the `pending_resolve` and `pending_reject` variables are in an outer scope.
+The `create_action` helper function does the heavy lifting of setting up a postMessage to the wptrunner internals as well as returning a promise that will resolve once the call is complete.
 
 Next, this is passed to the executor and protocol in wptrunner. Time to switch to Python!
 
-[tools/wptrunner/wptrunner/executors/protocol.py](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/executors/protocol.py)
+### [tools/wptrunner/wptrunner/executors/protocol.py](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/executors/protocol.py)
 
 ```python
 class SetWindowRectProtocolPart(ProtocolPart):
@@ -144,34 +92,9 @@ class SetWindowRectProtocolPart(ProtocolPart):
         pass
 ```
 
-Next we change the base executor.
+Next we create a representation of our new action.
 
-[tools/wptrunner/wptrunner/executors/base.py](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/executors/base.py)
-
-```python
-class CallbackHandler(object):
-    """Handle callbacks from testdriver-using tests.
-
-    The default implementation here makes sense for things that are roughly like
-    WebDriver. Things that are more different to WebDriver may need to create a
-    fully custom implementation."""
-
-    def __init__(self, logger, protocol, test_window):
-        self.protocol = protocol
-        self.test_window = test_window
-        self.logger = logger
-        self.callbacks = {
-            "action": self.process_action,
-            "complete": self.process_complete
-        }
-
-        self.actions = {
-            "click": ClickAction(self.logger, self.protocol),
-            "send_keys": SendKeysAction(self.logger, self.protocol),
-            {other actions},
-            "set_window_rect": SetWindowRectAction(self.logger, self.protocol) # add this!
-        }
-```
+### [tools/wptrunner/wptrunner/executors/actions.py](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/executors/actions.py)
 
 ```python
 class SetWindowRectAction(object):
@@ -186,12 +109,14 @@ class SetWindowRectAction(object):
         self.protocol.set_window_rect.set_window_rect(x, y, width, height)
 ```
 
+Then add your new class to the `actions = [...]` list at the end of the file.
+
 Don't forget to write docs in ```testdriver.md```.
 Now we write the browser specific implementations.
 
 ### Chrome
 
-We will use [executorwebdriver](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/executors/executorwebdriver.py) and use the WebDriver API.
+We will modify [executorwebdriver.py](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/executors/executorwebdriver.py) and use the WebDriver API.
 
 There isn't too much work to do here, we just need to define a subclass of the protocol part we defined earlier.
 
@@ -238,7 +163,7 @@ class WebDriverProtocol(Protocol):
 ### Firefox
 We use the [set window rect](https://firefox-source-docs.mozilla.org/python/marionette_driver.html#marionette_driver.marionette.Marionette.set_window_rect) Marionette command.
 
-We will use [executormarionette](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/executors/executormarionette.py) and use the Marionette Python API.
+We will modify [executormarionette.py](https://github.com/web-platform-tests/wpt/blob/master/tools/wptrunner/wptrunner/executors/executormarionette.py) and use the Marionette Python API.
 
 We have little actual work to do here! We just need to define a subclass of the protocol part we defined earlier.
 
@@ -309,6 +234,7 @@ promise_test(async t => {
 }
 </script>
 ```
+
 ### What about testdriver-vendor.js?
 
 The file [testdriver-vendor.js](https://github.com/web-platform-tests/wpt/blob/master/resources/testdriver-vendor.js) is the equivalent to testdriver-extra.js above, except it is

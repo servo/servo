@@ -7,6 +7,7 @@ partial interface XRInputSource {
    readonly attribute XRHand? hand;
 };
 
+[Exposed=Window]
 interface XRHand {
     iterable<XRJointSpace>;
     readonly attribute unsigned long length;
@@ -44,6 +45,7 @@ interface XRHand {
     const unsigned long LITTLE_PHALANX_TIP = 24;
 };
 
+[Exposed=Window]
 interface XRJointSpace: XRSpace {};
 
 partial interface XRFrame {
@@ -53,6 +55,7 @@ partial interface XRFrame {
     boolean fillPoses(sequence<XRSpace> spaces, XRSpace baseSpace, Float32Array transforms);
 };
 
+[Exposed=Window]
 interface XRJointPose: XRPose {
     readonly attribute float radius;
 };

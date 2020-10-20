@@ -47,7 +47,6 @@ def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
                                              cache_manager, run_info_data,
                                              **kwargs)
     del executor_kwargs["capabilities"]["goog:chromeOptions"]["prefs"]
-    del executor_kwargs["capabilities"]["goog:chromeOptions"]["useAutomationExtension"]
     capabilities = executor_kwargs["capabilities"]
     # Note that for WebView, we launch a test shell and have the test shell use WebView.
     # https://chromium.googlesource.com/chromium/src/+/HEAD/android_webview/docs/webview-shell.md

@@ -66,7 +66,11 @@
       t.add_cleanup(() => scroller.remove());
 
       const start = scroller.querySelector("#start");
-      const end = scroller.querySelector("#end")
+      const end = scroller.querySelector("#end");
+
+      // Force layout to ensure the scroll timeline gets the correct scroll
+      // range.
+      start.offsetHeight;
 
       const timeline = createScrollTimeline(t, {
         scrollSource: scroller,

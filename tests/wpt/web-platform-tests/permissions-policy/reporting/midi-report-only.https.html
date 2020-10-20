@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+  </head>
+  <body>
+    <script>
+var check_report_format = ([reports, observer]) => {
+  let report = reports[0];
+  assert_equals(report.type, "feature-policy-violation");
+  assert_equals(report.body.featureId, "midi");
+  assert_equals(report.body.disposition, "report");
+};
+
+promise_test(async t => {
+  const report = new Promise(resolve => {
+    new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                          {types: ['feature-policy-violation']}).observe();
+  });
+  try {
+    await navigator.requestMIDIAccess();
+    check_report_format(await report);
+  } catch (err) {
+    // In case the requestMIDIAccess call was rejected due to user permissions,
+    // the report should be generated anyway. Wait for it and check the format
+    // before failing this test.
+    check_report_format(await report);
+    throw err;
+  }
+}, "MIDI report only mode");
+    </script>
+  </body>
+</html>

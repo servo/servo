@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>Return fullscreen permissions policy state</title>
+<script>
+  "use strict";
+  window.onload = () => {
+    window.parent.postMessage(document.featurePolicy.allowedFeatures().includes("fullscreen"),"*");
+  };
+</script>

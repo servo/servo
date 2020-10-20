@@ -44,6 +44,9 @@ and `}}`. Inside the block the following variables are available:
 - `{{host}}` - The host name of the server excluding any subdomain part.
 - `{{domains[]}}` - The domain name of a particular subdomain e.g.
   `{{domains[www]}}` for the `www` subdomain.
+- `{{hosts[][]}}` - The domain name of a particular subdomain for a particular
+  host. The first key may be empty (designating the "default" host) or the
+  value `alt`; i.e., `{{hosts[alt][]}}` (designating the alternate host).
 - `{{ports[][]}}` - The port number of servers, by protocol e.g.
   `{{ports[http][0]}}` for the first (and, depending on setup, possibly only)
   http server

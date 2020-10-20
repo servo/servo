@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>permissions policy treats opaque origins correctly</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  "use strict";
+  async_test(t => {
+    let frame = document.createElement('iframe');
+    frame.src = "/permissions-policy/resources/sandbox-self.html";
+    frame.allow = "fullscreen";
+    frame.sandbox = "allow-scripts";
+
+    var handle_message = t.step_func(evt => {
+      if (evt.source === frame.contentWindow) {
+        assert_equals(evt.data.child, true, "'self' in header should match origin of sandboxed frame.");
+        assert_equals(evt.data.grandchild, false, "Opaque origins should not match each other.");
+        document.body.removeChild(frame);
+        window.removeEventListener('message', handle_message);
+        t.done();
+      }
+    });
+    window.addEventListener('message', handle_message);
+    document.body.appendChild(frame);
+  });
+</script>

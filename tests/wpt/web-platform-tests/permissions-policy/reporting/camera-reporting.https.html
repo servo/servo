@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+  </head>
+  <body>
+    <script>
+var t = async_test("Camera Report Format");
+
+var check_report_format = (reports, observer) => {
+  let report = reports[0];
+  assert_equals(report.type, "feature-policy-violation");
+  assert_equals(report.url, document.location.href);
+  assert_equals(report.body.featureId, "camera");
+  assert_equals(report.body.sourceFile, document.location.href);
+  assert_equals(typeof report.body.lineNumber, "number");
+  assert_equals(typeof report.body.columnNumber, "number");
+  assert_equals(report.body.disposition, "enforce");
+};
+
+new ReportingObserver(t.step_func_done(check_report_format),
+                      {types: ['feature-policy-violation']}).observe();
+
+navigator.mediaDevices.getUserMedia({video: true}).then(
+  t.unreached_func("UserMedia camera access should not be allowed in this document.")
+).catch(() => {});
+    </script>
+  </body>
+</html>
