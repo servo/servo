@@ -7,23 +7,17 @@
 <script src="testcommon.js"></script>
 
 <style>
+/*
+ * Overflow hidden prevents user scroll including mouse wheel; however, the
+ * element is still a scrollable container and can be scrolled programmatically.
+ * Removing the visible scrollbars in this manner simplifies the position
+ * calculations in the text.
+ */
 .scroller {
-  overflow: scroll;
+  overflow: hidden;
   height: 500px;
   width: 500px;
   will-change: transform;
-}
-
-/* Disable scrollbars to simplify the calculations in the test. */
-.scroller {
-  scrollbar-width: 0;
-}
-/*
-Chrome does not support scrollbar-width so we use this non-standard property
-until it does.
-*/
-.scroller::-webkit-scrollbar {
-  display: none;
 }
 
 .contents {
@@ -81,6 +75,10 @@ until it does.
       t.add_cleanup(() => scroller.remove());
 
       const target = scroller.querySelector("#target");
+
+      // Force layout before creating the scroll timeline to ensure the correct
+      // scroll range.
+      target.offsetHeight;
 
       const timeline = createScrollTimeline(t, {
         scrollSource: scroller,

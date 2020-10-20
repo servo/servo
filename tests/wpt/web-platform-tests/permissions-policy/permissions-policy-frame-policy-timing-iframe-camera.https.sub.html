@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+window.onmessage = m => {
+  navigator.mediaDevices.getUserMedia({video: true})
+    .then(() => 'ok')
+    .catch(e => e.name)
+    .then(r => {
+      window.parent.postMessage({
+        id: m.data.id,
+        result: r
+      }, '*');
+    });
+}
+</script>

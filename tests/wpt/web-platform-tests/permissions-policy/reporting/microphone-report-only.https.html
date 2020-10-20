@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/resources/testdriver.js'></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <script>
+var check_report_format = ([reports, observer]) => {
+  let report = reports[0];
+  assert_equals(report.type, "feature-policy-violation");
+  assert_equals(report.body.featureId, "microphone");
+  assert_equals(report.body.disposition, "report");
+};
+
+promise_test(async t => {
+  const report = new Promise(resolve => {
+    new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                          {types: ['feature-policy-violation']}).observe();
+  });
+  await test_driver.bless('Activate document for user media');
+  await navigator.mediaDevices.getUserMedia({audio: true});
+  check_report_format(await report);
+}, "Microphone report only mode");
+    </script>
+  </body>
+</html>

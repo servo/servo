@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<body>
+  <p>This page is lazyloaded.</p>
+  <script>
+    let query_index = window.location.href.indexOf("?id=");
+    let id = window.location.href.substr(query_index + 4);
+    window.addEventListener("load", () => {
+      let p = document.querySelector("p");
+      let contents = p ? p.innerHTML : "null";
+      window.parent.postMessage({"id": id, "contents": contents}, "*");
+    });
+  </script>
+</body>

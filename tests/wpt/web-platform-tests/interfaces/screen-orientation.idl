@@ -9,8 +9,8 @@ partial interface Screen {
 
 [Exposed=Window]
 interface ScreenOrientation : EventTarget {
-  Promise<void> lock(OrientationLockType orientation);
-  void unlock();
+  Promise<undefined> lock(OrientationLockType orientation);
+  undefined unlock();
   readonly attribute OrientationType type;
   readonly attribute unsigned short angle;
   attribute EventHandler onchange;

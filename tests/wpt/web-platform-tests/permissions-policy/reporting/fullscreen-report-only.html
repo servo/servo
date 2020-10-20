@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src='/resources/testharness.js'></script>
+    <script src='/resources/testharnessreport.js'></script>
+    <script src='/resources/testdriver.js'></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+  </head>
+  <body>
+    <div id='fs'></div>
+    <script>
+var check_report_format = ([reports, observer]) => {
+  let report = reports[0];
+  assert_equals(report.type, "feature-policy-violation");
+  assert_equals(report.body.featureId, "fullscreen");
+  assert_equals(report.body.disposition, "report");
+};
+
+promise_test(async t => {
+  const report = new Promise(resolve => {
+    new ReportingObserver((reports, observer) => resolve([reports, observer]),
+                          {types: ['feature-policy-violation']}).observe();
+  });
+  await test_driver.bless('Activate document for fullscreen');
+  await document.getElementById('fs').requestFullscreen();
+  check_report_format(await report);
+  document.exitFullscreen();
+}, "Fullscreen report only mode");
+    </script>
+  </body>
+</html>

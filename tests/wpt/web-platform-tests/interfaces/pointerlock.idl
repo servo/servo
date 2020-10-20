@@ -4,13 +4,13 @@
 // Source: Pointer Lock 2.0 (https://w3c.github.io/pointerlock/)
 
 partial interface Element {
-  void requestPointerLock();
+  undefined requestPointerLock();
 };
 
 partial interface Document {
   attribute EventHandler onpointerlockchange;
   attribute EventHandler onpointerlockerror;
-  void exitPointerLock();
+  undefined exitPointerLock();
 };
 
 partial interface mixin DocumentOrShadowRoot {

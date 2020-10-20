@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<body>
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+  <script src=/permissions-policy/resources/permissions-policy.js></script>
+  <script>
+  /*
+  fullscreen is disabled at the top-level document, therefore disabled
+  everywhere throughout inheritance.
+  */
+  'use strict';
+  const same_origin = 'https://{{domains[]}}:{{ports[https][0]}}';
+  const cross_origin = 'https://{{domains[www]}}:{{ports[https][0]}}';
+  const same_origin_src = '/permissions-policy/resources/permissions-policy-nested-subframe-policy.https.sub.html';
+  const cross_origin_src = cross_origin + same_origin_src;
+  const policies = ['*', 'self', '\\(\\)'];
+
+  for (var i = 0; i < policies.length; i++) {
+    /* ------------------------------------------
+       |  top-level document                    |
+       |  ------------------------------------  |
+       |  |  same-origin iframe              |  |
+       |  |  ------------------------------  |  |
+       |  |  |  local and remote iframes  |  |  |
+       |  |  ------------------------------  |  |
+       |  ------------------------------------  |
+       ------------------------------------------ */
+    test_subframe_header_policy('fullscreen', policies[i], same_origin_src,
+        {local_all: false, local_self: false, local_none: false,
+        remote_all: false, remote_self: false, remote_none: false},
+        'Test nested header policy with local iframe on policy "fullscreen='
+          + policies[i] + '".');
+
+    /* -------------------------------------------
+       |  top-level document                     |
+       |  -------------------------------------  |
+       |  |  cross-origin iframe              |  |
+       |  |  -------------------------------  |  |
+       |  |  |  local and remote iframes   |  |  |
+       |  |  -------------------------------  |  |
+       |  -------------------------------------  |
+       ------------------------------------------- */
+    test_subframe_header_policy('fullscreen', policies[i], cross_origin_src,
+        {local_all: false, local_self: false, local_none: false,
+        remote_all: false, remote_self: false, remote_none: false},
+        'Test nested header policy with remote iframe on policy "fullscreen='
+          + policies[i] + '".');
+}
+  </script>
+</body>
