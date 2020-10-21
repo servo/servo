@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+ <!-- This iframe will have a sibling that paints, we want to ensure it does not detect that paint. -->
+<iframe id="listening-iframe" src="../resources/subframe-sending-paint.html"></iframe>
+<script>
+setup({"hide_test_state": true});
+var entriesExpectToReceive = [
+    {
+        'entryType': 'paint',
+        'name': 'first-paint'
+    },
+    {
+        'entryType': 'paint',
+        'name': 'first-contentful-paint'
+    }
+];
+async_test(function (t) {
+    assert_implements(window.PerformancePaintTiming, "Paint Timing isn't supported.");
+    let paintingIframeHasDispatchedEntries = false;
+    window.addEventListener('message', t.step_func(e => {
+        if (!paintingIframeHasDispatchedEntries) {
+            // Check paint-timing entries from the painting iframe.
+            for (let i = 0; i < entriesExpectToReceive.length; i++) {
+                if (entriesExpectToReceive[i].entryType == e.data.entryType &&
+                    entriesExpectToReceive[i].name == e.data.name) {
+                    entriesExpectToReceive.splice(i, 1);
+                    break;
+                }
+            }
+            if (entriesExpectToReceive.length == 0) {
+                paintingIframeHasDispatchedEntries = true;
+                // Ask the listening iframe to send its paint-timing entries.
+                document.getElementById('listening-iframe').
+                    contentWindow.postMessage('', '*');
+            }
+            return;
+        }
+        // Check the paint-timing entries from the listening iframe.
+        assert_equals(e.data, '0');
+        // Check that current frame receives first-paint but not first-contentful-paint.
+        const bufferedEntries = performance.getEntriesByType('paint');
+        assert_equals(bufferedEntries.length, 1);
+        assert_equals(bufferedEntries[0].entryType, 'paint');
+        assert_equals(bufferedEntries[0].name, 'first-paint');
+        t.done();
+    }));
+}, 'Frame ignores paint-timing events fired from sibling frame.');
+</script>
+<!-- This iframe is where all of the painting occurs. -->
+<iframe id="painting-iframe" src="../resources/subframe-painting.html"></iframe>
+</body>
+</html>
