@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/utils.js"></script>
+<style>
+  #bordered {
+    width: 100px;
+    height: 100px;
+    border: 30px solid transparent;
+    border-image-source: url(../resources/circle.svg);
+    border-image-width: 0px;
+  }
+</style>
+<div id='bordered'></div>
+<script>
+setup({"hide_test_state": true});
+promise_test(async t => {
+  const onload = new Promise(r => window.addEventListener('load', r));
+  await onload;
+  return assertNoFirstContentfulPaint(t).then(() => {
+    document.getElementById('bordered').style.borderImageWidth = '30px';
+  }).then(() => {
+    return assertFirstContentfulPaint(t);
+  });
+}, 'Border image triggers First Contentful Paint.');
+</script>
+</body>

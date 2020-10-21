@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: ::target-text getComputedStyle</title>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo/#selectordef-target-text">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target::target-text {
+    background-color: green;
+  }
+  #target::target-text {
+    color: lime;
+  }
+</style>
+<div id="target"></div>
+<script>
+  test(() => {
+    let style = getComputedStyle(target, "::target-text");
+    assert_equals(style.backgroundColor, "rgb(0, 128, 0)", "Background color is green.");
+    assert_equals(style.color, "rgb(0, 255, 0)", "Color is lime.");
+  }, "getComputedStyle() for ::target-text");
+</script>

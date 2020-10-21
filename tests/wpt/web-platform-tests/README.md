@@ -102,13 +102,6 @@ that modify sensitive resources (such as `.py`). The latter require
 someone with merge access to comment with "LGTM" or "w3c-test:mirror" to
 indicate the pull request has been checked.
 
-Branches
-========
-
-In the vast majority of cases the **only** upstream branch that you
-should need to care about is `master`. If you see other branches in
-the repository, you can generally safely ignore them.
-
 Contributing
 ============
 
