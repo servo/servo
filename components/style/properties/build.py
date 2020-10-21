@@ -7,7 +7,7 @@ import os.path
 import re
 import sys
 
-BASE = os.path.dirname(__file__.replace('\\', '/'))
+BASE = os.path.dirname(__file__.replace("\\", "/"))
 sys.path.insert(0, os.path.join(BASE, "Mako-1.1.2-py2.py3-none-any.whl"))
 sys.path.insert(0, BASE)  # For importing `data.py`
 
@@ -17,7 +17,7 @@ from mako.template import Template
 
 import data
 
-RE_PYTHON_ADDR = re.compile(r'<.+? object at 0x[0-9a-fA-F]+>')
+RE_PYTHON_ADDR = re.compile(r"<.+? object at 0x[0-9a-fA-F]+>")
 
 OUT_DIR = os.environ.get("OUT_DIR", "")
 
@@ -48,15 +48,20 @@ STYLE_STRUCT_LIST = [
 
 
 def main():
-    usage = ("Usage: %s [ servo-2013 | servo-2020 | gecko ] [ style-crate | geckolib <template> | html ]" %
-             sys.argv[0])
+    usage = (
+        "Usage: %s [ servo-2013 | servo-2020 | gecko ] [ style-crate | geckolib <template> | html ]"
+        % sys.argv[0]
+    )
     if len(sys.argv) < 3:
         abort(usage)
     engine = sys.argv[1]
     output = sys.argv[2]
 
-    if engine not in ["servo-2013", "servo-2020", "gecko"] \
-            or output not in ["style-crate", "geckolib", "html"]:
+    if engine not in ["servo-2013", "servo-2020", "gecko"] or output not in [
+        "style-crate",
+        "geckolib",
+        "html",
+    ]:
         abort(usage)
 
     properties = data.PropertiesData(engine=engine)
@@ -103,19 +108,19 @@ def main():
                 pref_attr = "servo_2020_pref"
             properties_dict = {
                 kind: {
-                    p.name: {
-                        "pref": getattr(p, pref_attr)
-                    }
+                    p.name: {"pref": getattr(p, pref_attr)}
                     for prop in properties_list
                     if prop.enabled_in_content()
                     for p in [prop] + prop.alias
                 }
                 for kind, properties_list in [
                     ("longhands", properties.longhands),
-                    ("shorthands", properties.shorthands)
+                    ("shorthands", properties.shorthands),
                 ]
             }
-            as_html = render(os.path.join(BASE, "properties.html.mako"), properties=properties_dict)
+            as_html = render(
+                os.path.join(BASE, "properties.html.mako"), properties=properties_dict
+            )
             as_json = json.dumps(properties_dict, indent=4, sort_keys=True)
             doc_servo = os.path.join(BASE, "..", "..", "..", "target", "doc", "servo")
             write(doc_servo, "css-properties.html", as_html)
@@ -136,14 +141,16 @@ def abort(message):
 
 def render(filename, **context):
     try:
-        lookup = TemplateLookup(directories=[BASE],
-                                input_encoding="utf8",
-                                strict_undefined=True)
-        template = Template(open(filename, "rb").read(),
-                            filename=filename,
-                            input_encoding="utf8",
-                            lookup=lookup,
-                            strict_undefined=True)
+        lookup = TemplateLookup(
+            directories=[BASE], input_encoding="utf8", strict_undefined=True
+        )
+        template = Template(
+            open(filename, "rb").read(),
+            filename=filename,
+            input_encoding="utf8",
+            lookup=lookup,
+            strict_undefined=True,
+        )
         # Uncomment to debug generated Python code:
         # write("/tmp", "mako_%s.py" % os.path.basename(filename), template.code)
         return template.render(**context)
@@ -161,7 +168,7 @@ def write(directory, filename, content):
 
     python_addr = RE_PYTHON_ADDR.search(content)
     if python_addr:
-        abort("Found \"{}\" in {} ({})".format(python_addr.group(0), filename, full_path))
+        abort('Found "{}" in {} ({})'.format(python_addr.group(0), filename, full_path))
 
 
 if __name__ == "__main__":
