@@ -688,6 +688,7 @@ MISSING-LINK: css/cssom-view/scrollTop-display-change.html
 
 # TODO https://github.com/web-platform-tests/wpt/issues/5770
 MISSING-LINK: css/geometry/*.worker.js
+MISSING-LINK: css/geometry/*.any.js
 MISSING-LINK: css/filter-effects/*.any.js
 
 # Tests that use WebKit/Blink testing APIs

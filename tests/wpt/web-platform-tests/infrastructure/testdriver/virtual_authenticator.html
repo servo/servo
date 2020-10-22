@@ -8,6 +8,13 @@
 <script>
 "use strict";
 
+// Encodes |data| into a base64url string. There is no '=' padding, and the
+// characters '-' and '_' must be used instead of '+' and '/', respectively.
+function base64urlEncode(data) {
+  let result = btoa(data);
+  return result.replaceAll("=", "").replaceAll("+", "-").replaceAll("/", "_");
+}
+
 // The example attestation private key from the U2F spec at
 // https://fidoalliance.org/specs/fido-u2f-v1.2-ps-20170411/fido-u2f-raw-message-formats-v1.2-ps-20170411.html#registration-example
 // PKCS.8 encoded without encryption, as a base64url string.
@@ -15,7 +22,7 @@ const private_key =
     "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg8_zMDQDYAxlU-Q"
   + "hk1Dwkf0v18GZca1DMF3SaJ9HPdmShRANCAASNYX5lyVCOZLzFZzrIKmeZ2jwU"
   + "RmgsJYxGP__fWN_S-j5sN4tT15XEpN_7QZnt14YvI6uvAgO0uJEboFaZlOEB";
-let credential_id = btoa("cred-1");
+let credential_id = base64urlEncode("cred-1");
 let credential = {
   credentialId: credential_id,
   rpId: window.location.hostname,
@@ -58,7 +65,7 @@ promise_test(async t => {
 promise_test(async t => {
   let credential1 = credential;
   let credential2 =
-    Object.assign({}, credential, {credentialId: btoa("cred-2")});
+    Object.assign({}, credential, {credentialId: base64urlEncode("cred-2")});
   await test_driver.add_credential(authenticator_id, credential1);
   await test_driver.add_credential(authenticator_id, credential2);
 
