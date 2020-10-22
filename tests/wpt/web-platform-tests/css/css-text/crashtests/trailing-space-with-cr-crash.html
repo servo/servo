@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-property">
+<link rel="author" title="Koji Ishii" href="mailto:kojii@chromium.org">
+<style>
+div {
+  width: 100px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  border: 1px solid blue;
+}
+.atomic {
+  display: inline-block;
+  width: 99px;
+  height: 1em;
+  background: orange;
+}
+</style>
+<div><span class="atomic"></span>&#x0D; <span class="atomic"></span></div>

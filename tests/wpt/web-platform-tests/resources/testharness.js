@@ -541,14 +541,15 @@ policies and contribution forms [3].
                 trimmed = trimmed.replace(/^([^;]*)(;\s*)+$/, "$1");
 
                 if (trimmed) {
-                    // add a suffix if we already have this string
+                    let name = trimmed;
                     if (seen_func_name[trimmed]) {
-                        trimmed = trimmed + " " + seen_func_name[trimmed];
-                        seen_func_name[trimmed]++;
+                        // This subtest name already exists, so add a suffix.
+                        name += " " + seen_func_name[trimmed];
                     } else {
-                        seen_func_name[trimmed] = 1;
+                        seen_func_name[trimmed] = 0;
                     }
-                    return trimmed;
+                    seen_func_name[trimmed] += 1;
+                    return name;
                 }
             }
         }

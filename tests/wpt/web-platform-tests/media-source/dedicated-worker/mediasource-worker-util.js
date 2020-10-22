@@ -33,8 +33,8 @@ function loadBinaryAsync(url) {
   return new Promise((resolve, reject) => {
     let request = new XMLHttpRequest();
     request.open("GET", url, true);
-    request.responseType = 'arraybuffer';
-    request.onerror = (event) => { reject(event); };
+    request.responseType = "arraybuffer";
+    request.onerror = event => { reject(event); };
     request.onload = () => {
       if (request.status != 200) {
         reject("Unexpected loadData_ status code : " + request.status);
@@ -76,6 +76,6 @@ mediaSource.addEventListener("sourceopen", () => {
       mediaSource.endOfStream();
     };
   };
-  mediaLoad.then( (mediaData) => { sourceBuffer.appendBuffer(mediaData); },
-                  (err) => { postMessage("Error: " + err) } );
+  mediaLoad.then( mediaData => { sourceBuffer.appendBuffer(mediaData); },
+                  err => { postMessage("Error: " + err) } );
 }, { once : true });

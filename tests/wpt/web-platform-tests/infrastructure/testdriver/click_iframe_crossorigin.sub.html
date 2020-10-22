@@ -6,8 +6,6 @@
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 
-<iframe src="https://{{host}}:{{ports[https][1]}}/infrastructure/testdriver/click_child_testdriver.html"></iframe>
-
 <script>
 setup({single_test: true});
 addEventListener("message", (msg) => {
@@ -18,3 +16,8 @@ addEventListener("message", (msg) => {
     }
 });
 </script>
+
+<!-- Make sure we add the event listener before loading the iframe, to avoid
+potentially missing messages from the child. -->
+<iframe src="https://{{host}}:{{ports[https][1]}}/infrastructure/testdriver/click_child_testdriver.html"></iframe>
+

@@ -86,7 +86,7 @@ class TestUsingServer(unittest.TestCase):
             assert resp.info()[name] == ", ".join(values)
 
 
-@pytest.mark.skipif(not wptserve.utils.http2_compatible(), reason="h2 server only works in python 2.7.15")
+@pytest.mark.skipif(not wptserve.utils.http2_compatible(), reason="h2 server only works in python 2.7.10+ and Python 3.6+")
 class TestUsingH2Server:
     def setup_method(self, test_method):
         self.server = wptserve.server.WebTestHttpd(host="localhost",

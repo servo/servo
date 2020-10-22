@@ -18,13 +18,10 @@ function terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_remainin
 }
 
 function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to_await) {
-  // TODO(https://crbug.com/878133): Enable main-thread feature detection of
-  // whether or not the implementation supports MSE-in-Workers, and fail the
-  // test rapidly here rather than flakily pass/failing the test on those
-  // implementations. If the timeout occurs near to when the worker's report
-  // of lack of MSE support reaches the main thread, then the test could
-  // pass in some cases (when timeout occurs prior to handling that error)
-  // and fail in others (when worker.onerror dispatch occurs first).
+  // Fail fast if MSE-in-Workers is not supported.
+  assert_true(MediaSource.hasOwnProperty("canConstructInDedicatedWorker"), "MediaSource hasOwnProperty 'canConstructInDedicatedWorker'");
+  assert_true(MediaSource.canConstructInDedicatedWorker, "MediaSource.canConstructInDedicatedWorker");
+
   const worker = new Worker("mediasource-worker-util.js");
   worker.onerror = test.unreached_func("worker error");
 
@@ -46,7 +43,7 @@ function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to
     terminateWorkerAfterMultipleSetTimeouts(test, worker, timeouts_to_await);
   }
 
-  worker.onmessage = test.step_func((e) => {
+  worker.onmessage = test.step_func(e => {
     if (e.data.substr(0,6) == "Error:") {
       assert_unreached("Worker error: " + e.data);
     } else {
@@ -68,9 +65,9 @@ function startWorkerAndTerminateWorker(test, when_to_start_timeouts, timeouts_to
   });
 }
 
-[ "before setting src", "after setting src", "after first ended event" ].forEach((when) => {
+[ "before setting src", "after setting src", "after first ended event" ].forEach(when => {
   for (let timeouts = 0; timeouts < 10; ++timeouts) {
-    async_test((test) => { startWorkerAndTerminateWorker(test, when, timeouts); },
+    async_test(test => { startWorkerAndTerminateWorker(test, when, timeouts); },
         "Test worker MediaSource termination after at least " + timeouts +
           " main thread setTimeouts, starting counting " + when);
   }
