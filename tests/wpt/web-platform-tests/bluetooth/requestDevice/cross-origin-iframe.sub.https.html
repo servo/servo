@@ -24,10 +24,8 @@ bluetooth_test(
                     }))
               // 2. Request the device from the iframe.
               .then(() => new Promise(resolve => {
-                      callWithTrustedClick(() => {
-                        iframe.contentWindow.postMessage(
-                            {type: 'RequestDevice'}, '*');
-                      });
+                      iframe.contentWindow.postMessage(
+                          {type: 'RequestDevice'}, '*');
 
                       window.onmessage = messageEvent => {
                         assert_equals(

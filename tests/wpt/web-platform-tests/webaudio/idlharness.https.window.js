@@ -11,8 +11,6 @@ idl_test(
   ['cssom', 'uievents', 'mediacapture-streams', 'html', 'dom'],
   async idl_array => {
     idl_array.add_untested_idls('interface SVGElement {};');
-    idl_array.add_untested_idls('interface WorkletGlobalScope {};');
-    idl_array.add_untested_idls('interface Worklet {};');
 
     idl_array.add_objects({
       BaseAudioContext: [],

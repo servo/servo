@@ -8,16 +8,18 @@
         <!-- Additional helper script for common checks across event types -->
         <script type="text/javascript" src="../pointerevent_support.js"></script>
         <script>
-           var eventList = ['pointerdown', 'pointerup', 'pointercancel', 'gotpointercapture', 'lostpointercapture', 'dragstart'];
+           var eventList = ['pointerdown', 'pointerup', 'pointercancel', 'gotpointercapture', 'lostpointercapture', 'dragstart', 'mousedown'];
 
            PhaseEnum = {
               DndWithoutCapture:   0,
               DndWithCapture:      1,
-              DndPrevented:        2,
-              Done:                3,
+              DndWithCaptureMouse: 2,
+              DndPrevented:        3,
+              Done:                4,
             };
             var phase = PhaseEnum.DndWithoutCapture;
             var received_events = [];
+            var pointerId = -1;
 
             function resetTestState() {
                 phase = PhaseEnum.DndWithoutCapture;
@@ -31,9 +33,17 @@
 
                 function handleEvent(e) {
                     if (e.type == 'pointerdown') {
-                       received_events = [];
-                       if (phase == PhaseEnum.DndWithCapture)
-                          target0.setPointerCapture(e.pointerId);
+                        received_events = [];
+                        if (phase == PhaseEnum.DndWithCapture) {
+                            target0.setPointerCapture(e.pointerId);
+                        } else if (phase == PhaseEnum.DndWithCaptureMouse) {
+                            pointerId = e.pointerId;
+                        }
+                    }
+                    if (e.type == 'mousedown') {
+                        if (phase == PhaseEnum.DndWithCaptureMouse) {
+                            target0.setPointerCapture(pointerId);
+                        }
                     }
                     received_events.push(e.type + "@" + e.target.id);
                     if (e.type == 'dragstart') {
@@ -44,16 +54,21 @@
                     if (phase == PhaseEnum.DndWithoutCapture && e.type == 'pointercancel') {
                         phase++;
                         test(() => {
-                            assert_equals(received_events.join(', '), "pointerdown@target0, dragstart@target0, pointercancel@target0", "Pointercancel should be fired with the expected order when drag operation starts.");
+                            assert_equals(received_events.join(', '), "pointerdown@target0, mousedown@target0, dragstart@target0, pointercancel@target0", "Pointercancel should be fired with the expected order when drag operation starts.");
                         }, "Pointercancel when drag operation starts");
                     } else if (phase == PhaseEnum.DndWithCapture && e.type == 'lostpointercapture') {
                         test(() => {
-                            assert_equals(received_events.join(', '), "pointerdown@target0, gotpointercapture@target0, dragstart@target0, pointercancel@target0, lostpointercapture@target0", "Pointercancel and lostpointercapture should be fired with the expected order when drag operation starts.");
+                            assert_equals(received_events.join(', '), "pointerdown@target0, mousedown@target0, gotpointercapture@target0, dragstart@target0, pointercancel@target0, lostpointercapture@target0", "Pointercancel and lostpointercapture should be fired with the expected order when drag operation starts.");
                         }, "Pointercancel while capturing when drag operation starts");
+                        phase++;
+                    } else if (phase == PhaseEnum.DndWithCaptureMouse && e.type == 'lostpointercapture') {
+                        test(() => {
+                            assert_equals(received_events.join(', '), "pointerdown@target0, mousedown@target0, gotpointercapture@target0, dragstart@target0, pointercancel@target0, lostpointercapture@target0", "Pointercancel and lostpointercapture should be fired with the expected order when drag operation starts.");
+                        }, "Pointercancel while capturing on mousedown when drag operation starts");
                         phase++;
                     } else if (phase == PhaseEnum.DndPrevented && e.type == 'pointerup') {
                         test(() => {
-                            assert_equals(received_events.join(', '), "pointerdown@target0, dragstart@target0, pointerup@target1", "Pointerevent stream shouldn't get interrupted when drag is prevented.");
+                            assert_equals(received_events.join(', '), "pointerdown@target0, mousedown@target0, dragstart@target0, pointerup@target1", "Pointerevent stream shouldn't get interrupted when drag is prevented.");
                         }, "Pointerevent stream when drag is prevented.");
                         phase++;
                         test_pointerEvent.done();
@@ -75,6 +90,7 @@
                  <li>Press down on the black square.</li>
                  <li>Move your pointer to purple square and release.</li>
                  <li>Repeat the first two steps.</li>
+                 <li>Repeat the first two steps once again.</li>
                  <li>Repeat the first two steps once again.</li>
             </ol>
             Test passes if the proper behavior of the events is observed.

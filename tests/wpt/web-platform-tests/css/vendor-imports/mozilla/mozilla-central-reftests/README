@@ -1,4 +1,5 @@
-THIS DIRECTORY IS NOT THE MASTER COPY!  DO NOT EDIT TESTS HERE!
+This directory is the remains of an earlier wpt sync system.
 
-This directory is automatically synced from layout/reftests/w3c-css/submitted/
-(which is the master copy) in https://hg.mozilla.org/mozilla-central/
+Tests should be moved into the correct directory under css/.
+
+In the meantime, feel free to fix any test bugs in the usual way.

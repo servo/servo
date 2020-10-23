@@ -20,4 +20,4 @@ def test_no_top_browsing_context(session, closed_window):
 
 def test_no_browsing_context(session, closed_frame):
     response = release_actions(session)
-    assert_success(response)
+    assert_error(response, "no such window")

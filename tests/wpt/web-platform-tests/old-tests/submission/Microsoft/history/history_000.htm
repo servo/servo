@@ -72,20 +72,20 @@
                         //there should now be three extra
                         assert_equals(history.length, length+3, "Three additional travel entries add to history.length");
 
+                        let popstateCount = 0;
+                        onpopstate = t.step_func(function(e) {
+                          if (++popstateCount == 3) {
+                            onpopstate = null;
+                            //once the .back navigations have completed, push again and verify length is one more than starting value
+                            history.pushState(null, null);
+                            assert_equals(history.length, length+1, "History.length should now only be one more than original value");
+                            t.done();
+                          }
+                        });
                         //travel back to the entry that the test started on
                         history.back();
                         history.back();
                         history.back();
-
-                        //if the back navs are queued, queue verification task after them
-                        queue(
-                            t.step_func(function() {
-                                //once the .back navigations have completed, push again and verify length is one more than starting value
-                                history.pushState(null, null);
-                                assert_equals(history.length, length+1, "History.length should now only be one more than original value");
-                                t.done();
-                            })
-                        );
                     });
                 },
 
@@ -152,19 +152,20 @@
                         //there should now be three extra
                         assert_equals(history.length, length+3, "Three additional travel entries add to history.length");
 
+                        let popstateCount = 0;
+                        onpopstate = t.step_func(function(e) {
+                          if (++popstateCount == 2) {
+                            onpopstate = null;
+                            //once the .back navigations have fired, replace and verify the length has not changed since the last check
+                            history.replaceState(null, null);
+                            assert_equals(history.length, length+3, "History.length should still be three more than original value");
+                            t.done();
+                          }
+                        });
+
                         //travel back two entries to land in the middle
                         history.back();
                         history.back();
-
-                        //if the back navs are queued, queue verification task after them
-                        queue(
-                            t.step_func(function() {
-                                //once the .back navigations have fired, push again and verify length has not changed since the last check
-                                history.replaceState(null, null);
-                                assert_equals(history.length, length+3, "History.length should still be three more than original value");
-                                t.done();
-                            })
-                        );
                     });
                 },
 
@@ -227,22 +228,19 @@
 
                 function() {
                     var t = async_test("PopStateEvent fires on Forward navigation");
-                    t.step( function() {
-                    onpopstate = null;
-                    history.pushState(null, null);
-                    history.pushState(null, null);
-                    history.back();
-                    //if the back navigation is queued, set up the rest of the test after it is done
-                    queue(
-                        t.step_func(function() {
+                    t.step(function() {
+                        onpopstate = null;
+                        history.pushState(null, null);
+                        history.pushState(null, null);
+                        onpopstate = function(e) {
                             //prepare to end the test as soon as popstate fires
                             onpopstate = function(e) {
                                 t.done();
-                            }
+                            };
                             //go forward to fire the popstate event
                             history.forward();
-                        })
-                    );
+                        };
+                        history.back();
                     });
                 },
 
@@ -309,16 +307,12 @@
         //serves to make test execution sequential despite asynchronous behaviors
         function testFinished(test) {
             if(testIndex < testCollection.length - 1) {
-                //queue the function so that stack remains shallow
-                queue(testCollection[++testIndex]);
+                //Run the function asynchronously so that the stack remains shallow
+                setTimeout(testCollection[++testIndex]);
             } else {
                 //when the last test has run, explicitly end test suite
                 done();
             }
-        }
-        function queue(func) {
-            //50 allows adequate time for .back and .forward navigations to queue first
-            setTimeout(func, 50);
         }
 
         add_result_callback(testFinished);
@@ -332,7 +326,7 @@
           testframe2.removeEventListener('load', startTestsWhenIframesLoaded, false);
 
           //start the first test
-          queue(testCollection[testIndex]);
+          setTimeout(testCollection[testIndex]);
         }
 
         // add listeners to trigger the tests once the iframes are loaded,

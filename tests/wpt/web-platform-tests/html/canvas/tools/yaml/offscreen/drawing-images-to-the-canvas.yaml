@@ -373,7 +373,7 @@
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.zerosource
-  desc: drawImage with zero-sized source rectangle throws INDEX_SIZE_ERR
+  desc: drawImage with zero-sized source rectangle draws nothing without exception
   testing:
   - 2d.drawImage.zerosource
   timeout: long
@@ -393,15 +393,15 @@
     });
     promise.then(function(response) {
         createImageBitmap(response).then(bitmap => {
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50);
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50);
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50);
+            ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50);
+            ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50);
+            ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50);
             @assert pixel 50,25 ==~ 0,255,0,255;
         }, t_fail);
     }).then(t_pass, t_fail);
 
 - name: 2d.drawImage.zerosource.image
-  desc: drawImage with zero-sized source rectangle from image throws INDEX_SIZE_ERR
+  desc: drawImage with zero-sized source rectangle from image draws nothing without exception
   testing:
   - 2d.drawImage.zerosource
   images:
@@ -423,9 +423,9 @@
     });
     promise.then(function(response) {
         createImageBitmap(response).then(bitmap => {
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap, 0, 0, 100, 50);
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap, 0, 0, 100, 50);
-            @assert throws INDEX_SIZE_ERR ctx.drawImage(bitmap, 0, 0, 100, 50);
+            ctx.drawImage(bitmap, 0, 0, 100, 50);
+            ctx.drawImage(bitmap, 0, 0, 100, 50);
+            ctx.drawImage(bitmap, 0, 0, 100, 50);
             @assert pixel 50,25 == 0,255,0,255;
         }, t_fail);
     }).then(t_pass, t_fail);
