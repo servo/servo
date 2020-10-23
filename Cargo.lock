@@ -400,7 +400,7 @@ checksum = "19b23557dd27704797128f9db2816416bef20dad62d4a9768714eeb65f07d296"
 [[package]]
 name = "blurmac"
 version = "0.1.0"
-source = "git+https://github.com/servo/devices#cb28c4725ffbfece99dab842d17d3e8c50774778"
+source = "git+https://github.com/servo/devices?rev=cb28c4725ffbfece99dab842d17d3e8c50774778#cb28c4725ffbfece99dab842d17d3e8c50774778"
 dependencies = [
  "log",
  "objc",
@@ -1277,7 +1277,7 @@ dependencies = [
 [[package]]
 name = "device"
 version = "0.0.1"
-source = "git+https://github.com/servo/devices#cb28c4725ffbfece99dab842d17d3e8c50774778"
+source = "git+https://github.com/servo/devices?rev=cb28c4725ffbfece99dab842d17d3e8c50774778#cb28c4725ffbfece99dab842d17d3e8c50774778"
 dependencies = [
  "blurdroid",
  "blurmac",
@@ -7044,7 +7044,7 @@ dependencies = [
 [[package]]
 name = "wgpu-core"
 version = "0.6.0"
-source = "git+https://github.com/gfx-rs/wgpu#e72724a6e393503c73f37e86aa9317a5c62e32b8"
+source = "git+https://github.com/gfx-rs/wgpu?rev=e72724a6e393503c73f37e86aa9317a5c62e32b8#e72724a6e393503c73f37e86aa9317a5c62e32b8"
 dependencies = [
  "arrayvec 0.5.1",
  "bitflags",
@@ -7072,7 +7072,7 @@ dependencies = [
 [[package]]
 name = "wgpu-types"
 version = "0.6.0"
-source = "git+https://github.com/gfx-rs/wgpu#e72724a6e393503c73f37e86aa9317a5c62e32b8"
+source = "git+https://github.com/gfx-rs/wgpu?rev=e72724a6e393503c73f37e86aa9317a5c62e32b8#e72724a6e393503c73f37e86aa9317a5c62e32b8"
 dependencies = [
  "bitflags",
  "serde",

@@ -13,7 +13,7 @@ path = "lib.rs"
 [dependencies]
 bitflags = "1.0"
 bluetooth_traits = { path = "../bluetooth_traits" }
-device = { git = "https://github.com/servo/devices", features = ["bluetooth-test"] }
+device = { git = "https://github.com/servo/devices", features = ["bluetooth-test"], rev = "cb28c4725ffbfece99dab842d17d3e8c50774778" }
 embedder_traits = { path = "../embedder_traits" }
 ipc-channel = "0.14"
 log = "0.4"

@@ -22,5 +22,5 @@ servo_config = { path = "../config" }
 smallvec = { version = "0.6", features = ["serde"] }
 webrender_api = { git = "https://github.com/servo/webrender" }
 webrender_traits = { path = "../webrender_traits" }
-wgpu-core = { version = "0.6.0", git = "https://github.com/gfx-rs/wgpu", features = ["replay", "trace", "serial-pass"] }
-wgpu-types = { version = "0.6.0", git = "https://github.com/gfx-rs/wgpu", features = ["replay", "trace"] }
+wgpu-core = { version = "0.6.0", git = "https://github.com/gfx-rs/wgpu", features = ["replay", "trace", "serial-pass"], rev = "e72724a6e393503c73f37e86aa9317a5c62e32b8" }
+wgpu-types = { version = "0.6.0", git = "https://github.com/gfx-rs/wgpu", features = ["replay", "trace"], rev = "e72724a6e393503c73f37e86aa9317a5c62e32b8" }
