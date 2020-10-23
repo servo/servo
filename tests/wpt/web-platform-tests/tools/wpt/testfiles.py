@@ -152,7 +152,7 @@ def repo_files_changed(revish, include_uncommitted=False, include_new=False):
         assert not entries[-1]
         entries = entries[:-1]
         for item in entries:
-            status, path = item.split()
+            status, path = item.split(" ", 1)
             if status == "??" and not include_new:
                 continue
             else:

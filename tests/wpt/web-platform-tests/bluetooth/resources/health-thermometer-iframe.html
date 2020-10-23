@@ -1,10 +1,17 @@
 <!DOCTYPE html>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<button>Click me!</button>
 <script>
 let device, gatt;
 
+test_driver.set_test_context(parent);
+
 function requestDeviceWithOptionsAndConnect(options) {
-  return navigator.bluetooth.requestDevice(options).then(
-      device => device.gatt.connect());
+  return test_driver.click(document.getElementsByTagName("button")[0])
+      .then(() => navigator.bluetooth.requestDevice(options))
+      .then(device => device.gatt.connect());
 }
 
 window.addEventListener('message', (messageEvent) => {
@@ -14,8 +21,9 @@ window.addEventListener('message', (messageEvent) => {
           availability => parent.postMessage(availability, '*'));
       break;
     case 'RequestDevice':
-      navigator.bluetooth
-          .requestDevice({filters: [{services: ['generic_access']}]})
+      test_driver.click(document.getElementsByTagName("button")[0])
+          .then(() => navigator.bluetooth
+              .requestDevice({filters: [{services: ['generic_access']}]}))
           .then(device => {
             if (device.constructor.name === 'BluetoothDevice') {
               parent.postMessage('Success', '*');

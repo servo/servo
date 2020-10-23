@@ -5,6 +5,7 @@
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
   <script src="/cookies/resources/testharness-helpers.js"></script>
+  <script src="/cookies/resources/cookie-helper.sub.js"></script>
 </head>
 <body>
 <div id=log></div>
@@ -12,6 +13,11 @@
   async_test(function (t) {
     document.cookie = `samesite_strict=1; sameSite=strict; path=/`;
     document.cookie = `samesite_lax=1; sameSite=lax; path=/`;
+    t.add_cleanup(function() {
+      credFetch(origin + "/cookies/resources/drop.py?name=" + "samesite_strict");
+      credFetch(origin + "/cookies/resources/drop.py?name=" + "samesite_lax");
+    });
+
 
     var ws = new WebSocket("ws://{{host}}:{{ports[ws][0]}}/echo-cookie");
     ws.onclose = t.step_func_done(function () {
@@ -32,10 +38,9 @@
         ws2.onclose = null;
         ws2.close();
         // Cross-scheme WebSockets shouldn't get anything.
-        assert_regexp_match(e2.data, /(none)/, "Cross-scheme");
+        assert_regexp_match(e2.data, /^\(none\)$/, "Cross-scheme");
       });
     });
-
   }, "Cross-scheme WebSockets are cross-site");
 </script>
 </body>

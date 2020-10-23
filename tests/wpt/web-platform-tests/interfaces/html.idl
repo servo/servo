@@ -2357,6 +2357,18 @@ interface WorkerLocation {
   readonly attribute USVString hash;
 };
 
+[Exposed=Worklet, SecureContext]
+interface WorkletGlobalScope {};
+
+[Exposed=Window, SecureContext]
+interface Worklet {
+  [NewObject] Promise<undefined> addModule(USVString moduleURL, optional WorkletOptions options = {});
+};
+
+dictionary WorkletOptions {
+  RequestCredentials credentials = "same-origin";
+};
+
 [Exposed=Window]
 interface Storage {
   readonly attribute unsigned long length;

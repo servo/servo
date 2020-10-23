@@ -7,11 +7,11 @@
 <script src="/html/canvas/resources/canvas-tests.js"></script>
 
 <h1>2d.drawImage.zerosource</h1>
-<p class="desc">drawImage with zero-sized source rectangle throws INDEX_SIZE_ERR</p>
+<p class="desc">drawImage with zero-sized source rectangle draws nothing without exception</p>
 
 
 <script>
-var t = async_test("drawImage with zero-sized source rectangle throws INDEX_SIZE_ERR");
+var t = async_test("drawImage with zero-sized source rectangle draws nothing without exception");
 var t_pass = t.done.bind(t);
 var t_fail = t.step_func(function(reason) {
     throw reason;
@@ -34,9 +34,9 @@ var promise = new Promise(function(resolve, reject) {
 });
 promise.then(function(response) {
     createImageBitmap(response).then(bitmap => {
-        assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50); });
-        assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50); });
-        assert_throws_dom("INDEX_SIZE_ERR", function() { ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50); });
+        ctx.drawImage(bitmap, 10, 10, 0, 1, 0, 0, 100, 50);
+        ctx.drawImage(bitmap, 10, 10, 1, 0, 0, 0, 100, 50);
+        ctx.drawImage(bitmap, 10, 10, 0, 0, 0, 0, 100, 50);
         _assertPixelApprox(offscreenCanvas, 50,25, 0,255,0,255, "50,25", "0,255,0,255", 2);
     }, t_fail);
 }).then(t_pass, t_fail);

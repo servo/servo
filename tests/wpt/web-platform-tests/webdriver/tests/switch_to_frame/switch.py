@@ -42,7 +42,16 @@ def test_null_response_value(session):
     0,
     {"element-6066-11e4-a52e-4f735466cecf": "foo"},
 ])
-def test_no_top_browsing_context(session, closed_window, id):
+def test_no_top_browsing_context(session, url, id):
+    session.window_handle = session.new_window()
+
+    session.url = url("/webdriver/tests/support/html/frames.html")
+
+    subframe = session.find.css("#sub-frame", all=False)
+    session.switch_frame(subframe)
+
+    session.window.close()
+
     response = switch_to_frame(session, id)
     assert_error(response, "no such window")
 
@@ -59,6 +68,11 @@ def test_no_browsing_context(session, closed_frame, id):
         session.find.css("#delete", all=False)
     else:
         assert_error(response, "no such window")
+
+
+def test_no_browsing_context_when_already_top_level(session, closed_window):
+    response = switch_to_frame(session, None)
+    assert_error(response, "no such window")
 
 
 @pytest.mark.parametrize("value", ["foo", True, [], {}])

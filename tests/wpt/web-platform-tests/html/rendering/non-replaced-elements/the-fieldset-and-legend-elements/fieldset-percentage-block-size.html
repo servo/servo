@@ -32,6 +32,16 @@
  </fieldset>
 </div>
 
+<table cellspacing="0" cellpadding="0" style="width:100px; height:60px;">
+  <tr>
+    <td>
+      <fieldset style="border:none; padding:0; height:100%; margin:0; margin-top:13px;">
+        <div><div id="elm"></div></div>
+      </fieldset>
+    </td>
+  </tr>
+</table>
+
 <script>
  for (const div of document.querySelectorAll('div[style]')) {
    for (const el of div.firstElementChild.children) {
@@ -42,4 +52,13 @@
      }, `${el.textContent} (${div.getAttribute('style')})`);
    }
  }
+
+// crbug.com/1138204. Though the specification doesn't mention this behavior,
+// there must be no doubt about the expected behavior.
+test(() => {
+  const fieldset = document.querySelector('table fieldset');
+  const initialHeight = fieldset.offsetHeight;
+  document.querySelector('#elm').style.display = 'none';
+  assert_equals(fieldset.offsetHeight, initialHeight);
+}, 'Fieldset with a percentage height should not increase the height on every reflow.');
 </script>

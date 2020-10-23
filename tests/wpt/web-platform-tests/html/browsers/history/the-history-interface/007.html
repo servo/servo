@@ -52,5 +52,15 @@ window.onload = function () {
 
     </script>
 
+  <!--
+    Reuse an existing server side script to slow down page load so that
+    history.go(-1); above gets run before load event fires.
+  -->
+  <script>
+    // define TEST_DELAY so that executing delay.py doesn't warn about use
+    // of undefined variable.
+    var TEST_DELAY;
+  </script>
+  <script src="/xhr/resources/delay.py?ms=2500"></script>
   </body>
 </html>

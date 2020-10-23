@@ -132,9 +132,9 @@ test(function(t) {
   );
   assert_equals(
     sheet.cssRules[1].cssText,
-    '@media screen and (color) and (max-width: 0px) {\n}'
+    '@media screen and (max-width: 0px) and (color) {\n}'
   );
-}, 'features - lexicographical sorting');
+}, 'features - no lexicographical sorting');
 
 test(function(t) {
   var sheet = makeSheet(t);
