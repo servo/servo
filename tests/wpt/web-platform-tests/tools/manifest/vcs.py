@@ -9,11 +9,9 @@ from six.moves.collections_abc import MutableMapping
 
 from .utils import git
 
-try:
-    from ..gitignore import gitignore
-except ValueError:
-    # relative import beyond toplevel throws *ValueError*!
-    from gitignore import gitignore  # type: ignore
+# Cannot do `from ..gitignore import gitignore` because
+# relative import beyond toplevel throws *ImportError*!
+from gitignore import gitignore  # type: ignore
 
 
 MYPY = False

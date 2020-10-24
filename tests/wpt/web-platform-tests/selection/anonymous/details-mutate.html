@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test selecting anonymous summary element inside details</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  details {
+    font: 16px/1 Ahem;
+  }
+</style>
+<details id="d"></details>
+<script>
+  const selection = getSelection();
+  d.addEventListener("DOMSubtreeModified", ev => {
+    window.find("cthulu", true, false);
+    selection.extend(document.body, document.body.childNodes.length);
+  });
+
+  window.onload = () => {
+    promise_test(async () => {
+      // This enables `.extend()`
+      selection.collapse(document.body);
+      // Clicking implicitly selects an anonymous summary element inside <details>
+      await new test_driver.Actions()
+        .pointerMove(0, 0, { origin: d })
+        .pointerDown()
+        .pointerUp()
+        .send();
+      // FIXME: Convert this to a crash test. Currently test_driver actions
+      // do not work within crash tests.
+      assert_true(true, "No crash");
+    }, "Manipulating selection after clicking <details> shouldn't cause a crash");
+  };
+</script>
