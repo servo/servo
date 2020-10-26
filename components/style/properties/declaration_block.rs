@@ -348,21 +348,6 @@ impl PropertyDeclarationBlock {
             .find(|(declaration, _)| declaration.id() == property)
     }
 
-    /// Get a declaration for a given property with the specified importance.
-    #[inline]
-    pub fn get_at_importance(
-        &self,
-        property: PropertyDeclarationId,
-        importance: Importance,
-    ) -> Option<&PropertyDeclaration> {
-        let (declaration, i) = self.get(property)?;
-        if i == importance {
-            Some(declaration)
-        } else {
-            None
-        }
-    }
-
     /// Tries to serialize a given shorthand from the declarations in this
     /// block.
     pub fn shorthand_to_css(
