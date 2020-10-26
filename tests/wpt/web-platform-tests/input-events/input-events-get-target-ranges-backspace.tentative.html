@@ -1169,6 +1169,78 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDoNothing();
 }, 'Backspace at "<p>abc</p><table><caption>{}<br></caption><tr><td>cell</td></tr></table>"');
 
+// If a table cell element is selected, only its content should be deleted.
+promise_test(async () => {
+  initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr></table>");
+  let cell1 = gEditor.querySelector("td");
+  let tr = cell1.parentNode;
+  gSelection.setBaseAndExtent(tr, 0, tr, 1);
+  await sendBackspaceKey();
+  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td><td>cell2</td></tr></tbody></table>",
+                                      "<table><tbody><tr><td><br></td><td>cell2</td></tr></tbody></table>"]);
+  // XXX Perhaps, target range should be selecting only all children of
+  //     cell1 instead.
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: tr,
+    startOffset: 0,
+    endContainer: tr,
+    endOffset: 1,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Backspace at "<table><tr>{<td>cell1</td>}<td>cell2</td></tr></table>"');
+
+promise_test(async () => {
+  initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr></table>");
+  let cell2 = gEditor.querySelector("td + td");
+  let tr = cell2.parentNode;
+  gSelection.setBaseAndExtent(tr, 1, tr, 2);
+  await sendBackspaceKey();
+  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td>cell1</td><td></td></tr></tbody></table>",
+                                      "<table><tbody><tr><td>cell1</td><td><br></td></tr></tbody></table>"]);
+  // XXX Perhaps, target range should be selecting only all children of
+  //     cell1 instead.
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: tr,
+    startOffset: 1,
+    endContainer: tr,
+    endOffset: 2,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Backspace at "<table><tr><td>cell1</td>{<td>cell2</td>}</tr></table>"');
+
+// If the last table cell element is selected, what browsers should do?
+promise_test(async () => {
+  initializeTest("<table><tr><td>cell</td></tr></table>");
+  let cell = gEditor.querySelector("td");
+  let tr = cell.parentNode;
+  let table = gEditor.querySelector("table");
+  gSelection.setBaseAndExtent(tr, 0, tr, 1);
+  await sendBackspaceKey();
+  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td></tr></tbody></table>",
+                                      "<table><tbody><tr><td><br></td></tr></tbody></table>",
+                                      "<br>"]);
+  if (gEditor.querySelector("table")) {
+    // XXX Perhaps, target range should be selecting only all children of
+    //     cell1 instead.
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+      startContainer: tr,
+      startOffset: 0,
+      endContainer: tr,
+      endOffset: 1,
+    });
+  } else {
+    // If it causes deleting entire the table, the `<table>` element should
+    // be in the target range.
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+      startContainer: gEditor,
+      startOffset: 0,
+      endContainer: gEditor,
+      endOffset: 1,
+    });
+  }
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Backspace at "<table><tr>{<td>cell</td>}</tr></table>"');
+
 // If caret is not adjacent of deleting character, browser may not delete the
 // character, but update the caret position for next deletion.
 promise_test(async () => {
