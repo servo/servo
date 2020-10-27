@@ -69,7 +69,7 @@ function createCredential(opts) {
     createArgs.options.publicKey.user.id = new Uint8Array(16);
 
     // change the defaults with any options that were passed in
-    extendObject (createArgs, opts);
+    extendObject(createArgs, opts);
 
     // create the credential, return the Promise
     return navigator.credentials.create(createArgs.options);
@@ -344,7 +344,8 @@ function cloneObject(o) {
 function extendObject(dst, src) {
     Object.keys(src).forEach(function(key) {
         if (isSimpleObject(src[key])) {
-            extendObject (dst[key], src[key]);
+            dst[key] ||= {};
+            extendObject(dst[key], src[key]);
         } else {
             dst[key] = src[key];
         }

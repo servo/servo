@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/1140595">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div style="height:100px;">
+  <fieldset style="margin:0; padding:0; border:none;">
+    <div id="inner" style="height:59%;"></div>
+  </fieldset>
+</div>
+<script>
+test(() => {
+  let innerDiv = document.querySelector('#inner');
+  assert_equals(innerDiv.clientHeight, 0);
+}, 'A percentage height for an element in an auto-height fieldset should be ignored');
+</script>

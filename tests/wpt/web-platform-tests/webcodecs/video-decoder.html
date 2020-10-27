@@ -99,10 +99,7 @@ promise_test(async t => {
       });
     },
     error(e) {
-      t.step(() => {
-        // TODO(sandersd): Change to 'throw e' once e is defined.
-        throw "decode error";
-      });
+      t.step(() => { throw e; });
     }
   });
 

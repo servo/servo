@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selecting texts across input element</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css" />
+<style>
+  .test {
+    font: 16px/1 Ahem;
+    padding-bottom: 16px;
+  }
+</style>
+<div class="test">
+  <span id="foo">foo</span><br>
+  <input id="input"><br>
+  <span id="bar">bar</span>
+</div>
+<script type="module">
+import inputTypes from "./input-types.js";
+
+const selection = getSelection();
+const inputVisibleTypes = inputTypes.filter(t => t !== "hidden");
+
+for (const inputType of inputVisibleTypes) {
+  promise_test(async () => {
+    input.type = inputType;
+    selection.collapse(foo);
+    await new test_driver.Actions()
+      .pointerMove(0, 0, {origin: foo})
+      .pointerDown()
+      .pointerMove(0, 0, {origin: input})
+      .pointerMove(0, 0, {origin: bar})
+      .pointerUp()
+      .send();
+    assert_equals(selection.anchorNode, foo.childNodes[0], "anchorNode");
+    assert_equals(selection.focusNode, bar.childNodes[0], "focusNode");
+  }, `Selecting texts across <input type=${inputType}> should not cancel selection`);
+}
+</script>
