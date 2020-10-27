@@ -1643,9 +1643,6 @@ pub enum Appearance {
     /// A scrollbar.
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     Scrollbar,
-    /// A small scrollbar.
-    #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
-    ScrollbarSmall,
     /// The scrollbar slider
     #[parse(condition = "ParserContext::in_ua_or_chrome_sheet")]
     ScrollbarHorizontal,
