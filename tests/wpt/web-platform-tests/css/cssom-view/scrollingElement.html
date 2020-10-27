@@ -93,12 +93,16 @@ function nonQuirksTest(rootDisplay, bodyDisplay) {
       nonQuirksDoc.documentElement.style.display = rootDisplay;
       nonQuirksDoc.body.style.display = bodyDisplay;
 
-      // Tests for non-quirks mode document.
       assert_equals(nonQuirksDoc.scrollingElement, nonQuirksDoc.documentElement,
         "scrollingElement in standards mode should be the document element.");
-      nonQuirksDoc.documentElement.style.overflow = "scroll";
-      nonQuirksDoc.body.style.overflow = "scroll";
-      assert_equals(nonQuirksDoc.scrollingElement, nonQuirksDoc.documentElement);
+
+      for (let rootOverflow of ["", "clip", "scroll", "hidden", "visible"]) {
+        for (let bodyOverflow of ["", "clip", "scroll", "hidden", "visible"]) {
+          nonQuirksDoc.documentElement.style.overflow = rootOverflow;
+          nonQuirksDoc.body.style.overflow = bodyOverflow;
+          assert_equals(nonQuirksDoc.scrollingElement, nonQuirksDoc.documentElement);
+        }
+      }
 
       nonQuirksDoc.removeChild(nonQuirksDoc.documentElement);
       assert_equals(nonQuirksDoc.scrollingElement, null);

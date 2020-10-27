@@ -198,3 +198,14 @@ promise_test(t => {
     }
   }), 'pipeTo should reject');
 }, 'pipeTo() should reject if an option getter grabs a writer');
+
+promise_test(t => {
+  const rs = new ReadableStream({
+    start(controller) {
+      controller.close();
+    }
+  });
+  const ws = new WritableStream();
+
+  return rs.pipeTo(ws, null);
+}, 'pipeTo() promise should resolve if null is passed');
