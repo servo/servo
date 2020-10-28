@@ -1358,6 +1358,303 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Delete at "<table><tr>{<td>cell</td>}</tr></table>"');
 
+// Testing multiple cell selection mode.
+promise_test(async () => {
+  initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>");
+  let cell1 = gEditor.querySelector("td");
+  let cell4 = gEditor.querySelector("tr + tr > td + td");
+  let tr1 = cell1.parentNode;
+  let tr2 = cell4.parentNode;
+  gSelection.removeAllRanges();
+  let range = document.createRange();
+  range.selectNode(cell1);
+  gSelection.addRange(range);
+  range = document.createRange();
+  range.selectNode(cell4);
+  gSelection.addRange(range);
+  assert_equals(gSelection.rangeCount, 2, "Should support multiple cell selection");
+  await sendDeleteKey();
+  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td><td>cell2</td></tr><tr><td>cell3</td><td></td></tr></tbody></table>",
+                                      "<table><tbody><tr><td><br></td><td>cell2</td></tr><tr><td>cell3</td><td><br></td></tr></tbody></table>"]);
+  // XXX Perhaps, target range should be selecting only all children of
+  //     cell1 and cell4 instead.
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething([
+    {
+      startContainer: tr1,
+      startOffset: 0,
+      endContainer: tr1,
+      endOffset: 1,
+    },
+    {
+      startContainer: tr2,
+      startOffset: 1,
+      endContainer: tr2,
+      endOffset: 2,
+    },
+  ]);
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<table><tr>{<td>cell1</td>}<td>cell2</td></tr><tr><td>cell3</td>{<td>cell4</td>}</tr></table>"');
+
+promise_test(async () => {
+  initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>");
+  let cell1 = gEditor.querySelector("td");
+  let cell3 = gEditor.querySelector("tr + tr > td");
+  let tr1 = cell1.parentNode;
+  let tr2 = cell3.parentNode;
+  gSelection.removeAllRanges();
+  let range = document.createRange();
+  range.selectNode(cell1);
+  gSelection.addRange(range);
+  range = document.createRange();
+  range.selectNode(cell3);
+  gSelection.addRange(range);
+  assert_equals(gSelection.rangeCount, 2, "Should support multiple cell selection");
+  await sendDeleteKey();
+  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td><td>cell2</td></tr><tr><td></td><td>cell4</td></tr></tbody></table>",
+                                      "<table><tbody><tr><td><br></td><td>cell2</td></tr><tr><td><br></td><td>cell4</td></tr></tbody></table>",
+                                      "<table><tbody><tr><td>cell2</td></tr><tr><td>cell4</td></tr></tbody></table>"]);
+  // XXX Perhaps, target range should be selecting only all children of
+  //     cell1 and cell3 instead.
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething([
+    {
+      startContainer: tr1,
+      startOffset: 0,
+      endContainer: tr1,
+      endOffset: 1,
+    },
+    {
+      startContainer: tr2,
+      startOffset: 0,
+      endContainer: tr2,
+      endOffset: 1,
+    },
+  ]);
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<table><tr>{<td>cell1</td>}<td>cell2</td></tr><tr>{<td>cell3</td>}<td>cell4</td></tr></table>"');
+
+promise_test(async () => {
+  initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>");
+  let cell1 = gEditor.querySelector("td");
+  let cell2 = gEditor.querySelector("td + td");
+  let tr1 = cell1.parentNode;
+  let tbody = tr1.parentNode;
+  gSelection.removeAllRanges();
+  let range = document.createRange();
+  range.selectNode(cell1);
+  gSelection.addRange(range);
+  range = document.createRange();
+  range.selectNode(cell2);
+  gSelection.addRange(range);
+  assert_equals(gSelection.rangeCount, 2, "Should support multiple cell selection");
+  await sendDeleteKey();
+  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td><td></td></tr><tr><td>cell3</td><td>cell4</td></tr></tbody></table>",
+                                      "<table><tbody><tr><td><br></td><td><br></td></tr><tr><td>cell3</td><td>cell4</td></tr></tbody></table>",
+                                      "<table><tbody><tr><td>cell3</td><td>cell4</td></tr></tbody></table>"]);
+  if (gEditor.querySelector("tr + tr")) {
+    // XXX Perhaps, target range should be selecting only all children of
+    //     cell1 and cell2 instead.
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething([
+      {
+        startContainer: tr1,
+        startOffset: 0,
+        endContainer: tr1,
+        endOffset: 1,
+      },
+      {
+        startContainer: tr1,
+        startOffset: 1,
+        endContainer: tr1,
+        endOffset: 2,
+      },
+    ]);
+  } else {
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+      startContainer: tbody,
+      startOffset: 0,
+      endContainer: tbody,
+      endOffset: 1,
+    });
+  }
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<table><tr>{<td>cell1</td>}{<td>cell2</td>}</tr><tr><td>cell3</td><td>cell4</td></tr></table>"');
+
+promise_test(async () => {
+  initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>");
+  let cell3 = gEditor.querySelector("tr + tr > td");
+  let cell4 = gEditor.querySelector("tr + tr > td + td");
+  let tr2 = cell3.parentNode;
+  gSelection.removeAllRanges();
+  let range = document.createRange();
+  range.selectNode(cell3);
+  gSelection.addRange(range);
+  range = document.createRange();
+  range.selectNode(cell4);
+  gSelection.addRange(range);
+  assert_equals(gSelection.rangeCount, 2, "Should support multiple cell selection");
+  await sendDeleteKey();
+  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td>cell1</td><td>cell2</td></tr><tr><td></td><td></td></tr></tbody></table>",
+                                      "<table><tbody><tr><td>cell1</td><td>cell2</td></tr><tr><td><br></td><td><br></td></tr></tbody></table>",
+                                      "<table><tbody><tr><td>cell1</td><td>cell2</td></tr></tbody></table>"]);
+  if (gEditor.querySelector("tr + tr")) {
+    // XXX Perhaps, target range should be selecting only all children of
+    //     cell3 and cell4 instead.
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething([
+      {
+        startContainer: tr2,
+        startOffset: 0,
+        endContainer: tr2,
+        endOffset: 1,
+      },
+      {
+        startContainer: tr2,
+        startOffset: 1,
+        endContainer: tr2,
+        endOffset: 2,
+      },
+    ]);
+  } else {
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+      startContainer: tbody,
+      startOffset: 1,
+      endContainer: tbody,
+      endOffset: 2,
+    });
+  }
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<table><tr><td>cell1</td><td>cell2</td></tr><tr>{<td>cell3</td>}{<td>cell4</td>}</tr></table>"');
+
+promise_test(async () => {
+  initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>");
+  let cell1 = gEditor.querySelector("td");
+  let cell2 = gEditor.querySelector("td + td");
+  let cell3 = gEditor.querySelector("tr + tr > td");
+  let cell4 = gEditor.querySelector("tr + tr > td + td");
+  let tr1 = cell1.parentNode;
+  let tr2 = cell3.parentNode;
+  gSelection.removeAllRanges();
+  let range = document.createRange();
+  range.selectNode(cell1);
+  gSelection.addRange(range);
+  range = document.createRange();
+  range.selectNode(cell2);
+  gSelection.addRange(range);
+  range = document.createRange();
+  range.selectNode(cell3);
+  gSelection.addRange(range);
+  range = document.createRange();
+  range.selectNode(cell4);
+  gSelection.addRange(range);
+  assert_equals(gSelection.rangeCount, 4, "Should support multiple cell selection");
+  await sendDeleteKey();
+  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td><td></td></tr><tr><td></td><td></td></tr></tbody></table>",
+                                      "<table><tbody><tr><td><br></td><td><br></td></tr><tr><td><br></td><td><br></td></tr></tbody></table>",
+                                      "<br>"]);
+  if (gEditor.querySelector("table")) {
+    // XXX Perhaps, target range should be selecting only all children of
+    //     cell1, cell2, cell3 and cell4 instead.
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething([
+      {
+        startContainer: tr1,
+        startOffset: 0,
+        endContainer: tr1,
+        endOffset: 1,
+      },
+      {
+        startContainer: tr1,
+        startOffset: 1,
+        endContainer: tr1,
+        endOffset: 2,
+      },
+      {
+        startContainer: tr2,
+        startOffset: 0,
+        endContainer: tr2,
+        endOffset: 1,
+      },
+      {
+        startContainer: tr2,
+        startOffset: 1,
+        endContainer: tr2,
+        endOffset: 2,
+      },
+    ]);
+  } else {
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+      startContainer: gEditor,
+      startOffset: 0,
+      endContainer: gEditor,
+      endOffset: 1,
+    });
+  }
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<table><tr>{<td>cell1</td>}{<td>cell2</td>}</tr><tr>{<td>cell3</td>}{<td>cell4</td>}</tr></table>"');
+
+promise_test(async () => {
+  initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>");
+  let cell1 = gEditor.querySelector("td");
+  let cell2 = gEditor.querySelector("td + td");
+  let cell4 = gEditor.querySelector("tr + tr > td + td");
+  let tr1 = cell1.parentNode;
+  let tr2 = cell4.parentNode;
+  gSelection.removeAllRanges();
+  let range = document.createRange();
+  range.selectNode(cell1);
+  gSelection.addRange(range);
+  range = document.createRange();
+  range.setStart(cell2.firstChild, 1);
+  range.setEnd(cell2.firstChild, 4);
+  gSelection.addRange(range);
+  range = document.createRange();
+  range.selectNode(cell4);
+  gSelection.addRange(range);
+  assert_equals(gSelection.rangeCount, 3, "Should support multiple cell selection");
+  await sendDeleteKey();
+  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td><td>cell2</td></tr><tr><td>cell3</td><td></td></tr></tbody></table>",
+                                      "<table><tbody><tr><td><br></td><td>cell2</td></tr><tr><td>cell3</td><td><br></td></tr></tbody></table>",
+                                      "<table><tbody><tr><td></td><td>c2</td></tr><tr><td>cell3</td><td></td></tr></tbody></table>",
+                                      "<table><tbody><tr><td><br></td><td>c2</td></tr><tr><td>cell3</td><td><br></td></tr></tbody></table>"]);
+  if (cell2.firstChild.length == "cell2".length) {
+    // XXX Perhaps, target range should be selecting only all children of
+    //     cell1 and cell4 instead.
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething([
+      {
+        startContainer: tr1,
+        startOffset: 0,
+        endContainer: tr1,
+        endOffset: 1,
+      },
+      {
+        startContainer: tr2,
+        startOffset: 1,
+        endContainer: tr2,
+        endOffset: 2,
+      },
+    ]);
+  } else {
+    checkGetTargetRangesOfBeforeinputOnDeleteSomething([
+      {
+        startContainer: tr1,
+        startOffset: 0,
+        endContainer: tr1,
+        endOffset: 1,
+      },
+      {
+        startContainer: cell2.firstChild,
+        startOffset: 1,
+        endContainer: cell2.firstChild,
+        endOffset: 4,
+      },
+      {
+        startContainer: tr2,
+        startOffset: 1,
+        endContainer: tr2,
+        endOffset: 2,
+      },
+    ]);
+  }
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Delete at "<table><tr>{<td>cell1</td>}<td>c[ell]2</td></tr><tr>{<td>cell3</td>}<td>cell4</td></tr></table>"');
+
 // If caret is not adjacent of deleting character, browser may not delete the
 // character, but update the caret position for next deletion.
 promise_test(async () => {

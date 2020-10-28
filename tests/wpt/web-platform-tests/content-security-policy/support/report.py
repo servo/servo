@@ -36,7 +36,7 @@ def main(request, response):
     return [(b"Content-Type", b"application/json")], json.dumps({u'report_count': str(retrieve_from_stash(request, count_key, timeout, 0))})
 
   # save cookies
-  if hasattr(request, u'cookies') and len(request.cookies.keys()) > 0:
+  if len(request.cookies.keys()) > 0:
     # convert everything into strings and dump it into a dict so it can be jsoned
     temp_cookies_dict = {}
     for dict_key in request.cookies.keys():

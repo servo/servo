@@ -158,13 +158,15 @@ class Test(object):
     long_timeout = 60  # seconds
 
     def __init__(self, tests_root, url, inherit_metadata, test_metadata,
-                 timeout=None, path=None, protocol="http", quic=False):
+                 timeout=None, path=None, protocol="http", subdomain=False,
+                 quic=False):
         self.tests_root = tests_root
         self.url = url
         self._inherit_metadata = inherit_metadata
         self._test_metadata = test_metadata
         self.timeout = timeout if timeout is not None else self.default_timeout
         self.path = path
+        self.subdomain = subdomain
         self.environment = {"protocol": protocol, "prefs": self.prefs, "quic": quic}
 
     def __eq__(self, other):
@@ -190,7 +192,8 @@ class Test(object):
                    test_metadata,
                    timeout=timeout,
                    path=os.path.join(manifest_file.tests_root, manifest_item.path),
-                   protocol=server_protocol(manifest_item))
+                   protocol=server_protocol(manifest_item),
+                   subdomain=manifest_item.subdomain)
 
     @property
     def id(self):
@@ -395,9 +398,9 @@ class TestharnessTest(Test):
 
     def __init__(self, tests_root, url, inherit_metadata, test_metadata,
                  timeout=None, path=None, protocol="http", testdriver=False,
-                 jsshell=False, scripts=None, quic=False):
+                 jsshell=False, scripts=None, subdomain=False, quic=False):
         Test.__init__(self, tests_root, url, inherit_metadata, test_metadata, timeout,
-                      path, protocol, quic)
+                      path, protocol, subdomain, quic)
 
         self.testdriver = testdriver
         self.jsshell = jsshell
@@ -422,6 +425,7 @@ class TestharnessTest(Test):
                    testdriver=testdriver,
                    jsshell=jsshell,
                    scripts=scripts,
+                   subdomain=manifest_item.subdomain,
                    quic=quic)
 
     @property
@@ -453,8 +457,8 @@ class ReftestTest(Test):
     test_type = "reftest"
 
     def __init__(self, tests_root, url, inherit_metadata, test_metadata, references,
-                 timeout=None, path=None, viewport_size=None, dpi=None, fuzzy=None, protocol="http",
-                 quic=False):
+                 timeout=None, path=None, viewport_size=None, dpi=None, fuzzy=None,
+                 protocol="http", quic=False):
         Test.__init__(self, tests_root, url, inherit_metadata, test_metadata, timeout,
                       path, protocol, quic)
 

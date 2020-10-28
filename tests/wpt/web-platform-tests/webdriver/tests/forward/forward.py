@@ -130,3 +130,20 @@ def test_history_pushstate(session, url):
 
     assert session.url == "{}#pushstate".format(pushstate_page)
     assert session.execute_script("return history.state;") == {"foo": "bar"}
+
+
+def test_removed_iframe(session, url):
+    page = inline("<p>foo")
+
+    session.url = url("/webdriver/tests/support/html/frames_no_bfcache.html")
+    session.url = page
+
+    session.back()
+
+    subframe = session.find.css("#sub-frame", all=False)
+    session.switch_frame(subframe)
+
+    response = forward(session)
+    assert_success(response)
+
+    assert session.url == page

@@ -36,6 +36,9 @@ themselves precede any test type flag, but are otherwise unordered.
  `.h2`
  : Indicates that a test is loaded over HTTP/2.
 
+ `.www`
+ : Indicates that a test is run on the `www` subdomain.
+
 `.sub`
  : Indicates that a test uses the [server-side substitution](server-pipes.html#sub)
    feature.

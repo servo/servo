@@ -35,7 +35,7 @@ function matrix2D(dict) {
   return matrix;
 }
 
-function checkMatrix(actual, expected, { epsilon = 0 } = {}) {
+function checkMatrix(actual, expected, { epsilon = Number.MIN_VALUE } = {}) {
   for (let member in expected) {
     if (epsilon && typeof expected[member] === "number") {
       assert_approx_equals(actual[member], expected[member], epsilon, member);

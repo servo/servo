@@ -47,6 +47,37 @@ def test_url_not_https(path):
     assert m.https is False
 
 
+@pytest.mark.parametrize("path", [
+    "a.www.c",
+    "a.b.www.c",
+    "a.www.b.c",
+    "a.b.www.c.d",
+    "a.https.www.c",
+    "a.b.https.www.c",
+    "a.https.www.b.c",
+    "a.b.https.www.c.d",
+])
+def test_url_subdomain(path):
+    m = HarnessTest("/foo", "bar/" + path, "/", "bar/" + path)
+
+    assert m.subdomain is True
+
+
+@pytest.mark.parametrize("path", [
+    "www",
+    "a.www",
+    "a.b.www",
+    "www.a",
+    "www.a.b",
+    "a.bwwww.c",
+    "a.wwwwb.c",
+])
+def test_url_not_subdomain(path):
+    m = HarnessTest("/foo", "bar/" + path, "/", "bar/" + path)
+
+    assert m.subdomain is False
+
+
 @pytest.mark.parametrize("fuzzy", [
     {('/foo/test.html', u'/foo/ref.html', '=='): [[1, 1], [200, 200]]},
     {('/foo/test.html', u'/foo/ref.html', '=='): [[0, 1], [100, 200]]},
