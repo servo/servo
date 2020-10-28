@@ -170,15 +170,14 @@ def test_run_zero_tests():
         pytest.skip("port 8000 already in use")
 
     with pytest.raises(SystemExit) as excinfo:
-        wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
-                       "--channel", "dev", "chrome",
-                       "/non-existent-dir/non-existent-file.html"])
+        wpt.main(argv=["run", "--yes", "--no-pause", "--channel", "dev",
+                       "chrome", "/non-existent-dir/non-existent-file.html"])
     assert excinfo.value.code != 0
 
     with pytest.raises(SystemExit) as excinfo:
-        wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
-                       "--no-fail-on-unexpected", "--channel", "dev",
-                       "chrome", "/non-existent-dir/non-existent-file.html"])
+        wpt.main(argv=["run", "--yes", "--no-pause", "--no-fail-on-unexpected",
+                       "--channel", "dev", "chrome",
+                       "/non-existent-dir/non-existent-file.html"])
     assert excinfo.value.code != 0
 
 
@@ -196,14 +195,13 @@ def test_run_failing_test():
     assert os.path.isfile("../../%s" % failing_test)
 
     with pytest.raises(SystemExit) as excinfo:
-        wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
-                       "--channel", "dev", "chrome", failing_test])
+        wpt.main(argv=["run", "--yes", "--no-pause", "--channel", "dev",
+                       "chrome", failing_test])
     assert excinfo.value.code != 0
 
     with pytest.raises(SystemExit) as excinfo:
-        wpt.main(argv=["run", "--yes", "--no-pause", "--binary-arg", "headless",
-                       "--no-fail-on-unexpected", "--channel", "dev",
-                       "chrome", failing_test])
+        wpt.main(argv=["run", "--yes", "--no-pause", "--no-fail-on-unexpected",
+                       "--channel", "dev", "chrome", failing_test])
     assert excinfo.value.code == 0
 
 
@@ -227,15 +225,15 @@ def test_run_verify_unstable(temp_test):
     """)
 
     with pytest.raises(SystemExit) as excinfo:
-        wpt.main(argv=["run", "--yes", "--verify", "--binary-arg", "headless",
-                       "--channel", "dev", "chrome", unstable_test])
+        wpt.main(argv=["run", "--yes", "--verify", "--channel", "dev",
+                       "chrome", unstable_test])
     assert excinfo.value.code != 0
 
     stable_test = temp_test("test(function() {}, 'my test');")
 
     with pytest.raises(SystemExit) as excinfo:
-        wpt.main(argv=["run", "--yes", "--verify", "--binary-arg", "headless",
-                       "--channel", "dev", "chrome", stable_test])
+        wpt.main(argv=["run", "--yes", "--verify", "--channel", "dev",
+                       "chrome", stable_test])
     assert excinfo.value.code == 0
 
 

@@ -302,4 +302,50 @@ async_test(function(t) {
   assert_false(didSubmit)
   t.done()
 }, "disconnected form should not submit")
+
+async_test(t => {
+  const form = document.createElement("form");
+  form.onsubmit = t.step_func(ev => {
+    ev.preventDefault();
+    assert_unreached("The form is unexpectedly submitted.");
+  });
+  dump.append(form);
+  const input = form.appendChild(document.createElement("input"));
+  input.type = "submit"
+  input.disabled = true;
+  input.dispatchEvent(new MouseEvent("click", { cancelable: true }));
+  t.done();
+}, "disabled submit button should not activate");
+
+async_test(t => {
+  const form = document.createElement("form");
+  form.onsubmit = t.step_func(ev => {
+    ev.preventDefault();
+    assert_unreached("The form is unexpectedly submitted.");
+  });
+  dump.append(form);
+  const input = form.appendChild(document.createElement("input"));
+  input.onclick = t.step_func(() => {
+    input.disabled = true;
+  });
+  input.type = "submit"
+  input.dispatchEvent(new MouseEvent("click", { cancelable: true }));
+  t.done();
+}, "submit button should not activate if the event listener disables it");
+
+async_test(t => {
+  const form = document.createElement("form");
+  form.onsubmit = t.step_func(ev => {
+    ev.preventDefault();
+    assert_unreached("The form is unexpectedly submitted.");
+  });
+  dump.append(form);
+  const input = form.appendChild(document.createElement("input"));
+  input.onclick = t.step_func(() => {
+    input.type = "submit"
+    input.disabled = true;
+  });
+  input.click();
+  t.done();
+}, "submit button that morphed from checkbox should not activate");
 </script>

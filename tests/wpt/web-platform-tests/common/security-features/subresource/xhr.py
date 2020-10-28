@@ -12,4 +12,5 @@ def main(request, response):
                         response,
                         payload_generator = generate_payload,
                         access_control_allow_origin = b"*",
-                        content_type = b"application/json")
+                        content_type = b"application/json",
+                        cache_control = b"no-store")

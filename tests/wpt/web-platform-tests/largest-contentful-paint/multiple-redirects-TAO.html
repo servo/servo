@@ -29,6 +29,7 @@ async_test(t => {
         {tao1: 'null', tao2: '*', passes: false},
         {tao1: '*', tao2: 'null', passes: true},
     ];
+    const sizes = [28*28, 33*33, 40*40, 50*50, 66*66, 100*100, 200*200];
     function getURL(item) {
         return destUrl + '&tao1=' + item.tao1 + '&tao2=' + item.tao2;
     }
@@ -36,6 +37,8 @@ async_test(t => {
         const image = document.getElementById('image');
         const item = taoCombinations[index];
         image.src = getURL(item);
+        // Use monotonic sizes to get all the images!
+        image.width = 200 / (7 - index);
     }
     let observedCount = 0;
     let beforeLoad = performance.now();
@@ -45,7 +48,7 @@ async_test(t => {
         const item = taoCombinations[observedCount];
         const url = getURL(item);
         const options = item.passes ? [] : ['renderTimeIs0'];
-        checkImage(e, url, 'image', 200*200, beforeLoad, options);
+        checkImage(e, url, 'image', sizes[observedCount], beforeLoad, options);
         observedCount++;
         if (observedCount === taoCombinations.length) {
             t.done();

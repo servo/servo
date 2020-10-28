@@ -20,7 +20,7 @@ const interpolationTests = [
     property: "font",
     from: "oblique normal 100 ultra-condensed 5px / 20px serif",
     to: "italic small-caps 900 ultra-expanded 25px / 50px Ahem",
-    midPoint: ["italic small-caps 500 expanded 15px Ahem", "italic small-caps 500 expanded 15px/normal Ahem"],
+    midPoint: ["italic small-caps 500 expanded 15px / 35px Ahem", "italic small-caps 500 expanded 15px/35px Ahem"],
   },
   {
     property: "font-family",
@@ -111,6 +111,14 @@ const interpolationTests = [
     from: "100",
     to: "900",
     midPoint: "500",
+  },
+
+  // `line-height` is not a font property but is a longhand of `font`, and is also supported.
+  {
+    property: "line-height",
+    from: "20px",
+    to: "50px",
+    midPoint: "35px",
   },
 
   // ::marker supports `white-space`
@@ -291,15 +299,6 @@ const interpolationTests = [
     from: "square",
     to: "decimal",
     midPoint: "disc",
-  },
-
-  // ::marker does NOT support `line-height` because, despite being a
-  // longhand of `font`, it's not a font property.
-  {
-    property: "line-height",
-    from: "20px",
-    to: "50px",
-    midPoint: "normal",
   },
 ];
 

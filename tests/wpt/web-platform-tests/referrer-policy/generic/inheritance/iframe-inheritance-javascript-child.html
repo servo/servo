@@ -30,7 +30,11 @@
       iframe.onload = t.step_func(() => {
         iframe.onload = null;
         const iframeChild =  iframe.contentDocument.createElement("iframe");
-        iframeChild.src = `javascript:'${createScriptString(get_host_info().REMOTE_ORIGIN)}'`;
+        // We add a custom referrer to the fetch request. Otherwise,
+        // since the frame's URL is "about:blank", the Referer header will
+        // always be empty:
+        // https://w3c.github.io/webappsec-referrer-policy/#strip-url.
+        iframeChild.src = `javascript:'${createScriptString(get_host_info().REMOTE_ORIGIN, location.origin+"/custom")}'`;
         iframe.contentDocument.body.appendChild(iframeChild);
       });
       document.body.appendChild(iframe);

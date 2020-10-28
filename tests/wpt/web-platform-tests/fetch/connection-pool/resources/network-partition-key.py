@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
-import datetime
-import json
 import mimetypes
 import os
-import sys
-import time
+
+from wptserve.utils import isomorphic_decode, isomorphic_encode
 
 # Test server that tracks the last partition_id was used with each connection for each uuid, and
 # lets consumers query if multiple different partition_ids have been been used for any socket.
@@ -27,17 +25,17 @@ def main(request, response):
     # Unless nocheck_partition is true, check partition_id against server_state, and update server_state.
     stash = request.server.stash
     test_failed = False
-    if request.GET.first(b"nocheck_partition", None) != "True":
+    if request.GET.first(b"nocheck_partition", None) != b"True":
         # Need to grab the lock to access the Stash, since requests are made in parallel.
         with stash.lock:
             # Don't use server hostname here, since H2 allows multiple hosts to reuse a connection.
             # Server IP is not currently available, unfortunately.
-            address_key = str(request.client_address) + "|" + str(request.url_parts.port)
-            server_state = stash.take(uuid) or { "test_failed": False }
+            address_key = isomorphic_encode(str(request.client_address) + u"|" + str(request.url_parts.port))
+            server_state = stash.take(uuid) or {b"test_failed": False}
             if address_key in server_state and server_state[address_key] != partition_id:
-                server_state["test_failed"] = True
+                server_state[b"test_failed"] = True
             server_state[address_key] = partition_id
-            test_failed = server_state["test_failed"]
+            test_failed = server_state[b"test_failed"]
             stash.put(uuid, server_state)
 
     origin = request.headers.get(b"Origin")
@@ -48,18 +46,18 @@ def main(request, response):
     if request.method == u"OPTIONS":
         return handle_preflight(request, response)
 
-    if dispatch == u"fetch_file":
+    if dispatch == b"fetch_file":
         return handle_fetch_file(request, response, partition_id, uuid)
 
-    if dispatch == u"check_partition":
+    if dispatch == b"check_partition":
         if test_failed:
             return simple_response(request, response, 200, b"OK", b"Multiple partition IDs used on a socket")
         return simple_response(request, response, 200, b"OK", b"ok")
 
-    if dispatch == u"clean_up":
+    if dispatch == b"clean_up":
         stash.take(uuid)
         if test_failed:
-          return simple_response(request, response, 200, b"OK", b"Test failed, but cleanup completed.")
+            return simple_response(request, response, 200, b"OK", b"Test failed, but cleanup completed.")
         return simple_response(request, response, 200, b"OK", b"cleanup complete")
 
     return simple_response(request, response, 404, b"Not Found", b"Unrecognized dispatch parameter: " + dispatch)
@@ -71,7 +69,7 @@ def handle_preflight(request, response):
     response.headers.set(b"Access-Control-Max-Age", b"86400")
     return b"Preflight request"
 
-def simple_response(request, response, status_code, status_message, body, content_type="text/plain"):
+def simple_response(request, response, status_code, status_message, body, content_type=b"text/plain"):
     response.status = (status_code, status_message)
     response.headers.set(b"Content-Type", content_type)
     return body
@@ -85,29 +83,29 @@ def handle_fetch_file(request, response, partition_id, uuid):
     if not subresource_origin or not rel_path or not include_credentials:
         return simple_response(request, response, 404, b"Not found", b"Invalid query parameters")
 
-    cur_path = os.path.realpath(__file__)
+    cur_path = os.path.realpath(isomorphic_decode(__file__))
     base_path = os.path.abspath(os.path.join(os.path.dirname(cur_path), os.pardir, os.pardir, os.pardir))
-    path = os.path.abspath(os.path.join(base_path, rel_path))
+    path = os.path.abspath(os.path.join(base_path, isomorphic_decode(rel_path)))
 
     # Basic security check.
     if not path.startswith(base_path):
         return simple_response(request, response, 404, b"Not found", b"Invalid path")
 
     sandbox = request.GET.first(b"sandbox", None)
-    if sandbox == "true":
-        response.headers.set(b"Content-Security-Policy", "sandbox allow-scripts")
+    if sandbox == b"true":
+        response.headers.set(b"Content-Security-Policy", b"sandbox allow-scripts")
 
-    file = open(path, mode="r")
+    file = open(path, mode="rb")
     body = file.read()
     file.close()
 
-    subresource_path = "/" + os.path.relpath(__file__, base_path).replace('\\','/')
-    subresource_params = "?partition_id=" + partition_id + "&uuid=" + uuid + "&subresource_origin=" + subresource_origin + "&include_credentials=" + include_credentials
-    body = body.replace("SUBRESOURCE_PREFIX:", subresource_origin + subresource_path + subresource_params)
+    subresource_path = b"/" + isomorphic_encode(os.path.relpath(isomorphic_decode(__file__), base_path)).replace(b'\\', b'/')
+    subresource_params = b"?partition_id=" + partition_id + b"&uuid=" + uuid + b"&subresource_origin=" + subresource_origin + b"&include_credentials=" + include_credentials
+    body = body.replace(b"SUBRESOURCE_PREFIX:", subresource_origin + subresource_path + subresource_params)
 
     other_origin = request.GET.first(b"other_origin", None)
     if other_origin:
-        body = body.replace("OTHER_PREFIX:", other_origin + subresource_path + subresource_params)
+        body = body.replace(b"OTHER_PREFIX:", other_origin + subresource_path + subresource_params)
 
     mimetypes.init()
     mimetype_pair = mimetypes.guess_type(path)
