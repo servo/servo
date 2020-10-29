@@ -3,7 +3,6 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/webxr_util.js"></script>
 <script src="resources/webxr_test_constants.js"></script>
-<canvas />
 
 <script>
 let immersiveTestName = "Ensure that the framebuffer given by the WebGL layer" +
@@ -49,25 +48,29 @@ let testFunction =
   assert_equals(xrFramebuffer, boundFramebuffer);
   assert_equals(gl.getError(), gl.NO_ERROR);
 
-  // Ensure the framebuffer attachment properties cannot be inspected.
-  let attachments = [
-    gl.COLOR_ATTACHMENT0,
-    gl.DEPTH_ATTACHMENT,
-    gl.STENCIL_ATTACHMENT,
-  ];
+  // WebGL 2 does not throw an error and instead returns 0 when there are no
+  // attachments
+  if (gl.getParameter(gl.VERSION).includes("WebGL 1.0")) {
+    // Ensure the framebuffer attachment properties cannot be inspected.
+    let attachments = [
+      gl.COLOR_ATTACHMENT0,
+      gl.DEPTH_ATTACHMENT,
+      gl.STENCIL_ATTACHMENT,
+    ];
 
-  let parameters = [
-    gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
-    gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-    gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
-    gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-  ];
+    let parameters = [
+      gl.FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+      gl.FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+      gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
+      gl.FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
+    ];
 
-  for (let attachment of attachments) {
-    for (let parameter of parameters) {
-      let value = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, attachment, parameter);
-      assert_equals(value, null);
-      assert_equals(gl.getError(), gl.INVALID_OPERATION);
+    for (let attachment of attachments) {
+      for (let parameter of parameters) {
+        let value = gl.getFramebufferAttachmentParameter(gl.FRAMEBUFFER, attachment, parameter);
+        assert_equals(value, null);
+        assert_equals(gl.getError(), gl.INVALID_OPERATION);
+      }
     }
   }
 

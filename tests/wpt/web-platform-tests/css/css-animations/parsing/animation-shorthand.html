@@ -19,7 +19,8 @@ test_shorthand_value('animation', 'anim paused both reverse 4 1s -3s cubic-bezie
   'animation-direction': 'reverse',
   'animation-fill-mode': 'both',
   'animation-play-state': 'paused',
-  'animation-name': 'anim'
+  'animation-name': 'anim',
+  'animation-timeline': 'auto'
 });
 
 test_shorthand_value('animation', 'anim paused both reverse, 4 1s -3s cubic-bezier(0, -2, 1, 3)', {
@@ -30,7 +31,8 @@ test_shorthand_value('animation', 'anim paused both reverse, 4 1s -3s cubic-bezi
   'animation-direction': 'reverse, normal',
   'animation-fill-mode': 'both, none',
   'animation-play-state': 'paused, running',
-  'animation-name': 'anim, none'
+  'animation-name': 'anim, none',
+  'animation-timeline': 'auto, auto'
 });
 
 test_shorthand_value('animation', '4 1s -3s cubic-bezier(0, -2, 1, 3), anim paused both reverse', {
@@ -41,7 +43,8 @@ test_shorthand_value('animation', '4 1s -3s cubic-bezier(0, -2, 1, 3), anim paus
   'animation-direction': 'normal, reverse',
   'animation-fill-mode': 'none, both',
   'animation-play-state': 'running, paused',
-  'animation-name': 'none, anim'
+  'animation-name': 'none, anim',
+  'animation-timeline': 'auto, auto'
 });
 </script>
 </body>

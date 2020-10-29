@@ -515,14 +515,54 @@ tasks:
         run-job:
           - wpt_integration
 
-  - resources/ tests:
+  - resources/ tests (Python 2):
       description: >-
-        Tests for testharness.js and other files in resources/
+        Tests for testharness.js and other files in resources/ under Python 2.7
       use:
         - wpt-base
         - trigger-pr
         - tox-python2
       command: ./tools/ci/ci_resources_unittest.sh
+      options:
+        browser:
+          - firefox
+        xvfb: true
+        hosts: true
+      schedule-if:
+        run-job:
+          - resources_unittest
+  
+  - resources/ tests (Python 3.6):
+      description: >-
+        Tests for testharness.js and other files in resources/ under Python 3.6
+      use:
+        - wpt-base
+        - trigger-pr
+        - tox-python3
+      command: ./tools/ci/ci_resources_unittest.sh
+      install:
+        - libnss3-tools
+        - python3.6
+        - python3.6-dev
+      options:
+        browser:
+          - firefox
+        xvfb: true
+        hosts: true
+      schedule-if:
+        run-job:
+          - resources_unittest
+
+  - resources/ tests (Python 3.8):
+      description: >-
+        Tests for testharness.js and other files in resources/ under Python 3.8
+      use:
+        - wpt-base
+        - trigger-pr
+        - tox-python38
+      command: ./tools/ci/ci_resources_unittest.sh
+      install:
+        - libnss3-tools
       options:
         browser:
           - firefox

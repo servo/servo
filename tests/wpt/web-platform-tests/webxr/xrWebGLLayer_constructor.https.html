@@ -3,18 +3,10 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/webxr_util.js"></script>
 <script src="resources/webxr_test_constants.js"></script>
-<canvas />
 
 <script>
-xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate errors",
-  (t) => {
-  let webglCanvas = document.getElementsByTagName('canvas')[0];
-  let glAttributes = {
-    alpha: false,
-    antialias: false,
-    xrCompatible: false,
-  };
-  let gl = webglCanvas.getContext('webgl', glAttributes);
+
+function testConstructor(t, gl) {
   return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
     .then(() => {
       return navigator.xr.requestSession('inline')
@@ -52,7 +44,7 @@ xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate error
 
             let lose_context_ext = gl.getExtension('WEBGL_lose_context');
 
-            webglCanvas.addEventListener('webglcontextlost', (ev) => {
+            gl.canvas.addEventListener('webglcontextlost', (ev) => {
               ev.preventDefault();
 
               try {
@@ -64,7 +56,7 @@ xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate error
               }
             });
 
-            webglCanvas.addEventListener('webglcontextrestored', (ev) => {
+            gl.canvas.addEventListener('webglcontextrestored', (ev) => {
               resolve(xrSession.end().then(() => {
                 try {
                   let webglLayerBadSession = new XRWebGLLayer(xrSession, gl);
@@ -80,6 +72,11 @@ xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate error
         });
       });
     });
-});
+}
+xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate errors using webgl",
+  testConstructor, null, 'webgl');
+
+xr_promise_test("Ensure that XRWebGLLayer's constructor throws appropriate errors using webgl2",
+  testConstructor, null, 'webgl2');
 
 </script>

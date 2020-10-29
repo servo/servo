@@ -13,7 +13,7 @@
 // override this.
 var xr_debug = function(name, msg) {};
 
-function xr_promise_test(name, func, properties) {
+function xr_promise_test(name, func, properties, glContextType, glContextProperties) {
   promise_test(async (t) => {
     // Perform any required test setup:
     xr_debug(name, 'setup');
@@ -49,6 +49,14 @@ function xr_promise_test(name, func, properties) {
     // we can hopefully provide a clearer indication of what went wrong.
     assert_implements(navigator.xr.test, 'missing navigator.xr.test, even after attempted load');
 
+    let gl = null;
+    let canvas = null;
+    if (glContextType) {
+      canvas = document.createElement('canvas');
+      document.body.appendChild(canvas);
+      gl = canvas.getContext(glContextType, glContextProperties);
+    }
+
     // Ensure that any devices are disconnected when done. If this were done in
     // a .then() for the success case, a test that expected failure would
     // already be marked done at the time that runs and the shutdown would
@@ -60,7 +68,7 @@ function xr_promise_test(name, func, properties) {
     });
 
     xr_debug(name, 'main');
-    return func(t);
+    return func(t, gl);
   }, name, properties);
 }
 
@@ -79,80 +87,80 @@ function requestSkipAnimationFrame(session, callback) {
 // A test function which runs through the common steps of requesting a session.
 // Calls the passed in test function with the session, the controller for the
 // device, and the test object.
-// Requires a webglCanvas on the page.
 function xr_session_promise_test(
     name, func, fakeDeviceInit, sessionMode, sessionInit, properties, glcontextPropertiesParam, gllayerPropertiesParam) {
-  let testDeviceController;
-  let testSession;
-  let sessionObjects = {};
   const glcontextProperties = (glcontextPropertiesParam) ? glcontextPropertiesParam : {};
   const gllayerProperties = (gllayerPropertiesParam) ? gllayerPropertiesParam : {};
 
-  const webglCanvas = document.getElementsByTagName('canvas')[0];
-  // We can't use assert_true here because it causes the wpt testharness to treat
-  // this as a test page and not as a test.
-  if (!webglCanvas) {
-    promise_test(async (t) => {
-      Promise.reject('xr_session_promise_test requires a canvas on the page!');
-    }, name, properties);
+  function runTest(t, glContext) {
+    let testSession;
+    let testDeviceController;
+    let sessionObjects = {gl: glContext};
+
+    // Ensure that any pending sessions are ended when done. This needs to
+    // use a cleanup function to ensure proper sequencing. If this were
+    // done in a .then() for the success case, a test that expected
+    // failure would already be marked done at the time that runs, and the
+    // shutdown would interfere with the next test which may have started.
+    t.add_cleanup(async () => {
+      // If a session was created, end it.
+      if (testSession) {
+        await testSession.end().catch(() => {});
+      }
+    });
+
+    return navigator.xr.test.simulateDeviceConnection(fakeDeviceInit)
+        .then((controller) => {
+          testDeviceController = controller;
+          return sessionObjects.gl.makeXRCompatible();
+        })
+        .then(() => new Promise((resolve, reject) => {
+                // Perform the session request in a user gesture.
+                xr_debug(name, 'simulateUserActivation');
+                navigator.xr.test.simulateUserActivation(() => {
+                  xr_debug(name, 'document.hasFocus()=' + document.hasFocus());
+                  navigator.xr.requestSession(sessionMode, sessionInit || {})
+                      .then((session) => {
+                        xr_debug(name, 'session start');
+                        testSession = session;
+                        session.mode = sessionMode;
+                        let glLayer = new XRWebGLLayer(session, sessionObjects.gl, gllayerProperties);
+                        glLayer.context = sessionObjects.gl;
+                        // Session must have a baseLayer or frame requests
+                        // will be ignored.
+                        session.updateRenderState({
+                            baseLayer: glLayer
+                        });
+                        sessionObjects.glLayer = glLayer;
+                        xr_debug(name, 'session.visibilityState=' + session.visibilityState);
+                        resolve(func(session, testDeviceController, t, sessionObjects));
+                      })
+                      .catch((err) => {
+                        xr_debug(name, 'error: ' + err);
+                        reject(
+                            'Session with params ' +
+                            JSON.stringify(sessionMode) +
+                            ' was rejected on device ' +
+                            JSON.stringify(fakeDeviceInit) +
+                            ' with error: ' + err);
+                      });
+                });
+        }));
   }
-  let gl = webglCanvas.getContext('webgl', {alpha: false, antialias: false, ...glcontextProperties});
-  sessionObjects.gl = gl;
 
   xr_promise_test(
-      name,
-      (t) => {
-          // Ensure that any pending sessions are ended when done. This needs to
-          // use a cleanup function to ensure proper sequencing. If this were
-          // done in a .then() for the success case, a test that expected
-          // failure would already be marked done at the time that runs, and the
-          // shutdown would interfere with the next test which may have started.
-          t.add_cleanup(async () => {
-            // If a session was created, end it.
-            if (testSession) {
-              await testSession.end().catch(() => {});
-            }
-          });
-
-          return navigator.xr.test.simulateDeviceConnection(fakeDeviceInit)
-              .then((controller) => {
-                testDeviceController = controller;
-                return gl.makeXRCompatible();
-              })
-              .then(() => new Promise((resolve, reject) => {
-                      // Perform the session request in a user gesture.
-                      xr_debug(name, 'simulateUserActivation');
-                      navigator.xr.test.simulateUserActivation(() => {
-                        xr_debug(name, 'document.hasFocus()=' + document.hasFocus());
-                        navigator.xr.requestSession(sessionMode, sessionInit || {})
-                            .then((session) => {
-                              xr_debug(name, 'session start');
-                              testSession = session;
-                              session.mode = sessionMode;
-                              let glLayer = new XRWebGLLayer(session, gl, gllayerProperties);
-                              glLayer.context = gl;
-                              // Session must have a baseLayer or frame requests
-                              // will be ignored.
-                              session.updateRenderState({
-                                  baseLayer: glLayer
-                              });
-                              sessionObjects.glLayer = glLayer;
-                              xr_debug(name, 'session.visibilityState=' + session.visibilityState);
-                              resolve(func(session, testDeviceController, t, sessionObjects));
-                            })
-                            .catch((err) => {
-                              xr_debug(name, 'error: ' + err);
-                              reject(
-                                  'Session with params ' +
-                                  JSON.stringify(sessionMode) +
-                                  ' was rejected on device ' +
-                                  JSON.stringify(fakeDeviceInit) +
-                                  ' with error: ' + err);
-                            });
-                      });
-              }));
-      },
-      properties);
+    name + ' - webgl',
+    runTest,
+    properties,
+    'webgl',
+    {alpha: false, antialias: false, ...glcontextProperties}
+    );
+  xr_promise_test(
+    name + ' - webgl2',
+    runTest,
+    properties,
+    'webgl2',
+    {alpha: false, antialias: false, ...glcontextProperties});
 }
 
 

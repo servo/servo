@@ -3,7 +3,6 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/webxr_util.js"></script>
 <script src="resources/webxr_test_constants.js"></script>
-<canvas />
 
 <script>
 let immersiveTestName = "Ensure that the framebuffer given by the WebGL layer" +
@@ -43,7 +42,7 @@ let testFunction =
   const gl = sessionObjects.gl;
   const webglLayer = sessionObjects.glLayer;
   const xrFramebuffer = webglLayer.framebuffer;
-  const webglCanvas = document.getElementsByTagName('canvas')[0];
+  const webglCanvas = sessionObjects.gl.canvas;
 
   session.requestAnimationFrame((time, xrFrame) => {
     t.step(() => {

@@ -20,7 +20,7 @@ promise_test(async () => {
   iframe.parentNode.removeChild(iframe);
   assert_not_equals(navigator.clipboard, null,
       "parent frame's clipboard should exist with iframe detached");
-  assert_equals(iframeNavigator.clipboard, null,
-      "detached child iframe's clipboard should not exist");
-}, 'Verify navigator.clipboard attached only on attached frames');
+  assert_not_equals(iframeNavigator.clipboard, null,
+      "detached child iframe's clipboard should still exist");
+}, 'Verify navigator.clipboard behavior in detached frames');
 </script>
