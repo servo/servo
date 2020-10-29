@@ -326,7 +326,7 @@ where
             Component::NonTSPseudoClass(..) => {
                 specificity.class_like_selectors += 1;
             },
-            Component::Is(ref list) => {
+            Component::Negation(ref list) | Component::Is(ref list) => {
                 // https://drafts.csswg.org/selectors/#specificity-rules:
                 //
                 //     The specificity of an :is() pseudo-class is replaced by the
@@ -345,11 +345,6 @@ where
             Component::DefaultNamespace(..) |
             Component::Namespace(..) => {
                 // Does not affect specificity
-            },
-            Component::Negation(ref negated) => {
-                for ss in negated.iter() {
-                    simple_selector_specificity(&ss, specificity);
-                }
             },
         }
     }
