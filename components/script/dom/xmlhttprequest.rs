@@ -22,7 +22,7 @@ use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::headers::is_forbidden_header_name;
+use crate::dom::headers::{extract_mime_type, is_forbidden_header_name};
 use crate::dom::node::Node;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
@@ -1364,7 +1364,7 @@ impl XMLHttpRequest {
         // Caching: if we have existing response xml, redirect it directly
         let response = self.response_xml.get();
         if response.is_some() {
-            return self.response_xml.get();
+            return response;
         }
 
         // Step 1
@@ -1372,41 +1372,59 @@ impl XMLHttpRequest {
             return None;
         }
 
+        // Step 2
         let mime_type = self.final_mime_type();
-        // TODO: prescan the response to determine encoding if final charset is null
+        // Step 5.3, 7
         let charset = self.final_charset().unwrap_or(UTF_8);
         let temp_doc: DomRoot<Document>;
         match mime_type {
             Some(ref mime) if mime.type_() == mime::TEXT && mime.subtype() == mime::HTML => {
-                // Step 5
+                // Step 4
                 if self.response_type.get() == XMLHttpRequestResponseType::_empty {
                     return None;
                 } else {
-                    // Step 6
+                    // TODO Step 5.2 "If charset is null, prescan the first 1024 bytes of xhr’s received bytes"
+                    // Step 5
                     temp_doc = self.document_text_html();
                 }
             },
             // Step 7
-            Some(ref mime)
-                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
-                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) =>
-            {
-                temp_doc = self.handle_xml();
-            }
             None => {
                 temp_doc = self.handle_xml();
+                // Not sure it the parser should throw an error for this case
+                // The specification does not indicates this test,
+                // but for now we check the document has no child nodes
+                let has_no_child_nodes = temp_doc.upcast::<Node>().children().next().is_none();
+                if has_no_child_nodes {
+                    return None;
+                }
             },
-            Some(ref mime) if mime.suffix() == Some(mime::XML) => {
+            Some(ref mime)
+                if (mime.type_() == mime::TEXT && mime.subtype() == mime::XML) ||
+                    (mime.type_() == mime::APPLICATION && mime.subtype() == mime::XML) ||
+                    mime.suffix() == Some(mime::XML) =>
+            {
                 temp_doc = self.handle_xml();
-            },
-            // Step 4
+                // Not sure it the parser should throw an error for this case
+                // The specification does not indicates this test,
+                // but for now we check the document has no child nodes
+                let has_no_child_nodes = temp_doc.upcast::<Node>().children().next().is_none();
+                if has_no_child_nodes {
+                    return None;
+                }
+            }
+            // Step 3
             _ => {
                 return None;
             },
         }
-        // Step 9
+        // Step 8
         temp_doc.set_encoding(charset);
-        // Step 13
+
+        // Step 9 to 11
+        // Done by handle_text_html and handle_xml
+
+        // Step 12
         self.response_xml.set(Some(&temp_doc));
         return self.response_xml.get();
     }
@@ -1585,14 +1603,25 @@ impl XMLHttpRequest {
         }
     }
 
+    /// <https://xhr.spec.whatwg.org/#response-mime-type>
+    fn response_mime_type(&self) -> Option<Mime> {
+        return extract_mime_type(&self.response_headers.borrow())
+            .map(|mime_as_bytes| {
+                String::from_utf8(mime_as_bytes)
+                    .unwrap_or_default()
+                    .parse()
+                    .ok()
+            })
+            .flatten()
+            .or(Some(mime::TEXT_XML));
+    }
+
+    /// <https://xhr.spec.whatwg.org/#final-mime-type>
     fn final_mime_type(&self) -> Option<Mime> {
         if self.override_mime_type.borrow().is_some() {
             self.override_mime_type.borrow().clone()
         } else {
-            match self.response_headers.borrow().typed_get::<ContentType>() {
-                Some(ct) => Some(ct.into()),
-                None => None,
-            }
+            return self.response_mime_type();
         }
     }
 }
