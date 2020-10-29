@@ -3,7 +3,6 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="resources/webxr_util.js"></script>
 <script src="resources/webxr_test_constants.js"></script>
-<canvas />
 
 <script>
 let immersiveTestName = "XRSession requestAnimationFrame must fail if the session has "
@@ -21,7 +20,6 @@ let testFunction = (session, controller, t, sessionObjects) => new Promise((reso
   session.updateRenderState({
     baseLayer: null
   });
-  let webglCanvas = document.getElementsByTagName('canvas')[0];
   let gl = sessionObjects.gl;
 
   // Session must have a baseLayer or frame requests will be ignored.

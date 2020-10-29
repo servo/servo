@@ -77,6 +77,12 @@
     start: selector(#offset_display_none);
     end: auto;
   }
+  @scroll-timeline timeline_null_target {
+    source: selector(#scroller);
+    time-range: 10s;
+    start: selector(#no_such_id);
+    end: selector(#no_such_id);
+  }
 
   #container > div {
     width: 0px;
@@ -97,6 +103,7 @@
   #element_50px_end { animation-timeline: timeline_50px_end; }
   #element_outside { animation-timeline: timeline_outside; }
   #element_display_none { animation-timeline: timeline_display_none; }
+  #element_null_target { animation-timeline: timeline_null_target; }
 </style>
 <div id=scroller>
   <div id=contents>
@@ -119,6 +126,7 @@
   <div id=element_50px_end></div>
   <div id=element_outside></div>
   <div id=element_display_none></div>
+  <div id=element_null_target></div>
 </div>
 <script>
 
@@ -237,5 +245,13 @@
   test_width_at_scroll_top(element_display_none, 300, '0px');
   test_width_at_scroll_top(element_display_none, 400, '0px');
   test_width_at_scroll_top(element_display_none, 450, '0px');
+
+  // Target of element-based offset is null (=> no effect value)
+  test_width_at_scroll_top(element_null_target, 0, '0px');
+  test_width_at_scroll_top(element_null_target, 100, '0px');
+  test_width_at_scroll_top(element_null_target, 200, '0px');
+  test_width_at_scroll_top(element_null_target, 300, '0px');
+  test_width_at_scroll_top(element_null_target, 400, '0px');
+  test_width_at_scroll_top(element_null_target, 450, '0px');
 
 </script>

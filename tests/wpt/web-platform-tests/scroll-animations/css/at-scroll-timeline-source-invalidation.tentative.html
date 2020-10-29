@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<title>@scroll-timeline source invalidation</title>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#scroll-timeline-at-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  #scrollers {
+    overflow: hidden;
+    height: 0;
+  }
+  .scroller {
+    overflow: scroll;
+    width: 100px;
+    height: 100px;
+  }
+  .contents {
+    height: 200px;
+  }
+  @keyframes expand {
+    from { width: 100px; }
+    to { width: 200px; }
+  }
+  @scroll-timeline timeline {
+    source: selector(#scroller);
+    time-range: 1e10s;
+    start: 0px;
+    end: 100px;
+  }
+  #element {
+    width: 0px;
+    height: 20px;
+    animation: expand 1e10s linear;
+    animation-timeline: timeline;
+  }
+  /* Ensure stable expectations if feature is not supported */
+  @supports not (animation-timeline:foo) {
+    #element { animation-play-state: paused; }
+  }
+</style>
+<div id=scrollers></div>
+<div id=element></div>
+<script>
+
+  function createScroller() {
+    let scroller = document.createElement('div');
+    let contents = document.createElement('div');
+    scroller.classList.add('scroller');
+    contents.classList.add('contents');
+    scroller.append(contents);
+    return scroller;
+  }
+
+  function wrapInDiv(element) {
+    let div = document.createElement('div');
+    div.append(element);
+    return div;
+  }
+
+  function scrollerAt(n) {
+    return document.querySelectorAll('.scroller')[n];
+  }
+
+  // Resets #scrollers to a state where it has three .scroller children with
+  // scrollTop offsets 10, 20 and 30.
+  function cleanup() {
+    while (scrollers.firstChild)
+      scrollers.firstChild.remove();
+
+    for (let i = 0; i < 3; i++)
+      scrollers.append(createScroller());
+
+    scrollerAt(0).scrollTop = 10;
+    scrollerAt(1).scrollTop = 20;
+    scrollerAt(2).scrollTop = 30;
+  }
+
+  // Do an initial "cleanup" to set up the first test.
+  cleanup();
+
+  function invalidation_test(func, description) {
+    promise_test(async (t) => {
+      t.add_cleanup(cleanup);
+      await func();
+    }, description);
+  }
+
+  invalidation_test(() => {
+    assert_equals(getComputedStyle(element).width, '0px');
+  }, 'Nonexistent source');
+
+  invalidation_test(() => {
+    assert_equals(getComputedStyle(element).width, '0px');
+    scrollerAt(0).setAttribute('id', 'scroller');
+    assert_equals(getComputedStyle(element).width, '110px');
+    scrollerAt(1).setAttribute('id', 'scroller'); // No effect
+    assert_equals(getComputedStyle(element).width, '110px');
+    scrollerAt(2).setAttribute('id', 'scroller'); // No effect
+    assert_equals(getComputedStyle(element).width, '110px');
+  }, 'Setting id attribute');
+
+  invalidation_test(() => {
+    assert_equals(getComputedStyle(element).width, '0px');
+    scrollerAt(0).setAttribute('id', 'scroller');
+    assert_equals(getComputedStyle(element).width, '110px');
+    scrollerAt(0).removeAttribute('id');
+    assert_equals(getComputedStyle(element).width, '0px');
+  }, 'Removing id attribute');
+
+  invalidation_test(() => {
+    assert_equals(getComputedStyle(element).width, '0px');
+    scrollerAt(2).setAttribute('id', 'scroller');
+    assert_equals(getComputedStyle(element).width, '130px');
+    scrollerAt(1).setAttribute('id', 'scroller');
+    assert_equals(getComputedStyle(element).width, '120px');
+    scrollerAt(0).setAttribute('id', 'scroller');
+    assert_equals(getComputedStyle(element).width, '110px');
+  }, 'Setting id attribute earlier in the tree');
+
+  invalidation_test(async () => {
+    assert_equals(getComputedStyle(element).width, '0px');
+
+    // Appending a new element with id 'scroller' already set before
+    // insertion into the tree.
+    let scroller = createScroller();
+    scroller.setAttribute('id', 'scroller');
+    scrollers.append(scroller);
+
+    // Make sure |scroller| has a layout box.
+    //
+    // https://drafts.csswg.org/scroll-animations-1/#avoiding-cycles
+    //
+    // TODO: Depending on the outcome of Issue 5261, the call to offsetTop
+    // might be unnecessary.
+    // https://github.com/w3c/csswg-drafts/issues/5261
+    scroller.offsetTop;
+    await waitForNextFrame();
+
+    assert_equals(getComputedStyle(element).width, '100px');
+  }, 'Appending a new element');
+
+  invalidation_test(async () => {
+    assert_equals(getComputedStyle(element).width, '0px');
+
+    let scroller = createScroller();
+    scroller.setAttribute('id', 'scroller');
+    scrollers.append(wrapInDiv(wrapInDiv(scroller)));
+    await waitForNextFrame();
+
+    assert_equals(getComputedStyle(element).width, '100px');
+  }, 'Inserting a subtree with #scroller descendant');
+
+  invalidation_test(() => {
+    assert_equals(getComputedStyle(element).width, '0px');
+
+    scrollerAt(0).setAttribute('id', 'scroller');
+    scrollerAt(1).setAttribute('id', 'scroller');
+    scrollerAt(2).setAttribute('id', 'scroller');
+    assert_equals(getComputedStyle(element).width, '110px');
+
+    scrollerAt(0).remove();
+    assert_equals(getComputedStyle(element).width, '120px');
+
+    scrollerAt(0).remove();
+    assert_equals(getComputedStyle(element).width, '130px');
+
+    scrollerAt(0).remove();
+    assert_equals(getComputedStyle(element).width, '0px');
+  }, 'Removing source element');
+
+  invalidation_test(async () => {
+    assert_equals(getComputedStyle(element).width, '0px');
+
+    // Create a chain: #scrollers -> div -> div -> #scroller
+    let scroller = createScroller();
+    let div = wrapInDiv(wrapInDiv(scroller));
+    scrollers.append(div);
+    scroller.setAttribute('id', 'scroller');
+    scroller.scrollTop = 50;
+    await waitForNextFrame();
+    assert_equals(getComputedStyle(element).width, '150px');
+
+    div.remove();
+    assert_equals(getComputedStyle(element).width, '0px');
+  }, 'Removing ancestor of source element');
+
+</script>

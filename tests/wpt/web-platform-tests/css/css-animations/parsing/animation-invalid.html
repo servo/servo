@@ -18,13 +18,13 @@ test_invalid_value("animation", "steps(1) steps(2)");
 
 test_invalid_value("animation", "1 2");
 
-test_invalid_value("animation", "reverse alternate anim");
+test_invalid_value("animation", "reverse alternate alternate-reverse anim");
 
-test_invalid_value("animation", "both backwards anim");
+test_invalid_value("animation", "both backwards forwards anim");
 
-test_invalid_value("animation", "paused running anim");
+test_invalid_value("animation", "paused running paused anim");
 
-test_invalid_value("animation", "anim1 anim2");
+test_invalid_value("animation", "anim1 timeline1 anim2");
 </script>
 </body>
 </html>

@@ -5,11 +5,8 @@
 <script src="resources/webxr_util.js"></script>
 <script>
 
-xr_promise_test(
-  "Verify promise from a non-reentrant to makeXRCompatible() is resolved",
-  (t) => {
-    var gl = document.createElement('canvas').getContext('webgl');
-    return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
+function testNonReentrant(t, gl) {
+  return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
       .then((controller) => {
         assert_false(gl.getContextAttributes().xrCompatible);
         return gl.makeXRCompatible();
@@ -19,13 +16,17 @@ xr_promise_test(
       }).then(() => {
         assert_true(gl.getContextAttributes().xrCompatible);
       });
-  });
+}
 
 xr_promise_test(
-  "Verify promises from reentrant calls to makeXRCompatible() are resolved",
-  (t) => {
-    var gl = document.createElement('canvas').getContext('webgl');
-    return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
+  "Verify promise from a non-reentrant call to makeXRCompatible() is resolved for webgl",
+  testNonReentrant, null, 'webgl');
+xr_promise_test(
+  "Verify promise from a non-reentrant call to makeXRCompatible() is resolved for webgl2",
+  testNonReentrant, null, 'webgl2');
+
+function testReentrant(t, gl) {
+  return navigator.xr.test.simulateDeviceConnection(TRACKED_IMMERSIVE_DEVICE)
       .then((controller) => {
         assert_false(gl.getContextAttributes().xrCompatible);
 
@@ -35,6 +36,13 @@ xr_promise_test(
       }).then(() => {
         assert_true(gl.getContextAttributes().xrCompatible);
       });
-  });
+}
+
+xr_promise_test(
+  "Verify promises from reentrant calls to makeXRCompatible() are resolved for webgl",
+  testReentrant, null, 'webgl');
+xr_promise_test(
+  "Verify promises from reentrant calls to makeXRCompatible() are resolved for webgl2",
+  testReentrant, null, 'webgl2');
 
 </script>

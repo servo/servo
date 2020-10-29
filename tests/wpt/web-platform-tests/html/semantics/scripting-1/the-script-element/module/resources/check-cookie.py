@@ -1,7 +1,7 @@
 def main(request, response):
     headers = [
         (b"Content-Type", b"text/javascript"),
-        (b"Access-Control-Allow-Origin", request.headers.get(b"Origin")),
+        (b"Access-Control-Allow-Origin", request.GET.first(b"origin")),
         (b"Access-Control-Allow-Credentials", b"true")
     ]
     identifier = request.GET.first(b"id")
