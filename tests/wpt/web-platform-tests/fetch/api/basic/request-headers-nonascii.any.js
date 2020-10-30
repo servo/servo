@@ -1,3 +1,5 @@
+// META: global=window,worker
+
 // This tests characters that are not
 // https://infra.spec.whatwg.org/#ascii-code-point
 // but are still

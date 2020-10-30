@@ -23,6 +23,7 @@
         await test_valid({width: 10, height: 20, preferredWidth: 20, preferredHeight: 10, resolutionX: 36, resolutionY: 144, resolutionUnit: 2})
         await test_valid({width: 10, height: 20, preferredWidth: 10, preferredHeight: 40, resolutionX: 72, resolutionY: 36, resolutionUnit: 2})
         await test_valid({width: 30, height: 30, preferredWidth: 90, preferredHeight: 30, resolutionX: 24, resolutionY: 72, resolutionUnit: 2})
+        await test_valid({width: 10, height: 20, preferredWidth: 20, preferredHeight: 40, resolutionX: [72 * 1000000, 2 * 1000000], resolutionY: [72 * 10000000, 2 * 10000000], resolutionUnit: 2})
 
         await test_invalid({width: 10, height: 20, preferredWidth: 20, preferredHeight: 30, resolutionX: 36, resolutionY: 36, resolutionUnit: 2})
         await test_invalid({width: 10, height: 20, preferredWidth: 33, preferredHeight: 40, resolutionX: 36, resolutionY: 36, resolutionUnit: 2})

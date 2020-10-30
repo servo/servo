@@ -1,3 +1,5 @@
+// META: global=window,worker
+
 test(() => {
   const r = new Response(new ReadableStream());
   // highWaterMark: 0 means that nothing will actually be read from the body.

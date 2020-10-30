@@ -1,3 +1,5 @@
+// META: global=window,worker
+
 promise_test((test) => {
     return fetch("resources/bad-gzip-body.py").then(res => {
       assert_equals(res.status, 200);

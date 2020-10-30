@@ -284,6 +284,8 @@ scheme host and port.""")
                              help="Disable fission in Gecko.")
     gecko_group.add_argument("--stackfix-dir", dest="stackfix_dir", action="store",
                              help="Path to directory containing assertion stack fixing scripts")
+    gecko_group.add_argument("--specialpowers-path", action="store",
+                             help="Path to specialPowers extension xpi file")
     gecko_group.add_argument("--setpref", dest="extra_prefs", action='append',
                              default=[], metavar="PREF=VALUE",
                              help="Defines an extra user preference (overrides those in prefs_root)")

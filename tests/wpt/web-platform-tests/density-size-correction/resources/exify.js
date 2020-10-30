@@ -20,9 +20,9 @@ function createImageWithMetadata({
     if (orientation !== undefined)
         root[piexif.ExifIFD.Orientation] = orientation
     if (resolutionX !== undefined)
-        root[piexif.ImageIFD.XResolution] = [resolutionX, 1]
+        root[piexif.ImageIFD.XResolution] = Array.isArray(resolutionX) ? resolutionX : [resolutionX, 1]
     if (resolutionY !== undefined)
-        root[piexif.ImageIFD.YResolution] = [resolutionY, 1]
+        root[piexif.ImageIFD.YResolution] = Array.isArray(resolutionY) ? resolutionY : [resolutionY, 1]
     if (resolutionUnit !== undefined)
         root[piexif.ImageIFD.ResolutionUnit] = resolutionUnit
     if (preferredWidth !== undefined)

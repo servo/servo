@@ -62,7 +62,8 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
             "chaos_mode_flags": kwargs["chaos_mode_flags"],
             "config": config,
             "install_fonts": kwargs["install_fonts"],
-            "tests_root": config.doc_root}
+            "tests_root": config.doc_root,
+            "specialpowers_path": kwargs["specialpowers_path"]}
 
 
 def env_extras(**kwargs):
@@ -119,7 +120,6 @@ class ProfileCreator(FirefoxProfileCreator):
             })
 
 
-
 class FirefoxAndroidBrowser(Browser):
     init_timeout = 300
     shutdown_timeout = 60
@@ -130,7 +130,7 @@ class FirefoxAndroidBrowser(Browser):
                  ca_certificate_path=None, e10s=False, enable_webrender=False, stackfix_dir=None,
                  binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
                  stylo_threads=1, chaos_mode_flags=None, config=None, browser_channel="nightly",
-                 install_fonts=False, tests_root=None, **kwargs):
+                 install_fonts=False, tests_root=None, specialpowers_path=None, **kwargs):
 
         super(FirefoxAndroidBrowser, self).__init__(logger)
         self.prefs_root = prefs_root
@@ -155,6 +155,7 @@ class FirefoxAndroidBrowser(Browser):
         self.browser_channel = browser_channel
         self.install_fonts = install_fonts
         self.tests_root = tests_root
+        self.specialpowers_path = specialpowers_path
 
         self.profile_creator = ProfileCreator(logger,
                                               prefs_root,
@@ -170,19 +171,23 @@ class FirefoxAndroidBrowser(Browser):
         self.marionette_port = None
         self.profile = None
         self.runner = None
+        self._settings = {}
 
     def settings(self, test):
-        return {"check_leaks": self.leak_check and not test.leaks,
-                "lsan_allowed": test.lsan_allowed,
-                "lsan_max_stack_depth": test.lsan_max_stack_depth,
-                "mozleak_allowed": self.leak_check and test.mozleak_allowed,
-                "mozleak_thresholds": self.leak_check and test.mozleak_threshold}
+        self._settings = {"check_leaks": self.leak_check and not test.leaks,
+                          "lsan_allowed": test.lsan_allowed,
+                          "lsan_max_stack_depth": test.lsan_max_stack_depth,
+                          "mozleak_allowed": self.leak_check and test.mozleak_allowed,
+                          "mozleak_thresholds": self.leak_check and test.mozleak_threshold,
+                          "special_powers": self.specialpowers_path and test.url_base == "/_mozilla/"}
+        return self._settings
 
     def start(self, **kwargs):
         if self.marionette_port is None:
             self.marionette_port = get_free_port()
 
-        self.profile = self.profile_creator.create()
+        addons = [self.specialpowers_path] if self._settings.get("special_powers") else None
+        self.profile = self.profile_creator.create(addons=addons)
         self.profile.set_preferences({"marionette.port": self.marionette_port})
 
         if self.install_fonts:
@@ -273,7 +278,10 @@ class FirefoxAndroidBrowser(Browser):
         self.stop(force)
 
     def executor_browser(self):
-        return ExecutorBrowser, {"marionette_port": self.marionette_port}
+        return ExecutorBrowser, {"marionette_port": self.marionette_port,
+                                 # We never want marionette to install extensions because
+                                 # that doesn't work on Android; instead they are in the profile
+                                 "extensions": []}
 
     def check_crash(self, process, test):
         if not os.environ.get("MINIDUMP_STACKWALK", "") and self.stackwalk_binary:

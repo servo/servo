@@ -45,15 +45,10 @@ from ..webdriver_server import GeckoDriverServer
 
 
 def do_delayed_imports():
-    global errors, marionette
+    global errors, marionette, Addons
 
-    # Marionette client used to be called marionette, recently it changed
-    # to marionette_driver for unfathomable reasons
-    try:
-        import marionette
-        from marionette import errors
-    except ImportError:
-        from marionette_driver import marionette, errors
+    from marionette_driver import marionette, errors
+    from marionette_driver.addons import Addons
 
 
 def _switch_to_window(marionette, handle):
@@ -709,7 +704,6 @@ class MarionetteProtocol(Protocol):
 
 
 class ExecuteAsyncScriptRun(TimedRunner):
-
     def set_timeout(self):
         timeout = self.timeout
 
@@ -782,6 +776,8 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
         self.window_id = str(uuid.uuid4())
         self.debug = debug
 
+        self.install_extensions = browser.extensions
+
         self.original_pref_values = {}
 
         if marionette is None:
@@ -789,6 +785,11 @@ class MarionetteTestharnessExecutor(TestharnessExecutor):
 
     def setup(self, runner):
         super(MarionetteTestharnessExecutor, self).setup(runner)
+        for extension_path in self.install_extensions:
+            self.logger.info("Installing extension from %s" % extension_path)
+            addons = Addons(self.protocol.marionette)
+            addons.install(extension_path)
+
         self.protocol.testharness.load_runner(self.last_environment["protocol"])
 
     def is_alive(self):

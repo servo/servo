@@ -101,7 +101,8 @@ def browser_kwargs(test_type, run_info_data, config, **kwargs):
             "config": config,
             "browser_channel": kwargs["browser_channel"],
             "headless": kwargs["headless"],
-            "preload_browser": kwargs["preload_browser"]}
+            "preload_browser": kwargs["preload_browser"],
+            "specialpowers_path": kwargs["specialpowers_path"]}
 
 
 def executor_kwargs(test_type, server_config, cache_manager, run_info_data,
@@ -540,12 +541,16 @@ class ProfileCreator(object):
         self.certutil_binary = certutil_binary
         self.ca_certificate_path = ca_certificate_path
 
-    def create(self):
+    def create(self, **kwargs):
         """Create a Firefox profile and return the mozprofile Profile object pointing at that
-        profile"""
+        profile
+
+        :param kwargs: Additional arguments to pass into the profile constructor
+        """
         preferences = self._load_prefs()
 
-        profile = FirefoxProfile(preferences=preferences)
+        profile = FirefoxProfile(preferences=preferences,
+                                 **kwargs)
         self._set_required_prefs(profile)
         if self.ca_certificate_path is not None:
             self._setup_ssl(profile)
@@ -670,7 +675,6 @@ class ProfileCreator(object):
         certutil("-L", "-d", cert_db_path)
 
 
-
 class FirefoxBrowser(Browser):
     init_timeout = 70
 
@@ -679,7 +683,8 @@ class FirefoxBrowser(Browser):
                  ca_certificate_path=None, e10s=False, enable_webrender=False, enable_fission=False,
                  stackfix_dir=None, binary_args=None, timeout_multiplier=None, leak_check=False,
                  asan=False, stylo_threads=1, chaos_mode_flags=None, config=None,
-                 browser_channel="nightly", headless=None, preload_browser=False, **kwargs):
+                 browser_channel="nightly", headless=None, preload_browser=False,
+                 specialpowers_path=None, **kwargs):
         Browser.__init__(self, logger)
 
         self.logger = logger
@@ -688,6 +693,7 @@ class FirefoxBrowser(Browser):
             self.init_timeout = self.init_timeout * timeout_multiplier
 
         self.instance = None
+        self._settings = None
 
         self.stackfix_dir = stackfix_dir
         self.symbols_path = symbols_path
@@ -695,6 +701,8 @@ class FirefoxBrowser(Browser):
 
         self.asan = asan
         self.leak_check = leak_check
+
+        self.specialpowers_path = specialpowers_path
 
         profile_creator = ProfileCreator(logger,
                                          prefs_root,
@@ -726,14 +734,15 @@ class FirefoxBrowser(Browser):
                                                      symbols_path,
                                                      asan)
 
-
     def settings(self, test):
-        return {"check_leaks": self.leak_check and not test.leaks,
-                "lsan_disabled": test.lsan_disabled,
-                "lsan_allowed": test.lsan_allowed,
-                "lsan_max_stack_depth": test.lsan_max_stack_depth,
-                "mozleak_allowed": self.leak_check and test.mozleak_allowed,
-                "mozleak_thresholds": self.leak_check and test.mozleak_threshold}
+        self._settings = {"check_leaks": self.leak_check and not test.leaks,
+                          "lsan_disabled": test.lsan_disabled,
+                          "lsan_allowed": test.lsan_allowed,
+                          "lsan_max_stack_depth": test.lsan_max_stack_depth,
+                          "mozleak_allowed": self.leak_check and test.mozleak_allowed,
+                          "mozleak_thresholds": self.leak_check and test.mozleak_threshold,
+                          "special_powers": self.specialpowers_path and test.url_base == "/_mozilla/"}
+        return self._settings
 
     def start(self, group_metadata=None, **kwargs):
         self.instance = self.instance_manager.get()
@@ -756,7 +765,11 @@ class FirefoxBrowser(Browser):
 
     def executor_browser(self):
         assert self.instance is not None
-        return ExecutorBrowser, {"marionette_port": self.instance.marionette_port}
+        extensions = []
+        if self._settings.get("special_powers", False):
+            extensions.append(self.specialpowers_path)
+        return ExecutorBrowser, {"marionette_port": self.instance.marionette_port,
+                                 "extensions": extensions}
 
     def check_crash(self, process, test):
         dump_dir = os.path.join(self.instance.runner.profile.profile, "minidumps")

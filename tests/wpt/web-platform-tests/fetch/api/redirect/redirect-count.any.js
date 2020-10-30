@@ -1,3 +1,4 @@
+// META: global=window,worker
 // META: script=../resources/utils.js
 // META: script=/common/utils.js
 // META: timeout=long

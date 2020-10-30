@@ -35,10 +35,3 @@ interface ResizeObserverSize {
     readonly attribute unrestricted double inlineSize;
     readonly attribute unrestricted double blockSize;
 };
-
-interface ResizeObservation {
-    constructor(Element target);
-    readonly attribute Element target;
-    readonly attribute ResizeObserverBoxOptions observedBox;
-    readonly attribute FrozenArray<ResizeObserverSize> lastReportedSizes;
-};

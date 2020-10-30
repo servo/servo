@@ -1,3 +1,5 @@
+// META: global=window,worker
+
 promise_test(() => fetch("resources/base64.json").then(res => res.json()).then(runBase64Tests), "Setup.");
 function runBase64Tests(tests) {
   for(let i = 0; i < tests.length; i++) {

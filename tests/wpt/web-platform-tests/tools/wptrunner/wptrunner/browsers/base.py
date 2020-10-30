@@ -126,6 +126,12 @@ class Browser(object):
         pass
 
     def settings(self, test):
+        """Dictionary of metadata that is constant for a specific launch of a browser.
+
+        This is used to determine when the browser instance configuration changes, requiring
+        a relaunch of the browser. The test runner calls this method for each test, and if the
+        returned value differs from that for the previous test, the browser is relaunched.
+        """
         return {}
 
     @abstractmethod

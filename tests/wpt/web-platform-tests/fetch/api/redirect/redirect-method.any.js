@@ -1,3 +1,4 @@
+// META: global=window,worker
 // META: script=../resources/utils.js
 
 // Creates a promise_test that fetches a URL that returns a redirect response.

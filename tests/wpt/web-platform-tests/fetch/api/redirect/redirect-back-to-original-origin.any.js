@@ -1,3 +1,4 @@
+// META: global=window,worker
 // META: script=/common/get-host-info.sub.js
 
 const BASE = location.href;
