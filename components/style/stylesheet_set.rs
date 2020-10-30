@@ -450,7 +450,7 @@ macro_rules! sheet_set_methods {
             change_kind: RuleChangeKind,
         ) {
             if let Some(device) = device {
-                let quirks_mode = sheet.quirks_mode(guard);
+                let quirks_mode = device.quirks_mode();
                 self.invalidations.rule_changed(
                     sheet,
                     rule,

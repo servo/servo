@@ -140,7 +140,7 @@ impl StylesheetInvalidationSet {
             return; // Nothing to do here.
         }
 
-        let quirks_mode = stylesheet.quirks_mode(guard);
+        let quirks_mode = device.quirks_mode();
         for rule in stylesheet.effective_rules(device, guard) {
             self.collect_invalidations_for_rule(rule, guard, device, quirks_mode);
             if self.fully_invalid {

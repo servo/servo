@@ -9,6 +9,7 @@ use crate::gecko::values::{convert_nscolor_to_rgba, convert_rgba_to_nscolor};
 use crate::gecko_bindings::bindings;
 use crate::gecko_bindings::structs;
 use crate::media_queries::MediaType;
+use crate::context::QuirksMode;
 use crate::properties::ComputedValues;
 use crate::string_cache::Atom;
 use crate::values::computed::Length;
@@ -141,6 +142,11 @@ impl Device {
     pub fn set_root_font_size(&self, size: Length) {
         self.root_font_size
             .store(size.px().to_bits(), Ordering::Relaxed)
+    }
+
+    /// The quirks mode of the document.
+    pub fn quirks_mode(&self) -> QuirksMode {
+        self.document().mCompatMode.into()
     }
 
     /// Sets the body text color for the "inherit color from body" quirk.
