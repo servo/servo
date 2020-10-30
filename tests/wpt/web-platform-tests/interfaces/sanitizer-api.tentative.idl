@@ -4,8 +4,8 @@
   Exposed=Window
 ] interface Sanitizer {
   constructor(optional SanitizerConfig sanitizerConfig = {});
-  DocumentFragment sanitize(DOMString input);
-  DOMString sanitizeToString(DOMString input);
+  DocumentFragment sanitize((DOMString or DocumentFragment or Document) input);
+  DOMString sanitizeToString((DOMString or DocumentFragment or Document) input);
 };
 
 dictionary SanitizerConfig {
@@ -13,6 +13,5 @@ dictionary SanitizerConfig {
   sequence<DOMString> blockElements;
   sequence<DOMString> dropElements;
   sequence<DOMString> allowAttributes;
-  sequence<DOMString> blockAttributes;
   sequence<DOMString> dropAttributes;
 };

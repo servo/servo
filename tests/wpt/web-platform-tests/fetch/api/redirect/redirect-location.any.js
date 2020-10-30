@@ -1,3 +1,4 @@
+// META: global=window,worker
 // META: script=../resources/utils.js
 
 function redirectLocation(desc, redirectUrl, redirectLocation, redirectStatus, redirectMode, shouldPass) {

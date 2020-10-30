@@ -202,13 +202,15 @@ def test_expect_any_subtest_status():
 
 
 def test_metadata_fuzzy():
-    item = RefTest(".", "a/fuzzy.html", "/", "a/fuzzy.html",
+    item = RefTest(tests_root=".",
+                   path="a/fuzzy.html",
+                   url_base="/",
+                   url="a/fuzzy.html",
                    references=[["/a/fuzzy-ref.html", "=="]],
                    fuzzy=[[["/a/fuzzy.html", '/a/fuzzy-ref.html', '=='],
                            [[2, 3], [10, 15]]]])
     s = mock.Mock(rel_path="a/fuzzy.html", rel_path_parts=("a", "fuzzy.html"), hash="0"*40)
     s.manifest_items = mock.Mock(return_value=(item.item_type, [item]))
-
 
     manifest = wptmanifest.Manifest("")
 

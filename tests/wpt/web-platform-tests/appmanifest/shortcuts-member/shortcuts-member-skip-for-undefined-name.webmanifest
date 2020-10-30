@@ -1,0 +1,18 @@
+{
+    "name": "Shortcut test",
+    "scope": "/",
+    "shortcuts": [{
+        "short_name": "fail",
+        "description": "",
+        "url": "shortcut_fail.html",
+        "icons": []
+    }, {
+        "name": "pass",
+        "short_name": "",
+        "description": "",
+        "url": "shortcut_pass.html",
+        "icons": [{
+            "src": "pass.png"
+        }]
+    }]
+}

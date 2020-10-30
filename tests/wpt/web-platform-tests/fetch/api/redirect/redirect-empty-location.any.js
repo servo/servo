@@ -1,3 +1,4 @@
+// META: global=window,worker
 // META: script=../resources/utils.js
 
 // Tests receiving a redirect response with a Location header with an empty

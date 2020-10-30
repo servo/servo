@@ -1,3 +1,4 @@
+// META: global=window,worker
 // META: script=/common/utils.js
 
 // Helpers that return headers objects with a particular guard

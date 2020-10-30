@@ -1,3 +1,4 @@
+// META: global=window,worker
 // META: script=../resources/utils.js
 
 // See https://github.com/whatwg/fetch/issues/883 for the behavior covered by
