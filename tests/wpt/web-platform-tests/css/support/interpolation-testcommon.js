@@ -421,4 +421,5 @@
   window.test_no_interpolation = test_no_interpolation;
   window.test_composition = test_composition;
   window.neutralKeyframe = neutralKeyframe;
+  window.roundNumbers = roundNumbers;
 })();
