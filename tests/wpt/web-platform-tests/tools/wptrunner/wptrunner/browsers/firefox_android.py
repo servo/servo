@@ -87,10 +87,10 @@ def env_options():
 
 
 class ProfileCreator(FirefoxProfileCreator):
-    def __init__(self, logger, prefs_root, config, test_type, extra_prefs, e10s,
+    def __init__(self, logger, prefs_root, config, test_type, extra_prefs,
                  enable_fission, browser_channel, certutil_binary, ca_certificate_path):
         super(ProfileCreator, self).__init__(logger, prefs_root, config, test_type, extra_prefs,
-                                             e10s, enable_fission, browser_channel, None,
+                                             True, enable_fission, browser_channel, None,
                                              certutil_binary, ca_certificate_path)
 
     def _set_required_prefs(self, profile):
@@ -100,10 +100,8 @@ class ProfileCreator(FirefoxProfileCreator):
             "places.history.enabled": False,
             "dom.send_after_paint_to_content": True,
             "network.preload": True,
+            "browser.tabs.remote.autostart": True,
         })
-
-        if self.e10s:
-            profile.set_preferences({"browser.tabs.remote.autostart": True})
 
         if self.test_type == "reftest":
             self.logger.info("Setting android reftest preferences")
@@ -142,7 +140,7 @@ class FirefoxAndroidBrowser(Browser):
         self.stackwalk_binary = stackwalk_binary
         self.certutil_binary = certutil_binary
         self.ca_certificate_path = ca_certificate_path
-        self.e10s = e10s
+        self.e10s = True
         self.enable_webrender = enable_webrender
         self.stackfix_dir = stackfix_dir
         self.binary_args = binary_args
@@ -162,7 +160,6 @@ class FirefoxAndroidBrowser(Browser):
                                               config,
                                               test_type,
                                               extra_prefs,
-                                              e10s,
                                               False,
                                               browser_channel,
                                               certutil_binary,

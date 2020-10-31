@@ -100,6 +100,75 @@ test_name('a\\9 b', 'a\tb'); // U+0009 CHARACTER TABULATION
 test_name('"foo"', 'foo');
 test_name('"none"', 'none');
 
+// CSSScrollTimelineRule.cssText
+
+function test_csstext(description, specified, expected) {
+  if (typeof(expected) == 'undefined')
+    expected = specified;
+  test_stylesheet(specified, (rules) => {
+    assert_equals(rules.length, 1);
+    assert_equals(rules[0].constructor.name, 'CSSScrollTimelineRule');
+    assert_equals(rules[0].cssText, expected);
+  }, `CSSScrollTimelineRule.cssText: ${description}`);
+}
+
+test_csstext(
+  'empty rule',
+  `@scroll-timeline timeline {}`,
+  `@scroll-timeline timeline { }`);
+
+// U+0009 CHARACTER TABULATION
+test_csstext(
+  'escaped name',
+  `@scroll-timeline tab\\9 tab {}`,
+  `@scroll-timeline tab\\9 tab { }`);
+
+test_csstext(
+  'source descriptor',
+  `@scroll-timeline timeline { source: selector(#foo); }`);
+
+test_csstext(
+  'orientation descriptor',
+  `@scroll-timeline timeline { orientation: inline; }`);
+
+test_csstext(
+  'start descriptor (px)',
+  `@scroll-timeline timeline { start: 100px; }`);
+
+test_csstext(
+  'start descriptor (offset)',
+  `@scroll-timeline timeline { start: selector(#bar); }`);
+
+test_csstext(
+  'start descriptor (offset with edge)',
+  `@scroll-timeline timeline { start: selector(#bar) start; }`);
+
+test_csstext(
+  'start descriptor (offset with threshold)',
+  `@scroll-timeline timeline { start: selector(#bar) 1; }`);
+
+test_csstext(
+  'start descriptor (offset with edge and threshold)',
+  `@scroll-timeline timeline { start: selector(#bar) start 1; }`);
+
+test_csstext(
+  'start descriptor (offset with threshold and edge)',
+  `@scroll-timeline timeline { start: selector(#bar) 1 start; }`,
+  `@scroll-timeline timeline { start: selector(#bar) start 1; }`);
+
+test_csstext(
+  'time-range descriptor',
+  `@scroll-timeline timeline { time-range: 10s; }`);
+
+test_csstext(
+  'defaults',
+  `@scroll-timeline timeline { source: none; orientation: auto; start: auto; end: auto; time-range: auto; }`);
+
+test_csstext(
+  'order',
+  `@scroll-timeline timeline { orientation: auto; time-range: auto; source: none; end: auto; start: auto; }`,
+  `@scroll-timeline timeline { source: none; orientation: auto; start: auto; end: auto; time-range: auto; }`);
+
 // CSSScrollTimelineRule.source
 
 function test_source(specified, expected) {

@@ -10,11 +10,59 @@
 
 <body>
 <script>
+// Numerical precision may cause an axis aligned rotation to appear slightly
+// misaligned. Convert to (x, y, z, angle) form with rounding for comparison.
+function parseRotation(args) {
+  const array = args.split(' ');
+  if (array.length == 1) {
+    // Angle or 'none'.
+    return !!parseFloat(args) ? roundNumbers('0 0 1 ' + args) : args;
+  }
+  if (array.length == 2) {
+    // Axis name + angle
+    let axis = array[0];
+    let angle = array[1];
+    switch (array[0]) {
+      case 'x':
+        axis = '1 0 0 ';
+        break;
+      case 'y':
+        axis = '0 1 0';
+        break;
+      case 'z':
+        axis = '0 0 1';
+        break;
+    }
+    return roundNumbers(axis + ' ' + angle);
+  }
+  if (array.length == 4) {
+    // Axis as [x,y,z] triplet + angle.
+    // Normalize the axis (if possible) for comparison.
+    let x = parseFloat(array[0]);
+    let y = parseFloat(array[1]);
+    let z = parseFloat(array[2]);
+    const angle = array[3];
+    const length = Math.sqrt(x*x + y*y + z*z);
+    if (length > 1e-4) {
+      x /= length;
+      y /= length;
+      z /= length;
+    }
+    return roundNumbers(`${x} ${y} ${z} ${angle}`);
+  }
+  return args;
+}
+
+function compareRotations(actual, expected) {
+  assert_equals(parseRotation(actual), parseRotation(expected));
+}
+
 test_composition({
   property: 'rotate',
   underlying: '100deg',
   addFrom: '10deg',
   addTo: '30deg',
+  comparisonFunction: compareRotations
 }, [
   {at: -1, expect: '90deg'},
   {at: 0, expect: '110deg'},
@@ -29,6 +77,7 @@ test_composition({
   underlying: '1 0 0 200deg',
   addFrom: '1 0 0 -100deg',
   replaceTo: '1 0 0 40deg',
+  comparisonFunction: compareRotations
 }, [
   {at: -1, expect: '1 0 0 160deg'},
   {at: 0, expect: '1 0 0 100deg'},
@@ -43,6 +92,7 @@ test_composition({
   underlying: '0 1 0 -40deg',
   replaceFrom: '0 1 0 50deg',
   addTo: '0 1 0 10deg',
+  comparisonFunction: compareRotations
 }, [
   {at: -1, expect: '0 1 0 130deg'},
   {at: 0, expect: '0 1 0 50deg'},
@@ -57,13 +107,14 @@ test_composition({
   underlying: '1 2 3 40deg',
   addFrom: '2 4 6 10deg',
   addTo: '3 6 9 50deg',
+  comparisonFunction: compareRotations
 }, [
-  {at: -1, expect: '1 2 3 10deg'},
-  {at: 0, expect: '1 2 3 50deg'},
-  {at: 0.25, expect: '1 2 3 60deg'},
-  {at: 0.75, expect: '1 2 3 80deg'},
-  {at: 1, expect: '1 2 3 90deg'},
-  {at: 2, expect: '1 2 3 130deg'},
+  {at: -1, expect: '0.27 0.53 0.8 10deg'},
+  {at: 0, expect: '0.27 0.53 0.8 50deg'},
+  {at: 0.25, expect: '0.27 0.53 0.8 60deg'},
+  {at: 0.75, expect: '0.27 0.53 0.8 80deg'},
+  {at: 1, expect: '0.27 0.53 0.8 90deg'},
+  {at: 2, expect: '0.27 0.53 0.8 130deg'},
 ]);
 
 test_composition({
@@ -71,13 +122,15 @@ test_composition({
   underlying: '1 2 3 270deg',
   addFrom: '1 2 3 90deg',
   replaceTo: '0 1 0 100deg',
+  comparisonFunction: compareRotations
 }, [
-  {at: -1, expect: '-5.49276e-17 -1 -1.64783e-16 100deg'},
-  {at: 0, expect: '1 2 3 360deg'},
-  {at: 0.25, expect: '-1.20172e-16 1 -3.60516e-16 25deg'},
-  {at: 0.75, expect: '-1.51909e-17 1 -4.55726e-17 75deg'},
-  {at: 1, expect: '0 1 0 100deg'},
-  {at: 2, expect: '-3.3235e-17 -1 -9.97049e-17 160deg'},
+  {at: -1, expect: '0 -1 0 100deg'},
+  {at: 0, expect: '0.27 0.53 0.8 360deg'},
+  {at: 0.25, expect: 'y 25deg'},
+  {at: 0.75, expect: 'y 75deg'},
+  {at: 1, expect: 'y 100deg'},
+  // Accept both the SLERP and the common axis solution, which are equivalent.
+  {at: 2, expect: '0 -1 0 160deg', option: 'y 200deg'},
 ]);
 
 test_composition({
@@ -85,27 +138,30 @@ test_composition({
   underlying: '1 2 3 90deg',
   addFrom: '2 4 6 270deg',
   replaceTo: '0 1 0 100deg',
+  comparisonFunction: compareRotations
 }, [
-  {at: -1, expect: '-5.49276e-17 -1 -1.64783e-16 100deg'},
-  {at: 0, expect: '1 2 3 360deg'},
-  {at: 0.25, expect: '-1.20172e-16 1 -3.60516e-16 25deg'},
-  {at: 0.75, expect: '-1.51909e-17 1 -4.55726e-17 75deg'},
-  {at: 1, expect: '0 1 0 100deg'},
-  {at: 2, expect: '-3.3235e-17 -1 -9.97049e-17 160deg'},
+  {at: -1, expect: '0 -1 0 100deg'},
+  {at: 0, expect: '0.27 0.53 0.8 360deg'},
+  {at: 0.25, expect: 'y 25deg'},
+  {at: 0.75, expect: 'y 75deg'},
+  {at: 1, expect: 'y 100deg'},
+  // Accept both the SLERP and the common axis solution, which are equivalent.
+  {at: 2, expect: '0 -1 0 160deg', option: 'y 200deg'},
 ]);
 
 test_composition({
   property: 'rotate',
-  underlying: '1 0 0 90deg',
-  addFrom: '0 1 0 180deg',
-  replaceTo: '0 0 1 90deg',
+  underlying: '1 0 0 0deg',
+  addFrom: '1 1 0 90deg',
+  replaceTo: '0 1 1 135deg',
+  comparisonFunction: compareRotations
 }, [
-  {at: -1, expect: '-6.12323e-17 -1 1.57009e-16 90deg'},
-  {at: 0, expect: '-4.32978e-17 -0.707107 -0.707107 180deg'},
-  {at: 0.25, expect: '-1.48952e-16 -0.894427 -0.447214 131.81deg'},
-  {at: 0.75, expect: '-2.94392e-17 -0.707107 0.707107 70.5288deg'},
-  {at: 1, expect: '90deg'},
-  {at: 2, expect: '-6.12323e-17 -1 -4.71028e-16 90deg'},
+  {at: -1, expect: '0.67 -0.06 -0.74 124.97deg'},
+  {at: 0, expect: '0.71 0.71 0 90deg'},
+  {at: 0.25, expect: '0.54 0.8 0.26 94.83deg'},
+  {at: 0.75, expect: '0.17 0.78 0.61 118.68deg'},
+  {at: 1, expect: '0 0.71 0.71 135deg'},
+  {at: 2, expect: '-0.52 0.29 0.81 208.96deg'},
 ]);
 
 test_composition({
@@ -113,13 +169,14 @@ test_composition({
   underlying: 'none',
   addFrom: 'none',
   replaceTo: '0 1 0 100deg',
+  comparisonFunction: compareRotations
 }, [
-  {at: -1, expect: '0 1 0 -100deg'},
-  {at: 0, expect: 'none'},
-  {at: 0.25, expect: '0 1 0 25deg'},
-  {at: 0.75, expect: '0 1 0 75deg'},
-  {at: 1, expect: '0 1 0 100deg'},
-  {at: 2, expect: '0 1 0 200deg'},
+  {at: -1, expect: 'y -100deg'},
+  {at: 0, expect: 'y 0deg'},
+  {at: 0.25, expect: 'y 25deg'},
+  {at: 0.75, expect: 'y 75deg'},
+  {at: 1, expect: 'y 100deg'},
+  {at: 2, expect: 'y 200deg'},
 ]);
 
 test_composition({
@@ -127,13 +184,14 @@ test_composition({
   underlying: 'none',
   addFrom: '2 4 6 270deg',
   replaceTo: 'none',
+  comparisonFunction: compareRotations
 }, [
-  {at: -1, expect: '2 4 6 540deg'},
-  {at: 0, expect: '2 4 6 270deg'},
-  {at: 0.25, expect: '2 4 6 202.5deg'},
-  {at: 0.75, expect: '2 4 6 67.5deg'},
-  {at: 1, expect: 'none'},
-  {at: 2, expect: '2 4 6 -270deg'},
+  {at: -1, expect: '0.27 0.53 0.8 540deg'},
+  {at: 0, expect: '0.27 0.53 0.8 270deg'},
+  {at: 0.25, expect: '0.27 0.53 0.8 202.5deg'},
+  {at: 0.75, expect: '0.27 0.53 0.8 67.5deg'},
+  {at: 1, expect: '0.27 0.53 0.8 0deg'},
+  {at: 2, expect: '0.27 0.53 0.8 -270deg'},
 ]);
 
 test_composition({
@@ -141,6 +199,7 @@ test_composition({
   underlying: '1 2 3 90deg',
   addFrom: 'none',
   replaceTo: '0 1 0 100deg',
+  comparisonFunction: compareRotations
 }, [
   {at: -1, expect: '0.31 -0.22 0.92 131.66deg'},
   {at: 0, expect: '1 2 3 90deg'},
@@ -155,13 +214,14 @@ test_composition({
   underlying: '1 2 3 90deg',
   addFrom: '2 4 6 270deg',
   replaceTo: 'none',
+  comparisonFunction: compareRotations
 }, [
-  {at: -1, expect: '1 2 3 720deg'},
-  {at: 0, expect: '1 2 3 360deg'},
-  {at: 0.25, expect: '1 2 3 270deg'},
-  {at: 0.75, expect: '1 2 3 90deg'},
-  {at: 1, expect: 'none'},
-  {at: 2, expect: '1 2 3 -360deg'},
+  {at: -1, expect: '0.27 0.53 0.8 720deg'},
+  {at: 0, expect: '0.27 0.53 0.8 360deg'},
+  {at: 0.25, expect: '0.27 0.53 0.8 270deg'},
+  {at: 0.75, expect: '0.27 0.53 0.8 90deg'},
+  {at: 1, expect: '0.27 0.53 0.8 0deg'},
+  {at: 2, expect: '0.27 0.53 0.8 -360deg'},
 ]);
 </script>
 </body>
