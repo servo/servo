@@ -31,6 +31,7 @@ rand = [
 packages = [
   "arrayvec",
   "base64",
+  "cfg-if",
   "cloudabi",
   "cocoa",
   "fixedbitset",
