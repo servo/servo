@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#first-text-line">
+<link rel="match" href="reference/first-line-with-inline-block-ref.html">
+<style>
+.fl:first-line {
+  color: red;
+}
+.fl-atomic {
+  display: inline-block;
+}
+.fl-atomic:first-line {
+  color: lime;
+}
+</style>
+<div class="fl">
+FIRST <div class="fl-atomic">first</span><br>second</div> FIRST
+</div>
