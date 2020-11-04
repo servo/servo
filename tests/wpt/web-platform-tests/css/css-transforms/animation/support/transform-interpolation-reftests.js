@@ -18,13 +18,43 @@ const transformTests = {
     ['translateX(50%)', 'translateX(calc(25% - 2em))', 'translateX(-4em)']
   ],
   rotate: [
-    ['rotate(0deg)', 'rotate(45deg)', 'rotate(90deg)'],
-    ['rotateX(0deg)', 'rotateX(45deg)', 'rotateX(90deg)'],
-    ['rotateY(0deg)', 'rotateY(45deg)', 'rotateY(90deg)'],
+    // Rotation about named-axis.
+    ['rotate(30deg)', 'rotate(60deg)', 'rotate(90deg)'],
+    ['rotateX(30deg)', 'rotateX(60deg)', 'rotateX(90deg)'],
+    ['rotateY(30deg)', 'rotateY(60deg)', 'rotateY(90deg)'],
+    ['rotate(30deg)', 'rotate(60deg)', 'rotateZ(90deg)'],
     ['rotate(0deg)', 'rotate(180deg)', 'rotate(360deg)'],
+    // Common axis rotations.
     ['rotate3d(7, 8, 9, 0deg)', 'rotate3d(7, 8, 9, 45deg)', 'rotate3d(7, 8, 9, 90deg)'],
+    ['rotate3d(1, 2, 3, 0deg)', 'rotate3d(3, 6, 9, 45deg)', 'rotate3d(2, 4, 6, 90deg)'],
+    // Axis is arbitrary if angle is zero. Use non-zero rotation to determine
+    // the rotation axis.
+    ['rotateX(0deg)', 'rotate(45deg)', 'rotate(90deg)'],
+    ['rotateX(90deg)', 'rotateX(45deg)', 'rotate(0deg)']
+  ],
+  rotateSlerp: [
     // First endpoint is the same rotation as rotateZ(0deg) but triggers SLERP
-    ['rotateX(360deg)', 'rotateZ(45deg)', 'rotateZ(90deg)']
+    ['rotateX(360deg)', 'rotateZ(45deg)', 'rotateZ(90deg)'],
+    // Interpolation with inverse. Second case is a common-axis case, but
+    // included here to group it with its equivalent SLERP test.
+    ['rotate(45deg)', 'rotate(0deg)', 'rotate3d(0, 0, -1, 45deg)'],
+    ['rotate(45deg)', 'rotate(0deg)', 'rotate(-45deg)'],
+    // Interpolate axis and angle of rotation.
+    // 70.5288deg = acos(1/3).
+    ['rotateX(90deg)', 'rotate3d(1, 1, 0, 70.5288deg)', 'rotateY(90deg)'],
+    // Not nice analytical solution for this last one.
+    // (1, 1, 0, 90deg) --> (x, y, z, w) = (1/2, 1/2, 0, 1/root2)
+    // (0, 1, 1, 180deg) --> (x, y, z, w) = (0, 1/root2, 1/root2, 0)
+    // Trace of the "to" transformation matrix is -1. Requires special handling
+    // to ensure correctness of the quaternion.
+    // SLERP @0.5: (x, y, z, w) = (0.30389062997686395,
+    //                             0.7336568918027127,
+    //                             0.4297662618258487,
+    //                             0.4297662618258487)
+    // --> rotate3d(0.3365568, 0.8125199, 0.4759632, 129.094547486deg)
+    ['rotate3d(1, 1, 0, 90deg)',
+     'rotate3d(0.3365568, 0.8125199, 0.4759632, 129.094547486deg)',
+     'rotate3d(0, 1, 1, 180deg)'],
   ],
   scale: [
     ['scaleX(0.5)', 'scaleX(0.75)', 'scaleX(1)'],

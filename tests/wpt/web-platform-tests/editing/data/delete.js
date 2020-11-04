@@ -2555,4 +2555,9 @@ var browserTests = [
     "<div>abcdef</div>",
     [true],
     {"delete":[false,false,"",false,false,""]}],
+["foo<img contenteditable=false src=/img/lion.svg>[]bar",
+    [["delete",""]],
+    "foo{}bar",
+    [true],
+    {"delete":[false,false,"",false,false,""]}],
 ]

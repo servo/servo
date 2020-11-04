@@ -2440,4 +2440,9 @@ var browserTests = [
     "<div>abcdef</div>",
     [true],
     {"forwarddelete":[false,false,"",false,false,""]}],
+["foo[]<img contenteditable=false src=/img/lion.svg>bar",
+    [["forwarddelete",""]],
+    "foo{}bar",
+    [true],
+    {"forwarddelete":[false,false,"",false,false,""]}],
 ]
