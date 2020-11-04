@@ -35,7 +35,6 @@ function testElementType(allowed, nochildren, elementType, mode, delegatesFocus)
       assert_equals(element.children[0].textContent, lightDomTextContent);
       let originalShadowRoot = null;
       if (mode === 'open') {
-        // TODO(masonfreed): Add a check for ElementInternals.shadowRoot once that exists.
         assert_true(!!element.shadowRoot, 'Shadow root should be present');
         assert_equals(element.shadowRoot.innerHTML, shadowContent, 'Correct shadow content');
         assert_equals(element.shadowRoot.delegatesFocus,delegatesFocus,'Correct delegatesFocus')
@@ -46,7 +45,6 @@ function testElementType(allowed, nochildren, elementType, mode, delegatesFocus)
       const oppositeMode = (mode === 'open') ? 'closed' : 'open';
       const newShadow = element.attachShadow({mode: oppositeMode}); // Should be no exception here
       if (mode === 'open') {
-        // TODO(masonfreed): Add a check for ElementInternals.shadowRoot once that exists.
         assert_equals(element.shadowRoot, originalShadowRoot, 'The same shadow root should be returned');
         assert_equals(element.shadowRoot.innerHTML, '', 'Empty shadow content');
         assert_equals(element.shadowRoot.mode, mode, 'Original shadow mode');

@@ -213,7 +213,6 @@ test(() => {
   document.body.appendChild(host);
   host.appendChild(template.content.cloneNode(true));
   let innerDiv = host.querySelector('div.innerdiv');
-  // TODO(masonfreed): once ElementInternals.shadowRoot exists, check for it here.
   assert_true(!innerDiv.shadowRoot,"Inner div should have a closed shadow root");
 }, 'Declarative Shadow DOM: template containing closed declarative shadow root and UA shadow root');
 </script>

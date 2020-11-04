@@ -1,0 +1,21 @@
+<!DOCTYPE HTML>
+<title>click is a PointerEvent</title>
+<link rel="help" href="https://github.com/w3c/pointerevents/pull/317">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<input id="target" style="margin: 20px">
+
+<script>
+  'use strict';
+  let clickTest = async_test("click is a PointerEvent");
+  let target = document.getElementById("target");
+
+  target.addEventListener("click", clickTest.step_func((e)=>{
+    assert_true(e instanceof PointerEvent, "click should be a PointerEvent");
+  }));
+  let eventWatcher = new EventWatcher(clickTest, target, ["click"]);
+  Promise.all([eventWatcher.wait_for("click"), test_driver.click(target)]).then(()=>clickTest.done());
+</script>

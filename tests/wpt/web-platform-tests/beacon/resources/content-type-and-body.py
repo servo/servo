@@ -2,7 +2,7 @@ def main(request, response):
     command = request.GET.first(b"cmd").lower()
     test_id = request.GET.first(b"id")
     if command == b"put":
-        request.server.stash.put(test_id, request.headers.get(b"Content-Type", b"") + ": " + request.body)
+        request.server.stash.put(test_id, request.headers.get(b"Content-Type", b"") + b": " + request.body)
         return [(b"Content-Type", b"text/plain")], u""
 
     if command == b"get":

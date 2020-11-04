@@ -21,7 +21,7 @@
 <body>
     <div id="log"></div>
     <script>
-
+    onload = function() {
       // Get the Document's styleSheets attribute
       var styleSheets = document.styleSheets;
 
@@ -50,7 +50,7 @@
       test(function() {
         assert_equals(styleSheets.item(4).title, "zebra", "title for item 1 is incorrect:");
       }, "styleSheets item 0 title must be zebra");
-
+    };
     </script>
 </body>
 </html>
