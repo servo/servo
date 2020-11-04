@@ -646,8 +646,15 @@ def wpt_chunks(platform, make_chunk_task, build_task, total_chunks, processes,
                     --processes $PROCESSES \
                     --log-raw test-wpt-py3.log \
                     --log-errorsummary wpt-py3-errorsummary.log \
+                    --always-succeed \
                     url \
                     | cat
+                ./mach filter-intermittents \
+                    wpt-py3-errorsummary.log \
+                    --log-intermittents wpt-py3-intermittents.log \
+                    --log-filteredsummary filtered-py3-errorsummary.log \
+                    --tracker-api default \
+                    --reporter-api default
                 time ./mach test-wpt --release --product=servodriver --headless  \
                     tests/wpt/mozilla/tests/mozilla/DOMParser.html \
                     tests/wpt/mozilla/tests/css/per_glyph_font_fallback_a.html \
