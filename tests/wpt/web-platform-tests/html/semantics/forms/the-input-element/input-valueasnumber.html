@@ -120,11 +120,16 @@
    testValueAsNumberGetter("number", numberInput, [
      ["", NaN],
      ["123", 123],
-     ["123.456", 123.456]
+     ["123.456", 123.456],
+     ["1e3", 1000],
+     ["1e", NaN],
+     ["-123", -123]
    ]);
    testValueAsNumberSetter("number", numberInput, [
      [123, "123"],
-     [123.456, "123.456"]
+     [123.456, "123.456"],
+     [1e3, "1000"],
+     [-123, "-123"]
    ]);
 
    const rangeInput = document.getElementById("input_range");

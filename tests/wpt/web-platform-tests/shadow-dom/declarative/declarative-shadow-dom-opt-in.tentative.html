@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Shadow DOM</title>
+<link rel="author" title="Mason Freed" href="mailto:masonfreed@chromium.org">
+<link rel="help" href="https://github.com/whatwg/dom/issues/831">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<style>
+  * { white-space: pre; }
+  iframe { display:none; }
+</style>
+<div id=log></div>
+
+<div id=mainpage style="display:none">
+  <div class=wrapper>
+    <div class=host>
+      <template shadowroot=open>
+        <span class=content>Content</span>
+      </template>
+    </div>
+  </div>
+</div>
+
+<script>
+const content = `
+  <html><body>
+  <div class=wrapper>
+    <div class=host>
+      <template shadowroot=open>
+        <span class=content>Content</span>
+      </template>
+    </div>
+  </div>
+  </body></html>
+`;
+
+function assert_dsd(el,shouldHaveShadow) {
+  const wrapper = el.querySelector('.wrapper');
+  assert_true(!!wrapper,'Unable to find wrapper element');
+  const host = wrapper.querySelector('.host');
+  assert_true(!!host,'Unable to find host element');
+  if (shouldHaveShadow) {
+    assert_true(!!host.shadowRoot, 'Shadow root NOT FOUND.');
+    assert_true(!!host.shadowRoot.querySelector('.content'),'Unable to locate content');
+  } else {
+    assert_true(!host.shadowRoot, 'Shadow root FOUND - none should be present.');
+    const tmpl = host.querySelector('template');
+    assert_true(!!tmpl, 'The template should be left as a <template> element');
+    assert_equals(tmpl.getAttribute('shadowroot'),'open','The shadowroot attribute should still be present');
+    assert_true(!!tmpl.content.querySelector('.content'),'Unable to locate content');
+  }
+}
+
+test(() => {
+  const div = document.getElementById('mainpage');
+  assert_dsd(div,true);
+  assert_false(document.allowDeclarativeShadowDom,'The default value for allowDeclarativeShadowDom should be false');
+}, 'Non-fragment parsing needs no opt-in');
+
+test(() => {
+  const div = document.createElement('div');
+  div.innerHTML = content;
+  assert_false(document.allowDeclarativeShadowDom,'The default value for allowDeclarativeShadowDom should be false');
+  assert_dsd(div,false);
+  document.allowDeclarativeShadowDom = true;
+  div.innerHTML = content;
+  assert_dsd(div,true);
+  document.allowDeclarativeShadowDom = false; // Don't affect other tests
+}, 'innerHTML on element');
+
+test(() => {
+  const templateContent = `<template id=tmpl>${content}</template>`;
+  assert_false(document.allowDeclarativeShadowDom,'Default allowDeclarativeShadowDom should be false');
+  const div = document.createElement('div');
+  div.innerHTML = templateContent;
+  assert_dsd(div.querySelector('#tmpl').content,false);
+  document.allowDeclarativeShadowDom = true;
+  div.innerHTML = templateContent;
+  assert_dsd(div.querySelector('#tmpl').content,true);
+  // Make sure to set back to avoid affecting other tests
+  document.allowDeclarativeShadowDom = false; // Don't affect other tests
+}, 'innerHTML on element, with template content');
+
+test(() => {
+  const temp = document.createElement('template');
+  temp.innerHTML = content;
+  assert_dsd(temp.content,false, 'innerHTML by default should not allow declarative shadow content');
+  assert_false(document.allowDeclarativeShadowDom,'The default value for document.allowDeclarativeShadowDom should be false');
+  assert_false(temp.content.allowDeclarativeShadowDom,'The default value for template fragment allowDeclarativeShadowDom should be false');
+  temp.content.allowDeclarativeShadowDom = true;
+  assert_false(document.allowDeclarativeShadowDom,'Setting template allowDeclarativeShadowDom shouldn\'t affect document.allowDeclarativeShadowDom');
+  temp.innerHTML = content;
+  assert_true(temp.content.allowDeclarativeShadowDom,'Setting allowDeclarativeShadowDom should persist across innerHTML set');
+  assert_dsd(temp.content,true, 'innerHTML should allow declarative shadow content if template.content.allowDeclarativeShadowDom is set');
+  temp.content.allowDeclarativeShadowDom = false;
+  document.allowDeclarativeShadowDom = true;
+  temp.innerHTML = content;
+  assert_false(temp.content.allowDeclarativeShadowDom,'Setting allowDeclarativeShadowDom should persist across innerHTML set');
+  assert_true(document.allowDeclarativeShadowDom,'document.allowDeclarativeShadowDom should still be set');
+  assert_dsd(temp.content,true, 'innerHTML should allow declarative shadow content if document.allowDeclarativeShadowDom is set');
+  document.allowDeclarativeShadowDom = false; // Don't affect other tests
+}, 'Setting template.innerHTML');
+
+test(() => {
+  const templateContent = `<template id=tmpl>${content}</template>`;
+  const temp = document.createElement('template');
+  temp.innerHTML = templateContent;
+  assert_dsd(temp.content.querySelector('#tmpl').content,false);
+  document.allowDeclarativeShadowDom = true;
+  temp.innerHTML = templateContent;
+  assert_dsd(temp.content.querySelector('#tmpl').content,true);
+  document.allowDeclarativeShadowDom = false; // Don't affect other tests
+}, 'Setting template.innerHTML with nested template content');
+
+test(() => {
+  const parser = new DOMParser();
+  let fragment = parser.parseFromString(content,'text/html');
+  assert_dsd(fragment.body,false);
+  assert_false(parser.allowDeclarativeShadowDom,'The default value for allowDeclarativeShadowDom should be false');
+  parser.allowDeclarativeShadowDom = true;
+  assert_false(document.allowDeclarativeShadowDom,'Setting allowDeclarativeShadowDom shouldn\'t affect document.allowDeclarativeShadowDom');
+  fragment = parser.parseFromString(content,'text/html');
+  assert_dsd(fragment.body,true);
+}, 'DOMParser');
+
+test(() => {
+  const doc = document.implementation.createHTMLDocument("Document");
+  doc.body.innerHTML = content;
+  assert_dsd(doc.body,false);
+  assert_false(doc.allowDeclarativeShadowDom,'The default value for allowDeclarativeShadowDom should be false');
+  doc.allowDeclarativeShadowDom = true;
+  assert_false(document.allowDeclarativeShadowDom,'Setting allowDeclarativeShadowDom shouldn\'t affect document.allowDeclarativeShadowDom');
+  doc.body.innerHTML = content;
+  assert_dsd(doc.body,true);
+}, 'createHTMLDocument');
+
+test(() => {
+  const doc = document.implementation.createHTMLDocument("Document");
+  let range = doc.createRange();
+  range.selectNode(doc.body);
+  let documentFragment = range.createContextualFragment(content);
+  assert_dsd(documentFragment,false);
+  doc.allowDeclarativeShadowDom = true;
+  assert_false(document.allowDeclarativeShadowDom,'Setting allowDeclarativeShadowDom shouldn\'t affect document.allowDeclarativeShadowDom');
+  documentFragment = range.createContextualFragment(content);
+  assert_dsd(documentFragment,true);
+}, 'createContextualFragment');
+
+async_test((t) => {
+  let client = new XMLHttpRequest();
+  client.addEventListener('load', t.step_func_done(() => {
+    assert_true(client.status == 200 && client.responseXML != null);
+    assert_dsd(client.responseXML.body,false);
+    t.done();
+  }));
+  client.open("GET", `data:text/html,${content}`);
+  client.responseType = 'document';
+  assert_false(client.allowDeclarativeShadowDom,'The default value for allowDeclarativeShadowDom should be false');
+  client.send();
+}, 'XMLHttpRequest, disabled');
+
+async_test((t) => {
+  let client = new XMLHttpRequest();
+  client.addEventListener('load', t.step_func_done(() => {
+    assert_true(client.status == 200 && client.responseXML != null);
+    assert_dsd(client.responseXML.body,true);
+    t.done();
+  }));
+  client.open("GET", `data:text/html,${content}`);
+  client.responseType = 'document';
+  client.allowDeclarativeShadowDom = true;
+  assert_false(document.allowDeclarativeShadowDom,'Setting allowDeclarativeShadowDom shouldn\'t affect document.allowDeclarativeShadowDom');
+  client.send();
+}, 'XMLHttpRequest, enabled');
+
+async_test((t) => {
+  const iframe = document.createElement('iframe');
+  iframe.style.display = "none";
+  iframe.sandbox = "allow-same-origin";
+  document.body.appendChild(iframe);
+  iframe.addEventListener('load', t.step_func_done(() => {
+    assert_dsd(iframe.contentDocument.body,false);
+    t.done();
+  }));
+  iframe.srcdoc = content;
+}, 'iframe, disabled');
+
+async_test((t) => {
+  const iframe = document.createElement('iframe');
+  iframe.style.display = "none";
+  iframe.sandbox = "allow-same-origin allow-declarative-shadow-dom";
+  document.body.appendChild(iframe);
+  iframe.addEventListener('load', t.step_func_done(() => {
+    assert_dsd(iframe.contentDocument.body,true);
+    t.done();
+  }));
+  iframe.allowDeclarativeShadowDom = true;
+  assert_false(document.allowDeclarativeShadowDom,'Setting allowDeclarativeShadowDom shouldn\'t affect document.allowDeclarativeShadowDom');
+  iframe.srcdoc = content;
+}, 'iframe, enabled');
+
+function getHandler(t, name, shouldHaveShadow) {
+  return (e) => {
+    t.step(() => {
+      if (e.data.name == name) {
+        assert_false(e.data.error,e.data.msg);
+        assert_true(e.data.hasShadow == shouldHaveShadow);
+        t.done();
+      }
+    });
+  };
+}
+async_test((t) => {
+  window.addEventListener('message', getHandler(t, 'iframe_disallow', false));
+}, 'iframe without allow-declarative-shadow-dom sandbox flag disallows declarative Shadow DOM');
+
+async_test((t) => {
+  window.addEventListener('message', getHandler(t,'iframe_allow', true));
+}, 'iframe with allow-declarative-shadow-dom sandbox flag allows declarative Shadow DOM');
+
+</script>
+
+<iframe name="iframe_disallow" sandbox="allow-scripts" src="support/declarative-child-frame.html" ></iframe>
+<iframe name="iframe_allow" sandbox="allow-scripts allow-declarative-shadow-dom" src="support/declarative-child-frame.html"></iframe>

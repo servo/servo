@@ -6,7 +6,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
-<div id="host">
+<div id="host" style="display:none">
   <template shadowroot="open">
     <slot id="s1" name="slot1"></slot>
   </template>
@@ -14,6 +14,8 @@
 </div>
 
 <script>
+document.allowDeclarativeShadowDom = true;
+
 test(() => {
   const host = document.querySelector('#host');
   const c1 = host.querySelector('#c1');
@@ -129,7 +131,7 @@ test(() => {
 }, 'Declarative Shadow DOM: innerHTML root element');
 </script>
 
-<div id="multi-host">
+<div id="multi-host" style="display:none">
   <template shadowroot="open">
     <span>root 1</span>
   </template>
@@ -157,6 +159,7 @@ test(() => {
 test(() => {
   const template = document.querySelector('#template-containing-shadow');
   const host1 = document.createElement('div');
+  host1.style.display = 'none';
   document.body.appendChild(host1);
   host1.appendChild(template.content.cloneNode(true));
   let innerDiv = host1.querySelector('div.innerdiv');
@@ -165,6 +168,7 @@ test(() => {
   assert_equals(innerDiv.querySelector('template'), null, "No leftover template node");
 
   const host2 = document.createElement('div');
+  host2.style.display = 'none';
   document.body.appendChild(host2);
   host2.appendChild(template.content.cloneNode(true));
   innerDiv = host2.querySelector('div.innerdiv');
@@ -187,6 +191,7 @@ test(() => {
 test(() => {
   const template = document.querySelector('#template-containing-ua-shadow');
   const host = document.createElement('div');
+  host.style.display = 'none';
   document.body.appendChild(host);
   // Mostly make sure clone of template *does* clone the
   // shadow root, and doesn't crash on cloning the <video>.
@@ -210,6 +215,7 @@ test(() => {
 test(() => {
   const template = document.querySelector('#template-containing-ua-shadow-closed');
   const host = document.createElement('div');
+  host.style.display = 'none';
   document.body.appendChild(host);
   host.appendChild(template.content.cloneNode(true));
   let innerDiv = host.querySelector('div.innerdiv');
