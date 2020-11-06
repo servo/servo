@@ -662,6 +662,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
             let inherited = self.inherited.as_ref().map(|m| &***m);
             substitute_all(&mut map, inherited, self.device);
         }
+        map.shrink_to_fit();
         Some(Arc::new(map))
     }
 }
