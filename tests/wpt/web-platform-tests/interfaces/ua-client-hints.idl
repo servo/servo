@@ -10,7 +10,6 @@ dictionary NavigatorUABrandVersion {
 
 dictionary UADataValues {
   DOMString platform;
-
   DOMString platformVersion;
   DOMString architecture;
   DOMString model;

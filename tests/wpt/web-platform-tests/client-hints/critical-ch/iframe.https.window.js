@@ -1,9 +1,8 @@
+// META: script=resources/util.js
+
 async_test((t) => {
   var iframe = document.createElement("iframe");
-  iframe.addEventListener('load', (e) => {
-    t.step(()=>{assert_equals(iframe.contentDocument.body.textContent, "FAIL");});
-    t.done();
-  });
-  iframe.src = "resources/echo-critical-hint.py";
+  iframe.src = ECHO_URL;
   document.body.appendChild(iframe);
+  iframe.contentWindow.addEventListener('message', message_listener(t, "FAIL"));
 }, "Critical-CH iframe");

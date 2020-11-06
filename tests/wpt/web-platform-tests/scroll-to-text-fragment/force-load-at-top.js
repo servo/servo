@@ -14,7 +14,7 @@ function checkScroll() {
   });
 }
 
-window.addEventListener('load', () => {
+window.addEventListener('pageshow', () => {
   if (location.hash == "#history") {
     // This is the "history" test - on the first load we'll navigate to a page
     // that calls history.back(). When we load a second time (from the back

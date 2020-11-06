@@ -113,12 +113,4 @@
   test(function() {
     assert_not_equals(mask.getBoundingClientRect().width, nonflatWidth);
   }, "Preserve-3d element flattened due to mask");
-
-  test(function() {
-    assert_equals(absoluteUnderGrouping.offsetParent, parentWithGrouping);
-  }, "Preserve-3d element with a grouping property still a containing block");
-
-  test(function() {
-    assert_equals(absoluteNotUnderGrouping.offsetParent, parentWithoutGrouping);
-  }, "Preserve-3d element without a grouping property still a containing block");
 </script>

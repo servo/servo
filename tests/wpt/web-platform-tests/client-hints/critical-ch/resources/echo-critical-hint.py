@@ -40,4 +40,4 @@ def main(request, response):
     if b"viewport-width" in request.headers:
       result = "MISMATCH"
 
-    response.content = result
+    response.content = "<script>window.postMessage('{0}', '*')</script>".format(result)

@@ -3,6 +3,7 @@
 // (https://github.com/w3c/webref)
 // Source: Content Security Policy Level 3 (https://w3c.github.io/webappsec-csp/)
 
+[Exposed=Window]
 interface CSPViolationReportBody : ReportBody {
   readonly attribute USVString documentURL;
   readonly attribute USVString? referrer;
@@ -21,9 +22,9 @@ enum SecurityPolicyViolationEventDisposition {
   "enforce", "report"
 };
 
-[Constructor(DOMString type, optional SecurityPolicyViolationEventInit eventInitDict),
- Exposed=(Window,Worker)]
+[Exposed=(Window,Worker)]
 interface SecurityPolicyViolationEvent : Event {
+    constructor(DOMString type, optional SecurityPolicyViolationEventInit eventInitDict = {});
     readonly    attribute USVString      documentURL;
     readonly    attribute USVString      documentURI; // historical alias of documentURL
     readonly    attribute USVString      referrer;
