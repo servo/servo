@@ -247,8 +247,11 @@ impl VariableValue {
             .collect::<Vec<_>>()
             .into_boxed_slice();
 
+        let mut css = css.into_owned();
+        css.shrink_to_fit();
+
         Ok(Arc::new(VariableValue {
-            css: css.into_owned(),
+            css,
             first_token_type,
             last_token_type,
             references: custom_property_references,
@@ -268,9 +271,11 @@ impl VariableValue {
             unit: CowRcStr::from("px"),
         };
         let token_type = token.serialization_type();
+        let mut css = token.to_css_string();
+        css.shrink_to_fit();
 
         VariableValue {
-            css: token.to_css_string(),
+            css,
             first_token_type: token_type,
             last_token_type: token_type,
             references: Default::default(),
@@ -577,7 +582,7 @@ impl<'a> CustomPropertiesBuilder<'a> {
                 let value = if !has_references && unparsed_value.references_environment {
                     let result = substitute_references_in_value(unparsed_value, &map, &self.device);
                     match result {
-                        Ok(new_value) => Arc::new(new_value),
+                        Ok(new_value) => new_value,
                         Err(..) => {
                             // Don't touch the map, this has the same effect as
                             // making it compute to the inherited one.
@@ -847,7 +852,7 @@ fn substitute_all(
         let result = substitute_references_in_value(&value, &context.map, &context.device);
         match result {
             Ok(computed_value) => {
-                context.map.insert(name, Arc::new(computed_value));
+                context.map.insert(name, computed_value);
             },
             Err(..) => {
                 // This is invalid, reset it to the unset (inherited) value.
@@ -889,7 +894,7 @@ fn substitute_references_in_value<'i>(
     value: &'i VariableValue,
     custom_properties: &CustomPropertiesMap,
     device: &Device,
-) -> Result<ComputedValue, ParseError<'i>> {
+) -> Result<Arc<ComputedValue>, ParseError<'i>> {
     debug_assert!(!value.references.is_empty() || value.references_environment);
 
     let mut input = ParserInput::new(&value.css);
@@ -906,7 +911,8 @@ fn substitute_references_in_value<'i>(
     )?;
 
     computed_value.push_from(&input, position, last_token_type)?;
-    Ok(computed_value)
+    computed_value.css.shrink_to_fit();
+    Ok(Arc::new(computed_value))
 }
 
 /// Replace `var()` functions in an arbitrary bit of input.
