@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<title>CSS Images: image-orientation, CORS detection for SVG content</title>
+<link rel="author" title="Stephen Chenney" href="mailto:schenney@chromium.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/5165">
+<link rel="match" href="reference/image-orientation-none-cross-origin-svg-ref.html">
+<meta name=fuzzy content="10;100">
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+    .image {
+        width: 40px;
+        height: 20px;
+        position: fixed;
+    }
+</style>
+<script>
+    function toCors(src) {
+        return src.replace(new URL(src).origin, get_host_info().HTTP_REMOTE_ORIGIN)
+    }
+
+    window.onload = () => {
+        const images = [
+            {
+                id_image: "cors_from_image",
+                id_foreign: "cors_from_foreign",
+                cors: true,
+                orientation: 'from-image',
+                shouldBeRotated: true,
+                left: '10px'
+            },
+            {
+                id_image: "cors_none_image",
+                id_foreign: "cors_none_foreign",
+                cors: true,
+                orientation: 'none',
+                shouldBeRotated: true,
+                left: '60px'
+            },
+            {
+                id_image: "same_from_image",
+                id_foreign: "same_from_foreign",
+                cors: false,
+                orientation: 'from-image',
+                shouldBeRotated: true,
+                left: '110px'
+            },
+            {
+                id_image: "same_none_image",
+                id_foreign: "same_none_foreign",
+                cors: false,
+                orientation: 'none',
+                shouldBeRotated: false,
+                left: '160px'
+            },
+        ];
+
+        images.forEach(data => {
+            if (data.cors) {
+                image_src = document.getElementById("cors_img");
+                image = document.getElementById(data.id_image);
+                image.setAttribute("href", image_src.src);
+                foreign = document.getElementById(data.id_foreign);
+                foreign.src = image_src.src;
+            } else {
+                image_src = document.getElementById("same_img");
+                image = document.getElementById(data.id_image);
+                image.setAttribute("href", image_src.src);
+                foreign = document.getElementById(data.id_foreign);
+                foreign.src = image_src.src;
+            }
+
+            const canvas_svg_image = document.createElement('canvas');
+            canvas_svg_image.className = "image";
+            canvas_svg_image.width = canvas_svg_image.height = 1;
+            canvas_svg_image.style.left = data.left;
+            canvas_svg_image.style.top = "140px";
+            // The source of image-orientation preference for canvas drawImage
+            // is currently not standardized.
+            // See https://github.com/w3c/csswg-drafts/issues/4666
+            canvas_svg_image.style.imageOrientation = data.orientation;
+            document.body.appendChild(canvas_svg_image);
+            ctx = canvas_svg_image.getContext('2d');
+            sx = data.shouldBeRotated ? 80 : 0;
+            sy = data.shouldBeRotated ? 40 : 0;
+            ctx.drawImage(image, sx, sy, 1, 1, 0, 0, 1, 1);
+
+            const canvas_svg_foreign = document.createElement('canvas');
+            canvas_svg_foreign.className = "image";
+            canvas_svg_foreign.width = canvas_svg_foreign.height = 1;
+            canvas_svg_foreign.style.left = data.left;
+            canvas_svg_foreign.style.top = "170px";
+            canvas_svg_foreign.style.imageOrientation = data.orientation;
+            document.body.appendChild(canvas_svg_foreign);
+            ctx = canvas_svg_foreign.getContext('2d');
+            sx = data.shouldBeRotated ? 80 : 0;
+            sy = data.shouldBeRotated ? 40 : 0;
+            ctx.drawImage(foreign, sx, sy, 1, 1, 0, 0, 1, 1);
+        })
+        waitForAtLeastOneFrame().then(() => { takeScreenshot() });
+    }
+
+</script>
+</head>
+<body>
+    <svg class="image" id="svg_cors_from" style="left: 10px; top: 50px; image-orientation: from-image;">
+        <image id="cors_from_image" href="support/exif-orientation-3-lr.jpg" X="-57" Y="-27"></image>
+    </svg>
+    <!-- This should be functionally identical to a plain <img> element. We test it here to verify
+         that SVG foreign object correctly tracks the security origin for the image. -->
+    <svg class="image" style="left: 10px; top: 80px; image-orientation: from-image;">
+        <foreignObject  x="-57" y="-27" width="100" height="50">
+            <img id="cors_from_foreign" src="support/exif-orientation-3-lr.jpg"></img>
+        </foreignObject>
+    </svg>
+    <!-- Note SVG-as-image requires any <image> elements to use (base64 encoded) data: URLs, that can
+         never be cross origin. This just tests that we don't crash or do other strange things. -->
+    <img class="image" id="img_cors_from" src="support/svg-with-image-rotated.svg" style="left: 10px; top: 110px; image-orientation: from-image;"/>
+
+    <svg class="image" style="left: 60px; top: 50px; image-orientation: none;">
+        <image id="cors_none_image" href="support/exif-orientation-3-lr.jpg" X="-57" Y="-27"></image>
+    </svg>
+    <!-- This should be functionally identical to a plain <img> element. We test it here to verify
+         that SVG foreign object correctly tracks the security origin for the image. -->
+    <svg class="image" style="left: 60px; top: 80px; image-orientation: none;">
+        <foreignObject  x="-57" y="-27" width="100" height="50">
+            <img id="cors_none_foreign" src="support/exif-orientation-3-lr.jpg"></img>
+        </foreignObject>
+    </svg>
+    <!-- Note SVG-as-image requires any <image> elements to use (base64 encoded) data: URLs, that can
+         never be cross origin. This just tests that we don't crash or do other strange things. -->
+    <img class="image" id="img_cors_none" src="support/svg-with-image-rotated.svg" style="left: 60px; top: 110px; image-orientation: none;"/>
+
+    <svg class="image" style="left: 110px; top: 50px; image-orientation: from-image;">
+        <image id="same_from_image" href="support/exif-orientation-3-lr.jpg" X="-57" Y="-27"></image>
+    </svg>
+    <!-- This should be functionally identical to a plain <img> element. We test it here to verify
+         that SVG foreign object correctly tracks the security origin for the image. -->
+    <svg class="image" style="left: 110px; top: 80px; image-orientation: from-image;">
+        <foreignObject  x="-57" y="-27" width="100" height="50">
+            <img id="same_from_foreign" src="support/exif-orientation-3-lr.jpg"></img>
+        </foreignObject>
+    </svg>
+    <!-- Note SVG-as-image requires any <image> elements to use (base64 encoded) data: URLs, that can
+         never be cross origin. This just tests that we don't crash or do other strange things. -->
+    <img class="image" id="img_same_from" src="support/svg-with-image-rotated.svg" style="left: 110px; top: 110px; image-orientation: from-image;"/>
+
+    <svg class="image" style="left: 160px; top: 50px; image-orientation: none;">
+        <image id="same_none_image" href="support/exif-orientation-3-lr.jpg" X="0" Y="0"></image>
+    </svg>
+    <!-- This should be functionally identical to a plain <img> element. We test it here to verify
+         that SVG foreign object correctly tracks the security origin for the image. -->
+    <svg class="image" style="left: 160px; top: 80px; image-orientation: none;">
+        <foreignObject x="0" y="0" width="100" height="50">
+            <img id="same_none_foreign" src="support/exif-orientation-3-lr.jpg"></img>
+        </foreignObject>
+    </svg>
+    <!-- Note SVG-as-image requires any <image> elements to use (base64 encoded) data: URLs, that can
+         never be cross origin. This just tests that we don't crash or do other strange things. -->
+    <img class="image" id="img_same_none" src="support/svg-with-image-rotated.svg" style="left: 160px; top: 110px; image-orientation: none;"/>
+
+    <!-- This is the easiest way to get a cross origin url for SVG <image> -->
+    <script>
+        const img = document.createElement('img')
+        img.src = "support/exif-orientation-3-lr.jpg"
+        img.id = "same_img";
+        img.style.display = "none";
+        document.body.appendChild(img)
+        const imgCors = document.createElement('img')
+        imgCors.src = img.src
+        imgCors.src = toCors(imgCors.src)
+        imgCors.id = "cors_img";
+        imgCors.style.display = "none";
+        document.body.appendChild(imgCors)
+    </script>
+
+</body>
+</html>
