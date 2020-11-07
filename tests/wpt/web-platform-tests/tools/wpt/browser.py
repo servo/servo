@@ -561,7 +561,7 @@ class Chrome(Browser):
         return self.find_nightly_binary(dest)
 
     def install_mojojs(self, dest, channel, browser_binary):
-        if channel == "nightly":
+        if channel == "nightly" or channel == "canary":
             url = self._latest_chromium_snapshot_url() + "mojojs.zip"
         else:
             chrome_version = self.version(binary=browser_binary)
@@ -785,8 +785,8 @@ class Chrome(Browser):
 
         try:
             version_string = call(binary, "--version").strip()
-        except subprocess.CalledProcessError:
-            self.logger.warning("Failed to call %s" % binary)
+        except (subprocess.CalledProcessError, OSError) as e:
+            self.logger.warning("Failed to call %s: %s" % (binary, e))
             return None
         m = re.match(r"(?:Google Chrome|Chromium) (.*)", version_string)
         if not m:
@@ -800,8 +800,8 @@ class Chrome(Browser):
 
         try:
             version_string = call(webdriver_binary, "--version").strip()
-        except subprocess.CalledProcessError:
-            self.logger.warning("Failed to call %s" % webdriver_binary)
+        except (subprocess.CalledProcessError, OSError) as e:
+            self.logger.warning("Failed to call %s: %s" % (webdriver_binary, e))
             return None
         m = re.match(r"ChromeDriver ([0-9][0-9.]*)", version_string)
         if not m:

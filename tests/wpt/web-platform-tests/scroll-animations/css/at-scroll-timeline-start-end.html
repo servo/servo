@@ -35,6 +35,10 @@
     start: auto;
     end: auto;
   }
+  @scroll-timeline timeline_auto_auto_implicit {
+    source: selector(#scroller);
+    time-range: 10s;
+  }
   @scroll-timeline timeline_50px_auto {
     source: selector(#scroller);
     time-range: 10s;
@@ -72,6 +76,7 @@
   #element_0px_100px { animation-timeline: timeline_0px_100px; }
   #element_50px_100px { animation-timeline: timeline_50px_100px; }
   #element_auto_auto { animation-timeline: timeline_auto_auto; }
+  #element_auto_auto_implicit { animation-timeline: timeline_auto_auto_implicit; }
   #element_50px_auto { animation-timeline: timeline_50px_auto; }
   #element_auto_100px { animation-timeline: timeline_auto_100px; }
   #element_25p_75p { animation-timeline: timeline_25p_75p; }
@@ -84,6 +89,7 @@
   <div id=element_0px_100px></div>
   <div id=element_50px_100px></div>
   <div id=element_auto_auto></div>
+  <div id=element_auto_auto_implicit></div>
   <div id=element_50px_auto></div>
   <div id=element_auto_100px></div>
   <div id=element_25p_75p></div>
@@ -146,10 +152,18 @@
   test_approximate_width_at_fraction(element_auto_auto, 0.1, '110px');
   test_approximate_width_at_fraction(element_auto_auto, 0.5, '150px');
   test_approximate_width_at_fraction(element_auto_auto, 0.9, '190px');
-
   // TODO: Effects for scroll linked animations are not inclusive at max scroll
   // https://github.com/w3c/csswg-drafts/issues/5223
   test_approximate_width_at_fraction(element_auto_auto, 1, '0px');
+
+  // [auto, auto] (implicit)
+  test_approximate_width_at_fraction(element_auto_auto_implicit, 0, '100px');
+  test_approximate_width_at_fraction(element_auto_auto_implicit, 0.1, '110px');
+  test_approximate_width_at_fraction(element_auto_auto_implicit, 0.5, '150px');
+  test_approximate_width_at_fraction(element_auto_auto_implicit, 0.9, '190px');
+  // TODO: Effects for scroll linked animations are not inclusive at max scroll
+  // https://github.com/w3c/csswg-drafts/issues/5223
+  test_approximate_width_at_fraction(element_auto_auto_implicit, 1, '0px');
 
   // [50px, auto]
   {

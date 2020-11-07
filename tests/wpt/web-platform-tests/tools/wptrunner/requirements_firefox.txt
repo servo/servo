@@ -7,4 +7,4 @@ mozprocess==1.2.0
 mozprofile==2.5.0
 mozrunner==8.0.0
 mozversion==2.3.0
-psutil==5.7.2
+psutil==5.7.3

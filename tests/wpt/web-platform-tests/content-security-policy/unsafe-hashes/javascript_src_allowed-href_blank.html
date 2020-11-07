@@ -13,7 +13,7 @@
 
 <body>
     <div id='log'></div>
-    <a target="_blank" href='javascript:opener.t1.done();' id='test'>
+    <a target="_blank" rel="opener" href='javascript:opener.t1.done();' id='test'>
     <script nonce='abc'>
         var t1 = async_test("Test that the javascript: src is allowed to run");
 

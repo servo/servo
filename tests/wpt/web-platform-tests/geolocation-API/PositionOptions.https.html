@@ -4,10 +4,9 @@
 <link rel="help" href="http://www.w3.org/TR/geolocation-API/#position_options_interface">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <script src='support.js'></script>
-
-<p>Clear all Geolocation permissions before running this test. If prompted for permission, please allow.</p>
-<div id="log"></div>
 
 <script>
 // Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00123
@@ -35,7 +34,9 @@ test(function() {
 }, 'Call watchPosition with wrong type for enableHighAccuracy. No exception expected.');
 
 // Rewrite http://dev.w3.org/geo/api/test-suite/t.html?00086, 00088, 00091 and 00092
-test(function() {
+promise_test(async function() {
+  await test_driver.set_permission({name: 'geolocation'}, 'granted');
+
   var t86 = async_test('Set timeout and maximumAge to 0, check that timeout error raised (getCurrentPosition)'),
       t88 = async_test('Set timeout and maximumAge to 0, check that timeout error raised (watchPosition)'),
       t91 = async_test('Check that a negative timeout value is equivalent to a 0 timeout value (getCurrentLocation)'),

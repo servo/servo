@@ -26,13 +26,11 @@
    }, "eval of !TrustedScript and !string works.");
 
   test(t => {
-    // The Function constructor will string-ify its arguments. Hence, this
-    // throw because no default policy is defined.
-    assert_throws_js(EvalError, _ => new Function(p.createScript('1+1')));
+    assert_equals(new Function(p.createScript('return 1+1'))(), 2);
   }, "Function constructor of TrustedScript works.");
 
   test(t => {
-    assert_throws_js(EvalError, _ => new Function('1+1')());
+    assert_throws_js(EvalError, _ => new Function('return 1+1')());
   }, "Function constructor of string fails.");
 </script>
 

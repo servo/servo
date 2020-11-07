@@ -897,4 +897,41 @@
     ctx.fontVariantCaps = "abcd";
     @assert ctx.fontVariantCaps === "TitlingCaps";
 
+- name: 2d.text.drawing.style.textRendering.settings
+  desc: Testing basic functionalities of textRendering in Canvas
+  testing:
+  - 2d.text.drawing.style.textRendering
+  code: |
+    // Setting textRendering with lower cases
+    @assert ctx.textRendering === "Auto";
+
+    ctx.textRendering = "auto";
+    @assert ctx.textRendering === "Auto";
+
+    ctx.textRendering = "optimizespeed";
+    @assert ctx.textRendering === "OptimizeSpeed";
+
+    ctx.textRendering = "optimizelegibility";
+    @assert ctx.textRendering === "OptimizeLegibility";
+
+    ctx.textRendering = "geometricprecision";
+    @assert ctx.textRendering === "GeometricPrecision";
+
+    // Setting textRendering with lower cases and upper cases word.
+    ctx.textRendering = "aUto";
+    @assert ctx.textRendering === "Auto";
+
+    ctx.textRendering = "OPtimizeSpeed";
+    @assert ctx.textRendering === "OptimizeSpeed";
+
+    ctx.textRendering = "OPtimizELEgibility";
+    @assert ctx.textRendering === "OptimizeLegibility";
+
+    ctx.textRendering = "GeometricPrecision";
+    @assert ctx.textRendering === "GeometricPrecision";
+
+    // Setting textRendering with non-existing font variant.
+    ctx.textRendering = "abcd";
+    @assert ctx.textRendering === "GeometricPrecision";
+
 # TODO: shadows, alpha, composite, clip

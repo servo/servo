@@ -34,11 +34,8 @@
   }, "eval with TrustedScript and permissive CSP works.");
 
   test(t => {
-    assert_throws_js(EvalError, _ => {
-      // The Function constructor will string-ify its arguments. Hence, this
-      // throw because no default policy is defined.
-      let s = new Function(p.createScript('return "Hello transformed string"'));
-    });
+    let s = new Function(p.createScript('return "Hello transformed string"'))();
+    assert_equals(s, "Hello a cat string");
   }, "new Function with TrustedScript and permissive CSP works.");
 
   trustedTypes.createPolicy("default", { createScript: createScriptJS }, true);
