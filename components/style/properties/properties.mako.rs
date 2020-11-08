@@ -792,13 +792,43 @@ static ${name}: LonghandIdSet = LonghandIdSet {
 /// A group for properties which may override each other
 /// via logical resolution.
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[repr(u8)]
 pub enum LogicalGroup {
-    % for group in sorted(logical_groups.keys()):
+    % for i, group in enumerate(logical_groups.keys()):
     /// ${group}
-    ${to_camel_case(group)},
+    ${to_camel_case(group)} = ${i},
     % endfor
 }
 
+
+/// A set of logical groups.
+#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
+pub struct LogicalGroupSet {
+    storage: [u32; (${len(logical_groups)} - 1 + 32) / 32]
+}
+
+impl LogicalGroupSet {
+    /// Creates an empty `NonCustomPropertyIdSet`.
+    pub fn new() -> Self {
+        Self {
+            storage: Default::default(),
+        }
+    }
+
+    /// Return whether the given group is in the set
+    #[inline]
+    pub fn contains(&self, g: LogicalGroup) -> bool {
+        let bit = g as usize;
+        (self.storage[bit / 32] & (1 << (bit % 32))) != 0
+    }
+
+    /// Insert a group the set.
+    #[inline]
+    pub fn insert(&mut self, g: LogicalGroup) {
+        let bit = g as usize;
+        self.storage[bit / 32] |= 1 << (bit % 32);
+    }
+}
 
 /// A set of longhand properties
 #[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
