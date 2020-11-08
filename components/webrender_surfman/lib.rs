@@ -80,6 +80,9 @@ impl WebrenderSurfman {
                 let _ = device.destroy_surface(&mut context, &mut surface);
                 err
             })?;
+
+        device.make_context_current(&context)?;
+
         let swap_chain = if headless {
             Some(SwapChain::create_attached(
                 &mut device,
