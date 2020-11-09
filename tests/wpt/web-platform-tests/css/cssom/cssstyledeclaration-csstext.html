@@ -97,6 +97,18 @@
 
         }, 'invalid property does not appear');
 
+        test(function(){
+            var style = newElm().style;
+            style.cssText = "margin: 10px; margin-inline: 10px; margin-block: 10px; margin-inline-end: 10px; margin-bottom: 10px;";
+            assert_equals(style.cssText, "margin-top: 10px; margin-right: 10px; margin-left: 10px; margin-inline-start: 10px; margin-block: 10px; margin-inline-end: 10px; margin-bottom: 10px;");
+        }, 'Shorthands aren\'t serialized if there are other properties with different logical groups in between');
+
+        test(function(){
+            var style = newElm().style;
+            style.cssText = "margin-top: 10px; margin-left: 10px; margin-right: 10px; margin-bottom: 10px; margin-inline-start: 10px; margin-inline-end: 10px; margin-block-start: 10px; margin-block-end: 10px;";
+            assert_equals(style.cssText, "margin: 10px; margin-inline: 10px; margin-block: 10px;");
+        }, 'Shorthands _are_ serialized if there are no other properties with different logical groups in between');
+
         // https://github.com/w3c/csswg-drafts/issues/1033
         test(function() {
             var elm = newElm();
