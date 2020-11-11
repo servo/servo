@@ -304,7 +304,7 @@ class Task:
     def with_curl_script(self, url, file_path):
         return self \
         .with_script("""
-            curl --retry 5 --connect-timeout 10 -Lf "%s" -o "%s"
+            curl --compressed --retry 5 --connect-timeout 10 -Lf "%s" -o "%s"
         """ % (url, file_path))
 
     def with_curl_artifact_script(self, task_id, artifact_name, out_directory=""):
