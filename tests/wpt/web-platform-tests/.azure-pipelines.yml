@@ -79,6 +79,8 @@ jobs:
   steps:
   - template: tools/ci/azure/checkout.yml
   - script: |
+      set -euo pipefail
+      git fetch --depth 50 --quiet origin master
       ./wpt test-jobs | while read job; do
         echo "$job"
         echo "##vso[task.setvariable variable=$job;isOutput=true]true";

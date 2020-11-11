@@ -268,7 +268,7 @@ class FirefoxInstanceManager(object):
         marionette_port = get_free_port()
         profile.set_preferences({"marionette.port": marionette_port})
 
-        env = test_environment(xrePath=os.path.dirname(self.binary),
+        env = test_environment(xrePath=os.path.abspath(os.path.dirname(self.binary)),
                                debugger=self.debug_info is not None,
                                useLSan=True, log=self.logger)
 

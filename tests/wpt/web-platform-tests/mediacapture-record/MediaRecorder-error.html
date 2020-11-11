@@ -5,37 +5,14 @@
     <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="utils/sources.js"></script>
 </head>
 <body>
-<canvas id="canvas" width="320" height="320">
-</canvas>
 <script>
-    function createAudioStream() {
-        let ac = new AudioContext();
-        let osc = ac.createOscillator();
-        let dest = ac.createMediaStreamDestination();
-        osc.connect(dest);
-        return dest.stream;
-    }
-
-    function createVideoStream() {
-        let canvas = document.getElementById("canvas");
-        canvas.getContext('2d').lineTo(10, 10);
-        return canvas.captureStream();
-    }
-
-    function drawSomethingOnCanvas() {
-        let canvas = document.getElementById("canvas");
-        // Drawing something on the canvas generates a frame in its captured stream.
-        let context = canvas.getContext("2d");
-        context.fillStyle = "red";
-        context.fillRect(0, 0, 10, 10);
-    }
-
     async_test(t => {
-        let video = createVideoStream();
-        let audio = createAudioStream();
-        let recorder = new MediaRecorder(video);
+        const {stream: video, control} = createVideoStream(t);
+        const {stream: audio} = createAudioStream(t);
+        const recorder = new MediaRecorder(video);
         recorder.onerror = t.step_func(mediaRecorderErrorEvent => {
             assert_true(mediaRecorderErrorEvent instanceof MediaRecorderErrorEvent, 'the type of event should be MediaRecorderErrorEvent');
             assert_equals(mediaRecorderErrorEvent.error.name, 'InvalidModificationError', 'the type of error should be InvalidModificationError when track has been added or removed');
@@ -46,15 +23,15 @@
         recorder.start();
         assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
         video.addTrack(audio.getAudioTracks()[0]);
-        drawSomethingOnCanvas();
+        control.addVideoFrame();
         t.step_timeout(() => {
             assert_unreached("error event is not fired after 2 seconds");
         }, 2000);
     }, "MediaRecorder will stop recording when any of track is added and error event will be fired");
 
     async_test(t => {
-        let video = createVideoStream();
-        let recorder = new MediaRecorder(video);
+      const {stream: video, control} = createVideoStream(t);
+        const recorder = new MediaRecorder(video);
         recorder.onerror = t.step_func(mediaRecorderErrorEvent => {
             assert_true(mediaRecorderErrorEvent instanceof MediaRecorderErrorEvent, 'the type of event should be MediaRecorderErrorEvent');
             assert_equals(mediaRecorderErrorEvent.error.name, 'InvalidModificationError', 'the type of error should be InvalidModificationError when track has been added or removed');
@@ -65,15 +42,15 @@
         recorder.start();
         assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
         video.removeTrack(video.getVideoTracks()[0]);
-        drawSomethingOnCanvas();
+        control.addVideoFrame();
         t.step_timeout(() => {
             assert_unreached("error event is not fired after 2 seconds");
         }, 2000);
     }, "MediaRecorder will stop recording when any of track is removed and error event will be fired");
 
     test(t => {
-        let video = createVideoStream();
-        let recorder = new MediaRecorder(video);
+        const {stream: video} = createVideoStream(t);
+        const recorder = new MediaRecorder(video);
         recorder.start();
         assert_equals(recorder.state, "recording", "MediaRecorder has been started successfully");
         assert_throws_dom("InvalidStateError", function() {

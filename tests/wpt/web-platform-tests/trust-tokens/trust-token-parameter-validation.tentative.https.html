@@ -50,7 +50,7 @@
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
         trustToken: {
-          type: "send-srr",
+          type: "send-redemption-record",
           issuers: []
         }
       });
@@ -61,7 +61,7 @@
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
         trustToken: {
-          type: "send-srr",
+          type: "send-redemption-record",
           issuers: [3]
         }
       });
@@ -72,7 +72,7 @@
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
         trustToken: {
-          type: "send-srr",
+          type: "send-redemption-record",
           issuers: ["not a valid URL"]
         }
       });
@@ -83,7 +83,7 @@
     assert_throws_js(TypeError, () => {
       new Request('https://example.com', {
         trustToken: {
-          type: "send-srr",
+          type: "send-redemption-record",
           issuers: ["http://not-secure.com"]
         }
       });
@@ -93,7 +93,7 @@
   test(() => {
     new Request('https://example.com', {
       trustToken: {
-        type: "send-srr",
+        type: "send-redemption-record",
         issuers: ["http://localhost"]
       }
     });

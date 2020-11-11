@@ -75,4 +75,26 @@
       resolve();
     });
   }, "Set require trusted types for 'script' without CSP for trusted types don't block policy creation and using.");
+
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("require-trusted-types-for 'script'"));
+    let s = new Sanitizer();
+    assert_throws_js(TypeError,
+        _ => {
+          fragment = s.sanitize("testHTML");
+        });
+    return p;
+  }, "Require trusted types for 'script' block Sanitizer sanitize from string API.");
+
+  promise_test(t => {
+    let p = Promise.resolve()
+        .then(promise_violation("require-trusted-types-for 'script'"));
+    let s = new Sanitizer();
+    assert_throws_js(TypeError,
+        _ => {
+          fragment = s.sanitize(null);
+        });
+    return p;
+  }, "Require trusted types for 'script' block Sanitizer sanitize null from string API.");
 </script>

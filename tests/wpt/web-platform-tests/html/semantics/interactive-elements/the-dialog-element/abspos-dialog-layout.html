@@ -15,8 +15,8 @@ body {
 dialog {
     border: 0;
     padding: 0;
-    height: auto;
-    width: auto;
+    max-width: 100%;
+    max-height: 100%;
 }
 
 #absolute-div {
@@ -41,12 +41,12 @@ dialog {
 "use strict";
 
 function checkNotVerticallyCentered(dialog) {
-    var centeredTop = (window.innerHeight - dialog.offsetHeight) / 2;
+    var centeredTop = (document.documentElement.clientHeight - dialog.offsetHeight) / 2;
     assert_not_equals(dialog.getBoundingClientRect().top, centeredTop);
 }
 
 function checkVerticallyCentered(dialog) {
-    var centeredTop = (window.innerHeight - dialog.offsetHeight) / 2;
+    var centeredTop = (document.documentElement.clientHeight - dialog.offsetHeight) / 2;
     // Using approx equals because getBoundingClientRect() and centeredTop
     // are calculated by different parts of the engine. Due to the loss
     // of precision, the numbers might not equal exactly.
@@ -73,22 +73,6 @@ test(function() {
     dialog.showModal();
     checkVerticallyCentered(dialog);
 }, "showModal() should center in the viewport");
-
-test(function() {
-    this.add_cleanup(reset);
-
-    assert_equals(window.getComputedStyle(dialog).top, 'auto');
-    assert_equals(window.getComputedStyle(dialog).bottom, 'auto');
-
-    dialog.style.height = '20px';
-    dialog.showModal();
-
-    assert_not_equals(window.getComputedStyle(dialog).top, 'auto');
-    assert_not_equals(window.getComputedStyle(dialog).bottom, 'auto');
-
-    // Set back original value to 'height'.
-    dialog.style.height = 'auto';
-}, "The dialog is a positioned element, so the top and bottom should not have style auto.");
 
 test(function() {
     this.add_cleanup(reset);
@@ -122,7 +106,7 @@ test(function() {
     assert_equals(dialog.getBoundingClientRect().top, 0);
 
     // Set back original value to 'height'.
-    dialog.style.height = 'auto';
+    dialog.style.height = 'fit-content';
 }, "A tall dialog should be positioned at the top of the viewport.");
 
 test(function() {
@@ -167,13 +151,12 @@ test(function() {
     relativeContainer.appendChild(dialog);
 
     dialog.showModal();
-    assert_not_equals(dialog.getBoundingClientRect().top, relativeContainer.getBoundingClientRect().top);
+    checkVerticallyCentered(dialog);
     dialog.remove();
 
     relativeContainer.appendChild(dialog);
-    assert_equals(dialog.parentNode, relativeContainer);
-    assert_equals(dialog.getBoundingClientRect().top, relativeContainer.getBoundingClientRect().top);
-}, "Dialog should lose centering when removed from the document.");
+    checkVerticallyCentered(dialog);
+}, "Dialog should still be centered when removed, and re-added to the document.");
 
 test(function() {
     this.add_cleanup(reset);
@@ -186,7 +169,7 @@ test(function() {
     assert_equals(dialog.getBoundingClientRect().top, expectedTop);
 
     // Set back original value to 'top'.
-    dialog.style.top = 'auto';
+    dialog.style.top = '0';
 }, "Dialog's specified position should survive after close() and showModal().");
 
 test(function() {
@@ -194,43 +177,7 @@ test(function() {
 
     dialog.showModal();
     dialog.removeAttribute('open');
-    window.scroll(0, window.scrollY * 2);
-    checkNotVerticallyCentered(dialog);
     dialog.showModal();
     checkVerticallyCentered(dialog);
 }, "Dialog should be recentered if showModal() is called after removing 'open'.");
-
-test(function() {
-    this.add_cleanup(reset);
-
-    dialog.remove();
-    absoluteContainer.appendChild(dialog);
-    absoluteContainer.style.display = 'none';
-    dialog.showModal();
-    absoluteContainer.style.display = 'block';
-    // Since dialog's containing block is the ICB, it's statically positioned after <body>.
-    assert_equals(dialog.getBoundingClientRect().top, document.body.getBoundingClientRect().bottom);
-}, "Dialog should not be centered if showModal() was called when an ancestor had display 'none'.");
-
-test(function() {
-    this.add_cleanup(reset);
-
-    var offset = 50;
-    dialog.style.top = offset + 'px';
-    dialog.showModal();
-    assert_equals(dialog.getBoundingClientRect().top + window.scrollY, offset);
-    // Set back original value to 'top'.
-    dialog.style.top = 'auto';
-}, "A dialog with specified 'top' should be positioned as usual");
-
-test(function() {
-    this.add_cleanup(reset);
-
-    var offset = 50;
-    dialog.style.bottom = offset + 'px';
-    dialog.showModal();
-    assert_equals(dialog.getBoundingClientRect().bottom + window.scrollY, window.innerHeight - offset);
-    // Set back original value to 'bottom'.
-    dialog.style.bottom = 'auto';
-}, "A dialog with specified 'bottom' should be positioned as usual");
 </script>

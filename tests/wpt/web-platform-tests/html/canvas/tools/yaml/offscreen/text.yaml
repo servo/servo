@@ -769,7 +769,6 @@
   - 2d.text.align.left
   fonts:
   - CanvasTest
-  canvas: width="100" height="50" dir="ltr"
   code: |
     var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
     let fonts = (self.fonts ? self.fonts : document.fonts);
@@ -777,6 +776,7 @@
     fonts.add(f);
     fonts.ready.then(function() {
         ctx.font = '50px CanvasTest';
+        ctx.direction = 'ltr';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -798,7 +798,6 @@
   - 2d.text.draw.direction
   fonts:
   - CanvasTest
-  canvas: width="100" height="50" dir="rtl"
   code: |
     var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
     let fonts = (self.fonts ? self.fonts : document.fonts);
@@ -806,6 +805,7 @@
     fonts.add(f);
     fonts.ready.then(function() {
         ctx.font = '50px CanvasTest';
+        ctx.direction = 'rtl';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -826,7 +826,6 @@
   - 2d.text.align.right
   fonts:
   - CanvasTest
-  canvas: width="100" height="50" dir="ltr"
   code: |
     var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
     let fonts = (self.fonts ? self.fonts : document.fonts);
@@ -834,6 +833,7 @@
     fonts.add(f);
     fonts.ready.then(function() {
         ctx.font = '50px CanvasTest';
+        ctx.direction = 'ltr';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';
@@ -855,7 +855,6 @@
   - 2d.text.draw.direction
   fonts:
   - CanvasTest
-  canvas: width="100" height="50" dir="rtl"
   code: |
     var f = new FontFace("CanvasTest", "url('/fonts/CanvasTest.ttf')");
     let fonts = (self.fonts ? self.fonts : document.fonts);
@@ -863,6 +862,7 @@
     fonts.add(f);
     fonts.ready.then(function() {
         ctx.font = '50px CanvasTest';
+        ctx.direction = 'rtl';
         ctx.fillStyle = '#f00';
         ctx.fillRect(0, 0, 100, 50);
         ctx.fillStyle = '#0f0';

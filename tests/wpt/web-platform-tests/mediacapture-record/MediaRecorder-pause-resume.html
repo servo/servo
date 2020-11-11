@@ -5,19 +5,10 @@
     <link rel="help" href="https://w3c.github.io/mediacapture-record/MediaRecorder.html#mediarecorder">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
+    <script src="utils/sources.js"></script>
 </head>
 <body>
-<canvas id="canvas" width="200" height="200">
-</canvas>
 <script>
-    function createVideoStream() {
-        const canvas = document.getElementById("canvas");
-        const ctx = canvas.getContext('2d');
-        ctx.fillStyle = 'green';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        return canvas.captureStream();
-    }
-
     function recordEvents(target, events) {
         let arr = [];
         for (let ev of events) {
@@ -26,10 +17,11 @@
         return arr;
     }
 
-    promise_test(async () => {
-        let video = createVideoStream();
-        let recorder = new MediaRecorder(video);
-        let events = recordEvents(recorder,
+    promise_test(async t => {
+        const {stream: video, control} = createVideoStream(t);
+        control.addVideoFrame();
+        const recorder = new MediaRecorder(video);
+        const events = recordEvents(recorder,
             ["start", "stop", "dataavailable", "pause", "resume", "error"]);
 
         recorder.start();

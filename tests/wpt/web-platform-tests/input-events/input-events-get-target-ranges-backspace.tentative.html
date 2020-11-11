@@ -12,11 +12,11 @@
 <script>
 "use strict";
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc</p>");
   gSelection.collapse(gEditor.firstChild.firstChild, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abc</p>");
+  checkEditorContentResultAsSubTest("<p>abc</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: gEditor.firstChild.firstChild,
     startOffset: 0,
@@ -27,11 +27,11 @@ promise_test(async () => {
 }, 'Backspace at "<p>[]abc</p>"');
 
 // Simply deletes the previous ASCII character of caret position.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc</p>");
   gSelection.collapse(gEditor.firstChild.firstChild, 1);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>bc</p>");
+  checkEditorContentResultAsSubTest("<p>bc</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: gEditor.firstChild.firstChild,
     startOffset: 0,
@@ -42,11 +42,11 @@ promise_test(async () => {
 }, 'Backspace at "<p>a[]bc</p>"');
 
 // Simply deletes the previous ASCII character of caret position.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc</p>");
   gSelection.collapse(gEditor.firstChild.firstChild, 2);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>ac</p>");
+  checkEditorContentResultAsSubTest("<p>ac</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: gEditor.firstChild.firstChild,
     startOffset: 1,
@@ -57,11 +57,11 @@ promise_test(async () => {
 }, 'Backspace at "<p>ab[]c</p>"');
 
 // Simply deletes the previous ASCII character of caret position.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc</p>");
   gSelection.collapse(gEditor.firstChild.firstChild, 3);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>ab</p>");
+  checkEditorContentResultAsSubTest("<p>ab</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: gEditor.firstChild.firstChild,
     startOffset: 2,
@@ -75,12 +75,12 @@ promise_test(async () => {
 // However, we need discussion whether the `<span>` element should be
 // contained by a range of `getTargetRanges()`.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>a<span>b</span>c</p>");
   let c = gEditor.querySelector("span").nextSibling;
   gSelection.collapse(c, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>ac</p>");
+  checkEditorContentResultAsSubTest("<p>ac</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: gEditor.firstChild,
     startOffset: 1,
@@ -94,12 +94,12 @@ promise_test(async () => {
 // However, we need discussion whether the `<span>` element should be
 // contained by a range of `getTargetRanges()`.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>a<span>b</span>c</p>");
   let b = gEditor.querySelector("span").firstChild;
   gSelection.collapse(b, 1);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>ac</p>");
+  checkEditorContentResultAsSubTest("<p>ac</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: gEditor.firstChild,
     startOffset: 1,
@@ -113,12 +113,17 @@ promise_test(async () => {
 // character is deleted.  If it's deleted, it should be contained by
 // the range of `getTargetRanges()`, but needs discussion.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p> abc</p>");
   gSelection.collapse(gEditor.firstChild.firstChild, 2);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<p>bc</p>",
-                                      "<p> bc</p>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<p>bc</p>",
+      "<p> bc</p>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: gEditor.firstChild.firstChild,
     startOffset: gEditor.firstChild.firstChild.length == 2 ? 0 : 1,
@@ -128,7 +133,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<p> a[]bc</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc</p><p>def</p>");
   let p1 = gEditor.firstChild;
   let abc = p1.firstChild;
@@ -136,7 +141,7 @@ promise_test(async () => {
   let def = p2.firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abcdef</p>");
+  checkEditorContentResultAsSubTest("<p>abcdef</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -151,7 +156,7 @@ promise_test(async () => {
 // becoming visible when the blocks are joined.  Perhaps, they should be
 // contained by the range of `getTargetRanges()`, but needs discussion.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc   </p><p>   def</p>");
   let p1 = gEditor.firstChild;
   let abc = p1.firstChild;
@@ -159,7 +164,7 @@ promise_test(async () => {
   let def = p2.firstChild;
   gSelection.collapse(def, 3);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abcdef</p>");
+  checkEditorContentResultAsSubTest("<p>abcdef</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -174,7 +179,7 @@ promise_test(async () => {
 // becoming visible when the blocks are joined.  Perhaps, they should be
 // contained by the range of `getTargetRanges()`, but needs discussion.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc   </p><p>   def</p>");
   let p1 = gEditor.firstChild;
   let abc = p1.firstChild;
@@ -182,7 +187,7 @@ promise_test(async () => {
   let def = p2.firstChild;
   gSelection.collapse(def, 2);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abcdef</p>");
+  checkEditorContentResultAsSubTest("<p>abcdef</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -197,7 +202,7 @@ promise_test(async () => {
 // becoming visible when the blocks are joined.  Perhaps, they should be
 // contained by the range of `getTargetRanges()`, but needs discussion.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc   </p><p>   def</p>");
   let p1 = gEditor.firstChild;
   let abc = p1.firstChild;
@@ -205,7 +210,7 @@ promise_test(async () => {
   let def = p2.firstChild;
   gSelection.collapse(def, 1);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abcdef</p>");
+  checkEditorContentResultAsSubTest("<p>abcdef</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -220,7 +225,7 @@ promise_test(async () => {
 // becoming visible when the blocks are joined.  Perhaps, they should be
 // contained by the range of `getTargetRanges()`, but needs discussion.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc   </p><p>   def</p>");
   let p1 = gEditor.firstChild;
   let abc = p1.firstChild;
@@ -228,7 +233,7 @@ promise_test(async () => {
   let def = p2.firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abcdef</p>");
+  checkEditorContentResultAsSubTest("<p>abcdef</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -238,13 +243,13 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<p>abc   </p><p>[]   def</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc</p><p><b>def</b></p>");
   let abc = gEditor.querySelector("p").firstChild;
   let def = gEditor.querySelector("b").firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abc<b>def</b></p>");
+  checkEditorContentResultAsSubTest("<p>abc<b>def</b></p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -254,14 +259,19 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<p>abc</p><p><b>[]def</b></p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p><b>abc</b></p><p><b>def</b></p>");
   let abc = gEditor.querySelector("p > b").firstChild;
   let def = gEditor.querySelector("P + p > b").firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<p><b>abc</b><b>def</b></p>",
-                                      "<p><b>abcdef</b></p>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<p><b>abc</b><b>def</b></p>",
+      "<p><b>abcdef</b></p>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -271,13 +281,13 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<p><b>abc</b></p><p><b>[]def</b></p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p><i>abc</i></p><p><b>def</b></p>");
   let abc = gEditor.querySelector("i").firstChild;
   let def = gEditor.querySelector("b").firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p><i>abc</i><b>def</b></p>");
+  checkEditorContentResultAsSubTest("<p><i>abc</i><b>def</b></p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -293,7 +303,7 @@ promise_test(async () => {
 // deleted.  Perhaps, the invisible white-spaces should be contained by
 // the range of `getTargetRanges()`, but needs discussion.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<pre>abc   </pre><p>   def</p>");
   let pre = gEditor.firstChild;
   let abc = pre.firstChild;
@@ -303,7 +313,7 @@ promise_test(async () => {
   await sendBackspaceKey();
   // https://github.com/w3c/input-events/issues/112
   // Shouldn't make the invisible white-spaces visible.
-  assert_equals(gEditor.innerHTML, "<pre>abc   def</pre>");
+  checkEditorContentResultAsSubTest("<pre>abc   def</pre>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 6,
@@ -322,7 +332,7 @@ promise_test(async () => {
 // by additional range of `getTargetRanges()` or not because of the
 // implementation cost and runtime cost.  Needs discuss.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<pre>abc   </pre><p>   def   </p>");
   let pre = gEditor.firstChild;
   let abc = pre.firstChild;
@@ -330,7 +340,7 @@ promise_test(async () => {
   let def = p.firstChild;
   gSelection.collapse(def, 3);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<pre>abc   def   </pre>");
+  checkEditorContentResultAsSubTest("<pre>abc   def   </pre>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 6,
@@ -347,7 +357,7 @@ promise_test(async () => {
 // be in the range of `getTargetRanges()`, but not so for the preformatted
 // visible leading white-spaces.  But needs discussion.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc   </p><pre>   def</pre>");
   let p = gEditor.firstChild;
   let abc = p.firstChild;
@@ -355,10 +365,15 @@ promise_test(async () => {
   let def = pre.firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<p>abc &nbsp; def</p>",
-                                      "<p>abc&nbsp;&nbsp; def</p>",
-                                      "<p>abc&nbsp; &nbsp;def</p>",
-                                      "<p>abc &nbsp;&nbsp;def</p>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<p>abc &nbsp; def</p>",
+      "<p>abc&nbsp;&nbsp; def</p>",
+      "<p>abc&nbsp; &nbsp;def</p>",
+      "<p>abc &nbsp;&nbsp;def</p>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 6,
@@ -373,7 +388,7 @@ promise_test(async () => {
 // deleted and join the blocks.  Therefore, the target range should contain
 // the `<br>` element and block boundaries. But maybe needs discussion.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc<br></p><p>def</p>");
   let p1 = gEditor.firstChild;
   let abc = p1.firstChild;
@@ -381,7 +396,7 @@ promise_test(async () => {
   let def = p2.firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abcdef</p>");
+  checkEditorContentResultAsSubTest("<p>abcdef</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p1,
     startOffset: 1,
@@ -396,7 +411,7 @@ promise_test(async () => {
 // should be deleted and join the blocks.  Therefore, the target range should
 // contain the `<br>` element and block boundaries. But maybe needs discussion.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc<br><br></p><p>def</p>");
   let p1 = gEditor.firstChild;
   let abc = p1.firstChild;
@@ -404,7 +419,7 @@ promise_test(async () => {
   let def = p2.firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abc<br>def</p>");
+  checkEditorContentResultAsSubTest("<p>abc<br>def</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p1,
     startOffset: 2,
@@ -416,13 +431,13 @@ promise_test(async () => {
 
 // Deleting visible `<br>` element should be contained by a range of
 // `getTargetRanges()`.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc<br>def</p>");
   let p = document.querySelector("p");
   let def = gEditor.querySelector("br").nextSibling;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abcdef</p>");
+  checkEditorContentResultAsSubTest("<p>abcdef</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p,
     startOffset: 1,
@@ -434,13 +449,13 @@ promise_test(async () => {
 
 // Deleting visible `<br>` element following white-space should not include
 // the preceding white-space in the range.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc <br>def</p>");
   let p = gEditor.querySelector("p");
   let def = gEditor.querySelector("br").nextSibling;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abc def</p>");
+  checkEditorContentResultAsSubTest("<p>abc def</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p,
     startOffset: 1,
@@ -450,13 +465,13 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<p>abc <br>[]def</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest(`<p>abc<img src="${kImgSrc}">def</p>`);
   let p = gEditor.querySelector("p");
   let def = p.lastChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abcdef</p>");
+  checkEditorContentResultAsSubTest("<p>abcdef</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p,
     startOffset: 1,
@@ -468,13 +483,13 @@ promise_test(async () => {
 
 // White-spaces around `<img>` element are visible so that they shouldn't
 // be included into the target ranges.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest(`<p>abc <img src="${kImgSrc}">def</p>`);
   let p = gEditor.querySelector("p");
   let def = p.lastChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abc def</p>");
+  checkEditorContentResultAsSubTest("<p>abc def</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p,
     startOffset: 1,
@@ -486,13 +501,13 @@ promise_test(async () => {
 
 // White-spaces around `<img>` element are visible so that they shouldn't
 // be included into the target ranges.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest(`<p>abc<img src="${kImgSrc}"> def</p>`);
   let p = gEditor.querySelector("p");
   let def = p.lastChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abc def</p>");
+  checkEditorContentResultAsSubTest("<p>abc def</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p,
     startOffset: 1,
@@ -502,13 +517,16 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<p>abc<img>[] def</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest(`<p>abc<img src="${kImgSrc}"><img src="${kImgSrc}">def</p>`);
   let p = gEditor.querySelector("p");
   let abc = p.firstChild;
   gSelection.collapse(p, 2);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, `<p>abc<img src="${kImgSrc}">def</p>`);
+  checkEditorContentResultAsSubTest(
+    `<p>abc<img src="${kImgSrc}">def</p>`,
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p,
     startOffset: 1,
@@ -518,13 +536,16 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<p>abc<img>{}<img>def</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest(`<p>abc<img src="${kImgSrc}"><img src="${kImgSrc}">def</p>`);
   let p = gEditor.querySelector("p");
   let def = p.lastChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, `<p>abc<img src="${kImgSrc}">def</p>`);
+  checkEditorContentResultAsSubTest(
+    `<p>abc<img src="${kImgSrc}">def</p>`,
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p,
     startOffset: 2,
@@ -534,14 +555,14 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<p>abc<img><img>[]def</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest(`<div>abc<hr>def</div>`);
   let div = gEditor.querySelector("div");
   let hr = gEditor.querySelector("hr");
   let def = hr.nextSibling;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div>abcdef</div>");
+  checkEditorContentResultAsSubTest("<div>abcdef</div>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: div,
     startOffset: 1,
@@ -555,7 +576,7 @@ promise_test(async () => {
 // they should be included into the target ranges to avoid they bcome
 // visible.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest(`<div>abc <hr>def</div>`);
   let div = gEditor.querySelector("div");
   let abc = div.firstChild;
@@ -563,7 +584,7 @@ promise_test(async () => {
   let def = hr.nextSibling;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div>abcdef</div>");
+  checkEditorContentResultAsSubTest("<div>abcdef</div>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -577,14 +598,14 @@ promise_test(async () => {
 // they should be included into the target ranges to avoid they bcome
 // visible.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest(`<div>abc<hr> def</div>`);
   let div = gEditor.querySelector("div");
   let hr = gEditor.querySelector("hr");
   let def = hr.nextSibling;
   gSelection.collapse(def, 1);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div>abcdef</div>");
+  checkEditorContentResultAsSubTest("<div>abcdef</div>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: div,
     startOffset: 1,
@@ -596,13 +617,13 @@ promise_test(async () => {
 
 // Invisible `<br>` element immediately before `<hr>` element should be
 // deleted once, and both of them should be included in the target range.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest(`<div>abc<br><hr>def</div>`);
   let div = gEditor.querySelector("div");
   let def = div.lastChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div>abcdef</div>");
+  checkEditorContentResultAsSubTest("<div>abcdef</div>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: div,
     startOffset: 1,
@@ -616,13 +637,13 @@ promise_test(async () => {
 // the following white-space in the range because it shouldn't become
 // visible and should be deleted for avoiding it.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc<br> def</p>");
   let p = gEditor.querySelector("p");
   let def = gEditor.querySelector("br").nextSibling;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abcdef</p>");
+  checkEditorContentResultAsSubTest("<p>abcdef</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p,
     startOffset: 1,
@@ -631,13 +652,13 @@ promise_test(async () => {
   });
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<p>abc<br>[] def</p>"');
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc<br> def</p>");
   let p = gEditor.querySelector("p");
   let def = gEditor.querySelector("br").nextSibling;
   gSelection.collapse(def, 1);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abcdef</p>");
+  checkEditorContentResultAsSubTest("<p>abcdef</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p,
     startOffset: 1,
@@ -647,15 +668,20 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<p>abc<br> []def</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div>abc<p>def<br>ghi</p></div>");
   let p = gEditor.querySelector("p");
   let def = p.firstChild;
   let abc = gEditor.firstChild.firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<div>abcdef<p>ghi</p></div>",
-                                      "<div>abcdef<br><p>ghi</p></div>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<div>abcdef<p>ghi</p></div>",
+      "<div>abcdef<br><p>ghi</p></div>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -670,15 +696,20 @@ promise_test(async () => {
 // the child block, and they should be contained in a range of
 // `getTargetRanges()`, but maybe needs discussion.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div>abc   <p>   def<br>ghi</p></div>");
   let p = gEditor.querySelector("p");
   let def = p.firstChild;
   let abc = gEditor.firstChild.firstChild;
   gSelection.collapse(def, 3);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<div>abcdef<p>ghi</p></div>",
-                                      "<div>abcdef<br><p>ghi</p></div>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<div>abcdef<p>ghi</p></div>",
+      "<div>abcdef<br><p>ghi</p></div>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -688,13 +719,13 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div>abc   <p>   []def<br>ghi</p></div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div>abc<p><b>def</b></p></div>");
   let abc = gEditor.querySelector("div").firstChild;
   let def = gEditor.querySelector("b").firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div>abc<b>def</b></div>");
+  checkEditorContentResultAsSubTest("<div>abc<b>def</b></div>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -704,14 +735,19 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div>abc<p><b>[]def</b></p></div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div><b>abc</b><p><b>def</b></p></div>");
   let abc = gEditor.querySelector("b").firstChild;
   let def = gEditor.querySelector("p > b").firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<div><b>abc</b><b>def</b></div>",
-                                      "<div><b>abcdef</b></div>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<div><b>abc</b><b>def</b></div>",
+      "<div><b>abcdef</b></div>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -721,13 +757,13 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div><b>abc</b><p><b>[]def</b></p></div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div><i>abc</i><p><b>def</b></p></div>");
   let abc = gEditor.querySelector("i").firstChild;
   let def = gEditor.querySelector("b").firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div><i>abc</i><b>def</b></div>");
+  checkEditorContentResultAsSubTest("<div><i>abc</i><b>def</b></div>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -737,14 +773,19 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div><i>abc</i><p><b>[]def</b></p></div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div><p>abc</p>def</div>");
   let abc = gEditor.querySelector("p").firstChild;
   let def = gEditor.querySelector("p").nextSibling;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<div><p>abcdef</p></div>",
-                                      "<div><p>abcdef<br></p></div>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<div><p>abcdef</p></div>",
+      "<div><p>abcdef<br></p></div>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -759,14 +800,19 @@ promise_test(async () => {
 // in the parent block, and they should be contained by a range of
 // `getTargetRanges()`, but maybe needs discussion.
 // https://github.com/w3c/input-events/issues/112
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div><p>abc   </p>   def</div>");
   let abc = gEditor.querySelector("p").firstChild;
   let def = gEditor.querySelector("p").nextSibling;
   gSelection.collapse(def, 3);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<div><p>abcdef</p></div>",
-                                      "<div><p>abcdef<br></p></div>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<div><p>abcdef</p></div>",
+      "<div><p>abcdef<br></p></div>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -776,13 +822,13 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div><p>abc   </p>   []def</div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div><p><b>abc</b></p>def</div>");
   let abc = gEditor.querySelector("b").firstChild;
   let def = gEditor.querySelector("p").nextSibling;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div><p><b>abc</b>def</p></div>");
+  checkEditorContentResultAsSubTest("<div><p><b>abc</b>def</p></div>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -792,14 +838,19 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div><p><b>abc</b></p>[]def</div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div><p><b>abc</b></p><b>def</b></div>");
   let abc = gEditor.querySelector("b").firstChild;
   let def = gEditor.querySelector("div > b").firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<div><p><b>abc</b><b>def</b></p></div>",
-                                      "<div><p><b>abcdef</b></p></div>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<div><p><b>abc</b><b>def</b></p></div>",
+      "<div><p><b>abcdef</b></p></div>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -809,13 +860,16 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div><p><b>abc</b></p><b>[]def</b></div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div><p><b>abc</b></p><i>def</i></div>");
   let abc = gEditor.querySelector("b").firstChild;
   let def = gEditor.querySelector("i").firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div><p><b>abc</b><i>def</i></p></div>");
+  checkEditorContentResultAsSubTest(
+    "<div><p><b>abc</b><i>def</i></p></div>",
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -825,13 +879,13 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div><p><b>abc</b></p><i>[]def</i></div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div>abc<ul><li>def</li></ul>ghi</div>");
   let abc = gEditor.querySelector("div").firstChild;
   let def = gEditor.querySelector("li").firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div>abcdefghi</div>");
+  checkEditorContentResultAsSubTest("<div>abcdefghi</div>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -841,13 +895,13 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div>abc<ul><li>[]def</li></ul>ghi</div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div>abc  <ul><li> def </li></ul>  ghi</div>");
   let abc = gEditor.querySelector("div").firstChild;
   let def = gEditor.querySelector("li").firstChild;
   gSelection.collapse(def, 1);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div>abcdefghi</div>");
+  checkEditorContentResultAsSubTest("<div>abcdefghi</div>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -857,13 +911,13 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div>abc  <ul><li> []def </li></ul>  ghi</div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div>abc  <ul><li> def </li></ul>  ghi</div>");
   let abc = gEditor.querySelector("div").firstChild;
   let def = gEditor.querySelector("li").firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div>abcdefghi</div>");
+  checkEditorContentResultAsSubTest("<div>abcdefghi</div>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -873,13 +927,16 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div>abc  <ul><li>[] def </li></ul>  ghi</div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div>abc<ul><li>def</li></ul>ghi</div>");
   let def = gEditor.querySelector("li").firstChild;
   let ghi = gEditor.querySelector("ul").nextSibling;
   gSelection.collapse(ghi, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div>abc<ul><li>defghi</li></ul></div>");
+  checkEditorContentResultAsSubTest(
+    "<div>abc<ul><li>defghi</li></ul></div>",
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: def,
     startOffset: 3,
@@ -889,15 +946,20 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div>abc<ul><li>def</li></ul>[]ghi</div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div>abc <ul><li>  def  </li></ul> ghi</div>");
   let def = gEditor.querySelector("li").firstChild;
   let ghi = gEditor.querySelector("ul").nextSibling;
   gSelection.collapse(ghi, 1);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<div>abc <ul><li>  defghi</li></ul></div>",
-                                      "<div>abc <ul><li>defghi</li></ul></div>",
-                                      "<div>abc<ul><li>defghi</li></ul></div>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<div>abc <ul><li>  defghi</li></ul></div>",
+      "<div>abc <ul><li>defghi</li></ul></div>",
+      "<div>abc<ul><li>defghi</li></ul></div>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: def,
     startOffset: 5,
@@ -907,15 +969,20 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div>abc <ul><li>  def  </li></ul> []ghi</div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div>abc <ul><li>  def  </li></ul> ghi</div>");
   let def = gEditor.querySelector("li").firstChild;
   let ghi = gEditor.querySelector("ul").nextSibling;
   gSelection.collapse(ghi, 0);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<div>abc <ul><li>  defghi</li></ul></div>",
-                                      "<div>abc <ul><li>defghi</li></ul></div>",
-                                      "<div>abc<ul><li>defghi</li></ul></div>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<div>abc <ul><li>  defghi</li></ul></div>",
+      "<div>abc <ul><li>defghi</li></ul></div>",
+      "<div>abc<ul><li>defghi</li></ul></div>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: def,
     startOffset: 5,
@@ -925,13 +992,16 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div>abc <ul><li>  def  </li></ul>[] ghi</div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div>abc<ul><li>def</li><li>ghi</li></ul>jkl</div>");
   let abc = gEditor.querySelector("div").firstChild;
   let def = gEditor.querySelector("li").firstChild;
   gSelection.collapse(def, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div>abcdef<ul><li>ghi</li></ul>jkl</div>");
+  checkEditorContentResultAsSubTest(
+    "<div>abcdef<ul><li>ghi</li></ul>jkl</div>",
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -941,13 +1011,16 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div>abc<ul><li>[]def</li><li>ghi</li></ul>jkl</div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div>abc<ul><li>def</li><li>ghi</li></ul>jkl</div>");
   let def = gEditor.querySelector("li").firstChild;
   let ghi = gEditor.querySelector("li + li").firstChild;
   gSelection.collapse(ghi, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div>abc<ul><li>defghi</li></ul>jkl</div>");
+  checkEditorContentResultAsSubTest(
+    "<div>abc<ul><li>defghi</li></ul>jkl</div>",
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: def,
     startOffset: 3,
@@ -957,13 +1030,16 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<div>abc<ul><li>def</li><li>[]ghi</li></ul>jkl</div>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<div>abc<ul><li>def</li><li>ghi</li></ul>jkl</div>");
   let ghi = gEditor.querySelector("li + li").firstChild;
   let jkl = gEditor.querySelector("ul").nextSibling;
   gSelection.collapse(jkl, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<div>abc<ul><li>def</li><li>ghijkl</li></ul></div>");
+  assert_equals(gEditor.innerHTML,
+    "<div>abc<ul><li>def</li><li>ghijkl</li></ul></div>",
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: ghi,
     startOffset: 3,
@@ -977,14 +1053,14 @@ promise_test(async () => {
 // case, it should be treated as joining with the previous paragraph.
 // The target range should include the invisible <br> element in the empty
 // paragraph.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc</p><p><br></p>");
   let p1 = gEditor.querySelector("p");
   let abc = p1.firstChild;
   let p2 = p1.nextSibling;
   gSelection.collapse(p2, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abc</p>");
+  checkEditorContentResultAsSubTest("<p>abc</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -996,7 +1072,7 @@ promise_test(async () => {
 
 // Delete ignore the empty span and the other things must be same as the
 // previous test.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc</p><p><span></span><br></p>");
   let p1 = gEditor.querySelector("p");
   let abc = p1.firstChild;
@@ -1004,7 +1080,7 @@ promise_test(async () => {
   let span = p2.firstChild;
   gSelection.collapse(span, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abc</p>");
+  checkEditorContentResultAsSubTest("<p>abc</p>", t.name);
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: 3,
@@ -1016,15 +1092,20 @@ promise_test(async () => {
 
 // If invisible white-spaces are removed with same action as above tests,
 // the range should be included in the target ranges.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc  </p><p><br></p>");
   let p1 = gEditor.querySelector("p");
   let abc = p1.firstChild;
   let p2 = p1.nextSibling;
   gSelection.collapse(p2, 0);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<p>abc  </p>",
-                                      "<p>abc</p>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<p>abc  </p>",
+      "<p>abc</p>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: abc,
     startOffset: abc.length,
@@ -1036,14 +1117,17 @@ promise_test(async () => {
 
 // If the previous block ends with non-editable content, target range
 // should be after the non-editable content node.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc<span contenteditable=\"false\">def</span></p><p><br></p>");
   let p1 = gEditor.querySelector("p");
   let span = gEditor.querySelector("span");
   let p2 = p1.nextSibling;
   gSelection.collapse(p2, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abc<span contenteditable=\"false\">def</span></p>");
+  checkEditorContentResultAsSubTest(
+    "<p>abc<span contenteditable=\"false\">def</span></p>",
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p1,
     startOffset: 2,
@@ -1056,7 +1140,7 @@ promise_test(async () => {
 // If previous non-editable paragraph is deleted, target range should begin
 // with end of the text node in the first paragraph.  Otherwise, start from
 // after the non-editable paragraph.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc</p><p contenteditable=\"false\">def</p><p><br></p>");
   let p1 = gEditor.querySelector("p");
   let abc = p1.firstChild;
@@ -1064,8 +1148,13 @@ promise_test(async () => {
   let p3 = p2.nextSibling;
   gSelection.collapse(p3, 0);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<p>abc</p>",
-                                      "<p>abc</p><p contenteditable=\"false\">def</p>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<p>abc</p>",
+      "<p>abc</p><p contenteditable=\"false\">def</p>",
+    ],
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: p2.isConnected ? gEditor : abc,
     startOffset: p2.isConnected ? 2 : abc.length,
@@ -1075,15 +1164,20 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<p>abc</p><p contenteditable=\"false\">def</p><p>{}<br></p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc<span contenteditable=\"false\">def</span>ghi</p>");
   let p = gEditor.querySelector("p");
   let ghi = p.lastChild;
   gSelection.collapse(ghi, 0);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<p>abc<span contenteditable=\"false\">def</span>ghi</p>",
-                                      "<p>abcghi</p>",
-                                      "<p>abcghi<br></p>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<p>abc<span contenteditable=\"false\">def</span>ghi</p>",
+      "<p>abcghi</p>",
+      "<p>abcghi<br></p>",
+    ],
+    t.name
+  );
   if (gEditor.innerHTML === "<p>abc<span contenteditable=\"false\">def</span>ghi</p>") {
     checkGetTargetRangesOfBeforeinputOnDeleteSomething({
       startContainer: ghi,
@@ -1107,14 +1201,19 @@ promise_test(async () => {
 
 // If just removes the paragraph, target range should start from after the
 // table element.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<table><tr><td>cell</td></tr></table><p><br></p>");
   let table = gEditor.querySelector("table");
   let p = table.nextSibling;
   gSelection.collapse(p, 0);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td>cell</td></tr></tbody></table>",
-                                      "<table><tbody><tr><td>cell</td></tr></tbody></table><p><br></p>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<table><tbody><tr><td>cell</td></tr></tbody></table>",
+      "<table><tbody><tr><td>cell</td></tr></tbody></table><p><br></p>",
+    ],
+    t.name
+  );
   if (p.isConnected) {
     checkGetTargetRangesOfBeforeinputOnDeleteSomething({
       startContainer: p,
@@ -1136,13 +1235,16 @@ promise_test(async () => {
 
 // If table cell won't be joined, target range should be collapsed in the
 // cell.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<table><tr><td>cell1</td><td><br></td></tr></table>");
   let cell1 = gEditor.querySelector("td");
   let cell2 = cell1.nextSibling;
   gSelection.collapse(cell2, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<table><tbody><tr><td>cell1</td><td><br></td></tr></tbody></table>");
+  assert_equals(gEditor.innerHTML,
+    "<table><tbody><tr><td>cell1</td><td><br></td></tr></tbody></table>",
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: cell2,
     startOffset: 0,
@@ -1154,12 +1256,15 @@ promise_test(async () => {
 
 // If table caption won't be deleted, target range should be collapsed in the
 // caption element.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc</p><table><caption><br></caption><tr><td>cell</td></tr></table>");
   let caption = gEditor.querySelector("caption");
   gSelection.collapse(caption, 0);
   await sendBackspaceKey();
-  assert_equals(gEditor.innerHTML, "<p>abc</p><table><caption><br></caption><tbody><tr><td>cell</td></tr></tbody></table>");
+  assert_equals(gEditor.innerHTML,
+    "<p>abc</p><table><caption><br></caption><tbody><tr><td>cell</td></tr></tbody></table>",
+    t.name
+  );
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
     startContainer: caption,
     startOffset: 0,
@@ -1170,14 +1275,19 @@ promise_test(async () => {
 }, 'Backspace at "<p>abc</p><table><caption>{}<br></caption><tr><td>cell</td></tr></table>"');
 
 // If a table cell element is selected, only its content should be deleted.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr></table>");
   let cell1 = gEditor.querySelector("td");
   let tr = cell1.parentNode;
   gSelection.setBaseAndExtent(tr, 0, tr, 1);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td><td>cell2</td></tr></tbody></table>",
-                                      "<table><tbody><tr><td><br></td><td>cell2</td></tr></tbody></table>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<table><tbody><tr><td></td><td>cell2</td></tr></tbody></table>",
+      "<table><tbody><tr><td><br></td><td>cell2</td></tr></tbody></table>",
+    ],
+    t.name
+  );
   // XXX Perhaps, target range should be selecting only all children of
   //     cell1 instead.
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
@@ -1189,14 +1299,19 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<table><tr>{<td>cell1</td>}<td>cell2</td></tr></table>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr></table>");
   let cell2 = gEditor.querySelector("td + td");
   let tr = cell2.parentNode;
   gSelection.setBaseAndExtent(tr, 1, tr, 2);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td>cell1</td><td></td></tr></tbody></table>",
-                                      "<table><tbody><tr><td>cell1</td><td><br></td></tr></tbody></table>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<table><tbody><tr><td>cell1</td><td></td></tr></tbody></table>",
+      "<table><tbody><tr><td>cell1</td><td><br></td></tr></tbody></table>",
+    ],
+    t.name
+  );
   // XXX Perhaps, target range should be selecting only all children of
   //     cell1 instead.
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({
@@ -1209,16 +1324,21 @@ promise_test(async () => {
 }, 'Backspace at "<table><tr><td>cell1</td>{<td>cell2</td>}</tr></table>"');
 
 // If the last table cell element is selected, what browsers should do?
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<table><tr><td>cell</td></tr></table>");
   let cell = gEditor.querySelector("td");
   let tr = cell.parentNode;
   let table = gEditor.querySelector("table");
   gSelection.setBaseAndExtent(tr, 0, tr, 1);
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td></tr></tbody></table>",
-                                      "<table><tbody><tr><td><br></td></tr></tbody></table>",
-                                      "<br>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<table><tbody><tr><td></td></tr></tbody></table>",
+      "<table><tbody><tr><td><br></td></tr></tbody></table>",
+      "<br>",
+    ],
+    t.name
+  );
   if (gEditor.querySelector("table")) {
     // XXX Perhaps, target range should be selecting only all children of
     //     cell1 instead.
@@ -1242,7 +1362,7 @@ promise_test(async () => {
 }, 'Backspace at "<table><tr>{<td>cell</td>}</tr></table>"');
 
 // Testing multiple cell selection mode.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>");
   let cell1 = gEditor.querySelector("td");
   let cell4 = gEditor.querySelector("tr + tr > td + td");
@@ -1257,8 +1377,13 @@ promise_test(async () => {
   gSelection.addRange(range);
   assert_equals(gSelection.rangeCount, 2, "Should support multiple cell selection");
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td><td>cell2</td></tr><tr><td>cell3</td><td></td></tr></tbody></table>",
-                                      "<table><tbody><tr><td><br></td><td>cell2</td></tr><tr><td>cell3</td><td><br></td></tr></tbody></table>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<table><tbody><tr><td></td><td>cell2</td></tr><tr><td>cell3</td><td></td></tr></tbody></table>",
+      "<table><tbody><tr><td><br></td><td>cell2</td></tr><tr><td>cell3</td><td><br></td></tr></tbody></table>",
+    ],
+    t.name
+  );
   // XXX Perhaps, target range should be selecting only all children of
   //     cell1 and cell4 instead.
   checkGetTargetRangesOfBeforeinputOnDeleteSomething([
@@ -1278,7 +1403,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<table><tr>{<td>cell1</td>}<td>cell2</td></tr><tr><td>cell3</td>{<td>cell4</td>}</tr></table>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>");
   let cell1 = gEditor.querySelector("td");
   let cell3 = gEditor.querySelector("tr + tr > td");
@@ -1293,9 +1418,14 @@ promise_test(async () => {
   gSelection.addRange(range);
   assert_equals(gSelection.rangeCount, 2, "Should support multiple cell selection");
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td><td>cell2</td></tr><tr><td></td><td>cell4</td></tr></tbody></table>",
-                                      "<table><tbody><tr><td><br></td><td>cell2</td></tr><tr><td><br></td><td>cell4</td></tr></tbody></table>",
-                                      "<table><tbody><tr><td>cell2</td></tr><tr><td>cell4</td></tr></tbody></table>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<table><tbody><tr><td></td><td>cell2</td></tr><tr><td></td><td>cell4</td></tr></tbody></table>",
+      "<table><tbody><tr><td><br></td><td>cell2</td></tr><tr><td><br></td><td>cell4</td></tr></tbody></table>",
+      "<table><tbody><tr><td>cell2</td></tr><tr><td>cell4</td></tr></tbody></table>",
+    ],
+    t.name
+  );
   // XXX Perhaps, target range should be selecting only all children of
   //     cell1 and cell3 instead.
   checkGetTargetRangesOfBeforeinputOnDeleteSomething([
@@ -1315,7 +1445,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<table><tr>{<td>cell1</td>}<td>cell2</td></tr><tr>{<td>cell3</td>}<td>cell4</td></tr></table>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>");
   let cell1 = gEditor.querySelector("td");
   let cell2 = gEditor.querySelector("td + td");
@@ -1330,9 +1460,14 @@ promise_test(async () => {
   gSelection.addRange(range);
   assert_equals(gSelection.rangeCount, 2, "Should support multiple cell selection");
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td><td></td></tr><tr><td>cell3</td><td>cell4</td></tr></tbody></table>",
-                                      "<table><tbody><tr><td><br></td><td><br></td></tr><tr><td>cell3</td><td>cell4</td></tr></tbody></table>",
-                                      "<table><tbody><tr><td>cell3</td><td>cell4</td></tr></tbody></table>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<table><tbody><tr><td></td><td></td></tr><tr><td>cell3</td><td>cell4</td></tr></tbody></table>",
+      "<table><tbody><tr><td><br></td><td><br></td></tr><tr><td>cell3</td><td>cell4</td></tr></tbody></table>",
+      "<table><tbody><tr><td>cell3</td><td>cell4</td></tr></tbody></table>",
+    ],
+    t.name
+  );
   if (gEditor.querySelector("tr + tr")) {
     // XXX Perhaps, target range should be selecting only all children of
     //     cell1 and cell2 instead.
@@ -1361,7 +1496,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<table><tr>{<td>cell1</td>}{<td>cell2</td>}</tr><tr><td>cell3</td><td>cell4</td></tr></table>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>");
   let cell3 = gEditor.querySelector("tr + tr > td");
   let cell4 = gEditor.querySelector("tr + tr > td + td");
@@ -1375,9 +1510,14 @@ promise_test(async () => {
   gSelection.addRange(range);
   assert_equals(gSelection.rangeCount, 2, "Should support multiple cell selection");
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td>cell1</td><td>cell2</td></tr><tr><td></td><td></td></tr></tbody></table>",
-                                      "<table><tbody><tr><td>cell1</td><td>cell2</td></tr><tr><td><br></td><td><br></td></tr></tbody></table>",
-                                      "<table><tbody><tr><td>cell1</td><td>cell2</td></tr></tbody></table>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<table><tbody><tr><td>cell1</td><td>cell2</td></tr><tr><td></td><td></td></tr></tbody></table>",
+      "<table><tbody><tr><td>cell1</td><td>cell2</td></tr><tr><td><br></td><td><br></td></tr></tbody></table>",
+      "<table><tbody><tr><td>cell1</td><td>cell2</td></tr></tbody></table>",
+    ],
+    t.name
+  );
   if (gEditor.querySelector("tr + tr")) {
     // XXX Perhaps, target range should be selecting only all children of
     //     cell3 and cell4 instead.
@@ -1406,7 +1546,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<table><tr><td>cell1</td><td>cell2</td></tr><tr>{<td>cell3</td>}{<td>cell4</td>}</tr></table>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>");
   let cell1 = gEditor.querySelector("td");
   let cell2 = gEditor.querySelector("td + td");
@@ -1429,9 +1569,14 @@ promise_test(async () => {
   gSelection.addRange(range);
   assert_equals(gSelection.rangeCount, 4, "Should support multiple cell selection");
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td><td></td></tr><tr><td></td><td></td></tr></tbody></table>",
-                                      "<table><tbody><tr><td><br></td><td><br></td></tr><tr><td><br></td><td><br></td></tr></tbody></table>",
-                                      "<br>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<table><tbody><tr><td></td><td></td></tr><tr><td></td><td></td></tr></tbody></table>",
+      "<table><tbody><tr><td><br></td><td><br></td></tr><tr><td><br></td><td><br></td></tr></tbody></table>",
+      "<br>",
+    ],
+    t.name
+  );
   if (gEditor.querySelector("table")) {
     // XXX Perhaps, target range should be selecting only all children of
     //     cell1, cell2, cell3 and cell4 instead.
@@ -1472,7 +1617,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<table><tr>{<td>cell1</td>}{<td>cell2</td>}</tr><tr>{<td>cell3</td>}{<td>cell4</td>}</tr></table>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<table><tr><td>cell1</td><td>cell2</td></tr><tr><td>cell3</td><td>cell4</td></tr></table>");
   let cell1 = gEditor.querySelector("td");
   let cell2 = gEditor.querySelector("td + td");
@@ -1492,10 +1637,15 @@ promise_test(async () => {
   gSelection.addRange(range);
   assert_equals(gSelection.rangeCount, 3, "Should support multiple cell selection");
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<table><tbody><tr><td></td><td>cell2</td></tr><tr><td>cell3</td><td></td></tr></tbody></table>",
-                                      "<table><tbody><tr><td><br></td><td>cell2</td></tr><tr><td>cell3</td><td><br></td></tr></tbody></table>",
-                                      "<table><tbody><tr><td></td><td>c2</td></tr><tr><td>cell3</td><td></td></tr></tbody></table>",
-                                      "<table><tbody><tr><td><br></td><td>c2</td></tr><tr><td>cell3</td><td><br></td></tr></tbody></table>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<table><tbody><tr><td></td><td>cell2</td></tr><tr><td>cell3</td><td></td></tr></tbody></table>",
+      "<table><tbody><tr><td><br></td><td>cell2</td></tr><tr><td>cell3</td><td><br></td></tr></tbody></table>",
+      "<table><tbody><tr><td></td><td>c2</td></tr><tr><td>cell3</td><td></td></tr></tbody></table>",
+      "<table><tbody><tr><td><br></td><td>c2</td></tr><tr><td>cell3</td><td><br></td></tr></tbody></table>",
+    ],
+    t.name
+  );
   if (cell2.firstChild.length == "cell2".length) {
     // XXX Perhaps, target range should be selecting only all children of
     //     cell1 and cell4 instead.
@@ -1540,16 +1690,21 @@ promise_test(async () => {
 
 // If caret is not adjacent of deleting character, browser may not delete the
 // character, but update the caret position for next deletion.
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>&#x5E9;&#x5DC;&#x5D5;&#x5DD;hello</p>");
   let text1 = gEditor.querySelector("p").firstChild;
   let text2 = text1.nextSibling;
   gSelection.collapse(text2 ? text2 : text1, text2 ? 1 : 5);
   await sendArrowLeftKey();
   await sendBackspaceKey();
-  assert_in_array(gEditor.innerHTML, ["<p>\u05E9\u05DC\u05D5\u05DDhello</p>",
-                                      "<p>\u05DC\u05D5\u05DDhello</p>",
-                                      "<p>\u05E9\u05DC\u05D5hello</p>"]);
+  checkEditorContentResultAsSubTest(
+    [
+      "<p>\u05E9\u05DC\u05D5\u05DDhello</p>",
+      "<p>\u05DC\u05D5\u05DDhello</p>",
+      "<p>\u05E9\u05DC\u05D5hello</p>",
+    ],
+    t.name
+  );
   if (gEditor.innerHTML === "<p>\u05E9\u05DC\u05D5\u05DDhello</p>") {
     checkGetTargetRangesOfBeforeinputOnDeleteSomething({
       startContainer: text2 ? text2 : text1,
@@ -1593,7 +1748,7 @@ function getFirstDifferentOffset(currentString, originalString) {
   return currentString.length;
 }
 
-promise_test(async () => {
+promise_test(async (t) => {
   const kText = "abc def ghi";
   initializeTest(`<p>${kText}</p>`);
   let p = gEditor.querySelector("p");
@@ -1601,8 +1756,11 @@ promise_test(async () => {
   await sendBackspaceKey(kShift);
   let startOffset = getFirstDifferentOffset(p.firstChild.data, kText);
   let length = kText.length - p.firstChild.data.length;
-  assert_equals(gEditor.innerHTML.replace(/&nbsp;/g, " "),
-      `<p>${kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`);
+  checkEditorContentResultAsSubTest(
+    `<p>${kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`,
+    t.name,
+    { ignoreWhiteSpaceDifference: true }
+  );
   if (startOffset === kText.length) {
     checkBeforeinputAndInputEventsOnNOOP();
     return;
@@ -1616,7 +1774,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Shift + Backspace at "<p>abc def[] ghi</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   const kText = "abc def ghi";
   initializeTest(`<p>${kText}</p>`);
   let p = gEditor.querySelector("p");
@@ -1624,8 +1782,11 @@ promise_test(async () => {
   await sendBackspaceKey(kControl);
   let startOffset = getFirstDifferentOffset(p.firstChild.data, kText);
   let length = kText.length - p.firstChild.data.length;
-  assert_equals(gEditor.innerHTML.replace(/&nbsp;/g, " "),
-      `<p>${kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`);
+  checkEditorContentResultAsSubTest(
+    `<p>${kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`,
+    t.name,
+    { ignoreWhiteSpaceDifference: true }
+  );
   if (startOffset === kText.length) {
     checkBeforeinputAndInputEventsOnNOOP();
     return;
@@ -1639,7 +1800,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Control + Backspace at "<p>abc def[] ghi</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   const kText = "abc def ghi";
   initializeTest(`<p>${kText}</p>`);
   let p = gEditor.querySelector("p");
@@ -1647,8 +1808,11 @@ promise_test(async () => {
   await sendBackspaceKey(kAlt);
   let startOffset = getFirstDifferentOffset(p.firstChild.data, kText);
   let length = kText.length - p.firstChild.data.length;
-  assert_equals(gEditor.innerHTML.replace(/&nbsp;/g, " "),
-      `<p>${kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`);
+  checkEditorContentResultAsSubTest(
+    `<p>${kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`,
+    t.name,
+    { ignoreWhiteSpaceDifference: true }
+  );
   if (startOffset === kText.length) {
     checkBeforeinputAndInputEventsOnNOOP();
     return;
@@ -1662,7 +1826,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Alt + Backspace at "<p>abc def[] ghi</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   const kText = "abc def ghi";
   initializeTest(`<p>${kText}</p>`);
   let p = gEditor.querySelector("p");
@@ -1670,8 +1834,11 @@ promise_test(async () => {
   await sendBackspaceKey(kMeta);
   let startOffset = getFirstDifferentOffset(p.firstChild.data, kText);
   let length = kText.length - p.firstChild.data.length;
-  assert_equals(gEditor.innerHTML.replace(/&nbsp;/g, " "),
-      `<p>${kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`);
+  checkEditorContentResultAsSubTest(
+    `<p>${kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`,
+    t.name,
+    { ignoreWhiteSpaceDifference: true }
+  );
   if (startOffset === kText.length) {
     checkBeforeinputAndInputEventsOnNOOP();
     return;
@@ -1685,7 +1852,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Meta + Backspace at "<p>abc def[] ghi</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   const kText = "abc def";
   initializeTest(`<p>   ${kText}</p>`);
   let p = gEditor.querySelector("p");
@@ -1696,8 +1863,11 @@ promise_test(async () => {
   let startOffset = invisibleWhiteSpaces.length + getFirstDifferentOffset(visibleText, kText);
   let length = kText.length + 3 - p.firstChild.data.length;
   // If invisible white-spaces are deleted, they should be contained in the target range.
-  assert_equals(gEditor.innerHTML.replace(/&nbsp;/g, " "),
-      `<p>${invisibleWhiteSpaces + kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`);
+  checkEditorContentResultAsSubTest(
+    `<p>${invisibleWhiteSpaces + kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`,
+    t.name,
+    { ignoreWhiteSpaceDifference: true }
+  );
   if (startOffset === kText.length) {
     checkBeforeinputAndInputEventsOnNOOP();
     return;
@@ -1711,7 +1881,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Shift + Backspace at "<p>   abc[] def</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   const kText = "abc def";
   initializeTest(`<p>   ${kText}</p>`);
   let p = gEditor.querySelector("p");
@@ -1722,8 +1892,11 @@ promise_test(async () => {
   let startOffset = invisibleWhiteSpaces.length + getFirstDifferentOffset(visibleText, kText);
   let length = kText.length + 3 - p.firstChild.data.length;
   // If invisible white-spaces are deleted, they should be contained in the target range.
-  assert_equals(gEditor.innerHTML.replace(/&nbsp;/g, " "),
-      `<p>${invisibleWhiteSpaces + kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`);
+  checkEditorContentResultAsSubTest(
+    `<p>${invisibleWhiteSpaces + kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`,
+    t.name,
+    { ignoreWhiteSpaceDifference: true }
+  );
   if (startOffset === kText.length) {
     checkBeforeinputAndInputEventsOnNOOP();
     return;
@@ -1737,7 +1910,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Control + Backspace at "<p>   abc[] def</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   const kText = "abc def";
   initializeTest(`<p>   ${kText}</p>`);
   let p = gEditor.querySelector("p");
@@ -1748,8 +1921,11 @@ promise_test(async () => {
   let startOffset = invisibleWhiteSpaces.length + getFirstDifferentOffset(visibleText, kText);
   let length = kText.length + 3 - p.firstChild.data.length;
   // If invisible white-spaces are deleted, they should be contained in the target range.
-  assert_equals(gEditor.innerHTML.replace(/&nbsp;/g, " "),
-      `<p>${invisibleWhiteSpaces + kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`);
+  checkEditorContentResultAsSubTest(
+    `<p>${invisibleWhiteSpaces + kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`,
+    t.name,
+    { ignoreWhiteSpaceDifference: true }
+  );
   if (startOffset === kText.length) {
     checkBeforeinputAndInputEventsOnNOOP();
     return;
@@ -1763,7 +1939,7 @@ promise_test(async () => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Alt + Backspace at "<p>   abc[] def</p>"');
 
-promise_test(async () => {
+promise_test(async (t) => {
   const kText = "abc def";
   initializeTest(`<p>   ${kText}</p>`);
   let p = gEditor.querySelector("p");
@@ -1774,8 +1950,10 @@ promise_test(async () => {
   let startOffset = invisibleWhiteSpaces.length + getFirstDifferentOffset(visibleText, kText);
   let length = kText.length + 3 - p.firstChild.data.length;
   // If invisible white-spaces are deleted, they should be contained in the target range.
-  assert_equals(gEditor.innerHTML.replace(/&nbsp;/g, " "),
-      `<p>${invisibleWhiteSpaces + kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`);
+  checkEditorContentResultAsSubTest(
+    `<p>${invisibleWhiteSpaces + kText.substr(0, startOffset) + kText.substr(startOffset + length)}</p>`,
+    t.name
+  );
   if (startOffset === kText.length) {
     checkBeforeinputAndInputEventsOnNOOP();
     return;

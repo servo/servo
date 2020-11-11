@@ -155,7 +155,10 @@ class PathFilter(object):
         self.literals_dir = defaultdict(dict)  # type: Dict[Optional[bytes], Dict[bytes, List[Tuple[bool, Pattern[bytes]]]]]
         self.patterns_file = []  # type: List[Tuple[Tuple[bool, Pattern[bytes]], List[Tuple[bool, Pattern[bytes]]]]]
         self.patterns_dir = []  # type: List[Tuple[Tuple[bool, Pattern[bytes]], List[Tuple[bool, Pattern[bytes]]]]]
-        self.cache = cache or {}  # type: MutableMapping[bytes, bool]
+
+        if cache is None:
+            cache = {}
+        self.cache = cache  # type: MutableMapping[bytes, bool]
 
         if extras is None:
             extras = []
@@ -246,7 +249,7 @@ class PathFilter(object):
                         if not self.cache[path]:
                             target.append(item)
                         continue
-                    for rule_dir in [None, dirpath]:
+                    for rule_dir in [None, dirpath if dirpath != b"." else b""]:
                         if name in literals.get(rule_dir, empty):
                             exclude = literals[rule_dir][name]
                             if not any(rule.match(name if name_only else path)

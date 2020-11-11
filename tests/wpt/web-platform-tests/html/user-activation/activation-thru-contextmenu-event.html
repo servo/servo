@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>User activation with 'contextmenu' event</title>
+    <meta name="timeout" content="long">
+    <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+    <link rel="author" title="Google" href="http://www.google.com "/>
+    <link rel="help" href="https://html.spec.whatwg.org/#triggered-by-user-activation">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <style>
+      #target {
+        width: 250px;
+        height: 150px;
+        float: left;
+        background-color: green;
+      }
+
+      #done {
+        float: left;
+        padding: 20px;
+        margin: 10px;
+      }
+    </style>
+    <script type="text/javascript">
+      let activation_event_fired = false;
+
+      function run() {
+        let success = false;
+        let test_contextmenu = async_test("'contextmenu' can call vibrate.");
+        let actions_promise;
+        var target = document.getElementById("target");
+        var button = document.getElementById("done");
+
+        on_event(document.getElementById("done"), "click", () => {
+          test_contextmenu.step(() => {
+            assert_true(activation_event_fired, "activation event has fired");
+          });
+          // Make sure the test finishes after all the input actions are completed.
+          actions_promise.then(() => test_contextmenu.done());
+        });
+
+        on_event(document.getElementById("target"), "contextmenu", (e) => {
+            test_contextmenu.step(() => {
+              e.preventDefault();
+              assert_true(navigator.vibrate(200), "navigator.vibrate is successful");
+              activation_event_fired = true;
+            });
+        });
+
+        // Inject mouse inputs.
+        var actions = new test_driver.Actions();
+        actions_promise = actions
+            .pointerMove(0, 0, {origin: target})
+            .pointerDown({button: actions.ButtonType.RIGHT})
+            .pointerUp({button: actions.ButtonType.RIGHT})
+            .pointerMove(0, 0, {origin: button})
+            .pointerDown()
+            .pointerUp()
+            .send();
+      }
+    </script>
+  </head>
+  <body onload="run()">
+    <h1>User activation with 'contextmenu' event</h1>
+    <h4>Tests that a 'contextmenu' event is treated like a user activation.</h4>
+    <ol>
+      <li>Right-click or long-press on green.</li>
+      <li>Click or tap on Done.</li>
+    </ol>
+    <div id="target"></div>
+    <input type="button" id="done" value="Done" />
+  </body>
+</html>
