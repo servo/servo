@@ -626,7 +626,7 @@ class PackageCommands(CommandBase):
                 aws_access_key_id=aws_access_key,
                 aws_secret_access_key=aws_secret_access_key
             )
-            BUCKET = 'servo-builds'
+            BUCKET = 'servo-builds2'
 
             nightly_dir = 'nightly/{}'.format(platform)
             filename = nightly_filename(package, timestamp)
@@ -665,7 +665,7 @@ class PackageCommands(CommandBase):
                 aws_access_key_id=aws_access_key,
                 aws_secret_access_key=aws_secret_access_key
             )
-            BUCKET = 'servo-builds'
+            BUCKET = 'servo-builds2'
 
             nightly_dir = 'nightly/maven'
             dest_key_base = directory.replace("target/android/gradle/servoview/maven", nightly_dir)
