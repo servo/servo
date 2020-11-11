@@ -510,7 +510,7 @@ class MachCommands(CommandBase):
                 # Follow these instructions to build and deploy new binaries
                 # https://github.com/servo/libgstreamer_android_gen#build
                 print("Downloading GStreamer dependencies")
-                gst_url = "https://servo-deps.s3.amazonaws.com/gstreamer/%s" % gst_lib_zip
+                gst_url = "https://servo-deps-2.s3.amazonaws.com/gstreamer/%s" % gst_lib_zip
                 print(gst_url)
                 urllib.request.urlretrieve(gst_url, gst_lib_zip)
                 zip_ref = zipfile.ZipFile(gst_lib_zip, "r")
@@ -605,7 +605,7 @@ class MachCommands(CommandBase):
 
             # GStreamer configuration
             env.setdefault("GSTREAMER_DIR", path.join(target_path, target, "native", "gstreamer-1.16.0"))
-            env.setdefault("GSTREAMER_URL", "https://servo-deps.s3.amazonaws.com/gstreamer/gstreamer-magicleap-1.16.0-20190823-104505.tgz")
+            env.setdefault("GSTREAMER_URL", "https://servo-deps-2.s3.amazonaws.com/gstreamer/gstreamer-magicleap-1.16.0-20190823-104505.tgz")
             env.setdefault("PKG_CONFIG_PATH", path.join(env["GSTREAMER_DIR"], "system", "lib64", "pkgconfig"))
 
             # Override the linker set in .cargo/config
