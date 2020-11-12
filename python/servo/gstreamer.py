@@ -130,10 +130,22 @@ def macos_dylibs():
     ] + [
         os.path.join(macos_libnice(), "libnice.dylib"),
         os.path.join(macos_libnice(), "libnice.10.dylib"),
+        os.path.join(
+            "/usr/local/opt",
+            "gstreamer",
+            "lib",
+            "gstreamer-1.0",
+            "libgstcoreelements.dylib",
+        ),
     ]
 
 
 def macos_plugins():
+    # As of 1.18.1, gstcoreelements is one of two plugins with a .dylib
+    # that's under /lib/gstreamer-1.0, so it needs to be handled separately.
+    plugin_exceptions = ["gstcoreelements"]
+    plugins = filter(lambda x: x[0] not in plugin_exceptions,
+                     GSTREAMER_PLUGINS + MACOS_PLUGINS)
     return [
         os.path.join(
             "/usr/local/opt",
@@ -141,7 +153,7 @@ def macos_plugins():
             "lib",
             "gstreamer-1.0",
             "lib" + name + ".so"
-        ) for name, path in GSTREAMER_PLUGINS + MACOS_PLUGINS
+        ) for name, path in plugins
     ] + [
         os.path.join(macos_libnice(), "gstreamer-1.0", "libgstnice.so"),
     ]
