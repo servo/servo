@@ -7,8 +7,6 @@
 <script src='../resources/shadow-dom-utils.js'></script>
 
 <script>
-document.allowDeclarativeShadowDom = true;
-
 const shadowContent = '<span>Shadow tree</span><slot></slot>';
 function getDeclarativeContent(mode, delegatesFocus) {
   const delegatesFocusText = delegatesFocus ? ' shadowrootdelegatesfocus' : '';
@@ -20,7 +18,7 @@ function addDeclarativeShadowRoot(elementType, mode, delegatesFocus) {
   const declarativeString = `<${elementType} id=theelement>${getDeclarativeContent(mode, delegatesFocus)}
      <span class='lightdom'>${lightDomTextContent}</span></${elementType}>`;
   const wrapper = document.createElement('div');
-  wrapper.innerHTML = declarativeString;
+  wrapper.setInnerHTML(declarativeString, {allowShadowRoot: true});
   const element = wrapper.querySelector('#theelement');
   return {wrapper: wrapper, element: element};
 }

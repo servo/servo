@@ -55,3 +55,11 @@ function assert_approx_equals_or_null(actual, expected, tolerance, name){
     assert_approx_equals(actual, expected, tolerance, name);
   }
 }
+
+// actual should be a CSSUnitValue and expected should be a double value 0-100
+function assert_percent_css_unit_value_approx_equals(actual, expected, tolerance, name){
+  assert_true(actual instanceof CSSUnitValue, "'actual' must be of type CSSUnitValue");
+  assert_equals(typeof expected, "number", "'expected' should be a number (0-100)");
+  assert_equals(actual.unit, "percent", "'actual' unit type must be 'percent'");
+  assert_approx_equals(actual.value, expected, tolerance, name);
+}

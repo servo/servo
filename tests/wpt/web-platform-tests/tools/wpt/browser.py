@@ -646,10 +646,10 @@ class Chrome(Browser):
             # No Canary on Linux.
             return find_executable(name)
         if uname[0] == "Darwin":
-            if channel == "canary":
-                return "/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary"
-            # All other channels share the same path on macOS.
-            return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+            suffix = ""
+            if channel in ("beta", "dev", "canary"):
+                suffix = " " + channel.capitalize()
+            return "/Applications/Google Chrome%s.app/Contents/MacOS/Google Chrome%s" % (suffix, suffix)
         if uname[0] == "Windows":
             path = os.path.expandvars(r"$SYSTEMDRIVE\Program Files (x86)\Google\Chrome\Application\chrome.exe")
             if not os.path.exists(path):

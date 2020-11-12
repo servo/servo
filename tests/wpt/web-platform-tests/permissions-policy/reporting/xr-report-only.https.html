@@ -8,7 +8,7 @@
     <script>
 const check_report_format = ([reports, observer]) => {
   const report = reports[0];
-  assert_equals(report.type, "feature-policy-violation");
+  assert_equals(report.type, "permissions-policy-violation");
   assert_equals(report.url, document.location.href);
   assert_equals(report.body.featureId, "xr-spatial-tracking");
   assert_equals(report.body.sourceFile, document.location.href);
@@ -20,7 +20,7 @@ const check_report_format = ([reports, observer]) => {
 promise_test(async t => {
   const report = new Promise(resolve => {
     new ReportingObserver((reports, observer) => resolve([reports, observer]),
-                          {types: ['feature-policy-violation']}).observe();
+                          {types: ['permissions-policy-violation']}).observe();
   });
   try {
     let supported = await navigator.xr.isSessionSupported('immersive-vr');

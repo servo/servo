@@ -5,6 +5,6 @@ mozdebug==0.2
 # Pillow 7 requires Python 3
 pillow==6.2.2; python_version <= '2.7'  # pyup: <7.0
 pillow==8.0.1; python_version >= '3.0'
-urllib3[secure]==1.25.11
+urllib3[secure]==1.26.0
 requests==2.24.0
 six==1.15.0

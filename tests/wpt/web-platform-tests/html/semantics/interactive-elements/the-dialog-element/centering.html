@@ -11,30 +11,33 @@
 "use strict";
 
 // Be sure to sync with centering-iframe.html
-const DIALOG_WIDTH = 20;
-const DIALOG_HEIGHT = 10;
+const dialogWidth = 20;
+const dialogHeight = 10;
 
-testDialogCentering("horizontal-tb", "", "", "tall viewport", 40, 100, "top", 100 / 2 - DIALOG_HEIGHT / 2);
-testDialogCentering("horizontal-tb", "", "", "wide viewport", 100, 40, "top", 40 / 2 - DIALOG_HEIGHT / 2);
-testDialogCentering("horizontal-tb", "", "", "square viewport", 100, 100, "top", 100 / 2 - DIALOG_HEIGHT / 2);
-testDialogCentering("horizontal-tb", "", "", "dialog and viewport match", DIALOG_WIDTH, DIALOG_HEIGHT, "top", 0);
-testDialogCentering("horizontal-tb", "", "", "dialog bigger than viewport", 100, DIALOG_HEIGHT / 2, "top", 0);
+const widthOffset100 = 100 / 2 - dialogWidth / 2;
+const widthOffset40 = 40 / 2 - dialogWidth / 2;
 
-testDialogCentering("vertical-rl", "", "", "tall viewport", 40, 100, "left", 40 / 2 - DIALOG_WIDTH / 2);
-testDialogCentering("vertical-lr", "", "", "tall viewport", 40, 100, "right", 40 / 2 - DIALOG_WIDTH / 2);
-testDialogCentering("vertical-lr", "", "", "dialog bigger than viewport", DIALOG_WIDTH / 2, 100, "right", 0);
+const heightOffset100 = 100 / 2 - dialogHeight / 2;
+const heightOffset40 = 40 / 2 - dialogHeight / 2;
 
-testDialogCentering("vertical-rl", "", "horizontal-tb", "tall viewport", 40, 100, "left", 40 / 2 - DIALOG_WIDTH / 2);
-testDialogCentering("vertical-lr", "", "horizontal-tb", "tall viewport", 40, 100, "right", 40 / 2 - DIALOG_WIDTH / 2);
-testDialogCentering("vertical-lr", "", "horizontal-tb", "dialog bigger than viewport", DIALOG_WIDTH / 2, 100, "right", 0);
+testDialogCentering("horizontal-tb", "", "", "tall viewport", 40, 100, widthOffset40, heightOffset100);
+testDialogCentering("horizontal-tb", "", "", "wide viewport", 100, 40, widthOffset100, heightOffset40);
+testDialogCentering("horizontal-tb", "", "", "square viewport", 100, 100, widthOffset100, heightOffset100);
+testDialogCentering("horizontal-tb", "", "", "dialog and viewport match", dialogWidth, dialogHeight, 0, 0);
 
-testDialogCentering("horizontal-tb", "vertical-rl", "", "tall viewport", 40, 100, "right", 40 / 2 - DIALOG_WIDTH / 2);
-testDialogCentering("vertical-rl", "horizontal-tb", "", "tall viewport", 40, 100, "top", 100 / 2 - DIALOG_HEIGHT / 2);
+testDialogCentering("vertical-rl", "", "", "tall viewport", 40, 100, widthOffset40, heightOffset100);
+testDialogCentering("vertical-lr", "", "", "tall viewport", 40, 100, widthOffset40, heightOffset100);
 
-testDialogCentering("horizontal-tb", "vertical-rl", "horizontal-tb", "tall viewport", 40, 100, "right", 40 / 2 - DIALOG_WIDTH / 2);
-testDialogCentering("vertical-rl", "horizontal-tb", "vertical-rl", "tall viewport", 40, 100, "top", 100 / 2 - DIALOG_HEIGHT / 2);
+testDialogCentering("vertical-rl", "", "horizontal-tb", "tall viewport", 40, 100, widthOffset40, heightOffset100);
+testDialogCentering("vertical-lr", "", "horizontal-tb", "tall viewport", 40, 100, widthOffset40, heightOffset100);
 
-function testDialogCentering(writingMode, containerWritingMode, dialogWritingMode, label, iframeWidth, iframeHeight, property, numericValue) {
+testDialogCentering("horizontal-tb", "vertical-rl", "", "tall viewport", 40, 100, widthOffset40, heightOffset100);
+testDialogCentering("vertical-rl", "horizontal-tb", "", "tall viewport", 40, 100, widthOffset40, heightOffset100);
+
+testDialogCentering("horizontal-tb", "vertical-rl", "horizontal-tb", "tall viewport", 40, 100, widthOffset40, heightOffset100);
+testDialogCentering("vertical-rl", "horizontal-tb", "vertical-rl", "tall viewport", 40, 100, widthOffset40, heightOffset100);
+
+function testDialogCentering(writingMode, containerWritingMode, dialogWritingMode, label, iframeWidth, iframeHeight, leftOffset, topOffset) {
   async_test(t => {
     const iframe = document.createElement("iframe");
     iframe.src = `centering-iframe.sub.html?html-writing-mode=${writingMode}&container-writing-mode=${containerWritingMode}&dialog-writing-mode=${dialogWritingMode}`;
@@ -42,19 +45,10 @@ function testDialogCentering(writingMode, containerWritingMode, dialogWritingMod
     iframe.height = iframeHeight;
     iframe.onload = t.step_func_done(() => {
       const dialog = iframe.contentDocument.querySelector("dialog");
-      const dialogStyle = iframe.contentWindow.getComputedStyle(dialog);
-      assert_equals(dialogStyle[property], numericValue + "px");
-      assert_equals(dialogStyle['inset-inline-start'], "0px");
-      assert_equals(dialogStyle['inset-inline-end'], "0px");
+      const dialogRect = dialog.getBoundingClientRect();
 
-      const dialogWM = dialogWritingMode || containerWritingMode || writingMode || "horizontal-tb";
-      if (dialogWM.startsWith("vertical")) {
-        assert_equals(dialogStyle['top'], "0px");
-        assert_equals(dialogStyle['bottom'], "0px");
-      } else {
-        assert_equals(dialogStyle['left'], "0px");
-        assert_equals(dialogStyle['right'], "0px");
-      }
+      assert_equals(dialogRect.left, leftOffset, 'left');
+      assert_equals(dialogRect.top, topOffset, 'top');
     });
     document.body.appendChild(iframe);
   }, writingMode + (containerWritingMode ? ` (container ${containerWritingMode})` : "") +

@@ -15,7 +15,7 @@
     var testForAllTrackEnded = async_test('MediaRecorder will not fire the stop event when all tracks are ended and the script execution context is going away');
 
     iframeForCallingStop.onload = function(e) {
-        subFrameStop.window.prepareForTest();
+        subFrameStop.window.prepareForTest(testForCallingStop);
         const recorder = subFrameStop.window.recorder;
         recorder.ondataavailable = testForCallingStop.step_func(blobEvent => {
             iframeForCallingStop.remove();
@@ -24,12 +24,12 @@
         recorder.onstop = testForCallingStop.unreached_func('Unexpected stop event');
         recorder.start();
         assert_equals(recorder.state, 'recording', 'MediaRecorder has been started successfully');
-        subFrameStop.window.drawSomethingOnCanvas();
+        subFrameStop.window.control.addVideoFrame();
         recorder.stop();
     };
 
     iframeForAllTrackEnded.onload = function(e) {
-        subFrameAllTrackEnded.window.prepareForTest();
+        subFrameAllTrackEnded.window.prepareForTest(testForAllTrackEnded);
         const recorder = subFrameAllTrackEnded.window.recorder;
         recorder.ondataavailable = testForAllTrackEnded.step_func(blobEvent => {
             iframeForAllTrackEnded.remove();
@@ -38,7 +38,7 @@
         recorder.onstop = testForAllTrackEnded.unreached_func('Unexpected stop event');
         recorder.start();
         assert_equals(recorder.state, 'recording', 'MediaRecorder has been started successfully');
-        subFrameAllTrackEnded.window.drawSomethingOnCanvas();
+        subFrameAllTrackEnded.window.control.addVideoFrame();
         subFrameAllTrackEnded.window.video.getVideoTracks()[0].stop();
     };
 

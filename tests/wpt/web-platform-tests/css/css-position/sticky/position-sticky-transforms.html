@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<title>transforms on position:sticky elements should apply after sticking</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that transforms on position:sticky elements are carried out on their stuck position" />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script src="../resources/sticky-util.js"></script>
+
+<body style="margin: 0;"></body>
+
+<script>
+test(() => {
+  const elements = setupStickyTest('top', 50);
+  elements.sticky.style.transform = 'scale(2)';
+  elements.scroller.scrollTop = 200;
+
+  // Transforms don't affect offsetTop, so use getBoundingClientRect.
+  // Scaling the sticky element by 2 means its top-y moves (1/2 * height)
+  // upwards, in this case placing it at the top of the viewport.
+  const boundingRect = elements.sticky.getBoundingClientRect();
+  assert_equals(boundingRect.y, elements.scroller.getBoundingClientRect().y);
+}, 'Scale transforms are carried out on the stuck element position');
+
+test(() => {
+  const elements = setupStickyTest('top', 50);
+  elements.sticky.style.transform = 'rotateX(60deg)';
+  elements.scroller.scrollTop = 200;
+
+  // Transforms don't affect offsetTop, so use getBoundingClientRect.
+  // Rotating around the x-axis essentially 'squashes' it (from the camera's
+  // viewpoint), in this case shifting the offset to 75 rather than 50.
+  const stickyElementOffset = elements.sticky.getBoundingClientRect().y -
+    elements.scroller.getBoundingClientRect().y;
+  assert_equals(stickyElementOffset, 75);
+}, 'Rotate transforms are carried out on the stuck element position');
+
+test(() => {
+  const elements = setupStickyTest('top', 50);
+  elements.sticky.style.transform = 'perspective(3px) translateZ(1px)';
+  elements.scroller.scrollTop = 200;
+
+  // Transforms don't affect offsetTop, so use getBoundingClientRect.
+  const stickyElementOffset = elements.sticky.getBoundingClientRect().y -
+    elements.scroller.getBoundingClientRect().y;
+  assert_equals(stickyElementOffset, 25);
+}, 'Perspective transforms are carried out on the stuck element position');
+</script>

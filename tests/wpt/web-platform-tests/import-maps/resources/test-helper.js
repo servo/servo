@@ -10,9 +10,6 @@ function expect_log(test, expected_log) {
 
 // Results of resolving a specifier using import maps.
 const Result = {
-  // A built-in module (std:blank) is loaded.
-  BUILTIN: "builtin",
-
   // A failure considered as a fetch error in a module script tree.
   // <script>'s error event is fired.
   FETCH_ERROR: "fetch_error",
@@ -26,9 +23,9 @@ const Result = {
   // ------------------------- ----------------------
   // ...?name=foo              log:foo
   // data:...log('foo')        foo
-  // Others, e.g. @std/blank   relative:@std/blank
+  // Others, e.g. bare/bare    relative:bare/bare
   // ------------------------- ----------------------
-  // (The last case assumes a file `@std/blank` that logs `relative:@std/blank`
+  // (The last case assumes a file `bare/bare` that logs `relative:bare/bare`
   // exists)
   URL: "URL",
 };
@@ -79,9 +76,7 @@ function getHandlers(t, specifier, expected) {
     });
   } else {
     let expected_log;
-    if (expected === Result.BUILTIN) {
-      expected_log = [];
-    } else if (expected === Result.URL) {
+    if (expected === Result.URL) {
       const match_data_url = specifier.match(/data:.*log\.push\('(.*)'\)/);
       const match_log_js = specifier.match(/name=(.*)/);
       if (match_data_url) {
