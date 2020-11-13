@@ -26,7 +26,7 @@ use headers::{AccessControlAllowOrigin, AccessControlMaxAge};
 use headers::{CacheControl, ContentEncoding, ContentLength};
 use headers::{IfModifiedSince, LastModified, Origin as HyperOrigin, Pragma, Referer, UserAgent};
 use http::header::{
-    self, HeaderName, HeaderValue, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
+    self, HeaderName, HeaderValue, ACCEPT, CONTENT_ENCODING, CONTENT_LANGUAGE, CONTENT_LOCATION,
     CONTENT_TYPE,
 };
 use http::{HeaderMap, Request as HyperRequest};
@@ -39,7 +39,10 @@ use msg::constellation_msg::{HistoryStateId, PipelineId};
 use net_traits::pub_domains::reg_suffix;
 use net_traits::quality::{quality_to_value, Quality, QualityItem};
 use net_traits::request::Origin::Origin as SpecificOrigin;
-use net_traits::request::{is_cors_safelisted_method, is_cors_safelisted_request_header};
+use net_traits::request::{
+    get_cors_unsafe_header_names, is_cors_non_wildcard_request_header_name,
+    is_cors_safelisted_method, is_cors_safelisted_request_header,
+};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, RedirectMode, Referrer, Request, RequestBuilder,
     RequestMode,
@@ -57,7 +60,6 @@ use std::collections::{HashMap, HashSet};
 use std::iter::FromIterator;
 use std::mem;
 use std::ops::Deref;
-use std::str::FromStr;
 use std::sync::{Arc as StdArc, Condvar, Mutex, RwLock};
 use std::time::{Duration, SystemTime};
 use time::{self, Tm};
@@ -1966,53 +1968,48 @@ fn cors_preflight_fetch(
         .initiator(request.initiator.clone())
         .destination(request.destination.clone())
         .referrer_policy(request.referrer_policy)
+        .mode(RequestMode::CorsMode)
         .build();
 
     // Step 2
+    preflight
+        .headers
+        .insert(ACCEPT, HeaderValue::from_static("*/*"));
+
+    // Step 3
     preflight
         .headers
         .typed_insert::<AccessControlRequestMethod>(AccessControlRequestMethod::from(
             request.method.clone(),
         ));
 
-    // Step 3
-    let mut headers = request
-        .headers
-        .iter()
-        .filter(|(name, value)| !is_cors_safelisted_request_header(&name, &value))
-        .map(|(name, _)| name.as_str())
-        .collect::<Vec<&str>>();
-    headers.sort();
-    let headers = headers
-        .iter()
-        .filter_map(|name| HeaderName::from_str(name).ok())
-        .collect::<Vec<HeaderName>>();
-
     // Step 4
+    let headers = get_cors_unsafe_header_names(&request.headers);
+
+    // Step 5
     if !headers.is_empty() {
         preflight
             .headers
             .typed_insert(AccessControlRequestHeaders::from_iter(headers));
     }
 
-    // Step 5
-    let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context);
-
     // Step 6
+    let response = http_network_or_cache_fetch(&mut preflight, false, false, &mut None, context);
+    // Step 7
     if cors_check(&request, &response).is_ok() &&
         response
             .status
             .as_ref()
             .map_or(false, |(status, _)| status.is_success())
     {
-        // Substep 1, 2
+        // Substep 1
         let mut methods = if response
             .headers
             .contains_key(header::ACCESS_CONTROL_ALLOW_METHODS)
         {
             match response.headers.typed_get::<AccessControlAllowMethods>() {
                 Some(methods) => methods.iter().collect(),
-                // Substep 4
+                // Substep 3
                 None => {
                     return Response::network_error(NetworkError::Internal(
                         "CORS ACAM check failed".into(),
@@ -2023,14 +2020,14 @@ fn cors_preflight_fetch(
             vec![]
         };
 
-        // Substep 3
+        // Substep 2
         let header_names = if response
             .headers
             .contains_key(header::ACCESS_CONTROL_ALLOW_HEADERS)
         {
             match response.headers.typed_get::<AccessControlAllowHeaders>() {
                 Some(names) => names.iter().collect(),
-                // Substep 4
+                // Substep 3
                 None => {
                     return Response::network_error(NetworkError::Internal(
                         "CORS ACAH check failed".into(),
@@ -2041,85 +2038,86 @@ fn cors_preflight_fetch(
             vec![]
         };
 
-        // Substep 5
-        if (methods.iter().any(|m| m.as_ref() == "*") ||
-            header_names.iter().any(|hn| hn.as_str() == "*")) &&
-            request.credentials_mode == CredentialsMode::Include
-        {
-            return Response::network_error(NetworkError::Internal(
-                "CORS ACAH/ACAM and request credentials mode mismatch".into(),
-            ));
-        }
-
-        // Substep 6
-        if methods.is_empty() && request.use_cors_preflight {
-            methods = vec![request.method.clone()];
-        }
-
-        // Substep 7
         debug!(
             "CORS check: Allowed methods: {:?}, current method: {:?}",
             methods, request.method
         );
-        if methods.iter().all(|method| *method != request.method) &&
+
+        // Substep 4
+        if methods.is_empty() && request.use_cors_preflight {
+            methods = vec![request.method.clone()];
+        }
+
+        // Substep 5
+        if methods
+            .iter()
+            .all(|m| *m.as_str() != *request.method.as_ref()) &&
             !is_cors_safelisted_method(&request.method) &&
-            methods.iter().all(|m| m.as_ref() != "*")
+            (request.credentials_mode == CredentialsMode::Include ||
+                methods.iter().all(|m| m.as_ref() != "*"))
         {
             return Response::network_error(NetworkError::Internal(
                 "CORS method check failed".into(),
             ));
         }
 
-        // Substep 8
+        debug!(
+            "CORS check: Allowed headers: {:?}, current headers: {:?}",
+            header_names, request.headers
+        );
+
+        // Substep 6
         if request.headers.iter().any(|(name, _)| {
-            name == header::AUTHORIZATION && header_names.iter().all(|hn| hn != name)
+            is_cors_non_wildcard_request_header_name(&name) &&
+                header_names.iter().all(|hn| hn != name)
         }) {
             return Response::network_error(NetworkError::Internal(
                 "CORS authorization check failed".into(),
             ));
         }
 
-        // Substep 9
-        debug!(
-            "CORS check: Allowed headers: {:?}, current headers: {:?}",
-            header_names, request.headers
-        );
-        let set: HashSet<&HeaderName> = HashSet::from_iter(header_names.iter());
-        if request.headers.iter().any(|(name, value)| {
-            !set.contains(name) && !is_cors_safelisted_request_header(&name, &value)
-        }) {
-            return Response::network_error(NetworkError::Internal(
-                "CORS headers check failed".into(),
-            ));
+        // Substep 7
+        let unsafe_names = get_cors_unsafe_header_names(&request.headers);
+        let header_names_set: HashSet<&HeaderName> = HashSet::from_iter(header_names.iter());
+        let header_names_contains_star = header_names.iter().any(|hn| hn.as_str() == "*");
+        for unsafe_name in unsafe_names.iter() {
+            if !header_names_set.contains(unsafe_name) &&
+                (request.credentials_mode == CredentialsMode::Include ||
+                    !header_names_contains_star)
+            {
+                return Response::network_error(NetworkError::Internal(
+                    "CORS headers check failed".into(),
+                ));
+            }
         }
 
-        // Substep 10, 11
+        // Substep 8, 9
         let max_age: Duration = response
             .headers
             .typed_get::<AccessControlMaxAge>()
             .map(|acma| acma.into())
-            .unwrap_or(Duration::from_secs(0));
+            .unwrap_or(Duration::from_secs(5));
         let max_age = max_age.as_secs() as u32;
-        // Substep 12
+        // Substep 10
         // TODO: Need to define what an imposed limit on max-age is
 
-        // Substep 13 ignored, we do have a CORS cache
+        // Substep 11 ignored, we do have a CORS cache
 
-        // Substep 14, 15
+        // Substep 12, 13
         for method in &methods {
             cache.match_method_and_update(&*request, method.clone(), max_age);
         }
 
-        // Substep 16, 17
+        // Substep 14, 15
         for header_name in &header_names {
             cache.match_header_and_update(&*request, &*header_name, max_age);
         }
 
-        // Substep 18
+        // Substep 16
         return response;
     }
 
-    // Step 7
+    // Step 8
     Response::network_error(NetworkError::Internal("CORS check failed".into()))
 }
 
