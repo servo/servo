@@ -4,6 +4,12 @@ Tests that have been merged on GitHub are mirrored at [http://w3c-test.org/][w3c
 [On properly-configured systems](from-local-system), local files may also be
 served from the URL [http://web-platform.test](http://web-platform.test).
 
+Not all tests can be executed in-browser, as some tests rely on automation
+(e.g. via [testdriver.js](../writing-tests/testdriver)) that is not available
+when running a browser in a normal user session.
+
+## Web test runner
+
 For running multiple tests inside a browser, there is a test runner
 located at `/tools/runner/index.html`.
 

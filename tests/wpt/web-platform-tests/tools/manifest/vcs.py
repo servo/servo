@@ -1,5 +1,4 @@
 import abc
-import json
 import os
 import stat
 from collections import deque
@@ -7,6 +6,7 @@ from collections import deque
 from six import with_metaclass, PY2
 from six.moves.collections_abc import MutableMapping
 
+from . import jsonlib
 from .utils import git
 
 # Cannot do `from ..gitignore import gitignore` because
@@ -23,6 +23,10 @@ if MYPY:
         stat_result = Any
     else:
         stat_result = os.stat_result
+
+    GitIgnoreCacheType = MutableMapping[bytes, bool]
+else:
+    GitIgnoreCacheType = MutableMapping
 
 
 def get_tree(tests_root, manifest, manifest_path, cache_root,
@@ -148,7 +152,7 @@ class CacheFile(with_metaclass(abc.ABCMeta)):
         if not self.modified:
             return
         with open(self.path, 'w') as f:
-            json.dump(self.data, f, indent=1)
+            jsonlib.dump_local(self.data, f)
 
     def load(self, rebuild=False):
         # type: (bool) -> Dict[Text, Any]
@@ -157,7 +161,7 @@ class CacheFile(with_metaclass(abc.ABCMeta)):
             if not rebuild:
                 with open(self.path, 'r') as f:
                     try:
-                        data = json.load(f)
+                        data = jsonlib.load(f)
                     except ValueError:
                         pass
                 data = self.check_valid(data)
@@ -220,8 +224,8 @@ class MtimeCache(CacheFile):
         super(MtimeCache, self).dump()
 
 
-class GitIgnoreCache(CacheFile, MutableMapping):  # type: ignore
-    file_name = "gitignore.json"
+class GitIgnoreCache(CacheFile, GitIgnoreCacheType):
+    file_name = "gitignore2.json"
 
     def check_valid(self, data):
         # type: (Dict[Any, Any]) -> Dict[Any, Any]
@@ -235,27 +239,35 @@ class GitIgnoreCache(CacheFile, MutableMapping):  # type: ignore
 
     def __contains__(self, key):
         # type: (Any) -> bool
+        try:
+            key = key.decode("utf-8")
+        except Exception:
+            return False
+
         return key in self.data
 
     def __getitem__(self, key):
-        # type: (Text) -> bool
-        v = self.data[key]
+        # type: (bytes) -> bool
+        real_key = key.decode("utf-8")
+        v = self.data[real_key]
         assert isinstance(v, bool)
         return v
 
     def __setitem__(self, key, value):
-        # type: (Text, bool) -> None
-        if self.data.get(key) != value:
+        # type: (bytes, bool) -> None
+        real_key = key.decode("utf-8")
+        if self.data.get(real_key) != value:
             self.modified = True
-            self.data[key] = value
+            self.data[real_key] = value
 
     def __delitem__(self, key):
-        # type: (Text) -> None
-        del self.data[key]
+        # type: (bytes) -> None
+        real_key = key.decode("utf-8")
+        del self.data[real_key]
 
     def __iter__(self):
-        # type: () -> Iterator[Text]
-        return iter(self.data)
+        # type: () -> Iterator[bytes]
+        return (key.encode("utf-8") for key in self.data)
 
     def __len__(self):
         # type: () -> int

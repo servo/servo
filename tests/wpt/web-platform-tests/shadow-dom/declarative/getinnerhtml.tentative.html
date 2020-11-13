@@ -48,7 +48,7 @@ function testElementType(allowsShadowDom, elementType, mode, delegatesFocus) {
 }
 
 function runAllTests() {
-  const allElements = HTML5_ELEMENT_NAMES;
+  const allElements = [...HTML5_ELEMENT_NAMES, 'htmlunknown'];
   const safelisted = ATTACHSHADOW_SAFELISTED_ELEMENTS;
   for (const elementName of allElements) {
     const allowsShadowDom = safelisted.includes(elementName);

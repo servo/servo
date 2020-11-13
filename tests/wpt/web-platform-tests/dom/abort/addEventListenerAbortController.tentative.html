@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Joey Arhar" href="mailto:jarhar@chromium.org">
+
+<!-- This behavior has not been specified yet. See https://github.com/whatwg/dom/issues/911 -->
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<script>
+test(t => {
+  const target = new EventTarget();
+  const controller = new AbortController();
+
+  target.addEventListener('testevent', t.step_func(() => {
+    assert_unreached('testevent should have been canceled by AbortController');
+  }), {signal: controller.signal});
+
+  controller.abort();
+  target.dispatchEvent(new Event('testevent'));
+}, 'Tests support for EventController to cancel event listeners in addEventListener.');
+</script>

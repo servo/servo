@@ -1,0 +1,71 @@
+<!doctype html>
+<title>Tests find-a-range-from-a-text-directive algorithm</title>
+<script src="stash.js"></script>
+<script>
+window.didScroll = false;
+
+function checkScroll() {
+  let results = {
+    didScroll: window.scrollY != 0
+  };
+
+  let key = (new URL(document.location)).searchParams.get("key");
+  stashResultsThenClose(key, results);
+}
+
+// Ensure two animation frames on load to test the fallback to element anchor,
+// which gets queued for the next frame if the text fragment is not found.
+window.onload = function() {
+  window.requestAnimationFrame(function() {
+    window.requestAnimationFrame(checkScroll);
+  });
+}
+</script>
+<style>
+  .spacer {
+    width: 50vw;
+    height: 200vh;
+  }
+</style>
+<body>
+  <div class="spacer"></div>
+  <p>
+    The quick brown fox jumped over the lazy dog.
+    a a b b b c
+  </p>
+  <p>
+    foo foo foo bar bar bar
+  </p>
+  <p>
+    Lorem
+
+    <br> <i>    </i>
+    <div>  &nbsp </div>
+    <!-- This <p> puts lots of non textual stuff between words -->
+    <div style="display: none">This isn't rendered</div>
+    <div style="visibility: hidden">This also isn't visible</div>
+    <iframe srcdoc="Inner Iframe"></iframe>
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAQAAAAnOwc2AAAAEUlEQVR42mNk+M+AARiHsiAAcCIKAYwFoQ8AAAAASUVORK5CYII=">
+
+        &nbsp; &nbsp    Ipsum
+
+    Whitespace
+
+    <br> <i>    </i>
+    <div>  &nbsp </div>
+    <!-- This <p> puts lots of non textual stuff between words -->
+    <div style="display: none">This isn't rendered</div>
+    <div style="visibility: hidden">This also isn't visible</div>
+    <iframe srcdoc="Inner Iframe"></iframe>
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAQAAAAnOwc2AAAAEUlEQVR42mNk+M+AARiHsiAAcCIKAYwFoQ8AAAAASUVORK5CYII=">
+        &nbsp; &nbsp
+
+    Dipsum
+
+
+
+  </p>
+  <p>
+    This text appears at the end of the document
+  </p
+</body>

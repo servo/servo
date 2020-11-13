@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Huge lengths with tiny scale</title>
+<link rel="author" title="Xianzhu Wang" href="mailto:wangxianzhu@chromium.org">
+<link rel="help" href="https://crbug.com/1132991">
+<link rel="match" href="huge-length-tiny-scale-ref.html">
+<style>
+body {
+  overflow: hidden;
+}
+div {
+  will-change: transform;
+  transform: scale(0.005);
+  transform-origin: 0 0;
+  width: 40000px;
+  height: 40000px;
+  background: green;
+  border: 2000px solid blue;
+}
+</style>
+<div></div>

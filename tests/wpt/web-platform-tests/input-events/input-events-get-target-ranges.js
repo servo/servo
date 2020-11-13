@@ -227,3 +227,27 @@ function checkBeforeinputAndInputEventsOnNOOP() {
     "input event shouldn't be fired when the key operation does not cause modifying the DOM tree"
   );
 }
+
+function checkEditorContentResultAsSubTest(
+  expectedResult,
+  description,
+  options = {}
+) {
+  test(() => {
+    if (Array.isArray(expectedResult)) {
+      assert_in_array(
+        options.ignoreWhiteSpaceDifference
+          ? gEditor.innerHTML.replace(/&nbsp;/g, " ")
+          : gEditor.innerHTML,
+        expectedResult
+      );
+    } else {
+      assert_equals(
+        options.ignoreWhiteSpaceDifference
+          ? gEditor.innerHTML.replace(/&nbsp;/g, " ")
+          : gEditor.innerHTML,
+        expectedResult
+      );
+    }
+  }, `${description} - comparing innerHTML`);
+}

@@ -50,7 +50,10 @@ def parse_args(argv, commands=load_commands()):
                         dest="skip_venv_setup",
                         help="Whether to use the virtualenv as-is. Must set --venv as well")
     parser.add_argument("--debug", action="store_true", help="Run the debugger in case of an exception")
-    parser.add_argument("--py3", action="store_true", help="Run with python3")
+    parser.add_argument("--py3", action="store_true",
+                        help="Run with Python 3 (requires a `python3` binary on the PATH)")
+    parser.add_argument("--py2", action="store_true",
+                        help="Run with Python 2 (requires a `python2` binary on the PATH)")
     subparsers = parser.add_subparsers(dest="command")
     for command, props in iteritems(commands):
         subparsers.add_parser(command, help=props["help"], add_help=False)

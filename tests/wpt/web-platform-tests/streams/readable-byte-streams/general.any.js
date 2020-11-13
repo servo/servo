@@ -239,7 +239,7 @@ test(() => {
   const reader = stream.getReader();
   reader.read();
   assert_throws_js(TypeError, () => reader.releaseLock(), 'reader.releaseLock() must throw');
-}, 'ReadableStream with byte source: releaseLock() on ReadableStreamReader with pending read() must throw');
+}, 'ReadableStream with byte source: releaseLock() on ReadableStreamDefaultReader with pending read() must throw');
 
 promise_test(() => {
   let pullCount = 0;

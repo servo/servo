@@ -29,8 +29,13 @@
 
   async_test(t => {
     test_feature_availability('PaymentRequest()', t, cross_origin_src,
-        expect_feature_available_default);
-  }, header + ' allows cross-origin iframes.');
+        expect_feature_unavailable_default);
+  }, header + ' disallows cross-origin iframes.');
+
+  async_test(t => {
+    test_feature_availability('PaymentRequest()', t, cross_origin_src,
+        expect_feature_available_default, 'payment');
+  }, header + ' allow="payment" allows cross-origin iframes.');
 
   </script>
 </body>
