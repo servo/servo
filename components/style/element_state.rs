@@ -103,6 +103,8 @@ bitflags! {
         /// Non-standard & undocumented.
         const IN_INCREMENT_SCRIPT_LEVEL_STATE = 1 << 38;
         /// Non-standard: https://developer.mozilla.org/en-US/docs/Web/CSS/:-moz-focusring
+        ///
+        /// But also https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo
         const IN_FOCUSRING_STATE = 1 << 39;
         /// Non-standard & undocumented.
         const IN_HANDLER_CLICK_TO_PLAY_STATE = 1 << 40;
@@ -133,10 +135,6 @@ bitflags! {
         const IN_AUTOFILL_STATE = 1 << 50;
         /// Non-standard & undocumented.
         const IN_AUTOFILL_PREVIEW_STATE = 1 << 51;
-        /// :focus-visible
-        ///
-        /// https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo
-        const IN_FOCUS_VISIBLE_STATE = 1 << 52;
         /// State that dialog element is modal, for centered alignment
         ///
         /// https://html.spec.whatwg.org/multipage/#centered-alignment
