@@ -841,6 +841,13 @@ impl FetchResponseListener for ParserContext {
                 if mime.type_() == mime::APPLICATION &&
                     mime.subtype().as_str() == "xhtml" &&
                     mime.suffix() == Some(mime::XML) => {}, // Handle xhtml (application/xhtml+xml)
+            Some(ref mime) if mime.type_() == mime::APPLICATION && mime.subtype() == mime::JSON => {
+                // Used text/plain branch(Workaround)
+                let page = "<pre>\n".into();
+                parser.push_string_input_chunk(page);
+                parser.parse_sync();
+                parser.tokenizer.borrow_mut().set_plaintext_state();
+            }, // Handle json (application/json)
             Some(ref mime) => {
                 // Show warning page for unknown mime types.
                 let page = format!(
