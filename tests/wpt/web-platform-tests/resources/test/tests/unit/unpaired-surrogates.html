@@ -114,6 +114,7 @@ promise_test(() => {
         test(() => {}, 'U+d800U+d801 must be sanitized: \ud800\ud801');
         test(() => {}, 'U+dfff must be sanitized: \udfff');
         test(() => {}, 'U+dc00U+d800U+dc00U+d800 must be sanitized: \udc00\ud800\udc00\ud800');
+        test(() => {}, 'U+dbffU+dfffU+dfff must be sanitized: \udbff\udfff\udfff');
         test(() => {}, 'after');
       }
     ).then(({harness, tests}) => {
@@ -128,6 +129,10 @@ promise_test(() => {
       );
       assert_equals(
         tests['U+dc00U+d800U+dc00U+d800 must be sanitized: U+dc00\ud800\udc00U+d800'],
+        'PASS'
+      );
+      assert_equals(
+        tests['U+dbffU+dfffU+dfff must be sanitized: \udbff\udfffU+dfff'],
         'PASS'
       );
       assert_equals(tests.after, 'PASS');

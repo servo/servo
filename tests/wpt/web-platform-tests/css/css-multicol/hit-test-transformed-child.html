@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=1146975">
+<style>
+  body {
+      margin: 8px;
+  }
+</style>
+<div style="columns:2; column-fill:auto; height:100px;">
+  <div>
+    <div id="target" style="transform:translateX(100px) translateY(200px); width:50px; height:50px; background:blue;"></div>
+  </div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+      assert_equals(document.elementFromPoint(108, 208), target);
+      assert_equals(document.elementFromPoint(157, 208), target);
+      assert_equals(document.elementFromPoint(157, 257), target);
+  }, "inside");
+
+  test(()=> {
+      assert_not_equals(document.elementFromPoint(107, 208), target);
+      assert_not_equals(document.elementFromPoint(108, 207), target);
+      assert_not_equals(document.elementFromPoint(158, 257), target);
+      assert_not_equals(document.elementFromPoint(157, 258), target);
+      assert_not_equals(document.elementFromPoint(8, 8), target);
+  }, "outside");
+</script>

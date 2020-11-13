@@ -34,22 +34,19 @@ rootSVGElement.appendChild(rect);
 
 // Setup animation test
 function sample1() {
-    // Check initial/end conditions
     assert_approx_equals(rect.width.animVal.value, 100, epsilon);
     assert_equals(rect.width.baseVal.value, 100);
 }
 
-function sample2() {
-    assert_approx_equals(rect.width.animVal.value, 0, epsilon);
-    assert_equals(rect.width.baseVal.value, 100);
-}
-
+// Per https://www.w3.org/TR/2001/REC-smil-animation-20010904/#ToAttribute
+// If any values (i.e., the argument-values for from, to, by or values attributes) are not legal,
+// the animation will have no effect
 smil_async_test((t) => {
     const expectedValues = [
         // [animationId, time, sampleCallback]
         ["animation", 0.0,   sample1],
-        ["animation", 2.0,   sample2],
-        ["animation", 3.999, sample2],
+        ["animation", 2.0,   sample1],
+        ["animation", 3.999, sample1],
         ["animation", 4.001, sample1]
     ];
 

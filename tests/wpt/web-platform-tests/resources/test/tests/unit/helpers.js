@@ -11,7 +11,7 @@ function test_failure(fn, name) {
       if (err instanceof AssertionError) {
         return;
       }
-      throw new AssertionError('Expected an AssertionError, but');
+      throw new AssertionError('Expected an AssertionError, but' + err);
     }
     throw new AssertionError(
       'Expected an AssertionError, but no error was thrown'

@@ -45,6 +45,11 @@ var GenericSensorTest = (() => {
       this.sensorReadingTimerId_ = null;
       this.readingData_ = null;
       this.requestedFrequencies_ = [];
+      // The Blink implementation (third_party/blink/renderer/modules/sensor/sensor.cc)
+      // sets a timestamp by creating a DOMHighResTimeStamp from a given platform timestamp.
+      // In this mock implementation we use a starting value
+      // and an increment step value that resemble a platform timestamp reasonably enough.
+      this.timestamp_ = window.performance.timeOrigin;
       let rv = handle.mapBuffer(offset, size);
       if (rv.result != Mojo.RESULT_OK) {
         throw new Error("MockSensor(): Failed to map shared buffer");
@@ -132,7 +137,7 @@ var GenericSensorTest = (() => {
 
       const reading = this.readingData_.value();
       this.buffer_.set(reading, 2);
-      this.buffer_[1] = window.performance.now() * 0.001;
+      this.buffer_[1] = this.timestamp_++;
     }
 
     // Sets flag that forces sensor to fail when addConfiguration is invoked.
@@ -158,8 +163,9 @@ var GenericSensorTest = (() => {
           this.buffer_.set(reading, 2);
         }
         // For all tests sensor reading should have monotonically
-        // increasing timestamp in seconds.
-        this.buffer_[1] = window.performance.now() * 0.001;
+        // increasing timestamp.
+        this.buffer_[1] = this.timestamp_++;
+
         if (this.reportingMode_ === device.mojom.ReportingMode.ON_CHANGE &&
             this.notifyOnReadingChange_) {
           this.client_.sensorReadingChanged();

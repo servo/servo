@@ -27,7 +27,7 @@
      ------------------------------------------ */
   test_subframe_header_policy('fullscreen', '*', same_origin_src,
       {local_all: true, local_self: true, local_none: false,
-      remote_all: true, remote_self: true, remote_none: false},
+      remote_all: false, remote_self: false, remote_none: false},
       'Test nested header policy with local iframe on policy "fullscreen *"');
   test_subframe_header_policy('fullscreen', '\'self\'', same_origin_src,
       {local_all: true, local_self: true, local_none: false,

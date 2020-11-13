@@ -1,2 +1,2 @@
-mozprocess==1.2.0
+mozprocess==1.2.1
 selenium==3.141.0

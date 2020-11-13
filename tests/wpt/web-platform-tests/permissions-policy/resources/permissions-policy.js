@@ -433,6 +433,6 @@ function expect_reports(report_count, policy_name, description) {
         if (num_received_reports >= report_count) {
             t.done();
         }
-   }), {types: ['feature-policy-violation'], buffered: true}).observe();
+   }), {types: ['permissions-policy-violation'], buffered: true}).observe();
   }, description);
 }

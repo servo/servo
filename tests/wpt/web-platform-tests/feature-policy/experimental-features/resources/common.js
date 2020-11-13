@@ -71,7 +71,7 @@ setup(() => {
     if (window.reporting_observer_callback) {
       reports.forEach(window.reporting_observer_callback);
     }
-  }, {types: ["feature-policy-violation"]});
+  }, {types: ["permissions-policy-violation"]});
   window.reporting_observer_instance.observe();
   window.reporting_observer_callback = null;
 });

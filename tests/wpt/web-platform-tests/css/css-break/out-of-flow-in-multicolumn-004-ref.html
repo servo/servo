@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!-- Simulate two multi-column containers with an out-of-flow positioned child that
+     fragments, even in the presence of break-inside: avoid and break-before: column. -->
+<style>
+.initial {
+  float: left;
+  height: 20px;
+  width: 20px;
+  background: blue;
+}
+.first-fragment {
+  width: 40px;
+  height: 20px;
+  background: green;
+  margin-top: 10px;
+}
+.second-fragment {
+  width: 40px;
+  height: 10px;
+  background: green;
+  margin-left: 50px;
+}
+</style>
+<div class="initial"></div>
+<div class="second-fragment"></div>
+<div class="first-fragment"></div>
+<div class="initial"></div>
+<div class="second-fragment"></div>
+<div class="first-fragment"></div>

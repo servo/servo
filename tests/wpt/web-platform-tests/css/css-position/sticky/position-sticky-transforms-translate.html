@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>translations on position:sticky elements should apply after sticking</title>
+<link rel="help" href="https://www.w3.org/TR/css-position-3/#sticky-pos" />
+<meta name="assert" content="This test checks that translations on position:sticky elements are carried out on their stuck position" />
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script src="../resources/sticky-util.js"></script>
+
+<body style="margin: 0;"></body>
+
+<script>
+test(() => {
+  const elements = setupStickyTest('top', 50);
+  elements.sticky.style.transform = 'translateY(-100%)';
+  elements.scroller.scrollTop = 100;
+  // Transforms don't affect offsetTop, so use getBoundingClientRect.
+  assert_equals(elements.sticky.getBoundingClientRect().y,
+      elements.scroller.getBoundingClientRect().y);
+}, 'Translation transform can move sticky element past sticking point');
+
+test(() => {
+  const elements = setupStickyTest('top', 50);
+  elements.sticky.style.transform = 'translateY(50%)';
+  elements.scroller.scrollTop = 200;
+  // Transforms don't affect offsetTop, so use getBoundingClientRect.
+  const stickyElementOffset = elements.sticky.getBoundingClientRect().y -
+      elements.scroller.getBoundingClientRect().y;
+  assert_equals(stickyElementOffset, 100);
+}, 'Stuck elements can still be moved via translations');
+
+test(() => {
+  const elements = setupStickyTest('top', 50);
+  elements.container.style.transform = 'translateY(100px)';
+  elements.scroller.scrollTop = 200;
+  // Transforms don't affect offsetTop, so use getBoundingClientRect.
+  // Here the sticky element will originally have stuck at 50px from the top,
+  // but is then 'pulled' downwards by the 100px container transform.
+  const stickyElementOffset = elements.sticky.getBoundingClientRect().y -
+      elements.scroller.getBoundingClientRect().y;
+  assert_equals(stickyElementOffset, 150);
+}, 'The sticky element should stick before the container is offset by a ' +
+    'translation');
+</script>

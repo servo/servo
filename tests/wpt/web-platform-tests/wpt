@@ -7,7 +7,20 @@ if __name__ == "__main__":
     commands = wpt.load_commands()
     py3only = commands[args.command]["py3only"]
 
-    if (args.py3 or py3only) and sys.version_info.major < 3:
+    if (args.py2) and sys.version_info.major > 2:
+        if py3only:
+            sys.stderr.write("This command only works with Python 3\n")
+            sys.exit(1)
+        from subprocess import call
+        try:
+            sys.exit(call(['python2'] + sys.argv))
+        except OSError as e:
+            if e.errno == 2:
+                sys.stderr.write("python2 is needed to run this command\n")
+                sys.exit(1)
+            else:
+                raise
+    elif (args.py3 or py3only) and sys.version_info.major < 3:
         from subprocess import call
         try:
             sys.exit(call(['python3'] + sys.argv))

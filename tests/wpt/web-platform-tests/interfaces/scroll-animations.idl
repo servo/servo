@@ -16,7 +16,7 @@ typedef (CSSNumericValue or CSSKeywordish) ContainerBasedOffset;
 typedef (ContainerBasedOffset or ElementBasedOffset) ScrollTimelineOffset;
 
 dictionary ScrollTimelineOptions {
-  Element? source = null;
+  Element? source;
   ScrollDirection orientation = "block";
   ScrollTimelineOffset start = "auto";
   ScrollTimelineOffset end = "auto";
