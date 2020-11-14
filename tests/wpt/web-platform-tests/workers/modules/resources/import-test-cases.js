@@ -5,6 +5,16 @@ const testCases = [
         description: 'Static import.'
     },
     {
+        scriptURL: '/workers/modules/resources/static-import-remote-origin-script-worker.sub.js',
+        expectation: ['export-on-load-script.js'],
+        description: 'Static import (cross-origin).'
+    },
+    {
+        scriptURL: '/workers/modules/resources/static-import-redirect-worker.js',
+        expectation: ['export-on-load-script.js'],
+        description: 'Static import (redirect).'
+    },
+    {
         scriptURL: '/workers/modules/resources/nested-static-import-worker.js',
         expectation: [
             'export-on-static-import-script.js',

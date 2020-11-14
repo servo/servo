@@ -9,12 +9,20 @@
 <body>
 
 <script>
-function testElementType(allowsShadowDom, elementType, mode, delegatesFocus) {
-  var t = test(t => {
+function testElementType(allowsShadowDom, elementType, applyToShadow, mode, delegatesFocus) {
+  const t = test(t => {
     // Create and attach element
-    const wrapper = document.createElement('div');
-    t.add_cleanup(function() { wrapper.remove(); });
-    document.body.appendChild(wrapper);
+    let wrapper;
+    if (applyToShadow) {
+      const host = document.createElement('div');
+      t.add_cleanup(function() { host.remove(); });
+      document.body.appendChild(host);
+      wrapper = host.attachShadow({mode: 'open'});
+    } else {
+      wrapper = document.createElement('div');
+      t.add_cleanup(function() { wrapper.remove(); });
+      document.body.appendChild(wrapper);
+    }
     const element = document.createElement(elementType);
     wrapper.appendChild(element);
 
@@ -44,7 +52,7 @@ function testElementType(allowsShadowDom, elementType, mode, delegatesFocus) {
     // Either way, make sure getInnerHTML({includeShadowRoots: false}) matches .innerHTML
     assert_equals(wrapper.getInnerHTML({includeShadowRoots: false}),wrapper.innerHTML,'getInnerHTML() with includeShadowRoots false should return the same as .innerHTML');
 
-  }, `getInnerHTML() on <${elementType}>${allowsShadowDom ? `, with mode=${mode}, delegatesFocus=${delegatesFocus}.` : ''}`);
+  }, `${applyToShadow ? 'ShadowRoot' : 'Element'}.getInnerHTML() on <${elementType}>${allowsShadowDom ? `, with mode=${mode}, delegatesFocus=${delegatesFocus}.` : ''}`);
 }
 
 function runAllTests() {
@@ -52,14 +60,16 @@ function runAllTests() {
   const safelisted = ATTACHSHADOW_SAFELISTED_ELEMENTS;
   for (const elementName of allElements) {
     const allowsShadowDom = safelisted.includes(elementName);
-    if (allowsShadowDom) {
-      for (const delegatesFocus of [false, true]) {
-        for (const mode of ['open', 'closed']) {
-          testElementType(true, elementName, mode, delegatesFocus);
+    for (const applyToShadow of [false, true]) {
+      if (allowsShadowDom) {
+        for (const delegatesFocus of [false, true]) {
+          for (const mode of ['open', 'closed']) {
+            testElementType(true, elementName, applyToShadow, mode, delegatesFocus);
+          }
         }
+      } else {
+        testElementType(false, elementName, applyToShadow);
       }
-    } else {
-      testElementType(false, elementName);
     }
   }
 }

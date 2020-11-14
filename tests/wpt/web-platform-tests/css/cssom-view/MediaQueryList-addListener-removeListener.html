@@ -11,6 +11,16 @@
 <script>
 "use strict";
 
+test(() => {
+    const mql = window.matchMedia("(min-width: 100px)");
+
+    mql.addListener(null);
+    mql.addListener(undefined);
+
+    mql.removeListener(null);
+    mql.removeListener(undefined);
+}, "EventListener parameter is optional");
+
 promise_test(async t => {
     const iframe = await createIFrame(t, 200, 100);
     const heightMQL = iframe.contentWindow.matchMedia("(max-height: 50px)");
