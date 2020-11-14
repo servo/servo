@@ -1,3 +1,5 @@
+# Dummy comment to force an image rebuild for https://github.com/servo/servo/issues/27758
+
 FROM ubuntu:eoan-20200608
 
 ENV \
