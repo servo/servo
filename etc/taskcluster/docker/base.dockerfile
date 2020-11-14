@@ -1,6 +1,4 @@
-# Dummy comment to force an image rebuild for https://github.com/servo/servo/issues/27758
-
-FROM ubuntu:eoan-20200608
+FROM ubuntu:20.04
 
 ENV \
     #
@@ -20,10 +18,9 @@ RUN \
         ca-certificates \
         #
         # Running mach with Python 2
-        python \
-        python-pip \
-        python-dev \
-        python-virtualenv \
+        python2 \
+        python2-dev \
+        python-is-python2 \
         #
         # Running mach with Python 3
         python3 \
@@ -38,5 +35,10 @@ RUN \
         curl \
         # Setting the default locale
         locales \
-        locales-all
-
+        locales-all \
+    && \
+    #
+    # Python 2 bits that have been removed from Ubuntu packages
+    curl https://bootstrap.pypa.io/get-pip.py -sSf -o get-pip.py && \
+    python2 get-pip.py && \
+    python2 -m pip install virtualenv
