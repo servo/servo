@@ -1,5 +1,6 @@
 <!doctype html>
 <meta charset=utf-8>
+<meta name="timeout" content="long">
 <title>Service Worker: WindowClient.navigate</title>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
@@ -32,154 +33,75 @@
     });
   }
 
-  promise_test(function(t) {
-    var worker = "resources/client-navigate-worker.js";
-    var scope = "resources/client-navigate-frame.html";
-    var controller, frame, clientId;
+  async function with_controlled_iframe_and_url(t, name, f) {
+    const SCRIPT = "resources/client-navigate-worker.js";
+    const SCOPE = "resources/client-navigate-frame.html";
 
-    return service_worker_unregister_and_register(t, worker, scope)
-      .then(reg => {
-        controller = reg.installing;
-        return wait_for_state(t, reg.installing, "activated");
-      })
-      .then(___ => with_iframe(scope))
-      .then(f => {
-        frame = f;
-        fetch_tests_from_worker(controller);
-        return wait_for_message()
-      })
-      .then(({id}) => clientId = id)
-      .then(___ => run_test(controller, clientId, "test_client_navigate_success"))
-      .then(({result, url}) => {
-        assert_equals(result, "test_client_navigate_success");
-        assert_equals(
-          url, new URL("resources/client-navigated-frame.html",
-                       location).toString());
-        assert_equals(
-          frame.contentWindow.location.href,
-          new URL("resources/client-navigated-frame.html",
-                  location).toString());
-        frame.remove();
-      })
-      .catch(unreached_rejection(t))
-      .then(___ => service_worker_unregister(t, scope));
+    // Register service worker and wait for it to become activated
+    const registration = await service_worker_unregister_and_register(t, SCRIPT, SCOPE);
+    t.add_cleanup(() => registration.unregister());
+    const worker = registration.installing;
+    await wait_for_state(t, worker, 'activated');
+
+    // Create child iframe and make sure we register a listener for the message
+    // it sends before it's created
+    const client_id_promise = wait_for_message();
+    const iframe = await with_iframe(SCOPE);
+    t.add_cleanup(() => iframe.remove());
+    const { id } = await client_id_promise;
+
+    // Run the test in the service worker and fetch it
+    const { result, url } = await run_test(worker, id, name);
+    fetch_tests_from_worker(worker);
+    assert_equals(result, name);
+
+    // Hand over the iframe and URL from the service worker to the callback
+    await f(iframe, url);
+  }
+
+  promise_test(function(t) {
+    return with_controlled_iframe_and_url(t, 'test_client_navigate_success', async (iframe, url) => {
+      assert_equals(
+        url, new URL("resources/client-navigated-frame.html",
+                      location).toString());
+      assert_equals(
+        iframe.contentWindow.location.href,
+        new URL("resources/client-navigated-frame.html",
+                location).toString());
+    });
   }, "Frame location should update on successful navigation");
 
   promise_test(function(t) {
-    var worker = "resources/client-navigate-worker.js";
-    var scope = "resources/client-navigate-frame.html";
-    var controller, frame, clientId;
-
-    return service_worker_unregister_and_register(t, worker, scope)
-      .then(reg => {
-        controller = reg.installing;
-        return wait_for_state(t, reg.installing, "activated");
-      })
-      .then(___ => with_iframe(scope))
-      .then(f => {
-        frame = f;
-        fetch_tests_from_worker(controller);
-        return wait_for_message()
-      })
-      .then(({id}) => clientId = id)
-      .then(___ => run_test(controller, clientId, "test_client_navigate_redirect"))
-      .then(({result, url}) => {
-        assert_equals(result, "test_client_navigate_redirect");
-        assert_equals(url, "");
-        assert_throws_dom("SecurityError", function() { return frame.contentWindow.location.href });
-        frame.remove();
-      })
-      .catch(unreached_rejection(t))
-      .then(___ => service_worker_unregister(t, scope));
+    return with_controlled_iframe_and_url(t, 'test_client_navigate_redirect', async (iframe, url) => {
+      assert_equals(url, "");
+      assert_throws_dom("SecurityError", function() { return iframe.contentWindow.location.href });
+    });
   }, "Frame location should not be accessible after redirect");
 
   promise_test(function(t) {
-    var worker = "resources/client-navigate-worker.js";
-    var scope = "resources/client-navigate-frame.html";
-    var controller, frame, clientId;
-
-    return service_worker_unregister_and_register(t, worker, scope)
-      .then(reg => {
-        controller = reg.installing;
-        return wait_for_state(t, reg.installing, "activated");
-      })
-      .then(___ => with_iframe(scope))
-      .then(f => {
-        frame = f;
-        fetch_tests_from_worker(controller);
-        return wait_for_message()
-      })
-      .then(({id}) => clientId = id)
-      .then(___ => run_test(controller, clientId, "test_client_navigate_cross_origin"))
-      .then(({result, url}) => {
-        assert_equals(result, "test_client_navigate_cross_origin");
-        assert_equals(url, "");
-        assert_throws_dom("SecurityError", function() { return frame.contentWindow.location.href });
-        frame.remove();
-      })
-      .catch(unreached_rejection(t))
-      .then(___ => service_worker_unregister(t, scope));
+    return with_controlled_iframe_and_url(t, 'test_client_navigate_cross_origin', async (iframe, url) => {
+      assert_equals(url, "");
+      assert_throws_dom("SecurityError", function() { return iframe.contentWindow.location.href });
+    });
   }, "Frame location should not be accessible after cross-origin navigation");
 
   promise_test(function(t) {
-    var worker = "resources/client-navigate-worker.js";
-    var scope = "resources/client-navigate-frame.html";
-    var controller, frame, clientId;
-
-    return service_worker_unregister_and_register(t, worker, scope)
-      .then(reg => {
-        controller = reg.installing;
-        return wait_for_state(t, reg.installing, "activated");
-      })
-      .then(___ => with_iframe(scope))
-      .then(f => {
-        frame = f;
-        fetch_tests_from_worker(controller);
-        return wait_for_message()
-      })
-      .then(({id}) => clientId = id)
-      .then(___ => run_test(controller, clientId, "test_client_navigate_about_blank"))
-      .then(({result, url}) => {
-        assert_equals(result, "test_client_navigate_about_blank");
-        assert_equals(
-          frame.contentWindow.location.href,
+    return with_controlled_iframe_and_url(t, 'test_client_navigate_about_blank', async (iframe, url) => {
+      assert_equals(
+          iframe.contentWindow.location.href,
           new URL("resources/client-navigate-frame.html",
                   location).toString());
-        frame.contentWindow.document.body.style = "background-color: green"
-        frame.remove();
-      })
-      .catch(unreached_rejection(t))
-      .then(___ => service_worker_unregister(t, scope));
+      iframe.contentWindow.document.body.style = "background-color: green"
+    });
   }, "Frame location should not update on failed about:blank navigation");
 
   promise_test(function(t) {
-    var worker = "resources/client-navigate-worker.js";
-    var scope = "resources/client-navigate-frame.html";
-    var controller, frame, clientId;
-
-    return service_worker_unregister_and_register(t, worker, scope)
-      .then(reg => {
-        controller = reg.installing;
-        return wait_for_state(t, reg.installing, "activated");
-      })
-      .then(___ => with_iframe(scope))
-      .then(f => {
-        frame = f;
-        fetch_tests_from_worker(controller);
-        return wait_for_message()
-      })
-      .then(({id}) => clientId = id)
-      .then(___ => run_test(controller, clientId, "test_client_navigate_mixed_content"))
-      .then(({result, url}) => {
-        assert_equals(result, "test_client_navigate_mixed_content");
-        assert_equals(
-          frame.contentWindow.location.href,
+    return with_controlled_iframe_and_url(t, 'test_client_navigate_mixed_content', async (iframe, url) => {
+      assert_equals(
+          iframe.contentWindow.location.href,
           new URL("resources/client-navigate-frame.html",
                   location).toString());
-        frame.contentWindow.document.body.style = "background-color: green"
-        frame.remove();
-      })
-      .catch(unreached_rejection(t))
-      .then(___ => service_worker_unregister(t, scope));
+      iframe.contentWindow.document.body.style = "background-color: green"
+    });
   }, "Frame location should not update on failed mixed-content navigation");
 </script>
