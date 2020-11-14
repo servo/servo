@@ -4,6 +4,7 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
+import gzip
 import json
 import os
 import re
@@ -20,7 +21,13 @@ def fetch(url):
     print("Fetching " + url)
     response = urllib.request.urlopen(url)
     assert response.getcode() == 200
-    return response
+    encoding = response.info().get("Content-Encoding")
+    if not encoding:
+        return response
+    elif encoding == "gzip":
+        return gzip.GzipFile(fileobj=response)
+    else:
+        raise ValueError("Unsupported Content-Encoding: %s" % encoding)
 
 
 def fetch_json(url):
