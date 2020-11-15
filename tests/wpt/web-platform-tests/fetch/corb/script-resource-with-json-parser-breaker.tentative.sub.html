@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<meta charset="utf-8">
 <!-- Test verifies CORB will block responses beginning with a JSON parser
   breaker regardless of their MIME type (excluding text/css - see below).
 
@@ -18,7 +19,6 @@
   style-css-with-json-parser-breaker.sub.html) can parse as valid stylesheet
   even in presence of a JSON parser breaker.
 -->
-<meta charset="utf-8">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id=log></div>
