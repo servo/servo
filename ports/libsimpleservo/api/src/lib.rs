@@ -63,8 +63,16 @@ pub struct InitOptions {
     pub xr_discovery: Option<webxr::Discovery>,
     pub gl_context_pointer: Option<*const c_void>,
     pub native_display_pointer: Option<*const c_void>,
-    pub native_widget: *mut c_void,
+    pub surfman_integration: SurfmanIntegration,
     pub prefs: Option<HashMap<String, PrefValue>>,
+}
+
+/// Controls how this embedding's rendering will integrate with the embedder.
+pub enum SurfmanIntegration {
+    /// Render directly to a provided native widget (see surfman::NativeWidget).
+    Widget(*mut c_void),
+    /// Render to an offscreen surface.
+    Surface,
 }
 
 #[derive(Clone, Debug)]
@@ -253,13 +261,21 @@ pub fn init(
             .create_adapter()
             .or(Err("Failed to create adapter"))?,
     };
-    let native_widget = unsafe {
-        connection.create_native_widget_from_ptr(
-            init_opts.native_widget,
-            init_opts.coordinates.framebuffer.to_untyped(),
-        )
+    let surface_type = match init_opts.surfman_integration {
+        SurfmanIntegration::Widget(native_widget) => {
+            let native_widget = unsafe {
+                connection.create_native_widget_from_ptr(
+                    native_widget,
+                    init_opts.coordinates.framebuffer.to_untyped(),
+                )
+            };
+            SurfaceType::Widget { native_widget }
+        },
+        SurfmanIntegration::Surface => {
+            let size = init_opts.coordinates.framebuffer.to_untyped();
+            SurfaceType::Generic { size }
+        },
     };
-    let surface_type = SurfaceType::Widget { native_widget };
     let webrender_surfman = WebrenderSurfman::create(&connection, &adapter, surface_type)
         .or(Err("Failed to create surface manager"))?;
 
