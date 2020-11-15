@@ -37,7 +37,7 @@ use canvas_traits::webgl::{GLContextAttributes, WebGLVersion};
 use dom_struct::dom_struct;
 use euclid::default::{Rect, Size2D};
 use html5ever::{LocalName, Prefix};
-use image::png::PNGEncoder;
+use image::png::PngEncoder;
 use image::ColorType;
 use ipc_channel::ipc::{self as ipcchan, IpcSharedMemory};
 use js::error::throw_type_error;
@@ -426,7 +426,7 @@ impl HTMLCanvasElementMethods for HTMLCanvasElement {
         let mut png = Vec::new();
         // FIXME(nox): https://github.com/image-rs/image-png/issues/86
         // FIXME(nox): https://github.com/image-rs/image-png/issues/87
-        PNGEncoder::new(&mut png)
+        PngEncoder::new(&mut png)
             .encode(&file, self.Width(), self.Height(), ColorType::Rgba8)
             .unwrap();
         let mut url = "data:image/png;base64,".to_owned();

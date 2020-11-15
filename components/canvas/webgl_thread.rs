@@ -2873,16 +2873,16 @@ fn image_to_tex_image_data(
             let mut rgbaf16 = Vec::<u8>::with_capacity(pixel_count * 8);
             for rgba8 in pixels.chunks(4) {
                 rgbaf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits())
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).to_bits())
                     .unwrap();
                 rgbaf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).as_bits())
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).to_bits())
                     .unwrap();
                 rgbaf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).as_bits())
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).to_bits())
                     .unwrap();
                 rgbaf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).as_bits())
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[3] as f32).to_bits())
                     .unwrap();
             }
             rgbaf16
@@ -2892,13 +2892,13 @@ fn image_to_tex_image_data(
             let mut rgbf16 = Vec::<u8>::with_capacity(pixel_count * 6);
             for rgba8 in pixels.chunks(4) {
                 rgbf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).as_bits())
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[0] as f32).to_bits())
                     .unwrap();
                 rgbf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).as_bits())
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[1] as f32).to_bits())
                     .unwrap();
                 rgbf16
-                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).as_bits())
+                    .write_u16::<NativeEndian>(f16::from_f32(rgba8[2] as f32).to_bits())
                     .unwrap();
             }
             rgbf16
@@ -2906,7 +2906,7 @@ fn image_to_tex_image_data(
         (TexFormat::Alpha, TexDataType::HalfFloat) |
         (TexFormat::Alpha16f, TexDataType::HalfFloat) => {
             for i in 0..pixel_count {
-                let p = f16::from_f32(pixels[i * 4 + 3] as f32).as_bits();
+                let p = f16::from_f32(pixels[i * 4 + 3] as f32).to_bits();
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
             pixels.truncate(pixel_count * 2);
@@ -2915,7 +2915,7 @@ fn image_to_tex_image_data(
         (TexFormat::Luminance, TexDataType::HalfFloat) |
         (TexFormat::Luminance16f, TexDataType::HalfFloat) => {
             for i in 0..pixel_count {
-                let p = f16::from_f32(pixels[i * 4] as f32).as_bits();
+                let p = f16::from_f32(pixels[i * 4] as f32).to_bits();
                 NativeEndian::write_u16(&mut pixels[i * 2..i * 2 + 2], p);
             }
             pixels.truncate(pixel_count * 2);
@@ -2924,8 +2924,8 @@ fn image_to_tex_image_data(
         (TexFormat::LuminanceAlpha, TexDataType::HalfFloat) |
         (TexFormat::LuminanceAlpha16f, TexDataType::HalfFloat) => {
             for rgba8 in pixels.chunks_mut(4) {
-                let lum = f16::from_f32(rgba8[0] as f32).as_bits();
-                let a = f16::from_f32(rgba8[3] as f32).as_bits();
+                let lum = f16::from_f32(rgba8[0] as f32).to_bits();
+                let a = f16::from_f32(rgba8[3] as f32).to_bits();
                 NativeEndian::write_u16(&mut rgba8[0..2], lum);
                 NativeEndian::write_u16(&mut rgba8[2..4], a);
             }
