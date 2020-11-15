@@ -162,6 +162,23 @@ impl WebrenderSurfman {
             })
     }
 
+    /// Invoke a closure with the surface associated with the current front buffer.
+    /// This can be used to create a surfman::SurfaceTexture to blit elsewhere.
+    pub fn with_front_buffer<F: FnMut(&Device, Surface) -> Surface>(&self, mut f: F) {
+        let ref mut device = self.0.device.borrow_mut();
+        let ref mut context = self.0.context.borrow_mut();
+        let surface = device
+            .unbind_surface_from_context(context)
+            .unwrap()
+            .unwrap();
+        let surface = f(device, surface);
+        device.bind_surface_to_context(context, surface).unwrap();
+    }
+
+    pub fn device(&self) -> std::cell::Ref<Device> {
+        self.0.device.borrow()
+    }
+
     pub fn connection(&self) -> Connection {
         let ref device = self.0.device.borrow();
         device.connection()

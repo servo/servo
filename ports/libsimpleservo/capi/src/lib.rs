@@ -21,6 +21,7 @@ use simpleservo::{self, gl_glue, ServoGlue, SERVO};
 use simpleservo::{
     ContextMenuResult, Coordinates, DeviceIntRect, EventLoopWaker, HostTrait, InitOptions,
     InputMethodType, MediaSessionActionType, MediaSessionPlaybackState, MouseButton, PromptResult,
+    SurfmanIntegration,
 };
 use std::ffi::{CStr, CString};
 #[cfg(target_os = "windows")]
@@ -463,7 +464,7 @@ unsafe fn init(
         xr_discovery: None,
         gl_context_pointer: gl_context,
         native_display_pointer: display,
-        native_widget: opts.native_widget,
+        surfman_integration: SurfmanIntegration::Widget(opts.native_widget),
     };
 
     let wakeup = Box::new(WakeupCallback::new(wakeup));
