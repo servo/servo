@@ -161,6 +161,7 @@ pub trait HostTrait {
 }
 
 pub struct ServoGlue {
+    webrender_surfman: WebrenderSurfman,
     servo: Servo<ServoWindowCallbacks>,
     batch_mode: bool,
     callbacks: Rc<ServoWindowCallbacks>,
@@ -285,7 +286,7 @@ pub fn init(
         density: init_opts.density,
         gl_context_pointer: init_opts.gl_context_pointer,
         native_display_pointer: init_opts.native_display_pointer,
-        webrender_surfman,
+        webrender_surfman: webrender_surfman.clone(),
     });
 
     let embedder_callbacks = Box::new(ServoEmbedderCallbacks {
@@ -298,6 +299,7 @@ pub fn init(
 
     SERVO.with(|s| {
         let mut servo_glue = ServoGlue {
+            webrender_surfman,
             servo,
             batch_mode: false,
             callbacks: window_callbacks,
@@ -336,6 +338,12 @@ impl ServoGlue {
     /// Call after on_shutdown_complete
     pub fn deinit(self) {
         self.servo.deinit();
+    }
+
+    /// Returns the webrender surface management integration interface.
+    /// This provides the embedder access to the current front buffer.
+    pub fn surfman(&self) -> WebrenderSurfman {
+        self.webrender_surfman.clone()
     }
 
     /// This is the Servo heartbeat. This needs to be called
