@@ -816,7 +816,7 @@ pub static MEDIA_FEATURES: [MediaFeatureDescription; 55] = [
     system_metric_feature!(atom!("-moz-overlay-scrollbars")),
     system_metric_feature!(atom!("-moz-windows-default-theme")),
     system_metric_feature!(atom!("-moz-mac-graphite-theme")),
-    system_metric_feature!(atom!("-moz-mac-yosemite-theme")),
+    system_metric_feature!(atom!("-moz-mac-big-sur-theme")),
     system_metric_feature!(atom!("-moz-windows-accent-color-in-titlebar")),
     system_metric_feature!(atom!("-moz-windows-compositor")),
     system_metric_feature!(atom!("-moz-windows-classic")),
