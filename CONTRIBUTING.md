@@ -41,7 +41,7 @@ on how to start working on Servo.
 
 - If your patch is not getting reviewed or you need a specific person to review
   it, you can @-reply a reviewer asking for a review in the pull request or a
-  comment, or you can ask for a review in [the Servo room](https://chat.mozilla.org/#/room/#servo:mozilla.org) on Mozilla's [Matrix](https://wiki.mozilla.org/Matrix) network.
+  comment, or you can ask for a review in [the Servo chat](https://servo.zulipchat.com/).
 
 - Add tests relevant to the fixed bug or new feature.  For a DOM change this
   will usually be a web platform test; for layout, a reftest.  See our [testing
@@ -51,14 +51,12 @@ For specific git instructions, see [GitHub workflow 101](https://github.com/serv
 
 ## Conduct
 
-In all Servo-related forums, we follow the [Rust Code of Conduct](https://www.rust-lang.org/policies/code-of-conduct). For escalation or moderation issues, please contact Josh (jmatthews@mozilla.com) and Lars (larsberg@mozilla.com) instead of the Rust moderation team.
+In all Servo-related forums, we follow the [Rust Code of Conduct](https://www.rust-lang.org/policies/code-of-conduct). For escalation or moderation issues, please contact a member of the Servo Technical Steering Committee instead of the Rust moderation team.
 
 
 ## Communication
 
 Servo contributors frequent the [Servo Zulip chat](https://servo.zulipchat.com/).
-
-You can also join the [`dev-servo` mailing list](https://lists.mozilla.org/listinfo/dev-servo).
 
 ## Technical Steering Committee
 
