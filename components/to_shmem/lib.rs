@@ -170,7 +170,7 @@ impl SharedMemoryBuilder {
         assert!(end <= self.capacity);
 
         self.index = end;
-        unsafe { self.buffer.offset(start as isize) as *mut T }
+        unsafe { self.buffer.add(start) as *mut T }
     }
 }
 

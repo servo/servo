@@ -368,7 +368,7 @@ pub fn to_css_identifier(mut camel_case: &str) -> String {
             }
         }
         if !first {
-            result.push_str("-");
+            result.push('-');
         }
         first = false;
         result.push_str(&segment.to_lowercase());
