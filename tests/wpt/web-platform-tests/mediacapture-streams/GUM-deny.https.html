@@ -3,8 +3,7 @@
 <head>
   <title>getUserMedia() triggers error callback when auth is denied</title>
   <link rel="author" title="Dr. A. Gouaillard" href="mailto:agouaillard@gmail.com"/>
-  <link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#methods-5">
-  <link rel="help" href="http://w3c.github.io/mediacapture-main/getusermedia.html#navigatorusermediaerrorcallback">
+  <link rel="help" href="https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia">
 </head>
 <body>
   <p class="instructions">When prompted, <strong>please deny</strong> access to
@@ -16,18 +15,17 @@
   <script src=/resources/testharness.js></script>
   <script src=/resources/testharnessreport.js></script>
   <script>
-    var t = async_test("Tests that the error callback is triggered when permission is denied");
-    t.step(function() {
-      navigator.mediaDevices.getUserMedia({video: true})
-        .then(t.step_func(function (stream) {
-          assert_unreached("The success callback should not be triggered since access is to be denied");
-          t.done();
-        }), t.step_func(function (error) {
-          assert_equals(error.name, "NotAllowedError", "NotAllowedError returned as expected");
-          assert_equals(error.constraintName, undefined, "constraintName attribute not set as expected");
-          t.done();
-        }))
-    });
+promise_test(async () => {
+  try {
+    await navigator.mediaDevices.getUserMedia({video: true})
+  } catch (error) {
+    assert_throws_dom("NotAllowedError", () => { throw error });
+    assert_false('constraintName' in error,
+                 "constraintName attribute not set as expected");
+    return;
+  };
+  assert_unreached("The success callback should not be triggered since access is to be denied");
+}, "Tests that the error callback is triggered when permission is denied");
   </script>
 </body>
 </html>

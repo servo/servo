@@ -3,7 +3,7 @@
 <head>
 <title>getUserMedia({}) rejects with TypeError</title>
 <link rel="author" title="Dominique Hazael-Massieux" href="mailto:dom@w3.org"/>
-<link rel="help" href="http://dev.w3.org/2011/webrtc/editor/getusermedia.html#widl-NavigatorUserMedia-getUserMedia-void-MediaStreamConstraints-constraints-NavigatorUserMediaSuccessCallback-successCallback-NavigatorUserMediaErrorCallback-errorCallback">
+<link rel="help" href="https://w3c.github.io/mediacapture-main/#dom-mediadevices-getusermedia">
 </head>
 <body>
 <h1 class="instructions">Description</h1>
@@ -14,18 +14,17 @@ options parameter raises a TypeError exception.</p>
 <script src=/resources/testharness.js></script>
 <script src=/resources/testharnessreport.js></script>
 <script>
-var t = async_test("Tests that getUserMedia is rejected with a TypeError when used with an empty options parameter");
-t.step( function () {
-  navigator.mediaDevices.getUserMedia({})
-    .then(t.step_func(function () {
-      assert_unreached("This should never be triggered since the constraints parameter is empty");
-    }), t.step_func(function (error) {
-      assert_equals(error.name, "TypeError", "TypeError returned as expected");
-      assert_equals(error.constraintName, undefined, "constraintName attribute not set as expected");
-      t.done();
-    }));
-  t.done();
-});
+promise_test(async () => {
+  try {
+    await navigator.mediaDevices.getUserMedia({});
+  } catch (error) {
+    assert_throws_js(TypeError, () => { throw error });
+    assert_false('constraintName' in error,
+                 "constraintName attribute not set as expected");
+    return;
+  }
+  assert_unreached("This should never be triggered since the constraints parameter is empty.");
+}, "Tests that getUserMedia is rejected with a TypeError when used with an empty options parameter");
 
 </script>
 </body>

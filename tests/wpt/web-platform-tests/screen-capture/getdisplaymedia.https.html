@@ -27,7 +27,7 @@ promise_test(async t => {
   try {
     stopTracks(await navigator.mediaDevices.getDisplayMedia({video: true}));
   } catch (err) {
-    assert_equals(err.name, 'InvalidStateError', err.message);
+    assert_throws_dom('InvalidStateError', () => { throw err });
     return;
   }
   assert_unreached('getDisplayMedia should have failed');
@@ -62,7 +62,7 @@ promise_test(async t => {
   try {
     stopTracks(await getDisplayMedia(constraints));
   } catch (err) {
-    assert_equals(err.name, 'TypeError', err.message);
+    assert_throws_js(TypeError, () => { throw err });
     return;
   }
   assert_unreached('getDisplayMedia should have failed');
