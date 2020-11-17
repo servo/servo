@@ -914,8 +914,8 @@ where
             is_from_end,
             cache.as_deref_mut(),
         );
-        if let Some(c) = cache.as_mut() { 
-            c.insert(element.opaque(), i) 
+        if let Some(c) = cache.as_mut() {
+            c.insert(element.opaque(), i)
         }
         i
     };
