@@ -334,10 +334,7 @@ where
     let result =
         matches_complex_selector_internal(iter, element, context, flags_setter, Rightmost::Yes);
 
-    match result {
-        SelectorMatchingResult::Matched => true,
-        _ => false,
-    }
+    matches!(result, SelectorMatchingResult::Matched)
 }
 
 #[inline]
@@ -915,9 +912,11 @@ where
             element,
             is_of_type,
             is_from_end,
-            cache.as_mut().map(|s| &mut **s),
+            cache.as_deref_mut(),
         );
-        cache.as_mut().map(|c| c.insert(element.opaque(), i));
+        if let Some(c) = cache.as_mut() { 
+            c.insert(element.opaque(), i) 
+        }
         i
     };
     debug_assert_eq!(
