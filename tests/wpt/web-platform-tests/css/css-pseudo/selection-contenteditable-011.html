@@ -35,15 +35,6 @@
   /* Then we set the range boundaries to the children of div#test */
   window.getSelection().addRange(targetRange);
   /* Finally, we now select such range of content */
-  document.getElementById("test").blur();
-  /*
-  Some browsers, like Chromium 80+, will
-  transfer focus to a selected element
-  like a contenteditable div and
-  therefore style the border of
-  such element. We remove such
-  focus with the blur() method.
-  */
   }
   </script>
 

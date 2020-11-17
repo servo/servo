@@ -58,6 +58,7 @@ async_test(t => {
   532,  // netnews
   540,  // uucp
   548,  // afp
+  554,  // rtsp
   556,  // remotefs
   563,  // nntp+ssl
   587,  // smtp (outgoing)
@@ -65,6 +66,8 @@ async_test(t => {
   636,  // ldap+ssl
   993,  // ldap+ssl
   995,  // pop3+ssl
+  1720, // h323hostcall
+  1723, // pptp
   2049, // nfs
   3659, // apple-sasl
   4045, // lockd
