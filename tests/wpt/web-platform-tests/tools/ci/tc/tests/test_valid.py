@@ -1,6 +1,7 @@
 import json
 import os
 from io import open
+import sys
 
 import jsone
 import mock
@@ -9,10 +10,11 @@ import requests
 import yaml
 from jsonschema import validate
 
-from tools.ci.tc import decision
-
 here = os.path.dirname(__file__)
 root = os.path.abspath(os.path.join(here, "..", "..", "..", ".."))
+sys.path.insert(0, root)
+
+from tools.ci.tc import decision
 
 
 def data_path(filename):

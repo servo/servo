@@ -1,4 +1,4 @@
-from helpers import makeCookieHeader, setNoCacheAndCORSHeaders
+from cookies.resources.helpers import makeCookieHeader, setNoCacheAndCORSHeaders
 
 from wptserve.utils import isomorphic_encode
 

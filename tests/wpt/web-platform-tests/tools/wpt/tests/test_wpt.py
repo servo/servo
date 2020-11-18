@@ -15,10 +15,11 @@ except ImportError:
 
 import pytest
 
+here = os.path.dirname(__file__)
+root = os.path.abspath(os.path.join(here, "..", "..", ".."))
+sys.path.insert(0, root)
+
 from tools.wpt import utils, wpt
-
-
-here = os.path.abspath(os.path.dirname(__file__))
 
 
 def is_port_8000_in_use():

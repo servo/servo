@@ -1,4 +1,4 @@
-from helpers import makeDropCookie, setNoCacheAndCORSHeaders
+from cookies.resources.helpers import makeDropCookie, setNoCacheAndCORSHeaders
 
 def main(request, response):
     """Respond to `/cookies/resources/dropSameSiteNone.py by dropping the

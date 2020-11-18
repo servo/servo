@@ -41,7 +41,7 @@ nel_test(async t => {
         phase: "application",
         type: "ok",
         status_code: 200,
-        referrer: location.href
+        referrer: location.origin + '/',
       },
       metadata: {
         content_type: "application/reports+json",

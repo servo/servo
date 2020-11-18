@@ -1,8 +1,15 @@
 import mock
 import pytest
+import os
+import sys
+
+from six import iteritems
+
+here = os.path.dirname(__file__)
+root = os.path.abspath(os.path.join(here, "..", "..", "..", ".."))
+sys.path.insert(0, root)
 
 from tools.ci.tc import decision
-from six import iteritems
 
 
 @pytest.mark.parametrize("run_jobs,tasks,expected", [

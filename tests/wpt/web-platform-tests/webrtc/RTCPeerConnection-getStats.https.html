@@ -386,12 +386,12 @@
     const kMinimumTimeElapsedBetweenGetStatsCallsMs = 500;
     const pc = new RTCPeerConnection();
     t.add_cleanup(() => pc.close());
-    const t0 = performance.now();
+    const t0 = Math.floor(performance.now());
     const t0Stats = getRequiredStats(await pc.getStats(), 'peer-connection');
     await new Promise(
         r => t.step_timeout(r, kMinimumTimeElapsedBetweenGetStatsCallsMs));
     const t1Stats = getRequiredStats(await pc.getStats(), 'peer-connection');
-    const t1 = performance.now();
+    const t1 = Math.ceil(performance.now());
     const maximumTimeElapsedBetweenGetStatsCallsMs = t1 - t0;
     const deltaTimestampMs = t1Stats.timestamp - t0Stats.timestamp;
     // The delta must be at least the time we waited between calls.

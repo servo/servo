@@ -25,7 +25,7 @@ nel_test(async t => {
         phase: "sxg",
         type: "sxg.signature_verification_error",
         status_code: 200,
-        referrer: location.href,
+        referrer: location.origin + '/',
         sxg: {
           outer_url: sxg_url,
           inner_url:
@@ -45,7 +45,7 @@ nel_test(async t => {
         phase: "application",
         type: "ok",
         status_code: 200,
-        referrer: location.href,
+        referrer: location.origin + '/',
       },
       metadata: {
         content_type: "application/reports+json",

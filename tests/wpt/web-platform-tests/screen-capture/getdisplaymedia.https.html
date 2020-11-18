@@ -23,14 +23,16 @@ async function getDisplayMedia(constraints) {
   return navigator.mediaDevices.getDisplayMedia(constraints);
 }
 
-promise_test(async t => {
-  try {
-    stopTracks(await navigator.mediaDevices.getDisplayMedia({video: true}));
-  } catch (err) {
-    assert_throws_dom('InvalidStateError', () => { throw err });
-    return;
-  }
-  assert_unreached('getDisplayMedia should have failed');
+promise_test(t => {
+  const p = navigator.mediaDevices.getDisplayMedia({video: true});
+  t.add_cleanup(async () => {
+    try { stopTracks(await p) } catch {}
+  });
+  // Race a settled promise to check that the returned promise is already
+  // rejected.
+  return promise_rejects_dom(
+    t, 'InvalidStateError', Promise.race([p, Promise.resolve()]),
+    'getDisplayMedia should have returned an already-rejected promise.');
 }, `getDisplayMedia() must require user activation`);
 
 [
@@ -59,13 +61,14 @@ promise_test(async t => {
  {video: {frameRate: {exact: 4}}},
  {video: false, audio: true},
 ].forEach(constraints => promise_test(async t => {
-  try {
-    stopTracks(await getDisplayMedia(constraints));
-  } catch (err) {
-    assert_throws_js(TypeError, () => { throw err });
-    return;
-  }
-  assert_unreached('getDisplayMedia should have failed');
+  await test_driver.bless('getDisplayMedia()');
+  const p = navigator.mediaDevices.getDisplayMedia(constraints);
+  t.add_cleanup(async () => {
+    try { stopTracks(await p) } catch {}
+  });
+  await promise_rejects_js(
+    t, TypeError, Promise.race([p, Promise.resolve()]),
+    'getDisplayMedia should have returned an already-rejected promise.');
 }, `getDisplayMedia(${j(constraints)}) must fail with TypeError`));
 
 [

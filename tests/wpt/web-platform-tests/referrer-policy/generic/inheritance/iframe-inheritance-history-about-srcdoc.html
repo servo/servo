@@ -4,7 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="resources/make-html-script.js"></script>
-<meta name="referrer" content="origin">
+<meta name="referrer" content="no-referrer">
 <div id="log"></div>
 <script>
   let reportedReferrer = () => {
@@ -47,9 +47,9 @@
     // Despite the main document has changed its referrer policy in (2), the
     // reported referrer for the history navigation to about:srcdoc in (4) must
     // match with the one originally reported in (1).
-    assert_equals(await referrer_1, self.origin + '/',
+    assert_equals(await referrer_1, undefined,
                   "First navigation uses correct policy.");
-    assert_equals(await referrer_2, self.origin + '/',
+    assert_equals(await referrer_2, undefined,
                   "History navigation reuses original policy.");
   }, "History navigation reuses original policy.");
 

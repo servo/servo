@@ -1,5 +1,6 @@
 import itertools
 import re
+import sys
 
 from .logger import get_logger
 from six import binary_type, text_type
@@ -98,6 +99,16 @@ class Router(object):
         self.doc_root = doc_root
         self.routes = []
         self.logger = get_logger()
+
+        # Add the doc_root to the Python path, so that any Python handler can
+        # correctly locate helper scripts (see RFC_TO_BE_LINKED).
+        #
+        # TODO: In a perfect world, Router would not need to know about this
+        # and the handler itself would take care of it. Currently, however, we
+        # treat handlers like functions and so there's no easy way to do that.
+        if self.doc_root not in sys.path:
+            sys.path.insert(0, self.doc_root)
+
         for route in reversed(routes):
             self.register(*route)
 

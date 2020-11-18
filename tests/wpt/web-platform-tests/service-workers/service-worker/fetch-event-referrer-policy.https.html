@@ -22,7 +22,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
           do_test(referrer,
             response_text,
             'Referrer: ' + href + '\n' +
-            'ReferrerPolicy: no-referrer-when-downgrade',
+            'ReferrerPolicy: strict-origin-when-cross-origin',
             'Service Worker should respond to fetch with the referrer URL when a member of RequestInit is present');
           var http_url = get_host_info()['HTTP_ORIGIN'] + base_path() +
                          '/resources/simple.html?referrerFull';
@@ -34,7 +34,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
           do_test(referrer,
             response_text,
             'Referrer: \n' +
-            'ReferrerPolicy: no-referrer-when-downgrade',
+            'ReferrerPolicy: strict-origin-when-cross-origin',
             'Service Worker should respond to fetch with no referrer when a member of RequestInit is present with an HTTP request');
           return frame.contentWindow.fetch('resources/simple.html?referrerFull',
                                            {referrerPolicy: "", referrer: referrer});
@@ -44,7 +44,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
           do_test(referrer,
             response_text,
             'Referrer: ' + href + '\n' +
-            'ReferrerPolicy: no-referrer-when-downgrade',
+            'ReferrerPolicy: strict-origin-when-cross-origin',
             'Service Worker should respond to fetch with the referrer with ""');
           var http_url = get_host_info()['HTTP_ORIGIN'] + base_path() +
                          '/resources/simple.html?referrerFull';
@@ -56,7 +56,7 @@ function run_referrer_policy_tests(frame, referrer, href, origin) {
           do_test(referrer,
             response_text,
             'Referrer: \n' +
-            'ReferrerPolicy: no-referrer-when-downgrade',
+            'ReferrerPolicy: strict-origin-when-cross-origin',
             'Service Worker should respond to fetch with no referrer with ""');
           return frame.contentWindow.fetch('resources/simple.html?referrerFull',
                                            {referrerPolicy: "origin", referrer: referrer});
@@ -253,7 +253,7 @@ promise_test(function(t) {
       .then(function(f) {
           frame = f;
           test(() => {
-            assert_equals(frame.contentDocument.body.textContent, 'ReferrerPolicy: no-referrer-when-downgrade');
+            assert_equals(frame.contentDocument.body.textContent, 'ReferrerPolicy: strict-origin-when-cross-origin');
           }, 'Service Worker should respond to fetch with the default referrer policy');
           // First, run the referrer policy tests without passing a referrer in RequestInit.
           return run_referrer_policy_tests(frame, undefined, frame.contentDocument.location.href,

@@ -5,23 +5,44 @@
     {
       // unset-referrer-policy
       "title": "Referrer Policy is not explicitly defined",
-      "description": "Check that referrer URL follows no-referrer-when-downgrade policy when no explicit Referrer Policy is set.",
+      "description": "Check that referrer URL follows the strict-origin-when-cross-origin policy when no explicit Referrer Policy is set.",
       "specification_url": "https://w3c.github.io/webappsec-referrer-policy/#referrer-policies",
       "test_expansion": [
         {
-          // insecure-protocol
+          // same-insecure
           "expansion": "default",
           "source_scheme": "http",
           "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": null,
           "redirection": "*",
-          "origin": [
-            "same-http",
-            "cross-http"
-          ],
+          "origin": "same-http",
           "subresource": "*",
           "expectation": "stripped-referrer"
+        },
+        {
+          // same-insecure
+          "expansion": "override",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": null,
+          "redirection": "swap-origin",
+          "origin": "same-http",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // cross-insecure
+          "expansion": "default",
+          "source_scheme": "http",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": null,
+          "redirection": "*",
+          "origin": "cross-http",
+          "subresource": "*",
+          "expectation": "origin"
         },
         {
           // upgrade-protocol
@@ -36,7 +57,7 @@
             "cross-https"
           ],
           "subresource": "*",
-          "expectation": "stripped-referrer"
+          "expectation": "origin"
         },
         {
           // downgrade-protocol
@@ -54,19 +75,40 @@
           "expectation": "omitted"
         },
         {
-          // secure-protocol
+          // same-secure
           "expansion": "default",
           "source_scheme": "https",
           "source_context_list": "*",
           "delivery_type": "*",
           "delivery_value": null,
           "redirection": "*",
-          "origin": [
-            "same-https",
-            "cross-https"
-          ],
+          "origin": "same-https",
           "subresource": "*",
           "expectation": "stripped-referrer"
+        },
+        {
+          // same-secure
+          "expansion": "override",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": null,
+          "redirection": "swap-origin",
+          "origin": "same-https",
+          "subresource": "*",
+          "expectation": "origin"
+        },
+        {
+          // cross-secure
+          "expansion": "default",
+          "source_scheme": "https",
+          "source_context_list": "*",
+          "delivery_type": "*",
+          "delivery_value": null,
+          "redirection": "*",
+          "origin": "cross-https",
+          "subresource": "*",
+          "expectation": "origin"
         }
       ]
     },

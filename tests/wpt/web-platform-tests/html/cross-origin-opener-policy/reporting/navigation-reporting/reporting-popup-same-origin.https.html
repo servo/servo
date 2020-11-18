@@ -31,7 +31,7 @@ let tests = [
             "disposition": "enforce",
             "effectivePolicy": "same-origin",
             "previousResponseURL": "",
-            "referrer": `${location.href}`, // referrer
+            "referrer": `${location.origin}/`, // referrer
             "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
@@ -84,7 +84,7 @@ let tests = [
           "body": {
             "disposition": "enforce",
             "previousResponseURL": "",
-            "referrer": `${location.href}`, // referrer
+            "referrer": `${location.origin}/`, // referrer
             "type": "navigation-to-response"
           },
           "url": /uuid=EXECUTOR_UUID$/,
