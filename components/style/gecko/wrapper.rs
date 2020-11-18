@@ -2046,6 +2046,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
             NonTSPseudoClass::MozHandlerClickToPlay |
             NonTSPseudoClass::MozHandlerVulnerableUpdatable |
             NonTSPseudoClass::MozHandlerVulnerableNoUpdate |
+            NonTSPseudoClass::MozHandlerNoPlugins |
             NonTSPseudoClass::MozMathIncrementScriptLevel |
             NonTSPseudoClass::InRange |
             NonTSPseudoClass::OutOfRange |
