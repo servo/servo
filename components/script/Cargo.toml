@@ -43,6 +43,7 @@ content-security-policy = { version = "0.4.0", features = ["serde"] }
 cookie = "0.11"
 crossbeam-channel = "0.4"
 cssparser = "0.27"
+data-url = "0.1.0"
 deny_public_fields = { path = "../deny_public_fields" }
 devtools_traits = { path = "../devtools_traits" }
 dom_struct = { path = "../dom_struct" }
