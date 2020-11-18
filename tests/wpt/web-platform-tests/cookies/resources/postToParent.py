@@ -1,5 +1,5 @@
 import json
-import helpers
+from cookies.resources import helpers
 
 from wptserve.utils import isomorphic_decode
 

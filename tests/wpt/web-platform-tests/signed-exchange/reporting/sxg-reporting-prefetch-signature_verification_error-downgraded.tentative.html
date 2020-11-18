@@ -29,7 +29,7 @@ nel_test(async t => {
         type: "sxg.failed",
         elapsed_time: 0,
         status_code: 200,
-        referrer: location.href,
+        referrer: location.origin + '/',
         sxg: {
           outer_url: sxg_url,
           inner_url:
@@ -49,7 +49,7 @@ nel_test(async t => {
         phase: "application",
         type: "ok",
         status_code: 200,
-        referrer: location.href,
+        referrer: location.origin + '/',
       },
       metadata: {
         content_type: "application/reports+json",

@@ -17,9 +17,7 @@
     <script>
       promise_test(function() {
         var urlPath = '/common/security-features/subresource/image.py?cache_destroyer=' + (new Date()).getTime();
-        var url = location.protocol + "//www1." + location.hostname + ":" + location.port +
-                  urlPath;
-        return requestViaImage(url, null, 'always')
+        return requestViaImage(urlPath, null, 'always')
           .then(function(message) {
             assert_equals(message.referrer, document.location.href);
           });

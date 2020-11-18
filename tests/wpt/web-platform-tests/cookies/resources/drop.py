@@ -1,4 +1,4 @@
-from helpers import makeDropCookie, readParameter, setNoCacheAndCORSHeaders
+from cookies.resources.helpers import makeDropCookie, readParameter, setNoCacheAndCORSHeaders
 
 def main(request, response):
     """Respond to `/cookie/drop?name={name}` by expiring the cookie named `{name}`."""

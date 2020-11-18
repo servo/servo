@@ -1,5 +1,10 @@
 import os.path
 from mock import patch
+import sys
+
+here = os.path.dirname(__file__)
+root = os.path.abspath(os.path.join(here, "..", "..", ".."))
+sys.path.insert(0, root)
 
 from tools.manifest.manifest import Manifest
 from tools.wpt import testfiles

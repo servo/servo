@@ -4,13 +4,13 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="resources/make-html-script.js"></script>
-<meta name="referrer" content="origin">
+<meta name="referrer" content="unsafe-url">
 <div id="log"></div>
 <script>
 [
   {
     srcDocPolicy: ``,
-    expected: self.origin + "/"
+    expected: location.origin + "/custom"
   },
   {
     srcDocPolicy: `<meta name="referrer" content="no-referrer">`,
@@ -45,7 +45,8 @@
 [
   {
     srcDocPolicy: ``,
-    expected: self.origin + "/"
+    expected: undefined  // Because the URL of <iframe src="javascript:..."> is about:blank,
+                         // the referrer should be no referrer.
   },
   {
     srcDocPolicy: `<meta name="referrer" content="no-referrer">`,

@@ -16,9 +16,13 @@
     <script>
       promise_test(() => {
         var urlPath = '/common/security-features/subresource/image.py?cache_destroyer=' + (new Date()).getTime();
-        var url = location.protocol + "//www1." + location.hostname + ":" + location.port +
-                  urlPath;
-        return requestViaImage(url, null, 'no-referrer')
+        // The default referrer policy is strict-origin-when-cross-origin.
+        // This document's headers contain the 'origin' and 'no-referrer' tokens,
+        // and we're making a same-origin image load, so, if the image request,
+        // uses the default policy (which is what this test's verifying), we
+        // should see the full initiating URL in the referrer, rather than just
+        // the origin or an empty string.
+        return requestViaImage(urlPath, null, 'no-referrer')
           .then(function(message) {
               assert_equals(message.referrer, document.location.href);
             });

@@ -6,12 +6,14 @@
 <div id=log></div>
 <iframe></iframe>
 <script>
-  setup({ single_test: true });
+  setup({
+    single_test: true
+  });
   onload = function() {
     var fr = document.querySelector("iframe")
     fr.src = "about:blank"
     fr.onload = function() {
-      assert_equals(fr.contentDocument.referrer, document.URL)
+      assert_equals(fr.contentDocument.referrer, document.location.origin + '/')
       done()
     }
   }

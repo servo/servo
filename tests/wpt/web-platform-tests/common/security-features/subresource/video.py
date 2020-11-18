@@ -1,7 +1,7 @@
 import os, sys
 from wptserve.utils import isomorphic_decode
-sys.path.insert(0, os.path.dirname(os.path.abspath(isomorphic_decode(__file__))))
-import subresource
+import importlib
+subresource = importlib.import_module("common.security-features.subresource.subresource")
 
 def generate_payload(request, server_data):
     file = os.path.join(request.doc_root, u"media", u"movie_5.ogv")

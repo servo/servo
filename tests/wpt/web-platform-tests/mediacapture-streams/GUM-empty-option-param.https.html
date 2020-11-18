@@ -16,14 +16,17 @@ options parameter raises a TypeError exception.</p>
 <script>
 promise_test(async () => {
   try {
-    await navigator.mediaDevices.getUserMedia({});
+    // Race a settled promise to check that the returned promise is already
+    // rejected.
+    await Promise.race([navigator.mediaDevices.getUserMedia({}),
+                       Promise.resolve()]);
   } catch (error) {
     assert_throws_js(TypeError, () => { throw error });
     assert_false('constraintName' in error,
                  "constraintName attribute not set as expected");
     return;
   }
-  assert_unreached("This should never be triggered since the constraints parameter is empty.");
+  assert_unreached("should have returned an already-rejected promise.");
 }, "Tests that getUserMedia is rejected with a TypeError when used with an empty options parameter");
 
 </script>

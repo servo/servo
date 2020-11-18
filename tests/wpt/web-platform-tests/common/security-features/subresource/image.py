@@ -2,11 +2,10 @@ import os, sys, array, math
 
 from six import BytesIO
 
-import subresource
-
 from wptserve.utils import isomorphic_decode
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(isomorphic_decode(__file__))))
+import importlib
+subresource = importlib.import_module("common.security-features.subresource.subresource")
 
 class Image:
     """This class partially implements the interface of the PIL.Image.Image.

@@ -1,4 +1,11 @@
 import mock
+import os
+import sys
+
+here = os.path.dirname(__file__)
+root = os.path.abspath(os.path.join(here, "..", "..", ".."))
+sys.path.insert(0, root)
+
 from tools.wpt import revlist
 
 

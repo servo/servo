@@ -4,7 +4,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
 <script src="resources/make-html-script.js"></script>
-<meta name="referrer" content="origin">
+<meta name="referrer" content="unsafe-url">
 <div id="log"></div>
 <script>
 
@@ -26,7 +26,7 @@
     // Document's origin == location.orgin. Furthermore, since the iframe
     // inherits its parent's referrer policy, the URL should be restricted to
     // its origin.
-    expected: self.origin + "/"
+    expected: self.origin + "/custom"
   }
 ].forEach(({ fetchReferrer, expected }) => {
   promise_test(t => {

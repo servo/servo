@@ -1,4 +1,5 @@
 import os
+import sys
 
 import mock
 
@@ -7,7 +8,11 @@ import hypothesis.strategies as hs
 
 from six import iteritems
 
-from .. import manifest, sourcefile, item, utils
+here = os.path.dirname(__file__)
+root = os.path.abspath(os.path.join(here, "..", "..", ".."))
+sys.path.insert(0, root)
+
+from tools.manifest import manifest, sourcefile, item, utils
 
 MYPY = False
 if MYPY:

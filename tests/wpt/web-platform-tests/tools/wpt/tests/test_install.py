@@ -4,6 +4,10 @@ import sys
 
 import pytest
 
+here = os.path.dirname(__file__)
+root = os.path.abspath(os.path.join(here, "..", "..", ".."))
+sys.path.insert(0, root)
+
 from tools.wpt import browser, utils, wpt
 
 
