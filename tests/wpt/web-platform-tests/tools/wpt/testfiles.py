@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import re
+import subprocess
 import sys
 
 from collections import OrderedDict
@@ -76,8 +77,19 @@ def branch_point():
                      if item and item != "^%s" % head]
 
         # get all commits on HEAD but not reachable from anything in not_heads
-        commits = git("rev-list", "--topo-order", "--parents", "HEAD", *not_heads)
+        cmd = ["git", "rev-list", "--topo-order", "--parents", "--stdin", "HEAD"]
+        proc = subprocess.Popen(cmd,
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                cwd=wpt_root)
+        commits_bytes, _ = proc.communicate(b"\n".join(item.encode("ascii") for item in not_heads))
+        if proc.returncode != 0:
+            raise subprocess.CalledProcessError(proc.returncode,
+                                                cmd,
+                                                commits_bytes)
+
         commit_parents = OrderedDict()  # type: Dict[Text, List[Text]]
+        commits = commits_bytes.decode("ascii")
         if commits:
             for line in commits.split("\n"):
                 line_commits = line.split(" ")

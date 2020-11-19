@@ -13,8 +13,14 @@ def get_element_attribute(session, element, attr):
 
 
 def test_no_top_browsing_context(session, closed_window):
+    original_handle, element = closed_window
+    response = get_element_attribute(session, element.id, "id")
+    assert_error(response, "no such window")
     response = get_element_attribute(session, "foo", "id")
     assert_error(response, "no such window")
+    session.window_handle = original_handle
+    response = get_element_attribute(session, element.id, "id")
+    assert_error(response, "no such element")
 
 
 def test_no_browsing_context(session, closed_frame):

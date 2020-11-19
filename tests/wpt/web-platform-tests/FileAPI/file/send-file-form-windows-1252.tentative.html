@@ -33,15 +33,14 @@ formPostFileUploadTest({
   fileNameSource: 'x-user-defined',
   fileBaseName: 'file-for-upload-in-form-\uF7F0\uF793\uF783\uF7A0.txt',
   formEncoding: 'windows-1252',
-  expectedEncodedBaseName: (
-      'file-for-upload-in-form-&#63472;&#63379;&#63363;&#63392;.txt'),
+  expectedEncodedBaseName: 'file-for-upload-in-form-&#63472;&#63379;&#63363;&#63392;.txt',
 });
 
 formPostFileUploadTest({
   fileNameSource: 'windows-1252',
   fileBaseName: 'file-for-upload-in-form-â˜ºðŸ˜‚.txt',
   formEncoding: 'windows-1252',
-  expectedEncodedBaseName: 'file-for-upload-in-form-☺😂.txt',
+  expectedEncodedBaseName: 'file-for-upload-in-form-\xE2\x98\xBA\xF0\x9F\x98\x82.txt',
 });
 
 formPostFileUploadTest({

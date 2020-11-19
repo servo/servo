@@ -1,3 +1,6 @@
+import pytest
+
+from webdriver.error import NoSuchElementException
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
@@ -65,3 +68,12 @@ def test_switch_to_window_sets_top_level_context(session):
     assert_success(response)
 
     session.find.css("iframe", all=False)
+
+def test_element_not_found_after_tab_switch(session):
+    session.url = inline("<p id='a'>foo")
+    paragraph = session.find.css("p", all=False)
+
+    session.window_handle = session.new_window(type_hint="tab")
+
+    with pytest.raises(NoSuchElementException):
+        paragraph.attribute("id")

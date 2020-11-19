@@ -718,15 +718,18 @@ class ExpectedUpdate(PropertyUpdate):
             # add them in to expected.
             if count > 0 or not self.remove_intermittent:
                 expected.append(status)
+
+        # If the new intermittent is a subset of the existing one, just use the existing one
+        # This prevents frequent flip-flopping of results between e.g. [OK, TIMEOUT] and
+        # [TIMEOUT, OK]
+        if current and set(expected).issubset(set(current)):
+            return current
+
         if self.update_intermittent:
             if len(expected) == 1:
                 return expected[0]
             return expected
 
-        # If nothing has changed and not self.update_intermittent, preserve existing
-        # intermittent.
-        if set(expected).issubset(set(current)):
-            return current
         # If we are not updating intermittents, return the status with the highest occurence.
         return expected[0]
 

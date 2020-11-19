@@ -22,8 +22,16 @@ def is_element_selected(session, element_id):
 
 
 def test_no_top_browsing_context(session, closed_window):
+    original_handle, element = closed_window
+
+    response = is_element_selected(session, element.id)
+    assert_error(response, "no such window")
     response = is_element_selected(session, "foo")
     assert_error(response, "no such window")
+
+    session.window_handle = original_handle
+    response = is_element_selected(session, element.id)
+    assert_error(response, "no such element")
 
 
 def test_no_browsing_context(session, closed_frame):

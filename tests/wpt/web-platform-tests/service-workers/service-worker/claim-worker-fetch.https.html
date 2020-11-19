@@ -15,6 +15,10 @@ promise_test(function(t) {
   return runTest(t, 'resources/claim-nested-worker-fetch-iframe.html');
 }, 'fetch() in nested Worker should be intercepted after the client is claimed.');
 
+promise_test(function(t) {
+  return runTest(t, 'resources/claim-blob-url-worker-fetch-iframe.html');
+}, 'fetch() in blob URL Worker should be intercepted after the client is claimed.');
+
 function runTest(t, iframe_url) {
   var resource = 'simple.txt';
 
