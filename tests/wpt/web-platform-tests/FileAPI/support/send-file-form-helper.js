@@ -1,5 +1,17 @@
 'use strict';
 
+// See /FileAPI/file/resources/echo-content-escaped.py
+function escapeString(string) {
+  return string.replace(/\\/g, "\\\\").replace(
+    /[^\x20-\x7E]/g,
+    (x) => {
+      let hex = x.charCodeAt(0).toString(16);
+      if (hex.length < 2) hex = "0" + hex;
+      return `\\x${hex}`;
+    },
+  ).replace(/\\x0d\\x0a/g, "\r\n");
+}
+
 // Rationale for this particular test character sequence, which is
 // used in filenames and also in file contents:
 //
@@ -72,36 +84,46 @@
 // are also allowed in Windows Unicode filenames.
 const kTestChars = 'ABC~‾¥≈¤･・•∙·☼★星🌟星★☼·∙•・･¤≈¥‾~XYZ';
 
-// NOTE: The expected interpretation of ISO-2022-JP according to
-// https://encoding.spec.whatwg.org/#iso-2022-jp-encoder unifies
-// single-byte and double-byte katakana.
-const kTestFallbackIso2022jp =
-      ('ABC~\x1B(J~\\≈¤\x1B$B!&!&\x1B(B•∙·☼\x1B$B!z@1\x1B(B🌟' +
-       '\x1B$B@1!z\x1B(B☼·∙•\x1B$B!&!&\x1B(B¤≈\x1B(J\\~\x1B(B~XYZ').replace(
-             /[^\0-\x7F]/gu,
-           x => `&#${x.codePointAt(0)};`);
+// The kTestFallback* strings represent the expected byte sequence from
+// encoding kTestChars with the given encoding with "html" replacement
+// mode, isomorphic-decoded. That means, characters that can't be
+// encoded in that encoding get HTML-escaped, but no further
+// `escapeString`-like escapes are needed.
+const kTestFallbackUtf8 = (
+  "ABC~\xE2\x80\xBE\xC2\xA5\xE2\x89\x88\xC2\xA4\xEF\xBD\xA5\xE3\x83\xBB\xE2" +
+    "\x80\xA2\xE2\x88\x99\xC2\xB7\xE2\x98\xBC\xE2\x98\x85\xE6\x98\x9F\xF0\x9F" +
+    "\x8C\x9F\xE6\x98\x9F\xE2\x98\x85\xE2\x98\xBC\xC2\xB7\xE2\x88\x99\xE2\x80" +
+    "\xA2\xE3\x83\xBB\xEF\xBD\xA5\xC2\xA4\xE2\x89\x88\xC2\xA5\xE2\x80\xBE~XYZ"
+);
 
-// NOTE: \uFFFD is used here to replace Windows-1252 bytes to match
-// how we will see them in the reflected POST bytes in a frame using
-// UTF-8 byte interpretation. The bytes will actually be intact, but
-// this code cannot tell and does not really care.
-const kTestFallbackWindows1252 =
-      'ABC~‾\xA5≈\xA4･・\x95∙\xB7☼★星🌟星★☼\xB7∙\x95・･\xA4≈\xA5‾~XYZ'.replace(
-            /[^\0-\xFF]/gu,
-          x => `&#${x.codePointAt(0)};`).replace(/[\x80-\xFF]/g, '\uFFFD');
+const kTestFallbackIso2022jp = (
+  ("ABC~\x1B(J~\\≈¤\x1B$B!&!&\x1B(B•∙·☼\x1B$B!z@1\x1B(B🌟" +
+    "\x1B$B@1!z\x1B(B☼·∙•\x1B$B!&!&\x1B(B¤≈\x1B(J\\~\x1B(B~XYZ")
+    .replace(/[^\0-\x7F]/gu, (x) => `&#${x.codePointAt(0)};`)
+);
 
-const kTestFallbackXUserDefined =
-      kTestChars.replace(/[^\0-\x7F]/gu, x => `&#${x.codePointAt(0)};`);
+const kTestFallbackWindows1252 = (
+  "ABC~‾\xA5≈\xA4･・\x95∙\xB7☼★星🌟星★☼\xB7∙\x95・･\xA4≈\xA5‾~XYZ".replace(
+    /[^\0-\xFF]/gu,
+    (x) => `&#${x.codePointAt(0)};`,
+  )
+);
+
+const kTestFallbackXUserDefined = kTestChars.replace(
+  /[^\0-\x7F]/gu,
+  (x) => `&#${x.codePointAt(0)};`,
+);
 
 // formPostFileUploadTest - verifies multipart upload structure and
 // numeric character reference replacement for filenames, field names,
-// and field values.
+// and field values using form submission.
 //
-// Uses /fetch/api/resources/echo-content.py to echo the upload
-// POST with UTF-8 byte interpretation, leading to the "UTF-8 goggles"
-// behavior documented below for expectedEncodedBaseName when non-
-// UTF-8-compatible byte sequences appear in the formEncoding-encoded
-// uploaded data.
+// Uses /FileAPI/file/resources/echo-content-escaped.py to echo the
+// upload POST with controls and non-ASCII bytes escaped. This is done
+// because navigations whose response body contains [\0\b\v] may get
+// treated as a download, which is not what we want. Use the
+// `escapeString` function to replicate that kind of escape (note that
+// it takes an isomorphic-decoded string, not a byte sequence).
 //
 // Fields in the parameter object:
 //
@@ -114,10 +136,9 @@ const kTestFallbackXUserDefined =
 // - formEncoding: the acceptCharset of the form used to submit the
 //   test file. Used in the test name.
 // - expectedEncodedBaseName: the expected formEncoding-encoded
-//   version of fileBaseName with unencodable characters replaced by
-//   numeric character references and non-7-bit-ASCII bytes seen
-//   through UTF-8 goggles; subsequences not interpretable as UTF-8
-//   have each byte represented here by \uFFFD REPLACEMENT CHARACTER.
+//   version of fileBaseName, isomorphic-decoded. That means, characters
+//   that can't be encoded in that encoding get HTML-escaped, but no
+//   further `escapeString`-like escapes are needed.
 const formPostFileUploadTest = ({
   fileNameSource,
   fileBaseName,
@@ -140,7 +161,7 @@ const formPostFileUploadTest = ({
 
     const form = Object.assign(document.createElement('form'), {
       acceptCharset: formEncoding,
-      action: '/fetch/api/resources/echo-content.py',
+      action: '/FileAPI/file/resources/echo-content-escaped.py',
       method: 'POST',
       enctype: 'multipart/form-data',
       target: formTargetFrame.name,
@@ -194,7 +215,7 @@ const formPostFileUploadTest = ({
       // exposed through the newer .files[0].name API. This check
       // verifies that assumption.
       assert_equals(
-          fileInput.files[0].name,
+          baseNameOfFilePath(fileInput.files[0].name),
           baseNameOfFilePath(fileInput.value),
           `The basename of the field's value should match its files[0].name`);
       form.submit();
@@ -219,6 +240,15 @@ const formPostFileUploadTest = ({
         `${fileBaseName}: multipart form data must end with ${boundary}--: ${
              JSON.stringify(formDataText)
            }`);
+
+    const asValue = expectedEncodedBaseName.replace(/\r\n?|\n/g, "\r\n");
+    const asName = asValue.replace(/[\r\n"]/g, encodeURIComponent);
+    const asFilename = expectedEncodedBaseName.replace(/[\r\n"]/g, encodeURIComponent);
+
+    // The response body from echo-content-escaped.py has controls and non-ASCII
+    // bytes escaped, so any caller-provided field that might contain such bytes
+    // must be passed to `escapeString`, after any other expected
+    // transformations.
     const expectedText = [
       boundary,
       'Content-Disposition: form-data; name="_charset_"',
@@ -227,19 +257,22 @@ const formPostFileUploadTest = ({
       boundary,
       'Content-Disposition: form-data; name="filename"',
       '',
-      expectedEncodedBaseName,
+      // Unlike for names and filenames, multipart/form-data values don't escape
+      // \r\n linebreaks, and when they're read from an iframe they become \n.
+      escapeString(asValue).replace(/\r\n/g, "\n"),
       boundary,
-      `Content-Disposition: form-data; name="${expectedEncodedBaseName}"`,
+      `Content-Disposition: form-data; name="${escapeString(asName)}"`,
       '',
       'filename',
       boundary,
       `Content-Disposition: form-data; name="file"; ` +
-          `filename="${expectedEncodedBaseName}"`,
+          `filename="${escapeString(asFilename)}"`,
       'Content-Type: text/plain',
       '',
-      kTestChars,
+      escapeString(kTestFallbackUtf8),
       boundary + '--',
     ].join('\n');
+
     assert_true(
         formDataText.startsWith(expectedText),
         `Unexpected multipart-shaped form data received:\n${
