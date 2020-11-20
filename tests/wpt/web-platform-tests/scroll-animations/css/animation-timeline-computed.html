@@ -39,7 +39,7 @@ test(() => {
 }, 'The animation-timeline property shows up in CSSStyleDeclaration enumeration');
 
 test(() => {
-  let style = getComputedStyle(document.getElementById('target'));
+  let style = document.getElementById('target').style;
   assert_not_equals(style.cssText.indexOf('animation-timeline'), -1);
 }, 'The animation-timeline property shows up in CSSStyleDeclaration.cssText');
 </script>

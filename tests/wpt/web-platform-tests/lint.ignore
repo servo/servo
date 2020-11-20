@@ -619,6 +619,8 @@ CSS-COLLIDING-SUPPORT-NAME: css/CSS2/normal-flow/support/replaced-min-max-1.png
 CSS-COLLIDING-SUPPORT-NAME: css/vendor-imports/mozilla/mozilla-central-reftests/ui3/support/replaced-min-max-1.png
 CSS-COLLIDING-REF-NAME: css/css-multicol/baseline-001-ref.html
 CSS-COLLIDING-REF-NAME: css/css-grid/subgrid/baseline-001-ref.html
+CSS-COLLIDING-REF-NAME: css/css-backgrounds/simple-bg-color-ref.html
+CSS-COLLIDING-REF-NAME: css/css-backgrounds/hidpi/simple-bg-color-ref.html
 
 CSS-COLLIDING-TEST-NAME: css/css-contain/inheritance.html
 CSS-COLLIDING-TEST-NAME: css/css-contain/content-visibility/inheritance.html

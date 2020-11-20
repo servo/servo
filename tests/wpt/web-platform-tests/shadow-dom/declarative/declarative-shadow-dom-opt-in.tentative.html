@@ -68,9 +68,9 @@ test(() => {
   const div = document.createElement('div');
   div.setInnerHTML(content);
   assert_dsd(div,false);
-  div.setInnerHTML(content, {allowShadowRoot: false});
+  div.setInnerHTML(content, {includeShadowRoots: false});
   assert_dsd(div,false);
-  div.setInnerHTML(content, {allowShadowRoot: true});
+  div.setInnerHTML(content, {includeShadowRoots: true});
   assert_dsd(div,true);
 }, 'setInnerHTML on element');
 
@@ -79,7 +79,7 @@ test(() => {
   const div = document.createElement('div');
   div.innerHTML = templateContent;
   assert_dsd(div.querySelector('#tmpl').content,false);
-  div.setInnerHTML(templateContent, {allowShadowRoot: true});
+  div.setInnerHTML(templateContent, {includeShadowRoots: true});
   assert_dsd(div.querySelector('#tmpl').content,true);
 }, 'setInnerHTML on element, with nested template content');
 
@@ -87,7 +87,7 @@ test(() => {
   const temp = document.createElement('template');
   temp.innerHTML = content;
   assert_dsd(temp.content,false, 'innerHTML should not allow declarative shadow content');
-  temp.setInnerHTML(content, {allowShadowRoot: true});
+  temp.setInnerHTML(content, {includeShadowRoots: true});
   assert_dsd(temp.content,true, 'setInnerHTML should allow declarative shadow content if enabled');
 }, 'setInnerHTML on template');
 
@@ -96,7 +96,7 @@ test(() => {
   const temp = document.createElement('template');
   temp.innerHTML = templateContent;
   assert_dsd(temp.content.querySelector('#tmpl').content,false);
-  temp.setInnerHTML(templateContent, {allowShadowRoot: true});
+  temp.setInnerHTML(templateContent, {includeShadowRoots: true});
   assert_dsd(temp.content.querySelector('#tmpl').content,true);
 }, 'setInnerHTML on template, with nested template content');
 
@@ -105,7 +105,7 @@ test(() => {
   const shadow = div.attachShadow({mode: 'open'});
   shadow.innerHTML = content;
   assert_dsd(shadow,false);
-  shadow.setInnerHTML(content, {allowShadowRoot: true});
+  shadow.setInnerHTML(content, {includeShadowRoots: true});
   assert_dsd(shadow,true);
 }, 'setInnerHTML on shadowRoot');
 
@@ -113,9 +113,9 @@ test(() => {
   const parser = new DOMParser();
   let fragment = parser.parseFromString(content, 'text/html');
   assert_dsd(fragment.body,false);
-  fragment = parser.parseFromString(content, 'text/html', {allowShadowRoot: false});
+  fragment = parser.parseFromString(content, 'text/html', {includeShadowRoots: false});
   assert_dsd(fragment.body,false);
-  fragment = parser.parseFromString(content, 'text/html', {allowShadowRoot: true});
+  fragment = parser.parseFromString(content, 'text/html', {includeShadowRoots: true});
   assert_dsd(fragment.body,true);
 }, 'DOMParser');
 
@@ -123,7 +123,7 @@ test(() => {
   const doc = document.implementation.createHTMLDocument('');
   doc.body.innerHTML = content;
   assert_dsd(doc.body,false);
-  doc.body.setInnerHTML(content, {allowShadowRoot: true});
+  doc.body.setInnerHTML(content, {includeShadowRoots: true});
   assert_dsd(doc.body,true);
 }, 'createHTMLDocument with setInnerHTML');
 

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test selectionchange events from text controls</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  input,
+  textarea {
+    font: 16px/1 Ahem;
+  }
+</style>
+
+<input id="input" value="XXXXXXXXXXXXXXXXXXX" width="200"><br>
+<textarea id="textarea" width="200">XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</textarea>
+
+<script>
+  class SelectionChangeCollector {
+    constructor(target) {
+      this.events = [];
+      target.addEventListener("selectionchange", ev => {
+        this.events.push(ev);
+      });
+    }
+    clear() {
+      this.events.length = 0;
+    }
+  }
+
+  const data = {
+    input: new SelectionChangeCollector(input),
+    textarea: new SelectionChangeCollector(textarea),
+    async initialize() {
+      input.blur();
+      textarea.blur();
+      input.selectionStart = input.selectionEnd = 0;
+      textarea.selectionStart = textarea.selectionEnd = 0;
+      await this.spin();
+      this.input.clear();
+      this.textarea.clear();
+    },
+    spin() {
+      return new Promise(setTimeout);
+    },
+    async assert_empty_spin() {
+      // firing selectionchange must be asynchronous
+      assert_equals(this.input.events.length, 0);
+      assert_equals(this.textarea.events.length, 0);
+      await this.spin();
+    }
+  };
+
+  promise_test(async () => {
+    await data.initialize();
+
+    textarea.selectionStart = 1;
+
+    await data.assert_empty_spin();
+    assert_equals(data.textarea.events.length, 1);
+  }, "Modifying selectionStart value of the textarea element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    textarea.selectionEnd = 1;
+
+    await data.assert_empty_spin();
+    assert_equals(data.textarea.events.length, 1);
+  }, "Modifying selectionEnd value of the textarea element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    textarea.setSelectionRange(0, 4);
+
+    await data.assert_empty_spin();
+    assert_equals(data.textarea.events.length, 1);
+  }, "Calling setSelectionRange() on the textarea element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    input.select();
+
+    await data.assert_empty_spin();
+    assert_equals(data.input.events.length, 1);
+  }, "Calling select() on the input element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    textarea.select();
+
+    await data.assert_empty_spin();
+    assert_equals(data.textarea.events.length, 1);
+  }, "Calling select() on the textarea element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    input.selectionStart = 0;
+
+    await data.assert_empty_spin();
+    assert_equals(data.input.events.length, 0);
+  }, "Setting initial zero selectionStart value on the input element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    input.selectionEnd = 0;
+
+    await data.assert_empty_spin();
+    assert_equals(data.input.events.length, 0);
+  }, "Setting initial zero selectionEnd value on the input element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    textarea.selectionStart = 0;
+
+    await data.assert_empty_spin();
+    assert_equals(data.textarea.events.length, 0);
+  }, "Setting initial zero selectionStart value on the textarea element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    textarea.selectionStart = 2;
+    textarea.selectionStart = 2;
+
+    await data.assert_empty_spin();
+    assert_equals(data.textarea.events.length, 1);
+  }, "Setting the same selectionStart value twice on the textarea element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    textarea.selectionEnd = 0;
+
+    await data.assert_empty_spin();
+    assert_equals(data.textarea.events.length, 0);
+  }, "Setting initial zero selectionEnd value on the textarea element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    textarea.selectionEnd = 2;
+    textarea.selectionEnd = 2;
+
+    await data.assert_empty_spin();
+    assert_equals(data.textarea.events.length, 1);
+  }, "Setting the same selectionEnd value twice on the textarea element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    textarea.setSelectionRange(0, 0);
+
+    await data.assert_empty_spin();
+    assert_equals(data.textarea.events.length, 0);
+  }, "Setting initial zero selection range on the textarea element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    textarea.setSelectionRange(3, 3);
+    textarea.setSelectionRange(3, 3);
+
+    await data.assert_empty_spin();
+    assert_equals(data.textarea.events.length, 1);
+  }, "Setting the same selection range twice on the textarea element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    input.select();
+    input.select();
+
+    await data.assert_empty_spin();
+    assert_equals(data.input.events.length, 1);
+  }, "Calling select() twice on the input element");
+
+  promise_test(async () => {
+    await data.initialize();
+
+    textarea.select();
+    textarea.select();
+
+    await data.assert_empty_spin();
+    assert_equals(data.textarea.events.length, 1);
+  }, "Calling select() twice on the textarea element");
+</script>

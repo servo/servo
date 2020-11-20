@@ -23,7 +23,7 @@ function testElementType(allowsShadowDom, elementType, applyToShadow) {
       document.body.appendChild(wrapper);
     }
     const html = `<${elementType}><template shadowroot="open"><slot></slot></template><span></span></${elementType}>`;
-    wrapper.setInnerHTML(html, {allowShadowRoot: true});
+    wrapper.setInnerHTML(html, {includeShadowRoots: true});
     if (allowsShadowDom) {
       // Retrieve shadow root
       assert_true(!!wrapper.firstElementChild.shadowRoot,'No shadow root found');
