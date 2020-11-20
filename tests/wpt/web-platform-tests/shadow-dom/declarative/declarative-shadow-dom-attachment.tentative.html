@@ -18,7 +18,7 @@ function addDeclarativeShadowRoot(elementType, mode, delegatesFocus) {
   const declarativeString = `<${elementType} id=theelement>${getDeclarativeContent(mode, delegatesFocus)}
      <span class='lightdom'>${lightDomTextContent}</span></${elementType}>`;
   const wrapper = document.createElement('div');
-  wrapper.setInnerHTML(declarativeString, {allowShadowRoot: true});
+  wrapper.setInnerHTML(declarativeString, {includeShadowRoots: true});
   const element = wrapper.querySelector('#theelement');
   return {wrapper: wrapper, element: element};
 }

@@ -18,35 +18,35 @@
             display: flex;
             flex-flow: row;
             writing-mode: vertical-rl;
-            color: white;
+            border: 2px solid black;
+            height: 90px;
         }
         .item {
-            background: green;
-            height: 3em;
-            width: 3em;
-            line-height: 1.5em;
+            line-height: 0;
 
             /* make sure UA that doesn't support writing mode and flexbox fails. */
             float: right;
         }
-        .error {
-            position: absolute;
-            background: red;
-            height: 9em;
-            width: 3em;
-            z-index: -1;
+        .color-block {
+          display: inline-block;
+          width: 15px;
+          height: 45px;
         }
     </style>
 </head>
 <body>
-
-  <p>The test passes if you see a tall green box with pairs of the 1-9 and a-i listed top to bottom in two columns.</p>
-
-  <div class="error"></div>
+  <p>Pass condition: 4 rectangles, with colors in clockwise order starting from top-left: grey, orange, blue, yellow.
   <div class="container">
-    <div class="item">１２３<br />ａｂｃ</div>
-    <div class="item">４５６<br />ｄｅｆ</div>
-    <div class="item">７８９<br />ｇｈｉ</div>
+    <div class="item">
+      <span class=color-block style="background: orange;"></span>
+      <br />
+      <span class=color-block style="background: grey;"></span>
+    </div>
+    <div class="item">
+      <span class=color-block style="background: blue;"></span>
+      <br />
+      <span class=color-block style="background: yellow;"></span>
+    </div>
   </div>
 </body>
 </html>

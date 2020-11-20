@@ -39,7 +39,7 @@ test(() => {
       </template>
       <div id="c1" slot="slot1"></div>
     </div>
-    `, {allowShadowRoot: true});
+    `, {includeShadowRoots: true});
   const host = div.querySelector('#host');
   const c1 = host.querySelector('#c1');
   assert_true(!!c1);
@@ -58,7 +58,7 @@ test(() => {
       <template shadowroot="invalid">
       </template>
     </div>
-    `, {allowShadowRoot: true});
+    `, {includeShadowRoots: true});
   const host = div.querySelector('#host');
   assert_equals(host.shadowRoot, null, "Shadow root was found");
   const tmpl = host.querySelector('template');
@@ -74,7 +74,7 @@ test(() => {
       <template shadowroot="closed">
       </template>
     </div>
-    `, {allowShadowRoot: true});
+    `, {includeShadowRoots: true});
   const host = div.querySelector('#host');
   assert_equals(host.shadowRoot, null, "Closed shadow root");
   assert_equals(host.querySelector('template'), null, "No template - converted to shadow root");
@@ -87,7 +87,7 @@ test(() => {
       <template shadowroot="open">
         <slot id="s1" name="slot1"></slot>
     </div>
-    `, {allowShadowRoot: true});
+    `, {includeShadowRoots: true});
   const host = div.querySelector('#host');
   assert_equals(host.querySelector('#s1'), null, "Should be inside shadow root");
   assert_equals(host.querySelector('template'), null, "No leftover template node");
@@ -103,7 +103,7 @@ test(() => {
       <template shadowroot="open" shadowrootdelegatesfocus>
       </template>
     </div>
-    `, {allowShadowRoot: true});
+    `, {includeShadowRoots: true});
   var host = div.querySelector('#host');
   assert_true(!!host.shadowRoot,"No shadow root found");
   assert_true(host.shadowRoot.delegatesFocus,"delegatesFocus should be true");
@@ -112,7 +112,7 @@ test(() => {
       <template shadowroot="open">
       </template>
     </div>
-    `, {allowShadowRoot: true});
+    `, {includeShadowRoots: true});
   host = div.querySelector('#host');
   assert_true(!!host.shadowRoot,"No shadow root found");
   assert_false(host.shadowRoot.delegatesFocus,"delegatesFocus should be false without the shadowrootdelegatesfocus attribute");

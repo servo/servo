@@ -116,6 +116,39 @@ promise_test(async t => {
   assert_equals(numOutputs, 1, "outputs");
 }, 'Decode VP9');
 
+promise_test(async t => {
+  let buffer = await vp9.buffer();
+
+  let decoder = new VideoDecoder({
+    output(frame) {
+      t.step(() => {
+        assert_unreached("reset() should prevent this output from arriving");
+      });
+    },
+    error(e) {
+      t.step(() => { throw e; });
+    }
+  });
+
+  decoder.configure({codec: vp9.codec});
+
+  decoder.decode(new EncodedVideoChunk({
+    type:'key',
+    timestamp:0,
+    data: view(buffer, vp9.frames[0])
+  }));
+
+  let flushPromise = decoder.flush();
+
+  decoder.reset()
+
+  assert_equals(decoder.decodeQueueSize, 0);
+
+  await promise_rejects_exactly(t, undefined, flushPromise);
+
+  endAfterEventLoopTurn();
+}, 'Verify reset() suppresses output and rejects flush');
+
 promise_test(t => {
   let decoder = new VideoDecoder(getDefaultCodecInit(t));
 
