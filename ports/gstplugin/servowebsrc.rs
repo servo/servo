@@ -249,7 +249,9 @@ impl ServoThread {
                 ServoWebSrcMsg::GetSwapChain(sender) => self.send_swap_chain(sender),
                 ServoWebSrcMsg::SetSwapChain(swap_chain) => self.swap_chain = Some(swap_chain.0),
                 ServoWebSrcMsg::Resize(size) => self.resize(size),
-                ServoWebSrcMsg::Heartbeat => self.servo.handle_events(vec![]),
+                ServoWebSrcMsg::Heartbeat => {
+                    self.servo.handle_events(vec![]);
+                }
                 ServoWebSrcMsg::Stop => break,
             }
         }
