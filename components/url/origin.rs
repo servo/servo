@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
+use std::net::IpAddr;
 use std::rc::Rc;
 use url::{Host, Origin};
 use uuid::Uuid;
@@ -79,6 +80,48 @@ impl ImmutableOrigin {
     pub fn ascii_serialization(&self) -> String {
         self.clone().into_url_origin().ascii_serialization()
     }
+
+    /// <https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-url>
+    pub fn is_potentially_trustworthy(&self) -> bool {
+        // Step 1
+        if self.ascii_serialization() == "about:blank" ||
+            self.ascii_serialization() == "about:srcdoc"
+        {
+            return true;
+        }
+        // Step 2
+        if self.scheme() == Some("data") {
+            return true;
+        }
+        // Step 3
+        self.is_origin_trustworthy()
+    }
+
+    /// <https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy>
+    pub fn is_origin_trustworthy(&self) -> bool {
+        // Step 1
+        if !self.is_tuple() {
+            return false;
+        }
+
+        // Step 3
+        if self.scheme() == Some("https") || self.scheme() == Some("wss") {
+            true
+        // Steps 4-5
+        } else if let Some(host) = self.host() {
+            let host = host.to_string();
+            // Step 4
+            if let Ok(ip_addr) = host.parse::<IpAddr>() {
+                ip_addr.is_loopback()
+            // Step 5
+            } else {
+                host == "localhost" || host.ends_with(".localhost")
+            }
+        // Step 6
+        } else {
+            self.scheme() == Some("file")
+        }
+    }
 }
 
 /// Opaque identifier for URLs that have file or other schemes
@@ -151,5 +194,13 @@ impl MutableOrigin {
         self.immutable()
             .host()
             .map(|host| self.domain().unwrap_or_else(|| host.clone()))
+    }
+
+    pub fn is_potentially_trustworthy(&self) -> bool {
+        self.immutable().is_potentially_trustworthy()
+    }
+
+    pub fn is_origin_trustworthy(&self) -> bool {
+        self.immutable().is_origin_trustworthy()
     }
 }

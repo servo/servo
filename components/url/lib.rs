@@ -175,44 +175,12 @@ impl ServoUrl {
         Ok(Self::from_url(Url::from_file_path(path)?))
     }
 
-    /// <https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-url>
     pub fn is_potentially_trustworthy(&self) -> bool {
-        // Step 1
-        if self.as_str() == "about:blank" || self.as_str() == "about:srcdoc" {
-            return true;
-        }
-        // Step 2
-        if self.scheme() == "data" {
-            return true;
-        }
-        // Step 3
-        self.is_origin_trustworthy()
+        self.origin().is_potentially_trustworthy()
     }
 
-    /// <https://w3c.github.io/webappsec-secure-contexts/#is-origin-trustworthy>
     pub fn is_origin_trustworthy(&self) -> bool {
-        // Step 1
-        if !self.origin().is_tuple() {
-            return false;
-        }
-
-        // Step 3
-        if self.scheme() == "https" || self.scheme() == "wss" {
-            true
-        // Steps 4-5
-        } else if self.host().is_some() {
-            let host = self.host_str().unwrap();
-            // Step 4
-            if let Ok(ip_addr) = host.parse::<IpAddr>() {
-                ip_addr.is_loopback()
-            // Step 5
-            } else {
-                host == "localhost" || host.ends_with(".localhost")
-            }
-        // Step 6
-        } else {
-            self.scheme() == "file"
-        }
+        self.origin().is_origin_trustworthy()
     }
 }
 

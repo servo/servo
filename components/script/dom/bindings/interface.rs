@@ -139,6 +139,7 @@ pub unsafe fn create_global_object(
     options.creationOptions_.traceGlobal_ = Some(trace);
     options.creationOptions_.sharedMemoryAndAtomics_ = false;
     options.creationOptions_.streams_ = true;
+    //options.creationOptions_.secureContext_ = true;  // JKTODO this should be from the global?
 
     rval.set(JS_NewGlobalObject(
         *cx,

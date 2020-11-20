@@ -309,6 +309,9 @@ pub struct GlobalScope {
 
     /// List of ongoing dynamic module imports.
     dynamic_modules: DomRefCell<DynamicModuleList>,
+
+    /// Is considered in a secure context
+    inherited_secure_context: Option<bool>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -723,6 +726,7 @@ impl GlobalScope {
         is_headless: bool,
         user_agent: Cow<'static, str>,
         gpu_id_hub: Arc<Mutex<Identities>>,
+        inherited_secure_context: Option<bool>,
     ) -> Self {
         Self {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
@@ -761,6 +765,7 @@ impl GlobalScope {
             https_state: Cell::new(HttpsState::None),
             console_group_stack: DomRefCell::new(Vec::new()),
             dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
+            inherited_secure_context,
         }
     }
 
@@ -2992,6 +2997,13 @@ impl GlobalScope {
 
     pub fn set_https_state(&self, https_state: HttpsState) {
         self.https_state.set(https_state);
+    }
+
+    pub fn is_secure_context(&self) -> bool {
+        if Some(false) == self.inherited_secure_context {
+            return false;
+        }
+        self.origin().is_potentially_trustworthy()
     }
 
     /// https://www.w3.org/TR/CSP/#get-csp-of-object

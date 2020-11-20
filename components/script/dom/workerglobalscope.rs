@@ -82,6 +82,7 @@ pub fn prepare_workerscope_init(
         origin: global.origin().immutable().clone(),
         is_headless: global.is_headless(),
         user_agent: global.get_user_agent(),
+        inherited_secure_context: Some(global.is_secure_context()),
     };
 
     init
@@ -145,6 +146,7 @@ impl WorkerGlobalScope {
                 init.is_headless,
                 init.user_agent,
                 gpu_id_hub,
+                init.inherited_secure_context,
             ),
             worker_id: init.worker_id,
             worker_name,
@@ -404,6 +406,10 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 .immutable()
                 .ascii_serialization(),
         )
+    }
+
+    fn IsSecureContext(&self) -> bool {
+        self.upcast::<GlobalScope>().is_secure_context()
     }
 }
 

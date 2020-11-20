@@ -36,5 +36,10 @@ partial interface mixin WindowOrWorkerGlobalScope {
     readonly attribute Performance performance;
 };
 
+// https://w3c.github.io/webappsec-secure-contexts/#monkey-patching-global-object
+partial interface mixin WindowOrWorkerGlobalScope {
+  readonly attribute boolean isSecureContext;
+};
+
 Window includes WindowOrWorkerGlobalScope;
 WorkerGlobalScope includes WindowOrWorkerGlobalScope;

@@ -1249,6 +1249,7 @@ where
         parent_pipeline_id: Option<PipelineId>,
         size: Size2D<f32, CSSPixel>,
         is_private: bool,
+        inherited_secure_context: Option<bool>,
         is_visible: bool,
     ) {
         debug!("Creating new browsing context {}", browsing_context_id);
@@ -1283,6 +1284,7 @@ where
             parent_pipeline_id,
             size,
             is_private,
+            inherited_secure_context,
             is_visible,
         );
         self.browsing_contexts
@@ -1540,6 +1542,7 @@ where
                     url,
                     None,
                     Referrer::NoReferrer,
+                    None,
                     None,
                 );
                 let ctx_id = BrowsingContextId::from(top_level_browsing_context_id);
@@ -2911,6 +2914,7 @@ where
             None,
             Referrer::NoReferrer,
             None,
+            None,
         );
         let sandbox = IFrameSandboxState::IFrameSandboxed;
         let is_private = false;
@@ -3027,6 +3031,7 @@ where
             None,
             Referrer::NoReferrer,
             None,
+            None,
         );
         let sandbox = IFrameSandboxState::IFrameUnsandboxed;
         let is_private = false;
@@ -3071,6 +3076,7 @@ where
             new_browsing_context_info: Some(NewBrowsingContextInfo {
                 parent_pipeline_id: None,
                 is_private: is_private,
+                inherited_secure_context: None,
                 is_visible: is_visible,
             }),
             window_size,
@@ -3178,6 +3184,7 @@ where
             new_pipeline_id,
             is_private,
             mut replace,
+            ..
         } = load_info.info;
 
         // If no url is specified, reload.
@@ -3293,9 +3300,9 @@ where
                 Some(pipeline) => (pipeline.event_loop.clone(), pipeline.browsing_context_id),
                 None => return warn!("Script loaded url in closed iframe {}.", parent_pipeline_id),
             };
-        let (is_parent_private, is_parent_visible) =
+        let (is_parent_private, is_parent_visible, is_parent_secure) =
             match self.browsing_contexts.get(&parent_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.is_visible),
+                Some(ctx) => (ctx.is_private, ctx.is_visible, ctx.inherited_secure_context),
                 None => {
                     return warn!(
                         "New iframe {} loaded in closed parent browsing context {}.",
@@ -3327,6 +3334,7 @@ where
             new_browsing_context_info: Some(NewBrowsingContextInfo {
                 parent_pipeline_id: Some(parent_pipeline_id),
                 is_private: is_private,
+                inherited_secure_context: is_parent_secure,
                 is_visible: is_parent_visible,
             }),
             window_size: load_info.window_size.initial_viewport,
@@ -3356,9 +3364,9 @@ where
                     );
                 },
             };
-        let (is_opener_private, is_opener_visible) =
+        let (is_opener_private, is_opener_visible, is_opener_secure) =
             match self.browsing_contexts.get(&opener_browsing_context_id) {
-                Some(ctx) => (ctx.is_private, ctx.is_visible),
+                Some(ctx) => (ctx.is_private, ctx.is_visible, ctx.inherited_secure_context),
                 None => {
                     return warn!(
                         "New auxiliary {} loaded in closed opener browsing context {}.",
@@ -3416,6 +3424,7 @@ where
                 // Auxiliary browsing contexts are always top-level.
                 parent_pipeline_id: None,
                 is_private: is_opener_private,
+                inherited_secure_context: is_opener_secure,
                 is_visible: is_opener_visible,
             }),
             window_size: self.window_size.initial_viewport,
@@ -4747,6 +4756,7 @@ where
                     new_context_info.parent_pipeline_id,
                     change.window_size,
                     new_context_info.is_private,
+                    new_context_info.inherited_secure_context,
                     new_context_info.is_visible,
                 );
                 self.update_activity(change.new_pipeline_id);

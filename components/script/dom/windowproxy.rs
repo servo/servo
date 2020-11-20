@@ -307,6 +307,7 @@ impl WindowProxy {
                 None,
                 document.global().get_referrer(),
                 document.get_referrer_policy(),
+                None, // Doesn't inherit secure context
             );
             let load_info = AuxiliaryBrowsingContextLoadInfo {
                 load_data: load_data.clone(),
@@ -511,12 +512,14 @@ impl WindowProxy {
             // Step 14.5
             let referrer_policy = target_document.get_referrer_policy();
             let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
+            let secure = target_window.upcast::<GlobalScope>().is_secure_context();
             let load_data = LoadData::new(
                 LoadOrigin::Script(existing_document.origin().immutable().clone()),
                 url,
                 Some(pipeline_id),
                 referrer,
                 referrer_policy,
+                Some(secure),
             );
             let replacement_flag = if new {
                 HistoryEntryReplacement::Enabled

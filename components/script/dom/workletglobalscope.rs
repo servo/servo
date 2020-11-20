@@ -75,6 +75,7 @@ impl WorkletGlobalScope {
                 init.is_headless,
                 init.user_agent.clone(),
                 init.gpu_id_hub.clone(),
+                init.inherited_secure_context,
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
@@ -166,6 +167,8 @@ pub struct WorkletGlobalScopeInit {
     pub user_agent: Cow<'static, str>,
     /// Identity manager for WebGPU resources
     pub gpu_id_hub: Arc<Mutex<Identities>>,
+    /// Is considered secure
+    pub inherited_secure_context: Option<bool>,
 }
 
 /// <https://drafts.css-houdini.org/worklets/#worklet-global-scope-type>
