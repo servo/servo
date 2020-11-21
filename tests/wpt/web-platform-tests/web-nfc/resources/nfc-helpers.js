@@ -204,7 +204,7 @@ function testMultiScanOptions(message, scanOptions, unmatchedScanOptions, desc) 
     unmatchedScanOptions.signal = controller.signal;
     await reader1.scan(unmatchedScanOptions);
 
-    const readerWatcher = new EventWatcher(t, reader2, ["reading", "error"]);
+    const readerWatcher = new EventWatcher(t, reader2, ["reading", "readingerror"]);
     const promise = readerWatcher.wait_for("reading").then(event => {
       controller.abort();
       assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));
@@ -221,7 +221,7 @@ function testMultiMessages(message, scanOptions, unmatchedMessage, desc) {
   nfc_test(async (t, mockNFC) => {
     const reader = new NDEFReader();
     const controller = new AbortController();
-    const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+    const readerWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
     const promise = readerWatcher.wait_for("reading").then(event => {
       controller.abort();
       assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));

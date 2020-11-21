@@ -9,12 +9,13 @@
 <script>
 
 nfc_test(async (t, mockNFC) => {
-  mockNFC.simulateClosedPipe();
   const reader = new NDEFReader();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
-  const promise = readerWatcher.wait_for("reading").then(event => {
-    if (document.hidden) reject();
-    resolve();
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
+  const promise = new Promise((resolve, reject) => {
+    readerWatcher.wait_for("reading").then(event => {
+      if (document.hidden) reject();
+      else resolve();
+    });
   });
   await reader.scan();
   await promise;

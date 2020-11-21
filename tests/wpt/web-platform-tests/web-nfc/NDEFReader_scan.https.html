@@ -46,14 +46,8 @@ nfc_test(async t => {
 nfc_test(async (t, mockNFC) => {
   mockNFC.simulateClosedPipe();
   const reader = new NDEFReader();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
-  const promise = readerWatcher.wait_for("error").then(event => {
-    assert_true(event instanceof ErrorEvent);
-  });
   await promise_rejects_dom(t, 'NotSupportedError', reader.scan());
-  await promise;
-}, "Test that an error event happens if no implementation for NFC Mojo interface \
-is available.");
+}, "NDEFReader.scan should faild if no implementation for NFC Mojo interface.");
 
 nfc_test(async (t, mockNFC) => {
   mockNFC.setHWStatus(NFCHWStatus.DISABLED);
@@ -70,7 +64,7 @@ nfc_test(async (t, mockNFC) => {
 nfc_test(async (t, mockNFC) => {
   const reader = new NDEFReader();
   const controller = new AbortController();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
   const promise = readerWatcher.wait_for("reading").then(event => {
     assert_true(event instanceof NDEFReadingEvent);
     controller.abort();
@@ -84,7 +78,7 @@ nfc_test(async (t, mockNFC) => {
 nfc_test(async (t, mockNFC) => {
   const reader = new NDEFReader();
   const controller = new AbortController();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
   const promise = readerWatcher.wait_for("reading").then(event => {
     assert_true(event instanceof NDEFReadingEvent);
     controller.abort();
@@ -114,7 +108,7 @@ the scan invocation.");
 nfc_test(async (t, mockNFC) => {
   const reader = new NDEFReader();
   const controller = new AbortController();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
   const message = createMessage([createTextRecord(test_text_data)]);
   const promise = readerWatcher.wait_for("reading").then(event => {
     assert_true(event instanceof NDEFReadingEvent);
@@ -135,7 +129,7 @@ nfc_test(async (t, mockNFC) => {
 nfc_test(async (t, mockNFC) => {
   const reader = new NDEFReader();
   const controller = new AbortController();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
   const promise = readerWatcher.wait_for("reading").then(event => {
     controller.abort();
     assert_true(event instanceof NDEFReadingEvent);
@@ -172,7 +166,7 @@ nfc_test(async (t, mockNFC) => {
 nfc_test(async (t, mockNFC) => {
   const reader = new NDEFReader();
   const controller = new AbortController();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
   const promise = readerWatcher.wait_for("reading").then(event => {
     controller.abort();
     assert_true(event instanceof NDEFReadingEvent);
@@ -225,30 +219,26 @@ nfc_test(async (t, mockNFC) => {
   const promises = [];
 
   const reader1 = new NDEFReader();
-  const readerWatcher1 = new EventWatcher(t, reader1, ["reading", "error"]);
-  const promise1 = readerWatcher1.wait_for("error").then(event => {
-    assert_true(event instanceof ErrorEvent);
-  });
+  const readerWatcher1 = new EventWatcher(t, reader1, ["reading", "readingerror"]);
+  const promise1 = readerWatcher1.wait_for("readingerror");
   promises.push(promise1);
   await reader1.scan();
 
   const reader2 = new NDEFReader();
-  const readerWatcher2 = new EventWatcher(t, reader2, ["reading", "error"]);
-  const promise2 = readerWatcher2.wait_for("error").then(event => {
-    assert_true(event instanceof ErrorEvent);
-  });
+  const readerWatcher2 = new EventWatcher(t, reader2, ["reading", "readingerror"]);
+  const promise2 = readerWatcher2.wait_for("readingerror");
   promises.push(promise2);
   await reader2.scan();
 
   mockNFC.simulateNonNDEFTagDiscovered();
   await Promise.all(promises);
-}, "Test that NDEFReader.onerror should be fired if the NFC tag does not \
+}, "Test that NDEFReader.onreadingerror should be fired if the NFC tag does not \
 expose NDEF technology.");
 
 nfc_test(async (t, mockNFC) => {
   const reader = new NDEFReader();
   const controller = new AbortController();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
   const promise = readerWatcher.wait_for("reading").then(event => {
     assert_equals(event.serialNumber, fake_tag_serial_number);
     assert_equals(event.message.records.length, 0);
@@ -272,7 +262,7 @@ nfc_test(async (t, mockNFC) => {
                                 createUrlRecord(test_url_data, true),
                                 createRecord('w3.org:xyz', test_buffer_data)],
                                 test_message_origin);
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
   const promise = readerWatcher.wait_for("reading").then(event => {
     assert_equals(event.serialNumber, fake_tag_serial_number);
     assertWebNDEFMessagesEqual(event.message, new NDEFMessage(message));
