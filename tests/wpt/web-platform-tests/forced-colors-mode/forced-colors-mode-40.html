@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode - computed value.
+  Ensures that forced colors do not affect the computed style.
+</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div {
+    background-color: green;
+    border-color: green;
+    fill: green;
+    outline-color: green;
+    stroke: green;
+  }
+</style>
+<div id="div">
+    Forced colors should not affect the computed style.
+</div>
+
+<script>
+  const properties_to_test = [
+    "background-color",
+    "border-bottom-color",
+    "border-left-color",
+    "border-right-color",
+    "border-top-color",
+    "fill",
+    "outline-color",
+    "stroke"
+  ];
+  for (let property of properties_to_test) {
+    test(function() {
+      let value = document.getElementById("div").computedStyleMap()
+          .get(property).toString();
+      assert_equals(value, "rgb(0, 128, 0)")
+    }, "Forced colors aren't applied at computed value time for " + property);
+  }
+</script>

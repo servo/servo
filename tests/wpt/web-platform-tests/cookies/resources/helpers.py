@@ -36,7 +36,7 @@ def makeCookieHeader(name, value, otherAttrs):
     return (b"Set-Cookie", b"; ".join((attrs)))
 
 def makeDropCookie(name, secure):
-    attrs = {b"MaxAge": 0, b"path": b"/"}
+    attrs = {b"max-age": 0, b"path": b"/"}
     if secure:
         attrs[b"secure"] = b""
     return makeCookieHeader(name, b"", attrs)

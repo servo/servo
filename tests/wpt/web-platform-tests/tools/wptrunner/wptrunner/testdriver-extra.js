@@ -34,7 +34,7 @@
         } else if (data.type === "testdriver-complete") {
             const cmd_id = data.cmd_id;
             const [on_success, on_failure] = pending.get(cmd_id);
-            pending.clear(cmd_id);
+            pending.delete(cmd_id);
             const resolver = data.status === "success" ? on_success : on_failure;
             resolver(data);
             if (is_test_context) {

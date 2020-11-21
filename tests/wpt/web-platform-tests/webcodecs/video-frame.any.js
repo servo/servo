@@ -1,11 +1,5 @@
-<!DOCTYPE html>
-<html>
-<title>Test the VideoFrame API.</title>
-<body></body>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/webcodecs/utils.js"></script>
-<script>
+// META: global=window,dedicatedworker
+// META: script=/webcodecs/utils.js
 
 test(t => {
   let image = makeImageBitmap(32, 16);
@@ -103,6 +97,3 @@ test(t => {
     let frame = new VideoFrame(image, {timestamp: 10});
   })
 }, 'Test constructing VideoFrames from closed ImageBitmap throws.');
-
-</script>
-</html>

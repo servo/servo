@@ -1,12 +1,6 @@
-<!DOCTYPE html>
-<html>
-<title>Test posting VideoFrames.</title>
-<body></body>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/common/media.js"></script>
-<script src="/webcodecs/utils.js"></script>
-<script>
+// META: global=window,dedicatedworker
+// META: script=/common/media.js
+// META: script=/webcodecs/utils.js
 
 var defaultInit = {
   timestamp : 100,
@@ -118,6 +112,3 @@ async_test(t => {
 
   t.done();
 }, 'Verify posting destroyed frames throws.');
-
-</script>
-</html>

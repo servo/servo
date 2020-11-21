@@ -1,14 +1,8 @@
-<!DOCTYPE html>
-<html>
-<title>Test the VideoDecoder API.</title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/webcodecs/utils.js"></script>
-<script>
-'use strict';
+// META: global=window,dedicatedworker
+// META: script=/webcodecs/utils.js
 
 // TODO(sandersd): Move metadata into a helper library.
-// TODO(sandersd): Add H.264 idecode test once there is an API to query for
+// TODO(sandersd): Add H.264 decode test once there is an API to query for
 // supported codecs.
 let h264 = {
   async buffer() { return (await fetch('h264.mp4')).arrayBuffer(); },
@@ -217,5 +211,3 @@ promise_test(t => {
   // or error coming.
   return promise_rejects_exactly(t, undefined, flushPromise);
 }, 'Close while decoding corrupt VP9 frame');
-</script>
-</html>

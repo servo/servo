@@ -11,7 +11,7 @@
 nfc_test(async (t, mockNFC) => {
   const reader = new NDEFReader();
   const controller = new AbortController();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "error"]);
+  const readerWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
 
   const promise = readerWatcher.wait_for("reading").then(event => {
     assert_true(event instanceof NDEFReadingEvent);

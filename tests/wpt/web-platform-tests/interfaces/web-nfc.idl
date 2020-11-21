@@ -55,8 +55,8 @@ interface NDEFWriter {
 interface NDEFReader : EventTarget {
   constructor();
 
-  attribute EventHandler onerror;
   attribute EventHandler onreading;
+  attribute EventHandler onreadingerror;
 
   Promise<undefined> scan(optional NDEFScanOptions options={});
 };

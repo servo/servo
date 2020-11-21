@@ -1,10 +1,5 @@
-<!DOCTYPE html>
-<html>
-<title>Test the AudioDecoder API.</title>
-<script src="/resources/testharness.js"></script>
-<script src="/resources/testharnessreport.js"></script>
-<script src="/webcodecs/utils.js"></script>
-<script>
+// META: global=window,dedicatedworker
+// META: script=/webcodecs/utils.js
 
 const defaultConfig = {
   codec: "opus",
@@ -59,7 +54,3 @@ promise_test(t => {
 
   return testUnconfiguredCodec(t, decoder, getFakeChunk());
 }, 'Verify unconfigured AudioDecoder operations');
-
-
-</script>
-</html>
