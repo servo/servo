@@ -132,7 +132,7 @@ GST_PLUGIN_PATH=target/gstplugins \
 If that doesn't work, try:
 ```
 GST_PLUGIN_PATH=target/gstplugins \
-  gst-in2spect-1.0 target/gstplugins/libgstservoplugin.so
+  gst-inspect-1.0 target/gstplugins/libgstservoplugin.so
 ```
 
 If you get reports about the plugin being blacklisted, remove the (global!) gstreamer cache, e.g. under Linux:
