@@ -10,15 +10,15 @@ use crate::builder::{SelectorBuilder, SelectorFlags, SpecificityAndFlags};
 use crate::context::QuirksMode;
 use crate::sink::Push;
 pub use crate::visitor::SelectorVisitor;
-use cssparser::{parse_nth, serialize_identifier};
+use cssparser::parse_nth;
 use cssparser::{BasicParseError, BasicParseErrorKind, ParseError, ParseErrorKind};
 use cssparser::{CowRcStr, Delimiter, SourceLocation};
-use cssparser::{CssStringWriter, Parser as CssParser, ToCss, Token};
+use cssparser::{Parser as CssParser, ToCss, Token};
 use precomputed_hash::PrecomputedHash;
 use servo_arc::ThinArc;
 use smallvec::SmallVec;
 use std::borrow::{Borrow, Cow};
-use std::fmt::{self, Debug, Display, Write};
+use std::fmt::{self, Debug};
 use std::iter::Rev;
 use std::slice;
 
@@ -197,8 +197,6 @@ macro_rules! with_all_bounds {
             type ExtraMatchingData: Sized + Default + 'static;
             type AttrValue: $($InSelector)*;
             type Identifier: $($InSelector)*;
-            type ClassName: $($InSelector)*;
-            type PartName: $($InSelector)*;
             type LocalName: $($InSelector)* + Borrow<Self::BorrowedLocalName>;
             type NamespaceUrl: $($CommonBounds)* + Default + Borrow<Self::BorrowedNamespaceUrl>;
             type NamespacePrefix: $($InSelector)* + Default;
@@ -218,7 +216,7 @@ macro_rules! with_all_bounds {
 macro_rules! with_bounds {
     ( [ $( $CommonBounds: tt )* ] [ $( $FromStr: tt )* ]) => {
         with_all_bounds! {
-            [$($CommonBounds)* + $($FromStr)* + Display]
+            [$($CommonBounds)* + $($FromStr)* + ToCss]
             [$($CommonBounds)*]
             [$($FromStr)*]
         }
@@ -462,7 +460,6 @@ fn collect_ancestor_hashes<Impl: SelectorImpl>(
 ) -> bool
 where
     Impl::Identifier: PrecomputedHash,
-    Impl::ClassName: PrecomputedHash,
     Impl::LocalName: PrecomputedHash,
     Impl::NamespaceUrl: PrecomputedHash,
 {
@@ -514,7 +511,6 @@ impl AncestorHashes {
     pub fn new<Impl: SelectorImpl>(selector: &Selector<Impl>, quirks_mode: QuirksMode) -> Self
     where
         Impl::Identifier: PrecomputedHash,
-        Impl::ClassName: PrecomputedHash,
         Impl::LocalName: PrecomputedHash,
         Impl::NamespaceUrl: PrecomputedHash,
     {
@@ -593,7 +589,7 @@ impl<Impl: SelectorImpl> Selector<Impl> {
     }
 
     #[inline]
-    pub fn parts(&self) -> Option<&[Impl::PartName]> {
+    pub fn parts(&self) -> Option<&[Impl::Identifier]> {
         if !self.is_part() {
             return None;
         }
@@ -1012,7 +1008,7 @@ pub enum Component<Impl: SelectorImpl> {
     LocalName(LocalName<Impl>),
 
     ID(#[shmem(field_bound)] Impl::Identifier),
-    Class(#[shmem(field_bound)] Impl::ClassName),
+    Class(#[shmem(field_bound)] Impl::Identifier),
 
     AttributeInNoNamespaceExists {
         #[shmem(field_bound)]
@@ -1061,7 +1057,7 @@ pub enum Component<Impl: SelectorImpl> {
     Slotted(Selector<Impl>),
     /// The `::part` pseudo-element.
     ///   https://drafts.csswg.org/css-shadow-parts/#part
-    Part(#[shmem(field_bound)] Box<[Impl::PartName]>),
+    Part(#[shmem(field_bound)] Box<[Impl::Identifier]>),
     /// The `:host` pseudo-class:
     ///
     /// https://drafts.csswg.org/css-scoping/#host-selector
@@ -1470,18 +1466,18 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                     if i != 0 {
                         dest.write_char(' ')?;
                     }
-                    display_to_css_identifier(name, dest)?;
+                    name.to_css(dest)?;
                 }
                 dest.write_char(')')
             },
             PseudoElement(ref p) => p.to_css(dest),
             ID(ref s) => {
                 dest.write_char('#')?;
-                display_to_css_identifier(s, dest)
+                s.to_css(dest)
             },
             Class(ref s) => {
                 dest.write_char('.')?;
-                display_to_css_identifier(s, dest)
+                s.to_css(dest)
             },
             LocalName(ref s) => s.to_css(dest),
             ExplicitUniversalType => dest.write_char('*'),
@@ -1490,13 +1486,13 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
             ExplicitNoNamespace => dest.write_char('|'),
             ExplicitAnyNamespace => dest.write_str("*|"),
             Namespace(ref prefix, _) => {
-                display_to_css_identifier(prefix, dest)?;
+                prefix.to_css(dest)?;
                 dest.write_char('|')
             },
 
             AttributeInNoNamespaceExists { ref local_name, .. } => {
                 dest.write_char('[')?;
-                display_to_css_identifier(local_name, dest)?;
+                local_name.to_css(dest)?;
                 dest.write_char(']')
             },
             AttributeInNoNamespace {
@@ -1507,10 +1503,10 @@ impl<Impl: SelectorImpl> ToCss for Component<Impl> {
                 ..
             } => {
                 dest.write_char('[')?;
-                display_to_css_identifier(local_name, dest)?;
+                local_name.to_css(dest)?;
                 operator.to_css(dest)?;
                 dest.write_char('"')?;
-                write!(CssStringWriter::new(dest), "{}", value)?;
+                value.to_css(dest)?;
                 dest.write_char('"')?;
                 match case_sensitivity {
                     ParsedCaseSensitivity::CaseSensitive |
@@ -1582,13 +1578,13 @@ impl<Impl: SelectorImpl> ToCss for AttrSelectorWithOptionalNamespace<Impl> {
         dest.write_char('[')?;
         match self.namespace {
             Some(NamespaceConstraint::Specific((ref prefix, _))) => {
-                display_to_css_identifier(prefix, dest)?;
+                prefix.to_css(dest)?;
                 dest.write_char('|')?
             },
             Some(NamespaceConstraint::Any) => dest.write_str("*|")?,
             None => {},
         }
-        display_to_css_identifier(&self.local_name, dest)?;
+        self.local_name.to_css(dest)?;
         match self.operation {
             ParsedAttrSelectorOperation::Exists => {},
             ParsedAttrSelectorOperation::WithValue {
@@ -1598,7 +1594,7 @@ impl<Impl: SelectorImpl> ToCss for AttrSelectorWithOptionalNamespace<Impl> {
             } => {
                 operator.to_css(dest)?;
                 dest.write_char('"')?;
-                write!(CssStringWriter::new(dest), "{}", expected_value)?;
+                expected_value.to_css(dest)?;
                 dest.write_char('"')?;
                 match case_sensitivity {
                     ParsedCaseSensitivity::CaseSensitive |
@@ -1617,27 +1613,8 @@ impl<Impl: SelectorImpl> ToCss for LocalName<Impl> {
     where
         W: fmt::Write,
     {
-        display_to_css_identifier(&self.name, dest)
+        self.name.to_css(dest)
     }
-}
-
-/// Serialize the output of Display as a CSS identifier
-fn display_to_css_identifier<T: Display, W: fmt::Write>(x: &T, dest: &mut W) -> fmt::Result {
-    // FIXME(SimonSapin): it is possible to avoid this heap allocation
-    // by creating a stream adapter like cssparser::CssStringWriter
-    // that holds and writes to `&mut W` and itself implements `fmt::Write`.
-    //
-    // I haven’t done this yet because it would require somewhat complex and fragile state machine
-    // to support in `fmt::Write::write_char` cases that,
-    // in `serialize_identifier` (which has the full value as a `&str` slice),
-    // can be expressed as
-    // `string.starts_with("--")`, `string == "-"`, `string.starts_with("-")`, etc.
-    //
-    // And I don’t even know if this would be a performance win: jemalloc is good at what it does
-    // and the state machine might be slower than `serialize_identifier` as currently written.
-    let string = x.to_string();
-
-    serialize_identifier(&string, dest)
 }
 
 /// Build up a Selector.
@@ -1810,7 +1787,7 @@ enum SimpleSelectorParseResult<Impl: SelectorImpl> {
     SimpleSelector(Component<Impl>),
     PseudoElement(Impl::PseudoElement),
     SlottedPseudo(Selector<Impl>),
-    PartPseudo(Box<[Impl::PartName]>),
+    PartPseudo(Box<[Impl::Identifier]>),
 }
 
 #[derive(Debug)]
@@ -2605,10 +2582,8 @@ pub mod tests {
 
     impl SelectorImpl for DummySelectorImpl {
         type ExtraMatchingData = ();
-        type AttrValue = DummyAtom;
+        type AttrValue = DummyAttrValue;
         type Identifier = DummyAtom;
-        type ClassName = DummyAtom;
-        type PartName = DummyAtom;
         type LocalName = DummyAtom;
         type NamespaceUrl = DummyAtom;
         type NamespacePrefix = DummyAtom;
@@ -2619,11 +2594,34 @@ pub mod tests {
     }
 
     #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
+    pub struct DummyAttrValue(String);
+
+    impl ToCss for DummyAttrValue {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where
+            W: fmt::Write,
+        {
+            use std::fmt::Write;
+
+            write!(cssparser::CssStringWriter::new(dest), "{}", &self.0)
+        }
+    }
+
+    impl<'a> From<&'a str> for DummyAttrValue {
+        fn from(string: &'a str) -> Self {
+            Self(string.into())
+        }
+    }
+
+    #[derive(Clone, Debug, Default, Eq, Hash, PartialEq)]
     pub struct DummyAtom(String);
 
-    impl fmt::Display for DummyAtom {
-        fn fmt(&self, fmt: &mut fmt::Formatter) -> fmt::Result {
-            <String as fmt::Display>::fmt(&self.0, fmt)
+    impl ToCss for DummyAtom {
+        fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+        where
+            W: fmt::Write,
+        {
+            serialize_identifier(&self.0, dest)
         }
     }
 
@@ -3108,7 +3106,7 @@ pub mod tests {
                 vec![Component::AttributeInNoNamespace {
                     local_name: DummyAtom::from("attr"),
                     operator: AttrSelectorOperator::DashMatch,
-                    value: DummyAtom::from("foo"),
+                    value: DummyAttrValue::from("foo"),
                     never_matches: false,
                     case_sensitivity: ParsedCaseSensitivity::CaseSensitive,
                 }],

@@ -113,7 +113,7 @@ pub trait Element: Sized + Clone + Debug {
 
     fn has_class(
         &self,
-        name: &<Self::Impl as SelectorImpl>::ClassName,
+        name: &<Self::Impl as SelectorImpl>::Identifier,
         case_sensitivity: CaseSensitivity,
     ) -> bool;
 
@@ -121,10 +121,10 @@ pub trait Element: Sized + Clone + Debug {
     /// direction, that is, in an outer-tree -> inner-tree direction.
     fn imported_part(
         &self,
-        name: &<Self::Impl as SelectorImpl>::PartName,
-    ) -> Option<<Self::Impl as SelectorImpl>::PartName>;
+        name: &<Self::Impl as SelectorImpl>::Identifier,
+    ) -> Option<<Self::Impl as SelectorImpl>::Identifier>;
 
-    fn is_part(&self, name: &<Self::Impl as SelectorImpl>::PartName) -> bool;
+    fn is_part(&self, name: &<Self::Impl as SelectorImpl>::Identifier) -> bool;
 
     /// Returns whether this element matches `:empty`.
     ///
