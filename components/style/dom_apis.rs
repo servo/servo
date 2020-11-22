@@ -10,7 +10,7 @@ use crate::dom::{TDocument, TElement, TNode, TShadowRoot};
 use crate::invalidation::element::invalidation_map::Dependency;
 use crate::invalidation::element::invalidator::{DescendantInvalidationLists, Invalidation};
 use crate::invalidation::element::invalidator::{InvalidationProcessor, InvalidationVector};
-use crate::Atom;
+use crate::values::AtomIdent;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::{self, MatchingContext, MatchingMode};
 use selectors::parser::{Combinator, Component, LocalName, SelectorImpl};
@@ -276,7 +276,7 @@ where
 /// or shadow root that `root` is connected to.
 fn fast_connected_elements_with_id<'a, N>(
     root: N,
-    id: &Atom,
+    id: &AtomIdent,
     quirks_mode: QuirksMode,
 ) -> Result<&'a [N::ConcreteElement], ()>
 where
@@ -305,7 +305,7 @@ where
 /// Collects elements with a given id under `root`, that pass `filter`.
 fn collect_elements_with_id<E, Q, F>(
     root: E::ConcreteNode,
-    id: &Atom,
+    id: &AtomIdent,
     results: &mut Q::Output,
     quirks_mode: QuirksMode,
     mut filter: F,
@@ -398,7 +398,7 @@ where
 }
 
 enum SimpleFilter<'a, Impl: SelectorImpl> {
-    Class(&'a Atom),
+    Class(&'a AtomIdent),
     LocalName(&'a LocalName<Impl>),
 }
 

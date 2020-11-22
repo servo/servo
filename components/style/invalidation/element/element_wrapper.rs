@@ -9,7 +9,8 @@ use crate::dom::TElement;
 use crate::element_state::ElementState;
 use crate::selector_parser::{AttrValue, NonTSPseudoClass, PseudoElement, SelectorImpl};
 use crate::selector_parser::{Snapshot, SnapshotMap};
-use crate::{Atom, CaseSensitivityExt, LocalName, Namespace, WeakAtom};
+use crate::values::AtomIdent;
+use crate::{CaseSensitivityExt, LocalName, Namespace, WeakAtom};
 use selectors::attr::{AttrSelectorOperation, CaseSensitivity, NamespaceConstraint};
 use selectors::matching::{ElementSelectorFlags, MatchingContext};
 use selectors::{Element, OpaqueElement};
@@ -56,20 +57,20 @@ pub trait ElementSnapshot: Sized {
 
     /// Whether this snapshot contains the class `name`. Should only be called
     /// if `has_attrs()` returns true.
-    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool;
+    fn has_class(&self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool;
 
     /// Whether this snapshot represents the part named `name`. Should only be
     /// called if `has_attrs()` returns true.
-    fn is_part(&self, name: &Atom) -> bool;
+    fn is_part(&self, name: &AtomIdent) -> bool;
 
     /// See Element::imported_part.
-    fn imported_part(&self, name: &Atom) -> Option<Atom>;
+    fn imported_part(&self, name: &AtomIdent) -> Option<AtomIdent>;
 
     /// A callback that should be called for each class of the snapshot. Should
     /// only be called if `has_attrs()` returns true.
     fn each_class<F>(&self, _: F)
     where
-        F: FnMut(&Atom);
+        F: FnMut(&AtomIdent);
 
     /// The `xml:lang=""` or `lang=""` attribute value per this snapshot.
     fn lang_attr(&self) -> Option<AttrValue>;
@@ -361,7 +362,7 @@ where
         }
     }
 
-    fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+    fn has_id(&self, id: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => snapshot
                 .id_attr()
@@ -370,21 +371,21 @@ where
         }
     }
 
-    fn is_part(&self, name: &Atom) -> bool {
+    fn is_part(&self, name: &AtomIdent) -> bool {
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => snapshot.is_part(name),
             _ => self.element.is_part(name),
         }
     }
 
-    fn imported_part(&self, name: &Atom) -> Option<Atom> {
+    fn imported_part(&self, name: &AtomIdent) -> Option<AtomIdent> {
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => snapshot.imported_part(name),
             _ => self.element.imported_part(name),
         }
     }
 
-    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+    fn has_class(&self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
         match self.snapshot() {
             Some(snapshot) if snapshot.has_attrs() => snapshot.has_class(name, case_sensitivity),
             _ => self.element.has_class(name, case_sensitivity),

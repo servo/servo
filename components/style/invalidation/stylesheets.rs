@@ -17,6 +17,7 @@ use crate::selector_parser::{SelectorImpl, Snapshot, SnapshotMap};
 use crate::shared_lock::SharedRwLockReadGuard;
 use crate::stylesheets::{CssRule, StylesheetInDocument};
 use crate::stylesheets::{EffectiveRules, EffectiveRulesIterator};
+use crate::values::AtomIdent;
 use crate::Atom;
 use crate::LocalName as SelectorLocalName;
 use selectors::parser::{Component, LocalName, Selector};
@@ -43,9 +44,9 @@ pub enum RuleChangeKind {
 #[derive(Debug, Eq, Hash, MallocSizeOf, PartialEq)]
 enum Invalidation {
     /// An element with a given id.
-    ID(Atom),
+    ID(AtomIdent),
     /// An element with a given class name.
-    Class(Atom),
+    Class(AtomIdent),
     /// An element with a given local name.
     LocalName {
         name: SelectorLocalName,
@@ -468,14 +469,14 @@ impl StylesheetInvalidationSet {
     ) -> bool {
         match invalidation {
             Invalidation::Class(c) => {
-                let entry = match self.classes.try_entry(c, quirks_mode) {
+                let entry = match self.classes.try_entry(c.0, quirks_mode) {
                     Ok(e) => e,
                     Err(..) => return false,
                 };
                 *entry.or_insert(InvalidationKind::None) |= kind;
             },
             Invalidation::ID(i) => {
-                let entry = match self.ids.try_entry(i, quirks_mode) {
+                let entry = match self.ids.try_entry(i.0, quirks_mode) {
                     Ok(e) => e,
                     Err(..) => return false,
                 };

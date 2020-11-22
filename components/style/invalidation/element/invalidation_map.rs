@@ -478,7 +478,7 @@ impl<'a> SelectorVisitor for SelectorDependencyCollector<'a> {
                     Component::Class(..) => &mut self.map.class_to_selector,
                     _ => unreachable!(),
                 };
-                let entry = match map.try_entry(atom.clone(), self.quirks_mode) {
+                let entry = match map.try_entry(atom.0.clone(), self.quirks_mode) {
                     Ok(entry) => entry,
                     Err(err) => {
                         *self.alloc_error = Some(err);

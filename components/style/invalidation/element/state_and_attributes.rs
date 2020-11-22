@@ -216,13 +216,13 @@ where
             // TODO(emilio): Do this more efficiently!
             snapshot.each_class(|c| {
                 if !element.has_class(c, CaseSensitivity::CaseSensitive) {
-                    classes_removed.push(c.clone())
+                    classes_removed.push(c.0.clone())
                 }
             });
 
             element.each_class(|c| {
                 if !snapshot.has_class(c, CaseSensitivity::CaseSensitive) {
-                    classes_added.push(c.clone())
+                    classes_added.push(c.0.clone())
                 }
             })
         }

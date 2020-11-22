@@ -47,17 +47,8 @@ impl PrecomputedHash for Namespace {
 }
 
 /// A Gecko WeakNamespace is a wrapped WeakAtom.
-#[derive(Hash)]
+#[derive(Hash, Deref)]
 pub struct WeakNamespace(WeakAtom);
-
-impl Deref for WeakNamespace {
-    type Target = WeakAtom;
-
-    #[inline]
-    fn deref(&self) -> &WeakAtom {
-        &self.0
-    }
-}
 
 impl Deref for Namespace {
     type Target = WeakNamespace;

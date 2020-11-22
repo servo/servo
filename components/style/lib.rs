@@ -131,10 +131,10 @@ pub use crate::gecko_string_cache as string_cache;
 pub use crate::gecko_string_cache::Atom;
 /// The namespace prefix type for Gecko, which is just an atom.
 #[cfg(feature = "gecko")]
-pub type Prefix = crate::gecko_string_cache::Atom;
+pub type Prefix = crate::values::AtomIdent;
 /// The local name of an element for Gecko, which is just an atom.
 #[cfg(feature = "gecko")]
-pub type LocalName = crate::gecko_string_cache::Atom;
+pub type LocalName = crate::values::AtomIdent;
 #[cfg(feature = "gecko")]
 pub use crate::gecko_string_cache::Namespace;
 

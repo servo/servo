@@ -133,3 +133,10 @@ macro_rules! profiler_label {
 macro_rules! profiler_label {
     ($label_type:ident) => {};
 }
+
+#[cfg(feature = "gecko")]
+macro_rules! local_name {
+    ($s:tt) => {
+        $crate::values::AtomIdent(atom!($s))
+    };
+}

@@ -70,7 +70,9 @@ use crate::stylist::CascadeData;
 use crate::values::computed::font::GenericFontFamily;
 use crate::values::computed::Length;
 use crate::values::specified::length::FontBaseSize;
+use crate::values::{AtomIdent, AtomString};
 use crate::CaseSensitivityExt;
+use crate::LocalName;
 use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use selectors::attr::{AttrSelectorOperation, AttrSelectorOperator};
 use selectors::attr::{CaseSensitivity, NamespaceConstraint};
@@ -130,7 +132,7 @@ impl<'ld> TDocument for GeckoDocument<'ld> {
     }
 
     #[inline]
-    fn elements_with_id<'a>(&self, id: &Atom) -> Result<&'a [GeckoElement<'ld>], ()>
+    fn elements_with_id<'a>(&self, id: &AtomIdent) -> Result<&'a [GeckoElement<'ld>], ()>
     where
         Self: 'a,
     {
@@ -186,7 +188,7 @@ impl<'lr> TShadowRoot for GeckoShadowRoot<'lr> {
     }
 
     #[inline]
-    fn elements_with_id<'a>(&self, id: &Atom) -> Result<&'a [GeckoElement<'lr>], ()>
+    fn elements_with_id<'a>(&self, id: &AtomIdent) -> Result<&'a [GeckoElement<'lr>], ()>
     where
         Self: 'a,
     {
@@ -801,7 +803,7 @@ impl<'le> GeckoElement<'le> {
             return false;
         }
         let host = self.containing_shadow_host().unwrap();
-        host.is_svg_element() && host.local_name() == &*local_name!("use")
+        host.is_svg_element() && host.local_name() == &**local_name!("use")
     }
 
     fn css_transitions_info(&self) -> FxHashMap<LonghandId, Arc<AnimationValue>> {
@@ -1270,7 +1272,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     #[inline]
-    fn has_attr(&self, namespace: &Namespace, attr: &Atom) -> bool {
+    fn has_attr(&self, namespace: &Namespace, attr: &AtomIdent) -> bool {
         unsafe { bindings::Gecko_HasAttr(self.0, namespace.0.as_ptr(), attr.as_ptr()) }
     }
 
@@ -1297,7 +1299,7 @@ impl<'le> TElement for GeckoElement<'le> {
 
     fn each_class<F>(&self, callback: F)
     where
-        F: FnMut(&Atom),
+        F: FnMut(&AtomIdent),
     {
         let attr = match self.get_class_attr() {
             Some(c) => c,
@@ -1308,16 +1310,16 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     #[inline]
-    fn each_exported_part<F>(&self, name: &Atom, callback: F)
+    fn each_exported_part<F>(&self, name: &AtomIdent, callback: F)
     where
-        F: FnMut(&Atom),
+        F: FnMut(&AtomIdent),
     {
         snapshot_helpers::each_exported_part(self.attrs(), name, callback)
     }
 
     fn each_part<F>(&self, callback: F)
     where
-        F: FnMut(&Atom),
+        F: FnMut(&AtomIdent),
     {
         let attr = match self.get_part_attr() {
             Some(c) => c,
@@ -1615,7 +1617,7 @@ impl<'le> TElement for GeckoElement<'le> {
         if ptr.is_null() {
             None
         } else {
-            Some(unsafe { Atom::from_addrefed(ptr) })
+            Some(AtomString(unsafe { Atom::from_addrefed(ptr) }))
         }
     }
 
@@ -1623,8 +1625,8 @@ impl<'le> TElement for GeckoElement<'le> {
         // Gecko supports :lang() from CSS Selectors 3, which only accepts a
         // single language tag, and which performs simple dash-prefix matching
         // on it.
-        let override_lang_ptr = match &override_lang {
-            &Some(Some(ref atom)) => atom.as_ptr(),
+        let override_lang_ptr = match override_lang {
+            Some(Some(ref atom)) => atom.as_ptr(),
             _ => ptr::null_mut(),
         };
         unsafe {
@@ -1638,7 +1640,7 @@ impl<'le> TElement for GeckoElement<'le> {
     }
 
     fn is_html_document_body_element(&self) -> bool {
-        if self.local_name() != &*local_name!("body") {
+        if self.local_name() != &**local_name!("body") {
             return false;
         }
 
@@ -1895,8 +1897,8 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     fn attr_matches(
         &self,
         ns: &NamespaceConstraint<&Namespace>,
-        local_name: &Atom,
-        operation: &AttrSelectorOperation<&Atom>,
+        local_name: &LocalName,
+        operation: &AttrSelectorOperation<&AttrValue>,
     ) -> bool {
         unsafe {
             match *operation {
@@ -2180,7 +2182,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     #[inline]
-    fn has_id(&self, id: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+    fn has_id(&self, id: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
         if !self.has_id() {
             return false;
         }
@@ -2194,7 +2196,7 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     #[inline]
-    fn is_part(&self, name: &Atom) -> bool {
+    fn is_part(&self, name: &AtomIdent) -> bool {
         let attr = match self.get_part_attr() {
             Some(c) => c,
             None => return false,
@@ -2204,12 +2206,12 @@ impl<'le> ::selectors::Element for GeckoElement<'le> {
     }
 
     #[inline]
-    fn imported_part(&self, name: &Atom) -> Option<Atom> {
+    fn imported_part(&self, name: &AtomIdent) -> Option<AtomIdent> {
         snapshot_helpers::imported_part(self.attrs(), name)
     }
 
     #[inline(always)]
-    fn has_class(&self, name: &Atom, case_sensitivity: CaseSensitivity) -> bool {
+    fn has_class(&self, name: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
         let attr = match self.get_class_attr() {
             Some(c) => c,
             None => return false,

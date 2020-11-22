@@ -13,6 +13,7 @@ use crate::values::distance::{ComputeSquaredDistance, SquaredDistance};
 use crate::Atom;
 pub use cssparser::{serialize_identifier, serialize_name, CowRcStr, Parser};
 pub use cssparser::{SourceLocation, Token, RGBA};
+use precomputed_hash::PrecomputedHash;
 use selectors::parser::SelectorParseErrorKind;
 use std::fmt::{self, Debug, Write};
 use std::hash;
@@ -82,6 +83,112 @@ where
     W: Write,
 {
     serialize_name(&ident, dest)
+}
+
+/// A CSS string stored as an `Atom`.
+#[repr(transparent)]
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    Deref,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+pub struct AtomString(pub Atom);
+
+impl cssparser::ToCss for AtomString {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: Write,
+    {
+        self.0
+            .with_str(|s| cssparser::CssStringWriter::new(dest).write_str(s))
+    }
+}
+
+impl PrecomputedHash for AtomString {
+    #[inline]
+    fn precomputed_hash(&self) -> u32 {
+        self.0.precomputed_hash()
+    }
+}
+
+impl<'a> From<&'a str> for AtomString {
+    #[inline]
+    fn from(string: &str) -> Self {
+        Self(Atom::from(string))
+    }
+}
+
+/// A CSS `<ident>` stored as an `Atom`.
+#[repr(transparent)]
+#[derive(
+    Clone,
+    Debug,
+    Default,
+    Deref,
+    Eq,
+    Hash,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToResolvedValue,
+    ToShmem,
+)]
+pub struct AtomIdent(pub Atom);
+
+impl cssparser::ToCss for AtomIdent {
+    fn to_css<W>(&self, dest: &mut W) -> fmt::Result
+    where
+        W: Write,
+    {
+        serialize_atom_identifier(&self.0, dest)
+    }
+}
+
+impl PrecomputedHash for AtomIdent {
+    #[inline]
+    fn precomputed_hash(&self) -> u32 {
+        self.0.precomputed_hash()
+    }
+}
+
+impl<'a> From<&'a str> for AtomIdent {
+    #[inline]
+    fn from(string: &str) -> Self {
+        Self(Atom::from(string))
+    }
+}
+
+impl AtomIdent {
+    /// Like `Atom::with` but for `AtomIdent`.
+    #[cfg(feature = "gecko")]
+    pub unsafe fn with<F, R>(ptr: *const crate::gecko_bindings::structs::nsAtom, callback: F) -> R
+    where
+        F: FnOnce(&Self) -> R,
+    {
+        Atom::with(ptr, |atom: &Atom| {
+            // safety: repr(transparent)
+            let atom = atom as *const Atom as *const AtomIdent;
+            callback(&*atom)
+        })
+    }
+}
+
+#[cfg(feature = "gecko")]
+impl std::borrow::Borrow<crate::gecko_string_cache::WeakAtom> for AtomIdent {
+    #[inline]
+    fn borrow(&self) -> &crate::gecko_string_cache::WeakAtom {
+        self.0.borrow()
+    }
 }
 
 /// Serialize a normalized value into percentage.

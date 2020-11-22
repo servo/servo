@@ -1651,7 +1651,7 @@ impl<'a> SelectorVisitor for StylistSelectorVisitor<'a> {
                 //
                 // NOTE(emilio): See the comment regarding on when this may
                 // break in visit_complex_selector.
-                self.mapped_ids.insert(id.clone());
+                self.mapped_ids.insert(id.0.clone());
             },
             _ => {},
         }
@@ -2078,7 +2078,7 @@ impl CascadeData {
                             self.part_rules
                                 .get_or_insert_with(|| Box::new(Default::default()))
                                 .for_insertion(pseudo_element)
-                                .try_entry(parts.last().unwrap().clone())?
+                                .try_entry(parts.last().unwrap().clone().0)?
                                 .or_insert_with(SmallVec::new)
                                 .try_push(rule)?;
                         } else {

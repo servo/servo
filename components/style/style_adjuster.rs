@@ -806,7 +806,7 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
                 return;
             }
             let is_html_select_element = element.map_or(false, |e| {
-                e.is_html_element() && e.local_name() == &*local_name!("select")
+                e.is_html_element() && e.local_name() == &*atom!("select")
             });
             if !is_html_select_element {
                 return;
