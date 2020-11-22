@@ -2169,9 +2169,9 @@ checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
 name = "glslopt"
-version = "0.1.5"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ade35abcc6d6d49b294b2f39ea0c55ef616b682f4385553c77739f82bf163277"
+checksum = "8d225aa75dd999f71df957ded531f8a5df732d7f3fa5be13fe578ecd59e40df2"
 dependencies = [
  "cc",
 ]
