@@ -10,9 +10,14 @@
   div {
     background-color: green;
     border-color: green;
+    color: green;
+    column-rule-color: green;
     fill: green;
     outline-color: green;
     stroke: green;
+    text-decoration-color: green;
+    -webkit-tap-highlight-color: green;
+    -webkit-text-emphasis-color: green;
   }
 </style>
 <div id="div">
@@ -26,9 +31,14 @@
     "border-left-color",
     "border-right-color",
     "border-top-color",
+    "color",
+    "column-rule-color",
     "fill",
     "outline-color",
-    "stroke"
+    "stroke",
+    "text-decoration-color",
+    "-webkit-tap-highlight-color",
+    "-webkit-text-emphasis-color"
   ];
   for (let property of properties_to_test) {
     test(function() {

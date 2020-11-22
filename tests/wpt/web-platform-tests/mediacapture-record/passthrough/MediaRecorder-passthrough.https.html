@@ -22,6 +22,10 @@
     promise_test(async t => {
       const [localPc, remotePc, stream] = await startConnection(
           t, args.audio, /*video=*/true, args.codecPreference);
+
+      // Needed for the tests to get exercised in Chrome (bug)
+      document.getElementById('remote').srcObject = stream;
+
       const recorder = new MediaRecorder(stream);  // Passthrough.
       const onstartPromise = new Promise(resolve => {
         recorder.onstart = t.step_func(() => {
@@ -42,16 +46,22 @@
 promise_test(async t => {
   const [localPc, remotePc, stream, transceivers] = await startConnection(
       t, /*audio=*/false, /*video=*/true, /*videoCodecPreference=*/"VP8");
+
+  // Needed for the tests to get exercised in Chrome (bug)
+  document.getElementById('remote').srcObject = stream;
+
   const recorder = new MediaRecorder(stream);  // Possibly passthrough.
   recorder.start();
-  await waitForReceivedFrames(t, remotePc, false, true, 10);
+  await waitForReceivedFramesOrPackets(t, remotePc, false, true, 10);
 
   // Switch codec to VP9; we expect onerror to not be invoked.
   recorder.onerror = t.step_func(() => assert_unreached(
       "MediaRecorder should be prepared to handle codec switches"));
   setTransceiverCodecPreference(transceivers.video, "VP9");
-  exchangeOfferAnswer(localPc, remotePc);
-  await waitForReceivedCodec(t, remotePc, "VP9");
+  await Promise.all([
+    exchangeOfferAnswer(localPc, remotePc),
+    waitForReceivedCodec(t, remotePc, "VP9")
+  ]);
 }, "PeerConnection passthrough MediaRecorder should be prepared to handle " +
         "the codec switching from VP8 to VP9");
 
