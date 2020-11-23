@@ -1199,43 +1199,68 @@ impl ToCss for TouchAction {
     where
         W: Write,
     {
-        match *self {
-            TouchAction::NONE => dest.write_str("none"),
-            TouchAction::AUTO => dest.write_str("auto"),
-            TouchAction::MANIPULATION => dest.write_str("manipulation"),
-            _ if self.contains(TouchAction::PAN_X | TouchAction::PAN_Y) => {
-                dest.write_str("pan-x pan-y")
-            },
-            _ if self.contains(TouchAction::PAN_X) => dest.write_str("pan-x"),
-            _ if self.contains(TouchAction::PAN_Y) => dest.write_str("pan-y"),
-            _ => panic!("invalid touch-action value"),
+        if self.contains(TouchAction::AUTO) {
+            return dest.write_str("auto");
         }
+        if self.contains(TouchAction::NONE) {
+            return dest.write_str("none");
+        }
+        if self.contains(TouchAction::MANIPULATION) {
+            return dest.write_str("manipulation");
+        }
+
+        let mut has_any = false;
+        macro_rules! maybe_write_value {
+            ($ident:path => $str:expr) => {
+                if self.contains($ident) {
+                    if has_any {
+                        dest.write_str(" ")?;
+                    }
+                    has_any = true;
+                    dest.write_str($str)?;
+                }
+            };
+        }
+        maybe_write_value!(TouchAction::PAN_X => "pan-x");
+        maybe_write_value!(TouchAction::PAN_Y => "pan-y");
+
+        debug_assert!(has_any);
+        Ok(())
     }
 }
 
 impl Parse for TouchAction {
+    /// auto | none | [ pan-x || pan-y ] | manipulation
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
     ) -> Result<TouchAction, ParseError<'i>> {
-        try_match_ident_ignore_ascii_case! { input,
-            "auto" => Ok(TouchAction::AUTO),
-            "none" => Ok(TouchAction::NONE),
-            "manipulation" => Ok(TouchAction::MANIPULATION),
-            "pan-x" => {
-                if input.try_parse(|i| i.expect_ident_matching("pan-y")).is_ok() {
-                    Ok(TouchAction::PAN_X | TouchAction::PAN_Y)
-                } else {
-                    Ok(TouchAction::PAN_X)
-                }
-            },
-            "pan-y" => {
-                if input.try_parse(|i| i.expect_ident_matching("pan-x")).is_ok() {
-                    Ok(TouchAction::PAN_X | TouchAction::PAN_Y)
-                } else {
-                    Ok(TouchAction::PAN_Y)
-                }
-            },
+        let mut result = TouchAction::empty();
+        while let Ok(name) = input.try_parse(|i| i.expect_ident_cloned()) {
+            let flag = match_ignore_ascii_case! { &name,
+                "pan-x" => Some(TouchAction::PAN_X),
+                "pan-y" => Some(TouchAction::PAN_Y),
+                "none" if result.is_empty() => return Ok(TouchAction::NONE),
+                "manipulation" if result.is_empty() => return Ok(TouchAction::MANIPULATION),
+                "auto" if result.is_empty() => return Ok(TouchAction::AUTO),
+                _ => None
+            };
+
+            let flag = match flag {
+                Some(flag) if !result.contains(flag) => flag,
+                _ => {
+                    return Err(
+                        input.new_custom_error(SelectorParseErrorKind::UnexpectedIdent(name))
+                    );
+                },
+            };
+            result.insert(flag);
+        }
+
+        if !result.is_empty() {
+            Ok(result)
+        } else {
+            Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError))
         }
     }
 }
