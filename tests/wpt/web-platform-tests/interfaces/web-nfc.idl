@@ -44,14 +44,6 @@ dictionary NDEFRecordInit {
 typedef (DOMString or BufferSource or NDEFMessageInit) NDEFMessageSource;
 
 [SecureContext, Exposed=Window]
-interface NDEFWriter {
-  constructor();
-
-  Promise<undefined> write(NDEFMessageSource message,
-                                 optional NDEFWriteOptions options={});
-};
-
-[SecureContext, Exposed=Window]
 interface NDEFReader : EventTarget {
   constructor();
 
@@ -59,6 +51,8 @@ interface NDEFReader : EventTarget {
   attribute EventHandler onreadingerror;
 
   Promise<undefined> scan(optional NDEFScanOptions options={});
+  Promise<undefined> write(NDEFMessageSource message,
+                                 optional NDEFWriteOptions options={});
 };
 
 [SecureContext, Exposed=Window]

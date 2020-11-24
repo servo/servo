@@ -1,15 +1,36 @@
 steps:
 - powershell: |
-    Start-BitsTransfer -Source https://www.python.org/ftp/python/2.7.15/python-2.7.15.amd64.msi -Destination python.msi
-    $hash = (Get-FileHash python.msi).Hash.ToLower()
-    $expectedHash = "5e85f3c4c209de98480acbf2ba2e71a907fd5567a838ad4b6748c76deb286ad7"
+    $pythonPath = 'C:\Python38'
+    $pythonInstallerLogPath = 'python_installer.log'
+    $installArgs = "/passive /log $pythonInstallerLogPath TargetDir=$pythonPath"
+
+    Write-Host "Downloading python installer exe"
+    $downloadPath = 'python_installer.exe'
+    Start-BitsTransfer -Source https://www.python.org/ftp/python/3.8.5/python-3.8.5-amd64.exe  -Destination $downloadPath
+    $hash = (Get-FileHash $downloadPath).Hash.ToLower()
+    $expectedHash = "cd427c7b17337d7c13761ca20877d2d8be661bd30415ddc17072a31a65a91b64"
     if ($hash.Equals($expectedHash)) {
-      Write-Host "python.msi hash verified"
+      Write-Host "$downloadPath hash verified"
     } else {
-      Throw "python.msi hash mismatch, got $hash, expected $expectedHash"
+      Throw "$downloadPath hash mismatch, got $hash, expected $expectedHash"
     }
-    msiexec /i python.msi TARGETDIR=C:\Python27 /q
-    Write-Host "##vso[task.prependpath]C:\Python27"
-    Write-Host "##vso[task.prependpath]C:\Python27\Scripts"
+
+    if (Test-Path -LiteralPath $pythonPath) {
+        Write-Host "$pythonPath already exists, uninstall it"
+        $uninstallArgs = $installArgs + " /uninstall /quiet"
+        $p = Start-Process -FilePath $downloadPath -Verb RunAs -ArgumentList $uninstallArgs -PassThru -Wait
+        Write-Host "Uninstall finished. Exit code was: $($p.ExitCode)"
+    }
+
+    Write-Host "Running $downloadPath with args $installArgs"
+    $p = Start-Process -FilePath $downloadPath -Verb RunAs -ArgumentList $installArgs -PassThru -Wait
+    Write-Host "$downloadPath finished. Exit code was: $($p.ExitCode)"
+
+    Write-Host "Adding Python dirs to path"
+    Write-Host "##vso[task.prependpath]C:\Python38"
+    Write-Host "##vso[task.prependpath]C:\Python38\Scripts"
+
+    Write-Host "Dumping install log file:"
+    Get-Content -Path "python_installer.log"
   displayName: 'Install Python (Windows)'
   condition: and(succeeded(), eq(variables['Agent.OS'], 'Windows_NT'))

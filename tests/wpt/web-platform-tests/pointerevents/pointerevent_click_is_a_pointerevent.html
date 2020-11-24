@@ -4,18 +4,53 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 
 <input id="target" style="margin: 20px">
 
 <script>
-  'use strict';
-  let clickTest = async_test("click is a PointerEvent");
-  let target = document.getElementById("target");
+'use strict';
+let target = document.getElementById("target");
+let pointerId = 0;
+let pointerType = "";
 
-  target.addEventListener("click", clickTest.step_func((e)=>{
+target.addEventListener("pointerdown", (e)=>{
+  pointerId = e.pointerId;
+  pointerType = e.pointerType;
+});
+
+function testFunction(test){
+  return test.step_func(e=>{
+    assert_equals(e.constructor, window.PointerEvent, "click should use a PointerEvent constructor");
     assert_true(e instanceof PointerEvent, "click should be a PointerEvent");
-  }));
-  let eventWatcher = new EventWatcher(clickTest, target, ["click"]);
-  Promise.all([eventWatcher.wait_for("click"), test_driver.click(target)]).then(()=>clickTest.done());
+    assert_equals(e.pointerId, pointerId, "click's pointerId should match the pointerId of the pointer event that triggers it");
+    assert_equals(e.pointerType, pointerType, "click's pointerType should match the pointerType of the pointer event that triggers it");
+  });
+}
+
+function run_test(pointerType){
+  promise_test((test) => new Promise((resolve, reject) => {
+    const testPointer = "TestPointer";
+    let clickFunc = testFunction(test);
+    test.add_cleanup(() => {
+      target.removeEventListener("click", clickFunc);
+      pointerId = 0;
+      pointerType = "";
+    });
+    target.addEventListener("click", clickFunc);
+    let eventWatcher = new EventWatcher(test, target, ["click"]);
+    let actions = new test_driver.Actions();
+    actions = actions
+      .addPointer(testPointer, pointerType)
+      .pointerMove(0,0, {origin:target, sourceName:testPointer})
+      .pointerDown({sourceName:testPointer})
+      .pointerUp({sourceName:testPointer});
+    Promise.all([eventWatcher.wait_for("click"), actions.send()]).then(()=>resolve());
+  }), "click using " + pointerType + " is a PointerEvent");
+}
+
+run_test("mouse");
+run_test("pen");
+// TODO(crbug.com/1150593): Add wpt test for touch (reuse run_test)
 </script>
