@@ -49,7 +49,7 @@ crossbeam-channel = "0.4"
 devtools = { path = "../devtools" }
 devtools_traits = { path = "../devtools_traits" }
 embedder_traits = { path = "../embedder_traits" }
-env_logger = "0.7"
+env_logger = "0.8"
 euclid = "0.20"
 gfx = { path = "../gfx" }
 gfx_traits = { path = "../gfx_traits" }

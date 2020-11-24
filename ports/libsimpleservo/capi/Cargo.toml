@@ -14,7 +14,7 @@ bench = false
 
 [dependencies]
 backtrace = "0.3"
-env_logger = "0.7"
+env_logger = "0.8"
 lazy_static = "1"
 log = "0.4"
 simpleservo = { path = "../api" }
