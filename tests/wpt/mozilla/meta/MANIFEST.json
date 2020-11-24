@@ -14711,35 +14711,35 @@
     ]
    },
    "webxr": {
-    "create_session.html": [
+    "create_session.https.html": [
      "5b5d485b372bfffb22204bc162c9e182306395cb",
      [
       null,
       {}
      ]
     ],
-    "layerevents.html": [
+    "layerevents.https.html": [
      "6a0319366ec842a9b94d5897978975ebe3eb6f7f",
      [
       null,
       {}
      ]
     ],
-    "layers.html": [
+    "layers.https.html": [
      "b6749f208a8f3c5ae78fbe72cfa7364829abb127",
      [
       null,
       {}
      ]
     ],
-    "obtain_frame.html": [
+    "obtain_frame.https.html": [
      "d9ff25729f9cdfd348e7c9914ce2dacd231e13a0",
      [
       null,
       {}
      ]
     ],
-    "sessionavailable.html": [
+    "sessionavailable.https.html": [
      "dd9a071d05c4d696471be87428c12cea573cba60",
      [
       null,
