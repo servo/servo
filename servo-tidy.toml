@@ -77,6 +77,10 @@ packages = [
   "opaque-debug",
   "sha-1",
   "block-buffer",
+
+  # Duplicated by futures
+  "pin-project",
+  "pin-project-internal",
 ]
 # Files that are ignored for all tidy and lint checks.
 files = [
