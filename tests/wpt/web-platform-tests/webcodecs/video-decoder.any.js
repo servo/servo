@@ -113,10 +113,18 @@ promise_test(async t => {
 promise_test(async t => {
   let buffer = await vp9.buffer();
 
+  let outputs_before_reset = 0;
+  let outputs_after_reset = 0;
+
   let decoder = new VideoDecoder({
+    // Pre-reset() chunks will all have timestamp=0, while post-reset() chunks
+    // will all have timestamp=1.
     output(frame) {
       t.step(() => {
-        assert_unreached("reset() should prevent this output from arriving");
+        if (frame.timestamp == 0)
+          outputs_before_reset++;
+        else
+          outputs_after_reset++;
       });
     },
     error(e) {
@@ -126,19 +134,40 @@ promise_test(async t => {
 
   decoder.configure({codec: vp9.codec});
 
-  decoder.decode(new EncodedVideoChunk({
-    type:'key',
-    timestamp:0,
-    data: view(buffer, vp9.frames[0])
-  }));
+  for (let i = 0; i < 100; i++) {
+    decoder.decode(new EncodedVideoChunk({
+      type:'key',
+      timestamp:0,
+      data: view(buffer, vp9.frames[0])
+    }));
+  }
 
-  let flushPromise = decoder.flush();
+  assert_greater_than(decoder.decodeQueueSize, 0);
+
+  // Wait for the first frame to be decoded.
+  await t.step_wait(() => outputs_before_reset > 0,
+      "Decoded outputs started coming", 10000, 1);
+
+  let saved_outputs_before_reset = outputs_before_reset;
+  assert_greater_than(saved_outputs_before_reset, 0);
+  assert_less_than(saved_outputs_before_reset, 100);
 
   decoder.reset()
-
   assert_equals(decoder.decodeQueueSize, 0);
 
-  await promise_rejects_exactly(t, undefined, flushPromise);
+  decoder.configure({codec: vp9.codec});
+
+  for (let i = 0; i < 5; i++) {
+    decoder.decode(new EncodedVideoChunk({
+      type:'key',
+      timestamp:1,
+      data: view(buffer, vp9.frames[0])
+    }));
+  }
+  await decoder.flush();
+  assert_equals(outputs_after_reset, 5);
+  assert_equals(saved_outputs_before_reset, outputs_before_reset);
+  assert_equals(decoder.decodeQueueSize, 0);
 
   endAfterEventLoopTurn();
 }, 'Verify reset() suppresses output and rejects flush');

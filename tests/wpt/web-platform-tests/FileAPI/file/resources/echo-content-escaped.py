@@ -5,6 +5,8 @@ from wptserve.utils import isomorphic_encode
 # As a convenience, CRLF newlines are left as is.
 
 def escape_byte(byte):
+    # Iterating over a 'bytes' type gives ints, so convert to bytes.
+    byte = bytes([byte])
     if b"\0" <= byte <= b"\x1F" or byte >= b"\x7F":
         return b"\\x%02x" % ord(byte)
     if byte == b"\\":

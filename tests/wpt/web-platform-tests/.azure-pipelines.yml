@@ -41,7 +41,7 @@ jobs:
   steps:
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: '2.7.x'
+      versionSpec: '3.8.x'
   - template: tools/ci/azure/affected_tests.yml
     parameters:
       artifactName: 'safari-preview-affected-tests'
@@ -58,7 +58,7 @@ jobs:
   steps:
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: '2.7.x'
+      versionSpec: '3.8.x'
   - template: tools/ci/azure/affected_tests.yml
     parameters:
       checkoutCommit: 'HEAD^1'
@@ -601,7 +601,7 @@ jobs:
   steps:
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: '2.7.x'
+      versionSpec: '3.8.x'
   - template: tools/ci/azure/checkout.yml
   - template: tools/ci/azure/pip_install.yml
     parameters:
@@ -639,7 +639,7 @@ jobs:
   steps:
   - task: UsePythonVersion@0
     inputs:
-      versionSpec: '2.7.x'
+      versionSpec: '3.8.x'
   - template: tools/ci/azure/checkout.yml
   - template: tools/ci/azure/pip_install.yml
     parameters:
