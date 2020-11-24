@@ -80,8 +80,10 @@ pub fn prepare_workerscope_init(
         worker_id: worker_id.unwrap_or_else(|| WorkerId(Uuid::new_v4())),
         pipeline_id: global.pipeline_id(),
         origin: global.origin().immutable().clone(),
+        creation_url: global.creation_url().clone(),
         is_headless: global.is_headless(),
         user_agent: global.get_user_agent(),
+        inherited_secure_context: Some(global.is_secure_context()),
     };
 
     init
@@ -141,10 +143,12 @@ impl WorkerGlobalScope {
                 init.scheduler_chan,
                 init.resource_threads,
                 MutableOrigin::new(init.origin),
+                init.creation_url,
                 runtime.microtask_queue.clone(),
                 init.is_headless,
                 init.user_agent,
                 gpu_id_hub,
+                init.inherited_secure_context,
             ),
             worker_id: init.worker_id,
             worker_name,
@@ -404,6 +408,11 @@ impl WorkerGlobalScopeMethods for WorkerGlobalScope {
                 .immutable()
                 .ascii_serialization(),
         )
+    }
+
+    // https://w3c.github.io/webappsec-secure-contexts/#dom-windoworworkerglobalscope-issecurecontext
+    fn IsSecureContext(&self) -> bool {
+        self.upcast::<GlobalScope>().is_secure_context()
     }
 }
 

@@ -216,6 +216,8 @@ struct InProgressLoad {
     canceller: FetchCanceller,
     /// Flag for sharing with the layout thread that is not yet created.
     layout_is_busy: Arc<AtomicBool>,
+    /// If inheriting the security context
+    inherited_secure_context: Option<bool>,
 }
 
 impl InProgressLoad {
@@ -231,6 +233,7 @@ impl InProgressLoad {
         url: ServoUrl,
         origin: MutableOrigin,
         layout_is_busy: Arc<AtomicBool>,
+        inherited_secure_context: Option<bool>,
     ) -> InProgressLoad {
         let current_time = get_time();
         let navigation_start_precise = precise_time_ns();
@@ -253,6 +256,7 @@ impl InProgressLoad {
             navigation_start_precise: navigation_start_precise,
             canceller: Default::default(),
             layout_is_busy: layout_is_busy,
+            inherited_secure_context: inherited_secure_context,
         }
     }
 }
@@ -692,6 +696,9 @@ pub struct ScriptThread {
 
     /// Receiver to receive commands from optional WebGPU server.
     webgpu_port: RefCell<Option<Receiver<WebGPUMsg>>>,
+
+    // Secure context
+    inherited_secure_context: Option<bool>,
 }
 
 struct BHMExitSignal {
@@ -778,6 +785,7 @@ impl ScriptThreadFactory for ScriptThread {
                 let top_level_browsing_context_id = state.top_level_browsing_context_id;
                 let parent_info = state.parent_info;
                 let opener = state.opener;
+                let secure = load_data.inherited_secure_context.clone();
                 let mem_profiler_chan = state.mem_profiler_chan.clone();
                 let window_size = state.window_size;
                 let layout_is_busy = state.layout_is_busy.clone();
@@ -816,6 +824,7 @@ impl ScriptThreadFactory for ScriptThread {
                     load_data.url.clone(),
                     origin,
                     layout_is_busy,
+                    secure,
                 );
                 script_thread.pre_page_load(new_load, load_data);
 
@@ -1149,6 +1158,7 @@ impl ScriptThread {
                         is_headless: script_thread.headless,
                         user_agent: script_thread.user_agent.clone(),
                         gpu_id_hub: script_thread.gpu_id_hub.clone(),
+                        inherited_secure_context: script_thread.inherited_secure_context.clone(),
                     };
                     Rc::new(WorkletThreadPool::spawn(init))
                 })
@@ -1404,6 +1414,7 @@ impl ScriptThread {
             is_user_interacting: Cell::new(false),
             gpu_id_hub: Arc::new(Mutex::new(Identities::new())),
             webgpu_port: RefCell::new(None),
+            inherited_secure_context: state.inherited_secure_context,
         }
     }
 
@@ -2523,6 +2534,7 @@ impl ScriptThread {
             load_data.url.clone(),
             origin,
             layout_is_busy.clone(),
+            load_data.inherited_secure_context.clone(),
         );
         if load_data.url.as_str() == "about:blank" {
             self.start_page_load_about_blank(new_load, load_data.js_eval_result);
@@ -3271,6 +3283,7 @@ impl ScriptThread {
             incomplete.parent_info,
             incomplete.window_size,
             origin.clone(),
+            final_url.clone(),
             incomplete.navigation_start,
             incomplete.navigation_start_precise,
             self.webgl_chan.as_ref().map(|chan| chan.channel()),
@@ -3290,6 +3303,7 @@ impl ScriptThread {
             self.player_context.clone(),
             self.event_loop_waker.as_ref().map(|w| (*w).clone_box()),
             self.gpu_id_hub.clone(),
+            incomplete.inherited_secure_context,
         );
 
         // Initialize the browsing context for the window.

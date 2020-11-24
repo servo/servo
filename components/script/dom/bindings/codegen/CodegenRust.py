@@ -1517,7 +1517,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider):
                     returnType)
 
 
-def MemberCondition(pref, func, exposed):
+def MemberCondition(pref, func, exposed, secure):
     """
     A string representing the condition for a member to actually be exposed.
     Any of the arguments can be None. If not None, they should have the
@@ -1526,11 +1526,14 @@ def MemberCondition(pref, func, exposed):
     pref: The name of the preference.
     func: The name of the function.
     exposed: One or more names of an exposed global.
+    secure: Requires secure context.
     """
     assert pref is None or isinstance(pref, str)
     assert func is None or isinstance(func, str)
     assert exposed is None or isinstance(exposed, set)
-    assert func is None or pref is None or exposed is None
+    assert func is None or pref is None or exposed is None or secure is None
+    if secure:
+        return 'Condition::SecureContext()'
     if pref:
         return 'Condition::Pref("%s")' % pref
     if func:
@@ -1580,7 +1583,8 @@ class PropertyDefiner:
                                           "Pref"),
             PropertyDefiner.getStringAttr(interfaceMember,
                                           "Func"),
-            interfaceMember.exposureSet)
+            interfaceMember.exposureSet,
+            interfaceMember.getExtendedAttribute("SecureContext"))
 
     def generateGuardedArray(self, array, name, specTemplate, specTerminator,
                              specType, getCondition, getDataTuple):
@@ -3038,7 +3042,7 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
         for m in interface.members:
             if m.isAttr() and not m.isStatic() and m.type.isJSONType():
                 name = m.identifier.name
-                conditions = MemberCondition(None, None, m.exposureSet)
+                conditions = MemberCondition(None, None, m.exposureSet, None)
                 ret_conditions = '&[' + ", ".join(conditions) + "]"
                 ret += fill(
                     """
@@ -7838,6 +7842,7 @@ impl %(base)s {
                 if PropertyDefiner.getStringAttr(m, 'Pref') or \
                    PropertyDefiner.getStringAttr(m, 'Func') or \
                    PropertyDefiner.getStringAttr(m, 'Exposed') or \
+                   m.getExtendedAttribute('SecureContext') or \
                    (m.isMethod() and m.isIdentifierLess()):
                     continue
                 display = m.identifier.name + ('()' if m.isMethod() else '')

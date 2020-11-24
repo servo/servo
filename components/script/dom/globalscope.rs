@@ -246,6 +246,9 @@ pub struct GlobalScope {
     /// The origin of the globalscope
     origin: MutableOrigin,
 
+    /// https://html.spec.whatwg.org/multipage/#concept-environment-creation-url
+    creation_url: Option<ServoUrl>,
+
     /// A map for storing the previous permission state read results.
     permission_state_invocation_results: DomRefCell<HashMap<String, PermissionState>>,
 
@@ -309,6 +312,9 @@ pub struct GlobalScope {
 
     /// List of ongoing dynamic module imports.
     dynamic_modules: DomRefCell<DynamicModuleList>,
+
+    /// Is considered in a secure context
+    inherited_secure_context: Option<bool>,
 }
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
@@ -719,10 +725,12 @@ impl GlobalScope {
         scheduler_chan: IpcSender<TimerSchedulerMsg>,
         resource_threads: ResourceThreads,
         origin: MutableOrigin,
+        creation_url: Option<ServoUrl>,
         microtask_queue: Rc<MicrotaskQueue>,
         is_headless: bool,
         user_agent: Cow<'static, str>,
         gpu_id_hub: Arc<Mutex<Identities>>,
+        inherited_secure_context: Option<bool>,
     ) -> Self {
         Self {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
@@ -747,6 +755,7 @@ impl GlobalScope {
             timers: OneshotTimers::new(scheduler_chan),
             init_timers: Default::default(),
             origin,
+            creation_url,
             permission_state_invocation_results: Default::default(),
             microtask_queue,
             list_auto_close_worker: Default::default(),
@@ -761,6 +770,7 @@ impl GlobalScope {
             https_state: Cell::new(HttpsState::None),
             console_group_stack: DomRefCell::new(Vec::new()),
             dynamic_modules: DomRefCell::new(DynamicModuleList::new()),
+            inherited_secure_context,
         }
     }
 
@@ -2311,6 +2321,11 @@ impl GlobalScope {
         &self.origin
     }
 
+    /// Get the creation_url for this global scope
+    pub fn creation_url(&self) -> &Option<ServoUrl> {
+        &self.creation_url
+    }
+
     pub fn image_cache(&self) -> Arc<dyn ImageCache> {
         if let Some(window) = self.downcast::<Window>() {
             return window.image_cache();
@@ -2992,6 +3007,19 @@ impl GlobalScope {
 
     pub fn set_https_state(&self, https_state: HttpsState) {
         self.https_state.set(https_state);
+    }
+
+    pub fn is_secure_context(&self) -> bool {
+        if Some(false) == self.inherited_secure_context {
+            return false;
+        }
+        if let Some(creation_url) = self.creation_url() {
+            if creation_url.scheme() == "blob" && Some(true) == self.inherited_secure_context {
+                return true;
+            }
+            return creation_url.is_potentially_trustworthy();
+        }
+        false
     }
 
     /// https://www.w3.org/TR/CSP/#get-csp-of-object

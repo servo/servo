@@ -644,7 +644,14 @@ impl Handler {
 
         let top_level_browsing_context_id = self.session()?.top_level_browsing_context_id;
 
-        let load_data = LoadData::new(LoadOrigin::WebDriver, url, None, Referrer::NoReferrer, None);
+        let load_data = LoadData::new(
+            LoadOrigin::WebDriver,
+            url,
+            None,
+            Referrer::NoReferrer,
+            None,
+            None,
+        );
         let cmd_msg = WebDriverCommandMsg::LoadUrl(
             top_level_browsing_context_id,
             load_data,
