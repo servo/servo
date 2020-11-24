@@ -2988,16 +2988,16 @@ impl VirtualMethods for Element {
 
         self.update_sequentially_focusable_status();
 
-        if let Some(ref value) = *self.id_attribute.borrow() {
+        if let Some(ref id) = *self.id_attribute.borrow() {
             if let Some(shadow_root) = self.upcast::<Node>().containing_shadow_root() {
-                shadow_root.register_element_id(self, value.clone());
+                shadow_root.register_element_id(self, id.clone());
             } else {
-                doc.register_element_id(self, value.clone());
+                doc.register_element_id(self, id.clone());
             }
         }
-        if let Some(ref value) = self.name_attribute() {
+        if let Some(ref name) = self.name_attribute() {
             if self.upcast::<Node>().containing_shadow_root().is_none() {
-                doc.register_element_name(self, value.clone());
+                doc.register_element_name(self, name.clone());
             }
         }
 
