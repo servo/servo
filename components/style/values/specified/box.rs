@@ -1170,7 +1170,7 @@ bitflags! {
     /// Values for the `touch-action` property.
     #[derive(MallocSizeOf, SpecifiedValueInfo, ToComputedValue, ToResolvedValue, ToShmem)]
     /// These constants match Gecko's `NS_STYLE_TOUCH_ACTION_*` constants.
-    #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y")]
+    #[value_info(other_values = "auto,none,manipulation,pan-x,pan-y,pinch-zoom")]
     #[repr(C)]
     pub struct TouchAction: u8 {
         /// `none` variant
@@ -1183,6 +1183,8 @@ bitflags! {
         const PAN_Y = 1 << 3;
         /// `manipulation` variant
         const MANIPULATION = 1 << 4;
+        /// `pinch-zoom` variant
+        const PINCH_ZOOM = 1 << 5;
     }
 }
 
@@ -1223,6 +1225,7 @@ impl ToCss for TouchAction {
         }
         maybe_write_value!(TouchAction::PAN_X => "pan-x");
         maybe_write_value!(TouchAction::PAN_Y => "pan-y");
+        maybe_write_value!(TouchAction::PINCH_ZOOM => "pinch-zoom");
 
         debug_assert!(has_any);
         Ok(())
@@ -1230,7 +1233,7 @@ impl ToCss for TouchAction {
 }
 
 impl Parse for TouchAction {
-    /// auto | none | [ pan-x || pan-y ] | manipulation
+    /// auto | none | [ pan-x || pan-y || pinch-zoom ] | manipulation
     fn parse<'i, 't>(
         _context: &ParserContext,
         input: &mut Parser<'i, 't>,
@@ -1240,6 +1243,7 @@ impl Parse for TouchAction {
             let flag = match_ignore_ascii_case! { &name,
                 "pan-x" => Some(TouchAction::PAN_X),
                 "pan-y" => Some(TouchAction::PAN_Y),
+                "pinch-zoom" => Some(TouchAction::PINCH_ZOOM),
                 "none" if result.is_empty() => return Ok(TouchAction::NONE),
                 "manipulation" if result.is_empty() => return Ok(TouchAction::MANIPULATION),
                 "auto" if result.is_empty() => return Ok(TouchAction::AUTO),
