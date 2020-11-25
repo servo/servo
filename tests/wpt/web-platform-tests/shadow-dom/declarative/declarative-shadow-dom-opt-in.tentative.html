@@ -5,6 +5,7 @@
 <link rel="help" href="https://github.com/whatwg/dom/issues/831">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src='../resources/shadow-dom-utils.js'></script>
 
 <body>
 <style>
@@ -58,56 +59,40 @@ test(() => {
   assert_dsd(div,true);
 }, 'Non-fragment parsing needs no opt-in');
 
-test(() => {
-  const div = document.createElement('div');
-  div.innerHTML = content;
-  assert_dsd(div,false);
-}, 'innerHTML on element - disallowed');
+const noChildElements = ['iframe','noscript','script','select','style','textarea','title','colgroup'];
+const elements = HTML5_ELEMENT_NAMES.filter(el => !noChildElements.includes(el));
+for (let elementName of elements) {
+  var t = test(function() {
+    const el1 = document.createElement(elementName);
+    el1.innerHTML = content;
+    assert_dsd(el1,false);
 
-test(() => {
-  const div = document.createElement('div');
-  div.setInnerHTML(content);
-  assert_dsd(div,false);
-  div.setInnerHTML(content, {includeShadowRoots: false});
-  assert_dsd(div,false);
-  div.setInnerHTML(content, {includeShadowRoots: true});
-  assert_dsd(div,true);
-}, 'setInnerHTML on element');
-
-test(() => {
-  const templateContent = `<template id=tmpl>${content}</template>`;
-  const div = document.createElement('div');
-  div.innerHTML = templateContent;
-  assert_dsd(div.querySelector('#tmpl').content,false);
-  div.setInnerHTML(templateContent, {includeShadowRoots: true});
-  assert_dsd(div.querySelector('#tmpl').content,true);
-}, 'setInnerHTML on element, with nested template content');
+    const templateContent = `<template id=tmpl>${content}</template>`;
+    const el2 = document.createElement('div');
+    el2.innerHTML = templateContent;
+    assert_dsd(el2.querySelector('#tmpl').content,false);
+  }, `innerHTML on a <${elementName}>`);
+}
 
 test(() => {
   const temp = document.createElement('template');
   temp.innerHTML = content;
   assert_dsd(temp.content,false, 'innerHTML should not allow declarative shadow content');
-  temp.setInnerHTML(content, {includeShadowRoots: true});
-  assert_dsd(temp.content,true, 'setInnerHTML should allow declarative shadow content if enabled');
-}, 'setInnerHTML on template');
+}, 'innerHTML on template');
 
 test(() => {
   const templateContent = `<template id=tmpl>${content}</template>`;
   const temp = document.createElement('template');
   temp.innerHTML = templateContent;
   assert_dsd(temp.content.querySelector('#tmpl').content,false);
-  temp.setInnerHTML(templateContent, {includeShadowRoots: true});
-  assert_dsd(temp.content.querySelector('#tmpl').content,true);
-}, 'setInnerHTML on template, with nested template content');
+}, 'innerHTML on template, with nested template content');
 
 test(() => {
   const div = document.createElement('div');
   const shadow = div.attachShadow({mode: 'open'});
   shadow.innerHTML = content;
   assert_dsd(shadow,false);
-  shadow.setInnerHTML(content, {includeShadowRoots: true});
-  assert_dsd(shadow,true);
-}, 'setInnerHTML on shadowRoot');
+}, 'innerHTML on shadowRoot');
 
 test(() => {
   const parser = new DOMParser();
@@ -123,9 +108,7 @@ test(() => {
   const doc = document.implementation.createHTMLDocument('');
   doc.body.innerHTML = content;
   assert_dsd(doc.body,false);
-  doc.body.setInnerHTML(content, {includeShadowRoots: true});
-  assert_dsd(doc.body,true);
-}, 'createHTMLDocument with setInnerHTML');
+}, 'createHTMLDocument with innerHTML - not supported');
 
 test(() => {
   const doc = document.implementation.createHTMLDocument('');
@@ -145,7 +128,7 @@ async_test((t) => {
   client.open("GET", `data:text/html,${content}`);
   client.responseType = 'document';
   client.send();
-}, 'XMLHttpRequest, disabled');
+}, 'XMLHttpRequest - not supported');
 
 test(() => {
   const div = document.createElement('div');

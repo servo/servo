@@ -47,7 +47,6 @@ def main(request, response):
   response.writer.write(u"%x\r\n" % len(body))
   response.writer.write(body)
   response.writer.write(u"\r\n")
-  response.writer.flush()
 
   body = u""
 
@@ -101,4 +100,3 @@ def main(request, response):
 
   response.writer.write(u"0\r\n")
   response.writer.write(u"\r\n")
-  response.writer.flush()

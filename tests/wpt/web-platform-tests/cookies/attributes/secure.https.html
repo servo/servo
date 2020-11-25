@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test cookie secure attribute parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2.5">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/cookies/resources/cookie-helper.sub.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      const secureTests = [
+        {
+          cookie: "test=1; Secure",
+          expected: "test=1",
+          name: "Set cookie for Secure attribute",
+          defaultPath: true
+        },
+        {
+          cookie: "test=2; seCURe",
+          expected: "test=2",
+          name: "Set cookie for seCURe attribute",
+          defaultPath: true
+        },
+        {
+          cookie: "test=3; Secure=",
+          expected: "test=3",
+          name: "Set cookie for for Secure= attribute",
+          defaultPath: true
+        },
+        {
+          cookie: "test=4; Secure=aaaa",
+          expected: "test=4",
+          name: "Set cookie for Secure=aaaa",
+          defaultPath: true
+        },
+        {
+          cookie: "test=5; Secure =aaaaa",
+          expected: "test=5",
+          name: "Set cookie for Secure space equals",
+          defaultPath: true
+        },
+        {
+          cookie: "test=6; Secure= aaaaa",
+          expected: "test=6",
+          name: "Set cookie for Secure equals space",
+          defaultPath: true
+        },
+        {
+          cookie: "test=7;                Secure",
+          expected: "test=7",
+          name: "Set cookie for spaced Secure",
+          defaultPath: true
+        },
+        {
+          cookie: "test=8;       Secure     ;",
+          expected: "test=8",
+          name: "Set cookie for space Secure with ;",
+          defaultPath: true
+        }
+      ];
+
+      for (const test of secureTests) {
+        promise_test(async testCase => {
+          await runCookieTest(test.cookie, test.expected, test.defaultPath);
+        }, test.name);
+      }
+    </script>
+  </body>
+</html>

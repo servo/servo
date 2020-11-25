@@ -9,7 +9,7 @@
       document.body.appendChild(portal);
 
       if (portal instanceof HTMLPortalElement) {
-        portal.postMessage("adopted", "*");
+        portal.postMessage("adopted");
       }
     }
     if (test == "adopt-twice") {
@@ -20,7 +20,7 @@
         e.adoptPredecessor();
       } catch(e) {
         if (e.name == "InvalidStateError") {
-          portal.postMessage("passed", "*");
+          portal.postMessage("passed");
         }
       }
     }

@@ -14,7 +14,7 @@ var w;
 var uuid;
 t.step(function() {
   uuid = token()
-  w = window.open("001-1.html");
+  w = window.open("001-1.html" + location.search);
   add_result_callback(function() {
     w.close();
   });

@@ -44,8 +44,6 @@ def main(request, response):
                 response.writer.end_headers()
             else:
                 statusSent = True
-        elif arg == b"flush":
-            response.writer.flush()
 
 #        else:
 #            error "  INVALID ARGUMENT %s" % arg

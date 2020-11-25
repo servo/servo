@@ -19,6 +19,7 @@ for cmd in gen-signedexchange gen-certurl dump-signedexchange; do
     if ! command -v $cmd > /dev/null 2>&1; then
         echo "$cmd is not installed. Please run:"
         echo "  go get -u github.com/WICG/webpackage/go/signedexchange/cmd/..."
+        echo '  export PATH=$PATH:$(go env GOPATH)/bin'
         exit 1
     fi
 done

@@ -5,15 +5,15 @@
     channel.port1.onmessage = e => {
       e.ports[0].postMessage("received");
     }
-    window.portalHost.postMessage("sending port", "*", [channel.port2]);
+    window.portalHost.postMessage("sending port", {transfer: [channel.port2]});
   }
 
   function postMessageWithArrayBuffer(array, withTransfer) {
     var arrayBuffer = new Int8Array(array).buffer;
     if (withTransfer) {
-      window.portalHost.postMessage({arrayBuffer}, "*", [arrayBuffer]);
+      window.portalHost.postMessage({arrayBuffer}, {transfer: [arrayBuffer]});
     } else {
-      window.portalHost.postMessage({arrayBuffer}, "*");
+      window.portalHost.postMessage({arrayBuffer});
     }
   }
 
@@ -21,7 +21,7 @@
     try {
       window.portalHost.postMessage(...params);
     } catch (e) {
-      window.portalHost.postMessage({errorType: e.name}, "*");
+      window.portalHost.postMessage({errorType: e.name});
     }
   }
 
@@ -39,10 +39,10 @@
           postMessageWithArrayBuffer(e.data.array, true);
           return;
         case "invalid-message":
-          postMessageAndCatchException(document.body, "*");
+          postMessageAndCatchException(document.body);
           return;
         case "invalid-port":
-          postMessageAndCatchException("", "*", [null]);
+          postMessageAndCatchException("", {transfer: [null]});
           return;
       }
     }

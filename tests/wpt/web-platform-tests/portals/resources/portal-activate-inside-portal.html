@@ -4,7 +4,7 @@
     var portal = document.createElement("portal");
     portal.src = "simple-portal.html";
     portal.onload = () => {
-      portal.activate().catch(e => window.portalHost.postMessage(e.name, "*"));
+      portal.activate().catch(e => window.portalHost.postMessage(e.name));
     }
     document.body.appendChild(portal);
   </script>

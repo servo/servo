@@ -4,7 +4,6 @@ def main(request, response):
     response.headers.set(b'Content-Type', b'text/event-stream')
     response.headers.set(b'Cache-Control', b'no-cache')
 
-    response.explicit_flush = True
     response.write_status_headers()
 
     while True:
@@ -31,5 +30,4 @@ def main(request, response):
         response.writer.write(u"data:end")
         response.writer.write(u"\n\n")
 
-        response.writer.flush()
         time.sleep(2)

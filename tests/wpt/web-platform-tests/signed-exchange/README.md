@@ -19,4 +19,5 @@ regenerate these files by running `generate-test-sxgs.sh` in the
 To install them, run:
 ```
 go get -u github.com/WICG/webpackage/go/signedexchange/cmd/...
+export PATH=$PATH:$(go env GOPATH)/bin
 ```

@@ -19,7 +19,6 @@ def main(request, response):
     # Read from the beginning, |numInitial| bytes.
     first = body[:numInitial]
     response.writer.write_content(first)
-    response.writer.flush()
 
     time.sleep(sleepTime)
 

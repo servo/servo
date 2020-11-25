@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <script>
 let logic = new Function('event', (new URL(location)).searchParams.get('logic'));
-onload = () => window.portalHost.postMessage('ready', '*');
+onload = () => window.portalHost.postMessage('ready');
 onportalactivate = event => {
   Promise.resolve(event)
       .then(logic)

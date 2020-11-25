@@ -14,4 +14,3 @@ Content-type: text/plain
 Content-Length: {}
 
 {}'''.format(len(content), content))
-    response.writer.flush()

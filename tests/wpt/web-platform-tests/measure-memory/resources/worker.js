@@ -5,5 +5,5 @@ self.onmessage = function(message) {
   for (let i = 0; i < length; i += 256) {
     self.root[i] = 1;
   }
-  postMessage('ready');
+  postMessage(self.location.href);
 }

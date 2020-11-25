@@ -14,7 +14,6 @@ def main(request, response):
             response.writer.write(u"%s\n%s\n" % (len(str(idx)), idx))
         else:
             response.writer.write(u"%s\r\n%s\r\n" % (len(str(idx)), idx))
-        response.writer.flush()
         time.sleep(0.001)
 
     response.writer.write(u"0\r\n\r\n")

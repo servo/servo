@@ -309,3 +309,52 @@ function erase_cookie_from_js(name, params) {
   var re = new RegExp("(?:^|; )" + name);
   assert_equals(re.test(document.cookie), false, "Sanity check: " + name + " has been deleted.");
 }
+
+// getDefaultPathCookies is a helper method to get and delete cookies on the
+// "default path" (which for these tests will be at `/cookies/resources`),
+// determined by the path portion of the request-uri.
+async function getDefaultPathCookies(path = '/cookies/resources') {
+  return new Promise((resolve, reject) => {
+    try {
+      const iframe = document.createElement('iframe');
+      iframe.style = 'display: none';
+      iframe.src = `${path}/echo-cookie.html`;
+
+      iframe.addEventListener('load', (e) => {
+        const win = e.target.contentWindow;
+        const iframeCookies = win.getCookies();
+        win.expireCookie('test', path);
+        resolve(iframeCookies);
+      }, {once: true});
+
+      document.documentElement.appendChild(iframe);
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+// runCookieTest sets a |cookie|, then asserts it was or was not set
+// via |expectedValue|. Then cleans it up.
+async function runCookieTest(cookie, expectedValue, defaultPath) {
+  return fetch(`/cookies/resources/cookie.py?set=${encodeURIComponent(cookie)}`)
+      .then(async _ => {
+        let cookies = document.cookie;
+        // for the tests where a Path is set from the request-uri path, we need
+        // to go look for cookies in an iframe at that default path.
+        if (defaultPath) {
+          cookies = await getDefaultPathCookies();
+        }
+
+        if (Boolean(expectedValue)) {
+          assert_equals(
+              cookies, expectedValue, 'The cookie was set as expected.');
+        } else {
+          assert_equals(cookies, expectedValue, 'The cookie was rejected.');
+        }
+      })
+      .then(_ => {
+        return fetch(
+            `/cookies/resources/cookie.py?drop=${encodeURIComponent(cookie)}`);
+      });
+}
