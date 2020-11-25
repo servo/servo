@@ -5,6 +5,7 @@ set -e
 if ! command -v gen-bundle > /dev/null 2>&1; then
     echo "gen-bundle is not installed. Please run:"
     echo "  go get -u github.com/WICG/webpackage/go/bundle/cmd/..."
+    echo '  export PATH=$PATH:$(go env GOPATH)/bin'
     exit 1
 fi
 

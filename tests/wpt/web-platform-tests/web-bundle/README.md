@@ -6,4 +6,5 @@ This directory contains tests for the
 To install them, run:
 ```
 go get -u github.com/WICG/webpackage/go/bundle/cmd/...
+export PATH=$PATH:$(go env GOPATH)/bin
 ```

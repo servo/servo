@@ -22,7 +22,7 @@
       portal.onmessage = t.step_func(e => {
         assert_unreached("button inside portal should not be focused");
       });
-      portal.postMessage("focus", "*");
+      portal.postMessage("focus");
       await new Promise(r => t.step_timeout(r, 500));
     } finally {
       document.body.removeChild(portal);
@@ -35,7 +35,7 @@
       portal.onmessage = t.step_func(e => {
         assert_unreached("button inside portal should not be focused");
       });
-      portal.postMessage("focus", "*");
+      portal.postMessage("focus");
       await new Promise(r => t.step_timeout(r, 500));
     } finally {
       document.body.removeChild(portal);

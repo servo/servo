@@ -6,7 +6,7 @@ window.onload = async () => {
   let testName = urlParams.get('testName');
   let testFn = window[testName];
   if (!testFn) {
-    window.portalHost.postMessage('Missing test: ' + testName, '*');
+    window.portalHost.postMessage('Missing test: ' + testName);
     return;
   }
 
@@ -17,10 +17,10 @@ window.onload = async () => {
 
   try {
     await testFn();
-    window.portalHost.postMessage('Passed', '*');
+    window.portalHost.postMessage('Passed');
   } catch (e) {
     window.portalHost.postMessage(
-        'Failed: ' + e.name + ': ' + e.message, '*');
+        'Failed: ' + e.name + ': ' + e.message);
   }
 };
 

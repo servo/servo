@@ -5,6 +5,7 @@
 <link rel="help" href="https://github.com/whatwg/dom/issues/831">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="support/helpers.js"></script>
 
 <div id="host" style="display:none">
   <template shadowroot="open">
@@ -32,14 +33,14 @@ test(() => {
 
 test(() => {
   const div = document.createElement('div');
-  div.setInnerHTML(`
+  setInnerHTML(div,`
     <div id="host">
       <template shadowroot="open">
         <slot id="s1" name="slot1"></slot>
       </template>
       <div id="c1" slot="slot1"></div>
     </div>
-    `, {includeShadowRoots: true});
+    `);
   const host = div.querySelector('#host');
   const c1 = host.querySelector('#c1');
   assert_true(!!c1);
@@ -53,12 +54,12 @@ test(() => {
 
 test(() => {
   const div = document.createElement('div');
-  div.setInnerHTML(`
+  setInnerHTML(div,`
     <div id="host">
       <template shadowroot="invalid">
       </template>
     </div>
-    `, {includeShadowRoots: true});
+    `);
   const host = div.querySelector('#host');
   assert_equals(host.shadowRoot, null, "Shadow root was found");
   const tmpl = host.querySelector('template');
@@ -69,12 +70,12 @@ test(() => {
 
 test(() => {
   const div = document.createElement('div');
-  div.setInnerHTML(`
+  setInnerHTML(div,`
     <div id="host">
       <template shadowroot="closed">
       </template>
     </div>
-    `, {includeShadowRoots: true});
+    `);
   const host = div.querySelector('#host');
   assert_equals(host.shadowRoot, null, "Closed shadow root");
   assert_equals(host.querySelector('template'), null, "No template - converted to shadow root");
@@ -82,12 +83,12 @@ test(() => {
 
 test(() => {
   const div = document.createElement('div');
-  div.setInnerHTML(`
+  setInnerHTML(div,`
     <div id="host">
       <template shadowroot="open">
         <slot id="s1" name="slot1"></slot>
     </div>
-    `, {includeShadowRoots: true});
+    `);
   const host = div.querySelector('#host');
   assert_equals(host.querySelector('#s1'), null, "Should be inside shadow root");
   assert_equals(host.querySelector('template'), null, "No leftover template node");
@@ -98,35 +99,25 @@ test(() => {
 
 test(() => {
   const div = document.createElement('div');
-  div.setInnerHTML(`
+  setInnerHTML(div,`
     <div id="host">
       <template shadowroot="open" shadowrootdelegatesfocus>
       </template>
     </div>
-    `, {includeShadowRoots: true});
+    `);
   var host = div.querySelector('#host');
   assert_true(!!host.shadowRoot,"No shadow root found");
   assert_true(host.shadowRoot.delegatesFocus,"delegatesFocus should be true");
-  div.setInnerHTML(`
+  setInnerHTML(div,`
     <div id="host">
       <template shadowroot="open">
       </template>
     </div>
-    `, {includeShadowRoots: true});
+    `);
   host = div.querySelector('#host');
   assert_true(!!host.shadowRoot,"No shadow root found");
   assert_false(host.shadowRoot.delegatesFocus,"delegatesFocus should be false without the shadowrootdelegatesfocus attribute");
 }, 'Declarative Shadow DOM: delegates focus attribute');
-
-test(() => {
-  const host = document.createElement('div');
-  // Root element of setInnerHTML is a <template shadowroot>:
-  host.setInnerHTML('<template shadowroot=open></template>', {allowShadowRoot: true});
-  assert_equals(host.shadowRoot, null, "Shadow root should not be present");
-  const tmpl = host.querySelector('template');
-  assert_true(!!tmpl,"Template should still be present");
-  assert_equals(tmpl.getAttribute('shadowroot'),"open","'shadowroot' attribute should still be present");
-}, 'Declarative Shadow DOM: setInnerHTML root element');
 </script>
 
 <div id="multi-host" style="display:none">

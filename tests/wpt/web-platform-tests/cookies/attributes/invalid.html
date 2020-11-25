@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset=utf-8>
+    <title>Test invalid attribute parsing</title>
+    <meta name=help href="https://tools.ietf.org/html/rfc6265#section-5.2">
+    <meta name="timeout" content="long">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/cookies/resources/cookie-helper.sub.js"></script>
+  </head>
+  <body>
+    <div id=log></div>
+    <script>
+      // These tests ensure that invalid attributes don't affect
+      // cookie parsing. `Path` isn't important to the tests where it appears,
+      // but it's used to be able to place the invalid attribute in different
+      // locations.
+      const invalidAttributeTests = [
+      {
+        cookie: "test=1; lol; Path=/",
+        expected: "test=1",
+        name: "Set cookie with invalid attribute"
+      },
+      {
+        cookie: "test=2; Path=/; lol",
+        expected: "test=2",
+        name: "Set cookie ending with invalid attribute."
+      },
+      {
+        cookie: "test=3; Path=/; 'lol'",
+        expected: "test=3",
+        name: "Set cookie ending with quoted invalid attribute."
+      },
+      {
+        cookie: 'test=4; Path=/; "lol"',
+        expected: "test=4",
+        name: "Set cookie ending with double-quoted invalid attribute."
+      },
+      {
+        cookie: "test=5; Path=/; lol=",
+        expected: "test=5",
+        name: "Set cookie ending with invalid attribute equals."
+      },
+      {
+        cookie: 'test=6; lol="aaa;bbb"; Path=/',
+        expected: "test=6",
+        name: "Set cookie with two invalid attributes (lol=\"aaa and bbb)."
+      },
+      {
+        cookie: 'test=7; Path=/; lol="aaa;bbb"',
+        expected: "test=7",
+        name: "Set cookie ending with two invalid attributes (lol=\"aaa and bbb)."
+      },
+      {
+        cookie: 'test=8; "Secure"',
+        expected: "test=8",
+        // This gets parsed as an unrecognized \"Secure\" attribute, not a valid
+        // Secure attribute. That's why it gets set on an non-secure origin.
+        name: "Set cookie for quoted Secure attribute",
+        defaultPath: true
+      },
+      {
+        cookie: "test=9; Secure qux",
+        expected: "test=9",
+        // This should be parsed as an unrecognized "Secure qux" attribute
+        // and ignored. That is, the cookie will not be Secure.
+        name: "Set cookie for Secure qux",
+        defaultPath: true
+      },
+    ];
+
+      for (const test of invalidAttributeTests) {
+        promise_test(async testCase => {
+          await runCookieTest(test.cookie, test.expected, test.defaultPath);
+        }, test.name);
+      }
+    </script>
+  </body>
+</html>

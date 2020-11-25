@@ -5,7 +5,5 @@ def main(request, response):
     response.write_status_headers()
 
     time.sleep(1)
-    response.explicit_flush = True
 
     response.writer.write(b"XX\r\n\r\n")
-    response.writer.flush()

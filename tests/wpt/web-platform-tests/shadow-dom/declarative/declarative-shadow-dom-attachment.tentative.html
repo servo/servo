@@ -5,6 +5,7 @@
 <script src='/resources/testharness.js'></script>
 <script src='/resources/testharnessreport.js'></script>
 <script src='../resources/shadow-dom-utils.js'></script>
+<script src="support/helpers.js"></script>
 
 <script>
 const shadowContent = '<span>Shadow tree</span><slot></slot>';
@@ -18,7 +19,7 @@ function addDeclarativeShadowRoot(elementType, mode, delegatesFocus) {
   const declarativeString = `<${elementType} id=theelement>${getDeclarativeContent(mode, delegatesFocus)}
      <span class='lightdom'>${lightDomTextContent}</span></${elementType}>`;
   const wrapper = document.createElement('div');
-  wrapper.setInnerHTML(declarativeString, {includeShadowRoots: true});
+  setInnerHTML(wrapper, declarativeString);
   const element = wrapper.querySelector('#theelement');
   return {wrapper: wrapper, element: element};
 }
