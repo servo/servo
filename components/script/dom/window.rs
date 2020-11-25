@@ -1381,6 +1381,10 @@ impl WindowMethods for Window {
         }
         rval.get()
     }
+
+    fn IsSecureContext(&self) -> bool {
+        self.upcast::<GlobalScope>().is_secure_context()
+    }
 }
 
 impl Window {
@@ -2357,6 +2361,7 @@ impl Window {
         parent_info: Option<PipelineId>,
         window_size: WindowSizeData,
         origin: MutableOrigin,
+        creator_url: ServoUrl,
         navigation_start: u64,
         navigation_start_precise: u64,
         webgl_chan: Option<WebGLChan>,
@@ -2376,6 +2381,7 @@ impl Window {
         player_context: WindowGLContext,
         event_loop_waker: Option<Box<dyn EventLoopWaker>>,
         gpu_id_hub: Arc<ParkMutex<Identities>>,
+        inherited_secure_context: Option<bool>,
     ) -> DomRoot<Self> {
         let layout_rpc: Box<dyn LayoutRPC + Send> = {
             let (rpc_send, rpc_recv) = unbounded();
@@ -2396,10 +2402,12 @@ impl Window {
                 scheduler_chan,
                 resource_threads,
                 origin,
+                Some(creator_url),
                 microtask_queue,
                 is_headless,
                 user_agent,
                 gpu_id_hub,
+                inherited_secure_context,
             ),
             script_chan,
             task_manager,

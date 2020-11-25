@@ -52,6 +52,7 @@ impl Location {
             Some(pipeline_id),
             referrer,
             referrer_policy,
+            None, // Top navigation doesn't inherit secure context
         );
         // TODO: rethrow exceptions, set exceptions enabled flag.
         self.window

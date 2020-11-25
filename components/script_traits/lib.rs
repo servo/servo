@@ -182,6 +182,8 @@ pub struct LoadData {
 
     /// The source to use instead of a network response for a srcdoc document.
     pub srcdoc: String,
+    /// The inherited context is Secure, None if not inherited
+    pub inherited_secure_context: Option<bool>,
 }
 
 /// The result of evaluating a javascript scheme url.
@@ -202,6 +204,7 @@ impl LoadData {
         creator_pipeline_id: Option<PipelineId>,
         referrer: Referrer,
         referrer_policy: Option<ReferrerPolicy>,
+        inherited_secure_context: Option<bool>,
     ) -> LoadData {
         LoadData {
             load_origin,
@@ -214,6 +217,7 @@ impl LoadData {
             referrer: referrer,
             referrer_policy: referrer_policy,
             srcdoc: "".to_string(),
+            inherited_secure_context,
         }
     }
 }
@@ -639,6 +643,8 @@ pub struct InitialScriptState {
     pub top_level_browsing_context_id: TopLevelBrowsingContextId,
     /// The ID of the opener, if any.
     pub opener: Option<BrowsingContextId>,
+    /// Loading into a Secure Context
+    pub inherited_secure_context: Option<bool>,
     /// A channel with which messages can be sent to us (the script thread).
     pub control_chan: IpcSender<ConstellationControlMsg>,
     /// A port on which messages sent by the constellation to script can be received.
@@ -751,6 +757,8 @@ pub struct IFrameLoadInfo {
     pub new_pipeline_id: PipelineId,
     ///  Whether this iframe should be considered private
     pub is_private: bool,
+    ///  Whether this iframe should be considered secure
+    pub inherited_secure_context: Option<bool>,
     /// Wether this load should replace the current entry (reload). If true, the current
     /// entry will be replaced instead of a new entry being added.
     pub replace: HistoryEntryReplacement,
@@ -868,10 +876,14 @@ pub struct WorkerGlobalScopeInit {
     pub pipeline_id: PipelineId,
     /// The origin
     pub origin: ImmutableOrigin,
+    /// The creation URL
+    pub creation_url: Option<ServoUrl>,
     /// True if headless mode
     pub is_headless: bool,
     /// An optional string allowing the user agnet to be set for testing.
     pub user_agent: Cow<'static, str>,
+    /// True if secure context
+    pub inherited_secure_context: Option<bool>,
 }
 
 /// Common entities representing a network load origin

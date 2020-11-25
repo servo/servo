@@ -170,6 +170,7 @@ impl HTMLIFrameElement {
             top_level_browsing_context_id: top_level_browsing_context_id,
             new_pipeline_id: new_pipeline_id,
             is_private: false, // FIXME
+            inherited_secure_context: load_data.inherited_secure_context,
             replace: replace,
         };
 
@@ -244,6 +245,7 @@ impl HTMLIFrameElement {
                 pipeline_id,
                 window.upcast::<GlobalScope>().get_referrer(),
                 document.get_referrer_policy(),
+                Some(window.upcast::<GlobalScope>().is_secure_context()),
             );
             let element = self.upcast::<Element>();
             load_data.srcdoc = String::from(element.get_string_attribute(&local_name!("srcdoc")));
@@ -327,6 +329,7 @@ impl HTMLIFrameElement {
             creator_pipeline_id,
             window.upcast::<GlobalScope>().get_referrer(),
             document.get_referrer_policy(),
+            Some(window.upcast::<GlobalScope>().is_secure_context()),
         );
 
         let pipeline_id = self.pipeline_id();
@@ -354,6 +357,7 @@ impl HTMLIFrameElement {
             pipeline_id,
             window.upcast::<GlobalScope>().get_referrer(),
             document.get_referrer_policy(),
+            Some(window.upcast::<GlobalScope>().is_secure_context()),
         );
         let browsing_context_id = BrowsingContextId::new();
         let top_level_browsing_context_id = window.window_proxy().top_level_browsing_context_id();

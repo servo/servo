@@ -11335,7 +11335,7 @@
   "testharness": {
    "bluetooth": {
     "advertisingEvent": {
-     "watchAdvertisements-succeeds.html": [
+     "watchAdvertisements-succeeds.https.html": [
       "a6dde05460cdf004ff7ce411317f5968b52b8e18",
       [
        null,
@@ -11344,21 +11344,21 @@
      ]
     },
     "connect": {
-     "connection-succeeds.html": [
+     "connection-succeeds.https.html": [
       "1759b464bcce8e84401ff0496c9e33bd2e85f7b5",
       [
        null,
        {}
       ]
      ],
-     "device-goes-out-of-range.html": [
+     "device-goes-out-of-range.https.html": [
       "cac0556134e28297cc12bcc90ea9ec76e16b080b",
       [
        null,
        {}
       ]
      ],
-     "get-same-gatt-server.html": [
+     "get-same-gatt-server.https.html": [
       "2889f19a025f8828c4320b19f0fb1e0832395405",
       [
        null,
@@ -11367,28 +11367,28 @@
      ]
     },
     "disconnect": {
-     "connect-disconnect-twice.html": [
+     "connect-disconnect-twice.https.html": [
       "1765654bde0de39a48e84bb01e250e988ad7a23b",
       [
        null,
        {}
       ]
      ],
-     "disconnect-once.html": [
+     "disconnect-once.https.html": [
       "88a342ee9c00216f15cd9d49bb93568b6f07fe23",
       [
        null,
        {}
       ]
      ],
-     "disconnect-twice-in-a-row.html": [
+     "disconnect-twice-in-a-row.https.html": [
       "98454f3e938f3666a224e33e151fb4009866835c",
       [
        null,
        {}
       ]
      ],
-     "event-is-fired.html": [
+     "event-is-fired.https.html": [
       "ebda92ec77223b8df0547f3682b1c48e548e4385",
       [
        null,
@@ -11397,21 +11397,21 @@
      ]
     },
     "getAvailability": {
-     "adapter-not-present.html": [
+     "adapter-not-present.https.html": [
       "a14cdc29048140a5c4ae334985fef72c4f31bc03",
       [
        null,
        {}
       ]
      ],
-     "adapter-off.html": [
+     "adapter-off.https.html": [
       "eac2c10aabe090722e743ce603272e6b61227a01",
       [
        null,
        {}
       ]
      ],
-     "adapter-on.html": [
+     "adapter-on.https.html": [
       "85b1fd4a3d46330b04438032eba341f3298312ec",
       [
        null,
@@ -11420,84 +11420,84 @@
      ]
     },
     "getCharacteristic": {
-     "blocklisted-characteristic.html": [
+     "blocklisted-characteristic.https.html": [
       "63a2f9e4ad5eca831ec4130cdf6d9e7d24f00d46",
       [
        null,
        {}
       ]
      ],
-     "characteristic-found.html": [
+     "characteristic-found.https.html": [
       "39e6dbaf3e7423baaf9b5a71743931defcfa482b",
       [
        null,
        {}
       ]
      ],
-     "characteristic-not-found.html": [
+     "characteristic-not-found.https.html": [
       "612540a0d6d8ef2a77211cb01745aec42228eba7",
       [
        null,
        {}
       ]
      ],
-     "device-goes-out-of-range.html": [
+     "device-goes-out-of-range.https.html": [
       "9cada4dabad5ce6bb3d413dbdeefb54598cc66bd",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-before.html": [
+     "disconnect-called-before.https.html": [
       "a1c4c622c97d023c8df78adb85f1fd06f170c8b6",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-during.html": [
+     "disconnect-called-during.https.html": [
       "c7ef9db3f2d7cd3c0531091c15320d6dbae893ea",
       [
        null,
        {}
       ]
      ],
-     "disconnect-invalidates-object.html": [
+     "disconnect-invalidates-object.https.html": [
       "5c6b145bb5e0e6f0245d4f71e6f879896f521a95",
       [
        null,
        {}
       ]
      ],
-     "get-different-characteristic-after-reconnection.html": [
+     "get-different-characteristic-after-reconnection.https.html": [
       "ea12517484392bfd44f7b393991b62f3005dc0c8",
       [
        null,
        {}
       ]
      ],
-     "get-same-characteristic.html": [
+     "get-same-characteristic.https.html": [
       "6395753ac64762e51054cb337cab4286e42ca36c",
       [
        null,
        {}
       ]
      ],
-     "invalid-characteristic-name.html": [
+     "invalid-characteristic-name.https.html": [
       "0711a88ca6a98094a00823a08d6d220a316b47b4",
       [
        null,
        {}
       ]
      ],
-     "reconnect-during.html": [
+     "reconnect-during.https.html": [
       "cec1dbbf3adc1828c87b748ea294ef606027fc52",
       [
        null,
        {}
       ]
      ],
-     "service-is-removed.html": [
+     "service-is-removed.https.html": [
       "ef9ed4919cd4f77effe066157e969af37a2cbde8",
       [
        null,
@@ -11506,133 +11506,133 @@
      ]
     },
     "getCharacteristics": {
-     "blocklisted-characteristics-with-uuid.html": [
+     "blocklisted-characteristics-with-uuid.https.html": [
       "5d21e84acc19afc5f0ae8582100d78bbf5c50ad1",
       [
        null,
        {}
       ]
      ],
-     "blocklisted-characteristics.html": [
+     "blocklisted-characteristics.https.html": [
       "b27285ecba587af7e5d651c2861d34be3a85ff5a",
       [
        null,
        {}
       ]
      ],
-     "characteristics-found-with-uuid.html": [
+     "characteristics-found-with-uuid.https.html": [
       "eadb7960cd1f3a87d83828991a5e4bcc08846d8c",
       [
        null,
        {}
       ]
      ],
-     "characteristics-found.html": [
+     "characteristics-found.https.html": [
       "2669e4423456123d68edfbca0a5b4c13e4aeab85",
       [
        null,
        {}
       ]
      ],
-     "characteristics-not-found-with-uuid.html": [
+     "characteristics-not-found-with-uuid.https.html": [
       "e58bc56820a5a1560b91c97b71ecdb0984dbe8a8",
       [
        null,
        {}
       ]
      ],
-     "characteristics-not-found.html": [
+     "characteristics-not-found.https.html": [
       "f5ddd51a4bf59bf0c73eac722039d30f8fe65515",
       [
        null,
        {}
       ]
      ],
-     "correct-characteristics.html": [
+     "correct-characteristics.https.html": [
       "c1b8e39c5991792949b69aefcc565f2520bedc90",
       [
        null,
        {}
       ]
      ],
-     "device-goes-out-of-range-with-uuid.html": [
+     "device-goes-out-of-range-with-uuid.https.html": [
       "1fc4d0daf96dae185c79390c1e9231fe3aa512fd",
       [
        null,
        {}
       ]
      ],
-     "device-goes-out-of-range.html": [
+     "device-goes-out-of-range.https.html": [
       "2e83e479619e0de2f06145b0959fee9fbc197dbf",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-before-with-uuid.html": [
+     "disconnect-called-before-with-uuid.https.html": [
       "6d72d17ed95f9e5812c740cd77a66a90c21ad9be",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-before.html": [
+     "disconnect-called-before.https.html": [
       "c49b82989ac99b9bd3f11c566b7a3e1cc75f968f",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-during-with-uuid.html": [
+     "disconnect-called-during-with-uuid.https.html": [
       "9050d4369e7a228ee6dd11784cedb6630a9d1f71",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-during.html": [
+     "disconnect-called-during.https.html": [
       "fed74b86bb5a7026cd55ab98318c37f9ab85b015",
       [
        null,
        {}
       ]
      ],
-     "disconnect-invalidates-objects.html": [
+     "disconnect-invalidates-objects.https.html": [
       "d4c0fc4f7e87a8318a57102d87e1e3d368b71810",
       [
        null,
        {}
       ]
      ],
-     "get-different-characteristics-after-reconnection.html": [
+     "get-different-characteristics-after-reconnection.https.html": [
       "12a84b521df1a83827721323ff528aa1608fa4ee",
       [
        null,
        {}
       ]
      ],
-     "get-same-characteristics.html": [
+     "get-same-characteristics.https.html": [
       "f16d46298b718e643d2aeefcf112883b213c754a",
       [
        null,
        {}
       ]
      ],
-     "invalid-characteristic-name.html": [
+     "invalid-characteristic-name.https.html": [
       "54d6db8fbe16d9d7234e2e261e4d40ae2fc3a02f",
       [
        null,
        {}
       ]
      ],
-     "service-is-removed-with-uuid.html": [
+     "service-is-removed-with-uuid.https.html": [
       "f94dc3894ca52b54b6d5a63f819306aed495f0cc",
       [
        null,
        {}
       ]
      ],
-     "service-is-removed.html": [
+     "service-is-removed.https.html": [
       "36f3c748cd188d62e020a351c746bc190451df3d",
       [
        null,
@@ -11641,77 +11641,77 @@
      ]
     },
     "getDescriptor": {
-     "blocklisted-descriptor.html": [
+     "blocklisted-descriptor.https.html": [
       "5f086fd4f187c5e41ba5208e269f586e8e05cbd6",
       [
        null,
        {}
       ]
      ],
-     "characteristic-is-removed.html": [
+     "characteristic-is-removed.https.html": [
       "8dec982e5132f479a64628647465f5d4c5197a1e",
       [
        null,
        {}
       ]
      ],
-     "descriptor-found.html": [
+     "descriptor-found.https.html": [
       "d53f9324d9a3fc848bae3ec164196834d772f79a",
       [
        null,
        {}
       ]
      ],
-     "descriptor-not-found.html": [
+     "descriptor-not-found.https.html": [
       "b4f43e520ea2d27e21d83872744ec3d5ac11348c",
       [
        null,
        {}
       ]
      ],
-     "device-goes-out-of-range.html": [
+     "device-goes-out-of-range.https.html": [
       "f8be5e53863d8e71db73d35e3954373c751f6373",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-before.html": [
+     "disconnect-called-before.https.html": [
       "60bb1b1f709201495cb3d2869277f450f1c3f6a0",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-during.html": [
+     "disconnect-called-during.https.html": [
       "f58611492342de6e67a5dd6c46df5c675b5cfeaf",
       [
        null,
        {}
       ]
      ],
-     "disconnect-invalidates-object.html": [
+     "disconnect-invalidates-object.https.html": [
       "5dd3f43b8b16e7110201620f18d389bbddef4961",
       [
        null,
        {}
       ]
      ],
-     "get-different-descriptor-after-reconnection.html": [
+     "get-different-descriptor-after-reconnection.https.html": [
       "fc7398daf14323031d68662f6b4c27285a4dd710",
       [
        null,
        {}
       ]
      ],
-     "get-same-descriptor.html": [
+     "get-same-descriptor.https.html": [
       "c00c54a78d79b90dff4ecce22961515553a44665",
       [
        null,
        {}
       ]
      ],
-     "invalid-descriptor-name.html": [
+     "invalid-descriptor-name.https.html": [
       "fc08a3fe764357dc41d9da6b63a3a4f4dd216058",
       [
        null,
@@ -11720,133 +11720,133 @@
      ]
     },
     "getDescriptors": {
-     "blocklisted-descriptors-with-uuid.html": [
+     "blocklisted-descriptors-with-uuid.https.html": [
       "b618103ce897ea823e028771770860e5f76a3c7e",
       [
        null,
        {}
       ]
      ],
-     "blocklisted-descriptors.html": [
+     "blocklisted-descriptors.https.html": [
       "b9547795c96479b0bf526ebb7d40a06c4a5bd777",
       [
        null,
        {}
       ]
      ],
-     "characteristic-is-removed-with-uuid.html": [
+     "characteristic-is-removed-with-uuid.https.html": [
       "8379848160213d2c5dc13cd43c91fe02a5b7456d",
       [
        null,
        {}
       ]
      ],
-     "characteristic-is-removed.html": [
+     "characteristic-is-removed.https.html": [
       "e0cbc3de845e8ef9f1a6e7910979b3c148e3257b",
       [
        null,
        {}
       ]
      ],
-     "correct-descriptors.html": [
+     "correct-descriptors.https.html": [
       "92d1fecfab24adeb15285388ade284c797844d61",
       [
        null,
        {}
       ]
      ],
-     "descriptors-found-with-uuid.html": [
+     "descriptors-found-with-uuid.https.html": [
       "813603d308f1af78b73723a79e2fd11f8d1037a3",
       [
        null,
        {}
       ]
      ],
-     "descriptors-found.html": [
+     "descriptors-found.https.html": [
       "2bd9b7f44493b7b37af5910349e3c8d79133dd5a",
       [
        null,
        {}
       ]
      ],
-     "descriptors-not-found-with-uuid.html": [
+     "descriptors-not-found-with-uuid.https.html": [
       "7aa554bb716150cc74b07c51e754fdf62edd2085",
       [
        null,
        {}
       ]
      ],
-     "descriptors-not-found.html": [
+     "descriptors-not-found.https.html": [
       "3c1f013a0ccff6a80067e6e02e04f6c7edef76cf",
       [
        null,
        {}
       ]
      ],
-     "device-goes-out-of-range-with-uuid.html": [
+     "device-goes-out-of-range-with-uuid.https.html": [
       "6f1576b4e1e0fb1f41a037f58d2da3e6337350fa",
       [
        null,
        {}
       ]
      ],
-     "device-goes-out-of-range.html": [
+     "device-goes-out-of-range.https.html": [
       "36883eb0a711aea19b4a244bdb000521c0b11f6a",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-before-with-uuid.html": [
+     "disconnect-called-before-with-uuid.https.html": [
       "790ac27e2bada4e9a6d71b6d7c89ca98cdd14e40",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-before.html": [
+     "disconnect-called-before.https.html": [
       "40238e27487986bcaeb6c16bdbfbf5d9c30afee5",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-during-with-uuid.html": [
+     "disconnect-called-during-with-uuid.https.html": [
       "9db9c33d11807b00ffe65fb1fc342d3fd006a407",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-during.html": [
+     "disconnect-called-during.https.html": [
       "6de07a73c90412117e4bfffbd5912bdde3888de2",
       [
        null,
        {}
       ]
      ],
-     "disconnect-invalidates-objects.html": [
+     "disconnect-invalidates-objects.https.html": [
       "026239e201dac265a0cdd87ab32910a7afe16c04",
       [
        null,
        {}
       ]
      ],
-     "get-different-descriptors-after-reconnection.html": [
+     "get-different-descriptors-after-reconnection.https.html": [
       "cbdd3949eb1704e2d1139e2bc653907da892a16d",
       [
        null,
        {}
       ]
      ],
-     "get-same-descriptors.html": [
+     "get-same-descriptors.https.html": [
       "5390cce73e49e55d49f428785b0f63930290b198",
       [
        null,
        {}
       ]
      ],
-     "invalid-descriptor-name.html": [
+     "invalid-descriptor-name.https.html": [
       "0bf3e26ae0e2bf33f68f951b0b85aaf5131394d7",
       [
        null,
@@ -11855,84 +11855,84 @@
      ]
     },
     "getPrimaryService": {
-     "device-goes-out-of-range.html": [
+     "device-goes-out-of-range.https.html": [
       "122a80ae0d5177798d9967a86a46c82870567500",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-before.html": [
+     "disconnect-called-before.https.html": [
       "010e62f3b8fda82d75372d6ecd22e40879d7d552",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-during.html": [
+     "disconnect-called-during.https.html": [
       "50918e9548238ec53646d620b2fe1e0b319c2d2d",
       [
        null,
        {}
       ]
      ],
-     "disconnect-invalidates-object.html": [
+     "disconnect-invalidates-object.https.html": [
       "1581adc5c810004b978731716fd8e8e4a2257d02",
       [
        null,
        {}
       ]
      ],
-     "disconnected-device.html": [
+     "disconnected-device.https.html": [
       "09668d9ad0eebbc5c858e472f3961fda2f5e154f",
       [
        null,
        {}
       ]
      ],
-     "get-different-service-after-reconnection.html": [
+     "get-different-service-after-reconnection.https.html": [
       "3b358c37d081113e25626078f2b31a4e1634f634",
       [
        null,
        {}
       ]
      ],
-     "get-same-service.html": [
+     "get-same-service.https.html": [
       "a7bdb40b0b76c5ea742ec0d1ff3aa156579c7d7b",
       [
        null,
        {}
       ]
      ],
-     "invalid-service-name.html": [
+     "invalid-service-name.https.html": [
       "fab37cffc564a37452ce6f5c40579cf1cb3dc28e",
       [
        null,
        {}
       ]
      ],
-     "no-permission-absent-service.html": [
+     "no-permission-absent-service.https.html": [
       "c57fd200f30e420138e77f9d4801059142349fd9",
       [
        null,
        {}
       ]
      ],
-     "no-permission-present-service.html": [
+     "no-permission-present-service.https.html": [
       "ccd03084d28e82113c83b23c7c31b95eab1e1362",
       [
        null,
        {}
       ]
      ],
-     "service-found.html": [
+     "service-found.https.html": [
       "c082c2a8ecb90f8eb8cb1700ef9263784eec3402",
       [
        null,
        {}
       ]
      ],
-     "service-not-found.html": [
+     "service-not-found.https.html": [
       "bc94d379202813750989460696feb9db620475f1",
       [
        null,
@@ -11941,161 +11941,161 @@
      ]
     },
     "getPrimaryServices": {
-     "blocklisted-services-with-uuid.html": [
+     "blocklisted-services-with-uuid.https.html": [
       "690460119a24c87ce3cce67179c30bf093114dd4",
       [
        null,
        {}
       ]
      ],
-     "blocklisted-services.html": [
+     "blocklisted-services.https.html": [
       "16e08f15cd0b91e6d710401c8de762ebe2921791",
       [
        null,
        {}
       ]
      ],
-     "correct-services.html": [
+     "correct-services.https.html": [
       "55e2a1b1ad7b7cdcf277f7287bcbfaf91b182426",
       [
        null,
        {}
       ]
      ],
-     "device-goes-out-of-range-with-uuid.html": [
+     "device-goes-out-of-range-with-uuid.https.html": [
       "2c3b3f88aa11f79c73976fa7ffde61e1a76020a6",
       [
        null,
        {}
       ]
      ],
-     "device-goes-out-of-range.html": [
+     "device-goes-out-of-range.https.html": [
       "3a17c5e42fb953f464c9c3f2cd99b317097c2f47",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-before-with-uuid.html": [
+     "disconnect-called-before-with-uuid.https.html": [
       "653551fee859818d8b647c7108395b6e18aa2145",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-before.html": [
+     "disconnect-called-before.https.html": [
       "0ed52b3bf86a6741371e1ce4e803cfda985347dd",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-during-with-uuid.html": [
+     "disconnect-called-during-with-uuid.https.html": [
       "8867d762e58481feb0dbbb2f03136ba63c66e497",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-during.html": [
+     "disconnect-called-during.https.html": [
       "8864d9cc7ac5aaed80194a2c4f712d4640f2b026",
       [
        null,
        {}
       ]
      ],
-     "disconnect-invalidates-objects.html": [
+     "disconnect-invalidates-objects.https.html": [
       "e1e7bb6fc7fd2f5e6493e09ad0ad579517486076",
       [
        null,
        {}
       ]
      ],
-     "disconnected-device-with-uuid.html": [
+     "disconnected-device-with-uuid.https.html": [
       "b11902872ec97be2e0e2f05d1e5646a163a0fa93",
       [
        null,
        {}
       ]
      ],
-     "disconnected-device.html": [
+     "disconnected-device.https.html": [
       "d96cdf56aa7ac5f7df7a6e6f916065974db5cad8",
       [
        null,
        {}
       ]
      ],
-     "get-different-services-after-reconnection.html": [
+     "get-different-services-after-reconnection.https.html": [
       "91e71efa5cbe7533257b8f91787575d8dffd8bb4",
       [
        null,
        {}
       ]
      ],
-     "get-same-service-with-uuid.html": [
+     "get-same-service-with-uuid.https.html": [
       "8d57933b16c0634d9c5c09d57fd86ad365a794b0",
       [
        null,
        {}
       ]
      ],
-     "get-same-service.html": [
+     "get-same-service.https.html": [
       "d5e19abdddcf6f933be7eafb12887028d94d3b57",
       [
        null,
        {}
       ]
      ],
-     "invalid-service-name.html": [
+     "invalid-service-name.https.html": [
       "df7b35e6d295b30cbf9f3e4b6670c5ee5f22e081",
       [
        null,
        {}
       ]
      ],
-     "no-permission-absent-service-with-uuid.html": [
+     "no-permission-absent-service-with-uuid.https.html": [
       "57482ed5eb4d3c89d6469d7fb2bef6d5f53807da",
       [
        null,
        {}
       ]
      ],
-     "no-permission-present-service-with-uuid.html": [
+     "no-permission-present-service-with-uuid.https.html": [
       "93b488270a421c8893613e50c1d1425c515defed",
       [
        null,
        {}
       ]
      ],
-     "no-permission-present-service.html": [
+     "no-permission-present-service.https.html": [
       "d17d8269e90f919d25e0801e5f7db76529ddcb5c",
       [
        null,
        {}
       ]
      ],
-     "services-found-with-uuid.html": [
+     "services-found-with-uuid.https.html": [
       "3f36b8bfef77a92ce74d68c048c4d3abe756fe39",
       [
        null,
        {}
       ]
      ],
-     "services-found.html": [
+     "services-found.https.html": [
       "3a61b00d0c115879d5743243a199ae92f048e206",
       [
        null,
        {}
       ]
      ],
-     "services-not-found-with-uuid.html": [
+     "services-not-found-with-uuid.https.html": [
       "6821dc8caa67219a9c9a6dfb3db8d2b40b1d3f99",
       [
        null,
        {}
       ]
      ],
-     "services-not-found.html": [
+     "services-not-found.https.html": [
       "b8bac49bf9953781c5cf5ade4b1d953dbe0af1ad",
       [
        null,
@@ -12103,14 +12103,14 @@
       ]
      ]
     },
-    "idl-BluetoothUUID.html": [
+    "idl-BluetoothUUID.https.html": [
      "445cafe07edeaf13663af653cabb40ffe365f3e9",
      [
       null,
       {}
      ]
     ],
-    "interfaces.html": [
+    "interfaces.https.html": [
      "2aece858f4fe72430162f2716537a1cf7c62e306",
      [
       null,
@@ -12119,63 +12119,63 @@
     ],
     "readValue": {
      "characteristic": {
-      "blocklisted-characteristic.html": [
+      "blocklisted-characteristic.https.html": [
        "4cb5c8ed2072ad90ec2d72bfcab0ea1aeb341de7",
        [
         null,
         {}
        ]
       ],
-      "characteristic-is-removed.html": [
+      "characteristic-is-removed.https.html": [
        "e6e8e18b2224ec859f3acbcf24bac9aa1778ca96",
        [
         null,
         {}
        ]
       ],
-      "device-goes-out-of-range.html": [
+      "device-goes-out-of-range.https.html": [
        "6cf000eb5f8d29b1e158a4de0e13d2b66b4da44b",
        [
         null,
         {}
        ]
       ],
-      "disconnect-called-before.html": [
+      "disconnect-called-before.https.html": [
        "3c800acfa1d58b82f6dba100a16dcc10f5d3be45",
        [
         null,
         {}
        ]
       ],
-      "disconnect-called-during.html": [
+      "disconnect-called-during.https.html": [
        "7e0f7fedb5e03a67d84f6ab1a7ff984ec1564623",
        [
         null,
         {}
        ]
       ],
-      "event-is-fired.html": [
+      "event-is-fired.https.html": [
        "6005a9609f2a24c13f541755a523d5be916b8827",
        [
         null,
         {}
        ]
       ],
-      "read-succeeds.html": [
+      "read-succeeds.https.html": [
        "e6c136e9564fce4736353e4e42f09a660e0756ae",
        [
         null,
         {}
        ]
       ],
-      "read-updates-value.html": [
+      "read-updates-value.https.html": [
        "e389210bcec4644cb4ed1108053241dad3557412",
        [
         null,
         {}
        ]
       ],
-      "service-is-removed.html": [
+      "service-is-removed.https.html": [
        "b83296d4207ff4cad0a5aa6532f6a3d0242889e7",
        [
         null,
@@ -12184,56 +12184,56 @@
       ]
      },
      "descriptor": {
-      "blocklisted-descriptor.html": [
+      "blocklisted-descriptor.https.html": [
        "215250fb37eca53967c77b88f908da5b3d08f55f",
        [
         null,
         {}
        ]
       ],
-      "characteristic-is-removed.html": [
+      "characteristic-is-removed.https.html": [
        "080f3729dae5c40fa42a45266f149e1a10772e47",
        [
         null,
         {}
        ]
       ],
-      "descriptor-is-removed.html": [
+      "descriptor-is-removed.https.html": [
        "60501466a95b4d1c2e56259ecb0ec7c4aeafe0ce",
        [
         null,
         {}
        ]
       ],
-      "device-goes-out-of-range.html": [
+      "device-goes-out-of-range.https.html": [
        "8a4be2e0b72c758aa918d90eee0897c059d925e6",
        [
         null,
         {}
        ]
       ],
-      "disconnect-called-before.html": [
+      "disconnect-called-before.https.html": [
        "8459097f4b4cfd666ee027e0291669d8c3e93ff2",
        [
         null,
         {}
        ]
       ],
-      "read-succeeds.html": [
+      "read-succeeds.https.html": [
        "1bb43cbdc0a6dd9a440f97dd4a0111ba67a4bc00",
        [
         null,
         {}
        ]
       ],
-      "read-updates-value.html": [
+      "read-updates-value.https.html": [
        "7499b10713d3f6a8da37e1efb454a0dace95357d",
        [
         null,
         {}
        ]
       ],
-      "service-is-removed.html": [
+      "service-is-removed.https.html": [
        "40ccb33d0b64e3d5a7e2db4131beabe8519b2156",
        [
         null,
@@ -12244,49 +12244,49 @@
     },
     "requestDevice": {
      "acceptAllDevices": {
-      "accept-all-devices-with-filter.html": [
+      "accept-all-devices-with-filter.https.html": [
        "713ee87ce76abe4c52aa81dc921506b06a92d4ce",
        [
         null,
         {}
        ]
       ],
-      "accept-all-devices.html": [
+      "accept-all-devices.https.html": [
        "f07b209d7a633dc137ce30a138a916f5d58c8ec5",
        [
         null,
         {}
        ]
       ],
-      "device-with-empty-name.html": [
+      "device-with-empty-name.https.html": [
        "3b392ffa68488e8ce950064b4d9762737b5b1ef6",
        [
         null,
         {}
        ]
       ],
-      "device-with-name.html": [
+      "device-with-name.https.html": [
        "d00138cd1f6b826cc76e4585fb88deeaa44e645f",
        [
         null,
         {}
        ]
       ],
-      "device-with-no-name.html": [
+      "device-with-no-name.https.html": [
        "e9cf085104a9dcdec3d5d76338f51e2166447df5",
        [
         null,
         {}
        ]
       ],
-      "optional-services-missing.html": [
+      "optional-services-missing.https.html": [
        "2ea18dea172b411018702263103d7b09afa71cb7",
        [
         null,
         {}
        ]
       ],
-      "optional-services-present.html": [
+      "optional-services-present.https.html": [
        "43283ceee6bbb591bf5b979ab292407d01c8a273",
        [
         null,
@@ -12294,28 +12294,28 @@
        ]
       ]
      },
-     "adapter-not-present.html": [
+     "adapter-not-present.https.html": [
       "e7cbe0ebc0c6ab368cd7a9abf311ce8769c3eda4",
       [
        null,
        {}
       ]
      ],
-     "adapter-off.html": [
+     "adapter-off.https.html": [
       "8e119df660cb103daaef71caf12de99aebcb0355",
       [
        null,
        {}
       ]
      ],
-     "blocklisted-service-in-filter.html": [
+     "blocklisted-service-in-filter.https.html": [
       "d9f5fc84d43052bd626e86a3e0e09ae2f12aa0be",
       [
        null,
        {}
       ]
      ],
-     "blocklisted-service-in-optionalServices.html": [
+     "blocklisted-service-in-optionalServices.https.html": [
       "525a30056f0e1c0215dbb89fed5a9cd49de638d7",
       [
        null,
@@ -12323,133 +12323,133 @@
       ]
      ],
      "canonicalizeFilter": {
-      "blocklisted-service-data-key.html": [
+      "blocklisted-service-data-key.https.html": [
        "75bd27bf465d2e93778a16e9f32900be680c9f52",
        [
         null,
         {}
        ]
       ],
-      "empty-filter.html": [
+      "empty-filter.https.html": [
        "706ae76537e79c2d785712627a1376468528af97",
        [
         null,
         {}
        ]
       ],
-      "empty-filters-member.html": [
+      "empty-filters-member.https.html": [
        "2bae7966a42be8cbe28883c74e965f7e29e90f16",
        [
         null,
         {}
        ]
       ],
-      "empty-namePrefix.html": [
+      "empty-namePrefix.https.html": [
        "aa8e061b0285e09fb5ad5903d51fe046527f33e8",
        [
         null,
         {}
        ]
       ],
-      "empty-services-member.html": [
+      "empty-services-member.https.html": [
        "1af2d35d5fba70989b83c97e2deb97d540cb124c",
        [
         null,
         {}
        ]
       ],
-      "filters-xor-acceptAllDevices.html": [
+      "filters-xor-acceptAllDevices.https.html": [
        "8fa7c54e26987e99433b73dd0e2fddf010390ea8",
        [
         null,
         {}
        ]
       ],
-      "max-length-for-device-name-name.html": [
+      "max-length-for-device-name-name.https.html": [
        "82a2a9cec9f72369826e645ef63128755b864529",
        [
         null,
         {}
        ]
       ],
-      "max-length-for-device-name-namePrefix.html": [
+      "max-length-for-device-name-namePrefix.https.html": [
        "47e2498541d1fe1bfddb5a8c12178c455e03a8fe",
        [
         null,
         {}
        ]
       ],
-      "no-arguments.html": [
+      "no-arguments.https.html": [
        "dc0c4830c655ceef74ce61666c10de82a44ebbb3",
        [
         null,
         {}
        ]
       ],
-      "no-filters-member.html": [
+      "no-filters-member.https.html": [
        "903923acf0fa9fdb3ad8cc1b0c21a5698bdd3fb9",
        [
         null,
         {}
        ]
       ],
-      "unicode-max-length-for-device-name-name.html": [
+      "unicode-max-length-for-device-name-name.https.html": [
        "819164be25569e2888b16b636d9c810f9a95a96e",
        [
         null,
         {}
        ]
       ],
-      "unicode-max-length-for-device-name-namePrefix.html": [
+      "unicode-max-length-for-device-name-namePrefix.https.html": [
        "c451589c53c5287db57a19176253a1972c081152",
        [
         null,
         {}
        ]
       ],
-      "unicode-valid-length-name-name.html": [
+      "unicode-valid-length-name-name.https.html": [
        "2ae6027d0dfe4693d5bb843dc7ad33d845b6f3bc",
        [
         null,
         {}
        ]
       ],
-      "unicode-valid-length-name-namePrefix.html": [
+      "unicode-valid-length-name-namePrefix.https.html": [
        "2df54e64d470d1ae8135f63b3717d97ff2394cbd",
        [
         null,
         {}
        ]
       ],
-      "wrong-manufacturer-data-key.html": [
+      "wrong-manufacturer-data-key.https.html": [
        "bee53c711094ed400ad66076057ca94c0a25985c",
        [
         null,
         {}
        ]
       ],
-      "wrong-mask-length.html": [
+      "wrong-mask-length.https.html": [
        "4087fbb250743c36275ae1036a2ed37d5978ab59",
        [
         null,
         {}
        ]
       ],
-      "wrong-service-data-key.html": [
+      "wrong-service-data-key.https.html": [
        "e4c0b3a7f7998f8d2674cf2ad4873013f7d0559e",
        [
         null,
         {}
        ]
       ],
-      "wrong-service-in-optionalServices-member.html": [
+      "wrong-service-in-optionalServices-member.https.html": [
        "08987892193057cd185c0f50f5d43fed7e45369d",
        [
         null,
         {}
        ]
       ],
-      "wrong-service-in-services-member.html": [
+      "wrong-service-in-services-member.https.html": [
        "708570095ee987b82cba356eb4723220a74db5cb",
        [
         null,
@@ -12457,175 +12457,175 @@
        ]
       ]
      },
-     "device-found-using-mask.html": [
+     "device-found-using-mask.https.html": [
       "a58670b1d6908f8140a21300872f0ecc22f3353a",
       [
        null,
        {}
       ]
      ],
-     "device-found-with-key-and-value.html": [
+     "device-found-with-key-and-value.https.html": [
       "d6eaee35bbbc48d08ca633062bcaed9a4c73293f",
       [
        null,
        {}
       ]
      ],
-     "device-found-with-key-only.html": [
+     "device-found-with-key-only.https.html": [
       "30da8d71a52d4839f2960952a56d0dfd6650fbe9",
       [
        null,
        {}
       ]
      ],
-     "device-found-with-service-and-manufacturer-data.html": [
+     "device-found-with-service-and-manufacturer-data.https.html": [
       "c14bd2512093ac471173df9b84f2c2516cca69ab",
       [
        null,
        {}
       ]
      ],
-     "device-not-found-with-extra-data.html": [
+     "device-not-found-with-extra-data.https.html": [
       "2ed9cb9c423b4f5dab781f745f82173846a9bf3f",
       [
        null,
        {}
       ]
      ],
-     "device-not-found-with-service-and-manufacturer-data.html": [
+     "device-not-found-with-service-and-manufacturer-data.https.html": [
       "5f3cb4a312235eb8780644f5d311ee18f25cad60",
       [
        null,
        {}
       ]
      ],
-     "discovery-succeeds.html": [
+     "discovery-succeeds.https.html": [
       "5a9ba6a333e0852aea73a2c92f405ed2bf34f400",
       [
        null,
        {}
       ]
      ],
-     "filter-does-not-match.html": [
+     "filter-does-not-match.https.html": [
       "bf82702d348ab0bd874aa8ea0d9cab070d93f2bb",
       [
        null,
        {}
       ]
      ],
-     "filter-matches.html": [
+     "filter-matches.https.html": [
       "4fe44bc4c618dfd28245cfb686eff24f43c2977d",
       [
        null,
        {}
       ]
      ],
-     "name-empty-device-from-name-empty-filter.html": [
+     "name-empty-device-from-name-empty-filter.https.html": [
       "382eeb4be2907a4e6122bd2af8c8495821bda31b",
       [
        null,
        {}
       ]
      ],
-     "name-empty-device-from-name-prefix-filter.html": [
+     "name-empty-device-from-name-prefix-filter.https.html": [
       "71bfa0f5db0a5b1ebb5c454669d11045cb9ff9e5",
       [
        null,
        {}
       ]
      ],
-     "name-empty-device-from-name-wrong-filter.html": [
+     "name-empty-device-from-name-wrong-filter.https.html": [
       "8d2aae16f6df99dcd5476236caff51229c3e4ef5",
       [
        null,
        {}
       ]
      ],
-     "name-empty-device-from-service-filter.html": [
+     "name-empty-device-from-service-filter.https.html": [
       "38fc881f6bb35915e13d4cc968a05d126812c1aa",
       [
        null,
        {}
       ]
      ],
-     "name-empty-filter.html": [
+     "name-empty-filter.https.html": [
       "a5ada4294bc39889eea7fb3cf790b3e8221d8b65",
       [
        null,
        {}
       ]
      ],
-     "name-missing-device-from-name-empty-filter.html": [
+     "name-missing-device-from-name-empty-filter.https.html": [
       "4cbf700ce04e5b462b3efc106377b7ad5d04838b",
       [
        null,
        {}
       ]
      ],
-     "name-missing-device-from-name-prefix-filter.html": [
+     "name-missing-device-from-name-prefix-filter.https.html": [
       "7f8c3678a7f887d003f0a9f5518238b1b0cadc6b",
       [
        null,
        {}
       ]
      ],
-     "name-missing-device-from-name-wrong-filter.html": [
+     "name-missing-device-from-name-wrong-filter.https.html": [
       "aa6b3bbc9a45f8bd8a850e49cf4f074ac3b2c04b",
       [
        null,
        {}
       ]
      ],
-     "name-missing-device-from-service-filter.html": [
+     "name-missing-device-from-service-filter.https.html": [
       "2752443d2e8ce3643bfce79d0ee680e3c68b21e1",
       [
        null,
        {}
       ]
      ],
-     "no-devices.html": [
+     "no-devices.https.html": [
       "8f5b04a809e4a83f0fe3af84899ca3ea603e746a",
       [
        null,
        {}
       ]
      ],
-     "not-accept-all-devices-without-filter.html": [
+     "not-accept-all-devices-without-filter.https.html": [
       "e87e3d8797cacde7d40e5335288f1f14d5c60203",
       [
        null,
        {}
       ]
      ],
-     "same-device.html": [
+     "same-device.https.html": [
       "315fab45200500e667c2aa03991882d19e7e7311",
       [
        null,
        {}
       ]
      ],
-     "single-filter-single-service.html": [
+     "single-filter-single-service.https.html": [
       "1f460561ac379d5dd16a5d6ca1999d4ffe12d71a",
       [
        null,
        {}
       ]
      ],
-     "single-filter-two-services-fails.html": [
+     "single-filter-two-services-fails.https.html": [
       "760c4b76f86fa169d880a127bad5536f75cca9e3",
       [
        null,
        {}
       ]
      ],
-     "single-filter-two-services-succeeds.html": [
+     "single-filter-two-services-succeeds.https.html": [
       "1685e48cbca787dc941591ab8315bc7d9b9e9f43",
       [
        null,
        {}
       ]
      ],
-     "two-filters.html": [
+     "two-filters.https.html": [
       "fb61be8327b6c182872abb77ce805ea8b11135a0",
       [
        null,
@@ -12634,63 +12634,63 @@
      ]
     },
     "startNotifications": {
-     "blocklisted-characteristic.html": [
+     "blocklisted-characteristic.https.html": [
       "c50140e16133dddf745ea1dc6b5a3eaba214317b",
       [
        null,
        {}
       ]
      ],
-     "characteristic-does-not-support-notifications.html": [
+     "characteristic-does-not-support-notifications.https.html": [
       "d79aae09c023976863ffe91482b05583747efc6c",
       [
        null,
        {}
       ]
      ],
-     "characteristic-is-removed.html": [
+     "characteristic-is-removed.https.html": [
       "0070a6724a90dcfc76848de1026b8d8fd6433ef9",
       [
        null,
        {}
       ]
      ],
-     "device-goes-out-of-range.html": [
+     "device-goes-out-of-range.https.html": [
       "89fa3dd0b82a3ebbb7ecc628c353df0511d864ae",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-before.html": [
+     "disconnect-called-before.https.html": [
       "7e0be978a37fa08244532ab906af6c26e865af39",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-during.html": [
+     "disconnect-called-during.https.html": [
       "4f52626a4c01ff4eb09b774fc8f7d9b9876929a4",
       [
        null,
        {}
       ]
      ],
-     "notify-failure.html": [
+     "notify-failure.https.html": [
       "d0bac2f4862fcc0b85e771692de997b3eb71918f",
       [
        null,
        {}
       ]
      ],
-     "notify-succeeds.html": [
+     "notify-succeeds.https.html": [
       "1b112203f873b0a906ae431a5afdf6cd21e9bd74",
       [
        null,
        {}
       ]
      ],
-     "service-is-removed.html": [
+     "service-is-removed.https.html": [
       "91dd1c407234d9d74a1fe270d13ecb23b32b65de",
       [
        null,
@@ -12699,49 +12699,49 @@
      ]
     },
     "stopNotifications": {
-     "characteristic-is-removed.html": [
+     "characteristic-is-removed.https.html": [
       "e3a87271e72c162ad4f2a35e71f56f2dd7a404a8",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-before.html": [
+     "disconnect-called-before.https.html": [
       "266681ae4d31061d6233f607b1d1872270c7c7e7",
       [
        null,
        {}
       ]
      ],
-     "disconnect-called-during.html": [
+     "disconnect-called-during.https.html": [
       "2b33c7f810d1e2d81f0ad5ba078d9c7f8117f8fc",
       [
        null,
        {}
       ]
      ],
-     "notify-succeeds.html": [
+     "notify-succeeds.https.html": [
       "cb63cfd582327ddf504d2a92729bccac11be46e1",
       [
        null,
        {}
       ]
      ],
-     "stop-after-start-succeeds.html": [
+     "stop-after-start-succeeds.https.html": [
       "e624f2a694bdeb6c663d36a663cf9c57ac2925a7",
       [
        null,
        {}
       ]
      ],
-     "stop-twice.html": [
+     "stop-twice.https.html": [
       "50db2e86268d87e600731ebbe8eb58c4e1e93bc5",
       [
        null,
        {}
       ]
      ],
-     "stop-without-starting.html": [
+     "stop-without-starting.https.html": [
       "a32eb295aac8794e7fae9f14980827c51f3163e1",
       [
        null,
@@ -12751,56 +12751,56 @@
     },
     "writeValue": {
      "characteristic": {
-      "blocklisted-characteristic.html": [
+      "blocklisted-characteristic.https.html": [
        "df1cc1615e9a7520056cf66606838726ec2bc5a4",
        [
         null,
         {}
        ]
       ],
-      "characteristic-is-removed.html": [
+      "characteristic-is-removed.https.html": [
        "20a6b0401060869d648703c65b650158f63b89f7",
        [
         null,
         {}
        ]
       ],
-      "device-goes-out-of-range.html": [
+      "device-goes-out-of-range.https.html": [
        "f0b142c6fff0efcc100cb206cd541e5250bc43cd",
        [
         null,
         {}
        ]
       ],
-      "disconnect-called-before.html": [
+      "disconnect-called-before.https.html": [
        "90d14743bfa6779ff269f80f3708ad7b63d54db4",
        [
         null,
         {}
        ]
       ],
-      "service-is-removed.html": [
+      "service-is-removed.https.html": [
        "6281119de9e663bdcea034564ceee5593edd4a1c",
        [
         null,
         {}
        ]
       ],
-      "value-too-long.html": [
+      "value-too-long.https.html": [
        "06a5426a4ed62c7d453899db2db8e0c7d87644c6",
        [
         null,
         {}
        ]
       ],
-      "write-succeeds.html": [
+      "write-succeeds.https.html": [
        "0487eac6211d1d9bfb46eb0fe1edaa8ed984ca72",
        [
         null,
         {}
        ]
       ],
-      "write-updates-value.html": [
+      "write-updates-value.https.html": [
        "23851862a23e8b74279e69492ee370b07f8901ed",
        [
         null,
@@ -12809,56 +12809,56 @@
       ]
      },
      "descriptor": {
-      "blocklisted-descriptor.html": [
+      "blocklisted-descriptor.https.html": [
        "b4aacf9615cfb5c51dda17312b3fbf29cc2ed9e1",
        [
         null,
         {}
        ]
       ],
-      "characteristic-is-removed.html": [
+      "characteristic-is-removed.https.html": [
        "e83b33eed3b7e93237a758849ec2035c36305754",
        [
         null,
         {}
        ]
       ],
-      "descriptor-is-removed.html": [
+      "descriptor-is-removed.https.html": [
        "28994e3ad8ccee2033d95950712c9d5968fb968f",
        [
         null,
         {}
        ]
       ],
-      "device-goes-out-of-range.html": [
+      "device-goes-out-of-range.https.html": [
        "459871c706aae651817e6a131a96c54dcebcbaca",
        [
         null,
         {}
        ]
       ],
-      "disconnect-called-before.html": [
+      "disconnect-called-before.https.html": [
        "c8ce8f720754cfee36e2e4bea984cfd5df281a05",
        [
         null,
         {}
        ]
       ],
-      "service-is-removed.html": [
+      "service-is-removed.https.html": [
        "bbd9ceeafa217ee40230543af422598b72497197",
        [
         null,
         {}
        ]
       ],
-      "write-succeeds.html": [
+      "write-succeeds.https.html": [
        "1cd3d472d12ba2df8a83768b6f74127459bc1808",
        [
         null,
         {}
        ]
       ],
-      "write-updates-value.html": [
+      "write-updates-value.https.html": [
        "14dc5b027e4b089255caed494b2150bf6845fc54",
        [
         null,
@@ -14711,35 +14711,35 @@
     ]
    },
    "webxr": {
-    "create_session.html": [
+    "create_session.https.html": [
      "5b5d485b372bfffb22204bc162c9e182306395cb",
      [
       null,
       {}
      ]
     ],
-    "layerevents.html": [
+    "layerevents.https.html": [
      "6a0319366ec842a9b94d5897978975ebe3eb6f7f",
      [
       null,
       {}
      ]
     ],
-    "layers.html": [
+    "layers.https.html": [
      "b6749f208a8f3c5ae78fbe72cfa7364829abb127",
      [
       null,
       {}
      ]
     ],
-    "obtain_frame.html": [
+    "obtain_frame.https.html": [
      "d9ff25729f9cdfd348e7c9914ce2dacd231e13a0",
      [
       null,
       {}
      ]
     ],
-    "sessionavailable.html": [
+    "sessionavailable.https.html": [
      "dd9a071d05c4d696471be87428c12cea573cba60",
      [
       null,

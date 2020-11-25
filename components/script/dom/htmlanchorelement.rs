@@ -703,12 +703,14 @@ pub fn follow_hyperlink(subject: &Element, hyperlink_suffix: Option<String>) {
 
         // Step 14
         let pipeline_id = target_window.upcast::<GlobalScope>().pipeline_id();
+        let secure = target_window.upcast::<GlobalScope>().is_secure_context();
         let load_data = LoadData::new(
             LoadOrigin::Script(document.origin().immutable().clone()),
             url,
             Some(pipeline_id),
             referrer,
             referrer_policy,
+            Some(secure),
         );
         let target = Trusted::new(target_window);
         let task = task!(navigate_follow_hyperlink: move || {

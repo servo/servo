@@ -6,6 +6,9 @@
 
 use crate::dom::bindings::codegen::InterfaceObjectMap;
 use crate::dom::bindings::interface::is_exposed_in;
+use crate::dom::globalscope::GlobalScope;
+use crate::realms::AlreadyInRealm;
+use crate::realms::InRealm;
 use crate::script_runtime::JSContext;
 use js::rust::HandleObject;
 use servo_config::prefs;
@@ -45,8 +48,16 @@ pub enum Condition {
     Pref(&'static str),
     // The condition is satisfied if the interface is exposed in the global.
     Exposed(InterfaceObjectMap::Globals),
+    SecureContext(),
     /// The condition is always satisfied.
     Satisfied,
+}
+
+fn is_secure_context(cx: JSContext) -> bool {
+    unsafe {
+        let in_realm_proof = AlreadyInRealm::assert_for_cx(JSContext::from_ptr(*cx));
+        GlobalScope::from_context(*cx, InRealm::Already(&in_realm_proof)).is_secure_context()
+    }
 }
 
 impl Condition {
@@ -55,6 +66,7 @@ impl Condition {
             Condition::Pref(name) => prefs::pref_map().get(name).as_bool().unwrap_or(false),
             Condition::Func(f) => f(cx, obj),
             Condition::Exposed(globals) => is_exposed_in(global, globals),
+            Condition::SecureContext() => is_secure_context(cx),
             Condition::Satisfied => true,
         }
     }
