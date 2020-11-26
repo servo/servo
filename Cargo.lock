@@ -221,7 +221,7 @@ name = "background_hang_monitor"
 version = "0.0.1"
 dependencies = [
  "backtrace",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "ipc-channel",
  "lazy_static",
  "libc",
@@ -462,7 +462,7 @@ version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4b5f8b148c1884e660514fb1205f36b595e96df4daac5ad526a23db44937de77"
 dependencies = [
- "crossbeam-utils",
+ "crossbeam-utils 0.7.2",
  "jobserver",
  "num_cpus",
 ]
@@ -545,7 +545,7 @@ dependencies = [
  "bitflags",
  "byteorder",
  "canvas_traits",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "cssparser",
  "euclid",
  "fnv",
@@ -581,7 +581,7 @@ dependencies = [
 name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "cssparser",
  "euclid",
  "ipc-channel",
@@ -838,7 +838,7 @@ name = "compositing"
 version = "0.0.1"
 dependencies = [
  "canvas",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "embedder_traits",
  "euclid",
  "gfx_traits",
@@ -867,6 +867,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "const_fn"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c478836e029dcef17fb47c89023448c64f781a046e0300e257ad8225ae59afab"
+
+[[package]]
 name = "constant_time_eq"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -881,7 +887,7 @@ dependencies = [
  "bluetooth_traits",
  "canvas_traits",
  "compositing",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "devtools_traits",
  "embedder_traits",
  "euclid",
@@ -1073,8 +1079,18 @@ version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b153fe7cbef478c567df0f972e02e6d736db11affe43dfc9c56a9374d1adfb87"
 dependencies = [
- "crossbeam-utils",
+ "crossbeam-utils 0.7.2",
  "maybe-uninit",
+]
+
+[[package]]
+name = "crossbeam-channel"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dca26ee1f8d361640700bde38b2c37d8c22b3ce2d360e1fc1c74ea4b0aa7d775"
+dependencies = [
+ "cfg-if 1.0.0",
+ "crossbeam-utils 0.8.1",
 ]
 
 [[package]]
@@ -1083,9 +1099,20 @@ version = "0.7.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f02af974daeee82218205558e51ec8768b48cf524bd01d550abe5573a608285"
 dependencies = [
- "crossbeam-epoch",
- "crossbeam-utils",
+ "crossbeam-epoch 0.8.2",
+ "crossbeam-utils 0.7.2",
  "maybe-uninit",
+]
+
+[[package]]
+name = "crossbeam-deque"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "94af6efb46fef72616855b036a624cf27ba656ffc9be1b9a3c931cfc7749a9a9"
+dependencies = [
+ "cfg-if 1.0.0",
+ "crossbeam-epoch 0.9.1",
+ "crossbeam-utils 0.8.1",
 ]
 
 [[package]]
@@ -1096,10 +1123,24 @@ checksum = "058ed274caafc1f60c4997b5fc07bf7dc7cca454af7c6e81edffe5f33f70dace"
 dependencies = [
  "autocfg",
  "cfg-if 0.1.10",
- "crossbeam-utils",
+ "crossbeam-utils 0.7.2",
  "lazy_static",
  "maybe-uninit",
- "memoffset",
+ "memoffset 0.5.4",
+ "scopeguard",
+]
+
+[[package]]
+name = "crossbeam-epoch"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a1aaa739f95311c2c7887a76863f500026092fb1dce0161dab577e559ef3569d"
+dependencies = [
+ "cfg-if 1.0.0",
+ "const_fn",
+ "crossbeam-utils 0.8.1",
+ "lazy_static",
+ "memoffset 0.6.1",
  "scopeguard",
 ]
 
@@ -1110,7 +1151,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "774ba60a54c213d409d5353bda12d49cd68d14e45036a285234c8d6f91f92570"
 dependencies = [
  "cfg-if 0.1.10",
- "crossbeam-utils",
+ "crossbeam-utils 0.7.2",
  "maybe-uninit",
 ]
 
@@ -1122,6 +1163,17 @@ checksum = "c3c7c73a2d1e9fc0886a08b93e98eb643461230d5f1925e4036204d5f2e261a8"
 dependencies = [
  "autocfg",
  "cfg-if 0.1.10",
+ "lazy_static",
+]
+
+[[package]]
+name = "crossbeam-utils"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "02d96d1e189ef58269ebe5b97953da3274d83a93af647c2ddd6f9dab28cedb8d"
+dependencies = [
+ "autocfg",
+ "cfg-if 1.0.0",
  "lazy_static",
 ]
 
@@ -1299,7 +1351,7 @@ dependencies = [
 name = "devtools"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "devtools_traits",
  "embedder_traits",
  "headers",
@@ -1456,7 +1508,7 @@ checksum = "bb1f6b1ce1c140482ea30ddd3335fc0024ac7ee112895426e0a629a6c20adfe3"
 name = "embedder_traits"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "ipc-channel",
  "keyboard-types",
  "lazy_static",
@@ -2877,7 +2929,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3698b8affd5656032a074a7d40b3c2a29b71971f3e1ff6042b9d40724e20d97c"
 dependencies = [
  "bincode",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "fnv",
  "lazy_static",
  "libc",
@@ -3078,7 +3130,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "atomic_refcell",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "embedder_traits",
  "euclid",
  "fnv",
@@ -3123,7 +3175,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "atomic_refcell",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "embedder_traits",
  "euclid",
  "fnv",
@@ -3162,7 +3214,7 @@ dependencies = [
 name = "layout_traits"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "gfx",
  "ipc-channel",
  "metrics",
@@ -3272,7 +3324,7 @@ dependencies = [
  "canvas_traits",
  "compositing",
  "constellation",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "devtools",
  "devtools_traits",
  "embedder_traits",
@@ -3451,7 +3503,7 @@ dependencies = [
  "accountable-refcell",
  "app_units",
  "content-security-policy",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "cssparser",
  "euclid",
  "hashglobe",
@@ -3559,6 +3611,15 @@ name = "memoffset"
 version = "0.5.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b4fc2c02a7e374099d4ee95a193111f72d2110197fe200272371758f6c3643d8"
+dependencies = [
+ "autocfg",
+]
+
+[[package]]
+name = "memoffset"
+version = "0.6.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "157b4208e3059a8f9e78d559edc658e13df41410cb3ae03979c83130067fdd87"
 dependencies = [
  "autocfg",
 ]
@@ -3839,7 +3900,7 @@ dependencies = [
  "bytes 0.4.12",
  "content-security-policy",
  "cookie",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "data-url",
  "devtools_traits",
  "embedder_traits",
@@ -4586,7 +4647,7 @@ dependencies = [
 name = "profile_traits"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "ipc-channel",
  "log",
  "serde",
@@ -4732,25 +4793,25 @@ dependencies = [
 
 [[package]]
 name = "rayon"
-version = "1.3.1"
+version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62f02856753d04e03e26929f820d0a0a337ebe71f849801eea335d464b349080"
+checksum = "8b0d8e0819fadc20c74ea8373106ead0600e3a67ef1fe8da56e39b9ae7275674"
 dependencies = [
  "autocfg",
- "crossbeam-deque",
+ "crossbeam-deque 0.8.0",
  "either",
  "rayon-core",
 ]
 
 [[package]]
 name = "rayon-core"
-version = "1.7.1"
+version = "1.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e92e15d89083484e11353891f1af602cc661426deb9564c298b270c726973280"
+checksum = "9ab346ac5921dc62ffa9f89b7a773907511cdfa5490c572ae9be1be33e8afa4a"
 dependencies = [
- "crossbeam-deque",
- "crossbeam-queue",
- "crossbeam-utils",
+ "crossbeam-channel 0.5.0",
+ "crossbeam-deque 0.8.0",
+ "crossbeam-utils 0.8.1",
  "lazy_static",
  "num_cpus",
 ]
@@ -4867,7 +4928,7 @@ dependencies = [
  "base64 0.12.0",
  "blake2b_simd",
  "constant_time_eq",
- "crossbeam-utils",
+ "crossbeam-utils 0.7.2",
 ]
 
 [[package]]
@@ -4961,7 +5022,7 @@ dependencies = [
  "chrono",
  "content-security-policy",
  "cookie",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "cssparser",
  "data-url",
  "deny_public_fields",
@@ -5052,7 +5113,7 @@ dependencies = [
  "app_units",
  "atomic_refcell",
  "canvas_traits",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "euclid",
  "fxhash",
  "gfx_traits",
@@ -5106,7 +5167,7 @@ dependencies = [
  "bluetooth_traits",
  "canvas_traits",
  "cookie",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "devtools_traits",
  "embedder_traits",
  "euclid",
@@ -5307,7 +5368,7 @@ dependencies = [
 name = "servo-gst-plugin"
 version = "0.0.1"
 dependencies = [
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "euclid",
  "glib",
  "gst-plugin-version-helper",
@@ -6343,7 +6404,7 @@ version = "0.1.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fb2d1b8f4548dbf5e1f7818512e9c406860678f29c300cdf0ebac72d1a3a1671"
 dependencies = [
- "crossbeam-utils",
+ "crossbeam-utils 0.7.2",
  "futures 0.1.30",
 ]
 
@@ -6407,7 +6468,7 @@ version = "0.1.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09bc590ec4ba8ba87652da2068d150dcada2cfa2e07faae270a5e0409aa51351"
 dependencies = [
- "crossbeam-utils",
+ "crossbeam-utils 0.7.2",
  "futures 0.1.30",
  "lazy_static",
  "log",
@@ -6450,9 +6511,9 @@ version = "0.1.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "df720b6581784c118f0eb4310796b12b1d242a7eb95f716a8367855325c25f89"
 dependencies = [
- "crossbeam-deque",
+ "crossbeam-deque 0.7.3",
  "crossbeam-queue",
- "crossbeam-utils",
+ "crossbeam-utils 0.7.2",
  "futures 0.1.30",
  "lazy_static",
  "log",
@@ -6467,7 +6528,7 @@ version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93044f2d313c95ff1cb7809ce9a7a05735b012288a888b62d4434fd58c94f296"
 dependencies = [
- "crossbeam-utils",
+ "crossbeam-utils 0.7.2",
  "futures 0.1.30",
  "slab",
  "tokio-executor",
@@ -6938,7 +6999,7 @@ dependencies = [
  "base64 0.10.1",
  "compositing",
  "cookie",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "euclid",
  "hyper",
  "image",
@@ -7075,7 +7136,7 @@ source = "git+https://github.com/servo/webxr#cc6af6d8f4244dd5523a2dbc1f49d5f60b0
 dependencies = [
  "android_injected_glue",
  "bindgen",
- "crossbeam-channel",
+ "crossbeam-channel 0.4.4",
  "euclid",
  "gl_generator 0.13.1",
  "gvr-sys",
