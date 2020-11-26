@@ -5,6 +5,7 @@
 use crate::dom::bindings::codegen::RegisterBindings;
 use crate::dom::bindings::conversions::is_dom_proxy;
 use crate::dom::bindings::proxyhandler;
+use crate::dom::bindings::utils::is_platform_object_static;
 use crate::script_runtime::JSEngineSetup;
 use js::jsapi::JSObject;
 
@@ -53,7 +54,7 @@ fn perform_platform_specific_initialization() {}
 
 #[allow(unsafe_code)]
 unsafe extern "C" fn is_dom_object(obj: *mut JSObject) -> bool {
-    !obj.is_null() && is_dom_proxy(obj)
+    !obj.is_null() && (is_platform_object_static(obj) || is_dom_proxy(obj))
 }
 
 #[allow(unsafe_code)]
