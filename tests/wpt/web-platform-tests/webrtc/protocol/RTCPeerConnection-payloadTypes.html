@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>RTCPeerConnection RTP payload types</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+
+// Test that when creating an offer we do not run out of valid payload types.
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+
+  const offer = await pc1.createOffer({offerToReceiveAudio: true, offerToReceiveVideo: true});
+
+  // Extract all payload types from the m= lines.
+  const payloadTypes = offer.sdp.split('\n')
+    .map(line => line.trim())
+    .filter(line => line.startsWith('m='))
+    .map(line => line.split(' ').slice(3).join(' '))
+    .join(' ')
+    .split(' ')
+    .map(payloadType => parseInt(payloadType, 10));
+
+  // The list of allowed payload types is taken from here
+  // https://www.iana.org/assignments/rtp-parameters/rtp-parameters.xhtml#rtp-parameters-1.
+  const forbiddenPayloadTypes = payloadTypes
+    .filter(payloadType => {
+      if (payloadType >= 96 && payloadType <= 127) {
+        return false;
+      }
+      if (payloadType >= 72 && payloadType < 96) {
+        return true;
+      }
+      if (payloadType >= 35 && payloadType < 72) {
+        return false;
+      }
+      // TODO: Check against static payload type list.
+      return false;
+    });
+  assert_equals(forbiddenPayloadTypes.length, 0)
+}, 'createOffer with the maximum set of codecs does not generate invalid payload types');
+</script>
+</body>
+</html>

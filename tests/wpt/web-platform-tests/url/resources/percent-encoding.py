@@ -7,15 +7,15 @@ from wptserve.utils import isomorphic_decode
 def numeric_references(input):
     output = b""
     for cp in input:
-        output += b"&#x" + format(ord(cp), b"X") + b";"
+        output += b"&#x" + format(ord(cp), u"X").encode(u"utf-8") + b";"
     return output
 
 def main(request, response):
     # Undo the "magic" space with + replacement as otherwise base64 decoding will fail.
-    value = request.GET.first(b"value").replace(" ", "+")
+    value = request.GET.first(b"value").replace(b" ", b"+")
     encoding = request.GET.first(b"encoding")
 
-    output_value = numeric_references(base64.b64decode(value).decode(b"utf-8"))
+    output_value = numeric_references(base64.b64decode(value).decode(u"utf-8"))
     return (
         [(b"Content-Type", b"text/html;charset=" + encoding)],
         b"""<!doctype html>
