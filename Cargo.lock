@@ -6668,9 +6668,9 @@ dependencies = [
 
 [[package]]
 name = "unwind-sys"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bd1c4a6d1cfe0072924d1b1d4ca6faa211c95056666979d7ef1bab4cd206057f"
+checksum = "e72a873f034625fa57b8c2c16e14f2a44dc93c08fe330e81405b72d0aa42b2ff"
 dependencies = [
  "libc",
  "pkg-config",
