@@ -19,7 +19,7 @@ use crate::script_runtime::JSContext as SafeJSContext;
 use js::conversions::{jsstr_to_string, ToJSValConvertible};
 use js::glue::{CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, IsWrapper};
 use js::glue::{GetCrossCompartmentWrapper, JS_GetReservedSlot, WrapperNew};
-use js::glue::{UnwrapObjectDynamic, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
+use js::glue::{UnwrapObjectDynamic, UnwrapObjectStatic, RUST_JSID_TO_INT, RUST_JSID_TO_STRING};
 use js::glue::{
     RUST_FUNCTION_VALUE_TO_JITINFO, RUST_JSID_IS_INT, RUST_JSID_IS_STRING, RUST_JSID_IS_VOID,
 };
@@ -251,9 +251,24 @@ pub unsafe fn find_enum_value<'a, T>(
     ))
 }
 
-/// Returns wether `obj` is a platform object
+/// Returns wether `obj` is a platform object using dynamic unwrap
 /// <https://heycam.github.io/webidl/#dfn-platform-object>
-pub fn is_platform_object(obj: *mut JSObject, cx: *mut JSContext) -> bool {
+pub fn is_platform_object_dynamic(obj: *mut JSObject, cx: *mut JSContext) -> bool {
+    is_platform_object(obj, &|o| unsafe {
+        UnwrapObjectDynamic(o, cx, /* stopAtWindowProxy = */ 0)
+    })
+}
+
+/// Returns wether `obj` is a platform object using static unwrap
+/// <https://heycam.github.io/webidl/#dfn-platform-object>
+pub fn is_platform_object_static(obj: *mut JSObject) -> bool {
+    is_platform_object(obj, &|o| unsafe { UnwrapObjectStatic(o) })
+}
+
+fn is_platform_object(
+    obj: *mut JSObject,
+    unwrap_obj: &dyn Fn(*mut JSObject) -> *mut JSObject,
+) -> bool {
     unsafe {
         // Fast-path the common case
         let mut clasp = get_object_class(obj);
@@ -262,7 +277,7 @@ pub fn is_platform_object(obj: *mut JSObject, cx: *mut JSContext) -> bool {
         }
         // Now for simplicity check for security wrappers before anything else
         if IsWrapper(obj) {
-            let unwrapped_obj = UnwrapObjectDynamic(obj, cx, /* stopAtWindowProxy = */ 0);
+            let unwrapped_obj = unwrap_obj(obj);
             if unwrapped_obj.is_null() {
                 return false;
             }
