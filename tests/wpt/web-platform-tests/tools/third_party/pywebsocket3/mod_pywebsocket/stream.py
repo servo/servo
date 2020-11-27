@@ -875,7 +875,7 @@ class Stream(object):
             wait_response: True when caller want to wait the response.
         Raises:
             BadOperationException: when reason is specified with code None
-            or reason is not an instance of both str and unicode.
+                or reason is not an instance of both str and unicode.
         """
 
         if self._request.server_terminated:
