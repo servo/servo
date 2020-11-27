@@ -558,7 +558,7 @@ class WindowsGenericWorkerTask(GenericWorkerTask):
         .with_path_from_homedir("curl\\curl-7.73.0-win64-mingw\\bin") \
         .with_directory_mount(
             "https://curl.haxx.se/windows/dl-7.73.0/curl-7.73.0-win64-mingw.zip",
-            sha256="1c3caf39bf8ad2794b0515a09b3282f85a7ccfcf753ea639f2ef99e50351ade0",
+            sha256="2e1ffdb6c25c8648a1243bb3a268120be442399b1c93d7da309bba235ecdab9a",
             path="curl",
         )
 
