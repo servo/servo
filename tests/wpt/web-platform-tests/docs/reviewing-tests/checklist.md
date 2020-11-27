@@ -5,7 +5,7 @@ tests; in case of any contradiction with requirements stated elsewhere in the
 documentation it should be ignored
 (please [file a bug](https://github.com/web-platform-tests/wpt/issues/new)!).
 
-As noted on the [reviewing tests](index) page, nits need not block PRs
+As noted on the [reviewing tests](./index.md) page, nits need not block PRs
 from landing.
 
 

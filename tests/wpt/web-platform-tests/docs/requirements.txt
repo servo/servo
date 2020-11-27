@@ -1,4 +1,4 @@
 recommonmark==0.6.0
-# pin this to the last Py2 release
-Sphinx==1.8.5  # pyup: <2.0
+# Pin this to the same major version as https://docs.python.org/3/
+Sphinx==2.4.4  # pyup: <3.0
 sphinx-argparse==0.2.5

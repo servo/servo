@@ -1,2 +1,2 @@
-requests==2.24.0
+requests==2.25.0
 mozinfo==1.2.1  # https://bugzilla.mozilla.org/show_bug.cgi?id=1621226

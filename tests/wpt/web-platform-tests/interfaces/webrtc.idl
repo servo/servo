@@ -238,7 +238,7 @@ dictionary RTCPeerConnectionIceErrorEventInit : EventInit {
   unsigned short? port;
   DOMString url;
   required unsigned short errorCode;
-  USVString statusText;
+  USVString errorText;
 };
 
 partial interface RTCPeerConnection {
