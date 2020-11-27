@@ -6835,9 +6835,9 @@ dependencies = [
 
 [[package]]
 name = "warp"
-version = "0.1.22"
+version = "0.1.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99b53196ba54e91e31ba1e90309a31053218cc1d4697f6e48f7c7e3d255e64fc"
+checksum = "e69d5878a40400a1d1cd8af276d1ac038c4a6ea648be30990dce293c3cbdbbaf"
 dependencies = [
  "bytes 0.4.12",
  "futures 0.1.30",
