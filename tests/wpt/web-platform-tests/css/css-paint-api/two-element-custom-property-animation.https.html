@@ -9,7 +9,14 @@
 }
 .fooanimate {
   background-image: paint(foo);
-  animation: expand 5s;
+  /* Use long animations that start at 50% progress where the slope of the
+     selected timing function is zero. By setting up the animations in this way,
+     we accommodate lengthy delays in running the test without a potential drift
+     in the animated properties values. This is important for avoiding flakes,
+     especially on debug builds. The screenshots are taken as soon as the
+     animations are ready, thus the long animation duration has no bearing on
+     the actual duration of the test. */
+  animation: expand 1000000s cubic-bezier(0,1,1,0) -500000s;
 }
 #bartainer {
   width: 200px;
@@ -17,19 +24,15 @@
 }
 .baranimate {
   background-image: paint(bar);
-  animation: colorChange 5s;
+  animation: colorChange 1000000s cubic-bezier(0,1,1,0) -500000s;
 }
 @keyframes expand {
   0% { --foo: 0; }
-  0.01% { --foo: 100; }
-  99% { --foo: 100; }
   100% { --foo: 200; }
 }
 @keyframes colorChange {
-  0% { --bar: rgb(255, 0, 0); }
-  0.01% { --bar: rgb(128, 128, 0); }
-  99% { --bar: rgb(128, 128, 0); }
-  100% { --bar: rgb(0, 255, 0); }
+  0% { --bar: rgb(200, 0, 0); }
+  100% { --bar: rgb(0, 200, 0); }
 }
 </style>
 <script src="/common/reftest-wait.js"></script>
@@ -78,8 +81,10 @@ var blob = new Blob([code], {type: 'text/javascript'});
 CSS.paintWorklet.addModule(URL.createObjectURL(blob)).then(function() {
   document.getElementById('footainer').classList.add('fooanimate');
   document.getElementById('bartainer').classList.add('baranimate');
-  requestAnimationFrame(function() {
-    takeScreenshot();
+  const animations = document.getAnimations();
+  // Wait for all animations to start before completing the test.
+  Promise.all([animations[0].ready, animations[1].ready]).then(() => {
+      takeScreenshot();
   });
 });
 </script>
