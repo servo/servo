@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>Canvas test: 2d.text.fontStretch</title>
+<link rel="match" href="canvas.2d.fontStretch-ref.html">
+<script src="/html/canvas/resources/canvas-tests.js"></script>
+</style>
+<canvas id="c" class="output" width="500" height="500"><p class="fallback">FAIL (fallback content)</p></canvas>
+<script>
+
+var canvas = document.getElementById("c");
+var ctx = canvas.getContext('2d');
+
+// P shows as Pass for fontStretch = semi-expanded and shows as fail for
+// fontStretch = fail.
+function draw() {
+    ctx.clearRect(0, 0, 500, 500);
+    ctx.font = '25px test';
+    ctx.fontStretch = "semi-expanded";
+    ctx.fillText("P", 10, 40);
+}
+
+var f = new FontFace('test', 'url(/fonts/pass.woff)');
+f.stretch = "semi-expanded";
+document.fonts.add(f);
+
+var f2 = new FontFace('test', 'url(/fonts/fail.woff)');
+document.fonts.add(f2);
+// In canvas, font doesn't load until it's used. So try to use the newly added
+// font test here.
+draw();
+
+
+document.fonts.ready.then(() => {
+  draw();
+});
+
+
+</script>

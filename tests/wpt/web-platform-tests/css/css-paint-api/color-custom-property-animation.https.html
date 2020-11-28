@@ -6,19 +6,24 @@
 .container {
   width: 100px;
   height: 100px;
-  animation: expand 5s;
+}
+.animate {
+  background-image: paint(geometry);
+  /* Use a long animation that start at 50% progress where the slope of the
+     selected timing function is zero. By setting up the animation in this way,
+     we accommodate lengthy delays in running the test without a potential drift
+     in the animated property value. This is important for avoiding flakes,
+     especially on debug builds. The screenshots are taken as soon as the
+     animation is ready, thus the long animation duration has no bearing on
+     the actual duration of the test. */
+  animation: expand 1000000s cubic-bezier(0,1,1,0) -500000s;
   will-change: transform;
 }
 @keyframes expand {
-  0% { --foo: rgb(255, 0, 0); }
-  0.01% { --foo: rgb(127, 127, 0); }
-  99% { --foo: rgb(127, 127, 0); }
-  100% { --foo: rgb(0, 255, 0); }
+  0% { --foo: rgb(200, 0, 0); }
+  100% { --foo: rgb(0, 200, 0); }
 }
 
-#canvas-geometry {
-  background-image: paint(geometry);
-}
 </style>
 <script src="/common/reftest-wait.js"></script>
 <script src="/common/worklet-reftest.js"></script>
@@ -45,13 +50,15 @@ CSS.registerProperty({
 </script>
 
 <script>
-// The test is designed to make sure that when the custom property animation is
-// running on the compositor thread, we are getting the right value.
-// The "importWorkletAndTerminateTestAfterAsyncPaint" has the logic to rAF
-// two frames before taking a screenshot. So the animation is designed to
-// be stable after two frames. That is, the 0.01% of 5s is much less than
-// two frames, and thus after two frames, the value of --foo should be stable.
-importWorkletAndTerminateTestAfterAsyncPaint(CSS.paintWorklet, document.getElementById('code').textContent);
+var blob = new Blob([document.getElementById('code').textContent],
+                    {type: 'text/javascript'});
+CSS.paintWorklet.addModule(URL.createObjectURL(blob)).then(function() {
+    document.getElementById('canvas-geometry').classList.add('animate');
+    // Wait for the animation to start before completing the test.
+    document.getAnimations()[0].ready.then(() => {
+        takeScreenshot();
+    });
+});
 </script>
 </body>
 </html>
