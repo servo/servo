@@ -233,7 +233,7 @@ pub fn main_fetch(
     // Step 7.
     request.referrer_policy = request
         .referrer_policy
-        .or(Some(ReferrerPolicy::NoReferrerWhenDowngrade));
+        .or(Some(ReferrerPolicy::StrictOriginWhenCrossOrigin));
 
     // Step 8.
     assert!(request.referrer_policy.is_some());
