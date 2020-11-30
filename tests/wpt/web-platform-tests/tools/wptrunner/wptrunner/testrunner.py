@@ -664,8 +664,8 @@ class TestRunnerManager(threading.Thread):
             self.logger.debug("Unexpected count in this thread %i" % self.unexpected_count)
 
         if "assertion_count" in file_result.extra:
-            assertion_count = file_result.extra.pop("assertion_count")
-            if assertion_count > 0:
+            assertion_count = file_result.extra["assertion_count"]
+            if assertion_count is not None and assertion_count > 0:
                 self.logger.assertion_count(test.id,
                                             int(assertion_count),
                                             test.min_assertion_count,
