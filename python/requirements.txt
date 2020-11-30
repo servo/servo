@@ -15,10 +15,6 @@ flake8 == 3.8.3
 pep8 == 1.5.7
 pyflakes == 2.2.0
 
-# For buildbot checking
-voluptuous == 0.10.5
-PyYAML == 4.2b1
-
 # For test-webidl
 ply == 3.8
 
