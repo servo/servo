@@ -64,16 +64,6 @@ pub type PercentOrNone = generic::PercentOrNone<Percentage>;
 type LengthPercentageItemList = crate::OwnedSlice<generic::GradientItem<Color, LengthPercentage>>;
 
 #[cfg(feature = "gecko")]
-fn conic_gradients_enabled() -> bool {
-    static_prefs::pref!("layout.css.conic-gradient.enabled")
-}
-
-#[cfg(feature = "servo")]
-fn conic_gradients_enabled() -> bool {
-    false
-}
-
-#[cfg(feature = "gecko")]
 fn cross_fade_enabled() -> bool {
     static_prefs::pref!("layout.css.cross-fade.enabled")
 }
@@ -102,11 +92,9 @@ impl SpecifiedValueInfo for Gradient {
             "-webkit-repeating-radial-gradient",
             "-moz-repeating-radial-gradient",
             "-webkit-gradient",
+            "conic-gradient",
+            "repeating-conic-gradient",
         ]);
-
-        if conic_gradients_enabled() {
-            f(&["conic-gradient", "repeating-conic-gradient"]);
-        }
     }
 }
 
@@ -339,10 +327,10 @@ impl Parse for Gradient {
             "-moz-repeating-radial-gradient" => {
                 (Shape::Radial, true, GradientCompatMode::Moz)
             },
-            "conic-gradient" if conic_gradients_enabled() => {
+            "conic-gradient" => {
                 (Shape::Conic, false, GradientCompatMode::Modern)
             },
-            "repeating-conic-gradient" if conic_gradients_enabled() => {
+            "repeating-conic-gradient" => {
                 (Shape::Conic, true, GradientCompatMode::Modern)
             },
             "-webkit-gradient" => {
