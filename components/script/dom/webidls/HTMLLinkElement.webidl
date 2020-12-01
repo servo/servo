@@ -22,7 +22,8 @@ interface HTMLLinkElement : HTMLElement {
            attribute DOMString type;
   [CEReactions]
            attribute DOMString integrity;
-  // [SameObject, PutForwards=value] readonly attribute DOMTokenList sizes;
+  [CEReactions]
+           attribute DOMString referrerPolicy;
 
   // also has obsolete members
 };

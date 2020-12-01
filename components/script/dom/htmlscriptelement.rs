@@ -16,7 +16,8 @@ use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::document::Document;
 use crate::dom::element::{
-    cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
+    cors_setting_for_element, referrer_policy_for_element, reflect_cross_origin_attribute,
+    reflect_referrer_policy_attribute, set_cross_origin_attribute,
 };
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventStatus};
@@ -51,8 +52,10 @@ use msg::constellation_msg::PipelineId;
 use net_traits::request::{
     CorsSettings, CredentialsMode, Destination, ParserMetadata, RequestBuilder,
 };
-use net_traits::{FetchMetadata, FetchResponseListener, Metadata, NetworkError};
-use net_traits::{ResourceFetchTiming, ResourceTimingType};
+use net_traits::{
+    FetchMetadata, FetchResponseListener, Metadata, NetworkError, ResourceFetchTiming,
+    ResourceTimingType,
+};
 use servo_atoms::Atom;
 use servo_config::pref;
 use servo_url::ImmutableOrigin;
@@ -717,7 +720,7 @@ impl HTMLScriptElement {
             integrity_metadata: integrity_metadata.to_owned(),
             parser_metadata,
             referrer: self.global().get_referrer(),
-            referrer_policy: doc.get_referrer_policy(),
+            referrer_policy: referrer_policy_for_element(self.upcast::<Element>()),
             credentials_mode: module_credentials_mode,
         };
 
@@ -1351,6 +1354,14 @@ impl HTMLScriptElementMethods for HTMLScriptElement {
     fn SetCrossOrigin(&self, value: Option<DOMString>) {
         set_cross_origin_attribute(self.upcast::<Element>(), value);
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy
+    fn ReferrerPolicy(&self) -> DOMString {
+        reflect_referrer_policy_attribute(self.upcast::<Element>())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy
+    make_setter!(SetReferrerPolicy, "referrerpolicy");
 
     // https://html.spec.whatwg.org/multipage/#dom-script-text
     fn Text(&self) -> DOMString {
