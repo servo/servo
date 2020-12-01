@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <meta charset=utf-8>
-<title>NDEFWriter.scan with an focused iframe</title>
+<title>NDEFReader.scan with an focused iframe</title>
 <link rel="help" href="https://w3c.github.io/web-nfc/"/>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -9,15 +9,15 @@
 <script>
 
 nfc_test(async (t, mockNFC) => {
-  const reader = new NDEFReader();
+  const ndef = new NDEFReader();
   const controller = new AbortController();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
+  const ndefWatcher = new EventWatcher(t, ndef, ["reading", "readingerror"]);
 
-  const promise = readerWatcher.wait_for("reading").then(event => {
+  const promise = ndefWatcher.wait_for("reading").then(event => {
     assert_true(event instanceof NDEFReadingEvent);
     controller.abort();
   });
-  await reader.scan({ signal: controller.signal });
+  await ndef.scan({ signal: controller.signal });
 
   const iframe = document.createElement('iframe');
   iframe.src = 'resources/support-iframe.html';
@@ -37,7 +37,7 @@ nfc_test(async (t, mockNFC) => {
 
   // Remove iframe from main document.
   iframe.parentNode.removeChild(iframe);
-}, 'Test that NDEFWriter.scan is not suspended if iframe gains focus.');
+}, 'Test that NDEFReader.scan is not suspended if iframe gains focus.');
 
 </script>
 </body>
