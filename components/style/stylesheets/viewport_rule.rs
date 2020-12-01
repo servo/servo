@@ -17,6 +17,7 @@ use crate::rule_cache::RuleCacheConditions;
 use crate::shared_lock::{SharedRwLockReadGuard, StylesheetGuards, ToCssWithGuard};
 use crate::str::CssStringWriter;
 use crate::stylesheets::{Origin, StylesheetInDocument};
+use crate::stylesheets::cascading_at_rule::DescriptorDeclaration;
 use crate::values::computed::{Context, ToComputedValue};
 use crate::values::generics::length::LengthPercentageOrAuto;
 use crate::values::generics::NonNegative;
@@ -225,42 +226,8 @@ struct ViewportRuleParser<'a, 'b: 'a> {
     context: &'a ParserContext<'b>,
 }
 
-#[derive(Clone, Debug, PartialEq, ToShmem)]
-#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
 #[allow(missing_docs)]
-pub struct ViewportDescriptorDeclaration {
-    pub origin: Origin,
-    pub descriptor: ViewportDescriptor,
-    pub important: bool,
-}
-
-impl ViewportDescriptorDeclaration {
-    #[allow(missing_docs)]
-    pub fn new(
-        origin: Origin,
-        descriptor: ViewportDescriptor,
-        important: bool,
-    ) -> ViewportDescriptorDeclaration {
-        ViewportDescriptorDeclaration {
-            origin: origin,
-            descriptor: descriptor,
-            important: important,
-        }
-    }
-}
-
-impl ToCss for ViewportDescriptorDeclaration {
-    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> fmt::Result
-    where
-        W: Write,
-    {
-        self.descriptor.to_css(dest)?;
-        if self.important {
-            dest.write_str(" !important")?;
-        }
-        dest.write_str(";")
-    }
-}
+pub type ViewportDescriptorDeclaration = DescriptorDeclaration<ViewportDescriptor>;
 
 fn parse_shorthand<'i, 't>(
     context: &ParserContext,
@@ -551,28 +518,6 @@ impl ToCssWithGuard for ViewportRule {
             declaration.to_css(&mut CssWriter::new(dest))?;
         }
         dest.write_str(" }")
-    }
-}
-
-/// Computes the cascade precedence as according to
-/// <http://dev.w3.org/csswg/css-cascade/#cascade-origin>
-fn cascade_precendence(origin: Origin, important: bool) -> u8 {
-    match (origin, important) {
-        (Origin::UserAgent, true) => 1,
-        (Origin::User, true) => 2,
-        (Origin::Author, true) => 3,
-        (Origin::Author, false) => 4,
-        (Origin::User, false) => 5,
-        (Origin::UserAgent, false) => 6,
-    }
-}
-
-impl ViewportDescriptorDeclaration {
-    fn higher_or_equal_precendence(&self, other: &ViewportDescriptorDeclaration) -> bool {
-        let self_precedence = cascade_precendence(self.origin, self.important);
-        let other_precedence = cascade_precendence(other.origin, other.important);
-
-        self_precedence <= other_precedence
     }
 }
 
