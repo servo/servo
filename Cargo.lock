@@ -187,7 +187,7 @@ dependencies = [
  "futures-util",
  "log",
  "openssl",
- "pin-project 0.4.22",
+ "pin-project 0.4.27",
  "tokio 0.2.21",
  "tokio-openssl 0.4.0",
  "tungstenite",
@@ -4474,11 +4474,11 @@ dependencies = [
 
 [[package]]
 name = "pin-project"
-version = "0.4.22"
+version = "0.4.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "12e3a6cdbfe94a5e4572812a0201f8c0ed98c1c452c7b8563ce2276988ef9c17"
+checksum = "2ffbc8e94b38ea3d2d8ba92aea2983b503cd75d0888d75b86bb37970b5698e15"
 dependencies = [
- "pin-project-internal 0.4.22",
+ "pin-project-internal 0.4.27",
 ]
 
 [[package]]
@@ -4492,9 +4492,9 @@ dependencies = [
 
 [[package]]
 name = "pin-project-internal"
-version = "0.4.22"
+version = "0.4.27"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a0ffd45cf79d88737d7cc85bfd5d2894bee1139b356e616fe85dc389c61aaf7"
+checksum = "65ad2ae56b6abe3a1ee25f15ee605bacadb9a764edaba9c2bf4103800d4a1895"
 dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.2",
