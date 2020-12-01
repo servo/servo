@@ -9,15 +9,15 @@
 <script>
 
 nfc_test(async (t, mockNFC) => {
-  const reader = new NDEFReader();
-  const readerWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
+  const ndef = new NDEFReader();
+  const ndefWatcher = new EventWatcher(t, reader, ["reading", "readingerror"]);
   const promise = new Promise((resolve, reject) => {
-    readerWatcher.wait_for("reading").then(event => {
+    ndefWatcher.wait_for("reading").then(event => {
       if (document.hidden) reject();
       else resolve();
     });
   });
-  await reader.scan();
+  await ndef.scan();
   await promise;
 }, "Test NDEFReader.onreading is not fired when document is hidden");
 

@@ -172,7 +172,7 @@ class ChromiumFormatter(base.BaseFormatter):
         to the actual status if it's not.
 
         If the test has multiple statuses, it will have other statuses listed as
-        "known_intermittent" in |data|. If these exist, they will be appended to
+        "known_intermittent" in |data|. If these exist, they will be added to
         the returned status with spaced in between.
 
         :param str actual_status: the actual status of the test
@@ -181,8 +181,9 @@ class ChromiumFormatter(base.BaseFormatter):
         """
         expected_statuses = self._map_status_name(data["expected"]) if "expected" in data else actual_status
         if data.get("known_intermittent"):
-            expected_statuses += " " + " ".join(
-                [self._map_status_name(other_status) for other_status in data["known_intermittent"]])
+            all_statsues = {self._map_status_name(other_status) for other_status in data["known_intermittent"]}
+            all_statsues.add(expected_statuses)
+            expected_statuses = " ".join(sorted(all_statsues))
         return expected_statuses
 
     def suite_start(self, data):

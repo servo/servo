@@ -2,13 +2,16 @@
 <title>Layout Instability: off-screen content-visibility:auto content</title>
 <link rel="help" href="https://wicg.github.io/layout-instability/" />
 <style>
-  #target {
+  #auto {
     content-visibility: auto;
     contain-intrinsic-size: 1px;
     width: 100px;
   }
 </style>
-<div id=target style="position: relative; top: 100000px">
+<div class=auto>
+  <div style="width: 100px; height: 100px"></div>
+</div>
+<div class=auto style="position: relative; top: 100000px">
   <div style="width: 100px; height: 100px"></div>
 </div>
 <script src="/resources/testharness.js"></script>
@@ -21,7 +24,12 @@ promise_test(async () => {
   // Wait for the initial render to complete.
   await waitForAnimationFrames(2);
 
-  window.scrollTo(0, 100000);
+  window.scrollTo(0, 100000 + 100);
+  await waitForAnimationFrames(2);
+
+  assert_equals(watcher.score, 0);
+
+  window.scrollTo(0, 0);
   await waitForAnimationFrames(2);
 
   assert_equals(watcher.score, 0);

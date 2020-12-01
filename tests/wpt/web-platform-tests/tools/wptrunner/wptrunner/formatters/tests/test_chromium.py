@@ -426,8 +426,8 @@ def test_flaky_test_expected(capfd):
     test_obj = output_json["tests"]["t1"]
     # The test's statuses are all mapped, changing ERROR->FAIL and OK->PASS
     assert test_obj["actual"] == "FAIL"
-    # All the possible statuses are concatenated together into expected.
-    assert test_obj["expected"] == "PASS FAIL TIMEOUT"
+    # All the possible statuses are merged and sorted together into expected.
+    assert test_obj["expected"] == "FAIL PASS TIMEOUT"
     # ...this is not a regression or unexpected because the actual status is one
     # of the expected ones
     assert "is_regression" not in test_obj
@@ -462,7 +462,7 @@ def test_flaky_test_unexpected(capfd):
     test_obj = output_json["tests"]["t1"]
     # The test's statuses are all mapped, changing ERROR->FAIL and OK->PASS
     assert test_obj["actual"] == "FAIL"
-    # All the possible statuses are concatenated together into expected.
+    # All the possible statuses are merged and sorted together into expected.
     assert test_obj["expected"] == "PASS TIMEOUT"
     # ...this is a regression and unexpected because the actual status is not
     # one of the expected ones
@@ -534,6 +534,39 @@ def test_known_intermittent_empty(capfd):
     # anywhere.
     assert test_obj["actual"] == "PASS"
     assert test_obj["expected"] == "PASS"
+
+
+def test_known_intermittent_duplicate(capfd):
+    # We don't want to have duplicate statuses in the final "expected" field.
+
+    # Set up the handler.
+    output = StringIO()
+    logger = structuredlog.StructuredLogger("test_a")
+    logger.add_handler(handlers.StreamHandler(output, ChromiumFormatter()))
+
+    # There are two duplications in this input:
+    # 1. known_intermittent already contains expected;
+    # 2. both statuses in known_intermittent map to FAIL in Chromium.
+    # In the end, we should only get one FAIL in Chromium "expected".
+    logger.suite_start(["t1"], run_info={}, time=123)
+    logger.test_start("t1")
+    logger.test_end("t1", status="ERROR", expected="ERROR", known_intermittent=["FAIL", "ERROR"])
+    logger.suite_end()
+
+    # Check nothing got output to stdout/stderr.
+    # (Note that mozlog outputs exceptions during handling to stderr!)
+    captured = capfd.readouterr()
+    assert captured.out == ""
+    assert captured.err == ""
+
+    # Check the actual output of the formatter.
+    output.seek(0)
+    output_json = json.load(output)
+
+    test_obj = output_json["tests"]["t1"]
+    assert test_obj["actual"] == "FAIL"
+    # No duplicate "FAIL" in "expected".
+    assert test_obj["expected"] == "FAIL"
 
 
 def test_reftest_screenshots(capfd):
