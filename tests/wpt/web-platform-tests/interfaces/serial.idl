@@ -23,7 +23,7 @@ interface Serial : EventTarget {
 
 [Exposed=(DedicatedWorker,Window), SecureContext]
 interface SerialPort {
-  Promise<void> open(optional SerialOptions options = {});
+  Promise<undefined> open(optional SerialOptions options = {});
   readonly attribute ReadableStream in;
   readonly attribute WritableStream out;
   SerialPortInfo getInfo();

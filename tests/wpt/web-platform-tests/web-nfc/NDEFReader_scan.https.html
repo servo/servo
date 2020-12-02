@@ -72,7 +72,7 @@ nfc_test(async () => {
                             await ndef.scan();
                             parent.postMessage("Failure", "*");
                           } catch (error) {
-                            if (error.name == "NotAllowedError") {
+                            if (error.name == "InvalidStateError") {
                               parent.postMessage("Success", "*");
                             } else {
                               parent.postMessage("Failure", "*");
@@ -106,20 +106,6 @@ nfc_test(async (t, mockNFC) => {
   mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
   await promise;
 }, "Test that nfc watch success if NFC HW is enabled.");
-
-nfc_test(async (t, mockNFC) => {
-  const ndef = new NDEFReader();
-  const controller = new AbortController();
-  const ndefWatcher = new EventWatcher(t, ndef, ["reading", "readingerror"]);
-  const promise = ndefWatcher.wait_for("reading").then(event => {
-    assert_true(event instanceof NDEFReadingEvent);
-    controller.abort();
-  });
-  await ndef.scan({signal : controller.signal});
-
-  mockNFC.setReadingMessage(createMessage([createTextRecord(test_text_data)]));
-  await promise;
-}, "Test that NDEFReader.scan matches any ids if NDEFScanOptions.id is undefined.");
 
 nfc_test(async (t, mockNFC) => {
   const ndef = new NDEFReader();
