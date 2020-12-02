@@ -236,7 +236,7 @@ nfc_test(async () => {
                             await ndef.write("Test");
                             parent.postMessage("Failure", "*");
                           } catch (error) {
-                            if (error.name == "NotAllowedError") {
+                            if (error.name == "InvalidStateError") {
                               parent.postMessage("Success", "*");
                             } else {
                               parent.postMessage("Failure", "*");

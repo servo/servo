@@ -370,36 +370,4 @@
       }] }));
   }, 'with turns server, credentialType password, and object credential should throw InvalidAccessError');
 
-  /*
-    4.3.2.  To set a configuration
-      11.6. If scheme name is turn or turns, and server.credentialType is "oauth",
-            and server.credential is not an RTCOAuthCredential, then throw an
-            InvalidAccessError and abort these steps.
-   */
-  config_test(makePc => {
-    assert_throws_dom('InvalidAccessError', () =>
-      makePc({ iceServers: [{
-        urls: 'turns:turn.example.org',
-        credentialType: 'oauth',
-        username: 'user',
-        credential: 'cred'
-      }] }));
-  }, 'with turns server, credentialType oauth, and string credential should throw InvalidAccessError');
-
-  /*
-    Tested
-      4.3.2.  To set a configuration
-        11.1-6.
-
-    Untestable
-      4.3.2.  To set a configuration
-        11.7.  Append server to validatedServers.
-
-    Coverage Report
-      Tested         9
-      Not Tested     0
-      Untestable     1
-      Total         10
-   */
-
 </script>

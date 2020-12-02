@@ -1,0 +1,25 @@
+<!doctype html>
+<html class="reftest-wait">
+<title>Adding content to a previously empty filtered container</title>
+<link rel="help" href="https://drafts.fxtf.org/filter-effects/#FilterProperty">
+<link rel="match" href="reference/green-100x100.html">
+<link rel="bookmark" href="https://crbug.com/1154050">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<svg>
+  <filter id="f" color-interpolation-filters="sRGB">
+    <feComponentTransfer><feFuncA/></feComponentTransfer>
+  </filter>
+  <rect width="100" height="100" fill="red"/>
+  <g id="target" filter="url(#f)"/>
+</svg>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('fill', 'green');
+  rect.setAttribute('width', '100');
+  rect.setAttribute('height', '100');
+  document.getElementById('target').appendChild(rect);
+  takeScreenshot();
+});
+</script>

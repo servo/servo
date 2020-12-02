@@ -613,6 +613,11 @@ interface AudioWorkletProcessor {
   readonly attribute MessagePort port;
 };
 
+callback AudioWorkletProcessCallback =
+  boolean (FrozenArray<FrozenArray<Float32Array>> inputs,
+           FrozenArray<FrozenArray<Float32Array>> outputs,
+           object parameters);
+
 dictionary AudioParamDescriptor {
   required DOMString name;
   float defaultValue = 0;

@@ -157,16 +157,23 @@ def test_subtest_messages(capfd):
     output_json = json.load(output)
 
     t1_artifacts = output_json["tests"]["t1"]["artifacts"]
-    assert t1_artifacts["log"] == [
+    assert t1_artifacts["wpt_actual_metadata"] == [
         "[t1]\n  expected: PASS\n",
-        "  [t1_a]\n    expected: FAIL\n    message: t1_a_message\n",
-        "  [t1_b]\n    expected: PASS\n    message: t1_b_message\n",
+        "  [t1_a]\n    expected: FAIL\n",
+        "  [t1_b]\n    expected: PASS\n",
+    ]
+    assert t1_artifacts["wpt_log"] == [
+        "t1_a: t1_a_message\n",
+        "t1_b: t1_b_message\n",
     ]
     assert t1_artifacts["wpt_subtest_failure"] == ["true"]
     t2_artifacts = output_json["tests"]["t2"]["artifacts"]
-    assert t2_artifacts["log"] == [
-        "[t2]\n  expected: TIMEOUT\n  message: t2_message\n",
+    assert t2_artifacts["wpt_actual_metadata"] == [
+        "[t2]\n  expected: TIMEOUT\n",
         "  [t2_a]\n    expected: PASS\n",
+    ]
+    assert t2_artifacts["wpt_log"] == [
+        "Harness: t2_message\n"
     ]
     assert "wpt_subtest_failure" not in t2_artifacts.keys()
 
@@ -210,11 +217,17 @@ def test_subtest_failure(capfd):
 
     test_obj = output_json["tests"]["t1"]
     t1_artifacts = test_obj["artifacts"]
-    assert t1_artifacts["log"] == [
-        "[t1]\n  expected: PASS\n  message: top_message\n",
-        "  [t1_a]\n    expected: FAIL\n    message: t1_a_message\n",
-        "  [t1_b]\n    expected: PASS\n    message: t1_b_message\n",
-        "  [t1_c]\n    expected: TIMEOUT\n    message: t1_c_message\n",
+    assert t1_artifacts["wpt_actual_metadata"] == [
+        "[t1]\n  expected: PASS\n",
+        "  [t1_a]\n    expected: FAIL\n",
+        "  [t1_b]\n    expected: PASS\n",
+        "  [t1_c]\n    expected: TIMEOUT\n",
+    ]
+    assert t1_artifacts["wpt_log"] == [
+        "Harness: top_message\n",
+        "t1_a: t1_a_message\n",
+        "t1_b: t1_b_message\n",
+        "t1_c: t1_c_message\n",
     ]
     assert t1_artifacts["wpt_subtest_failure"] == ["true"]
     # The status of the test in the output is a failure because subtests failed,
@@ -266,13 +279,16 @@ def test_expected_subtest_failure(capfd):
     output_json = json.load(output)
 
     test_obj = output_json["tests"]["t1"]
-    t1_log = test_obj["artifacts"]["log"]
-    print("Lpz t1log=%s" % t1_log)
-    assert t1_log == [
+    assert test_obj["artifacts"]["wpt_actual_metadata"] == [
         "[t1]\n  expected: OK\n",
-        "  [t1_a]\n    expected: FAIL\n    message: t1_a_message\n",
-        "  [t1_b]\n    expected: PASS\n    message: t1_b_message\n",
-        "  [t1_c]\n    expected: TIMEOUT\n    message: t1_c_message\n",
+        "  [t1_a]\n    expected: FAIL\n",
+        "  [t1_b]\n    expected: PASS\n",
+        "  [t1_c]\n    expected: TIMEOUT\n",
+    ]
+    assert test_obj["artifacts"]["wpt_log"] == [
+        "t1_a: t1_a_message\n",
+        "t1_b: t1_b_message\n",
+        "t1_c: t1_c_message\n",
     ]
     # The status of the test in the output is a pass because the subtest
     # failures were all expected.
@@ -316,9 +332,12 @@ def test_unexpected_subtest_pass(capfd):
 
     test_obj = output_json["tests"]["t1"]
     t1_artifacts = test_obj["artifacts"]
-    assert t1_artifacts["log"] == [
+    assert t1_artifacts["wpt_actual_metadata"] == [
         "[t1]\n  expected: PASS\n",
-        "  [t1_a]\n    expected: PASS\n    message: t1_a_message\n",
+        "  [t1_a]\n    expected: PASS\n",
+    ]
+    assert t1_artifacts["wpt_log"] == [
+        "t1_a: t1_a_message\n",
     ]
     assert t1_artifacts["wpt_subtest_failure"] == ["true"]
     # Since the subtest status is unexpected, we fail the test. But we report
