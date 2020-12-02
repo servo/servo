@@ -46,10 +46,8 @@ RUN \
     #
     # Install the version of rustup that is current when this Docker image is being built:
     # We want at least 1.21 (increment in this comment to force an image rebuild).
-    curl https://sh.rustup.rs -sSf | sh -s -- --default-toolchain none --profile=minimal -y && \
+    curl https://sh.rustup.rs -sSf | sh -s -- --profile=minimal -y && \
     #
-    #
-    curl -sSfL \
-        https://github.com/mozilla/sccache/releases/download/0.2.12/sccache-0.2.12-x86_64-unknown-linux-musl.tar.gz \
-        | tar -xz --strip-components=1 -C /usr/local/bin/ \
-            sccache-0.2.12-x86_64-unknown-linux-musl/sccache
+    # There are no sccache binary releases that include this commit, so we install a particular
+    # git commit instead.
+    ~/.cargo/bin/cargo install sccache --git https://github.com/mozilla/sccache/ --rev e66c9c15142a7e583d6ab80bd614bdffb2ebcc47
