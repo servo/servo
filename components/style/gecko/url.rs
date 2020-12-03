@@ -109,7 +109,7 @@ impl CssUrlData {
     /// Returns true if this URL looks like a fragment.
     /// See https://drafts.csswg.org/css-values/#local-urls
     pub fn is_fragment(&self) -> bool {
-        self.as_str().chars().next().map_or(false, |c| c == '#')
+        self.as_str().as_bytes().iter().next().map_or(false, |b| *b == b'#')
     }
 
     /// Return the unresolved url as string, or the empty string if it's
