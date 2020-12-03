@@ -1,3 +1,5 @@
+// META: script=resources/utils.js
+
 async_test(t => {
     assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
     new PerformanceObserver(t.step_func((entryList, obs) => {
@@ -6,9 +8,7 @@ async_test(t => {
             list.getEntries().forEach(entry => {
                 if (entry.entryType === 'mark')
                     return;
-                assert_equals(entry.entryType, 'longtask');
-                assert_equals(entry.name, 'self');
-                assert_greater_than(entry.duration, 50);
+                checkLongTaskEntry(entry);
                 longtaskObserved = true;
             });
             assert_true(longtaskObserved, 'Did not observe buffered longtask.');

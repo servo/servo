@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Beforeunload must be gated behind sticky activation: nested browsing context</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<p>If you happen to be running this test as a human, then be sure not to interact with any part of the page; that would invalidate the results!
+
+<script>
+setup({ single_test: true });
+
+const iframe = document.createElement('iframe');
+iframe.src = 'support/beforeunload-sticky-start.html';
+
+window.onmessage = e => {
+  assert_equals(e.data, 'navigated successfully');
+
+  const desiredURL = (new URL('support/beforeunload-sticky-destination.html', location.href)).href;
+  assert_equals(iframe.contentWindow.location.href, desiredURL);
+
+  done();
+};
+
+document.body.append(iframe);
+</script>

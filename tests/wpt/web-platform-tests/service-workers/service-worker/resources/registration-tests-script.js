@@ -57,6 +57,17 @@ function registration_tests_script(register_method, type) {
       }, 'Registering script importing malformed script');
   }
 
+  if (type === 'module') {
+    promise_test(function(t) {
+        var script = 'resources/malformed-worker.py?top-level-await';
+        var scope = 'resources/scope/top-level-await';
+        return promise_rejects_js(t,
+            TypeError,
+            register_method(script, {scope: scope}),
+            'Registration of script with await top-level await should fail.');
+      }, 'Registering script with top-level await');
+  }
+
   promise_test(function(t) {
       var script = 'resources/no-such-worker.js';
       var scope = 'resources/scope/no-such-worker';

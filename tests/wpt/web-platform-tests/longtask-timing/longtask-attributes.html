@@ -5,6 +5,7 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
 
 <h1>Long Task Attributes</h1>
 <div id="log"></div>
@@ -17,13 +18,7 @@
             assert_equals(entries.length, 1,
                 'Exactly one entry is expected.');
             const longtask = entries[0];
-            assert_equals(longtask.entryType, 'longtask');
-            assert_equals(longtask.name, 'self');
-            assert_greater_than(longtask.duration, 50);
-            assert_greater_than_equal(longtask.startTime, 0);
-            const currentTime = performance.now();
-            assert_less_than_equal(longtask.startTime, currentTime);
-
+            checkLongTaskEntry(longtask);
             // Assert the TaskAttributionTiming entry in attribution.
             assert_equals(longtask.attribution.length, 1,
                 'Exactly one attribution entry is expected');

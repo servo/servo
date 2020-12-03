@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Test focus event after focusing iframe</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+function waitForEvent(target, event, checkFn) {
+  return new Promise(resolve => {
+    target.addEventListener(event, e => {
+      if (checkFn && !checkFn(e)) {
+        return;
+      }
+      resolve();
+    }, { once: true });
+  });
+}
+
+function focusIframe(w) {
+  w.postMessage("focus", "*");
+}
+
+// This will send message to outer frame and also inner frame to ask them
+// send the log they collect back, the logs of outer and inner will be
+// concatenated.
+async function getLog(w) {
+  let log = "";
+  step_timeout(function() {
+    w.postMessage("getlog", "*");
+  }, 0);
+  await waitForEvent(window, "message", (e) => {
+    log = e.data;
+    return true;
+  });
+  return log;
+}
+
+async function runTest(t, url) {
+  let w = window.open(url);
+  t.add_cleanup(() => { w.close(); });
+  await waitForEvent(window, "message", e => e.data === "ready");
+  focusIframe(w);
+  assert_equals(await getLog(w), 'outerlog:willfocusiframe,windowblur,didfocusiframe,innerlog:windowfocus,');
+  focusIframe(w);
+  assert_equals(await getLog(w), 'outerlog:willfocusiframe,windowblur,didfocusiframe,willfocusiframe,didfocusiframe,innerlog:windowfocus,');
+}
+
+promise_test(async t => {
+  await runTest(t, "support/focus-event-after-focusing-different-site-iframes-outer.sub.html");
+}, "Check focus event after focusing different site iframe");
+
+promise_test(async t => {
+  await runTest(t, "support/focus-event-after-focusing-same-site-iframes-outer.html");
+}, "Check focus event after focusing same site iframe");
+
+</script>

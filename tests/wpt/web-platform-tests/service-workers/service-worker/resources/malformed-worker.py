@@ -6,5 +6,6 @@ def main(request, response):
             u'uncaught-exception': u'throw new DOMException("AbortError");',
             u'caught-exception': u'try { throw new Error; } catch(e) {}',
             u'import-malformed-script': u'importScripts("malformed-worker.py?parse-error");',
-            u'import-no-such-script': u'importScripts("no-such-script.js");'}[request.url_parts.query]
+            u'import-no-such-script': u'importScripts("no-such-script.js");',
+            u'top-level-await': u'await Promise.resolve(1);'}[request.url_parts.query]
     return headers, body

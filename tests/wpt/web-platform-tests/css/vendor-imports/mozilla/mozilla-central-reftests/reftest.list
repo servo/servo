@@ -49,9 +49,6 @@ include images3/reftest.list
 # Masking Level 1
 include masking/reftest.list
 
-# Multi-column Layout 3
-include multicol3/reftest.list
-
 # Ruby Layout Module
 include ruby/reftest.list
 

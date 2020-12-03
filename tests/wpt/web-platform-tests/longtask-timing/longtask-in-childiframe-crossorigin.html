@@ -5,6 +5,7 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src='resources/utils.js'></script>
 
 <h1>Long Task in Nested Cross-Origin Child Iframe</h1>
 <div id="log"></div>
@@ -22,9 +23,7 @@
                 longtask.name == 'multiple-contexts' ||
                 longtask.name == 'unknown')
               return;
-            assert_equals(longtask.name, 'cross-origin-descendant');
-            assert_greater_than(longtask.duration, 50);
-
+            checkLongTaskEntry(longtask, 'cross-origin-descendant');
             // Assert the TaskAttributionTiming entry in attribution.
             assert_equals(longtask.attribution.length, 1,
                 'Exactly one attribution entry is expected');

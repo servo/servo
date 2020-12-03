@@ -1,3 +1,5 @@
+// META: script=resources/utils.js
+
 async_test(function (t) {
     assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
     new PerformanceObserver(
@@ -6,12 +8,7 @@ async_test(function (t) {
             assert_equals(entries.length, 1,
                 'Exactly one entry is expected.');
             const longtask = entries[0];
-            assert_equals(longtask.entryType, 'longtask');
-            assert_equals(longtask.name, 'self');
-            assert_greater_than(longtask.duration, 50);
-            assert_greater_than_equal(longtask.startTime, 0);
-            const currentTime = performance.now();
-            assert_less_than_equal(longtask.startTime, currentTime);
+            checkLongTaskEntry(longtask);
             t.done();
         })
     ).observe({entryTypes: ['longtask']});
