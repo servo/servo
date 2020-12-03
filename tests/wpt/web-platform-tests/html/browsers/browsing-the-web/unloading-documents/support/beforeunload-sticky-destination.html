@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Beforeunload must be gated behind sticky activation: destination page</title>
+
+<p>If you reached this page without clicking through a confirmation dialog, then the test has passed!
+
+<script>
+if (window.opener) {
+  window.opener.postMessage('navigated successfully');
+} else if (window.parent) {
+  window.parent.postMessage('navigated successfully');
+}
+</script>

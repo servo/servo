@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Beforeunload must be gated behind sticky activation: normal top-level browsing context</title>
+
+<p>This test is manual because we want to test non-popup, non-iframe situations. Sibling files contain automated tests for those situations.
+
+<p>In three seconds, this document will redirect itself to a new page. The test passes if the redirect succeeds. The test fails if a beforeunload dialog pops up asking for confirmation.
+
+<p>Be sure not to interact with any part of the page in the meantime. That would invalidate the results.
+
+<script>
+window.onbeforeunload = e => e.preventDefault();
+
+setTimeout(() => {
+  location.href = 'support/beforeunload-sticky-destination.html';
+}, 3000);
+</script>

@@ -1,6 +1,12 @@
+import pytest
+
+from webdriver.error import NoSuchElementException
+
 from tests.support.asserts import assert_success
-from tests.support.inline import inline
+from tests.support.inline import iframe, inline
 from tests.support.sync import Poll
+
+from . import wait_for_new_handle
 
 
 def element_click(session, element):
@@ -93,31 +99,72 @@ def test_link_hash(session):
             """, args=(element,)) is True
 
 
-def test_link_open_target_in_new_window(session, url):
-    orig_handles = session.handles
+@pytest.mark.parametrize("target", [
+    "",
+    "_blank",
+    "_parent",
+    "_self",
+    "_top",
+])
+def test_link_from_toplevel_context_with_target(session, target):
+    target_page = inline("<p id='foo'>foo</p>")
 
-    session.url = inline("""
-        <a href="{}" target="_blank">Open in new window</a>
-    """.format(inline("<p id=foo")))
+    session.url = inline("<a href='{}' target='{}'>click</a>".format(target_page, target))
     element = session.find.css("a", all=False)
+
+    orig_handles = session.handles
 
     response = element_click(session, element)
     assert_success(response)
 
-    def find_new_handle(session):
-        new_handles = list(set(session.handles) - set(orig_handles))
-        if new_handles and len(new_handles) == 1:
-            return new_handles[0]
-        return None
+    if target == "_blank":
+        session.window_handle = wait_for_new_handle(session, orig_handles)
 
     wait = Poll(
         session,
         timeout=5,
-        message="No new window has been opened")
-    new_handle = wait.until(find_new_handle)
+        ignored_exceptions=NoSuchElementException,
+        message="Expected element has not been found")
+    wait.until(lambda s: s.find.css("#foo"))
 
-    session.window_handle = new_handle
-    session.find.css("#foo")
+
+@pytest.mark.parametrize("target", [
+    "",
+    "_blank",
+    "_parent",
+    "_self",
+    "_top",
+])
+def test_link_from_nested_context_with_target(session, target):
+    target_page = inline("<p id='foo'>foo</p>")
+
+    session.url = inline(iframe("<a href='{}' target='{}'>click</a>".format(target_page, target)))
+    frame = session.find.css("iframe", all=False)
+    session.switch_frame(frame)
+    element = session.find.css("a".format(target), all=False)
+
+    orig_handles = session.handles
+
+    response = element_click(session, element)
+    assert_success(response)
+
+    if target == "_blank":
+        session.window_handle = wait_for_new_handle(session, orig_handles)
+
+    # With the current browsing context removed the navigation should
+    # not timeout. Switch to the target context, and wait until the expected
+    # element is available.
+    if target == "_parent":
+        session.switch_frame("parent")
+    elif target == "_top":
+        session.switch_frame(None)
+
+    wait = Poll(
+        session,
+        timeout=5,
+        ignored_exceptions=NoSuchElementException,
+        message="Expected element has not been found")
+    wait.until(lambda s: s.find.css("#foo"))
 
 
 def test_link_closes_window(session):

@@ -1,3 +1,5 @@
+// META: script=resources/utils.js
+
 async_test(t => {
   assert_implements(window.PerformanceLongTaskTiming, 'Longtasks are not supported.');
   // Create a long task before any observer.
@@ -7,9 +9,7 @@ async_test(t => {
   t.step_timeout(() => {
     new PerformanceObserver(t.step_func_done(list => {
       list.getEntries().forEach(entry => {
-        assert_equals(entry.entryType, 'longtask');
-        assert_equals(entry.name, 'self');
-        assert_greater_than(entry.duration, 50);
+        checkLongTaskEntry(entry);
       });
     })).observe({type: 'longtask', buffered: true});
   }, 0);

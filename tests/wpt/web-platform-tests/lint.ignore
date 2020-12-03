@@ -478,6 +478,7 @@ SET TIMEOUT: css/CSS2/selectors/dom-hover-001.xht
 SET TIMEOUT: css/CSS2/selectors/dom-hover-002.xht
 SET TIMEOUT: css/CSS2/tables/tables-102.xht
 SET TIMEOUT: css/mediaqueries/min-width-tables-001.html
+SET TIMEOUT: css/css-text/crashtests/rendering-rtl-bidi-override-crash.html
 
 ## Build system stuff
 CSS-COLLIDING-SUPPORT-NAME: css/*/README
