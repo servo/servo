@@ -503,19 +503,18 @@ impl Stylesheet {
             let mut iter = RuleListParser::new_for_stylesheet(&mut input, rule_parser);
 
             loop {
-                let rule_start = iter.input.position().byte_index();
                 let result = match iter.next() {
                     Some(result) => result,
                     None => break,
                 };
                 match result {
-                    Ok(rule) => {
+                    Ok((rule_start, rule)) => {
                         if let Some(ref mut data) = sanitization_data {
                             if !data.kind.allows(&rule) {
                                 continue;
                             }
                             let end = iter.input.position().byte_index();
-                            data.output.push_str(&css[rule_start..end]);
+                            data.output.push_str(&css[rule_start.byte_index()..end]);
                         }
                         // Use a fallible push here, and if it fails, just fall
                         // out of the loop.  This will cause the page to be

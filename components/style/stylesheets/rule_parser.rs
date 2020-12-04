@@ -27,7 +27,7 @@ use crate::values::computed::font::FamilyName;
 use crate::values::{CssUrl, CustomIdent, KeyframesName};
 use crate::{Namespace, Prefix};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
-use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, ParserState};
+use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, SourcePosition, ParserState};
 use selectors::SelectorList;
 use servo_arc::Arc;
 use style_traits::{ParseError, StyleParseErrorKind};
@@ -178,7 +178,7 @@ pub enum AtRuleNonBlockPrelude {
 impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
     type PreludeNoBlock = AtRuleNonBlockPrelude;
     type PreludeBlock = AtRuleBlockPrelude;
-    type AtRule = CssRule;
+    type AtRule = (SourcePosition, CssRule);
     type Error = StyleParseErrorKind<'i>;
 
     fn parse_prelude<'t>(
@@ -253,11 +253,10 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         prelude: AtRuleBlockPrelude,
         start: &ParserState,
         input: &mut Parser<'i, 't>,
-    ) -> Result<CssRule, ParseError<'i>> {
-        AtRuleParser::parse_block(&mut self.nested(), prelude, start, input).map(|rule| {
-            self.state = State::Body;
-            rule
-        })
+    ) -> Result<Self::AtRule, ParseError<'i>> {
+        let rule = AtRuleParser::parse_block(&mut self.nested(), prelude, start, input)?;
+        self.state = State::Body;
+        Ok((start.position(), rule))
     }
 
     #[inline]
@@ -266,7 +265,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
         prelude: AtRuleNonBlockPrelude,
         start: &ParserState,
     ) -> Self::AtRule {
-        match prelude {
+        let rule = match prelude {
             AtRuleNonBlockPrelude::Import(url, media) => {
                 let loader = self
                     .loader
@@ -299,13 +298,15 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                     source_location: start.source_location(),
                 })))
             },
-        }
+        };
+
+        (start.position(), rule)
     }
 }
 
 impl<'a, 'i> QualifiedRuleParser<'i> for TopLevelRuleParser<'a> {
     type Prelude = SelectorList<SelectorImpl>;
-    type QualifiedRule = CssRule;
+    type QualifiedRule = (SourcePosition, CssRule);
     type Error = StyleParseErrorKind<'i>;
 
     #[inline]
@@ -326,13 +327,10 @@ impl<'a, 'i> QualifiedRuleParser<'i> for TopLevelRuleParser<'a> {
         prelude: Self::Prelude,
         start: &ParserState,
         input: &mut Parser<'i, 't>,
-    ) -> Result<CssRule, ParseError<'i>> {
-        QualifiedRuleParser::parse_block(&mut self.nested(), prelude, start, input).map(
-            |result| {
-                self.state = State::Body;
-                result
-            },
-        )
+    ) -> Result<Self::QualifiedRule, ParseError<'i>> {
+        let rule = QualifiedRuleParser::parse_block(&mut self.nested(), prelude, start, input)?;
+        self.state = State::Body;
+        Ok((start.position(), rule))
     }
 }
 
