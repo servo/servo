@@ -3773,6 +3773,27 @@ pub fn set_cross_origin_attribute(element: &Element, value: Option<DOMString>) {
     }
 }
 
+pub fn reflect_referrer_policy_attribute(element: &Element) -> DOMString {
+    let attr =
+        element.get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")));
+
+    if let Some(mut val) = attr.map(|v| v.Value()) {
+        val.make_ascii_lowercase();
+        if val == "no-referrer" ||
+            val == "no-referrer-when-downgrade" ||
+            val == "same-origin" ||
+            val == "origin" ||
+            val == "strict-origin" ||
+            val == "origin-when-cross-origin" ||
+            val == "strict-origin-when-cross-origin" ||
+            val == "unsafe-url"
+        {
+            return val;
+        }
+    }
+    return DOMString::new();
+}
+
 pub(crate) fn referrer_policy_for_element(element: &Element) -> Option<ReferrerPolicy> {
     element
         .get_attribute_by_name(DOMString::from_string(String::from("referrerpolicy")))

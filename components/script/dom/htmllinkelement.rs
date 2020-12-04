@@ -13,7 +13,8 @@ use crate::dom::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::{
-    cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
+    cors_setting_for_element, reflect_cross_origin_attribute, reflect_referrer_policy_attribute,
+    set_cross_origin_attribute,
 };
 use crate::dom::element::{AttributeMutation, Element, ElementCreator};
 use crate::dom::htmlelement::HTMLElement;
@@ -489,6 +490,14 @@ impl HTMLLinkElementMethods for HTMLLinkElement {
     fn SetCrossOrigin(&self, value: Option<DOMString>) {
         set_cross_origin_attribute(self.upcast::<Element>(), value);
     }
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-referrerpolicy
+    fn ReferrerPolicy(&self) -> DOMString {
+        reflect_referrer_policy_attribute(self.upcast::<Element>())
+    }
+
+    // https://html.spec.whatwg.org/multipage/#dom-link-referrerpolicy
+    make_setter!(SetReferrerPolicy, "referrerpolicy");
 
     // https://drafts.csswg.org/cssom/#dom-linkstyle-sheet
     fn GetSheet(&self) -> Option<DomRoot<DOMStyleSheet>> {

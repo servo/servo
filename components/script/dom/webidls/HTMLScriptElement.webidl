@@ -25,6 +25,8 @@ interface HTMLScriptElement : HTMLElement {
            attribute DOMString text;
   [CEReactions]
            attribute DOMString integrity;
+  [CEReactions]
+           attribute DOMString referrerPolicy;
 
   // also has obsolete members
 };
