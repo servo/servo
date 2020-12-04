@@ -17,7 +17,7 @@ use crate::str::CssStringWriter;
 use crate::stylesheets::rule_parser::VendorPrefix;
 use crate::stylesheets::{CssRuleType, StylesheetContents};
 use crate::values::{serialize_percentage, KeyframesName};
-use cssparser::{parse_one_rule, DeclarationListParser, DeclarationParser, SourceLocation, Token};
+use cssparser::{parse_one_rule, DeclarationListParser, DeclarationParser, ParserState, SourceLocation, Token};
 use cssparser::{AtRuleParser, CowRcStr, Parser, ParserInput, QualifiedRuleParser, RuleListParser};
 use servo_arc::Arc;
 use std::fmt::{self, Write};
@@ -533,7 +533,7 @@ impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
     fn parse_block<'t>(
         &mut self,
         selector: Self::Prelude,
-        source_location: SourceLocation,
+        start: &ParserState,
         input: &mut Parser<'i, 't>,
     ) -> Result<Self::QualifiedRule, ParseError<'i>> {
         let context = ParserContext::new_with_rule_type(
@@ -566,7 +566,7 @@ impl<'a, 'i> QualifiedRuleParser<'i> for KeyframeListParser<'a> {
         Ok(Arc::new(self.shared_lock.wrap(Keyframe {
             selector,
             block: Arc::new(self.shared_lock.wrap(block)),
-            source_location,
+            source_location: start.source_location(),
         })))
     }
 }

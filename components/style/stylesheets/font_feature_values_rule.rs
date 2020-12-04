@@ -20,7 +20,7 @@ use crate::values::serialize_atom_identifier;
 use crate::Atom;
 use cssparser::{AtRuleParser, AtRuleType, BasicParseErrorKind, CowRcStr};
 use cssparser::{DeclarationListParser, DeclarationParser, Parser};
-use cssparser::{QualifiedRuleParser, RuleListParser, SourceLocation, Token};
+use cssparser::{QualifiedRuleParser, RuleListParser, SourceLocation, ParserState, Token};
 use std::fmt::{self, Write};
 use style_traits::{CssWriter, ParseError, StyleParseErrorKind, ToCss};
 
@@ -413,7 +413,7 @@ macro_rules! font_feature_values_blocks {
             fn parse_block<'t>(
                 &mut self,
                 prelude: BlockType,
-                _location: SourceLocation,
+                _: &ParserState,
                 input: &mut Parser<'i, 't>
             ) -> Result<Self::AtRule, ParseError<'i>> {
                 debug_assert_eq!(self.context.rule_type(), CssRuleType::FontFeatureValues);

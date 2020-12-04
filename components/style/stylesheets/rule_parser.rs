@@ -27,7 +27,7 @@ use crate::values::computed::font::FamilyName;
 use crate::values::{CssUrl, CustomIdent, KeyframesName};
 use crate::{Namespace, Prefix};
 use cssparser::{AtRuleParser, AtRuleType, Parser, QualifiedRuleParser, RuleListParser};
-use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, SourceLocation};
+use cssparser::{BasicParseError, BasicParseErrorKind, CowRcStr, ParserState};
 use selectors::SelectorList;
 use servo_arc::Arc;
 use style_traits::{ParseError, StyleParseErrorKind};
@@ -251,10 +251,10 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
     fn parse_block<'t>(
         &mut self,
         prelude: AtRuleBlockPrelude,
-        location: SourceLocation,
+        start: &ParserState,
         input: &mut Parser<'i, 't>,
     ) -> Result<CssRule, ParseError<'i>> {
-        AtRuleParser::parse_block(&mut self.nested(), prelude, location, input).map(|rule| {
+        AtRuleParser::parse_block(&mut self.nested(), prelude, start, input).map(|rule| {
             self.state = State::Body;
             rule
         })
@@ -264,8 +264,8 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
     fn rule_without_block(
         &mut self,
         prelude: AtRuleNonBlockPrelude,
-        source_location: SourceLocation,
-    ) -> CssRule {
+        start: &ParserState,
+    ) -> Self::AtRule {
         match prelude {
             AtRuleNonBlockPrelude::Import(url, media) => {
                 let loader = self
@@ -274,7 +274,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
 
                 let import_rule = loader.request_stylesheet(
                     url,
-                    source_location,
+                    start.source_location(),
                     &self.context,
                     &self.shared_lock,
                     media,
@@ -296,7 +296,7 @@ impl<'a, 'i> AtRuleParser<'i> for TopLevelRuleParser<'a> {
                 CssRule::Namespace(Arc::new(self.shared_lock.wrap(NamespaceRule {
                     prefix,
                     url,
-                    source_location,
+                    source_location: start.source_location(),
                 })))
             },
         }
@@ -324,10 +324,10 @@ impl<'a, 'i> QualifiedRuleParser<'i> for TopLevelRuleParser<'a> {
     fn parse_block<'t>(
         &mut self,
         prelude: Self::Prelude,
-        location: SourceLocation,
+        start: &ParserState,
         input: &mut Parser<'i, 't>,
     ) -> Result<CssRule, ParseError<'i>> {
-        QualifiedRuleParser::parse_block(&mut self.nested(), prelude, location, input).map(
+        QualifiedRuleParser::parse_block(&mut self.nested(), prelude, start, input).map(
             |result| {
                 self.state = State::Body;
                 result
@@ -461,7 +461,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
     fn parse_block<'t>(
         &mut self,
         prelude: AtRuleBlockPrelude,
-        source_location: SourceLocation,
+        start: &ParserState,
         input: &mut Parser<'i, 't>,
     ) -> Result<CssRule, ParseError<'i>> {
         match prelude {
@@ -473,7 +473,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 );
 
                 Ok(CssRule::FontFace(Arc::new(self.shared_lock.wrap(
-                    parse_font_face_block(&context, input, source_location).into(),
+                    parse_font_face_block(&context, input, start.source_location()).into(),
                 ))))
             },
             AtRuleBlockPrelude::FontFeatureValues(family_names) => {
@@ -484,7 +484,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 );
 
                 Ok(CssRule::FontFeatureValues(Arc::new(self.shared_lock.wrap(
-                    FontFeatureValuesRule::parse(&context, input, family_names, source_location),
+                    FontFeatureValuesRule::parse(&context, input, family_names, start.source_location()),
                 ))))
             },
             AtRuleBlockPrelude::CounterStyle(name) => {
@@ -495,14 +495,14 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 );
 
                 Ok(CssRule::CounterStyle(Arc::new(self.shared_lock.wrap(
-                    parse_counter_style_body(name, &context, input, source_location)?.into(),
+                    parse_counter_style_body(name, &context, input, start.source_location())?.into(),
                 ))))
             },
             AtRuleBlockPrelude::Media(media_queries) => {
                 Ok(CssRule::Media(Arc::new(self.shared_lock.wrap(MediaRule {
                     media_queries,
                     rules: self.parse_nested_rules(input, CssRuleType::Media),
-                    source_location,
+                    source_location: start.source_location(),
                 }))))
             },
             AtRuleBlockPrelude::Supports(condition) => {
@@ -518,7 +518,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                         condition,
                         rules: self.parse_nested_rules(input, CssRuleType::Supports),
                         enabled,
-                        source_location,
+                        source_location: start.source_location(),
                     },
                 ))))
             },
@@ -545,7 +545,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                         name,
                         keyframes: parse_keyframe_list(&context, input, self.shared_lock),
                         vendor_prefix,
-                        source_location,
+                        source_location: start.source_location(),
                     },
                 ))))
             },
@@ -559,7 +559,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                 let declarations = parse_property_declaration_list(&context, input, None);
                 Ok(CssRule::Page(Arc::new(self.shared_lock.wrap(PageRule {
                     block: Arc::new(self.shared_lock.wrap(declarations)),
-                    source_location,
+                    source_location: start.source_location(),
                 }))))
             },
             AtRuleBlockPrelude::Document(condition) => {
@@ -570,7 +570,7 @@ impl<'a, 'b, 'i> AtRuleParser<'i> for NestedRuleParser<'a, 'b> {
                     DocumentRule {
                         condition,
                         rules: self.parse_nested_rules(input, CssRuleType::Document),
-                        source_location,
+                        source_location: start.source_location(),
                     },
                 ))))
             },
@@ -598,7 +598,7 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
     fn parse_block<'t>(
         &mut self,
         selectors: Self::Prelude,
-        source_location: SourceLocation,
+        start: &ParserState,
         input: &mut Parser<'i, 't>,
     ) -> Result<CssRule, ParseError<'i>> {
         let context =
@@ -609,7 +609,7 @@ impl<'a, 'b, 'i> QualifiedRuleParser<'i> for NestedRuleParser<'a, 'b> {
         Ok(CssRule::Style(Arc::new(self.shared_lock.wrap(StyleRule {
             selectors,
             block,
-            source_location,
+            source_location: start.source_location(),
         }))))
     }
 }
