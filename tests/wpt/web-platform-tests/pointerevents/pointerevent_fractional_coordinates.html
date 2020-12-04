@@ -6,6 +6,9 @@
         <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
         <script type="text/javascript" src="pointerevent_support.js"></script>
         <style>
             #innerFrame {
@@ -43,6 +46,48 @@
                 eventsRecieved[event.type] = true;
             }
 
+            function testInputType(inputSource) {
+              const scale = 5;
+              const width = 3;
+              const height = 3;
+              var targetFrame = document.querySelector('#innerFrame');
+              var frameRect = targetFrame.getBoundingClientRect();
+              frameLeft = frameRect.left;
+              frameTop = frameRect.top;
+
+              target = [{x: 10, y: 10}, {x: 30, y: 50}, {x: 50, y: 30}]
+              xPosition = []
+              yPosition = []
+              for (var i = 0; i < target.length; i++) {
+                xPosition.push((target[i].x + width / 2.0) * scale + frameLeft);
+                yPosition.push((target[i].y + height / 2.0) * scale + frameTop);
+              }
+              return sendInputAt(inputSource, xPosition[0], yPosition[0]).then(function() {
+                return sendInputAt(inputSource, xPosition[1], yPosition[1]);
+              }).then(function() {
+                return sendInputAt(inputSource, xPosition[2], yPosition[2]);
+              });
+
+            }
+
+            function sendInputAt(inputSource, xPosition, yPosition) {
+              if (inputSource == "touch") {
+                return new test_driver.Actions()
+                  .addPointer("touchPointer1", "touch")
+                  .pointerMove(Math.ceil(xPosition), Math.ceil(yPosition))
+                  .pointerDown()
+                  .pointerMove(Math.ceil(xPosition + 1), Math.ceil(yPosition + 1))
+                  .pointerUp()
+                  .send();
+              } else {
+                return new test_driver.Actions()
+                  .pointerMove(Math.ceil(xPosition), Math.ceil(yPosition))
+                  .pointerDown()
+                  .pointerUp()
+                  .send();
+              }
+            }
+
             function run() {
                 var test_pointerEvent = setup_pointerevent_test("pointerevent events in capturing", ALL_POINTERS);
                 var innerFrame = document.getElementById('innerFrame');
@@ -69,6 +114,12 @@
                           test_pointerEvent.done();
                       }
                     });
+                });
+
+                testInputType("mouse").then(function() {
+                    return testInputType("touch");
+                }).then(function() {
+                    return testInputType("pen");
                 });
             }
         </script>

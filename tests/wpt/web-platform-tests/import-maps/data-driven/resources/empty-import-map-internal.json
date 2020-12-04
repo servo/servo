@@ -10,6 +10,7 @@
     },
     "non-fetch scheme absolute URLs": {
       "expectedResults": {
+        "about:fetch-scheme": "about:fetch-scheme",
         "mailto:non-fetch-scheme": "mailto:non-fetch-scheme",
         "import:non-fetch-scheme": "import:non-fetch-scheme",
         "javascript:non-fetch-scheme": "javascript:non-fetch-scheme",

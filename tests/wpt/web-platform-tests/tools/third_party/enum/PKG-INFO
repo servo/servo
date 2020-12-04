@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: enum34
-Version: 1.1.6
+Version: 1.1.10
 Summary: Python 3.4 Enum backported to 3.3, 3.2, 3.1, 2.7, 2.6, 2.5, and 2.4
 Home-page: https://bitbucket.org/stoneleaf/enum34
 Author: Ethan Furman
@@ -57,6 +57,4 @@ Classifier: Programming Language :: Python :: 2.5
 Classifier: Programming Language :: Python :: 2.6
 Classifier: Programming Language :: Python :: 2.7
 Classifier: Programming Language :: Python :: 3.3
-Classifier: Programming Language :: Python :: 3.4
-Classifier: Programming Language :: Python :: 3.5
 Provides: enum

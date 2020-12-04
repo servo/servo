@@ -7,6 +7,9 @@
   <link rel="help" href="https://drafts.csswg.org/selectors-4/#the-focus-visible-pseudo" />
   <script src="/resources/testharness.js"></script>
   <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
   <style>
     :focus-visible {
       outline: red dotted 1px; /* fallback for Edge */
@@ -40,7 +43,7 @@
     <button data-tested="false" id="el-4">Focus me</span>
   </div>
   <div>
-    <input data-tested="false" id="el-5" type="button" value="Focus me"</input>
+    <input data-tested="false" id="el-5" type="button" value="Focus me"></input>
   </div>
   <div>
     <input data-tested="false" id="el-6" type="image" alt="Focus me."></input>
@@ -69,6 +72,11 @@
     <label><input data-tested="false" id="el-11" type="color"></input> Focus me.</label>
   </div>
   <script>
+    function mouseClickInTarget(selector) {
+       let target = document.querySelector(selector);
+       return test_driver.click(target);
+    }
+
     async_test(function(t) {
         document.querySelectorAll("[data-tested]").forEach((el) => {
             el.addEventListener("click", t.step_func((e) => {
@@ -82,6 +90,8 @@
                 }
             }));
         });
+
+        mouseClickInTarget("[data-tested=false]");
     }, "Mouse focus on input elements which do not show a virtual keyboard should NOT match :focus-visible");
   </script>
 </body>
