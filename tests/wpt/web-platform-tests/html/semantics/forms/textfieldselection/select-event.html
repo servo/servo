@@ -43,7 +43,7 @@ const actions = [
   },
   {
     label: "setRangeText()",
-    action: el => el.setRangeText("newmiddle")
+    action: el => el.setRangeText("newmiddle", el.selectionStart, el.selectionEnd, "select")
   }
 ];
 
@@ -79,6 +79,19 @@ els.forEach((el) => {
         }, 200);
       });
     }, `${elLabel}: ${action.label} a second time (must not fire select)`);
+
+    promise_test(async t => {
+      const element = el.cloneNode(true);
+
+      element.onselect = e => {
+        element.onselect = null;
+      };
+
+      action.action(element);
+
+      // step_wait properly timeouts before the whole test collapses
+      await t.step_wait(() => !element.onselect, "event didn't fire", 200, 10);
+    }, `${elLabel}: ${action.label} disconnected node`);
   });
 });
 </script>

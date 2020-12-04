@@ -373,7 +373,6 @@ dictionary RTCRtpContributingSource {
 };
 
 dictionary RTCRtpSynchronizationSource : RTCRtpContributingSource {
-  boolean voiceActivityFlag;
 };
 
 [Exposed=Window]

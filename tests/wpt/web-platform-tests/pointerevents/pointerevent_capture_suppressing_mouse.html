@@ -6,6 +6,9 @@
         <link rel="stylesheet" type="text/css" href="pointerevent_styles.css">
         <script src="/resources/testharness.js"></script>
         <script src="/resources/testharnessreport.js"></script>
+        <script src="/resources/testdriver.js"></script>
+        <script src="/resources/testdriver-actions.js"></script>
+        <script src="/resources/testdriver-vendor.js"></script>
         <!-- Additional helper script for common checks across event types -->
         <script type="text/javascript" src="pointerevent_support.js"></script>
     </head>
@@ -53,6 +56,7 @@
             var test_lostpointercapture = async_test("lostpointercapture event received");
 
             var test_pointerover_no_capture = async_test("pointerover event without capture received");
+
             var test_pointerover_capture = async_test("pointerover event with capture received");
 
             var test_pointerout_no_capture = async_test("pointerout event without capture received");
@@ -63,6 +67,8 @@
 
             var test_pointerleave_no_capture = async_test("pointerleave event without capture received");
             var test_pointerleave_after_capture = async_test("pointerleave event after lostpointercapture received");
+
+            var actions_promise;
 
             window.onload = function() {
                 on_event(captureButton, 'pointerdown', function(e) {
@@ -147,7 +153,10 @@
                     }
                     else {
                         if (lostPointerCaptureReceived) {
-                            test_pointerleave_after_capture.done();
+                            // Make sure the test finishes after all the input actions are completed.
+                            actions_promise.then( () => {
+                                test_pointerleave_after_capture.done();
+                            });
                         } else {
                             test_pointerleave_no_capture.done();
                         }
@@ -190,6 +199,20 @@
                         }, "pointerleave shouldn't trigger for the purple rectangle while the black rectangle has capture");
                     }
                 });
+
+                actions_promise = new test_driver.Actions()
+                    .pointerMove(0, 0, {origin: target0})
+                    .pointerMove(0, 0, {origin: target1})
+                    .pointerMove(0, 0, {origin: btnCapture})
+                    .pointerDown()
+                    .pointerMove(0, 0, {origin: btnCapture})
+                    .pointerMove(10, 0, {origin: btnCapture})
+                    .pointerMove(0, 0, {origin: target1})
+                    .pointerMove(0, 0, {origin: target0})
+                    .pointerMove(0, 0, {origin: target1})
+                    .pointerUp()
+                    .pointerMove(0, 0, {origin: target1})
+                    .send();
             }
         </script>
         <h1>Pointer Events Capture Test</h1>

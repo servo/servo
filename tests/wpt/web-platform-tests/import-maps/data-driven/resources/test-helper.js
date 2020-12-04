@@ -83,7 +83,7 @@ function resolve(specifier, parsedImportMap, baseURL, expectedURL) {
           if (event.data.result === 'TypeError') {
             reject(new TypeError(event.data.message));
           } else {
-            reject(new Error(event.data.result));
+            reject(new Error(event.data.message));
           }
         } else {
           assert_unreached('Invalid message: ' + event.data.type);

@@ -18,6 +18,7 @@ const promises = [];
 
 for (const json of [
   'resources/empty-import-map-internal.json',
+  'resources/url-specifiers-schemes-internal.json'
 ]) {
   promise_test(() => {
       const promise = runTestsFromJSON(json);

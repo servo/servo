@@ -452,8 +452,8 @@ class TestEnum(unittest.TestCase):
         self.assertEqual(dates[Season.AUTUMN], '1031')
 
     def test_enum_duplicates(self):
-        _order_ = "SPRING SUMMER AUTUMN WINTER"
         class Season(Enum):
+            _order_ = "SPRING SUMMER AUTUMN WINTER"
             SPRING = 1
             SUMMER = 2
             AUTUMN = FALL = 3
@@ -665,7 +665,7 @@ class TestEnum(unittest.TestCase):
                     protocol=(0, HIGHEST_PROTOCOL))
 
     def test_exploding_pickle(self):
-        BadPickle = Enum('BadPickle', 'dill sweet bread-n-butter')
+        BadPickle = Enum('BadPickle', 'dill sweet bread_n_butter')
         enum._make_class_unpicklable(BadPickle)
         globals()['BadPickle'] = BadPickle
         test_pickle_exception(self.assertRaises, TypeError, BadPickle.dill)
@@ -805,6 +805,27 @@ class TestEnum(unittest.TestCase):
                 lst,
                 )
         for i, month in enumerate('june july august'.split()):
+            i += 1
+            e = SummerMonth(i)
+            self.assertEqual(int(e.value), i)
+            self.assertNotEqual(e, i)
+            self.assertEqual(e.name, month)
+            self.assertTrue(e in SummerMonth)
+            self.assertTrue(type(e) is SummerMonth)
+
+    def test_programatic_function_iterable_with_weird_names(self):
+        SummerMonth = Enum(
+                'SummerMonth',
+                (('june', 1), ('july', 2), ('august', 3), ('fabulous september', 4))
+                )
+        lst = list(SummerMonth)
+        self.assertEqual(len(lst), len(SummerMonth))
+        self.assertEqual(len(SummerMonth), 4, SummerMonth)
+        self.assertEqual(
+                [SummerMonth.june, SummerMonth.july, SummerMonth.august, SummerMonth['fabulous september']],
+                lst,
+                )
+        for i, month in enumerate('june july august'.split() + ['fabulous september']):
             i += 1
             e = SummerMonth(i)
             self.assertEqual(int(e.value), i)

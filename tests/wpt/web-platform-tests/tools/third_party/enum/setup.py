@@ -9,6 +9,14 @@ if sys.version_info[:2] < (2, 7):
 else:
     required = []
 
+# Don't shadow builtin enum package if we are being installed on a
+# recent Python.  This causes conflicts since at least 3.6:
+# https://bitbucket.org/stoneleaf/enum34/issues/19/enum34-isnt-compatible-with-python-36
+if sys.version_info[:2] < (3, 4):
+    packages = ['enum']
+else:
+    packages = []
+
 long_desc = '''\
 enum --- support for enumerations
 ========================================
@@ -54,15 +62,15 @@ Repository and Issue Tracker at https://bitbucket.org/stoneleaf/enum34.
 py2_only = ()
 py3_only = ()
 make = [
-        'rst2pdf enum/doc/enum.rst --output=enum/doc/enum.pdf',
+        # 'rst2pdf enum/doc/enum.rst --output=enum/doc/enum.pdf',
         ]
 
 
 data = dict(
         name='enum34',
-        version='1.1.6',
+        version='1.1.10',
         url='https://bitbucket.org/stoneleaf/enum34',
-        packages=['enum'],
+        packages=packages,
         package_data={
             'enum' : [
                 'LICENSE',
@@ -90,8 +98,6 @@ data = dict(
             'Programming Language :: Python :: 2.6',
             'Programming Language :: Python :: 2.7',
             'Programming Language :: Python :: 3.3',
-            'Programming Language :: Python :: 3.4',
-            'Programming Language :: Python :: 3.5',
             ],
         )
 

@@ -4,7 +4,7 @@ import sys as _sys
 
 __all__ = ['Enum', 'IntEnum', 'unique']
 
-version = 1, 1, 6
+version = 1, 1, 10
 
 pyver = float('%s.%s' % _sys.version_info[:2])
 
@@ -183,7 +183,8 @@ class EnumMeta(type):
         else:
             del classdict['_order_']
             if pyver < 3.0:
-                _order_ = _order_.replace(',', ' ').split()
+                if isinstance(_order_, basestring):
+                    _order_ = _order_.replace(',', ' ').split()
                 aliases = [name for name in members if name not in _order_]
                 _order_ += aliases
 
@@ -463,7 +464,7 @@ class EnumMeta(type):
             _order_.append(member_name)
         # only set _order_ in classdict if name/value was not from a mapping
         if not isinstance(item, basestring):
-            classdict['_order_'] = ' '.join(_order_)
+            classdict['_order_'] = _order_
         enum_class = metacls.__new__(metacls, class_name, bases, classdict)
 
         # TODO: replace the frame hack if a blessed way to know the calling
