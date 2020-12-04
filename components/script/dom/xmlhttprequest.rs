@@ -22,7 +22,7 @@ use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::headers::{extract_mime_type, is_forbidden_header_name};
+use crate::dom::headers::is_forbidden_header_name;
 use crate::dom::node::Node;
 use crate::dom::performanceresourcetiming::InitiatorType;
 use crate::dom::progressevent::ProgressEvent;
@@ -55,6 +55,7 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::wrappers::JS_ParseJSON;
 use js::typedarray::{ArrayBuffer, CreateWith};
 use mime::{self, Mime, Name};
+use net_traits::header::extract_mime_type_as_mime;
 use net_traits::request::{CredentialsMode, Destination, Referrer, RequestBuilder, RequestMode};
 use net_traits::trim_http_whitespace;
 use net_traits::CoreResourceMsg::Fetch;
@@ -1592,9 +1593,8 @@ impl XMLHttpRequest {
         if self.override_charset.borrow().is_some() {
             self.override_charset.borrow().clone()
         } else {
-            match self.response_headers.borrow().typed_get::<ContentType>() {
-                Some(ct) => {
-                    let mime: Mime = ct.into();
+            match extract_mime_type_as_mime(&self.response_headers.borrow()) {
+                Some(mime) => {
                     let value = mime.get_param(mime::CHARSET);
                     value.and_then(|value| Encoding::for_label(value.as_ref().as_bytes()))
                 },
@@ -1605,15 +1605,7 @@ impl XMLHttpRequest {
 
     /// <https://xhr.spec.whatwg.org/#response-mime-type>
     fn response_mime_type(&self) -> Option<Mime> {
-        return extract_mime_type(&self.response_headers.borrow())
-            .map(|mime_as_bytes| {
-                String::from_utf8(mime_as_bytes)
-                    .unwrap_or_default()
-                    .parse()
-                    .ok()
-            })
-            .flatten()
-            .or(Some(mime::TEXT_XML));
+        return extract_mime_type_as_mime(&self.response_headers.borrow()).or(Some(mime::TEXT_XML));
     }
 
     /// <https://xhr.spec.whatwg.org/#final-mime-type>

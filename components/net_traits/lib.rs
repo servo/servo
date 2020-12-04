@@ -37,6 +37,7 @@ use webrender_api::{ImageData, ImageDescriptor, ImageKey};
 
 pub mod blob_url_store;
 pub mod filemanager_thread;
+pub mod header;
 pub mod image_cache;
 pub mod pub_domains;
 pub mod quality;

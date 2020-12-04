@@ -4,7 +4,6 @@
 
 use crate::data_loader::decode;
 use crate::fetch::cors_cache::CorsCache;
-use crate::fetch::headers::determine_nosniff;
 use crate::filemanager_thread::{FileManager, FILE_CHUNK_SIZE};
 use crate::http_loader::{determine_requests_referrer, http_fetch, HttpState};
 use crate::http_loader::{set_default_accept, set_default_accept_language};
@@ -20,6 +19,7 @@ use ipc_channel::ipc::{self, IpcReceiver};
 use mime::{self, Mime};
 use net_traits::blob_url_store::{parse_blob_url, BlobURLStoreError};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
+use net_traits::header::{determine_nosniff, extract_mime_type_as_mime};
 use net_traits::request::{
     is_cors_safelisted_method, is_cors_safelisted_request_header, Origin, ResponseTainting, Window,
 };
@@ -842,7 +842,7 @@ pub fn should_be_blocked_due_to_nosniff(
 
     // Step 2
     // Note: an invalid MIME type will produce a `None`.
-    let content_type_header = response_headers.typed_get::<ContentType>();
+    let mime_type = extract_mime_type_as_mime(response_headers);
 
     /// <https://html.spec.whatwg.org/multipage/#scriptingLanguages>
     #[inline]
@@ -871,15 +871,12 @@ pub fn should_be_blocked_due_to_nosniff(
             .any(|mime| mime.type_() == mime_type.type_() && mime.subtype() == mime_type.subtype())
     }
 
-    match content_type_header {
+    match mime_type {
         // Step 4
-        Some(ref ct) if destination.is_script_like() => {
-            !is_javascript_mime_type(&ct.clone().into())
-        },
+        Some(ref essence) if destination.is_script_like() => !is_javascript_mime_type(&essence),
 
         // Step 5
-        Some(ref ct) if destination == Destination::Style => {
-            let m: mime::Mime = ct.clone().into();
+        Some(ref m) if destination == Destination::Style => {
             m.type_() != mime::TEXT && m.subtype() != mime::CSS
         },
 
@@ -895,12 +892,13 @@ fn should_be_blocked_due_to_mime_type(
     response_headers: &HeaderMap,
 ) -> bool {
     // Step 1
-    let mime_type: mime::Mime = match response_headers.typed_get::<ContentType>() {
-        Some(header) => header.into(),
+    let mime_type = match extract_mime_type_as_mime(response_headers) {
+        Some(essence) => essence,
+        // Step 2
         None => return false,
     };
 
-    // Step 2-3
+    // Step 3-5
     destination.is_script_like() &&
         match mime_type.type_() {
             mime::AUDIO | mime::VIDEO | mime::IMAGE => true,
