@@ -540,7 +540,7 @@ dependencies = [
  "byteorder",
  "canvas_traits",
  "crossbeam-channel 0.4.4",
- "cssparser",
+ "cssparser 0.27.2",
  "euclid",
  "fnv",
  "font-kit",
@@ -576,7 +576,7 @@ name = "canvas_traits"
 version = "0.0.1"
 dependencies = [
  "crossbeam-channel 0.4.4",
- "cssparser",
+ "cssparser 0.27.2",
  "euclid",
  "ipc-channel",
  "lazy_static",
@@ -1183,6 +1183,23 @@ dependencies = [
  "proc-macro2 1.0.24",
  "quote 1.0.2",
  "serde",
+ "smallvec 1.4.2",
+ "syn",
+]
+
+[[package]]
+name = "cssparser"
+version = "0.28.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "809d22aba9ffd53e9028f2d37261f1826ef613d0e96b1a5ddeefa97cde82bcca"
+dependencies = [
+ "cssparser-macros",
+ "dtoa-short",
+ "itoa",
+ "matches",
+ "phf",
+ "proc-macro2 1.0.24",
+ "quote 1.0.2",
  "smallvec 1.4.2",
  "syn",
 ]
@@ -3074,7 +3091,7 @@ dependencies = [
  "app_units",
  "atomic_refcell",
  "canvas_traits",
- "cssparser",
+ "cssparser 0.27.2",
  "embedder_traits",
  "euclid",
  "fnv",
@@ -3486,7 +3503,7 @@ dependencies = [
  "app_units",
  "content-security-policy",
  "crossbeam-channel 0.4.4",
- "cssparser",
+ "cssparser 0.27.2",
  "euclid",
  "hashglobe",
  "hyper",
@@ -5005,7 +5022,7 @@ dependencies = [
  "content-security-policy",
  "cookie",
  "crossbeam-channel 0.4.4",
- "cssparser",
+ "cssparser 0.27.2",
  "data-url",
  "deny_public_fields",
  "devtools_traits",
@@ -5209,7 +5226,7 @@ name = "selectors"
 version = "0.22.0"
 dependencies = [
  "bitflags",
- "cssparser",
+ "cssparser 0.27.2",
  "derive_more",
  "fxhash",
  "log",
@@ -5944,7 +5961,7 @@ dependencies = [
  "bindgen",
  "bitflags",
  "byteorder",
- "cssparser",
+ "cssparser 0.27.2",
  "derive_more",
  "encoding_rs",
  "euclid",
@@ -6009,7 +6026,7 @@ name = "style_tests"
 version = "0.0.1"
 dependencies = [
  "app_units",
- "cssparser",
+ "cssparser 0.28.0",
  "euclid",
  "html5ever",
  "rayon",
@@ -6031,7 +6048,7 @@ version = "0.0.1"
 dependencies = [
  "app_units",
  "bitflags",
- "cssparser",
+ "cssparser 0.27.2",
  "euclid",
  "lazy_static",
  "malloc_size_of",
@@ -6303,7 +6320,7 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 name = "to_shmem"
 version = "0.0.1"
 dependencies = [
- "cssparser",
+ "cssparser 0.27.2",
  "servo_arc",
  "smallbitvec",
  "smallvec 1.4.2",
