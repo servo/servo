@@ -211,17 +211,19 @@
         Promise
             .all([
               c1.startRendering().then(function(resultBuffer) {
-                return should(resultBuffer.getChannelData(0), 'c1 result')
-                    .beEqualToArray(data);
+                return resultBuffer;
               }),
               c2.startRendering().then(function(resultBuffer) {
-                return should(resultBuffer.getChannelData(0), 'c2 result')
-                    .beEqualToArray(data);
+                return resultBuffer;
               }),
             ])
-            .then(returnValues => {
+            .then(resultBuffers => {
+              let c1ResultValue = should(resultBuffers[0].getChannelData(0), 'c1 result')
+                  .beEqualToArray(data);
+              let c2ResultValue = should(resultBuffers[1].getChannelData(0), 'c2 result')
+                  .beEqualToArray(data);
               should(
-                  returnValues[0] && returnValues[1],
+                  c1ResultValue && c2ResultValue,
                   'AudioBuffer shared between two different contexts')
                   .message('correctly', 'incorrectly');
               task.done();
