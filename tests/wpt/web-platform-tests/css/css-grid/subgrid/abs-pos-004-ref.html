@@ -1,0 +1,198 @@
+<!DOCTYPE HTML>
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html><head>
+  <title>Reference: abs.pos. subgrid edge cases</title>
+  <link rel="author" title="Mats Palmgren" href="mailto:mats@mozilla.com">
+<style>
+html,body {
+  color:black; background-color:white; font:15px/1 monospace;
+}
+
+body > div {
+  display: inline-block;
+  height: 20px;
+  border: 1px solid;
+  margin: 1px;
+  vertical-align: top;
+}
+body > div > div { height: 20px; background: lightgrey; }
+body > div > div > div { height: 20px; }
+</style>
+</head>
+<body>
+
+<script>
+let results = [
+  [ "10px", "0", "10px", "0", "10px", "lime" ],
+  [ "10px", "0", "10px", "0", "10px", "lime" ],
+  [ "10px", "0", "10px", "0", "10px", "lime" ],
+  [ "10px", "0", "10px", "0", "10px", "lime" ],
+  [ "10px", "0", "10px", "0", "10px", "lime" ],
+  [ "10px", "0", "10px", "0", "10px", "lime" ],
+  [ "10px", "0", "10px", "0", "10px", "lime" ],
+  [ "10px", "0", "10px", "0", "10px", "lime" ],
+  [ "10px", "0", "10px", "0", "10px", "lime" ],
+  [ "10px", "0", "10px", "0", "10px", "lime" ],
+  [ "10px", "0", "10px", "0", "10px", "lime" ],
+  [ "10px", "0", "10px", "0", "10px", "lime" ],
+  [ "50px", "0", "50px", "0", "10px", "lime" ],
+  [ "50px", "0", "50px", "0", "10px", "lime" ],
+  [ "50px", "0", "50px", "0", "50px", "lime" ],
+  [ "50px", "0", "50px", "0", "10px", "lime" ],
+  [ "50px", "0", "50px", "0", "10px", "lime" ],
+  [ "50px", "0", "50px", "0", "50px", "lime" ],
+  [ "50px", "0", "40px", "0", "40px", "lime" ],
+  [ "50px", "0", "40px", "0", "40px", "lime" ],
+  [ "50px", "0", "40px", "0", "40px", "lime" ],
+  [ "50px", "0", "40px", "0", "40px", "lime" ],
+  [ "50px", "0", "40px", "0", "40px", "lime" ],
+  [ "50px", "0", "40px", "0", "40px", "lime" ],
+
+  [ "10px", "0", "10px", "0", "10px", "blue" ],
+  [ "10px", "0", "10px", "0", "10px", "blue" ],
+  [ "10px", "0", "10px", "0", "10px", "blue" ],
+  [ "10px", "0", "10px", "0", "10px", "blue" ],
+  [ "10px", "0", "10px", "0", "10px", "blue" ],
+  [ "10px", "0", "10px", "0", "10px", "blue" ],
+  [ "10px", "0", "10px", "0", "10px", "blue" ],
+  [ "10px", "0", "10px", "0", "10px", "blue" ],
+  [ "10px", "0", "10px", "0", "10px", "blue" ],
+  [ "10px", "0", "10px", "0", "10px", "blue" ],
+  [ "10px", "0", "10px", "0", "10px", "blue" ],
+  [ "10px", "0", "10px", "0", "10px", "blue" ],
+  [ "50px", "0", "50px", "0", "10px", "blue" ],
+  [ "50px", "0", "50px", "0", "10px", "blue" ],
+  [ "50px", "0", "50px", "0", "50px", "blue" ],
+  [ "50px", "0", "50px", "0", "10px", "blue" ],
+  [ "50px", "0", "50px", "0", "10px", "blue" ],
+  [ "50px", "0", "50px", "0", "50px", "blue" ],
+  [ "50px", "0", "40px", "0", "40px", "blue" ],
+  [ "50px", "0", "40px", "0", "40px", "blue" ],
+  [ "50px", "0", "40px", "0", "40px", "blue" ],
+  [ "50px", "0", "40px", "0", "40px", "blue" ],
+  [ "50px", "0", "40px", "0", "40px", "blue" ],
+  [ "50px", "0", "40px", "0", "40px", "blue" ],
+
+  [ "20px", "0", "20px", "0", "20px", "lime" ],
+  [ "20px", "0", "20px", "0", "20px", "lime" ],
+  [ "20px", "0", "20px", "0", "20px", "lime" ],
+  [ "20px", "0", "20px", "0", "20px", "lime" ],
+  [ "20px", "0", "20px", "0", "20px", "lime" ],
+  [ "20px", "0", "20px", "0", "20px", "lime" ],
+  [ "20px", "0", "20px", "0", "20px", "lime" ],
+  [ "20px", "0", "20px", "0", "20px", "lime" ],
+  [ "20px", "0", "20px", "0", "20px", "lime" ],
+  [ "20px", "0", "20px", "0", "20px", "lime" ],
+  [ "20px", "0", "20px", "0", "20px", "lime" ],
+  [ "20px", "0", "20px", "0", "20px", "lime" ],
+  [ "50px", "0", "0", "20px", "30px", "lime" ],
+  [ "50px", "0", "0", "20px", "30px", "lime" ],
+  [ "50px", "0", "0", "20px", "30px", "lime" ],
+  [ "50px", "0", "0", "20px", "30px", "lime" ],
+  [ "50px", "0", "0", "20px", "30px", "lime" ],
+  [ "50px", "0", "0", "20px", "30px", "lime" ],
+  [ "50px", "0", "0", "0", "30px", "lime" ],
+  [ "50px", "0", "0", "0", "30px", "lime" ],
+  [ "50px", "0", "0", "0", "30px", "lime" ],
+  [ "50px", "0", "0", "0", "30px", "lime" ],
+  [ "50px", "0", "0", "0", "30px", "lime" ],
+  [ "50px", "0", "0", "0", "30px", "lime" ],
+
+  [ "20px", "0", "20px", "0", "20px", "blue" ],
+  [ "20px", "0", "20px", "0", "20px", "blue" ],
+  [ "20px", "0", "20px", "0", "20px", "blue" ],
+  [ "20px", "0", "20px", "0", "20px", "blue" ],
+  [ "20px", "0", "20px", "0", "20px", "blue" ],
+  [ "20px", "0", "20px", "0", "20px", "blue" ],
+  [ "20px", "0", "20px", "0", "20px", "blue" ],
+  [ "20px", "0", "20px", "0", "20px", "blue" ],
+  [ "20px", "0", "20px", "0", "20px", "blue" ],
+  [ "20px", "0", "20px", "0", "20px", "blue" ],
+  [ "20px", "0", "20px", "0", "20px", "blue" ],
+  [ "20px", "0", "20px", "0", "20px", "blue" ],
+  [ "50px", "0", "0", "20px", "30px", "blue" ],
+  [ "50px", "0", "0", "20px", "30px", "blue" ],
+  [ "50px", "0", "0", "20px", "30px", "blue" ],
+  [ "50px", "0", "0", "20px", "30px", "blue" ],
+  [ "50px", "0", "0", "20px", "30px", "blue" ],
+  [ "50px", "0", "0", "20px", "30px", "blue" ],
+  [ "50px", "0", "0", "0", "30px", "blue" ],
+  [ "50px", "0", "0", "0", "30px", "blue" ],
+  [ "50px", "0", "0", "0", "30px", "blue" ],
+  [ "50px", "0", "0", "0", "30px", "blue" ],
+  [ "50px", "0", "0", "0", "30px", "blue" ],
+  [ "50px", "0", "0", "0", "30px", "blue" ],
+
+  [ "30px", "0", "30px", "0", "30px", "lime" ],
+  [ "30px", "0", "30px", "0", "30px", "lime" ],
+  [ "30px", "0", "30px", "0", "30px", "lime" ],
+  [ "30px", "0", "30px", "0", "30px", "lime" ],
+  [ "30px", "0", "30px", "0", "30px", "lime" ],
+  [ "30px", "0", "30px", "0", "30px", "lime" ],
+  [ "30px", "0", "30px", "0", "30px", "lime" ],
+  [ "30px", "0", "30px", "0", "30px", "lime" ],
+  [ "30px", "0", "30px", "0", "30px", "lime" ],
+  [ "30px", "0", "30px", "0", "30px", "lime" ],
+  [ "30px", "0", "30px", "0", "30px", "lime" ],
+  [ "30px", "0", "30px", "0", "30px", "lime" ],
+  [ "50px", "20px", "30px", "0", "10px", "lime" ],
+  [ "50px", "20px", "30px", "0", "10px", "lime" ],
+  [ "50px", "0", "0", "20px", "30px", "lime" ],
+  [ "50px", "20px", "30px", "0", "10px", "lime" ],
+  [ "50px", "20px", "30px", "0", "10px", "lime" ],
+  [ "50px", "0", "0", "20px", "30px", "lime" ],
+  [ "50px", "0", "0", "0", "20px", "lime" ],
+  [ "50px", "0", "0", "0", "20px", "lime" ],
+  [ "50px", "0", "0", "0", "20px", "lime" ],
+  [ "50px", "0", "0", "0", "20px", "lime" ],
+  [ "50px", "0", "0", "0", "20px", "lime" ],
+  [ "50px", "0", "0", "0", "20px", "lime" ],
+
+  [ "30px", "0", "30px", "0", "30px", "blue" ],
+  [ "30px", "0", "30px", "0", "30px", "blue" ],
+  [ "30px", "0", "30px", "0", "30px", "blue" ],
+  [ "30px", "0", "30px", "0", "30px", "blue" ],
+  [ "30px", "0", "30px", "0", "30px", "blue" ],
+  [ "30px", "0", "30px", "0", "30px", "blue" ],
+  [ "30px", "0", "30px", "0", "30px", "blue" ],
+  [ "30px", "0", "30px", "0", "30px", "blue" ],
+  [ "30px", "0", "30px", "0", "30px", "blue" ],
+  [ "30px", "0", "30px", "0", "30px", "blue" ],
+  [ "30px", "0", "30px", "0", "30px", "blue" ],
+  [ "30px", "0", "30px", "0", "30px", "blue" ],
+  [ "50px", "20px", "30px", "0", "10px", "blue" ],
+  [ "50px", "20px", "30px", "0", "10px", "blue" ],
+  [ "50px", "0", "0", "20px", "30px", "blue" ],
+  [ "50px", "20px", "30px", "0", "10px", "blue" ],
+  [ "50px", "20px", "30px", "0", "10px", "blue" ],
+  [ "50px", "0", "0", "20px", "30px", "blue" ],
+  [ "50px", "0", "0", "0", "20px", "blue" ],
+  [ "50px", "0", "0", "0", "20px", "blue" ],
+  [ "50px", "0", "0", "0", "20px", "blue" ],
+  [ "50px", "0", "0", "0", "20px", "blue" ],
+  [ "50px", "0", "0", "0", "20px", "blue" ],
+  [ "50px", "0", "0", "0", "20px", "blue" ],
+];
+results.forEach(function(arr) {
+  let grid_width, subgrid_width, subgrid_pos, item_pos, item_width, item_bg;
+  [grid_width, subgrid_pos, subgrid_width, item_pos, item_width, item_bg] = arr;
+  let grid = document.createElement('div');
+  grid.style.width = grid_width;
+  let subgrid = document.createElement('div');
+  subgrid.style.width = subgrid_width;
+  subgrid.style.marginLeft = subgrid_pos;
+  let subgridItem = document.createElement('div');
+  subgridItem.style.width = item_width;
+  subgridItem.style.marginLeft = item_pos;
+  subgridItem.style.backgroundColor = item_bg;
+  subgrid.appendChild(subgridItem);
+  grid.appendChild(subgrid);
+  document.body.appendChild(grid);
+});
+</script>
+
+</body>
+</html>

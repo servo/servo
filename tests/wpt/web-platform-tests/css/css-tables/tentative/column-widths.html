@@ -276,7 +276,23 @@ column.max = max(td.max, col.max)</p>
 <table style="width:1px" data-expected-width=234>
   <col style="width:50%">
   <td style="width:100px" data-expected-width=10><div style="width:10px">10</div></td>
-  <td><div style="width:200px">200</div>
+  <td><div style="width:200px">200</div></td>
+</table>
+
+<p class="testdesc">col fixed td fixed inside table-layout:fixed
+constrained columns take precedence in fixed layout.
+<table style="width:324px;table-layout:fixed" data-expected-width=324>
+  <col style="width:100px">
+  <td style="width:200px" data-expected-width=100>100</td>
+  <td data-expected-width=200><div style="width:400px" >200</div></td>
+</table>
+
+<p class="testdesc">col percent td fixed inside table-layout:fixed
+constrained columns take precedence in fixed layout.
+<table style="width:324px;table-layout:fixed" data-expected-width=324>
+  <col style="width:50%">
+  <td style="width:200px" data-expected-width=150>150</td>
+  <td><div style="width:400px">150</div></td>
 </table>
 </main>
 <script>
