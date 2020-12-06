@@ -261,14 +261,20 @@ impl Window {
         use servo::script_traits::MouseButton;
 
         let max_pixel_dist = 10.0 * self.servo_hidpi_factor().get();
+        let mouse_button = match &button {
+            winit::MouseButton::Left => MouseButton::Left,
+            winit::MouseButton::Right => MouseButton::Right,
+            winit::MouseButton::Middle => MouseButton::Middle,
+            _ => MouseButton::Left,
+        };
         let event = match action {
             ElementState::Pressed => {
                 self.mouse_down_point.set(coords);
                 self.mouse_down_button.set(Some(button));
-                MouseWindowEvent::MouseDown(MouseButton::Left, coords.to_f32())
+                MouseWindowEvent::MouseDown(mouse_button, coords.to_f32())
             },
             ElementState::Released => {
-                let mouse_up_event = MouseWindowEvent::MouseUp(MouseButton::Left, coords.to_f32());
+                let mouse_up_event = MouseWindowEvent::MouseUp(mouse_button, coords.to_f32());
                 match self.mouse_down_button.get() {
                     None => mouse_up_event,
                     Some(but) if button == but => {
@@ -280,7 +286,7 @@ impl Window {
                             self.event_queue
                                 .borrow_mut()
                                 .push(WindowEvent::MouseWindowEventClass(mouse_up_event));
-                            MouseWindowEvent::Click(MouseButton::Left, coords.to_f32())
+                            MouseWindowEvent::Click(mouse_button, coords.to_f32())
                         } else {
                             mouse_up_event
                         }
