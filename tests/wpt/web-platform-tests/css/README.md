@@ -25,11 +25,11 @@ this directory has a number of test requirements specific to it:
 vendor-imports/ Directory
 -------------------------
 
-vendor-imports/ is a legacy directory where third parties historically imported
-their tests that originate and are maintained in an external repo. Files in
-this directory should never be modified in this repo, but should go through the
-vendor's process to be imported here.
-
+vendor-imports/ is the remains of a legacy directory where third parties
+historically imported their tests. These tests should be moved into the correct
+directory under css/, see
+[#8615](https://github.com/web-platform-tests/wpt/issues/8615). In the meantime,
+feel free to fix any test bugs in the usual way.
 
 Importing Old Branches
 ----------------------

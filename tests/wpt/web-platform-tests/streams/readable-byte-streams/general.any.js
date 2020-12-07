@@ -108,6 +108,11 @@ promise_test(() => {
 
 }, 'ReadableStream with byte source: No automatic pull call if start doesn\'t finish');
 
+test(() => {
+  assert_throws_js(Error, () => new ReadableStream({ start() { throw new Error(); }, type:'bytes' }),
+      'start() can throw an exception with type: bytes');
+}, 'ReadableStream with byte source: start() throws an exception');
+
 promise_test(t => {
   new ReadableStream({
     pull: t.unreached_func('pull() should not be called'),
@@ -2054,6 +2059,11 @@ promise_test(() => {
 
   return readPromise;
 }, 'ReadableStream with byte source: default reader + autoAllocateChunkSize + byobRequest interaction');
+
+test(() => {
+  assert_throws_js(TypeError, () => new ReadableStream({ autoAllocateChunkSize: 0, type: 'bytes' }),
+      'controller cannot be setup with autoAllocateChunkSize = 0');
+}, 'ReadableStream with byte source: autoAllocateChunkSize cannot be 0');
 
 test(() => {
   const ReadableStreamBYOBReader = new ReadableStream({ type: 'bytes' }).getReader({ mode: 'byob' }).constructor;
