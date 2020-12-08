@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="resources/common.js"></script>
+    <script src="resources/manual.js"></script>
+  </head>
+  <body>
+    <p>
+      These tests require a connected serial device configured to act as a
+      "loopback" device, with the transmit and receive pins wired together.
+    </p>
+    <script>
+      manual_loopback_serial_test(async (t, port) => {
+        await port.open({baudRate: 115200, bufferSize: 1024});
+
+        // Create something much larger than bufferSize above.
+        const data = new Uint8Array(16 * 1024);
+        for (let i = 0; i < data.byteLength; ++i)
+          data[i] = (i / 1024) & 0xff;
+
+        // Completely write |data| to the port without waiting for it to be
+        // received.
+        const writer = port.writable.getWriter();
+        writer.write(data);
+        await writer.close();
+
+        const reader = port.readable.getReader();
+        const chunks = [];
+        let actualLength = 0;
+        while (true) {
+          try {
+            const {value, done} = await reader.read();
+            if (value) {
+              actualLength += value.byteLength;
+              chunks.push(value);
+            }
+            if (done) {
+              assert_unreached("Unexpected end of stream.");
+              break;
+            }
+          } catch (e) {
+            assert_equals(e.name, 'BufferOverrunError');
+            break;
+          }
+        }
+        reader.releaseLock();
+
+        const buffer = new Uint8Array(actualLength);
+        chunks.reduce((offset, chunk) => {
+          buffer.set(chunk, offset);
+          return offset + chunk.byteLength;
+        }, 0);
+
+        assert_greater_than(actualLength, 0);
+        compareArrays(buffer, data.slice(0, actualLength));
+
+        await port.close();
+      }, 'Overflowing the receive buffer triggers an error.');
+    </script>
+  </body>
+</html>

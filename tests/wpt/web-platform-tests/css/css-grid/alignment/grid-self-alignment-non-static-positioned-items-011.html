@@ -73,34 +73,33 @@
   setup({ explicit_done: true });
 </script>
 <body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
-<!-- The test cases with vertical-rl wirting-mode will fail becauuse of bug 779105 -->
 <div class="grid">
   <div data-offset-x="13"  data-offset-y="2"   data-expected-width="26" data-expected-height="70" class="firstRowFirstColumn verticalLR">X XX X</div>
-  <div data-offset-x="180" data-offset-y="60"  data-expected-width="46" data-expected-height="80" class="firstRowSecondColumn verticalRL">XX X<br>X XXX X<br>XX XXX</div>
-  <div data-offset-x="0"   data-offset-y="160" data-expected-width="76" data-expected-height="20" class="secondRowFirstColumn RTL">X XX X</div>
-  <div data-offset-x="105" data-offset-y="160" data-expected-width="56" data-expected-height="70" class="secondRowSecondColumn verticalLR RTL">XX X<br>X XXX<br>X<br>XX XXX</div>
+  <div data-offset-x="190" data-offset-y="64"  data-expected-width="46" data-expected-height="80" class="firstRowSecondColumn verticalRL">XX X<br>X XXX X<br>XX XXX</div>
+  <div data-offset-x="8"   data-offset-y="162" data-expected-width="76" data-expected-height="20" class="secondRowFirstColumn RTL">X XX X</div>
+  <div data-offset-x="113" data-offset-y="162" data-expected-width="56" data-expected-height="70" class="secondRowSecondColumn verticalLR RTL">XX X<br>X XXX<br>X<br>XX XXX</div>
 </div>
 
 <div class="grid RTL">
-  <div data-offset-x="155" data-offset-y="0"   data-expected-width="26" data-expected-height="70" class="firstRowFirstColumn verticalLR">X XX X</div>
-  <div data-offset-x="80"  data-offset-y="60"  data-expected-width="46" data-expected-height="80" class="firstRowSecondColumn verticalRL">XX X<br>X XXX X<br>XX XXX</div>
-  <div data-offset-x="160" data-offset-y="160" data-expected-width="76" data-expected-height="20" class="secondRowFirstColumn LTR">X XX X</div>
-  <div data-offset-x="35"  data-offset-y="160" data-expected-width="56" data-expected-height="70" class="secondRowSecondColumn verticalRL RTL">XX X<br>X XXX<br>X<br>XX XXX</div>
+  <div data-offset-x="163" data-offset-y="2"   data-expected-width="26" data-expected-height="70" class="firstRowFirstColumn verticalLR">X XX X</div>
+  <div data-offset-x="90"  data-offset-y="64"  data-expected-width="46" data-expected-height="80" class="firstRowSecondColumn verticalRL">XX X<br>X XXX X<br>XX XXX</div>
+  <div data-offset-x="170" data-offset-y="162" data-expected-width="76" data-expected-height="20" class="secondRowFirstColumn LTR">X XX X</div>
+  <div data-offset-x="13"  data-offset-y="162" data-expected-width="56" data-expected-height="70" class="secondRowSecondColumn verticalRL RTL">XX X<br>X XXX<br>X<br>XX XXX</div>
 </div>
 
 <br><br>
 
 <div class="grid verticalLR">
-  <div data-offset-x="5"   data-offset-y="70"  data-expected-width="76" data-expected-height="20" class="firstRowFirstColumn horizontal">X XX X</div>
-  <div data-offset-x="40"  data-offset-y="150" data-expected-width="86" data-expected-height="40" class="firstRowSecondColumn horizontal">XX X<br>X XXX X<br>XX XXX</div>
-  <div data-offset-x="180" data-offset-y="10"  data-expected-width="26" data-expected-height="20" class="secondRowFirstColumn verticalRL">X XX X</div>
-  <div data-offset-x="155" data-offset-y="110" data-expected-width="76" data-expected-height="50" class="secondRowSecondColumn horizontal RTL">XX X<br>X XXX<br>X<br>XX XXX</div>
+  <div data-offset-x="13"  data-offset-y="74"  data-expected-width="76" data-expected-height="20" class="firstRowFirstColumn horizontal">X XX X</div>
+  <div data-offset-x="50"  data-offset-y="153" data-expected-width="86" data-expected-height="40" class="firstRowSecondColumn horizontal">XX X<br>X XXX X<br>XX XXX</div>
+  <div data-offset-x="189" data-offset-y="12"  data-expected-width="26" data-expected-height="70" class="secondRowFirstColumn verticalRL">X XX X</div>
+  <div data-offset-x="163" data-offset-y="112" data-expected-width="76" data-expected-height="50" class="secondRowSecondColumn horizontal RTL">XX X<br>X XXX<br>X<br>XX XXX</div>
 </div>
 
 <div class="grid verticalRL">
-  <div data-offset-x="105" data-offset-y="70"  data-expected-width="76" data-expected-height="20" class="firstRowFirstColumn horizontal">X XX X</div>
-  <div data-offset-x="140" data-offset-y="150" data-expected-width="86" data-expected-height="40" class="firstRowSecondColumn horizontal">XX X<br>X XXX X<br>XX XXX</div>
-  <div data-offset-x="5"   data-offset-y="10"  data-expected-width="76"  data-expected-height="20" class="secondRowFirstColumn horizontal RTL">X XX X</div>
-  <div data-offset-x="5"   data-offset-y="115" data-expected-width="56"  data-expected-height="70" class="secondRowSecondColumn verticalLR">XX X<br>X XXX<br>X<br>XX XXX</div>
+  <div data-offset-x="113" data-offset-y="74"  data-expected-width="76" data-expected-height="20" class="firstRowFirstColumn horizontal">X XX X</div>
+  <div data-offset-x="150" data-offset-y="153" data-expected-width="86" data-expected-height="40" class="firstRowSecondColumn horizontal">XX X<br>X XXX X<br>XX XXX</div>
+  <div data-offset-x="14"  data-offset-y="12"  data-expected-width="76"  data-expected-height="20" class="secondRowFirstColumn horizontal RTL">X XX X</div>
+  <div data-offset-x="13"  data-offset-y="112" data-expected-width="56"  data-expected-height="70" class="secondRowSecondColumn verticalLR">XX X<br>X XXX<br>X<br>XX XXX</div>
 </div>
 </body>
