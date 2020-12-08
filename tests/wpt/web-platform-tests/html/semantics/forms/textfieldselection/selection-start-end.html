@@ -145,6 +145,31 @@
   }, "selectionEnd edge-case values");
 
   test(() => {
+    for (const el of createTestElements(testValue)) {
+      el.selectionStart = 200;
+      assert_equals(el.selectionStart, testValue.length);
+      el.remove();
+    }
+  }, "selectionStart should be clamped by the current value length");
+
+  test(() => {
+    for (const el of createTestElements(testValue)) {
+      el.selectionStart = 300;
+      assert_equals(el.selectionEnd, testValue.length);
+      el.remove();
+    }
+  }, "selectionEnd should be clamped by the current value length");
+
+  test(() => {
+    for (const el of createTestElements(testValue)) {
+      el.setSelectionRange(200, 300);
+      assert_equals(el.selectionStart, testValue.length);
+      assert_equals(el.selectionEnd, testValue.length);
+      el.remove();
+    }
+  }, "setSelectionRange should be clamped by the current value length");
+
+  test(() => {
     for (let el of createTestElements(testValue)) {
       const start = 1;
       const end = testValue.length - 1;

@@ -63,8 +63,11 @@
   });
 
   applicableTypes.forEach(function(type) {
-    var el = document.createElement("input");
-    if (type) el.type = type;
+    const el = document.createElement("input");
+    if (type) {
+      el.type = type;
+    }
+    const initialDirection = el.selectionDirection;
 
     test(() => {
       assert_equals(el.selectionStart, 0);
@@ -77,6 +80,11 @@
     test(() => {
       assert_in_array(el.selectionDirection, ["forward", "none"]);
     }, `selectionDirection on an input[type=${type}] returns a value`);
+
+    test(() => {
+      el.selectionDirection = "none";
+      assert_equals(el.selectionDirection, initialDirection);
+    }, `assigning selectionDirection "none" on an input[type=${type}] should give the initial direction`);
 
     test(() => {
       el.selectionStart = 1;

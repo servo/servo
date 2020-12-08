@@ -55,3 +55,12 @@ gen-bundle \
   -primaryURL $wpt_test_http_origin/web-bundle/resources/wbn/resource.js \
   -dir path-restriction/ \
   -o wbn/path-restriction.wbn
+
+# Create a bundle, nested-main.wbn, which includes nested-sub.wbn.
+cp -a wbn/subresource.wbn nested/nested-sub.wbn
+gen-bundle \
+  -version b1 \
+  -baseURL $wpt_test_http_origin/web-bundle/resources/wbn/ \
+  -primaryURL $wpt_test_http_origin/web-bundle/resources/wbn/resource.js \
+  -dir nested/ \
+  -o wbn/nested-main.wbn
