@@ -1,31 +1,35 @@
-name: pr-preview-sync
+# Create previews for pull requests on https://wptpr.live
+#
+# Mirroring pull requests to wptpr.live requires write access to the WPT GitHub
+# repository. This means that we cannot run any code from the pull request in
+# doing so, to defend against attacks from malicious pull requests. As such,
+# this workflow uses the 'pull_request_target' event which runs in the context
+# of the base repository and thus doesn't run code from the pull request. Any
+# code run in this workflow should NOT checkout or trust code from the pull
+# request.
+#
+# Note that in pull_request_target the GITHUB token is read/write.
+name: create-pr-preview
 on:
-  schedule:
-    - cron: '*/5 * * * *'
+  pull_request_target:
+    types: [opened, synchronize, reopened, closed, labeled, unlabeled]
 jobs:
   update-pr-preview:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v1
       with:
         fetch-depth: 1
     - name: Install dependency
       run: pip install requests
-    - name: Synchronize state
+    - name: Deploy PR
       # Use a conditional step instead of a conditional job to work around #20700.
       if: github.repository == 'web-platform-tests/wpt'
       run:
         ./tools/ci/pr_preview.py
           --host https://api.github.com
           --github-project web-platform-tests/wpt
-          synchronize
-          --window 480
+          --target https://wptpr.live
+          --timeout 600
       env:
-        # This Workflow must trigger further workflows. The GitHub-provided
-        # `GITHUB_TOKEN` secret is incapable of doing this [1], so a
-        # user-generated token must be specified instead. This token requires
-        # the "repo" scope, and is should be stored as a Secret named
-        # "DEPLOY_TOKEN" in this GitHub project.
-        #
-        # [1] https://help.github.com/en/github/automating-your-workflow-with-github-actions/events-that-trigger-workflows
-        DEPLOY_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

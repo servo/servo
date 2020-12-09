@@ -25,7 +25,7 @@ API_RATE_LIMIT_THRESHOLD = 0.2
 LABEL = 'safe for preview'
 # The number of seconds to wait between attempts to verify that a submission
 # preview is available on the Pull Request preview server
-POLLING_PERIOD = 5
+POLLING_PERIOD = 15
 # Pull Requests from authors with the following associations to the project
 # should automatically receive previews
 #
@@ -44,7 +44,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def gh_request(method_name, url, body=None, media_type=None):
-    github_token = os.environ['DEPLOY_TOKEN']
+    github_token = os.environ['GITHUB_TOKEN']
 
     kwargs = {
         'headers': {
@@ -66,6 +66,9 @@ def gh_request(method_name, url, body=None, media_type=None):
     resp.raise_for_status()
 
     return resp.json()
+
+class GitHubRateLimitException(Exception):
+    pass
 
 def guard(resource):
     '''Decorate a `Project` instance method which interacts with the GitHub
@@ -90,7 +93,7 @@ def guard(resource):
             )
 
             if limit and float(remaining) / limit < API_RATE_LIMIT_THRESHOLD:
-                raise Exception(
+                raise GitHubRateLimitException(
                     'Exiting to avoid GitHub.com API request throttling.'
                 )
 
@@ -131,25 +134,6 @@ class Project(object):
             raise Exception('Incomplete results')
 
         return {pr['number']: pr for pr in data['items']}
-
-    def pull_request_is_from_fork(self, pull_request):
-        pr_number = pull_request['number']
-        logger.info('Checking if pull request %s is from a fork', pr_number)
-
-        # We may already have this information; if so no need to make another
-        # API call.
-        if 'head' not in pull_request:
-            pull_request = self.get_pull_request(pr_number)
-
-        repo_name = pull_request['head']['repo']['full_name']
-        is_fork = repo_name != self._github_project
-
-        logger.info(
-            'Pull request %s is from \'%s\'. Is a fork: %s',
-            pr_number, repo_name, is_fork
-        )
-
-        return is_fork
 
     @guard('core')
     def create_ref(self, refspec, revision):
@@ -206,7 +190,7 @@ class Project(object):
         return deployments.pop() if len(deployments) else None
 
     @guard('core')
-    def update_deployment(self, target, deployment, state, description=''):
+    def add_deployment_status(self, target, deployment, state, description=''):
         if state in ('pending', 'success'):
             pr_number = deployment['environment'][len(DEPLOYMENT_PREFIX):]
             environment_url = '{}/{}'.format(target, pr_number)
@@ -227,7 +211,7 @@ class Remote(object):
         # The repository in the GitHub Actions environment is configured with
         # a remote whose URL uses unauthenticated HTTPS, making it unsuitable
         # for pushing changes.
-        self._token = os.environ['DEPLOY_TOKEN']
+        self._token = os.environ['GITHUB_TOKEN']
 
     def _git(self, command):
         return subprocess.check_output([
@@ -306,131 +290,130 @@ def should_be_mirrored(project, pull_request):
                 pull_request['user']['login'] not in AUTOMATION_GITHUB_USERS and
                 pull_request['author_association'] in TRUSTED_AUTHOR_ASSOCIATIONS
             )
-        ) and
-        # Query this last as it requires another API call to verify
-        not project.pull_request_is_from_fork(pull_request)
+        )
     )
 
 def is_deployed(host, deployment):
     worktree_name = deployment['environment'][len(DEPLOYMENT_PREFIX):]
-    response = requests.get(
-        '{}/.git/worktrees/{}/HEAD'.format(host, worktree_name)
-    )
+    url = '{}/.git/worktrees/{}/HEAD'.format(host, worktree_name)
+    logger.info('Issuing request: GET %s', url)
+    response = requests.get(url)
 
+    logger.info('Response status code: %s', response.status_code)
     if response.status_code != 200:
         return False
 
+    logger.info('Response text: %s', response.text.strip())
     return response.text.strip() == deployment['sha']
 
-def synchronize(host, github_project, window):
-    '''Inspect all Pull Requests which have been modified in a given window of
-    time. Add or remove the "preview" label and update or delete the relevant
-    git refs according to the status of each Pull Request.'''
+def update_mirror_refs(project, remote, pull_request):
+    '''Update the WPT refs that control mirroring of this pull request.
 
-    project = Project(host, github_project)
-    remote = Remote(github_project)
+    Two sets of refs are used to control wptpr.live's mirroring of pull
+    requests:
 
-    pull_requests = project.get_pull_requests(
-        time.gmtime(time.time() - window)
+        1. refs/prs-trusted-for-preview/{number}
+        2. refs/prs-open/{number}
+
+    wptpr.live will only mirror a pull request if both exist for the given pull
+    request number; otherwise the pull request is either not open or is not
+    trustworthy (e.g. came from someone who doesn't have push access anyway.)
+
+    This method returns the revision that is being mirrored, or None if the
+    pull request should not be mirrored.
+    '''
+
+    refspec_trusted = 'prs-trusted-for-preview/{number}'.format(
+        **pull_request
     )
+    refspec_open = 'prs-open/{number}'.format(**pull_request)
+    revision_latest = remote.get_revision(
+        'pull/{number}/head'.format(**pull_request)
+    )
+    revision_trusted = remote.get_revision(refspec_trusted)
+    revision_open = remote.get_revision(refspec_open)
 
-    # It is possible we may miss some pull requests if this script breaks or is
-    # not run for a while and the PR falls outside the checked window. To
-    # ensure that closed pull requests are deleted, extend the list of pull
-    # requests to look at with any that have an existing refs/prs-open/{pr} ref
-    # in the repo.
-    existing_pr_numbers = remote.get_pull_requests_with_open_ref()
-    for pr_number in existing_pr_numbers:
-        if pr_number in pull_requests:
-            continue
-        pull_request = project.get_pull_request(pr_number)
-        pull_requests[pull_request['number']] = pull_request
+    if should_be_mirrored(project, pull_request):
+        logger.info('Pull Request should be mirrored')
 
-    for pull_request in pull_requests.values():
-        logger.info('Processing Pull Request #%(number)d', pull_request)
+        if revision_trusted is None:
+            project.create_ref(refspec_trusted, revision_latest)
+        elif revision_trusted != revision_latest:
+            project.update_ref(refspec_trusted, revision_latest)
 
-        refspec_trusted = 'prs-trusted-for-preview/{number}'.format(
-            **pull_request
-        )
-        refspec_open = 'prs-open/{number}'.format(**pull_request)
-        revision_latest = remote.get_revision(
-            'pull/{number}/head'.format(**pull_request)
-        )
-        revision_trusted = remote.get_revision(refspec_trusted)
-        revision_open = remote.get_revision(refspec_open)
+        if revision_open is None:
+            project.create_ref(refspec_open, revision_latest)
+        elif revision_open != revision_latest:
+            project.update_ref(refspec_open, revision_latest)
 
-        if should_be_mirrored(project, pull_request):
-            logger.info('Pull Request should be mirrored')
+        return revision_latest
 
-            if revision_trusted is None:
-                project.create_ref(refspec_trusted, revision_latest)
-            elif revision_trusted != revision_latest:
-                project.update_ref(refspec_trusted, revision_latest)
+    logger.info('Pull Request should not be mirrored')
 
-            if revision_open is None:
-                project.create_ref(refspec_open, revision_latest)
-            elif revision_open != revision_latest:
-                project.update_ref(refspec_open, revision_latest)
+    if not has_mirroring_label(pull_request) and revision_trusted is not None:
+        remote.delete_ref(refspec_trusted)
 
-            if project.get_deployment(revision_latest) is None:
-                project.create_deployment(
-                    pull_request, revision_latest
-                )
-        else:
-            logger.info('Pull Request should not be mirrored')
+    if revision_open is not None and not is_open(pull_request):
+        remote.delete_ref(refspec_open)
 
-            if not has_mirroring_label(pull_request) and revision_trusted is not None:
-                remote.delete_ref(refspec_trusted)
+    # No revision to be deployed to wptpr.live
+    return None
 
-            if revision_open is not None and not is_open(pull_request):
-                remote.delete_ref(refspec_open)
+class DeploymentFailedException(Exception):
+    pass
 
-def detect(host, github_project, target, timeout):
-    '''Manage the status of a GitHub Deployment by polling the Pull Request
-    preview website until the Deployment is complete or a timeout is
-    reached.'''
+def deploy(project, target, pull_request, revision, timeout):
+    '''Create a GitHub deployment for the given pull request and revision.
 
-    project = Project(host, github_project)
-
-    with open(os.environ['GITHUB_EVENT_PATH']) as handle:
-        data = json.loads(handle.read())
-
-    logger.info('Event data: %s', json.dumps(data, indent=2))
-
-    deployment = data['deployment']
-
-    if not deployment['environment'].startswith(DEPLOYMENT_PREFIX):
-        logger.info(
-            'Deployment environment "%s" is unrecognized. Exiting.',
-            deployment['environment']
-        )
+    This method creates a pending GitHub deployment, waits for the
+    corresponding revision to be available on wptpr.live and marks the
+    deployment as successful. If the revision does not appear in the given
+    timeout, the deployment is marked as errored instead.'''
+    if project.get_deployment(revision) is not None:
         return
+
+    deployment = project.create_deployment(pull_request, revision)
 
     message = 'Waiting up to {} seconds for Deployment {} to be available on {}'.format(
         timeout, deployment['environment'], target
     )
     logger.info(message)
-    project.update_deployment(target, deployment, 'pending', message)
+    project.add_deployment_status(target, deployment, 'pending', message)
 
     start = time.time()
-
     while not is_deployed(target, deployment):
         if time.time() - start > timeout:
             message = 'Deployment did not become available after {} seconds'.format(timeout)
-            project.update_deployment(target, deployment, 'error', message)
-            raise Exception(message)
+            project.add_deployment_status(target, deployment, 'error', message)
+            raise DeploymentFailedException(message)
 
         time.sleep(POLLING_PERIOD)
 
-    result = project.update_deployment(target, deployment, 'success')
+    result = project.add_deployment_status(target, deployment, 'success')
     logger.info(json.dumps(result, indent=2))
+
+def main(host, github_project, target, timeout):
+    project = Project(host, github_project)
+    remote = Remote(github_project)
+
+    with open(os.environ['GITHUB_EVENT_PATH']) as handle:
+        data = json.load(handle)
+
+    logger.info('Event data: %s', json.dumps(data, indent=2))
+
+    pull_request = data['pull_request']
+
+    logger.info('Processing Pull Request #%(number)d', pull_request)
+
+    revision_to_mirror = update_mirror_refs(project, remote, pull_request)
+    if revision_to_mirror:
+        deploy(project, target, pull_request, revision_to_mirror, timeout)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
-        description='''Synchronize the state of a GitHub.com project with the
-            underlying git repository in order to support a externally-hosted
-            Pull Request preview system. Communicate the state of that system
-            via GitHub Deployments associated with each Pull Request.'''
+        description='''Mirror a pull request to an externally-hosted preview
+            system, and create a GitHub Deployment associated with the pull
+            request pointing at the preview.'''
     )
     parser.add_argument(
         '--host', required=True, help='the location of the GitHub API server'
@@ -441,36 +424,19 @@ if __name__ == '__main__':
         help='''the GitHub organization and GitHub project name, separated by
             a forward slash (e.g. "web-platform-tests/wpt")'''
     )
-    subparsers = parser.add_subparsers(title='subcommands')
-
-    parser_sync = subparsers.add_parser(
-        'synchronize', help=synchronize.__doc__
-    )
-    parser_sync.add_argument(
-        '--window',
-        type=int,
-        required=True,
-        help='''the number of seconds prior to the current moment within which
-            to search for GitHub Pull Requests. Any Pull Requests updated in
-            this time frame will be considered for synchronization.'''
-    )
-    parser_sync.set_defaults(func=synchronize)
-
-    parser_detect = subparsers.add_parser('detect', help=detect.__doc__)
-    parser_detect.add_argument(
+    parser.add_argument(
         '--target',
         required=True,
         help='''the URL of the website to which submission previews are
             expected to become available'''
     )
-    parser_detect.add_argument(
+    parser.add_argument(
         '--timeout',
         type=int,
         required=True,
         help='''the number of seconds to wait for a submission preview to
             become available before reporting a GitHub Deployment failure'''
     )
-    parser_detect.set_defaults(func=detect)
 
     values = dict(vars(parser.parse_args()))
-    values.pop('func')(**values)
+    main(**values)

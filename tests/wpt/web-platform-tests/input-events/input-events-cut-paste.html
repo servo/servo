@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Cut and Paste should trigger corresponding InputEvent</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script type="text/javascript" src="pointerevent_support.js"></script>
+<p>To manually run this test, please follow the steps below:<br/>
+1. Select 'plain' => Cut (e.g. Ctrl/Cmd-X) => Paste (e.g. Ctrl/Cmd-V).<br/>
+2. Select 'rich' => Cut => Paste.<br/>
+3. Select 'prevent' => Paste.<br/>
+4. Select 'prevent' => Cut => Select 'normal' => Paste.<br/>
+<br/>
+If a "PASS" result appears the test passes, otherwise it fails</p>
+<textarea id="test1_plain">plain</textarea>
+<p id="test2_editable" contenteditable><b>rich</b></p>
+<p id="test3_editable_prevent" contenteditable>prevent</p>
+<p id="test3_editable_normal" contenteditable>normal</p>
+<script>
+
+function resolveWhen(condition) {
+  return new Promise((resolve, reject) => {
+    function tick() {
+      if (condition())
+        resolve();
+      else
+        requestAnimationFrame(tick.bind(this));
+    }
+    tick();
+  });
+}
+
+let modifier_key = "\uE009";
+if(navigator.platform.includes('Mac'))
+    modifier_key = "\uE03D";
+const commands = {
+    COPY: 'copy',
+    CUT: 'cut',
+    PASTE: 'paste',
+}
+function selectTextCommand(target, command) {
+  let command_key = "";
+  if(command == "copy")
+    command_key = "c";
+  else if (command == "cut")
+    command_key = "x";
+  else if (command == "paste")
+    command_key = "v";
+  return new test_driver.Actions()
+      .pointerMove(0, 0, {origin: target})
+      .pointerDown()
+      .pointerUp()
+      .addTick()
+      .keyDown(modifier_key)
+      .keyDown("a")
+      .keyUp("a")
+      .keyDown(command_key)
+      .keyUp(command_key)
+      .keyUp(modifier_key)
+      .send();
+}
+
+function selectTextCutAndPaste(target1, target2) {
+  return selectTextCommand(target1, commands.CUT).then(() => {
+    return selectTextCommand(target2, commands.PASTE);
+  })
+}
+
+promise_test(async test => {
+  const expectedEventLog = [
+        'cut-[null]', 'beforeinput-deleteByCut', 'input-deleteByCut',
+        'paste-[null]', 'beforeinput-insertFromPaste', 'input-insertFromPaste'];
+  const actualEventLog = [];
+  const text1 = document.getElementById("test1_plain");
+
+  for (let eventType of ['beforeinput', 'input', 'cut', 'paste']) {
+      text1.addEventListener(eventType, test.step_func(function() {
+          if (event.type === 'beforeinput' && event.inputType === 'insertFromPaste') {
+              assert_equals(event.data, 'plain');
+              assert_equals(event.dataTransfer, null);
+          }
+
+          actualEventLog.push(`${event.type}-${event.inputType || '[null]'}`);
+      }));
+  }
+  await selectTextCutAndPaste(text1, text1);
+  await resolveWhen(() => { return actualEventLog.length == expectedEventLog.length });
+  assert_array_equals(actualEventLog, expectedEventLog,
+                      `Expected: ${expectedEventLog}; Actual: ${actualEventLog}.`);
+}, 'Event order and data on textarea.');
+
+promise_test(async test => {
+    const expectedEventLog = [
+        'cut-[null]', 'beforeinput-deleteByCut', 'input-deleteByCut',
+        'paste-[null]', 'beforeinput-insertFromPaste', 'input-insertFromPaste'];
+    const actualEventLog = [];
+    const text2 = document.getElementById("test2_editable");
+
+    for (let eventType of ['beforeinput', 'input', 'cut', 'paste']) {
+        text2.addEventListener(eventType, test.step_func(function() {
+            if (event.type === 'beforeinput' && event.inputType === 'insertFromPaste') {
+                assert_equals(event.data, null);
+                assert_equals(event.dataTransfer.getData('text/plain'), 'rich');
+                assert_regexp_match(event.dataTransfer.getData('text/html'), /<b.*>rich<\/b>$/);
+            }
+
+            actualEventLog.push(`${event.type}-${event.inputType || '[null]'}`);
+        }));
+    }
+    await selectTextCutAndPaste(text2, text2);
+    await resolveWhen(() => { return actualEventLog.length == expectedEventLog.length });
+    assert_array_equals(actualEventLog, expectedEventLog,
+                        `Expected: ${expectedEventLog}; Actual: ${actualEventLog}.`);
+}, 'Event order and dataTransfer on contenteditable.');
+
+promise_test(async test => {
+    const prevent = document.getElementById('test3_editable_prevent');
+    const normal = document.getElementById('test3_editable_normal');
+    prevent.addEventListener('beforeinput', test.step_func(function() {
+        if (event.inputType === 'deleteByCut' ||
+            event.inputType === 'insertFromPaste') {
+            event.preventDefault();
+        }
+    }));
+
+    normal.addEventListener('input', test.step_func(function() {
+        if (event.inputType === 'insertFromPaste') {
+            assert_equals(prevent.textContent, 'prevent');
+            assert_equals(normal.textContent, 'prevent');
+        }
+    }));
+
+    await selectTextCommand(prevent, commands.PASTE);
+    await selectTextCutAndPaste(prevent, normal);
+    await resolveWhen(() => { return normal.textContent == 'prevent' });
+    assert_equals(prevent.textContent, 'prevent');
+    assert_equals(normal.textContent, 'prevent');
+}, 'preventDefault() should prevent DOM modification but allow clipboard updates.');
+</script>

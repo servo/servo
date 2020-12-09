@@ -171,7 +171,8 @@ function navigationReportingTest(testName, host, coop, coep, coopRo, coepRo,
       `|header(Cross-Origin-Embedder-Policy-Report-Only,${encodeURIComponent(coepRo)})`+
       `&uuid=${executorToken}`;
       const openee = window.open(openee_url);
-      t.add_cleanup(() => send(5, "window.close()"));
+      const uuid = token();
+      t.add_cleanup(() => send(uuid, "window.close()"));
 
       // 1. Make sure the new document is loaded.
       send(executorToken, `
