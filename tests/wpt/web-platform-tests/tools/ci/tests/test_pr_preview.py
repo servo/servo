@@ -14,10 +14,11 @@ import sys
 import tempfile
 import threading
 
-subject = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), '..', 'pr_preview.py'
-)
-test_host = 'localhost'
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import pr_preview
+
+
+TEST_HOST = 'localhost'
 
 
 def same_members(a, b):
@@ -81,7 +82,10 @@ class MockHandler(BaseHTTPRequestHandler, object):
         self.server.actual_traffic.append((request, response))
         self.send_response(response[0])
         self.end_headers()
-        self.wfile.write(json.dumps(response[1]).encode('utf-8'))
+        if self.server.reponse_body_is_json:
+            self.wfile.write(json.dumps(response[1]).encode('utf-8'))
+        else:
+            self.wfile.write(response[1].encode('utf-8'))
 
     def do_DELETE(self):
         return self.do_all()
@@ -100,10 +104,11 @@ class MockServer(HTTPServer, object):
     '''HTTP server that responds to all requests with status code 200 and body
     '{}' unless an alternative status code and body are specified for the given
     method and path in the `responses` parameter.'''
-    def __init__(self, address, expected_traffic):
+    def __init__(self, address, expected_traffic, reponse_body_is_json=True):
         super(MockServer, self).__init__(address, MockHandler)
         self.expected_traffic = expected_traffic
         self.actual_traffic = []
+        self.reponse_body_is_json = reponse_body_is_json
 
     def __enter__(self):
         threading.Thread(target=lambda: self.serve_forever()).start()
@@ -115,21 +120,19 @@ class MockServer(HTTPServer, object):
 
 class Requests(object):
     get_rate = ('GET', '/rate_limit', {})
-    search = ('GET', '/search/issues', {})
-    pr_details = ('GET', '/repos/test-org/test-repo/pulls/23', {})
     ref_create_open = (
-        'POST', '/repos/test-org/test-repo/git/refs', {'ref':'refs/prs-open/23'}
+        'POST', '/repos/test-org/test-repo/git/refs', {'ref':'refs/prs-open/45'}
     )
     ref_create_trusted = (
         'POST',
         '/repos/test-org/test-repo/git/refs',
-        {'ref':'refs/prs-trusted-for-preview/23'}
+        {'ref':'refs/prs-trusted-for-preview/45'}
     )
     ref_update_open = (
-        'PATCH', '/repos/test-org/test-repo/git/refs/prs-open/23', {}
+        'PATCH', '/repos/test-org/test-repo/git/refs/prs-open/45', {}
     )
     ref_update_trusted = (
-        'PATCH', '/repos/test-org/test-repo/git/refs/prs-trusted-for-preview/23', {}
+        'PATCH', '/repos/test-org/test-repo/git/refs/prs-trusted-for-preview/45', {}
     )
     deployment_get = ('GET', '/repos/test-org/test-repo/deployments', {})
     deployment_create = ('POST', '/repos/test-org/test-repo/deployments', {})
@@ -167,8 +170,12 @@ class Responses(object):
 
 
 @contextlib.contextmanager
-def temp_repo():
+def temp_repo(change_dir=False):
+    original_dir = os.getcwd()
     directory = tempfile.mkdtemp()
+
+    if change_dir:
+        os.chdir(directory)
 
     try:
         subprocess.check_call(['git', 'init'], cwd=directory)
@@ -192,20 +199,22 @@ def temp_repo():
 
         yield directory
     finally:
+        if change_dir:
+            os.chdir(original_dir)
+
         shutil.rmtree(
             directory, ignore_errors=False, onerror=handle_remove_readonly
         )
 
-def synchronize(expected_traffic, refs={}):
-    env = {
-        'DEPLOY_TOKEN': 'c0ffee'
-    }
-    env.update(os.environ)
-    server = MockServer((test_host, 0), expected_traffic)
-    test_port = server.server_address[1]
+def update_mirror_refs(pull_request, expected_traffic, refs={}):
+    os.environ['GITHUB_TOKEN'] = 'c0ffee'
+
+    github_server = MockServer((TEST_HOST, 0), expected_traffic)
+    github_port = github_server.server_address[1]
     remote_refs = {}
 
-    with temp_repo() as local_repo, temp_repo() as remote_repo, server:
+    method_threw = False
+    with temp_repo(change_dir=True), temp_repo() as remote_repo, github_server:
         subprocess.check_call(
             ['git', 'commit', '--allow-empty', '-m', 'first'],
             cwd=remote_repo
@@ -214,9 +223,7 @@ def synchronize(expected_traffic, refs={}):
             ['git', 'commit', '--allow-empty', '-m', 'second'],
             cwd=remote_repo
         )
-        subprocess.check_call(
-            ['git', 'remote', 'add', 'origin', remote_repo], cwd=local_repo
-        )
+        subprocess.check_call(['git', 'remote', 'add', 'origin', remote_repo])
 
         for name, value in refs.items():
             subprocess.check_call(
@@ -224,26 +231,18 @@ def synchronize(expected_traffic, refs={}):
                 cwd=remote_repo
             )
 
-        child = subprocess.Popen(
-            [
-                sys.executable,
-                subject,
-                '--host',
-                'http://{}:{}'.format(test_host, test_port),
-                '--github-project',
-                'test-org/test-repo',
-                'synchronize',
-                '--window',
-                '3000'
-            ],
-            cwd=local_repo,
-            env=env
+        subprocess.check_call(['git', 'remote', '-v'])
+        project = pr_preview.Project(
+            'http://{}:{}'.format(TEST_HOST, github_port),
+            'test-org/test-repo',
         )
+        remote = pr_preview.Remote('test-org/test-repo')
+        try:
+            pr_preview.update_mirror_refs(project, remote, pull_request)
+        except pr_preview.GitHubRateLimitException:
+            method_threw = True
 
-        child.communicate()
-        lines = subprocess.check_output(
-            ['git', 'ls-remote', 'origin'], cwd=local_repo
-        )
+        lines = subprocess.check_output(['git', 'ls-remote', 'origin'])
         for line in lines.decode('utf-8').strip().split('\n'):
             revision, ref = line.split()
 
@@ -252,75 +251,55 @@ def synchronize(expected_traffic, refs={}):
 
             remote_refs[ref] = revision
 
-    return child.returncode, server.actual_traffic, remote_refs
+    return (
+        method_threw,
+        github_server.actual_traffic,
+        remote_refs,
+    )
 
 
-def detect(event, expected_github_traffic, expected_preview_traffic):
-    env = {
-        'DEPLOY_TOKEN': 'c0ffee'
-    }
-    env.update(os.environ)
-    github_server = MockServer((test_host, 0), expected_github_traffic)
+def deploy(pr_num, revision, expected_github_traffic, expected_preview_traffic):
+    os.environ['GITHUB_TOKEN'] = 'c0ffee'
+
+    github_server = MockServer((TEST_HOST, 0), expected_github_traffic)
     github_port = github_server.server_address[1]
-    preview_server = MockServer((test_host, 0), expected_preview_traffic)
+    preview_server = MockServer((TEST_HOST, 0), expected_preview_traffic, reponse_body_is_json=False)
     preview_port = preview_server.server_address[1]
 
-    with temp_repo() as repo, github_server, preview_server:
-        env['GITHUB_EVENT_PATH'] = repo + '/event.json'
-
-        with open(env['GITHUB_EVENT_PATH'], 'w') as handle:
-            handle.write(json.dumps(event))
-
-        child = subprocess.Popen(
-            [
-                sys.executable,
-                subject,
-                '--host',
-                'http://{}:{}'.format(test_host, github_port),
-                '--github-project',
-                'test-org/test-repo',
-                'detect',
-                '--target',
-                'http://{}:{}'.format(test_host, preview_port),
-                '--timeout',
-                '1'
-            ],
-            cwd=repo,
-            env=env
+    method_threw = False
+    with github_server, preview_server:
+        project = pr_preview.Project(
+            'http://{}:{}'.format(TEST_HOST, github_port),
+            'test-org/test-repo',
         )
-        child.communicate()
+        target = 'http://{}:{}'.format(TEST_HOST, preview_port)
+        pull_request = {'number': pr_num}
+        timeout = 1
+        try:
+            pr_preview.deploy(project, target, pull_request, revision, timeout)
+        except (pr_preview.GitHubRateLimitException, pr_preview.DeploymentFailedException):
+            method_threw = True
 
     return (
-        child.returncode,
+        method_threw,
         github_server.actual_traffic,
         preview_server.actual_traffic
     )
 
-
-def test_synchronize_zero_results():
-    expected_traffic = [
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (
-            200,
-            {
-                'items': [],
-                'incomplete_results': False
-            }
-        ))
-    ]
-
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic)
-
-    assert returncode == 0
-    assert same_members(expected_traffic, actual_traffic)
-
-def test_synchronize_fail_search_throttled():
+def test_update_mirror_refs_fail_rate_limited():
+    pull_request = {
+        'number': 45,
+        'labels': [],
+        'user': {'login': 'stephenmcgruer'},
+        'author_association': 'COLLABORATOR',
+        'closed_at': None,
+    }
     expected_traffic = [
         (Requests.get_rate, (
             200,
             {
                 'resources': {
-                    'search': {
+                    'core': {
                         'remaining': 1,
                         'limit': 10
                     }
@@ -329,451 +308,213 @@ def test_synchronize_fail_search_throttled():
         ))
     ]
 
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic)
+    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+        pull_request, expected_traffic
+    )
 
-    assert returncode != 0
-    assert same_members(expected_traffic, actual_traffic)
-
-def test_synchronize_fail_incomplete_results():
-    expected_traffic = [
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (
-            200,
-            {
-                'items': [],
-                'incomplete_results': True
-            }
-        ))
-    ]
-
-    returncode, actual_traffic, remove_refs = synchronize(expected_traffic)
-
-    assert returncode != 0
+    assert method_threw
     assert same_members(expected_traffic, actual_traffic)
 
 def test_synchronize_ignore_closed():
-    expected_traffic = [
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (
-            200,
-            {
-                'items': [
-                    {
-                        'number': 23,
-                        'labels': [],
-                        'closed_at': '2019-10-28',
-                        'user': {'login': 'grace'},
-                        'author_association': 'COLLABORATOR'
-                    }
-                ],
-                'incomplete_results': False
-            }
-        ))
-    ]
+    # No existing refs, but a closed PR event comes in. Nothing should happen.
+    pull_request = {
+        'number': 45,
+        'labels': [],
+        'user': {'login': 'stephenmcgruer'},
+        'author_association': 'COLLABORATOR',
+        'closed_at': '2019-10-28',
+    }
+    expected_traffic = []
 
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic)
+    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+        pull_request, expected_traffic
+    )
 
-    assert returncode == 0
+    assert not method_threw
     assert same_members(expected_traffic, actual_traffic)
 
-def test_synchronize_sync_collaborator():
+def test_update_mirror_refs_collaborator():
+    pull_request = {
+        'number': 45,
+        'labels': [],
+        'user': {'login': 'stephenmcgruer'},
+        'author_association': 'COLLABORATOR',
+        'closed_at': None,
+    }
     expected_traffic = [
         (Requests.get_rate, Responses.no_limit),
         (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (
-            200,
-            {
-                'items': [
-                    {
-                        'number': 23,
-                        'labels': [],
-                        'closed_at': None,
-                        'user': {'login': 'grace'},
-                        'author_association': 'COLLABORATOR'
-                    }
-                ],
-                'incomplete_results': False
-            }
-        )),
-        (Requests.pr_details, (200,
-            {
-                'head': {
-                    'repo': {
-                        'full_name': 'test-org/test-repo'
-                    }
-                }
-            }
-        )),
         (Requests.ref_create_open, (200, {})),
         (Requests.ref_create_trusted, (200, {})),
-        (Requests.deployment_get, (200, {})),
-        (Requests.deployment_create, (200, {}))
     ]
 
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic)
+    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+        pull_request, expected_traffic
+    )
 
-    assert returncode == 0
+    assert not method_threw
     assert same_members(expected_traffic, actual_traffic)
 
-def test_synchronize_ignore_collaborator_bot():
-    expected_traffic = [
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (
-            200,
-            {
-                'items': [
-                    {
-                        'number': 23,
-                        'labels': [],
-                        'closed_at': None,
-                        'user': {'login': 'chromium-wpt-export-bot'},
-                        'author_association': 'COLLABORATOR'
-                    }
-                ],
-                'incomplete_results': False
-            }
-        ))
-    ]
+def test_update_mirror_refs_ignore_collaborator_bot():
+    pull_request = {
+        'number': 45,
+        'labels': [],
+        'user': {'login': 'chromium-wpt-export-bot'},
+        'author_association': 'COLLABORATOR',
+        'closed_at': None,
+    }
+    expected_traffic = []
 
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic)
+    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+        pull_request, expected_traffic
+    )
 
-    assert returncode == 0
+    assert not method_threw
     assert same_members(expected_traffic, actual_traffic)
 
-def test_synchronize_ignore_untrusted_contributor():
-    expected_traffic = [
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (
-            200,
-            {
-                'items': [
-                    {
-                        'number': 23,
-                        'labels': [],
-                        'closed_at': None,
-                        'user': {'login': 'grace'},
-                        'author_association': 'CONTRIBUTOR'
-                    }
-                ],
-                'incomplete_results': False
-            }
-        ))
-    ]
+def test_update_mirror_refs_ignore_untrusted_contributor():
+    pull_request = {
+        'number': 45,
+        'labels': [],
+        'user': {'login': 'stephenmcgruer'},
+        'author_association': 'CONTRIBUTOR',
+        'closed_at': None,
+    }
+    expected_traffic = []
 
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic)
+    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+        pull_request, expected_traffic
+    )
 
-    assert returncode == 0
+    assert not method_threw
     assert same_members(expected_traffic, actual_traffic)
 
-def test_synchronize_ignore_pull_request_from_fork():
+def test_update_mirror_refs_trusted_contributor():
+    pull_request = {
+        'number': 45,
+        # user here is a contributor (untrusted), but the issue
+        # has been labelled as safe.
+        'labels': [{'name': 'safe for preview'}],
+        'user': {'login': 'Hexcles'},
+        'author_association': 'CONTRIBUTOR',
+        'closed_at': None,
+    }
     expected_traffic = [
         (Requests.get_rate, Responses.no_limit),
         (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (
-            200,
-            {
-                'items': [
-                    {
-                        'number': 23,
-                        'labels': [],
-                        'closed_at': None,
-                        'user': {'login': 'grace'},
-                        'author_association': 'COLLABORATOR'
-                    }
-                ],
-                'incomplete_results': False
-            }
-        )),
-        (Requests.pr_details, (200,
-            {
-                'head': {
-                    'repo': {
-                        'full_name': 'some-other-org/test-repo'
-                    }
-                }
-            }
-        )),
-    ]
-
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic)
-
-    assert returncode == 0
-    assert same_members(expected_traffic, actual_traffic)
-
-def test_synchronize_sync_trusted_contributor():
-    expected_traffic = [
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (
-            200,
-            {
-                'items': [
-                    {
-                        'number': 23,
-                        # user here is a contributor (untrusted), but the issue
-                        # has been labelled as safe.
-                        'labels': [{'name': 'safe for preview'}],
-                        'closed_at': None,
-                        'user': {'login': 'Hexcles'},
-                        'author_association': 'CONTRIBUTOR'
-                    }
-                ],
-                'incomplete_results': False
-            }
-        )),
-        (Requests.pr_details, (200,
-            {
-                'head': {
-                    'repo': {
-                        'full_name': 'test-org/test-repo'
-                    }
-                }
-            }
-        )),
         (Requests.ref_create_open, (200, {})),
         (Requests.ref_create_trusted, (200, {})),
-        (Requests.deployment_get, (200, [])),
-        (Requests.deployment_create, (200, {}))
     ]
 
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic)
+    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+        pull_request, expected_traffic
+    )
 
-    assert returncode == 0
+    assert not method_threw
     assert same_members(expected_traffic, actual_traffic)
 
 def test_synchronize_sync_bot_with_label():
+    pull_request = {
+        'number': 45,
+        # user here is a bot which is normally not mirrored,
+        # but the issue has been labelled as safe.
+        'labels': [{'name': 'safe for preview'}],
+        'user': {'login': 'chromium-wpt-export-bot'},
+        'author_association': 'COLLABORATOR',
+        'closed_at': None,
+    }
     expected_traffic = [
         (Requests.get_rate, Responses.no_limit),
         (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (
-            200,
-            {
-                'items': [
-                    {
-                        'number': 23,
-                        # user here is a bot which is normally not mirrored,
-                        # but the issue has been labelled as safe.
-                        'labels': [{'name': 'safe for preview'}],
-                        'closed_at': None,
-                        'user': {'login': 'chromium-wpt-export-bot'},
-                        'author_association': 'COLLABORATOR'
-                    }
-                ],
-                'incomplete_results': False
-            }
-        )),
-        (Requests.pr_details, (200,
-            {
-                'head': {
-                    'repo': {
-                        'full_name': 'test-org/test-repo'
-                    }
-                }
-            }
-        )),
         (Requests.ref_create_open, (200, {})),
         (Requests.ref_create_trusted, (200, {})),
-        (Requests.deployment_get, (200, [])),
-        (Requests.deployment_create, (200, {}))
     ]
 
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic)
+    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+        pull_request, expected_traffic
+    )
 
-    assert returncode == 0
+    assert not method_threw
     assert same_members(expected_traffic, actual_traffic)
 
-def test_synchronize_update_collaborator():
+def test_update_mirror_refs_update_collaborator():
+    pull_request = {
+        'number': 45,
+        'labels': [],
+        'user': {'login': 'stephenmcgruer'},
+        'author_association': 'COLLABORATOR',
+        'closed_at': None,
+    }
     expected_traffic = [
         (Requests.get_rate, Responses.no_limit),
         (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (200,
-            {
-                'items': [
-                    {
-                        'number': 23,
-                        'labels': [],
-                        'closed_at': None,
-                        'user': {'login': 'grace'},
-                        'author_association': 'COLLABORATOR'
-                    }
-                ],
-                'incomplete_results': False
-            }
-        )),
-        (Requests.pr_details, (200,
-            {
-                'head': {
-                    'repo': {
-                        'full_name': 'test-org/test-repo'
-                    }
-                }
-            }
-        )),
-        (Requests.deployment_get, (200, [])),
         (Requests.ref_update_open, (200, {})),
         (Requests.ref_update_trusted, (200, {})),
-        (Requests.deployment_create, (200, {}))
     ]
     refs = {
-        'refs/pull/23/head': 'HEAD',
-        'refs/prs-open/23': 'HEAD~',
-        'refs/prs-trusted-for-preview/23': 'HEAD~'
+        'refs/pull/45/head': 'HEAD',
+        'refs/prs-open/45': 'HEAD~',
+        'refs/prs-trusted-for-preview/45': 'HEAD~'
     }
 
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic, refs)
+    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+        pull_request, expected_traffic, refs
+    )
 
-    assert returncode == 0
+    assert not method_threw
     assert same_members(expected_traffic, actual_traffic)
 
 def test_synchronize_update_member():
+    pull_request = {
+        'number': 45,
+        'labels': [],
+        'user': {'login': 'jgraham'},
+        'author_association': 'MEMBER',
+        'closed_at': None,
+    }
     expected_traffic = [
         (Requests.get_rate, Responses.no_limit),
         (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (200,
-            {
-                'items': [
-                    {
-                        'number': 23,
-                        'labels': [],
-                        'closed_at': None,
-                        'user': {'login': 'grace'},
-                        'author_association': 'MEMBER'
-                    }
-                ],
-                'incomplete_results': False
-            }
-        )),
-        (Requests.pr_details, (200,
-            {
-                'head': {
-                    'repo': {
-                        'full_name': 'test-org/test-repo'
-                    }
-                }
-            }
-        )),
-        (Requests.deployment_get, (200, [{'some': 'deployment'}])),
         (Requests.ref_update_open, (200, {})),
         (Requests.ref_update_trusted, (200, {}))
     ]
     refs = {
-        'refs/pull/23/head': 'HEAD',
-        'refs/prs-open/23': 'HEAD~',
-        'refs/prs-trusted-for-preview/23': 'HEAD~'
+        'refs/pull/45/head': 'HEAD',
+        'refs/prs-open/45': 'HEAD~',
+        'refs/prs-trusted-for-preview/45': 'HEAD~'
     }
 
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic, refs)
-
-    assert returncode == 0
-    assert same_members(expected_traffic, actual_traffic)
-
-def test_synchronize_delete_collaborator():
-    expected_traffic = [
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (200,
-            {
-                'items': [
-                    {
-                        'number': 23,
-                        'labels': [],
-                        'closed_at': '2019-10-30',
-                        'user': {'login': 'grace'},
-                        'author_association': 'COLLABORATOR'
-                    }
-                ],
-                'incomplete_results': False
-            }
-        ))
-    ]
-    refs = {
-        'refs/pull/23/head': 'HEAD',
-        'refs/prs-open/23': 'HEAD~',
-        'refs/prs-trusted-for-preview/23': 'HEAD~'
-    }
-
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic, refs)
-
-    assert returncode == 0
-    assert same_members(expected_traffic, actual_traffic)
-    assert list(remote_refs) == ['refs/pull/23/head']
-
-
-def test_synchronize_delete_old_pr():
-    # No pull requests from the search, but one outstanding closed PR.
-    expected_traffic = [
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.get_rate, Responses.no_limit),
-        (Requests.search, (200,
-            {
-                'items': [],
-                'incomplete_results': False
-            }
-        )),
-        (Requests.pr_details, (200,
-            {
-                'number': 23,
-                'labels': [],
-                'closed_at': '2019-10-28',
-                'head': {
-                    'repo': {
-                        'full_name': 'test-org/test-repo'
-                    }
-                }
-            }
-        )),
-    ]
-    refs = {
-        'refs/pull/23/head': 'HEAD',
-        'refs/prs-open/23': 'HEAD~',
-        'refs/prs-trusted-for-preview/23': 'HEAD~'
-    }
-
-    returncode, actual_traffic, remote_refs = synchronize(expected_traffic, refs)
-
-    assert returncode == 0
-    assert same_members(expected_traffic, actual_traffic)
-    assert list(remote_refs) == ['refs/pull/23/head']
-
-
-def test_detect_ignore_unknown_env():
-    expected_github_traffic = []
-    expected_preview_traffic = []
-    event = {
-        'deployment': {
-            'id': 24601,
-            'environment': 'ghosts',
-            'sha': '3232'
-        }
-    }
-
-    returncode, actual_github_traffic, actual_preview_traffic = detect(
-        event, expected_github_traffic, expected_preview_traffic
+    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+        pull_request, expected_traffic, refs
     )
 
-    assert returncode == 0
-    assert len(actual_github_traffic) == 0
-    assert len(actual_preview_traffic) == 0
+    assert not method_threw
+    assert same_members(expected_traffic, actual_traffic)
 
-def test_detect_fail_search_throttled():
+def test_update_mirror_refs_delete_collaborator():
+    pull_request = {
+        'number': 45,
+        'labels': [],
+        'user': {'login': 'stephenmcgruer'},
+        'author_association': 'COLLABORATOR',
+        'closed_at': 2019-10-30,
+    }
+    expected_traffic = []
+    refs = {
+        'refs/pull/45/head': 'HEAD',
+        'refs/prs-open/45': 'HEAD~',
+        'refs/prs-trusted-for-preview/45': 'HEAD~'
+    }
+
+    method_threw, actual_traffic, remote_refs = update_mirror_refs(
+        pull_request, expected_traffic, refs
+    )
+
+    assert not method_threw
+    assert same_members(expected_traffic, actual_traffic)
+    assert list(remote_refs) == ['refs/pull/45/head']
+
+def test_deploy_fail_rate_limited():
     expected_github_traffic = [
         (Requests.get_rate, (
             200,
@@ -788,99 +529,107 @@ def test_detect_fail_search_throttled():
         ))
     ]
     expected_preview_traffic = []
-    event = {
-        'deployment': {
-            'id': 24601,
-            'environment': 'wpt-preview-45',
-            'sha': '3232'
-        }
-    }
 
-    returncode, actual_github_traffic, actual_preview_traffic = detect(
-        event, expected_github_traffic, expected_preview_traffic
+    pr_num = 45
+    revision = "abcdef123"
+    method_threw, actual_github_traffic, actual_preview_traffic = deploy(
+        pr_num, revision, expected_github_traffic, expected_preview_traffic
     )
 
-    assert returncode == 1
+    assert method_threw
     assert actual_github_traffic == expected_github_traffic
     assert actual_preview_traffic == expected_preview_traffic
 
-def test_detect_success():
+def test_deploy_success():
+    pr_num = 45
+    revision = 'abcdef123'
+
     expected_github_traffic = [
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.deployment_get, (200, [])),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.deployment_create, (200, {
+            'id': 24601,
+            'sha': revision,
+            'environment': 'wpt-preview-45',
+        })),
         (Requests.get_rate, Responses.no_limit),
         (Requests.deployment_status_create_pending, (200, {})),
         (Requests.get_rate, Responses.no_limit),
         (Requests.deployment_status_create_success, (200, {}))
     ]
     expected_preview_traffic = [
-        (Requests.preview, (200, 3232))
+        (Requests.preview, (200, revision))
     ]
-    event = {
-        'deployment': {
-            'id': 24601,
-            'environment': 'wpt-preview-45',
-            'sha': '3232'
-        }
-    }
 
-    returncode, actual_github_traffic, actual_preview_traffic = detect(
-        event, expected_github_traffic, expected_preview_traffic
+    method_threw, actual_github_traffic, actual_preview_traffic = deploy(
+        pr_num, revision, expected_github_traffic, expected_preview_traffic
     )
 
-    assert returncode == 0
+    assert not method_threw
     assert actual_github_traffic == expected_github_traffic
     assert actual_preview_traffic == expected_preview_traffic
 
-def test_detect_timeout_missing():
+def test_deploy_timeout_missing():
+    pr_num = 45
+    revision = 'abcdef123'
+
     expected_github_traffic = [
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.deployment_get, (200, [])),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.deployment_create, (200, {
+            'id': 24601,
+            'sha': revision,
+            'environment': 'wpt-preview-45',
+        })),
         (Requests.get_rate, Responses.no_limit),
         (Requests.deployment_status_create_pending, (200, {})),
         (Requests.get_rate, Responses.no_limit),
         (Requests.deployment_status_create_error, (200, {}))
     ]
     expected_preview_traffic = [
-        (Requests.preview, (404, {}))
+        (Requests.preview, (404, ""))
     ]
-    event = {
-        'deployment': {
-            'id': 24601,
-            'environment': 'wpt-preview-45',
-            'sha': '3232'
-        }
-    }
 
-    returncode, actual_github_traffic, actual_preview_traffic = detect(
-        event, expected_github_traffic, expected_preview_traffic
+    method_threw, actual_github_traffic, actual_preview_traffic = deploy(
+        pr_num, revision, expected_github_traffic, expected_preview_traffic
     )
 
-    assert returncode == 1
+    assert method_threw
     assert expected_github_traffic == actual_github_traffic
     ping_count = len(actual_preview_traffic)
     assert ping_count > 0
     assert actual_preview_traffic == expected_preview_traffic * ping_count
 
-def test_detect_timeout_wrong_revision():
+def test_deploy_timeout_wrong_revision():
+    pr_num = 45
+    revision = 'abcdef123'
+
     expected_github_traffic = [
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.deployment_get, (200, [])),
+        (Requests.get_rate, Responses.no_limit),
+        (Requests.deployment_create, (200, {
+            'id': 24601,
+            'sha': revision,
+            'environment': 'wpt-preview-45',
+        })),
         (Requests.get_rate, Responses.no_limit),
         (Requests.deployment_status_create_pending, (200, {})),
         (Requests.get_rate, Responses.no_limit),
         (Requests.deployment_status_create_error, (200, {}))
     ]
     expected_preview_traffic = [
-        (Requests.preview, (200, 1234))
+        # wptpr.live has the wrong revision deployed
+        (Requests.preview, (200, 'ghijkl456'))
     ]
-    event = {
-        'deployment': {
-            'id': 24601,
-            'environment': 'wpt-preview-45',
-            'sha': '3232'
-        }
-    }
 
-    returncode, actual_github_traffic, actual_preview_traffic = detect(
-        event, expected_github_traffic, expected_preview_traffic
+    method_threw, actual_github_traffic, actual_preview_traffic = deploy(
+        pr_num, revision, expected_github_traffic, expected_preview_traffic
     )
 
-    assert returncode == 1
+    assert method_threw
     assert expected_github_traffic == actual_github_traffic
     ping_count = len(actual_preview_traffic)
     assert ping_count > 0

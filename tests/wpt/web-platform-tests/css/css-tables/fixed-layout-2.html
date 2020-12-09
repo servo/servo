@@ -60,9 +60,9 @@
             100
         ],
         [
-            "Table-layout:fixed reports it is not applied when width is auto",
+            "Table-layout:fixed reports fixed when width is auto",
             getComputedStyle(document.querySelector("x-table:nth-of-type(1)")).tableLayout,
-            'auto'
+            'fixed'
         ],
         [
             "Table-layout:fixed is not applied when width is max-content",
@@ -70,9 +70,9 @@
             100
         ],
         [
-            "Table-layout:fixed reports it is not applied when width is max-content",
+            "Table-layout:fixed reports fixed when width is max-content",
             getComputedStyle(document.querySelector("x-table:nth-of-type(2)")).tableLayout,
-            'auto'
+            'fixed'
         ],
         [
             "Table-layout:fixed is not applied when width is min-content",

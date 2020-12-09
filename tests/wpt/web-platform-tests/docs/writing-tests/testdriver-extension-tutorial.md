@@ -15,6 +15,31 @@ First, we need to think of what the API will look like a little. We will be usin
 
 The first part of this will be browser agnostic, but later we will need to implement a specific layer for each browser (here we will do Firefox and Chrome).
 
+## RFC Process
+
+Before we invest any significant work into extending the testdriver.js API, we should check in with other stakeholders of the Web Platform Tests community on the proposed changes, by writing an [RFC](https://github.com/web-platform-tests/rfcs) ("request for comments"). This is especially useful for changes that may affect test authors or downstream users of web-platform-tests.
+
+The [process is given in more detail in the RFC repo](https://github.com/web-platform-tests/rfcs#the-rfc-process), but to start let's send in a PR to the RFCs repo by adding a file named `rfcs/testdriver_set_window_rect.md`:
+
+```md
+# RFC N: Add window resizing to testdriver.js
+(*Note: N should be replaced by the PR number*)
+
+## Summary
+
+Add testdriver.js support for the [Set Window Rect command](https://w3c.github.io/webdriver/#set-window-rect).
+
+## Details
+(*add details here*)
+
+## Risks
+(*add risks here*)
+```
+
+Members of the community will then have the opportunity to comment on our proposed changes, and perhaps suggest improvements to our ideas. If all goes well it will be approved and merged in.
+
+With that said, developing a prototype implementation may help others evaluate the proposal during the RFC process, so let's move on to writing some code.
+
 ## Code!
 
 ### [resources/testdriver.js](https://github.com/web-platform-tests/wpt/blob/master/resources/testdriver.js)
@@ -273,4 +298,3 @@ async_test(t => {
 });
 </script>
 ```
-

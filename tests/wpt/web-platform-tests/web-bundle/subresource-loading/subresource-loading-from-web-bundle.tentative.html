@@ -101,6 +101,16 @@
     }, 'Subresource URL must be same-origin with bundle URL');
 
     promise_test(async () => {
+      const url = 'urn:uuid:020111b3-437a-4c5c-ae07-adb6bbffb720';
+      const link = document.createElement('link');
+      link.rel = 'webbundle';
+      link.href = '../resources/wbn/urn-uuid.wbn';
+      link.resources = url;
+      document.body.appendChild(link);
+      assert_equals(await loadScriptAndWaitReport(url), 'OK');
+    }, 'Subresource loading with urn:uuid: URL');
+
+    promise_test(async () => {
       const wbn_url = 'http://web-platform.test:8001/web-bundle/resources/wbn/subresource.wbn?test-resources-update';
       const resource_url = 'http://web-platform.test:8001/web-bundle/resources/wbn/submodule.js';
       const link = await addLinkAndWaitForLoad(wbn_url);

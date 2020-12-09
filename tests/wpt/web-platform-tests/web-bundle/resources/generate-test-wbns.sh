@@ -64,3 +64,9 @@ gen-bundle \
   -primaryURL $wpt_test_http_origin/web-bundle/resources/wbn/resource.js \
   -dir nested/ \
   -o wbn/nested-main.wbn
+
+gen-bundle \
+  -version b1 \
+  -har urn-uuid.har \
+  -primaryURL urn:uuid:020111b3-437a-4c5c-ae07-adb6bbffb720 \
+  -o wbn/urn-uuid.wbn

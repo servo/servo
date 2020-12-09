@@ -15,7 +15,7 @@
         var t_spv = async_test("Test that securitypolicyviolation event is fired");
         
         window.addEventListener("securitypolicyviolation", t_spv.step_func_done(function(e) {
-            assert_equals(e.violatedDirective, "script-src");
+            assert_equals(e.violatedDirective, "script-src-elem");
         }));
     </script>
 
