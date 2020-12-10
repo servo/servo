@@ -281,6 +281,18 @@ class ClickProtocolPart(ProtocolPart):
         pass
 
 
+class CookiesProtocolPart(ProtocolPart):
+    """Protocol part for managing cookies"""
+    __metaclass__ = ABCMeta
+
+    name = "cookies"
+
+    @abstractmethod
+    def delete_all_cookies(self):
+        """Delete all cookies."""
+        pass
+
+
 class SendKeysProtocolPart(ProtocolPart):
     """Protocol part for performing trusted clicks"""
     __metaclass__ = ABCMeta

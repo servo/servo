@@ -5,8 +5,7 @@
 'use strict';
 
 setup(async () => {
-  assert_implements(nativeIO.rename,
-                    "nativeIO.rename is not implemented.");
+  assert_implements(nativeIO.rename, 'nativeIO.rename is not implemented.');
 });
 
 promise_test(async testCase => {
@@ -29,8 +28,9 @@ promise_test(async testCase => {
   await file1.close();
   await file2.close();
 
-  await promise_rejects_dom(testCase, "UnknownError",
-                            nativeIO.rename('test_file_1', 'test_file_2'));
+  await promise_rejects_dom(
+      testCase, 'NoModificationAllowedError',
+      nativeIO.rename('test_file_1', 'test_file_2'));
 
   const fileNamesAfterRename = await nativeIO.getAll();
   assert_in_array('test_file_1', fileNamesAfterRename);
@@ -53,10 +53,12 @@ promise_test(async testCase => {
   const readSharedArrayBuffer2 = new SharedArrayBuffer(writtenBytes2.length);
   const readBytes2 = new Uint8Array(readSharedArrayBuffer2);
   await file2_after.read(readBytes2, 0);
-  assert_array_equals(readBytes1, writtenBytes1,
-                      'the bytes read should match the bytes written');
-  assert_array_equals(readBytes2, writtenBytes2,
-                     'the bytes read should match the bytes written');
+  assert_array_equals(
+      readBytes1, writtenBytes1,
+      'the bytes read should match the bytes written');
+  assert_array_equals(
+      readBytes2, writtenBytes2,
+      'the bytes read should match the bytes written');
 }, 'nativeIO.rename does not overwrite an existing file.');
 
 promise_test(async testCase => {
@@ -65,8 +67,9 @@ promise_test(async testCase => {
     await file.close();
     await nativeIO.delete('test_file');
   });
-  await promise_rejects_dom(testCase, "UnknownError",
-                            nativeIO.rename('test_file', 'renamed_test_file'));
+  await promise_rejects_dom(
+      testCase, 'NoModificationAllowedError',
+      nativeIO.rename('test_file', 'renamed_test_file'));
   await file.close();
 
   const fileNamesAfterRename = await nativeIO.getAll();
@@ -86,10 +89,10 @@ promise_test(async testCase => {
   const file = await nativeIO.open('test_file');
   await file.close();
   for (let name of kBadNativeIoNames) {
-    await promise_rejects_js(testCase, TypeError,
-                             nativeIO.rename('test_file', name));
-    await promise_rejects_js(testCase, TypeError,
-                             nativeIO.rename(name, 'test_file_2'));
+    await promise_rejects_js(
+        testCase, TypeError, nativeIO.rename('test_file', name));
+    await promise_rejects_js(
+        testCase, TypeError, nativeIO.rename(name, 'test_file_2'));
   }
 }, 'nativeIO.rename does not allow renaming from or to invalid names.');
 
@@ -105,11 +108,13 @@ promise_test(async testCase => {
   });
 
   // First rename fails, as source is still open.
-  await promise_rejects_dom(testCase, "UnknownError",
-                            nativeIO.rename('opened_file', 'closed_file'));
+  await promise_rejects_dom(
+      testCase, 'NoModificationAllowedError',
+      nativeIO.rename('opened_file', 'closed_file'));
   // First rename fails again, as source has not been unlocked.
-  await promise_rejects_dom(testCase, "UnknownError",
-                            nativeIO.rename('opened_file', 'closed_file'));
+  await promise_rejects_dom(
+      testCase, 'NoModificationAllowedError',
+      nativeIO.rename('opened_file', 'closed_file'));
 }, 'Failed nativeIO.rename does not unlock the source.');
 
 promise_test(async testCase => {
@@ -124,9 +129,22 @@ promise_test(async testCase => {
   });
 
   // First rename fails, as destination is still open.
-  await promise_rejects_dom(testCase, "UnknownError",
-                            nativeIO.rename('closed_file', 'opened_file'));
+  await promise_rejects_dom(
+      testCase, 'NoModificationAllowedError',
+      nativeIO.rename('closed_file', 'opened_file'));
   // First rename fails again, as destination has not been unlocked.
-  await promise_rejects_dom(testCase, "UnknownError",
-                            nativeIO.rename('closed_file', 'opened_file'));
+  await promise_rejects_dom(
+      testCase, 'NoModificationAllowedError',
+      nativeIO.rename('closed_file', 'opened_file'));
 }, 'Failed nativeIO.rename does not unlock the destination.');
+
+promise_test(async testCase => {
+  // Make sure that the file does not exist.
+  await nativeIO.delete('does_not_exist');
+  testCase.add_cleanup(async () => {
+    await nativeIO.delete('new_does_not_exist');
+  });
+  await promise_rejects_dom(
+      testCase, 'NotFoundError',
+      nativeIO.rename('does_not_exist', 'new_does_not_exist'));
+}, 'Renaming a non-existing file fails with a NotFoundError.');

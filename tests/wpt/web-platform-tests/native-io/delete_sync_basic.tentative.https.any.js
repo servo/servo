@@ -17,3 +17,9 @@ test(testCase => {
   const fileNames = nativeIO.getAllSync();
   assert_equals(fileNames.indexOf('test_file'), -1);
 }, 'nativeIO.getAllSync does not return file deleted by nativeIO.deleteSync');
+
+test(testCase => {
+  nativeIO.deleteSync('test_file');
+  // Delete a second time if the file existed before the first delete.
+  nativeIO.deleteSync('test_file');
+}, 'nativeIO.deleteSync does not fail when deleting a non-existing file');

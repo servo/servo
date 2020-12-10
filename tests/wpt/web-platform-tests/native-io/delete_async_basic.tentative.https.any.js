@@ -18,3 +18,8 @@ promise_test(async testCase => {
   assert_equals(fileNames.indexOf('test_file'), -1);
 }, 'nativeIO.getAll does not return file deleted by nativeIO.delete');
 
+promise_test(async testCase => {
+  await nativeIO.delete('test_file');
+  // Delete a second time if the file existed before the first delete.
+  await nativeIO.delete('test_file');
+}, 'nativeIO.delete does not fail when deleting a non-existing file');

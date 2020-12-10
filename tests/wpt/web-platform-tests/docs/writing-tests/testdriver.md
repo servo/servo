@@ -124,6 +124,14 @@ Note that if the element to be clicked does not have a unique ID, the
 document must not have any DOM mutations made between the function
 being called and the promise settling.
 
+## delete_all_cookies
+
+Usage: `test_driver.delete_all_cookies(context=null)`
+ * _context_: an optional WindowProxy for the browsing context in which to
+              perform the call.
+
+This function deletes all cookies for the current browsing context.
+
 ### send_keys
 
 Usage: `test_driver.send_keys(element, keys)`

@@ -169,6 +169,10 @@
         return create_action("click", {selector, context});
     };
 
+    window.test_driver_internal.delete_all_cookies = function(context=null) {
+        return create_action("delete_all_cookies", {context});
+    };
+
     window.test_driver_internal.send_keys = function(element, keys) {
         const selector = get_selector(element);
         const context = get_context(element);

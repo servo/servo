@@ -9,7 +9,10 @@
 <script>
   let reportedReferrer = () => {
     return new Promise(resolve => {
-      window.addEventListener("message", msg => resolve(msg.data.referrer));
+      window.addEventListener("message", function listener(msg) {
+        window.removeEventListener("message", listener, false);
+        resolve(msg.data.referrer);
+      });
     });
   };
 
@@ -29,6 +32,7 @@
                                        location.origin + "/custom");
     document.body.appendChild(iframe);
     await iframe_load_1;
+    let referrer_1_result = await referrer_1;
 
     // 2. Change the referrer policy of the main document.
     document.getElementsByTagName('meta')[0].content = "unsafe-url";
@@ -47,7 +51,7 @@
     // Despite the main document has changed its referrer policy in (2), the
     // reported referrer for the history navigation to about:srcdoc in (4) must
     // match with the one originally reported in (1).
-    assert_equals(await referrer_1, undefined,
+    assert_equals(referrer_1_result, undefined,
                   "First navigation uses correct policy.");
     assert_equals(await referrer_2, undefined,
                   "History navigation reuses original policy.");
@@ -57,10 +61,13 @@
     // If we initiate a new about:srcdoc navigation, the new referrer policy
     // should apply.
     const new_iframe = document.createElement("iframe");
+    let new_iframe_load = iframeLoaded(new_iframe);
     let new_iframe_referrer = reportedReferrer();
     new_iframe.srcdoc = createScriptString(get_host_info().REMOTE_ORIGIN,
                                            location.origin + "/custom");
     document.body.appendChild(new_iframe);
+    await new_iframe_load;
+
     assert_equals(await new_iframe_referrer, self.origin + '/custom');
   }, "New srcdoc iframe uses new policy.");
 </script>
