@@ -20,6 +20,7 @@ from .protocol import (BaseProtocolPart,
                        Protocol,
                        SelectorProtocolPart,
                        ClickProtocolPart,
+                       CookiesProtocolPart,
                        SendKeysProtocolPart,
                        ActionSequenceProtocolPart,
                        TestDriverProtocolPart,
@@ -190,6 +191,15 @@ class WebDriverClickProtocolPart(ClickProtocolPart):
         return element.click()
 
 
+class WebDriverCookiesProtocolPart(CookiesProtocolPart):
+    def setup(self):
+        self.webdriver = self.parent.webdriver
+
+    def delete_all_cookies(self):
+        self.logger.info("Deleting all cookies")
+        return self.webdriver.send_session_command("DELETE", "cookie")
+
+
 class WebDriverSendKeysProtocolPart(SendKeysProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
@@ -288,6 +298,7 @@ class WebDriverProtocol(Protocol):
                   WebDriverTestharnessProtocolPart,
                   WebDriverSelectorProtocolPart,
                   WebDriverClickProtocolPart,
+                  WebDriverCookiesProtocolPart,
                   WebDriverSendKeysProtocolPart,
                   WebDriverActionSequenceProtocolPart,
                   WebDriverTestDriverProtocolPart,

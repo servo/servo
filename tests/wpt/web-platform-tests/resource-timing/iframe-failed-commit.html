@@ -64,6 +64,16 @@ promise_test(t => {
   return run_test(t, url.toString(), csp_directive);
 }, "Cross-origin iframe that doesn't comply with CSP attribute gets reported");
 
+promise_test(t => {
+  const url = new URL("/resource-timing/resources/200_empty.asis", location.href);
+  return run_test(t, url.toString(), csp_directive);
+}, "Same-origin empty iframe with a 200 status gets reported");
+
+promise_test(t => {
+  const url = new URL("/resource-timing/resources/200_empty.asis", REMOTE_ORIGIN);
+  return run_test(t, url.toString(), csp_directive);
+}, "Cross-origin empty iframe with a 200 status gets reported");
+
 </script>
 </body>
 </html>

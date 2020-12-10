@@ -13,6 +13,18 @@ class ClickAction(object):
         self.protocol.click.element(element)
 
 
+class DeleteAllCookiesAction(object):
+    name = "delete_all_cookies"
+
+    def __init__(self, logger, protocol):
+        self.logger = logger
+        self.protocol = protocol
+
+    def __call__(self, payload):
+        self.logger.debug("Deleting all cookies")
+        self.protocol.cookies.delete_all_cookies()
+
+
 class SendKeysAction(object):
     name = "send_keys"
 
@@ -171,6 +183,7 @@ class SetUserVerifiedAction(object):
 
 
 actions = [ClickAction,
+           DeleteAllCookiesAction,
            SendKeysAction,
            ActionSequenceAction,
            GenerateTestReportAction,
