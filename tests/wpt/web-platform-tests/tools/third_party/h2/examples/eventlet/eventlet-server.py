@@ -51,7 +51,7 @@ class ConnectionManager(object):
         response_headers = (
             (':status', '200'),
             ('content-type', 'application/json'),
-            ('content-length', len(data)),
+            ('content-length', str(len(data))),
             ('server', 'eventlet-h2'),
         )
         self.conn.send_headers(stream_id, response_headers)

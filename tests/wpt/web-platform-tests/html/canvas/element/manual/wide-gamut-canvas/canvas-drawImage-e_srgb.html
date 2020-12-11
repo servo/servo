@@ -12,11 +12,11 @@ var e_sRGB_TransparentBlue = [0.121521, 0.121521, 0.886230, 0.501953];
 // sRGB(226,31,31,128)
 var e_sRGB_TransparentBlack = [0.121521, 0.121521, 0.121521, 0.501953];
 
-function testPixels(ctx, tests)
+function testPixels(ctx, tests, imageSetting)
 {
     var actual, expected, tolerance = 0.01;
     for (var i = 0; i < tests.length; i++) {
-      actual = ctx.getImageData(tests[i].x, tests[i].y, 1, 1).data;
+      actual = ctx.getImageData(tests[i].x, tests[i].y, 1, 1, imageSetting).data;
       expected = tests[i].color;
       assert_equals(actual.length, expected.length);
       for (var j = 0; j < actual.length; j++)
@@ -36,7 +36,7 @@ function drawSRGBImageOnExtendedSRGBCanvas(source)
                {x: 15, y: 5, color: e_sRGB_TransparentGreen},
                {x: 5, y: 15, color: e_sRGB_TransparentBlue},
                {x: 15, y: 15, color: e_sRGB_TransparentBlack}];
-  testPixels(ctx, tests);
+  testPixels(ctx, tests, {colorSpace: 'srgb', storageFormat:'float32'});
 }
 
 promise_test(function() {

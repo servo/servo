@@ -12,7 +12,7 @@ import h2.connection
 import h2.errors
 import h2.events
 import h2.exceptions
-from h2.utilities import extract_method_header
+from h2.utilities import SizeLimitDict, extract_method_header
 
 # These tests require a non-list-returning range function.
 try:
@@ -176,3 +176,51 @@ class TestExtractHeader(object):
     )
     def test_extract_header_method(self, headers):
         assert extract_method_header(headers) == b'GET'
+
+
+def test_size_limit_dict_limit():
+    dct = SizeLimitDict(size_limit=2)
+
+    dct[1] = 1
+    dct[2] = 2
+
+    assert len(dct) == 2
+    assert dct[1] == 1
+    assert dct[2] == 2
+
+    dct[3] = 3
+
+    assert len(dct) == 2
+    assert dct[2] == 2
+    assert dct[3] == 3
+    assert 1 not in dct
+
+
+def test_size_limit_dict_limit_init():
+    initial_dct = {
+        1: 1,
+        2: 2,
+        3: 3,
+    }
+
+    dct = SizeLimitDict(initial_dct, size_limit=2)
+
+    assert len(dct) == 2
+
+
+def test_size_limit_dict_no_limit():
+    dct = SizeLimitDict(size_limit=None)
+
+    dct[1] = 1
+    dct[2] = 2
+
+    assert len(dct) == 2
+    assert dct[1] == 1
+    assert dct[2] == 2
+
+    dct[3] = 3
+
+    assert len(dct) == 3
+    assert dct[1] == 1
+    assert dct[2] == 2
+    assert dct[3] == 3

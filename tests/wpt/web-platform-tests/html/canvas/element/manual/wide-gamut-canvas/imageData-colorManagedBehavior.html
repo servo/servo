@@ -87,8 +87,10 @@ function initializeColorManagedCanvas(canvasColorSettings)
 }
 
 var canvasColorSettingsSet = [
-  {name: "SRGB", colorSettings: {colorSpace: "srgb", pixelFormat: "uint8"}},
-  {name: "e-SRGB", colorSettings: {colorSpace: "srgb", pixelFormat: "float16"}},
+  {name: "SRGB", colorSettings: {colorSpace: "srgb", pixelFormat: "uint8"},
+  imageSetting: {colorSpace: "srgb", storageFormat: "uint8"}},
+  {name: "e-SRGB", colorSettings: {colorSpace: "srgb", pixelFormat: "float16"},
+  imageSetting: {colorSpace: "srgb", storageFormat: "float32"}},
 ];
 
 var srgbImageDataU8, e_srgbImageDataU16, e_srgbImageDataF32;
@@ -127,10 +129,10 @@ var imageDataColorSettingsSet = [
 // * ImageData imagedata = ctx.createImageData(width, height);
 // No color conversion. imagedata follows the color settings of the canvas.
 
-function runTestCreateImageDataWH(canvasColorSettings) {
+function runTestCreateImageDataWH(canvasColorSettings, imageSetting) {
   var canvas = initializeColorManagedCanvas(canvasColorSettings);
   var ctx = canvas.getContext('2d');
-  var imageData = ctx.createImageData(xWidth, xHeight);
+  var imageData = ctx.createImageData(xWidth, xHeight, imageSetting);
   checkImageDataColorSettings(canvasColorSettings, imageData);
 }
 
@@ -139,13 +141,15 @@ for (var i = 0; i < canvasColorSettingsSet.length; i++) {
   var message = "Test createImageData(width, height) from " +
                 canvasColorSettingsSet[i].name + " canvas ";
   testScenariosCreateImageDataWH.
-      push([message, canvasColorSettingsSet[i].colorSettings]);
+      push([message, canvasColorSettingsSet[i].colorSettings,
+      canvasColorSettingsSet[i].imageSetting]);
 }
 
 function runTestCreateImageDataWHTests() {
   for (var i = 0; i < testScenariosCreateImageDataWH.length; i++){
     var t = test(function() {
-      runTestCreateImageDataWH(testScenariosCreateImageDataWH[i][1]);
+      runTestCreateImageDataWH(testScenariosCreateImageDataWH[i][1],
+      testScenariosCreateImageDataWH[i][2]);
     }, testScenariosCreateImageDataWH[i][0]);
   }
 }
@@ -156,10 +160,10 @@ runTestCreateImageDataWHTests();
 // * ImageData imagedata = ctx.getImageData(sx, sy, sw, sh);
 // No color conversion. imagedata follows the color settings of the canvas.
 
-function runTestGetImageDataXYWH(canvasColorSettings) {
+function runTestGetImageDataXYWH(canvasColorSettings, imageSetting) {
   var canvas = initializeColorManagedCanvas(canvasColorSettings);
   var ctx = canvas.getContext('2d');
-  var imageData = ctx.getImageData(0, 0, xWidth, xHeight);
+  var imageData = ctx.getImageData(0, 0, xWidth, xHeight, imageSetting);
   checkImageDataColorSettings(canvasColorSettings, imageData);
   checkImageDataColorValues(canvasColorSettings, imageData);
 }
@@ -169,13 +173,15 @@ for (var i = 0; i < canvasColorSettingsSet.length; i++) {
   var message = "Test getImageData(sx, sy, sw, sh) from " +
                 canvasColorSettingsSet[i].name + " canvas ";
   testScenariosGetImageDataXYWH.
-      push([message, canvasColorSettingsSet[i].colorSettings]);
+      push([message, canvasColorSettingsSet[i].colorSettings,
+      canvasColorSettingsSet[i].imageSetting]);
 }
 
 function runTestGetImageDataXYWHTests() {
   for (var i = 0; i < testScenariosGetImageDataXYWH.length; i++){
     var t = test(function() {
-      runTestGetImageDataXYWH(testScenariosGetImageDataXYWH[i][1]);
+      runTestGetImageDataXYWH(testScenariosGetImageDataXYWH[i][1],
+          testScenariosGetImageDataXYWH[i][2]);
     }, testScenariosGetImageDataXYWH[i][0]);
   }
 }
@@ -186,7 +192,7 @@ runTestGetImageDataXYWHTests();
 // * void ctx.putImageData(imagedata, dx, dy, ...);
 // Color conversion, if needed, to the color settings of the canvas.
 
-function runTestPutImageDataDxDy(canvasColorSettings, imageData) {
+function runTestPutImageDataDxDy(canvasColorSettings, imageData, imageSetting) {
   var canvas = document.createElement('canvas');
   canvas.width = xWidth * 2;
   canvas.height = xHeight * 2;
@@ -194,7 +200,7 @@ function runTestPutImageDataDxDy(canvasColorSettings, imageData) {
       {colorSpace: canvasColorSettings.colorSpace,
        pixelFormat: canvasColorSettings.pixelFormat});
   ctx.putImageData(imageData, xWidth/2, xHeight/2);
-  var ctxImageData = ctx.getImageData(xWidth/2, xHeight/2, xWidth, xHeight);
+  var ctxImageData = ctx.getImageData(xWidth/2, xHeight/2, xWidth, xHeight, imageSetting);
   checkImageDataColorSettings(canvasColorSettings, ctxImageData);
   checkImageDataColorValues(canvasColorSettings, ctxImageData, 'noBlank',
                             xWidth, xHeight, 'isWCG_U8toSRGB_U8');
@@ -208,7 +214,8 @@ for (var i = 0; i < canvasColorSettingsSet.length; i++) {
                 imageDataColorSettingsSet[j].name + " ImageData";
     testScenariosPutImageDataDxDy.
         push([message, canvasColorSettingsSet[i].colorSettings,
-              imageDataColorSettingsSet[j].imageData]);
+              imageDataColorSettingsSet[j].imageData,
+              canvasColorSettingsSet[i].imageSetting]);
   }
 }
 
@@ -216,7 +223,8 @@ function runTestPutImageDataDxDyTests() {
   for (var i = 0; i < testScenariosPutImageDataDxDy.length; i++){
     var t = test(function() {
       runTestPutImageDataDxDy(
-        testScenariosPutImageDataDxDy[i][1], testScenariosPutImageDataDxDy[i][2]);
+        testScenariosPutImageDataDxDy[i][1], testScenariosPutImageDataDxDy[i][2],
+        testScenariosPutImageDataDxDy[i][3]);
     }, testScenariosPutImageDataDxDy[i][0]);
   }
 }
@@ -248,7 +256,8 @@ for (var i = 0; i < canvasColorSettingsSet.length; i++) {
                 imageDataColorSettingsSet[j].name + " ImageData";
     testScenariosCreateImageDataFromImageData.
         push([message, canvasColorSettingsSet[i].colorSettings,
-              imageDataColorSettingsSet[j].imageData]);
+              imageDataColorSettingsSet[j].imageData,
+              canvasColorSettingsSet[i].imageSetting]);
   }
 }
 

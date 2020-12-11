@@ -1,5 +1,4 @@
 from tests.support.asserts import assert_element_has_focus
-from tests.support.inline import inline
 
 
 def element_send_keys(session, element, text):
@@ -10,7 +9,7 @@ def element_send_keys(session, element, text):
         {"text": text})
 
 
-def test_input(session):
+def test_input(session, inline):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
     assert element.property("value") == ""
@@ -20,7 +19,7 @@ def test_input(session):
     assert_element_has_focus(element)
 
 
-def test_textarea(session):
+def test_textarea(session, inline):
     session.url = inline("<textarea>")
     element = session.find.css("textarea", all=False)
     assert element.property("value") == ""
@@ -30,7 +29,7 @@ def test_textarea(session):
     assert_element_has_focus(element)
 
 
-def test_input_append(session):
+def test_input_append(session, inline):
     session.url = inline("<input value=a>")
     element = session.find.css("input", all=False)
     assert element.property("value") == "a"
@@ -42,7 +41,7 @@ def test_input_append(session):
     assert element.property("value") == "abc"
 
 
-def test_textarea_append(session):
+def test_textarea_append(session, inline):
     session.url = inline("<textarea>a</textarea>")
     element = session.find.css("textarea", all=False)
     assert element.property("value") == "a"

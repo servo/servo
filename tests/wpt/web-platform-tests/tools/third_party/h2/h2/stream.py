@@ -378,41 +378,6 @@ class H2StreamStateMachine(object):
         """
         raise ProtocolError("Attempted to push on closed stream.")
 
-    def window_on_closed_stream(self, previous_state):
-        """
-        Called when a WINDOW_UPDATE frame is received on an already-closed
-        stream.
-
-        If we sent an END_STREAM frame, we just ignore the frame, as instructed
-        in RFC 7540 Section 5.1. Technically we should eventually consider
-        WINDOW_UPDATE in this state an error, but we don't have access to a
-        clock so we just always allow it. If we closed the stream for any other
-        reason, we behave as we do for receiving any other frame on a closed
-        stream.
-        """
-        assert self.stream_closed_by is not None
-
-        if self.stream_closed_by == StreamClosedBy.SEND_END_STREAM:
-            return []
-        return self.recv_on_closed_stream(previous_state)
-
-    def reset_on_closed_stream(self, previous_state):
-        """
-        Called when a RST_STREAM frame is received on an already-closed stream.
-
-        If we sent an END_STREAM frame, we just ignore the frame, as instructed
-        in RFC 7540 Section 5.1. Technically we should eventually consider
-        RST_STREAM in this state an error, but we don't have access to a clock
-        so we just always allow it. If we closed the stream for any other
-        reason, we behave as we do for receiving any other frame on a closed
-        stream.
-        """
-        assert self.stream_closed_by is not None
-
-        if self.stream_closed_by is StreamClosedBy.SEND_END_STREAM:
-            return []
-        return self.recv_on_closed_stream(previous_state)
-
     def send_informational_response(self, previous_state):
         """
         Called when an informational header block is sent (that is, a block
@@ -740,11 +705,12 @@ _transitions = {
 
     # > WINDOW_UPDATE or RST_STREAM frames can be received in this state
     # > for a short period after a DATA or HEADERS frame containing a
-    # > END_STREAM flag is sent.
+    # > END_STREAM flag is sent, as instructed in RFC 7540 Section 5.1. But we
+    # > don't have access to a clock so we just always allow it.
     (StreamState.CLOSED, StreamInputs.RECV_WINDOW_UPDATE):
-        (H2StreamStateMachine.window_on_closed_stream, StreamState.CLOSED),
+        (None, StreamState.CLOSED),
     (StreamState.CLOSED, StreamInputs.RECV_RST_STREAM):
-        (H2StreamStateMachine.reset_on_closed_stream, StreamState.CLOSED),
+        (None, StreamState.CLOSED),
 
     # > A receiver MUST treat the receipt of a PUSH_PROMISE on a stream that is
     # > neither "open" nor "half-closed (local)" as a connection error of type
@@ -788,7 +754,7 @@ class H2Stream(object):
         self.max_outbound_frame_size = None
         self.request_method = None
 
-        # The curent value of the outbound stream flow control window
+        # The current value of the outbound stream flow control window
         self.outbound_flow_control_window = outbound_window_size
 
         # The flow control manager.

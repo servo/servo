@@ -1,4 +1,3 @@
-from tests.support.inline import inline
 from tests.support.asserts import assert_error, assert_success
 
 
@@ -7,7 +6,7 @@ def back(session):
         "POST", "session/{session_id}/back".format(**vars(session)))
 
 
-def test_null_response_value(session):
+def test_null_response_value(session, inline):
     session.url = inline("<div>")
     session.url = inline("<p>")
 
@@ -31,7 +30,7 @@ def test_no_browsing_history(session):
     assert_success(response)
 
 
-def test_data_urls(session):
+def test_data_urls(session, inline):
     test_pages = [
         inline("<p id=1>"),
         inline("<p id=2>"),
@@ -46,7 +45,7 @@ def test_data_urls(session):
     assert session.url == test_pages[0]
 
 
-def test_dismissed_beforeunload(session):
+def test_dismissed_beforeunload(session, inline):
     url_beforeunload = inline("""
       <input type="text">
       <script>
@@ -88,7 +87,7 @@ def test_fragments(session, url):
     assert session.url == test_pages[0]
 
 
-def test_history_pushstate(session, url):
+def test_history_pushstate(session, inline):
     pushstate_page = inline("""
       <script>
         function pushState() {
@@ -111,7 +110,7 @@ def test_history_pushstate(session, url):
     assert session.execute_script("return history.state;") is None
 
 
-def test_removed_iframe(session, url):
+def test_removed_iframe(session, url, inline):
     page = inline("<p>foo")
 
     session.url = page

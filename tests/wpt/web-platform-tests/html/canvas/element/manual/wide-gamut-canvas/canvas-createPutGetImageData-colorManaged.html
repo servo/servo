@@ -20,12 +20,12 @@ function checkImageData(canvasColorSettings, imageData) {
 
 // Test createImageData when the canvas is color managed
 var helperImageData = new ImageData(xWidth, xHeight);
-function runTestCreateImageData(canvasColorSettings) {
+function runTestCreateImageData(canvasColorSettings, imageSetting) {
   var aCanvas = document.createElement("canvas");
   aCanvas.width = xWidth;
   aCanvas.height = xHeight;
   var ctx = aCanvas.getContext('2d', canvasColorSettings);
-  var imageData = ctx.createImageData(xWidth, xHeight);
+  var imageData = ctx.createImageData(xWidth, xHeight, imageSetting);
   checkImageData(canvasColorSettings, imageData);
 
   imageData = ctx.createImageData(helperImageData);
@@ -34,41 +34,47 @@ function runTestCreateImageData(canvasColorSettings) {
 
 var testScenariosCreateImageData = [
   ["Test color managed cretateImageData: {srgb, uint8} -> {srgb, uint8}",
-      {colorSpace: "srgb", pixelFormat: "uint8"}],
+      {colorSpace: "srgb", pixelFormat: "uint8"},
+      {colorSpace: "srgb", storageFormat: "uint8"}],
   ["Test color managed cretateImageData: {srgb, float16} -> {srgb, float32}",
-      {colorSpace: "srgb", pixelFormat: "float16"}],
+      {colorSpace: "srgb", pixelFormat: "float16"},
+      {colorSpace: "srgb", storageFormat: "float32"}],
 ];
 
 function runCreateImageDataTests() {
   for (var i = 0; i < testScenariosCreateImageData.length; i++){
     var t = test(function() {
-      runTestCreateImageData(testScenariosCreateImageData[i][1]);
+      runTestCreateImageData(testScenariosCreateImageData[i][1],
+          testScenariosCreateImageData[i][2]);
     }, testScenariosCreateImageData[i][0]);
   }
 }
 runCreateImageDataTests();
 
 // Test getImageData when the canvas is color managed
-function runTestGetImageData(canvasColorSettings) {
+function runTestGetImageData(canvasColorSettings, imageSetting) {
   var aCanvas = document.createElement("canvas");
   aCanvas.width = xWidth;
   aCanvas.height = xHeight;
   var ctx = aCanvas.getContext('2d', canvasColorSettings);
-  var imageData = ctx.getImageData(0, 0, xWidth, xHeight);
+  var imageData = ctx.getImageData(0, 0, xWidth, xHeight, imageSetting);
   checkImageData(canvasColorSettings, imageData);
 }
 
 var testScenariosGetImageData = [
   ["Test color managed getImageData: {srgb, uint8} -> {srgb, uint8}",
-      {colorSpace: "srgb", pixelFormat: "uint8"}],
+      {colorSpace: "srgb", pixelFormat: "uint8"},
+      {colorSpace: "srgb", storageFormat: "uint8"}],
   ["Test color managed getImageData: {srgb, float16} -> {srgb, float32}",
-      {colorSpace: "srgb", pixelFormat: "float16"}],
+      {colorSpace: "srgb", pixelFormat: "float16"},
+      {colorSpace: "srgb", storageFormat: "float32"}],
 ];
 
 function runGetImageDataTests() {
   for (var i = 0; i < testScenariosGetImageData.length; i++){
     var t = test(function() {
-      runTestGetImageData(testScenariosGetImageData[i][1]);
+      runTestGetImageData(testScenariosGetImageData[i][1],
+      testScenariosGetImageData[i][2]);
     }, testScenariosGetImageData[i][0]);
   }
 }
@@ -81,6 +87,7 @@ function prepareTestScenariosPutImageData() {
   var colorSpaces = ["srgb"];
   var imageDataStorageFormats = ["uint8", "uint16", "float32"];
   var canvasPixelFormats = ["uint8", "float16"];
+  // var canvasStorageFormats = ["uint8", "float32"];
 
   for (i = 0; i < colorSpaces.length; i++)
     for (j = 0; j < imageDataStorageFormats.length; j++)
@@ -93,7 +100,8 @@ function prepareTestScenariosPutImageData() {
             {colorSpace: colorSpaces[i], storageFormat: imageDataStorageFormats[j]};
           canvasColorSettings =
             {colorSpace: colorSpaces[k], pixelFormat: canvasPixelFormats[l]};
-          testScenariosPutImageData.push([testTitle, imageDataColorSettings, canvasColorSettings]);
+          testScenariosPutImageData.push([testTitle, imageDataColorSettings,
+            canvasColorSettings]);
         }
 }
 

@@ -6,7 +6,6 @@ from tests.support import platform_name
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.inline import inline
 
 
 def navigate_to(session, url):
@@ -21,7 +20,7 @@ def test_null_parameter_value(session, http):
         assert_error(Response.from_http(response), "invalid argument")
 
 
-def test_null_response_value(session):
+def test_null_response_value(session, inline):
     response = navigate_to(session, inline("<div/>"))
     value = assert_success(response)
     assert value is None
@@ -32,7 +31,7 @@ def test_no_top_browsing_context(session, closed_window):
     assert_error(response, "no such window")
 
 
-def test_no_browsing_context(session, closed_frame):
+def test_no_browsing_context(session, closed_frame, inline):
     doc = inline("<p>foo")
 
     response = navigate_to(session, doc)

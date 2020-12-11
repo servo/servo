@@ -12,7 +12,7 @@ import mimetypes
 import os
 import sys
 
-from curio import Kernel, Event, spawn, socket, ssl
+from curio import Event, spawn, socket, ssl, run
 
 import h2.config
 import h2.connection
@@ -23,7 +23,7 @@ import h2.events
 READ_CHUNK_SIZE = 8192
 
 
-def create_listening_ssl_socket(address, certfile, keyfile):
+async def create_listening_ssl_socket(address, certfile, keyfile):
     """
     Create and return a listening TLS socket on a given address.
     """
@@ -37,7 +37,7 @@ def create_listening_ssl_socket(address, certfile, keyfile):
 
     sock = socket.socket()
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock = ssl_context.wrap_socket(sock)
+    sock = await ssl_context.wrap_socket(sock)
     sock.bind(address)
     sock.listen()
 
@@ -48,7 +48,7 @@ async def h2_server(address, root, certfile, keyfile):
     """
     Create an HTTP/2 server at the given address.
     """
-    sock = create_listening_ssl_socket(address, certfile, keyfile)
+    sock = await create_listening_ssl_socket(address, certfile, keyfile)
     print("Now listening on %s:%d" % address)
 
     async with sock:
@@ -150,7 +150,7 @@ class H2Server:
         Send the data portion of a file. Handles flow control rules.
         """
         while True:
-            while not self.conn.local_flow_control_window(stream_id):
+            while self.conn.local_flow_control_window(stream_id) < 1:
                 await self.wait_for_flow_control(stream_id)
 
             chunk_size = min(
@@ -196,13 +196,11 @@ class H2Server:
 
 if __name__ == '__main__':
     host = sys.argv[2] if len(sys.argv) > 2 else "localhost"
-    kernel = Kernel(with_monitor=True)
     print("Try GETting:")
     print("    On OSX after 'brew install curl --with-c-ares --with-libidn --with-nghttp2 --with-openssl':")
     print("/usr/local/opt/curl/bin/curl --tlsv1.2 --http2 -k https://localhost:5000/bundle.js")
     print("Or open a browser to: https://localhost:5000/")
     print("   (Accept all the warnings)")
-    kernel.run(h2_server((host, 5000),
-                         sys.argv[1],
-                         "{}.crt.pem".format(host),
-                         "{}.key".format(host)))
+    run(h2_server((host, 5000), sys.argv[1],
+                  "{}.crt.pem".format(host),
+                  "{}.key".format(host)), with_monitor=True)

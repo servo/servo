@@ -41,7 +41,7 @@ function generateExpectedResult(testScenario, canvas)
     ctx.fillRect(0, 1, 1, 1);
     ctx.fillStyle = generateFillStyle(27, 27, 27, testScenario.alpha);
     ctx.fillRect(1, 1, 1, 1);
-    return ctx.getImageData(0, 0, 2, 2).data;
+    return ctx.getImageData(0, 0, 2, 2, testScenario.imageSetting).data;
 }
 
 function generateTestName(testScenario) {
@@ -79,7 +79,7 @@ function runTransferFromImageBitmapTest(testScenario) {
                 {colorSpace: testScenario.colorSpace,
                  pixelFormat: testScenario.pixelFormat});
             ctx.drawImage(dstCanvas, 0, 0);
-            var actualPixels = ctx.getImageData(0, 0, 2, 2).data;
+            var actualPixels = ctx.getImageData(0, 0, 2, 2, testScenario.imageSetting).data;
             testPixels(actualPixels, expectedPixels, testScenario);
         });
        }, generateTestName(testScenario));
@@ -90,6 +90,10 @@ function runAllTests() {
     var colorSpaces = [
         {colorSpace: 'srgb', pixelFormat: 'uint8'},
         {colorSpace: 'srgb', pixelFormat: 'float16'},
+        ];
+    var imageSettings = [
+        {colorSpace: 'srgb', storageFormat: 'uint8'},
+        {colorSpace: 'srgb', storageFormat: 'float32'},
         ];
     var alphaValues = [0.5, 1];
     var colorSpaceConversions = ['none', 'default'];
@@ -103,6 +107,7 @@ function runAllTests() {
                 testScenario.pixelFormat = colorSpaces[i].pixelFormat;
                 testScenario.alpha = alphaValues[j];
                 testScenario.colorSpaceConversion = colorSpaceConversions[k];
+                testScenario.imageSetting = imageSettings[i];
                 testScenarios.push(testScenario);
             }
 

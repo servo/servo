@@ -1,5 +1,4 @@
 from tests.support.asserts import assert_error, assert_is_active_element, assert_success
-from tests.support.inline import inline
 
 
 def read_global(session, name):
@@ -21,7 +20,7 @@ def test_no_browsing_context(session, closed_frame):
     assert_error(response, "no such window")
 
 
-def test_success_document(session):
+def test_success_document(session, inline):
     session.url = inline("""
         <body>
             <h1>Heading</h1>
@@ -36,7 +35,7 @@ def test_success_document(session):
     assert_is_active_element(session, element)
 
 
-def test_sucess_input(session):
+def test_sucess_input(session, inline):
     session.url = inline("""
         <body>
             <h1>Heading</h1>
@@ -50,7 +49,7 @@ def test_sucess_input(session):
     assert_is_active_element(session, element)
 
 
-def test_sucess_input_non_interactable(session):
+def test_sucess_input_non_interactable(session, inline):
     session.url = inline("""
         <body>
             <h1>Heading</h1>
@@ -64,7 +63,7 @@ def test_sucess_input_non_interactable(session):
     assert_is_active_element(session, element)
 
 
-def test_success_explicit_focus(session):
+def test_success_explicit_focus(session, inline):
     session.url = inline("""
         <body>
             <h1>Heading</h1>
@@ -105,7 +104,7 @@ def test_success_explicit_focus(session):
     assert_is_active_element(session, element)
 
 
-def test_success_iframe_content(session):
+def test_success_iframe_content(session, inline):
     session.url = inline("<body></body>")
     session.execute_script("""
         let iframe = document.createElement('iframe');
@@ -120,7 +119,7 @@ def test_success_iframe_content(session):
     assert_is_active_element(session, element)
 
 
-def test_missing_document_element(session):
+def test_missing_document_element(session, inline):
     session.url = inline("<body></body>")
     session.execute_script("""
         if (document.body.remove) {

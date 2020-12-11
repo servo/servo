@@ -5,14 +5,18 @@ Negotiating HTTP/2
 
 .. _starting-alpn:
 
-HTTPS URLs (ALPN and NPN)
+HTTPS URLs (ALPN)
 -------------------------
 
-Starting HTTP/2 for HTTPS URLs is outlined in `RFC 7540 Section 3.3`_. In this case, the client and server use a TLS extension to negotiate HTTP/2: typically either or both of `NPN`_ or `ALPN`_. How to use NPN and ALPN is currently not covered in this document: please consult the documentation for either the :mod:`ssl module <python:ssl>` in the standard library, or the :mod:`PyOpenSSL <pyopenssl:OpenSSL.SSL>` third-party modules, for more on this topic.
+Starting HTTP/2 for HTTPS URLs is outlined in `RFC 7540 Section 3.3`_. In this case, the client and server use a TLS extension to negotiate HTTP/2: `ALPN`_. How to use ALPN is currently not covered in this document: please consult the documentation for either the :mod:`ssl module <python:ssl>` in the standard library, or the :mod:`PyOpenSSL <pyopenssl:OpenSSL.SSL>` third-party modules, for more on this topic.
 
 This method is the simplest to use once the TLS connection is established. To use it with Hyper-h2, after you've established the connection and confirmed that HTTP/2 has been negotiated with `ALPN`_, create a :class:`H2Connection <h2.connection.H2Connection>` object and call :meth:`H2Connection.initiate_connection <h2.connection.H2Connection.initiate_connection>`. This will ensure that the appropriate preamble data is placed in the data buffer. You should then immediately send the data returned by :meth:`H2Connection.data_to_send <h2.connection.H2Connection.data_to_send>` on your TLS connection.
 
 At this point, you're free to use all the HTTP/2 functionality provided by Hyper-h2.
+
+.. note::
+   Although Hyper-h2 is not concerned with negotiating protocol versions, it is important to note that support for `ALPN`_ is not available in the standard library of Python versions < 2.7.9.
+   As a consequence, clients may encounter various errors due to protocol versions mismatch.
 
 Server Setup Example
 ~~~~~~~~~~~~~~~~~~~~
@@ -90,11 +94,10 @@ The code below demonstrates how to handle a plaintext upgrade from the perspecti
 Prior Knowledge
 ---------------
 
-It's possible that you as a client know that a particular server supports HTTP/2, and that you do not need to perform any of the negotiations described above. In that case, you may follow the steps in :ref:`starting-alpn`, ignoring all references to ALPN and NPN: there's no need to perform the upgrade dance described in :ref:`starting-upgrade`.
+It's possible that you as a client know that a particular server supports HTTP/2, and that you do not need to perform any of the negotiations described above. In that case, you may follow the steps in :ref:`starting-alpn`, ignoring all references to ALPN: there's no need to perform the upgrade dance described in :ref:`starting-upgrade`.
 
 .. _RFC 7540: https://tools.ietf.org/html/rfc7540
 .. _RFC 7540 Section 3.2: https://tools.ietf.org/html/rfc7540#section-3.2
 .. _RFC 7540 Section 3.3: https://tools.ietf.org/html/rfc7540#section-3.3
-.. _NPN: https://en.wikipedia.org/wiki/Application-Layer_Protocol_Negotiation
 .. _ALPN: https://en.wikipedia.org/wiki/Application-Layer_Protocol_Negotiation
 .. _RFC 7230 Section 6.7: https://tools.ietf.org/html/rfc7230#section-6.7

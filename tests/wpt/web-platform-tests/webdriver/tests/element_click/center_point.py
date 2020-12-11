@@ -2,7 +2,6 @@ import pytest
 
 from tests.support.asserts import assert_error, assert_success
 from tests.support.helpers import center_point
-from tests.support.inline import inline
 
 
 def element_click(session, element):
@@ -12,7 +11,7 @@ def element_click(session, element):
             element_id=element.id))
 
 
-def square(size):
+def square(inline, size):
     return inline("""
         <style>
         body {{ margin: 0 }}
@@ -41,8 +40,8 @@ def assert_one_click(session):
     return tuple(clicks[0])
 
 
-def test_entirely_in_view(session):
-    session.url = square(444)
+def test_entirely_in_view(session, inline):
+    session.url = square(inline, 444)
     element = session.find.css("#target", all=False)
 
     response = element_click(session, element)
@@ -53,8 +52,8 @@ def test_entirely_in_view(session):
 
 
 @pytest.mark.parametrize("size", range(1, 11))
-def test_css_pixel_rounding(session, size):
-    session.url = square(size)
+def test_css_pixel_rounding(session, inline, size):
+    session.url = square(inline, size)
     element = session.find.css("#target", all=False)
     expected_click_point = center_point(element)
 

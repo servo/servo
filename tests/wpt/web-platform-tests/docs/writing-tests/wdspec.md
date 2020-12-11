@@ -37,9 +37,8 @@ command](https://w3c.github.io/webdriver/#element-click):
 
 ```python
 from tests.support.asserts import assert_success
-from tests.support.inline import inline
 
-def test_null_response_value(session):
+def test_null_response_value(session, inline):
     # The high-level API is used to set up a document and locate a click target
     session.url = inline("<p>foo")
     element = session.find.css("p", all=False)

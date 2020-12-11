@@ -6,7 +6,6 @@ from webdriver import StaleElementReferenceException
 from webdriver.transport import Response
 
 from tests.support.asserts import assert_error, assert_same_element, assert_success
-from tests.support.inline import inline, iframe
 
 
 def switch_to_frame(session, frame):
@@ -17,18 +16,13 @@ def switch_to_frame(session, frame):
         session=session)
 
 
-def frameset(*docs):
-    frames = list(map(lambda doc: "<frame src='{}'></frame>".format(inline(doc)), docs))
-    return "<frameset rows='{}'>\n{}</frameset>".format(len(frames) * "*,", "\n".join(frames))
-
-
 def test_null_parameter_value(session, http):
     path = "/session/{session_id}/frame".format(**vars(session))
     with http.post(path, None) as response:
         assert_error(Response.from_http(response), "invalid argument")
 
 
-def test_null_response_value(session):
+def test_null_response_value(session, inline, iframe):
     session.url = inline(iframe("<p>foo"))
     frame = session.find.css("iframe", all=False)
 
@@ -81,7 +75,7 @@ def test_frame_id_invalid_types(session, value):
     assert_error(response, "invalid argument")
 
 
-def test_frame_id_null(session):
+def test_frame_id_null(session, inline, iframe):
     session.url = inline(iframe("{}<div>foo".format(iframe("<p>bar"))))
 
     frame1 = session.find.css("iframe", all=False)

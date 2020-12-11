@@ -1,1 +1,1 @@
-These are the tests for the [Worklets Level 1 spec](https://drafts.css-houdini.org/worklets/).
+These are the tests for the [Worklets](https://html.spec.whatwg.org/multipage/worklets.html) section of the HTML Standard.

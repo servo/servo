@@ -114,6 +114,23 @@ class TestBasicClient(object):
             expected_data_frame_pad_length=0
         )
 
+    def test_sending_data_in_memoryview(self):
+        """
+        Support memoryview for sending data.
+        """
+        c = h2.connection.H2Connection()
+        c.initiate_connection()
+        c.send_headers(1, self.example_request_headers)
+
+        # Clear the data, then send some data.
+        c.clear_outbound_data_buffer()
+        events = c.send_data(1, memoryview(b'some data'))
+        assert not events
+        data_to_send = c.data_to_send()
+        assert (
+            data_to_send == b'\x00\x00\t\x00\x00\x00\x00\x00\x01some data'
+        )
+
     def test_sending_data_with_padding(self):
         """
         Single data frames with padding are encoded correctly.
@@ -1081,7 +1098,12 @@ class TestBasicServer(object):
         c.clear_outbound_data_buffer()
         events = c.receive_data(sent_frame.serialize())
 
-        assert not events
+        assert len(events) == 1
+        event = events[0]
+
+        assert isinstance(event, h2.events.PingReceived)
+        assert event.ping_data == ping_data
+
         assert c.data_to_send() == expected_data
 
     def test_receiving_settings_frame_event(self, frame_factory):
@@ -1324,7 +1346,7 @@ class TestBasicServer(object):
 
     def test_receiving_ping_acknowledgement(self, frame_factory):
         """
-        Receiving a PING acknolwedgement fires a PingAcknolwedged event.
+        Receiving a PING acknowledgement fires a PingAckReceived event.
         """
         c = h2.connection.H2Connection(config=self.server_config)
         c.receive_data(frame_factory.preamble())
@@ -1339,7 +1361,8 @@ class TestBasicServer(object):
         assert len(events) == 1
         event = events[0]
 
-        assert isinstance(event, h2.events.PingAcknowledged)
+        assert isinstance(event, h2.events.PingAckReceived)
+        assert isinstance(event, h2.events.PingAcknowledged)  # deprecated
         assert event.ping_data == ping_data
 
     def test_stream_ended_remotely(self, frame_factory):

@@ -10,6 +10,6 @@ def main(request, response):
         response.headers.set(b'WWW-Authenticate', b'Basic realm="test"')
         content = b'User name/password wrong or not given: '
 
-    content += b"%s\n%s" % (request.auth.username,
-                            request.auth.password)
+    content += b"%s\n%s" % (request.auth.username or b'',
+                            request.auth.password or b'')
     return content

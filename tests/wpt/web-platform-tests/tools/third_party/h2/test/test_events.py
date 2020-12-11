@@ -213,14 +213,23 @@ class TestEventReprs(object):
             "new_value=32768)}>"
         )
 
-    def test_pingacknowledged_repr(self):
+    def test_pingreceived_repr(self):
         """
-        PingAcknowledged has a useful debug representation.
+        PingReceived has a useful debug representation.
         """
-        e = h2.events.PingAcknowledged()
+        e = h2.events.PingReceived()
         e.ping_data = b'abcdefgh'
 
-        assert repr(e) == "<PingAcknowledged ping_data:6162636465666768>"
+        assert repr(e) == "<PingReceived ping_data:6162636465666768>"
+
+    def test_pingackreceived_repr(self):
+        """
+        PingAckReceived has a useful debug representation.
+        """
+        e = h2.events.PingAckReceived()
+        e.ping_data = b'abcdefgh'
+
+        assert repr(e) == "<PingAckReceived ping_data:6162636465666768>"
 
     def test_streamended_repr(self):
         """

@@ -4,7 +4,6 @@ import webdriver.protocol as protocol
 
 from tests.support.asserts import assert_success
 from tests.support.helpers import document_location
-from tests.support.inline import iframe, inline
 
 
 """
@@ -27,7 +26,7 @@ def switch_to_frame(session, frame):
         session=session)
 
 
-def test_cross_origin_iframe(session, server_config):
+def test_cross_origin_iframe(session, server_config, inline, iframe):
     session.url = inline(iframe("", domain="alt"))
     frame_element = session.find.css("iframe", all=False)
 
@@ -38,7 +37,7 @@ def test_cross_origin_iframe(session, server_config):
     assert parse_result.netloc != server_config["browser_host"]
 
 
-def test_nested_cross_origin_iframe(session, server_config):
+def test_nested_cross_origin_iframe(session, server_config, inline, iframe):
     frame2 = iframe("", domain="alt", subdomain="www")
     frame1 = iframe(frame2)
     top_doc = inline(frame1, domain="alt")

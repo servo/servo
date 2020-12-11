@@ -1,13 +1,12 @@
 from tests.perform_actions.support.refine import filter_dict, get_events
 from tests.support.asserts import assert_move_to_coordinates
-from tests.support.inline import inline
 
 lots_of_text = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor "\
                "incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud "\
                "exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
 
 
-def test_tripleclick_at_coordinates(session, mouse_chain):
+def test_tripleclick_at_coordinates(session, mouse_chain, inline):
     """
         This test does a triple click on a coordinate. On desktop platforms
         this will select a paragraph. On mobile this will not have the same

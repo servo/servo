@@ -9,6 +9,10 @@ def main(request, response):
     ]
     key = request.GET.first(b"key", None)
 
+    # We serialize the key into JSON, so have to decode it first.
+    if key is not None:
+      key = key.decode('utf-8')
+
     body = u"""
         <!DOCTYPE html>
         <script src="/portals/resources/stash-utils.sub.js"></script>

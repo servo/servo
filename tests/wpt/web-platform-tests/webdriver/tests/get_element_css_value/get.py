@@ -1,5 +1,4 @@
 from tests.support.asserts import assert_error, assert_success
-from tests.support.inline import inline
 
 
 def get_element_css_value(session, element_id, prop):
@@ -24,6 +23,7 @@ def test_no_top_browsing_context(session, closed_window):
     response = get_element_css_value(session, element.id, "display")
     assert_error(response, "no such element")
 
+
 def test_no_browsing_context(session, closed_frame):
     response = get_element_css_value(session, "foo", "bar")
     assert_error(response, "no such window")
@@ -34,7 +34,7 @@ def test_element_not_found(session):
     assert_error(result, "no such element")
 
 
-def test_element_stale(session):
+def test_element_stale(session, inline):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
     session.refresh()
@@ -43,7 +43,7 @@ def test_element_stale(session):
     assert_error(result, "stale element reference")
 
 
-def test_property_name_value(session):
+def test_property_name_value(session, inline):
     session.url = inline("""<input style="display: block">""")
     element = session.find.css("input", all=False)
 
@@ -51,7 +51,7 @@ def test_property_name_value(session):
     assert_success(result, "block")
 
 
-def test_property_name_not_existent(session):
+def test_property_name_not_existent(session, inline):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
 

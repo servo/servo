@@ -51,7 +51,7 @@ def get_http2_ssl_context():
 
     # RFC 7540 Section 9.2.2: "deployments of HTTP/2 that use TLS 1.2 MUST
     # support TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256". In practice, the
-    # blacklist defined in this section allows only the AES GCM and ChaCha20
+    # blocklist defined in this section allows only the AES GCM and ChaCha20
     # cipher suites with ephemeral key negotiation.
     ctx.set_ciphers("ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20")
 

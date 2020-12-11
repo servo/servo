@@ -6,7 +6,6 @@ from six import integer_types, text_type
 
 from tests.support.asserts import assert_error, assert_success
 from tests.support.helpers import clear_all_cookies
-from tests.support.inline import inline
 
 
 def get_named_cookie(session, name):
@@ -87,7 +86,7 @@ def test_get_named_cookie(session, url):
         cookie["expiry"]).strftime(utc_string_format) == a_day_from_now
 
 
-def test_duplicated_cookie(session, url, server_config):
+def test_duplicated_cookie(session, url, server_config, inline):
     new_cookie = {
         "name": "hello",
         "value": "world",

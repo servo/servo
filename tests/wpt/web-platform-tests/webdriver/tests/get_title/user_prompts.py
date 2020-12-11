@@ -3,7 +3,6 @@
 import pytest
 
 from tests.support.asserts import assert_dialog_handled, assert_error, assert_success
-from tests.support.inline import inline
 
 
 def get_title(session):
@@ -12,7 +11,7 @@ def get_title(session):
 
 
 @pytest.fixture
-def check_user_prompt_closed_without_exception(session, create_dialog):
+def check_user_prompt_closed_without_exception(session, create_dialog, inline):
     def check_user_prompt_closed_without_exception(dialog_type, retval):
         session.url = inline("<title>Foo</title>")
         expected_title = session.title
@@ -28,7 +27,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
 
 
 @pytest.fixture
-def check_user_prompt_closed_with_exception(session, create_dialog):
+def check_user_prompt_closed_with_exception(session, create_dialog, inline):
     def check_user_prompt_closed_with_exception(dialog_type, retval):
         session.url = inline("<title>Foo</title>")
 
@@ -43,7 +42,7 @@ def check_user_prompt_closed_with_exception(session, create_dialog):
 
 
 @pytest.fixture
-def check_user_prompt_not_closed_but_exception(session, create_dialog):
+def check_user_prompt_not_closed_but_exception(session, create_dialog, inline):
     def check_user_prompt_not_closed_but_exception(dialog_type):
         session.url = inline("<title>Foo</title>")
 
@@ -117,7 +116,7 @@ def test_default(check_user_prompt_closed_with_exception, dialog_type, retval):
 # trigger the creation of a dialog at all. Therefore, this test should only be
 # run in contexts that support the dialog (a condition that may not be
 # determined automatically).
-# def test_title_with_non_simple_dialog(session):
+# def test_title_with_non_simple_dialog(session, inline):
 #    document = "<title>With non-simple dialog</title><h2>Hello</h2>"
 #    spawn = """
 #        var done = arguments[0];

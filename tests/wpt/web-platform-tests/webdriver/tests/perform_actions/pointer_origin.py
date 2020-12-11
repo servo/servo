@@ -3,23 +3,25 @@ import pytest
 from webdriver import MoveTargetOutOfBoundsException
 
 from tests.perform_actions.support.mouse import get_inview_center, get_viewport_rect
-from tests.support.inline import inline
 
 
-def origin_doc(inner_style, outer_style=""):
-    return inline("""
-      <div id="outer" style="{1}"
-           onmousemove="window.coords = {{x: event.clientX, y: event.clientY}}">
-        <div id="inner" style="{0}"></div>
-      </div>
-    """.format(inner_style, outer_style))
+@pytest.fixture
+def origin_doc(inline):
+    def origin_doc(inner_style, outer_style=""):
+        return inline("""
+          <div id="outer" style="{1}"
+               onmousemove="window.coords = {{x: event.clientX, y: event.clientY}}">
+            <div id="inner" style="{0}"></div>
+          </div>
+        """.format(inner_style, outer_style))
+    return origin_doc
 
 
 def get_click_coordinates(session):
     return session.execute_script("return window.coords;")
 
 
-def test_viewport_inside(session, mouse_chain):
+def test_viewport_inside(session, mouse_chain, origin_doc):
     point = {"x": 50, "y": 50}
 
     session.url = origin_doc("width: 100px; height: 50px; background: green;")
@@ -39,7 +41,7 @@ def test_viewport_outside(session, mouse_chain):
             .perform()
 
 
-def test_pointer_inside(session, mouse_chain):
+def test_pointer_inside(session, mouse_chain, origin_doc):
     start_point = {"x": 50, "y": 50}
     offset = {"x": 10, "y": 5}
 
@@ -61,7 +63,7 @@ def test_pointer_outside(session, mouse_chain):
             .perform()
 
 
-def test_element_center_point(session, mouse_chain):
+def test_element_center_point(session, mouse_chain, origin_doc):
     session.url = origin_doc("width: 100px; height: 50px; background: green;")
     elem = session.find.css("#inner", all=False)
     center = get_inview_center(elem.rect, get_viewport_rect(session))
@@ -75,7 +77,7 @@ def test_element_center_point(session, mouse_chain):
     assert click_coords["y"] == pytest.approx(center["y"], abs = 1.0)
 
 
-def test_element_center_point_with_offset(session, mouse_chain):
+def test_element_center_point_with_offset(session, mouse_chain, origin_doc):
     session.url = origin_doc("width: 100px; height: 50px; background: green;")
     elem = session.find.css("#inner", all=False)
     center = get_inview_center(elem.rect, get_viewport_rect(session))
@@ -89,7 +91,7 @@ def test_element_center_point_with_offset(session, mouse_chain):
     assert click_coords["y"] == pytest.approx(center["y"] + 15, abs = 1.0)
 
 
-def test_element_in_view_center_point_partly_visible(session, mouse_chain):
+def test_element_in_view_center_point_partly_visible(session, mouse_chain, origin_doc):
     session.url = origin_doc("""width: 100px; height: 50px; background: green;
                                 position: relative; left: -50px; top: -25px;""")
     elem = session.find.css("#inner", all=False)
@@ -104,7 +106,7 @@ def test_element_in_view_center_point_partly_visible(session, mouse_chain):
     assert click_coords["y"] == pytest.approx(center["y"], abs = 1.0)
 
 
-def test_element_larger_than_viewport(session, mouse_chain):
+def test_element_larger_than_viewport(session, mouse_chain, origin_doc):
     session.url = origin_doc("width: 300vw; height: 300vh; background: green;")
     elem = session.find.css("#inner", all=False)
     center = get_inview_center(elem.rect, get_viewport_rect(session))
@@ -118,7 +120,7 @@ def test_element_larger_than_viewport(session, mouse_chain):
     assert click_coords["y"] == pytest.approx(center["y"], abs = 1.0)
 
 
-def test_element_outside_of_view_port(session, mouse_chain):
+def test_element_outside_of_view_port(session, mouse_chain, origin_doc):
     session.url = origin_doc("""width: 100px; height: 50px; background: green;
                                 position: relative; left: -200px; top: -100px;""")
     elem = session.find.css("#inner", all=False)

@@ -1,7 +1,7 @@
 import os.path
 from inspect import isabstract
 from six import iteritems, with_metaclass
-from six.moves.urllib.parse import urljoin, urlparse
+from six.moves.urllib.parse import urljoin, urlparse, parse_qs
 from abc import ABCMeta, abstractproperty
 
 from .utils import to_os_path
@@ -104,7 +104,7 @@ class ManifestItem(with_metaclass(ManifestItemMeta)):
 
 
 class URLManifestItem(ManifestItem):
-    __slots__ = ("url_base", "_url", "_extras")
+    __slots__ = ("url_base", "_url", "_extras", "_flags")
 
     def __init__(self,
                  tests_root,  # type: Text
@@ -120,6 +120,9 @@ class URLManifestItem(ManifestItem):
         assert url is None or url[0] != "/"
         self._url = url
         self._extras = extras
+        parsed_url = urlparse(self.url)
+        self._flags = (set(parsed_url.path.rsplit("/", 1)[1].split(".")[1:-1]) |
+                       set(parse_qs(parsed_url.query).get("wpt_flags", [])))
 
     @property
     def id(self):
@@ -138,22 +141,19 @@ class URLManifestItem(ManifestItem):
     @property
     def https(self):
         # type: () -> bool
-        flags = set(urlparse(self.url).path.rsplit("/", 1)[1].split(".")[1:-1])
-        return "https" in flags or "serviceworker" in flags
+        return "https" in self._flags or "serviceworker" in self._flags
 
     @property
     def h2(self):
         # type: () -> bool
-        flags = set(urlparse(self.url).path.rsplit("/", 1)[1].split(".")[1:-1])
-        return "h2" in flags
+        return "h2" in self._flags
 
     @property
     def subdomain(self):
         # type: () -> bool
-        flags = set(urlparse(self.url).path.rsplit("/", 1)[1].split(".")[1:-1])
         # Note: this is currently hard-coded to check for `www`, rather than
         # all possible valid subdomains. It can be extended if needed.
-        return "www" in flags
+        return "www" in self._flags
 
     def to_json(self):
         # type: () -> Tuple[Optional[Text], Dict[Any, Any]]

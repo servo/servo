@@ -20,6 +20,7 @@ from h2.connection import H2Connection
 from h2.events import (
     RequestReceived, DataReceived, WindowUpdated
 )
+from h2.exceptions import ProtocolError
 
 
 def close_file(file, d):
@@ -46,17 +47,23 @@ class H2Protocol(Protocol):
         if not self.known_proto:
             self.known_proto = True
 
-        events = self.conn.receive_data(data)
-        if self.conn.data_to_send:
-            self.transport.write(self.conn.data_to_send())
+        try:
+            events = self.conn.receive_data(data)
+        except ProtocolError:
+            if self.conn.data_to_send:
+                self.transport.write(self.conn.data_to_send())
+            self.transport.loseConnection()
+        else:
+            for event in events:
+                if isinstance(event, RequestReceived):
+                    self.requestReceived(event.headers, event.stream_id)
+                elif isinstance(event, DataReceived):
+                    self.dataFrameReceived(event.stream_id)
+                elif isinstance(event, WindowUpdated):
+                    self.windowUpdated(event)
 
-        for event in events:
-            if isinstance(event, RequestReceived):
-                self.requestReceived(event.headers, event.stream_id)
-            elif isinstance(event, DataReceived):
-                self.dataFrameReceived(event.stream_id)
-            elif isinstance(event, WindowUpdated):
-                self.windowUpdated(event)
+            if self.conn.data_to_send:
+                self.transport.write(self.conn.data_to_send())
 
     def requestReceived(self, headers, stream_id):
         headers = dict(headers)  # Invalid conversion, fix later.
@@ -86,7 +93,9 @@ class H2Protocol(Protocol):
 
     def sendFile(self, file_path, stream_id):
         filesize = os.stat(file_path).st_size
-        content_type, content_encoding = mimetypes.guess_type(file_path)
+        content_type, content_encoding = mimetypes.guess_type(
+            file_path.decode('utf-8')
+        )
         response_headers = [
             (':status', '200'),
             ('content-length', str(filesize)),
@@ -159,10 +168,11 @@ class H2Factory(Factory):
         self.root = root
 
     def buildProtocol(self, addr):
+        print(H2Protocol)
         return H2Protocol(self.root)
 
 
-root = sys.argv[1]
+root = sys.argv[1].encode('utf-8')
 
 with open('server.crt', 'r') as f:
     cert_data = f.read()

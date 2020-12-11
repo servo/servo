@@ -17,8 +17,14 @@ from six.moves.queue import Queue
 from h2.config import H2Configuration
 from h2.connection import H2Connection
 from h2.events import RequestReceived, ConnectionTerminated, DataReceived, StreamReset, StreamEnded
+from h2.exceptions import StreamClosedError, ProtocolError
+from h2.settings import SettingCodes
+from h2.utilities import extract_method_header
 
 from six.moves.urllib.parse import urlsplit, urlunsplit
+
+from mod_pywebsocket import dispatch
+from mod_pywebsocket.handshake import HandshakeException
 
 from . import routes as default_routes
 from .config import ConfigBuilder
@@ -26,8 +32,9 @@ from .logger import get_logger
 from .request import Server, Request, H2Request
 from .response import Response, H2Response
 from .router import Router
-from .utils import HTTPException, isomorphic_decode
+from .utils import HTTPException, isomorphic_decode, isomorphic_encode
 from .constants import h2_headers
+from .ws_h2_handshake import WsH2Handshaker
 
 # We need to stress test that browsers can send/receive many headers (there is
 # no specified limit), but the Python stdlib has an arbitrary limit of 100
@@ -131,7 +138,7 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
     daemon_threads = True
 
     def __init__(self, server_address, request_handler_cls,
-                 router, rewriter, bind_address,
+                 router, rewriter, bind_address, ws_doc_root=None,
                  config=None, use_ssl=False, key_file=None, certificate=None,
                  encrypt_after_connect=False, latency=None, http2=False, **kwargs):
         """Server for HTTP(s) Requests
@@ -155,6 +162,8 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
         :param key_file: Path to key file to use if SSL is enabled.
 
         :param certificate: Path to certificate to use if SSL is enabled.
+
+        :param ws_doc_root: Document root for websockets
 
         :param encrypt_after_connect: For each connection, don't start encryption
                                       until a CONNECT message has been received.
@@ -195,6 +204,7 @@ class WebTestServer(ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
 
 
+        self.ws_doc_root = ws_doc_root
         self.key_file = key_file
         self.certificate = certificate
         self.encrypt_after_connect = use_ssl and encrypt_after_connect
@@ -353,6 +363,14 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
         self.logger.debug('(%s) Initiating h2 Connection' % self.uid)
 
         with self.conn as connection:
+            # Bootstrapping WebSockets with HTTP/2 specification requires
+            # ENABLE_CONNECT_PROTOCOL to be set in order to enable WebSocket
+            # over HTTP/2
+            new_settings = dict(connection.local_settings)
+            new_settings[SettingCodes.ENABLE_CONNECT_PROTOCOL] = 1
+            connection.local_settings.update(new_settings)
+            connection.local_settings.acknowledge()
+
             connection.initiate_connection()
             data = connection.data_to_send()
             window_size = connection.remote_settings.initial_window_size
@@ -406,6 +424,24 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
             for stream_id, (thread, queue) in stream_queues.items():
                 thread.join()
 
+    def _is_extended_connect_frame(self, frame):
+        if not isinstance(frame, RequestReceived):
+            return False
+
+        method = extract_method_header(frame.headers)
+        if method != "CONNECT":
+            return False
+
+        protocol = ""
+        for key, value in frame.headers:
+            if key in (b':protocol', u':protocol'):
+                protocol = isomorphic_encode(value)
+                break
+        if protocol != "websocket":
+            raise ProtocolError("Invalid protocol %s with CONNECT METHOD" % (protocol,))
+
+        return True
+
     def start_stream_thread(self, frame, queue):
         """
         This starts a new thread to handle frames for a specific stream.
@@ -413,12 +449,90 @@ class Http2WebTestRequestHandler(BaseWebTestRequestHandler):
         :param queue: A queue object that the thread will use to check for new frames
         :return: The thread object that has already been started
         """
+        if self._is_extended_connect_frame(frame):
+            target = Http2WebTestRequestHandler._stream_ws_thread
+        else:
+            target = Http2WebTestRequestHandler._stream_thread
         t = threading.Thread(
-            target=Http2WebTestRequestHandler._stream_thread,
+            target=target,
             args=(self, frame.stream_id, queue)
         )
         t.start()
         return t
+
+    def _stream_ws_thread(self, stream_id, queue):
+        frame = queue.get(True, None)
+
+        rfile, wfile = os.pipe()
+        rfile, wfile = os.fdopen(rfile, 'rb'), os.fdopen(wfile, 'wb', 0)  # needs to be unbuffer for websockets
+        stream_handler = H2HandlerCopy(self, frame, rfile)
+
+        h2request = H2Request(stream_handler)
+        h2response = H2Response(stream_handler, h2request)
+
+        dispatcher = dispatch.Dispatcher(self.server.ws_doc_root, None, False)
+        if not dispatcher.get_handler_suite(stream_handler.path):
+            h2response.set_error(404)
+            h2response.write()
+            return
+
+        request_wrapper = _WebSocketRequest(stream_handler, h2response)
+
+        handshaker = WsH2Handshaker(request_wrapper, dispatcher)
+        try:
+            handshaker.do_handshake()
+        except HandshakeException as e:
+            self.logger.info('Handshake failed for error: %s', e)
+            h2response.set_error(e.status)
+            h2response.write()
+            return
+
+        # h2 Handshaker prepares the headers but does not send them down the
+        # wire. Flush the headers here.
+        h2response.write_status_headers()
+
+        request_wrapper._dispatcher = dispatcher
+
+        # we need two threads:
+        # - one to handle the frame queue
+        # - one to handle the request (dispatcher.transfer_data is blocking)
+        # the alternative is to have only one (blocking) thread. That thread
+        # will call transfer_data. That would require a special case in
+        # handle_one_request, to bypass the queue and write data to wfile
+        # directly.
+        t = threading.Thread(
+            target=Http2WebTestRequestHandler._stream_ws_sub_thread,
+            args=(self, request_wrapper, stream_handler, queue)
+        )
+        t.start()
+
+        while not self.close_connection:
+            frame = queue.get(True, None)
+
+            if isinstance(frame, DataReceived):
+                wfile.write(frame.data)
+                if frame.stream_ended:
+                    raise NotImplementedError("frame.stream_ended")
+                    wfile.close()
+            elif frame is None or isinstance(frame, (StreamReset, StreamEnded, ConnectionTerminated)):
+                self.logger.debug('(%s - %s) Stream Reset, Thread Closing' % (self.uid, stream_id))
+                break
+
+        t.join()
+
+    def _stream_ws_sub_thread(self, request, stream_handler, queue):
+        dispatcher = request._dispatcher
+        dispatcher.transfer_data(request)
+
+        stream_id = stream_handler.h2_stream_id
+        with stream_handler.conn as connection:
+            try:
+                connection.end_stream(stream_id)
+                data = connection.data_to_send()
+                stream_handler.request.sendall(data)
+            except StreamClosedError:  # maybe the stream has already been closed
+                pass
+        queue.put(None)
 
     def _stream_thread(self, stream_id, queue):
         """
@@ -599,6 +713,7 @@ class WebTestHttpd(object):
                                   self-proxy.
     :param router_cls: Router class to use when matching URLs to handlers
     :param doc_root: Document root for serving files
+    :param ws_doc_root: Document root for websockets
     :param routes: List of routes with which to initialize the router
     :param rewriter_cls: Class to use for request rewriter
     :param rewrites: List of rewrites with which to initialize the rewriter_cls
@@ -641,7 +756,7 @@ class WebTestHttpd(object):
     def __init__(self, host="127.0.0.1", port=8000,
                  server_cls=None, handler_cls=Http1WebTestRequestHandler,
                  use_ssl=False, key_file=None, certificate=None, encrypt_after_connect=False,
-                 router_cls=Router, doc_root=os.curdir, routes=None,
+                 router_cls=Router, doc_root=os.curdir, ws_doc_root=None, routes=None,
                  rewriter_cls=RequestRewriter, bind_address=True, rewrites=None,
                  latency=None, config=None, http2=False):
 
@@ -673,6 +788,7 @@ class WebTestHttpd(object):
                                     self.rewriter,
                                     config=config,
                                     bind_address=bind_address,
+                                    ws_doc_root=ws_doc_root,
                                     use_ssl=use_ssl,
                                     key_file=key_file,
                                     certificate=certificate,
@@ -727,3 +843,54 @@ class WebTestHttpd(object):
         return urlunsplit(("http" if not self.use_ssl else "https",
                            "%s:%s" % (self.host, self.port),
                            path, query, fragment))
+
+
+class _WebSocketConnection(object):
+    def __init__(self, request_handler, response):
+        """Mimic mod_python mp_conn.
+
+        :param request_handler: A H2HandlerCopy instance.
+
+        :param response: A H2Response instance.
+        """
+
+        self._request_handler = request_handler
+        self._response = response
+
+        self.remote_addr = self._request_handler.client_address
+
+    def write(self, data):
+        self._response.writer.write_data(data, False)
+
+    def read(self, length):
+        return self._request_handler.rfile.read(length)
+
+
+class _WebSocketRequest(object):
+    def __init__(self, request_handler, response):
+        """Mimic mod_python request.
+
+        :param request_handler: A H2HandlerCopy instance.
+
+        :param response: A H2Response instance.
+        """
+
+        self.connection = _WebSocketConnection(request_handler, response)
+        self._response = response
+
+        self.uri = request_handler.path
+        self.unparsed_uri = request_handler.path
+        self.method = request_handler.command
+        # read headers from request_handler
+        self.headers_in = request_handler.headers
+        # write headers directly into H2Response
+        self.headers_out = response.headers
+
+    # proxies status to H2Response
+    @property
+    def status(self):
+        return self._response.status
+
+    @status.setter
+    def status(self, status):
+        self._response.status = status

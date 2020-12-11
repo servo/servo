@@ -1,6 +1,5 @@
 from tests.support.asserts import assert_error, assert_success
 from tests.support.helpers import element_rect
-from tests.support.inline import inline
 
 
 def get_element_rect(session, element_id):
@@ -35,7 +34,7 @@ def test_element_not_found(session):
     assert_error(result, "no such element")
 
 
-def test_element_stale(session):
+def test_element_stale(session, inline):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
     session.refresh()
@@ -44,7 +43,7 @@ def test_element_stale(session):
     assert_error(result, "stale element reference")
 
 
-def test_basic(session):
+def test_basic(session, inline):
     session.url = inline("<input>")
     element = session.find.css("input", all=False)
 

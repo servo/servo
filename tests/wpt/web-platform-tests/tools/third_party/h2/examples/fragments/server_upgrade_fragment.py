@@ -45,14 +45,14 @@ def receive_initial_request(connection):
         data += connection.recv(8192)
 
     match = re.search(b'Upgrade: h2c\r\n', data)
-    if match is not None:
+    if match is None:
         raise RuntimeError("HTTP/2 upgrade not requested!")
 
     # We need to look for the HTTP2-Settings header field. Again, in production
     # code you shouldn't use regular expressions for this, but it's good enough
     # for the example.
     match = re.search(b'HTTP2-Settings: (\\S+)\r\n', data)
-    if match is not None:
+    if match is None:
         raise RuntimeError("HTTP2-Settings header field not present!")
 
     return match.group(1)

@@ -3,7 +3,6 @@
 import pytest
 
 from tests.support.asserts import assert_error, assert_success, assert_dialog_handled
-from tests.support.inline import inline
 
 
 def get_element_property(session, element_id, name):
@@ -13,7 +12,7 @@ def get_element_property(session, element_id, name):
 
 
 @pytest.fixture
-def check_user_prompt_closed_without_exception(session, create_dialog):
+def check_user_prompt_closed_without_exception(session, create_dialog, inline):
     def check_user_prompt_closed_without_exception(dialog_type, retval):
         session.url = inline("<input id=foo>")
         element = session.find.css("#foo", all=False)
@@ -29,7 +28,7 @@ def check_user_prompt_closed_without_exception(session, create_dialog):
 
 
 @pytest.fixture
-def check_user_prompt_closed_with_exception(session, create_dialog):
+def check_user_prompt_closed_with_exception(session, create_dialog, inline):
     def check_user_prompt_closed_with_exception(dialog_type, retval):
         session.url = inline("<input id=foo>")
         element = session.find.css("#foo", all=False)
@@ -45,7 +44,7 @@ def check_user_prompt_closed_with_exception(session, create_dialog):
 
 
 @pytest.fixture
-def check_user_prompt_not_closed_but_exception(session, create_dialog):
+def check_user_prompt_not_closed_but_exception(session, create_dialog, inline):
     def check_user_prompt_not_closed_but_exception(dialog_type):
         session.url = inline("<input id=foo>")
         element = session.find.css("#foo", all=False)

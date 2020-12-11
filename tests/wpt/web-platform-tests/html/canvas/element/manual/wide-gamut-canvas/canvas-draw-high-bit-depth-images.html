@@ -29,14 +29,16 @@ function runTest(testScenario) {
             var refCtx = refCanvas.getContext(
                 '2d', testScenario.canvasColorParams);
             refCtx.drawImage(_8bitImage, 0, 0);
-            var refPixels = refCtx.getImageData(0, 0, 2, 2).data;
+            var refPixels = refCtx.getImageData(0, 0, 2, 2,
+                testScenario.imageSetting).data;
 
             var testCanvas = document.createElement("canvas");
             testCanvas.width = testCanvas.height = 2;
             var testCtx = testCanvas.getContext(
                 '2d', testScenario.canvasColorParams);
             testCtx.drawImage(_16bitImage, 0, 0);
-            var testPixels = testCtx.getImageData(0, 0, 2, 2).data;
+            var testPixels = testCtx.getImageData(0, 0, 2, 2,
+                testScenario.imageSetting).data;
 
             assert_array_approx_equals(refPixels, testPixels, tolerance);
 
@@ -73,6 +75,11 @@ function runAllTests() {
         {colorSpace: 'srgb', pixelFormat: 'float16'},
     ];
 
+    var imageSettings = [
+        {colorSpace: 'srgb', storageFormat: 'uint8'},
+        {colorSpace: 'srgb', storageFormat: 'float32'},
+    ];
+
     var testScenarioSet = [];
     var id = 1;
     for (var i = 0; i < canvasColorParams.length; i++) {
@@ -81,6 +88,7 @@ function runAllTests() {
                 for (var m = 0; m < pngInterlaceStatus.length; m++) {
                     var testScenario = {};
                     testScenario.canvasColorParams = canvasColorParams[i];
+                    testScenario.imageSetting = imageSettings[i];
                     testScenario._8bitImagePath = _8bitPngPrefix +
                         pngColorSpaces[j] + pngTransparencyStatus[k] + ".png";
                     testScenario._16bitImagePath = _16bitPngPrefix +

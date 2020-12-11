@@ -12,7 +12,9 @@ import h2.exceptions
 import h2.settings
 
 from hypothesis import given, assume
-from hypothesis.strategies import integers
+from hypothesis.strategies import (
+    integers, booleans, fixed_dictionaries, builds
+)
 
 
 class TestSettings(object):
@@ -29,6 +31,7 @@ class TestSettings(object):
         assert s[h2.settings.SettingCodes.ENABLE_PUSH] == 1
         assert s[h2.settings.SettingCodes.INITIAL_WINDOW_SIZE] == 65535
         assert s[h2.settings.SettingCodes.MAX_FRAME_SIZE] == 16384
+        assert s[h2.settings.SettingCodes.ENABLE_CONNECT_PROTOCOL] == 0
 
     def test_settings_defaults_server(self):
         """
@@ -40,6 +43,7 @@ class TestSettings(object):
         assert s[h2.settings.SettingCodes.ENABLE_PUSH] == 0
         assert s[h2.settings.SettingCodes.INITIAL_WINDOW_SIZE] == 65535
         assert s[h2.settings.SettingCodes.MAX_FRAME_SIZE] == 16384
+        assert s[h2.settings.SettingCodes.ENABLE_CONNECT_PROTOCOL] == 0
 
     @pytest.mark.parametrize('client', [True, False])
     def test_can_set_initial_values(self, client):
@@ -52,6 +56,7 @@ class TestSettings(object):
             h2.settings.SettingCodes.MAX_FRAME_SIZE: 16388,
             h2.settings.SettingCodes.MAX_CONCURRENT_STREAMS: 100,
             h2.settings.SettingCodes.MAX_HEADER_LIST_SIZE: 2**16,
+            h2.settings.SettingCodes.ENABLE_CONNECT_PROTOCOL: 1,
         }
         s = h2.settings.Settings(client=client, initial_values=overrides)
 
@@ -61,6 +66,7 @@ class TestSettings(object):
         assert s[h2.settings.SettingCodes.MAX_FRAME_SIZE] == 16388
         assert s[h2.settings.SettingCodes.MAX_CONCURRENT_STREAMS] == 100
         assert s[h2.settings.SettingCodes.MAX_HEADER_LIST_SIZE] == 2**16
+        assert s[h2.settings.SettingCodes.ENABLE_CONNECT_PROTOCOL] == 1
 
     @pytest.mark.parametrize(
         'setting,value',
@@ -72,6 +78,7 @@ class TestSettings(object):
             (h2.settings.SettingCodes.MAX_FRAME_SIZE, 1),
             (h2.settings.SettingCodes.MAX_FRAME_SIZE, 2**30),
             (h2.settings.SettingCodes.MAX_HEADER_LIST_SIZE, -1),
+            (h2.settings.SettingCodes.ENABLE_CONNECT_PROTOCOL, -1),
         ]
     )
     def test_cannot_set_invalid_initial_values(self, setting, value):
@@ -106,6 +113,7 @@ class TestSettings(object):
             h2.settings.SettingCodes.ENABLE_PUSH: 0,
             h2.settings.SettingCodes.INITIAL_WINDOW_SIZE: 60,
             h2.settings.SettingCodes.MAX_FRAME_SIZE: 16385,
+            h2.settings.SettingCodes.ENABLE_CONNECT_PROTOCOL: 1,
         }
         s.update(new_settings)
 
@@ -169,16 +177,16 @@ class TestSettings(object):
         Length is related only to the number of keys.
         """
         s = h2.settings.Settings(client=True)
-        assert len(s) == 4
+        assert len(s) == 5
 
         s[h2.settings.SettingCodes.HEADER_TABLE_SIZE] == 8000
-        assert len(s) == 4
+        assert len(s) == 5
 
         s.acknowledge()
-        assert len(s) == 4
+        assert len(s) == 5
 
         del s[h2.settings.SettingCodes.HEADER_TABLE_SIZE]
-        assert len(s) == 3
+        assert len(s) == 4
 
     def test_new_values_work(self):
         """
@@ -232,6 +240,9 @@ class TestSettings(object):
         assert s.max_frame_size == s[h2.settings.SettingCodes.MAX_FRAME_SIZE]
         assert s.max_concurrent_streams == 2**32 + 1  # A sensible default.
         assert s.max_header_list_size is None
+        assert s.enable_connect_protocol == s[
+            h2.settings.SettingCodes.ENABLE_CONNECT_PROTOCOL
+        ]
 
     def test_settings_setters(self):
         """
@@ -245,6 +256,7 @@ class TestSettings(object):
         s.max_frame_size = 16385
         s.max_concurrent_streams = 4
         s.max_header_list_size = 2**16
+        s.enable_connect_protocol = 1
 
         s.acknowledge()
         assert s[h2.settings.SettingCodes.HEADER_TABLE_SIZE] == 0
@@ -253,6 +265,7 @@ class TestSettings(object):
         assert s[h2.settings.SettingCodes.MAX_FRAME_SIZE] == 16385
         assert s[h2.settings.SettingCodes.MAX_CONCURRENT_STREAMS] == 4
         assert s[h2.settings.SettingCodes.MAX_HEADER_LIST_SIZE] == 2**16
+        assert s[h2.settings.SettingCodes.ENABLE_CONNECT_PROTOCOL] == 1
 
     @given(integers())
     def test_cannot_set_invalid_values_for_enable_push(self, val):
@@ -361,131 +374,97 @@ class TestSettings(object):
             with pytest.raises(KeyError):
                 s[h2.settings.SettingCodes.MAX_HEADER_LIST_SIZE]
 
+    @given(integers())
+    def test_cannot_set_invalid_values_for_enable_connect_protocol(self, val):
+        """
+        SETTINGS_ENABLE_CONNECT_PROTOCOL only allows two values: 0, 1.
+        """
+        assume(val not in (0, 1))
+        s = h2.settings.Settings()
+
+        with pytest.raises(h2.exceptions.InvalidSettingsValueError) as e:
+            s.enable_connect_protocol = val
+
+        s.acknowledge()
+        assert e.value.error_code == h2.errors.ErrorCodes.PROTOCOL_ERROR
+        assert s.enable_connect_protocol == 0
+
+        with pytest.raises(h2.exceptions.InvalidSettingsValueError) as e:
+            s[h2.settings.SettingCodes.ENABLE_CONNECT_PROTOCOL] = val
+
+        s.acknowledge()
+        assert e.value.error_code == h2.errors.ErrorCodes.PROTOCOL_ERROR
+        assert s[h2.settings.SettingCodes.ENABLE_CONNECT_PROTOCOL] == 0
+
 
 class TestSettingsEquality(object):
     """
     A class defining tests for the standard implementation of == and != .
     """
 
-    def an_instance(self):
-        """
-        Return an instance of the class under test.  Each call to this method
-        must return a different object.  All objects returned must be equal to
-        each other.
-        """
-        overrides = {
-            h2.settings.SettingCodes.HEADER_TABLE_SIZE: 0,
-            h2.settings.SettingCodes.MAX_FRAME_SIZE: 16384,
-            h2.settings.SettingCodes.MAX_CONCURRENT_STREAMS: 4,
-            h2.settings.SettingCodes.MAX_HEADER_LIST_SIZE: 2**16,
-        }
-        return h2.settings.Settings(client=True, initial_values=overrides)
+    SettingsStrategy = builds(
+        h2.settings.Settings,
+        client=booleans(),
+        initial_values=fixed_dictionaries({
+            h2.settings.SettingCodes.HEADER_TABLE_SIZE:
+                integers(0, 2**32 - 1),
+            h2.settings.SettingCodes.ENABLE_PUSH: integers(0, 1),
+            h2.settings.SettingCodes.INITIAL_WINDOW_SIZE:
+                integers(0, 2**31 - 1),
+            h2.settings.SettingCodes.MAX_FRAME_SIZE:
+                integers(2**14, 2**24 - 1),
+            h2.settings.SettingCodes.MAX_CONCURRENT_STREAMS:
+                integers(0, 2**32 - 1),
+            h2.settings.SettingCodes.MAX_HEADER_LIST_SIZE:
+                integers(0, 2**32 - 1),
+        })
+    )
 
-    def another_instance(self):
+    @given(settings=SettingsStrategy)
+    def test_equality_reflexive(self, settings):
         """
-        Return an instance of the class under test.  Each call to this method
-        must return a different object.  The objects must not be equal to the
-        objects returned by an_instance.  They may or may not be equal to
-        each other (they will not be compared against each other).
+        An object compares equal to itself using the == operator and the !=
+        operator.
         """
-        overrides = {
-            h2.settings.SettingCodes.HEADER_TABLE_SIZE: 8080,
-            h2.settings.SettingCodes.MAX_FRAME_SIZE: 16388,
-            h2.settings.SettingCodes.MAX_CONCURRENT_STREAMS: 100,
-            h2.settings.SettingCodes.MAX_HEADER_LIST_SIZE: 2**16,
-        }
-        return h2.settings.Settings(client=False, initial_values=overrides)
+        assert (settings == settings)
+        assert not (settings != settings)
 
-    def test_identical_eq(self):
+    @given(settings=SettingsStrategy, o_settings=SettingsStrategy)
+    def test_equality_multiple(self, settings, o_settings):
         """
-        An object compares equal to itself using the == operator.
+        Two objects compare themselves using the == operator and the !=
+        operator.
         """
-        o = self.an_instance()
-        assert (o == o)
+        if settings == o_settings:
+            assert settings == o_settings
+            assert not (settings != o_settings)
+        else:
+            assert settings != o_settings
+            assert not (settings == o_settings)
 
-    def test_identical_ne(self):
-        """
-        An object doesn't compare not equal to itself using the != operator.
-        """
-        o = self.an_instance()
-        assert not (o != o)
-
-    def test_same_eq(self):
-        """
-        Two objects that are equal to each other compare equal to each other
-        using the == operator.
-        """
-        a = self.an_instance()
-        b = self.an_instance()
-        assert (a == b)
-
-    def test_same_ne(self):
-        """
-        Two objects that are equal to each other do not compare not equal to
-        each other using the != operator.
-        """
-        a = self.an_instance()
-        b = self.an_instance()
-        assert not (a != b)
-
-    def test_different_eq(self):
-        """
-        Two objects that are not equal to each other do not compare equal to
-        each other using the == operator.
-        """
-        a = self.an_instance()
-        b = self.another_instance()
-        assert not (a == b)
-
-    def test_different_ne(self):
-        """
-        Two objects that are not equal to each other compare not equal to each
-        other using the != operator.
-        """
-        a = self.an_instance()
-        b = self.another_instance()
-        assert (a != b)
-
-    def test_another_type_eq(self):
+    @given(settings=SettingsStrategy)
+    def test_another_type_equality(self, settings):
         """
         The object does not compare equal to an object of an unrelated type
         (which does not implement the comparison) using the == operator.
         """
-        a = self.an_instance()
-        b = object()
-        assert not (a == b)
+        obj = object()
+        assert (settings != obj)
+        assert not (settings == obj)
 
-    def test_another_type_ne(self):
+    @given(settings=SettingsStrategy)
+    def test_delegated_eq(self, settings):
         """
-        The object compares not equal to an object of an unrelated type (which
-        does not implement the comparison) using the != operator.
-        """
-        a = self.an_instance()
-        b = object()
-        assert (a != b)
-
-    def test_delegated_eq(self):
-        """
-        The result of comparison using == is delegated to the right-hand
-        operand if it is of an unrelated type.
+        The result of comparison is delegated to the right-hand operand if
+        it is of an unrelated type.
         """
         class Delegate(object):
             def __eq__(self, other):
                 return [self]
 
-        a = self.an_instance()
-        b = Delegate()
-        assert (a == b) == [b]
-
-    def test_delegate_ne(self):
-        """
-        The result of comparison using != is delegated to the right-hand
-        operand if it is of an unrelated type.
-        """
-        class Delegate(object):
             def __ne__(self, other):
                 return [self]
 
-        a = self.an_instance()
-        b = Delegate()
-        assert (a != b) == [b]
+        delg = Delegate()
+        assert (settings == delg) == [delg]
+        assert (settings != delg) == [delg]

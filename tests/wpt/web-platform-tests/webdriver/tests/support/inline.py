@@ -24,31 +24,8 @@ MIME_TYPES = {
     "xml": "text/xml",
 }
 
-def inline(src, doctype="html", mime=None, charset=None, **kwargs):
-    """
-    Takes a source extract and produces well-formed documents.
 
-    Based on the desired document type, the extract is embedded with
-    predefined boilerplate in order to produce well-formed documents.
-    The media type and character set may also be individually configured.
-
-    This helper function originally used data URLs, but since these
-    are not universally supported (or indeed standardised!) across
-    browsers, it now delegates the serving of the document to wptserve.
-    This file also acts as a wptserve handler (see the main function
-    below) which configures the HTTP response using query parameters.
-
-    This function returns a URL to the wptserve handler, which in turn
-    will serve an HTTP response with the requested source extract
-    inlined in a well-formed document, and the Content-Type header
-    optionally configured using the desired media type and character set.
-
-    Any additional keyword arguments are passed on to the build_url
-    function.
-    """
-    from .fixtures import server_config, url
-    build_url = url(server_config())
-
+def build_inline(build_url, src, doctype="html", mime=None, charset=None, **kwargs):
     if mime is None:
         mime = MIME_TYPES[doctype]
     if charset is None:
@@ -60,11 +37,6 @@ def inline(src, doctype="html", mime=None, charset=None, **kwargs):
         "/webdriver/tests/support/inline.py",
         query=urlencode(query),
         **kwargs)
-
-
-def iframe(src, **kwargs):
-    """Inlines document extract as the source document of an <iframe>."""
-    return "<iframe src='{}'></iframe>".format(inline(src, **kwargs))
 
 
 def main(request, response):

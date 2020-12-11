@@ -30,8 +30,8 @@ from h2.events import (
 )
 
 
-AUTHORITY = u'http2bin.org'
-PATH = '/post'
+AUTHORITY = u'nghttp2.org'
+PATH = '/httpbin/post'
 
 
 class H2Protocol(Protocol):

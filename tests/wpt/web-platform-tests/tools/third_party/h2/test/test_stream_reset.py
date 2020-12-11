@@ -70,8 +70,8 @@ class TestStreamReset(object):
                                                      other_id,
                                                      frame_factory):
         """
-        A stream that has been reset still affects the connection flow control
-        window.
+        A stream that has been reset does not affect the connection flow
+        control window.
         """
         c = h2.connection.H2Connection()
         c.initiate_connection()
@@ -89,19 +89,19 @@ class TestStreamReset(object):
         c.clear_outbound_data_buffer()
 
         f = frame_factory.build_data_frame(
-            data=b'some data!',
+            data=b'some data',
             stream_id=close_id
         )
-        events = c.receive_data(f.serialize())
+        c.receive_data(f.serialize())
 
-        rst_frame = frame_factory.build_rst_stream_frame(
-            close_id, h2.errors.ErrorCodes.STREAM_CLOSED
-        )
-        assert not events
-        assert c.data_to_send() == rst_frame.serialize()
+        expected = frame_factory.build_rst_stream_frame(
+            stream_id=close_id,
+            error_code=h2.errors.ErrorCodes.STREAM_CLOSED,
+        ).serialize()
+        assert c.data_to_send() == expected
 
         new_window = c.remote_flow_control_window(stream_id=other_id)
-        assert initial_window - len(b'some data!') == new_window
+        assert initial_window - len(b'some data') == new_window
 
     @pytest.mark.parametrize('clear_streams', [True, False])
     def test_reset_stream_automatically_resets_pushed_streams(self,

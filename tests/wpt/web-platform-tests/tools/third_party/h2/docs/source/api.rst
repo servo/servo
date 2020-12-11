@@ -53,7 +53,10 @@ Events
 .. autoclass:: h2.events.RemoteSettingsChanged
    :members:
 
-.. autoclass:: h2.events.PingAcknowledged
+.. autoclass:: h2.events.PingReceived
+   :members:
+
+.. autoclass:: h2.events.PingAckReceived
    :members:
 
 .. autoclass:: h2.events.StreamEnded

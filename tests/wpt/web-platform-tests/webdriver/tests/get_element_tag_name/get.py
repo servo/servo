@@ -1,5 +1,4 @@
 from tests.support.asserts import assert_error, assert_success
-from tests.support.inline import inline
 
 
 def get_element_tag_name(session, element_id):
@@ -31,7 +30,7 @@ def test_element_not_found(session):
     assert_error(result, "no such element")
 
 
-def test_element_stale(session):
+def test_element_stale(session, inline):
     session.url = inline("<input id=foo>")
     element = session.find.css("input", all=False)
     session.refresh()
@@ -40,7 +39,7 @@ def test_element_stale(session):
     assert_error(result, "stale element reference")
 
 
-def test_get_element_tag_name(session):
+def test_get_element_tag_name(session, inline):
     session.url = inline("<input id=foo>")
     element = session.find.css("input", all=False)
 

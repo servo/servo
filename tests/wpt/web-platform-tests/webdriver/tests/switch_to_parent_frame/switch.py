@@ -3,7 +3,6 @@ import pytest
 from webdriver import StaleElementReferenceException
 
 from tests.support.asserts import assert_error, assert_success
-from tests.support.inline import inline, iframe
 
 
 def switch_to_parent_frame(session):
@@ -11,7 +10,7 @@ def switch_to_parent_frame(session):
         "POST", "session/{session_id}/frame/parent".format(**vars(session)))
 
 
-def test_null_response_value(session):
+def test_null_response_value(session, inline, iframe):
     session.url = inline(iframe("<p>foo"))
     frame_element = session.find.css("iframe", all=False)
     session.switch_frame(frame_element)
@@ -63,7 +62,7 @@ def test_no_browsing_context_when_already_top_level(session, closed_window):
     assert_error(response, "no such window")
 
 
-def test_switch_from_iframe(session):
+def test_switch_from_iframe(session, inline, iframe):
     session.url = inline(iframe("<p>foo"))
     frame_element = session.find.css("iframe", all=False)
     session.switch_frame(frame_element)
@@ -76,7 +75,7 @@ def test_switch_from_iframe(session):
         stale_element.text
 
 
-def test_switch_from_top_level(session):
+def test_switch_from_top_level(session, inline):
     session.url = inline("<p>foo")
     element = session.find.css("p", all=False)
 

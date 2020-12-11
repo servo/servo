@@ -638,6 +638,42 @@ class TestFlowControl(object):
         with pytest.raises(h2.exceptions.FlowControlError):
             c.increment_flow_control_window(increment=increment, stream_id=1)
 
+    def test_send_update_on_closed_streams(self, frame_factory):
+        c = h2.connection.H2Connection()
+        c.initiate_connection()
+        c.send_headers(1, self.example_request_headers)
+        c.reset_stream(1)
+
+        c.clear_outbound_data_buffer()
+        c.open_outbound_streams
+        c.open_inbound_streams
+
+        f = frame_factory.build_data_frame(b'some data'*1500)
+        events = c.receive_data(f.serialize()*3)
+        assert not events
+
+        expected = frame_factory.build_rst_stream_frame(
+            stream_id=1,
+            error_code=h2.errors.ErrorCodes.STREAM_CLOSED,
+        ).serialize() * 2 + frame_factory.build_window_update_frame(
+            stream_id=0,
+            increment=40500,
+        ).serialize() + frame_factory.build_rst_stream_frame(
+            stream_id=1,
+            error_code=h2.errors.ErrorCodes.STREAM_CLOSED,
+        ).serialize()
+        assert c.data_to_send() == expected
+
+        f = frame_factory.build_data_frame(b'')
+        events = c.receive_data(f.serialize())
+        assert not events
+
+        expected = frame_factory.build_rst_stream_frame(
+            stream_id=1,
+            error_code=h2.errors.ErrorCodes.STREAM_CLOSED,
+        ).serialize()
+        assert c.data_to_send() == expected
+
 
 class TestAutomaticFlowControl(object):
     """
